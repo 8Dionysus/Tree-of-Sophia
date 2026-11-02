@@ -1,6 +1,6 @@
 //! The maintained nine-table intake contract and derived registry counts.
 //! Structural success does not promote candidates to canon.
-use crate::route_cards::RouteSources;
+use crate::source_reading::RouteSources;
 use serde_json::Value;
 use std::{
     collections::{BTreeMap, BTreeSet},

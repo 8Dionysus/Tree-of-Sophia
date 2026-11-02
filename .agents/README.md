@@ -2,15 +2,14 @@
 
 This guide connects optional profile bindings, repository cards and local
 owner ports. The authored [manifest](agent-surface.manifest.json) holds exact
-bindings, task probes and budgets; `agent-surface.current.json` is rebuilt
-structural evidence.
+bindings, task probes and context guidance.
 
 ## Contributor route and optional profile
 
 ToS has no repository-local projection of shared or sibling-owned skills.
-Default validation checks portable declarations, owner references, boundaries,
-ports and task probes. It does not require a personal Codex profile, sibling
-checkout or installed tools, and does not inspect HOME or installation.
+Review portable declarations, owner references, boundaries, ports and task
+probes by hand. Review needs no personal Codex profile, sibling checkout or
+installed tools.
 
 The manifest's historical `os-user-default` binding is optional. Its source and
 installer belong to `aoa-skills`; a declaration does not select, install or
@@ -45,9 +44,8 @@ deferred; host workflows and owner grants retain their actual authorization.
 
 ## Context and safety
 
-The manifest measures description/body size and mandatory route depth as soft
-context budgets. These measurements detect drift; they do not establish useful
-model behavior or task completion.
+The manifest records description and body size and mandatory route depth as
+context guidance.
 
 Public guidance excludes host-local paths, secrets, session snapshots, provider
 internals, transient runtime claims and operator evidence. Keep such material
@@ -55,9 +53,5 @@ in task-local or owner-controlled status and receipt surfaces.
 
 ## Validation
 
-Use the `agent_surface` lane through [root validation](../VALIDATION.md).
-The builder proves map/read-model parity; the default validator checks portable
-shape, zero local projections, owner ports, task-probe controls and public
-safety. `contributor_profile_binding_issues` checks portable owner references;
-`profile_binding_issues` separately checks exact historical `os-user-default`
-v1 identity for explicit callers. Neither proves installation or runtime health.
+Review the manifest, owner references and public-safety boundaries by hand.
+CI checks the size of every AGENTS.md.

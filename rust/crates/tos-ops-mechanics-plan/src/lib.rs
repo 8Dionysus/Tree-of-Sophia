@@ -1,27 +1,13 @@
 //! Bounded discovery and dedicated native execution for mechanics-local validation.
 //! Lane selection and the planned tools retain their own authority.
 
-#[cfg(feature = "mechanics")]
-pub mod active_naming;
-#[cfg(feature = "mechanics")]
-pub mod agent_surface;
-#[cfg(feature = "mechanics")]
-pub mod agent_surface_exports;
-#[cfg(feature = "mechanics")]
-pub mod agent_surface_validation;
 pub mod ci_artifacts;
 #[cfg(target_os = "linux")]
 pub mod ci_verification;
 #[cfg(target_os = "linux")]
 mod conformance_products;
 #[cfg(feature = "mechanics")]
-pub mod decision_records;
-#[cfg(feature = "mechanics")]
 pub mod derived_kag;
-#[cfg(feature = "mechanics")]
-pub mod documentation_cross_corpus;
-#[cfg(feature = "mechanics")]
-pub mod documentation_family;
 pub mod executor;
 pub mod growth_coverage;
 pub mod growth_native_plan;
@@ -36,8 +22,6 @@ pub mod lived_witness;
 #[path = "../tests/mechanics_contracts/native.rs"]
 #[cfg(feature = "mechanics")]
 pub mod local_contracts;
-#[cfg(feature = "mechanics")]
-pub mod mechanics_topology;
 #[cfg(feature = "philosophy-library")]
 pub mod philosophy_graph_views;
 #[cfg(feature = "philosophy-library")]
@@ -72,15 +56,11 @@ pub mod tree_nodes;
 #[cfg(feature = "mechanics")]
 pub mod public_mirror;
 #[cfg(feature = "mechanics")]
-pub mod questbook;
-#[cfg(feature = "mechanics")]
 pub mod relation_pack;
 #[cfg(feature = "mechanics")]
 pub mod root_entry_map;
 #[cfg(any(feature = "mechanics", feature = "philosophy-library"))]
-pub mod route_cards;
-#[cfg(feature = "mechanics")]
-pub mod route_harness;
+pub mod source_reading;
 #[cfg(feature = "mechanics")]
 pub mod semantic_registry_transition;
 pub mod software_ci;
@@ -235,12 +215,6 @@ const NATIVE_MECHANICS: &[(&str, &str, &str, bool)] = &[
         false,
     ),
     (
-        "mechanics/questbook",
-        "validator",
-        "--questbook-validate",
-        false,
-    ),
-    (
         "mechanics/relation-weaving/parts/graph-promotion",
         "validator",
         "--relation-pack-validate",
@@ -287,7 +261,6 @@ pub fn discover(root: &Path) -> io::Result<Plan> {
             name.as_str(),
             "mechanics/agon/parts/threshold-registry"
                 | "mechanics/experience"
-                | "mechanics/questbook"
         ) {
             test_homes.insert(home.clone());
         }
@@ -328,9 +301,9 @@ pub fn discover(root: &Path) -> io::Result<Plan> {
         .iter()
         .filter(|command| command.kind == "native_assertions")
         .count();
-    if native_count != 0 && native_count != 3 {
+    if native_count != 0 && native_count != 2 {
         return Err(invalid(
-            "native mechanics contracts require all three supported homes",
+            "native mechanics contracts require both supported homes",
         ));
     }
     let mut builders = Vec::new();
@@ -616,7 +589,6 @@ mod tests {
         for home in [
             "mechanics/agon/parts/threshold-registry",
             "mechanics/experience",
-            "mechanics/questbook",
         ] {
             fs::create_dir_all(root.join(home)).unwrap();
         }
@@ -626,13 +598,12 @@ mod tests {
             .iter()
             .filter(|c| c.kind == "native_assertions")
             .collect::<Vec<_>>();
-        assert_eq!(native.len(), 3);
+        assert_eq!(native.len(), 2);
         assert_eq!(
             native.iter().map(|c| c.home.as_str()).collect::<Vec<_>>(),
             [
                 "mechanics/agon/parts/threshold-registry",
                 "mechanics/experience",
-                "mechanics/questbook"
             ]
         );
         for command in native {
@@ -655,7 +626,6 @@ mod tests {
         for home in [
             "mechanics/agon/parts/threshold-registry",
             "mechanics/experience",
-            "mechanics/questbook",
             "mechanics/boundary-bridge/parts/public-mirror-sync",
             "mechanics/relation-weaving/parts/graph-promotion",
             "mechanics/release-support/parts/artifact-bundles",
@@ -663,7 +633,7 @@ mod tests {
             fs::create_dir_all(root.join(home)).unwrap();
         }
         let plan = discover(&root).unwrap();
-        assert_eq!(plan.commands.len(), 8);
+        assert_eq!(plan.commands.len(), 6);
         assert_eq!(
             plan.commands
                 .iter()
@@ -676,7 +646,7 @@ mod tests {
                 .iter()
                 .filter(|c| c.kind == "validator")
                 .count(),
-            4
+            3
         );
         assert!(
             plan.commands

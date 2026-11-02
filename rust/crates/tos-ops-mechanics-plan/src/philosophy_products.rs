@@ -5,7 +5,7 @@
 //! the sequential corpus-view composition.
 
 use crate::philosophy_graph_views;
-use crate::route_cards::RouteSources;
+use crate::source_reading::RouteSources;
 use serde_json::{Value, json};
 use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};

@@ -21,6 +21,5 @@ rationale, provenance, rights and review outcomes.
 
 ## Validation
 
-Use [docs/VALIDATION.md](VALIDATION.md) for route/documentation checks and
-native decision-index regeneration. Add the affected source-owner route when
+Use [docs/VALIDATION.md](VALIDATION.md) for documentation review and the hand-maintained decision index. Add the affected source-owner route when
 a guide changes an actual contract.

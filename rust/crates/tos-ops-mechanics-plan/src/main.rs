@@ -24,34 +24,14 @@ enum Action {
     },
     ThresholdValidate,
     RelationPackValidate,
-    QuestbookValidate,
     PublicMirrorValidate,
     PublicMirrorSync,
     DerivedKagValidate,
     DerivedKagGenerate,
-    MechanicsTopologyValidate,
-    ActiveNamingValidate,
-    AgentSurfaceBuild {
-        check: bool,
-    },
-    AgentSurfaceValidate,
-    AgentsRouteCurrentnessBuild {
-        check: bool,
-    },
-    NestedAgentsValidate,
-    AgentsRouteHarnessCheck,
     TinyEntryValidate,
     TreeNodeValidate,
     LivedWitnessValidate,
     IntakePackValidate,
-    DocumentationFamilyBuild {
-        check: bool,
-    },
-    DocumentationCrossCorpusValidate,
-    DecisionRecordsValidate,
-    DecisionIndexBuild {
-        check: bool,
-    },
     RootEntryMapBuild {
         check: bool,
     },
@@ -82,7 +62,6 @@ struct SemanticOptions {
     baseline_commit: Option<String>,
     allow_initial_introduction: bool,
     json_output: bool,
-    feedback_cache: Option<PathBuf>,
 }
 
 #[cfg(target_os = "linux")]
@@ -104,13 +83,10 @@ fn arguments() -> Result<(PathBuf, Action, Limits, SemanticOptions), String> {
     let mut threshold_build = false;
     let mut threshold_validate = false;
     let mut relation_pack_validate = false;
-    let mut questbook_validate = false;
     let mut public_mirror_validate = false;
     let mut public_mirror_sync = false;
     let mut derived_kag_validate = false;
     let mut derived_kag_generate = false;
-    let mut mechanics_topology_validate = false;
-    let mut active_naming_validate = false;
     let mut source_home = false;
     let mut witness_structure_validate = false;
     let mut philosophy_topology = false;
@@ -118,23 +94,14 @@ fn arguments() -> Result<(PathBuf, Action, Limits, SemanticOptions), String> {
     let (mut anchor_atlas, mut anchor_table, mut anchor_row, mut anchor_label) =
         (None, None, None, None);
     let mut semantic_registry_transition = false;
-    let mut agent_surface_build = false;
-    let mut agent_surface_validate = false;
-    let mut agents_route_currentness_build = false;
-    let mut nested_agents_validate = false;
-    let mut agents_route_harness_check = false;
     let mut tiny_entry_validate = false;
     let mut tree_node_validate = false;
     let mut lived_witness_validate = false;
     let mut intake_pack_validate = false;
-    let mut documentation_family_build = false;
-    let mut documentation_cross_corpus_validate = false;
     let mut root_entry_map_build = false;
     let mut root_entry_map_validate = false;
     let mut kag_source_export_build = false;
     let mut kag_source_export_verify = false;
-    let mut decision_records_validate = false;
-    let mut decision_index_build = false;
     #[cfg(feature = "compiler-backed-validators")]
     let mut philosophy_graph_views = false;
     #[cfg(not(feature = "compiler-backed-validators"))]
@@ -153,27 +120,10 @@ fn arguments() -> Result<(PathBuf, Action, Limits, SemanticOptions), String> {
             "--threshold-registry-build" => threshold_build = true,
             "--threshold-registry-validate" => threshold_validate = true,
             "--relation-pack-validate" => relation_pack_validate = true,
-            "--questbook-validate" => questbook_validate = true,
             "--public-mirror-validate" => public_mirror_validate = true,
             "--public-mirror-sync" => public_mirror_sync = true,
             "--derived-kag-validate" => derived_kag_validate = true,
             "--derived-kag-generate" => derived_kag_generate = true,
-            "--mechanics-topology-validate" => mechanics_topology_validate = true,
-            "--active-naming-validate" => active_naming_validate = true,
-            "--feedback-cache" => {
-                if semantic.feedback_cache.is_some() {
-                    return Err("duplicate feedback cache selection".into());
-                }
-                semantic.feedback_cache = Some(PathBuf::from(
-                    args.next().ok_or("missing feedback cache path")?,
-                ));
-            }
-            option if option.starts_with("--feedback-cache=") => {
-                if semantic.feedback_cache.is_some() {
-                    return Err("duplicate feedback cache selection".into());
-                }
-                semantic.feedback_cache = Some(PathBuf::from(&option["--feedback-cache=".len()..]));
-            }
             "--source-home" => source_home = true,
             "--witness-structure-validate" => witness_structure_validate = true,
             "--philosophy-topology" => philosophy_topology = true,
@@ -197,17 +147,10 @@ fn arguments() -> Result<(PathBuf, Action, Limits, SemanticOptions), String> {
                 )
             }
             "--semantic-registry-transition" => semantic_registry_transition = true,
-            "--agent-surface-build" => agent_surface_build = true,
-            "--agent-surface-validate" => agent_surface_validate = true,
-            "--agents-route-currentness-build" => agents_route_currentness_build = true,
-            "--nested-agents-validate" => nested_agents_validate = true,
-            "--agents-route-harness-check" => agents_route_harness_check = true,
             "--tiny-entry-validate" => tiny_entry_validate = true,
             "--tree-node-validate" => tree_node_validate = true,
             "--lived-witness-validate" => lived_witness_validate = true,
             "--intake-pack-validate" => intake_pack_validate = true,
-            "--documentation-family-build" => documentation_family_build = true,
-            "--documentation-cross-corpus-validate" => documentation_cross_corpus_validate = true,
             "--root-entry-map-build" => root_entry_map_build = true,
             "--root-entry-map-validate" => root_entry_map_validate = true,
             "--kag-source-export-build" => kag_source_export_build = true,
@@ -223,8 +166,6 @@ fn arguments() -> Result<(PathBuf, Action, Limits, SemanticOptions), String> {
                 semantic.kag_export =
                     Some(PathBuf::from(args.next().ok_or("missing KAG export path")?))
             }
-            "--decision-records-validate" => decision_records_validate = true,
-            "--decision-index-build" => decision_index_build = true,
             "--output" => {
                 semantic.output = Some(PathBuf::from(args.next().ok_or("missing output path")?))
             }
@@ -274,54 +215,32 @@ fn arguments() -> Result<(PathBuf, Action, Limits, SemanticOptions), String> {
         + usize::from(threshold_build)
         + usize::from(threshold_validate)
         + usize::from(relation_pack_validate)
-        + usize::from(questbook_validate)
         + usize::from(public_mirror_validate)
         + usize::from(public_mirror_sync)
         + usize::from(derived_kag_validate)
         + usize::from(derived_kag_generate)
-        + usize::from(mechanics_topology_validate)
-        + usize::from(active_naming_validate)
         + usize::from(source_home)
         + usize::from(witness_structure_validate)
         + usize::from(philosophy_topology)
         + usize::from(source_anchor_prepare)
         + usize::from(semantic_registry_transition)
-        + usize::from(agent_surface_build)
-        + usize::from(agent_surface_validate)
-        + usize::from(agents_route_currentness_build)
-        + usize::from(nested_agents_validate)
-        + usize::from(agents_route_harness_check)
         + usize::from(tiny_entry_validate)
         + usize::from(tree_node_validate)
         + usize::from(lived_witness_validate)
         + usize::from(intake_pack_validate)
-        + usize::from(documentation_family_build)
-        + usize::from(documentation_cross_corpus_validate)
         + usize::from(root_entry_map_build)
         + usize::from(root_entry_map_validate)
         + usize::from(kag_source_export_build)
         + usize::from(kag_source_export_verify)
-        + usize::from(decision_records_validate)
-        + usize::from(decision_index_build)
         + usize::from(philosophy_graph_views)
         > 1
-        || (check
-            && !(threshold_build
-                || agent_surface_build
-                || documentation_family_build
-                || decision_index_build
-                || root_entry_map_build
-                || agents_route_currentness_build))
+        || (check && !(threshold_build || root_entry_map_build))
         || (!source_anchor_prepare
             && (anchor_atlas.is_some()
                 || anchor_table.is_some()
                 || anchor_row.is_some()
                 || anchor_label.is_some()))
-        || (semantic.feedback_cache.is_some() && !active_naming_validate)
-        || (semantic.output.is_some()
-            && !(documentation_family_build
-                || agents_route_currentness_build
-                || kag_source_export_build))
+        || (semantic.output.is_some() && !kag_source_export_build)
         || (!kag_source_export_build
             && (semantic.source_store.is_some() || semantic.source_revision.is_some()))
         || (kag_source_export_build
@@ -330,8 +249,7 @@ fn arguments() -> Result<(PathBuf, Action, Limits, SemanticOptions), String> {
                 || semantic.output.is_none()))
         || (kag_source_export_verify && semantic.kag_export.is_none())
         || (semantic.kag_export.is_some()
-            && !(documentation_cross_corpus_validate
-                || root_entry_map_build
+            && !(root_entry_map_build
                 || root_entry_map_validate
                 || kag_source_export_verify))
         || (native_contracts_only && !execute)
@@ -356,8 +274,6 @@ fn arguments() -> Result<(PathBuf, Action, Limits, SemanticOptions), String> {
         Action::ThresholdValidate
     } else if relation_pack_validate {
         Action::RelationPackValidate
-    } else if questbook_validate {
-        Action::QuestbookValidate
     } else if public_mirror_validate {
         Action::PublicMirrorValidate
     } else if public_mirror_sync {
@@ -366,8 +282,6 @@ fn arguments() -> Result<(PathBuf, Action, Limits, SemanticOptions), String> {
         Action::DerivedKagValidate
     } else if derived_kag_generate {
         Action::DerivedKagGenerate
-    } else if active_naming_validate {
-        Action::ActiveNamingValidate
     } else if semantic_registry_transition {
         Action::SemanticRegistryTransition
     } else if philosophy_graph_views {
@@ -388,14 +302,6 @@ fn arguments() -> Result<(PathBuf, Action, Limits, SemanticOptions), String> {
         }
     } else if philosophy_topology {
         Action::PhilosophyTopology
-    } else if agent_surface_build {
-        Action::AgentSurfaceBuild { check }
-    } else if agent_surface_validate {
-        Action::AgentSurfaceValidate
-    } else if agents_route_currentness_build {
-        Action::AgentsRouteCurrentnessBuild { check }
-    } else if agents_route_harness_check {
-        Action::AgentsRouteHarnessCheck
     } else if tree_node_validate {
         Action::TreeNodeValidate
     } else if lived_witness_validate {
@@ -404,10 +310,6 @@ fn arguments() -> Result<(PathBuf, Action, Limits, SemanticOptions), String> {
         Action::IntakePackValidate
     } else if tiny_entry_validate {
         Action::TinyEntryValidate
-    } else if nested_agents_validate {
-        Action::NestedAgentsValidate
-    } else if documentation_family_build {
-        Action::DocumentationFamilyBuild { check }
     } else if root_entry_map_build {
         Action::RootEntryMapBuild { check }
     } else if kag_source_export_build {
@@ -416,18 +318,10 @@ fn arguments() -> Result<(PathBuf, Action, Limits, SemanticOptions), String> {
         Action::KagSourceExportVerify
     } else if root_entry_map_validate {
         Action::RootEntryMapValidate
-    } else if documentation_cross_corpus_validate {
-        Action::DocumentationCrossCorpusValidate
-    } else if decision_records_validate {
-        Action::DecisionRecordsValidate
-    } else if decision_index_build {
-        Action::DecisionIndexBuild { check }
     } else if witness_structure_validate {
         Action::WitnessStructureValidate
     } else if source_home {
         Action::SourceHome
-    } else if mechanics_topology_validate {
-        Action::MechanicsTopologyValidate
     } else {
         Action::Plan
     };
@@ -587,23 +481,15 @@ fn main() {
         let compiler_flag = if cfg!(feature = "compiler-backed-validators") {
             " | --philosophy-graph-views-validate"
         } else { "" };
-        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute [--native-contracts-only] | --growth-native-plan | --local-contracts HOME | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate | --active-naming-validate [--feedback-cache ABS] | --agent-surface-build [--check] | --agent-surface-validate | --agents-route-currentness-build [--check] [--output PATH] | --nested-agents-validate | --agents-route-harness-check | --tiny-entry-validate | --lived-witness-validate | --intake-pack-validate | --documentation-family-build [--check] [--output PATH] | --documentation-cross-corpus-validate | --decision-records-validate | --decision-index-build [--check] | --root-entry-map-build [--check] [--kag-export PATH] | --root-entry-map-validate [--kag-export PATH] | --kag-source-export-build --store PATH --revision SHA256 --output PATH | --kag-source-export-verify --kag-export PATH | --source-home | --witness-structure-validate | --prepare-source-anchor --atlas-row ID --source-table-index N --source-row-index N --source-label LABEL | --philosophy-topology{compiler_flag} | --semantic-registry-transition [--baseline-commit REF] [--allow-initial-introduction] [--json]] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
+        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute [--native-contracts-only] | --growth-native-plan | --local-contracts HOME | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --tiny-entry-validate | --lived-witness-validate | --intake-pack-validate | --root-entry-map-build [--check] [--kag-export PATH] | --root-entry-map-validate [--kag-export PATH] | --kag-source-export-build --store PATH --revision SHA256 --output PATH | --kag-source-export-verify --kag-export PATH | --source-home | --witness-structure-validate | --prepare-source-anchor --atlas-row ID --source-table-index N --source-row-index N --source-label LABEL | --philosophy-topology{compiler_flag} | --semantic-registry-transition [--baseline-commit REF] [--allow-initial-introduction] [--json]] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
         std::process::exit(2);
     });
     if matches!(
         action,
-        Action::AgentSurfaceBuild { .. }
-            | Action::AgentSurfaceValidate
-            | Action::DocumentationFamilyBuild { .. }
-            | Action::DocumentationCrossCorpusValidate
-            | Action::DecisionRecordsValidate
-            | Action::DecisionIndexBuild { .. }
-            | Action::RootEntryMapBuild { .. }
+        Action::RootEntryMapBuild { .. }
             | Action::RootEntryMapValidate
             | Action::KagSourceExportBuild
             | Action::KagSourceExportVerify
-            | Action::AgentsRouteCurrentnessBuild { .. }
-            | Action::NestedAgentsValidate
             | Action::TreeNodeValidate
             | Action::LivedWitnessValidate
             | Action::IntakePackValidate
@@ -630,59 +516,8 @@ fn main() {
             })
         }
 
-        Action::DecisionRecordsValidate => root.canonicalize().and_then(|root| {
-            let mut s = tos_ops_mechanics_plan::route_cards::RouteSources::new(&root)?;
-            let issues =
-                tos_ops_mechanics_plan::decision_records::run_validation(&root, &mut s, &CANCEL)?;
-            if issues.is_empty() {
-                println!("[ok] decision records validated");
-                Ok(0)
-            } else {
-                println!("Decision record validation failed.");
-                for (path, message) in issues {
-                    println!("- {path}: {message}");
-                }
-                Ok(1)
-            }
-        }),
-        Action::DecisionIndexBuild { check } => root.canonicalize().and_then(|root| {
-            let mut s = tos_ops_mechanics_plan::route_cards::RouteSources::new(&root)?;
-            let (outputs, issues) =
-                tos_ops_mechanics_plan::decision_records::build_indexes(&mut s, &CANCEL)?;
-            if !issues.is_empty() {
-                for (path, message) in issues {
-                    println!("- {path}: {message}");
-                }
-                return Ok(1);
-            }
-            let mut stale = Vec::new();
-            for (path, text) in outputs {
-                if check {
-                    if tos_ops_mechanics_plan::route_cards::read_output(&root.join(&path))?
-                        .is_none_or(|v| v.replace("\r\n", "\n").replace('\r', "\n") != text)
-                    {
-                        stale.push(path);
-                    }
-                } else {
-                    tos_ops_mechanics_plan::route_cards::write_output(
-                        &root,
-                        std::path::Path::new(&path),
-                        &text,
-                    )?;
-                }
-            }
-            if stale.is_empty() {
-                Ok(0)
-            } else {
-                println!("Stale decision indexes:");
-                for path in stale {
-                    println!("- {path}");
-                }
-                Ok(1)
-            }
-        }),
         Action::RootEntryMapBuild { check } => root.canonicalize().and_then(|root| {
-            let mut sources = tos_ops_mechanics_plan::route_cards::RouteSources::new(&root)?;
+            let mut sources = tos_ops_mechanics_plan::source_reading::RouteSources::new(&root)?;
             tos_ops_mechanics_plan::root_entry_map::build_with_export(
                 &root,
                 &mut sources,
@@ -701,7 +536,7 @@ fn main() {
             })
         }),
         Action::RootEntryMapValidate => root.canonicalize().and_then(|root| {
-            let mut sources = tos_ops_mechanics_plan::route_cards::RouteSources::new(&root)?;
+            let mut sources = tos_ops_mechanics_plan::source_reading::RouteSources::new(&root)?;
             tos_ops_mechanics_plan::root_entry_map::validate_with_export(
                 &root,
                 &mut sources,
@@ -716,36 +551,6 @@ fn main() {
                     println!("[ok] validated root-entry map");
                     0
                 } else {
-                    1
-                }
-            })
-        }),
-        Action::DocumentationFamilyBuild { check } => root.canonicalize().and_then(|root| {
-            tos_ops_mechanics_plan::documentation_family::run(
-                &root,
-                semantic.output.as_deref(),
-                check,
-                &CANCEL,
-            )
-        }),
-        Action::DocumentationCrossCorpusValidate => root.canonicalize().and_then(|root| {
-            tos_ops_mechanics_plan::documentation_cross_corpus::run_validation_with_export(
-                &root,
-                semantic.selected_interpreter.as_deref(),
-                semantic.kag_export.as_deref(),
-                &CANCEL,
-            )
-            .map(|issues| {
-                if issues.is_empty() {
-                    println!(
-                        "[ok] validated cross-corpus documentation currentness and context guards"
-                    );
-                    0
-                } else {
-                    println!("Cross-corpus documentation validation failed.");
-                    for (location, message) in issues {
-                        println!("- {location}: {message}");
-                    }
                     1
                 }
             })
@@ -779,95 +584,13 @@ fn main() {
             let bytes = tos_ops_mechanics_plan::release_files::canonical(&value)?;
             std::io::stdout().lock().write_all(&bytes).map(|()| 0)
         }),
-        Action::AgentSurfaceBuild { check } => root
-            .canonicalize()
-            .and_then(|root| tos_ops_mechanics_plan::agent_surface::run(&root, check, &CANCEL)),
-        Action::AgentSurfaceValidate => {
-            root.canonicalize().and_then(|root| {
-                tos_ops_mechanics_plan::agent_surface_validation::validate_manifest(
-                    &root,
-                    &CANCEL,
-                )
-                .map(|issues| {
-                    if issues.is_empty() {
-                        println!("[ok] validated ToS agent surface");
-                        0
-                    } else {
-                        eprintln!("Agent surface validation failed.");
-                        for (location, message) in issues {
-                            eprintln!("- {location}: {message}");
-                        }
-                        1
-                    }
-                })
-            })
-        }
-
-        Action::AgentsRouteCurrentnessBuild { check } => root.canonicalize().and_then(|root| {
-            let value = tos_ops_mechanics_plan::route_cards::build_currentness(&root, &CANCEL)?;
-            let rendered = tos_ops_mechanics_plan::route_cards::render_currentness(&value)?;
-            let chosen = if let Some(output) = semantic.output.as_ref() {
-                output.clone()
-            } else {
-                let inventory = tos_ops_mechanics_plan::route_cards::load_inventory(&root)?;
-                PathBuf::from(
-                    inventory["currentness"]
-                        .as_str()
-                        .ok_or_else(|| std::io::Error::other("missing currentness output path"))?,
-                )
-            };
-            let path = if chosen.is_absolute() {
-                chosen
-            } else {
-                root.join(chosen)
-            };
-            let display = path.strip_prefix(&root).unwrap_or(&path).display();
-            if check {
-                let actual = tos_ops_mechanics_plan::route_cards::read_output(&path)?;
-                if actual.as_deref() != Some(rendered.as_str()) {
-                    println!("AGENTS route currentness is stale or missing: {display}");
-                    Ok(1)
-                } else {
-                    println!("AGENTS route currentness is current: {display}");
-                    Ok(0)
-                }
-            } else {
-                tos_ops_mechanics_plan::route_cards::write_output(&root, &path, &rendered)?;
-                println!("wrote {display}");
-                Ok(0)
-            }
-        }),
-        Action::AgentsRouteHarnessCheck => root.canonicalize().and_then(|root| {
-            let result =
-                tos_ops_mechanics_plan::route_harness::build_result(&root, false, &CANCEL)?;
-            let tasks = result["tasks"]
-                .as_array()
-                .ok_or_else(|| std::io::Error::other("invalid harness task result"))?;
-            let failures = tasks
-                .iter()
-                .filter(|task| task["route_success"] != true)
-                .count();
-            if failures == 0 {
-                println!(
-                    "AGENTS route harness passed for {} task routes",
-                    tasks.len()
-                );
-                Ok(0)
-            } else {
-                println!(
-                    "AGENTS route harness failed for {failures}/{} task routes",
-                    tasks.len()
-                );
-                Ok(1)
-            }
-        }),
         Action::TreeNodeValidate => {
             #[cfg(feature = "compiler-backed-validators")]
             {
                 root.canonicalize().and_then(|root| {
                     let deadline = std::time::Instant::now().checked_add(limits.lane_wall)
                         .ok_or_else(|| std::io::Error::other("node validator deadline overflow"))?;
-                    let mut sources = tos_ops_mechanics_plan::route_cards::RouteSources::new_until(&root, deadline)?;
+                    let mut sources = tos_ops_mechanics_plan::source_reading::RouteSources::new_until(&root, deadline)?;
                     let issues = tos_ops_mechanics_plan::tree_nodes::validate(&mut sources, &CANCEL)?;
                     for (path, message) in &issues { eprintln!("- {path}: {message}"); }
                     if issues.is_empty() { println!("[ok] canonical tree node contracts and consistency"); Ok(0) } else { Ok(1) }
@@ -879,7 +602,7 @@ fn main() {
         Action::LivedWitnessValidate | Action::IntakePackValidate => root.canonicalize().and_then(|root| {
             let deadline = std::time::Instant::now().checked_add(limits.lane_wall)
                 .ok_or_else(|| std::io::Error::other("validator deadline overflow"))?;
-            let mut sources = tos_ops_mechanics_plan::route_cards::RouteSources::new_until(&root, deadline)?;
+            let mut sources = tos_ops_mechanics_plan::source_reading::RouteSources::new_until(&root, deadline)?;
             let lived = matches!(action, Action::LivedWitnessValidate);
             let issues = if lived {
                 tos_ops_mechanics_plan::lived_witness::validate(&root, &mut sources, limits, &CANCEL)?
@@ -898,7 +621,7 @@ fn main() {
             Ok(0)
         }),
         Action::TinyEntryValidate => root.canonicalize().and_then(|root| {
-            let mut sources = tos_ops_mechanics_plan::route_cards::RouteSources::new(&root)?;
+            let mut sources = tos_ops_mechanics_plan::source_reading::RouteSources::new(&root)?;
             let issues =
                 tos_ops_mechanics_plan::tiny_entry::validate(&root, &mut sources, &CANCEL)?;
             for (path, message) in &issues {
@@ -910,21 +633,6 @@ fn main() {
             } else {
                 Ok(1)
             }
-        }),
-        Action::NestedAgentsValidate => root.canonicalize().and_then(|root| {
-            let issues = tos_ops_mechanics_plan::route_cards::run_validation(&root, &CANCEL)?;
-            if !issues.is_empty() {
-                println!("Nested AGENTS route-card check failed.");
-                for (location, message) in issues {
-                    println!("- {location}: {message}");
-                }
-                return Ok(1);
-            }
-            let inventory = tos_ops_mechanics_plan::route_cards::load_inventory(&root)?;
-            let count =
-                tos_ops_mechanics_plan::route_cards::discover_route_cards(&root, &inventory)?.len();
-            println!("Nested AGENTS route-card check passed for {count} files.");
-            Ok(0)
         }),
         Action::WitnessStructureValidate => root.canonicalize().and_then(|root| tos_ops_mechanics_plan::witness_structure::run(&root, &CANCEL)),
         Action::SourceHome => {
@@ -1002,11 +710,6 @@ fn main() {
                 }
             })
         }
-        Action::QuestbookValidate => tos_ops_mechanics_plan::questbook::validate_surface(&root)
-            .map(|()| {
-                println!("[ok] validated questbook boundary-runtime surfaces");
-                0
-            }),
         Action::PublicMirrorValidate => {
             tos_ops_mechanics_plan::public_mirror::validate(&root).map(|issues| {
                 if issues.is_empty() {
@@ -1042,25 +745,6 @@ fn main() {
                 }
                 0
             }),
-        Action::ActiveNamingValidate => {
-            tos_ops_mechanics_plan::active_naming::validate_with_feedback(&root, semantic.feedback_cache.as_deref()).map(|report| {
-                for warning in &report.warnings { eprintln!("[feedback-cache] {warning}"); }
-                if let Some(stats) = report.feedback {
-                    eprintln!("[feedback-cache] local-only path={} hits={} misses={}", stats.path.display(), stats.hits, stats.misses);
-                }
-                if report.issues.is_empty() {
-                    println!("[ok] validated active naming");
-                    0
-                } else {
-                    eprintln!("Active naming validation failed.");
-                    for issue in report.issues {
-                        eprintln!("- {issue}");
-                    }
-                    1
-                }
-            })
-        }
-        #[cfg(feature = "compiler-backed-validators")]
         Action::PhilosophyGraphViews => {
             tos_ops_mechanics_plan::philosophy_graph_views::run(&root, &CANCEL)
         }
@@ -1071,20 +755,6 @@ fn main() {
         }
         Action::PhilosophyTopology => {
             tos_ops_mechanics_plan::philosophy_topology::run(&root, &CANCEL)
-        }
-        Action::MechanicsTopologyValidate => {
-            tos_ops_mechanics_plan::mechanics_topology::validate(&root).map(|issues| {
-                if issues.is_empty() {
-                    println!("[ok] validated ToS mechanics topology");
-                    0
-                } else {
-                    eprintln!("Mechanics topology validation failed.");
-                    for (location, message) in issues {
-                        eprintln!("- {location}: {message}");
-                    }
-                    1
-                }
-            })
         }
         Action::GrowthNativePlan => tos_ops_mechanics_plan::growth_native_plan::discover(&root)
             .and_then(|plan| {
@@ -1155,11 +825,8 @@ fn main() {
         Err(error) => {
             if matches!(
                 action,
-                Action::QuestbookValidate
-                    | Action::DerivedKagValidate
+                Action::DerivedKagValidate
                     | Action::SourceHome
-                    | Action::AgentsRouteCurrentnessBuild { .. }
-                    | Action::NestedAgentsValidate
             ) {
                 eprintln!("[error] {error}");
                 std::process::exit(1);
@@ -1171,24 +838,12 @@ fn main() {
                 Action::GrowthNativePlan => "Growth native source plan",
                 Action::ThresholdBuild { .. } | Action::ThresholdValidate => "threshold registry",
                 Action::RelationPackValidate => "relation pack",
-                Action::QuestbookValidate => "questbook",
                 Action::PublicMirrorValidate | Action::PublicMirrorSync => "public mirror",
                 Action::DerivedKagValidate | Action::DerivedKagGenerate => "derived KAG",
-                Action::MechanicsTopologyValidate => "mechanics topology",
-                Action::ActiveNamingValidate => "active naming",
-                Action::AgentSurfaceBuild { .. } | Action::AgentSurfaceValidate => "agent surface",
-                Action::DocumentationFamilyBuild { .. }
-                | Action::DocumentationCrossCorpusValidate => "documentation",
                 Action::RootEntryMapBuild { .. } | Action::RootEntryMapValidate => "root-entry map",
                 Action::KagSourceExportBuild | Action::KagSourceExportVerify => "KAG source export",
-                Action::DecisionRecordsValidate | Action::DecisionIndexBuild { .. } => {
-                    "decision records"
-                }
                 Action::SourceHome => "source home",
                 Action::WitnessStructureValidate => "witness structure",
-                Action::AgentsRouteCurrentnessBuild { .. } => "AGENTS route currentness",
-                Action::NestedAgentsValidate => "nested AGENTS route cards",
-                Action::AgentsRouteHarnessCheck => "AGENTS route harness",
                 Action::TinyEntryValidate => "tiny entry route",
                 Action::TreeNodeValidate => "tree node contracts",
                 Action::LivedWitnessValidate => "lived-witness route",

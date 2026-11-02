@@ -92,7 +92,7 @@ fn standalone_export_preserves_exact_source_and_refuses_tampering_and_foreign_op
 fn root_map_materialization_uses_verified_export_and_refuses_absence_staleness_and_tampering() {
     use std::collections::BTreeSet;
     use std::sync::atomic::AtomicI32;
-    use tos_ops_mechanics_plan::{kag_corpus_export, root_entry_map, route_cards::RouteSources};
+    use tos_ops_mechanics_plan::{kag_corpus_export, root_entry_map, source_reading::RouteSources};
 
     let (base, store, revision) = fixture();
     let export = base.0.join("root-map-export");

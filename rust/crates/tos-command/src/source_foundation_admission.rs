@@ -41,7 +41,7 @@ use tos_compiler::private_tmpfs_stage::{
     PRIVATE_TMPFS_SELECT_COST, PRIVATE_TMPFS_VERIFY_COST, PrivateTmpfsStageIsolation,
 };
 use tos_foundation::{Digest256, JsonLimits};
-use tos_ops_mechanics_plan::route_cards::RouteSources;
+use tos_ops_mechanics_plan::source_reading::RouteSources;
 use tos_segment_store::{AuthenticatedTreeLimitsV1, SegmentLimits};
 use tos_source_store::ReadLimits;
 use tos_source_store::{

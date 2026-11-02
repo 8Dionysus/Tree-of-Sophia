@@ -18,7 +18,7 @@ compatibility. It keeps tasks and obligations from replacing philosophy.
 | owner | `mechanics/questbook/AGENTS.md`, the operation map below, and active part routes |
 | stronger route | `ToS/` for authored meaning; root `quests/` for public quest records |
 | next route | obligation boundary or dispatch contracts, then root `QUESTBOOK.md` when public index changes |
-| validation | `tos-ops-mechanics-plan --repo-root . --questbook-validate`; `tos-ops-mechanics-plan --repo-root . --mechanics-topology-validate`; questbook-focused tests |
+| validation | manual review of the obligation and source records |
 
 ## Operations
 Each part owns one obligation operation route.

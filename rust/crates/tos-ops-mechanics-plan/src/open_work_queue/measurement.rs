@@ -348,10 +348,10 @@ pub fn measure(
         "discovery timing cancelled",
     )?;
     if let Some((path, value)) = derived {
-        crate::route_cards::write_output(root, Path::new(path), &render(&value)?)?;
+        crate::source_reading::write_output(root, Path::new(path), &render(&value)?)?;
     }
     if let Some(path) = options.output {
-        crate::route_cards::write_output(root, Path::new(path), &render(&receipt)?)?;
+        crate::source_reading::write_output(root, Path::new(path), &render(&receipt)?)?;
     }
     Ok(receipt)
 }

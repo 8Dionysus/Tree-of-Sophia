@@ -1,7 +1,7 @@
 //! Lived-witness schema, exact-body binding and private route mechanics only.
 //! Human authorship, consent, memory, context and meaning remain unvalidated.
 use crate::executor::{Limits, capture_ci_git};
-use crate::route_cards::{RouteSources, sha256_bytes};
+use crate::source_reading::{RouteSources, sha256_bytes};
 use serde_json::Value;
 use std::{
     collections::BTreeSet,

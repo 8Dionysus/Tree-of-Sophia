@@ -2,18 +2,14 @@
 //! It selects checks; it cannot run them or accept a release.
 
 use crate::executor::{self, Limits};
-use regex::Regex;
 use serde::Serialize;
 use serde_json::Value;
-use std::collections::BTreeSet;
-use std::fs;
-use std::io::{self, Read};
+use std::io;
 use std::path::Path;
 use std::sync::atomic::{AtomicI32, Ordering};
 use std::time::{Duration, Instant};
 
 const MAX_PATH_BYTES: usize = 4 * 1024 * 1024;
-const MAX_DOCUMENT_BYTES: usize = 8 * 1024 * 1024;
 const MAX_TOTAL_BYTES: usize = 64 * 1024 * 1024;
 const MODES: [&str; 4] = ["none", "browser", "reader", "full"];
 
@@ -27,10 +23,6 @@ pub struct Selection {
     pub software_mode: &'static str,
     pub worker: bool,
     pub rust: bool,
-    /// Source route checks; parity is selected only when its carrier changes.
-    pub route_docs: &'static str,
-    pub agent_surface: bool,
-    pub documentation_family: bool,
     pub changed_paths: Vec<String>,
     pub forced_full: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -92,7 +84,6 @@ fn select_checked(
     paths.dedup();
     check()?;
     let (mut mode, mut worker, mut rust) = (0usize, false, false);
-    let (mut routes, mut agent_surface, mut documentation_family) = (0usize, false, false);
     for path in &paths {
         check()?;
         let (name, components) = path_components(path)?;
@@ -100,21 +91,6 @@ fn select_checked(
             .rsplit_once('.')
             .filter(|(stem, tail)| stem.chars().any(|c| c != '.') && !tail.is_empty())
             .map(|(_, tail)| tail);
-        match path.as_str() {
-            ".agents/agents-route.current.json" => {
-                routes = 2;
-                continue;
-            }
-            ".agents/agent-surface.current.json" => {
-                agent_surface = true;
-                continue;
-            }
-            "docs/validation/documentation-family.current.json" => {
-                documentation_family = true;
-                continue;
-            }
-            _ => (),
-        }
         // Source/Questbook text, including fixtures and deleted inputs, keeps
         // the complete Rust consumer lane. The separate browser and Worker
         // programs do not consume these bytes.
@@ -126,9 +102,6 @@ fn select_checked(
                     == "mechanics/questbook/parts/obligation-boundary/docs/QUESTBOOK_TOS_INTEGRATION.md")
         {
             rust = true;
-            if name == "AGENTS.md" {
-                routes = routes.max(1);
-            }
             continue;
         }
         let fixture = path
@@ -158,9 +131,6 @@ fn select_checked(
                 || (path.starts_with("tests/")
                     && matches!(name, "AGENTS.md" | "README.md" | "VALIDATION.md"));
             if owner_docs {
-                if name == "AGENTS.md" {
-                    routes = routes.max(1);
-                }
                 continue;
             }
         }
@@ -202,9 +172,6 @@ fn select_checked(
         software_mode: MODES[mode],
         worker,
         rust,
-        route_docs: ["none", "source", "current"][routes],
-        agent_surface,
-        documentation_family,
         changed_paths: paths,
         forced_full,
         validated_tree: None,
@@ -212,7 +179,7 @@ fn select_checked(
 }
 
 /// The workflow supplies a tree only after verifying a completed merged-PR run.
-/// Check that tree against this actual checkout; keep document checks and full runs.
+/// Check that tree against this actual checkout; keep full runs.
 pub fn reuse_validated_tree(
     root: &Path,
     selection: &mut Selection,
@@ -251,7 +218,7 @@ pub fn gate(needs: &Value) -> io::Result<()> {
     let plan = needs.get("plan");
     if plan.and_then(|p| p.get("result")).and_then(Value::as_str) != Some("success") {
         return Err(invalid(
-            "check selection or documentation validation did not succeed",
+            "check selection or AGENTS.md size validation did not succeed",
         ));
     }
     let outputs = plan.and_then(|p| p.get("outputs"));
@@ -262,21 +229,9 @@ pub fn gate(needs: &Value) -> io::Result<()> {
         .and_then(|o| o.get("worker"))
         .and_then(Value::as_str);
     let rust = outputs.and_then(|o| o.get("rust")).and_then(Value::as_str);
-    let route_docs = outputs
-        .and_then(|o| o.get("route_docs"))
-        .and_then(Value::as_str);
-    let agent_surface = outputs
-        .and_then(|o| o.get("agent_surface"))
-        .and_then(Value::as_str);
-    let documentation_family = outputs
-        .and_then(|o| o.get("documentation_family"))
-        .and_then(Value::as_str);
     if !mode.is_some_and(|m| MODES.contains(&m))
         || !matches!(worker, Some("true" | "false"))
         || !matches!(rust, Some("true" | "false"))
-        || !matches!(route_docs, Some("none" | "source" | "current"))
-        || !matches!(agent_surface, Some("true" | "false"))
-        || !matches!(documentation_family, Some("true" | "false"))
     {
         return Err(invalid("missing or invalid check selection"));
     }
@@ -299,194 +254,6 @@ pub fn gate(needs: &Value) -> io::Result<()> {
         }
     }
     Ok(())
-}
-
-struct Docs {
-    fence: Regex,
-    link: Regex,
-    reference: Regex,
-    marker: Regex,
-    scheme: Regex,
-}
-impl Docs {
-    fn new() -> io::Result<Self> {
-        // Same pinned Python-16 whitespace law as mechanics topology.
-        const SPACE: &str = r"\x09-\x0D\x1C-\x20\x{85}\x{A0}\x{1680}\x{2000}-\x{200A}\x{2028}\x{2029}\x{202F}\x{205F}\x{3000}";
-        let re = |s: &str| Regex::new(&s.replace("@W@", SPACE)).map_err(|e| invalid(e.to_string()));
-        Ok(Self {
-            fence: re(r"^[@W@]{0,3}(`{3,}|~{3,})")?,
-            link: re(
-                r#"!?\[[^\]\n]*\]\([@W@]*(?:<([^>]+)>|([^@W@)]+))(?:[@W@]+['\"][^\n]*?['\"])?[@W@]*\)"#,
-            )?,
-            reference: re(r"(?m)^[@W@]*\[[^\]\n]+\]:[@W@]*<?([^@W@>]+)>?")?,
-            marker: re(r"(?m)^(<<<<<<< |>>>>>>> )")?,
-            scheme: re(r"^[A-Za-z][A-Za-z0-9+.-]*:")?,
-        })
-    }
-    fn links(&self, text: &str) -> BTreeSet<String> {
-        let mut visible = String::with_capacity(text.len());
-        let mut fence: Option<(u8, usize)> = None;
-        for line in text.lines().flat_map(|line| {
-            line.split([
-                '\r', '\u{b}', '\u{c}', '\u{1c}', '\u{1d}', '\u{1e}', '\u{85}', '\u{2028}',
-                '\u{2029}',
-            ])
-        }) {
-            if let Some(capture) = self.fence.captures(line) {
-                let marker = capture.get(1).unwrap().as_str();
-                match fence {
-                    None => fence = Some((marker.as_bytes()[0], marker.len())),
-                    Some((kind, length))
-                        if marker.as_bytes()[0] == kind && marker.len() >= length =>
-                    {
-                        fence = None
-                    }
-                    _ => (),
-                }
-                continue;
-            }
-            if fence.is_none() {
-                visible.push_str(line);
-                visible.push('\n');
-            }
-        }
-        self.link
-            .captures_iter(&visible)
-            .map(|c| c.get(1).or_else(|| c.get(2)).unwrap().as_str().to_owned())
-            .chain(
-                self.reference
-                    .captures_iter(&visible)
-                    .map(|c| c[1].to_owned()),
-            )
-            .collect()
-    }
-    fn local_path(&self, href: &str) -> io::Result<Option<String>> {
-        // urllib.urlsplit removes CR/LF/TAB and leading C0/space. Only its
-        // local pathname is consumed, never network content. Keep its unique
-        // malformed-netloc checks before deciding an external URL is skipped.
-        let url: String = href
-            .trim_start_matches(|c: char| c <= '\u{20}')
-            .chars()
-            .filter(|c| !matches!(c, '\r' | '\n' | '\t'))
-            .collect();
-        let scheme = self.scheme.find(&url);
-        let remainder = scheme.as_ref().map(|m| &url[m.end()..]).unwrap_or(&url);
-        if let Some(authority) = remainder.strip_prefix("//") {
-            let netloc = authority.split(['/', '?', '#']).next().unwrap_or("");
-            check_netloc(netloc)?;
-            return Ok(None);
-        }
-        if scheme.is_some() {
-            return Ok(None);
-        }
-        let path = url.split(['?', '#']).next().unwrap_or("");
-        if path.is_empty() || path.starts_with('/') {
-            return Ok(None);
-        }
-        let decoded = unquote(path);
-        if decoded.contains('\0') {
-            return Err(invalid("embedded null byte in link"));
-        }
-        Ok(Some(decoded))
-    }
-}
-
-fn check_netloc(netloc: &str) -> io::Result<()> {
-    // Complete Unicode-16 scalar set whose NFKC decomposition includes the
-    // five reserved netloc separators. Derived from the pinned Python oracle;
-    // this narrow check avoids introducing another normalization dependency.
-    if netloc.chars().any(|c| {
-        matches!(
-            c,
-            '\u{2047}'
-                ..='\u{2049}'
-                    | '\u{2100}'
-                    | '\u{2101}'
-                    | '\u{2105}'
-                    | '\u{2106}'
-                    | '\u{2a74}'
-                    | '\u{fe13}'
-                    | '\u{fe16}'
-                    | '\u{fe55}'
-                    | '\u{fe56}'
-                    | '\u{fe5f}'
-                    | '\u{fe6b}'
-                    | '\u{ff03}'
-                    | '\u{ff0f}'
-                    | '\u{ff1a}'
-                    | '\u{ff1f}'
-                    | '\u{ff20}'
-        )
-    }) {
-        return Err(invalid(
-            "netloc contains invalid characters under NFKC normalization",
-        ));
-    }
-    if !netloc.contains(['[', ']']) {
-        return Ok(());
-    }
-    if !(netloc.contains('[') && netloc.contains(']')) {
-        return Err(invalid("Invalid IPv6 URL"));
-    }
-    let host = netloc.rsplit('@').next().unwrap();
-    let Some(bracketed) = host.strip_prefix('[') else {
-        return Err(invalid("Invalid IPv6 URL"));
-    };
-    let (address, port) = bracketed
-        .split_once(']')
-        .ok_or_else(|| invalid("Invalid IPv6 URL"))?;
-    if !port.is_empty() && !port.starts_with(':') {
-        return Err(invalid("Invalid IPv6 URL"));
-    }
-    if address.starts_with(['v', 'V']) {
-        let (version, future) = address[1..]
-            .split_once('.')
-            .ok_or_else(|| invalid("IPvFuture address is invalid"))?;
-        if version.is_empty()
-            || !version.bytes().all(|c| c.is_ascii_hexdigit())
-            || future.is_empty()
-        {
-            return Err(invalid("IPvFuture address is invalid"));
-        }
-    } else {
-        let bare = if let Some((ip, scope)) = address.split_once('%') {
-            if scope.is_empty() || scope.contains('%') {
-                return Err(invalid("Invalid IPv6 scope"));
-            }
-            ip
-        } else {
-            address
-        };
-        bare.parse::<std::net::Ipv6Addr>()
-            .map_err(|_| invalid("Invalid IPv6 URL"))?;
-    }
-    Ok(())
-}
-
-fn unquote(value: &str) -> String {
-    fn hex(c: u8) -> Option<u8> {
-        match c {
-            b'0'..=b'9' => Some(c - b'0'),
-            b'a'..=b'f' => Some(c - b'a' + 10),
-            b'A'..=b'F' => Some(c - b'A' + 10),
-            _ => None,
-        }
-    }
-    let bytes = value.as_bytes();
-    let mut result = Vec::with_capacity(bytes.len());
-    let mut i = 0;
-    while i < bytes.len() {
-        if bytes[i] == b'%' && i + 2 < bytes.len() {
-            if let (Some(a), Some(b)) = (hex(bytes[i + 1]), hex(bytes[i + 2])) {
-                result.push(a * 16 + b);
-                i += 3;
-                continue;
-            }
-        }
-        result.push(bytes[i]);
-        i += 1;
-    }
-    String::from_utf8_lossy(&result).into_owned()
 }
 
 struct Budget<'a> {
@@ -532,28 +299,6 @@ impl Budget<'_> {
         self.charge(stdout.len() + stderr.len())?;
         Ok((code, stdout))
     }
-}
-
-fn read_doc(path: &Path, remaining: usize) -> io::Result<String> {
-    let mut options = fs::OpenOptions::new();
-    options.read(true);
-    #[cfg(target_os = "linux")]
-    {
-        use std::os::unix::fs::OpenOptionsExt;
-        options.custom_flags(libc::O_NOFOLLOW);
-    }
-    let file = options.open(path)?;
-    let meta = file.metadata()?;
-    if !meta.is_file() || meta.len() > MAX_DOCUMENT_BYTES.min(remaining) as u64 {
-        return Err(invalid("CI Markdown must be a bounded regular file"));
-    }
-    let mut bytes = Vec::with_capacity(meta.len() as usize);
-    let cap = MAX_DOCUMENT_BYTES.min(remaining);
-    file.take(cap as u64 + 1).read_to_end(&mut bytes)?;
-    if bytes.len() > cap || bytes.len() as u64 != meta.len() {
-        return Err(invalid("CI Markdown changed or exceeded its byte budget"));
-    }
-    String::from_utf8(bytes).map_err(|e| invalid(e.to_string()))
 }
 
 fn decode_paths(
@@ -618,7 +363,7 @@ fn decode_paths(
     Ok(paths)
 }
 
-/// Actual Git path selection plus current/new Markdown link validation.
+/// Actual Git path selection.
 /// No rename detection: deletion and addition both influence the final mode.
 pub fn plan(
     root: &Path,
@@ -645,42 +390,7 @@ pub fn plan(
         )));
     }
     let paths = decode_paths(&bytes, bytes.capacity(), || budget.charge(0))?;
-    let selection = select_checked(paths, force_full, || budget.charge(0))?;
-    let docs = Docs::new()?;
-    let mut errors = Vec::new();
-    for name in &selection.changed_paths {
-        let target = root.join(name);
-        if !name.ends_with(".md") || !target.is_file() {
-            continue;
-        }
-        budget.charge(0)?;
-        let content = read_doc(&target, MAX_TOTAL_BYTES - budget.bytes)?;
-        budget.charge(content.len())?;
-        if docs.marker.is_match(&content) {
-            errors.push(format!("{name}: unresolved merge marker"));
-        }
-        let object = format!("{base}:{name}");
-        let (code, previous) = budget.git(root, &["show", &object], MAX_DOCUMENT_BYTES)?;
-        let old = if code == 0 {
-            docs.links(std::str::from_utf8(&previous).map_err(|e| invalid(e.to_string()))?)
-        } else {
-            BTreeSet::new()
-        };
-        for href in docs.links(&content).difference(&old) {
-            let Some(path) = docs.local_path(href)? else {
-                continue;
-            };
-            let destination = target.parent().unwrap().join(path);
-            if !fs::canonicalize(&destination).is_ok_and(|p| p.starts_with(root) && p.exists()) {
-                errors.push(format!("{name}: missing repository link target {href}"));
-            }
-        }
-    }
-    budget.charge(0)?;
-    if !errors.is_empty() {
-        return Err(invalid(errors.join("\n")));
-    }
-    Ok(selection)
+    select_checked(paths, force_full, || budget.charge(0))
 }
 
 #[cfg(test)]
@@ -836,104 +546,18 @@ mod tests {
     }
 
     #[test]
-    fn documentation_selection_keeps_source_consumers_and_owned_carrier_checks() {
-        for (paths, mode, rust, route_docs, agent_surface, documentation_family) in [
-            (
-                vec![
-                    "AGENTS.md",
-                    "mechanics/README.md",
-                    "rust/crates/tos-time-space/README.md",
-                ],
-                "none",
-                false,
-                "source",
-                false,
-                false,
-            ),
-            (vec!["ToS/AGENTS.md"], "none", true, "source", false, false),
-            (
-                vec!["bonsai/AGENTS.md", "bonsai/README.md"],
-                "none",
-                false,
-                "source",
-                false,
-                false,
-            ),
-            (
-                vec!["ToS/doctrine/README.md", "QUESTBOOK.md"],
-                "none",
-                true,
-                "none",
-                false,
-                false,
-            ),
-            (
-                vec![
-                    "mechanics/questbook/parts/obligation-boundary/docs/QUESTBOOK_TOS_INTEGRATION.md",
-                    "ToS/source-witnesses/fixtures/README.md",
-                ],
-                "none",
-                true,
-                "none",
-                false,
-                false,
-            ),
-            (
-                vec![".agents/agents-route.current.json", "access/AGENTS.md"],
-                "none",
-                false,
-                "current",
-                false,
-                false,
-            ),
-            (
-                vec![
-                    ".agents/agent-surface.current.json",
-                    "docs/validation/documentation-family.current.json",
-                ],
-                "none",
-                false,
-                "none",
-                true,
-                true,
-            ),
-            (
-                vec!["AGENTS.md", "new-unclassified/input.xyz"],
-                "full",
-                true,
-                "source",
-                false,
-                false,
-            ),
-            (
-                vec!["unknown/README.md"],
-                "full",
-                true,
-                "none",
-                false,
-                false,
-            ),
+    fn documentation_selection_keeps_source_consumers() {
+        for (paths, mode, rust) in [
+            (vec!["AGENTS.md", "mechanics/README.md"], "none", false),
+            (vec!["ToS/AGENTS.md"], "none", true),
+            (vec!["ToS/doctrine/README.md", "QUESTBOOK.md"], "none", true),
+            (vec!["AGENTS.md", "new-unclassified/input.xyz"], "full", true),
+            (vec!["unknown/README.md"], "full", true),
+            (vec!["rust/crates/tos-access/tests/fixtures/README.md"], "browser", true),
         ] {
             let result = select(paths.into_iter().map(str::to_owned).collect(), false).unwrap();
-            assert_eq!(
-                (
-                    result.software_mode,
-                    result.rust,
-                    result.route_docs,
-                    result.agent_surface,
-                    result.documentation_family
-                ),
-                (mode, rust, route_docs, agent_surface, documentation_family)
-            );
+            assert_eq!((result.software_mode, result.rust), (mode, rust));
             assert_eq!(result.worker, mode == "full");
-        }
-        for path in ["rust/crates/tos-access/tests/fixtures/README.md"] {
-            let result = select(vec![path.into()], false).unwrap();
-            assert!(result.rust);
-            assert_ne!(
-                result.software_mode, "none",
-                "fixture bytes require their consumer: {path}"
-            );
         }
     }
 
@@ -1068,7 +692,7 @@ mod tests {
             ("full", true, true),
             ("none", true, false),
         ] {
-            let needs = serde_json::json!({"plan":{"result":"success","outputs":{"software_mode":mode,"worker":worker.to_string(),"rust":rust.to_string(),"route_docs":"none","agent_surface":"false","documentation_family":"false"}},
+            let needs = serde_json::json!({"plan":{"result":"success","outputs":{"software_mode":mode,"worker":worker.to_string(),"rust":rust.to_string()}},
                 "software_prepare":{"result":if mode=="none" {"skipped"} else {"success"}},
                 "software":{"result":if mode=="none" {"skipped"} else {"success"}},
                 "software_package":{"result":if mode=="none" {"skipped"} else {"success"}},
@@ -1076,16 +700,6 @@ mod tests {
                 "rust":{"result":if rust {"success"} else {"skipped"}},
                 "postgres":{"result":if rust {"success"} else {"skipped"}}});
             gate(&needs).unwrap();
-            for field in ["route_docs", "agent_surface", "documentation_family"] {
-                let mut bad = needs.clone();
-                bad["plan"]["outputs"]
-                    .as_object_mut()
-                    .unwrap()
-                    .remove(field);
-                assert!(gate(&bad).is_err());
-                bad["plan"]["outputs"][field] = "unclassified".into();
-                assert!(gate(&bad).is_err());
-            }
             for job in [
                 "plan",
                 "software_prepare",
@@ -1108,43 +722,4 @@ mod tests {
         }
     }
 
-    #[test]
-    fn new_local_link_checks_keep_fences_unicode_and_url_refusals() {
-        let docs = Docs::new().unwrap();
-        assert_eq!(
-            docs.links("```md\n[x](fake.md)\n```\n[x](real.md#part)\n[r]: other.md\n"),
-            BTreeSet::from(["real.md#part".into(), "other.md".into()])
-        );
-        assert_eq!(
-            docs.links("```md\u{85}[x](fake.md)\u{85}```\u{85}[x](real.md)"),
-            BTreeSet::from(["real.md".into()])
-        );
-        assert_eq!(
-            docs.links("[x](\u{1c}target.md\u{1c})"),
-            BTreeSet::from(["target.md".into()])
-        );
-        assert_eq!(
-            docs.local_path("doc%20name.md?query#part").unwrap(),
-            Some("doc name.md".into())
-        );
-        for href in [
-            "https://example.invalid/no-fetch",
-            "//[::1]/x",
-            "//[v1.name]/x",
-            "/hosted",
-            "#part",
-        ] {
-            assert!(docs.local_path(href).unwrap().is_none());
-        }
-        for href in [
-            "https://[",
-            "//host]/x",
-            "//[127.0.0.1]/x",
-            "//[name]/x",
-            "https://℀/x",
-            "a%00b",
-        ] {
-            assert!(docs.local_path(href).is_err(), "{href}");
-        }
-    }
 }

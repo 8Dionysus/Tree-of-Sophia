@@ -1,6 +1,6 @@
 //! Maintained graph-view catalog validator over the existing native builder.
 //! Derived equality and lens mechanics are not source, canon or runtime admission.
-use crate::route_cards::{OutputBudget, RouteSources};
+use crate::source_reading::{OutputBudget, RouteSources};
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::io::{self, Write};

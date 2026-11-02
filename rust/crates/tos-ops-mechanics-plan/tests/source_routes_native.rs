@@ -152,126 +152,6 @@ fn canonical_identity_duplicates_and_exact_json_refuse_through_native_entry() {
         );
     }
 }
-fn mechanics_fixture() -> (Fixture, Value) {
-    let f = Fixture::new();
-    f.write("mechanics/AGENTS.md", "# Operation owner\n");
-    f.write("mechanics/README.md","## Task-to-owner map\n## Progressive disclosure\ntopology.json validation_lanes.json docs/decisions/README.md\n[agon](agon/README.md)\n");
-    for p in [
-        "AGENTS.md",
-        "PROVENANCE.md",
-        "ROADMAP.md",
-        "parts/intake/README.md",
-    ] {
-        f.write(&format!("mechanics/agon/{p}"), "# Route\n");
-    }
-    f.write(
-        "mechanics/agon/README.md",
-        "[Parts](PARTS.md) [Source](PROVENANCE.md) [Future](ROADMAP.md)\n",
-    );
-    f.write(
-        "mechanics/agon/PARTS.md",
-        "[Intake](parts/intake/README.md)\n",
-    );
-    f.write(
-        "docs/validation/script_inventory.json",
-        "{\"script_surfaces\":[]}\n",
-    );
-    f.write("tests/test_inventory.json", "{\"tests\":[]}\n");
-    let topology = json!({"schema_version":"tos_mechanics_topology_v2","owner_repo":"Tree-of-Sophia","root":"mechanics/","legacy_policy":"pinned-git-history-no-active-legacy","always_on_context_budget":{"surface":"mechanics/README.md","metric":"whitespace_tokens_v1","max_tokens":1000},"packages":[{"slug":"agon","class":"local","status":"active","active_parts":["intake"],"legacy_required":false}],"moved_path_accounting":{},"moved_path_targets":{}});
-    f.write("mechanics/topology.json", &topology.to_string());
-    f.track();
-    let out = invoke(&f.0, "--mechanics-topology-validate");
-    assert!(out.status.success(), "{}", text(&out));
-    (f, topology)
-}
-#[test]
-fn mechanics_package_selection_history_and_context_guards_are_native() {
-    let (f, mut topology) = mechanics_fixture();
-    topology["packages"][0]["legacy_required"] = json!(true);
-    f.write("mechanics/topology.json", &topology.to_string());
-    f.write("mechanics/agon/legacy/README.md", "# Retired\n");
-    let t = text(&invoke(&f.0, "--mechanics-topology-validate"));
-    assert!(
-        t.contains("must remain false") && t.contains("retired archives"),
-        "{t}"
-    );
-    topology["packages"][0]["legacy_required"] = json!(false);
-    topology["always_on_context_budget"]["max_tokens"] = json!(2);
-    f.write("mechanics/topology.json", &topology.to_string());
-    fs::remove_dir_all(f.0.join("mechanics/agon/legacy")).unwrap();
-    f.write("mechanics/agon/PARTS.md","<!-- [hidden](parts/intake/README.md) -->\n```md\n[example](parts/intake/README.md)\n```\n");
-    let t = text(&invoke(&f.0, "--mechanics-topology-validate"));
-    assert!(
-        t.contains("selection map") && t.contains("always-on context exceeds"),
-        "{t}"
-    );
-}
-#[test]
-fn mechanics_document_routes_preserve_links_fragments_fences_and_tracked_executables() {
-    let (f, _) = mechanics_fixture();
-    let doc = "mechanics/agon/parts/intake/README.md";
-    f.write("mechanics/agon/scripts/run.sh", "#!/bin/sh\nexit 0\n");
-    f.track();
-    f.write(doc, "Run `../../scripts/run.sh`.\n");
-    let out = invoke(&f.0, "--mechanics-topology-validate");
-    assert!(out.status.success(), "{}", text(&out));
-    // The tracked namespace, not an inventory claim, owns executable membership.
-    f.write("mechanics/agon/scripts/untracked.sh", "#!/bin/sh\nexit 0\n");
-    f.write(doc, "Run `../../scripts/untracked.sh`.\n");
-    let t = text(&invoke(&f.0, "--mechanics-topology-validate"));
-    assert!(t.contains("absent from tracked script namespace"), "{t}");
-    f.write(doc, "Run `scripts/missing.py`.\n");
-    assert!(
-        text(&invoke(&f.0, "--mechanics-topology-validate")).contains("stale executable reference")
-    );
-    f.write(doc, "Run `../../scripts/run.sh`.\n");
-    fs::remove_file(f.0.join("mechanics/agon/scripts/run.sh")).unwrap();
-    assert!(
-        text(&invoke(&f.0, "--mechanics-topology-validate")).contains("stale executable reference")
-    );
-    f.write("mechanics/agon/target.md", "# Present\n");
-    for fence in ["```", "~~~"] {
-        let source = format!(
-            "[guide][route]\n[route]: ../../target.md#present\n\n{fence}python\nplan['authorization']['scope']\n[example](missing-example.md)\n[example]: missing-example-definition.md\n[fenced-only]: ../../target.md\n{fence}\n"
-        );
-        f.write(doc, &source);
-        let out = invoke(&f.0, "--mechanics-topology-validate");
-        assert!(out.status.success(), "{}", text(&out));
-        f.write(doc,&(source+"\n[hidden definition][fenced-only]\n[undefined][]\n[broken][broken-route]\n[broken-route]: missing-prose.md\n"));
-        let t = text(&invoke(&f.0, "--mechanics-topology-validate"));
-        for expected in [
-            "unresolved reference-style documentation route: fenced-only",
-            "unresolved reference-style documentation route: undefined",
-            "broken local documentation route: missing-prose.md",
-        ] {
-            assert!(t.contains(expected), "{t}");
-        }
-    }
-    for (body, needle) in [
-        (
-            "```sh\npython scripts/missing.py\n```\n",
-            "stale executable reference",
-        ),
-        (
-            "[details](README.md#missing)\n",
-            "broken local documentation fragment",
-        ),
-        (
-            "[outside](../../../../../outside.md)\n",
-            "broken local documentation route",
-        ),
-        (
-            "[guide][route]\n[route]: missing.md\n",
-            "broken local documentation route",
-        ),
-    ] {
-        f.write(doc, body);
-        let out = invoke(&f.0, "--mechanics-topology-validate");
-        assert_eq!(out.status.code(), Some(1));
-        assert!(text(&out).contains(needle), "{}", text(&out));
-    }
-}
-
 fn philosophy_fixture() -> (Fixture, Value, Value) {
     let f = Fixture::new();
     for path in [
@@ -428,7 +308,7 @@ fn source_anchor_preparation_binds_exact_provider_and_antecedent_without_plantin
         ] {
             let raw = fs::read(root.join(v[record]["path"].as_str().unwrap())).unwrap();
             let raw = if record == "atlas_source" {
-                tos_ops_mechanics_plan::route_cards::splitlines(std::str::from_utf8(&raw).unwrap())
+                tos_ops_mechanics_plan::source_reading::splitlines(std::str::from_utf8(&raw).unwrap())
                     [v[record]["line"].as_u64().unwrap() as usize - 1]
                     .as_bytes()
                     .to_vec()
@@ -437,14 +317,14 @@ fn source_anchor_preparation_binds_exact_provider_and_antecedent_without_plantin
             };
             assert_eq!(
                 v[record][digest],
-                tos_ops_mechanics_plan::route_cards::sha256_bytes(&raw)
+                tos_ops_mechanics_plan::source_reading::sha256_bytes(&raw)
             );
         }
         let raw =
             fs::read(root.join(v["source_backlog_anchor"]["path"].as_str().unwrap())).unwrap();
         assert_eq!(
             v["backlog_sha256"],
-            tos_ops_mechanics_plan::route_cards::sha256_bytes(&raw)
+            tos_ops_mechanics_plan::source_reading::sha256_bytes(&raw)
         );
     }
     let out = invoke_args(

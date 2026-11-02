@@ -14,7 +14,7 @@
 | owner | `mechanics/audit/` |
 | stronger route | `ToS/` owns source meaning; `aoa-evals` owns proof verdicts |
 | next route | [Review Ledger Route](parts/review-ledger-route/README.md) |
-| validation | `tos-ops-mechanics-plan --repo-root ROOT --mechanics-topology-validate` |
+| validation | manual review of the changed owner surface |
 
 ## Operations
 | Part | Function |
@@ -40,7 +40,6 @@ Source or semantic questions return to [the source owner](../../ToS/AGENTS.md).
 | owner | `mechanics/audit/parts/review-ledger-route/` |
 | next route | `ToS/review-ledger/`, `docs/decisions/`, or owning validator |
 | tools | `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md`, `ToS/review-ledger/` |
-| check | `tos-route-cards --repo-root ABS validate` |
 
 ## Review return
 

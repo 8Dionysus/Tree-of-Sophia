@@ -42,10 +42,4 @@ Name what becomes easier, what remains constrained, and what future contributors
 
 ## Validation
 
-Run:
-
-Decision-index regeneration routes through `docs/decisions/AGENTS.md`.
-Checked index parity and record validation are owned by the
-`generated_parity` sequence in `docs/validation/validation_lanes.json`.
-
-Also run the validator for the owning surface the decision describes.
+Review the decision and validate the owning surface described by the decision.

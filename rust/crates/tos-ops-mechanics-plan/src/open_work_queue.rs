@@ -518,7 +518,7 @@ pub fn check(root: &Path, expected: &Value, cancel: &AtomicI32) -> Result<()> {
     )
 }
 pub fn write(root: &Path, expected: &Value) -> Result<()> {
-    crate::route_cards::write_output(root, Path::new(QUEUE), &render(expected)?)
+    crate::source_reading::write_output(root, Path::new(QUEUE), &render(expected)?)
 }
 
 #[cfg(test)]
