@@ -192,6 +192,52 @@ fn field<'a>(value: &'a Value, name: &str) -> Option<&'a str> {
         .and_then(Value::as_str)
         .filter(|s| !s.is_empty())
 }
+fn branch_node(path: &str, manifest: &Value) -> Option<Value> {
+    let id = field(manifest, "branch_id")?;
+    let branch = path.strip_suffix("/branch.manifest.json")?;
+    let label = field(manifest, "role")
+        .map(str::to_owned)
+        .unwrap_or_else(|| {
+            python_title(
+                &branch
+                    .rsplit('/')
+                    .next()
+                    .unwrap_or(branch)
+                    .replace('-', " "),
+            )
+        });
+    Some(node(
+        id,
+        branch_kind(branch),
+        &label,
+        path,
+        "not_applicable",
+        json!({"branch_path":branch,"role":manifest.get("role").and_then(Value::as_str).unwrap_or("")}),
+    ))
+}
+
+#[cfg(test)]
+mod branch_manifest_tests {
+    use super::*;
+
+    #[test]
+    fn branch_navigation_uses_manifest_location() {
+        let path = "ToS/philosophy/eras/axial-age/branch.manifest.json";
+        let manifest = json!({"branch_id":"philosophy.eras.axial-age","role":"Axial Age"});
+        assert_eq!(
+            branch_node(path, &manifest),
+            Some(node(
+                "philosophy.eras.axial-age",
+                "era",
+                "Axial Age",
+                path,
+                "not_applicable",
+                json!({"branch_path":"ToS/philosophy/eras/axial-age","role":"Axial Age"})
+            ))
+        );
+        assert!(branch_node("elsewhere.json", &manifest).is_none());
+    }
+}
 fn visible(value: &Value) -> bool {
     matches!(
         value.get("visibility").and_then(Value::as_str),
@@ -356,24 +402,13 @@ fn project_navigation_kernel<B: catalog::CatalogInputBinding>(
             p.starts_with("ToS/philosophy/eras/") && p.ends_with("/branch.manifest.json")
         }) {
             let manifest = original(&versions.required(&path, validator, l)?, l)?;
-            let (Some(id), Some(branch)) =
-                (field(&manifest, "branch_id"), field(&manifest, "path"))
-            else {
+            let Some(branch_node) = branch_node(path, &manifest) else {
                 continue;
             };
-            let label = field(&manifest, "role")
-                .map(str::to_owned)
-                .unwrap_or_else(|| {
-                    python_title(
-                        &branch
-                            .rsplit('/')
-                            .next()
-                            .unwrap_or(branch)
-                            .replace('-', " "),
-                    )
-                });
-            projection.node(node(id,branch_kind(branch),&label,&path,"not_applicable",
-                json!({"branch_path":branch,"role":manifest.get("role").and_then(Value::as_str).unwrap_or("")})))?;
+            let branch = path
+                .strip_suffix("/branch.manifest.json")
+                .expect("filtered suffix");
+            projection.node(branch_node)?;
             branches.insert(branch.into(), manifest);
         }
         for (child, manifest) in &branches {

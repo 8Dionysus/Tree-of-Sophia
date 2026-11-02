@@ -124,3 +124,10 @@ decipherment route, or local graph route.
 Prepared atlas rows name ToS growth pressure. Historical source claims that
 matter must still be anchored later in real source witnesses, published works,
 editions, translations, or reviewed canon surfaces.
+
+Branch manifests follow the [version 2 branch contract](../contracts/philosophy-branch-manifest.schema.json).
+Their directory supplies the branch path and, when `children` is absent, its
+immediate child directories. Explicit `children` preserves a different authored
+list. Counts come from the referenced rows or planting references. The retained
+explicit lists are `atlas/multilingual/branch.manifest.json` and
+`eras/modernity-and-contemporary-worlds/regions/branch.manifest.json`.
