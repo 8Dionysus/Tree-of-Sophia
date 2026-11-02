@@ -53,16 +53,22 @@ wheel or CLI.
 ### Native fresh-prefix installation
 
 The native software archive installs without Python. Begin with an archive and
-installer admitted through the release route, and pass finite positive budgets:
+installer admitted through the release route. The built-in deployment profile
+provides finite archive limits:
 
 ```sh
-/path/to/admitted/tos-access software install --archive /absolute/software.zip \
-  --prefix /absolute/fresh-user-prefix \
-  --max-total-bytes ADMITTED_EXPANDED_BYTES --max-archive-bytes ADMITTED_ZIP_BYTES \
-  --max-members ADMITTED_MEMBER_COUNT --max-metadata-bytes ADMITTED_METADATA_BYTES
+/path/to/admitted/tos-access software install \
+  --archive /absolute/software.zip --prefix /absolute/fresh-user-prefix
 /absolute/fresh-user-prefix/bin/tos --help
 /absolute/fresh-user-prefix/bin/tos --version
 ```
+
+The [deployment profile guide](profiles/README.md) describes profile selection.
+Adjust `archive_install.max_total_bytes`, `max_archive_bytes`, `max_members`, and
+`max_metadata_bytes` for a different archive when needed. `TOS_DEPLOYMENT_PROFILE`
+provides the profile path for repeated commands. The flags `--max-total-bytes`,
+`--max-archive-bytes`, `--max-members`, and `--max-metadata-bytes` override
+individual profile values.
 
 The installer refuses an existing prefix and never starts the installed
 program. A failed extraction may leave an incomplete candidate; do not select
