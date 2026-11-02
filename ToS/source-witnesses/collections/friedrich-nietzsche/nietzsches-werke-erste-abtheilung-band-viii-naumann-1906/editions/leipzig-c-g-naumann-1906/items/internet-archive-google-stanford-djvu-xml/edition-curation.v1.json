@@ -1,0 +1,80 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/edition-curation.v1.schema.json",
+  "schema_version": "tos_edition_curation_v1",
+  "curation_id": "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.internet-archive-google-stanford-djvu-xml.edition-curation.v1",
+  "version": 1,
+  "status": "historical-constants",
+  "owner_item_ref": "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.internet-archive-google-stanford-djvu-xml",
+  "edition_ref": "tos.edition.friedrich-nietzsche.nietzsches-werke-band-8.leipzig-c-g-naumann-1906",
+  "manifest": "item.manifest.json",
+  "recipes": [
+    {
+      "stage": "source-passage-marker-returns",
+      "marker_returns": [
+        {
+          "key": [
+            240,
+            "8"
+          ],
+          "leaf_number": 239,
+          "member_path": "nietzscheswerke00nietgoog_jp2/nietzscheswerke00nietgoog_0239.jp2",
+          "pixel_bbox": [
+            1839,
+            2011,
+            56,
+            57
+          ],
+          "record_order": 8,
+          "line_bbox": [
+            916.0,
+            2163.0,
+            2979.0,
+            2251.0
+          ]
+        },
+        {
+          "key": [
+            241,
+            "9"
+          ],
+          "leaf_number": 240,
+          "member_path": "nietzscheswerke00nietgoog_jp2/nietzscheswerke00nietgoog_0240.jp2",
+          "pixel_bbox": [
+            1979,
+            2253,
+            61,
+            62
+          ],
+          "record_order": 10,
+          "line_bbox": [
+            1071.0,
+            2393.0,
+            3129.0,
+            2478.0
+          ]
+        },
+        {
+          "key": [
+            290,
+            "44"
+          ],
+          "leaf_number": 289,
+          "member_path": "nietzscheswerke00nietgoog_jp2/nietzscheswerke00nietgoog_0289.jp2",
+          "pixel_bbox": [
+            1834,
+            3399,
+            97,
+            52
+          ],
+          "record_order": 20,
+          "line_bbox": [
+            949.0,
+            3532.0,
+            2995.0,
+            3620.0
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,264 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/edition-curation.v1.schema.json",
+  "schema_version": "tos_edition_curation_v1",
+  "curation_id": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf.edition-curation.v1",
+  "version": 1,
+  "status": "historical-constants",
+  "owner_item_ref": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf",
+  "edition_ref": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.leipzig-c-g-naumann-1886",
+  "manifest": "item.manifest.json",
+  "recipes": [
+    {
+      "stage": "numbered-structure",
+      "work_ref": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+      "expression_ref": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886",
+      "edition_ref": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.leipzig-c-g-naumann-1886",
+      "map_id": "tos.numbered-unit-page-map.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886",
+      "event_id": "tos.event.numbered-unit-page-map.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.2026-07-29",
+      "locators": [
+        {
+          "role": "item_dir",
+          "item_relative_path": "."
+        },
+        {
+          "role": "manifest_path",
+          "item_relative_path": "item.manifest.json"
+        },
+        {
+          "role": "inventory_path",
+          "item_relative_path": "resource-inventory.json"
+        },
+        {
+          "role": "output_dir",
+          "item_relative_path": "structure"
+        },
+        {
+          "role": "provenance_path",
+          "item_relative_path": "structure/provenance.jsonl"
+        },
+        {
+          "role": "rights_ref",
+          "item_relative_path": "rights.json"
+        }
+      ],
+      "page_overrides": [
+        {
+          "key": "15",
+          "page": 27
+        },
+        {
+          "key": "18",
+          "page": 30
+        },
+        {
+          "key": "23",
+          "page": 37
+        },
+        {
+          "key": "24",
+          "page": 42
+        },
+        {
+          "key": "30",
+          "page": 50
+        },
+        {
+          "key": "32",
+          "page": 52
+        },
+        {
+          "key": "108",
+          "page": 98
+        },
+        {
+          "key": "110",
+          "page": 98
+        },
+        {
+          "key": "131",
+          "page": 101
+        },
+        {
+          "key": "151",
+          "page": 103
+        },
+        {
+          "key": "199",
+          "page": 125
+        },
+        {
+          "key": "202",
+          "page": 131
+        },
+        {
+          "key": "227",
+          "page": 176
+        },
+        {
+          "key": "233",
+          "page": 187
+        },
+        {
+          "key": "234",
+          "page": 187
+        },
+        {
+          "key": "245",
+          "page": 205
+        },
+        {
+          "key": "247",
+          "page": 208
+        },
+        {
+          "key": "251",
+          "page": 211
+        },
+        {
+          "key": "253",
+          "page": 216
+        },
+        {
+          "key": "254",
+          "page": 217
+        },
+        {
+          "key": "258",
+          "page": 228
+        },
+        {
+          "key": "262",
+          "page": 238
+        },
+        {
+          "key": "270",
+          "page": 250
+        },
+        {
+          "key": "276",
+          "page": 254
+        },
+        {
+          "key": "277",
+          "page": 254
+        },
+        {
+          "key": "291",
+          "page": 261
+        },
+        {
+          "key": "296",
+          "page": 266
+        }
+      ],
+      "gap_review_keys": [
+        "15",
+        "18",
+        "23",
+        "24",
+        "30",
+        "32",
+        "108",
+        "110",
+        "131",
+        "151",
+        "160",
+        "188",
+        "202",
+        "227",
+        "233",
+        "234",
+        "245",
+        "251",
+        "254",
+        "276",
+        "277",
+        "291"
+      ],
+      "ocr_disambiguation_keys": [
+        "195",
+        "199",
+        "224",
+        "247",
+        "253",
+        "258",
+        "262",
+        "270",
+        "283",
+        "296"
+      ],
+      "ocr_substitutions": [
+        {
+          "digit": "0",
+          "allowed_characters": "0aoöü"
+        },
+        {
+          "digit": "1",
+          "allowed_characters": "1ilt»"
+        },
+        {
+          "digit": "2",
+          "allowed_characters": "2z"
+        },
+        {
+          "digit": "3",
+          "allowed_characters": "3"
+        },
+        {
+          "digit": "4",
+          "allowed_characters": "4"
+        },
+        {
+          "digit": "5",
+          "allowed_characters": "5s"
+        },
+        {
+          "digit": "6",
+          "allowed_characters": "6"
+        },
+        {
+          "digit": "7",
+          "allowed_characters": "7"
+        },
+        {
+          "digit": "8",
+          "allowed_characters": "8sö"
+        },
+        {
+          "digit": "9",
+          "allowed_characters": "9gq"
+        }
+      ],
+      "ocr_allowed_characters": " *,-./0123456789:;AGILOQSTZ\\^agiloqstz~«»ÖÜöü–—•"
+    },
+    {
+      "stage": "source-passage-marker-returns",
+      "marker_returns": [
+        {
+          "key": [
+            "jenseits",
+            52,
+            "32"
+          ],
+          "image_object_number": 252,
+          "image_object_generation": 0,
+          "image_width_pixels": 2500,
+          "image_height_pixels": 3900,
+          "pixel_bbox": [
+            1168,
+            2485,
+            77,
+            47
+          ],
+          "record_order": 39,
+          "line_bbox": [
+            54.96,
+            311.874983,
+            249.60096,
+            317.82565
+          ]
+        }
+      ]
+    }
+  ]
+}

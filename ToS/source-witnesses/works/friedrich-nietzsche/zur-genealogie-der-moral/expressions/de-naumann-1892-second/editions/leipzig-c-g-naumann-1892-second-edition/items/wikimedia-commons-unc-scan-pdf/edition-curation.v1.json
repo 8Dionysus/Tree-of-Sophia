@@ -1,0 +1,41 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/edition-curation.v1.schema.json",
+  "schema_version": "tos_edition_curation_v1",
+  "curation_id": "tos.item.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.wikimedia-commons-unc-scan-pdf.edition-curation.v1",
+  "version": 1,
+  "status": "historical-constants",
+  "owner_item_ref": "tos.item.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.wikimedia-commons-unc-scan-pdf",
+  "edition_ref": "tos.edition.friedrich-nietzsche.zur-genealogie-der-moral.leipzig-c-g-naumann-1892-second",
+  "manifest": "item.manifest.json",
+  "recipes": [
+    {
+      "stage": "source-passage-marker-returns",
+      "marker_returns": [
+        {
+          "key": [
+            "genealogie",
+            40,
+            "11"
+          ],
+          "image_object_number": 194,
+          "image_object_generation": 0,
+          "image_width_pixels": 2636,
+          "image_height_pixels": 4283,
+          "pixel_bbox": [
+            1289,
+            2469,
+            72,
+            32
+          ],
+          "record_order": 58,
+          "line_bbox": [
+            241.40662,
+            375.444496,
+            322.070076,
+            383.544
+          ]
+        }
+      ]
+    }
+  ]
+}

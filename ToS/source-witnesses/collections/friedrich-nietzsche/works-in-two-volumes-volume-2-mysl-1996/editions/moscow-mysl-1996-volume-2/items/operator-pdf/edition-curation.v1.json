@@ -1,0 +1,195 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/edition-curation.v1.schema.json",
+  "schema_version": "tos_edition_curation_v1",
+  "curation_id": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf.edition-curation.v1",
+  "version": 1,
+  "status": "historical-constants",
+  "owner_item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+  "edition_ref": "tos.edition.friedrich-nietzsche.works-in-two-volumes.moscow-mysl-1996-volume-2",
+  "manifest": "item.manifest.json",
+  "recipes": [
+    {
+      "stage": "numbered-structure",
+      "work_ref": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+      "expression_ref": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996",
+      "edition_ref": "tos.edition.friedrich-nietzsche.works-in-two-volumes.moscow-mysl-1996-volume-2",
+      "map_id": "tos.target-numbered-unit-page-map.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996",
+      "event_id": "tos.event.target-numbered-unit-page-map.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.2026-07-29",
+      "locators": [
+        {
+          "role": "target_item_dir",
+          "item_relative_path": "."
+        },
+        {
+          "role": "manifest_path",
+          "item_relative_path": "item.manifest.json"
+        },
+        {
+          "role": "inventory_path",
+          "item_relative_path": "resource-inventory.json"
+        },
+        {
+          "role": "rights_path",
+          "item_relative_path": "rights.json"
+        },
+        {
+          "role": "work_boundary_path",
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json"
+        },
+        {
+          "role": "source_map_path",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/structure/numbered-unit-page-map.json"
+        },
+        {
+          "role": "output_dir",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/structure/mysl-1996-volume-2-operator-pdf"
+        },
+        {
+          "role": "provenance_path",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/provenance.jsonl"
+        }
+      ],
+      "page_overrides": [
+        {
+          "key": "8",
+          "page": 246
+        },
+        {
+          "key": "29",
+          "page": 265
+        },
+        {
+          "key": "33",
+          "page": 268
+        },
+        {
+          "key": "38",
+          "page": 271
+        },
+        {
+          "key": "41",
+          "page": 273
+        },
+        {
+          "key": "46",
+          "page": 278
+        },
+        {
+          "key": "47",
+          "page": 279
+        },
+        {
+          "key": "49",
+          "page": 281
+        },
+        {
+          "key": "52",
+          "page": 282
+        },
+        {
+          "key": "69",
+          "page": 292
+        },
+        {
+          "key": "77",
+          "page": 293
+        },
+        {
+          "key": "85",
+          "page": 294
+        },
+        {
+          "key": "93",
+          "page": 295
+        },
+        {
+          "key": "102",
+          "page": 296
+        },
+        {
+          "key": "111",
+          "page": 297
+        },
+        {
+          "key": "120",
+          "page": 298
+        },
+        {
+          "key": "129",
+          "page": 299
+        },
+        {
+          "key": "134",
+          "page": 299
+        },
+        {
+          "key": "137",
+          "page": 300
+        },
+        {
+          "key": "145",
+          "page": 301
+        },
+        {
+          "key": "150",
+          "page": 301
+        },
+        {
+          "key": "153",
+          "page": 302
+        },
+        {
+          "key": "162",
+          "page": 303
+        },
+        {
+          "key": "171",
+          "page": 304
+        },
+        {
+          "key": "180",
+          "page": 305
+        },
+        {
+          "key": "195",
+          "page": 315
+        },
+        {
+          "key": "203",
+          "page": 322
+        },
+        {
+          "key": "207",
+          "page": 328
+        },
+        {
+          "key": "225",
+          "page": 346
+        },
+        {
+          "key": "250",
+          "page": 369
+        },
+        {
+          "key": "263",
+          "page": 386
+        },
+        {
+          "key": "264",
+          "page": 389
+        },
+        {
+          "key": "285",
+          "page": 399
+        }
+      ],
+      "tools": [
+        {
+          "name": "pdftotext",
+          "version": "26.01.0"
+        }
+      ],
+      "source_map_sha256": "fb7c15005968bb5795388714ab2b725593f5f29f31cb29c71cece77f751b2b90"
+    }
+  ]
+}
