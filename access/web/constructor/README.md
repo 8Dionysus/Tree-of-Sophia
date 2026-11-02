@@ -23,7 +23,6 @@ from `access/web`. The local server uses port 44257 and proxies `/api` to the
 separately selected read-only backend at 127.0.0.1:44258. Its discovery must offer
 exploration v2 and indexed or compressed search; there is no fixture fallback.
 `TOS_WEB_CACHE_DIR` can place the development cache in owner-managed scratch.
-This does not install, restart or activate the desktop demo.
 
 `live-research.mjs` connects the bounded `ExplorationSession` to the sky through
 `live-model.mjs`. Search returns at most six items of each kind per page. Exact
@@ -274,25 +273,23 @@ zoom. H hides controls, F toggles full screen, O frames the current view, and
 Ctrl/Cmd+Z undoes a graph change. A hidden tab pauses the atmosphere; reduced
 motion disables ambient movement and transitions.
 
-Run the focused model, lens, journey and desktop tests, compile the separate entry, validate the
-actual prepared graph, and exercise the complete result in a browser. Local
-checks do not establish CI, merge, Foundation integration, public publication,
-translation review or semantic admission.
+Run the focused model, lens, journey and desktop tests, compile the separate
+entry, validate the prepared graph and exercise the result in a browser.
 
-## Личное поле при смысловом обновлении
+<a id="личное-поле-при-смысловом-обновлении"></a>
 
-Новая редакция содержания имеет новый полный fingerprint библиотеки.
-`semantic-workspace.mjs` допускает перенос только между точно проверенными редакциями:
-исходные тексты, идентичности и иерархия материалов, топология связей и порядок
-шагов маршрутов совпадают. Перед копированием личное дерево проходит полный
-валидатор новой библиотеки; собственные мысли, связи, позиции и намеренно пустое
-поле сохраняются. Прежние ключи остаются нетронутыми, существующая новая редакция
-никогда не перезаписывается. Запуски окон этой редакции согласуются через
-Web Locks перед чтением рабочего поля; без этого механизма перенос не выполняется.
-Ошибка чтения или записи видна в интерфейсе.
-Из подходящих прежних редакций выбирается самая новая, в которой есть сохранение.
-Повреждённая новая запись не заменяется более старой. Это сохраняет работу и тех,
-кто пропустил промежуточное обновление, и тех, кто уже работал в нём.
-Для другой редакции нужно сначала проверить совместимость и обновить точную привязку;
-совпадение одного имени или ID не разрешает перепривязку к другому источнику.
-Заметки читальни продолжают принадлежать прежним неизменённым версиям текста.
+## Personal workspace during semantic updates
+
+Each content edition has a new full library fingerprint. `semantic-workspace.mjs`
+transfers between verified editions whose source texts, material identities and
+hierarchy, link topology and route-step order match. Before copying, the new
+library's full validator checks the personal graph. Personal thoughts, links,
+positions and an intentionally empty workspace are retained. Existing keys and
+an existing new-edition workspace stay intact.
+
+Windows for this edition coordinate through Web Locks before reading the
+workspace; transfer requires that mechanism. Read and write errors remain
+visible. The newest compatible prior edition with saved work is selected, while
+a damaged new record remains intact. A different edition requires a compatibility
+check and an updated exact binding; a shared name or ID alone cannot rebind a
+different source. Reader notes stay attached to their unchanged text versions.
