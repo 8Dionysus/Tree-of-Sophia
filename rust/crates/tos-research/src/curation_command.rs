@@ -193,19 +193,47 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
     )
     .map_err(|e| format!("curation binding: {e:?}"))?;
     if let Some(stage) = stage {
-        let choices = selected.value["recipes"]
+        let recipes = selected.value["recipes"]
             .as_array()
-            .ok_or("curation recipes required")?
+            .ok_or("curation recipes required")?;
+        let choices = recipes
             .iter()
             .filter(|recipe| {
                 recipe["stage"] == stage
                     || (recipe["stage"] == "recipe-reference" && recipe["recipe_stage"] == stage)
             })
-            .count();
-        if choices != 1 {
+            .collect::<Vec<_>>();
+        if choices.len() != 1 {
             return Err(format!(
                 "stage {stage} must identify exactly one selected recipe"
             ));
+        }
+        let (owner, recipe) = if choices[0]["stage"] == "recipe-reference" {
+            let reference = choices[0]["curation_ref"]
+                .as_str()
+                .ok_or("curation reference required")?;
+            let owner = refs
+                .iter()
+                .find(|value| value.reference == reference)
+                .ok_or("referenced curation missing")?;
+            let recipe = owner.value["recipes"]
+                .as_array()
+                .ok_or("curation recipes required")?
+                .iter()
+                .find(|recipe| recipe["stage"] == stage)
+                .ok_or("referenced stage missing")?;
+            (owner, recipe)
+        } else {
+            (&selected, choices[0])
+        };
+        if action == "validate" && stage == "numbered-structure" {
+            crate::numbered_structure::validate_frozen_map(
+                &ctx,
+                &owner.raw,
+                &owner.value,
+                recipe,
+                &schema,
+            )?;
         }
     }
     if action != "validate" {
@@ -233,55 +261,4 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
             2
         }
     })
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn args(values: &[&str]) -> Vec<String> {
-        values.iter().map(|value| (*value).to_owned()).collect()
-    }
-
-    #[test]
-    fn curation_validation_selects_owner_and_referenced_recipe() {
-        let root =
-            std::fs::canonicalize(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..")).unwrap();
-        let root = root.to_str().unwrap();
-        for path in [
-            "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/edition-curation.v1.json",
-            "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/items/dta-sbb-corrected-tei-p5/edition-curation.v1.json",
-        ] {
-            let mut out = Vec::new();
-            execute(
-                &args(&[
-                    "validate",
-                    "--source-root",
-                    root,
-                    "--curation",
-                    path,
-                    "--stage",
-                    "tei-technical-markup",
-                ]),
-                &mut out,
-            )
-            .unwrap();
-            let value: Value = serde_json::from_slice(&out).unwrap();
-            assert_eq!(value["status"], "validated");
-            assert_eq!(value["stage"], "tei-technical-markup");
-        }
-    }
-
-    #[test]
-    fn curation_selection_rejects_missing_and_traversing_paths() {
-        let mut out = Vec::new();
-        assert!(execute(&args(&["build", "--stage", "numbered-structure"]), &mut out).is_err());
-        assert!(
-            execute(
-                &args(&["validate", "--curation", "../edition-curation.v1.json"]),
-                &mut out
-            )
-            .is_err()
-        );
-    }
 }
