@@ -597,6 +597,11 @@
           "boundary_evidence_profile": {
             "kind": "pdf-page-image",
             "relation": "same-PDF-page-image-mask-to-first-following-poppler-bbox-order"
+          },
+          "xml_navigation": {
+            "inventory_item_role": "first_source_item",
+            "inventory_profile": "djvu_xml_pages_v1",
+            "body_y_minimum": 350
           }
         },
         {
@@ -675,6 +680,11 @@
               "item_role": "third_source_navigation_item",
               "media_type": "application/xml"
             }
+          },
+          "xml_navigation": {
+            "inventory_item_role": "third_source_navigation_item",
+            "inventory_profile": "djvu_xml_pages_v1",
+            "body_y_minimum": 950
           }
         }
       ],
@@ -691,7 +701,40 @@
           "from": ".source-start-page",
           "to": ""
         }
-      ]
+      ],
+      "marker_profile": {
+        "normalization_curation_ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/edition-curation.v1.json",
+        "normalization_stage": "hierarchical-source-structure",
+        "character_filter": "unicode-alphanumeric",
+        "case_mapping": "unicode-lowercase",
+        "abbyy_extra_character": "»",
+        "pdf_body_y_minimum": 50,
+        "pdf_body_y_maximum_exclusive": 540,
+        "abbyy_body_y_minimum": 400,
+        "abbyy_body_y_maximum_exclusive": 3500,
+        "djvu_bottom_margin": 300,
+        "pdf_marker_x_minimum": 0.3,
+        "pdf_marker_x_maximum": 0.7,
+        "djvu_marker_x_minimum": 0.32,
+        "djvu_marker_x_maximum": 0.68,
+        "x_bounds": "closed",
+        "coordinate_decimal_places": 8,
+        "basis": {
+          "abbyy_exact": "exact-expected-label-in-abbyy-paragraph-layer",
+          "abbyy_override": "source-visible-label-over-abbyy-ocr-token",
+          "pdf_exact": "exact-normalized-label-in-poppler-pdf-bbox-layer",
+          "djvu_exact": "exact-normalized-label-in-djvu-xml-word-layer",
+          "pdf_visual": "model-visible-pdf-image-mask-number-marker-plus-first-following-poppler-pdf-bbox-line",
+          "djvu_visual": "model-visible-jp2-number-marker-plus-first-following-djvu-xml-line"
+        },
+        "abbyy_overrides": [
+          {
+            "work_ref": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+            "unit_key": "188",
+            "ocr_token": "i8s"
+          }
+        ]
+      }
     },
     {
       "stage": "numbered-label-correspondence",

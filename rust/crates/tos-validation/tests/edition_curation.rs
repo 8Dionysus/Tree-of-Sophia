@@ -59,6 +59,29 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         validate(&serde_json::to_vec(&unknown_override).unwrap(), &schema),
         Err(EditionCurationError::MissingReference)
     );
+    let item_manifest_ref = format!("{}/item.manifest.json", path.rsplit_once('/').unwrap().0);
+    let item_manifest_raw = fs::read(root.join(&item_manifest_ref)).unwrap();
+    let item_edition_ref = edition_reference(path);
+    let item_edition_raw = fs::read(root.join(&item_edition_ref)).unwrap();
+    assert_eq!(
+        validate_bindings(
+            SelectedDocument {
+                reference: path,
+                raw: &raw
+            },
+            SelectedDocument {
+                reference: &item_manifest_ref,
+                raw: &item_manifest_raw
+            },
+            SelectedDocument {
+                reference: &item_edition_ref,
+                raw: &item_edition_raw
+            },
+            &[],
+            &schema
+        ),
+        Err(EditionCurationError::MissingReference)
+    );
     let mut duplicate_source_layer = original.clone();
     let source = duplicate_source_layer["recipes"]
         .as_array_mut()
@@ -1918,30 +1941,41 @@ fn authored_edition_curations_bind_to_their_selected_items() {
         let edition_ref = edition_reference(reference);
         let edition_raw = fs::read(root.join(&edition_ref)).unwrap();
         let mut references = std::collections::BTreeMap::new();
+        let mut target_refs = std::collections::BTreeSet::new();
         for recipe in value["recipes"].as_array().unwrap() {
             if recipe["stage"] == "recipe-reference" {
-                let target = recipe["curation_ref"].as_str().unwrap();
-                let target_raw = fs::read(root.join(target)).unwrap();
-                let target_value: Value = serde_json::from_slice(&target_raw).unwrap();
-                let target_manifest = format!(
-                    "{}/{}",
-                    target.rsplit_once('/').unwrap().0,
-                    target_value["manifest"].as_str().unwrap()
-                );
-                let target_manifest_raw = fs::read(root.join(&target_manifest)).unwrap();
-                let target_edition = edition_reference(target);
-                let target_edition_raw = fs::read(root.join(&target_edition)).unwrap();
-                references.insert(
-                    target.to_owned(),
-                    (
-                        target_raw,
-                        target_manifest,
-                        target_manifest_raw,
-                        target_edition,
-                        target_edition_raw,
-                    ),
-                );
+                target_refs.insert(recipe["curation_ref"].as_str().unwrap());
             }
+            if recipe["stage"] == "source-passages" {
+                for target in recipe["marker_curation_refs"].as_array().unwrap() {
+                    let target = target.as_str().unwrap();
+                    if target != reference {
+                        target_refs.insert(target);
+                    }
+                }
+            }
+        }
+        for target in target_refs {
+            let target_raw = fs::read(root.join(target)).unwrap();
+            let target_value: Value = serde_json::from_slice(&target_raw).unwrap();
+            let target_manifest = format!(
+                "{}/{}",
+                target.rsplit_once('/').unwrap().0,
+                target_value["manifest"].as_str().unwrap()
+            );
+            let target_manifest_raw = fs::read(root.join(&target_manifest)).unwrap();
+            let target_edition = edition_reference(target);
+            let target_edition_raw = fs::read(root.join(&target_edition)).unwrap();
+            references.insert(
+                target.to_owned(),
+                (
+                    target_raw,
+                    target_manifest,
+                    target_manifest_raw,
+                    target_edition,
+                    target_edition_raw,
+                ),
+            );
         }
         let selected: Vec<_> = references
             .iter()

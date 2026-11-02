@@ -953,6 +953,57 @@ pub fn validate_bindings(
         .as_array()
         .ok_or(EditionCurationError::InvalidSchema)?
     {
+        if recipe["stage"] == "source-passages" {
+            let locators = recipe["locators"]
+                .as_array()
+                .ok_or(EditionCurationError::InvalidSchema)?;
+            for route in recipe["work_routes"]
+                .as_array()
+                .ok_or(EditionCurationError::InvalidSchema)?
+            {
+                let reference = route["marker_curation_ref"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                path(reference)?;
+                let target = if reference == current.reference {
+                    &selected
+                } else {
+                    chosen
+                        .get(reference)
+                        .ok_or(EditionCurationError::MissingReference)?
+                };
+                selected_recipe(target, "source-passage-marker-returns")?;
+                let role = route["default_content_witness"]["item_role"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let directory = locators
+                    .iter()
+                    .find(|locator| locator["role"] == role)
+                    .and_then(|locator| locator["repository_path"].as_str())
+                    .ok_or(EditionCurationError::MissingReference)?;
+                if reference != format!("{directory}/edition-curation.v1.json") {
+                    return Err(EditionCurationError::BindingMismatch);
+                }
+            }
+            let profile = &recipe["marker_profile"];
+            let reference = profile["normalization_curation_ref"]
+                .as_str()
+                .ok_or(EditionCurationError::InvalidSchema)?;
+            let target = if reference == current.reference {
+                &selected
+            } else {
+                chosen
+                    .get(reference)
+                    .ok_or(EditionCurationError::MissingReference)?
+            };
+            let stage = profile["normalization_stage"]
+                .as_str()
+                .ok_or(EditionCurationError::InvalidSchema)?;
+            if !selected_recipe(target, stage)?["ocr_substitutions"].is_array() {
+                return Err(EditionCurationError::MissingReference);
+            }
+            continue;
+        }
         if recipe["stage"] != "recipe-reference" {
             continue;
         }
@@ -1061,6 +1112,51 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                         .ok_or(EditionCurationError::InvalidSchema)?;
                     if !seen.insert((page, unit)) {
                         return Err(EditionCurationError::Duplicate("marker override"));
+                    }
+                }
+            }
+            if let Some(profile) = object
+                .get("marker_profile")
+                .filter(|_| object.get("stage").and_then(Value::as_str) == Some("source-passages"))
+            {
+                let refs = object["marker_curation_refs"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                if !refs.contains(&profile["normalization_curation_ref"]) {
+                    return Err(EditionCurationError::MissingReference);
+                }
+                for (lower, upper) in [
+                    ("pdf_body_y_minimum", "pdf_body_y_maximum_exclusive"),
+                    ("abbyy_body_y_minimum", "abbyy_body_y_maximum_exclusive"),
+                    ("pdf_marker_x_minimum", "pdf_marker_x_maximum"),
+                    ("djvu_marker_x_minimum", "djvu_marker_x_maximum"),
+                ] {
+                    if !matches!(
+                        compare_numbers(&profile[lower], &profile[upper]),
+                        Some(Ordering::Less)
+                    ) {
+                        return Err(EditionCurationError::InvalidRange("source marker profile"));
+                    }
+                }
+                let routes = object["work_routes"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let mut seen = BTreeSet::new();
+                for entry in profile["abbyy_overrides"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?
+                {
+                    let work = entry["work_ref"]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    let unit = entry["unit_key"]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    if !routes.iter().any(|route| route["work_ref"] == work) {
+                        return Err(EditionCurationError::MissingReference);
+                    }
+                    if !seen.insert((work, unit)) {
+                        return Err(EditionCurationError::Duplicate("source marker override"));
                     }
                 }
             }
@@ -1340,6 +1436,14 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                         .contains(&route["marker_curation_ref"])
                     {
                         return Err(EditionCurationError::MissingReference);
+                    }
+                    if let Some(nav) = route.get("xml_navigation") {
+                        if !locators
+                            .iter()
+                            .any(|locator| locator["role"] == nav["inventory_item_role"])
+                        {
+                            return Err(EditionCurationError::MissingReference);
+                        }
                     }
                     let profile = &route["boundary_evidence_profile"];
                     for witness in [
