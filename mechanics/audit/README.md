@@ -13,13 +13,13 @@
 | output | audit route and owner handoff |
 | owner | `mechanics/audit/` |
 | stronger route | `ToS/` owns source meaning; `aoa-evals` owns proof verdicts |
-| next route | [Review Ledger Route](parts/review-ledger-route/README.md) |
+| next route | [Review Ledger Route](#review-ledger-route) |
 | validation | manual review of the changed owner surface |
 
 ## Operations
 | Part | Function |
 | --- | --- |
-| [Review Ledger Route](parts/review-ledger-route/README.md) | route review-ledger evidence back to source-home decisions and validators |
+| [Review Ledger Route](#review-ledger-route) | route review-ledger evidence back to source-home decisions and validators |
 
 The [local card](AGENTS.md) owns editing; [validation](../VALIDATION.md) owns checks.
 Source or semantic questions return to [the source owner](../../ToS/AGENTS.md).

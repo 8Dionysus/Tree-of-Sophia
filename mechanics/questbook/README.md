@@ -26,8 +26,8 @@ Each part owns one obligation operation route.
 
 | Part | Function | Stronger owner route |
 | --- | --- | --- |
-| [Obligation Boundary](parts/obligation-boundary/README.md) | keep ToS obligations operational without replacing source interpretation | `ToS/` source-home authority |
-| [Dispatch Contracts](parts/dispatch-contracts/README.md) | schema and example surfaces for public quest catalog and dispatch | root `quests/` and `QUESTBOOK.md` |
+| [Obligation Boundary](#obligation-boundary) | keep ToS obligations operational without replacing source interpretation | `ToS/` source-home authority |
+| [Dispatch Contracts](#dispatch-contracts) | schema and example surfaces for public quest catalog and dispatch | root `quests/` and `QUESTBOOK.md` |
 
 The [local card](AGENTS.md) owns editing; [validation](../VALIDATION.md) owns checks.
 Source or semantic questions return to [the source owner](../../ToS/AGENTS.md).
@@ -35,6 +35,25 @@ Source or semantic questions return to [the source owner](../../ToS/AGENTS.md).
 ### Direct contracts
 
 - `obligation-boundary`: [QUESTBOOK_TOS_INTEGRATION](parts/obligation-boundary/docs/QUESTBOOK_TOS_INTEGRATION.md)
+
+### Obligation Boundary
+
+`mechanics/questbook/parts/obligation-boundary/` takes obligation pressure,
+source-first boundaries and quest route needs to produce obligation doctrine.
+Review the obligation and source records manually. Reading progress belongs to
+the selected ToS branch; tracked obligations follow root `QUESTBOOK.md` and
+`quests/`. Progress remains a reflection, with no score, rank, gameplay or
+canon authority.
+
+### Dispatch Contracts
+
+`mechanics/questbook/parts/dispatch-contracts/` keeps quest and dispatch
+schemas and examples public and checkable. Review the obligation and source
+records manually, then follow root `quests/` and `QUESTBOOK.md`. The native
+Questbook compatibility assertions consume the retained `schemas/` and
+`examples/`. Core validation accepts the register without the demonstration
+set; retained projections must match their registered legacy records exactly.
+Dispatch activation follows its owning route; the examples are demonstration data.
 
 ## History
 

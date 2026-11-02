@@ -13,7 +13,7 @@
 | output | bounded bridge seam and owner split |
 | owner | `mechanics/boundary-bridge/` |
 | stronger route | `ToS/` remains authored truth; sibling repos own their layers |
-| next route | [Derived KAG Seam](parts/derived-kag-seam/README.md) or [Public Mirror Sync](parts/public-mirror-sync/README.md) |
+| next route | [Derived KAG Seam](#derived-kag-seam) or [Public Mirror Sync](parts/public-mirror-sync/README.md) |
 | validation | `tos-ops-mechanics-plan --repo-root ROOT --public-mirror-validate`; `tos-ops-mechanics-plan --kag-source-export-verify --kag-export EXPORT` |
 
 ## Operations
@@ -28,7 +28,7 @@ Each part owns one bridge operation route.
 
 | Part | Function | Stronger owner route |
 | --- | --- | --- |
-| [Derived KAG Seam](parts/derived-kag-seam/README.md) | keep KAG/public handoff bounded and downstream | `ToS/` authored truth and downstream KAG owner |
+| [Derived KAG Seam](#derived-kag-seam) | keep KAG/public handoff bounded and downstream | `ToS/` authored truth and downstream KAG owner |
 | [Public Mirror Sync](parts/public-mirror-sync/README.md) | keep public compatibility mirrors aligned with canon without making them canon | `ToS/canon/` and source review |
 
 The [local card](AGENTS.md) owns editing; [validation](../VALIDATION.md) owns checks.
@@ -37,6 +37,15 @@ Source or semantic questions return to [the source owner](../../ToS/AGENTS.md).
 ### Direct contracts
 
 - `derived-kag-seam`: [KAG_EXPORT](parts/derived-kag-seam/docs/KAG_EXPORT.md)
+
+### Derived KAG Seam
+
+The part at `mechanics/boundary-bridge/parts/derived-kag-seam/` turns a
+source node, public mirror or derived export into a checked downstream read
+model. Follow `ToS/derived-exports/` or the sibling KAG owner. The tools are
+`parts/derived-kag-seam/docs/KAG_EXPORT.md` and
+`rust/crates/tos-ops-mechanics-plan/src/kag_corpus_export.rs`; verify with
+`tos-kag-release export-verify --release EXPORT`.
 
 ## History
 
