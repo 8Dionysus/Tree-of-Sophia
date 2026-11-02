@@ -507,7 +507,17 @@
           "record_kind": "publisher_catalog_heading",
           "fixed_parent_key": "back_matter.publisher_catalog"
         }
-      ]
+      ],
+      "structure_key_profile": {
+        "reading_marker": ".reading_",
+        "subpart_marker": ".subpart_",
+        "cycle_suffix": ".cycle_heading",
+        "front_matter_prefix": "front_matter.",
+        "back_matter_prefix": "back_matter.",
+        "terminal_key": "work_end",
+        "catalog_heading_prefix": "back_matter.catalog_heading_",
+        "ordinal_width": 2
+      }
     },
     {
       "stage": "text-collation",
