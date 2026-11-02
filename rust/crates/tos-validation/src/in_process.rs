@@ -205,15 +205,7 @@ impl InProcessSchemaEngine {
                 }
             }
             InputMode::LegacyPythonObservedSelected(limits) => {
-                #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
-                {
-                    crate::executor::in_process_selected_legacy(unit.raw, limits)
-                }
-                #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
-                {
-                    let _ = limits;
-                    Err(Failure::UnsupportedInputSemantics)
-                }
+                crate::selected_legacy::in_process_selected_legacy(unit.raw, limits)
             }
             InputMode::LegacyPythonObserved => match legacy_tree(unit.raw) {
                 Ok(tree) => match legacy_value(&tree) {

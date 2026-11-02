@@ -48,6 +48,8 @@ pub mod relation_rules;
 pub mod retirement_rules;
 #[cfg(feature = "native")]
 pub mod rights_rules;
+#[cfg(feature = "native")]
+mod selected_legacy;
 pub mod semantic_registry_rules;
 pub mod source_copy;
 #[cfg(feature = "native")]
