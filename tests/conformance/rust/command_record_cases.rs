@@ -5100,7 +5100,7 @@ process.stdout.write(output);"#;
                                 |p| p.starts_with("ToS/contracts/") && p.ends_with(".schema.json")
                             )
                             .count(),
-                        64
+                        selected_schema_files.len() + additions.len()
                     );
                     assert_eq!(c01_authored[relative], v2_raw);
                     assert_eq!(c01_authored[c01_archive], v1_raw);
