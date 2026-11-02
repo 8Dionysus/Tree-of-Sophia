@@ -1045,22 +1045,34 @@ fn deployment_profile_install_defaults_and_flag_overrides() {
     small["archive_install"]["max_archive_bytes"] = serde_json::json!(1);
     write_private(&small_profile, &serde_json::to_vec(&small).unwrap());
 
-    let run = |label: &str, selected: &Path, cli_profile: Option<&Path>, override_bytes: Option<&str>| {
+    let run = |label: &str,
+               selected: Option<&Path>,
+               cli_profile: Option<&Path>,
+               override_bytes: Option<&str>| {
         let mut command = Command::new(CLI);
-        command.env("TOS_DEPLOYMENT_PROFILE", selected);
-        if let Some(path) = cli_profile { command.arg("--profile").arg(path); }
-        command.args(["software", "install", "--archive"]).arg(&archive)
+        command.env_remove("TOS_DEPLOYMENT_PROFILE");
+        if let Some(path) = selected {
+            command.env("TOS_DEPLOYMENT_PROFILE", path);
+        }
+        if let Some(path) = cli_profile {
+            command.arg("--profile").arg(path);
+        }
+        command
+            .args(["software", "install", "--archive"])
+            .arg(&archive)
             .arg("--prefix").arg(scratch.path().join(label));
-        if let Some(value) = override_bytes { command.args(["--max-archive-bytes", value]); }
+        if let Some(value) = override_bytes {
+            command.args(["--max-archive-bytes", value]);
+        }
         bounded_command_output(command)
     };
-    let default = run("default", &profile, None, None);
+    let default = run("default", None, None, None);
     assert!(default.status.success(), "{}", String::from_utf8_lossy(&default.stderr));
-    let refused = run("refused", &profile, None, Some("1"));
+    let refused = run("refused", None, None, Some("1"));
     assert!(!refused.status.success());
     assert!(!scratch.path().join("refused").exists());
-    let raised = run("raised", &small_profile, None, Some("536870912"));
+    let raised = run("raised", Some(&small_profile), None, Some("536870912"));
     assert!(raised.status.success(), "{}", String::from_utf8_lossy(&raised.stderr));
-    let selected = run("selected", &small_profile, Some(&profile), None);
+    let selected = run("selected", Some(&small_profile), Some(&profile), None);
     assert!(selected.status.success(), "{}", String::from_utf8_lossy(&selected.stderr));
 }
