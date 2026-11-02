@@ -82,6 +82,21 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let dta_raw = fs::read(root.join(dta_path)).unwrap();
     assert_eq!(validate(&dta_raw, &schema), Ok(()));
     let dta_value: Value = serde_json::from_slice(&dta_raw).unwrap();
+    let mut overlapping_speakers = dta_value.clone();
+    let review = overlapping_speakers["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "concept-review")
+        .unwrap();
+    let ranges = review["speaker_selection"]["readings"][0]["overrides"]
+        .as_array_mut()
+        .unwrap();
+    ranges.insert(1, ranges[0].clone());
+    assert_eq!(
+        validate(&serde_json::to_vec(&overlapping_speakers).unwrap(), &schema),
+        Err(EditionCurationError::InvalidRange("speaker overrides"))
+    );
     let review = dta_value["recipes"]
         .as_array()
         .unwrap()

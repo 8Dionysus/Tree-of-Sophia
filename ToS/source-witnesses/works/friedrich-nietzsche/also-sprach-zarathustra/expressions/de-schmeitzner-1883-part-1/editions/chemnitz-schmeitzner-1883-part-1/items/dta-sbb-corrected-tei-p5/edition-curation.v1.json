@@ -283,7 +283,258 @@
           "ref": "rust/crates/tos-compiler/src/research_eternal_return_constants.json",
           "sha256": "d02d510f55f1c19e625197d8f3d078f62f443fe3cb708a3d5b206307d62cf30f"
         }
-      ]
+      ],
+      "speaker_selection": {
+        "evidence_classes": [
+          "core",
+          "supporting"
+        ],
+        "legacy_classifier_sha256": "5a4ade988d07ec7ae07de0e5eb664a1bcea0db32dcb9ea3180b12588ff2d1d51",
+        "readings": [
+          {
+            "reading_ref": "p3.r2",
+            "expected_selected_count": 31,
+            "default_attribution": {
+              "status": "proposed",
+              "alternative_roles": [],
+              "exception_group": null,
+              "primary_role": "zarathustra_as_storyteller",
+              "cue": "first-person address or narrated vision within Zarathustra's announced speech"
+            },
+            "overrides": [
+              {
+                "start": 1,
+                "end": 1,
+                "attribution": {
+                  "status": "proposed",
+                  "alternative_roles": [],
+                  "exception_group": null,
+                  "primary_role": "external_narrator",
+                  "cue": "chapter framing introduces Zarathustra's speech"
+                }
+              },
+              {
+                "start": 3,
+                "end": 4,
+                "attribution": {
+                  "status": "ambiguous",
+                  "alternative_roles": [
+                    "zarathustra_quoting_internal_voice"
+                  ],
+                  "exception_group": "p3.r2.embedded_gravity_voice",
+                  "primary_role": "spirit_of_gravity_as_dwarf_voice",
+                  "cue": "embedded second-person taunt inside Zarathustra's narration"
+                }
+              },
+              {
+                "start": 14,
+                "end": 14,
+                "attribution": {
+                  "status": "proposed",
+                  "alternative_roles": [],
+                  "exception_group": null,
+                  "primary_role": "dwarf",
+                  "cue": "explicit speech report names the dwarf"
+                }
+              }
+            ]
+          },
+          {
+            "reading_ref": "p3.r13",
+            "expected_selected_count": 50,
+            "default_attribution": {
+              "status": "proposed",
+              "alternative_roles": [],
+              "exception_group": null,
+              "primary_role": "zarathustra",
+              "cue": "Zarathustra's direct answer to the animals"
+            },
+            "overrides": [
+              {
+                "start": 1,
+                "end": 1,
+                "attribution": {
+                  "status": "ambiguous",
+                  "alternative_roles": [
+                    "external_narrator",
+                    "zarathustra"
+                  ],
+                  "exception_group": "p3.r13.opening_transition",
+                  "primary_role": "mixed_external_narrator_and_zarathustra",
+                  "cue": "narrator frame ends in direct Zarathustra speech"
+                }
+              },
+              {
+                "start": 5,
+                "end": 6,
+                "attribution": {
+                  "status": "proposed",
+                  "alternative_roles": [],
+                  "exception_group": null,
+                  "primary_role": "external_narrator",
+                  "cue": "explicit narrative report outside quoted exchange"
+                }
+              },
+              {
+                "start": 7,
+                "end": 9,
+                "attribution": {
+                  "status": "proposed",
+                  "alternative_roles": [],
+                  "exception_group": null,
+                  "primary_role": "animals_eagle_and_serpent",
+                  "cue": "animals' reply, including their representation of what Zarathustra teaches or would say"
+                }
+              },
+              {
+                "start": 16,
+                "end": 19,
+                "attribution": {
+                  "status": "proposed",
+                  "alternative_roles": [],
+                  "exception_group": null,
+                  "primary_role": "animals_eagle_and_serpent",
+                  "cue": "animals' reply, including their representation of what Zarathustra teaches or would say"
+                }
+              },
+              {
+                "start": 36,
+                "end": 36,
+                "attribution": {
+                  "status": "proposed",
+                  "alternative_roles": [],
+                  "exception_group": null,
+                  "primary_role": "animals_eagle_and_serpent",
+                  "cue": "animals' reply, including their representation of what Zarathustra teaches or would say"
+                }
+              },
+              {
+                "start": 39,
+                "end": 49,
+                "attribution": {
+                  "status": "ambiguous",
+                  "alternative_roles": [
+                    "animals_voicing_a_hypothetical_zarathustra"
+                  ],
+                  "exception_group": "p3.r13.animals_voice_zarathustra_formula",
+                  "primary_role": "animals_eagle_and_serpent",
+                  "cue": "animals' reply, including their representation of what Zarathustra teaches or would say"
+                }
+              },
+              {
+                "start": 50,
+                "end": 50,
+                "attribution": {
+                  "status": "proposed",
+                  "alternative_roles": [],
+                  "exception_group": null,
+                  "primary_role": "external_narrator",
+                  "cue": "explicit narrative report outside quoted exchange"
+                }
+              }
+            ]
+          },
+          {
+            "reading_ref": "p3.r16",
+            "expected_selected_count": 34,
+            "default_attribution": {
+              "status": "proposed",
+              "alternative_roles": [],
+              "exception_group": null,
+              "primary_role": "zarathustra_song_voice",
+              "cue": "first-person refrain within the Yes-and-Amen song"
+            },
+            "overrides": [
+              {
+                "start": 1,
+                "end": 1,
+                "attribution": {
+                  "status": "ambiguous",
+                  "alternative_roles": [
+                    "editorial_or_authorial_subtitle"
+                  ],
+                  "exception_group": "p3.r16.heading_voice",
+                  "primary_role": "paratext_heading",
+                  "cue": "parenthetical alternate title, not a dramatic utterance"
+                }
+              }
+            ]
+          },
+          {
+            "reading_ref": "p4.r19",
+            "expected_selected_count": 44,
+            "default_attribution": {
+              "status": "ambiguous",
+              "alternative_roles": [
+                "personified_midnight_or_bell_voice"
+              ],
+              "exception_group": "p4.r19.performative_midnight_voice",
+              "primary_role": "zarathustra_midnight_song_voice",
+              "cue": "Zarathustra performs a midnight song while attributing speech to midnight, bell, pain, or joy"
+            },
+            "overrides": [
+              {
+                "start": 1,
+                "end": 2,
+                "attribution": {
+                  "status": "proposed",
+                  "alternative_roles": [],
+                  "exception_group": null,
+                  "primary_role": "external_narrator",
+                  "cue": "explicit narrative report"
+                }
+              },
+              {
+                "start": 3,
+                "end": 6,
+                "attribution": {
+                  "status": "proposed",
+                  "alternative_roles": [],
+                  "exception_group": null,
+                  "primary_role": "ugliest_man",
+                  "cue": "speech explicitly introduced and closed as the ugliest man's"
+                }
+              },
+              {
+                "start": 7,
+                "end": 7,
+                "attribution": {
+                  "status": "proposed",
+                  "alternative_roles": [],
+                  "exception_group": null,
+                  "primary_role": "external_narrator",
+                  "cue": "explicit narrative report"
+                }
+              },
+              {
+                "start": 8,
+                "end": 9,
+                "attribution": {
+                  "status": "ambiguous",
+                  "alternative_roles": [
+                    "external_narrator",
+                    "zarathustra"
+                  ],
+                  "exception_group": "p4.r19.narrator_to_midnight_transition",
+                  "primary_role": "mixed_external_narrator_and_zarathustra",
+                  "cue": "narrator frame transitions into Zarathustra's altered voice"
+                }
+              },
+              {
+                "start": 10,
+                "end": 10,
+                "attribution": {
+                  "status": "proposed",
+                  "alternative_roles": [],
+                  "exception_group": null,
+                  "primary_role": "zarathustra",
+                  "cue": "explicit narrator report followed by Zarathustra's direct command"
+                }
+              }
+            ]
+          }
+        ]
+      }
     },
     {
       "stage": "paragraph-alignment",

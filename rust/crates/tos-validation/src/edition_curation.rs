@@ -381,6 +381,42 @@ enum MarkerPart {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if let Some(selection) = object.get("speaker_selection") {
+                let readings = selection["readings"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let mut seen = BTreeSet::new();
+                for reading in readings {
+                    let reference = reading["reading_ref"]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    if !seen.insert(reference) {
+                        return Err(EditionCurationError::Duplicate("reading_ref"));
+                    }
+                    let count = reading["expected_selected_count"]
+                        .as_u64()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    let mut previous_end = None;
+                    for range in reading["overrides"]
+                        .as_array()
+                        .ok_or(EditionCurationError::InvalidSchema)?
+                    {
+                        let start = range["start"]
+                            .as_u64()
+                            .ok_or(EditionCurationError::InvalidSchema)?;
+                        let end = range["end"]
+                            .as_u64()
+                            .ok_or(EditionCurationError::InvalidSchema)?;
+                        if start > end
+                            || end > count
+                            || previous_end.is_some_and(|previous| start <= previous)
+                        {
+                            return Err(EditionCurationError::InvalidRange("speaker overrides"));
+                        }
+                        previous_end = Some(end);
+                    }
+                }
+            }
             if let Some(Value::Array(keys)) = object.get("output_keys") {
                 let outputs = object
                     .get("frozen_outputs")
