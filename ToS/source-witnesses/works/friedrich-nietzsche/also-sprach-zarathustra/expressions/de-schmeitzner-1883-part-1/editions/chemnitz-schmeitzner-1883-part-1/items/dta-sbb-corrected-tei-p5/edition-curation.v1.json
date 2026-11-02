@@ -684,6 +684,72 @@
       "schema_ref": "ToS/contracts/bounded-translation-research-input.schema.json",
       "historical_template_ref": "rust/crates/tos-compiler/src/bounded_translation_input/templates.json",
       "historical_template_sha256": "65d123112bbd3c6e2ebc922d2846357f30254bbf8916faa732c164aef93c5277"
+    },
+    {
+      "stage": "reading-workbench",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf"
+      ],
+      "work_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra",
+      "route": "ToS/candidate-intake/zarathustra/reading-workbench-v1",
+      "method_id": "zarathustra-reading-workbench-v1",
+      "formula_method_id": "zarathustra-recurring-formulas-v1",
+      "formula_min_tokens": 4,
+      "formula_max_tokens": 32,
+      "formula_min_occurrences": 2,
+      "join_markers": [
+        "¬",
+        "­",
+        "-"
+      ],
+      "quote_pairs": [
+        {
+          "open": "„",
+          "close": "“"
+        },
+        {
+          "open": "‚",
+          "close": "‘"
+        },
+        {
+          "open": "«",
+          "close": "»"
+        },
+        {
+          "open": "“",
+          "close": "”"
+        },
+        {
+          "open": "‘",
+          "close": "’"
+        },
+        {
+          "open": "\"",
+          "close": "\""
+        }
+      ],
+      "historical_producers": [
+        {
+          "ref": "scripts/build_zarathustra_reading_workbench_v1.py",
+          "sha256": "56aa0e4313680e15de01793849fb050dfb43fb8ff2be39069487e0714d038975"
+        },
+        {
+          "ref": "scripts/zarathustra_discourse.py",
+          "sha256": "d2a66e5851adff49b31ffc857db4da4a0c0f702d3ed16e8c64b5552c2b061dee"
+        },
+        {
+          "ref": "scripts/zarathustra_voice_policy.py",
+          "sha256": "0261e798f3697e4836f07783b433978eb3131396dd47f34e7132b32ac2763388"
+        },
+        {
+          "ref": "scripts/zarathustra_recurring_formulas.py",
+          "sha256": "cc80e480268e7916662f4a214c9f69fa3400f45eec2ac9a2a0f2cd7e21fa0e9d"
+        }
+      ]
     }
   ]
 }
