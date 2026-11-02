@@ -6,6 +6,9 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 
+[features]
+research = ["tos-compiler/research"]
+
 [dev-dependencies]
 flate2 = { version = "=1.1.10", default-features = false, features = ["rust_backend"] }
 rusqlite = { version = "0.37", features = ["bundled", "hooks"] }

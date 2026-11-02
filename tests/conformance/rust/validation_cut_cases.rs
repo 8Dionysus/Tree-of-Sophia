@@ -1957,6 +1957,33 @@ fn actual_cut_schema_batch_binds_ordered_units_and_refuses_partial_receipts() {
     let version = serde_json::to_vec(&item["record_version"]).unwrap();
     let label = serde_json::to_vec(&item["preferred_label"]).unwrap();
     let version_contract = "ToS/contracts/corpus-record.schema.json#/properties/record_version";
+    #[cfg(feature = "research")]
+    {
+        use tos_compiler::zarathustra_lexical::LexicalSchema;
+        use tos_compiler::zarathustra_lexical_schema::{
+            LexicalSchemaExecutor, LexicalSchemaLimits,
+        };
+        let limits: LexicalSchemaLimits = serde_json::from_value(serde_json::json!({
+            "max_instance_bytes": 1048576, "max_visits": 300000,
+            "parser_state_bytes": 33554432, "conversion_state_bytes": 33554432,
+            "max_units": 4, "max_raw_bytes": 1048576, "max_issues": 32
+        }))
+        .unwrap();
+        let mut lexical = LexicalSchemaExecutor::new(&cut, limits, deadline, &cancelled).unwrap();
+        lexical.check(version_contract, &version).unwrap();
+        lexical.finish().unwrap();
+        let receipt = lexical.receipt().unwrap();
+        assert_eq!(receipt["profile"], "tos_schema_engine_in_process_v1");
+        assert_eq!(receipt["instances"], 1);
+        assert_eq!(
+            receipt["input_mode"]["legacy_python_observed_selected"]["max_instance_bytes"],
+            1048576
+        );
+        assert!(receipt.get("worker_sha256").is_none());
+        let mut invalid = LexicalSchemaExecutor::new(&cut, limits, deadline, &cancelled).unwrap();
+        assert!(invalid.check(version_contract, b"0").is_err());
+        assert!(invalid.finish().is_err());
+    }
     // These are field-instance probes and deliberate negative mutations, not
     // whole-record validation, source enumeration or owner admission.
     let mut spaced_version = vec![b' '];
