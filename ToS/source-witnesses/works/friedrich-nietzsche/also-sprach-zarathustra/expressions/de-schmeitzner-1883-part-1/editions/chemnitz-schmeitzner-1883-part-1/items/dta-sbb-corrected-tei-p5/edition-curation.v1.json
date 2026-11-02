@@ -708,6 +708,11 @@
           "role": "legacy-output-template",
           "ref": "rust/crates/tos-compiler/src/research_eternal_return_concept_templates.json",
           "sha256": "1ce59d4e33696f3889a99ab5002ff115b32f7a42f4edcf182a18ad384ffffc81"
+        },
+        {
+          "role": "identity-issuance",
+          "ref": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/identity-issuance.v1.json",
+          "sha256": "209ee1aa7a00f824b7cd9073ad7ab1d0dcefa007b3e16a5ea344aa57f74201a6"
         }
       ],
       "candidate_signals": {
@@ -1043,6 +1048,36 @@
         ],
         "signal_output_order": "lexicographic-code",
         "claim_output_order": "lexicographic-code"
+      },
+      "opaque_identity_profile": {
+        "historical_issuance_role": "identity-issuance",
+        "historical_record_count": 227,
+        "issuance_schema_version": "tos_eternal_return_candidate_identity_issuance_v1",
+        "identity_policy": "opaque-id-independent-of-source-text-label-translation-and-current-interpretation",
+        "issuance_time_plan_pointer": "/frozen_at",
+        "id_prefix": "tos.annotation.",
+        "id_infix": ".sid-",
+        "entropy_source": "system-random",
+        "entropy_bytes": 16,
+        "encoding": "lowercase-hex",
+        "identity_prefixes": [
+          {
+            "kind": "annotation",
+            "prefix": "eternal-return-candidate"
+          },
+          {
+            "kind": "formula",
+            "prefix": "formula-candidate"
+          },
+          {
+            "kind": "template",
+            "prefix": "interpretation-template"
+          },
+          {
+            "kind": "evidence",
+            "prefix": "semantic-evidence-candidate"
+          }
+        ]
       }
     },
     {
@@ -1110,6 +1145,11 @@
           "role": "legacy-output-template",
           "ref": "rust/crates/tos-compiler/src/research_eternal_return_constants.json",
           "sha256": "d02d510f55f1c19e625197d8f3d078f62f443fe3cb708a3d5b206307d62cf30f"
+        },
+        {
+          "role": "identity-issuance",
+          "ref": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/review-preparation-v1/identity-issuance.v1.json",
+          "sha256": "50dcae13f4636c02c3260a9fabd6c4ac586025f63681cb5fb42fc57fefdee850"
         }
       ],
       "speaker_selection": {
@@ -1363,6 +1403,36 @@
           }
         ],
         "position_basis": "part-order-then-packet-alignment-order"
+      },
+      "opaque_identity_profile": {
+        "historical_issuance_role": "identity-issuance",
+        "historical_record_count": 172,
+        "issuance_schema_version": "tos_zarathustra_eternal_return_review_preparation_identity_issuance_v1",
+        "identity_policy": "opaque-id-independent-of-source-text-label-speaker-name-and-current-interpretation",
+        "issuance_time_plan_pointer": "/frozen_at",
+        "id_prefix": "tos.annotation.",
+        "id_infix": ".sid-",
+        "entropy_source": "system-random",
+        "entropy_bytes": 16,
+        "encoding": "lowercase-hex",
+        "identity_prefixes": [
+          {
+            "kind": "packet",
+            "prefix": "review-preparation"
+          },
+          {
+            "kind": "gap",
+            "prefix": "gap-review-candidate"
+          },
+          {
+            "kind": "speaker",
+            "prefix": "speaker-attribution-candidate"
+          },
+          {
+            "kind": "axis",
+            "prefix": "interpretation-review-candidate"
+          }
+        ]
       }
     },
     {

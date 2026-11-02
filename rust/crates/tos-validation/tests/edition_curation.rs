@@ -134,6 +134,50 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         validate(&serde_json::to_vec(&duplicate_identity).unwrap(), &schema),
         Err(EditionCurationError::Duplicate("identity kind"))
     );
+    for stage in ["concept-candidate", "concept-review"] {
+        let recipe = dta_value["recipes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|recipe| recipe["stage"] == stage)
+            .unwrap();
+        let issuance_ref = recipe["historical_templates"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|entry| entry["role"] == "identity-issuance")
+            .unwrap()["ref"]
+            .as_str()
+            .unwrap();
+        let issuance_raw = fs::read(root.join(issuance_ref)).unwrap();
+        assert_eq!(
+            validate_recipe_template(
+                &dta_raw,
+                stage,
+                "identity-issuance",
+                SelectedDocument {
+                    reference: issuance_ref,
+                    raw: &issuance_raw,
+                },
+                &schema,
+            ),
+            Ok(())
+        );
+        let plan_ref = recipe["plan_ref"].as_str().unwrap();
+        let plan_raw = fs::read(root.join(plan_ref)).unwrap();
+        assert_eq!(
+            validate_recipe_plan(
+                &dta_raw,
+                stage,
+                SelectedDocument {
+                    reference: plan_ref,
+                    raw: &plan_raw,
+                },
+                &schema,
+            ),
+            Ok(())
+        );
+    }
     let mut duplicate_orthography = dta_value.clone();
     let parallel = duplicate_orthography["recipes"]
         .as_array_mut()

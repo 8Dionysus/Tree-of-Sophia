@@ -77,10 +77,13 @@ pub fn validate_recipe_plan(
         .or(historical)
         .ok_or(EditionCurationError::MissingReference)?;
     verify_selected_bytes(plan, reference, expected)?;
-    if stage == "concept-workbench" {
+    if let Some(profile) = recipe
+        .get("identity_profile")
+        .or_else(|| recipe.get("opaque_identity_profile"))
+    {
         let selected_plan = published_value(plan.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
             .map_err(EditionCurationError::Schema)?;
-        let pointer = recipe["identity_profile"]["issuance_time_plan_pointer"]
+        let pointer = profile["issuance_time_plan_pointer"]
             .as_str()
             .ok_or(EditionCurationError::InvalidSchema)?;
         if !pointer.starts_with('/')
@@ -421,7 +424,15 @@ enum MarkerPart {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
-            if let Some(profile) = object.get("identity_profile") {
+            if object.contains_key("identity_profile")
+                && object.contains_key("opaque_identity_profile")
+            {
+                return Err(EditionCurationError::BindingMismatch);
+            }
+            if let Some(profile) = object
+                .get("identity_profile")
+                .or_else(|| object.get("opaque_identity_profile"))
+            {
                 let mut kinds = BTreeSet::new();
                 for prefix in profile["identity_prefixes"]
                     .as_array()
