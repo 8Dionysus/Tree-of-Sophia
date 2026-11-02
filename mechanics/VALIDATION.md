@@ -1,68 +1,54 @@
 # Mechanics validation
 
-Select the changed package or part before running checks. Exact internal
-sequences remain in `docs/validation/validation_lanes.json`.
+Select the changed package or part and its source or export owner. Ordered
+commands live in `docs/validation/validation_lanes.json`:
 
 ```bash
 tos-validation-lanes --repo-root "$PWD" --run mechanics_local
 ```
 
-Use `experience_contracts` or `public_entry` when that
-named package surface changed. Native artifact checks follow `access/` and
-the selected software/corpus export route. Mechanics checks
-prove operation shape only; they do not author ToS meaning or runtime policy.
+Use `experience_contracts` or `public_entry` for those named surfaces. Native
+artifact checks follow `access/` and the selected software or corpus export route.
 
-The installed `tos-ops-mechanics-plan` executor runs the retained Agon,
-Experience and Questbook assertion bodies as native children. Their
-independent Cargo tests share those same bodies; the installed invocation reads
-the selected repository's current authored schema/example bytes. Growth Cycle's
-maintained behavior route is `rust_workspace`: it builds the native owner and
-prepared consumer, runs Rust unit tests, then runs the existing source-command
-conformance families. Plain `mechanics_local` executes that actual source-owned
-pipeline alongside the retained other-mechanics checks, using one executor lane
-wall limit. The owner contract selects its command sequence and native source
-classes; preparation must select the actual current Cargo products before class
-dispatch. Missing route/product, zero-test selection, ignored-scope drift or a
-failed assertion prevents success. The owner contract lives in
-`growth-cycle/parts/branch-growth-cycle/docs/native-behavior-coverage.json`;
-[Native behavior coverage](growth-cycle/README.md#native-growth-behavior-and-legacy-fate) describes native predicates and retained API fate.
-A successful run proves its declared native pipeline and consumer contracts;
-source-language adequacy, rights, canon and semantic assessment retain their
-actual owners. Reference file/method counts are inventory dimensions.
-
-Retained Growth Python material is historical comparison evidence. The maintained
-executor has no Python oracle or discovered-script execution mode.
-
-For the bounded three-home native mechanics cohort, use:
+The installed `tos-ops-mechanics-plan` runs the Agon and Experience assertion
+bodies against the selected repository's schema and example bytes. Independent
+Cargo tests share those bodies. The bounded cohort command is:
 
 ```bash
 tos-ops-mechanics-plan --repo-root ROOT --execute --native-contracts-only
 ```
 
-The maintained assertion source is
-`rust/crates/tos-ops-mechanics-plan/tests/mechanics_contracts/`. Historical Python
-material retains its original meaning and bytes outside executable discovery.
-The installed executor preserves time, cancellation and output limits, requires
-all three contract homes, and refuses unexpected Python test/build/validator
-files before starting any command.
+The current CLI guard expects three homes while discovery selects two, so this
+command refuses the current cohort. Run its two homes directly until the owner
+aligns the guard:
 
-For a read-only source-owned native Growth class plan, use
-`tos-ops-mechanics-plan --repo-root ROOT --growth-native-plan`. It resolves
-actual Cargo/Rust declarations and marks ignored assertions; it neither executes
-those classes nor establishes whole Growth equivalence.
+```bash
+tos-ops-mechanics-plan --repo-root ROOT --local-contracts mechanics/agon/parts/threshold-registry
+tos-ops-mechanics-plan --repo-root ROOT --local-contracts mechanics/experience
+```
 
-The `rust_workspace` command authority uses `@tos-native-growth-classes` and
-`@tos-native-growth-exclusions` as native executor markers. They expand through
-the source-owned Growth class plan; grouped classes use current-lane prepared
-Cargo test images directly, and exact isolated steps retain their existing route.
-The generic workspace/Conformance remainder excludes those same owned classes,
-so source changes cannot silently omit a new class or run the old isolated case
-twice. These markers are not shell programs or interpreter fallbacks.
+The assertion source is `rust/crates/tos-ops-mechanics-plan/tests/mechanics_contracts/`.
+The executor enforces time, cancellation and output limits and rejects unexpected
+Python test, build or validator files before execution. Retained Growth Python
+material is historical comparison evidence.
 
-Compact topology is checked by the native `mechanics_contracts` integration
-subject as well as the full topology route. The synthetic package omits all
-three former navigation companions and retains owner, source return, exact
-history and validation refusal checks. Questbook assertions cover the original
-compatibility records plus a core register without the demonstration quartet.
-Current membership and return conditions live in `QUESTBOOK.md`; schema/examples
-remain a named compatibility consumer, not runtime dispatch authority.
+Growth Cycle's maintained behavior route is `rust_workspace`. The combined
+`mechanics_local` pipeline prepares the native owner and consumer before running
+its source-owned assertion classes under one lane wall limit. Its command and
+coverage contract is `growth-cycle/parts/branch-growth-cycle/docs/native-behavior-coverage.json`;
+[the coverage guide](growth-cycle/README.md#native-growth-behavior-and-legacy-fate)
+describes predicates and retained API fate. Missing products or routes,
+zero-test selection, ignored-scope drift and failed assertions prevent success.
+Reference file and method counts are inventory dimensions.
+
+For the read-only Growth class plan, run:
+
+```bash
+tos-ops-mechanics-plan --repo-root ROOT --growth-native-plan
+```
+
+The plan resolves Cargo/Rust declarations and marks ignored assertions. The
+`rust_workspace` executor expands `@tos-native-growth-classes` and
+`@tos-native-growth-exclusions` through that plan. Grouped classes use the
+current lane's prepared Cargo test images; isolated steps retain their route.
+The workspace and conformance remainder excludes the same owned classes.

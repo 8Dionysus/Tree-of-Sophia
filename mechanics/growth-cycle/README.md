@@ -2479,16 +2479,11 @@ remain separate source records.
 
 ## Native Growth behavior and legacy fate
 
-The owner assessment is `native-behavior-coverage.json`. The standard mechanics
-entry must not suppress Growth and then report the complete lane as successful.
-The bounded native mechanics and explicit Python comparison routes are separate.
-
-The existing source-command catalog owns handler/operation membership.
-Neither a historical number of Python files nor the number of Cargo modules
-defines behavioral completion. Source code supports the operations below, but
-a candidate implementation is weaker than reviewed assertion equivalence and an
-installed maintained consumer. The inherited “17 unmapped” count has no trusted
-enumerated baseline and is not used as a rule.
+The owner assessment is `native-behavior-coverage.json`; the source-command
+catalog owns handler and operation membership. A complete mechanics lane runs
+Growth. The bounded native cohort and Python comparison routes are separate;
+reviewed assertion equivalence and an installed consumer establish their own
+scope independently of file or module counts.
 
 ## Current disposition
 
@@ -2517,18 +2512,6 @@ synthetic Rust checks, including genuine signature verification and forged-signa
 source-visible assessment. The two signed `command_owner_text_cases.rs`
 comparisons remain ignored until their retained producer inputs and admitted
 native products are selected.
-
-Historical execution evidence remains separately scoped: the specialrun PASS E
-`ASSESS` record in
-`/home/dionysus/Documents/Codex/2026-09-23/tos-rust-migration-execution/evidence/baseline/EXECUTION-COVERAGE.json`
-at `functions[id=ASSESS].evidence_refs[conformance_bee9bdd_special_route]`; its
-exact route receipt is
-`/srv/abyss-machine/storage/artifacts/tos-conformance-bee9bddbbfb-runtime-prep-r2/route.json`,
-which records destination
-`/srv/abyss-machine/storage/artifacts/tos-conformance-bee9bddbbfb-runtime-r2`.
-That run covered source fix `93f00913` in 22.39 seconds with native test count 0
-and exact source PREPOST. It is historical evidence for that selected run, not
-acceptance of the currently ignored tests or this patch.
 
 | Reference assertion source (`tests/`) | Native candidate (`tos-command/src/`) | Existing conformance candidate | Review or completion still needed |
 | --- | --- | --- | --- |
@@ -2590,21 +2573,17 @@ acceptance of the currently ignored tests or this patch.
    includes owned command classes, generic native residuals and exact isolated
    lifecycle cases. An assessment flag cannot replace that execution plan.
 
-Plain execution runs this finite native pipeline. `--native-contracts-only`
-selects the bounded three-home route. Historical Python assertions remain
-comparison evidence; the removed Python oracle flag and script discovery no
-longer execute them. Installed success requires a matching Ops product and
-actual execution. Mechanical results do not grant semantic acceptance.
+Plain execution runs this finite native pipeline. The
+[mechanics validation guide](../VALIDATION.md) records the current two-home
+`--native-contracts-only` mismatch and direct checks. Historical Python
+assertions remain comparison evidence. Installed success requires a matching
+Ops product and actual execution.
 
 ## Concrete source repair from the classification
 
-Native Claim dispatch formerly parsed an owner-schema numeric suffix and accepted
-unpublished `v01`, `v001` and `v+1` aliases. The reference handler catalog selects
-exact published owner-schema strings. `source_claims::family` now retains numeric
-protocol bounds and requires canonical spelling before selecting a handler. Its
-existing regression module covers canonical create/revision versions and these
-refused aliases. This is one repaired dispatch predicate; it does not establish
-whole discovery, Claim or Growth equivalence. Execution remains to be verified.
+`source_claims::family` selects exact published owner-schema strings within the
+numeric protocol bounds. Its regression module covers canonical create/revision
+versions and rejects `v01`, `v001` and `v+1` aliases.
 
 ## Native class planning
 
@@ -2659,12 +2638,8 @@ declared active/ignored scope; zero-test success or a mismatched prepared image
 cannot pass. Ignored retained OCR inputs keep the source's explicit external
 input posture, and their separate received executions keep their own scope.
 
-This replaces the maintained lane's duplicate selection mechanism. Actual native
-source-pipeline execution, matching installed default use, method predicate
-coverage and semantic/source-language judgment remain separate evidence. The
-ordinary mechanics default has a concrete source-owned execution route; its
-matching installed product and complete run must still be received. Source-only
-class discovery cannot turn that default into an executed success.
+Native pipeline execution, installed default use, method predicate coverage and
+semantic/source-language judgment remain separate evidence.
 
 ## Assessed batch predicate disposition
 
