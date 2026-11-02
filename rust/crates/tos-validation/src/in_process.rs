@@ -8,7 +8,8 @@ use jsonschema::{Draft, Registry, Validator};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tos_foundation::{
-    Digest256, FoundationErrorCode, JsonLimits, JsonMode, JsonNumberKind, JsonValue, parse_json,
+    Digest256, Digest256Hasher, FoundationErrorCode, JsonLimits, JsonMode, JsonNumberKind,
+    JsonValue, parse_json,
 };
 
 use crate::executor::{
@@ -30,6 +31,30 @@ pub enum InputMode {
     SerdeNormalized,
     LegacyPythonObserved,
     LegacyPythonObservedSelected(crate::executor::LegacySelectedDiagnosticsLimits),
+}
+
+impl InputMode {
+    /// SHA-256 of `tos-schema-input-mode-v1\0` and the mode's ASCII tag.
+    /// Selected legacy input adds a NUL and its byte limit (u64), visit limit
+    /// (u32), parser state (u64), and conversion state (u64), in big-endian order.
+    pub fn identity_sha256(self) -> Digest256 {
+        let mut hash = Digest256Hasher::new();
+        hash.update(b"tos-schema-input-mode-v1\0");
+        match self {
+            Self::PublishedStrict => hash.update(b"published-strict"),
+            Self::PublishedStrictSelected => hash.update(b"published-strict-selected"),
+            Self::SerdeNormalized => hash.update(b"serde-normalized"),
+            Self::LegacyPythonObserved => hash.update(b"legacy-python-observed"),
+            Self::LegacyPythonObservedSelected(limits) => {
+                hash.update(b"legacy-python-observed-selected\0");
+                hash.update(&(limits.max_instance_bytes as u64).to_be_bytes());
+                hash.update(&limits.max_visits.to_be_bytes());
+                hash.update(&limits.parser_state_bytes.to_be_bytes());
+                hash.update(&limits.conversion_state_bytes.to_be_bytes());
+            }
+        }
+        hash.finalize()
+    }
 }
 
 /// Evidence refers to the exact input and selected resource set.
@@ -66,7 +91,7 @@ pub struct Unit<'a> {
 pub struct InProcessSchemaEngine {
     probe: SchemaBackendProbe,
     profile: FormatProfile,
-    validators: BTreeMap<String, Validator>,
+    validators: BTreeMap<(String, Digest256), Validator>,
 }
 
 impl InProcessSchemaEngine {
@@ -87,8 +112,13 @@ impl InProcessSchemaEngine {
         self.probe.resource_digest(uri)
     }
 
-    fn validator(&mut self, root: &str) -> Result<&Validator, SchemaProbeError> {
-        if !self.validators.contains_key(root) {
+    fn validator(
+        &mut self,
+        root: &str,
+        input_mode: InputMode,
+    ) -> Result<&Validator, SchemaProbeError> {
+        let key = (root.to_owned(), input_mode.identity_sha256());
+        if !self.validators.contains_key(&key) {
             if self.validators.len() == BatchBudget::MAX_UNITS {
                 return Err(SchemaProbeError::BudgetExceeded);
             }
@@ -119,9 +149,9 @@ impl InProcessSchemaEngine {
             let validator = options
                 .build(schema.as_ref())
                 .map_err(|e| SchemaProbeError::Backend(e.to_string()))?;
-            self.validators.insert(root.to_owned(), validator);
+            self.validators.insert(key.clone(), validator);
         }
-        Ok(&self.validators[root])
+        Ok(&self.validators[&key])
     }
 
     pub fn validate(
@@ -216,7 +246,7 @@ impl InProcessSchemaEngine {
                             if self.profile != FormatProfile::LegacyPythonObserved20260923 {
                                 report.failure = Failure::UnsupportedInputSemantics;
                             } else {
-                                match self.validator(unit.root_uri) {
+                                match self.validator(unit.root_uri, unit.input_mode) {
                                     Ok(_) => {
                                         (
                                             report.status,
@@ -258,7 +288,7 @@ impl InProcessSchemaEngine {
                     Status::Indeterminate
                 };
             }
-            Ok(value) => match self.validator(unit.root_uri) {
+            Ok(value) => match self.validator(unit.root_uri, unit.input_mode) {
                 Ok(validator) => collect(validator, &value, &mut report),
                 Err(SchemaProbeError::UnknownKeyword(_)) => {
                     report.failure = Failure::UnsupportedInputSemantics
@@ -508,5 +538,56 @@ impl Report {
                     n.checked_add(diag::issue_payload(i)?.len())
                 })
                 .is_some_and(|n| n <= self.caps.max_report_bytes_per_unit as usize)
+    }
+}
+
+#[cfg(test)]
+mod input_mode_identity_tests {
+    use super::*;
+
+    #[test]
+    fn cached_validators_and_selected_limits_bind_input_mode() {
+        let uri = "https://example.test/number.schema.json";
+        let mut engine = InProcessSchemaEngine::new(
+            [SchemaResource {
+                uri: uri.into(),
+                raw: br#"{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://example.test/number.schema.json","type":"integer"}"#.to_vec(),
+            }],
+            FormatProfile::AssertedSourceCandidateV1,
+        ).unwrap();
+        let deadline = Instant::now() + std::time::Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        for mode in [
+            InputMode::PublishedStrict,
+            InputMode::SerdeNormalized,
+            InputMode::PublishedStrict,
+        ] {
+            let report = engine
+                .validate(
+                    Unit {
+                        root_uri: uri,
+                        raw: b"1",
+                        input_mode: mode,
+                    },
+                    Caps::CURRENT,
+                    deadline,
+                    &cancelled,
+                )
+                .unwrap();
+            assert_eq!(report.status, Status::Valid);
+        }
+        assert_eq!(engine.validators.len(), 2);
+        let first = crate::executor::LegacySelectedDiagnosticsLimits {
+            max_instance_bytes: 1024,
+            max_visits: 100,
+            parser_state_bytes: 4096,
+            conversion_state_bytes: 4096,
+        };
+        let mut second = first;
+        second.max_visits += 1;
+        assert_ne!(
+            InputMode::LegacyPythonObservedSelected(first).identity_sha256(),
+            InputMode::LegacyPythonObservedSelected(second).identity_sha256()
+        );
     }
 }

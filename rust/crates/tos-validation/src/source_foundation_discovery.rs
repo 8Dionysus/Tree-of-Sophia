@@ -6280,6 +6280,7 @@ fn in_process_artifact_binding(
     let exact = matches!(binding, tos_foundation::SchemaExecutionBinding::InProcessV1(binding)
         if binding.engine == report.engine
             && binding.schema_profile == report.profile
+            && binding.input_mode_sha256 == Some(report.input_mode.identity_sha256())
             && route_schema_set == report.schema_set_sha256);
     (
         exact,
@@ -6596,6 +6597,7 @@ mod in_process_artifact_evidence_tests {
             schema_profile: profile,
             schema_set_sha256: report.schema_set_sha256,
             engine: crate::in_process::ENGINE_ID,
+            input_mode_sha256: Some(report.input_mode.identity_sha256()),
         });
         let mut diagnostic = InProcessCutDiagnostic {
             identity: InProcessCutIdentity::Candidate(serde_json::json!({"fence": 1})),
@@ -6610,6 +6612,18 @@ mod in_process_artifact_evidence_tests {
         assert_eq!(
             in_process_artifact_binding(&diagnostic, binding, binding.schema_set_sha256()),
             (true, true)
+        );
+        let SchemaExecutionBinding::InProcessV1(mut different_mode) = binding else {
+            panic!("in-process binding expected");
+        };
+        different_mode.input_mode_sha256 = Some(InputMode::SerdeNormalized.identity_sha256());
+        assert_eq!(
+            in_process_artifact_binding(
+                &diagnostic,
+                SchemaExecutionBinding::InProcessV1(different_mode),
+                binding.schema_set_sha256(),
+            ),
+            (false, false)
         );
         let mut hash = Digest256Hasher::new();
         let (unit, report, _) =
@@ -6635,6 +6649,7 @@ mod in_process_artifact_evidence_tests {
             schema_set_sha256: Digest256::of_bytes(b"other"),
             schema_profile: profile,
             engine: crate::in_process::ENGINE_ID,
+            input_mode_sha256: Some(diagnostic.report.input_mode.identity_sha256()),
         });
         assert_eq!(
             in_process_artifact_binding(&diagnostic, other, binding.schema_set_sha256()),

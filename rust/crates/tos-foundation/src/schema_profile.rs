@@ -46,6 +46,8 @@ pub struct InProcessSchemaExecutionBinding {
     pub schema_profile: FormatProfile,
     pub schema_set_sha256: Digest256,
     pub engine: &'static str,
+    /// Absent only when reading an older binding that did not record input mode.
+    pub input_mode_sha256: Option<Digest256>,
 }
 
 /// Versioned execution identity for adapters migrating from worker execution.

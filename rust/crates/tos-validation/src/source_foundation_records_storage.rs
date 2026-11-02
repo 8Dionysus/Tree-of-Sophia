@@ -1685,6 +1685,9 @@ mod candidate_schema_identity_tests {
             schema_profile: FormatProfile::AssertedSourceCandidateV1,
             schema_set_sha256: digest,
             engine: crate::in_process::ENGINE_ID,
+            input_mode_sha256: Some(
+                crate::in_process::InputMode::PublishedStrict.identity_sha256(),
+            ),
         });
         let identity = SourceFoundationCandidateSchemaIdentity::new(binding, digest, 1, 42);
         assert_eq!(identity.schema_execution_binding(), binding);

@@ -255,19 +255,38 @@ mod rootset_descriptor_tests {
             schema_profile: FormatProfile::AssertedSourceCandidateV1,
             schema_set_sha256: schema_set,
             engine: IN_PROCESS_SCHEMA_ENGINE_ID,
+            input_mode_sha256: Some(Digest256::of_bytes(b"input mode")),
         };
         let current = NativeAdmissionCompletionProofV1::from_authenticated_root_fields(
             validator, None, 23, binding, 4, 2, 3,
         )
         .unwrap();
         let value = completion_proof_value(Some(current));
-        assert_eq!(value[3][0], "in-process-v1");
+        assert_eq!(value[3][0], "in-process-v2");
         assert_eq!(value[3][3], IN_PROCESS_SCHEMA_ENGINE_ID);
+        assert_eq!(value[3][4], binding.input_mode_sha256.unwrap().to_hex());
         assert!(!value.to_string().contains(&worker.to_hex()));
         assert_eq!(
             completion_proof_from(parse(&value).root()).unwrap(),
             Some(current)
         );
+        let mut historical = value.clone();
+        historical[3] = serde_json::json!([
+            "in-process-v1",
+            binding.schema_profile.id(),
+            binding.schema_set_sha256.to_hex(),
+            binding.engine
+        ]);
+        let historical_proof = completion_proof_from(parse(&historical).root())
+            .unwrap()
+            .unwrap();
+        let SchemaExecutionBinding::InProcessV1(historical_binding) =
+            historical_proof.prepared_schema()
+        else {
+            panic!("historical in-process binding expected");
+        };
+        assert_eq!(historical_binding.input_mode_sha256, None);
+        assert_eq!(completion_proof_value(Some(historical_proof)), historical);
         let mut unknown = value;
         unknown[3][3] = serde_json::json!("unknown-engine");
         assert!(completion_proof_from(parse(&unknown).root()).is_err());
@@ -496,12 +515,21 @@ fn completion_proof_value(proof: Option<NativeAdmissionCompletionProofV1>) -> se
                     [protocol, caps]
                 ])
             }
-            SchemaExecutionBinding::InProcessV1(binding) => serde_json::json!([
-                "in-process-v1",
-                binding.schema_profile.id(),
-                binding.schema_set_sha256.to_hex(),
-                binding.engine
-            ]),
+            SchemaExecutionBinding::InProcessV1(binding) => match binding.input_mode_sha256 {
+                None => serde_json::json!([
+                    "in-process-v1",
+                    binding.schema_profile.id(),
+                    binding.schema_set_sha256.to_hex(),
+                    binding.engine
+                ]),
+                Some(input_mode) => serde_json::json!([
+                    "in-process-v2",
+                    binding.schema_profile.id(),
+                    binding.schema_set_sha256.to_hex(),
+                    binding.engine,
+                    input_mode.to_hex()
+                ]),
+            },
         };
         serde_json::json!([
             proof.validator_sha256().to_hex(),
@@ -527,9 +555,18 @@ fn completion_proof_from(
         .ok_or_else(|| invalid("native completion proof tuple shape differs"))?;
     let schema = fields[3]
         .as_array()
-        .filter(|fields| fields.len() == 4)
+        .filter(|fields| matches!(fields.len(), 4 | 5))
         .ok_or_else(|| invalid("native completion schema tuple shape differs"))?;
-    let in_process = schema[0].as_str() == Some("in-process-v1");
+    let in_process_version = match (schema[0].as_str(), schema.len()) {
+        (Some("in-process-v1"), 4) => Some(1),
+        (Some("in-process-v2"), 5) => Some(2),
+        (Some("in-process-v1" | "in-process-v2"), _) => {
+            return Err(invalid("native completion schema tuple shape differs"));
+        }
+        (_, 4) => None,
+        _ => return Err(invalid("native completion schema tuple shape differs")),
+    };
+    let in_process = in_process_version.is_some();
     let profile_field = if in_process { &schema[1] } else { &schema[0] };
     let schema_profile = match profile_field.as_str() {
         Some("tos.schema.format.legacy-python-observed-20260923") => {
@@ -548,6 +585,11 @@ fn completion_proof_from(
             schema_profile,
             schema_set_sha256: digest(&schema[2])?,
             engine: IN_PROCESS_SCHEMA_ENGINE_ID,
+            input_mode_sha256: if in_process_version == Some(2) {
+                Some(digest(&schema[4])?)
+            } else {
+                None
+            },
         })
     } else {
         let protocol_fields = schema[3]

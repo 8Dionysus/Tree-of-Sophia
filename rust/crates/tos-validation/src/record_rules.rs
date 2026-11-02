@@ -3674,7 +3674,7 @@ fn validate_candidate_claim_input_core<I: Copy + Eq>(
         || prepared.schema_profile() != profile
         || prepared.schema_set_sha256() != schema_set_sha256
         || matches!(prepared, tos_foundation::SchemaExecutionBinding::InProcessV1(binding)
-            if binding.engine != crate::in_process::ENGINE_ID)
+            if binding.engine != crate::in_process::ENGINE_ID || binding.input_mode_sha256.is_none())
     {
         return Err(ItemRefusal::Source(
             "local Claim selected candidate schema binding differs".into(),

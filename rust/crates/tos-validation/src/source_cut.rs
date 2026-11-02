@@ -5244,6 +5244,7 @@ impl<I> InProcessCutSchemaExecutor<I> {
             schema_profile: self.profile,
             schema_set_sha256: self.engine.schema_set_digest(),
             engine: crate::in_process::ENGINE_ID,
+            input_mode_sha256: Some(self.input_mode.identity_sha256()),
         }
     }
 

@@ -851,11 +851,21 @@ fn summary<B: CatalogInputBinding>(
             "row_root":receipt.row_root_sha256,"worker":worker,
             "binding":receipt.input_binding.value(),"manifest":receipt.manifest_sha256,
             "inputs":receipt.input_root}),
+        (None, Some(engine)) if engine.input_mode_sha256.is_none() => {
+            json!({"records":receipt.record_count,"claims":receipt.claim_count,
+                "slots":receipt.source_slot_count,"files":receipt.file_sha256,"rows":receipt.row_count,
+                "row_root":receipt.row_root_sha256,
+                "in_process_schema_v1":{"engine":engine.engine,"schema_profile":engine.schema_profile.id(),
+                    "schema_set_sha256":engine.schema_set_sha256.to_hex()},
+                "binding":receipt.input_binding.value(),"manifest":receipt.manifest_sha256,
+                "inputs":receipt.input_root})
+        }
         (None, Some(engine)) => json!({"records":receipt.record_count,"claims":receipt.claim_count,
             "slots":receipt.source_slot_count,"files":receipt.file_sha256,"rows":receipt.row_count,
             "row_root":receipt.row_root_sha256,
-            "in_process_schema_v1":{"engine":engine.engine,"schema_profile":engine.schema_profile.id(),
-                "schema_set_sha256":engine.schema_set_sha256.to_hex()},
+            "in_process_schema_v2":{"engine":engine.engine,"schema_profile":engine.schema_profile.id(),
+                "schema_set_sha256":engine.schema_set_sha256.to_hex(),
+                "input_mode_sha256":engine.input_mode_sha256.expect("checked input mode").to_hex()},
             "binding":receipt.input_binding.value(),"manifest":receipt.manifest_sha256,
             "inputs":receipt.input_root}),
         _ => return Err(Error::Invalid("catalog execution identity differs")),
@@ -1013,7 +1023,8 @@ impl<'a> SourceCatalogValidator<'a> {
             .ok_or(Error::Invalid("catalog candidate prepared binding"))?;
         if schemas.input_identity() != identity
             || !matches!(prepared, tos_foundation::SchemaExecutionBinding::InProcessV1(binding)
-                if binding.engine == tos_validation::in_process::ENGINE_ID)
+                if binding.engine == tos_validation::in_process::ENGINE_ID
+                    && binding.input_mode_sha256.is_some())
             || prepared.schema_profile() != FormatProfile::LegacyPythonObserved20260923
             || schemas.profile() != prepared.schema_profile()
             || schemas.schema_set_digest() != prepared.schema_set_sha256()
@@ -1574,6 +1585,7 @@ impl<'a> SourceCatalogValidator<'a> {
                 tos_foundation::SchemaExecutionBinding::InProcessV1(engine) => {
                     self.worker_pin.is_some()
                         || engine.engine != tos_validation::in_process::ENGINE_ID
+                        || engine.input_mode_sha256.is_none()
                 }
             }
         {

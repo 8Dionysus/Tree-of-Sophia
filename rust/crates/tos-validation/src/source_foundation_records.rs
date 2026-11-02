@@ -5183,7 +5183,7 @@ pub fn inspect_source_foundation_records_from_input_stored<'a, I: Eq + Clone>(
         || prepared.schema_set_sha256() != schema_binding.schema_set_digest()
         || prepared.schema_profile() != record_executor.profile
         || matches!(prepared, tos_foundation::SchemaExecutionBinding::InProcessV1(binding)
-            if binding.engine != crate::in_process::ENGINE_ID)
+            if binding.engine != crate::in_process::ENGINE_ID || binding.input_mode_sha256.is_none())
     {
         return Err(ItemRefusal::Source(
             "candidate Item schema binding differs from the prepared profile or set".into(),

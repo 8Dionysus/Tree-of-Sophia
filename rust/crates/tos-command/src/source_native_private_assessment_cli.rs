@@ -1124,8 +1124,24 @@ fn public_v2_owner_snapshot(
                 cmd::string(&binding.worker_sha256.to_prefixed()),
             ),
         ]),
+        tos_foundation::SchemaExecutionBinding::InProcessV1(binding)
+            if binding.input_mode_sha256.is_none() =>
+        {
+            cmd::object(vec![
+                ("version", cmd::string("in_process_schema_v1")),
+                (
+                    "profile",
+                    cmd::string(&format!("{:?}", binding.schema_profile)),
+                ),
+                (
+                    "schema_set_sha256",
+                    cmd::string(&binding.schema_set_sha256.to_prefixed()),
+                ),
+                ("engine", cmd::string(binding.engine)),
+            ])
+        }
         tos_foundation::SchemaExecutionBinding::InProcessV1(binding) => cmd::object(vec![
-            ("version", cmd::string("in_process_schema_v1")),
+            ("version", cmd::string("in_process_schema_v2")),
             (
                 "profile",
                 cmd::string(&format!("{:?}", binding.schema_profile)),
@@ -1135,6 +1151,15 @@ fn public_v2_owner_snapshot(
                 cmd::string(&binding.schema_set_sha256.to_prefixed()),
             ),
             ("engine", cmd::string(binding.engine)),
+            (
+                "input_mode_sha256",
+                cmd::string(
+                    &binding
+                        .input_mode_sha256
+                        .expect("checked input mode")
+                        .to_prefixed(),
+                ),
+            ),
         ]),
     };
     entries.insert("assessment_schema_execution".to_owned(), execution);
