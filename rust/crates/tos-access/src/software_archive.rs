@@ -1720,7 +1720,9 @@ pub fn run_if_requested(
                     return Ok(value);
                 }
             }
-            Err(format!("required software option --{name} or install profile value"))
+            Err(format!(
+                "required software option --{name} or install profile value"
+            ))
         };
         let total = limit("max-total-bytes", profile.max_total_bytes)?;
         let archive = limit("max-archive-bytes", profile.max_archive_bytes)?;

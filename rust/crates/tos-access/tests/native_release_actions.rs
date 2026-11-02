@@ -1060,19 +1060,32 @@ fn deployment_profile_install_defaults_and_flag_overrides() {
         command
             .args(["software", "install", "--archive"])
             .arg(&archive)
-            .arg("--prefix").arg(scratch.path().join(label));
+            .arg("--prefix")
+            .arg(scratch.path().join(label));
         if let Some(value) = override_bytes {
             command.args(["--max-archive-bytes", value]);
         }
         bounded_command_output(command)
     };
     let default = run("default", None, None, None);
-    assert!(default.status.success(), "{}", String::from_utf8_lossy(&default.stderr));
+    assert!(
+        default.status.success(),
+        "{}",
+        String::from_utf8_lossy(&default.stderr)
+    );
     let refused = run("refused", None, None, Some("1"));
     assert!(!refused.status.success());
     assert!(!scratch.path().join("refused").exists());
     let raised = run("raised", Some(&small_profile), None, Some("536870912"));
-    assert!(raised.status.success(), "{}", String::from_utf8_lossy(&raised.stderr));
+    assert!(
+        raised.status.success(),
+        "{}",
+        String::from_utf8_lossy(&raised.stderr)
+    );
     let selected = run("selected", Some(&small_profile), Some(&profile), None);
-    assert!(selected.status.success(), "{}", String::from_utf8_lossy(&selected.stderr));
+    assert!(
+        selected.status.success(),
+        "{}",
+        String::from_utf8_lossy(&selected.stderr)
+    );
 }
