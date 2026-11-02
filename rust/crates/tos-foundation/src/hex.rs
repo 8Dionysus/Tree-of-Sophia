@@ -4,10 +4,7 @@ const DIGITS: &[u8; 16] = b"0123456789abcdef";
 
 /// Encode one byte as two lowercase hexadecimal digits.
 pub const fn encode_lower_hex_byte(byte: u8) -> [u8; 2] {
-    [
-        DIGITS[(byte >> 4) as usize],
-        DIGITS[(byte & 15) as usize],
-    ]
+    [DIGITS[(byte >> 4) as usize], DIGITS[(byte & 15) as usize]]
 }
 
 /// Encode bytes as lowercase hexadecimal digits.
@@ -74,7 +71,10 @@ mod tests {
             Some(bytes.as_slice())
         );
         let all: Vec<u8> = (0..=255).collect();
-        assert_eq!(decode_lower_hex(&encode_lower_hex(&all), all.len()), Some(all));
+        assert_eq!(
+            decode_lower_hex(&encode_lower_hex(&all), all.len()),
+            Some(all)
+        );
         assert_eq!(decode_lower_hex("", 0), Some(vec![]));
         assert!(is_lower_hex("abc123", 6));
         for invalid in ["ABC123", "abc12g", "abc12é", "abc12"] {

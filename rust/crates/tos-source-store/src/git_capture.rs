@@ -806,7 +806,10 @@ pub fn resolve_git_member(
     cancelled: &AtomicBool,
 ) -> Result<GitMemberDescriptor> {
     active(deadline, cancelled).map_err(ioe)?;
-    if !tos_foundation::is_lower_hex(commit, 40) || !safe(path) || tos_foundation::RelativePath::parse(path).is_err() {
+    if !tos_foundation::is_lower_hex(commit, 40)
+        || !safe(path)
+        || tos_foundation::RelativePath::parse(path).is_err()
+    {
         return Err(fail("exact Git commit and safe member required"));
     }
     let root = tos_fd_open::open_absolute_directory(repository)
@@ -848,7 +851,11 @@ pub fn resolve_git_member(
         std::str::from_utf8(&raw[..raw.len() - 1]).map_err(|_| fail("Git descriptor encoding"))?;
     let (facts, selected) = text.split_once('\t').ok_or(fail("Git descriptor row"))?;
     let facts: Vec<_> = facts.split_whitespace().collect();
-    if selected != path || facts.len() != 4 || facts[1] != "blob" || !tos_foundation::is_lower_hex(facts[2], 40) {
+    if selected != path
+        || facts.len() != 4
+        || facts[1] != "blob"
+        || !tos_foundation::is_lower_hex(facts[2], 40)
+    {
         return Err(fail("Git descriptor differs"));
     }
     let mode = match facts[0] {

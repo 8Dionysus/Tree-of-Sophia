@@ -102,16 +102,13 @@ fn parse_json_object(raw: &[u8], path: &str) -> Result<Value, String> {
     Ok(value)
 }
 
-
 fn digest_for(
     capture: &mut LexicalCapture<'_>,
     reference: &str,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<String, String> {
-    Ok(Digest256::of_bytes(&capture_read(
-        capture, reference, deadline, cancelled,
-    )?).to_hex())
+    Ok(Digest256::of_bytes(&capture_read(capture, reference, deadline, cancelled)?).to_hex())
 }
 
 fn provenance_pairs(value: &Value, key: &str) -> Result<BTreeSet<(String, String)>, String> {

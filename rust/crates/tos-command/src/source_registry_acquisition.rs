@@ -176,7 +176,9 @@ pub fn invoke(request: &Value) -> Result<Value> {
 
 fn helper(name: &str, args: &Value) -> Result<Value> {
     match name {
-        "sha256" => Ok(Value::String(Digest256::of_bytes(&decode_bytes(args, "body")?).to_hex())),
+        "sha256" => Ok(Value::String(
+            Digest256::of_bytes(&decode_bytes(args, "body")?).to_hex(),
+        )),
         "utcnow" => Ok(Value::String(utcnow()?)),
         "event" => {
             let inputs = arr(args, "inputs")?.clone();
@@ -787,7 +789,9 @@ fn load_preparation(
     }
     if let Some(snapshot_ref) = snapshot_ref {
         let snapshot = read_ref(root, snapshot_ref)?;
-        if Digest256::of_bytes(&snapshot).to_hex() != text(&manifest, "source_registry_snapshot_sha256")? {
+        if Digest256::of_bytes(&snapshot).to_hex()
+            != text(&manifest, "source_registry_snapshot_sha256")?
+        {
             return Err("normalized source-registry snapshot digest mismatch".into());
         }
     }
@@ -1628,7 +1632,8 @@ fn inspect_payloads(target: &Value, bodies: &[(Value, Vec<u8>)]) -> Result<Value
                 if addresses.is_empty() || count < 1000 {
                     return Err("Perseus qualified divisions or nonempty language-profile text check failed".into());
                 }
-                let address_digest = Digest256::of_bytes((addresses.join("\n") + "\n").as_bytes()).to_hex();
+                let address_digest =
+                    Digest256::of_bytes((addresses.join("\n") + "\n").as_bytes()).to_hex();
                 let address_scope = if milestones {
                     "occurrence-qualified source divisions and section markers; repeated numbering is retained, not corrected; no CTS service resolution asserted"
                 } else {
@@ -2481,7 +2486,10 @@ fn replace_bytes_guarded(path: &Path, before: &[u8], after: &[u8], mode: u32) ->
 fn refresh_topology(root: &Path, evidence_root: &Path, ended: &str) -> Result<()> {
     let path = path_ref(root, TOPOLOGY)?;
     let before = custody::read_bytes(&path, None, false, false, MAX_JSON)?;
-    let history_ref = format!("topology-before/{}.json", Digest256::of_bytes(&before).to_hex());
+    let history_ref = format!(
+        "topology-before/{}.json",
+        Digest256::of_bytes(&before).to_hex()
+    );
     let history = path_ref(evidence_root, &history_ref)?;
     if !history.exists() {
         custody::publish(&history, &before, 0o644)?;
@@ -2519,7 +2527,9 @@ fn refresh_topology(root: &Path, evidence_root: &Path, ended: &str) -> Result<()
             .map(|line| strict_json(line.as_bytes()))
             .collect::<Result<Vec<_>>>()?;
         batch["method"]["configuration"][count_field] = json!(claims.len());
-        outputs.push(json!({"ref":reference,"role":role,"sha256":Digest256::of_bytes(&data).to_hex()}));
+        outputs.push(
+            json!({"ref":reference,"role":role,"sha256":Digest256::of_bytes(&data).to_hex()}),
+        );
         for claim in claims {
             for evidence_ref_value in arr(&claim, "evidence_refs")? {
                 let evidence_ref = evidence_ref_value

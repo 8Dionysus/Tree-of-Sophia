@@ -245,7 +245,9 @@ fn checked_plan_inputs(context: &PlanContext) -> Result<(PathBuf, Value, PathBuf
     let rights_ref = text(&context.plan["rights_policy"], "rights_record_ref")?;
     let rights_path = repo_file(&context.repo, rights_ref)?;
     let rights_bytes = io_owner::read_bytes(&rights_path, None, false, false, MAX_JSON)?;
-    if Digest256::of_bytes(&rights_bytes).to_hex() != text(&context.plan["rights_policy"], "rights_record_sha256")? {
+    if Digest256::of_bytes(&rights_bytes).to_hex()
+        != text(&context.plan["rights_policy"], "rights_record_sha256")?
+    {
         return Err("rights-record SHA-256 differs from frozen plan".into());
     }
     let rights = io_owner::parse(&rights_bytes)?;
@@ -637,9 +639,7 @@ fn validate_rights(context: &PlanContext, rights: &Value) -> Result<()> {
 }
 
 fn digest_file(path: &Path) -> Result<String> {
-    Ok(Digest256::of_bytes(&io_owner::read_bytes(
-        path, None, false, false, MAX_JSON,
-    )?).to_hex())
+    Ok(Digest256::of_bytes(&io_owner::read_bytes(path, None, false, false, MAX_JSON)?).to_hex())
 }
 
 fn check_expiry(value: Option<&Value>) -> Result<()> {

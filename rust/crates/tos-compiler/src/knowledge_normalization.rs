@@ -689,8 +689,7 @@ fn stable_digest_value_owned(
             state.charge_work(16 + 16 + 8)?;
             let mut hex = [0u8; 16];
             for (i, byte) in v.to_be_bytes().into_iter().enumerate() {
-                hex[2 * i..2 * i + 2]
-                    .copy_from_slice(&tos_foundation::encode_lower_hex_byte(byte));
+                hex[2 * i..2 * i + 2].copy_from_slice(&tos_foundation::encode_lower_hex_byte(byte));
             }
             emit(hasher, b"d", state)?;
             emit(hasher, &hex, state)?;

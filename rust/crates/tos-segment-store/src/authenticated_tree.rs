@@ -5220,7 +5220,9 @@ fn digest_from_raw(bytes: &[u8]) -> Result<Digest256> {
     if bytes.len() != 32 {
         return Err(invalid("authenticated digest length differs"));
     }
-    Ok(Digest256::from_bytes(bytes.try_into().expect("length checked")))
+    Ok(Digest256::from_bytes(
+        bytes.try_into().expect("length checked"),
+    ))
 }
 
 fn invalid(detail: &'static str) -> SegmentError {

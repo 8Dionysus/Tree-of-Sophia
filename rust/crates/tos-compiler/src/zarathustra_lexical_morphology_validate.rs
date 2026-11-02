@@ -87,7 +87,6 @@ fn check_provenance_schema(
     Ok(())
 }
 
-
 fn sha256_ref(
     capture: &mut LexicalCapture<'_>,
     reference: &str,

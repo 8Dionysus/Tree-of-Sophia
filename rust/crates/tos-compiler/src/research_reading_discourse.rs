@@ -256,7 +256,9 @@ fn policy_for(
                 return Err("voice span outside source context".into());
             }
             tick_span(root, start, end)?;
-            if tos_foundation::Digest256::of_bytes((source.slice(start, end)?).as_bytes()).to_hex() != string(rule, "exact_sha256")? {
+            if tos_foundation::Digest256::of_bytes((source.slice(start, end)?).as_bytes()).to_hex()
+                != string(rule, "exact_sha256")?
+            {
                 return Err("voice span override source drift".into());
             }
             out.overrides.push(rule.clone());
@@ -1634,7 +1636,8 @@ pub fn validate_partition(
             tick_span(root, start, end)?;
             let exact = source.slice(start, end)?;
             if exact != string(&segment, "exact_text")?
-                || tos_foundation::Digest256::of_bytes((exact).as_bytes()).to_hex() != string(&segment, "exact_sha256")?
+                || tos_foundation::Digest256::of_bytes((exact).as_bytes()).to_hex()
+                    != string(&segment, "exact_sha256")?
             {
                 return Err("discourse exact source return mismatch".into());
             }

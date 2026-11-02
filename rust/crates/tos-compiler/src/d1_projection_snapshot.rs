@@ -455,7 +455,9 @@ impl SnapshotReader {
         let mut stored = Vec::with_capacity(cap.min(1024 * 1024));
         file.take(declared.saturating_add(1))
             .read_to_end(&mut stored)?;
-        if stored.len() as u64 != declared || Digest256::of_bytes(&stored).to_hex() != string(descriptor, "sha256")? {
+        if stored.len() as u64 != declared
+            || Digest256::of_bytes(&stored).to_hex() != string(descriptor, "sha256")?
+        {
             return Err(Error::Invalid("D1 projection stored part digest"));
         }
         let decoded = if string(descriptor, "kind")? == "index" {
@@ -557,7 +559,9 @@ impl SnapshotReader {
                 .filter(|key| !key.is_empty() && key.len() <= MAX_KEY_BYTES)
                 .ok_or(Error::Invalid("D1 projection row key"))?;
             if previous.as_deref().is_some_and(|prior| prior >= key)
-                || !Digest256::of_bytes(key.as_bytes()).to_hex().starts_with(prefix)
+                || !Digest256::of_bytes(key.as_bytes())
+                    .to_hex()
+                    .starts_with(prefix)
             {
                 return Err(Error::Invalid("D1 projection row ordering/placement"));
             }
@@ -1095,7 +1099,6 @@ fn valid_collection_name(value: &str) -> bool {
 fn valid_sha256(value: &str) -> bool {
     tos_foundation::is_lower_hex(value, 64)
 }
-
 
 fn add(a: u64, b: u64) -> Result<u64> {
     a.checked_add(b)

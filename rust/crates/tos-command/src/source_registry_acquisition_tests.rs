@@ -563,7 +563,10 @@ fn egyptian_and_german_components_remain_separate_and_text_free() {
 fn exact_registry_bytes_paths_and_metadata_time_refuse_ambiguous_input() {
     let body = b"exact\r\n";
     let entry = json!({"basename":"source.txt","byte_size":body.len(),"git_blob_sha1":format!("{:x}",Sha1::digest(b"blob 7\0exact\r\n"))});
-    assert_eq!(check_file(body, &entry).unwrap(), Digest256::of_bytes(body).to_hex());
+    assert_eq!(
+        check_file(body, &entry).unwrap(),
+        Digest256::of_bytes(body).to_hex()
+    );
     for altered in [b"exact\n".as_slice(), b"other\r\n"] {
         assert!(check_file(altered, &entry).is_err());
     }
@@ -806,9 +809,16 @@ fn topology_refresh_keeps_one_record_and_exact_prior_bytes() {
     assert_eq!(refreshed["event_id"], original["event_id"]);
     assert_eq!(refreshed["event_version"], 2);
     assert_eq!(refreshed["outputs"].as_array().unwrap().len(), 3);
-    assert_eq!(refreshed["inputs"][0]["sha256"], Digest256::of_bytes(evidence).to_hex());
     assert_eq!(
-        fs::read(retained.join(format!("topology-before/{}.json", Digest256::of_bytes(&before).to_hex()))).unwrap(),
+        refreshed["inputs"][0]["sha256"],
+        Digest256::of_bytes(evidence).to_hex()
+    );
+    assert_eq!(
+        fs::read(retained.join(format!(
+            "topology-before/{}.json",
+            Digest256::of_bytes(&before).to_hex()
+        )))
+        .unwrap(),
         before
     );
 }

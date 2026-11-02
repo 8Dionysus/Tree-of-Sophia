@@ -304,8 +304,7 @@ struct Statement<'a, 'b> {
     prepaid: bool,
 }
 fn unhex(s: &str) -> Result<Vec<u8>, String> {
-    tos_foundation::decode_lower_hex(s, s.len() / 2)
-        .ok_or_else(|| "borrowed cell hex".into())
+    tos_foundation::decode_lower_hex(s, s.len() / 2).ok_or_else(|| "borrowed cell hex".into())
 }
 impl ReadStatement for Statement<'_, '_> {
     fn raw_row_cap(&mut self, bytes: u64, prepaid: bool) -> Result<(), String> {

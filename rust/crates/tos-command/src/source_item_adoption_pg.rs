@@ -195,7 +195,9 @@ pub(crate) fn pg_item_adoption_response_from_attempt(
             .ok_or(SourceCommandError::Conflict(
                 "PG Item recovery archive identity differs",
             ))?;
-    if !tos_foundation::is_lower_hex(archive_claim, 64) || !tos_foundation::is_lower_hex(archive_revision, 64) {
+    if !tos_foundation::is_lower_hex(archive_claim, 64)
+        || !tos_foundation::is_lower_hex(archive_revision, 64)
+    {
         return Err(SourceCommandError::Conflict(
             "PG Item recovery archive identity differs",
         ));
@@ -704,9 +706,9 @@ fn flat_digest_blob_or_manifest(name: &str) -> bool {
 }
 
 fn flat_digest_blob(name: &str) -> bool {
-    name.strip_suffix(".blob").is_some_and(|value| tos_foundation::is_lower_hex(value, 64))
+    name.strip_suffix(".blob")
+        .is_some_and(|value| tos_foundation::is_lower_hex(value, 64))
 }
-
 
 fn current_children(
     session: &mut SourceRevisionReadSession<'_>,
