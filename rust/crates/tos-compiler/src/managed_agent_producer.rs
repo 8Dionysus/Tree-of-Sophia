@@ -176,8 +176,8 @@ pub fn prepare_managed_agent_selected_model<P: ManagedProducerProof>(
     )?;
     let schema_set_sha256 = validator
         .schemas(export_revision)?
-        .execution_binding()
-        .schema_set_sha256
+        .execution_binding_any()?
+        .schema_set_sha256()
         .to_hex();
     // Complete the genuine catalog/Versions/navigation schema operation before
     // issuing a successful independently sealed selected outcome.
@@ -1279,7 +1279,10 @@ pub fn prepare_managed_agent_selected_successor<P: ManagedProducerProof>(
         ));
     }
     let schemas = validator.schemas(schema_revision)?;
-    let schema_set_sha256 = schemas.execution_binding().schema_set_sha256.to_hex();
+    let schema_set_sha256 = schemas
+        .execution_binding_any()?
+        .schema_set_sha256()
+        .to_hex();
     drop(schemas);
     if schema_set_sha256 != old.schema_set_sha256 {
         return Err(Error::ManagedSourceUnsupported(

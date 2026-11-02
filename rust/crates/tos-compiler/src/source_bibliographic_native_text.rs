@@ -664,9 +664,7 @@ pub(crate) fn resolve_native_text_binding(
         limits,
         files: BTreeMap::new(),
         total: 0,
-        deadline: std::time::Instant::now()
-            .checked_add(validator.budget.execution_wall)
-            .ok_or(Error::Budget("native text deadline arithmetic"))?,
+        deadline: validator.native_text_deadline()?,
     }
     .resolve(binding)
 }

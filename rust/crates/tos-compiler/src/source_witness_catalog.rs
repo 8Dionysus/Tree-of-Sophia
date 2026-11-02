@@ -24,7 +24,8 @@ use tos_validation::executor::{
     VerifiedWorkerImageHandle,
 };
 use tos_validation::source_cut::{
-    CutSchemaExecutor, CutSchemaReceiptRange, CutWorkerLimits, CutWorkerSchemaExecutor,
+    CutSchemaEvidence, CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor,
+    InProcessCutSchemaExecutor,
 };
 use tos_validation::{FormatProfile, SchemaBackendProbe, SchemaResource};
 
@@ -215,7 +216,7 @@ use tos_validation::source_cut::{
 };
 use tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding;
 
-trait CandidateCatalogSchemas: CutSchemaExecutor {
+pub(crate) trait CandidateCatalogSchemas: CutSchemaExecutor {
     fn identity(&self) -> &dyn std::any::Any;
     fn prepared_binding(&self) -> SchemaResult<tos_foundation::SchemaExecutionBinding>;
     fn take_candidate_rejection_any(&mut self) -> SchemaResult<Option<Box<dyn std::any::Any>>>;
@@ -327,9 +328,10 @@ impl<I: Copy + Eq + 'static> CandidateCatalogSchemas for BorrowedCandidateSchema
     }
 }
 
-enum CatalogSchemas<'a> {
+pub(crate) enum CatalogSchemas<'a> {
     Candidate(Box<dyn CandidateCatalogSchemas + 'a>),
     Resident(CutWorkerSchemaExecutor),
+    ResidentInProcess(InProcessCutSchemaExecutor<()>),
 }
 impl CatalogSchemas<'_> {
     fn as_candidate_binding(&self) -> Result<tos_foundation::SchemaExecutionBinding> {
@@ -337,13 +339,28 @@ impl CatalogSchemas<'_> {
             Self::Candidate(candidate) => candidate
                 .prepared_binding()
                 .map_err(|error| Error::Source(format!("catalog candidate binding:{error:?}"))),
-            Self::Resident(_) => Err(Error::Invalid("candidate catalog schemas not selected")),
+            Self::Resident(_) | Self::ResidentInProcess(_) => {
+                Err(Error::Invalid("candidate catalog schemas not selected"))
+            }
         }
     }
-    fn execution_binding(&self) -> Result<tos_validation::source_cut::CutExecutionBinding> {
+    pub(crate) fn execution_binding_any(&self) -> Result<tos_foundation::SchemaExecutionBinding> {
         match self {
-            Self::Resident(s) => Ok(s.execution_binding()),
-            Self::Candidate(_) => Err(Error::Invalid("candidate catalog has no source revision")),
+            Self::Candidate(s) => s
+                .prepared_binding()
+                .map_err(|e| Error::Source(format!("catalog candidate binding:{e:?}"))),
+            Self::Resident(s) => CutSchemaExecutor::schema_execution_binding(s)
+                .ok_or(Error::Invalid("catalog schema binding")),
+            Self::ResidentInProcess(s) => s
+                .schema_execution_binding()
+                .ok_or(Error::Invalid("catalog schema binding")),
+        }
+    }
+    fn source_revision(&self) -> Option<SourceRevision> {
+        match self {
+            Self::Candidate(_) => None,
+            Self::Resident(s) => s.selected_source_revision(),
+            Self::ResidentInProcess(s) => s.selected_source_revision(),
         }
     }
     fn enable_diagnostics_v2(
@@ -355,6 +372,11 @@ impl CatalogSchemas<'_> {
                 "configure candidate diagnostics before catalog borrowing".into(),
             )),
             Self::Resident(s) => s.enable_diagnostics_v2(l),
+            Self::ResidentInProcess(_) => {
+                Err(tos_validation::item_rules::ItemRefusal::Unsupported(
+                    "worker diagnostics for in-process engine".into(),
+                ))
+            }
         }
     }
     fn set_diagnostics_v2_legacy_raw_instance_limit(
@@ -366,6 +388,11 @@ impl CatalogSchemas<'_> {
                 "configure candidate raw limit before catalog borrowing".into(),
             )),
             Self::Resident(s) => s.set_diagnostics_v2_legacy_raw_instance_limit(n),
+            Self::ResidentInProcess(_) => {
+                Err(tos_validation::item_rules::ItemRefusal::Unsupported(
+                    "worker diagnostics for in-process engine".into(),
+                ))
+            }
         }
     }
     fn diagnostics_v2_cumulative_cost(
@@ -377,16 +404,24 @@ impl CatalogSchemas<'_> {
         match self {
             Self::Candidate(s) => s.cumulative_cost(),
             Self::Resident(s) => s.diagnostics_v2_cumulative_cost(),
+            Self::ResidentInProcess(_) => {
+                Err(tos_validation::item_rules::ItemRefusal::Unsupported(
+                    "worker costs for in-process engine".into(),
+                ))
+            }
         }
     }
-    fn take_schema_diagnostic_rejection(
-        &mut self,
-    ) -> SchemaResult<Option<tos_validation::source_cut::CutSchemaDiagnostic>> {
+    fn take_schema_diagnostic_rejection(&mut self) -> SchemaResult<Option<CutSchemaEvidence>> {
         match self {
             Self::Candidate(_) => Err(tos_validation::item_rules::ItemRefusal::Unsupported(
                 "candidate diagnostic requires its typed identity envelope".into(),
             )),
-            Self::Resident(s) => Ok(s.take_schema_diagnostic_rejection()),
+            Self::Resident(s) => Ok(s
+                .take_schema_diagnostic_rejection()
+                .map(CutSchemaEvidence::Worker)),
+            Self::ResidentInProcess(s) => Ok(s
+                .take_source_diagnostic_rejection()
+                .map(CutSchemaEvidence::InProcess)),
         }
     }
 
@@ -412,10 +447,22 @@ impl CatalogSchemas<'_> {
     }
 }
 impl CutSchemaExecutor for CatalogSchemas<'_> {
+    fn selected_source_revision(&self) -> Option<SourceRevision> {
+        self.source_revision()
+    }
+    fn schema_execution_binding(&self) -> Option<tos_foundation::SchemaExecutionBinding> {
+        self.execution_binding_any().ok()
+    }
+    fn schema_profile(&self) -> Option<FormatProfile> {
+        self.execution_binding_any()
+            .ok()
+            .map(|binding| binding.schema_profile())
+    }
     fn selected_contract_digest(&self, contract: &str) -> Option<Digest256> {
         match self {
             Self::Candidate(s) => s.selected_contract_digest(contract),
             Self::Resident(s) => s.contract_digest(contract),
+            Self::ResidentInProcess(s) => s.selected_contract_digest(contract),
         }
     }
 
@@ -429,10 +476,57 @@ impl CutSchemaExecutor for CatalogSchemas<'_> {
     ) -> std::result::Result<bool, tos_validation::item_rules::ItemRefusal> {
         match self {
             Self::Candidate(s) => s.check(path, raw, contract, deadline, cancelled),
-            // Catalog phases revisit the same immutable registries and rows.
-            // Reuse only an actual matching scalar receipt; the executor still
-            // checks current deadlines, raw/decoded bytes, contract and worker.
+            Self::Resident(s) => s.check(path, raw, contract, deadline, cancelled),
+            Self::ResidentInProcess(s) => s.check(path, raw, contract, deadline, cancelled),
+        }
+    }
+    fn check_reusing_scalar(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SchemaResult<bool> {
+        match self {
+            Self::Candidate(s) => s.check_reusing_scalar(path, raw, contract, deadline, cancelled),
             Self::Resident(s) => s.check_reusing_scalar(path, raw, contract, deadline, cancelled),
+            Self::ResidentInProcess(s) => {
+                s.check_reusing_scalar(path, raw, contract, deadline, cancelled)
+            }
+        }
+    }
+    fn schema_input_cost(
+        &self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        ordinal: u64,
+    ) -> SchemaResult<tos_validation::source_cut::CutSchemaInputCost> {
+        match self {
+            Self::Candidate(s) => s.schema_input_cost(path, raw, contract, ordinal),
+            Self::Resident(s) => s.schema_input_cost(path, raw, contract, ordinal),
+            Self::ResidentInProcess(s) => s.schema_input_cost(path, raw, contract, ordinal),
+        }
+    }
+    fn set_operation_budget(&mut self, budget: BatchStreamBudget) -> SchemaResult<()> {
+        match self {
+            Self::Candidate(s) => s.set_operation_budget(budget),
+            Self::Resident(s) => s.set_operation_budget(budget),
+            Self::ResidentInProcess(s) => s.set_operation_budget(budget),
+        }
+    }
+    fn check_batch(
+        &mut self,
+        checks: &[tos_validation::source_cut::CutSchemaCheck],
+        budget: tos_validation::executor::BatchBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SchemaResult<Vec<bool>> {
+        match self {
+            Self::Candidate(s) => s.check_batch(checks, budget, deadline, cancelled),
+            Self::Resident(s) => s.check_batch(checks, budget, deadline, cancelled),
+            Self::ResidentInProcess(s) => s.check_batch(checks, budget, deadline, cancelled),
         }
     }
     fn set_shared_schema_worker_quota(
@@ -442,6 +536,7 @@ impl CutSchemaExecutor for CatalogSchemas<'_> {
         match self {
             Self::Candidate(s) => s.set_shared_schema_worker_quota(q),
             Self::Resident(s) => s.set_shared_schema_worker_quota(q),
+            Self::ResidentInProcess(s) => s.set_shared_schema_worker_quota(q),
         }
     }
     fn finish(
@@ -452,17 +547,18 @@ impl CutSchemaExecutor for CatalogSchemas<'_> {
         match self {
             Self::Candidate(s) => s.finish(deadline, cancelled),
             Self::Resident(s) => CutSchemaExecutor::finish(s, deadline, cancelled),
+            Self::ResidentInProcess(s) => s.finish(deadline, cancelled),
         }
     }
 }
 
 pub struct SourceCatalogValidator<'a> {
     pub worker: Option<&'a ExactWorkerIdentity>,
-    pub budget: ExecutorBudget,
+    budget: Option<ExecutorBudget>,
     pub cancelled: &'a AtomicBool,
     schemas: RefCell<CatalogSchemas<'a>>,
     worker_pin: Option<ExactWorkerIdentity>,
-    budget_pin: ExecutorBudget,
+    budget_pin: Option<ExecutorBudget>,
     deadline: Instant,
     event_source_revision: Option<Digest256>,
 }
@@ -955,8 +1051,8 @@ impl<'a> SourceCatalogValidator<'a> {
             .schemas
             .try_borrow()
             .map_err(|_| Error::Invalid("catalog executor already in use"))?
-            .execution_binding()?
-            .source_revision;
+            .source_revision()
+            .ok_or(Error::Invalid("catalog candidate has no source revision"))?;
         self.verify_schema_binding(revision)?;
         Ok(revision)
     }
@@ -1045,11 +1141,11 @@ impl<'a> SourceCatalogValidator<'a> {
             .map_err(|error| Error::Source(format!("catalog candidate guard:{error:?}")))?;
         Ok(Self {
             worker: None,
-            budget,
+            budget: Some(budget),
             cancelled,
             schemas: RefCell::new(CatalogSchemas::Candidate(Box::new(borrowed))),
             worker_pin: None,
-            budget_pin: budget,
+            budget_pin: Some(budget),
             deadline,
             event_source_revision: Some(identity.event_source_revision()),
         })
@@ -1083,7 +1179,7 @@ impl<'a> SourceCatalogValidator<'a> {
             .try_borrow_mut()
             .map_err(|_| Error::Invalid("catalog executor already in use"))?;
         let valid = schemas
-            .check(path, raw, schema_path, self.deadline, self.cancelled)
+            .check_reusing_scalar(path, raw, schema_path, self.deadline, self.cancelled)
             .map_err(|refusal| {
                 Error::Io(std::io::Error::new(
                     std::io::ErrorKind::InvalidData,
@@ -1135,7 +1231,7 @@ impl<'a> SourceCatalogValidator<'a> {
             .try_borrow_mut()
             .map_err(|_| Error::Invalid("catalog executor already in use"))?;
         let valid = schemas
-            .check(path, raw, &contract, self.deadline, self.cancelled)
+            .check_reusing_scalar(path, raw, &contract, self.deadline, self.cancelled)
             .map_err(|refusal| {
                 Error::Io(std::io::Error::new(
                     std::io::ErrorKind::InvalidData,
@@ -1184,11 +1280,11 @@ impl<'a> SourceCatalogValidator<'a> {
             .map_err(|e| Error::Source(format!("catalog candidate guard:{e:?}")))?;
         Ok(Self {
             worker: Some(worker),
-            budget,
+            budget: Some(budget),
             cancelled,
             schemas: RefCell::new(CatalogSchemas::Candidate(Box::new(borrowed))),
             worker_pin: Some(worker.clone()),
-            budget_pin: budget,
+            budget_pin: Some(budget),
             deadline,
             event_source_revision,
         })
@@ -1292,14 +1388,49 @@ impl<'a> SourceCatalogValidator<'a> {
             .map_err(|e| Error::Source(format!("catalog schema operation budget:{e:?}")))?;
         Ok(Self {
             worker: Some(worker),
-            budget,
+            budget: Some(budget),
             cancelled,
             schemas: RefCell::new(CatalogSchemas::Resident(schemas)),
             worker_pin: Some(worker.clone()),
-            budget_pin: budget,
+            budget_pin: Some(budget),
             deadline,
             event_source_revision: None,
         })
+    }
+
+    /// Select and prepare the exact source-cut contracts for in-process validation.
+    pub fn from_in_process_cut(
+        cut: &CorpusCutReader,
+        deadline: Instant,
+        cancelled: &'a AtomicBool,
+    ) -> Result<Self> {
+        let schemas = InProcessCutSchemaExecutor::from_cut(
+            cut,
+            FormatProfile::LegacyPythonObserved20260923,
+            tos_validation::in_process::InputMode::SerdeNormalized,
+            deadline,
+            cancelled,
+        )
+        .map_err(|e| Error::Source(format!("catalog exact cut executor:{e:?}")))?;
+        Ok(Self {
+            worker: None,
+            budget: None,
+            cancelled,
+            schemas: RefCell::new(CatalogSchemas::ResidentInProcess(schemas)),
+            worker_pin: None,
+            budget_pin: None,
+            deadline,
+            event_source_revision: None,
+        })
+    }
+
+    pub(crate) fn native_text_deadline(&self) -> Result<Instant> {
+        match self.budget {
+            Some(budget) => Instant::now()
+                .checked_add(budget.execution_wall)
+                .ok_or(Error::Budget("native text deadline arithmetic")),
+            None => Ok(self.deadline),
+        }
     }
 
     /// Prepare the exact same cut closure and worker custody as `from_cut`,
@@ -1373,9 +1504,7 @@ impl<'a> SourceCatalogValidator<'a> {
 
     /// Drain the next complete, bound invalid diagnostics-v2 result observed
     /// through any schema adapter path. Incomplete exchanges are never stored.
-    pub fn take_schema_diagnostic_rejection(
-        &self,
-    ) -> Result<Option<tos_validation::source_cut::CutSchemaDiagnostic>> {
+    pub fn take_schema_diagnostic_rejection(&self) -> Result<Option<CutSchemaEvidence>> {
         self.guard()?;
         self.schemas
             .try_borrow_mut()
@@ -1468,7 +1597,7 @@ impl<'a> SourceCatalogValidator<'a> {
             .try_borrow_mut()
             .map_err(|_| Error::Invalid("catalog executor already in use"))?;
         let valid = schemas
-            .check(path, raw, contract, self.deadline, self.cancelled)
+            .check_reusing_scalar(path, raw, contract, self.deadline, self.cancelled)
             .map_err(|refusal| {
                 Error::Io(std::io::Error::new(
                     std::io::ErrorKind::InvalidData,
@@ -1492,7 +1621,7 @@ impl<'a> SourceCatalogValidator<'a> {
                 .schemas
                 .try_borrow()
                 .map_err(|_| Error::Invalid("catalog executor already in use"))?
-                .as_candidate_binding()?
+                .execution_binding_any()?
             {
                 tos_foundation::SchemaExecutionBinding::InProcessV1(binding) => Some(binding),
                 _ => return Err(Error::Invalid("catalog in-process binding absent")),
@@ -1511,10 +1640,16 @@ impl<'a> SourceCatalogValidator<'a> {
                 .worker_pin
                 .as_ref()
                 .map(|worker| (&worker.absolute_path, worker.sha256))
-            || self.budget.execution_wall != self.budget_pin.execution_wall
-            || self.budget.cleanup_grace != self.budget_pin.cleanup_grace
-            || self.budget.cpu_seconds != self.budget_pin.cpu_seconds
-            || self.budget.address_space_bytes != self.budget_pin.address_space_bytes
+            || match (self.budget, self.budget_pin) {
+                (None, None) => false,
+                (Some(a), Some(b)) => {
+                    a.execution_wall != b.execution_wall
+                        || a.cleanup_grace != b.cleanup_grace
+                        || a.cpu_seconds != b.cpu_seconds
+                        || a.address_space_bytes != b.address_space_bytes
+                }
+                _ => true,
+            }
         {
             return Err(Error::Invalid("catalog prepared worker/budget pin changed"));
         }
@@ -1524,24 +1659,11 @@ impl<'a> SourceCatalogValidator<'a> {
     pub(crate) fn schemas(
         &self,
         revision: SourceRevision,
-    ) -> Result<RefMut<'_, CutWorkerSchemaExecutor>> {
-        self.guard()?;
-        let schemas = self
-            .schemas
+    ) -> Result<RefMut<'_, CatalogSchemas<'a>>> {
+        self.verify_schema_binding(revision)?;
+        self.schemas
             .try_borrow_mut()
-            .map_err(|_| Error::Invalid("catalog executor already in use"))?;
-        let binding = schemas.execution_binding()?;
-        if binding.source_revision != revision
-            || Some(binding.worker_sha256) != self.worker_pin.as_ref().map(|pin| pin.sha256)
-            || binding.schema_profile != FormatProfile::LegacyPythonObserved20260923
-        {
-            return Err(Error::Invalid("catalog exact cut execution binding"));
-        }
-        RefMut::filter_map(schemas, |s| match s {
-            CatalogSchemas::Resident(s) => Some(s),
-            CatalogSchemas::Candidate(_) => None,
-        })
-        .map_err(|_| Error::Invalid("catalog candidate requires typed schema access"))
+            .map_err(|_| Error::Invalid("catalog executor already in use"))
     }
 
     pub(crate) fn verify_schema_binding(&self, revision: SourceRevision) -> Result<()> {
@@ -1550,10 +1672,19 @@ impl<'a> SourceCatalogValidator<'a> {
             .schemas
             .try_borrow()
             .map_err(|_| Error::Invalid("catalog executor already in use"))?;
-        let binding = schemas.execution_binding()?;
-        if binding.source_revision != revision
-            || Some(binding.worker_sha256) != self.worker_pin.as_ref().map(|pin| pin.sha256)
-            || binding.schema_profile != FormatProfile::LegacyPythonObserved20260923
+        let binding = schemas.execution_binding_any()?;
+        if schemas.source_revision() != Some(revision)
+            || binding.schema_profile() != FormatProfile::LegacyPythonObserved20260923
+            || match binding {
+                tos_foundation::SchemaExecutionBinding::Worker(worker) => {
+                    Some(worker.worker_sha256) != self.worker_pin.as_ref().map(|pin| pin.sha256)
+                }
+                tos_foundation::SchemaExecutionBinding::InProcessV1(engine) => {
+                    self.worker_pin.is_some()
+                        || engine.engine != tos_validation::in_process::ENGINE_ID
+                        || engine.input_mode_sha256.is_none()
+                }
+            }
         {
             return Err(Error::Invalid("catalog exact cut execution binding"));
         }
@@ -1604,13 +1735,7 @@ impl<'a> SourceCatalogValidator<'a> {
             .schemas
             .try_borrow()
             .map_err(|_| Error::Invalid("catalog executor already in use"))?;
-        let schema_set = match &*schemas {
-            CatalogSchemas::Candidate(s) => s
-                .prepared_binding()
-                .map_err(|e| Error::Source(format!("catalog candidate binding:{e:?}")))?
-                .schema_set_sha256(),
-            _ => schemas.execution_binding()?.schema_set_sha256,
-        };
+        let schema_set = schemas.execution_binding_any()?.schema_set_sha256();
         if resources.schema_set_digest() != schema_set {
             return Err(Error::Invalid("catalog stage/cut schema closure differs"));
         }
@@ -1644,7 +1769,7 @@ impl<'a> SourceCatalogValidator<'a> {
             .try_borrow_mut()
             .map_err(|_| Error::Invalid("catalog executor already in use"))?;
         let valid = schemas
-            .check(path, raw, &contract, self.deadline, self.cancelled)
+            .check_reusing_scalar(path, raw, &contract, self.deadline, self.cancelled)
             .map_err(|refusal| {
                 Error::Io(std::io::Error::new(
                     std::io::ErrorKind::InvalidData,
@@ -2898,20 +3023,13 @@ pub(crate) fn prepare_catalog_receipt_observed_with_selections<B: CatalogInputBi
             input_binding: selected_binding,
             worker_sha256: validator.worker.map(|worker| worker.sha256.to_hex()),
             in_process_schema: if validator.worker.is_none() {
-                match &*validator
+                match validator
                     .schemas
                     .try_borrow()
                     .map_err(|_| Error::Invalid("catalog executor already in use"))?
+                    .execution_binding_any()?
                 {
-                    CatalogSchemas::Candidate(candidate) => match candidate
-                        .prepared_binding()
-                        .map_err(|_| Error::Invalid("catalog candidate binding"))?
-                    {
-                        tos_foundation::SchemaExecutionBinding::InProcessV1(binding) => {
-                            Some(binding)
-                        }
-                        _ => return Err(Error::Invalid("catalog in-process binding absent")),
-                    },
+                    tos_foundation::SchemaExecutionBinding::InProcessV1(binding) => Some(binding),
                     _ => return Err(Error::Invalid("catalog in-process binding absent")),
                 }
             } else {

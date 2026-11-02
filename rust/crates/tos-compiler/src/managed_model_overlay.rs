@@ -889,7 +889,12 @@ pub fn prepare_managed_overlay_initial_agent_v2(
     )?;
     let materialized = {
         let mut schemas = validator.schemas(schema_revision)?;
-        if schemas.execution_binding().schema_set_sha256.to_hex() != previous.schema_set_sha256 {
+        if schemas
+            .execution_binding_any()?
+            .schema_set_sha256()
+            .to_hex()
+            != previous.schema_set_sha256
+        {
             return Err(Error::Invalid("overlay Agent exact schema closure"));
         }
         // V2 gives each member its actual contributing schema profile. The
@@ -921,7 +926,7 @@ pub fn prepare_managed_overlay_initial_agent_v2(
                 let digest = digest
                     .as_str()
                     .and_then(|value| Digest256::from_hex(value).ok());
-                if digest.is_none() || schemas.contract_digest(path) != digest {
+                if digest.is_none() || schemas.selected_contract_digest(path) != digest {
                     return Err(Error::ManagedSourceUnsupported(
                         "overlay changed source profile contribution; FullOnly required",
                     ));

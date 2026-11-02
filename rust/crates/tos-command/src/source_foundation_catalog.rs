@@ -1618,7 +1618,7 @@ fn compare_kernel<'candidate>(
         || {
             validator
                 .take_schema_diagnostic_rejection()
-                .map(|row| row.map(Into::into))
+                .map(|row| row.filter(|report| report.is_invalid()))
         },
         &std::cell::Cell::new(0),
     )
