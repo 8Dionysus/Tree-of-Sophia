@@ -246,8 +246,7 @@ impl<I: Copy + Eq> BorrowedCandidateSchemas<'_, I> {
             return Err(tos_validation::item_rules::ItemRefusal::Deadline);
         }
         if self.schemas.input_identity() != &self.identity
-            || SourceFoundationCandidateSchemaBinding::<I>::prepared_execution_binding(self.schemas)
-                != self.prepared
+            || self.schemas.prepared_execution_binding() != Some(self.prepared)
             || self.schemas.profile() != self.prepared.schema_profile
             || self.schemas.schema_set_digest() != self.prepared.schema_set_sha256
             || self.schemas.contract_selection_digest() != self.contract_selection
@@ -1086,8 +1085,9 @@ impl<'a> SourceCatalogValidator<'a> {
         schemas: &'a mut dyn SourceFoundationCandidateSchemaBinding<I>,
         event_source_revision: Option<Digest256>,
     ) -> Result<Self> {
-        let prepared =
-            SourceFoundationCandidateSchemaBinding::<I>::prepared_execution_binding(schemas);
+        let prepared = schemas
+            .prepared_execution_binding()
+            .ok_or(Error::Invalid("catalog candidate prepared binding"))?;
         if schemas.input_identity() != identity
             || prepared.worker_sha256 != worker.sha256
             || prepared.schema_profile != FormatProfile::LegacyPythonObserved20260923

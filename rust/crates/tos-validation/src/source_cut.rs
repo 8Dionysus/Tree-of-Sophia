@@ -1624,10 +1624,6 @@ impl<I: Copy + Eq> crate::source_foundation_records::SourceFoundationCandidateSc
         CandidateCutWorkerSchemaExecutor::input_identity(self)
     }
 
-    fn prepared_execution_binding(&self) -> CutPreparedSchemaExecutionBinding {
-        CandidateCutWorkerSchemaExecutor::prepared_execution_binding(self)
-    }
-
     fn profile(&self) -> FormatProfile {
         CandidateCutWorkerSchemaExecutor::profile(self)
     }

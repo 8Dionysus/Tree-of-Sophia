@@ -3450,7 +3450,7 @@ fn validate_candidate_claim_core<I: Copy + Eq>(
         || candidate_schema.profile() != worker.profile()
         || candidate_schema.schema_set_digest() != worker.schema_set_digest()
         || candidate_schema.contract_selection_digest() != worker.contract_selection_digest()
-        || candidate_schema.prepared_execution_binding() != prepared
+        || candidate_schema.prepared_execution_binding() != Some(prepared)
         || candidate_schema.selected_resource_count() != worker.source_resource_count() as u64
         || candidate_schema.selected_resource_bytes() != worker.schema_bytes() as u64
     {

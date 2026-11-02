@@ -1182,7 +1182,7 @@ impl<'candidate> IndexSink<'candidate> {
         let schema = report
             .candidate_schema_identity()
             .ok_or_else(|| invalid("candidate Records report omitted prepared schema identity"))?;
-        if schema.prepared_execution_binding() != expected_schema
+        if schema.prepared_execution_binding() != Some(expected_schema)
             || schema.profile() != expected_schema.schema_profile
             || schema.schema_set_digest() != expected_schema.schema_set_sha256
         {

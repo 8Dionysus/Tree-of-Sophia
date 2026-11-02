@@ -1589,11 +1589,11 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
     if input.input_identity() != records.input_identity()
         || input.input_identity() != schemas.input_identity()
         || records.source_membership() != &coverage.membership()
-        || schema_identity.prepared_execution_binding() != prepared
+        || schema_identity.prepared_execution_binding() != Some(prepared)
         || schema_identity.profile() != schemas.profile()
         || schema_identity.schema_set_digest() != schemas.schema_set_digest()
         || schema_identity.contract_selection_digest() != schemas.contract_selection_digest()
-        || schema_identity.worker_digest() != prepared.worker_sha256
+        || schema_identity.worker_digest() != Some(prepared.worker_sha256)
     {
         return Err(ItemRefusal::Source(
             "Biblio candidate input, Records report, and prepared schema binding differ".into(),

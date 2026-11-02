@@ -1241,7 +1241,7 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
         || records.input_identity() != &input_identity
         || records.source_membership() != &owner_report.source_membership
         || records.candidate_schema_identity().is_none_or(|identity| {
-            identity.prepared_execution_binding() != worker_binding
+            identity.prepared_execution_binding() != Some(worker_binding)
                 || identity.contract_selection_digest() != schema_worker.contract_selection_digest()
         })
         || schema_worker.input_identity() != &input_identity

@@ -515,7 +515,8 @@ pub fn verify_native_compound_from_input<I: Copy + Eq>(
     if candidate_schema.profile() != schemas.profile()
         || candidate_schema.schema_set_digest() != schemas.schema_set_digest()
         || candidate_schema.contract_selection_digest() != schemas.contract_selection_digest()
-        || candidate_schema.prepared_execution_binding() != schemas.prepared_execution_binding()
+        || candidate_schema.prepared_execution_binding()
+            != Some(schemas.prepared_execution_binding())
         || candidate_schema.selected_resource_count()
             != u64::try_from(schemas.source_resource_count()).map_err(|_| ItemRefusal::Budget)?
         || candidate_schema.selected_resource_bytes()

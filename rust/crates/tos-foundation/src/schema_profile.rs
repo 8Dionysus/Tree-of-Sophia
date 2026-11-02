@@ -52,3 +52,19 @@ pub enum SchemaExecutionBinding {
     Worker(CutPreparedSchemaExecutionBinding),
     InProcessV1(InProcessSchemaExecutionBinding),
 }
+
+impl SchemaExecutionBinding {
+    pub fn schema_profile(self) -> FormatProfile {
+        match self {
+            Self::Worker(binding) => binding.schema_profile,
+            Self::InProcessV1(binding) => binding.schema_profile,
+        }
+    }
+
+    pub fn schema_set_sha256(self) -> Digest256 {
+        match self {
+            Self::Worker(binding) => binding.schema_set_sha256,
+            Self::InProcessV1(binding) => binding.schema_set_sha256,
+        }
+    }
+}

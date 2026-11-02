@@ -18,7 +18,7 @@ use serde_json::Value;
 use std::num::NonZeroUsize;
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
-use tos_foundation::Digest256;
+use tos_foundation::{Digest256, SchemaExecutionBinding};
 use tos_source_store::SourceMembershipV1;
 
 pub const NATIVE_ARTIFACT_RECORD_SCHEMA_URI: &str =
@@ -1612,10 +1612,10 @@ pub struct SourceFoundationRecordsStreamedItemSummary {
 /// Prepared, selected Item schema identity used by the candidate receiver.
 /// The ordered resource set itself remains owned by the candidate adapter;
 /// this projection carries its exact set and selection digests after each
-/// selected path, size, digest, and worker check has been verified.
+/// selected path, size, digest, and execution binding has been verified.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SourceFoundationCandidateSchemaIdentity {
-    prepared_execution: CutPreparedSchemaExecutionBinding,
+    prepared_execution: SchemaExecutionBinding,
     contract_selection_digest: Digest256,
     selected_resource_count: u64,
     selected_resource_bytes: u64,
@@ -1623,7 +1623,7 @@ pub struct SourceFoundationCandidateSchemaIdentity {
 
 impl SourceFoundationCandidateSchemaIdentity {
     pub(super) fn new(
-        prepared_execution: CutPreparedSchemaExecutionBinding,
+        prepared_execution: SchemaExecutionBinding,
         contract_selection_digest: Digest256,
         selected_resource_count: u64,
         selected_resource_bytes: u64,
@@ -1637,18 +1637,26 @@ impl SourceFoundationCandidateSchemaIdentity {
     }
 
     pub fn profile(&self) -> crate::FormatProfile {
-        self.prepared_execution.schema_profile
+        self.prepared_execution.schema_profile()
     }
 
     pub fn schema_set_digest(&self) -> Digest256 {
-        self.prepared_execution.schema_set_sha256
+        self.prepared_execution.schema_set_sha256()
     }
 
-    pub fn worker_digest(&self) -> Digest256 {
-        self.prepared_execution.worker_sha256
+    pub fn worker_digest(&self) -> Option<Digest256> {
+        self.prepared_execution_binding()
+            .map(|binding| binding.worker_sha256)
     }
 
-    pub fn prepared_execution_binding(&self) -> CutPreparedSchemaExecutionBinding {
+    pub fn prepared_execution_binding(&self) -> Option<CutPreparedSchemaExecutionBinding> {
+        match self.prepared_execution {
+            SchemaExecutionBinding::Worker(binding) => Some(binding),
+            SchemaExecutionBinding::InProcessV1(_) => None,
+        }
+    }
+
+    pub fn schema_execution_binding(&self) -> SchemaExecutionBinding {
         self.prepared_execution
     }
 
@@ -1662,6 +1670,28 @@ impl SourceFoundationCandidateSchemaIdentity {
 
     pub fn selected_resource_bytes(&self) -> u64 {
         self.selected_resource_bytes
+    }
+}
+
+#[cfg(test)]
+mod candidate_schema_identity_tests {
+    use super::*;
+    use tos_foundation::{FormatProfile, InProcessSchemaExecutionBinding};
+
+    #[test]
+    fn in_process_identity_preserves_schema_binding_without_worker_digest() {
+        let digest = Digest256::of_bytes(b"selected schemas");
+        let binding = SchemaExecutionBinding::InProcessV1(InProcessSchemaExecutionBinding {
+            schema_profile: FormatProfile::AssertedSourceCandidateV1,
+            schema_set_sha256: digest,
+            engine: crate::in_process::ENGINE_ID,
+        });
+        let identity = SourceFoundationCandidateSchemaIdentity::new(binding, digest, 1, 42);
+        assert_eq!(identity.schema_execution_binding(), binding);
+        assert_eq!(identity.profile(), FormatProfile::AssertedSourceCandidateV1);
+        assert_eq!(identity.schema_set_digest(), digest);
+        assert_eq!(identity.prepared_execution_binding(), None);
+        assert_eq!(identity.worker_digest(), None);
     }
 }
 

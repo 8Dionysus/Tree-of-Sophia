@@ -540,7 +540,8 @@ pub(crate) fn prepare_candidate_artifact_replay<'provider, 'store, 'worker, I: C
             || schema_identity.profile() != worker.profile()
             || schema_identity.schema_set_digest() != worker.schema_set_digest()
             || schema_identity.contract_selection_digest() != worker.contract_selection_digest()
-            || schema_identity.prepared_execution_binding() != worker.prepared_execution_binding()
+            || schema_identity.prepared_execution_binding()
+                != Some(worker.prepared_execution_binding())
         {
             return Err(failure(
                 ArtifactReplayFailureClass::Source,

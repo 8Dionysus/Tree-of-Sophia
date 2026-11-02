@@ -4750,7 +4750,7 @@ pub(crate) fn replay_artifact_corrections_from_candidate<I: Copy + Eq>(
         || schema.profile() != worker.profile()
         || schema.schema_set_digest() != worker.schema_set_digest()
         || schema.contract_selection_digest() != worker.contract_selection_digest()
-        || schema.prepared_execution_binding() != worker.prepared_execution_binding()
+        || schema.prepared_execution_binding() != Some(worker.prepared_execution_binding())
     {
         return Err(SourceCommandError::Conflict(
             "candidate Artifact replay input, Records, history, or schema bindings differ",

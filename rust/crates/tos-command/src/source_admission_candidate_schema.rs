@@ -366,6 +366,10 @@ impl<'a, 'input, 'host> CandidateSchemaBinding<'a, 'input, 'host> {
     }
 }
 impl CutSchemaExecutor for CandidateSchemaBinding<'_, '_, '_> {
+    fn prepared_execution_binding(&self) -> Option<CutPreparedSchemaExecutionBinding> {
+        Some(self.prepared)
+    }
+
     fn check(
         &mut self,
         path: &str,
@@ -449,9 +453,6 @@ impl SourceFoundationCandidateSchemaBinding<CandidateFence> for CandidateSchemaB
     }
     fn input_identity(&self) -> &CandidateFence {
         self.input.input_identity()
-    }
-    fn prepared_execution_binding(&self) -> CutPreparedSchemaExecutionBinding {
-        self.prepared
     }
     fn profile(&self) -> FormatProfile {
         self.prepared.schema_profile

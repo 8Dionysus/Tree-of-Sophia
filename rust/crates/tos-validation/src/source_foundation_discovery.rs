@@ -5476,7 +5476,8 @@ impl<'report, 'store, I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'report
                 let exact_schema_set = diagnostic.verdict.format_profile
                     == schema_identity.profile()
                     && diagnostic.verdict.schema_set_digest == schema_identity.schema_set_digest()
-                    && diagnostic.verdict.worker_binary_digest == schema_identity.worker_digest();
+                    && Some(diagnostic.verdict.worker_binary_digest)
+                        == schema_identity.worker_digest();
                 let complete_invalid = exact_schema_set
                     && complete_invalid_artifact_schema_diagnostic(
                         diagnostic,

@@ -12,8 +12,8 @@ use crate::record_biblio_cut::{
     inspect_records_from_cut, inspect_records_from_input_stored,
 };
 use crate::source_cut::{
-    CandidateCutSchemaDiagnostic, CutPayloadReader, CutPreparedSchemaExecutionBinding,
-    CutSchemaDiagnosticsCumulativeCost, CutSchemaExecutor, CutWorkerSchemaExecutor,
+    CandidateCutSchemaDiagnostic, CutPayloadReader, CutSchemaDiagnosticsCumulativeCost,
+    CutSchemaExecutor, CutWorkerSchemaExecutor,
 };
 use crate::source_foundation_discovery::SourcePhysicalFacts;
 use crate::source_witness_foundation::SourceFileMembershipIndex;
@@ -63,7 +63,6 @@ pub struct SourceFoundationCandidateSchemaResource<'a> {
 /// and covers the complete selected closure.
 pub trait SourceFoundationCandidateSchemaBinding<I: Eq + Clone>: CutSchemaExecutor {
     fn input_identity(&self) -> &I;
-    fn prepared_execution_binding(&self) -> CutPreparedSchemaExecutionBinding;
     fn profile(&self) -> crate::FormatProfile;
     fn schema_set_digest(&self) -> Digest256;
     fn contract_selection_digest(&self) -> Digest256;
@@ -5143,15 +5142,17 @@ pub fn inspect_source_foundation_records_from_input_stored<'a, I: Eq + Clone>(
             "candidate Item schema binding has another source input identity".into(),
         ));
     }
-    let prepared = <_ as SourceFoundationCandidateSchemaBinding<I>>::prepared_execution_binding(
-        schema_binding,
-    );
-    if prepared.schema_profile != schema_binding.profile()
-        || prepared.schema_set_sha256 != schema_binding.schema_set_digest()
-        || prepared.schema_profile != record_executor.profile
+    let prepared = schema_binding.schema_execution_binding().ok_or_else(|| {
+        ItemRefusal::Source("candidate Item schema execution binding unavailable".into())
+    })?;
+    if prepared.schema_profile() != schema_binding.profile()
+        || prepared.schema_set_sha256() != schema_binding.schema_set_digest()
+        || prepared.schema_profile() != record_executor.profile
+        || matches!(prepared, tos_foundation::SchemaExecutionBinding::InProcessV1(binding)
+            if binding.engine != crate::in_process::ENGINE_ID)
     {
         return Err(ItemRefusal::Source(
-            "candidate Item schema worker binding differs from the prepared profile or set".into(),
+            "candidate Item schema binding differs from the prepared profile or set".into(),
         ));
     }
 
