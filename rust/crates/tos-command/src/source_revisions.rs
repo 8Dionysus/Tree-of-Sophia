@@ -4946,7 +4946,7 @@ pub(crate) fn prepare_record_revision_inner(
 pub(crate) fn prepare_pg_record_revision_inner(
     ctx: &PgRecordRevisionCommandContext,
     cut: Option<&CorpusCutReader>,
-    worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    worker: &mut impl RecordSchemaWorker<Identity = PgRecordRevisionIdentity>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCommand> {

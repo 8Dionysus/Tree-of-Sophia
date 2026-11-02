@@ -15,7 +15,7 @@ use tos_source_store::{
 use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget, VerifiedWorkerImageHandle};
 use tos_validation::source_cut::{
     CandidateCutWorkerSchemaExecutor, CutSchemaDiagnosticsLimits, CutSchemaExecutor,
-    CutWorkerLimits, CutWorkerSchemaExecutor,
+    CutWorkerLimits, CutWorkerSchemaExecutor, InProcessCandidateSchemaExecutor,
 };
 use tos_validation::{FormatProfile, SchemaResource};
 
@@ -978,7 +978,7 @@ pub(crate) fn prepare_pg_record_revision(
 }
 
 pub(crate) fn prepare_pg_record_revision_with_work(
-    invocation: &Value,
+    _invocation: &Value,
     context: cmd::CommandContext,
     identity: crate::source_revisions::PgRecordRevisionIdentity,
     work_revision: Option<crate::source_pg_work_revision::Observation>,
@@ -1025,8 +1025,7 @@ pub(crate) fn prepare_pg_record_revision_with_work(
             "PG selected record read observation differs from owner",
         ));
     }
-    let mut worker = selected_candidate_schema_from_context(
-        invocation,
+    let mut worker = selected_in_process_candidate_schema_from_context(
         &context.files,
         identity,
         deadline,
@@ -1073,6 +1072,51 @@ pub(crate) fn prepare_pg_record_revision_with_work(
     }
 }
 
+fn selected_revision_schema_resources(
+    files: &[cmd::SourceFile],
+) -> SourceCommandResult<Vec<(String, SchemaResource)>> {
+    let mut resources = Vec::new();
+    for file in files.iter().filter(|file| {
+        file.path.as_str().starts_with("ToS/contracts/")
+            && file.path.as_str().ends_with(".schema.json")
+    }) {
+        if resources.len() >= 128 || file.raw.len() > 4 * 1024 * 1024 {
+            return Err(SourceCommandError::Invalid(
+                "record revision selected schema budget",
+            ));
+        }
+        let parsed = cmd::parse(&file.raw)?;
+        let uri = cmd::text(&parsed, "$id")?.to_owned();
+        resources.push((
+            file.path.as_str().to_owned(),
+            SchemaResource {
+                uri,
+                raw: file.raw.clone(),
+            },
+        ));
+    }
+    Ok(resources)
+}
+
+fn selected_in_process_candidate_schema_from_context(
+    files: &[cmd::SourceFile],
+    identity: crate::source_revisions::PgRecordRevisionIdentity,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<
+    InProcessCandidateSchemaExecutor<crate::source_revisions::PgRecordRevisionIdentity>,
+> {
+    InProcessCandidateSchemaExecutor::from_selected_source_resources(
+        identity,
+        selected_revision_schema_resources(files)?,
+        FormatProfile::LegacyPythonObserved20260923,
+        tos_validation::in_process::InputMode::LegacyPythonObserved,
+        deadline,
+        cancelled,
+    )
+    .map_err(|_| SourceCommandError::Denied("native candidate schema executor"))
+}
+
 pub(crate) fn selected_candidate_schema_from_context(
     invocation: &Value,
     files: &[cmd::SourceFile],
@@ -1103,26 +1147,7 @@ pub(crate) fn selected_candidate_schema_from_context(
         max_receipt_bytes: usize::try_from(capped(budgets, "max_schema_receipt_bytes", 262_144)?)
             .map_err(|_| SourceCommandError::Invalid("schema receipt budget"))?,
     };
-    let mut resources = Vec::new();
-    for file in files.iter().filter(|file| {
-        file.path.as_str().starts_with("ToS/contracts/")
-            && file.path.as_str().ends_with(".schema.json")
-    }) {
-        if resources.len() >= 128 || file.raw.len() > 4 * 1024 * 1024 {
-            return Err(SourceCommandError::Invalid(
-                "record revision selected schema budget",
-            ));
-        }
-        let parsed = cmd::parse(&file.raw)?;
-        let uri = cmd::text(&parsed, "$id")?.to_owned();
-        resources.push((
-            file.path.as_str().to_owned(),
-            SchemaResource {
-                uri,
-                raw: file.raw.clone(),
-            },
-        ));
-    }
+    let resources = selected_revision_schema_resources(files)?;
     let mut executor = CandidateCutWorkerSchemaExecutor::from_selected_source_resources(
         identity,
         resources,
@@ -1388,5 +1413,64 @@ pub(super) fn run(
             let _ = worker.finish(deadline, cancelled);
             Err(error)
         }
+    }
+}
+
+#[cfg(test)]
+mod in_process_revision_schema_tests {
+    use super::*;
+    use std::time::Duration;
+    use tos_validation::executor::schema_diagnostics::{Caps, Status};
+    use tos_validation::in_process::InputMode;
+    use tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding;
+
+    #[test]
+    fn selected_pg_revision_keeps_legacy_schema_input_semantics() {
+        let digest = Digest256::of_bytes(b"revision-identity");
+        let identity = crate::source_revisions::PgRecordRevisionIdentity {
+            domain_digest: digest,
+            store_id: [8; 16],
+            bootstrap_revision: SourceRevision(digest),
+            bootstrap_membership: tos_source_store::SourceMembershipV1 { count: 1, digest },
+            cohort_digest: digest,
+            cohort_epoch: 1,
+            cohort_definition: digest,
+            cohort_generation: 2,
+            job_id_digest: digest,
+            job_fence: 3,
+            epoch: 4,
+            source_generation: 5,
+            head_seq: 6,
+            audit_generation: 7,
+            rights_version: 8,
+            rule_version: 9,
+            contract: digest,
+        };
+        let path = "ToS/contracts/revision-test.schema.json";
+        let raw = br#"{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://example.test/revision","type":"number"}"#.to_vec();
+        let files = vec![cmd::SourceFile {
+            path: tos_foundation::RelativePath::parse(path).unwrap(),
+            raw,
+        }];
+        let cancelled = AtomicBool::new(false);
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let mut schemas = selected_in_process_candidate_schema_from_context(
+            &files, identity, deadline, &cancelled,
+        )
+        .unwrap();
+        assert_eq!(*schemas.input_identity(), identity);
+        let report = schemas
+            .diagnostic_for(
+                "record.json",
+                path,
+                b"NaN",
+                Caps::CURRENT,
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        assert_eq!(report.report.input_mode, InputMode::LegacyPythonObserved);
+        assert_eq!(report.report.status, Status::Valid);
+        assert_eq!(report.report.input_sha256, Digest256::of_bytes(b"NaN"));
     }
 }
