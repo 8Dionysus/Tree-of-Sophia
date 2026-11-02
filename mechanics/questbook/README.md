@@ -57,7 +57,7 @@ homes. A philosophical ambition needs a bounded architectural seam for a quest.
 
 Useful anchors are `CHARTER.md`, `BOUNDARIES.md`,
 `ToS/doctrine/KNOWLEDGE_MODEL.md`, `ToS/doctrine/NODE_CONTRACT.md`,
-`mechanics/distillation/parts/source-compost/docs/CONTEXT_COMPOST.md`,
+`mechanics/distillation/README.md`,
 `ToS/doctrine/COUNTERPART_POLICY.md`, `ToS/doctrine/IDENTIFIER_DISCIPLINE.md`
 and node templates under `docs/*_NODE_TEMPLATE.md`. Identifier, boundary,
 growth-law, source-intake, compatibility and derived-export obligations can
