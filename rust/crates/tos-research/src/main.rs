@@ -18,6 +18,9 @@ mod navigation_xml;
 #[allow(dead_code)]
 mod numbered_matching;
 mod numbered_structure;
+// The numbered builder adopts this reader when PDF stages move here.
+#[allow(dead_code)]
+mod pdf_navigation;
 mod provenance_event_lab_command;
 mod research_builders_command;
 mod source_text_foundation_command;

@@ -162,6 +162,130 @@ pub fn abbyy_candidates(
     Ok(out)
 }
 
+fn pdf_page_candidates(
+    ctx: &Execution,
+    recipe: &Value,
+    page: usize,
+    value: &Value,
+    out: &mut Vec<Candidate>,
+) -> Result<(), String> {
+    let profile = &recipe["candidate_profile"];
+    let minimum_x = float(&profile["minimum_x"], "minimum x")?;
+    let maximum_x = float(&profile["maximum_x"], "maximum x")?;
+    let minimum_y = float(&profile["minimum_y"], "minimum y")?;
+    let maximum_y = float(&profile["maximum_y"], "maximum y")?;
+    if minimum_x > maximum_x || minimum_y > maximum_y {
+        return Err("invalid PDF candidate bounds".into());
+    }
+    let minimum_characters = usize::try_from(unsigned(
+        &profile["minimum_characters"],
+        "minimum characters",
+    )?)
+    .map_err(|_| "minimum characters overflow")?;
+    let maximum_characters = usize::try_from(unsigned(
+        &profile["maximum_characters"],
+        "maximum characters",
+    )?)
+    .map_err(|_| "maximum characters overflow")?;
+    let required_words =
+        usize::try_from(unsigned(&profile["required_word_count"], "required words")?)
+            .map_err(|_| "required words overflow")?;
+    if minimum_characters > maximum_characters || required_words == 0 {
+        return Err("invalid PDF text bounds".into());
+    }
+    let mut lines = array(&value["lines"], "PDF lines")?
+        .iter()
+        .collect::<Vec<_>>();
+    lines.sort_by_key(|line| line["source_order"].as_u64());
+    for line in lines {
+        ctx.tick(1)?;
+        let words = array(&line["words"], "PDF words")?;
+        let x = line["x_min"]
+            .as_f64()
+            .filter(|n| n.is_finite())
+            .ok_or("PDF x coordinate invalid")?;
+        let y = line["y_min"]
+            .as_f64()
+            .filter(|n| n.is_finite())
+            .ok_or("PDF y coordinate invalid")?;
+        if words.len() != required_words
+            || !(minimum_x..=maximum_x).contains(&x)
+            || !(minimum_y..=maximum_y).contains(&y)
+        {
+            continue;
+        }
+        let raw = string(&words[0], "PDF token")?;
+        let stripped = if profile["trim_surrounding_periods"]
+            .as_bool()
+            .ok_or("period rule required")?
+        {
+            raw.trim().trim_matches('.').trim()
+        } else {
+            raw.trim()
+        };
+        if !(minimum_characters..=maximum_characters).contains(&stripped.chars().count()) {
+            continue;
+        }
+        if let Some(token) = normalize_target(recipe, raw)? {
+            out.push(Candidate {
+                page: page as u64,
+                token,
+                raw: raw.to_owned(),
+            });
+            if out.len() > EXISTING_CANDIDATE_LIMIT {
+                return Err("PDF candidate count bound".into());
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Extract selected PDF navigation candidates through the held Poppler executable.
+pub fn pdf_candidates(
+    ctx: &Execution,
+    recipe: &Value,
+    pdf: &std::fs::File,
+) -> Result<Vec<Candidate>, String> {
+    let profile = &recipe["candidate_profile"];
+    if profile["kind"] != "pdf-bbox" || profile["alignment"] != "monotonic-first-match" {
+        return Err("PDF navigation profile required".into());
+    }
+    let first = usize::try_from(unsigned(&profile["first_page"], "first page")?)
+        .map_err(|_| "first page overflow")?;
+    let last = usize::try_from(unsigned(&profile["last_page"], "last page")?)
+        .map_err(|_| "last page overflow")?;
+    let total = usize::try_from(unsigned(
+        &profile["source_page_count"],
+        "source page count",
+    )?)
+    .map_err(|_| "source page count overflow")?;
+    let batch = usize::try_from(unsigned(&profile["page_batch_size"], "page batch size")?)
+        .map_err(|_| "page batch overflow")?;
+    if first == 0 || first > last || last > total || batch == 0 || batch > 8 {
+        return Err("invalid PDF page range or batch".into());
+    }
+    let mut tools = array(&recipe["tools"], "extraction tools")?
+        .iter()
+        .filter(|tool| tool["name"] == "pdftotext");
+    let version = tools
+        .next()
+        .and_then(|tool| tool["version"].as_str())
+        .ok_or("Poppler version required")?;
+    if tools.next().is_some() {
+        return Err("duplicate Poppler selection".into());
+    }
+    let mut poppler = crate::pdf_navigation::Poppler::open(ctx, version)?;
+    let mut out = Vec::new();
+    for start in (first..=last).step_by(batch) {
+        let end = start.saturating_add(batch - 1).min(last);
+        for (page, value) in poppler.pages(ctx, pdf, start, end)? {
+            pdf_page_candidates(ctx, recipe, page, &value, &mut out)?;
+        }
+    }
+    poppler.verify()?;
+    Ok(out)
+}
+
 fn distance(expected: &str, observed: &str, substitutions: &[(char, String)], cost: f64) -> f64 {
     let observed = observed.chars().collect::<Vec<_>>();
     let mut previous = (0..=observed.len()).map(|n| n as f64).collect::<Vec<_>>();
@@ -492,6 +616,20 @@ mod tests {
                 &compress(&xml.replace("FineReader6-schema-v1.xml", "wrong"))
             )
             .is_err()
+        );
+    }
+    #[test]
+    fn pdf_candidate_selection_observes_geometry_word_count_and_ocr_rules() {
+        let ctx = Execution::new(&std::env::current_dir().unwrap(), 30).unwrap();
+        let recipe = json!({"unit_sequence":{"repeat_suffix":"a"},"candidate_profile":{"kind":"pdf-bbox","trim_surrounding_periods":true,"allow_leading_zero":false,"minimum_number":1,"maximum_number":99,"minimum_x":10,"maximum_x":20,"minimum_y":30,"maximum_y":50,"minimum_characters":1,"maximum_characters":5,"required_word_count":1,"normalization":[{"from":"б","to":"6"}]}});
+        let page = json!({"lines":[{"source_order":1,"x_min":15,"y_min":35,"words":["б"]},{"source_order":0,"x_min":15,"y_min":35,"words":["5"]},{"source_order":2,"x_min":40,"y_min":35,"words":["7"]},{"source_order":3,"x_min":15,"y_min":35,"words":["8","9"]}]});
+        let mut got = Vec::new();
+        pdf_page_candidates(&ctx, &recipe, 4, &page, &mut got).unwrap();
+        assert_eq!(
+            got.iter()
+                .map(|c| (c.page, c.token.as_str()))
+                .collect::<Vec<_>>(),
+            [(4, "5"), (4, "6")]
         );
     }
     #[test]
