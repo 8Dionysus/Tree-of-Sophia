@@ -60,3 +60,31 @@
   .experience-tools{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
   .experience-tools .experience-button{flex:0 0 auto;font-size:.76rem}
 }
+/* The bar stands over the page in every mode: the reference and the learning sky begin under it. */
+#public-reader-host .experience-pane{padding-top:calc(var(--rb-h,0px) + 1rem)}
+#public-reader-host .experience-pane.is-cognitive{padding-top:var(--rb-h,0px)}
+#public-reader-host .experience-version-notice{position:fixed;z-index:39;top:calc(var(--rb-h,0px) + 8px);left:50%;width:auto;max-width:min(36rem,calc(100vw - 2rem));margin:0;padding:.45rem .8rem;transform:translateX(-50%);border:1px solid #c9ad7355;border-radius:.4rem;background:#14110cf0;color:#e7c99a;font:.8rem/1.4 system-ui,sans-serif}
+#public-reader-host .experience-version-notice[hidden]{display:none}
+/* The reference reads as an article: one column in the middle of the page, its contents beside it and in reach while it scrolls. */
+#public-reader-host .experience-pane:not(.is-cognitive)>:is(.experience-question,.experience-message,.experience-search,.experience-body,.experience-comparison,.experience-history,.experience-operations){box-sizing:border-box;max-width:72rem;margin-left:auto;margin-right:auto}
+.experience-body.has-toc{display:grid;grid-template-columns:minmax(0,72ch) minmax(11rem,14rem);column-gap:clamp(2rem,5vw,5rem);align-items:start;justify-content:space-between}
+.experience-body.has-toc>.experience-back{grid-column:1/-1;justify-self:start}
+.experience-body.has-toc>.experience-toc{grid-column:2;grid-row:2}
+.experience-body.has-toc>.experience-article{grid-column:1;grid-row:2}
+.experience-toc[hidden]{display:none}
+.experience-toc{position:sticky;top:calc(var(--rb-h,0px) + 1.5rem);display:grid;gap:.1rem;padding:0 0 0 1rem;border-left:1px solid #879eb62b;font:.84rem/1.35 system-ui,-apple-system,'Segoe UI',sans-serif}
+.experience-toc-title{margin:0 0 .55rem;color:#8ea2ba;font:600 .68rem/1.3 system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase}
+.experience-toc-link{display:block;width:calc(100% + 1rem);margin-left:calc(-1rem - 1px);padding:.38rem .5rem .38rem 1rem;border:0;border-left:2px solid transparent;background:none;color:#9fb0c3;text-align:left;font:inherit;cursor:pointer}
+.experience-toc-link:hover{color:#e6edf5}
+.experience-toc-link[aria-current=true]{border-left-color:#d6b37a;color:#f3dfbd}
+.experience-toc-link:focus-visible{outline:2px solid #d6b37a;outline-offset:-2px}
+.experience-article :is(.ps-kernel-reference-section,.ps-kernel-reference){scroll-margin-top:calc(var(--rb-h,0px) + 1.25rem)}
+@media(max-width:1100px){
+  .experience-body.has-toc{display:block}
+  .experience-toc{top:var(--rb-h,0px);z-index:5;display:flex;gap:.3rem;overflow-x:auto;margin:0 calc(-1*clamp(1rem,4vw,3rem)) .9rem;padding:.5rem clamp(1rem,4vw,3rem);border:0;border-bottom:1px solid #879eb62b;background:#07101cf2;backdrop-filter:blur(10px);scrollbar-width:none}
+  .experience-toc-title{display:none}
+  .experience-toc-link{flex:none;width:auto;margin:0;padding:.42rem .8rem;border:1px solid #859ab433;border-radius:999px;white-space:nowrap}
+  .experience-toc-link[aria-current=true]{border-color:#d6b37a77;background:#d6b37a14}
+  .experience-article :is(.ps-kernel-reference-section,.ps-kernel-reference){scroll-margin-top:calc(var(--rb-h,0px) + 3.6rem)}
+}
+@media(max-width:600px){.experience-toc{margin-left:-1rem;margin-right:-1rem;padding-left:1rem;padding-right:1rem}}
