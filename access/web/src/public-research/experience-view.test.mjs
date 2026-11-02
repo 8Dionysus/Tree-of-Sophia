@@ -62,3 +62,18 @@ test('refreshing an unchanged question preserves the notebook generation used by
   await vi.waitFor(()=>expect(notebook.setPreference).toHaveBeenCalledTimes(1));
   expect(view.getState().question).toBe(value);view.destroy();
 });
+
+test('moving through history keeps the scroll position each entry had',async()=>{
+  const window={history:{replaceState:vi.fn(),pushState:vi.fn(),state:null},addEventListener(){},removeEventListener(){},scrollTo:vi.fn(),scrollY:0};
+  vi.stubGlobal('document',{createElement:tag=>new Element(tag)});vi.stubGlobal('window',window);vi.stubGlobal('location',{href:'http://localhost/?experience=reference'});vi.stubGlobal('requestAnimationFrame',fn=>fn());
+  const entries=new Map(['a','b'].map(id=>[id,{id,kind:'conception',title:{en:id.toUpperCase()},dependencies:[]}])),index={revision:'current',items:entries,get:id=>entries.get(id),resolveId:id=>id,search:()=>[],references:()=>[]};
+  const root=new Element('root'),space={root:new Element('space'),renderResearch:vi.fn(),openResearch:vi.fn(),fragments:{},selection:()=>null};root.append(space.root);
+  const notebook={getPreference:vi.fn(async()=>undefined),setPreference:vi.fn(async()=>{})};
+  const view=mountResearchExperience({root,header:new Element('header'),profile:'test',locale:()=> 'en',index,space,notebook,api:{getQuestion:()=>''}});
+  await vi.waitFor(()=>expect(notebook.getPreference).toHaveBeenCalled());await new Promise(resolve=>setTimeout(resolve,0));
+  view.open('a');window.scrollY=100;view.open('b');window.scrollY=500;
+  const all=node=>[node,...(node.children??[]).flatMap(all)],back=all(root).find(node=>node.tag==='button'&&node.textContent==='← Back');
+  back.listeners.click();
+  expect(window.scrollTo).toHaveBeenLastCalledWith(0,100);expect(view.getState().stack.map(entry=>entry.scroll)).toEqual([100,500]);
+  view.destroy();
+});

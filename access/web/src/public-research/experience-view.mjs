@@ -57,13 +57,14 @@ export function mountResearchExperience({root,header,profile,locale=()=> 'ru',in
     if(mode==='original'&&state.id&&state.revision===index.revision){suppressSelection=true;try{space.openResearch?.(state.id);}finally{suppressSelection=false;}}
     writeUrl(push);render();if(persist)save();onCognitive({action:'mode',mode,id:state.id});
   }
-  function open(id,{revision=index.revision,push=true,record=true,show=true}={}){
-    if(!id)return false;if(revision===index.revision)id=index.resolveId?.(id)??id;rememberScroll();state.id=id;state.revision=revision||index.revision;
+  // History moves record the scroll of the entry they leave before they move the cursor; `remember:false` keeps the destination's own.
+  function open(id,{revision=index.revision,push=true,record=true,show=true,remember=true}={}){
+    if(!id)return false;if(revision===index.revision)id=index.resolveId?.(id)??id;if(remember)rememberScroll();state.id=id;state.revision=revision||index.revision;
     if(record){state.stack=state.stack.slice(0,state.cursor+1);const previous=state.stack.at(-1);if(!previous||previous.id!==id||previous.revision!==state.revision)state.stack.push({id,revision:state.revision,scroll:0});state.stack=state.stack.slice(-80);state.cursor=state.stack.length-1;}
     if(show&&state.mode==='original'&&state.revision===index.revision){suppressSelection=true;try{space.openResearch?.(id);}finally{suppressSelection=false;}}
     writeUrl(push);render();save();onCognitive({action:'open',id,revision:state.revision});return true;
   }
-  function navigate(delta){const next=state.cursor+delta;if(next<0||next>=state.stack.length)return;rememberScroll();state.cursor=next;const entry=state.stack[next];open(entry.id,{revision:entry.revision,record:false});requestAnimationFrame(()=>{if(state.mode==='reference')window.scrollTo(0,entry.scroll);});}
+  function navigate(delta){const next=state.cursor+delta;if(next<0||next>=state.stack.length)return;rememberScroll();state.cursor=next;const entry=state.stack[next];open(entry.id,{revision:entry.revision,record:false,remember:false});requestAnimationFrame(()=>{if(state.mode==='reference')window.scrollTo(0,entry.scroll);});}
   function togglePin(){if(!state.id)return;const at=state.pins.findIndex(item=>item.id===state.id&&item.revision===state.revision);if(at>=0)state.pins.splice(at,1);else{if(state.pins.length===2)state.pins.shift();state.pins.push({id:state.id,revision:state.revision,scroll:0});}render();save();}
   async function copyLink(){try{const target=new URL(location.href);target.searchParams.set('experience',state.mode);if(state.id){target.searchParams.set('item',state.id);target.searchParams.set('revision',state.revision??index.revision);}await navigator.clipboard.writeText(target.href);message.textContent=t('copied');}catch{message.textContent=t('copyError');}}
   const historical=new Map();
@@ -142,7 +143,7 @@ export function mountResearchExperience({root,header,profile,locale=()=> 'ru',in
     if(state.mode==='reference'){
       if(state.id){body.append(action(`← ${t('toContents')}`,()=>{rememberScroll();state.id=null;writeUrl(true);render();save();window.scrollTo(0,0);},'experience-back'));const article=make('article','experience-article');body.append(article);void renderItem(article,state.id,state.revision).then(()=>{if(token===renderToken&&state.revision===index.revision)renderRefs(article,state.id);});}else if(!renderContents(body))body.append(make('p','experience-empty',t('empty')));
       if(state.pins.length){comparison.append(make('h2','',state.pins.length===2?t('compare'):t('pins')));const grid=make('div','experience-pin-grid');for(const entry of state.pins){const card=make('article','experience-pin');card.append(action(t('remove'),()=>{state.pins=state.pins.filter(item=>item!==entry);render();save();}));grid.append(card);void renderItem(card,entry.id,entry.revision);}comparison.append(grid);}
-      if(!state.stack.length)historyBody.append(make('p','',t('noHistory')));for(const [i,entry] of state.stack.entries()){const item=index.get(entry.id),btn=action(`${title(item)||entry.id} · ${entry.revision===index.revision?t('current'):entry.revision.slice(0,12)}`,()=>{rememberScroll();state.cursor=i;open(entry.id,{revision:entry.revision,record:false});},'experience-result');if(i===state.cursor)btn.setAttribute('aria-current','true');historyBody.append(btn);}
+      if(!state.stack.length)historyBody.append(make('p','',t('noHistory')));for(const [i,entry] of state.stack.entries()){const item=index.get(entry.id),btn=action(`${title(item)||entry.id} · ${entry.revision===index.revision?t('current'):entry.revision.slice(0,12)}`,()=>{rememberScroll();state.cursor=i;open(entry.id,{revision:entry.revision,record:false,remember:false});requestAnimationFrame(()=>{if(state.mode==='reference')window.scrollTo(0,entry.scroll??0);});},'experience-result');if(i===state.cursor)btn.setAttribute('aria-current','true');historyBody.append(btn);}
     }
   }
   search.addEventListener('input',()=>{searchText=search.value;renderSearch();});
