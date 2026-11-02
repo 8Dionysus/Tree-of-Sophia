@@ -1860,7 +1860,7 @@ scholarly-composite paths described in
 It verifies the native public-metadata schema and exact owner path on every
 call, including replay, and exposes its digest in `source_contracts` and the
 receipt. Schema drift invalidates prepared writes. Native identity and source
-bytes stay unchanged; form permission does not grant native source rewriting.
+bytes stay unchanged; native source rewriting requires its own permission.
 The normative identity/admission boundary remains in
 `ToS/doctrine/HUMAN_FORMS.md`. The same CLI serves a human or an agent:
 
@@ -2450,7 +2450,7 @@ It creates one atomic package of up to 32 declared source Claims
 over existing subjects and identity or explicitly delegated typed values,
 including different subjects and profiles in the same batch.
 It neither creates those identities nor revises existing Claims. Read-only
-access remains separate; a metadata/form delegation does not grant this route.
+access remains separate; this route requires its own delegation.
 
 The protected `tos_local_claim_create_owner_v1` configuration has exactly:
 
@@ -2467,8 +2467,8 @@ The protected `tos_local_claim_create_owner_v1` configuration has exactly:
 `allowed_object_values`: at most 32 distinct exact JSON objects. This v2 grant
 delegates temporal value objects; old v1 grants retain identity-only scope.
 For a relative date, its `anchor_ref` must additionally appear in
-`allowed_object_refs` and resolve as a historical situation. Source prose,
-schema declarations and the ability to inspect a value do not grant writes.
+`allowed_object_refs` and resolve as a historical situation. Writing requires
+its own grant, independent of source prose, schema declarations and inspection.
 
 `tos_local_claim_create_owner_v3` has the same exact fields and bounds as v2
 and can additionally delegate `structured-value-v1` profiles. Its allowlist contains exact JSON values; the source profile still validates
@@ -4936,7 +4936,7 @@ For the synthetic profile, an optional protected `disclosure_access` has
 `source_file_sha256`, `image_sha256` and native `layer_record_sha256`.
 This declaration is supplied by the independently selected trusted issuer,
 never by source material or an assessment request. Software validates its
-scope and expiry; it does not prove authorship or invent the operator's will.
+scope and expiry; authorship and the operator's will require their own evidence.
 No grant means local comparison only. Another source, changed bytes or an
 expired disclosure grant requires a new explicit owner choice.
 
