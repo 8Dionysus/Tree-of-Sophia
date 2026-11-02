@@ -27,7 +27,7 @@
     "keyList": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
     "numbered": {
       "type": "object", "additionalProperties": false,
-      "required": ["stage", "work_ref", "expression_ref", "edition_ref", "map_id", "event_id", "locators", "page_overrides"],
+      "required": ["stage", "work_ref", "expression_ref", "edition_ref", "map_id", "event_id", "locators", "page_overrides", "identity", "basis_rule_order", "default_basis"],
       "properties": {
         "stage": {"const": "numbered-structure"},
         "work_ref": {"$ref": "#/$defs/id"}, "expression_ref": {"$ref": "#/$defs/id"}, "edition_ref": {"$ref": "#/$defs/id"}, "map_id": {"$ref": "#/$defs/id"}, "event_id": {"$ref": "#/$defs/id"},
@@ -37,7 +37,11 @@
         "page_overrides": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["key", "page"], "properties": {"key": {"type": "string", "minLength": 1}, "page": {"type": "integer", "minimum": 1}}}},
         "gap_review_keys": {"$ref": "#/$defs/keyList"}, "ocr_disambiguation_keys": {"$ref": "#/$defs/keyList"},
         "ocr_substitutions": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["digit", "allowed_characters"], "properties": {"digit": {"type": "string", "pattern": "^[0-9]$"}, "allowed_characters": {"type": "string", "minLength": 1}}}},
-        "ocr_allowed_characters": {"type": "string", "minLength": 1}
+        "ocr_allowed_characters": {"type": "string", "minLength": 1},
+        "identity": {"type": "object", "additionalProperties": false, "required": ["anchor_prefix", "anchor_suffix", "passage_prefix", "passage_suffix"], "properties": {"anchor_prefix": {"type": "string", "pattern": "^tos\\.anchor\\."}, "anchor_suffix": {"type": "string"}, "passage_prefix": {"type": "string", "pattern": "^tos\\.passage\\."}, "passage_suffix": {"type": "string"}}},
+        "repeated_number_review_keys": {"$ref": "#/$defs/keyList"},
+        "basis_rule_order": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["repeated-number-review", "gap-review", "page-override", "ocr-disambiguation", "default"]}},
+        "default_basis": {"type": "string", "minLength": 1}
       }
     },
     "hierarchicalTarget": {

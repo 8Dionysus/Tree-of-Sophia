@@ -229,7 +229,23 @@
           "allowed_characters": "9gq"
         }
       ],
-      "ocr_allowed_characters": " *,-./0123456789:;AGILOQSTZ\\^agiloqstz~«»ÖÜöü–—•"
+      "ocr_allowed_characters": " *,-./0123456789:;AGILOQSTZ\\^agiloqstz~«»ÖÜöü–—•",
+      "identity": {
+        "anchor_prefix": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-",
+        "anchor_suffix": ".pdf-start-page",
+        "passage_prefix": "tos.passage.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-",
+        "passage_suffix": ""
+      },
+      "repeated_number_review_keys": [
+        "237a"
+      ],
+      "basis_rule_order": [
+        "repeated-number-review",
+        "gap-review",
+        "ocr-disambiguation",
+        "default"
+      ],
+      "default_basis": "ocr_order_candidate"
     },
     {
       "stage": "source-passage-marker-returns",

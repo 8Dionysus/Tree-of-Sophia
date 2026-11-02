@@ -78,6 +78,23 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                     }
                 }
             }
+            if let Some(Value::Array(order)) = object.get("basis_rule_order") {
+                if order.last().and_then(Value::as_str) != Some("default") {
+                    return Err(EditionCurationError::InvalidRange("basis_rule_order"));
+                }
+                for rule in order {
+                    let field = match rule.as_str() {
+                        Some("repeated-number-review") => Some("repeated_number_review_keys"),
+                        Some("gap-review") => Some("gap_review_keys"),
+                        Some("page-override") => Some("page_overrides"),
+                        Some("ocr-disambiguation") => Some("ocr_disambiguation_keys"),
+                        _ => None,
+                    };
+                    if field.is_some_and(|field| !object.contains_key(field)) {
+                        return Err(EditionCurationError::InvalidSchema);
+                    }
+                }
+            }
             for (array, field) in [
                 ("page_overrides", "key"),
                 ("locators", "role"),
@@ -93,6 +110,16 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                                 return Err(EditionCurationError::Duplicate(field));
                             }
                         }
+                    }
+                }
+            }
+            if let Some(Value::Array(overrides)) = object.get("page_overrides") {
+                for pair in overrides.windows(2) {
+                    if !matches!(
+                        compare_numbers(&pair[0]["page"], &pair[1]["page"]),
+                        Some(Ordering::Less | Ordering::Equal)
+                    ) {
+                        return Err(EditionCurationError::InvalidRange("page_overrides"));
                     }
                 }
             }

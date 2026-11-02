@@ -189,7 +189,22 @@
           "version": "26.01.0"
         }
       ],
-      "source_map_sha256": "fb7c15005968bb5795388714ab2b725593f5f29f31cb29c71cece77f751b2b90"
+      "source_map_sha256": "fb7c15005968bb5795388714ab2b725593f5f29f31cb29c71cece77f751b2b90",
+      "identity": {
+        "anchor_prefix": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-",
+        "anchor_suffix": ".pdf-start-page",
+        "passage_prefix": "tos.passage.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-",
+        "passage_suffix": ""
+      },
+      "ocr_disambiguation_keys": [
+        "6"
+      ],
+      "basis_rule_order": [
+        "page-override",
+        "ocr-disambiguation",
+        "default"
+      ],
+      "default_basis": "embedded_pdf_bbox_order_candidate"
     },
     {
       "stage": "hierarchical-target-structure",
