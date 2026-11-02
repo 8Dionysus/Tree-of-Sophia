@@ -173,7 +173,11 @@
       ],
       "event_id": "tos.event.alignment.antonovsky-2007-1911-opening-sentence-collation.2026-08-12",
       "legacy_builder_ref": "scripts/build_antonovsky_2007_1911_collation.py",
-      "executor_agent_ref": "software:tos-antonovsky-2007-1911-collation-builder"
+      "executor_agent_ref": "software:tos-antonovsky-2007-1911-collation-builder",
+      "historical_plan_sha256": "13d73e9570e83588b8d8f5c36b79f5740def5b5157bc6d00ef2e908faf9cff23",
+      "derivation_prefix": "tos.derivation.antonovsky.",
+      "authority_template_ref": "rust/crates/tos-compiler/src/antonovsky_collation/authority-boundary.json",
+      "authority_template_sha256": "95fb33b4b7d23057c72dd93ec731d0d32546530d0ee7f31e0732d03fe0663f48"
     }
   ]
 }
