@@ -809,6 +809,29 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                     if !locators.iter().any(|locator| locator["role"] == role) {
                         return Err(EditionCurationError::MissingReference);
                     }
+                    let mut layers = BTreeSet::new();
+                    for witness in std::iter::once(&route["address_witness"])
+                        .chain(std::iter::once(&route["default_content_witness"]))
+                        .chain(
+                            route["layer_content_witnesses"]
+                                .as_array()
+                                .ok_or(EditionCurationError::InvalidSchema)?,
+                        )
+                    {
+                        if !locators
+                            .iter()
+                            .any(|locator| locator["role"] == witness["item_role"])
+                        {
+                            return Err(EditionCurationError::MissingReference);
+                        }
+                        if let Some(layer) = witness.get("layer").and_then(Value::as_str) {
+                            if !layers.insert(layer) {
+                                return Err(EditionCurationError::Duplicate(
+                                    "content witness layer",
+                                ));
+                            }
+                        }
+                    }
                     let mut keys = BTreeSet::new();
                     for entry in route["overrides"]
                         .as_array()

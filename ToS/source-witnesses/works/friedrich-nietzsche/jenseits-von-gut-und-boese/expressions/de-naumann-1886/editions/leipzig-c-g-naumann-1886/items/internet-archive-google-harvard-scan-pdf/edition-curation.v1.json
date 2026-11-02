@@ -510,6 +510,30 @@
               "qualified_unit_key": "202",
               "layer": "djvu-xml-line"
             }
+          ],
+          "address_witness": {
+            "item_role": "first_source_item",
+            "media_type": "application/pdf"
+          },
+          "address_page_delta": 0,
+          "default_content_witness": {
+            "item_role": "first_source_item",
+            "media_type": "application/pdf",
+            "navigation_relation": "same-fixity-bound-file-page-index"
+          },
+          "layer_content_witnesses": [
+            {
+              "layer": "abbyy-xml-paragraph",
+              "item_role": "first_source_item",
+              "media_type": "application/gzip",
+              "navigation_relation": "same-fixity-bound-Item-navigation-layer"
+            },
+            {
+              "layer": "djvu-xml-line",
+              "item_role": "first_source_item",
+              "media_type": "application/vnd.djvu+xml",
+              "navigation_relation": "same-fixity-bound-Item-navigation-layer"
+            }
           ]
         },
         {
@@ -523,7 +547,18 @@
               "qualified_unit_key": "essay-1:10",
               "layer": "pdf-visible-marker-plus-poppler-pdf-bbox-line"
             }
-          ]
+          ],
+          "address_witness": {
+            "item_role": "second_source_item",
+            "media_type": "application/pdf"
+          },
+          "address_page_delta": 0,
+          "default_content_witness": {
+            "item_role": "second_source_item",
+            "media_type": "application/pdf",
+            "navigation_relation": "same-fixity-bound-file-page-index"
+          },
+          "layer_content_witnesses": []
         },
         {
           "work_ref": "tos.work.friedrich-nietzsche.der-antichrist",
@@ -548,7 +583,18 @@
               "qualified_unit_key": "main:44",
               "layer": "jp2-visible-marker-plus-djvu-xml-line"
             }
-          ]
+          ],
+          "address_witness": {
+            "item_role": "third_source_address_item",
+            "media_type": "image/vnd.djvu"
+          },
+          "address_page_delta": -2,
+          "default_content_witness": {
+            "item_role": "third_source_navigation_item",
+            "media_type": "application/vnd.djvu+xml",
+            "navigation_relation": "bounded-source-visible-two-page-offset-only-no-textual-identity"
+          },
+          "layer_content_witnesses": []
         }
       ],
       "passage_id_substitutions": [

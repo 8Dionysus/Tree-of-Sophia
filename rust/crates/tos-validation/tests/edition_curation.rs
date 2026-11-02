@@ -52,6 +52,18 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         ),
         Err(EditionCurationError::Duplicate("source layer key"))
     );
+    let mut wrong_witness_role = original.clone();
+    let source = wrong_witness_role["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "source-passages")
+        .unwrap();
+    source["work_routes"][0]["address_witness"]["item_role"] = json!("missing-item");
+    assert_eq!(
+        validate(&serde_json::to_vec(&wrong_witness_role).unwrap(), &schema),
+        Err(EditionCurationError::MissingReference)
+    );
     let target_path = "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/edition-curation.v1.json";
     let mut duplicate_target: Value =
         serde_json::from_slice(&fs::read(root.join(target_path)).unwrap()).unwrap();
