@@ -679,13 +679,71 @@ fn check_replacements(value: &Value) -> Result<(), EditionCurationError> {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if object.get("stage").and_then(Value::as_str) == Some("structural-source-routes") {
+                let root = object["alignment_root"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let directory = object["output_subdirectory"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let configurations = object["configurations"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let files = object["output_files"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let frozen = object["frozen_outputs"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                if configurations.len().checked_mul(files.len()) != Some(frozen.len()) {
+                    return Err(EditionCurationError::BindingMismatch);
+                }
+                let mut slugs = BTreeSet::new();
+                for configuration in configurations {
+                    let slug = configuration["slug"]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    let pair = configuration["pair_slug"]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    for component in [slug, pair] {
+                        tos_foundation::RelativePath::parse(component)
+                            .map_err(|_| EditionCurationError::UnsafePath)?;
+                        if component.contains('/') {
+                            return Err(EditionCurationError::UnsafePath);
+                        }
+                    }
+                    if !slugs.insert(slug) {
+                        return Err(EditionCurationError::Duplicate("structural route slug"));
+                    }
+                    for file in files {
+                        let role = file["role"]
+                            .as_str()
+                            .ok_or(EditionCurationError::InvalidSchema)?;
+                        let filename = file["filename"]
+                            .as_str()
+                            .ok_or(EditionCurationError::InvalidSchema)?;
+                        let expected_role = format!("{slug}:{role}");
+                        let expected_path = format!("{root}/{slug}/{directory}/{pair}/{filename}");
+                        if !frozen.iter().any(|entry| {
+                            entry["role"] == expected_role
+                                && entry["repository_path"] == expected_path
+                        }) {
+                            return Err(EditionCurationError::BindingMismatch);
+                        }
+                    }
+                }
+            }
             if object
                 .get("stage")
                 .and_then(Value::as_str)
                 .is_some_and(|stage| {
                     matches!(
                         stage,
-                        "source-passages" | "target-passages" | "transfer-candidates"
+                        "source-passages"
+                            | "target-passages"
+                            | "transfer-candidates"
+                            | "numbered-label-correspondence"
                     )
                 })
             {
@@ -695,10 +753,10 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                 let frozen = object["frozen_outputs"]
                     .as_array()
                     .ok_or(EditionCurationError::InvalidSchema)?;
-                let expected_roles: &[&str] = if object["stage"] == "transfer-candidates" {
-                    &["anchors", "provenance"]
-                } else {
-                    &["candidates", "anchors", "provenance"]
+                let expected_roles: &[&str] = match object["stage"].as_str() {
+                    Some("transfer-candidates") => &["anchors", "provenance"],
+                    Some("numbered-label-correspondence") => &["output", "provenance"],
+                    _ => &["candidates", "anchors", "provenance"],
                 };
                 if frozen.len() != expected_roles.len()
                     || expected_roles.iter().any(|role| {
@@ -773,6 +831,7 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
             if object.contains_key("output_files")
                 && object.contains_key("frozen_outputs")
                 && !object.contains_key("output_layout")
+                && object.get("stage").and_then(Value::as_str) != Some("structural-source-routes")
             {
                 let files = object["output_files"]
                     .as_array()

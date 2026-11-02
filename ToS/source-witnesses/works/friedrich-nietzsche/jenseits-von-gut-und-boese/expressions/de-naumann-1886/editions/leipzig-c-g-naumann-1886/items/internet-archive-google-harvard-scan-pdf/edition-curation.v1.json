@@ -537,7 +537,21 @@
       ],
       "target_only_keys": [],
       "map_version": 3,
-      "event_version": 2
+      "event_version": 2,
+      "frozen_outputs": [
+        {
+          "role": "output",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996/numbered-unit-label-correspondence.json",
+          "schema_version": "tos_parallel_numbered_unit_label_map_v1",
+          "expected_sha256": "808cd27324c772ced28d6e9d9857d30592c2fd59285abb6d83584b9929203264"
+        },
+        {
+          "role": "provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996/provenance.numbered-unit-label-correspondence.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "e1116dadb51951283450734e4f284287ea534f90b65ad3d4cb159237b517e857"
+        }
+      ]
     },
     {
       "stage": "source-review-receipt",
