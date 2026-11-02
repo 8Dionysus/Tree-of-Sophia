@@ -531,7 +531,14 @@
       "historical_builder_ref": "scripts/record_golden_kernel_transfer_source_visible_review.py",
       "historical_builder_sha256": "ac20b7dce1259aa3ce6d6efaf356dafa010c9fd7af392caf1c47d58b0a2f6679",
       "historical_bundle_sha256": "4db81ebd5c819da431faca7a5a02b5c4a58e7c8a69e26b2b2cd5cac517da4a2b",
-      "generated_receipt_prefix": "tos.transfer-source-visible-review.jenseits-187."
+      "generated_receipt_prefix": "tos.transfer-source-visible-review.jenseits-187.",
+      "historical_templates": [
+        {
+          "role": "legacy-output-template",
+          "ref": "rust/crates/tos-compiler/src/transfer_source_visible/templates.json",
+          "sha256": "a58ffe373a868c788eff44c94483d2e6c7b5deeb32a577c57279de17e749368b"
+        }
+      ]
     }
   ]
 }

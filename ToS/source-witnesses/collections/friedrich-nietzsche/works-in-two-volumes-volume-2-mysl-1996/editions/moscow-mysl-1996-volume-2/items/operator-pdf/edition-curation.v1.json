@@ -650,7 +650,14 @@
       ],
       "legacy_event_sha256": "b87ba0c258b9d21b9d675d16691054e02adb90b2cf597f20e9d60299a663c939",
       "legacy_builder_sha256": "71f61e32b16bd797ae3bc80c97b9cba454539661422a1ff652ddefbf2e849d2c",
-      "anchor_prefix": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-"
+      "anchor_prefix": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-",
+      "historical_templates": [
+        {
+          "role": "legacy-output-template",
+          "ref": "rust/crates/tos-compiler/src/transfer_candidates/templates.json",
+          "sha256": "02bff3f8ec324c985a980fcbb2caff7cc85fce95bccb88edaa25d0f1c12fc911"
+        }
+      ]
     },
     {
       "stage": "transfer-readiness",

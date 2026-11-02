@@ -208,6 +208,13 @@
       "historical_event_ids": [
         "tos.event.zarathustra-eternal-return-concept-candidate-v1.plan",
         "tos.event.zarathustra-eternal-return-concept-candidate-v1.build"
+      ],
+      "historical_templates": [
+        {
+          "role": "legacy-output-template",
+          "ref": "rust/crates/tos-compiler/src/research_eternal_return_concept_templates.json",
+          "sha256": "1ce59d4e33696f3889a99ab5002ff115b32f7a42f4edcf182a18ad384ffffc81"
+        }
       ]
     },
     {
@@ -269,7 +276,14 @@
         "tos.event.zarathustra-eternal-return-review-preparation-v1.build"
       ],
       "related_text_unit_ref": "tos.text-unit.sid-d523bc897647d01030f767c2faf5266b",
-      "related_text_sha256": "0627928ac02cab8159b250950b4a9b23088c9fe5886ebedf86634be3488da558"
+      "related_text_sha256": "0627928ac02cab8159b250950b4a9b23088c9fe5886ebedf86634be3488da558",
+      "historical_templates": [
+        {
+          "role": "legacy-output-template",
+          "ref": "rust/crates/tos-compiler/src/research_eternal_return_constants.json",
+          "sha256": "d02d510f55f1c19e625197d8f3d078f62f443fe3cb708a3d5b206307d62cf30f"
+        }
+      ]
     },
     {
       "stage": "paragraph-alignment",
