@@ -30,7 +30,7 @@ the touched surface and risk are known.
 | A public stand's own data, experiments and export toward the Tree | [bonsai/AGENTS.md](bonsai/AGENTS.md), then the stand in [access/web](access/web/README.md) |
 | Repeatable operation | [mechanics/AGENTS.md](mechanics/AGENTS.md), then the active part |
 | Durable rationale | [docs/decisions/AGENTS.md](docs/decisions/AGENTS.md) |
-| Measurement, proof pressure, KAG source-return export or memory candidate | [stats](stats/AGENTS.md), [evals](evals/AGENTS.md), [kag](kag/README.md) or [memo](memo/README.md) |
+| Measurement, proof pressure, KAG source-return export or memory candidate | [stats](stats/AGENTS.md), [evals](evals/README.md), [kag](kag/README.md) or [memo](memo/README.md) |
 | Native implementation, builder, validator or regression | [rust](rust/AGENTS.md); [scripts](scripts/AGENTS.md) and [tests](tests/AGENTS.md) for their local surfaces |
 | Landing and publication | [RELEASING](docs/RELEASING.md); [.github](.github/AGENTS.md) for platform files |
 

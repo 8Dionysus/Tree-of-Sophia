@@ -201,10 +201,10 @@
       "label": "eval port",
       "layer": "local-eval-port",
       "mode": "advisory",
-      "owner_surface": "evals/AGENTS.md",
+      "owner_surface": "evals/README.md",
       "purpose": "Keep ToS-local eval pressure visible while central verdict and scoring authority stay with aoa-evals.",
-      "focused_target": "evals/PORT.yaml and packet evidence via evals/VALIDATION.md; consumer-side compatibility and admission",
-      "failure_route": "evals/AGENTS.md",
+      "focused_target": "evals/PORT.yaml and packet evidence via evals/README.md; consumer-side compatibility and admission",
+      "failure_route": "evals/README.md",
       "does_not_own": [
         "central eval verdicts",
         "proof doctrine",

@@ -155,7 +155,7 @@
   "skills": [],
   "owner_ports": {
     "eval_port": {
-      "local_owner": "evals/AGENTS.md",
+      "local_owner": "evals/README.md",
       "manifest": "evals/PORT.yaml",
       "consumer": "eval pressure intake, ToS route checks and consumer-owned central proof review",
       "load_moment": "when a repository task produces or asks for eval pressure",
@@ -163,13 +163,10 @@
       "freshness": "local PORT.yaml, packet evidence and ToS route checks; the receiving owner checks shared protocol compatibility",
       "next_organ": "selected packet handoff to aoa-evals for consumer-side compatibility and central proof review",
       "currentness_inputs": [
-        "evals/AGENTS.md",
         "evals/PORT.yaml",
         "evals/README.md",
-        "evals/intake/README.md",
-        "evals/suites/README.md",
-        "evals/reports/README.md",
-        "evals/VALIDATION.md"
+        "evals/suites/source-observation-ru-en-v1.suite.md",
+        "evals/suites/metadata-human-form-ru-en-v1.suite.md"
       ],
       "carrier_classes": [
         "local_intake_port",
