@@ -57,17 +57,7 @@ pub fn validate_recipe_plan(
     tos_foundation::RelativePath::parse(plan.reference)
         .map_err(|_| EditionCurationError::UnsafePath)?;
     let value = document(raw, schema)?;
-    let mut matching = value["recipes"]
-        .as_array()
-        .ok_or(EditionCurationError::InvalidSchema)?
-        .iter()
-        .filter(|recipe| recipe["stage"] == stage);
-    let recipe = matching
-        .next()
-        .ok_or(EditionCurationError::MissingReference)?;
-    if matching.next().is_some() {
-        return Err(EditionCurationError::AmbiguousReference);
-    }
+    let recipe = selected_recipe(&value, stage)?;
     let reference = recipe["plan_ref"]
         .as_str()
         .or_else(|| {
@@ -93,6 +83,68 @@ pub fn validate_recipe_plan(
         return Err(EditionCurationError::DigestMismatch);
     }
     Ok(())
+}
+
+/// Select a historical JSON field from exact, curation-bound output bytes.
+pub fn select_historical_field(
+    raw: &[u8],
+    stage: &str,
+    role: &str,
+    selected: SelectedDocument<'_>,
+    schema: &SchemaBackendProbe,
+) -> Result<Value, EditionCurationError> {
+    tos_foundation::RelativePath::parse(selected.reference)
+        .map_err(|_| EditionCurationError::UnsafePath)?;
+    let value = document(raw, schema)?;
+    let recipe = selected_recipe(&value, stage)?;
+    let field = recipe["historical_fields"]
+        .as_array()
+        .ok_or(EditionCurationError::MissingReference)?
+        .iter()
+        .find(|field| field["role"] == role)
+        .ok_or(EditionCurationError::MissingReference)?;
+    let output = recipe["frozen_outputs"]
+        .as_array()
+        .ok_or(EditionCurationError::InvalidSchema)?
+        .iter()
+        .find(|output| output["role"] == field["output_role"])
+        .ok_or(EditionCurationError::MissingReference)?;
+    if output["repository_path"] != selected.reference {
+        return Err(EditionCurationError::BindingMismatch);
+    }
+    if output["expected_sha256"].as_str()
+        != Some(
+            tos_foundation::Digest256::of_bytes(selected.raw)
+                .to_hex()
+                .as_str(),
+        )
+    {
+        return Err(EditionCurationError::DigestMismatch);
+    }
+    let historical = published_value(selected.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+        .map_err(EditionCurationError::Schema)?;
+    let pointer = field["json_pointer"]
+        .as_str()
+        .ok_or(EditionCurationError::InvalidSchema)?;
+    historical
+        .pointer(pointer)
+        .cloned()
+        .ok_or(EditionCurationError::MissingReference)
+}
+
+fn selected_recipe<'a>(value: &'a Value, stage: &str) -> Result<&'a Value, EditionCurationError> {
+    let mut matching = value["recipes"]
+        .as_array()
+        .ok_or(EditionCurationError::InvalidSchema)?
+        .iter()
+        .filter(|recipe| recipe["stage"] == stage);
+    let recipe = matching
+        .next()
+        .ok_or(EditionCurationError::MissingReference)?;
+    if matching.next().is_some() {
+        return Err(EditionCurationError::AmbiguousReference);
+    }
+    Ok(recipe)
 }
 
 fn document(raw: &[u8], schema: &SchemaBackendProbe) -> Result<Value, EditionCurationError> {

@@ -4,8 +4,8 @@ use serde_json::{Value, json};
 use tos_validation::{
     FormatProfile, SchemaBackendProbe, SchemaResource,
     edition_curation::{
-        EditionCurationError, SCHEMA_URI, SelectedCuration, SelectedDocument, validate,
-        validate_bindings, validate_recipe_plan,
+        EditionCurationError, SCHEMA_URI, SelectedCuration, SelectedDocument,
+        select_historical_field, validate, validate_bindings, validate_recipe_plan,
     },
 };
 
@@ -81,6 +81,80 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let dta_raw = fs::read(root.join(dta_path)).unwrap();
     assert_eq!(validate(&dta_raw, &schema), Ok(()));
     let dta_value: Value = serde_json::from_slice(&dta_raw).unwrap();
+    let foundation_recipe = dta_value["recipes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|recipe| recipe["stage"] == "tei-source-foundation")
+        .unwrap();
+    let historical_ref = foundation_recipe["frozen_outputs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|output| output["role"] == "text_layer_ref")
+        .unwrap()["repository_path"]
+        .as_str()
+        .unwrap();
+    let historical_raw = fs::read(root.join(historical_ref)).unwrap();
+    let historical = SelectedDocument {
+        reference: historical_ref,
+        raw: &historical_raw,
+    };
+    let expected_historical: Value = serde_json::from_slice(&historical_raw).unwrap();
+    assert_eq!(
+        select_historical_field(
+            &dta_raw,
+            "tei-source-foundation",
+            "layer-authority",
+            historical,
+            &schema
+        ),
+        Ok(expected_historical["authority_boundary"].clone())
+    );
+    assert_eq!(
+        select_historical_field(
+            &dta_raw,
+            "tei-source-foundation",
+            "layer-authority",
+            SelectedDocument {
+                reference: historical_ref,
+                raw: b"{}"
+            },
+            &schema
+        ),
+        Err(EditionCurationError::DigestMismatch)
+    );
+    assert_eq!(
+        select_historical_field(
+            &dta_raw,
+            "tei-source-foundation",
+            "layer-authority",
+            SelectedDocument {
+                reference: "ToS/wrong.json",
+                raw: &historical_raw
+            },
+            &schema
+        ),
+        Err(EditionCurationError::BindingMismatch)
+    );
+    let mut missing_historical_field = dta_value.clone();
+    let foundation = missing_historical_field["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "tei-source-foundation")
+        .unwrap();
+    foundation["historical_fields"][0]["json_pointer"] = json!("/missing");
+    assert_eq!(
+        select_historical_field(
+            &serde_json::to_vec(&missing_historical_field).unwrap(),
+            "tei-source-foundation",
+            "layer-authority",
+            historical,
+            &schema
+        ),
+        Err(EditionCurationError::MissingReference)
+    );
     let mut out_of_order = dta_value.clone();
     let constructor = out_of_order["recipes"]
         .as_array_mut()
