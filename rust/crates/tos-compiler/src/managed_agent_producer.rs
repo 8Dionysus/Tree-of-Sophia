@@ -187,7 +187,13 @@ pub fn prepare_managed_agent_selected_model<P: ManagedProducerProof>(
         &projection.catalog_root_sha256,
         export_revision,
         export_membership,
-        validator.worker.sha256.to_hex(),
+        validator
+            .worker
+            .ok_or(Error::Invalid(
+                "managed producer requires worker schema identity",
+            ))?
+            .sha256
+            .to_hex(),
         schema_set_sha256,
         proof,
         candidate,
@@ -1262,7 +1268,11 @@ pub fn prepare_managed_agent_selected_successor<P: ManagedProducerProof>(
         || Digest256::of_bytes(entity_raw).to_hex() != old.expectation.entity_registry_sha256
         || Digest256::of_bytes(relation_raw).to_hex() != old.expectation.relation_registry_sha256
         || Digest256::of_bytes(descriptor_raw).to_hex() != old.expectation.descriptor_sha256
-        || validator.worker.sha256.to_hex() != old.schema_worker_sha256
+        || validator
+            .worker
+            .map(|worker| worker.sha256.to_hex())
+            .as_deref()
+            != Some(old.schema_worker_sha256.as_str())
     {
         return Err(Error::Invalid(
             "managed successor immutable parent/software/current chain",
@@ -1873,7 +1883,13 @@ pub fn prepare_managed_agent_selected_successor<P: ManagedProducerProof>(
         &old.source_catalog_root,
         old.export_revision,
         old.export_membership,
-        validator.worker.sha256.to_hex(),
+        validator
+            .worker
+            .ok_or(Error::Invalid(
+                "managed producer requires worker schema identity",
+            ))?
+            .sha256
+            .to_hex(),
         schema_set_sha256,
         proof,
         candidate,

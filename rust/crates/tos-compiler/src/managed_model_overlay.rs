@@ -772,7 +772,11 @@ pub fn prepare_managed_overlay_initial_agent_v2(
         || source.definition_sha256 != previous.source.definition_sha256
         || source.schema_profile_sha256 != previous.source.schema_profile_sha256
         || Digest256::of_bytes(entity_raw).to_hex() != previous.base.entity_registry_sha256
-        || validator.worker.sha256.to_hex() != previous.schema_worker_sha256
+        || validator
+            .worker
+            .map(|worker| worker.sha256.to_hex())
+            .as_deref()
+            != Some(previous.schema_worker_sha256.as_str())
     {
         return Err(Error::Invalid(
             "overlay initial Agent parent/software/source interval",

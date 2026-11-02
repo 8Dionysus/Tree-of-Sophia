@@ -302,7 +302,7 @@ fn project_source_navigation_with_epoch(
 ) -> Result<NavigationSourceProjection> {
     let result = (|| {
         l.validate()?;
-        if receipt.worker_sha256 != validator.worker.sha256.to_hex() {
+        if !validator.matches_catalog_execution(receipt)? {
             return Err(Error::Invalid("navigation exact catalog worker identity"));
         }
         let versions = match epoch {
@@ -342,7 +342,7 @@ fn project_navigation_kernel<B: catalog::CatalogInputBinding>(
 ) -> Result<NavigationSourceProjection> {
     let result = (|| {
         l.validate()?;
-        if receipt.worker_sha256 != validator.worker.sha256.to_hex() {
+        if !validator.matches_catalog_execution(receipt)? {
             return Err(Error::Invalid("navigation exact catalog worker identity"));
         }
         let contracts = versions.contracts();
