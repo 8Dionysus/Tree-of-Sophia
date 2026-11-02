@@ -1920,6 +1920,7 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                 ("page_overrides", "key"),
                 ("locators", "role"),
                 ("input_sources", "role"),
+                ("derived_reference_formats", "role"),
                 ("input_sources", "private_payload_ref"),
                 ("outputs", "kind"),
                 ("outputs", "filename"),

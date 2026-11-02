@@ -1977,6 +1977,26 @@
           "shape_mode": "proposal",
           "reason": "machine grouping agrees across compared technical profiles; proposal is not translation truth"
         }
+      ],
+      "derived_reference_formats": [
+        {
+          "role": "source_scope_exclusion",
+          "prefix": "de-verse-group-",
+          "ordinal_width": 3,
+          "ordinal_base": 1
+        },
+        {
+          "role": "target_scope_exclusion",
+          "prefix": "ru-verse-group-",
+          "ordinal_width": 3,
+          "ordinal_base": 1
+        },
+        {
+          "role": "conflict",
+          "prefix": "alignment-conflict-",
+          "ordinal_width": 4,
+          "ordinal_base": 1
+        }
       ]
     },
     {
