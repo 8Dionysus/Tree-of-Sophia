@@ -24,7 +24,11 @@ event after its durable cursor through the bounded `queue-age` operation.
 
 `DurablePgCoordinator` binds registered attempts and exact STO locators to atomic current/history/receipt/log/outbox writes. Current rights, rule/schema contracts, job leases, retention pins and audit/restore fences are checked at commit and replay. Private source creation also binds owner-derived exact, absent, identity and namespace-range observations to the registered package; predicate validation and invalidation commit together. Mutable external authored trees remain `FullOnly`.
 
-The former CMD1 `PgCoordinator`, synthetic byte references, independent SQL schema and protocol-only test target are retired. Their useful conflict, ordered commit, current authority, retained history, rollback, replay and closed-cut integrity obligations execute on the durable path. Real managed creation exercises form-identity and source-home phantom generations, definition/completeness refusal and unchanged projections on refusal. The earlier synthetic prefix/reverse/interval names did not establish any maintained source reader or completeness law; their removal grants no corresponding affected admission.
+The CMD1 `PgCoordinator`, synthetic references, independent SQL schema and
+protocol-only test target are retired. The durable path covers conflict, ordered
+commit, authority, retained history, rollback, replay and closed-cut integrity.
+Managed creation exercises form-identity and source-home phantom generations,
+definition/completeness refusal and unchanged projections on refusal.
 
 The v1 cut-based managed source preparation uses a complete immutable manifest
 and authored input inventory. Successor selection performs O(N)
@@ -69,14 +73,12 @@ their creation receipt. The admitted-predecessor input uses v6 with null
 authored-event identity; receipt-backed v5 roots remain unchanged. Explicit
 projection `init` migrates the two derived provenance columns to nullable
 values with a paired-state constraint restricted to predecessor-bound Record
-range rows. It does not change source bytes, source admission or Claim origins.
-The unused single-event publishers, per-event backlog driver and their compiler
-adapters are retired. The unconsumed full-index/cohort materializing read APIs
-and standalone currentness wrappers are retired with them. Published selection
-uses its existing bounded guard and point readers. Existing stored event-cohort
-formats, root verification,
-currentness checks and range predecessor reads remain supported; this source
-cleanup changes neither the PostgreSQL schema nor stored model identities.
+range rows; source bytes, Claim origins and stored model identities remain
+unchanged. Single-event publishers, the per-event backlog driver and its
+compiler adapters, full-index/cohort materializing readers and standalone
+currentness wrappers are retired. Published selection uses its bounded guard
+and point readers. Stored event-cohort formats, root verification, currentness
+checks and range predecessor reads remain supported.
 
 Addressed navigation replaces complete selected Claim streams. Its range
 manifest keeps causal reverse dependencies separate from the complete
@@ -98,8 +100,7 @@ row limit. All limits remain enforced before mutation.
 Event schema checks reuse actual scalar receipts for repeated exact documents
 within the same prepared candidate executor. Path, raw bytes and full schema
 selector (including fragments) must match; cancellation, deadlines, selected
-schema binding and input budgets are checked again. This reuses validation work
-only and grants no source, rights or publication authority.
+schema binding and input budgets are checked again.
 
 Each Claim carries its own forms, identity, evidence and history closure, plus
 its exact complete stream and range causes. The immutable parsed inventory and
@@ -781,9 +782,7 @@ A verified source archive restore is a separate operation; successful publicatio
 inspection alone does not establish backup completeness or recovery on another
 machine.
 
-Maintained Agent, Claim/Metadata publication and exact-source owner reads use
-the native source owner. The former Python module remains historical evidence;
-it is not a maintained runtime or publication dependency.
+Agent, Claim/Metadata publication and exact-source reads use the native source owner.
 
 ## Private native Original candidate
 

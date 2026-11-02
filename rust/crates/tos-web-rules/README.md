@@ -2,7 +2,6 @@
 
 `tos-web-rules` provides Rust rules through native and optional WASM bindings.
 DOM, Fetch, storage, platform I/O and WebMCP registration remain host duties.
-These private bindings are not source selection, rights, review or canon.
 The shared `tos-query` dependency does not select `native-models`, so an
 independent native build or test of these rules also excludes the compiler,
 SQLite model adapters and storage stack.

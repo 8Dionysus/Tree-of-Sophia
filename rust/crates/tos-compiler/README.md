@@ -36,7 +36,6 @@ New complete native snapshots select
 are retained once in `knowledge_source_carriers`; normalized rows reference
 those logical bytes where their codec permits exact reconstruction. Identity,
 ordering and current rights remain properties of each row and its source.
-Sharing byte storage does not share authority.
 
 Source packets and normalized payloads use bounded physical frames from
 `knowledge_byte_codec.rs`. V4 retains immutable SHA-256-addressed dictionaries

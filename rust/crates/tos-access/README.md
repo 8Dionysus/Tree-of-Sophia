@@ -8,9 +8,8 @@ publication authorization, and no private source use; the selected rights
 record must allow `public_payload`, authorize redistribution, and bind the
 returned license URI and attribution. Units are copied only through one exact
 contiguous content anchor. It refuses local-only rights, unsafe paths,
-ambiguous anchors, and output/input/time budget overruns. The exporter does
-not create source identities, review meaning, or grant rights. Search indexes
-are omitted; the web provider retains literal matching in its existing reader.
+ambiguous anchors, and output/input/time budget overruns. Search indexes are
+omitted; the web provider retains literal matching in its existing reader.
 
 Invocation: `tos-access public-corpus-build --source-root ABS --selection REL
 --output FRESH_ABS --max-input-bytes N --max-output-bytes N --max-seconds N`.
@@ -22,8 +21,7 @@ runtime/API/page contracts, the offline Draft 2020-12 schema set, runtime-data
 allowlist and access source portability. It reads no production corpus. This
 native command is the `release_check` software-contract step. Validation lanes
 use `TOS_NATIVE_PREPARED_CONSUMER_BIN` when an exact built `tos-access` image is
-selected, or the installed `tos` on PATH. Source-data validation is a separate
-operation and is not implied by this software result.
+selected, or the installed `tos` on PATH.
 
 Library build profiles separate readers from source operations. The default
 `source-tools` profile keeps the complete installed `tos-access` product.
@@ -50,8 +48,7 @@ and morphology closure checks with captured owner schemas through
 `tos-validation`. The receipt includes exact source/schema digests and states
 whether the local database was verified. The default deadline is 180 seconds,
 configurable with `--max-seconds 1..600`; existing lexical file, total-input,
-parser and database limits apply. No text, translation, rights or publication
-assessment is inferred from this mechanical check.
+parser and database limits apply.
 
 `tos-research nietzsche-transfer-source-routes --source-root ABS --validate-tracked`
 checks the retained Nietzsche transfer maps and their candidate/provenance
@@ -83,23 +80,16 @@ helper selects no production policy. The explicitly selected managed-local
 binary profile derives a separate complete frame allowance from its existing
 1 MiB packet and 64 KiB request caps; library defaults keep equal caps.
 
-The maintained selected-wire fixture explicitly uses this derived allowance
-so every packet within its declared packet cap can traverse MCP. Its parser
-uses the same frame cap, and its assertions retain exact CLI, HTTP, MCP text
-and structured packet bytes plus the selected lease through final flush.
-The existing framing refusal case continues to check the default equal caps.
-Cancellation and current-authority disclosure fences apply independently of
-these byte allowances.
+The selected-wire fixture uses this allowance for exact CLI, HTTP, MCP text and
+structured packet bytes, plus the selected lease through final flush. The framing
+refusal case checks default equal caps. Cancellation and disclosure fences
+apply independently.
 
-The selected-family wire case also reuses the maintained native producer
-fixture for temporal, lens compile, focus, stored lens and exploration replay.
-It derives route selectors from the native descriptor and stored LensSpec from
-the digest-bound selected catalog. The fixture authority is still a test-only
-current-binding model, never an issuer or public grant. Native HTTP
-`write_response` is shared by the socket path and supplied writers; its final
-fence precedes bytes and its hold lasts through flush. Selected family cases
-observe that hold and refuse withdrawal/cancellation before disclosure. Public
-session issuance and Worker Response/body delivery require their own owners.
+The selected-family wire case reuses the native producer fixture for temporal,
+lens compile, focus, stored lens and exploration replay, using native descriptors
+and the digest-bound catalog. Native HTTP `write_response` serves sockets and
+supplied writers; its final fence precedes bytes and its hold lasts through flush. Withdrawal and
+cancellation refuse before disclosure.
 
 The maintained caller compatibility seam accepts `--option=value`, preserves
 last scalar and `--sources` occurrence semantics, and retains appended
@@ -115,16 +105,13 @@ returns an error without writing an oversized frame. Initialize is accepted
 only after its response is flushed. Tool advertisement includes only actual
 executor-ready operations and their exact descriptor schemas.
 
-The 60-parser/50-HTTP/50-MCP inventory describes the historical caller-only
-milestone retained in the Rust cutover commit `b54cbf8e` (2026-10-16), not a
-current list of missing native functions. Current native dispatch lives in
+Current native dispatch lives in
 `src/main.rs`, `src/http.rs` and `src/mcp.rs`; standalone contracts and the
 installed-product checks have their own routes in
 [the access guide](../../../access/README.md) and
-[release guidance](../../../docs/RELEASING.md). These wire fixtures alone do
-not establish whole-product parity: selected source/prepared inputs, diagnostics,
-assets, domain behavior and actual owner binding need their corresponding
-checks. The bounded compact JSON and typed native error/exit profile remain explicit:
+[release guidance](../../../docs/RELEASING.md). The historical
+60-parser/50-HTTP/50-MCP inventory is in `b54cbf8e` (2026-10-16). The bounded
+compact JSON and typed native error/exit profile are:
 0 successful flush, 1 query/disclosure/output failure, 2 request/file/usage
 failure, 3 unavailable selected capability. Historical Python pretty JSON and
 FastMCP serialization are not silently substituted for this declared native profile.
