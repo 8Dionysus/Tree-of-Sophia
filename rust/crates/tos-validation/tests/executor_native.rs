@@ -32,6 +32,79 @@ mod linux {
     }
 
     #[test]
+    fn candidate_legacy_diagnostics_keep_the_selected_raw_limit_and_fence() {
+        use std::sync::atomic::AtomicBool;
+        use tos_validation::executor::VerifiedWorkerImageHandle;
+        use tos_validation::source_cut::{
+            CandidateCutWorkerSchemaExecutor, CutSchemaDiagnosticsLimits, CutWorkerLimits,
+        };
+        let (identity, _, _) = worker();
+        let cancelled = AtomicBool::new(false);
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let budget = ExecutorBudget::laboratory();
+        let image =
+            VerifiedWorkerImageHandle::prepare(identity, budget, deadline, &cancelled).unwrap();
+        let contract = "ToS/contracts/candidate-raw-limit.schema.json";
+        let uri = format!("https://tree-of-sophia.local/{contract}");
+        let schema = format!(r#"{{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"{uri}","type":"string"}}"#).into_bytes();
+        let mut candidate = CandidateCutWorkerSchemaExecutor::from_selected_source_resources(
+            17u64,
+            vec![(contract.into(), SchemaResource { uri, raw: schema })],
+            FormatProfile::LegacyPythonObserved20260923,
+            &image,
+            budget,
+            CutWorkerLimits {
+                max_receipts: 1,
+                max_receipt_bytes: 65536,
+            },
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        let selected = 2 * 1024 * 1024;
+        assert!(
+            candidate
+                .set_diagnostics_v2_legacy_raw_instance_limit(selected)
+                .is_err()
+        );
+        candidate
+            .enable_diagnostics_v2(CutSchemaDiagnosticsLimits {
+                max_total_issues: 16,
+                max_total_report_bytes: 65536,
+                max_total_state_bytes: 8 * 1024 * 1024,
+            })
+            .unwrap();
+        assert!(
+            candidate
+                .diagnostics_v2_controller_state_upper_bound(selected, 4096)
+                .is_err()
+        );
+        candidate
+            .set_diagnostics_v2_legacy_raw_instance_limit(selected)
+            .unwrap();
+        let controller = candidate
+            .diagnostics_v2_controller_state_upper_bound(selected, 4096)
+            .unwrap();
+        candidate
+            .set_diagnostics_v2_controller_state_cap(controller)
+            .unwrap();
+        assert!(
+            candidate
+                .set_diagnostics_v2_legacy_raw_instance_limit(selected)
+                .is_err()
+        );
+        let mut raw = vec![b'x'; 1024 * 1024 + 2];
+        raw[0] = b'"';
+        *raw.last_mut().unwrap() = b'"';
+        let result = candidate
+            .check_diagnostics_v2("candidate.json", &raw, contract, deadline, &cancelled)
+            .unwrap();
+        assert!(result.is_valid());
+        assert_eq!(*result.input_identity(), 17);
+        assert_eq!(result.source_raw_sha256(), Digest256::of_bytes(&raw));
+    }
+
+    #[test]
     fn cut_diagnostic_reuse_preserves_exact_inputs_and_execution_cost() {
         use std::collections::BTreeMap;
         use std::sync::atomic::AtomicBool;

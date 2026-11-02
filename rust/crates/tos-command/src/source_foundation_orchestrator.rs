@@ -1230,6 +1230,11 @@ pub(crate) fn prepare_candidate_schema_worker(
     .map_err(owner)?;
     worker.set_operation_budget(operation).map_err(owner)?;
     worker.enable_diagnostics_v2(diagnostics).map_err(owner)?;
+    // Match the resident route: select the protected raw-member ceiling before
+    // the shared quota and controller reservation freeze this legacy executor.
+    worker
+        .set_diagnostics_v2_legacy_raw_instance_limit(schema_limits.max_instance_bytes)
+        .map_err(owner)?;
     worker
         .set_shared_schema_worker_quota(quota.clone())
         .map_err(owner)?;

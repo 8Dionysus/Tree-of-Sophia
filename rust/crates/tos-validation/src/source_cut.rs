@@ -1340,6 +1340,14 @@ impl<I: Copy + Eq> CandidateCutWorkerSchemaExecutor<I> {
             .set_diagnostics_v2_controller_state_cap(cap_bytes)
     }
 
+    pub fn set_diagnostics_v2_legacy_raw_instance_limit(
+        &mut self,
+        max_instance_bytes: usize,
+    ) -> Result<(), ItemRefusal> {
+        self.inner
+            .set_diagnostics_v2_legacy_raw_instance_limit(max_instance_bytes)
+    }
+
     pub fn diagnostics_v2_controller_state_upper_bound(
         &self,
         max_instance_bytes: usize,
