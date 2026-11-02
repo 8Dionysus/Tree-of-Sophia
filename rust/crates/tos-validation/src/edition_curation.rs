@@ -77,6 +77,21 @@ pub fn validate_recipe_plan(
         .or(historical)
         .ok_or(EditionCurationError::MissingReference)?;
     verify_selected_bytes(plan, reference, expected)?;
+    if stage == "concept-workbench" {
+        let selected_plan = published_value(plan.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+            .map_err(EditionCurationError::Schema)?;
+        let pointer = recipe["identity_profile"]["issuance_time_plan_pointer"]
+            .as_str()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        if !pointer.starts_with('/')
+            || selected_plan
+                .pointer(pointer)
+                .and_then(Value::as_str)
+                .is_none()
+        {
+            return Err(EditionCurationError::MissingReference);
+        }
+    }
     if stage == "text-collation" {
         let selected_plan = published_value(plan.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
             .map_err(EditionCurationError::Schema)?;
@@ -406,6 +421,30 @@ enum MarkerPart {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if let Some(profile) = object.get("identity_profile") {
+                let mut kinds = BTreeSet::new();
+                for prefix in profile["identity_prefixes"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?
+                {
+                    let kind = prefix["kind"]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    if !kinds.insert(kind) {
+                        return Err(EditionCurationError::Duplicate("identity kind"));
+                    }
+                }
+                let role = profile["historical_issuance_role"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                if !object
+                    .get("historical_templates")
+                    .and_then(Value::as_array)
+                    .is_some_and(|entries| entries.iter().any(|entry| entry["role"] == role))
+                {
+                    return Err(EditionCurationError::MissingReference);
+                }
+            }
             if let Some(orthography) = object.get("orthography") {
                 let profiles = orthography["language_profiles"]
                     .as_array()

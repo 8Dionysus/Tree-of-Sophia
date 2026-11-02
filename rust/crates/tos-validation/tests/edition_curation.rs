@@ -82,6 +82,58 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let dta_raw = fs::read(root.join(dta_path)).unwrap();
     assert_eq!(validate(&dta_raw, &schema), Ok(()));
     let dta_value: Value = serde_json::from_slice(&dta_raw).unwrap();
+    let workbench = dta_value["recipes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|recipe| recipe["stage"] == "concept-workbench")
+        .unwrap();
+    let issuance_ref = workbench["historical_templates"][0]["ref"]
+        .as_str()
+        .unwrap();
+    let issuance_raw = fs::read(root.join(issuance_ref)).unwrap();
+    let workbench_plan_ref = workbench["plan_ref"].as_str().unwrap();
+    let workbench_plan_raw = fs::read(root.join(workbench_plan_ref)).unwrap();
+    assert_eq!(
+        validate_recipe_plan(
+            &dta_raw,
+            "concept-workbench",
+            SelectedDocument {
+                reference: workbench_plan_ref,
+                raw: &workbench_plan_raw,
+            },
+            &schema,
+        ),
+        Ok(())
+    );
+    assert_eq!(
+        validate_recipe_template(
+            &dta_raw,
+            "concept-workbench",
+            "identity-issuance",
+            SelectedDocument {
+                reference: issuance_ref,
+                raw: &issuance_raw,
+            },
+            &schema,
+        ),
+        Ok(())
+    );
+    let mut duplicate_identity = dta_value.clone();
+    let workbench = duplicate_identity["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "concept-workbench")
+        .unwrap();
+    let prefixes = workbench["identity_profile"]["identity_prefixes"]
+        .as_array_mut()
+        .unwrap();
+    prefixes.push(prefixes[0].clone());
+    assert_eq!(
+        validate(&serde_json::to_vec(&duplicate_identity).unwrap(), &schema),
+        Err(EditionCurationError::Duplicate("identity kind"))
+    );
     let mut duplicate_orthography = dta_value.clone();
     let parallel = duplicate_orthography["recipes"]
         .as_array_mut()

@@ -564,6 +564,72 @@
         "signature_method": "shared_reversible_signature",
         "unknown_language_character_replacements": [],
         "unknown_language_split_hyphenated_forms": false
+      },
+      "historical_templates": [
+        {
+          "role": "identity-issuance",
+          "ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/identity-issuance.v1.json",
+          "sha256": "2a194915f22c0141f87ecdd3c4678a61c407af24e651b4255f804bb2481a2cd1"
+        }
+      ],
+      "identity_profile": {
+        "historical_issuance_role": "identity-issuance",
+        "historical_record_count": 8358,
+        "issuance_schema_version": "tos_zarathustra_concept_workbench_identity_issuance_v1",
+        "identity_policy": "opaque-id-independent-of-source-text-label-translation-speaker-name-and-current-interpretation",
+        "issuance_time_plan_pointer": "/frozen_at",
+        "id_prefix": "tos.annotation.",
+        "id_infix": ".sid-",
+        "algorithm": "sha256",
+        "digest_hex_characters": 32,
+        "hash_input_separator": "\n",
+        "identity_prefixes": [
+          {
+            "kind": "workbench",
+            "prefix": "concept-workbench"
+          },
+          {
+            "kind": "request",
+            "prefix": "concept-request"
+          },
+          {
+            "kind": "concept",
+            "prefix": "concept-candidate"
+          },
+          {
+            "kind": "speaker",
+            "prefix": "speaker-state-candidate"
+          },
+          {
+            "kind": "form",
+            "prefix": "form-family-candidate"
+          },
+          {
+            "kind": "occurrence",
+            "prefix": "concept-occurrence-candidate"
+          },
+          {
+            "kind": "relation",
+            "prefix": "concept-relation-candidate"
+          },
+          {
+            "kind": "english_task",
+            "prefix": "english-translation-task"
+          }
+        ],
+        "request_key_field": "request_identity_key",
+        "request_version_field": "request_version",
+        "request_version_separator": "|v",
+        "binding_separator": "|",
+        "form_binding_fields": [
+          "selection_kind",
+          "language",
+          "analysis_key_sha256",
+          "probe_normalized_sha256"
+        ],
+        "workbench_binding": "foundation-v1",
+        "concept_binding_prefix": "concept|",
+        "event_digest_hex_characters": 32
       }
     },
     {
