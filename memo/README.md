@@ -1,21 +1,12 @@
-# Tree-of-Sophia Memo Port
+# Tree of Sophia memo port
 
-This is the tree-local memory port for `Tree-of-Sophia`.
+This port records public-safe, source-linked memory candidates and handoffs for
+review by `aoa-memo`. [PORT.yaml](PORT.yaml) defines the `write_candidate_only`
+mode and routes. Place candidates, receipts, exports and local notes in their
+respective directories when needed.
 
-Use it for candidates, receipts, exports, and local notes that should be visible
-to future agents without making `Tree-of-Sophia` the central memory authority.
-
-| Path | Use |
-|---|---|
-| `PORT.yaml` | tree-local port contract |
-| `INDEX.md` / `index.min.json` | generated local read model over packets |
-| `candidates/` | proposed memory claims with evidence refs |
-| `receipts/` | accept, reject, validate, or forward traces |
-| `exports/` | reviewed-intake packets for `aoa-memo` |
-| `local/` | tree-local memory notes that should remain local |
-
-Default write mode: `write_candidate_only`.
-
-[Local validation](VALIDATION.md) covers ToS routes, packet evidence and index
-freshness. The receiving `aoa-memo` owner performs compatibility, indexing and
-admission on its side; ToS does not execute that owner's tools.
+Review each packet's evidence, privacy, requested route and disposition before
+handoff. The receiving `aoa-memo` owner validates, indexes and admits its copy.
+[index.min.json](index.min.json) is a generated snapshot; compare its membership
+with the packets and read those packets directly when it is stale. The local
+port currently has no export or import command.
