@@ -466,6 +466,15 @@ impl SourceFoundationCandidateSchemaBinding<CandidateFence> for CandidateSchemaB
     fn contract_digest(&self, contract: &str) -> Option<Digest256> {
         self.worker.contract_digest(contract)
     }
+    fn selected_resource_totals(&self) -> Result<(u64, u64), ItemRefusal> {
+        self.guard(self.deadline, self.cancelled)?;
+        Ok((
+            u64::try_from(self.worker.source_resource_count())
+                .map_err(|_| tos_validation::item_budget_origin!())?,
+            u64::try_from(self.worker.schema_bytes())
+                .map_err(|_| tos_validation::item_budget_origin!())?,
+        ))
+    }
     fn for_each_selected_resource(
         &self,
         visit: &mut dyn FnMut(

@@ -1825,7 +1825,7 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
                                         if native.input_identity() != input.input_identity()
                                             || native.current_membership()
                                                 != *records.source_membership()
-                                            || native.prepared_execution_binding() != prepared
+                                            || native.schema_execution_binding() != tos_foundation::SchemaExecutionBinding::Worker(prepared)
                                             || native.schema_set_sha256()
                                                 != schema_identity.schema_set_digest()
                                             || native.contract_selection_sha256()

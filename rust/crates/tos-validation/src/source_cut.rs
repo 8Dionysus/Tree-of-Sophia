@@ -1640,6 +1640,14 @@ impl<I: Copy + Eq> crate::source_foundation_records::SourceFoundationCandidateSc
         CandidateCutWorkerSchemaExecutor::contract_digest(self, contract)
     }
 
+    fn selected_resource_totals(&self) -> Result<(u64, u64), ItemRefusal> {
+        Ok((
+            u64::try_from(self.source_resource_count())
+                .map_err(|_| crate::item_budget_origin!())?,
+            u64::try_from(self.schema_bytes()).map_err(|_| crate::item_budget_origin!())?,
+        ))
+    }
+
     fn for_each_selected_resource(
         &self,
         visit: &mut dyn FnMut(
@@ -5421,6 +5429,7 @@ impl<I> CutSchemaExecutor for InProcessCutSchemaExecutor<I> {
 pub struct InProcessCandidateSchemaExecutor<I> {
     input_identity: I,
     selected: Vec<SelectedSchemaResource>,
+    schema_bytes: usize,
     contract_selection_digest: Digest256,
     inner: InProcessCutSchemaExecutor<I>,
     pending_rejections: std::collections::VecDeque<CandidateSchemaDiagnostic<I>>,
@@ -5448,6 +5457,7 @@ impl<I: Copy + Eq> InProcessCandidateSchemaExecutor<I> {
             ));
         }
         let mut previous: Option<&str> = None;
+        let mut selected_bytes = 0usize;
         for (metadata, resource) in schema_set
             .source_resources
             .iter()
@@ -5466,7 +5476,15 @@ impl<I: Copy + Eq> InProcessCandidateSchemaExecutor<I> {
                     "candidate schema resource differs".into(),
                 ));
             }
+            selected_bytes = selected_bytes
+                .checked_add(resource.raw.len())
+                .ok_or(crate::item_budget_origin!())?;
             previous = Some(&metadata.path);
+        }
+        if selected_bytes != schema_set.schema_bytes {
+            return Err(ItemRefusal::Source(
+                "candidate schema byte total differs".into(),
+            ));
         }
         let input_identity = schema_set.input_identity;
         let inner = InProcessCutSchemaExecutor::new(
@@ -5481,6 +5499,7 @@ impl<I: Copy + Eq> InProcessCandidateSchemaExecutor<I> {
         Ok(Self {
             input_identity,
             selected: schema_set.source_resources,
+            schema_bytes: schema_set.schema_bytes,
             contract_selection_digest: schema_set.contract_selection_sha256,
             inner,
             pending_rejections: std::collections::VecDeque::new(),
@@ -5632,6 +5651,12 @@ impl<I: Copy + Eq> crate::source_foundation_records::SourceFoundationCandidateSc
     fn contract_digest(&self, contract: &str) -> Option<Digest256> {
         self.inner.selected_contract_digest(contract)
     }
+    fn selected_resource_totals(&self) -> Result<(u64, u64), ItemRefusal> {
+        Ok((
+            u64::try_from(self.selected.len()).map_err(|_| crate::item_budget_origin!())?,
+            u64::try_from(self.schema_bytes).map_err(|_| crate::item_budget_origin!())?,
+        ))
+    }
     fn for_each_selected_resource(
         &self,
         visit: &mut dyn FnMut(
@@ -5701,9 +5726,21 @@ pub(crate) mod in_process_candidate_binding_tests {
             )
             .is_err()
         );
+        let mut invalid_total = selected_set();
+        invalid_total.schema_bytes += 1;
+        assert!(
+            InProcessCandidateSchemaExecutor::from_schema_set(
+                invalid_total,
+                crate::in_process::InputMode::PublishedStrict,
+                deadline,
+                &cancelled
+            )
+            .is_err()
+        );
         let expected = selected_set();
         let expected_set = expected.schema_set_sha256;
         let expected_selection = expected.contract_selection_sha256;
+        let expected_bytes = expected.schema_bytes as u64;
         let mut executor = InProcessCandidateSchemaExecutor::from_schema_set(
             expected,
             crate::in_process::InputMode::PublishedStrict,
@@ -5714,6 +5751,10 @@ pub(crate) mod in_process_candidate_binding_tests {
         assert_eq!(*executor.input_identity(), 42);
         assert_eq!(executor.schema_set_digest(), expected_set);
         assert_eq!(executor.contract_selection_digest(), expected_selection);
+        assert_eq!(
+            executor.selected_resource_totals().unwrap(),
+            (1, expected_bytes)
+        );
         let mut count = 0;
         executor
             .for_each_selected_resource(&mut |row| {

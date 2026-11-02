@@ -491,11 +491,14 @@ fn strip_jsonl_line_ending(raw: &[u8]) -> &[u8] {
 /// The caller supplies the complete source coverage produced by the Records
 /// pass; this function verifies that fence on both sides of the replay.
 #[allow(clippy::too_many_arguments)]
-pub fn verify_native_compound_from_input<I: Copy + Eq>(
+pub fn verify_native_compound_from_input<
+    I: Copy + Eq,
+    S: SourceFoundationCandidateSchemaBinding<I>,
+>(
     input: &dyn SourceCutInputWithIdentity<I>,
     coverage: &SourceCutInputCoverage,
     records: &SourceFoundationRecordsStreamedReport<'_, I>,
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
+    schemas: &mut S,
     claim_path: &str,
     selected_claim_raw: &[u8],
     limits: ItemLimits,
@@ -516,15 +519,16 @@ pub fn verify_native_compound_from_input<I: Copy + Eq>(
     let candidate_schema = records.candidate_schema_identity().ok_or_else(|| {
         ItemRefusal::Unsupported("candidate native replay requires streamed schema identity".into())
     })?;
+    let prepared_execution_binding = schemas
+        .schema_execution_binding()
+        .ok_or_else(|| bad("candidate native Claim schema binding absent"))?;
+    let (selected_count, selected_bytes) = schemas.selected_resource_totals()?;
     if candidate_schema.profile() != schemas.profile()
         || candidate_schema.schema_set_digest() != schemas.schema_set_digest()
         || candidate_schema.contract_selection_digest() != schemas.contract_selection_digest()
-        || candidate_schema.prepared_execution_binding()
-            != Some(schemas.prepared_execution_binding())
-        || candidate_schema.selected_resource_count()
-            != u64::try_from(schemas.source_resource_count()).map_err(|_| ItemRefusal::Budget)?
-        || candidate_schema.selected_resource_bytes()
-            != u64::try_from(schemas.schema_bytes()).map_err(|_| ItemRefusal::Budget)?
+        || candidate_schema.schema_execution_binding() != prepared_execution_binding
+        || candidate_schema.selected_resource_count() != selected_count
+        || candidate_schema.selected_resource_bytes() != selected_bytes
     {
         return Err(bad("candidate native Claim schema/report binding"));
     }
@@ -565,55 +569,55 @@ pub fn verify_native_compound_from_input<I: Copy + Eq>(
     let mut diagnostics_cost = crate::record_rules::CandidateLocalClaimDiagnosticsCost::default();
     let input_identity = *input.input_identity();
     let current_membership = *records.source_membership();
-    let prepared_execution_binding = schemas.prepared_execution_binding();
     let schema_set_sha256 = schemas.schema_set_digest();
     let contract_selection_sha256 = schemas.contract_selection_digest();
-    let mut validate_local_claim = |raw: &[u8],
-                                    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
-                                    local_limits: ItemLimits| {
-        let (decoded, _) = crate::record_biblio_cut::bounded_decoded_state(
-            raw,
-            JsonLimits::default(),
-            local_limits.max_state_bytes,
-            local_limits.deadline,
-            cancelled,
-        )?;
-        let is_current_claim = &decoded == &claim;
-        drop(decoded);
-        let current_raw = if is_current_claim { selected_line } else { raw };
-        let mut local = crate::record_rules::validate_source_claim_from_input(
-            input,
-            records,
-            current_raw,
-            schemas,
-            local_limits,
-            cancelled,
-        )?;
-        if !local.issues.is_empty()
-            || local.input_identity != input_identity
-            || local.current_membership != current_membership
-            || local.prepared_execution_binding
-                != tos_foundation::SchemaExecutionBinding::Worker(
-                    schemas.prepared_execution_binding(),
-                )
-            || local.schema_set_sha256 != schemas.schema_set_digest()
-            || local.contract_selection_sha256 != schemas.contract_selection_digest()
-        {
-            return Err(bad("candidate native Claim local-profile binding"));
-        }
-        merge_candidate_diagnostics_cost(&mut diagnostics_cost, local.diagnostics_cost)?;
-        Ok(LocalClaimValidation {
-            dependency_digests: std::mem::take(&mut local.dependency_digests),
-            dependency_bytes_read: local.dependency_bytes_read,
-        })
-    };
+    let mut selected_schemas = CandidateCompoundSchemas::new(schemas, input_identity)?;
+    let mut validate_local_claim =
+        |raw: &[u8], schemas: &mut CandidateCompoundSchemas<'_, I, S>, local_limits: ItemLimits| {
+            schemas.guard()?;
+            let (decoded, _) = crate::record_biblio_cut::bounded_decoded_state(
+                raw,
+                JsonLimits::default(),
+                local_limits.max_state_bytes,
+                local_limits.deadline,
+                cancelled,
+            )?;
+            let is_current_claim = &decoded == &claim;
+            drop(decoded);
+            let current_raw = if is_current_claim { selected_line } else { raw };
+            let mut local = crate::record_rules::validate_source_claim_from_input(
+                input,
+                records,
+                current_raw,
+                schemas.inner,
+                local_limits,
+                cancelled,
+            )?;
+            schemas.guard()?;
+            if !local.issues.is_empty()
+                || local.input_identity != input_identity
+                || local.current_membership != current_membership
+                || local.prepared_execution_binding != schemas.binding
+                || local.schema_set_sha256 != schemas.binding.schema_set_sha256()
+                || local.contract_selection_sha256 != schemas.selection
+            {
+                return Err(bad("candidate native Claim local-profile binding"));
+            }
+            merge_candidate_diagnostics_cost(&mut diagnostics_cost, local.diagnostics_cost)?;
+            Ok(LocalClaimValidation {
+                dependency_digests: std::mem::take(&mut local.dependency_digests),
+                dependency_bytes_read: local.dependency_bytes_read,
+            })
+        };
     let observation = reader.verify_with_local_claim_validator(
         claim_path,
         &claim,
-        schemas,
+        &mut selected_schemas,
         &mut validate_local_claim,
     )?;
     drop(validate_local_claim);
+    selected_schemas.guard()?;
+    drop(selected_schemas);
     drop(claim);
     reader.release_temporary(claim_state);
     let claims_raw_state = claims_raw
@@ -672,7 +676,7 @@ pub struct NativeCompoundReadObservation {
 pub struct CandidateNativeCompoundReadObservation<I> {
     input_identity: I,
     current_membership: SourceMembershipV1,
-    prepared_execution_binding: CutPreparedSchemaExecutionBinding,
+    prepared_execution_binding: tos_foundation::SchemaExecutionBinding,
     schema_set_sha256: Digest256,
     contract_selection_sha256: Digest256,
     observation: NativeCompoundReadObservation,
@@ -689,7 +693,14 @@ impl<I> CandidateNativeCompoundReadObservation<I> {
         self.current_membership
     }
 
-    pub fn prepared_execution_binding(&self) -> CutPreparedSchemaExecutionBinding {
+    pub fn prepared_execution_binding(&self) -> Option<CutPreparedSchemaExecutionBinding> {
+        match self.prepared_execution_binding {
+            tos_foundation::SchemaExecutionBinding::Worker(binding) => Some(binding),
+            tos_foundation::SchemaExecutionBinding::InProcessV1(_) => None,
+        }
+    }
+
+    pub fn schema_execution_binding(&self) -> tos_foundation::SchemaExecutionBinding {
         self.prepared_execution_binding
     }
 

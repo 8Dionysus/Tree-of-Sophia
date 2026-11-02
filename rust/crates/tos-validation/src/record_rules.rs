@@ -3476,17 +3476,7 @@ fn validate_candidate_claim_core<I: Copy + Eq>(
     let prepared = worker.schema_execution_binding().ok_or_else(|| {
         ItemRefusal::Source("local Claim schema execution binding unavailable".into())
     })?;
-    let mut selected_count = 0u64;
-    let mut selected_bytes = 0u64;
-    worker.for_each_selected_resource(&mut |resource| {
-        selected_count = selected_count
-            .checked_add(1)
-            .ok_or(crate::item_budget_origin!())?;
-        selected_bytes = selected_bytes
-            .checked_add(resource.size_bytes)
-            .ok_or(crate::item_budget_origin!())?;
-        Ok(())
-    })?;
+    let (selected_count, selected_bytes) = worker.selected_resource_totals()?;
     if worker.profile() != FormatProfile::LegacyPythonObserved20260923
         || candidate_schema.profile() != worker.profile()
         || candidate_schema.schema_set_digest() != worker.schema_set_digest()

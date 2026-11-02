@@ -74,6 +74,19 @@ pub trait SourceFoundationCandidateSchemaBinding<I: Eq + Clone>: CutSchemaExecut
         ) -> Result<(), ItemRefusal>,
     ) -> Result<(), ItemRefusal>;
 
+    fn selected_resource_totals(&self) -> Result<(u64, u64), ItemRefusal> {
+        let mut count = 0u64;
+        let mut bytes = 0u64;
+        self.for_each_selected_resource(&mut |resource| {
+            count = count.checked_add(1).ok_or(crate::item_budget_origin!())?;
+            bytes = bytes
+                .checked_add(resource.size_bytes)
+                .ok_or(crate::item_budget_origin!())?;
+            Ok(())
+        })?;
+        Ok((count, bytes))
+    }
+
     /// Execute the unchanged schema selector, including any JSON-pointer
     /// fragment in `contract`. The default forwards the contract byte-for-byte
     /// through the established scalar executor.
