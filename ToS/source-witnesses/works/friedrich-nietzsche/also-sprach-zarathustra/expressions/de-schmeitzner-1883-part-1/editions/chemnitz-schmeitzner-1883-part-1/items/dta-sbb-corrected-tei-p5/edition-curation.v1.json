@@ -226,7 +226,32 @@
       "historical_template_ref": "rust/crates/tos-compiler/src/research_paragraph_alignment_templates.json",
       "historical_template_sha256": "1e3506a2f72714976eecf921c66199840491df500551202fb51759b4481d0480",
       "historical_event_date": "2026-09-01",
-      "historical_ended_at": "2026-09-01T21:00:00-06:00"
+      "historical_ended_at": "2026-09-01T21:00:00-06:00",
+      "historical_event_prefix": "tos.event.zarathustra-de-ru-paragraph-alignment-v1.",
+      "historical_event_schema": "tos_zarathustra_de_ru_paragraph_alignment_provenance_v1",
+      "identity_issuance": {
+        "issuance_id": "tos.identity-issuance.zarathustra-de-ru-paragraph-alignment-v1",
+        "schema_version": "tos_zarathustra_de_ru_paragraph_alignment_identity_issuance_v1",
+        "issued_on": "2026-09-01",
+        "identity_prefixes": [
+          {
+            "kind": "packets",
+            "prefix": "tos.translation-alignment-packet"
+          },
+          {
+            "kind": "target_anchors",
+            "prefix": "tos.anchor"
+          },
+          {
+            "kind": "alignments",
+            "prefix": "tos.translation-alignment"
+          },
+          {
+            "kind": "claims",
+            "prefix": "tos.translation-alignment-claim"
+          }
+        ]
+      }
     },
     {
       "stage": "parallel-lexical-candidates",
@@ -250,7 +275,28 @@
       "target_markup": "technical-markup/antonovsky-1911-structural-paragraph-v2",
       "source_markup": "technical-markup/dta-first-editions-parts-1-4-v1",
       "private_root": "gold-sets/foundation-pilot-v1/local-content/parallel-lexical-candidates-v1",
-      "join_allowed_characters": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÄÖÜßäöüЁІЇАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюяёіїѢѣѲѳѴѵẞ"
+      "join_allowed_characters": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÄÖÜßäöüЁІЇАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюяёіїѢѣѲѳѴѵẞ",
+      "historical_event": {
+        "event_id": "tos.event.zarathustra-parallel-lexical-candidates-v1.build",
+        "event_type": "mechanical_lexical_candidate_materialization",
+        "occurred_at": "2026-09-02T00:15:00-06:00",
+        "agent_ref": "codex-internal-agents.lexical-candidate-v1"
+      },
+      "identity_issuance": {
+        "issuance_id": "tos.identity-issuance.zarathustra-parallel-lexical-candidates-v1",
+        "schema_version": "tos_zarathustra_parallel_lexical_candidate_identity_issuance_v1",
+        "issued_on": "2026-09-02",
+        "identity_prefixes": [
+          {
+            "kind": "occurrence",
+            "prefix": "tos.occurrence.zarathustra-ru-ant1911.sid-"
+          },
+          {
+            "kind": "association",
+            "prefix": "tos.lexical-association-candidate.sid-"
+          }
+        ]
+      }
     },
     {
       "stage": "morphology-theme-candidates",
@@ -271,7 +317,32 @@
         "sha256": "8eebdf809bd5989d6c3aae60796a0be57bc886bf3f0441a6109b9b879954ac49"
       },
       "historical_template_ref": "rust/crates/tos-compiler/src/research_morphology_theme_suffixes.json",
-      "historical_template_sha256": "1924bbaa00f2287cb32c92bbcfc66e72408c1b66e4c4a565f7b01a27fb307c29"
+      "historical_template_sha256": "1924bbaa00f2287cb32c92bbcfc66e72408c1b66e4c4a565f7b01a27fb307c29",
+      "historical_event": {
+        "event_id": "tos.event.zarathustra-morphology-theme-candidates-v1.build",
+        "event_type": "agent_candidate_morphology_theme_materialization",
+        "occurred_at": "2026-09-02T03:00:00-06:00",
+        "agent_ref": "codex-internal-agents.morphology-theme-candidate-v1"
+      },
+      "identity_issuance": {
+        "issuance_id": "tos.identity-issuance.zarathustra-morphology-themes-v1",
+        "schema_version": "tos_zarathustra_morphology_theme_candidate_identity_issuance_v1",
+        "issued_on": "2026-09-02",
+        "identity_prefixes": [
+          {
+            "kind": "family",
+            "prefix": "tos.annotation.morph-family-candidate.sid-"
+          },
+          {
+            "kind": "cluster",
+            "prefix": "tos.annotation.theme-cluster-candidate.sid-"
+          },
+          {
+            "kind": "relation",
+            "prefix": "tos.claim.typed-relation-candidate.sid-"
+          }
+        ]
+      }
     },
     {
       "stage": "lexical-morphology-evaluation",
