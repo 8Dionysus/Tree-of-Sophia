@@ -93,6 +93,18 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         validate(&serde_json::to_vec(&out_of_order).unwrap(), &schema),
         Err(EditionCurationError::InvalidRange("parts"))
     );
+    let mut invalid_template = dta_value.clone();
+    let constructor = invalid_template["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "constructor-library")
+        .unwrap();
+    constructor["presentation"]["part_description_template"]["ru"] = json!("{unknown}");
+    assert_eq!(
+        validate(&serde_json::to_vec(&invalid_template).unwrap(), &schema),
+        Err(EditionCurationError::InvalidRange("presentation template"))
+    );
     let mut missing_historical_output = dta_value.clone();
     let foundation = missing_historical_output["recipes"]
         .as_array_mut()

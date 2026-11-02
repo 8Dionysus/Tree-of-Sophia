@@ -261,6 +261,33 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                         return Err(EditionCurationError::BindingMismatch);
                     }
                 }
+                let presentation = object
+                    .get("presentation")
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                for (name, expected) in [
+                    (
+                        "part_description_template",
+                        &["chapter_count", "fragment_count"][..],
+                    ),
+                    ("part_source_note_template", &["fragment_count", "year"][..]),
+                    (
+                        "chapter_body_template",
+                        &["chapter_label", "part_label"][..],
+                    ),
+                    ("provisional_speaker_template", &["speaker"][..]),
+                ] {
+                    let expected: BTreeSet<_> = expected.iter().copied().collect();
+                    for language in ["ru", "en"] {
+                        let text = presentation[name][language]
+                            .as_str()
+                            .ok_or(EditionCurationError::InvalidSchema)?;
+                        if template_fields(text) != Some(expected.clone()) {
+                            return Err(EditionCurationError::InvalidRange(
+                                "presentation template",
+                            ));
+                        }
+                    }
+                }
             }
             if let Some(Value::Array(regions)) = object.get("regions") {
                 let mut seen = BTreeSet::new();
@@ -303,6 +330,9 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                 ("x_min", "x_max"),
                 ("y_min", "y_max"),
                 ("min_words", "max_words"),
+                ("bilingual", "evidence_units"),
+                ("demo_translations", "evidence_units"),
+                ("evidence_units", "total_nodes"),
             ] {
                 if let (Some(a), Some(b)) = (object.get(lower), object.get(upper)) {
                     if !matches!(
@@ -433,6 +463,30 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
         _ => {}
     }
     Ok(())
+}
+
+fn template_fields(mut text: &str) -> Option<BTreeSet<&str>> {
+    let mut fields = BTreeSet::new();
+    loop {
+        let Some(start) = text.find('{') else {
+            return (!text.contains('}')).then_some(fields);
+        };
+        if text[..start].contains('}') {
+            return None;
+        }
+        let tail = &text[start + 1..];
+        let end = tail.find('}')?;
+        let field = &tail[..end];
+        if field.is_empty()
+            || !field
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b == b'_')
+        {
+            return None;
+        }
+        fields.insert(field);
+        text = &tail[end + 1..];
+    }
 }
 
 fn number_parts(value: &Value) -> Option<(bool, String, BigInt)> {

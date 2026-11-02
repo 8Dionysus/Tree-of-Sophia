@@ -2313,7 +2313,87 @@
           "annotation_ref": "tos.annotation.semantic-evidence-candidate.sid-ccdeb398711d81a0b4999a00748e39d2",
           "slug": "same-life"
         }
-      ]
+      ],
+      "presentation": {
+        "work_title": {
+          "ru": "Так говорил Заратустра",
+          "en": "Thus Spoke Zarathustra"
+        },
+        "work_description": {
+          "ru": "Фридрих Ницше. В библиотеке — 210 выбранных фрагментов из четырёх частей книги. Открывайте главы, сравнивайте тексты и добавляйте собственные мысли к прочитанному.",
+          "en": "Friedrich Nietzsche. The library offers 210 selected passages from the book’s four parts. Open chapters, compare texts, and add your own thoughts to what you read."
+        },
+        "work_source_note": {
+          "ru": "Фридрих Ницше. Локальная библиотека объединяет 210 выбранных свидетельств из исследовательского досье вечного возвращения: 36 глав четырёх частей и один внеглавный эпиграф. Это весь отбор досье, а не полный текст книги. Названия глав переведены для навигации; точные тексты сохраняют собственные языки и источники.",
+          "en": "Friedrich Nietzsche. This local library contains all 210 selected evidence units from the eternal-return research dossier: 36 chapters across four parts and one epigraph outside the chapter structure. It is the complete dossier selection, not the complete book. Chapter titles are translated for navigation; exact texts retain their own languages and sources."
+        },
+        "part_description_template": {
+          "ru": "В этой части для чтения открыты {chapter_count} глав. В библиотеке: {fragment_count} фрагментов. Выберите главу, чтобы приблизиться к тексту.",
+          "en": "Explore {chapter_count} chapters from this part, with {fragment_count} passages in the library. Choose a chapter to approach the text."
+        },
+        "part_source_note_template": {
+          "ru": "{fragment_count} выбранных фрагментов. Немецкое свидетельство — издание {year} года, TEI DTA; русский слой — техническое извлечение перевода Антоновского 1911 года. Сопоставления предложены для рассмотрения и не устанавливают принятую эквивалентность переводов.",
+          "en": "{fragment_count} selected passages. The German witness is the {year} edition in DTA TEI; the Russian layer is a technical extraction of Antonovsky’s 1911 translation. Alignments are proposals for consideration, not accepted translation equivalences."
+        },
+        "quote_note": {
+          "ru": "Русский: точное техническое извлечение перевода Антоновского 1911 года; сохранены историческая орфография, переносы и возможные ошибки извлечения. Английский перевод отсутствует. При выборе EN показывается точный немецкий текст.",
+          "en": "English translation unavailable — showing the exact German witness. Russian text is the exact technical extraction of Antonovsky’s 1911 translation, retaining historical spelling, line breaks, and possible extraction errors."
+        },
+        "missing_translation_note": {
+          "ru": "В текущем сопоставлении нет русского фрагмента: показан точный немецкий текст. Этот пробел не доказывает отсутствия перевода в книге. Английский перевод также отсутствует.",
+          "en": "No Russian passage is present in this alignment: the exact German text is shown. This gap does not establish an omission in the translated book. English translation is also unavailable."
+        },
+        "chapter_body_template": {
+          "ru": "Из главы «{chapter_label}» · часть {part_label}.",
+          "en": "From {chapter_label} · Part {part_label}."
+        },
+        "epigraph_body": {
+          "ru": "Эпиграф ко второй части.",
+          "en": "Epigraph to Part II."
+        },
+        "one_sided_note_suffix": {
+          "ru": " Сопоставление одностороннее; как двуязычное подтверждение этот фрагмент не используется.",
+          "en": " The alignment is one-sided; this entry is not used as bilingual support."
+        },
+        "provisional_speaker_template": {
+          "ru": "{speaker} · предварительная атрибуция",
+          "en": "{speaker} · provisional attribution"
+        },
+        "hypothetical_speaker": {
+          "ru": "Звери, в том числе передающие предполагаемые слова Заратустры · атрибуция открыта",
+          "en": "The animals, including their imagined words of Zarathustra · attribution remains open"
+        },
+        "unknown_speaker": {
+          "ru": "Голос не установлен в этом досье",
+          "en": "The speaker has not been identified in this dossier"
+        },
+        "dossier_title": {
+          "ru": "Вечное возвращение · досье",
+          "en": "Eternal recurrence · dossier"
+        },
+        "dossier_description": {
+          "ru": "Исследовательский кандидат: 210 фрагментов и три открытых направления чтения — космологическое, экзистенциальное и поэтическое. Сравнивайте их опоры и развивайте собственное понимание.",
+          "en": "A research candidate: 210 passages and three open directions of reading — cosmological, existential, and poetic. Compare their evidence and develop your own understanding."
+        },
+        "dossier_source_note": {
+          "ru": "Исследовательский кандидат объединяет явные формулы, сопутствующие образы, неоднозначные места и исключённые контрольные примеры. Здесь открыты космологическое, экзистенциальное и поэтическое чтения. Ни одно из них не принято; concept_id не выдан, graph_effect=false и canon_effect=false. Свободные связи в вашем Древе выражают ваши собственные заметки и не меняют этот статус.",
+          "en": "This research candidate brings together explicit formulations, supporting images, ambiguous passages, and excluded controls. Cosmological, existential, and poetic readings remain open. None has been accepted; no concept_id has been issued, graph_effect=false and canon_effect=false. Free connections in your Tree express your own notes and do not change that status."
+        },
+        "epigraph_label": {
+          "ru": "Эпиграф",
+          "en": "Epigraph"
+        }
+      },
+      "expected_counts": {
+        "evidence_units": 210,
+        "bilingual": 206,
+        "demo_translations": 3,
+        "total_nodes": 252
+      },
+      "epigraph_reading_key": "p2.rNone",
+      "coverage_reference_label": "210 · coverage",
+      "readings_reference_label": "3 · readings",
+      "hypothetical_speaker_role": "animals_voicing_a_hypothetical_zarathustra"
     }
   ]
 }
