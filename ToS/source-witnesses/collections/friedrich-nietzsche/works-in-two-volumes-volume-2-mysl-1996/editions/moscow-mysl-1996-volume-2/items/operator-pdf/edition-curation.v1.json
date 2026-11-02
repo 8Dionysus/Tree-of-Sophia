@@ -568,6 +568,56 @@
       "historical_authority": "text-free co-availability over independently materialized source and target candidates only; shared structural route identity and frozen-page intersection create no bilingual passage pair, alignment, accepted text, eligibility, gold, human task, semantic claim, publication authority, or canon effect",
       "expected_source_count": 35,
       "expected_target_count": 35
+    },
+    {
+      "stage": "structural-source-routes",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.wikimedia-commons-unc-scan-pdf",
+        "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu",
+        "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf"
+      ],
+      "correspondence_contract_ref": "ToS/contracts/hierarchical-numbered-unit-label-correspondence.schema.json",
+      "route_contract_ref": "ToS/contracts/transfer-candidate-source-structural-route.schema.json",
+      "target_rights_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json",
+      "correspondence_schema_uri": "https://tree-of-sophia.local/ToS/contracts/hierarchical-numbered-unit-label-correspondence.schema.json",
+      "route_schema_uri": "https://tree-of-sophia.local/ToS/contracts/transfer-candidate-source-structural-route.schema.json",
+      "historical_authority": "This map pairs and routes identical series-qualified structural number-label keys from independently prepared exact source and target maps. The operation uses the maps as structural metadata.",
+      "historical_exclusions": [
+        "source_text",
+        "target_text",
+        "exact_line_boundaries",
+        "exact_passage_end_boundaries",
+        "source_to_target_passage_alignment",
+        "translation_correspondence",
+        "translation_equivalence",
+        "translation_quality",
+        "textual_identity",
+        "accepted_german",
+        "accepted_russian",
+        "target_gold",
+        "eligible_target_unit",
+        "semantics",
+        "rights_clearance",
+        "canon_promotion"
+      ],
+      "configurations": [
+        {
+          "slug": "zur-genealogie-der-moral",
+          "pair_slug": "naumann-1892-second-svasyan-mysl-1996",
+          "source": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/structure/hierarchical-numbered-unit-page-map.json",
+          "target": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-page-map.json",
+          "crosswalk": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/transfer-candidate-page-crosswalk.v1.json",
+          "expected": 78
+        },
+        {
+          "slug": "der-antichrist",
+          "pair_slug": "naumann-1906-flerova-mysl-1996",
+          "source": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/structure/hierarchical-numbered-unit-page-map.json",
+          "target": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-page-map.json",
+          "crosswalk": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/transfer-candidate-page-crosswalk.v1.json",
+          "expected": 62
+        }
+      ]
     }
   ]
 }
