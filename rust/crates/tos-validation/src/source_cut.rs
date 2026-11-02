@@ -5477,6 +5477,13 @@ pub struct InProcessCandidateSchemaExecutor<I> {
 }
 
 impl<I: Copy + Eq> InProcessCandidateSchemaExecutor<I> {
+    pub fn source_resource_metadata_state_bytes(&self) -> Option<usize> {
+        crate::source_foundation_schema::selected_source_resource_metadata_state(
+            &self.selected,
+            self.selected.capacity(),
+        )
+    }
+
     /// Prepare an explicitly selected, candidate-fenced schema closure.
     pub fn from_selected_source_resources(
         input_identity: I,

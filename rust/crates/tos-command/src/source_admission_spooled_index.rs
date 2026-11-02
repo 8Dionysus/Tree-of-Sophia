@@ -999,10 +999,11 @@ impl<'candidate> IndexSink<'candidate> {
     pub(crate) fn with_candidate_records_report<
         T,
         P: tos_validation::source_cut::CutPayloadReader,
+        W: source_admission_candidate_schema::CandidateSchemaExecutor,
     >(
         &mut self,
         input: &CandidateRecordsInput<'_, '_>,
-        worker: &mut tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<CandidateFence>,
+        worker: &mut W,
         limits: tos_validation::source_foundation_records::SourceFoundationRecordsLimits,
         require_local_payloads: bool,
         cancelled: &AtomicBool,
@@ -1017,7 +1018,7 @@ impl<'candidate> IndexSink<'candidate> {
         receive: impl FnOnce(
             &SourceFoundationRecordsStreamedReport<'_, CandidateFence>,
             &CandidateRecordsReportVerified,
-            &mut tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<CandidateFence>,
+            &mut W,
             &mut tos_validation::record_biblio_cut::BiblioRecordExecutor,
             &mut P,
         ) -> io::Result<T>,
@@ -1054,8 +1055,9 @@ impl<'candidate> IndexSink<'candidate> {
         let sink_identity = Arc::clone(&self.sink_identity);
         let result = (|| {
             let deadline = limits.operation.deadline;
-            let expected_schema =
-                SchemaExecutionBinding::Worker(worker.prepared_execution_binding());
+            let expected_schema = worker
+                .schema_execution_binding()
+                .ok_or_else(|| invalid("candidate prepared schema execution absent"))?;
             let report = source_admission_candidate_schema::inspect_candidate_records_stored(
                 input,
                 worker,
