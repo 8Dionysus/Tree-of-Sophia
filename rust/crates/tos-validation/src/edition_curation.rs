@@ -1312,6 +1312,28 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
             if let Some(replacements) = object.get("search_replacements") {
                 check_replacements(replacements)?;
             }
+            if let Some(profile) = object.get("line_join_profile") {
+                let whitespace = profile["whitespace_profile"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                tos_foundation::UnicodeProfile::from_profile(whitespace)
+                    .map_err(|_| EditionCurationError::InvalidSchema)?;
+                for text in [
+                    profile["markers"].as_str(),
+                    object
+                        .get("token_apostrophe_characters")
+                        .and_then(Value::as_str),
+                    object
+                        .get("join_allowed_characters")
+                        .and_then(Value::as_str),
+                ] {
+                    let text = text.ok_or(EditionCurationError::InvalidSchema)?;
+                    let mut seen = BTreeSet::new();
+                    if text.chars().any(|ch| !seen.insert(ch)) {
+                        return Err(EditionCurationError::Duplicate("token character"));
+                    }
+                }
+            }
             if let Some(profile) = object.get("text_classification") {
                 let whitespace = profile["whitespace_profile"]
                     .as_str()

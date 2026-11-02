@@ -276,6 +276,18 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         validate(&serde_json::to_vec(&bad_buckets).unwrap(), &schema),
         Err(EditionCurationError::InvalidRange("frequency_buckets"))
     );
+    let mut bad_join: Value = serde_json::from_slice(&reading_raw).unwrap();
+    let parallel = bad_join["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "parallel-lexical-candidates")
+        .unwrap();
+    parallel["line_join_profile"]["markers"] = json!("--");
+    assert_eq!(
+        validate(&serde_json::to_vec(&bad_join).unwrap(), &schema),
+        Err(EditionCurationError::Duplicate("token character"))
+    );
     let mut bad_threshold: Value = serde_json::from_slice(&reading_raw).unwrap();
     let parallel = bad_threshold["recipes"]
         .as_array_mut()
