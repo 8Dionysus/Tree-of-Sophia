@@ -173,8 +173,7 @@ reviewable and meaning stays owner-local.
 Former Experience placement is recoverable in immutable Git history.
 [TOS-D-0043](../../docs/decisions/TOS-D-0043-spark-and-legacy-scaffolding-retirement.md)
 owns historical old-path accounting. [Prior provenance](https://github.com/8Dionysus/Tree-of-Sophia/blob/b54cbf8e30ff46aeddeec5c47a5e7aa1f370977d/mechanics/experience/PROVENANCE.md)
-records the pre-compaction route. `PARTS.md`, `PROVENANCE.md` and `ROADMAP.md`
-remain compatibility entries for existing readers.
+records the pre-compaction route.
 
 ## Legacy Route
 

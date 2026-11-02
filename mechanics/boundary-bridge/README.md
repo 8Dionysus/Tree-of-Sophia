@@ -54,9 +54,6 @@ Immutable Git history preserves moved-path accounting from the former
 from `parts/derived-kag-seam/`.
 
 [Exact prior provenance](https://github.com/8Dionysus/Tree-of-Sophia/blob/b54cbf8e30ff46aeddeec5c47a5e7aa1f370977d/mechanics/boundary-bridge/PROVENANCE.md) preserves the pre-compaction route.
-Former `PARTS.md`, `PROVENANCE.md` and `ROADMAP.md` remain narrow compatibility
-entries for known local and unenumerated external readers. Their contents are
-owned here; they are not required components of a new mechanic.
 
 ## Growth conditions
 
