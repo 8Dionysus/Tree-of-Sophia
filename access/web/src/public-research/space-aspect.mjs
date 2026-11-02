@@ -8,7 +8,7 @@
 // positions are never written into the graph, and letting the choice go brings the space back as it was.
 
 // Units of the layout: a row holds one link's name; a link that names its kind as well takes a row and a half.
-export const ASPECT={row:44,tagged:1.6,header:.8,limit:10,narrowLimit:7,near:310,narrowNear:350,gap:22,forward:240,back:-640,pair:220,shared:80};
+export const ASPECT={row:44,tagged:1.6,header:.8,limit:10,narrowLimit:7,near:310,narrowName:120,narrowVerb:220,gap:22,forward:240,back:-640,pair:220,shared:80};
 
 const verb=edge=>String(edge.label??'').toLocaleLowerCase();
 /** A link's family: the registry family a core link was given, else the kind of the link. */
@@ -34,12 +34,17 @@ export function aspectFocus(view,{nodeId=null,edgeId=null}={}){
 const OTHER={ru:'Другие связи',en:'Other links',es:'Otros vínculos',de:'Weitere Verbindungen','zh-Hans':'其他联系'};
 const LEADS={in:{ru:'Ведёт сюда',en:'Leads here',es:'Lleva aquí',de:'Führt hierher','zh-Hans':'指向此处'},out:{ru:'Ведёт отсюда',en:'Leads on',es:'Lleva de aquí','de':'Führt weiter','zh-Hans':'由此引出'}};
 
-export function aspectLayout(view,{nodeId=null,edgeId=null,open={},narrow=false,budget=Infinity,label=value=>typeof value==='string'?value:value?.ru??value?.en??''}={},shape=ASPECT){
+export function aspectLayout(view,{nodeId=null,edgeId=null,open={},narrow=false,budget=Infinity,width=Infinity,label=value=>typeof value==='string'?value:value?.ru??value?.en??''}={},shape=ASPECT){
   const focus=aspectFocus(view,{nodeId,edgeId});if(!focus)return view;
   const byId=new Map(view.nodes.map(node=>[node.id,node])),place=new Map(),sides=new Map(),named=new Map(),quiet=new Set(),headers=[];
   const front=Math.max(0,...view.nodes.map(node=>node.position?.[2]??0))+shape.forward;
-  // A long verb wraps to a second line and takes the room of one; in one column the names and verbs are narrower.
-  const height=edge=>shape.row*(edge.tag||String(edge.label??'').length>(narrow?24:34)?shape.tagged:1);
+  // A long verb wraps to a second line and takes the room of one; in one column the names are narrower and a verb keeps to one line.
+  const height=edge=>shape.row*(edge.tag||(!narrow&&String(edge.label??'').length>34)?shape.tagged:1);
+  // In one column a star's name stands on its right and the verb of its link on its left, between it and the chosen star,
+  // so the column is read near its natural size: the gap and its verbs take what the area (`width`, in pixels) leaves after
+  // the names, and after half a name where a chosen link's stars carry theirs above them.
+  const room=Number.isFinite(width)?width:480,nameWidth=Math.round(Math.max(shape.narrowName,Math.min(180,room*.28))),lead=focus.kind==='edge'?nameWidth/2+11:0;
+  const narrowNear=Math.round(Math.max(100,Math.min(shape.narrowVerb+28,room-48-(nameWidth+22)-lead-6))),verbWidth=narrowNear-28;
   const rowsOf=blocks=>blocks.reduce((sum,block)=>sum+block.height,0)/shape.row;
   const linksOf=id=>view.edges.filter(edge=>(edge.from===id||edge.to===id)&&edge.from!==edge.to&&byId.has(edge.from)&&byId.has(edge.to));
   const byOther=list=>{const groups=new Map();for(const item of [...list].sort((a,b)=>verb(a.edge).localeCompare(verb(b.edge)))){if(!groups.has(item.other))groups.set(item.other,[]);groups.get(item.other).push(item.edge);}return [...groups];};
@@ -80,7 +85,7 @@ export function aspectLayout(view,{nodeId=null,edgeId=null,open={},narrow=false,
     return blocks;
   };
   const standAt=(near,blocks,anchor,side)=>{let top=anchor[1]-blocks.reduce((sum,block)=>sum+block.height,0)/2;for(const block of blocks){block.lay(top,anchor[0]+side*near,side);top+=block.height;}};
-  const stand=(blocks,anchor,side)=>standAt(narrow?shape.narrowNear:shape.near,blocks,anchor,side);
+  const stand=(blocks,anchor,side)=>standAt(narrow?narrowNear:shape.near,blocks,anchor,side);
   if(focus.kind==='node'){
     const [id]=focus.ids,center=[...(byId.get(id).position??[0,0]).slice(0,2),front];place.set(id,center);sides.set(id,'above');
     // What leads into the star stands on the left, what it leads to on the right; a star linked both ways stands once,
@@ -99,9 +104,11 @@ export function aspectLayout(view,{nodeId=null,edgeId=null,open={},narrow=false,
     if(narrow){
       // One column right of the star: what leads in, then what leads on, each under its name when both are there.
       const heading=key=>({height:shape.row*.8,lay:(top,x)=>headers.push({id:`aspect:heading:${key}`,center:[x,top+shape.row*.45,front],title:label(LEADS[key]),variant:'facet',align:'end',tone:'heading'})});
-      const both=inBlocks.length&&outBlocks.length,anchor=[center[0]-shape.narrowNear*.5,center[1]];
-      standAt(shape.narrowNear,[...(both?[heading('in')]:[]),...inBlocks,...(both?[{height:shape.gap,lay:()=>{}},heading('out')]:[]),...outBlocks],anchor,1);
-      place.set(id,[anchor[0],anchor[1],front]);
+      // The chosen star stands above the column's left, its links fanning down to the rows.
+      const both=inBlocks.length&&outBlocks.length,blocks=[...(both?[heading('in')]:[]),...inBlocks,...(both?[{height:shape.gap,lay:()=>{}},heading('out')]:[]),...outBlocks];
+      const lead=shape.row*1.3,top=center[1]-(lead+blocks.reduce((sum,block)=>sum+block.height,0))/2,x=center[0]-narrowNear*.5;
+      let y=top+lead;for(const block of blocks){block.lay(y,x+narrowNear,1);y+=block.height;}
+      place.set(id,[x,top+shape.row*.4,front]);sides.set(id,'right');
     }else{stand(inBlocks,center,-1);stand(outBlocks,center,1);}
   }else{
     const {edge}=focus,[a,b]=focus.ids.map(id=>byId.get(id).position??[0,0,0]),mid=[(a[0]+b[0])/2,(a[1]+b[1])/2];
@@ -116,9 +123,9 @@ export function aspectLayout(view,{nodeId=null,edgeId=null,open={},narrow=false,
       const upperList=items(fromSide,edge.to,sharedTo),lowerList=items(toSide,edge.from).filter(item=>!both.includes(item.other));
       let upper=blocksOf(upperList,'from',shape.narrowLimit,Boolean(open?.from||open?.to)),lower=blocksOf(lowerList,'to',shape.narrowLimit,Boolean(open?.from||open?.to));
       if(rowsOf([...upper,...lower])>budget){upper=blocksOf(upperList,'from',shape.narrowLimit,true);lower=blocksOf(lowerList,'to',shape.narrowLimit,true);}
-      const tall=list=>Math.max(shape.row,list.reduce((sum,block)=>sum+block.height,0)),x=mid[0]-shape.narrowNear*.5,top=mid[1]-(tall(upper)+tall(lower)+shape.row*2)/2;
+      const tall=list=>Math.max(shape.row,list.reduce((sum,block)=>sum+block.height,0)),x=mid[0]-narrowNear*.5,top=mid[1]-(tall(upper)+tall(lower)+shape.row*2)/2;
       const first=[x,top+tall(upper)/2,front],second=[x,top+tall(upper)+shape.row*2+tall(lower)/2,front];
-      place.set(edge.from,first);place.set(edge.to,second);sides.set(edge.from,'left');sides.set(edge.to,'left');
+      place.set(edge.from,first);place.set(edge.to,second);sides.set(edge.from,'above');sides.set(edge.to,'above');
       named.set(edge.id,{mid:true,align:'start'});
       stand(upper,first,1);stand(lower,second,1);
     }else{
@@ -139,8 +146,8 @@ export function aspectLayout(view,{nodeId=null,edgeId=null,open={},narrow=false,
   }
   const ids=[...place.keys()];
   const nodes=view.nodes.map(node=>place.has(node.id)
-    ? {...node,position:place.get(node.id),labelSide:sides.get(node.id),dim:false,quiet:quiet.has(node.id),...(narrow&&!focus.ids.includes(node.id)?{labelMaxWidth:140,labelLines:2}:{})}
+    ? {...node,position:place.get(node.id),labelSide:sides.get(node.id),dim:false,quiet:quiet.has(node.id),...(narrow?{labelMaxWidth:nameWidth,labelLines:2}:{})}
     : {...node,position:[node.position?.[0]??0,node.position?.[1]??0,(node.position?.[2]??0)+shape.back],dim:true,quiet:false,labelSide:null});
-  const edges=view.edges.map(edge=>named.has(edge.id)?{...edge,muted:false,labelAt:named.get(edge.id),...(narrow?{labelMax:150}:{})}:{...edge,muted:true,labelAt:null});
+  const edges=view.edges.map(edge=>named.has(edge.id)?{...edge,muted:false,labelAt:named.get(edge.id),...(narrow?{labelMax:verbWidth,labelOneLine:true}:{})}:{...edge,muted:true,labelAt:null});
   return {...view,nodes,edges,clusters:headers,planes:[],aspect:{kind:focus.kind,focus:focus.ids,ids}};
 }
