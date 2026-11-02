@@ -153,7 +153,10 @@ impl SourceFoundationStoredSchemaDiagnostic {
             .and_then(|n| n.checked_add(row.report.root_uri.capacity()))
             .and_then(|n| {
                 n.checked_add(
-                    row.report.issues.capacity().checked_mul(std::mem::size_of::<Issue>())?,
+                    row.report
+                        .issues
+                        .capacity()
+                        .checked_mul(std::mem::size_of::<Issue>())?,
                 )
             })
             .ok_or(crate::item_budget_origin!())?;
@@ -163,8 +166,11 @@ impl SourceFoundationStoredSchemaDiagnostic {
                 .ok_or(crate::item_budget_origin!())?;
             for path in [&issue.instance_path, &issue.schema_path] {
                 size = size
-                    .checked_add(path.capacity().checked_mul(std::mem::size_of::<PathSegment>())
-                        .ok_or(crate::item_budget_origin!())?)
+                    .checked_add(
+                        path.capacity()
+                            .checked_mul(std::mem::size_of::<PathSegment>())
+                            .ok_or(crate::item_budget_origin!())?,
+                    )
                     .ok_or(crate::item_budget_origin!())?;
                 for segment in path {
                     if let PathSegment::Property(name) = segment {

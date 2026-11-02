@@ -34,14 +34,14 @@ use tos_validation::{
         SourceFoundationRecordFactCollection, SourceFoundationRecordFactPage,
         SourceFoundationRecordIdCarrier, SourceFoundationRecordObservation,
         SourceFoundationRecordPathReference, SourceFoundationRecordSchemaDiagnostic,
-        SourceFoundationStoredSchemaDiagnostic,
         SourceFoundationRecordsCollection, SourceFoundationRecordsCursor,
         SourceFoundationRecordsCursorPage, SourceFoundationRecordsIssue,
         SourceFoundationRecordsIssueFamily, SourceFoundationRecordsLookup,
         SourceFoundationRecordsOwnerIssue, SourceFoundationRecordsPageBudget,
         SourceFoundationRecordsSchemaCheck, SourceFoundationRecordsSchemaFamily,
         SourceFoundationRecordsStore, SourceFoundationRecordsStoredFact,
-        SourceFoundationTypedIdRefFact, SourceFoundationUriOwnerLookup,
+        SourceFoundationStoredSchemaDiagnostic, SourceFoundationTypedIdRefFact,
+        SourceFoundationUriOwnerLookup,
     },
 };
 
@@ -3164,7 +3164,9 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             ));
         }
         if row.identity
-            != tos_validation::source_cut::InProcessCutIdentity::Candidate(candidate_fence_value(&self.fence))
+            != tos_validation::source_cut::InProcessCutIdentity::Candidate(candidate_fence_value(
+                &self.fence,
+            ))
         {
             return Err(ItemRefusal::Source(
                 "Biblio schema diagnostic candidate identity differs".into(),
@@ -3181,7 +3183,14 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         let seq = self
             .append_stored_row(
                 SourceFoundationRecordsCollection::RecordSchemaDiagnostics,
-                "", "", &value, &[], state, WriteLaw::Append, Some(deadline), Some(cancelled),
+                "",
+                "",
+                &value,
+                &[],
+                state,
+                WriteLaw::Append,
+                Some(deadline),
+                Some(cancelled),
             )
             .map_err(refusal)?;
         if u64::try_from(seq).ok() != Some(ordinal) {
@@ -4404,7 +4413,10 @@ mod schema_report_codec_tests {
                 },
             );
             let envelope = stored_schema_diagnostic_value(&diagnostic).unwrap();
-            assert_eq!(stored_schema_diagnostic_from_value(&envelope).unwrap(), diagnostic);
+            assert_eq!(
+                stored_schema_diagnostic_from_value(&envelope).unwrap(),
+                diagnostic
+            );
             let db = rusqlite::Connection::open_in_memory().unwrap();
             db.execute_batch("CREATE TABLE diagnostic (payload BLOB NOT NULL)")
                 .unwrap();

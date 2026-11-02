@@ -39,13 +39,12 @@ pub use source_foundation_records_storage::{
     SourceFoundationRecordFactCollection, SourceFoundationRecordFactPage,
     SourceFoundationRecordIdCarrier, SourceFoundationRecordObservation,
     SourceFoundationRecordPathReference, SourceFoundationRecordSchemaDiagnostic,
-    SourceFoundationStoredSchemaDiagnostic,
     SourceFoundationRecordsCollection, SourceFoundationRecordsCursor,
     SourceFoundationRecordsCursorPage, SourceFoundationRecordsIndex, SourceFoundationRecordsLookup,
     SourceFoundationRecordsPageBudget, SourceFoundationRecordsStore,
     SourceFoundationRecordsStoredFact, SourceFoundationRecordsStreamedItemSummary,
-    SourceFoundationRecordsStreamedReport, SourceFoundationTypedIdRefFact,
-    SourceFoundationUriOwnerLookup,
+    SourceFoundationRecordsStreamedReport, SourceFoundationStoredSchemaDiagnostic,
+    SourceFoundationTypedIdRefFact, SourceFoundationUriOwnerLookup,
 };
 
 /// One exact resource selected into the candidate-bound Item schema closure.
