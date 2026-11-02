@@ -9,6 +9,8 @@ Use the owning guide for instructions, the review ledger for dated judgments,
 and the changelog for release history. An ordinary documentation edit does not
 need a new decision record.
 
+[Version and legacy retirement conditions](../RETIREMENT.md) record the transition gates for TOS-D-0069.
+
 ## Find a decision
 
 These hand-maintained views collect the decision metadata. Current behavior and meaning remain with each decision's source surfaces.
