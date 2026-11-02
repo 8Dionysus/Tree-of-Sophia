@@ -1,0 +1,27 @@
+[package]
+name = "tos-research"
+version = "0.6.0"
+publish = false
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[features]
+# The software receipt retains this compatibility feature until the CLI cutover.
+default = ["research-tools"]
+research-tools = []
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["arbitrary_precision"] }
+tos-command = { path = "../tos-command", features = ["research"] }
+tos-compiler = { path = "../tos-compiler", features = ["research"] }
+tos-foundation = { path = "../tos-foundation" }
+tos-fd-open = { path = "../tos-fd-open" }
+tos-source-store = { path = "../tos-source-store", features = ["capture", "execution"] }
+tos-validation = { path = "../tos-validation" }
+
+[[bin]]
+name = "tos-research"
+path = "src/main.rs"
+required-features = ["research-tools"]

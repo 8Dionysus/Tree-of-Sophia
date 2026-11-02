@@ -37,7 +37,8 @@ pub const NO_DEFAULT_FEATURES: [&str; 8] = [
 ];
 pub fn package(role: &str) -> Option<&'static str> {
     Some(match role {
-        "tos-access" | "tos-research" => "tos-access",
+        "tos-access" => "tos-access",
+        "tos-research" => "tos-research",
         "tos-native-owner-command" => "tos-command",
         "tos-schema-worker" => "tos-validation",
         "tos-constructor-library" | "tos-constructor-fragments" => "tos-compiler",

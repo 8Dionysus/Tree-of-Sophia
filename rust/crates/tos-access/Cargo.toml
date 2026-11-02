@@ -62,11 +62,6 @@ name = "tos-e2e-fixture"
 path = "src/bin/tos-e2e-fixture.rs"
 required-features = ["e2e-fixture"]
 
-[[bin]]
-name = "tos-research"
-path = "src/bin/tos-research.rs"
-required-features = ["research-tools"]
-
 # These integration targets exercise the complete native command product.
 [[test]]
 name = "native_prepare"
