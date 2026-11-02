@@ -76,6 +76,24 @@ the result. No current pointer, identity/dependency
 index, semantic admission or publication authority is created. The command's
 `--help` owns its exact input and resource options.
 
+For selected-record corpus admission, the protected
+`tos_local_native_foundation_invocation_v1` may explicitly contain
+`record_selection_snapshot` with exactly `absolute_path`, `raw_utf8` and
+`sha256`. The absolute normalized address must match the CLI's
+`--record-selection-manifest` under `selected-record-closure` or
+`selected-generated-record-closure`; an unused or mismatched snapshot is
+refused. The prefixed SHA-256 binds the exact decoded UTF-8 bytes, preserving
+whitespace and line endings without parsing and reserializing the manifest.
+The existing selection parser, limits, validator identity and receipt binding
+consume those bytes. This is a frozen snapshot: the manifest address is not
+opened, and its independent filesystem currentness is not claimed. Host-held
+initial and final custody checks authenticate the whole protected invocation,
+including the snapshot, through the existing one-invocation transport. The
+1 MiB invocation cap remains in force; decoded snapshot buffers and parse
+overlap consume the original state budget. Omitting the field preserves
+ordinary held-file selection and currentness checks. No filesystem fallback
+or additional custody protocol operation is selected.
+
 Run the named `rust_workspace` lane from
 [`docs/validation/validation_lanes.json`](../docs/validation/validation_lanes.json)
 when the pinned toolchain, rustfmt and WASM target are available. Set
