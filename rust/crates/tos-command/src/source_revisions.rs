@@ -27,7 +27,9 @@ use tos_validation::native_compound::{
     NativeTransportState,
 };
 use tos_validation::record_biblio_cut::SourceCutInputWithIdentity;
-use tos_validation::source_cut::CandidateCutWorkerSchemaExecutor;
+use tos_validation::source_cut::{
+    CandidateCutWorkerSchemaExecutor, InProcessCandidateSchemaExecutor,
+};
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
 pub(crate) const HISTORY: &str = "source-revision-history.json";
@@ -1697,6 +1699,39 @@ impl<I: Copy + Eq> RecordSchemaWorker for CandidateCutWorkerSchemaExecutor<I> {
 
     fn contract_digest(&self, contract: &str) -> Option<Digest256> {
         CandidateCutWorkerSchemaExecutor::contract_digest(self, contract)
+    }
+
+    fn resource_closure_bound_to_identity(&self) -> bool {
+        true
+    }
+
+    fn public_profile(
+        &mut self,
+        cut: Option<&CorpusCutReader>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        ctx: &impl RecordRead<Identity = Self::Identity>,
+        config: &JsonValue,
+        record: &JsonValue,
+    ) -> SourceCommandResult<(JsonValue, Vec<String>, Option<String>, Option<String>)> {
+        if cut.is_some() {
+            return Err(SourceCommandError::Unsupported(
+                "candidate public profile cannot use a corpus cut",
+            ));
+        }
+        public_profile_candidate(self, deadline, cancelled, ctx, config, record)
+    }
+}
+
+impl<I: Copy + Eq> RecordSchemaWorker for InProcessCandidateSchemaExecutor<I> {
+    type Identity = I;
+
+    fn input_identity(&self) -> Self::Identity {
+        *tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding::input_identity(self)
+    }
+
+    fn contract_digest(&self, contract: &str) -> Option<Digest256> {
+        tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding::contract_digest(self, contract)
     }
 
     fn resource_closure_bound_to_identity(&self) -> bool {
@@ -5970,7 +6005,7 @@ pub(crate) fn schema_for_source_path(
 /// The legacy `CommandContext.base_revision` remains the bootstrap revision;
 /// the separate typed context supplies this worker's identity.
 pub(crate) fn schema_candidate<I: Copy + Eq>(
-    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut impl RecordSchemaWorker<Identity = I>,
     deadline: Instant,
     cancelled: &AtomicBool,
     ctx: &impl RecordRead<Identity = I>,
@@ -7151,7 +7186,7 @@ pub(crate) fn validate_source_profile_registry(
 /// Candidate-worker counterpart for bounded source creation/revision paths.
 /// It executes the same registry constructor law over the typed read identity.
 pub(crate) fn validate_source_profile_registry_candidate<I: Copy + Eq>(
-    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut impl RecordSchemaWorker<Identity = I>,
     deadline: Instant,
     cancelled: &AtomicBool,
     ctx: &impl RecordRead<Identity = I>,
@@ -7550,7 +7585,7 @@ pub(crate) fn public_profile(
 /// uniqueness closure; this helper validates the same profile and schema
 /// contracts but emits no corpus-wide identity snapshot.
 pub(crate) fn public_profile_candidate<I: Copy + Eq>(
-    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut impl RecordSchemaWorker<Identity = I>,
     deadline: Instant,
     cancelled: &AtomicBool,
     ctx: &impl RecordRead<Identity = I>,
@@ -7565,7 +7600,7 @@ pub(crate) fn public_profile_candidate<I: Copy + Eq>(
 /// Creation-only variant. The caller must immediately run the maintained
 /// native resolver's exact content route before accepting this profile.
 pub(crate) fn public_profile_candidate_for_creation<I: Copy + Eq>(
-    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut impl RecordSchemaWorker<Identity = I>,
     deadline: Instant,
     cancelled: &AtomicBool,
     ctx: &impl RecordRead<Identity = I>,
@@ -7578,7 +7613,7 @@ pub(crate) fn public_profile_candidate_for_creation<I: Copy + Eq>(
 }
 
 fn public_profile_candidate_with_native_content<I: Copy + Eq>(
-    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut impl RecordSchemaWorker<Identity = I>,
     deadline: Instant,
     cancelled: &AtomicBool,
     ctx: &impl RecordRead<Identity = I>,
@@ -8568,6 +8603,90 @@ where
 #[cfg(test)]
 mod readonly_descriptor_tests {
     use super::*;
+
+    struct CandidateSchemaRead {
+        identity: u64,
+    }
+    impl RecordRead for CandidateSchemaRead {
+        type Identity = u64;
+        fn files(&self) -> &[SourceFile] {
+            &[]
+        }
+        fn input_identity(&self) -> u64 {
+            self.identity
+        }
+        fn schema_source_path(&self) -> SourceCommandResult<String> {
+            Ok("ToS/source-witnesses/test/record.json".into())
+        }
+        fn check(&self) -> SourceCommandResult<()> {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn selected_metadata_schema_uses_in_process_candidate_identity() {
+        use std::time::Duration;
+        use tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding;
+        let contract = "ToS/contracts/example.schema.json";
+        let schema = tos_validation::SchemaResource {
+            uri: "https://example.test/schema".into(),
+            raw: br#"{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://example.test/schema","type":"integer"}"#.to_vec(),
+        };
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let mut executor = InProcessCandidateSchemaExecutor::from_selected_source_resources(
+            42u64,
+            vec![(contract.into(), schema)],
+            tos_validation::FormatProfile::AssertedSourceCandidateV1,
+            tos_validation::in_process::InputMode::SerdeNormalized,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        let refs = vec![contract.to_owned()];
+        let valid = cmd::parse(b"3").unwrap();
+        assert!(
+            schema_candidate(
+                &mut executor,
+                deadline,
+                &cancelled,
+                &CandidateSchemaRead { identity: 42 },
+                &refs,
+                contract,
+                &valid
+            )
+            .is_ok()
+        );
+        assert!(matches!(
+            schema_candidate(
+                &mut executor,
+                deadline,
+                &cancelled,
+                &CandidateSchemaRead { identity: 99 },
+                &refs,
+                contract,
+                &valid
+            ),
+            Err(SourceCommandError::Conflict(_))
+        ));
+        let invalid = cmd::parse(br#""wrong""#).unwrap();
+        assert!(matches!(
+            schema_candidate(
+                &mut executor,
+                deadline,
+                &cancelled,
+                &CandidateSchemaRead { identity: 42 },
+                &refs,
+                contract,
+                &invalid
+            ),
+            Err(SourceCommandError::Invalid(_))
+        ));
+        let rejection = executor.take_diagnostic_rejection().unwrap().unwrap();
+        assert!(rejection.is_invalid());
+        assert_eq!(rejection.path(), "ToS/source-witnesses/test/record.json");
+        executor.finish(deadline, &cancelled).unwrap();
+    }
 
     fn parse(value: serde_json::Value) -> JsonValue {
         cmd::parse(&serde_json::to_vec(&value).unwrap()).unwrap()
