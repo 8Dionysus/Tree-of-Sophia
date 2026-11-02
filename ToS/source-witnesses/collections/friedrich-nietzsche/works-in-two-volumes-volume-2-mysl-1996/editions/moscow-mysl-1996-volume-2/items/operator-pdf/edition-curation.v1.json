@@ -359,6 +359,12 @@
         "crosswalk_authority": "text-free target-side narrowing of already-frozen whole-page transfer candidates through one proposed hierarchical target numbered-unit map; no German parallel unit map is materialized, so the result establishes neither a source route nor source-to-target passage alignment, accepted German or Russian, translation correspondence, equivalence or quality, exact passage ends, eligible target units, target gold, semantic work, human work, rights clearance, or canon authority",
         "map_warning": "No source-to-target alignment, translation relation, semantic claim, eligible target unit, target gold, or publication route was created.",
         "crosswalk_warning": "Proposed target starts do not establish exact passage ends, translation correspondence, equivalence, quality, semantics, rights clearance, eligibility, target gold, or canon authority."
+      },
+      "identity": {
+        "anchor_prefix": "tos.anchor.friedrich-nietzsche.",
+        "passage_prefix": "tos.passage.friedrich-nietzsche.",
+        "unit_separator": ".unit-",
+        "anchor_suffix": ".pdf-start-page"
       }
     },
     {
@@ -597,7 +603,7 @@
       "target_rights_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json",
       "correspondence_schema_uri": "https://tree-of-sophia.local/ToS/contracts/hierarchical-numbered-unit-label-correspondence.schema.json",
       "route_schema_uri": "https://tree-of-sophia.local/ToS/contracts/transfer-candidate-source-structural-route.schema.json",
-      "historical_authority": "This map pairs and routes identical series-qualified structural number-label keys from independently prepared exact source and target maps. The operation uses the maps as structural metadata.",
+      "historical_authority": "mechanical pairing and routing of identical series-qualified structural number-label keys already materialized independently in exact source and target witness maps; it reads no witness text and establishes neither exact passage boundaries nor passage or translation alignment, accepted German or Russian, eligibility, gold, semantics, rights, or canon authority",
       "historical_exclusions": [
         "source_text",
         "target_text",
@@ -633,7 +639,32 @@
           "crosswalk": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/transfer-candidate-page-crosswalk.v1.json",
           "expected": 62
         }
-      ]
+      ],
+      "current_authority": "This map pairs and routes identical series-qualified structural number-label keys from independently prepared exact source and target maps. The operation uses the maps as structural metadata.",
+      "historical_event_suffix": "2026-08-08",
+      "identity_prefixes": [
+        {
+          "kind": "work",
+          "prefix": "tos.work.friedrich-nietzsche."
+        },
+        {
+          "kind": "correspondence_event",
+          "prefix": "tos.event.hierarchical-numbered-unit-label-correspondence.friedrich-nietzsche."
+        },
+        {
+          "kind": "route_event",
+          "prefix": "tos.event.transfer-candidate-source-structural-route.friedrich-nietzsche."
+        },
+        {
+          "kind": "correspondence_map",
+          "prefix": "tos.map.hierarchical-numbered-unit-label-correspondence.friedrich-nietzsche."
+        },
+        {
+          "kind": "route_set",
+          "prefix": "tos.route-set.transfer-candidate-source-structural.friedrich-nietzsche."
+        }
+      ],
+      "alignment_root": "ToS/source-witnesses/works/friedrich-nietzsche"
     },
     {
       "stage": "recipe-reference",
