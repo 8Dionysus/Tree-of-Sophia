@@ -12,7 +12,7 @@ use tos_validation::{
 };
 
 const SCHEMA_PATH: &str = "ToS/contracts/edition-curation.v1.schema.json";
-const HELP: &str = "usage: tos-research build|check --curation PATH --stage STAGE [--source-root ABS] [OPTIONS]\n       tos-research validate --curation PATH [--stage STAGE] [--source-root ABS]\n\nThe selected source root defaults to the current directory. The curation, item, edition and referenced recipes are validated before a stage is selected. Historical command aliases remain available during stage migration.\n";
+const HELP: &str = "usage: tos-research build|check --curation PATH --stage STAGE [--source-root ABS] [--local-input-root ABS] [OPTIONS]\n       tos-research validate --curation PATH [--stage STAGE] [--source-root ABS]\n\nThe selected source root defaults to the current directory. The curation, item, edition and referenced recipes are validated before a stage is selected. Historical command aliases remain available during stage migration.\n";
 
 struct Curation {
     reference: String,
@@ -24,6 +24,18 @@ struct Curation {
     value: Value,
 }
 impl Curation {
+    fn verify_unchanged(&self, ctx: &Execution) -> Result<(), String> {
+        for (reference, before) in [
+            (&self.reference, &self.raw),
+            (&self.manifest_ref, &self.manifest),
+            (&self.edition_ref, &self.edition),
+        ] {
+            if ctx.read(reference)? != *before {
+                return Err(format!("selected source changed: {reference}"));
+            }
+        }
+        Ok(())
+    }
     fn selected(&self) -> SelectedCuration<'_> {
         SelectedCuration {
             curation: SelectedDocument {
@@ -127,13 +139,15 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
     if args.len() == 2 && matches!(args[1].as_str(), "--help" | "-h") {
         return write!(out, "{HELP}").map_err(|e| e.to_string());
     }
-    let (mut curation, mut stage, mut root, mut seconds) = (None, None, None, None);
+    let (mut curation, mut stage, mut root, mut input_root, mut seconds) =
+        (None, None, None, None, None);
     let mut options = args.iter().skip(1);
     while let Some(option) = options.next() {
         let slot = match option.as_str() {
             "--curation" => &mut curation,
             "--stage" => &mut stage,
             "--source-root" => &mut root,
+            "--local-input-root" => &mut input_root,
             "--max-seconds" => &mut seconds,
             _ => return Err(format!("unknown curation option: {option}")),
         };
@@ -145,6 +159,9 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
         }
     }
     let curation = curation.ok_or("--curation is required")?;
+    if action == "validate" && input_root.is_some() {
+        return Err("--local-input-root applies to check or build".into());
+    }
     if action != "validate" && stage.is_none() {
         return Err("--stage is required".into());
     }
@@ -226,6 +243,25 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
         } else {
             (&selected, choices[0])
         };
+        if action == "check" && stage == "numbered-structure" {
+            let input = Path::new(input_root.ok_or("--local-input-root is required")?);
+            let result = crate::numbered_check::check(
+                &ctx,
+                &owner.reference,
+                &owner.raw,
+                &owner.value,
+                recipe,
+                &owner.manifest,
+                input,
+                &schema,
+            )?;
+            selected.verify_unchanged(&ctx)?;
+            for referenced in &refs {
+                referenced.verify_unchanged(&ctx)?;
+            }
+            writeln!(out, "{result}").map_err(|error| error.to_string())?;
+            return Ok(());
+        }
         if action == "validate" && stage == "numbered-structure" {
             crate::numbered_structure::validate_frozen_map(
                 &ctx,

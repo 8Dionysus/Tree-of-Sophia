@@ -162,6 +162,83 @@ pub fn abbyy_candidates(
     Ok(out)
 }
 
+/// Validate the existing PDF batch and extractor selection before opening payloads.
+pub fn preflight(recipe: &Value) -> Result<(), String> {
+    let profile = &recipe["candidate_profile"];
+    match profile["kind"].as_str() {
+        Some("abbyy") => {
+            let first = unsigned(&profile["first_page"], "first page")?;
+            let last = unsigned(&profile["last_page"], "last page")?;
+            let count = unsigned(&profile["source_page_count"], "source page count")?;
+            if first == 0
+                || first > last
+                || last > count
+                || unsigned(&profile["minimum_top"], "minimum top")?
+                    > unsigned(&profile["maximum_top"], "maximum top")?
+                || unsigned(&profile["minimum_characters"], "minimum characters")?
+                    > unsigned(&profile["maximum_characters"], "maximum characters")?
+            {
+                return Err("invalid OCR candidate bounds".into());
+            }
+            if profile["alignment"] != "weighted-ordered"
+                || profile["visit_order"] != "row-major"
+                || !profile["replace_on_equal"].is_boolean()
+            {
+                return Err("weighted alignment profile required".into());
+            }
+            for key in [
+                "skipped_key_cost",
+                "skipped_candidate_cost",
+                "substitution_cost",
+                "maximum_match_cost",
+            ] {
+                float(&profile[key], key)?;
+            }
+            let order = array(&profile["transition_order"], "transition order")?
+                .iter()
+                .map(|value| string(value, "transition"))
+                .collect::<Result<Vec<_>, _>>()?;
+            if order.len() != 3
+                || order.iter().copied().collect::<BTreeSet<_>>()
+                    != BTreeSet::from(["skip_key", "skip_candidate", "match"])
+            {
+                return Err("invalid transition order".into());
+            }
+            let mut seen = BTreeSet::new();
+            for rule in array(&recipe["ocr_substitutions"], "OCR substitutions")? {
+                let digit = string(&rule["digit"], "substitution digit")?;
+                if digit.chars().count() != 1
+                    || !seen.insert(digit)
+                    || string(&rule["allowed_characters"], "substitution characters")?.is_empty()
+                {
+                    return Err("invalid OCR substitution".into());
+                }
+            }
+            Ok(())
+        }
+        Some("pdf-bbox") => {
+            let batch = unsigned(&profile["page_batch_size"], "page batch size")?;
+            if batch == 0 || batch > 8 {
+                return Err("invalid PDF page batch".into());
+            }
+            let mut tools = array(&recipe["tools"], "extraction tools")?
+                .iter()
+                .filter(|tool| tool["name"] == "pdftotext");
+            let version = tools
+                .next()
+                .and_then(|tool| tool["version"].as_str())
+                .filter(|value| !value.is_empty())
+                .ok_or("Poppler version required")?;
+            if tools.next().is_some() {
+                return Err("duplicate Poppler selection".into());
+            }
+            let _ = version;
+            Ok(())
+        }
+        _ => Err("unsupported numbered navigation profile".into()),
+    }
+}
+
 fn pdf_page_candidates(
     ctx: &Execution,
     recipe: &Value,

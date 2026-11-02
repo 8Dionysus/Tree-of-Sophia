@@ -18,7 +18,7 @@ fn number(value: &Value, name: &str) -> Result<u64, String> {
         .ok_or_else(|| format!("{name} must be an unsigned integer"))
 }
 
-fn keys(ctx: &Execution, recipe: &Value) -> Result<Vec<String>, String> {
+pub(crate) fn keys(ctx: &Execution, recipe: &Value) -> Result<Vec<String>, String> {
     let sequence = &recipe["unit_sequence"];
     let first = number(&sequence["first_number"], "first number")?;
     let last = number(&sequence["last_number"], "last number")?;

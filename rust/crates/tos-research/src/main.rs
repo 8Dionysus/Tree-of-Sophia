@@ -14,12 +14,9 @@ mod nietzsche_transfer_routes_command;
 // Source-passage migration consolidates this parser with its former compiler owner.
 #[allow(dead_code)]
 mod navigation_xml;
-// The numbered builder adopts this matching core when source navigation moves here.
-#[allow(dead_code)]
+mod numbered_check;
 mod numbered_matching;
 mod numbered_structure;
-// The numbered builder adopts this reader when PDF stages move here.
-#[allow(dead_code)]
 mod pdf_navigation;
 mod provenance_event_lab_command;
 mod research_builders_command;
