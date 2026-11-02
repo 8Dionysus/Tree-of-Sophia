@@ -1,0 +1,103 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/edition-curation.v1.schema.json",
+  "schema_version": "tos_edition_curation_v1",
+  "curation_id": "tos.edition-curation.zarathustra-antonovsky-1911-rsl-neb-v1",
+  "version": 1,
+  "status": "historical-constants",
+  "owner_item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf",
+  "edition_ref": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-prometey-1911-fourth",
+  "manifest": "item.manifest.json",
+  "recipes": [
+    {
+      "stage": "pdf-structural-paragraph",
+      "layout_plan_dir": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1",
+      "structural_output_dir": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-structural-paragraph-v2",
+      "fixity": {
+        "pdf_sha256": "57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69",
+        "bbox_sha256": "c145e47a5655bc440c35bb36922d88a886e9da126c332a23a71beee569615383",
+        "text_sha256": "9a3e85fe010ec0eb22379b04f8c03a7dfa7beff06286cc0ac35521d8ae66c787"
+      },
+      "extraction": {
+        "tool": "pdftotext",
+        "version": "26.01.0",
+        "arguments": [
+          "-bbox-layout",
+          "SOURCE_PDF",
+          "-"
+        ],
+        "expected_bbox_bytes": 12306305,
+        "expected_warning": "Syntax Warning: Invalid Font Weight",
+        "expected_warning_count": 2601
+      },
+      "outputs": [
+        {
+          "kind": "physical_lines",
+          "filename": "physical-line-spine.v2.jsonl"
+        },
+        {
+          "kind": "logical_rows",
+          "filename": "logical-row-spine.v2.jsonl"
+        },
+        {
+          "kind": "structures",
+          "filename": "structure-spine.v2.jsonl"
+        },
+        {
+          "kind": "paragraphs",
+          "filename": "paragraph-spine.v2.jsonl"
+        },
+        {
+          "kind": "verse_groups",
+          "filename": "verse-group-spine.v2.jsonl"
+        },
+        {
+          "kind": "verse_lines",
+          "filename": "verse-line-spine.v2.jsonl"
+        },
+        {
+          "kind": "conflicts",
+          "filename": "boundary-conflicts.v2.jsonl"
+        },
+        {
+          "kind": "comparison",
+          "filename": "boundary-comparison.v2.json"
+        },
+        {
+          "kind": "contradictions",
+          "filename": "contradiction-ledger.v2.jsonl"
+        },
+        {
+          "kind": "coverage",
+          "filename": "coverage-receipt.v2.json"
+        },
+        {
+          "kind": "verification",
+          "filename": "agent-verification.v2.json"
+        },
+        {
+          "kind": "summary",
+          "filename": "summary.v2.json"
+        },
+        {
+          "kind": "provenance",
+          "filename": "provenance.jsonl"
+        },
+        {
+          "kind": "manifest",
+          "filename": "manifest.v2.json"
+        }
+      ],
+      "historical_events": {
+        "event_date": "2026-09-01",
+        "ended_at": "2026-09-01T18:00:00-06:00",
+        "event_ids": [
+          "ru-ant1911-v2.source-rebuild",
+          "ru-ant1911-v2.structure-census",
+          "ru-ant1911-v2.independent-pass",
+          "ru-ant1911-v2.challenger-comparison",
+          "ru-ant1911-v2.agent-verification"
+        ]
+      }
+    }
+  ]
+}
