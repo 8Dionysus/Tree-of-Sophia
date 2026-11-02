@@ -3595,7 +3595,6 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         self.finished = true;
         Ok(())
     }
-
     fn check_batch(
         &mut self,
         checks: &[CutSchemaCheck],
@@ -5234,6 +5233,61 @@ impl<I> CutSchemaExecutor for InProcessCutSchemaExecutor<I> {
         self.finished = true;
         Ok(())
     }
+    fn check_batch(
+        &mut self,
+        checks: &[CutSchemaCheck],
+        budget: BatchBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Vec<bool>, ItemRefusal> {
+        if self.finished || self.failed {
+            return Err(ItemRefusal::Unsupported(
+                "schema operation is not active".into(),
+            ));
+        }
+        let result = (|| {
+            if checks.is_empty()
+                || budget.max_units == 0
+                || budget.max_units > BatchBudget::MAX_UNITS
+                || checks.len() > budget.max_units
+                || budget.max_total_raw_bytes == 0
+                || budget.max_total_raw_bytes > BatchBudget::MAX_RAW_BYTES
+                || budget.total_execution_wall.is_zero()
+                || budget.per_unit_wall.is_zero()
+                || checks
+                    .iter()
+                    .try_fold(0usize, |total, item| total.checked_add(item.raw.len()))
+                    .is_none_or(|total| total > budget.max_total_raw_bytes)
+            {
+                return Err(crate::item_budget_origin!());
+            }
+            let batch_deadline = Instant::now()
+                .checked_add(budget.total_execution_wall)
+                .ok_or(crate::item_budget_origin!())?
+                .min(deadline);
+            let mut verdicts = Vec::with_capacity(checks.len());
+            for item in checks {
+                let unit_deadline = Instant::now()
+                    .checked_add(budget.per_unit_wall)
+                    .ok_or(crate::item_budget_origin!())?
+                    .min(batch_deadline);
+                verdicts.push(self.check(
+                    &item.path,
+                    &item.raw,
+                    &item.contract,
+                    unit_deadline,
+                    cancelled,
+                )?);
+            }
+            check(batch_deadline, cancelled)?;
+            Ok(verdicts)
+        })();
+        if result.is_err() {
+            self.failed = true;
+        }
+        result
+    }
+
     fn check(
         &mut self,
         _path: &str,
@@ -5387,6 +5441,15 @@ impl<I: Copy + Eq> CutSchemaExecutor for InProcessCandidateSchemaExecutor<I> {
         self.inner.finish(deadline, cancelled)?;
         self.finished = true;
         Ok(())
+    }
+    fn check_batch(
+        &mut self,
+        checks: &[CutSchemaCheck],
+        budget: BatchBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Vec<bool>, ItemRefusal> {
+        self.inner.check_batch(checks, budget, deadline, cancelled)
     }
 }
 
@@ -5573,6 +5636,51 @@ mod in_process_candidate_binding_tests {
                 )
                 .is_err()
         );
+    }
+
+    #[test]
+    fn candidate_batch_preserves_order_and_refuses_partial_results() {
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let make_executor = || {
+            InProcessCandidateSchemaExecutor::from_schema_set(
+                selected_set(),
+                crate::in_process::InputMode::PublishedStrict,
+                deadline,
+                &cancelled,
+            )
+            .unwrap()
+        };
+        let item = |raw: &[u8]| CutSchemaCheck {
+            path: "record.json".into(),
+            contract: "ToS/contracts/example.schema.json".into(),
+            raw: raw.to_vec(),
+        };
+        let mut executor = make_executor();
+        assert_eq!(
+            executor
+                .check_batch(
+                    &[item(b"3"), item(br#""wrong""#), item(b"5")],
+                    BatchBudget::laboratory(),
+                    deadline,
+                    &cancelled
+                )
+                .unwrap(),
+            [true, false, true]
+        );
+        executor.finish(deadline, &cancelled).unwrap();
+        let mut incomplete = make_executor();
+        assert!(
+            incomplete
+                .check_batch(
+                    &[item(b"3"), item(b"{")],
+                    BatchBudget::laboratory(),
+                    deadline,
+                    &cancelled
+                )
+                .is_err()
+        );
+        assert!(incomplete.finish(deadline, &cancelled).is_err());
     }
 }
 
