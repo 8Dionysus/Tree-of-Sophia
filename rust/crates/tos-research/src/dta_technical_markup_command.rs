@@ -91,9 +91,20 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
             }
             ResearchExecution::new(&root, seconds)?
         };
+        // Compatibility alias selects the authored owner recipe until cutover.
+        let curation_path = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/edition-curation.v1.json";
+        let curation: serde_json::Value =
+            serde_json::from_slice(&ctx.read(curation_path)?).map_err(|e| e.to_string())?;
+        let recipe = curation["recipes"]
+            .as_array()
+            .ok_or("curation recipes required")?
+            .iter()
+            .find(|recipe| recipe["stage"] == "tei-technical-markup")
+            .ok_or("TEI recipe required")?;
         dta_technical_markup::run(
             &ctx,
             Options {
+                recipe,
                 plan_ref: plan.as_deref().unwrap_or(dta_technical_markup::PLAN),
                 input_root: input.as_deref(),
                 output_root: output.as_deref(),

@@ -22,7 +22,6 @@ const LEGACY_EVENT: &str = "tos.event.segmentation.zarathustra-dta-technical-mar
 const LEGACY_EVENT_SHA: &str = "16a93b52ee7a86b72bd4ad1a8bb4e0f245c2eab95f447a9f600faf04890fdd17";
 const SCHEMA: &str = "ToS/contracts/source-text-unit-packet-v1.schema.json";
 const PROVENANCE_SCHEMA: &str = "ToS/contracts/provenance-event.schema.json";
-const ID_NAMESPACE: &str = "tos-zarathustra-dta-technical-markup-v1-opaque-issuance";
 const CAP: usize = 32 * 1024 * 1024;
 const UNIT_CAP: usize = 20_000;
 const LEGACY_UNIT_REASON: &str = "The unit records only a boundary explicitly present in the exact selected DTA TEI representation; this is not accepted German, editorial hierarchy, linguistic analysis, translation, or semantics.";
@@ -34,6 +33,7 @@ pub enum Action {
 }
 pub struct Options<'a> {
     pub plan_ref: &'a str,
+    pub recipe: &'a Value,
     pub input_root: Option<&'a Path>,
     pub output_root: Option<&'a Path>,
     pub action: Action,
@@ -465,40 +465,99 @@ fn load_part(
     }
     observe(ctx, config.clone(), payload_ref, &raw, &resources, major)
 }
-fn mint(kind: &str, sequence: usize) -> String {
-    let digest = sha(format!("{ID_NAMESPACE}:issued:{sequence}").as_bytes());
-    if kind == "anchor" {
-        format!("tos.anchor.zarathustra-technical-v1.sid-{}", &digest[..32])
-    } else {
-        format!("tos.{kind}.sid-{}", &digest[..32])
+fn validate_identity_recipe(recipe: &Value) -> Result<()> {
+    let issuance = &recipe["identity_issuance"];
+    let namespace = s(&recipe["identity_namespace"])?;
+    let separator = s(&issuance["hash_input_separator"])?;
+    let length = number(&issuance["digest_hex_characters"])?;
+    ensure(
+        !namespace.is_empty() && !separator.is_empty() && (1..=64).contains(&length),
+        "identity issuance profile",
+    )?;
+    for field in [
+        "issuance_id",
+        "schema_version",
+        "anchor_prefix",
+        "created_at_plan_pointer",
+        "identity_policy_plan_pointer",
+        "ids_minted_from",
+        "source_locator_role",
+        "authority_boundary",
+    ] {
+        s(&issuance[field])?;
     }
+    ensure(
+        issuance["automatic_remint_on_locator_drift"].is_boolean(),
+        "issuance remint policy",
+    )?;
+    let kinds = array(&issuance["fixed_kinds"])?;
+    ensure(kinds.len() == 4, "issuance fixed identity count")?;
+    let mut fields = BTreeSet::new();
+    for item in kinds {
+        ensure(
+            fields.insert(s(&item["field"])?),
+            "duplicate issuance identity field",
+        )?;
+        s(&item["kind"])?;
+    }
+    ensure(
+        fields == BTreeSet::from(["packet_id", "scheme_id", "segmentation_id", "projection_id"]),
+        "issuance identity fields",
+    )
 }
-fn issue(plan: &Value, parts: &[ObservedPart]) -> Value {
+fn mint(kind: &str, sequence: usize, recipe: &Value) -> Result<String> {
+    let issuance = &recipe["identity_issuance"];
+    let digest = sha(format!(
+        "{}{}{sequence}",
+        s(&recipe["identity_namespace"])?,
+        s(&issuance["hash_input_separator"])?
+    )
+    .as_bytes());
+    let length = usize::try_from(number(&issuance["digest_hex_characters"])?)
+        .map_err(|_| "digest length")?;
+    let prefix = if kind == "anchor" {
+        s(&issuance["anchor_prefix"])?.to_owned()
+    } else {
+        format!("tos.{kind}.sid-")
+    };
+    Ok(format!(
+        "{prefix}{}",
+        digest.get(..length).ok_or("digest length")?
+    ))
+}
+fn issue(plan: &Value, parts: &[ObservedPart], recipe: &Value) -> Result<Value> {
+    validate_identity_recipe(recipe)?;
+    let issuance = &recipe["identity_issuance"];
     let mut issued = 0;
     let mut part_rows = Vec::new();
     let mut unit_rows = Vec::new();
     for part in parts {
         let mut row = json!({"part_order":part.config["part_order"]});
-        for (field, kind) in [
-            ("packet_id", "source-text-unit-packet"),
-            ("scheme_id", "text-unit-scheme"),
-            ("segmentation_id", "text-segmentation"),
-            ("projection_id", "text-unit-projection"),
-        ] {
+        for entry in array(&issuance["fixed_kinds"])? {
+            let field = s(&entry["field"])?;
+            let kind = s(&entry["kind"])?;
             issued += 1;
-            row[field] = json!(mint(kind, issued));
+            row[field] = json!(mint(kind, issued, recipe)?);
             row[format!("{field}_issued_sequence")] = json!(issued);
         }
         part_rows.push(row);
         for unit in &part.units {
             issued += 1;
             let unit_seq = issued;
-            let unit_id = mint("text-unit", issued);
+            let unit_id = mint("text-unit", issued, recipe)?;
             issued += 1;
-            unit_rows.push(json!({"part_order":part.config["part_order"],"source_locator":unit.locator,"unit_id":unit_id,"unit_id_issued_sequence":unit_seq,"anchor_ref":mint("anchor",issued),"anchor_ref_issued_sequence":issued}));
+            unit_rows.push(json!({"part_order":part.config["part_order"],"source_locator":unit.locator,"unit_id":unit_id,"unit_id_issued_sequence":unit_seq,"anchor_ref":mint("anchor",issued,recipe)?,"anchor_ref_issued_sequence":issued}));
         }
     }
-    json!({"schema_version":"tos_zarathustra_technical_identity_issuance_v1","issuance_id":"tos.identity-issuance.zarathustra-dta-technical-markup-v1","created_at":plan["created_at"],"identity_policy":plan["identity_policy"]["policy"],"namespace_probe_sha256":sha(ID_NAMESPACE.as_bytes()),"ids_minted_from":"issuance-namespace-and-issued-sequence-only","source_locator_role":"binding-only-not-identity-input","automatic_remint_on_locator_drift":false,"part_identities":part_rows,"unit_identities":unit_rows,"issued_identity_count":issued,"authority_boundary":"This journal records opaque identity issuance for technical source units and the source bindings used to retain them."})
+    let created = plan
+        .pointer(s(&issuance["created_at_plan_pointer"])?)
+        .ok_or("issuance created-at source")?;
+    let policy = plan
+        .pointer(s(&issuance["identity_policy_plan_pointer"])?)
+        .ok_or("issuance policy source")?;
+    Ok(
+        json!({"schema_version":issuance["schema_version"],"issuance_id":issuance["issuance_id"],"created_at":created,"identity_policy":policy,"namespace_probe_sha256":sha(s(&recipe["identity_namespace"])?.as_bytes()),"ids_minted_from":issuance["ids_minted_from"],"source_locator_role":issuance["source_locator_role"],"automatic_remint_on_locator_drift":issuance["automatic_remint_on_locator_drift"],"part_identities":part_rows,"unit_identities":unit_rows,"issued_identity_count":issued,"authority_boundary":issuance["authority_boundary"]}),
+    )
 }
 type Identities = (BTreeMap<u64, Value>, BTreeMap<(u64, String), Value>);
 fn identities(issuance: &Value) -> Result<Identities> {
@@ -1124,6 +1183,7 @@ fn tracked(ctx: &ResearchExecution, plan: &Value, plan_ref: &str, event: &Value)
     Ok(summary)
 }
 pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
+    validate_identity_recipe(opts.recipe)?;
     let (plan_raw, plan) = current_plan(ctx, opts.plan_ref)?;
     let retained = retained_event(ctx, &plan, &opts)?;
     let build = matches!(opts.action, Action::Build { .. });
@@ -1209,7 +1269,7 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
                 .map_err(|e| e.to_string())?,
             "identity issuance already exists; automatic remint forbidden",
         )?;
-        let value = issue(&plan, &parts);
+        let value = issue(&plan, &parts, opts.recipe)?;
         (encode(ctx, &value, true)?, value)
     } else {
         let (raw, v) = load(ctx, issuance_ref)?;
@@ -1427,6 +1487,16 @@ mod tests {
             assert_eq!(readiness["authority_boundary"][field], false);
         }
     }
+    fn recipe() -> Value {
+        let curation: Value = serde_json::from_str(include_str!("../../../../ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/edition-curation.v1.json")).unwrap();
+        curation["recipes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|recipe| recipe["stage"] == "tei-technical-markup")
+            .unwrap()
+            .clone()
+    }
     fn fixture() -> Value {
         serde_json::from_str(include_str!("dta_technical_markup/synthetic-parity.json")).unwrap()
     }
@@ -1480,7 +1550,7 @@ mod tests {
         assert_eq!(p.units.len(), f["unit_count"].as_u64().unwrap() as usize);
         assert!(p.units.iter().all(|u| u.resource_id != "aux"));
         let parts = vec![p];
-        let issued = issue(&f["plan"], &parts);
+        let issued = issue(&f["plan"], &parts, &recipe()).unwrap();
         assert_eq!(
             sha(&encode(&ctx, &issued, true).unwrap()),
             f["issuance_sha256"]
@@ -1520,6 +1590,17 @@ mod tests {
         assert_eq!(exact, "A😀\nB old tail.");
     }
     #[test]
+    fn issuance_profile_rejects_duplicate_fields_and_invalid_digest_length() {
+        let mut selected = recipe();
+        assert!(validate_identity_recipe(&selected).is_ok());
+        selected["identity_issuance"]["fixed_kinds"][1]["field"] =
+            selected["identity_issuance"]["fixed_kinds"][0]["field"].clone();
+        assert!(validate_identity_recipe(&selected).is_err());
+        selected = recipe();
+        selected["identity_issuance"]["digest_hex_characters"] = json!(65);
+        assert!(validate_identity_recipe(&selected).is_err());
+    }
+    #[test]
     fn rejects_wrong_namespace_dtd_empty_units_and_duplicate_identities() {
         let t = schema_root();
         let ctx = ResearchExecution::new(t.path(), 60).unwrap();
@@ -1544,7 +1625,7 @@ mod tests {
             );
         }
         let p = observed(&ctx, &f);
-        let mut v = issue(&f["plan"], &[p]);
+        let mut v = issue(&f["plan"], &[p], &recipe()).unwrap();
         v["unit_identities"][1]["unit_id"] = v["unit_identities"][0]["unit_id"].clone();
         assert!(identities(&v).is_err());
     }
@@ -1554,7 +1635,7 @@ mod tests {
         let ctx = ResearchExecution::new(t.path(), 60).unwrap();
         let f = fixture();
         let parts = vec![observed(&ctx, &f)];
-        let ids = identities(&issue(&f["plan"], &parts)).unwrap();
+        let ids = identities(&issue(&f["plan"], &parts, &recipe()).unwrap()).unwrap();
         let cs = citations(&ctx, &f["plan"], &parts, &ids).unwrap();
         let method = records::method(
             PLAN,

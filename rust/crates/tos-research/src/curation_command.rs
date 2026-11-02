@@ -315,6 +315,7 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
                 &ctx,
                 crate::dta_technical_markup::Options {
                     plan_ref,
+                    recipe,
                     input_root: Some(input),
                     output_root: Some(output),
                     action: crate::dta_technical_markup::Action::Check,
