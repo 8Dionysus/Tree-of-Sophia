@@ -150,17 +150,11 @@ valid retained row. The common temporal core still decides its 262 KiB exact
 source-binding limit and emits its undetermined reason. The private canonical
 profile retains its existing limits.
 
-Root accepted local published default-route parity on corrected products:
-104 existing oracle controls passed, including actual Miniflare, and the four
-unchanged body controls were retained. The exclusively replaced Worker TS
-algorithm/store and dead entry are removed; independent host presentation and
-browser temporal controls stay. The shared request-shape validator is additionally
-exposed by `validate_temporal_request_wasm_v1(raw, admission)` before any D1 access,
-using the same bounded parser and budget decoder as the replay session. Comparison
-uses that same QRY validator and matches actual publication revision later.
-The changed pre-I/O boundary and migrated unique controls passed their narrow
-actual check; prior full oracle/body evidence is retained without an unchanged
-rerun. Local acceptance does not establish a deployment.
+`validate_temporal_request_wasm_v1(raw, admission)` exposes the shared
+request-shape validator before D1 access, using the replay session's bounded
+parser and budget decoder. Comparison uses the same QRY validator and later
+matches the actual publication revision. Independent host presentation and
+browser temporal controls remain in their owners.
 
 ## Full published inspection continuation
 
@@ -242,9 +236,8 @@ parity uses an optional native capture. `tests/domain-worker-host.mjs`
 uses the same driver and generated binding in local workerd for unsupported
 carrier retention, cooperative cancellation, withdrawal, exact absence and
 returned-Response refusal. Its test-only `Response` is constructed after private
-capture and lease release. This tests packet transport through workerd, without
-claiming the lease holds through actual Worker body delivery.
-Writing these harness cases does not establish their execution or public use.
+capture and lease release. This tests packet transport through workerd; actual
+Worker body delivery has its own lifecycle.
 
 The Node domain harness accepts a third argument and the workerd domain harness
 a fifth argument: an absolute path to `temporal_transport.json` captured by the
