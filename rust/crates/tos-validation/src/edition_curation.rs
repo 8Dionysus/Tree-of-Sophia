@@ -40,6 +40,27 @@ enum MarkerPart {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if object.get("stage").and_then(Value::as_str) == Some("numbered-label-correspondence")
+            {
+                let count = |key: &str| object.get(key).and_then(Value::as_u64);
+                let size = |key: &str| {
+                    object
+                        .get(key)
+                        .and_then(Value::as_array)
+                        .and_then(|a| u64::try_from(a.len()).ok())
+                };
+                let shared =
+                    count("expected_shared_count").ok_or(EditionCurationError::InvalidSchema)?;
+                for (total, exclusive) in [
+                    ("expected_source_count", "source_only_keys"),
+                    ("expected_target_count", "target_only_keys"),
+                ] {
+                    if !matches!((size(exclusive).and_then(|n| shared.checked_add(n)), count(total)), (Some(expected), Some(actual)) if expected == actual)
+                    {
+                        return Err(EditionCurationError::InvalidRange(total));
+                    }
+                }
+            }
             for (lower, upper) in [
                 ("start_page", "end_page"),
                 ("represented_start_page", "represented_end_page"),

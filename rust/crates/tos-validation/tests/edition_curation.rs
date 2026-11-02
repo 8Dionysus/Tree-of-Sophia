@@ -62,6 +62,18 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         validate(&serde_json::to_vec(&target).unwrap(), &schema),
         Err(EditionCurationError::InvalidRange("x_min"))
     );
+    let mut invalid_counts = original.clone();
+    let labels = invalid_counts["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|r| r["stage"] == "numbered-label-correspondence")
+        .unwrap();
+    labels["expected_shared_count"] = json!(297);
+    assert_eq!(
+        validate(&serde_json::to_vec(&invalid_counts).unwrap(), &schema),
+        Err(EditionCurationError::InvalidRange("expected_source_count"))
+    );
     let mut invalid = original;
     invalid["recipes"][0]["locators"][0]["item_relative_path"] = json!("../outside");
     assert_eq!(
