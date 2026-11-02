@@ -1902,6 +1902,113 @@ fn actual_native_object_link_binds_committed_origin_and_corrected_lineage() {
 }
 
 #[test]
+fn in_process_resident_records_bind_current_and_historical_evidence() {
+    use tos_validation::in_process::InputMode;
+    use tos_validation::record_biblio_cut::{BiblioRecordExecutor, inspect_records_from_cut};
+    use tos_validation::source_cut::InProcessCutIdentity;
+    use tos_validation::source_foundation_discovery::CurrentArtifactInvalidSchemaProofs;
+    use tos_validation::source_foundation_records::SourceFoundationStoredSchemaDiagnostic;
+
+    let mut files = selected_item_sources();
+    let temporary = tempfile::tempdir().unwrap();
+    let root = temporary.path().join("store");
+    let previous = write_cut_store(&files, &root);
+    let artifact_path =
+        "ToS/source-witnesses/artifacts/sumerian/adab/oim-a00645/artifact-witness.json";
+    let mut artifact: Value =
+        serde_json::from_slice(&fs::read(repository().join(artifact_path)).unwrap()).unwrap();
+    artifact
+        .as_object_mut()
+        .unwrap()
+        .remove("physical_description");
+    let artifact_raw = canonical_json(&artifact);
+    files.insert(artifact_path.into(), artifact_raw.clone());
+    let revision = write_cut_store_on_base(&files, &root, Some(previous));
+    let cancelled = AtomicBool::new(false);
+    let deadline = Instant::now() + Duration::from_secs(90);
+    let reader = CorpusReader::open_existing(
+        &root,
+        ReadLimits {
+            max_manifest_bytes: 1_048_576,
+            max_manifest_entries: 1024,
+            max_selected_object_bytes: 2_097_152,
+            json: JsonLimits::default(),
+        },
+    )
+    .unwrap();
+    let cut = reader
+        .open_source_cut(
+            revision,
+            CutReadLimits {
+                max_revisions: 4,
+                max_members: 2048,
+                max_total_bytes: 64_000_000,
+                max_member_bytes: 2_097_152,
+            },
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    let limits = ItemLimits {
+        max_member_bytes: 2_097_152,
+        max_total_bytes: 128_000_000,
+        max_state_bytes: 64 * 1024 * 1024,
+        max_issues: 2048,
+        deadline,
+    };
+    let mut executor = BiblioRecordExecutor::new_in_process_cut(
+        &cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        InputMode::PublishedStrict,
+        512,
+    )
+    .unwrap();
+    let report = inspect_records_from_cut(&cut, limits, &cancelled, &mut executor).unwrap();
+    executor.finish(deadline, &cancelled).unwrap();
+    assert!(!report.schema_diagnostics.is_empty());
+    for row in &report.schema_diagnostics {
+        let SourceFoundationStoredSchemaDiagnostic::InProcess(row) = row else {
+            panic!("unexpected worker diagnostic")
+        };
+        assert_eq!(row.identity, InProcessCutIdentity::Source(revision));
+    }
+    assert_eq!(report.retained_record_profiles.len(), 1);
+    for row in &report.retained_record_profiles[0].schema_diagnostics {
+        let SourceFoundationStoredSchemaDiagnostic::InProcess(row) = row else {
+            panic!("unexpected worker diagnostic")
+        };
+        assert_eq!(row.identity, InProcessCutIdentity::Source(previous));
+    }
+    assert!(
+        !report.retained_record_profiles[0]
+            .schema_diagnostics
+            .is_empty()
+    );
+    let proofs = CurrentArtifactInvalidSchemaProofs::prepare(
+        &cut,
+        &report,
+        limits.max_state_bytes,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    assert!(proofs.proves_invalid(
+        artifact_path,
+        revision,
+        report.current_membership,
+        Digest256::of_bytes(&artifact_raw),
+        artifact_raw.len() as u64
+    ));
+    assert!(!proofs.proves_invalid(
+        artifact_path,
+        revision,
+        report.current_membership,
+        Digest256::of_bytes(b"different"),
+        artifact_raw.len() as u64
+    ));
+}
+
+#[test]
 fn actual_cut_schema_batch_binds_ordered_units_and_refuses_partial_receipts() {
     use tos_validation::executor::BatchBudget;
     use tos_validation::source_cut::{CutSchemaCheck, CutSchemaExecutor};

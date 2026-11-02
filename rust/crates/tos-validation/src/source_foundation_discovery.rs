@@ -5865,6 +5865,28 @@ impl<'cut> CurrentArtifactInvalidSchemaProofs<'cut> {
             preparation_scan_work_upper_bound = preparation_scan_work_upper_bound
                 .checked_add(1)
                 .ok_or(crate::item_budget_origin!())?;
+            let diagnostic = match diagnostic {
+                crate::source_foundation_records::SourceFoundationStoredSchemaDiagnostic::Worker(row) => row,
+                crate::source_foundation_records::SourceFoundationStoredSchemaDiagnostic::InProcess(row) => {
+                    if row.report.root_uri != V2_ARTIFACT_SCHEMA { continue; }
+                    let Some(proof) = entries.get_mut(row.path.as_str()) else { continue; };
+                    let invalid = current_in_process_artifact_invalid(row, source_revision, proof.member_sha256, proof.member_size_bytes)?;
+                    let work = in_process_diagnostic_work_upper_bound(row)?;
+                    target_schema_validation_work = target_schema_validation_work.checked_add(work).ok_or(crate::item_budget_origin!())?;
+                    preparation_scan_work_upper_bound = preparation_scan_work_upper_bound.checked_add(work).ok_or(crate::item_budget_origin!())?;
+                    let (unit, report, hash_bytes) = update_in_process_diagnostic_fingerprint(&mut diagnostic_hasher, row)?;
+                    hash_input_bytes_upper_bound = hash_input_bytes_upper_bound.checked_add(hash_bytes).ok_or(crate::item_budget_origin!())?;
+                    proof.target_diagnostic_count = proof.target_diagnostic_count.checked_add(1).ok_or(crate::item_budget_origin!())?;
+                    proof.invalid = proof.target_diagnostic_count == 1 && invalid;
+                    if proof.target_diagnostic_count == 1 {
+                        proof.diagnostic_unit_sha256 = Some(unit);
+                        proof.diagnostic_report_sha256 = Some(report);
+                    }
+                    target_diagnostic_count = target_diagnostic_count.checked_add(1).ok_or(crate::item_budget_origin!())?;
+                    check_active()?;
+                    continue;
+                }
+            };
             if !diagnostic_targets_artifact_schema(diagnostic) {
                 continue;
             }
@@ -6035,6 +6057,25 @@ impl<'cut> CurrentArtifactInvalidSchemaProofs<'cut> {
             if index % 128 == 0 {
                 check_active()?;
             }
+            let diagnostic = match diagnostic {
+                crate::source_foundation_records::SourceFoundationStoredSchemaDiagnostic::Worker(row) => row,
+                crate::source_foundation_records::SourceFoundationStoredSchemaDiagnostic::InProcess(row) => {
+                    if row.report.root_uri != V2_ARTIFACT_SCHEMA { continue; }
+                    let Some(proof) = self.entries.get(row.path.as_str()) else { continue; };
+                    let invalid = current_in_process_artifact_invalid(row, revision, proof.member_sha256, proof.member_size_bytes)?;
+                    let (unit, report, _) = update_in_process_diagnostic_fingerprint(&mut diagnostic_hasher, row)?;
+                    if proof.target_diagnostic_count == 1
+                        && (proof.diagnostic_unit_sha256 != Some(unit)
+                            || proof.diagnostic_report_sha256 != Some(report)
+                            || proof.invalid != invalid)
+                    {
+                        return Err(ItemRefusal::Source("source-foundation Artifact proof does not bind the Records report".into()));
+                    }
+                    target_diagnostic_count = target_diagnostic_count.checked_add(1).ok_or(crate::item_budget_origin!())?;
+                    check_active()?;
+                    continue;
+                }
+            };
             if !diagnostic_targets_artifact_schema(diagnostic) {
                 continue;
             }
@@ -6131,8 +6172,17 @@ fn in_process_artifact_binding(
         if binding.engine == report.engine
             && binding.schema_profile == report.profile
             && binding.schema_set_sha256 == report.schema_set_sha256);
-    let complete_invalid = exact
-        && diagnostic.input_size_bytes.is_some()
+    (
+        exact,
+        exact && in_process_artifact_complete_invalid(diagnostic),
+    )
+}
+
+fn in_process_artifact_complete_invalid(
+    diagnostic: &crate::source_cut::InProcessCutDiagnostic<Value>,
+) -> bool {
+    let report = &diagnostic.report;
+    diagnostic.input_size_bytes.is_some()
         && (!matches!(
             report.input_mode,
             crate::in_process::InputMode::LegacyPythonObserved
@@ -6141,8 +6191,29 @@ fn in_process_artifact_binding(
         && report.status == DiagnosticStatus::Invalid
         && report.failure == DiagnosticFailure::None
         && !report.truncated
-        && u64::try_from(report.issues.len()).ok() == Some(report.total_issue_count);
-    (exact, complete_invalid)
+        && u64::try_from(report.issues.len()).ok() == Some(report.total_issue_count)
+}
+
+fn current_in_process_artifact_invalid(
+    diagnostic: &crate::source_cut::InProcessCutDiagnostic<Value>,
+    revision: SourceRevision,
+    member_sha256: Digest256,
+    member_size_bytes: u64,
+) -> Result<bool, ItemRefusal> {
+    use crate::source_cut::{InProcessCutIdentity, InProcessSelectorKind};
+    let report = &diagnostic.report;
+    if diagnostic.identity != InProcessCutIdentity::Source(revision)
+        || !report.is_well_formed()
+        || (diagnostic.selector_kind == InProcessSelectorKind::SchemaUri
+            && diagnostic.contract != report.root_uri)
+    {
+        return Err(ItemRefusal::Source(
+            "Artifact diagnostic differs from the exact source cut".into(),
+        ));
+    }
+    Ok(in_process_artifact_complete_invalid(diagnostic)
+        && report.input_sha256 == member_sha256
+        && diagnostic.input_size_bytes == Some(member_size_bytes))
 }
 
 fn in_process_diagnostic_work_upper_bound(
@@ -6347,6 +6418,35 @@ mod in_process_artifact_evidence_tests {
         assert_eq!(
             in_process_artifact_binding(&diagnostic, other),
             (false, false)
+        );
+        let revision = SourceRevision(Digest256::of_bytes(b"source"));
+        diagnostic.identity = InProcessCutIdentity::Source(revision);
+        assert!(
+            current_in_process_artifact_invalid(
+                &diagnostic,
+                revision,
+                Digest256::of_bytes(b"{}"),
+                2
+            )
+            .unwrap()
+        );
+        assert!(
+            !current_in_process_artifact_invalid(
+                &diagnostic,
+                revision,
+                Digest256::of_bytes(b"other"),
+                2
+            )
+            .unwrap()
+        );
+        assert!(
+            current_in_process_artifact_invalid(
+                &diagnostic,
+                SourceRevision(Digest256::of_bytes(b"other revision")),
+                Digest256::of_bytes(b"{}"),
+                2
+            )
+            .is_err()
         );
         diagnostic.report.issues[0].schema_keyword = "incorrect".into();
         assert!(!diagnostic.report.is_well_formed());
