@@ -592,12 +592,27 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         validate(&serde_json::to_vec(&invalid_counts).unwrap(), &schema),
         Err(EditionCurationError::InvalidRange("expected_source_count"))
     );
-    let mut invalid = original;
-    invalid["recipes"][0]["locators"][0]["item_relative_path"] = json!("../outside");
-    assert_eq!(
-        validate(&serde_json::to_vec(&invalid).unwrap(), &schema),
-        Err(EditionCurationError::InvalidSchema)
-    );
+    for path in [
+        "../outside",
+        "a/./b",
+        "a//b",
+        "a/.git/config",
+        "a/b/",
+        "a\\b",
+        "a/\nb",
+    ] {
+        let mut invalid = original.clone();
+        invalid["recipes"][0]["locators"][0]
+            .as_object_mut()
+            .unwrap()
+            .remove("item_root");
+        invalid["recipes"][0]["locators"][0]["item_relative_path"] = json!(path);
+        assert_eq!(
+            validate(&serde_json::to_vec(&invalid).unwrap(), &schema),
+            Err(EditionCurationError::InvalidSchema),
+            "path {path:?}"
+        );
+    }
 }
 
 #[test]

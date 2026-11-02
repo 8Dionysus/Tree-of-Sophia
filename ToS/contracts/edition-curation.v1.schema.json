@@ -18,11 +18,11 @@
   },
   "$defs": {
     "id": {"type": "string", "pattern": "^tos\\.[a-z0-9][a-z0-9.-]*$"},
-    "relativePath": {"type": "string", "minLength": 1, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\\\]+$"},
+    "relativePath": {"type": "string", "minLength": 1, "pattern": "^(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*(?:^|/)\\.git(?:/|$))[^\\x00-\\x1f\\\\/]+(?:/[^\\x00-\\x1f\\\\/]+)*$"},
     "locator": {
       "type": "object", "additionalProperties": false, "required": ["role"],
-      "properties": {"role": {"type": "string", "minLength": 1}, "item_relative_path": {"$ref": "#/$defs/relativePath"}, "repository_path": {"$ref": "#/$defs/relativePath"}},
-      "oneOf": [{"required": ["item_relative_path"]}, {"required": ["repository_path"]}]
+      "properties": {"role": {"type": "string", "minLength": 1}, "item_relative_path": {"$ref": "#/$defs/relativePath"}, "item_root": {"const": true}, "repository_path": {"$ref": "#/$defs/relativePath"}},
+      "oneOf": [{"required": ["item_relative_path"]}, {"required": ["item_root"]}, {"required": ["repository_path"]}]
     },
     "keyList": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
     "frozenOutputs": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["role", "repository_path", "schema_version", "expected_sha256"], "properties": {"role": {"type": "string", "minLength": 1}, "repository_path": {"$ref": "#/$defs/relativePath"}, "schema_version": {"type": "string", "minLength": 1}, "expected_sha256": {"$ref": "#/$defs/sha256"}}}},
