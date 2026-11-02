@@ -5016,6 +5016,8 @@ pub struct InProcessCutSchemaExecutor<I> {
     engine: crate::in_process::InProcessSchemaEngine,
     profile: FormatProfile,
     input_mode: crate::in_process::InputMode,
+    finished: bool,
+    failed: bool,
 }
 
 impl InProcessCutSchemaExecutor<()> {
@@ -5084,6 +5086,8 @@ impl<I> InProcessCutSchemaExecutor<I> {
             engine,
             profile,
             input_mode,
+            finished: false,
+            failed: false,
         })
     }
 
@@ -5126,6 +5130,28 @@ impl<I> InProcessCutSchemaExecutor<I> {
     }
 
     pub fn diagnostic(
+        &mut self,
+        contract: &str,
+        raw: &[u8],
+        caps: schema_diagnostics::Caps,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<crate::in_process::Report, ItemRefusal> {
+        if self.finished || self.failed {
+            return Err(ItemRefusal::Unsupported(
+                "schema operation is not active".into(),
+            ));
+        }
+        let result = self.diagnostic_inner(contract, raw, caps, deadline, cancelled);
+        if !matches!(result.as_ref(), Ok(report) if matches!(report.status,
+            schema_diagnostics::Status::Valid | schema_diagnostics::Status::Invalid))
+        {
+            self.failed = true;
+        }
+        result
+    }
+
+    fn diagnostic_inner(
         &mut self,
         contract: &str,
         raw: &[u8],
@@ -5194,6 +5220,19 @@ impl<I> CutSchemaExecutor for InProcessCutSchemaExecutor<I> {
     fn selected_contract_digest(&self, contract: &str) -> Option<Digest256> {
         let base = contract.split_once('#').map_or(contract, |(base, _)| base);
         self.contracts.get(base).map(|(_, digest)| *digest)
+    }
+    fn finish(&mut self, deadline: Instant, cancelled: &AtomicBool) -> Result<(), ItemRefusal> {
+        if self.finished || self.failed {
+            return Err(ItemRefusal::Unsupported(
+                "schema operation is not active".into(),
+            ));
+        }
+        if let Err(error) = check(deadline, cancelled) {
+            self.failed = true;
+            return Err(error);
+        }
+        self.finished = true;
+        Ok(())
     }
     fn check(
         &mut self,
@@ -5345,7 +5384,7 @@ impl<I: Copy + Eq> CutSchemaExecutor for InProcessCandidateSchemaExecutor<I> {
                 "candidate schema operation finalized".into(),
             ));
         }
-        check(deadline, cancelled)?;
+        self.inner.finish(deadline, cancelled)?;
         self.finished = true;
         Ok(())
     }
@@ -5484,6 +5523,45 @@ mod in_process_candidate_binding_tests {
                 .unwrap()
         );
         executor.finish(deadline, &cancelled).unwrap();
+        assert!(
+            executor
+                .check(
+                    "record.json",
+                    b"3",
+                    "ToS/contracts/example.schema.json",
+                    deadline,
+                    &cancelled
+                )
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn incomplete_candidate_evaluation_cannot_finish() {
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let mut executor = InProcessCandidateSchemaExecutor::from_schema_set(
+            selected_set(),
+            crate::in_process::InputMode::PublishedStrict,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        let report = executor
+            .diagnostic_for(
+                "record.json",
+                "ToS/contracts/example.schema.json",
+                b"{",
+                schema_diagnostics::Caps::CURRENT,
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        assert_eq!(
+            report.report.status,
+            schema_diagnostics::Status::InputRejected
+        );
+        assert!(executor.finish(deadline, &cancelled).is_err());
         assert!(
             executor
                 .check(
