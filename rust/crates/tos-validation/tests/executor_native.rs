@@ -365,7 +365,7 @@ mod linux {
         let mut batch_candidate =
             CandidateCutWorkerSchemaExecutor::from_asserted_source_candidate_resources(
                 18u64,
-                selected,
+                selected.clone(),
                 &image,
                 budget,
                 CutWorkerLimits {
@@ -406,6 +406,41 @@ mod linux {
             })
         ));
         batch_candidate.finish(deadline, &not_cancelled).unwrap();
+
+        let mut diagnostics_candidate =
+            CandidateCutWorkerSchemaExecutor::from_asserted_source_candidate_resources(
+                19u64,
+                selected,
+                &image,
+                budget,
+                CutWorkerLimits {
+                    max_receipts: 1,
+                    max_receipt_bytes: 65536,
+                },
+                deadline,
+                &not_cancelled,
+            )
+            .unwrap();
+        diagnostics_candidate
+            .enable_diagnostics_v2(tos_validation::source_cut::CutSchemaDiagnosticsLimits {
+                max_total_issues: 8,
+                max_total_report_bytes: 65536,
+                max_total_state_bytes: 8 * 1024 * 1024,
+            })
+            .unwrap();
+        let diagnostic = diagnostics_candidate
+            .check_diagnostic("subject", b"7", contract, deadline, &not_cancelled)
+            .unwrap();
+        assert!(diagnostic.is_valid());
+        assert_eq!(*diagnostic.input_identity(), 19);
+        assert_eq!(diagnostic.input_sha256(), Digest256::of_bytes(b"7"));
+        assert!(matches!(
+            diagnostic,
+            tos_validation::source_cut::CandidateSchemaDiagnostic::Worker(_)
+        ));
+        diagnostics_candidate
+            .finish(deadline, &not_cancelled)
+            .unwrap();
     }
 
     #[test]
