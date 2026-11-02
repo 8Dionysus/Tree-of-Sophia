@@ -30,7 +30,7 @@ use tos_validation::{
 };
 
 #[path = "source_admission_spooled_records.rs"]
-mod records_store;
+pub(crate) mod records_store;
 
 fn invalid(message: &'static str) -> io::Error {
     io::Error::new(io::ErrorKind::InvalidData, message)

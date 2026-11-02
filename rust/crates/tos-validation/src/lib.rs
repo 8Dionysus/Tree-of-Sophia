@@ -28,6 +28,8 @@ mod datetime_support;
 pub use datetime_support::{ObservedDateTimeError, observed_utc_or_naive_timestamp_micros};
 #[cfg(feature = "native")]
 pub mod executor;
+#[cfg(feature = "native")]
+pub mod in_process;
 pub mod item_rules;
 #[cfg(feature = "native")]
 pub mod layer_family_cut;
