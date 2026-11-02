@@ -351,27 +351,6 @@ impl OperationBudget {
         Ok(())
     }
 
-    /// Select lower per-session resources, without changing the operation deadline.
-    /// This setter alone does not account aggregate CPU across multiple sessions.
-    pub(crate) fn lower_worker_resources(
-        &mut self,
-        cpu_seconds: u64,
-        address_bytes: u64,
-    ) -> SourceCommandResult<()> {
-        if cpu_seconds == 0
-            || address_bytes == 0
-            || cpu_seconds > self.worker_cpu_seconds
-            || address_bytes > self.worker_address_space_bytes
-        {
-            return Err(SourceCommandError::Invalid(
-                "assessment lower worker resources",
-            ));
-        }
-        self.worker_cpu_seconds = cpu_seconds;
-        self.worker_address_space_bytes = address_bytes;
-        Ok(())
-    }
-
     pub(crate) fn charge_bytes(&mut self, bytes: usize) -> SourceCommandResult<()> {
         self.bytes_remaining =
             self.bytes_remaining

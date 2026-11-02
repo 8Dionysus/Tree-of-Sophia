@@ -5605,7 +5605,6 @@ process.stdout.write(output);"#;
                             configuration_path: &c01_owner_path,
                             public_root: isolated.path(),
                             cut: &w,
-                            image: &image,
                             software: &software,
                             components: &components,
                             source_revision: w_revision,
