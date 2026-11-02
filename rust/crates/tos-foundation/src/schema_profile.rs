@@ -37,3 +37,18 @@ pub enum CutPreparedSchemaProtocol {
     LegacyScalar,
     DiagnosticsV2 { caps_sha256: Digest256 },
 }
+
+/// Identity of an in-process execution prepared for an exact schema set.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct InProcessSchemaExecutionBinding {
+    pub schema_profile: FormatProfile,
+    pub schema_set_sha256: Digest256,
+    pub engine: &'static str,
+}
+
+/// Versioned execution identity for adapters migrating from worker execution.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SchemaExecutionBinding {
+    Worker(CutPreparedSchemaExecutionBinding),
+    InProcessV1(InProcessSchemaExecutionBinding),
+}
