@@ -2039,6 +2039,30 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
                 .unwrap()
         );
     }
+    let mut different_quotas = plan.clone();
+    different_quotas["candidate_preparation"]["work_quotas"][0]["hard"] = json!(1);
+    let different_plan_raw = serde_json::to_vec(&different_quotas).unwrap();
+    let mut different_curation = transfer.clone();
+    let recipe = different_curation["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "transfer-candidates")
+        .unwrap();
+    recipe["plan_sha256"] =
+        json!(tos_foundation::Digest256::of_bytes(&different_plan_raw).to_hex());
+    assert_eq!(
+        validate_recipe_plan(
+            &serde_json::to_vec(&different_curation).unwrap(),
+            "transfer-candidates",
+            SelectedDocument {
+                reference: plan_ref,
+                raw: &different_plan_raw
+            },
+            &schema
+        ),
+        Ok(())
+    );
     let mut wrong_seed = transfer.clone();
     let recipe = wrong_seed["recipes"]
         .as_array_mut()
