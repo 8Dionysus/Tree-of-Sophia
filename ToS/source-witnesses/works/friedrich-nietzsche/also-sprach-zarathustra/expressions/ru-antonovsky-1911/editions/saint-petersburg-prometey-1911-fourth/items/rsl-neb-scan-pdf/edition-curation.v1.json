@@ -134,6 +134,17 @@
           }
         ]
       }
+    },
+    {
+      "stage": "text-collation",
+      "plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/antonovsky-2007-1911-opening-sentence-collation.plan.v1.json",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution-2007.operator-pdf",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf"
+      ],
+      "event_id": "tos.event.alignment.antonovsky-2007-1911-opening-sentence-collation.2026-08-12",
+      "legacy_builder_ref": "scripts/build_antonovsky_2007_1911_collation.py",
+      "executor_agent_ref": "software:tos-antonovsky-2007-1911-collation-builder"
     }
   ]
 }

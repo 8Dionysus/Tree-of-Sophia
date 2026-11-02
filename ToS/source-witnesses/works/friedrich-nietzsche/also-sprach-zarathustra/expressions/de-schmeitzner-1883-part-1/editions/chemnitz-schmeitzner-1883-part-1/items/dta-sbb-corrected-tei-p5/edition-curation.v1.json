@@ -22,6 +22,17 @@
       "legacy_event_sha256": "16a93b52ee7a86b72bd4ad1a8bb4e0f245c2eab95f447a9f600faf04890fdd17",
       "identity_namespace": "tos-zarathustra-dta-technical-markup-v1-opaque-issuance",
       "legacy_unit_reason": "The unit records only a boundary explicitly present in the exact selected DTA TEI representation; this is not accepted German, editorial hierarchy, linguistic analysis, translation, or semantics."
+    },
+    {
+      "stage": "sentence-alignment",
+      "plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-opening-sentence-alignment.plan.v1.json",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf"
+      ],
+      "event_id": "tos.event.alignment.za-i-vorrede-1.dta-1883-antonovsky-1911-opening-sentence.2026-08-12",
+      "legacy_builder_ref": "scripts/build_zarathustra_opening_sentence_alignment.py",
+      "legacy_builder_sha256": "80d312d541718d5fc5e57caa5689202102ec527fe311e29f362c341e76f9d52d"
     }
   ]
 }

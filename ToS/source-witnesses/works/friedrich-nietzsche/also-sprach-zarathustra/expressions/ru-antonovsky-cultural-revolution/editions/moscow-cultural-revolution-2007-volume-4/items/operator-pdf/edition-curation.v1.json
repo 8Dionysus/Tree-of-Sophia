@@ -1,0 +1,17 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/edition-curation.v1.schema.json",
+  "schema_version": "tos_edition_curation_v1",
+  "curation_id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution-2007.operator-pdf.edition-curation.v1",
+  "version": 1,
+  "status": "historical-constants",
+  "owner_item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution-2007.operator-pdf",
+  "edition_ref": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-cultural-revolution-2007-volume-4",
+  "manifest": "item.manifest.json",
+  "recipes": [
+    {
+      "stage": "recipe-reference",
+      "curation_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/edition-curation.v1.json",
+      "recipe_stage": "text-collation"
+    }
+  ]
+}
