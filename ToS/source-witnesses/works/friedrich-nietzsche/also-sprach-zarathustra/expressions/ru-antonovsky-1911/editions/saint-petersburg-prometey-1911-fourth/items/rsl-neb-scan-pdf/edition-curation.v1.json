@@ -132,6 +132,35 @@
             "key": "projection_id",
             "prefix": "text-unit-projection"
           }
+        ],
+        "identity_issuance": {
+          "issuance_id": "tos.identity-issuance.zarathustra-antonovsky-1911-pdf-layout-v1",
+          "schema_version": "tos_opaque_identity_issuance_v1",
+          "identity_prefixes": [
+            {
+              "kind": "units",
+              "prefix": "tos.text-unit"
+            },
+            {
+              "kind": "anchors",
+              "prefix": "tos.anchor.zarathustra-antonovsky-1911-layout-v1"
+            }
+          ]
+        }
+      },
+      "identity_issuance": {
+        "issuance_id": "tos.identity-issuance.zarathustra-antonovsky-1911-structural-paragraph-v2",
+        "schema_version": "tos_antonovsky_1911_structural_paragraph_identity_issuance_v2",
+        "issued_on": "2026-09-01",
+        "identity_prefixes": [
+          {
+            "kind": "structures",
+            "prefix": "tos.structure-unit"
+          },
+          {
+            "kind": "paragraphs",
+            "prefix": "tos.text-unit"
+          }
         ]
       }
     },
