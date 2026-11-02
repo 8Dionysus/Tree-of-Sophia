@@ -93,6 +93,21 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         validate(&serde_json::to_vec(&target).unwrap(), &schema),
         Err(EditionCurationError::InvalidRange("x_min"))
     );
+    let hierarchical_path = "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/edition-curation.v1.json";
+    let hierarchical_raw = fs::read(root.join(hierarchical_path)).unwrap();
+    assert_eq!(validate(&hierarchical_raw, &schema), Ok(()));
+    let mut invalid_identity: Value = serde_json::from_slice(&hierarchical_raw).unwrap();
+    let hierarchical = invalid_identity["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|r| r["stage"] == "hierarchical-source-structure")
+        .unwrap();
+    hierarchical["identity"]["anchor_prefix"] = json!("not-an-anchor");
+    assert_eq!(
+        validate(&serde_json::to_vec(&invalid_identity).unwrap(), &schema),
+        Err(EditionCurationError::InvalidSchema)
+    );
     let mut invalid_counts = original.clone();
     let labels = invalid_counts["recipes"]
         .as_array_mut()
