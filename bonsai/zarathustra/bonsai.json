@@ -192,6 +192,15 @@
         "en": "The graft map: which Tree identity each bonsai ID stands for and whether the Tree already holds it."
       },
       "format": "tos.bonsai.identities.v1"
+    },
+    {
+      "id": "terms",
+      "path": "terms.json",
+      "format": "tos.bonsai.terms.v1",
+      "role": {
+        "ru": "Слова книги, которыми читает её ядро стенда: оригинал, первое место, слова переводчиков и собственные слова Древа.",
+        "en": "The book’s words through which the stand’s core reads it: original, first place, translators’ words and the Tree’s own terms."
+      }
     }
   ],
   "lenses": {
