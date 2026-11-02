@@ -190,17 +190,17 @@ impl SourceCutInputWithIdentity<CandidateFence> for CandidateRecordsInput<'_, '_
     fn input_identity(&self) -> &CandidateFence {
         &self.fence
     }
+    fn source_input(&self) -> &dyn SourceCutInput {
+        self
+    }
+}
+impl SourceCutInput for CandidateRecordsInput<'_, '_> {
     fn matches_candidate_evidence(&self, evidence: &serde_json::Value) -> bool {
         *evidence
             == crate::source_admission_spooled_index::records_store::candidate_fence_value(
                 &self.fence,
             )
     }
-    fn source_input(&self) -> &dyn SourceCutInput {
-        self
-    }
-}
-impl SourceCutInput for CandidateRecordsInput<'_, '_> {
     fn record_selection(
         &self,
     ) -> Option<Arc<tos_validation::source_record_selection::SourceRecordSelection>> {

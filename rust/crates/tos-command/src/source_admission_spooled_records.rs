@@ -4410,6 +4410,7 @@ mod schema_report_codec_tests {
                     ),
                     path: "source.json".into(),
                     contract: "schema.json".into(),
+                    selector_kind: tos_validation::source_cut::InProcessSelectorKind::ContractPath,
                     input_size_bytes: Some(raw.len() as u64),
                     before_issue: Some(3),
                     report: report.clone(),
@@ -4438,6 +4439,16 @@ mod schema_report_codec_tests {
             .unwrap();
             assert_eq!(stored.ordinal, 7);
             assert_eq!(stored.diagnostic, diagnostic);
+            let mut uri_diagnostic = diagnostic.clone();
+            if let StoredSchemaDiagnostic::InProcess(row) = &mut uri_diagnostic {
+                row.selector_kind = tos_validation::source_cut::InProcessSelectorKind::SchemaUri;
+                row.contract = row.report.root_uri.clone();
+            }
+            let uri_envelope = stored_schema_diagnostic_value(&uri_diagnostic).unwrap();
+            assert_eq!(
+                stored_schema_diagnostic_from_value(&uri_envelope).unwrap(),
+                uri_diagnostic
+            );
             let evidence = StoredSchemaReport::InProcess(report);
             let value = stored_schema_report_value(&evidence).unwrap();
             assert_eq!(stored_schema_report_from_value(&value).unwrap(), evidence);

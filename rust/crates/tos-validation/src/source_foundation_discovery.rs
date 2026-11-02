@@ -5465,7 +5465,11 @@ impl<'report, 'store, I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'report
                         if diagnostic_state > max_state_bytes {
                             return Err(crate::item_budget_origin!());
                         }
-                        if !input.matches_candidate_evidence(identity) || !report.is_well_formed() {
+                        if !input.matches_candidate_evidence(identity)
+                            || !report.is_well_formed()
+                            || (row.selector_kind == crate::source_cut::InProcessSelectorKind::SchemaUri
+                                && row.contract != report.root_uri)
+                        {
                             return Err(ItemRefusal::Source("Artifact diagnostic evidence differs from candidate".into()));
                         }
                         let (unit_digest, report_digest, hash_bytes) =
@@ -6212,7 +6216,9 @@ fn update_in_process_diagnostic_fingerprint(
     let mut unit_hash = Digest256Hasher::new();
     hash_text(
         &mut unit_hash,
-        if diagnostic.before_issue.is_some() {
+        if diagnostic.selector_kind == crate::source_cut::InProcessSelectorKind::SchemaUri {
+            "tos-in-process-artifact-unit-v3"
+        } else if diagnostic.before_issue.is_some() {
             "tos-in-process-artifact-unit-v2"
         } else {
             "tos-in-process-artifact-unit-v1"
@@ -6291,6 +6297,7 @@ mod in_process_artifact_evidence_tests {
             identity: InProcessCutIdentity::Candidate(serde_json::json!({"fence": 1})),
             path: "ToS/source-witnesses/artifacts/example/artifact-witness.json".into(),
             contract: V2_ARTIFACT_SCHEMA.into(),
+            selector_kind: crate::source_cut::InProcessSelectorKind::SchemaUri,
             input_size_bytes: Some(2),
             before_issue: None,
             report,

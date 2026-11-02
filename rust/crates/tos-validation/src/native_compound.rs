@@ -6122,6 +6122,9 @@ struct SelectedCompoundInput<'a, I> {
 }
 
 impl<I> SourceCutInput for SelectedCompoundInput<'_, I> {
+    fn matches_candidate_evidence(&self, evidence: &serde_json::Value) -> bool {
+        self.input.matches_candidate_evidence(evidence)
+    }
     fn record_selection(
         &self,
     ) -> Option<std::sync::Arc<crate::source_record_selection::SourceRecordSelection>> {

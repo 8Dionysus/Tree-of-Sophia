@@ -4986,12 +4986,22 @@ pub enum InProcessCutIdentity<I> {
     Candidate(I),
 }
 
+/// The selected contract is represented by its source path or schema URI.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum InProcessSelectorKind {
+    #[default]
+    ContractPath,
+    SchemaUri,
+}
+
 /// A report retains the exact source or candidate fence and contract selection.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InProcessCutDiagnostic<I> {
     pub identity: InProcessCutIdentity<I>,
     pub path: String,
     pub contract: String,
+    pub selector_kind: InProcessSelectorKind,
     /// Exact raw input length, absent in version 1 historical evidence.
     pub input_size_bytes: Option<u64>,
     /// Number of owner issues emitted before this record evaluation.
@@ -5106,6 +5116,7 @@ impl<I> InProcessCutSchemaExecutor<I> {
             identity: self.identity.clone(),
             path: path.to_owned(),
             contract: contract.to_owned(),
+            selector_kind: InProcessSelectorKind::ContractPath,
             input_size_bytes: Some(
                 u64::try_from(raw.len()).map_err(|_| crate::item_budget_origin!())?,
             ),
@@ -5229,6 +5240,8 @@ struct InProcessCutEvidence<I> {
     identity: InProcessIdentityEvidence<I>,
     path: String,
     contract: String,
+    #[serde(default, skip_serializing_if = "selector_is_contract_path")]
+    selector_kind: InProcessSelectorKind,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     input_size_bytes: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -5236,9 +5249,20 @@ struct InProcessCutEvidence<I> {
     report: serde_json::Value,
 }
 
+fn selector_is_contract_path(kind: &InProcessSelectorKind) -> bool {
+    *kind == InProcessSelectorKind::ContractPath
+}
+
 impl<I: Clone + serde::Serialize + serde::de::DeserializeOwned> InProcessCutDiagnostic<I> {
     /// Encode the selected-input fence alongside the engine-specific report.
     pub fn to_evidence_json(&self) -> Result<Vec<u8>, serde_json::Error> {
+        if self.selector_kind == InProcessSelectorKind::SchemaUri
+            && self.contract != self.report.root_uri
+        {
+            return Err(<serde_json::Error as serde::ser::Error>::custom(
+                "schema URI selector differs from report root",
+            ));
+        }
         let identity = match &self.identity {
             InProcessCutIdentity::Source(revision) => {
                 InProcessIdentityEvidence::Source(revision.0.to_hex())
@@ -5249,7 +5273,9 @@ impl<I: Clone + serde::Serialize + serde::de::DeserializeOwned> InProcessCutDiag
         };
         let report = serde_json::from_slice(&self.report.to_evidence_json()?)?;
         serde_json::to_vec(&InProcessCutEvidence {
-            version: if self.before_issue.is_some() {
+            version: if self.selector_kind == InProcessSelectorKind::SchemaUri {
+                4
+            } else if self.before_issue.is_some() {
                 3
             } else if self.input_size_bytes.is_some() {
                 2
@@ -5259,6 +5285,7 @@ impl<I: Clone + serde::Serialize + serde::de::DeserializeOwned> InProcessCutDiag
             identity,
             path: self.path.clone(),
             contract: self.contract.clone(),
+            selector_kind: self.selector_kind,
             input_size_bytes: self.input_size_bytes,
             before_issue: self.before_issue,
             report,
@@ -5275,9 +5302,13 @@ impl<I: Clone + serde::Serialize + serde::de::DeserializeOwned> InProcessCutDiag
             (
                 evidence.version,
                 evidence.input_size_bytes,
-                evidence.before_issue
+                evidence.before_issue,
+                evidence.selector_kind
             ),
-            (1, None, None) | (2, Some(_), None) | (3, _, Some(_))
+            (1, None, None, InProcessSelectorKind::ContractPath)
+                | (2, Some(_), None, InProcessSelectorKind::ContractPath)
+                | (3, _, Some(_), InProcessSelectorKind::ContractPath)
+                | (4, _, _, InProcessSelectorKind::SchemaUri)
         ) || evidence.path.is_empty()
             || evidence.contract.is_empty()
             || evidence.path.len() > 4096
@@ -5297,10 +5328,16 @@ impl<I: Clone + serde::Serialize + serde::de::DeserializeOwned> InProcessCutDiag
         };
         let raw_report = serde_json::to_vec(&evidence.report).map_err(|_| "invalid report")?;
         let report = crate::in_process::Report::from_evidence_json(&raw_report)?;
+        if evidence.selector_kind == InProcessSelectorKind::SchemaUri
+            && evidence.contract != report.root_uri
+        {
+            return Err("schema URI selector differs from report root");
+        }
         Ok(Self {
             identity,
             path: evidence.path,
             contract: evidence.contract,
+            selector_kind: evidence.selector_kind,
             input_size_bytes: evidence.input_size_bytes,
             before_issue: evidence.before_issue,
             report,

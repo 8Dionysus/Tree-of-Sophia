@@ -432,6 +432,19 @@ fn cut_adapter_binds_source_and_candidate_separately() {
         .unwrap(),
         positioned
     );
+    let mut uri_selector = positioned.clone();
+    uri_selector.selector_kind = tos_validation::source_cut::InProcessSelectorKind::SchemaUri;
+    uri_selector.contract = uri_selector.report.root_uri.clone();
+    let uri_bytes = uri_selector.to_evidence_json().unwrap();
+    assert_eq!(
+        tos_validation::source_cut::InProcessCutDiagnostic::<String>::from_evidence_json(
+            &uri_bytes
+        )
+        .unwrap(),
+        uri_selector
+    );
+    uri_selector.contract = "https://example.test/other".into();
+    assert!(uri_selector.to_evidence_json().is_err());
     let mut invalid: serde_json::Value = serde_json::from_slice(&encoded).unwrap();
     invalid["version"] = serde_json::json!(1);
     assert!(
