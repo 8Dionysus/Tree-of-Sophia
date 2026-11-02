@@ -53,6 +53,23 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         validate(&serde_json::to_vec(&invalid_box).unwrap(), &schema),
         Err(EditionCurationError::InvalidRange("line_bbox"))
     );
+    let dta_path = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/edition-curation.v1.json";
+    let dta_raw = fs::read(root.join(dta_path)).unwrap();
+    assert_eq!(validate(&dta_raw, &schema), Ok(()));
+    let mut invalid_cues: Value = serde_json::from_slice(&dta_raw).unwrap();
+    invalid_cues["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|r| r["stage"] == "reading-workbench")
+        .unwrap()
+        .as_object_mut()
+        .unwrap()
+        .remove("cue_matching");
+    assert_eq!(
+        validate(&serde_json::to_vec(&invalid_cues).unwrap(), &schema),
+        Err(EditionCurationError::InvalidSchema)
+    );
     let target_path = "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/edition-curation.v1.json";
     let target_raw = fs::read(root.join(target_path)).unwrap();
     assert_eq!(validate(&target_raw, &schema), Ok(()));

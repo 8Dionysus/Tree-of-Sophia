@@ -749,7 +749,835 @@
           "ref": "scripts/zarathustra_recurring_formulas.py",
           "sha256": "cc80e480268e7916662f4a214c9f69fa3400f45eec2ac9a2a0f2cd7e21fa0e9d"
         }
-      ]
+      ],
+      "cue_matching": {
+        "case": "unicode-insensitive",
+        "word_boundary": "unicode",
+        "separator": "unicode-whitespace-one-or-more",
+        "directions": [
+          "subject_after_verb",
+          "subject_before_verb"
+        ],
+        "languages": [
+          {
+            "language": "de",
+            "subject_roles": [
+              {
+                "role": "right_king",
+                "forms": [
+                  "der König zur Rechten",
+                  "König zur Rechten"
+                ]
+              },
+              {
+                "role": "left_king",
+                "forms": [
+                  "der König zur Linken",
+                  "König zur Linken"
+                ]
+              },
+              {
+                "role": "conscientious_one",
+                "forms": [
+                  "der Gewissenhafte des Geistes",
+                  "der Gewissenhafte",
+                  "der Getretene",
+                  "der Blutende",
+                  "der Gefragte",
+                  "Gewissenhafte des Geistes",
+                  "Gewissenhafte",
+                  "Getretene",
+                  "Blutende",
+                  "Gefragte"
+                ]
+              },
+              {
+                "role": "voluntary_beggar",
+                "forms": [
+                  "der freiwillige Bettler",
+                  "der Berg-Prediger",
+                  "der Friedfertige",
+                  "freiwillige Bettler",
+                  "Berg-Prediger",
+                  "Friedfertige"
+                ]
+              },
+              {
+                "role": "ugliest_man",
+                "forms": [
+                  "der hässlichste Mensch",
+                  "der Unaussprechliche",
+                  "hässlichste Mensch",
+                  "Unaussprechliche"
+                ]
+              },
+              {
+                "role": "magician",
+                "forms": [
+                  "der alte Zauberer",
+                  "der kluge Zauberer",
+                  "der Zauberer",
+                  "dieser alte Zauberer",
+                  "dieser kluge Zauberer",
+                  "dieser Zauberer",
+                  "alte Zauberer",
+                  "kluge Zauberer",
+                  "Zauberer"
+                ]
+              },
+              {
+                "role": "pope",
+                "forms": [
+                  "der alte Papst",
+                  "der Papst",
+                  "alte Papst",
+                  "Papst"
+                ]
+              },
+              {
+                "role": "shadow",
+                "forms": [
+                  "der Wanderer und Schatten",
+                  "der Schatten",
+                  "der Wanderer",
+                  "Wanderer und Schatten",
+                  "Schatten",
+                  "Wanderer"
+                ]
+              },
+              {
+                "role": "soothsayer",
+                "forms": [
+                  "der alte Wahrsager",
+                  "der Wahrsager",
+                  "alte Wahrsager",
+                  "Wahrsager"
+                ]
+              },
+              {
+                "role": "animals",
+                "forms": [
+                  "die Thiere",
+                  "seine Thiere",
+                  "meine Thiere",
+                  "Thiere"
+                ]
+              },
+              {
+                "role": "old_woman",
+                "forms": [
+                  "das alte Weiblein",
+                  "alte Weiblein"
+                ]
+              },
+              {
+                "role": "stillest_hour",
+                "forms": [
+                  "meine stillste Stunde",
+                  "stillste Stunde"
+                ]
+              },
+              {
+                "role": "zarathustra",
+                "forms": [
+                  "Zarathustra"
+                ]
+              },
+              {
+                "role": "dwarf",
+                "forms": [
+                  "der Zwerg",
+                  "der Geist der Schwere",
+                  "Zwerg",
+                  "Geist der Schwere"
+                ]
+              },
+              {
+                "role": "sage",
+                "forms": [
+                  "der Weise",
+                  "Weise"
+                ]
+              },
+              {
+                "role": "saint",
+                "forms": [
+                  "der Heilige",
+                  "Heilige"
+                ]
+              },
+              {
+                "role": "old_man",
+                "forms": [
+                  "der Greis",
+                  "der Alte",
+                  "der alte Mann",
+                  "Greis",
+                  "Alte",
+                  "alte Mann"
+                ]
+              },
+              {
+                "role": "youth",
+                "forms": [
+                  "der Jüngling",
+                  "Jüngling"
+                ]
+              },
+              {
+                "role": "disciples",
+                "forms": [
+                  "seine Jünger",
+                  "die Jünger",
+                  "meine Jünger"
+                ]
+              },
+              {
+                "role": "disciple",
+                "forms": [
+                  "der Jünger",
+                  "Jünger"
+                ]
+              },
+              {
+                "role": "hunchback",
+                "forms": [
+                  "der Bucklichte",
+                  "Bucklichte"
+                ]
+              },
+              {
+                "role": "fire_dog",
+                "forms": [
+                  "der Feuerhund",
+                  "Feuerhund"
+                ]
+              },
+              {
+                "role": "adder",
+                "forms": [
+                  "die Natter",
+                  "Natter"
+                ]
+              },
+              {
+                "role": "ass",
+                "forms": [
+                  "der Esel",
+                  "Esel"
+                ]
+              },
+              {
+                "role": "life",
+                "forms": [
+                  "das Leben",
+                  "Leben"
+                ]
+              },
+              {
+                "role": "wisdom",
+                "forms": [
+                  "meine wilde Weisheit",
+                  "meine lachende Weisheit",
+                  "meine weise Weisheit",
+                  "meine Weisheit",
+                  "die wilde Weisheit",
+                  "die lachende Weisheit",
+                  "die weise Weisheit",
+                  "die Weisheit",
+                  "seine wilde Weisheit",
+                  "seine lachende Weisheit",
+                  "seine weise Weisheit",
+                  "seine Weisheit",
+                  "wilde Weisheit",
+                  "lachende Weisheit",
+                  "weise Weisheit",
+                  "Weisheit"
+                ]
+              },
+              {
+                "role": "solitude",
+                "forms": [
+                  "die Einsamkeit",
+                  "Einsamkeit"
+                ]
+              },
+              {
+                "role": "soul",
+                "forms": [
+                  "meine Seele",
+                  "die Seele",
+                  "seine Seele",
+                  "Seele"
+                ]
+              },
+              {
+                "role": "crowd",
+                "forms": [
+                  "das Volk",
+                  "das die Menge",
+                  "Volk",
+                  "die Menge"
+                ]
+              },
+              {
+                "role": "herd",
+                "forms": [
+                  "die Heerde",
+                  "Heerde"
+                ]
+              },
+              {
+                "role": "self",
+                "forms": [
+                  "ich"
+                ]
+              },
+              {
+                "role": "unresolved",
+                "forms": [
+                  "er",
+                  "sie",
+                  "es",
+                  "dieser",
+                  "jener",
+                  "der Andere",
+                  "der andre König"
+                ]
+              }
+            ],
+            "verb_forms": [
+              "sprachen",
+              "sprach",
+              "spricht",
+              "sagte",
+              "sagten",
+              "sagt",
+              "antwortete",
+              "antworteten",
+              "antwortet",
+              "entgegnete",
+              "entgegneten",
+              "entgegnet",
+              "erwiderte",
+              "erwiderten",
+              "erwidert",
+              "ruft",
+              "riefen",
+              "rief",
+              "redete",
+              "redeten",
+              "redet",
+              "flüsterte",
+              "flüsterten",
+              "flüstert",
+              "schrien",
+              "schrieen",
+              "schrie",
+              "schreit",
+              "sangen",
+              "sang",
+              "fragte",
+              "fragten",
+              "fragt",
+              "raunte",
+              "raunten",
+              "raunt",
+              "knurrte",
+              "knurrten",
+              "knurrt",
+              "murmelte",
+              "murmelten",
+              "murmelt",
+              "brummte",
+              "brummten",
+              "brummt",
+              "dachte",
+              "dachten",
+              "denkt"
+            ],
+            "modifier_forms": [
+              "aber",
+              "nun",
+              "also",
+              "endlich",
+              "hier",
+              "da",
+              "abermals",
+              "nochmals",
+              "weiter",
+              "leise",
+              "zornig",
+              "traurig",
+              "lachend",
+              "heftig",
+              "unwillig",
+              "bitter",
+              "verächtlich",
+              "ihm",
+              "mir",
+              "ihr",
+              "dann",
+              "so",
+              "erheitert",
+              "erschreckt"
+            ],
+            "max_modifiers": 4
+          },
+          {
+            "language": "ru",
+            "subject_roles": [
+              {
+                "role": "right_king",
+                "forms": [
+                  "правый король",
+                  "король направо",
+                  "король справа",
+                  "король по правую руку",
+                  "король по правую сторону"
+                ]
+              },
+              {
+                "role": "left_king",
+                "forms": [
+                  "левый король",
+                  "король налево",
+                  "король слева",
+                  "король по левую руку",
+                  "король по левую сторону"
+                ]
+              },
+              {
+                "role": "conscientious_one",
+                "forms": [
+                  "добросовестный духомъ",
+                  "добросовестный духомь",
+                  "добросовестный духом",
+                  "добросовестный",
+                  "совестливый духомъ",
+                  "совестливый духомь",
+                  "совестливый духом",
+                  "совестливый",
+                  "совестный духомъ",
+                  "совестный духомь",
+                  "совестный духом",
+                  "совестный",
+                  "растоптанный",
+                  "пострадавший"
+                ]
+              },
+              {
+                "role": "voluntary_beggar",
+                "forms": [
+                  "добровольный нищий",
+                  "миролюбивый",
+                  "горный проповедникъ",
+                  "горный проповедникь",
+                  "горный проповедник"
+                ]
+              },
+              {
+                "role": "ugliest_man",
+                "forms": [
+                  "самый безобразный человекъ",
+                  "самый безобразный человекь",
+                  "самый безобразный человек",
+                  "безобразнейший",
+                  "невыразимый"
+                ]
+              },
+              {
+                "role": "magician",
+                "forms": [
+                  "старый чародей",
+                  "старый волшебникъ",
+                  "старый волшебникь",
+                  "старый волшебник",
+                  "хитрый чародей",
+                  "хитрый волшебникъ",
+                  "хитрый волшебникь",
+                  "хитрый волшебник",
+                  "чародей",
+                  "волшебникъ",
+                  "волшебникь",
+                  "волшебник"
+                ]
+              },
+              {
+                "role": "pope",
+                "forms": [
+                  "старый папа",
+                  "папа"
+                ]
+              },
+              {
+                "role": "shadow",
+                "forms": [
+                  "странникъ и тень",
+                  "странникь и тень",
+                  "странник и тень",
+                  "тень",
+                  "странникъ",
+                  "странникь",
+                  "странник"
+                ]
+              },
+              {
+                "role": "soothsayer",
+                "forms": [
+                  "старый прорицатель",
+                  "прорицатель"
+                ]
+              },
+              {
+                "role": "animals",
+                "forms": [
+                  "его звери",
+                  "мои звери",
+                  "свои звери",
+                  "звери"
+                ]
+              },
+              {
+                "role": "old_woman",
+                "forms": [
+                  "старуха",
+                  "старушка"
+                ]
+              },
+              {
+                "role": "zarathustra",
+                "forms": [
+                  "Заратустра"
+                ]
+              },
+              {
+                "role": "dwarf",
+                "forms": [
+                  "карликъ",
+                  "карликь",
+                  "карлик",
+                  "духъ тяжести",
+                  "духь тяжести",
+                  "дух тяжести"
+                ]
+              },
+              {
+                "role": "sage",
+                "forms": [
+                  "мудрецъ",
+                  "мудрець",
+                  "мудрец"
+                ]
+              },
+              {
+                "role": "saint",
+                "forms": [
+                  "святой"
+                ]
+              },
+              {
+                "role": "old_man",
+                "forms": [
+                  "старецъ",
+                  "старець",
+                  "старец",
+                  "старикъ",
+                  "старикь",
+                  "старик"
+                ]
+              },
+              {
+                "role": "youth",
+                "forms": [
+                  "юноша"
+                ]
+              },
+              {
+                "role": "disciples",
+                "forms": [
+                  "его ученики",
+                  "ученики"
+                ]
+              },
+              {
+                "role": "disciple",
+                "forms": [
+                  "ученикъ",
+                  "ученикь",
+                  "ученик"
+                ]
+              },
+              {
+                "role": "hunchback",
+                "forms": [
+                  "горбатый",
+                  "горбунъ",
+                  "горбунь",
+                  "горбун"
+                ]
+              },
+              {
+                "role": "fire_dog",
+                "forms": [
+                  "огненный песъ",
+                  "огненный песь",
+                  "огненный пес"
+                ]
+              },
+              {
+                "role": "adder",
+                "forms": [
+                  "змея"
+                ]
+              },
+              {
+                "role": "ass",
+                "forms": [
+                  "оселъ",
+                  "осель",
+                  "осел"
+                ]
+              },
+              {
+                "role": "life",
+                "forms": [
+                  "жизнь"
+                ]
+              },
+              {
+                "role": "wisdom",
+                "forms": [
+                  "моя мудрость",
+                  "мудрость"
+                ]
+              },
+              {
+                "role": "solitude",
+                "forms": [
+                  "уединение",
+                  "одиночество"
+                ]
+              },
+              {
+                "role": "soul",
+                "forms": [
+                  "моя душа",
+                  "его душа",
+                  "душа"
+                ]
+              },
+              {
+                "role": "crowd",
+                "forms": [
+                  "народъ",
+                  "народь",
+                  "народ",
+                  "толпа"
+                ]
+              },
+              {
+                "role": "self",
+                "forms": [
+                  "я"
+                ]
+              },
+              {
+                "role": "unresolved",
+                "forms": [
+                  "онъ",
+                  "онь",
+                  "он",
+                  "она",
+                  "оно",
+                  "они",
+                  "этотъ",
+                  "этоть",
+                  "этот",
+                  "тотъ",
+                  "тоть",
+                  "тот"
+                ]
+              }
+            ],
+            "verb_forms": [
+              "говорилаъ",
+              "говорилаь",
+              "говорила",
+              "говорилиъ",
+              "говорилиь",
+              "говорили",
+              "говорилъ",
+              "говориль",
+              "говорил",
+              "говоритъъ",
+              "говоритъь",
+              "говоритъ",
+              "говоритьъ",
+              "говоритьь",
+              "говорить",
+              "говоритъ",
+              "говорить",
+              "говорит",
+              "сказалаъ",
+              "сказалаь",
+              "сказала",
+              "сказалиъ",
+              "сказалиь",
+              "сказали",
+              "сказалъ",
+              "сказаль",
+              "сказал",
+              "сказалиъ",
+              "сказалиь",
+              "сказали",
+              "ответилаъ",
+              "ответилаь",
+              "ответила",
+              "ответилиъ",
+              "ответилиь",
+              "ответили",
+              "ответилъ",
+              "ответиль",
+              "ответил",
+              "отвечалаъ",
+              "отвечалаь",
+              "отвечала",
+              "отвечалиъ",
+              "отвечалиь",
+              "отвечали",
+              "отвечалъ",
+              "отвечаль",
+              "отвечал",
+              "воскликнулаъ",
+              "воскликнулаь",
+              "воскликнула",
+              "воскликнулиъ",
+              "воскликнулиь",
+              "воскликнули",
+              "воскликнулъ",
+              "воскликнуль",
+              "воскликнул",
+              "крикнулаъ",
+              "крикнулаь",
+              "крикнула",
+              "крикнулиъ",
+              "крикнулиь",
+              "крикнули",
+              "крикнулъ",
+              "крикнуль",
+              "крикнул",
+              "кричалаъ",
+              "кричалаь",
+              "кричала",
+              "кричалиъ",
+              "кричалиь",
+              "кричали",
+              "кричалъ",
+              "кричаль",
+              "кричал",
+              "спросилаъ",
+              "спросилаь",
+              "спросила",
+              "спросилиъ",
+              "спросилиь",
+              "спросили",
+              "спросилъ",
+              "спросиль",
+              "спросил",
+              "шепталаъ",
+              "шепталаь",
+              "шептала",
+              "шепталиъ",
+              "шепталиь",
+              "шептали",
+              "шепталъ",
+              "шепталь",
+              "шептал",
+              "прошепталаъ",
+              "прошепталаь",
+              "прошептала",
+              "прошепталиъ",
+              "прошепталиь",
+              "прошептали",
+              "прошепталъ",
+              "прошепталь",
+              "прошептал",
+              "подумалаъ",
+              "подумалаь",
+              "подумала",
+              "подумалиъ",
+              "подумалиь",
+              "подумали",
+              "подумалъ",
+              "подумаль",
+              "подумал",
+              "думалаъ",
+              "думалаь",
+              "думала",
+              "думалиъ",
+              "думалиь",
+              "думали",
+              "думалъ",
+              "думаль",
+              "думал",
+              "пелаъ",
+              "пелаь",
+              "пела",
+              "пелиъ",
+              "пелиь",
+              "пели",
+              "пелъ",
+              "пель",
+              "пел",
+              "возразилаъ",
+              "возразилаь",
+              "возразила",
+              "возразилиъ",
+              "возразилиь",
+              "возразили",
+              "возразилъ",
+              "возразиль",
+              "возразил",
+              "восклицалаъ",
+              "восклицалаь",
+              "восклицала",
+              "восклицалиъ",
+              "восклицалиь",
+              "восклицали",
+              "восклицалъ",
+              "восклицаль",
+              "восклицал"
+            ],
+            "modifier_forms": [
+              "же",
+              "тутъ",
+              "туть",
+              "тут",
+              "здесь",
+              "ему",
+              "ей",
+              "мне",
+              "онъ",
+              "онь",
+              "он",
+              "снова",
+              "наконецъ",
+              "наконець",
+              "наконец",
+              "еще",
+              "тогда",
+              "тихо",
+              "громко",
+              "печально",
+              "сердито",
+              "опять",
+              "усмехаясь"
+            ],
+            "max_modifiers": 3
+          }
+        ]
+      }
     }
   ]
 }
