@@ -1,7 +1,7 @@
 //! Read-only exact native unit disclosure. Metadata handles confer no text grant.
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
 pub use crate::source_sign_native::{NativeReadKind, SignNativeRead};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
@@ -261,6 +261,37 @@ impl LocalTextReadSelection {
     pub(crate) fn config(&self) -> &JsonValue {
         &self.config
     }
+    pub(crate) fn selected_legacy_dta(
+        &self,
+        binding: &JsonValue,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Option<JsonValue>> {
+        if self.schema_ref != PRIVATE_SCHEMA {
+            return Ok(None);
+        }
+        self.selected_binding(binding, None, deadline, cancelled)?;
+        let Some(value) = self.config.object_get("legacy_dta") else {
+            return Ok(None);
+        };
+        let rows = value
+            .as_array()
+            .ok_or(SourceCommandError::Invalid("legacy DTA selection"))?;
+        let packet = cmd::text(binding, "packet_ref")?;
+        let sha = cmd::text(binding, "packet_sha256")?;
+        for row in rows {
+            if cmd::text(row, "packet_ref")? == packet {
+                if cmd::text(row, "packet_sha256")? != sha {
+                    return Err(SourceCommandError::Denied(
+                        "legacy DTA packet digest selection differs",
+                    ));
+                }
+                return Ok(Some(row.clone()));
+            }
+        }
+        Ok(None)
+    }
+
     pub(crate) fn private_conditions(
         &self,
         selected: &JsonValue,
@@ -409,6 +440,41 @@ impl PrivateTextReadSelection {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Self> {
+        // Inspect the protected grant before the first schema execution. A
+        // selected legacy route uses the existing bounded Python-compatible
+        // diagnostics worker; no general scalar limit is changed.
+        let uid = rustix::process::getuid().as_raw();
+        let hint_raw =
+            crate::source_text_owner::read_absolute(path, uid, true, 262_144, deadline, cancelled)?;
+        let hint = cmd::parse(&hint_raw)?;
+        if hint.object_get("legacy_dta").is_some() {
+            use tos_validation::executor::LegacySelectedDiagnosticsLimits;
+            use tos_validation::source_cut::{CutSchemaDiagnosticsLimits, CutSchemaReceiptRange};
+            let operation = CutSchemaReceiptRange::operation_budget(worker);
+            let limits = CutSchemaDiagnosticsLimits::from_operation_ceilings(
+                CutSchemaDiagnosticsLimits {
+                    max_total_issues: 128,
+                    max_total_report_bytes: 16 * 1024 * 1024,
+                    max_total_state_bytes: 128 * 1024 * 1024,
+                },
+                1,
+                operation,
+            )
+            .map_err(|_| SourceCommandError::Denied("legacy DTA diagnostic limits"))?;
+            worker
+                .enable_diagnostics_v2(limits)
+                .and_then(|_| {
+                    worker.set_diagnostics_v2_legacy_selected_limits(
+                        LegacySelectedDiagnosticsLimits {
+                            max_instance_bytes: 4_194_304,
+                            max_visits: 2_000_000,
+                            parser_state_bytes: 192 * 1024 * 1024,
+                            conversion_state_bytes: 192 * 1024 * 1024,
+                        },
+                    )
+                })
+                .map_err(|_| SourceCommandError::Denied("legacy DTA bounded worker"))?;
+        }
         let grant = LocalTextReadSelection::load_profile(
             path,
             source_root,
@@ -417,6 +483,11 @@ impl PrivateTextReadSelection {
             deadline,
             cancelled,
         )?;
+        if grant.raw != hint_raw {
+            return Err(SourceCommandError::Conflict(
+                "private text selection changed during worker selection",
+            ));
+        }
         let selected = cmd::field(&grant.config, "owner_context")?;
         let context_path =
             crate::source_text_owner::normalized_absolute(cmd::text(selected, "path")?)?;
@@ -448,6 +519,33 @@ impl PrivateTextReadSelection {
             deadline,
             cancelled,
         )?;
+        if let Some(rows) = grant.config.object_get("legacy_dta") {
+            let rows = rows
+                .as_array()
+                .ok_or(SourceCommandError::Invalid("legacy DTA mappings"))?;
+            let mut mappings = BTreeMap::new();
+            for row in rows {
+                let packet = cmd::text(row, "packet_ref")?;
+                let body = cmd::text(row, "body_ref")?;
+                let body_sha = cmd::text(row, "body_sha256")?;
+                if !legacy_dta_exact_pair(packet, body) {
+                    return Err(SourceCommandError::Denied(
+                        "legacy DTA identity not selected profile",
+                    ));
+                }
+                let path =
+                    crate::source_text_owner::normalized_absolute(cmd::text(row, "body_path")?)?;
+                if mappings
+                    .insert(body.to_owned(), (path, body_sha.to_owned()))
+                    .is_some()
+                {
+                    return Err(SourceCommandError::Denied(
+                        "duplicate legacy DTA body mapping",
+                    ));
+                }
+            }
+            context.install_legacy_dta_mapping(mappings)?;
+        }
         if context.public_root() != source_root {
             return Err(SourceCommandError::Denied(
                 "private text owner context source differs",
@@ -503,4 +601,33 @@ pub fn read_private_native_unit(
     )?;
     selection.verify(deadline, cancelled)?;
     Ok(result)
+}
+
+// The selection supplies the exact digest pins; code admits only the four
+// identified technical-markup logical path pairs, not a general gold-set home.
+fn legacy_dta_exact_pair(packet: &str, body: &str) -> bool {
+    const PACKET_HOME: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1";
+    const BODY_HOME: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/technical-markup-v1";
+    (1..=4).any(|part| {
+        packet == format!("{PACKET_HOME}/part-{part}.source-text-unit.v1.json")
+            && body == format!("{BODY_HOME}/dta-part-{part}-body.v1.txt")
+    })
+}
+
+#[cfg(test)]
+mod dta_exact_profile_tests {
+    use super::legacy_dta_exact_pair;
+
+    #[test]
+    fn only_matching_part_paths_are_selected() {
+        let packet = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1/part-1.source-text-unit.v1.json";
+        let body = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/technical-markup-v1/dta-part-1-body.v1.txt";
+        assert!(legacy_dta_exact_pair(packet, body));
+        assert!(!legacy_dta_exact_pair(packet, "ToS/unselected"));
+        assert!(!legacy_dta_exact_pair("ToS/unselected", body));
+        assert!(!legacy_dta_exact_pair(
+            packet,
+            &body.replace("part-1-body", "part-2-body")
+        ));
+    }
 }

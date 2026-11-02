@@ -422,6 +422,8 @@ pub(crate) struct OwnerTextContext {
     private_identity: (u64, u64, u32, u32),
     uid: u32,
     held_reads: RefCell<BTreeMap<PathBuf, HeldOwnerFile>>,
+    // Explicit exact legacy body aliases; installed only by a private grant.
+    legacy_dta: RefCell<Option<BTreeMap<String, (PathBuf, String)>>>,
     /// Exact selected source bytes supplied by a fenced PG read session. When
     /// present this map is authoritative and a missing member fails closed;
     /// it never falls back to either filesystem root.
@@ -1924,6 +1926,7 @@ impl OwnerTextContext {
                 private_identity,
                 uid,
                 held_reads: RefCell::new(BTreeMap::new()),
+                legacy_dta: RefCell::new(None),
                 pg_selected_members: RefCell::new(None),
                 pg_publication: RefCell::new(None),
                 pg_identity_snapshot: RefCell::new(None),
@@ -1932,11 +1935,47 @@ impl OwnerTextContext {
         ))
     }
 
+    /// Install an exact private mapping selected by a protected read grant.
+    /// This is transport only; the caller must still enforce binding, rights,
+    /// packet grammar and the source-return contract before opening content.
+    pub(crate) fn install_legacy_dta_mapping(
+        &self,
+        entries: BTreeMap<String, (PathBuf, String)>,
+    ) -> SourceCommandResult<()> {
+        if entries.is_empty() || entries.len() > 4 || self.has_pg_selected_members()? {
+            return Err(SourceCommandError::Denied("invalid legacy DTA mapping"));
+        }
+        let mut selected = self
+            .legacy_dta
+            .try_borrow_mut()
+            .map_err(|_| SourceCommandError::Invalid("legacy DTA mapping state"))?;
+        if selected.is_some() {
+            return Err(SourceCommandError::Conflict(
+                "legacy DTA mapping already selected",
+            ));
+        }
+        *selected = Some(entries);
+        Ok(())
+    }
+
     fn physical(&self, reference: &str) -> SourceCommandResult<(PathBuf, bool)> {
         let ref_path = RelativePath::parse(reference)
             .map_err(|_| SourceCommandError::Invalid("owner-local logical reference"))?;
         if !reference.starts_with("ToS/") {
             return Err(SourceCommandError::Invalid("owner-local source namespace"));
+        }
+        if let Some(entries) = self
+            .legacy_dta
+            .try_borrow()
+            .map_err(|_| SourceCommandError::Invalid("legacy DTA mapping state"))?
+            .as_ref()
+        {
+            if let Some((physical, _)) = entries.get(reference) {
+                return Ok((physical.clone(), true));
+            }
+            if reference.starts_with("ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/technical-markup-v1/dta-part-") {
+                return Err(SourceCommandError::Denied("legacy DTA body not selected"));
+            }
         }
         if reference.starts_with(OWNER_HOME) {
             let relative = reference
@@ -2009,12 +2048,26 @@ impl OwnerTextContext {
             active(deadline, cancelled)?;
             return Ok(bytes.clone());
         }
-        if confidential {
+        let legacy_sha = self
+            .legacy_dta
+            .try_borrow()
+            .map_err(|_| SourceCommandError::Invalid("legacy DTA mapping state"))?
+            .as_ref()
+            .and_then(|entries| entries.get(reference).map(|(_, hash)| hash.clone()));
+        if confidential && legacy_sha.is_none() {
             self.check_private_parents(reference)?;
         }
         self.verify_context_base(deadline, cancelled)?;
         let (selected, bytes) =
             select_held_file(&path, self.uid, confidential, max, deadline, cancelled)?;
+        if legacy_sha
+            .as_ref()
+            .is_some_and(|expected| Digest256::of_bytes(&bytes).to_hex() != *expected)
+        {
+            return Err(SourceCommandError::Conflict(
+                "legacy DTA body digest differs",
+            ));
+        }
         {
             let mut reads = self
                 .held_reads
@@ -2544,5 +2597,33 @@ impl crate::source_sign_native::SignNativeRead for OwnerTextContext {
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Option<String>> {
         Ok(Some(self.snapshot(deadline, cancelled)?.to_prefixed()))
+    }
+}
+
+#[cfg(test)]
+mod legacy_dta_custody_tests {
+    use super::*;
+    use std::os::unix::fs::PermissionsExt;
+    use std::time::Duration;
+
+    #[test]
+    fn held_private_file_rejects_currentness_change() {
+        let root = std::env::current_dir().expect("test directory");
+        let dir = tempfile::Builder::new()
+            .prefix("dta-custody-test-")
+            .tempdir_in(root)
+            .expect("private directory");
+        std::fs::set_permissions(dir.path(), std::fs::Permissions::from_mode(0o700)).unwrap();
+        let path = dir.path().join("body.txt");
+        std::fs::write(&path, b"first").unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+        let uid = rustix::process::getuid().as_raw();
+        let cancel = AtomicBool::new(false);
+        let deadline = Instant::now() + Duration::from_secs(10);
+        let (held, bytes) = select_held_file(&path, uid, true, 4096, deadline, &cancel).unwrap();
+        assert_eq!(bytes, b"first");
+        assert!(verify_held_file(&held, uid, deadline, &cancel).is_ok());
+        std::fs::write(&path, b"other").unwrap();
+        assert!(verify_held_file(&held, uid, deadline, &cancel).is_err());
     }
 }
