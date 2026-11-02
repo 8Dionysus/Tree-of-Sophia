@@ -1241,6 +1241,26 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         ),
         Ok(())
     );
+    let mut invalid_probe = dta_value.clone();
+    let recipe = invalid_probe["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "concept-workbench")
+        .unwrap();
+    recipe["acceptance_probe_rules"][0]["request_pointer"] = json!("/missing");
+    assert_eq!(
+        validate_default_request(
+            &serde_json::to_vec(&invalid_probe).unwrap(),
+            "concept-workbench",
+            SelectedDocument {
+                reference: request_ref,
+                raw: &request_raw
+            },
+            &schema,
+        ),
+        Err(EditionCurationError::MissingReference)
+    );
     let context_raw = fs::read(root.join(frozen_context)).unwrap();
     assert!(context_raw.len() > SchemaBackendProbe::MAX_INSTANCE_BYTES);
     assert_eq!(

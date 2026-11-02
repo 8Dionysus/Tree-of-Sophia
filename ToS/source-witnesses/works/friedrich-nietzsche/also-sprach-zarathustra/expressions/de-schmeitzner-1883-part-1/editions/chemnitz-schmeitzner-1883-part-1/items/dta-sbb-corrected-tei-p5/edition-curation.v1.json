@@ -941,7 +941,20 @@
         "analysis": "tos_zarathustra_concept_request_private_analysis_v1",
         "index": "tos_zarathustra_concept_workbench_private_index_v1"
       },
-      "relation_certainty": 0.5
+      "relation_certainty": 0.5,
+      "acceptance_probe_rules": [
+        {
+          "kind": "semantic-family",
+          "request_pointer": "/semantic_neighbor_probes/de/0",
+          "language": "de",
+          "output_field": "verhaengniss_family_semantic_candidates"
+        },
+        {
+          "kind": "negative-control",
+          "request_pointer": "/negative_controls/0/control_code",
+          "output_field": "lowercase_los_hard_negative_occurrences"
+        }
+      ]
     },
     {
       "stage": "concept-candidate",

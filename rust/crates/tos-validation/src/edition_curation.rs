@@ -868,6 +868,16 @@ pub fn validate_default_request(
     if request["request_key"] != layout["default_request_key"] {
         return Err(EditionCurationError::BindingMismatch);
     }
+    if let Some(rules) = recipe["acceptance_probe_rules"].as_array() {
+        for rule in rules {
+            let pointer = rule["request_pointer"]
+                .as_str()
+                .ok_or(EditionCurationError::InvalidSchema)?;
+            if request.pointer(pointer).and_then(Value::as_str).is_none() {
+                return Err(EditionCurationError::MissingReference);
+            }
+        }
+    }
     Ok(())
 }
 
@@ -1335,6 +1345,11 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
             for (field, key, label) in [
                 ("private_example_forms", "name", "private example name"),
                 ("gap_proposals", "gap_code", "gap proposal code"),
+                (
+                    "acceptance_probe_rules",
+                    "output_field",
+                    "acceptance probe output field",
+                ),
             ] {
                 if let Some(entries) = object.get(field) {
                     let mut seen = BTreeSet::new();
