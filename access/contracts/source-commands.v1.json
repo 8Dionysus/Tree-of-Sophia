@@ -43,6 +43,11 @@
     ],
     "owner_config": "Family issuer is the explicit authorizing local Unix account; existing protected owner selectors independently validate UID, private file/root, expiry, exact principal_id/authority_ref, allowed fields/operations and current source fences. No new issuance API or signed external principal is implied."
   },
+  "schema_execution_evidence": {
+    "current_command": "selected schema worker and diagnostics-v2 worker evidence",
+    "in_process_library": "tos_schema_engine_in_process_v1 binds schema set, format profile, input mode, root URI and input digest; source-cut adapters retain source or candidate identity",
+    "report_codec": "Version 1 reads historical worker evidence; version 2 carries an in-process report. Command admission continues to write version 1 until its callers migrate."
+  },
   "request": {
     "grammar": "existing selected family schema; never an authority/config/worker path selection",
     "example_information": {
