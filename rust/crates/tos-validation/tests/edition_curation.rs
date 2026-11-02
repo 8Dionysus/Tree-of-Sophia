@@ -1014,6 +1014,32 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
             Err(EditionCurationError::DigestMismatch)
         );
     }
+    let mut bad_witness_keys = dta_value.clone();
+    let recipe = bad_witness_keys["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "witness-triangulation")
+        .unwrap();
+    let reference = recipe["historical_template_ref"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    recipe["source_selection"]["ordered_input_keys"][2] = json!("missing-witness");
+    let template_raw = fs::read(root.join(&reference)).unwrap();
+    assert_eq!(
+        validate_recipe_template(
+            &serde_json::to_vec(&bad_witness_keys).unwrap(),
+            "witness-triangulation",
+            "historical-template",
+            SelectedDocument {
+                reference: &reference,
+                raw: &template_raw
+            },
+            &schema
+        ),
+        Err(EditionCurationError::MissingReference)
+    );
     let workbench = dta_value["recipes"]
         .as_array()
         .unwrap()

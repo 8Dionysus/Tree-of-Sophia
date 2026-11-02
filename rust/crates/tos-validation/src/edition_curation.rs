@@ -387,6 +387,23 @@ pub fn validate_recipe_template(
             }
         }
     }
+    if stage == "witness-triangulation" && role == "historical-template" {
+        let selected = published_value(template.raw, template.raw.len().max(1))
+            .map_err(EditionCurationError::Schema)?;
+        let inputs = selected["packet"]["inputs"]
+            .as_object()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        let keys = recipe["source_selection"]["ordered_input_keys"]
+            .as_array()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        if inputs.len() != keys.len()
+            || keys
+                .iter()
+                .any(|key| !key.as_str().is_some_and(|key| inputs.contains_key(key)))
+        {
+            return Err(EditionCurationError::MissingReference);
+        }
+    }
     if stage == "concept-candidate" && role == "legacy-output-template" {
         let selected_template = published_value(template.raw, template.raw.len().max(1))
             .map_err(EditionCurationError::Schema)?;
