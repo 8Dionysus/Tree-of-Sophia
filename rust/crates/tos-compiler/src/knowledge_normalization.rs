@@ -102,7 +102,7 @@ pub(crate) fn stable_digest_value(value: &Value, hasher: &mut Digest256Hasher) -
             }
             hasher.update(b"d");
             for byte in float.to_be_bytes() {
-                hasher.update(format!("{byte:02x}").as_bytes());
+                hasher.update(&tos_foundation::encode_lower_hex_byte(byte));
             }
             hasher.update(b";");
         }
@@ -688,10 +688,8 @@ fn stable_digest_value_owned(
             }
             state.charge_work(16 + 16 + 8)?;
             let mut hex = [0u8; 16];
-            const DIGITS: &[u8; 16] = b"0123456789abcdef";
             for (i, byte) in v.to_be_bytes().into_iter().enumerate() {
-                hex[2 * i] = DIGITS[(byte >> 4) as usize];
-                hex[2 * i + 1] = DIGITS[(byte & 15) as usize];
+                hex[2 * i..2 * i + 2].copy_from_slice(&tos_foundation::encode_lower_hex_byte(byte));
             }
             emit(hasher, b"d", state)?;
             emit(hasher, &hex, state)?;

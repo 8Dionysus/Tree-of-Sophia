@@ -3304,10 +3304,7 @@ fn measure_direct_worker_image(path: &Path, max_bytes: u64) -> Result<Digest256>
 }
 
 fn lowercase_hex(value: &str, len: usize) -> bool {
-    value.len() == len
-        && value
-            .bytes()
-            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    tos_foundation::is_lower_hex(value, len)
 }
 
 fn git_revision_output(raw: &[u8]) -> Result<String> {

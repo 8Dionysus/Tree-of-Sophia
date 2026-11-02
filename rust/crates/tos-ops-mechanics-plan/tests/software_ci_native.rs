@@ -564,7 +564,10 @@ fn software_stage_cli_authenticates_then_binds_synthetic_products() {
                 }),
             );
         }
-        object.insert("sha256".into(), serde_json::json!(hash_bytes(&bytes)));
+        object.insert(
+            "sha256".into(),
+            serde_json::json!(tos_foundation::Digest256::of_bytes(&bytes).to_hex()),
+        );
         object.insert("size_bytes".into(), serde_json::json!(bytes.len()));
         let file = if name == "tos-access" {
             "tos-native-build.json".into()
@@ -752,12 +755,6 @@ fn software_stage_cli_authenticates_then_binds_synthetic_products() {
         messages
     );
     fs::remove_dir_all(temp).unwrap();
-}
-
-fn hash_bytes(raw: &[u8]) -> String {
-    let mut digest = tos_foundation::Digest256Hasher::new();
-    digest.update(raw);
-    digest.finalize().to_hex()
 }
 
 #[path = "support/validation_lanes.rs"]

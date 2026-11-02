@@ -695,7 +695,7 @@ fn temporary<'a>(
         }
         let leaf = format!(
             ".native-publish-{}",
-            nonce.iter().map(|n| format!("{n:02x}")).collect::<String>()
+            tos_foundation::encode_lower_hex(&nonce)
         );
         let c = name(OsStr::new(&leaf))?;
         let fd = unsafe {
@@ -1164,7 +1164,7 @@ mod tests {
                 unsafe { libc::getrandom(nonce.as_mut_ptr().cast(), nonce.len(), 0) },
                 nonce.len() as isize
             );
-            let suffix = nonce.iter().map(|v| format!("{v:02x}")).collect::<String>();
+            let suffix = tos_foundation::encode_lower_hex(&nonce);
             // The actual test owner sets TMPDIR to its admitted artifact scope.
             let path = std::env::temp_dir().join(format!("native-release-store-{suffix}"));
             std::fs::DirBuilder::new()

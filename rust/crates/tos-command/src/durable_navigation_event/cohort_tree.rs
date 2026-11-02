@@ -31,10 +31,7 @@ struct Node {
 }
 
 fn is_hex(value: &str, length: usize) -> bool {
-    value.len() == length
-        && value
-            .bytes()
-            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    tos_foundation::is_lower_hex(value, length)
 }
 
 fn digest(domain: &str, consumer: &str, tag: &[u8], raw: &[u8]) -> Digest256 {

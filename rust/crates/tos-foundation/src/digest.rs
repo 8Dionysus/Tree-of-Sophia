@@ -28,8 +28,11 @@ impl Digest256 {
             ));
         }
         let mut result = [0u8; 32];
-        for (i, pair) in raw.chunks_exact(2).enumerate() {
-            result[i] = (hex_digit(pair[0])? << 4) | hex_digit(pair[1])?;
+        if !crate::decode_lower_hex_into(value, &mut result) {
+            return Err(FoundationError::new(
+                FoundationErrorCode::InvalidDigest,
+                "expected lowercase hex",
+            ));
         }
         Ok(Self(result))
     }
@@ -49,28 +52,11 @@ impl Digest256 {
     }
 
     pub fn to_hex(self) -> String {
-        const HEX: &[u8; 16] = b"0123456789abcdef";
-        let mut text = String::with_capacity(64);
-        for byte in self.0 {
-            text.push(HEX[(byte >> 4) as usize] as char);
-            text.push(HEX[(byte & 15) as usize] as char);
-        }
-        text
+        crate::encode_lower_hex(&self.0)
     }
 
     pub fn to_prefixed(self) -> String {
         format!("sha256:{}", self.to_hex())
-    }
-}
-
-fn hex_digit(byte: u8) -> Result<u8> {
-    match byte {
-        b'0'..=b'9' => Ok(byte - b'0'),
-        b'a'..=b'f' => Ok(byte - b'a' + 10),
-        _ => Err(FoundationError::new(
-            FoundationErrorCode::InvalidDigest,
-            "expected lowercase hex",
-        )),
     }
 }
 

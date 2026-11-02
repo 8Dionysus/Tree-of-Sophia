@@ -66,9 +66,7 @@ fn now() -> Result<i64, SearchV2Error> {
     i64::try_from(ms).map_err(|_| unavailable())
 }
 fn bare(s: &str) -> bool {
-    s.len() == 64
-        && s.bytes()
-            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    tos_foundation::is_lower_hex(s, 64)
 }
 fn path_checked(p: &Path) -> Result<PathBuf, SearchV2Error> {
     if !p.is_absolute() || p.file_name().is_none() {

@@ -263,7 +263,7 @@ impl<'a, 'tx> Graph<'a, 'tx> {
                                     bytes::text(&body, "source_graph")?.to_owned(),
                                     bytes::text(&body, "id")?.to_owned(),
                                 ))?;
-                            let hex: String = encoded.iter().map(|b| format!("{b:02x}")).collect();
+                            let hex: String = tos_foundation::encode_lower_hex(&encoded);
                             let expected_seal = catalog::catalog_digest(&json!([
                                 kind,
                                 identity,

@@ -87,10 +87,6 @@ fn check_provenance_schema(
     Ok(())
 }
 
-fn sha256(raw: &[u8]) -> String {
-    tos_foundation::Digest256::of_bytes(raw).to_hex()
-}
-
 fn sha256_ref(
     capture: &mut LexicalCapture<'_>,
     reference: &str,
@@ -100,7 +96,7 @@ fn sha256_ref(
     check_active(deadline, cancelled)?;
     let raw = capture.read(reference).map_err(|error| error.to_string())?;
     check_active(deadline, cancelled)?;
-    Ok(sha256(&raw))
+    Ok(tos_foundation::Digest256::of_bytes(&raw).to_hex())
 }
 
 fn value_at<'a>(value: &'a Value, path: &[&str]) -> &'a Value {
@@ -279,7 +275,7 @@ pub(super) fn validate_morphology_context(
         return Err("morphology context authority boundary drift".to_owned());
     }
 
-    let plan_digest = sha256(&plan_raw);
+    let plan_digest = tos_foundation::Digest256::of_bytes(&plan_raw).to_hex();
     check_active(deadline, cancelled)?;
     let generator_digest = recorded_generator_digest(
         capture,
@@ -456,7 +452,7 @@ pub(super) fn validate_morphology_context(
     {
         return Err("morphology context provenance configuration drift".to_owned());
     }
-    let receipt_digest = sha256(&receipt_raw);
+    let receipt_digest = tos_foundation::Digest256::of_bytes(&receipt_raw).to_hex();
     if string_pairs(&provenance["outputs"])
         != BTreeSet::from([
             (
@@ -566,7 +562,7 @@ pub(super) fn validate_morphology_context(
         return Err("morphology context artifact admission leaked a private path".to_owned());
     }
 
-    let admission_digest = sha256(&admission_raw);
+    let admission_digest = tos_foundation::Digest256::of_bytes(&admission_raw).to_hex();
     if admission_provenance["event_id"] != admission["provenance_event_ref"] {
         return Err("morphology context artifact admission provenance identity drift".to_owned());
     }
@@ -592,7 +588,7 @@ pub(super) fn validate_morphology_context(
         return Err("morphology context artifact admission provenance output drift".to_owned());
     }
 
-    let result_digest = sha256(&result_raw);
+    let result_digest = tos_foundation::Digest256::of_bytes(&result_raw).to_hex();
     check_active(deadline, cancelled)?;
     let result_generator_digest = recorded_generator_digest(
         capture,

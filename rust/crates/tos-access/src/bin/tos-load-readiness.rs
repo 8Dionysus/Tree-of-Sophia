@@ -3,7 +3,7 @@
 use hmac::{Hmac, KeyInit, Mac};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use sha2::{Digest, Sha256};
+use sha2::Sha256;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, Read, Write};
@@ -789,10 +789,7 @@ fn parse_args() -> Result<Option<Args>, String> {
 }
 
 fn sha(raw: &[u8]) -> String {
-    Sha256::digest(raw)
-        .iter()
-        .map(|b| format!("{b:02x}"))
-        .collect()
+    tos_foundation::Digest256::of_bytes(raw).to_hex()
 }
 
 const MAX_STAGE_FILES: usize = 16_384;
@@ -2073,7 +2070,7 @@ fn executable_sha256(path: &Path, deadline: Instant) -> Result<String, String> {
     if stamp(&before) != stamp(&opened) {
         return Err("executable path/FD identity changed before hashing".into());
     }
-    let mut hash = Sha256::new();
+    let mut hash = tos_foundation::Digest256Hasher::new();
     let mut buffer = [0u8; 65536];
     loop {
         if STOP.load(Ordering::Acquire) || Instant::now() >= deadline {
@@ -2095,29 +2092,19 @@ fn executable_sha256(path: &Path, deadline: Instant) -> Result<String, String> {
     if stamp(&opened) != stamp(&after) || stamp(&opened) != stamp(&path_after) {
         return Err("executable changed during identity hash".into());
     }
-    Ok(hex(&hash.finalize()))
+    Ok(hash.finalize().to_hex())
 }
 fn valid_sha(value: &str) -> bool {
-    value.len() == 64
-        && value
-            .bytes()
-            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    tos_foundation::is_lower_hex(value, 64)
 }
 fn normalized_sha256(value: &str) -> Option<&str> {
     let value = value.strip_prefix("sha256:").unwrap_or(value);
     valid_sha(value).then_some(value)
 }
-fn hex(raw: &[u8]) -> String {
-    raw.iter().map(|b| format!("{b:02x}")).collect()
-}
+use tos_foundation::encode_lower_hex as hex;
 fn unhex(value: &str) -> Result<Vec<u8>, String> {
-    if value.len() % 2 != 0 || !value.bytes().all(|b| b.is_ascii_hexdigit()) {
-        return Err("invalid hex".into());
-    }
-    (0..value.len())
-        .step_by(2)
-        .map(|i| u8::from_str_radix(&value[i..i + 2], 16).map_err(|_| "invalid hex".into()))
-        .collect()
+    tos_foundation::decode_lower_hex(&value.to_ascii_lowercase(), value.len() / 2)
+        .ok_or_else(|| "invalid hex".into())
 }
 fn json_bytes(value: &Value) -> Result<Vec<u8>, String> {
     serde_json::to_vec(value).map_err(|_| "JSON serialization failed".into())

@@ -1237,10 +1237,7 @@ impl OwnerTextUnitSelection {
 }
 
 fn lower_sha(value: &str) -> bool {
-    value.len() == 64
-        && value
-            .bytes()
-            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    tos_foundation::is_lower_hex(value, 64)
 }
 
 fn opaque_id(value: &str, kind: &str) -> bool {

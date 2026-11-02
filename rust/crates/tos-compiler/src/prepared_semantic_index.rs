@@ -2076,9 +2076,7 @@ fn validate_top(top: &Value, raw: &str, cap: usize) -> Result<()> {
     Ok(())
 }
 fn valid_hex(s: &str) -> bool {
-    s.len() == 64
-        && s.bytes()
-            .all(|c| c.is_ascii_digit() || (b'a'..=b'f').contains(&c))
+    tos_foundation::is_lower_hex(s, 64)
 }
 
 fn next_bound(value: u64) -> Result<u64> {

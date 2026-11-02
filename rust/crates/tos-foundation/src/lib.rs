@@ -6,6 +6,7 @@ mod capability;
 mod coordinates;
 mod digest;
 mod error;
+mod hex;
 mod identity;
 mod json;
 mod knowledge_model_abi;
@@ -24,6 +25,10 @@ pub use capability::{FoundationCapabilities, capabilities};
 pub use coordinates::{ByteSpan, CodePointSpan};
 pub use digest::{Digest256, Digest256Hasher};
 pub use error::{FoundationError, FoundationErrorCode, Result};
+pub use hex::{
+    decode_lower_hex, decode_lower_hex_digit, decode_lower_hex_into, encode_lower_hex,
+    encode_lower_hex_byte, is_lower_hex,
+};
 pub use identity::{ExactRecordRef, RecordVersion, SourceRevision, StableId};
 pub use json::{
     CANONICAL_REUSE_CALL_STATE, CANONICAL_REUSE_CORE_STATE, CANONICAL_REUSE_SETUP_STATE,

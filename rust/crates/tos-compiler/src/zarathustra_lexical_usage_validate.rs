@@ -102,19 +102,13 @@ fn parse_json_object(raw: &[u8], path: &str) -> Result<Value, String> {
     Ok(value)
 }
 
-fn sha256(raw: &[u8]) -> String {
-    Digest256::of_bytes(raw).to_hex()
-}
-
 fn digest_for(
     capture: &mut LexicalCapture<'_>,
     reference: &str,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<String, String> {
-    Ok(sha256(&capture_read(
-        capture, reference, deadline, cancelled,
-    )?))
+    Ok(Digest256::of_bytes(&capture_read(capture, reference, deadline, cancelled)?).to_hex())
 }
 
 fn provenance_pairs(value: &Value, key: &str) -> Result<BTreeSet<(String, String)>, String> {
@@ -211,7 +205,7 @@ pub(super) fn validate_usage_context(
         return Err("usage-context authority boundary drift".into());
     }
 
-    let plan_digest = sha256(&plan_raw);
+    let plan_digest = Digest256::of_bytes(&plan_raw).to_hex();
     check_active(deadline, cancelled)?;
     let generator_digest = recorded_generator_digest(
         capture,
@@ -534,7 +528,7 @@ pub(super) fn validate_usage_context(
         return Err("usage-context provenance input drift".into());
     }
 
-    let receipt_digest = sha256(&receipt_raw);
+    let receipt_digest = Digest256::of_bytes(&receipt_raw).to_hex();
     let expected_outputs = BTreeSet::from([
         (
             string_field(local_plan, "relative_path")?.to_owned(),

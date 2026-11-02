@@ -1109,12 +1109,4 @@ fn snapshot_row_state_bytes(path: &str) -> Result<usize, ItemRefusal> {
         .ok_or(ItemRefusal::Budget)
 }
 
-fn hex_lower(bytes: &[u8]) -> String {
-    const HEX: &[u8; 16] = b"0123456789abcdef";
-    let mut output = String::with_capacity(bytes.len() * 2);
-    for byte in bytes {
-        output.push(HEX[(byte >> 4) as usize] as char);
-        output.push(HEX[(byte & 0x0f) as usize] as char);
-    }
-    output
-}
+use tos_foundation::encode_lower_hex as hex_lower;

@@ -304,19 +304,7 @@ struct Statement<'a, 'b> {
     prepaid: bool,
 }
 fn unhex(s: &str) -> Result<Vec<u8>, String> {
-    if s.len() % 2 != 0
-        || !s
-            .bytes()
-            .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
-    {
-        return Err("borrowed cell hex".into());
-    }
-    let mut v = Vec::with_capacity(s.len() / 2);
-    for p in s.as_bytes().chunks_exact(2) {
-        let d = |b: u8| if b <= b'9' { b - b'0' } else { b - b'a' + 10 };
-        v.push((d(p[0]) << 4) | d(p[1]));
-    }
-    Ok(v)
+    tos_foundation::decode_lower_hex(s, s.len() / 2).ok_or_else(|| "borrowed cell hex".into())
 }
 impl ReadStatement for Statement<'_, '_> {
     fn raw_row_cap(&mut self, bytes: u64, prepaid: bool) -> Result<(), String> {

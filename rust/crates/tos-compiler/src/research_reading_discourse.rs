@@ -83,13 +83,9 @@ fn python_whitespace(ch: char) -> bool {
     tos_foundation::python_strip_unicode16_v1(scalar, 1).is_ok_and(|stripped| stripped.is_empty())
 }
 
-fn sha256(text: &str) -> String {
-    crate::research_parallel_lexical::hash(text.as_bytes())
-}
-
 fn identity(kind: &str, parts: &[String]) -> String {
     let source = format!("{}\n{}", METHOD, parts.join("\n"));
-    let digest = sha256(&source);
+    let digest = tos_foundation::Digest256::of_bytes((&source).as_bytes()).to_hex();
     format!("tos.{kind}.sid-{}", &digest[..32])
 }
 
@@ -260,7 +256,9 @@ fn policy_for(
                 return Err("voice span outside source context".into());
             }
             tick_span(root, start, end)?;
-            if sha256(source.slice(start, end)?) != string(rule, "exact_sha256")? {
+            if tos_foundation::Digest256::of_bytes((source.slice(start, end)?).as_bytes()).to_hex()
+                != string(rule, "exact_sha256")?
+            {
                 return Err("voice span override source drift".into());
             }
             out.overrides.push(rule.clone());
@@ -1467,7 +1465,7 @@ pub fn build_discourse(
                 "start_offset":start,
                 "end_offset":end,
                 "exact_text":exact_text,
-                "exact_sha256":sha256(source.slice(start,end)?),
+                "exact_sha256":tos_foundation::Digest256::of_bytes((source.slice(start,end)?).as_bytes()).to_hex(),
                 "speaker_role":state.role.clone(),
                 "speaker_status":state.status.clone(),
                 "speaker_candidates":if unresolved { json!([state.role,"unresolved_quoted_voice"]) } else { json!([]) },
@@ -1638,7 +1636,8 @@ pub fn validate_partition(
             tick_span(root, start, end)?;
             let exact = source.slice(start, end)?;
             if exact != string(&segment, "exact_text")?
-                || sha256(exact) != string(&segment, "exact_sha256")?
+                || tos_foundation::Digest256::of_bytes((exact).as_bytes()).to_hex()
+                    != string(&segment, "exact_sha256")?
             {
                 return Err("discourse exact source return mismatch".into());
             }
