@@ -1950,6 +1950,8 @@ name = "tos-source-store"
 version = "0.1.0"
 dependencies = [
  "flate2",
+ "fs2",
+ "libc",
  "rusqlite",
  "rustix",
  "serde_json",

@@ -107,11 +107,7 @@ pub fn run_if_requested(
     }
     let result = selected_args(args).and_then(|(root, seconds, scratch_bytes, producer)| {
         let root = if command == "zarathustra-reading-workbench-v1" {
-            tos_compiler::research_execution::ResearchExecution::new_reading_v1(
-                &root,
-                seconds,
-                scratch_bytes,
-            )?
+            tos_compiler::research_execution::new_reading_v1(&root, seconds, scratch_bytes)?
         } else {
             match scratch_bytes {
                 Some(bytes) => {

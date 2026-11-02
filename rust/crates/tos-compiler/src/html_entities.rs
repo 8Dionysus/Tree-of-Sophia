@@ -1,5 +1,6 @@
 //! Shared HTML5 character-reference decoding for inventories and research.
-include!("research_html_entities.rs");
+// The legacy table remains for producer identity until research callers migrate.
+include!("html_entities_data.rs");
 pub fn unescape(input: &str) -> String {
     let mut out = String::new();
     let mut offset = 0;

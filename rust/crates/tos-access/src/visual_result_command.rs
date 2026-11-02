@@ -119,7 +119,7 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
             .unwrap_or(&"180")
             .parse()
             .map_err(|_| "invalid seconds")?;
-        let ctx = ResearchExecution::new_visual_result(&source, seconds, scratch)?;
+        let ctx = tos_compiler::research_execution::new_visual_result(&source, seconds, scratch)?;
         research_visual_result::run(
             &ctx,
             Options {

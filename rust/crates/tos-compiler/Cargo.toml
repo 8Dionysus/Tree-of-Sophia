@@ -8,9 +8,9 @@ publish = false
 
 [features]
 # Source preparation and managed-source tools are opt-in for reader consumers.
-source-tools = ["dep:quick-xml", "dep:tos-validation", "dep:unicode-normalization", "dep:regex", "dep:fs2"]
+source-tools = ["dep:quick-xml", "dep:tos-validation", "dep:unicode-normalization", "dep:regex", "dep:fs2", "tos-source-store/execution"]
 # Explicit source-selected research builders; excluded from ordinary readers.
-research = ["source-tools", "tos-validation/research"]
+research = ["source-tools", "preserve-order-workspace", "tos-validation/research"]
 # Selects the pinned IndexMap allocation envelope for cold raw normalization.
 preserve-order-workspace = ["serde_json/preserve_order"]
 test-fixture = ["source-tools"]

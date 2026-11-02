@@ -12,8 +12,8 @@ default = ["source-tools"]
 # Source/PG owners are explicit adapters over CMD; transport/model readers do not need them.
 source-owner = ["dep:tos-command"]
 # Candidate preparation, native Core construction, publication and capture are opt-in to library readers.
-source-tools = ["source-owner", "tos-compiler/source-tools", "tos-source-store/capture", "dep:zip"]
-research-tools = ["tos-compiler/research", "tos-command/research", "tos-source-store/capture", "dep:zip"]
+source-tools = ["source-owner", "tos-compiler/source-tools", "tos-source-store/capture", "tos-source-store/execution", "dep:zip"]
+research-tools = ["tos-compiler/research", "tos-command/research", "tos-source-store/capture", "tos-source-store/execution", "dep:zip"]
 load-readiness = ["source-tools", "dep:hmac", "dep:sha2"]
 e2e-fixture = ["source-tools"]
 
