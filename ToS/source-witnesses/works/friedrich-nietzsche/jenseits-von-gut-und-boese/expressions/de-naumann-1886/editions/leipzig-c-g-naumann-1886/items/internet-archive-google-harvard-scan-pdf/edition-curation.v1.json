@@ -448,7 +448,8 @@
       "set_id": "tos.transfer-candidate-set.golden-kernel-transfer-source-passages-v1",
       "schema_ref": "https://tree-of-sophia.local/ToS/contracts/transfer-source-passage-candidate-set.schema.json",
       "legacy_event_sha256": "fff2ce883dbe9db7148e5b0ab873a9e6d5a38445f7ed1f029a165f766dd54119",
-      "legacy_builder_sha256": "f7fc1d941ea8a6fb7331c7a2ac9b85af7902fe3aa600d129450e7bc2cb4d6898"
+      "legacy_builder_sha256": "f7fc1d941ea8a6fb7331c7a2ac9b85af7902fe3aa600d129450e7bc2cb4d6898",
+      "generated_set_prefix": "tos.transfer-candidate-set.golden-kernel-transfer-source-passages-"
     },
     {
       "stage": "numbered-label-correspondence",
@@ -509,7 +510,8 @@
       "receipt_schema_ref": "ToS/contracts/transfer-source-visible-review-receipt.schema.json",
       "historical_builder_ref": "scripts/record_golden_kernel_transfer_source_visible_review.py",
       "historical_builder_sha256": "ac20b7dce1259aa3ce6d6efaf356dafa010c9fd7af392caf1c47d58b0a2f6679",
-      "historical_bundle_sha256": "4db81ebd5c819da431faca7a5a02b5c4a58e7c8a69e26b2b2cd5cac517da4a2b"
+      "historical_bundle_sha256": "4db81ebd5c819da431faca7a5a02b5c4a58e7c8a69e26b2b2cd5cac517da4a2b",
+      "generated_receipt_prefix": "tos.transfer-source-visible-review.jenseits-187."
     }
   ]
 }

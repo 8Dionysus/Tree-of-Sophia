@@ -57,7 +57,8 @@
       ],
       "event_id": "tos.event.alignment.za-i-vorrede-1.dta-1883-antonovsky-1911-opening-sentence.2026-08-12",
       "legacy_builder_ref": "scripts/build_zarathustra_opening_sentence_alignment.py",
-      "legacy_builder_sha256": "80d312d541718d5fc5e57caa5689202102ec527fe311e29f362c341e76f9d52d"
+      "legacy_builder_sha256": "80d312d541718d5fc5e57caa5689202102ec527fe311e29f362c341e76f9d52d",
+      "derivation_prefix": "tos.derivation.za-i-vorrede-1.opening-sentence-alignment."
     },
     {
       "stage": "concept-workbench",
@@ -727,7 +728,9 @@
         "text_node_path",
         "start_offset",
         "end_offset"
-      ]
+      ],
+      "occurrence_prefix": "tos.occurrence.lexical-zarathustra-dta-v1.",
+      "candidate_event_prefix": "tos.event.export.zarathustra-lexical-index-v1.native-candidate."
     },
     {
       "stage": "witness-triangulation",

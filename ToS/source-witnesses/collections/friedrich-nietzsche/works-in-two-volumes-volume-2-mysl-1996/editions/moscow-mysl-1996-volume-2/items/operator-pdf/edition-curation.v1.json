@@ -499,7 +499,9 @@
           "repository_path": "ToS/contracts/source-anchor.schema.json",
           "role": "source-anchor-contract"
         }
-      ]
+      ],
+      "generated_set_prefix": "tos.transfer-candidate-set.golden-kernel-transfer-target-passages-",
+      "anchor_namespace": "tos.anchor.friedrich-nietzsche."
     },
     {
       "stage": "transfer-candidates",
@@ -565,7 +567,8 @@
         }
       ],
       "legacy_event_sha256": "b87ba0c258b9d21b9d675d16691054e02adb90b2cf597f20e9d60299a663c939",
-      "legacy_builder_sha256": "71f61e32b16bd797ae3bc80c97b9cba454539661422a1ff652ddefbf2e849d2c"
+      "legacy_builder_sha256": "71f61e32b16bd797ae3bc80c97b9cba454539661422a1ff652ddefbf2e849d2c",
+      "anchor_prefix": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-"
     },
     {
       "stage": "transfer-readiness",
