@@ -534,7 +534,12 @@
               "media_type": "application/vnd.djvu+xml",
               "navigation_relation": "same-fixity-bound-Item-navigation-layer"
             }
-          ]
+          ],
+          "marker_curation_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/edition-curation.v1.json",
+          "boundary_evidence_profile": {
+            "kind": "pdf-page-image",
+            "relation": "same-PDF-page-image-mask-to-first-following-poppler-bbox-order"
+          }
         },
         {
           "work_ref": "tos.work.friedrich-nietzsche.zur-genealogie-der-moral",
@@ -558,7 +563,12 @@
             "media_type": "application/pdf",
             "navigation_relation": "same-fixity-bound-file-page-index"
           },
-          "layer_content_witnesses": []
+          "layer_content_witnesses": [],
+          "marker_curation_ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/edition-curation.v1.json",
+          "boundary_evidence_profile": {
+            "kind": "pdf-page-image",
+            "relation": "same-PDF-page-image-mask-to-first-following-poppler-bbox-order"
+          }
         },
         {
           "work_ref": "tos.work.friedrich-nietzsche.der-antichrist",
@@ -594,7 +604,20 @@
             "media_type": "application/vnd.djvu+xml",
             "navigation_relation": "bounded-source-visible-two-page-offset-only-no-textual-identity"
           },
-          "layer_content_witnesses": []
+          "layer_content_witnesses": [],
+          "marker_curation_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/edition-curation.v1.json",
+          "boundary_evidence_profile": {
+            "kind": "jp2-scandata",
+            "relation": "same-Item-scandata-leaf-to-jp2-member-and-djvu-xml-object-order",
+            "image_witness": {
+              "item_role": "third_source_navigation_item",
+              "media_type": "application/zip"
+            },
+            "scandata_witness": {
+              "item_role": "third_source_navigation_item",
+              "media_type": "application/xml"
+            }
+          }
         }
       ],
       "passage_id_substitutions": [

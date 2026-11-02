@@ -809,6 +809,28 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                     if !locators.iter().any(|locator| locator["role"] == role) {
                         return Err(EditionCurationError::MissingReference);
                     }
+                    if !object["marker_curation_refs"]
+                        .as_array()
+                        .ok_or(EditionCurationError::InvalidSchema)?
+                        .contains(&route["marker_curation_ref"])
+                    {
+                        return Err(EditionCurationError::MissingReference);
+                    }
+                    let profile = &route["boundary_evidence_profile"];
+                    for witness in [
+                        profile.get("image_witness"),
+                        profile.get("scandata_witness"),
+                    ]
+                    .into_iter()
+                    .flatten()
+                    {
+                        if !locators
+                            .iter()
+                            .any(|locator| locator["role"] == witness["item_role"])
+                        {
+                            return Err(EditionCurationError::MissingReference);
+                        }
+                    }
                     let mut layers = BTreeSet::new();
                     for witness in std::iter::once(&route["address_witness"])
                         .chain(std::iter::once(&route["default_content_witness"]))
