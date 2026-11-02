@@ -3417,7 +3417,51 @@
         "quoted_policy_cue": "source_visible_quoted_voice_policy",
         "reporting_cue": "local_reporting_cue",
         "default_status": "proposed"
-      }
+      },
+      "identity_profiles": [
+        {
+          "role": "discourse",
+          "method_field": "method_id",
+          "hash_input": "method-newline-separated-parts",
+          "kinds": [
+            "reporting-cue",
+            "quote-boundary",
+            "speech-turn",
+            "discourse-segment"
+          ],
+          "digest_algorithm": "sha256",
+          "digest_hex_characters": 32,
+          "id_prefix": "tos.",
+          "id_infix": ".sid-"
+        },
+        {
+          "role": "formula",
+          "method_field": "formula_method_id",
+          "hash_input": "compact-sorted-utf8-json-method-and-binding",
+          "kinds": [
+            "formula-candidate",
+            "formula-occurrence",
+            "formula-relation-candidate"
+          ],
+          "digest_algorithm": "sha256",
+          "digest_hex_characters": 32,
+          "id_prefix": "tos.",
+          "id_infix": ".sid-",
+          "canonical_json": {
+            "encoding": "utf-8",
+            "object_keys": "unicode-scalar-order",
+            "whitespace": "none",
+            "non_ascii": "literal",
+            "strings": "json-escaped",
+            "number_domain": "integers",
+            "arrays": "ordered",
+            "envelope": [
+              "method",
+              "binding"
+            ]
+          }
+        }
+      ]
     },
     {
       "stage": "tei-source-foundation",

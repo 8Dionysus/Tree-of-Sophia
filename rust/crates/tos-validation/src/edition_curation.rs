@@ -535,6 +535,42 @@ fn check_replacements(value: &Value) -> Result<(), EditionCurationError> {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if let Some(profiles) = object.get("identity_profiles") {
+                let mut roles = BTreeSet::new();
+                let mut kinds = BTreeSet::new();
+                for profile in profiles
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?
+                {
+                    let role = profile["role"]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    if !roles.insert(role) {
+                        return Err(EditionCurationError::Duplicate("identity role"));
+                    }
+                    let expected = match role {
+                        "discourse" => ("method_id", "method-newline-separated-parts"),
+                        "formula" => (
+                            "formula_method_id",
+                            "compact-sorted-utf8-json-method-and-binding",
+                        ),
+                        _ => return Err(EditionCurationError::InvalidSchema),
+                    };
+                    if profile["method_field"] != expected.0 || profile["hash_input"] != expected.1
+                    {
+                        return Err(EditionCurationError::BindingMismatch);
+                    }
+                    for kind in profile["kinds"]
+                        .as_array()
+                        .ok_or(EditionCurationError::InvalidSchema)?
+                    {
+                        let kind = kind.as_str().ok_or(EditionCurationError::InvalidSchema)?;
+                        if !kinds.insert(kind) {
+                            return Err(EditionCurationError::Duplicate("identity kind"));
+                        }
+                    }
+                }
+            }
             if let Some(profile) = object.get("signature_settings") {
                 let mut languages = BTreeSet::new();
                 for language in profile["languages"]
