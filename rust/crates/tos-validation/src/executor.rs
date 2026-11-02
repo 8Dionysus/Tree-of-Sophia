@@ -301,7 +301,7 @@ pub(crate) struct MixedDiagnosticsBatchUnit {
 /// verdict exchange above remains byte-for-byte unchanged.
 pub mod schema_diagnostics {
     use jsonschema::error::{TypeKind, ValidationErrorKind};
-    use serde::{Serialize, Deserialize};
+    use serde::{Deserialize, Serialize};
     use tos_foundation::{Digest256, Digest256Hasher};
 
     pub const PROTOCOL_VERSION: u16 = 2;
@@ -2942,29 +2942,70 @@ mod native {
         root: &str,
         instance: &JsonValue,
         caps: schema_diagnostics::Caps,
-    ) -> (schema_diagnostics::Status, schema_diagnostics::Failure, u64, bool, Vec<schema_diagnostics::Issue>) {
-        use exceptional_schema::{EvaluationContext, EvaluationFailure, Plan, PreparationBudget, PrepareFailure};
+    ) -> (
+        schema_diagnostics::Status,
+        schema_diagnostics::Failure,
+        u64,
+        bool,
+        Vec<schema_diagnostics::Issue>,
+    ) {
+        use exceptional_schema::{
+            EvaluationContext, EvaluationFailure, Plan, PreparationBudget, PrepareFailure,
+        };
         use schema_diagnostics::{Failure, Status};
         let limits = ExceptionalSchemaUsage::whole();
-        let result = PreparationBudget::new(limits).and_then(|mut budget| Plan::prepare(resources, root, &mut budget));
+        let result = PreparationBudget::new(limits)
+            .and_then(|mut budget| Plan::prepare(resources, root, &mut budget));
         let plan = match result {
             Ok(plan) => plan,
-            Err(PrepareFailure::Unsupported) => return (Status::Indeterminate, Failure::UnsupportedInputSemantics, 0, false, vec![]),
-            Err(PrepareFailure::Budget) => return (Status::Indeterminate, Failure::ValidatorRuntime, 0, false, vec![]),
+            Err(PrepareFailure::Unsupported) => {
+                return (
+                    Status::Indeterminate,
+                    Failure::UnsupportedInputSemantics,
+                    0,
+                    false,
+                    vec![],
+                );
+            }
+            Err(PrepareFailure::Budget) => {
+                return (
+                    Status::Indeterminate,
+                    Failure::ValidatorRuntime,
+                    0,
+                    false,
+                    vec![],
+                );
+            }
         };
         let mut context = match EvaluationContext::new(limits) {
             Ok(context) => context,
-            Err(_) => return (Status::Indeterminate, Failure::ValidatorRuntime, 0, false, vec![]),
+            Err(_) => {
+                return (
+                    Status::Indeterminate,
+                    Failure::ValidatorRuntime,
+                    0,
+                    false,
+                    vec![],
+                );
+            }
         };
         let evaluation = plan.evaluate(instance, caps, &mut context);
         let (status, failure) = match evaluation.failure {
-            Some(EvaluationFailure::Unsupported) => (Status::Indeterminate, Failure::UnsupportedInputSemantics),
+            Some(EvaluationFailure::Unsupported) => {
+                (Status::Indeterminate, Failure::UnsupportedInputSemantics)
+            }
             Some(EvaluationFailure::Budget) => (Status::Indeterminate, Failure::ValidatorRuntime),
             None if evaluation.truncated => (Status::Truncated, Failure::None),
             None if evaluation.total_issue_count == 0 => (Status::Valid, Failure::None),
             None => (Status::Invalid, Failure::None),
         };
-        (status, failure, evaluation.total_issue_count, evaluation.truncated, evaluation.issues)
+        (
+            status,
+            failure,
+            evaluation.total_issue_count,
+            evaluation.truncated,
+            evaluation.issues,
+        )
     }
 
     // Linux UAPI MFD_EXEC. Requiring this flag fails closed on older kernels

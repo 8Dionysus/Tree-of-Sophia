@@ -51,7 +51,8 @@ pub trait CutSchemaExecutor {
 
     /// Engine-aware identity; legacy implementations keep their worker binding.
     fn schema_execution_binding(&self) -> Option<tos_foundation::SchemaExecutionBinding> {
-        self.prepared_execution_binding().map(tos_foundation::SchemaExecutionBinding::Worker)
+        self.prepared_execution_binding()
+            .map(tos_foundation::SchemaExecutionBinding::Worker)
     }
 
     /// Exact immutable source revision bound by this executor, when its
@@ -5001,13 +5002,23 @@ impl<I> InProcessCutSchemaExecutor<I> {
         let engine = crate::in_process::InProcessSchemaEngine::new(resources, profile)?;
         for (uri, digest) in contracts.values() {
             if engine.resource_digest(uri) != Some(*digest) {
-                return Err(crate::SchemaProbeError::Backend("selected contract digest mismatch".into()));
+                return Err(crate::SchemaProbeError::Backend(
+                    "selected contract digest mismatch".into(),
+                ));
             }
         }
-        Ok(Self { identity, contracts, engine, profile, input_mode })
+        Ok(Self {
+            identity,
+            contracts,
+            engine,
+            profile,
+            input_mode,
+        })
     }
 
-    pub fn identity(&self) -> &InProcessCutIdentity<I> { &self.identity }
+    pub fn identity(&self) -> &InProcessCutIdentity<I> {
+        &self.identity
+    }
 
     pub fn binding(&self) -> tos_foundation::InProcessSchemaExecutionBinding {
         tos_foundation::InProcessSchemaExecutionBinding {
@@ -5017,49 +5028,124 @@ impl<I> InProcessCutSchemaExecutor<I> {
         }
     }
 
-    pub fn diagnostic_for(&mut self, path: &str, contract: &str, raw: &[u8], caps: schema_diagnostics::Caps, deadline: Instant, cancelled: &AtomicBool) -> Result<InProcessCutDiagnostic<I>, ItemRefusal>
-    where I: Clone {
+    pub fn diagnostic_for(
+        &mut self,
+        path: &str,
+        contract: &str,
+        raw: &[u8],
+        caps: schema_diagnostics::Caps,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<InProcessCutDiagnostic<I>, ItemRefusal>
+    where
+        I: Clone,
+    {
         let report = self.diagnostic(contract, raw, caps, deadline, cancelled)?;
-        Ok(InProcessCutDiagnostic { identity: self.identity.clone(), path: path.to_owned(), contract: contract.to_owned(), report })
+        Ok(InProcessCutDiagnostic {
+            identity: self.identity.clone(),
+            path: path.to_owned(),
+            contract: contract.to_owned(),
+            report,
+        })
     }
 
-    pub fn diagnostic(&mut self, contract: &str, raw: &[u8], caps: schema_diagnostics::Caps, deadline: Instant, cancelled: &AtomicBool) -> Result<crate::in_process::Report, ItemRefusal> {
+    pub fn diagnostic(
+        &mut self,
+        contract: &str,
+        raw: &[u8],
+        caps: schema_diagnostics::Caps,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<crate::in_process::Report, ItemRefusal> {
         let (base, fragment) = match contract.split_once('#') {
-            Some((base, fragment)) if !base.is_empty() && fragment.starts_with('/') && !fragment.contains('#') => (base, Some(fragment)),
-            Some(_) => return Err(ItemRefusal::Unsupported("invalid source schema fragment selector".into())),
+            Some((base, fragment))
+                if !base.is_empty() && fragment.starts_with('/') && !fragment.contains('#') =>
+            {
+                (base, Some(fragment))
+            }
+            Some(_) => {
+                return Err(ItemRefusal::Unsupported(
+                    "invalid source schema fragment selector".into(),
+                ));
+            }
             None => (contract, None),
         };
-        let uri = &self.contracts.get(base).ok_or_else(|| ItemRefusal::Unsupported(format!("missing source schema {contract}")))?.0;
+        let uri = &self
+            .contracts
+            .get(base)
+            .ok_or_else(|| ItemRefusal::Unsupported(format!("missing source schema {contract}")))?
+            .0;
         let root = fragment.map_or_else(|| uri.clone(), |f| format!("{uri}#{f}"));
-        if root.len() > crate::executor::MAX_URI_BYTES { return Err(ItemRefusal::Budget); }
-        self.engine.validate(crate::in_process::Unit { root_uri: &root, raw, input_mode: self.input_mode }, caps, deadline, cancelled)
+        if root.len() > crate::executor::MAX_URI_BYTES {
+            return Err(ItemRefusal::Budget);
+        }
+        self.engine
+            .validate(
+                crate::in_process::Unit {
+                    root_uri: &root,
+                    raw,
+                    input_mode: self.input_mode,
+                },
+                caps,
+                deadline,
+                cancelled,
+            )
             .map_err(|incomplete| match incomplete {
                 crate::in_process::Incomplete::Deadline => ItemRefusal::Deadline,
-                crate::in_process::Incomplete::Cancelled => ItemRefusal::Source("schema execution cancelled".into()),
+                crate::in_process::Incomplete::Cancelled => {
+                    ItemRefusal::Source("schema execution cancelled".into())
+                }
                 crate::in_process::Incomplete::BatchBudget => ItemRefusal::Budget,
             })
     }
 }
 
 impl<I> CutSchemaExecutor for InProcessCutSchemaExecutor<I> {
-    fn schema_profile(&self) -> Option<FormatProfile> { Some(self.profile) }
+    fn schema_profile(&self) -> Option<FormatProfile> {
+        Some(self.profile)
+    }
     fn schema_execution_binding(&self) -> Option<tos_foundation::SchemaExecutionBinding> {
-        Some(tos_foundation::SchemaExecutionBinding::InProcessV1(self.binding()))
+        Some(tos_foundation::SchemaExecutionBinding::InProcessV1(
+            self.binding(),
+        ))
     }
     fn selected_source_revision(&self) -> Option<SourceRevision> {
-        match self.identity { InProcessCutIdentity::Source(revision) => Some(revision), InProcessCutIdentity::Candidate(_) => None }
+        match self.identity {
+            InProcessCutIdentity::Source(revision) => Some(revision),
+            InProcessCutIdentity::Candidate(_) => None,
+        }
     }
     fn selected_contract_digest(&self, contract: &str) -> Option<Digest256> {
         let base = contract.split_once('#').map_or(contract, |(base, _)| base);
         self.contracts.get(base).map(|(_, digest)| *digest)
     }
-    fn check(&mut self, _path: &str, raw: &[u8], contract: &str, deadline: Instant, cancelled: &AtomicBool) -> Result<bool, ItemRefusal> {
-        let report = self.diagnostic(contract, raw, schema_diagnostics::Caps::CURRENT, deadline, cancelled)?;
+    fn check(
+        &mut self,
+        _path: &str,
+        raw: &[u8],
+        contract: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, ItemRefusal> {
+        let report = self.diagnostic(
+            contract,
+            raw,
+            schema_diagnostics::Caps::CURRENT,
+            deadline,
+            cancelled,
+        )?;
         match report.status {
             schema_diagnostics::Status::Valid => Ok(true),
             schema_diagnostics::Status::Invalid => Ok(false),
-            schema_diagnostics::Status::InputRejected if report.failure == schema_diagnostics::Failure::InputBudget => Err(ItemRefusal::Budget),
-            _ => Err(ItemRefusal::Unsupported(format!("schema diagnostic {:?}: {:?}", report.status, report.failure))),
+            schema_diagnostics::Status::InputRejected
+                if report.failure == schema_diagnostics::Failure::InputBudget =>
+            {
+                Err(ItemRefusal::Budget)
+            }
+            _ => Err(ItemRefusal::Unsupported(format!(
+                "schema diagnostic {:?}: {:?}",
+                report.status, report.failure
+            ))),
         }
     }
 }
@@ -5085,26 +5171,54 @@ impl<I: Clone + serde::Serialize + serde::de::DeserializeOwned> InProcessCutDiag
     /// Encode the selected-input fence alongside the engine-specific report.
     pub fn to_evidence_json(&self) -> Result<Vec<u8>, serde_json::Error> {
         let identity = match &self.identity {
-            InProcessCutIdentity::Source(revision) => InProcessIdentityEvidence::Source(revision.0.to_hex()),
-            InProcessCutIdentity::Candidate(identity) => InProcessIdentityEvidence::Candidate(identity.clone()),
+            InProcessCutIdentity::Source(revision) => {
+                InProcessIdentityEvidence::Source(revision.0.to_hex())
+            }
+            InProcessCutIdentity::Candidate(identity) => {
+                InProcessIdentityEvidence::Candidate(identity.clone())
+            }
         };
         let report = serde_json::from_slice(&self.report.to_evidence_json()?)?;
-        serde_json::to_vec(&InProcessCutEvidence { version: 1, identity, path: self.path.clone(), contract: self.contract.clone(), report })
+        serde_json::to_vec(&InProcessCutEvidence {
+            version: 1,
+            identity,
+            path: self.path.clone(),
+            contract: self.contract.clone(),
+            report,
+        })
     }
 
     /// Read the bounded engine-specific envelope and preserve its selected-input fence.
     pub fn from_evidence_json(raw: &[u8]) -> Result<Self, &'static str> {
-        let value = crate::published_value(raw, SchemaBackendProbe::MAX_INSTANCE_BYTES).map_err(|_| "invalid cut evidence JSON")?;
-        let evidence: InProcessCutEvidence<I> = serde_json::from_value(value).map_err(|_| "invalid cut evidence JSON")?;
-        if evidence.version != 1 || evidence.path.is_empty() || evidence.contract.is_empty() || evidence.path.len() > 4096 || evidence.contract.len() > 4096 {
+        let value = crate::published_value(raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+            .map_err(|_| "invalid cut evidence JSON")?;
+        let evidence: InProcessCutEvidence<I> =
+            serde_json::from_value(value).map_err(|_| "invalid cut evidence JSON")?;
+        if evidence.version != 1
+            || evidence.path.is_empty()
+            || evidence.contract.is_empty()
+            || evidence.path.len() > 4096
+            || evidence.contract.len() > 4096
+        {
             return Err("invalid cut evidence binding");
         }
         let identity = match evidence.identity {
-            InProcessIdentityEvidence::Source(digest) => InProcessCutIdentity::Source(SourceRevision(Digest256::from_hex(&digest).map_err(|_| "invalid source revision")?)),
-            InProcessIdentityEvidence::Candidate(identity) => InProcessCutIdentity::Candidate(identity),
+            InProcessIdentityEvidence::Source(digest) => {
+                InProcessCutIdentity::Source(SourceRevision(
+                    Digest256::from_hex(&digest).map_err(|_| "invalid source revision")?,
+                ))
+            }
+            InProcessIdentityEvidence::Candidate(identity) => {
+                InProcessCutIdentity::Candidate(identity)
+            }
         };
         let raw_report = serde_json::to_vec(&evidence.report).map_err(|_| "invalid report")?;
         let report = crate::in_process::Report::from_evidence_json(&raw_report)?;
-        Ok(Self { identity, path: evidence.path, contract: evidence.contract, report })
+        Ok(Self {
+            identity,
+            path: evidence.path,
+            contract: evidence.contract,
+            report,
+        })
     }
 }
