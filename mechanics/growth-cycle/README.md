@@ -26,7 +26,7 @@ Source or semantic questions return to [the source owner](../../ToS/AGENTS.md).
 
 ### Direct contracts
 
-- `branch-growth-cycle`: [GROWTH_STRUCTURE](parts/branch-growth-cycle/docs/GROWTH_STRUCTURE.md), [HUMAN_CURATED_EXPANSION](parts/branch-growth-cycle/docs/HUMAN_CURATED_EXPANSION.md), [NATIVE_ARTIFACT_GROWTH](#native-artifact-metadata-creation), [NATIVE_BEHAVIOR_COVERAGE](README.md#native-growth-behavior-and-legacy-fate), [NATIVE_COLLECTION_GROWTH](parts/branch-growth-cycle/docs/NATIVE_COLLECTION_GROWTH.md), [NATIVE_EXPRESSION_EDITION_GROWTH](parts/branch-growth-cycle/docs/NATIVE_EXPRESSION_EDITION_GROWTH.md), [NATIVE_EXPRESSION_RESPONSIBILITY](parts/branch-growth-cycle/docs/NATIVE_EXPRESSION_RESPONSIBILITY.md), [NATIVE_IMAGE_OCR_ASSESSMENT](parts/branch-growth-cycle/docs/NATIVE_IMAGE_OCR_ASSESSMENT.md), [NATIVE_ITEM_ADOPTION](parts/branch-growth-cycle/docs/NATIVE_ITEM_ADOPTION.md), [NATIVE_OBJECT_LINK_GROWTH](parts/branch-growth-cycle/docs/NATIVE_OBJECT_LINK_GROWTH.md), [NATIVE_TEXT_LAYER_ASSESSMENT](parts/branch-growth-cycle/docs/NATIVE_TEXT_LAYER_ASSESSMENT.md), [NATIVE_TEXT_LAYER_CONSTRUCTION](parts/branch-growth-cycle/docs/NATIVE_TEXT_LAYER_CONSTRUCTION.md), [NATIVE_TRANSLATION_ALIGNMENT](parts/branch-growth-cycle/docs/NATIVE_TRANSLATION_ALIGNMENT.md), [NATIVE_WORK_EXPRESSION_GROWTH](parts/branch-growth-cycle/docs/NATIVE_WORK_EXPRESSION_GROWTH.md), [PRE_EXPANSION_SOIL](parts/branch-growth-cycle/docs/PRE_EXPANSION_SOIL.md), [PUBLIC_NATIVE_TEXT_CONSTRUCTION](#public-project-text-native-construction), [SELECTED_METADATA_TRANSACTIONS](README.md#selected-metadata-publication-and-recovery), [SOURCE_COMMAND_DISCOVERY](parts/branch-growth-cycle/docs/SOURCE_COMMAND_DISCOVERY.md), [SOURCE_COMMAND_HTTP](README.md#explicit-local-source-command-transport)
+- `branch-growth-cycle`: [GROWTH_STRUCTURE](parts/branch-growth-cycle/docs/GROWTH_STRUCTURE.md), [HUMAN_CURATED_EXPANSION](parts/branch-growth-cycle/docs/HUMAN_CURATED_EXPANSION.md), [NATIVE_ARTIFACT_GROWTH](#native-artifact-metadata-creation), [NATIVE_BEHAVIOR_COVERAGE](README.md#native-growth-behavior-and-legacy-fate), [NATIVE_COLLECTION_GROWTH](parts/branch-growth-cycle/docs/NATIVE_COLLECTION_GROWTH.md), [NATIVE_EXPRESSION_EDITION_GROWTH](parts/branch-growth-cycle/docs/NATIVE_EXPRESSION_EDITION_GROWTH.md), [NATIVE_EXPRESSION_RESPONSIBILITY](parts/branch-growth-cycle/docs/NATIVE_EXPRESSION_RESPONSIBILITY.md), [NATIVE_IMAGE_OCR_ASSESSMENT](#exact-imageocr-comparison), [NATIVE_ITEM_ADOPTION](parts/branch-growth-cycle/docs/NATIVE_ITEM_ADOPTION.md), [NATIVE_OBJECT_LINK_GROWTH](parts/branch-growth-cycle/docs/NATIVE_OBJECT_LINK_GROWTH.md), [NATIVE_TEXT_LAYER_ASSESSMENT](#exact-text-layer-comparison-and-current-quality-use), [NATIVE_TEXT_LAYER_CONSTRUCTION](#private-native-textlayer-and-first-textunit-construction), [NATIVE_TRANSLATION_ALIGNMENT](#confidential-native-translation-alignment), [NATIVE_WORK_EXPRESSION_GROWTH](parts/branch-growth-cycle/docs/NATIVE_WORK_EXPRESSION_GROWTH.md), [PRE_EXPANSION_SOIL](parts/branch-growth-cycle/docs/PRE_EXPANSION_SOIL.md), [PUBLIC_NATIVE_TEXT_CONSTRUCTION](#public-project-text-native-construction), [SELECTED_METADATA_TRANSACTIONS](README.md#selected-metadata-publication-and-recovery), [SOURCE_COMMAND_DISCOVERY](parts/branch-growth-cycle/docs/SOURCE_COMMAND_DISCOVERY.md), [SOURCE_COMMAND_HTTP](README.md#explicit-local-source-command-transport)
 
 ## Source-owner operations
 
@@ -926,7 +926,7 @@ support. Each future writer/consumer needs its own explicit adapter.
 
 ### Confidential native TextLayer and first segmentation
 
-The [native TextLayer construction contract](parts/branch-growth-cycle/docs/NATIVE_TEXT_LAYER_CONSTRUCTION.md)
+The [native TextLayer construction contract](#private-native-textlayer-and-first-textunit-construction)
 owns the extraction and derivation grants, first segmentation, exact source
 bindings, budgets and recovery. The public Occurrence gate and
 source-visible assessment remain separate owner routes.
@@ -1144,10 +1144,223 @@ review.
 
 ### Confidential native translation alignment
 
-The [native translation-alignment contract](parts/branch-growth-cycle/docs/NATIVE_TRANSLATION_ALIGNMENT.md)
-owns the selected local invocation, grant, exact source closures, immutable
-Claim succession and retained recovery. Supplied mappings remain proposals;
-assessment and confidential-content transport retain their separate routes.
+This confidential native command route belongs to the existing
+[`translation-alignment`
+owner](../../ToS/contracts/translation-alignment-packet-v1.schema.json).
+Its additive [`native record
+contract`](../../ToS/contracts/native-translation-alignment-record-v1.schema.json)
+reuses the v1 mapping, side, maker, evidence, granularity, rights and
+authority definitions. The earlier packet retains its human-review and
+public-use semantics; the native record carries an unassessed proposal.
+
+#### Identity and exact history
+
+An Alignment is a stable opaque subject, independent of its text labels and
+current mapping. It has `alignment_id` and no independent version counter.
+`record_id` identifies its descriptive record lineage; `record_version`
+versions the whole immutable description. `claim_id` identifies one proposed
+correspondence; `claim_version` versions its descriptive qualifications.
+
+| Change kind | Record | Alignment subject | Claim |
+| --- | --- | --- | --- |
+| `initial` | New ID, version 1, no predecessor | New ID | New ID, version 1 |
+| `describe` | Same ID, next version | Same ID | Same ID, next version; mapping unchanged |
+| `remap` | Same ID, next version | Same ID | New ID, version 1; mapping actually differs |
+| `competing` | New ID, version 1 | New ID | New ID, version 1; explicit alternative record refs |
+
+Every descriptive successor has an exact predecessor
+`{record_ref, record_id, record_version, sha256}`. The digest addresses the raw
+record file, including its serialization. Its Claim predecessor is
+`{claim_id, claim_version, sha256}`, with the digest computed over the
+source-command canonical JSON serialization of the Claim **inside that exact
+predecessor record**. An inline supplied predecessor Claim is never trusted.
+
+Describe cannot change either native source selection, source side,
+granularity, inherited rights, competing references or mapping. It must change
+a descriptive qualification; a capture timestamp/event alone is not a delta.
+Remap also preserves the two exact source scopes. A source-scope change is not
+an ordinary descriptive revision: select a distinct source-bound proposal and
+obtain the appropriate owner judgment rather than silently repointing history.
+
+Competing links are one-way exact source refs in the newly authored record;
+the old immutable alternatives retain their bytes. A reverse edge can be
+derived from explicitly supplied records. Global reverse indexing has its own
+projection route. Competition and supersession record relationships among
+versions; preference requires source-visible judgment, and multiple
+alternatives may remain unresolved.
+
+The existing bounded source identity walk checks both selected public and
+private metadata homes. A new version may reuse only IDs in its exact
+predecessor chain; an already present sibling/later version prevents stale
+forking. There is no separate identity catalog or mutable alignment-head file.
+Verified historical replay can read its already-owned version after a later
+version exists; it cannot use that exemption for a fresh write.
+
+#### Source and proposal boundary
+
+Each side is an ordered selection of existing native TextUnits from one exact
+packet and segmentation. Every binding retains packet ID/version/raw digest,
+segmentation ID/version, unit ID/version, ordered anchors, exact TextLayer
+record ID/version/raw digest, and Work/Expression/Edition/Item owner refs.
+The original File, UTF-8 representation, all selectors and anchor digests are
+resolved through those existing native contracts. Source and target are
+distinct Expressions, not merely two layer versions of one Expression.
+
+The owner explicitly declares granularity and whether each selected frozen
+segmentation also supplies tokenization. Phrase/token/morpheme/mixed
+granularity requires both tokenization bindings. Alignment granularity,
+accepted tokenization and linguistic quality retain separate declarations or
+assessments. Unit selection supplies bounded context for one mapping;
+omission/addition records identify its unaligned members.
+
+Both side metadata and current recorded local-derivation rights are checked
+before either representation is read. Current independent read/proposal grants
+are checked again around each resolver read. UTF-8 bytes retain their exact
+newlines and Unicode form. No tokenizer, aligner, model, network, OCR engine or
+translation generator is called. Both source closures are retained as exact
+input bindings, not reconstructed from labels or strings.
+
+Mapping shape/cardinality, omissions/additions, reference and evidence closure,
+technique combinations and rights use the complete existing v1 schema and
+mechanical validator through a temporary, non-published validation view. V1's
+ID-only lineage and in-packet reciprocal competition are not fabricated in
+that view: the native wrapper checks exact immutable history separately.
+Monotonic mappings preserve each native side's anchor order. `reordered`
+retains the explicit proposed ordering; it is not an independently assessed
+cross-record translation-order verdict. Rights are the strictest side or local
+packet posture; all outputs remain private and publication unauthorized.
+
+Supplied techniques, uncertainty, rationale and maker attribution retain
+proposal status. The wrapper is `proposed` and
+`unassessed_translation_proposal`. Provenance uses an annotation/capture event
+and records supplied mapping alongside verified source bytes. Upstream aligner
+execution requires its own evidence. An authorized competent reviewer assesses
+translation through bilingual source-visible comparison, the required
+independent baseline and a scoped assessment route. Quality, semantic use,
+publication and canon each require the corresponding owner decision.
+
+#### Independent configuration and requests
+
+The common source front door selects
+`tos_local_native_alignment_owner_v1` through
+the native `owner-local-native-translation-alignment` handler in
+`rust/crates/tos-command/src/source_text_alignment_entry.rs`; discovery advertises
+`owner-local-native-translation-alignment` without reading any grant or source.
+The protected mode-0600 configuration contains exactly:
+
+- `schema_version`, current local `uid`, `principal_id`, `authority_ref`,
+  `expires_at`, the independently selected absolute `source_context_ref`, and
+  private logical `source_path` ending in a **new** package directory followed
+  by `native-translation-alignment.v1.json`;
+- `allowed_operations: ["alignment.create"]` for `initial`/`competing`, or
+  `["alignment.revise"]` for `describe`/`remap`; the request cannot choose a
+  different change kind;
+- separate `source_access: {read_scope: "exact_owner_local", access_allowed:
+  true, authority_ref, expires_at}` and `alignment_access:
+  {derivation_allowed: true, authority_ref, expires_at}`;
+- opaque `record_id`, `alignment_id`, `claim_id`, a fresh `provenance_event_id`,
+  `change_kind`, exact `predecessor` or null, and `competing_records`;
+- `native_bindings: {source: [...], target: [...]}`, `granularity`, and explicit
+  `tokenization: {source: boolean, target: boolean}`;
+- v1 `maker`, with `maker_kind: "imported_source"`, principal-bound
+  `agent_ref`, supplied `made_at`/method, the delegated event ref and
+  `method_output_posture: "proposal_not_truth"`. This attributes supplied
+  material without impersonating its alleged upstream producer.
+
+The existing mode-0700 private parent and source context are prerequisites.
+The request uses the existing `tos_local_source_command_v1` envelope. The
+following is shape-only pseudocode: angle-bracket values are declared
+placeholders and must be replaced with values valid under
+`native-translation-alignment-record-v1.schema.json` before transport. The
+prepare operation is `prepare-create` for an initial/competing record and
+`prepare-revise` for a describe/remap successor.
+
+```text
+{
+  "schema_version": "tos_local_source_command_v1",
+  "operation": <"prepare-create" | "prepare-revise">,
+  "mapping": {
+    "direction": <"source_to_target">,
+    "correspondence_shape": <"one_to_one" | "one_to_many" | "many_to_one" | "many_to_many" | "source_omission" | "target_addition" | "unresolved">,
+    "order_posture": <"monotonic" | "reordered" | "not_applicable" | "unresolved">,
+    "ordered_source_anchor_refs": [<schema-valid anchor id>],
+    "ordered_target_anchor_refs": [<schema-valid anchor id>]
+  },
+  "qualifications": {
+    "translation_techniques": [<schema-valid technique>],
+    "epistemic_status": <schema-valid epistemic status>,
+    "certainty": {
+      "value": <number from 0 through 1>,
+      "meaning": "maker_declared_uncertainty_not_truth_probability"
+    },
+    "status_reason": <non-empty string>,
+    "evidence": [<schema-valid evidence object>]
+  }
+}
+```
+
+Submit the prepared request through the native selected invocation:
+`tos-native-owner-command source-commands --invocation /absolute/native-invocation.json`.
+The apply request uses the same envelope. Its `mapping` and `qualifications`
+values are the same schema-valid objects shown above. This block is likewise
+shape-only pseudocode, rather than executable JSON:
+
+```text
+{
+  "schema_version": "tos_local_source_command_v1",
+  "operation": <"alignment.create" | "alignment.revise">,
+  "mapping": <the schema-valid mapping object above>,
+  "qualifications": <the schema-valid qualifications object above>,
+  "command_id": <fresh command id>,
+  "expected_configuration": <prepared owner configuration digest>,
+  "expected_dependencies": <prepared dependency digest>,
+  "expected_source": null,
+  "expected_revision": null
+}
+```
+
+The absent source/revision precondition describes the **new immutable version
+package**, not the absence of a predecessor. That predecessor is separately
+fixed by the protected configuration and the output's exact history.
+`mapping` contains the five existing direction/shape/order/source-anchor/target-
+anchor fields. `qualifications` contains existing `translation_techniques`,
+`epistemic_status`, `certainty`, `status_reason` and `evidence`; request fields
+cannot supply a maker, rights, source selection, identity, executable or review.
+
+#### Inspection, replay and recovery
+
+`describe` reads contracts and protected configuration. `inspect` checks the
+exact delegated target, retained receipt and current metadata/source closure.
+`inspect-version` takes `source` in the exact native record-ref shape and
+accepts only a version in that selected history. Both return metadata-only,
+redacted verification/version summaries; source strings, locators, selectors,
+private IDs and short-span hashes remain withheld. Source-visible comparison
+uses the separate assessment route.
+
+An identical apply request replays the exact immutable package. Request,
+configuration, source inputs, implementation/runtime pins, source receipt and
+stored bytes remain checked. Changed source bytes, scope, current rights or
+implementation cannot be accepted merely because an old receipt exists.
+
+The existing shared/public-then-private writer lock order and retained native
+construction primitive publish a flat mode-0700 package with mode-0600 files.
+Exclusive writes and atomic no-replace directory publication preserve prior
+versions. A durable exact plan precedes output writes. `inspect-recovery` with
+the original `command_id` checks the retained plan; retrying the exact original
+apply request fills only absent staged files. Torn files, a missing/torn plan,
+foreign residue or changed authority fail closed and remain for owner review;
+this route does not delete or overwrite recovery evidence.
+
+Bounds include 256 units per side, 32 explicit competing records, at most 64
+logical history steps, the shared native resolver's 128-input/byte budgets and
+a 1 MiB canonical record ceiling and 60-second cooperative command deadline. The file/dependency budget may reject
+a history before the logical depth bound. These are fail-closed limits, not a
+complete-corpus mode or a preemptive filesystem/parser timeout.
+
+The focused synthetic tests belong to `mechanics/growth-cycle/tests/` and the
+existing `mechanics_local` lane. No real corpus bytes, bilingual assessment,
+external acquisition, KAG projection, release or runtime installation is
+established by their success.
 
 ### Confidential owner-local source profiles
 
@@ -1566,13 +1779,13 @@ competence, source quality and rights depend on their actual owner evidence.
 The additive `tos_local_assessment_owner_v5` configuration can assess one
 exact raw native TextLayer against its original acquired bytes and require
 current purpose-scoped quality for dependent units, Claims and human forms.
-The [text-layer assessment contract](parts/branch-growth-cycle/docs/NATIVE_TEXT_LAYER_ASSESSMENT.md)
+The [text-layer assessment contract](#exact-text-layer-comparison-and-current-quality-use)
 owns selection, explicit comparison reading, protected grants, quality-basis
 dependencies, withdrawal behavior and bounded journal coordination. It uses
 the existing policy engine and immutable journal; v1–v4 and public adapter
 boundaries remain unchanged.
 
-The separate [image/OCR comparison v6](parts/branch-growth-cycle/docs/NATIVE_IMAGE_OCR_ASSESSMENT.md)
+The separate [image/OCR comparison v6](#exact-imageocr-comparison)
 adds bounded retained-PDF-page and operator-created synthetic-PNG profiles,
 each over an authenticated owner OCR layer. Historical pages remain
 undisclosed by this profile; synthetic assistant disclosure needs its own
@@ -3005,6 +3218,665 @@ test delegation. Browser client tests live beside the client module and
 cover request/response proofs, impostor responses, nonce binding, deadlines and
 explicit close. UI close/unload protection must cover in-flight and uncertain
 commands, not just successful replies.
+
+## Native TextLayer operation contracts
+
+### Private native TextLayer and first TextUnit construction
+
+The initial source-owner route implements two separately delegated steps:
+`text-layer.create` extracts a bounded representation from an already acquired
+exact EPUB member; `text-unit.create` with its v2 owner configuration constructs
+the first explicit interval partition of one real TextLayer. Both operations
+start from their exact source bindings.
+
+Existing source-text-layer v1, source-anchor v2, source-text-unit packet v1 and
+provenance-event v2 contracts own the output grammar. The new
+[`native-text-layer-binding` contract](../../ToS/contracts/native-text-layer-binding.schema.json)
+selects the existing source record for construction and assessment.
+Existing v1 unit-construction and public Occurrence gates keep their contracts.
+
+The separate additive derivation grant below now implements correction,
+Unicode normalization and recording of supplied source-bound OCR/transcription
+results. Each operation requires its own supported handler and explicit derivation
+grant.
+
+#### Separately selected extraction grant
+
+The native `tos-native-owner-command source-commands` front door dispatches the
+protected mode-0600 `tos_local_text_layer_create_owner_v1` configuration to
+the `owner-local-text-layer-create` handler in
+`rust/crates/tos-command/src/source_native_text_cli.rs`, backed by
+`source_text_layer_entry.rs`. Its exact top-level fields are:
+
+- `schema_version`, current local `uid`, `principal_id`, `authority_ref`,
+  `expires_at`, and `allowed_operations: ["text-layer.create"]`;
+- `source_context_ref`: an independently selected absolute protected context
+  configuration; `source_path`: a new private-prefix package ending in
+  `source-text-layer.v1.json`; the containing collection exists, but the new
+  layer package directory must not already exist;
+- `source_scope`: `work_ref`, `expression_ref`, `edition_ref`, `item_ref`,
+  `file_ref`, `file_sha256`; File identity is `tos.file.sha256.<raw SHA-256>`;
+- `source_record_refs` and `source_record_sha256`: exact maps for `work`,
+  `expression`, `edition`, `item`; refs select authored corpus records, and
+  `manifest_sha256` separately pins the Item's manifest bytes;
+- `source_access`: `read_scope: "exact_acquired_file"`, `access_allowed: true`,
+  absolute `payload_root`, exact positive `byte_size`, its own `authority_ref`
+  and `expires_at`;
+- `derivation_access`: `derivation_allowed: true`,
+  `operation: "structural_extraction"`, `rights_record_refs: [{ref, sha256}]`,
+  `content_visibility: "local_only"`, its own `authority_ref` and `expires_at`;
+- `member: {member_path, member_sha256}`, exact `selector: {type, scheme, value}`,
+  and the complete supported versioned `policy` object;
+- `identities`: opaque independently delegated `layer_id`, `anchor_id`,
+  `passage_id`, `provenance_event_id`, each `tos.<kind>.sid-<32 lowercase hex>`;
+- `maker: {maker_type, agent_ref, method, version}` with `maker_type: "software"`
+  and `agent_ref` equal to the principal; `language`; and
+  `limits: {max_output_bytes, max_seconds}`.
+
+The context still has exactly its existing public/source-contract and private
+roots. The explicitly granted payload root is a separate input adapter, never
+a fallback namespace. It must be disjoint from the private output root. The
+original physical file is selected as `payload_root / <Item metadata parent
+relative to ToS/source-witnesses> / <manifest payload relative_path>`. No search,
+download, source acquisition, directory creation for missing parents, alias
+resolution or implicit choice of payload root occurs.
+
+Metadata topology, raw metadata/manifest hashes, the local-only EPUB manifest
+entry, separate current reading/derivation grants, exact Item/File rights and
+an exact decision for the **new layer identity** are checked before original
+payload bytes are opened. Item-only permission is not sufficient for this new
+content-bearing output. Supported derivative posture is `local_research_only`
+or unconditional `allowed`; denied, conflicting, inactive, conditional and
+permission-required decisions fail closed. These are selected owner rights.
+
+#### Narrow, versioned extraction profile
+
+`rust/crates/tos-command/src/source_text_layer_xml.rs` owns the pure extractor;
+`source_text_layer_proposal.rs` owns its versioned policy and layer constructor, tagged `tos_xhtml_text_extraction_policy_v1`. Passing
+a different policy object is unsupported; the retained policy's raw bytes and
+digest are bound by the layer. The command selects no caller-supplied code.
+
+The input is one strict UTF-8 XHTML document in the XHTML namespace. Supported
+selectors have `type: "structural"` and either:
+
+- `scheme: "tos.xhtml.element-ordinal.v1"`, `value: "p:2"` for a one-based,
+  document-order ordinal of an exact allowed XHTML local element name;
+- `scheme: "tos.xhtml.element-id.v1"`, an exact unique `id` or XML `id` value.
+
+Zero or multiple matches fail. The selected element may contain supported
+transparent inline markup and `br`, which contributes one LF. Text nodes are
+concatenated in document order without the selected root's tail, trimming,
+space collapse, inserted block separators or Unicode normalization. NFD,
+existing LF and spaces survive. Bounded comments are omitted; CDATA contributes
+literal character data. Unknown markup inside the selected element fails.
+
+This first profile deliberately rejects raw CR, **all ampersands** (including
+predefined/numeric references), DTDs and processing instructions other than an
+XML 1.0 declaration with optional UTF-8 encoding. Unsupported input is rejected; rendering, OCR, correction and normalization
+use their dedicated routes.
+
+Resource ceilings are explicit: original File 512 MiB; ordinary non-ZIP64,
+single-disk ZIP with at most 2,048 members, 1 MiB central directory, 1,024-byte
+names, 16 MiB per expanded ZIP member and 64 MiB declared aggregate expansion.
+Actual directory counts are checked before native ZIP entry allocation. Selected
+stored/deflated member data is streamed with bounded expansion, local/central
+name checks, exact size, CRC and raw SHA-256; encrypted, duplicate, escaping or
+symlink members fail. The stricter XHTML profile accepts at most 8 MiB, 65,536
+elements, depth 64, 16 KiB markup tokens and 128 attributes per start tag,
+including namespace declarations. Token checks precede parser allocation.
+Output is at most 8 MiB, further narrowed by the grant. The command's monotonic
+budget is at most 60 seconds; bounded parser work is checked before/after, not
+an operating-system hard-timeout guarantee.
+
+#### Request and immutable output
+
+Use the common `tos_local_source_command_v1` envelope. `describe` and
+`prepare-create` accept no source or extraction fields from the request.
+`describe` opens no payload. Preparation computes the exact dependency token.
+`text-layer.create` adds only `command_id`, `expected_configuration`,
+`expected_dependencies`, `expected_source: null`, `expected_revision: null`.
+The first two tokens come from preparation. Extra request fields fail.
+
+The new mode-0700 package contains mode-0600 files:
+
+- `source-text-layer.v1.json`, `source-anchor.v2.json`, `content.txt`,
+  `extraction-policy.json`;
+- retained `source-create-owner-configuration.json` and
+  `source-create-inputs.json`;
+- `source-create-request.json`, `source-create-environment.json`,
+  `source-create-provenance.jsonl`, `source-create-receipt.json`.
+
+The layer starts as unreviewed `machine_transcription` from
+`structural_extraction`. Its anchor returns through
+the exact original File to the selected member and structural selector. The
+event is `native_extraction`, distinct from later `segmentation`. Whole-text SHA-256, exact UTF-8 scope, policy/configuration, maker,
+input/output provenance and recorded rights remain private. Source-visible
+assessment owns extraction quality judgment.
+
+Public command responses expose only operation/status information, opaque
+configuration/dependency/receipt digests and `grants_admission: false` with
+`content_disclosure: "withheld"`; no path, selector, content, native identity,
+span or raw private receipt is returned. Grant-free discovery reads no context,
+grant, rights, payload, selector or private target.
+
+#### First segmentation from the real layer
+
+`tos_local_text_unit_create_owner_v2` retains the v1 unit grant's exact top-level
+shape, declared source-reading authority, IDs, explicit scope, method and
+bounded spans/gaps. Only `source_binding` selects the new layer-only schema:
+`schema_version: "tos_native_text_layer_binding_v1"`,
+`text_layer: {record_ref, record_sha256, layer_id, layer_version}` and
+`source_record_refs: {work, expression, edition, item}`. No packet, unit or
+segmentation identity is supplied as a predecessor.
+
+`NativeTextBindingResolver.resolve_layer` validates the actual layer, lineage,
+policy/configuration, source anchors, corpus/manifest and recorded rights.
+Exact private reading is independently explicit; rights precede representation
+I/O. It never opens the original payload and never claims public availability
+or applied assessment. The delegated interval must lie inside the source layer's declared scope. New packet fields are derived directly
+from that verified layer and binding, with ordinary explicit span/gap partition.
+
+V2 responses withhold slots, scope, paths, private receipt and prepared file
+hashes. The ordinary private packet has an additional `source-create-inputs.json`
+binding consumed raw metadata, representation, context, implementation and
+runtime bytes. V1 replay remains historical-request/current-validation; V2 and
+layer creation require their exact pinned construction inputs still to match.
+Replay checks the selected historical source bytes, current collisions, and
+source, rights and context bindings. Unrelated identity growth remains
+compatible.
+
+#### Additive correction, normalization and supplied-result recording
+
+`owner-local-text-layer-derive` is a separate discoverable native handler in
+`rust/crates/tos-command/src/source_native_text_cli.rs`, backed by
+`source_text_layer_derived_entry.rs`. Its protected mode-0600 grant is
+`tos_local_text_layer_derive_owner_v1`. It selects exactly one operation:
+
+- `text-layer.correct`: apply explicitly supplied ordered code-point edit
+  proposals to one exact predecessor, preserving everything outside them;
+- `text-layer.normalize`: actually execute one declared NFC, NFD, NFKC or NFKD
+  transformation under the named declared Unicode database version;
+- `text-layer.record-transcription`: record supplied manual or model
+  transcription bytes, without executing the reported upstream transcription;
+- `text-layer.record-ocr`: record supplied OCR bytes, without launching an OCR
+  engine or producing an OCR execution receipt.
+
+All four create a new private `source-text-layer.v1.json`, never an update to
+the input. Correction/normalization has one exact predecessor, a new opaque
+layer identity, version `previous.layer_version + 1`, and `supersedes_layer_ref`
+equal to the predecessor identity. The raw predecessor record/content and
+original acquired File remain unchanged. Supplied OCR/transcription instead
+starts a new version-1 layer from an already acquired File and existing exact
+source anchor.
+
+##### Derivation grant and fixed policy
+
+The common top-level fields retain the extraction grant's exact account,
+principal/authority/expiry, source context/path, source scope, four metadata
+refs/digests, manifest digest, language, maker and limits. The differences are:
+
+- `allowed_operations` is exactly one of the operations above; `identities`
+  contains only independently selected `layer_id` and `provenance_event_id`.
+  Existing source anchors keep their identities and exact bytes.
+- `derivation_access` keeps separate current authority, expiry, visibility and
+  exact rights bindings, with `operation` equal to `correction`,
+  `unicode_normalization`, `manual_transcription`, `model_transcription` or
+  `ocr` as selected by the fixed policy. Both Item/File and the **new layer**
+  need their own applicable existing derivation-rights basis.
+- `policy` must equal `source_text_layer_proposal.derivation_policy(operation,
+  unicode_form=...)`. Normalization requires an explicit supported form; other
+  operations use `none`. For `record-transcription`, the optional
+  `transcription_method` selects `manual_transcription` (default) or
+  `model_transcription`. This helper returns the supported versioned policy values. Normalization maker must be software, with method
+  `tos.unicode.normalize.v1` and version equal to the policy's actual Unicode
+  database version.
+- `member` and `selector` do not occur in this grant. `input` and `material`
+  have the exact operation-specific shapes below.
+
+For correction/normalization, `input` is `{kind: "text_layer", binding: ...}`,
+where the binding uses existing `tos_native_text_layer_binding_v1` and agrees
+with the independently pinned metadata refs. `source_access` contains
+`read_scope: "exact_text_layer"`, `access_allowed: true`, exact positive
+`byte_size`, `authority_ref` and `expires_at`, with no payload root. The input
+must be the whole exact UTF-8 representation with scope `[0, length)` and the
+same source/language as the new layer. Its own recorded rights are checked
+before its content is opened. No original payload is opened by these methods.
+
+Correction `material` is `{edits: [...]}`. Each edit has exactly `start`, `end`,
+`input_exact`, `input_sha256`, `output_exact`, `reason`, and `confidence` in
+`[0, 1]`. Spans are ordered, nonoverlapping, half-open Unicode code points;
+the input bytes/digest must match the predecessor. Insert/delete/replace are
+derived from the supplied spans and strings, never from an implicit diff.
+Every emitted edit retains input/output coordinates, exact text and hashes,
+the configured responsible maker and original anchor refs, with `proposed`
+status. Review status records the separate source-visible assessment, while maker
+records the correction supplier. Source-near correction of an already normalized layer is unsupported;
+it cannot silently erase that predecessor's normalization posture.
+
+Normalization `material` is `{}`. The executor records one explicit whole-text
+Unicode operation, including when the result bytes happen to be unchanged.
+The receipt records the applied normalization. The new layer is
+`normalized_text`; source fidelity and diplomatic fidelity require separate
+assessment. No trimming, whitespace collapse or unrelated editorial
+rewrite is performed.
+
+For supplied OCR/transcription, `input` is `{kind: "acquired_file", anchor:
+{anchor_id, record_ref, record_sha256}}`. The existing v2 anchor must bind the
+same Item/File/digest and manifest media type. Supported exact Files are EPUB,
+PDF, PNG, JPEG, TIFF and WebP; the command verifies original File fixity but
+does not execute the anchor selector, render a page or inspect glyphs. Its
+`source_access` has the extraction grant's exact acquired-File fields,
+including the explicit disjoint payload root and byte size.
+
+Here `material` contains exactly `content_ref`, `content_sha256`, `byte_size`,
+`access_allowed: true`, its independent `authority_ref`/`expires_at`,
+`provider_execution: "not_observed"`, and `reported_maker:
+{maker_type, agent_ref, method, version}`. The content ref selects an existing
+private file outside the new package. Its exact strict UTF-8 bytes are copied
+without newline or Unicode rewriting. Manual transcription requires a reported
+human maker; model transcription a reported model; OCR a reported software,
+model or mixed producer. These are **supplied declarations**, distinct from
+the command principal that records them. This route does not authenticate their
+identity, method execution, competence, completeness or fidelity to the anchor.
+It cannot substitute a declared provider name for observed execution evidence.
+
+##### Bounds, retained evidence and downstream route
+
+Input and output text are each at most 128 KiB, further narrowed by the grant;
+correction has at most 128 edits, with per-reason length bounded at 2,048
+characters. This also bounds explicit input/output strings in the layer record.
+No quadratic edit search runs. Original acquired Files retain the 512 MiB
+streamed-fixity ceiling; no image/PDF decompression or provider process is run.
+Existing metadata-count, lineage-depth and cumulative resolver budgets remain;
+the derivation writer allows two bounded text representations for independent
+immediate-predecessor delta verification. The 60-second cooperative deadline,
+12-file/12-MiB package and 18-MiB retained-plan ceilings still apply.
+
+The package contains the new layer, `content.txt`, `derivation-policy.json`,
+and the existing retained configuration/inputs/request/environment/provenance/
+receipt files. It references the existing source anchors. Request grammar, expected configuration/dependencies, absent initial
+target, protected locks, exact idempotent retry and interruption recovery are
+the same construction route described below. An expired or changed grant,
+predecessor, supplied result, rights, implementation or third-state file blocks
+retry; evidence is retained for explicit owner action, not erased or reissued.
+
+Provenance records correction and normalization as executed operations.
+Supplied-result capture uses `annotation`, with `provider_execution:
+"not_observed"`; its layer method records the reported origin. Outputs retain
+unreviewed status and predecessor uncertainty. Assessment, accepted use and
+publication follow their separate owner routes.
+
+`NativeTextBindingResolver` verifies exact predecessor record/content/version,
+source scope and retained policy/configuration. Exact reads independently replay
+the explicit edits; they do not replay a historical OCR provider or use the
+current Unicode implementation as evidence of historical execution. Existing
+first segmentation can consume the real new layer without inheriting quality.
+
+The current `NativeLayerAssessmentSources._metadata` adapter has a separate
+exact derived-layer comparison for the bounded EPUB/XHTML
+source-view profile, documented in [native assessment](#exact-text-layer-comparison-and-current-quality-use).
+Images/PDFs and unsupported selectors still need their own source renderer.
+A prior extraction assessment is not a quality basis for its successor.
+The source-visible reviewer must assess the exact new layer against its
+predecessors and original source, then use the existing assessment journal for
+a separate current purpose-scoped quality basis. Source-visible assessment owns acceptance and the scope of any quality claim.
+
+#### Authenticated OCR of a retained PDF page
+
+The distinct `tos_local_text_layer_record_owner_page_ocr_v1` protected profile
+selects only `text-layer.record-owner-page-ocr`. Its input kind is
+`retained_pdf_page`; original `source_scope` and whole-page anchor still name
+the exact acquired PDF, never the derived PNG. It retains all independently
+issued source, derivation, output and authenticated-evidence grants of the
+owner OCR route, plus exact `material.input_representation` binding to the
+retained image, one-based page, frozen render manifest/sample plan and unsigned
+historical receipt. Native ToS verifies the pinned signature and exact source,
+output and retained-page capture assertions. Signature authentication does not
+independently prove OCR fidelity or producer execution. ToS never
+runs a renderer or OCR provider through this recording operation. This profile
+is served only by the native Rust command; Python layer construction and
+metadata readers do not accept owner-OCR configurations.
+
+These owner-OCR handlers authenticate portable signed evidence locally. The
+protected grant pins the receipt, signature, public key, exact output and source
+binding. Producer commit and adapter digests are provenance; no checkout is
+opened or executed. Native ToS uses P-256/SHA-256 message-signature verification,
+without Python, Pillow, Cosign, a host trust store or network discovery. A legacy
+`owner_source_root` field is inert; new grants need none. Invalid signatures,
+changed evidence and mismatched source/output/capture assertions refuse the
+selected operation. Recording neither runs OCR nor admits textual quality.
+
+The immutable 12-file package includes copied signed receipt, signature and
+public key. Metadata-only source resolution authenticates these three files
+without opening the original PDF, PNG or OCR text. Exact content reads bind
+the signed output digest. Recording/recovery cannot reexecute OCR, sign an old
+rendering event retroactively or mark raw OCR reviewed. The separate
+[image/OCR assessment v6](#exact-imageocr-comparison) owns current
+source-visible comparison and disclosure bounds; old supplied `record-ocr`
+continues to mean supplied unverified origin, not observed execution.
+
+#### No-replace commit, replay and retained recovery
+
+Both new routes use existing source-owner locks and atomic no-replace directory
+publication. A deterministic private `.native-construction-<digest>.pending`
+control per exact target/command retains a mode-0600 bounded `plan.json` before
+staged output writes. It records the complete exact byte set, request digest and
+target. Package limits are 12 files/12 MiB; the base64 recovery plan is at most
+18 MiB. The confidential recovery plan remains outside the final source package,
+including after completion.
+
+Retry verifies the plan, original request/receipt, every retained input/output,
+current rights/grants and directory identities. It fills only absent staged
+files and can resume after any fully written file. A torn file, absent/torn
+plan, changed control/ancestor, foreign residue or occupied destination fails
+closed and remains for explicit owner review. Nothing is overwritten or
+automatically erased. Repeating the same command does not multiply stages.
+Operators should reuse that exact command after recoverable interruption, not
+create an unbounded series of new command IDs. Changed implementation/input
+requires a new explicitly chosen route, not rewriting committed evidence.
+
+Exact retry preserves the committed package and returns the same receipt
+digest. The issuer still owns stability against noncooperating same-UID edits;
+path/digest rechecks are not isolation or a cross-filesystem transaction.
+
+#### Verification boundary
+
+Focused synthetic tests cover bounded parser/resource refusal, exact text,
+separate authority before payload I/O, layer-only bootstrap, stable input
+binding, redacted results, no-replace replay, interruption/torn recovery and
+the existing private Occurrence consumer/public-denial boundary. Real witness
+assessment, rights decisions and source acceptance follow their owner routes;
+release reporting records actual CI, landing and runtime verification
+separately.
+
+### Exact text-layer comparison and current quality use
+
+This confidential source-owner extension uses the native assessment journal
+`rust/crates/tos-command/src/source_assessment_journal.rs` through the owner
+route `rust/crates/tos-command/src/source_native_private_assessment_cli.rs` and
+the `tos_local_assessment_command_v1` request envelope. Source creation belongs
+to [native layer construction](#private-native-textlayer-and-first-textunit-construction).
+
+#### Protected configuration v5
+
+`tos_local_assessment_owner_v5` retains all v4 fields and adds exactly:
+
+| Field | Contract |
+| --- | --- |
+| `native_text_layers` | At most eight exact selections described below. Each selected layer has its own entry in `subjects`. |
+| `quality_dependencies` | Object keyed by configured target ID, with at most eight `{layer_id, use}` entries per target. No duplicate layers, extra groundings or self-dependencies. |
+
+Each layer selection has `binding`, `origin_id`, `source_access` and
+`payload_access`. The `tos_native_text_layer_binding_v1` binding selects exact
+layer metadata and its Work/Expression/Edition/Item source locators directly.
+The target's assessment reference uses the canonical digest of the unchanged
+raw layer; raw metadata-file fixity has its own digest.
+
+`source_access` has exactly `read_scope`, `access_allowed: true` and an
+independently issued `authority_ref`. A `metadata_only` selection requires
+`payload_access: null`. An `exact_owner_local` selection requires a separate
+current payload grant with `read_scope: exact_acquired_file`,
+`access_allowed: true`, `authority_ref`, timezone-aware `expires_at`, absolute
+`payload_root` and exact `byte_size`. The acquired payload root must be
+separate from both public metadata and private derivative roots. Grants are
+checked before source I/O; every selected layer's exact source and layer rights
+are checked before opening any selected original or representation bytes.
+The retained construction configuration is source data, not reading authority:
+its historical expiry does not replace or invalidate a separately issued
+current reading grant.
+
+Each layer subject has the ordinary exact `record`, `risk`, `languages`,
+`maker_id`, `requested_use` and `access_allowed` fields. Its assertion layer
+is `textual_observation`, language is the actual single source language, and
+maker is the actual selected layer maker. The four separate requested uses are:
+
+- `text-layer:citation`
+- `text-layer:linguistic-analysis`
+- `text-layer:semantic-analysis`
+- `text-layer:search-projection`
+
+Policy v3 supplies `text-layer-quality` for low/moderate risk and
+`text-layer-quality-high` for high risk. The latter requires two independent
+reviewer groups. The existing engine still requires source-visible judgment,
+current delegated authority, calibrated competence, independent execution
+binding, exact evidence and counterevidence posture. No command or comparison
+grants those qualifications. One configuration selects one use per layer;
+separately scoped configurations may share its immutable journal.
+
+#### Compare, assess, inspect
+
+`describe` returns exact target, policy, comparison and required-dependency
+references, current readiness, supported operations and owner snapshot. It
+does not return source text. The independently selected exact-read configuration
+authorizes reading and rechecking bytes while computing that snapshot.
+
+`read-layer-comparison` uses the ordinary non-describe request fields:
+`schema_version`, `operation`, `subject_id`, `expected_subject` and
+`expected_snapshot`. It returns the selected comparison record and payload,
+including the bounded original UTF-8 XHTML member, selected expected text,
+actual representation, selector, policy, maker and input fixity. Its entire
+return is local-only and publication remains unauthorized. The caller must not
+forward it to a public projection. Metadata-only selection cannot use this
+operation or append a quality assessment.
+
+`append` uses unchanged command/event/batch v1 fields. The quality reviewer
+must cite the comparison as evidence; a matching extraction or a successfully
+verified hash is not itself an assessment. The structural-extraction adapter
+retains its original v1 comparison contract and exact XHTML profile.
+Original and selected-output disagreement remains visible
+in the comparison and prevents usable quality admission. It does not prevent
+a qualified rejection, dispute, deferral or withdrawal based on that available
+exact comparison. The adapter separates source availability from positive-use
+eligibility; `describe` exposes both comparison `ready` and
+`positive_use_allowed`. Metadata-only selection still cannot append any decision.
+
+##### Native derived-layer comparison
+
+The same v5 selection can address a layer created under the independently
+versioned `tos_local_text_layer_derive_owner_v1` profile: explicit correction,
+Unicode normalization, or recording supplied manual/model transcription or
+OCR text. The source view is still one exact acquired EPUB/XHTML member and
+one supported structural anchor. An image/PDF or another anchor needs a
+separately implemented source renderer; its File digest cannot substitute for
+source visibility. This does not run an OCR or transcription provider.
+
+`native-text-layer-derivation-comparison.schema.json` adds a comparison route
+alongside the retained extraction schema. The returned
+`tos_native_text_layer_derivation_comparison_v1` record contains the original
+member and selected character data, complete oldest-to-newest layer records
+and representations, exact policies/configuration digests, declared operations
+and unverified supplied-producer metadata. Source and output can intentionally
+differ. Every native delta is independently replayed, and
+`source_text_equals_output` records byte comparison. `positive_use_allowed`
+identifies evidence from which an authorized competent reviewer can reach a
+positive or negative judgment. The assessment engine requires this exact
+comparison in review evidence and applies current purpose, risk, authority and
+competence policy.
+
+Each predecessor's current rights are checked in the metadata pass before any
+selection's content is opened. Retained construction grants, even expired or
+revoked, remain source data; only independently selected current reading
+authority authorizes this read. Grant validity and a shared cooperative time
+budget are rechecked around every resolver file read, including recursive
+lineage and snapshot reads, and between parsing and comparison-building steps.
+An expired grant stops the next content read rather than waiting for the next
+top-level layer. A valid predecessor assessment does not admit its successor;
+the new layer needs its own exact comparison, assessment and scoped quality
+basis. Withdrawal and subsequent reassessment follow the existing dependent
+quality route below, without restoring obsolete dependent evidence.
+
+#### Dependent claims and forms
+
+The adapter derives the required layers from exact selected native grounding,
+including the declared Claim source closure and human-form context. Protected
+`quality_dependencies` must match that closure, not merely name a convenient
+quality journal. Textual/forensic observations, bibliography and scholarly
+reports require citation quality; linguistic and translation judgments require
+linguistic-analysis quality; semantic interpretations require semantic-analysis
+quality. A human form follows its subject's judgment layer. Search-only quality
+does not qualify a semantic or citation route.
+
+Before evaluating the dependent target, the adapter reads the current quality
+admission under the same target/dependency journal locks. It derives a
+`tos_native_text_layer_quality_basis_v1` record containing exact layer,
+comparison, purpose, content scope, policy, active assessment references,
+current status and inherited limits. `describe.required_admissions` exposes
+its reference and permission, not confidential text. This record must occur in
+dependent assessment evidence. The explicit assessed source-copy/freeform
+consumer retains the whole current basis as owner-resolved context and an exact
+dependency alongside the immutable authored subject/field bindings. It requires
+current admission of the form itself; ordinary source-only readiness remains
+`admission: null`. Changing the basis requires renewed form review but does not
+rewrite unchanged wording. An already authored explicit basis ref still has to
+match exactly and remains visibly stale after replacement, even if a new review
+otherwise qualifies. Caller-supplied basis records cannot shadow this
+runtime-owned result. See [assessed form materialization](parts/branch-growth-cycle/README.md#assessed-form-materialization).
+
+A v5 Claim form additionally resolves current parent Claim admission under an
+explicit exact same-use parent scope and the combined form/parent/layer locks.
+The complete `subject_assessment` companion retains current state, limits and
+historical withdrawals; its observed head/current result joins the owner
+snapshot and is checked before return. Display distinguishes initial source
+posture from current parent assessment. Qualified display remains possible
+with an unreviewed or negatively assessed parent, with that state and its
+restrictions included as mandatory context. Form admission covers the form's
+selected use; Claim assessment and the layer quality basis retain their
+separate evidence and use conditions.
+
+Withdrawal, revocation, scope expiry, changed comparison or replaced quality
+evidence makes the affected dependent result unusable while source and history
+remain retained. A renewed positive quality event changes the exact basis and
+requires a corresponding dependent assessment. Unrelated journal events leave
+semantic evidence unchanged. Current quality and target history are rechecked
+before returning; historical receipts retain their original commit scope.
+
+An authorized negative review or explicit withdrawal remains available after
+the quality-use gate closes. These acts require exact current source and
+quality-basis evidence and ordinary supersession authority. Every required
+original comparison must remain available, including for a negative append.
+This preserves the evidence route for recording why positive use must stop.
+
+#### Bounds and compatibility
+
+Selections conservatively charge original `byte_size` per layer, up to 16 MiB
+in total. The reader bounds metadata closure, original extraction and each
+comparison (1 MiB); oversized comparisons fail closed and need a narrower
+supported source route, never truncation. A derived comparison contains at
+most 16 lineage layers within the same aggregate content/metadata budgets.
+One comparison construction or later snapshot call has a 30-second cooperative
+budget; nested checks cannot renew that call's deadline. This is not a
+preemptive timer for one filesystem or parser operation. Locks use a shared bounded deadline
+and stable order. They coordinate current reads and one target append, not an
+atomic multi-target write transaction.
+
+Configurations v1–v4 retain their meaning, source bytes,
+`human_review_performed` fields and review status. Public assessed graph
+builds and Sign issuance reject confidential v4/v5 configurations before
+opening the private source context. Publication, diplomatic fidelity, full
+translation verification and canon follow their owner routes. Synthetic tests
+cover comparison and journal mechanics; real source-visible quality assessment
+requires applicable language competence.
+
+The separate [image/OCR comparison v6](#exact-imageocr-comparison) accepts
+one authenticated retained PDF-page raw OCR layer or one explicitly selected
+operator-created synthetic PNG result. It leaves this v5 EPUB comparison
+unchanged, separates local reading from assistant disclosure, and carries
+method-specific limits into current layer admission and dependent quality.
+
+### Exact image/OCR comparison
+
+The confidential assessment-owner v6 profile adds one method-specific image
+comparison to the existing [quality journal](#exact-text-layer-comparison-and-current-quality-use).
+It does not broaden the EPUB-only v5 profile. The native Rust owner in
+`rust/crates/tos-command/src/source_private_assessment_layers.rs` is read-only:
+it uses the native ToS **receipt verifier**, never Tesseract, a PDF renderer,
+a model, or a remote service. The receipt and signer are independently pinned;
+ToS verifies P-256 signatures locally. Producer runtime admission remains with
+the producer and is not a ToS dependency.
+The retired Python journal path is not part of the maintained route. The native
+assessment owner accepts v6 through the handler above. Comparison availability
+is not a quality verdict.
+
+#### Independently selected profiles
+
+`tos_local_assessment_owner_v6` has the same top-level fields as v5, with at
+most one `native_text_layers` selection. In addition to the existing binding,
+origin, source and original-payload grants, that selection requires:
+
+| Field | Exact scope |
+| --- | --- |
+| `comparison_profile` | `tos_retained_page_ocr_image_comparison_v1` or `tos_operator_synthetic_png_ocr_image_comparison_v1`. |
+| `image_access` | A separately issued current exact image grant, or `null` for metadata-only selection. |
+| `disclosure_access` | `null` for historical retained pages. The synthetic PNG profile alone may carry an exact current operator-issued assistant-session disclosure grant. |
+
+The image grant has `read_scope: exact_retained_page`, `access_allowed: true`,
+nonempty `authority_ref`, timezone-aware future `expires_at`, absolute `path`,
+`byte_size`, `sha256`, `page_number`, `source_file_ref`, `source_file_sha256`,
+`width_pixels`, `height_pixels`, and `processing_boundary: local_only`.
+Metadata-only selection requires both image and payload grants to be null,
+and cannot disclose, read a comparison, or append any quality decision.
+
+The retained-page profile accepts only a separately authenticated
+`text-layer.record-owner-page-ocr` raw layer: original acquired PDF identity,
+one-based whole-page anchor, independently pinned PNG, original frozen sample
+plan, historical unsigned rendering receipt and new signed verification
+capture. Original PDF, retained PNG, raw OCR and subsequent judgments remain
+distinct. The original PDF is streamed for exact fixity up to 128 MiB; PNG
+input is at most 10 MiB/12 million pixels, single RGB image, and raw OCR at
+most 128 KiB. This route does not rerender or independently establish historical
+page-render fidelity. Comparison limits preserve that uncertainty in current
+layer admission and every derived quality basis.
+
+The separate synthetic PNG profile accepts only an authenticated
+`text-layer.record-owner-ocr` result over one complete acquired PNG and its
+whole-image pixel anchor. Its scope is operator-created material: original
+File identity and image digest refer to that PNG. Historical-source and
+PDF-rendering claims use their corresponding routes.
+
+#### Local access is not model disclosure
+
+The retained-page profile rejects **any** non-null disclosure grant before
+context or source I/O. A positive public-domain assessment, local processing
+permission, successful OCR, signer identity or exact hash cannot open that
+boundary. Source-visible historical review may remain explicitly unreviewed
+without blocking completion of the bounded local processing route.
+
+For the synthetic profile, an optional protected `disclosure_access` has
+`allowed: true`, nonempty `authority_ref`, future timezone-aware `expires_at`,
+`read_scope: exact_source_image_and_ocr`,
+`basis: operator_created_synthetic_source`,
+`processing_boundary: current_assistant_session`, exact `source_file_ref`,
+`source_file_sha256`, `image_sha256` and native `layer_record_sha256`.
+This declaration is supplied by the independently selected trusted issuer,
+never by source material or an assessment request. Software validates its
+scope and expiry; it does not prove authorship or invent the operator's will.
+No grant means local comparison only. Another source, changed bytes or an
+expired disclosure grant requires a new explicit owner choice.
+
+#### Reading and judging
+
+`describe` returns metadata and readiness only. `read-layer-comparison`
+returns `tos_native_page_ocr_comparison_v1`: exact source/anchor/input binding,
+private image locator, raw OCR, authenticated execution/capture identity,
+fixity, disclosure posture and limits. It never embeds or transfers image bytes.
+The local caller must honor the declared disclosure boundary before sending
+the image or OCR to an assistant or other server. `deterministic_text_match`
+is null and `source_visible_judgment` is `not_performed`: OCR-to-pixel quality
+cannot be inferred from matching hashes or the existence of this packet.
+
+The engine requires exact source-visible evidence, current assessment
+authority, calibrated competence and execution binding. A read-only
+configuration may omit authority, competence and execution profiles and
+supplies comparison data only. Any actual review applies to the exact
+image/raw layer and selected use; broader accuracy, diplomatic fidelity,
+translation quality, historical-source clearance, publication and canon
+require their own scoped evidence and authority.
+
+Original rights, metadata, original File identity, retained image identity,
+grants and disclosure scope are rechecked through the snapshot and at the
+journal return/commit edge. No retry executes OCR or rendering. Public graph
+and Sign consumers continue to reject confidential v4/v5/v6 configurations
+before private context I/O.
 
 ## History
 

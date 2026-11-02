@@ -63,7 +63,7 @@ growth; qualified Expression translator attachment; and separately delegated
 versions retain their actual typed-value and recovery boundaries.
 
 The separately selected [private native extraction and first-segmentation
-route](NATIVE_TEXT_LAYER_CONSTRUCTION.md) exposes `owner-local-text-layer-create`
+route](../../../README.md#private-native-textlayer-and-first-textunit-construction) exposes `owner-local-text-layer-create`
 and adds the v2 layer-only input to `owner-local-text-unit-create`. Discovery
 lists implemented grammar only, never an existing source, usable payload,
 private selector/slot, current grant, rights decision or accepted TextLayer.
@@ -73,7 +73,7 @@ One independent grant chooses one operation; reported upstream methods are not
 provider execution receipts and new layers do not inherit prior quality.
 
 The translation-alignment owner exposes its [native record
-route](NATIVE_TRANSLATION_ALIGNMENT.md) through
+route](../../../README.md#confidential-native-translation-alignment) through
 `owner-local-native-translation-alignment`: exact private create/revise,
 metadata-only version inspection and retained native recovery. Alignment
 subject identity, descriptive record and Claim versions each retain their own

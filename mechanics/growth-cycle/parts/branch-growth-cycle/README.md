@@ -11,9 +11,9 @@ transaction recovery, cancellation and deadlines retain their existing owners.
 | Carry an authorized command over HTTP | [Command transport](../../README.md#explicit-local-source-command-transport) |
 | Work / Expression / Edition growth | [Work and Expression](docs/NATIVE_WORK_EXPRESSION_GROWTH.md), [Edition](docs/NATIVE_EXPRESSION_EDITION_GROWTH.md) |
 | Retain a local File and adopt an Item | [Item adoption](docs/NATIVE_ITEM_ADOPTION.md) |
-| Construct or assess a TextLayer | [Construction](docs/NATIVE_TEXT_LAYER_CONSTRUCTION.md), [assessment](docs/NATIVE_TEXT_LAYER_ASSESSMENT.md) |
-| Assess an image/OCR layer | [Image/OCR assessment](docs/NATIVE_IMAGE_OCR_ASSESSMENT.md) |
-| Create a translation Alignment | [Alignment](docs/NATIVE_TRANSLATION_ALIGNMENT.md) |
+| Construct or assess a TextLayer | [Construction](../../README.md#private-native-textlayer-and-first-textunit-construction), [assessment](../../README.md#exact-text-layer-comparison-and-current-quality-use) |
+| Assess an image/OCR layer | [Image/OCR assessment](../../README.md#exact-imageocr-comparison) |
+| Create a translation Alignment | [Alignment](../../README.md#confidential-native-translation-alignment) |
 | Check native assertion coverage | [Coverage](../../README.md#native-growth-behavior-and-legacy-fate) |
 | Grow a branch from source pressure | [Growth structure](docs/GROWTH_STRUCTURE.md), [curation](docs/HUMAN_CURATED_EXPANSION.md), [soil](docs/PRE_EXPANSION_SOIL.md) |
 
