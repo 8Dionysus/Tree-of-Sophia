@@ -52,3 +52,28 @@ test('saves the question through its existing owner and retains an unsaved draft
   f.setReady(false);await expect(session.record('thought',{text:'Не сохранять поверх конфликта.'})).rejects.toThrow('конфликт');
   expect([...f.saved.values()].filter(value=>value?.schema==='tos_cognitive_event_v1')).toHaveLength(1);
 });
+
+test('skips stale replies and proceeds to the next request',async()=>{
+  const f=fixture(),{session}=f.mount();await session.ready;
+  const thought=await session.record('thought',{text:'First'});
+  await f.api.setQuestion('Changed');const later=await session.record('question',{text:'Changed'});
+  const reply={event_id:thought.id,question_revision:thought.question_revision,index_revision:thought.index_revision,body:'Historical reply'};
+  expect((await session.dispatch('respond',reply)).response.stale).toBe(true);
+  expect((await session.dispatch('next-event',{timeout_ms:0})).event.id).toBe(later.id);
+});
+
+test('two tabs see persisted events and responses',async()=>{
+  const f=fixture(),human=f.mount();await human.session.ready;const agent=f.mount();await agent.session.ready;
+  const thought=await human.session.record('thought',{text:'Across tabs'});
+  expect((await agent.session.dispatch('next-event',{timeout_ms:0})).event.id).toBe(thought.id);
+  await agent.session.dispatch('respond',{event_id:thought.id,question_revision:thought.question_revision,index_revision:thought.index_revision,body:'Reply across tabs'});
+  await vi.waitFor(()=>expect(text(human.root)).toContain('Reply across tabs'),{timeout:2500});
+});
+
+test('keeps a thought draft when paused',async()=>{
+  const f=fixture(),{root,session}=f.mount();await session.ready;await session.dispatch('pause');
+  const answer=all(root).find(item=>item.attributes['aria-label']==='Моя мысль или ответ агенту'),form=all(root).find(item=>item.tagName==='form');
+  answer.value='Keep this';form.listeners.submit({preventDefault(){}});
+  await vi.waitFor(()=>expect(all(root).find(item=>item.tagName==='button'&&item.textContent==='Отправить мысль').disabled).toBe(false));
+  expect(answer.value).toBe('Keep this');
+});

@@ -41,6 +41,13 @@ export function mountCognitiveSession({root,notebook,index,api,locale=()=> 'ru',
       catch(error){if(error.code!=='conflict'||attempt===2)throw error;header=await notebook.getPreference(sessionKey(header.id));expected=clone(header);}
     }
   }
+  async function refresh(){
+    const latest=await notebook.getPreference(sessionKey(header.id));
+    if(latest){header=latest;expected=clone(latest);}
+    const packet=await notebook.exportPacket();
+    events=packet.preferences.filter(item=>item.key.startsWith(eventPrefix(header.id))).map(item=>item.value).sort((a,b)=>a.sequence-b.sequence||a.id.localeCompare(b.id));
+    responses=packet.preferences.filter(item=>item.key.startsWith(responsePrefix(header.id))).map(item=>item.value);
+  }
   async function context(input={}){
     const selected=selectedState(),id=input.id??selected.id,resolved=await versionContext(input.revision??selected.revision);
     return {schema:'tos_cognitive_context_v1',active:isActive(),session_id:header?.id??null,profile,help:header?.help??'light',question:api.getQuestion(),question_revision:header?.question_revision??0,index_revision:resolved.index.revision,selected:id?resolved.index.inspect(id):null,last_ack:header?.last_ack??null,paused:header?.paused??false,
@@ -92,18 +99,22 @@ export function mountCognitiveSession({root,notebook,index,api,locale=()=> 'ru',
   });}
   async function nextEvent(input={},signal){
     await ready;if(input.session_id&&input.session_id!==header.id)throw new TypeError('Session does not match this document');
+    await enqueue(refresh);
     if(input.peek)return {context:await context(input)};
     const after=input.after_event_id??header.last_ack,timeout=Math.min(20000,Math.max(0,Number(input.timeout_ms??20000)));
-    const find=()=>{if(header.paused||!isActive())return null;const at=after?events.findIndex(event=>event.id===after):-1;if(after&&at<0)throw new TypeError('Unknown event cursor');return events.slice(at+1).find(event=>requests.has(event.type)&&!responses.some(response=>response.event_id===event.id&&!response.stale))??null;};
+    const find=()=>{if(header.paused||!isActive())return null;const at=after?events.findIndex(event=>event.id===after):-1;if(after&&at<0)throw new TypeError('Unknown event cursor');return events.slice(at+1).find(event=>requests.has(event.type)&&!responses.some(response=>response.event_id===event.id))??null;};
     const result=async event=>{const boundContext=await context(event?{revision:event.index_revision,id:event.item_id}:input);if(event)await enqueue(()=>update(next=>({...next,handling_event_id:event.id})));render();return {event,context:boundContext,waiting:!event};};
     await enqueue(()=>update(next=>({...next,connected_at:new Date().toISOString()})));let event=find();if(event||!timeout)return result(event);
-    await new Promise((resolve,reject)=>{let timer;const done=()=>{waiters.delete(wake);clearTimeout(timer);signal?.removeEventListener('abort',abort);resolve();};const wake=()=>done();const abort=()=>{waiters.delete(wake);clearTimeout(timer);reject(signal.reason??new DOMException('Cancelled','AbortError'));};waiters.add(wake);timer=setTimeout(done,timeout);signal?.addEventListener('abort',abort,{once:true});if(signal?.aborted)abort();});
-    event=find();return result(event);
+    const deadline=Date.now()+timeout;
+    while(!event&&Date.now()<deadline){await new Promise((resolve,reject)=>{let timer;const done=()=>{waiters.delete(wake);clearTimeout(timer);signal?.removeEventListener('abort',abort);resolve();};const wake=()=>done();const abort=()=>{waiters.delete(wake);clearTimeout(timer);reject(signal.reason??new DOMException('Cancelled','AbortError'));};waiters.add(wake);timer=setTimeout(done,Math.min(1000,Math.max(0,deadline-Date.now())));signal?.addEventListener('abort',abort,{once:true});if(signal?.aborted)abort();});
+    await enqueue(refresh);event=find();}
+    return result(event);
   }
   async function dispatch(action,input={},signal){
     await ready;
     if(action==='context')return context(input);if(action==='next-event')return nextEvent(input,signal);
     return enqueue(async()=>{
+      await refresh();
       if(input.session_id&&input.session_id!==header.id)throw new TypeError('Session does not match this document');
       if(action==='join'||action==='resume'){await update(next=>({...next,paused:false,connected_at:new Date().toISOString()}));render();notify();return context(input);}
       if(action==='pause'){await update(next=>({...next,paused:true}));render();notify();return context(input);}
@@ -124,8 +135,8 @@ export function mountCognitiveSession({root,notebook,index,api,locale=()=> 'ru',
   questionInput.addEventListener('input',()=>{questionDirty=true;});
   saveQuestion.addEventListener('click',()=>{saveQuestion.disabled=true;const value=questionInput.value;void Promise.resolve().then(()=>api.setQuestion(value)).then(async saved=>{if(!saved)throw new Error(t('Вопрос не сохранён; черновик оставлен в поле.','The question was not saved; its draft remains in the field.'));questionDirty=false;await record('question',{text:value});message.textContent=t('Вопрос сохранён.','Question saved.');}).catch(error=>message.textContent=error.message).finally(()=>{saveQuestion.disabled=false;render();});});
   level.addEventListener('change',()=>void enqueue(async()=>{await update(next=>({...next,help:level.value}));render();}).then(()=>record('help-level')).catch(error=>message.textContent=error.message));
-  form.addEventListener('submit',event=>{event.preventDefault();const value=answer.value;if(!value.trim())return;send.disabled=true;void Promise.resolve().then(async()=>{if(questionDirty){const draft=questionInput.value;if(!(await api.setQuestion(draft)))throw new Error(t('Вопрос не сохранён; черновик оставлен в поле.','The question was not saved; its draft remains in the field.'));if(questionInput.value!==draft)throw new Error(t('Вопрос изменился во время сохранения; мысль осталась в поле.','The question changed while saving; the thought remains in its field.'));questionDirty=false;}return record('thought',{text:value});}).then(()=>{if(answer.value===value)answer.value='';}).catch(error=>message.textContent=error.message).finally(()=>send.disabled=false);});
+  form.addEventListener('submit',event=>{event.preventDefault();const value=answer.value;if(!value.trim())return;send.disabled=true;void Promise.resolve().then(async()=>{if(questionDirty){const draft=questionInput.value;if(!(await api.setQuestion(draft)))throw new Error(t('Вопрос не сохранён; черновик оставлен в поле.','The question was not saved; its draft remains in the field.'));if(questionInput.value!==draft)throw new Error(t('Вопрос изменился во время сохранения; мысль осталась в поле.','The question changed while saving; the thought remains in its field.'));questionDirty=false;}return record('thought',{text:value});}).then(saved=>{if(saved&&answer.value===value)answer.value='';}).catch(error=>message.textContent=error.message).finally(()=>send.disabled=false);});
   const unsub=api.subscribeQuestion?.(()=>{render();});
-  const timer=setInterval(()=>{if(!disposed)render();},15000);
+  const timer=setInterval(()=>{if(!disposed)void enqueue(refresh).then(render).catch(()=>{});},1000);
   return {ready,context,dispatch,record,refreshLocale:render,destroy(){disposed=true;unsub?.();clearInterval(timer);notify();root.replaceChildren();}};
 }
