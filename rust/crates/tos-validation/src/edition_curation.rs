@@ -153,7 +153,32 @@ pub fn validate_recipe_template(
     let digest = entry["sha256"]
         .as_str()
         .ok_or(EditionCurationError::InvalidSchema)?;
-    verify_selected_bytes(template, reference, digest)
+    verify_selected_bytes(template, reference, digest)?;
+    if stage == "concept-candidate" && role == "legacy-output-template" {
+        let selected_template =
+            published_value(template.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+                .map_err(EditionCurationError::Schema)?;
+        let claims = selected_template["claim_specs"]
+            .as_object()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        for rule in recipe["candidate_signals"]["claim_rules"]
+            .as_array()
+            .ok_or(EditionCurationError::InvalidSchema)?
+        {
+            for claim in rule["claims"]
+                .as_array()
+                .ok_or(EditionCurationError::InvalidSchema)?
+            {
+                if !claim
+                    .as_str()
+                    .is_some_and(|claim| claims.contains_key(claim))
+                {
+                    return Err(EditionCurationError::MissingReference);
+                }
+            }
+        }
+    }
+    Ok(())
 }
 
 /// Select a historical JSON field from exact, curation-bound output bytes.
@@ -408,6 +433,24 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                         if !code.as_str().is_some_and(|code| codes.contains(code)) {
                             return Err(EditionCurationError::MissingReference);
                         }
+                    }
+                }
+                let exclusions: BTreeSet<_> = profile["exclusions"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?
+                    .iter()
+                    .filter_map(|entry| entry["code"].as_str())
+                    .collect();
+                for rule in profile["claim_rules"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?
+                {
+                    if rule["kind"] == "class-exclusion"
+                        && !rule["exclusion_code"]
+                            .as_str()
+                            .is_some_and(|code| exclusions.contains(code))
+                    {
+                        return Err(EditionCurationError::MissingReference);
                     }
                 }
             }

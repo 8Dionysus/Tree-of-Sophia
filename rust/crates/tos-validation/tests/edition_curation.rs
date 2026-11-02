@@ -82,6 +82,48 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let dta_raw = fs::read(root.join(dta_path)).unwrap();
     assert_eq!(validate(&dta_raw, &schema), Ok(()));
     let dta_value: Value = serde_json::from_slice(&dta_raw).unwrap();
+    let candidate = dta_value["recipes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|recipe| recipe["stage"] == "concept-candidate")
+        .unwrap();
+    let candidate_template_ref = candidate["historical_templates"][0]["ref"]
+        .as_str()
+        .unwrap();
+    let candidate_template_raw = fs::read(root.join(candidate_template_ref)).unwrap();
+    let candidate_template = SelectedDocument {
+        reference: candidate_template_ref,
+        raw: &candidate_template_raw,
+    };
+    assert_eq!(
+        validate_recipe_template(
+            &dta_raw,
+            "concept-candidate",
+            "legacy-output-template",
+            candidate_template,
+            &schema
+        ),
+        Ok(())
+    );
+    let mut missing_claim = dta_value.clone();
+    let candidate = missing_claim["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "concept-candidate")
+        .unwrap();
+    candidate["candidate_signals"]["claim_rules"][0]["claims"][0] = json!("missing_claim");
+    assert_eq!(
+        validate_recipe_template(
+            &serde_json::to_vec(&missing_claim).unwrap(),
+            "concept-candidate",
+            "legacy-output-template",
+            candidate_template,
+            &schema
+        ),
+        Err(EditionCurationError::MissingReference)
+    );
     let mut missing_signal = dta_value.clone();
     let candidate = missing_signal["recipes"]
         .as_array_mut()

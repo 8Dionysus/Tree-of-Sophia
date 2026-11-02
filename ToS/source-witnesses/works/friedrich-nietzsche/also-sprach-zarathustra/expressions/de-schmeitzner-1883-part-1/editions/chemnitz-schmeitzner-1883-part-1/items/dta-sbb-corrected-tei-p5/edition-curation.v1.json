@@ -469,7 +469,86 @@
               "wieder"
             ]
           }
-        }
+        },
+        "speaker_sensitive_readings": [
+          "p3.r2",
+          "p3.r13",
+          "p4.r19"
+        ],
+        "recurrence_match": {
+          "suffixes": [
+            "recurrence"
+          ],
+          "contains": [
+            "recurrence_"
+          ]
+        },
+        "claim_rules": [
+          {
+            "kind": "class",
+            "evidence_class": "core",
+            "claims": [
+              "cosmological_recurrence",
+              "poetic_symbolic_affirmation"
+            ]
+          },
+          {
+            "kind": "reading",
+            "reading_ref": "p3.r2",
+            "claims": [
+              "existential_test_and_affirmation"
+            ]
+          },
+          {
+            "kind": "signal-suffix",
+            "suffixes": [
+              "time",
+              "moment"
+            ],
+            "claims": [
+              "temporality_and_augenblick"
+            ]
+          },
+          {
+            "kind": "signal-suffix",
+            "suffixes": [
+              "ring"
+            ],
+            "claims": [
+              "ring_and_wholeness"
+            ]
+          },
+          {
+            "kind": "signal-suffix",
+            "suffixes": [
+              "life",
+              "joy",
+              "pain",
+              "love",
+              "affirmation"
+            ],
+            "claims": [
+              "life_joy_pain_affirmation"
+            ]
+          },
+          {
+            "kind": "class-exclusion",
+            "evidence_class": "excluded",
+            "exclusion_code": "return_to_humans_not_eternal_return",
+            "claims": [
+              "distinguished_from_return_as_action"
+            ]
+          },
+          {
+            "kind": "class-recurrence",
+            "evidence_class": "core",
+            "claims": [
+              "existential_test_and_affirmation"
+            ]
+          }
+        ],
+        "signal_output_order": "lexicographic-code",
+        "claim_output_order": "lexicographic-code"
       }
     },
     {
@@ -788,7 +867,8 @@
               }
             ]
           }
-        ]
+        ],
+        "position_basis": "part-order-then-packet-alignment-order"
       }
     },
     {
