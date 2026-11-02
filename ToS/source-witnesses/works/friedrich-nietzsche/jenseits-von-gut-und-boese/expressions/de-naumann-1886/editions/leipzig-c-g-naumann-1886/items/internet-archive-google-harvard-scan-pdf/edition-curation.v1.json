@@ -469,7 +469,27 @@
       "schema_ref": "https://tree-of-sophia.local/ToS/contracts/transfer-source-passage-candidate-set.schema.json",
       "legacy_event_sha256": "fff2ce883dbe9db7148e5b0ab873a9e6d5a38445f7ed1f029a165f766dd54119",
       "legacy_builder_sha256": "f7fc1d941ea8a6fb7331c7a2ac9b85af7902fe3aa600d129450e7bc2cb4d6898",
-      "generated_set_prefix": "tos.transfer-candidate-set.golden-kernel-transfer-source-passages-"
+      "generated_set_prefix": "tos.transfer-candidate-set.golden-kernel-transfer-source-passages-",
+      "frozen_outputs": [
+        {
+          "role": "candidates",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-source-passage-candidates.v1.json",
+          "schema_version": "tos_transfer_source_passage_candidate_set_v1",
+          "expected_sha256": "38866bad5230ed820bbb08f5a93cb224ecfc008c5be50de02e2afc64f6697a3d"
+        },
+        {
+          "role": "anchors",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-source-passage-anchors.v1.jsonl",
+          "schema_version": "tos_source_anchor_v1",
+          "expected_sha256": "52668ad7972926bf16d3712a6940e545f5eeb16e5ea2b8d7924c323673175c09"
+        },
+        {
+          "role": "provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-provenance.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "f66f1f6cf5224e5bc3849b168318af581fab9813eb595c8521c38e509c238b3e"
+        }
+      ]
     },
     {
       "stage": "numbered-label-correspondence",

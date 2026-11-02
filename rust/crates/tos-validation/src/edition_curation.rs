@@ -679,6 +679,37 @@ fn check_replacements(value: &Value) -> Result<(), EditionCurationError> {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if object
+                .get("stage")
+                .and_then(Value::as_str)
+                .is_some_and(|stage| {
+                    matches!(
+                        stage,
+                        "source-passages" | "target-passages" | "transfer-candidates"
+                    )
+                })
+            {
+                let locators = object["locators"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let frozen = object["frozen_outputs"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let expected_roles: &[&str] = if object["stage"] == "transfer-candidates" {
+                    &["anchors", "provenance"]
+                } else {
+                    &["candidates", "anchors", "provenance"]
+                };
+                if frozen.len() != expected_roles.len()
+                    || expected_roles.iter().any(|role| {
+                        let locator = locators.iter().find(|entry| entry["role"] == *role);
+                        let output = frozen.iter().find(|entry| entry["role"] == *role);
+                        !matches!((locator, output), (Some(a), Some(b)) if a["repository_path"] == b["repository_path"])
+                    })
+                {
+                    return Err(EditionCurationError::BindingMismatch);
+                }
+            }
             if let Some(naming) = object.get("output_naming") {
                 let base = object["base_ref"]
                     .as_str()

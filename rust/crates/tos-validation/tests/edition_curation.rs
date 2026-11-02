@@ -33,6 +33,27 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let raw = fs::read(root.join(path)).unwrap();
     assert_eq!(validate(&raw, &schema), Ok(()));
     let original: Value = serde_json::from_slice(&raw).unwrap();
+    let mut wrong_transfer_output = original.clone();
+    let transfer = wrong_transfer_output["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "source-passages")
+        .unwrap();
+    let locator = transfer["locators"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|locator| locator["role"] == "candidates")
+        .unwrap();
+    locator["repository_path"] = json!("different.json");
+    assert_eq!(
+        validate(
+            &serde_json::to_vec(&wrong_transfer_output).unwrap(),
+            &schema
+        ),
+        Err(EditionCurationError::BindingMismatch)
+    );
     let mut invalid = original.clone();
     invalid["owner_item_ref"] = json!("not-an-id");
     assert_eq!(

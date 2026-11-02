@@ -583,7 +583,27 @@
         }
       ],
       "generated_set_prefix": "tos.transfer-candidate-set.golden-kernel-transfer-target-passages-",
-      "anchor_namespace": "tos.anchor.friedrich-nietzsche."
+      "anchor_namespace": "tos.anchor.friedrich-nietzsche.",
+      "frozen_outputs": [
+        {
+          "role": "candidates",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-passage-candidates.v1.json",
+          "schema_version": "tos_transfer_target_passage_candidate_set_v1",
+          "expected_sha256": "602c6d29a22f11d6958e61324ef0dbd94ca9bb677511254d45033bf91fa69551"
+        },
+        {
+          "role": "anchors",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-passage-anchors.v1.jsonl",
+          "schema_version": "tos_source_anchor_v1",
+          "expected_sha256": "d51a2e449151e86dc24c9d58640242dc40c05a56358e241499882194ccc03696"
+        },
+        {
+          "role": "provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-provenance.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "f66f1f6cf5224e5bc3849b168318af581fab9813eb595c8521c38e509c238b3e"
+        }
+      ]
     },
     {
       "stage": "transfer-candidates",
@@ -656,6 +676,20 @@
           "role": "legacy-output-template",
           "ref": "rust/crates/tos-compiler/src/transfer_candidates/templates.json",
           "sha256": "02bff3f8ec324c985a980fcbb2caff7cc85fce95bccb88edaa25d0f1c12fc911"
+        }
+      ],
+      "frozen_outputs": [
+        {
+          "role": "anchors",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-anchors.v1.jsonl",
+          "schema_version": "tos_source_anchor_v1",
+          "expected_sha256": "e4dfbb6f35100e1ba44975ab9efa6ccbad4e507ab499e2a5119c5ef31129596a"
+        },
+        {
+          "role": "provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-provenance.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "f66f1f6cf5224e5bc3849b168318af581fab9813eb595c8521c38e509c238b3e"
         }
       ]
     },
