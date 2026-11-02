@@ -91,6 +91,16 @@ export function mountKnowing({root,index,locale,notebook,profile,fragments,onOpe
     const label=svg('title');line.append(label);line.addEventListener('click',event=>{event.stopPropagation();if(foundLinks().has(link.id))show(link);});
     edgeLayer.append(line);edges.set(link.id,{line,label,link});
   }
+  // A known star's name moves under it when a star to be chosen stands where its name would be; names keep their size
+  // on screen, so this is weighed again whenever the view zooms.
+  let marks={known:new Set(),marked:[]};
+  function placeNames(){
+    const cw=sky.clientWidth,ch=sky.clientHeight,kz=cw&&ch?Math.max(view.w/cw,view.h/ch):1;
+    for(const [id,g] of stars){
+      const at=pos.get(id),half=(title(id).length*3.8+12)*kz;
+      g.classList.toggle('is-label-below',marks.known.has(id)&&marks.marked.some(([x,y])=>Math.abs(x-at[0])<half&&y<at[1]+2*kz&&y>at[1]-34*kz));
+    }
+  }
   function paint(){
     const k=known(),f=frontier(),found=foundLinks(),heavy=state.level==='heavy',candidates=new Set(trial?.kind==='verb'?[trial.target]:trial?.candidates??[]);
     for(const [id,g] of stars){
@@ -100,6 +110,7 @@ export function mountKnowing({root,index,locale,notebook,profile,fragments,onOpe
       const label=g.querySelector('.k-label'),number=trial?.kind==='target'?trial.candidates.indexOf(id):-1;label.textContent=isKnown?title(id):number>=0?String(number+1):isFrontier&&!heavy?'?':'';
       g.setAttribute('aria-label',isKnown?`${kindWord(id)}: ${title(id)}`:isFrontier&&!heavy?t('Звезда на пороге: откройте её связью','A star at the threshold: open it with a link'):t('Неоткрытая звезда','Unopened star'));
     }
+    marks={known:k,marked:[...candidates,...(heavy?[]:f)].filter(id=>!k.has(id)).map(id=>pos.get(id)).filter(Boolean)};placeNames();
     for(const {line,label,link} of edges.values()){
       const {from,to}=link.record,a=k.has(from),b=k.has(to),isFound=found.has(link.id)||(a&&b);
       line.classList.toggle('is-known',isFound);line.classList.toggle('is-rumor',!isFound&&a!==b&&!heavy);line.classList.toggle('is-hidden',!isFound&&!(a!==b&&!heavy));
@@ -112,7 +123,7 @@ export function mountKnowing({root,index,locale,notebook,profile,fragments,onOpe
   }
 
   // ── Camera ──
-  const applyView=()=>{sky.setAttribute('viewBox',`${view.x} ${view.y} ${view.w} ${view.h}`);const cw=sky.clientWidth,ch=sky.clientHeight;sky.style.setProperty('--kz',(cw&&ch?Math.max(view.w/cw,view.h/ch):view.w/W).toFixed(4));};
+  const applyView=()=>{sky.setAttribute('viewBox',`${view.x} ${view.y} ${view.w} ${view.h}`);const cw=sky.clientWidth,ch=sky.clientHeight;sky.style.setProperty('--kz',(cw&&ch?Math.max(view.w/cw,view.h/ch):view.w/W).toFixed(4));placeNames();};
   function zoom(f,cx=view.x+view.w/2,cy=view.y+view.h/2){const w=Math.min(W*1.6,Math.max(160,view.w*f)),h=w*H/W;view={x:cx-(cx-view.x)*w/view.w,y:cy-(cy-view.y)*h/view.h,w,h};applyView();}
   function glide(target){const from={...view},start=performance.now();const step=now=>{const p=Math.min(1,(now-start)/450),e=1-(1-p)**3;view={x:from.x+(target.x-from.x)*e,y:from.y+(target.y-from.y)*e,w:from.w+(target.w-from.w)*e,h:from.h+(target.h-from.h)*e};applyView();if(p<1&&!disposed)requestAnimationFrame(step);};requestAnimationFrame(step);}
   function frame(ids=state.known.length?[...known(),...frontier()]:[...pos.keys()]){

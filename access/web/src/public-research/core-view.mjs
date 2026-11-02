@@ -16,11 +16,19 @@ const words={
   narrator:['Рассказчик','Narrator','Narrador','Erzähler','叙述者'],speech:['Речь','Speech','Discurso','Rede','言说'],song:['Песня','Song','Canción','Lied','歌'],quoted:['Цитата в речи','Quoted speech','Cita en el discurso','Zitat in der Rede','话语中的引述'],narration:['Повествование','Narration','Narración','Erzählung','叙述'],dream:['Сон','Dream','Sueño','Traum','梦'],thought:['Мысль','Thought','Pensamiento','Gedanke','思想'],reported:['Переданная речь','Reported speech','Discurso referido','Wiedergegebene Rede','转述'],primary:['Прямой голос','Direct voice','Voz directa','Direkte Stimme','直接声音'],embedded:['Вложенный голос','Embedded voice','Voz insertada','Eingebettete Stimme','嵌入的声音'],imagined:['Воображаемая речь','Imagined speech','Discurso imaginado','Vorgestellte Rede','想象中的言说'],
   family:['Семейство связи','Relation family','Familia de relación','Beziehungsfamilie','关系类别'],familyStatus:['Предложение стенда','Stand proposal','Propuesta del sitio','Vorschlag des Standes','站点提议'],familyType:['Тип в реестре','Registry type','Tipo en el registro','Registertyp','登记类型'],unmapped:['Точный тип не установлен','Exact type not established','Tipo exacto no establecido','Genauer Typ nicht festgelegt','确切类型尚未确定'],previousFamily:['Предыдущее предложение семейства','Previous family proposal','Propuesta anterior de familia','Früherer Familienvorschlag','先前类别提议'],previousSense:['Прежняя формулировка','Previous wording','Formulación anterior','Frühere Formulierung','先前表述'],figureScope:['Роль в произведении','Role in the work','Papel en la obra','Rolle im Werk','作品中的角色'],voiceScope:['Голос в указанном отрывке','Voice in the indicated passage','Voz en el pasaje indicado','Stimme in der angegebenen Passage','所示段落中的声音'],narratorRole:['Роль рассказчика в произведении; личность не установлена','Narrator role in the work; identity not established','Papel de narrador; identidad no establecida','Erzählerrolle; Identität nicht festgestellt','叙述角色；身份未确定'],figureCandidate:['Кандидат на фигуру произведения','Candidate work figure','Figura candidata de la obra','Kandidat einer Werkfigur','作品人物候选'],unknownIdentity:['Личность говорящего не установлена','Speaker identity not established','Identidad del hablante no establecida','Identität des Sprechers nicht festgestellt','说话者身份未确定'],acts:['Действует','Acts','Actúa','Handelt','行动'],addressed:['Адресат','Addressee','Destinatario','Adressat','受话者'],speaks:['Говорит','Speaks','Habla','Spricht','言说'], 'spoken-of':['О ком говорят','Spoken of','Mencionado','Gegenstand der Rede','被提及'],
   semanticUses:['Смысловые употребления','Contextual uses','Usos contextuales','Kontextuelle Verwendungen','语境用法'],semanticScope:['Слова подобраны по совпадению словоформ или как ориентир для исследования. Группы относятся к указанным местам; не все употребления слова автоматически относятся к этому предмету.','Words are selected by matching forms or as research leads. Groups concern the cited passages; not every use of the word automatically concerns this subject.','Las palabras se seleccionan por formas coincidentes o como pistas; no todo uso concierne automáticamente a este tema.','Wörter werden über Wortformen oder als Forschungshinweise ausgewählt; nicht jede Verwendung betrifft automatisch diesen Gegenstand.','词语依据词形或研究线索选择；并非每次用法都自动属于此主题。'],unknownUses:['Места без рассмотренного значения','Places with unassessed meaning','Pasajes sin significado examinado','Stellen ohne geprüfte Bedeutung','含义尚未审查的段落'],via:['Через','Via','Por medio de','Über','经由'],
+  formulaReview:['Как выбрана формула','How the formula was chosen','Cómo se eligió la fórmula','Wie die Formel gewählt wurde','原句如何选定'],madeBy:['Предложил','Proposed by','Propuesto por','Vorgeschlagen von','提出者'],checkedBy:['Проверил','Checked by','Revisado por','Geprüft von','审核者'],samePlace:['То же место книги','The same place in the book','El mismo lugar del libro','Dieselbe Stelle des Buches','书中同一处'],
   proposalReading:['Результат рассмотрения','Reading result','Resultado de la lectura','Ergebnis der Lektüre','阅读结果'],readingLimit:['Границы прочтения','Limits of the reading','Límites de la lectura','Grenzen der Deutung','解读范围'],relatedSubject:['Связанный предмет','Related subject','Tema relacionado','Verwandter Gegenstand','相关主题'],method:['Исследовательский приём','Research method','Método de investigación','Untersuchungsmethode','研究方法'],methodEpisode:['От разбора к приёму','From reading to method','De la lectura al método','Von der Lektüre zur Methode','从阅读到方法'],previousTitle:['Прежнее название','Previous title','Título anterior','Früherer Titel','先前标题'],
 };
 const langs=['ru','en','es','de','zh-Hans'];
 const el=(tag,cls='',text)=>{const node=document.createElement(tag);node.className=cls;if(text!==undefined)node.textContent=text;return node;};
 const button=(text,run,cls='text-button')=>{const node=el('button',cls,text);node.type='button';node.addEventListener('click',run);return node;};
+// Generated filler stands where no reading was written yet; a card shows the reading or nothing.
+const FILLERS=[/^Как встречаются «.+» и «.+» в этом месте\?$/,/^Контекстное значение ещё не разобрано\.$/,/возникает в словесном окружении и маршрутах понятия/];
+const filler=value=>{const ru=typeof value==='string'?value:value?.ru;return typeof ru==='string'&&FILLERS.some(pattern=>pattern.test(ru));};
+// A place is the same place whatever words of it a citation quotes.
+const placeKey=cite=>cite&&typeof cite==='object'?`${cite.w??''}|${cite.c??''}|${(cite.u??[]).join(',')}`:JSON.stringify(cite);
+// Two lines that say the same thing in nearly the same words: most of their longer words are shared.
+const alike=(a,b)=>{const words=text=>new Set(String(text??'').toLocaleLowerCase().match(/[\p{L}]{4,}/gu)??[]);const x=words(a),y=words(b);if(!x.size||!y.size)return false;let common=0;for(const word of x)if(y.has(word))common++;return common/Math.min(x.size,y.size)>=.7;};
 const occurrenceFiles=import.meta.glob('../../../../bonsai/zarathustra/core/occurrences/*.json',{import:'default'});
 
 /** Every quoted word is rendered by the existing aligned-witness reader. */
@@ -31,12 +39,12 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
   const name=id=>tr(core.records[id]?.title)||(id==='narrator'?t('narrator'):id);
   const status=(parent,value)=>{if(value)parent.append(el('small','ps-core-status',t(value)));};
   function form(parent,value,seen=null){
-    if(!value)return;
+    if(!value||filler(value))return;
     if(Array.isArray(value)){for(const item of value)form(parent,item,seen);return;}
     let normalized=value?.cite&&!Array.isArray(value.cite)?{...value,cite:[value.cite]}:value;
     let shared=false;
     if(seen&&Array.isArray(normalized?.cite)){
-      const cites=normalized.cite.filter(cite=>{const key=JSON.stringify(cite);if(seen.has(key)){shared=true;return false;}seen.add(key);return true;});
+      const cites=normalized.cite.filter(cite=>{const key=placeKey(cite);if(seen.has(key)){shared=true;return false;}seen.add(key);return true;});
       normalized={...normalized,cite:cites};
     }
     fragments.render(parent,normalized);
@@ -44,7 +52,7 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
     status(parent,value.status);
   }
   function section(parent,key,value,seen=null){
-    if(!value||(Array.isArray(value)&&!value.length))return;
+    if(!value||(Array.isArray(value)&&!value.length)||filler(value))return;
     const box=el('section','ps-core-section');box.append(el('h3','minor-title',t(key)));form(box,value,seen);parent.append(box);
   }
   function fold(parent,label,render){
@@ -96,28 +104,37 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
       }
     });
   }
-  function original(parent,value){
+  const samePlace=(a,b)=>Boolean(a&&b&&a.c===b.c&&JSON.stringify(a.u)===JSON.stringify(b.u));
+  function original(parent,value,current){
     if(!value)return;
-    if(value.cite)form(parent,{cite:Array.isArray(value.cite)?value.cite:[value.cite]});
+    const cites=value.cite?(Array.isArray(value.cite)?value.cite:[value.cite]):[];
+    // The same paragraph is not drawn twice: an earlier quote from the current place is named as that place.
+    if(cites.length&&cites.every(cite=>samePlace(cite,current)))parent.append(el('p','muted',t('samePlace')));
+    else if(cites.length)form(parent,{cite:cites});
     for(const key of ['verb','label','sense','why'])if(value[key])form(parent,value[key]);
     for(const cite of value.grounds??[])parent.append(fragments.fragment(cite));
     voice(parent,value.voice);
   }
-  function review(parent,record){
-    if(!record.assessment&&!record.proposed)return;
-    fold(parent,t('review'),body=>{
+  const proposalOf=record=>record.proposed&&!Array.isArray(record.proposed)?record.proposed:null;
+  function review(parent,record,label=t('review')){
+    const proposed=proposalOf(record);
+    if(!record.assessment&&!proposed)return;
+    fold(parent,label,body=>{
       const a=record.assessment??{};status(body,a.verdict);
       if(a.reason)form(body,a.reason);
-      if(a.reviewer||record.maker)body.append(el('p','muted',[record.maker,a.reviewer].filter(Boolean).join(' → ')));
+      const hands=[record.maker&&`${t('madeBy')}: ${record.maker}`,a.reviewer&&`${t('checkedBy')}: ${a.reviewer}`].filter(Boolean);
+      if(hands.length)body.append(el('p','muted ps-core-hands',hands.join(' · ')));
       if(a.counter_reading){section(body,'counter',a.counter_reading);for(const cite of a.counter_reading.grounds??[])body.append(fragments.fragment(cite));}
-      if(record.proposed)fold(body,t('original'),box=>original(box,record.proposed));
+      if(proposed)fold(body,t('original'),box=>original(box,proposed,record.cite));
     });
   }
-  function formula(parent,item){
+  function formula(parent,item,lead=null){
     if(!item)return;
     const box=el('section','ps-core-formula');voice(box,item.voice??{speaker:item.speaker});
     if(item.cite)box.append(fragments.fragment(item.cite));
-    if(item.why)form(box,item.why);review(box,item);parent.append(box);
+    // After review replaced a formula, its why is the reviewer's note on that choice and lives in the history.
+    if(item.why&&item.assessment?.reason!==item.why.ru&&!alike(tr(item.why),lead))form(box,item.why);
+    parent.append(box);
   }
   function link(parent,record){
     // The link reads as a sentence of the book: subject, the book's verb, object. Its registry family and type are provenance.
@@ -145,7 +162,7 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
     }
     methodTransfer(box,record);
     if(record.relation_family)fold(box,t('family'),body=>relationFamily(body,record));
-    review(box,record);history(box,record);personal(box,record,'relation');parent.append(box);
+    history(box,record);personal(box,record,'relation');parent.append(box);
   }
   function methodTransfer(parent,record){
     const method=record.method_transfer;if(!method)return;
@@ -160,7 +177,7 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
   function witnesses(parent,record){
     for(const item of record.appearances??[])fold(parent,`${item.cite.c} · ${tr(item.line)}`,box=>{if(item.role)box.append(el('p','ps-core-voice',`${t('figureScope')}: ${t(item.role)}`));form(box,{...item.line,cite:[item.cite],status:item.status});appearanceVoices(box,item,record);});
     for(const item of record.voice??[])fold(parent,`${item.cite.c} · ${name(item.speaker)} · ${tr(item.line)}`,box=>{voice(box,item);form(box,{...item.line,cite:[item.cite],status:item.status});});
-    for(const item of record.conception?.formulas??[])fold(parent,`${item.cite.c} · ${tr(item.why)}`,box=>formula(box,item));
+    for(const item of record.conception?.formulas??[])fold(parent,`${item.cite.c} · ${tr(item.why)}`,box=>{formula(box,item);review(box,item,t('formulaReview'));});
     for(const item of record.questions??[])fold(parent,tr(item.question),box=>{form(box,item.answer);status(box,item.status);});
     const names=record.lexicon??record.names;
     if(names)fold(parent,t('names'),box=>{for(const [language,items]of Object.entries(names)){if(!['de','ru','en'].includes(language)||!Array.isArray(items))continue;box.append(el('h3','minor-title',language.toUpperCase()));box.append(el('p','',items.filter(item=>typeof item?.form==='string').map(item=>`${item.form} (${item.count})`).join(' · ')));}});
@@ -217,10 +234,10 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
     const formulaRecord=(record.conception??record.essence)?.formula;
     const revisions=[...(record.sense_revision_history??[]),...(record.step_revision_history??[])],familyProposed=record.relation_family?.family_proposed;
     const oldReadings=record.reading?.reading_revision_history??record.reading_revision_history??[],oldTitles=record.title_revision_history??[];
-    if(!record.assessment&&!record.proposed&&!formulaRecord?.assessment&&!formulaRecord?.proposed&&!revisions.length&&!familyProposed&&!oldReadings.length&&!oldTitles.length)return;
+    if(!record.assessment&&!proposalOf(record)&&!formulaRecord?.assessment&&!formulaRecord?.proposed&&!revisions.length&&!familyProposed&&!oldReadings.length&&!oldTitles.length)return;
     fold(parent,t('history'),body=>{
       review(body,record);
-      if(formulaRecord)review(body,formulaRecord);
+      if(formulaRecord)review(body,formulaRecord,t('formulaReview'));
       for(const revision of revisions){const box=el('section','ps-core-section');box.append(el('h3','minor-title',t('previousSense')));if(revision.verb)form(box,revision.verb);form(box,{...revision.sense,...(revision.cite?{cite:[revision.cite]}:{})});if(revision.answer)section(box,'answer',revision.answer);if(revision.assessment?.reason)form(box,revision.assessment.reason);status(box,revision.assessment?.verdict);body.append(box);}
       for(const title of oldTitles){const box=el('section','ps-core-section');box.append(el('h3','minor-title',t('previousTitle')));form(box,title);body.append(box);}
       for(const reading of oldReadings){const box=el('section','ps-core-section');box.append(el('h3','minor-title',t('previousSense')));form(box,{...reading.reading,cite:reading.grounds??(reading.cite?[reading.cite]:[])});section(box,'readingLimit',reading.limit);body.append(box);}
@@ -230,7 +247,7 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
   function sections(body,key,record,id,lead){
     const essence=record.conception??record.essence??{};
     if(key==='essence'){
-      const first=essence.formula??essence.formulas?.[0],seen=new Set(first?.cite?[JSON.stringify(first.cite)]:[]);
+      const first=essence.formula??essence.formulas?.[0],seen=new Set(first?.cite?[placeKey(first.cite)]:[]);
       // The lead field's words already open the card; here it keeps only the book's grounds for them.
       for(const field of ['thesis','who','position','answer','grounds','consequences','deed','function'])section(body,field,field===lead?(essence[field]?.cite?{cite:essence[field].cite}:null):essence[field],seen);
       if(kind(record)==='argument')for(const field of ['premises','steps'])section(body,field,record[field]??essence[field],seen);
@@ -274,7 +291,7 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
     else status(kindLine,essence.thesis?.status??essence.formula?.status??record.status);
     const keys=['essence','development','dimensions','links','witnesses'];let showLinks;
     actions(root,record,'node',reference?null:()=>showLinks?.());
-    formula(root,essence.formula??essence.formulas?.[0]);
+    formula(root,essence.formula??essence.formulas?.[0],tr(short));
     if(reference){
       for(const key of keys){const part=el('section','ps-kernel-reference-section');part.append(el('h3','ps-kernel-section-title',t(key)));const content=el('div');sections(content,key,record,id,lead);part.append(content);root.append(part);}
     }else{

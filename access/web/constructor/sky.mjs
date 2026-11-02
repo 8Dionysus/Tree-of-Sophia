@@ -98,7 +98,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   const underStars=new Set(['rule','thread','hrule','ring']),clipped=new Set(['hrule','ring']);
   const relationColors={contains:'#829dbb',supports:'#b7c991',interprets:'#bea7e1',questions:'#e5a18f',contrasts:'#e09591',echoes:'#8ecbc4',develops:'#e0c48c',compares:'#96b7e4',translates:'#8ebdc9',relates:'#a5b7cf'};
   const hex=(value,fallback)=>/^#[a-f\d]{6}$/i.test(value??'')?value:/^#[a-f\d]{3}$/i.test(value??'')?'#'+[...value.slice(1)].map(c=>c+c).join(''):fallback;
-  let nodes=[],edges=[],clusters=[],backdrop=[],planes=[],threads=[],lit=null,litGlow=0,selectedId=null,selectedEdgeId=null,hoverEdge=null,linkFrom=null,center=[0,0,0],targetCenter=[0,0,0],fitScale=1,targetFit=1,edgeHits=[],measureLabels=true;
+  let nodes=[],edges=[],clusters=[],backdrop=[],planes=[],threads=[],lit=null,litGlow=0,selectedId=null,selectedEdgeId=null,hoverEdge=null,linkFrom=null,center=[0,0,0],targetCenter=[0,0,0],fitScale=1,targetFit=1,edgeHits=[],measureLabels=true,aspectIds=null;
   let viewport={left:0,right:1,top:0,bottom:1},targetViewport={...viewport},uiObstacles=[];
   const colorOf=n=>hex(n.color,({work:'#a8cde5',part:'#88aaca',chapter:'#b2aedc',fragment:'#dac697',dossier:'#c7a5e6',concept:'#f4cf87',interpretation:'#ba9be5',question:'#83cec7',note:'#b9c7d5',excerpt:'#dfc18e',figure:'#b9c9e5',symbol:'#91ccc5',tradition:'#b5abd3'}[n.kind]||'#bdcfdf'));
   function refresh(state,labels={}){
@@ -113,6 +113,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       return {...item,el,color:hex(item.color,relationColors[item.kind]??relationColors.relates)};
     });oldEdges.forEach(e=>e.el.remove());
     if('selectedEdgeId' in state)selectedEdgeId=state.selectedEdgeId;
+    // An aspect's stars are what a framing fits; the stars stepped back stay out of its measure.
+    aspectIds=Array.isArray(state.aspect?.ids)&&state.aspect.ids.length?new Set(state.aspect.ids):null;
     nodes=state.nodes.map(item=>{
       let n=old.get(item.id);old.delete(item.id);
       if(!n){
@@ -183,7 +185,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
         el.addEventListener('pointerenter',()=>{hover=item.id;kick()});el.addEventListener('pointerleave',()=>{hover=null;kick()});
         el.addEventListener('focus',()=>{hover=item.id;kick()});el.addEventListener('blur',()=>{hover=null;kick()});
       }
-      n.target=[...item.position];n.kind=item.kind;n.color=item.color;n.prominent=!!item.prominent;n.dimmed=!!item.dim;n.form=item.form==='proposal'||item.form==='personal'?item.form:'source';n.el.dataset.form=n.form;n.major=item.major??['work','concept','dossier','figure'].includes(item.kind);
+      n.target=[...item.position];n.kind=item.kind;n.color=item.color;n.prominent=!!item.prominent;n.dimmed=!!item.dim;n.labelSide=['left','right','above','below'].includes(item.labelSide)?item.labelSide:null;n.quiet=!!item.quiet;n.form=item.form==='proposal'||item.form==='personal'?item.form:'source';n.el.dataset.form=n.form;n.major=item.major??['work','concept','dossier','figure'].includes(item.kind);
       n.titleText=labels[item.id]??item.title??item.id;n.subtitle=typeof item.subtitle==='string'?item.subtitle:'';
       n.labelMaxWidth=Number.isFinite(item.labelMaxWidth)?Math.max(80,Math.min(320,item.labelMaxWidth)):null;n.labelLines=item.labelLines===2?2:1;
       const clampStyle={whiteSpace:n.labelLines>1?'normal':'',display:n.labelLines>1?'-webkit-box':'',webkitBoxOrient:n.labelLines>1?'vertical':'',webkitLineClamp:n.labelLines>1?String(n.labelLines):''};
@@ -346,7 +348,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       }
       n.titleHeight=Math.max(16,parseFloat(style.lineHeight)||18)*Math.min(lines,n.labelLines)+(n.labelLines>1?2:0);n.labelHeight=n.titleHeight+subHeight;
       // A name that must be read is shown whole: as wide as it needs up to 260 px, over as many as three lines.
-      n.fullWidth=Math.min(260,Math.max(n.labelWidth,Math.max(ng.measureText(text).width,subWidth)+8));
+      n.fullWidth=Math.min(n.labelMaxWidth??260,Math.max(n.labelWidth,Math.max(ng.measureText(text).width,subWidth)+8));
       n.fullTitleHeight=Math.max(16,parseFloat(style.lineHeight)||18)*Math.min(3,lineCount(text,n.fullWidth-8))+2;n.fullHeight=n.fullTitleHeight+subHeight;
     }
     // A scale's labels are measured in their own type, so a name never loses its end to a guess.
@@ -371,7 +373,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     }
     for(const e of edges){
       const style=getComputedStyle(e.el),lineHeight=parseFloat(style.lineHeight)||16;ng.font=style.font||'11px sans-serif';
-      if(!e.tag){e.labelWidth=Math.min(190,Math.max(56,ng.measureText(e.el.textContent).width+20));e.labelHeight=Math.max(24,lineHeight+10);continue;}
+      // A name given a narrower measure wraps within it, and is as tall as its lines.
+      if(!e.tag){const text=ng.measureText(e.el.textContent).width,limit=Number.isFinite(e.labelMax)?e.labelMax:190;e.labelWidth=Math.min(limit,Math.max(56,text+20));e.labelHeight=Math.max(24,lineHeight*Math.max(1,Math.min(3,lineCount(e.el.textContent,e.labelWidth-18)))+10);continue;}
       // A typed link shows its kind on its own line above the authored label.
       const text=ng.measureText(typeof e.label==='string'?e.label:'').width,word=ng.measureText(e.tag).width;
       e.labelWidth=Math.min(230,Math.max(70,Math.max(text,word)+22));e.labelHeight=lineHeight*(1+(text+22>230?2:1))+12;
@@ -431,6 +434,15 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
         if(shown)Object.assign(c.el.style,{width:Math.max(0,vr-vl).toFixed(1)+'px',height:'1px',transform:`translate3d(${vl.toFixed(2)}px,${p.y.toFixed(2)}px,0)`});
         continue;
       }
+      if(c.variant==='facet'){
+        // A header narrows to the room between its stars and the edge of the free area; its name ends in an ellipsis there.
+        const room=c.align==='end'?p.x-14-vl:vr-(p.x+14),width=Math.max(56,Math.min(c.maxWidth??250,Math.ceil(c.textWidth??c.title.textContent.length*7)+48,room)),height=24;
+        // Headers too close to stand apart give way to the one above, as the area is too low for them all.
+        const area=box(c.align==='end'?p.x-width-14:p.x+14,p.y-height/2,width,height),shown=inView(area)&&!uiObstacles.some(o=>overlaps(area,o,0))&&!occupied.some(o=>overlaps(area,o,1));
+        c.el.hidden=!shown;
+        if(shown){c.el.style.width=width+'px';c.el.style.transform=`translate3d(${area.left.toFixed(2)}px,${area.top.toFixed(2)}px,0)`;occupied.push(area);}
+        continue;
+      }
       if(underStars.has(c.variant)){
         const rule=c.variant==='rule',from=rule?p.x:Math.max(vl,xs?.[0]??p.x),to=rule?p.x:Math.min(vr,xs?.[1]??p.x),top=rule?vt-(c.strip??4):p.y;
         const shown=rule?p.x>=vl-1&&p.x<=vr+1:to-from>=2&&p.y>=vt-2&&p.y<=vb+2;
@@ -476,7 +488,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       c.el.hidden=!shown;
       if(shown){c.el.style.width=(area.right-area.left).toFixed(1)+'px';c.el.style.transform=`translate3d(${area.left.toFixed(2)}px,${area.top.toFixed(2)}px,0)`;scaleLabels.push(area);occupied.push(area);}
     }
-    const nodeObstacles=nodes.filter(n=>!n.el.hidden).map(n=>({id:n.id,...box(n.screen.x-9,n.screen.y-9,18,18)}));
+    // A star the view has stepped back lies under the names in front of it.
+    const nodeObstacles=nodes.filter(n=>!n.el.hidden&&!n.dimmed).map(n=>({id:n.id,...box(n.screen.x-9,n.screen.y-9,18,18)}));
     for(const c of clusters){
       if(c.variant)continue;
       const width=c.labelWidth??110,height=c.labelHeight??(c.subtitle.textContent?40:25);
@@ -499,9 +512,15 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(chosen){const fit=chosen.right-chosen.left;Object.assign(n.label.style,{left:(chosen.left-x+22)+'px',top:(chosen.top-y+22)+'px',bottom:'auto',transform:'none',width:fit+'px',maxWidth:fit+'px',minWidth:'0'});if(visible)occupied.push(chosen);}
     };
     // Below, above, right and left of the star, and further out for a name that must be shown.
+    // A star in an aspect's row names itself on its outer side first, the chosen star above itself.
     const around=(n,height,gap=19,width=n.labelWidth)=>{
       const {x,y}=n.screen,narrow=Math.max(90,width-28);
-      return [box(x-width/2,y+gap,width,height),box(x-width/2,y-height-gap,width,height),box(x+gap,y-height/2,width,height),box(x-width-gap,y-height/2,width,height),...(narrow<width?[box(x+gap,y-height/2,narrow,height),box(x-narrow-gap,y-height/2,narrow,height)]:[])];
+      const below=box(x-width/2,y+gap,width,height),above=box(x-width/2,y-height-gap,width,height),right=box(x+gap,y-height/2,width,height),left=box(x-width-gap,y-height/2,width,height);
+      const narrowRight=narrow<width?[box(x+gap,y-height/2,narrow,height)]:[],narrowLeft=narrow<width?[box(x-narrow-gap,y-height/2,narrow,height)]:[];
+      if(n.labelSide==='right')return [right,...narrowRight,below,above,left];
+      if(n.labelSide==='left')return [left,...narrowLeft,below,above,right];
+      if(n.labelSide==='above')return [above,below,right,left,...narrowRight,...narrowLeft];
+      return [below,above,right,left,...narrowRight,...narrowLeft];
     };
     const visibleEdges=new Set();
     const showEdge=(e,chosen,compact,hot)=>{visibleEdges.add(e.id);e.el.dataset.active=String(hot);e.el.dataset.kind=e.kind;e.el.dataset.compact=String(compact);e.el.style.setProperty('--edge-color',e.color);e.el.style.color=e.color;e.el.style.width=(compact?e.compactWidth:e.labelWidth)+'px';e.el.style.transform=`translate3d(${chosen.left.toFixed(2)}px,${chosen.top.toFixed(2)}px,0)`;if(nativeTitles)e.el.title=e.el.getAttribute('aria-label');occupied.push(chosen);};
@@ -516,23 +535,45 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(whole&&!whole.clear&&n.subtitle&&titleHeight){const brief=placeAlways([...around(n,titleHeight,19,width),...around(n,titleHeight,40,width)],occupied,nodeObstacles,n.id);if(brief?.clear){chosen=brief.area;short=true;}}
       showLabel(n,chosen,short,true);
     }
-    for(const e of edges){
-      if(!keptEdges.has(e.id)||e.muted)continue;const hit=edgeHits.find(item=>item.id===e.id);if(!hit)continue;
+    // An aspect's names take their own rows first; a name whose row is taken, and every other kept name, looks along its link after.
+    const deferred=new Set();
+    const placeKept=(e,rowOnly)=>{
+      const hit=edgeHits.find(item=>item.id===e.id);if(!hit)return;
       // The part of the link inside the free area carries its whole name, however short the link is.
-      const cut=clipSegment(hit.a,hit.b);if(!cut)continue;
+      const cut=clipSegment(hit.a,hit.b);if(!cut)return;
       const [a,b]=cut,dx=b.x-a.x,dy=b.y-a.y,length=Math.max(1,Math.hypot(dx,dy)),hot=e.id===selectedEdgeId||e.id===hoverEdge,spots=[];
       const along=(width,height)=>{const list=[];for(const offset of [0,16,-16,32,-32,48,-48,64,-64])for(const t of [.5,.38,.62,.26,.74,.15,.85]){const cx=a.x+dx*t-dy/length*offset,cy=a.y+dy*t+dx/length*offset;list.push(box(cx-width/2,cy-height/2,width,height));}return list;};
       // Where links crowd round the chosen star and no free place is left for a whole name, a free place for the link's
       // kind is better than names laid over one another; the whole name stays in its title.
       const guarded=[nodes.find(n=>n.id===selectedId)?.labelBox].filter(Boolean);
-      let spot=placeAlways(along(e.labelWidth,e.labelHeight),occupied,nodeObstacles,null,guarded),compact=false;
+      // In an aspect a link's name stands in the row of the star it reaches, beside that star, or over the chosen link.
+      const pinned=(width,height)=>{
+        const at=e.labelAt;if(!at)return [];
+        if(at.mid){const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;return [at.align==='start'?box(mx+12,my-height/2,width,height):box(mx-width/2,my-height-6,width,height)];}
+        const star=nodes.find(n=>n.id===at.id);if(!star||star.el.hidden)return [];
+        const {x}=star.screen,y=Number.isFinite(at.dy)?project([star.p[0],star.p[1]+at.dy,star.p[2]]).y:star.screen.y;
+        return [box(at.align==='end'?x-width-14:at.align==='start'?x+14:x-width/2,y-height/2,width,height)];
+      };
+      if(rowOnly){
+        // In its row a name stands whole, or as its kind alone; a taken row waits for the second pass.
+        const whole=placeAlways(pinned(e.labelWidth,e.labelHeight),occupied,nodeObstacles,null,guarded);
+        if(whole?.clear){showEdge(e,whole.area,false,hot);return;}
+        const brief=e.tag&&e.compactWidth?placeAlways(pinned(e.compactWidth,e.compactHeight),occupied,nodeObstacles,null,guarded):null;
+        if(brief?.clear){showEdge(e,brief.area,true,hot);return;}
+        deferred.add(e.id);return;
+      }
+      let spot=placeAlways([...pinned(e.labelWidth,e.labelHeight),...along(e.labelWidth,e.labelHeight)],occupied,nodeObstacles,null,guarded),compact=false;
       // With no free place for either, the smaller kind-only label covers the least.
-      if(spot&&!spot.clear&&e.tag&&e.compactWidth){const brief=placeAlways(along(e.compactWidth,e.compactHeight),occupied,nodeObstacles,null,guarded);if(brief){spot=brief;compact=true;}}
+      if(spot&&!spot.clear&&e.tag&&e.compactWidth){const brief=placeAlways([...pinned(e.compactWidth,e.compactHeight),...along(e.compactWidth,e.compactHeight)],occupied,nodeObstacles,null,guarded);if(brief){spot=brief;compact=true;}}
       if(spot)showEdge(e,spot.area,compact,hot);
-    }
+    };
+    for(const e of edges)if(keptEdges.has(e.id)&&!e.muted&&e.labelAt)placeKept(e,true);
+    for(const e of edges)if(keptEdges.has(e.id)&&!e.muted&&(!e.labelAt||deferred.has(e.id)))placeKept(e,false);
     for(const n of ordered){
       if(kept.has(n.id)&&!n.el.hidden)continue;
       const hot=n.id===selectedId||n.id===hover;
+      // A star the view has stepped back keeps its light and gives its name's room to the stars in front.
+      if((n.dimmed||n.quiet)&&!hot){showLabel(n,null,false);continue;}
       const place=height=>{
         const within=around(n,height).filter(inView),clear=within.find(rect=>!occupied.some(o=>overlaps(rect,o))&&!nodeObstacles.some(o=>o.id!==n.id&&overlaps(rect,o,2)));
         return clear||(hot?within[0]:n.prominent?within.find(rect=>!occupied.some(o=>overlaps(rect,o))):null);
@@ -609,6 +650,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     const kept=new Set(),keptEdges=new Set();
     if(selectedId&&byId.has(selectedId)){kept.add(selectedId);for(const edge of edges)if(!edge.muted&&(edge.from===selectedId||edge.to===selectedId)&&byId.has(edge.from)&&byId.has(edge.to)){kept.add(edge.from);kept.add(edge.to);keptEdges.add(edge.id);}}
     if(selectedEdge&&!selectedEdge.muted&&byId.has(selectedEdge.from)&&byId.has(selectedEdge.to)){kept.add(selectedEdge.from);kept.add(selectedEdge.to);keptEdges.add(selectedEdge.id);}
+    // An aspect names every link it stands in rows, and every star at their ends.
+    for(const edge of edges)if(edge.labelAt&&!edge.muted&&byId.has(edge.from)&&byId.has(edge.to)){kept.add(edge.from);kept.add(edge.to);keptEdges.add(edge.id);}
     const focused=near.size>0;edgeHits=[];
     // The planes of depth show while the space turns, by a drag, a key, the globe or its first turn, and fade once it rests:
     // the turn itself shows what depth means, and the space at rest keeps only its stars.
@@ -731,8 +774,10 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   // the camera pans the shortest way and never turns; it draws back when the neighbourhood is wider than the area and
   // closer when its names would crowd.
   function revealNeighbourhood(){
-    const id=neighbourhoodPending;neighbourhoodPending=null;if(measured||!id)return;
-    const ids=new Set([id]);for(const e of edges)if(!e.muted&&(e.from===id||e.to===id)){ids.add(e.from);ids.add(e.to);}
+    const pending=neighbourhoodPending;neighbourhoodPending=null;if(measured||!pending)return;
+    if(Array.isArray(pending)){revealSet(new Set(pending));return;}
+    const id=pending,ids=new Set([id]);
+    for(const e of edges)if(!e.muted&&(e.from===id||e.to===id)){ids.add(e.from);ids.add(e.to);}
     const points=nodes.filter(n=>ids.has(n.id)).map(n=>projectSettled(n.target));if(points.length<2)return;
     const area=targetViewport,mx=Math.min(110,(area.right-area.left)*.16),my=Math.min(80,(area.bottom-area.top)*.16);
     const cx=(area.left+area.right)/2,cy=(area.top+area.bottom)/2;
@@ -754,6 +799,22 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     const shift=(low,high,from,to)=>high-low>to-from?(from+to)/2-(low+high)/2:low<from?from-low:high>to?to-high:0;
     const dx=shift(span.left,span.right,area.left+mx,area.right-mx),dy=shift(span.top,span.bottom,area.top+my,area.bottom-my);
     if(dx||dy){tpan={x:tpan.x+dx,y:tpan.y+dy};kick();}
+  }
+  // An aspect's stars are fitted to the free area, in or out, with room for the names that stand outside them: a star
+  // named on its outer side at either end of the rows widens that side by its name. The whole is centred in the area.
+  function revealSet(ids){
+    measure();
+    const points=nodes.filter(n=>ids.has(n.id)).map(n=>({n,p:projectSettled(n.target)}));if(points.length<2)return;
+    const area=targetViewport,pad=24,my=Math.min(56,(area.bottom-area.top)*.12);
+    const xs=points.map(({p})=>p.x),ys=points.map(({p})=>p.y),left=Math.min(...xs),right=Math.max(...xs),top=Math.min(...ys),bottom=Math.max(...ys);
+    const name=n=>n.quiet?0:(n.fullWidth??n.labelWidth??120)+22;
+    const overLeft=Math.max(0,...points.filter(({n,p})=>n.labelSide==='left'&&p.x-left<4).map(({n})=>name(n)));
+    const overRight=Math.max(0,...points.filter(({n,p})=>n.labelSide==='right'&&right-p.x<4).map(({n})=>name(n)));
+    const roomX=Math.max(40,area.right-area.left-2*pad-overLeft-overRight),roomY=Math.max(40,area.bottom-area.top-2*my);
+    const before=tzoom;zoomTo(tzoom*Math.min(roomX/Math.max(1,right-left),roomY/Math.max(1,bottom-top),2.4));const ratio=tzoom/before;
+    const cx=(area.left+area.right)/2,cy=(area.top+area.bottom)/2,at=(v,c,shift)=>c+(v-c-shift)*ratio+shift;
+    const l=at(left,cx,tpan.x)-overLeft,r=at(right,cx,tpan.x)+overRight,t=at(top,cy,tpan.y),b=at(bottom,cy,tpan.y);
+    tpan={x:tpan.x+(cx-(l+r)/2),y:tpan.y+(cy-(t+b)/2)};kick();
   }
   // A turning space can be drawn close enough to open a crowded part, or far enough to see it whole.
   const zoomTo=value=>{tzoom=measured?clamp(value,1,measured.axes==='xy'?8:4):clamp(value,.5,4);kick();};
@@ -857,7 +918,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     frame({fill=false,x=null,y=null,plane=false}={}){
       if(fill)resize();tstretchY=1;measured=null;
       if(nodes.length){
-        const points=nodes.map(n=>n.target),min=[0,1,2].map(i=>Math.min(...points.map(p=>p[i]))),max=[0,1,2].map(i=>Math.max(...points.map(p=>p[i])));
+        const points=(aspectIds&&nodes.some(n=>aspectIds.has(n.id))?nodes.filter(n=>aspectIds.has(n.id)):nodes).map(n=>n.target),min=[0,1,2].map(i=>Math.min(...points.map(p=>p[i]))),max=[0,1,2].map(i=>Math.max(...points.map(p=>p[i])));
         if(Array.isArray(x)&&x.length===2&&x.every(Number.isFinite)){min[0]=Math.min(min[0],x[0]);max[0]=Math.max(max[0],x[1]);}
         if(Array.isArray(y)&&y.length===2&&y.every(Number.isFinite)){min[1]=Math.min(min[1],y[0]);max[1]=Math.max(max[1],y[1]);}
         targetCenter=min.map((v,i)=>(v+max[i])/2);
@@ -882,11 +943,15 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       resize()},
     /** Turn the view by a step, as a drag would; a measured layout does not turn. */
     turnBy(dyaw=0,dpitch=0){if(measured)return;velocity=null;introUntil=0;turnShownUntil=performance.now()+900;tyaw+=dyaw;tpitch=clamp(tpitch+dpitch,...PITCH);kick();},
+    /** Face the space straight on, so that rows read level; a measured layout already does. */
+    faceFront(){if(measured)return;velocity=null;introUntil=0;tyaw=nearestTurn(0,tyaw);tpitch=0;kick();},
     /** Bring the view back to its resting pose, the shorter way round. */
     turnToRest(){if(measured)return;velocity=null;introUntil=0;turnShownUntil=performance.now()+900;tyaw=nearestTurn(restYaw,tyaw);tpitch=restPitch;kick();},
     pose(){return {yaw,pitch,targetYaw:tyaw,targetPitch:tpitch,restYaw,restPitch,measured:!!measured};},
     focus(id){const n=nodes.find(n=>n.id===id);if(!n)return;targetCenter=[...n.target];tzoom=1.3;tpan={x:0,y:0};kick();},
     reveal(id){revealId=id??null;kick();},
+    /** Bring a set of stars into the free area together, drawing back or closer as the neighbourhood is. */
+    revealAll(ids){if(Array.isArray(ids)&&ids.length>1){neighbourhoodPending=[...ids];kick();}},
     /** Light a way through the given stars, in order (null puts it out). */
     light(ids){lit=Array.isArray(ids)&&ids.length>1?[...ids]:null;kick();},
     refresh:resize,

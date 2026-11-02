@@ -49,7 +49,11 @@ export function coreContext(core,{materialId,edgeId,chainId}={}){
   if(!core)return {materialIds:[],edges:[]};
   let edges=[];
   if(chainId)edges=core.edges.filter(edge=>edge.id.startsWith(`core-chain:${chainId}:`));
-  else if(edgeId)edges=core.edges.filter(edge=>`atlas:${edge.id}`===edgeId||edge.id===edgeId);
+  else if(edgeId){
+    // A chosen link brings the other links of both its stars, so that the space can show where the link stands.
+    const chosen=core.edges.filter(edge=>`atlas:${edge.id}`===edgeId||edge.id===edgeId),ends=new Set(chosen.flatMap(edge=>[edge.from,edge.to]));
+    edges=[...chosen,...core.edges.filter(edge=>edge.id.startsWith('core-link:')&&!chosen.includes(edge)&&(ends.has(edge.from)||ends.has(edge.to)))];
+  }
   else if(materialId)edges=core.edges.filter(edge=>edge.id.startsWith('core-link:')&&(edge.from===materialId||edge.to===materialId));
   const own=Object.values(core.materialIds).includes(materialId)?materialId:null;
   return {materialIds:[...new Set([own,...edges.flatMap(edge=>[edge.from,edge.to])].filter(Boolean))],edges};

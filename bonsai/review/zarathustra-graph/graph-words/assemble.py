@@ -620,6 +620,48 @@ if semantic_uses:
 if place_relations_path.exists():
     core['files'].append('place-relations.json')
     core['counts']['place_relations'] = len(load(place_relations_path)['relations'])
+
+# A language review is its own event: it corrects the reader texts of the assembled core, each wording replaced
+# whole where it stands, and the makers' and reviewers' wordings stay in their inputs. Only a text the reader sees as
+# {ru, en} is corrected; a reviewer's note kept as a plain string keeps its words.
+corrections_path = W / 'language-corrections-2026-11-02.json'
+if corrections_path.exists():
+    review = load(corrections_path)
+    ru_map = {c['ru'][0]: c['ru'][1] for c in review['corrections']}
+    en_map = {c['ru'][0]: tuple(c['en']) for c in review['corrections'] if c.get('en')}
+    used, dropped = set(), [0]
+    # A proposed node's generated filler (its name 'occurs in the concept's verbal neighbourhood and routes') says
+    # nothing of its own; the review leaves the node without it.
+    filler = re.compile(r'возникает в словесном окружении и маршрутах понятия')
+    def correct(value):
+        if isinstance(value, list):
+            for item in value:
+                correct(item)
+        elif isinstance(value, dict):
+            why = value.get('why')
+            if isinstance(why, dict) and isinstance(why.get('ru'), str) and filler.search(why['ru']):
+                del value['why']
+                dropped[0] += 1
+            old = value.get('ru')
+            if isinstance(old, str) and old in ru_map:
+                value['ru'] = ru_map[old]
+                used.add(old)
+                if old in en_map and value.get('en') == en_map[old][0]:
+                    value['en'] = en_map[old][1]
+            for key, item in value.items():
+                if key not in ('ru', 'en'):
+                    correct(item)
+    names = [name for name in ('voices.json', 'concepts.json', 'figures.json', 'links.json', 'chains.json', 'proposed.json',
+                               'semantic-uses.json', 'place-relations.json') if (OUT / name).exists()]
+    names += [f'occurrences/{path.name}' for path in sorted((OUT / 'occurrences').glob('*.json'))]
+    for name in names:
+        data = load(OUT / name)
+        correct(data)
+        write(name, data)
+    core['reviewers'].append({'id': 'language-review-20261102', 'model': 'gpt-6.1-terra', 'effort': 'xhigh', 'date': review['date'],
+                              'admitted_by': 'claude', 'reads': review['basis'],
+                              'corrections': f'bonsai/review/zarathustra-graph/graph-words/assembly-inputs/{corrections_path.name}'})
+    core['counts']['language_corrections'] = {'admitted': len(ru_map), 'applied': len(used), 'unmatched': len(ru_map) - len(used), 'fillers_dropped': dropped[0]}
 (W / 'english-input.json').write_text(json.dumps(wanted, ensure_ascii=False, indent=1) + '\n')
 core['counts']['english_missing'] = len(wanted)
 (OUT / 'core.json').write_text(json.dumps(core, ensure_ascii=False, indent=1) + '\n')

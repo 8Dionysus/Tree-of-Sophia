@@ -18,6 +18,7 @@ import {clipLinesRight,planeOfPlaces} from './space-geography.mjs';
 import {proximityCriteria,proximityLayout} from './space-proximity.mjs';
 import {datingKind,measureAntiquity,measureZarathustra} from './space-measure.mjs';
 import {depthLayout} from './space-depth.mjs';
+import {aspectLayout} from './space-aspect.mjs';
 import {mountHints,setHint} from './space-hints.mjs';
 import {controlsDismissed,controlsShouldOpen,mountControls} from './space-controls.mjs';
 import {besidePosition,disputes,ownTitle,readingsAround,restsOn,routeStars,routeWithRecords,threadsIntoDark,pathThrough} from './space-play.mjs';
@@ -75,7 +76,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // The work's own text in place of a retelling: cited places, opened in the whole work.
   const fragments=createFragments({profile,locale,t:key=>t(key),provider:api.provider,openAddress:openPublicAddress,hint:(element,text)=>setHint(element,text),onError:()=>notify(t('unavailable')),host:()=>shell});
   const materials=materialMap(library),atlas=library.atlas??{},routes=library.space?.routes??atlas.routes??[];
-  const core=library.space?.core,coreView=core?createCoreView({core,locale,fragments,onNode:id=>previewMaterial(id),onRelation:id=>selectEdge(id),onAction:detail=>shell.dispatchEvent(new CustomEvent('public-research-action',{bubbles:true,detail})),onRoute:id=>{const item=routeItems().find(item=>item.id===id);if(item)startRoute(item);}}):null;
+  const core=library.space?.core,coreView=core?createCoreView({core,locale,fragments,onNode:id=>previewMaterial(id),onRelation:id=>selectEdge(drawnRelation(id)),onAction:detail=>shell.dispatchEvent(new CustomEvent('public-research-action',{bubbles:true,detail})),onRoute:id=>{const item=routeItems().find(item=>item.id===id);if(item)startRoute(item);}}):null;
   const collectionMaterials=new Map((library.space?.collection??[]).map(item=>[item.materialId??item.id,{...item,id:item.materialId??item.id,kind:({author:'figure',school:'tradition'})[item.kind]??item.kind}]));
   const previewMaterials=new Map([...collectionMaterials,...materials]);
   const entryByLegacyId=new Map([...previewMaterials.values()].map(item=>[item.legacyId??item.id,item]));
@@ -606,6 +607,16 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     else if(lens==='space'&&geography)applyPlane(projected);
     else if(lens==='proximity'&&proximityLens)applyProximity(projected);
     else applyDepth(projected);
+    // A choice turns the space toward itself on the lenses that group; a measure keeps its axes, a route its way and a
+    // comparison or a new link its stars where the reader set them.
+    aspect=null;
+    if(!measuredView&&!routePath&&!interaction&&compareBar.hidden&&(selected||selectedEdge)){
+      // A free area too narrow for rows on both sides of the star holds the aspect in one column.
+      // Rows past what its height holds close into their families.
+      let narrow=false,budget=Infinity;try{const area=freeArea({width:shell.clientWidth,height:shell.clientHeight});narrow=area.right-area.left<Math.max(1000,(area.bottom-area.top)*1.2);budget=Math.max(5,Math.floor((area.bottom-area.top-60)/28));}catch{}
+      const turned=aspectLayout(projected,{nodeId:selected,edgeId:selectedEdge,open:aspectOpen,narrow,budget,label:value=>tr(value,locale())});
+      if(turned.aspect){Object.assign(projected,turned);aspect=turned.aspect;}
+    }
     // A new record rises out of what it is about, and a star a thread brings in out of the star it was followed from.
     if(rising.size)projected.nodes=projected.nodes.map(node=>rising.has(node.id)?{...node,from:rising.get(node.id)}:node);
     if(selectedEdge)projected.selectedEdgeId=selectedEdge;
@@ -613,6 +624,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   // A space that groups is read in depth as its bonsai declares, by the step of interpretation; see space-depth.mjs.
   const depth=depthOf(profile);
+  // The aspect the view was last turned to, and the focus it was last framed for.
+  // The family of links the reader opened on each side of the aspect; a new choice closes them.
+  let aspect=null,aspectKey='',aspectOpen={};
   function applyDepth(projected){
     const laid=depthLayout(projected.nodes,{stepOf:node=>ladderRung({material:matForNode(node),node}),depth,locale:locale()});
     projected.nodes=laid.nodes;projected.planes=laid.planes;
@@ -832,7 +846,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     // A plane keeps one unit on both axes: the map of places and the rings of proximity are never stretched.
     else if(lens==='space'&&geography)sky.frame({fill:true,plane:true,x:geography.bounds.x,y:geography.bounds.y});
     else if(lens==='proximity'&&proximityLens)sky.frame({fill:true,plane:true,x:[-NEAR_EXTENT,NEAR_EXTENT],y:[-NEAR_EXTENT,NEAR_EXTENT]});
-    else sky.frame();
+    else{sky.frame();if(aspect)sky.revealAll(aspect.ids);}
   }
   // An open branch or route on the scale of time reads in its own rows, top to bottom.
   function stepView(routePath=interaction||!compareBar.hidden?null:route?.path??null){return !!(routePath&&route?.source==='atlas');}
@@ -853,7 +867,16 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const layoutKind=()=>lens==='time'&&timeline?timeline.kind:lens==='space'&&geography?'plane':lens==='proximity'&&proximityLens?'proximity':null;
   const layoutStrip=()=>lens==='time'&&timeline?timeline.strip:lens==='space'&&geography?geography.strip:0;
   let shownView=null;
-  function refreshSky(){if(!sky)return;shownView=visibleState();sky.update(shownView,Object.fromEntries(graphState().nodes.map(node=>[node.id,label(matForNode(node)??node)])));rising.clear();sky.select(selected);sky.selectEdge(selectedEdge);sky.refresh();}
+  function refreshSky(){
+    if(!sky)return;shownView=visibleState();sky.update(shownView,Object.fromEntries(graphState().nodes.map(node=>[node.id,label(matForNode(node)??node)])));rising.clear();sky.select(selected);sky.selectEdge(selectedEdge);
+    // An aspect is framed whole once, when its choice is made: the chosen star or link and the rows beside it.
+    const key=aspect?`${aspect.kind}:${aspect.focus.join('|')}`:'';
+    if(key!==aspectKey){const was=aspectKey;aspectKey=key;aspectOpen={};
+      // An aspect is read straight on; letting it go returns the space to its resting turn.
+      if(aspect)sky.faceFront();else if(was)sky.turnToRest();
+      if(aspect){shownView=visibleState();sky.update(shownView,Object.fromEntries(graphState().nodes.map(node=>[node.id,label(matForNode(node)??node)])));sky.revealAll(aspect.ids);}}
+    sky.refresh();
+  }
   function reflect(){
     if(destroyed)return;state=model.getState();
     // The scale of time rearranges the map's frame: its tools join the heading and its strips take their room.
@@ -1124,9 +1147,12 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     actions.children[0].addEventListener('click',()=>{closePanel();beginCompare(id);});actions.children[1].addEventListener('click',()=>{closePanel();beginConnect(id);});panelContent.append(actions);
   }
   function researchSelection(){const id=selectedEdge??selected?.replace(/^material:/,'');return id?{id:index?.resolveId(id)??id,kind:selectedEdge?'relation':'node',lens,route:route?.id??null,step:routeIndex,scroll:reading.scrollTop}:null;}
+  // A core relation is drawn on the map as a context link; its address, a record id or an edge id, names that link.
+  function drawnRelation(id){const drawn=core?.edges?.find(edge=>edge.id===id||edge.coreRecord?.id===id||`atlas:${edge.id}`===id);return drawn?`atlas:${drawn.id}`:id;}
   function openResearch(id){
     const item=index?.get(id);if(!item)return false;
-    if(item.kind==='relation'){selectEdge(item.id);return true;}
+    // A relation opened by its address is chosen as the link the map draws for it, so that the map turns to both its stars.
+    if(item.kind==='relation'){selectEdge(drawnRelation(item.record?.id??item.id));return true;}
     if(item.kind==='chain'){const chain=routeItems().find(route=>route.coreChainId===item.id);if(chain){startRoute(chain);return true;}}
     if(item.kind==='statement')return openResearch(item.parentId);
     if(item.materialId){previewMaterial(item.materialId);return true;}
@@ -1155,7 +1181,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   function findEdge(id){const drawn=graphState().edges.find(edge=>edge.id===id);if(drawn)return drawn;const item=index?.get(id);return item?.kind==='relation'?{id,from:graphIdForMaterial(core?.materialIds?.[item.record.from]??item.record.from),to:graphIdForMaterial(core?.materialIds?.[item.record.to]??item.record.to),kind:'relates',label:item.record.verb,coreRecord:item.record}:null;}
   // A chosen line the view no longer draws (a trace turned off, a lens changed) is let go, and the column is drawn anew without it.
-  function dropEdge(){selectedEdge=null;sky?.selectEdge(null);renderColumn();renderOrientation();}
+  function dropEdge(){selectedEdge=null;sky?.selectEdge(null);renderColumn();renderOrientation();refreshSky();}
   function renderEdge(id){
     // A traced concept's line is no relation of the graph: it says only where the concept recurs.
     if(String(id).startsWith('trace:')){
@@ -1219,7 +1245,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     // A newly chosen star's card opens at its beginning, not where the previous card was scrolled to.
     if(changed){reading.scrollTop=0;panelContent.scrollTop=0;}
     renderOrientation();sky?.refresh();if(reveal||!desktop())sky?.reveal(id);}
-  function selectEdge(id){measureOpen=false;selectedEdge=id;selected=null;browsingRoutes=false;personal.hidden=true;columnOpen=true;sky?.select(null);sky?.selectEdge(id);renderColumn();renderOrientation();sky?.refresh();}
+  // A chosen link brings its stars into the view and turns the space toward them.
+  function selectEdge(id){measureOpen=false;selectedEdge=id;selected=null;browsingRoutes=false;personal.hidden=true;columnOpen=true;sky?.select(null);sky?.selectEdge(id);renderColumn();renderOrientation();refreshSky();}
   function openPanel(){columnOpen=true;renderColumn();sky?.refresh();}
   function closePanel(){selected=route?routeStepNode:null;selectedEdge=null;sky?.select(selected);sky?.selectEdge(null);if(!desktop())columnOpen=false;reflect();sky?.refresh();}
   function togglePersonal(){
@@ -1296,7 +1323,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function toggleSheet(){if(desktop()){reading.scrollTo?.({top:0,behavior:'smooth'});return;}const wasOpen=columnOpen;columnOpen=!columnOpen;renderColumn();refitAfter(wasOpen);}
   function openColumn(){const wasOpen=columnOpen;columnOpen=true;renderColumn();refitAfter(wasOpen);}
   // A column or sheet opened or closed beside the scale of time changes its free area, so the scale refits; elsewhere the camera stays.
-  function refitAfter(wasOpen){if(wasOpen!==columnOpen&&measuredLens(lens))frameSky();else sky?.refresh();}
+  // A sheet that opens or closes changes the room an aspect has: it is laid out and framed again.
+  function refitAfter(wasOpen){if(wasOpen!==columnOpen&&aspect){refreshSky();frameSky();}else if(wasOpen!==columnOpen&&measuredLens(lens))frameSky();else sky?.refresh();}
   function keepInColumn(node){
     if(!node||reading.hidden)return;const box=reading.getBoundingClientRect(),r=node.getBoundingClientRect(),top=box.top+(panelTop.getBoundingClientRect().height||48);
     if(r.top<top)reading.scrollTop-=top-r.top;else if(r.bottom>box.bottom-12)reading.scrollTop+=Math.min(r.top-top,r.bottom-box.bottom+12);
@@ -1652,7 +1680,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   // The space turns under a drag and rests a little turned, so its depth shows; Shift, the right button or two fingers move it,
   // a pinch or the wheel zooms, and a star held still is picked up. A measuring lens lays its scale flat and only moves.
-  sky=mountConstructorSky(shell,{rest:depth?.rest??null,intro:true,holdToMove:380,turnFromStars:true,touch:true,secondaryPan:true,inertia:true,depthCue:true,planarMoves:true,nativeTitles:false,onThreadSelect:id=>followThread(id),threadsFor:id=>darkThreads(id),onEdgeHover:id=>{const label=id?shell.querySelector(`.edge-label[data-edge="${CSS.escape(id)}"]`):null;if(label)hints?.showFor(label);else hints?.hide();},onPose:pose=>paintTurn(pose),dragNodes:()=>!measuredLens(lens),getViewport:freeArea,onSelect:id=>selectNode(id,{fromMap:true}),onMove:(id,moved)=>{const node=graphState().nodes.find(item=>item.id===id),own=node?.position?.[2],position=[moved[0],moved[1],Number.isFinite(own)?own:moved[2]];if(node?.ownerType==='personal-hypothesis'){personalPositions.set(id,position);try{localStorage.setItem(positionsKey,JSON.stringify(Object.fromEntries(personalPositions)));positionsPersistenceError=false;}catch{positionsPersistenceError=true;notify(t('graphSaveError'));};}else try{model.moveNode(id,position);checkGraphPersistence();}catch{}},onEdgeSelect:selectEdge});
+  sky=mountConstructorSky(shell,{rest:depth?.rest??null,intro:true,holdToMove:380,turnFromStars:true,touch:true,secondaryPan:true,inertia:true,depthCue:true,planarMoves:true,nativeTitles:false,onThreadSelect:id=>followThread(id),threadsFor:id=>darkThreads(id),onEdgeHover:id=>{const label=id?shell.querySelector(`.edge-label[data-edge="${CSS.escape(id)}"]`):null;if(label)hints?.showFor(label);else hints?.hide();},onPose:pose=>paintTurn(pose),dragNodes:()=>!measuredLens(lens)&&!aspect,getViewport:freeArea,onSelect:id=>selectNode(id,{fromMap:true}),onMove:(id,moved)=>{const node=graphState().nodes.find(item=>item.id===id),own=node?.position?.[2],position=[moved[0],moved[1],Number.isFinite(own)?own:moved[2]];if(node?.ownerType==='personal-hypothesis'){personalPositions.set(id,position);try{localStorage.setItem(positionsKey,JSON.stringify(Object.fromEntries(personalPositions)));positionsPersistenceError=false;}catch{positionsPersistenceError=true;notify(t('graphSaveError'));};}else try{model.moveNode(id,position);checkGraphPersistence();}catch{}},onEdgeSelect:selectEdge});
   // One hint answers a pointer that rests on something, or a keyboard that reaches it: a tool says what it does and its key,
   // a star its kind, when and where, a link its kind and what that kind means. Nothing of it stays on the screen by itself.
   function starHint(id){
@@ -1719,6 +1747,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // On the scale of time a row's name opens its branch.
   const openLane=event=>{
     const lane=event.target.closest?.('.tree-cluster[data-ref]');if(!lane)return;
+    // A family of the aspect's links opens in rows of its own; opened again, it closes.
+    const facet=/^aspect:([^:]+):(.+)$/.exec(lane.dataset.ref??'');
+    if(facet){event.stopPropagation();aspectOpen={...aspectOpen,[facet[1]]:aspectOpen[facet[1]]===facet[2]?null:facet[2]};refreshSky();if(aspect)sky?.revealAll(aspect.ids);return;}
     if(lens==='space'&&geography){
       const ids=geography.members(lane.dataset.ref);if(!ids.length)return;event.stopPropagation();
       if(dialog.open)dialog.close();dialog.replaceChildren();const content=makeDialog(lane.querySelector('.cluster-title')?.textContent??t('placeUnknown'));

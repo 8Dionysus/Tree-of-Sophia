@@ -660,3 +660,15 @@
 .tree-cluster[data-variant=place][data-ref]{cursor:pointer}
 .tree-cluster[data-variant=place][data-ref]:hover .cluster-title{text-decoration:underline;text-underline-offset:.25em}
 .tree-cluster[data-ref]:focus-visible{outline:2px solid #d6b37a;outline-offset:4px}
+/* An aspect's family of links: a header that opens its rows, beside the column of its stars. */
+#tree .tree-cluster[data-variant=facet]{height:24px;box-sizing:border-box;display:flex;align-items:center;padding:0 11px;border:1px solid #a5b7cf40;border-radius:999px;background:#08111ef2;box-shadow:0 4px 18px #0007;text-shadow:none;cursor:pointer}
+#tree .tree-cluster[data-variant=facet][data-align=end]{justify-content:flex-end}
+#tree .tree-cluster[data-variant=facet] .cluster-title{overflow:hidden;text-overflow:ellipsis;font:500 11px/1 var(--ps-sans);letter-spacing:.02em;color:#c9d6e5}
+#tree .tree-cluster[data-variant=facet] .cluster-title::before{content:'▸ ';color:#8fa3bb}
+#tree .tree-cluster[data-variant=facet][data-tone=open]{border-color:#d6b37a88;background:#1d1a14f2}
+#tree .tree-cluster[data-variant=facet][data-tone=open] .cluster-title{color:#f0dcae}
+#tree .tree-cluster[data-variant=facet][data-tone=open] .cluster-title::before{content:'▾ ';color:#d6b37a}
+#tree .tree-cluster[data-variant=facet]:hover,#tree .tree-cluster[data-variant=facet]:focus-visible{border-color:#d6b37a;outline:none}
+#tree .tree-cluster[data-variant=facet][data-tone=heading]{border:0;background:none;box-shadow:none;padding:0;cursor:default}
+#tree .tree-cluster[data-variant=facet][data-tone=heading] .cluster-title{font:600 9.5px/1 var(--ps-sans);letter-spacing:.12em;text-transform:uppercase;color:#8ea2ba}
+#tree .tree-cluster[data-variant=facet][data-tone=heading] .cluster-title::before{content:none}
