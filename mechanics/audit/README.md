@@ -46,7 +46,7 @@ Source or semantic questions return to [the source owner](../../ToS/AGENTS.md).
 A partial review keeps its finding, exact source and next action with the owning
 review ledger, branch or validator. Refusal and pruning follow the
 [review checklist](parts/review-ledger-route/docs/REVIEW_CHECKLIST.md) and the existing
-[canon-restraint route](../agon/parts/canon-restraint/README.md).
+[canon-restraint route](../agon/README.md#threshold-intake-and-canon-restraint).
 Route drift returns to [calibration](../../ToS/doctrine/CALIBRATION_AXIS.md)
 and then to the affected source owner. These return points do not establish
 canon, runtime state or durable memory truth.

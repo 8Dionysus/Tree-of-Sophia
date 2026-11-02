@@ -1,65 +1,57 @@
-# Agon Mechanic
+# Agon
 
 <a id="active-route"></a>
 <a id="historical-provenance"></a>
 
-Agon is the ToS-local route for threshold pressure that reaches the philosophy
-home without gaining canon-write authority.
-
-## Mechanic Card
-
-| Field | Route |
-| --- | --- |
-| status | `active` |
-| class | `head-fed/local` |
-| trigger | Agon, threshold, candidate-only registry, canon-restraint, or handoff pressure touches ToS |
-| input | threshold packets, candidate review scope, source-first restraint, owner handoff language |
-| output | intake contract, canon-restraint route, candidate-only registry, landing handoff receipt |
-| owner | `mechanics/agon/AGENTS.md`, the operation map below, and active part routes |
-| stronger route | `ToS/` owns authored philosophy and canon; `Agents-of-Abyss` owns center Agon law |
-| next route | active part first; ToS canon review only through ToS-owned authority |
-| validation | `tos-ops-mechanics-plan --repo-root ROOT --execute` |
+Agon routes threshold pressure as reviewable candidates toward ToS source and
+canon review. The center Agon law belongs to `Agents-of-Abyss`.
 
 ## Operations
-Each Agon part owns a functioning operation route and its concrete inputs,
-outputs and handoff.
 
+### Threshold intake and canon restraint
 
-| Part | Function | Stronger owner route |
-| --- | --- | --- |
-| [Threshold Intake](parts/threshold-intake/README.md) | receive threshold packets as reviewable candidates | `ToS/` source and canon authority |
-| [Canon Restraint](parts/canon-restraint/README.md) | keep threshold pressure from becoming direct canon mutation | `ToS/canon/` and source review |
-| [Threshold Registry](parts/threshold-registry/README.md) | maintain candidate-only registry config, schema, example, and generated companion | generated surfaces remain downstream |
-| [Landing Handoff](parts/landing-handoff/README.md) | account for the Agon landing handoff without turning it into doctrine | `Agents-of-Abyss` center Agon law |
+Receive a threshold packet, candidate scope and source boundary note. Route the
+candidate to restraint or ToS review, return, deferral, quarantine or an
+authorial request. The review boundary distinguishes intake, review,
+rejection, deferral, branch candidates and canon drafts. Rejection,
+defer-with-cost and branch candidates are first-class routes.
 
-The [local card](AGENTS.md) owns editing; [validation](../VALIDATION.md) owns checks.
-Source or semantic questions return to [the source owner](../../ToS/AGENTS.md).
+`Sophian threshold candidate != Tree-of-Sophia canon`. Canon follows ToS-owned
+source review and authored promotion. The detailed source records remain in
+`parts/threshold-intake/docs/` and `parts/canon-restraint/docs/`. The intake schema is
+`parts/threshold-intake/schemas/tos-agon-threshold-intake.schema.json`.
 
-### Direct contracts
+### Threshold registry
 
-- `threshold-intake`: [TOS_AGON_THRESHOLD_INTAKE](parts/threshold-intake/docs/TOS_AGON_THRESHOLD_INTAKE.md)
-- `canon-restraint`: [TOS_CANON_RESTRAINT](parts/canon-restraint/docs/TOS_CANON_RESTRAINT.md), [TOS_REJECTION_AND_BRANCHING](parts/canon-restraint/docs/TOS_REJECTION_AND_BRANCHING.md), [TOS_THRESHOLD_REVIEW_BOUNDARY](parts/canon-restraint/docs/TOS_THRESHOLD_REVIEW_BOUNDARY.md)
-- `landing-handoff`: [SOPHIAN_THRESHOLD_TOS_LANDING](parts/landing-handoff/docs/SOPHIAN_THRESHOLD_TOS_LANDING.md)
+The [registry](parts/threshold-registry/README.md) maintains candidate-only
+entries, its config, schema, example and generated companion. Build and validate
+with:
+
+```sh
+tos-ops-mechanics-plan --repo-root ROOT --threshold-registry-build
+tos-ops-mechanics-plan --repo-root ROOT --threshold-registry-validate
+tos-ops-mechanics-plan --repo-root ABS --local-contracts mechanics/agon/parts/threshold-registry
+tos-ops-mechanics-plan --repo-root ROOT --execute
+```
+
+The builder accepts `--check` to compare its current output. Retained assertions
+are in `rust/crates/tos-ops-mechanics-plan/tests/mechanics_contracts.rs`.
+
+### Landing handoff
+
+Carry the landing note, center pressure and ToS boundary into a handoff receipt
+and next route: center Agon law to `Agents-of-Abyss`, authored meaning to ToS.
+The landing record remains in `parts/landing-handoff/docs/`.
 
 ## History
 
-This is the active bridge from current Agon routes to former-path accounting.
-Former source material remains recoverable in immutable Git history.
-
-## Legacy Route
-
-Historical old-path accounting is preserved in [TOS-D-0043](../../docs/decisions/TOS-D-0043-spark-and-legacy-scaffolding-retirement.md).
-
-## Distillation Rule
-
-When former Agon material changes current behavior, update the owning active
-part first, then this history route with an exact immutable history reference.
-
-[Exact prior provenance](https://github.com/8Dionysus/Tree-of-Sophia/blob/b54cbf8e30ff46aeddeec5c47a5e7aa1f370977d/mechanics/agon/PROVENANCE.md) preserves the pre-compaction route.
-Former `PARTS.md`, `PROVENANCE.md` and `ROADMAP.md` remain narrow compatibility
-entries for known local and unenumerated external readers. Their contents are
-owned here; they are not required components of a new mechanic.
+[TOS-D-0043](../../docs/decisions/TOS-D-0043-spark-and-legacy-scaffolding-retirement.md)
+and [prior provenance](https://github.com/8Dionysus/Tree-of-Sophia/blob/b54cbf8e30ff46aeddeec5c47a5e7aa1f370977d/mechanics/agon/PROVENANCE.md)
+record earlier routes. When historical material changes current behavior, update
+the owning operation and record an immutable history reference.
 
 ## Growth conditions
 
-Refine the threshold registry or add a narrower part when repeated pressure outgrows the existing operations. Route Table I and graph-review proposals through candidate and source review.
+Refine the threshold registry or add a narrower part when repeated pressure
+outgrows the existing operations. Route Table I and graph-review proposals
+through candidate and source review.
