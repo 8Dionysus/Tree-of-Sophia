@@ -10,6 +10,7 @@ use tos_validation::{
         validate_default_request, validate_frozen_manifest_member, validate_frozen_output_fixity,
         validate_numbered_source_map, validate_recipe_plan, validate_recipe_template,
         validate_retained_artifact, validate_review_sources, validate_selected_historical_receipt,
+        validate_source_index_plans,
     },
 };
 
@@ -230,6 +231,52 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         validate(&serde_json::to_vec(&no_fallback).unwrap(), &schema),
         Err(EditionCurationError::InvalidRange("posture_rules"))
     );
+    let index_curation: Value = serde_json::from_slice(&reading_raw).unwrap();
+    let recipes = index_curation["recipes"].as_array().unwrap();
+    let owner = recipes
+        .iter()
+        .find(|recipe| recipe["stage"] == "lexical-index")
+        .unwrap();
+    let index_ref = owner["locators"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|locator| locator["role"] == "index_plan")
+        .unwrap()["repository_path"]
+        .as_str()
+        .unwrap();
+    let index_raw = fs::read(root.join(index_ref)).unwrap();
+    for stage in ["concept-workbench", "parallel-lexical-candidates"] {
+        let recipe = recipes
+            .iter()
+            .find(|recipe| recipe["stage"] == stage)
+            .unwrap();
+        let plan_ref = recipe["plan_ref"].as_str().unwrap();
+        let plan_raw = fs::read(root.join(plan_ref)).unwrap();
+        let plan = SelectedDocument {
+            reference: plan_ref,
+            raw: &plan_raw,
+        };
+        let index = SelectedDocument {
+            reference: index_ref,
+            raw: &index_raw,
+        };
+        let path = validate_source_index_plans(&reading_raw, stage, plan, index, &schema).unwrap();
+        assert!(path.ends_with("zarathustra-dta-first-editions-parts-1-4-v1.sqlite3"));
+        assert_eq!(
+            validate_source_index_plans(
+                &reading_raw,
+                stage,
+                plan,
+                SelectedDocument {
+                    reference: index_ref,
+                    raw: b"{}"
+                },
+                &schema
+            ),
+            Err(EditionCurationError::DigestMismatch)
+        );
+    }
     let visual_path = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/edition-curation.v1.json";
     let visual_raw = fs::read(root.join(visual_path)).unwrap();
     let visual: Value = serde_json::from_slice(&visual_raw).unwrap();

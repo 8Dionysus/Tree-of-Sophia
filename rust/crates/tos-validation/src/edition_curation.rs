@@ -123,6 +123,29 @@ pub fn validate_recipe_plan(
         .or(historical)
         .ok_or(EditionCurationError::MissingReference)?;
     verify_selected_bytes(plan, reference, expected)?;
+    if let Some(binding) = recipe.get("source_index_binding") {
+        let selected_plan = published_value(plan.raw, plan.raw.len().max(1))
+            .map_err(EditionCurationError::Schema)?;
+        let pointer = binding["consumer_input"]["input_pointer"]
+            .as_str()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        let input = selected_plan
+            .pointer(pointer)
+            .ok_or(EditionCurationError::MissingReference)?;
+        let reference = input["ref"]
+            .as_str()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        tos_foundation::RelativePath::parse(reference)
+            .map_err(|_| EditionCurationError::UnsafePath)?;
+        let digest = input["sha256"]
+            .as_str()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        let parsed = tos_foundation::Digest256::from_hex(digest)
+            .map_err(|_| EditionCurationError::InvalidSchema)?;
+        if parsed.to_hex() != digest {
+            return Err(EditionCurationError::InvalidSchema);
+        }
+    }
     if let Some(settings) = recipe.get("evidence_settings") {
         let selected_plan = published_value(plan.raw, plan.raw.len().max(1))
             .map_err(EditionCurationError::Schema)?;
@@ -388,6 +411,49 @@ pub fn validate_recipe_template(
         }
     }
     Ok(())
+}
+
+/// Bind a consumer and its index owner to the same selected index plan.
+pub fn validate_source_index_plans(
+    raw: &[u8],
+    stage: &str,
+    consumer_plan: SelectedDocument<'_>,
+    index_plan: SelectedDocument<'_>,
+    schema: &SchemaBackendProbe,
+) -> Result<String, EditionCurationError> {
+    let value = document(raw, schema)?;
+    let recipe = selected_recipe(&value, stage)?;
+    let binding = &recipe["source_index_binding"];
+    let owner_stage = binding["index_recipe_stage"]
+        .as_str()
+        .ok_or(EditionCurationError::MissingReference)?;
+    validate_recipe_plan(raw, stage, consumer_plan, schema)?;
+    validate_recipe_plan(raw, owner_stage, index_plan, schema)?;
+    let owner = published_value(index_plan.raw, index_plan.raw.len().max(1))
+        .map_err(EditionCurationError::Schema)?;
+    let pointer = binding["index_path_pointer"]
+        .as_str()
+        .ok_or(EditionCurationError::InvalidSchema)?;
+    let path = owner
+        .pointer(pointer)
+        .and_then(Value::as_str)
+        .ok_or(EditionCurationError::MissingReference)?;
+    tos_foundation::RelativePath::parse(path).map_err(|_| EditionCurationError::UnsafePath)?;
+    if binding["consumer_input"]["kind"] == "direct-plan" {
+        let consumer = published_value(consumer_plan.raw, consumer_plan.raw.len().max(1))
+            .map_err(EditionCurationError::Schema)?;
+        let pointer = binding["consumer_input"]["input_pointer"]
+            .as_str()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        if consumer
+            .pointer(pointer)
+            .and_then(|input| input["ref"].as_str())
+            != Some(path)
+        {
+            return Err(EditionCurationError::BindingMismatch);
+        }
+    }
+    Ok(path.to_owned())
 }
 
 /// Bind the selected review scope to its plan and historical candidate template.
@@ -1066,6 +1132,29 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
             if let Some(recipes) = object.get("recipes").and_then(Value::as_array) {
+                for recipe in recipes {
+                    if let Some(binding) = recipe.get("source_index_binding") {
+                        let stage = binding["index_recipe_stage"]
+                            .as_str()
+                            .ok_or(EditionCurationError::InvalidSchema)?;
+                        let matches = recipes
+                            .iter()
+                            .filter(|candidate| {
+                                candidate["stage"] == stage
+                                    && candidate["locators"].as_array().is_some_and(|locators| {
+                                        locators
+                                            .iter()
+                                            .any(|locator| locator["role"] == "index_plan")
+                                    })
+                            })
+                            .count();
+                        match matches {
+                            1 => {}
+                            0 => return Err(EditionCurationError::MissingReference),
+                            _ => return Err(EditionCurationError::AmbiguousReference),
+                        }
+                    }
+                }
                 for recipe in recipes
                     .iter()
                     .filter(|recipe| recipe["stage"] == "target-passages")
@@ -2347,6 +2436,8 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                 ("outputs", "kind"),
                 ("outputs", "filename"),
                 ("output_files", "role"),
+                ("private_output_files", "role"),
+                ("private_output_files", "filename"),
                 ("output_files", "filename"),
                 ("frozen_outputs", "role"),
                 ("frozen_outputs", "repository_path"),

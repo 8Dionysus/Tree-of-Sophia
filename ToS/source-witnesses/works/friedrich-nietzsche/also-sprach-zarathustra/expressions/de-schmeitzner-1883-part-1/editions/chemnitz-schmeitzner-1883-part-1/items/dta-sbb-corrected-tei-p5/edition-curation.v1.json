@@ -903,7 +903,15 @@
           "output_role": "coverage",
           "json_pointer": "/languages_scanned"
         }
-      ]
+      ],
+      "source_index_binding": {
+        "index_recipe_stage": "lexical-index",
+        "index_path_pointer": "/local_projection/relative_path",
+        "consumer_input": {
+          "kind": "direct-plan",
+          "input_pointer": "/inputs/german_exact_occurrence_database"
+        }
+      }
     },
     {
       "stage": "concept-candidate",
@@ -2427,7 +2435,26 @@
         "strict_shape": "one_to_one",
         "strict_reason_contains": "agrees across",
         "minimum_content_token_characters": 3
-      }
+      },
+      "source_index_binding": {
+        "index_recipe_stage": "lexical-index",
+        "index_path_pointer": "/local_projection/relative_path",
+        "consumer_input": {
+          "kind": "projection-plan",
+          "input_pointer": "/inputs/german_lexical_projection",
+          "projection_digest_pointer": "/local_projection_receipt/database_sha256"
+        }
+      },
+      "private_output_files": [
+        {
+          "role": "source_observation_index",
+          "filename": "antonovsky-1911-lexical-observation-v1.sqlite3"
+        },
+        {
+          "role": "analysis",
+          "filename": "parallel-candidate-analysis.v1.json"
+        }
+      ]
     },
     {
       "stage": "morphology-theme-candidates",
