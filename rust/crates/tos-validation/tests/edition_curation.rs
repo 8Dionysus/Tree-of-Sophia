@@ -83,6 +83,18 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let dta_raw = fs::read(root.join(dta_path)).unwrap();
     assert_eq!(validate(&dta_raw, &schema), Ok(()));
     let dta_value: Value = serde_json::from_slice(&dta_raw).unwrap();
+    let mut wrong_review_output = dta_value.clone();
+    let review = wrong_review_output["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "concept-review")
+        .unwrap();
+    review["output_subdirectory"] = json!("different");
+    assert_eq!(
+        validate(&serde_json::to_vec(&wrong_review_output).unwrap(), &schema),
+        Err(EditionCurationError::BindingMismatch)
+    );
     let mut invalid_output_scope = dta_value.clone();
     let workbench = invalid_output_scope["recipes"]
         .as_array_mut()

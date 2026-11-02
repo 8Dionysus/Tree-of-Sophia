@@ -585,6 +585,43 @@ fn check_replacements(value: &Value) -> Result<(), EditionCurationError> {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if object.contains_key("output_files")
+                && object.contains_key("frozen_outputs")
+                && !object.contains_key("output_layout")
+            {
+                let files = object["output_files"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let frozen = object["frozen_outputs"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let route = object["route"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let root = match object.get("output_subdirectory") {
+                    Some(directory) => format!(
+                        "{route}/{}",
+                        directory
+                            .as_str()
+                            .ok_or(EditionCurationError::InvalidSchema)?
+                    ),
+                    None => route.to_owned(),
+                };
+                if files.len() != frozen.len() {
+                    return Err(EditionCurationError::BindingMismatch);
+                }
+                for file in files {
+                    let filename = file["filename"]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    let expected = format!("{root}/{filename}");
+                    if !frozen.iter().any(|output| {
+                        output["role"] == file["role"] && output["repository_path"] == expected
+                    }) {
+                        return Err(EditionCurationError::BindingMismatch);
+                    }
+                }
+            }
             if let Some(layout) = object.get("output_layout") {
                 let files = object
                     .get("output_files")
