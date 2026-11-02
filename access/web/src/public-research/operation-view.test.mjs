@@ -21,8 +21,8 @@ it('calculates from selected records, saves and restores the same reproducible r
     {id:'p',kind:'passage',title:'Passage',record:{c:'I.01'},dependencies:[]},
     {id:'edge',kind:'relation',title:'connects',record:{from:'a',to:'b',relation:'supports',verb:'connects'},dependencies:['a','b','p']},
     {id:'chain',kind:'chain',title:'Chain',record:{steps:[{id:'step',from:'a',to:'b',verb:'connects'}]},dependencies:['a','b']},
-    {id:'bestowing-virtue',kind:'concept',title:'Bestowing virtue',record:{},dependencies:[]}].map(item=>({record:{},revision:'v1',...item}));
-  const items=new Map(values.map(x=>[x.id,x])),index={items,revision:'v1',get:id=>items.get(id),resolveId:id=>id,references:id=>values.filter(item=>item.dependencies.includes(id))};
+    {id:'bestowing-virtue',kind:'concept',title:'Bestowing virtue',record:{},dependencies:[]}].map(item=>({record:{},revision:'v1',...item,dependencies:item.dependencies.map(id=>({id}))}));
+  const items=new Map(values.map(x=>[x.id,x])),index={items,revision:'v1',get:id=>items.get(id),resolveId:id=>id,references:id=>values.filter(item=>item.dependencies.some(reference=>reference.id===id))};
   const stored=new Map(),notebook={setPreference:async(k,v)=>stored.set(k,v),exportPacket:async()=>({preferences:[...stored].map(([key,value])=>({key,value}))})};
   const root=new Element('div'),onOpen=vi.fn(),view=mountResearchOperations({root,index,notebook,locale:'en',getSelection:()=> 'a',onOpen,timeOf:()=>null,placeOf:()=>null});
   const operation=find(root,'select');operation.value='common_grounds';operation.dispatch('change');

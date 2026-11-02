@@ -34,7 +34,7 @@ test('queues research requests while preserving navigation as a separate trace, 
   const response={event_id:thought.id,question_revision:thought.question_revision,index_revision:thought.index_revision,actor:'agent',kind:'feedback',body:'Ответ по выбранному месту.',source_ids:['source'],next_step:'Проверить контекст.'};
   const delivered=await first.session.dispatch('respond',response);expect(delivered.replayed).toBe(false);
   first.session.destroy();active.splice(active.indexOf(first.session),1);
-  const reopened=f.mount();await reopened.session.ready;expect(reopened.session.context().session_id).toBe(thought.session_id);
+  const reopened=f.mount();await reopened.session.ready;expect((await reopened.session.context()).session_id).toBe(thought.session_id);
   expect((await reopened.session.dispatch('next-event',{timeout_ms:0})).event).toBeNull();
   expect((await reopened.session.dispatch('respond',response)).replayed).toBe(true);
   await expect(reopened.session.dispatch('respond',{...response,next_step:'Другой следующий шаг.'})).rejects.toThrow('already preserved');

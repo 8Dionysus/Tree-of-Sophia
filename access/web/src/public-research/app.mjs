@@ -474,7 +474,7 @@ async function start() {
   workspaceView.connectAgentBridge(agentBridge);
   experience=mountResearchExperience({root:readerRoot,header,profile,locale:()=>locale,index:publicSpace.index,space:spaceView,api:window.tosPublicResearch,notebook:entry.notebook,
     onCognitive:detail=>{if(cognitive)void cognitive.record(detail.action,detail).catch(error=>console.error('Research event',error));}});
-  cognitive=mountCognitiveSession({root:experience.cognitiveRoot,notebook:entry.notebook,index:publicSpace.index,api:window.tosPublicResearch,locale:()=>locale,profile,workspace:publicOwners.workspace,getSelection:()=>experience.getState().id,isActive:()=>experience.getState().mode==='cognitive',onOpen:id=>experience.open(id)});
+  cognitive=mountCognitiveSession({root:experience.cognitiveRoot,notebook:entry.notebook,index:publicSpace.index,api:window.tosPublicResearch,locale:()=>locale,profile,workspace:publicOwners.workspace,getSelection:()=>experience.getState(),versionContext:experience.versionContext,isActive:()=>experience.getState().mode==='cognitive',onOpen:(id,options)=>experience.open(id,options)});
   pageAgent=connectResearchPage({index:publicSpace.index,space:spaceView,experience,session:cognitive,api:window.tosPublicResearch,workspace:publicOwners.workspace,locale:()=>locale});
   workspaceView?.render();
   spaceView.refreshLocale();

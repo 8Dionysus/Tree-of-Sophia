@@ -2,6 +2,7 @@ import {localeValue,resolveLocale} from './locale.mjs';
 import './kernel-cards.css';
 
 const words={
+  route:['Исследовательский маршрут','Research route','Ruta de investigación','Forschungsweg','研究路线'],states:['Состояния','States','Estados','Zustände','状态'],transitions:['Переходы','Transitions','Transiciones','Übergänge','过渡'],retiredTransitions:['Прежние переходы','Earlier transitions','Transiciones anteriores','Frühere Übergänge','先前过渡'],
   'source-visible-stand-proposal':['Предложение стенда','Stand proposal','Propuesta del espacio','Vorschlag des Forschungsraums','研究空间提案'],
   essence:['Суть','Essence','Esencia','Wesen','本质'],development:['Развитие','Development','Desarrollo','Entwicklung','发展'],dimensions:['Измерения','Dimensions','Dimensiones','Dimensionen','维度'],links:['Связи','Links','Vínculos','Verbindungen','联系'],witnesses:['Свидетельства','Witnesses','Testimonios','Zeugnisse','文本见证'],
   thesis:['Тезис','Thesis','Tesis','These','论点'],question:['Вопрос','Question','Pregunta','Frage','问题'],answer:['Ответ','Answer','Respuesta','Antwort','回答'],grounds:['Основания','Grounds','Fundamentos','Grundlagen','依据'],consequences:['Следствия','Consequences','Consecuencias','Folgen','后果'],function:['Роль в книге','Role in the book','Papel en el libro','Rolle im Buch','在书中的作用'],
@@ -211,14 +212,14 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
   function history(parent,record){
     const formulaRecord=(record.conception??record.essence)?.formula;
     const revisions=[...(record.sense_revision_history??[]),...(record.step_revision_history??[])],familyProposed=record.relation_family?.family_proposed;
-    const oldReadings=record.reading?.reading_revision_history??[],oldTitles=record.title_revision_history??[];
+    const oldReadings=record.reading?.reading_revision_history??record.reading_revision_history??[],oldTitles=record.title_revision_history??[];
     if(!record.assessment&&!record.proposed&&!formulaRecord?.assessment&&!formulaRecord?.proposed&&!revisions.length&&!familyProposed&&!oldReadings.length&&!oldTitles.length)return;
     fold(parent,t('history'),body=>{
       review(body,record);
       if(formulaRecord)review(body,formulaRecord);
       for(const revision of revisions){const box=el('section','ps-core-section');box.append(el('h3','minor-title',t('previousSense')));if(revision.verb)form(box,revision.verb);form(box,{...revision.sense,...(revision.cite?{cite:[revision.cite]}:{})});if(revision.answer)section(box,'answer',revision.answer);if(revision.assessment?.reason)form(box,revision.assessment.reason);status(box,revision.assessment?.verdict);body.append(box);}
       for(const title of oldTitles){const box=el('section','ps-core-section');box.append(el('h3','minor-title',t('previousTitle')));form(box,title);body.append(box);}
-      for(const reading of oldReadings){const box=el('section','ps-core-section');box.append(el('h3','minor-title',t('previousSense')));form(box,{...reading.reading,cite:reading.grounds??[]});section(box,'readingLimit',reading.limit);body.append(box);}
+      for(const reading of oldReadings){const box=el('section','ps-core-section');box.append(el('h3','minor-title',t('previousSense')));form(box,{...reading.reading,cite:reading.grounds??(reading.cite?[reading.cite]:[])});section(box,'readingLimit',reading.limit);body.append(box);}
       if(familyProposed){const box=el('section','ps-core-section'),label=core.links.find(link=>link.relation_family?.family===familyProposed.family)?.relation_family?.family_label;box.append(el('h3','minor-title',t('previousFamily')),el('p','',tr(label)||familyProposed.family||''));if(familyProposed.family_reason)form(box,familyProposed.family_reason);body.append(box);}
     });
   }
@@ -263,7 +264,7 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
     const short=essence.thesis??essence.who??record.reading?.reading??record.reading;
     if(tr(short)){const summary=el('section','ps-kernel-summary');summary.append(el('h3','minor-title',t(essence.thesis?'thesis':record.reading?'proposalReading':'who')),el('p','body',tr(short)));root.append(summary);}
     section(root,'question',record.question??essence.question);
-    if(record.reading?.reading){status(root,'familyStatus');status(root,record.reading.independent_review?.verdict);}
+    if(record.reading?.reading||record.reading?.ru||record.reading?.en){status(root,'familyStatus');status(root,record.reading.independent_review?.verdict??record.independent_review?.verdict);}
     else if(!record.conception&&!record.essence&&!record.chainId)status(root,'held');
     else status(root,essence.thesis?.status??essence.formula?.status??record.status);
     const keys=['essence','development','dimensions','links','witnesses'];let showLinks;
@@ -286,8 +287,33 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
     }
     history(root,record);personal(root,record,'node');return true;
   }
+  function routeReference(parent,chain){
+    const article=el('article','ps-kernel-reference');parent.append(article);
+    article.append(el('p','eyebrow',t('route')),el('h2','',tr(chain.title)));status(article,'familyStatus');
+    form(article,chain.sense);section(article,'question',chain.question);
+    const states=el('section','ps-core-section');states.append(el('h3','minor-title',t('states')));
+    for(const state of chain.states??[]){
+      const part=el('section','ps-core-section');part.append(button(tr(state.title),()=>onNode?.(core.materialIds[state.id]??state.id),'connection-target'));
+      form(part,state.reading);if(state.cite)part.append(fragments.fragment(state.cite));status(part,state.independent_review?.verdict);states.append(part);
+    }
+    article.append(states);
+    const transitions=el('section','ps-core-section');transitions.append(el('h3','minor-title',t('transitions')));
+    for(const step of chain.steps??[]){
+      const stateName=id=>tr(chain.states?.find(state=>state.id===id)?.title)||name(id);
+      fold(transitions,`${stateName(step.from)} → ${tr(step.verb)} → ${stateName(step.to)}`,box=>{
+        if(onRelation)box.append(button(t('openRelation'),()=>onRelation(relationId(step)),'ps-kernel-action'));
+        link(box,step);
+      });
+    }
+    article.append(transitions);review(article,chain);
+    if(chain.retired_steps?.length)fold(article,t('retiredTransitions'),box=>{for(const step of chain.retired_steps)link(box,step);});
+    return true;
+  }
   function renderReference(parent,{kind:recordKind,id}={}){
-    if(recordKind==='node')return node(parent,id,{reference:true});
+    if(recordKind==='node'||recordKind==='chain'){
+      const chain=core.chains.find(item=>item.id===id);
+      return chain?routeReference(parent,chain):node(parent,id,{reference:true});
+    }
     if(recordKind==='relation'){
       let record=core.links.find(item=>item.id===id||`core-link:${item.id}`===id);
       if(!record)for(const chain of core.chains){record=chain.steps?.find(item=>item.id===id||item.aliases?.includes(id));if(record)break;}

@@ -15,6 +15,21 @@ const text=node=>all(node).map(item=>item.textContent).join(' ');
 const fold=(node,label)=>all(node).find(item=>item.tagName==='details'&&item.children[0]?.textContent===label);
 beforeAll(()=>{globalThis.document={createElement:tag=>new Element(tag)};});
 
+it('renders a reference route with its source states and only its declared branching transitions',()=>{
+  const cite={w:'work',c:'I.01',u:['u1','u1']};
+  const states=['A','B','C','D'].map(id=>({id,title:{ru:id},reading:{ru:`Чтение ${id}`},cite}));
+  const steps=[['A','B'],['A','C'],['C','D']].map(([from,to],i)=>({id:`step-${i}`,from,to,verb:{ru:'сопоставляется с'},sense:{ru:`Сравнение ${from} и ${to}`},cite}));
+  const core={records:Object.fromEntries(states.map(state=>[state.id,state])),materialIds:{},links:[],chains:[{id:'branch',title:{ru:'Семь различий'},sense:{ru:'Сопоставление сцен'},states,steps}]};
+  const fragments={render(parent,value){if(value?.ru)parent.append(Object.assign(new Element('p'),{textContent:value.ru}));},fragment(){return Object.assign(new Element('p'),{textContent:'Точные слова свидетеля'});}};
+  const root=new Element('div'),view=createCoreView({core,locale:()=> 'ru',fragments});
+  expect(view.renderReference(root,{kind:'chain',id:'branch'})).toBe(true);
+  for(const state of states)expect(text(root)).toContain(state.reading.ru);
+  expect(text(root).match(/Точные слова свидетеля/g)).toHaveLength(4);
+  const transitions=all(root).filter(item=>item.tagName==='details').map(item=>item.children[0].textContent);
+  expect(transitions).toEqual(['A → сопоставляется с → B','A → сопоставляется с → C','C → сопоставляется с → D']);
+  fold(root,transitions[1]).toggle();expect(text(root)).toContain('Сравнение A и C');
+});
+
 it('keeps proposed families, earlier readings and unassessed occurrences distinct',()=>{
   const cite={w:'work',c:'I.01',u:['u1','u1']};
   const figure={id:'speaker',title:{ru:'Говорящий'},existence:'work-world',work_scope:{roles:['speaks'],status:'stand-proposal'},names:{de:[{form:'Brüder',count:1}]},appearances:[{cite,role:'speaks',line:{ru:'Обращается к слушателям'}}]};

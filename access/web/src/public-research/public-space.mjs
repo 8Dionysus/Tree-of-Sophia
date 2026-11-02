@@ -1149,7 +1149,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const fold=el('details','ps-core-fold'),summary=el('summary','',copyLocale(locale())==='en'?'References and dependencies':'Ссылки и зависимости');fold.append(summary);
     const own=el('a','source-link',copyLocale(locale())==='en'?'Copyable link to this item':'Точная ссылка на этот предмет');
     const url=new URL(location.href);url.searchParams.set('item',item.id);url.searchParams.set('revision',index.revision);own.href=url.href;fold.append(own);
-    const rows=[...item.dependencies.map(key=>index.get(key)),...index.references(id)].filter(Boolean);
+    const rows=[...item.dependencies.map(reference=>index.get(typeof reference==='string'?reference:reference.id)),...index.references(id)].filter(Boolean);
     for(const entry of [...new Map(rows.map(row=>[row.id,row])).values()].slice(0,40)){const target=button(tr(entry.title,locale())||entry.id,'connection-target');target.addEventListener('click',()=>shell.dispatchEvent(new CustomEvent('public-research-open',{bubbles:true,detail:{id:entry.id}})));fold.append(target);}
     parent.append(fold);
   }

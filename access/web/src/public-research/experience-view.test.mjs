@@ -2,6 +2,7 @@ import {afterEach,expect,test,vi} from 'vitest';
 vi.mock('./research-history.mjs',()=>({loadResearchVersion:vi.fn(async revision=>({status:'version-unavailable',revision}))}));
 vi.mock('./operation-view.mjs',()=>({mountResearchOperations:vi.fn(()=>({destroy(){},refreshLocale(){}}))}));
 import {mountResearchExperience} from './experience-view.mjs';
+import {mountResearchOperations} from './operation-view.mjs';
 
 class Element{
   constructor(tag){this.tag=tag;this.children=[];this.listeners={};this.dataset={};this.attributes={};this.isConnected=true;this.classList={add(){},remove(){},toggle(){}};this.textContent='';}
@@ -25,8 +26,13 @@ test('reference navigation keeps an unavailable historic version distinct from t
   const view=mountResearchExperience({root,header:new Element('header'),profile:'test',locale:()=> 'en',index,space,notebook,api:{getQuestion:()=>''}});
   await vi.waitFor(()=>expect(root.children.some(node=>node.className==='experience-pane'&&node.children.some(child=>child.className==='experience-body'&&child.children[0]?.children.some(item=>item.textContent?.includes('version is unavailable'))))).toBe(true));
   expect(view.getState()).toMatchObject({mode:'reference',id:'one',revision:'old'});expect(space.renderResearch).not.toHaveBeenCalled();
+  const toolbar=root.children.find(node=>node.className==='experience-toolbar');toolbar.children[1].children.find(button=>button.textContent==='Calculations').listeners.click();
+  await vi.waitFor(()=>expect(root.children.find(node=>node.className==='experience-pane').children.at(-1).children[1].textContent).toContain('version is unavailable'));
+  expect(mountResearchOperations).not.toHaveBeenCalled();
+  view.setMode('original');expect(space.openResearch).not.toHaveBeenCalled();view.setMode('reference');
   view.open('one');await vi.waitFor(()=>expect(stored?.revision).toBe('current'));expect(space.renderResearch).toHaveBeenCalled();
-  expect(stored.stack.map(entry=>entry.revision)).toEqual(['old','current']);view.destroy();
+  expect(mountResearchOperations).toHaveBeenCalledWith(expect.objectContaining({index}));
+  expect(stored.stack.map(entry=>entry.revision)).toEqual(['old','current']);view.setMode('original');expect(space.openResearch).toHaveBeenCalledWith('one');view.destroy();
 });
 
 test('a concurrent preference change preserves the local draft before recovery',async()=>{
