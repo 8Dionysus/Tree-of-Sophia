@@ -1,0 +1,157 @@
+{
+  "schema_version": "tos_digest_field_classes_v1",
+  "scope": "Rules identify only the producer contexts stated below. Unmatched 64-hex fields remain unclassified and block the inventory. A class is not proof of any particular value's input bytes.",
+  "rules": [
+    {
+      "field": "digest",
+      "file_suffix": ".human-forms.json",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "human-form record and revision references; validate each revision source before migration; the assessment owner uses the byte-identical tos_source_record_digest_v1 profile, and historical producer attribution requires verification"
+    },
+    {
+      "field": "digest",
+      "file_suffix": "source-revision-history.json",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "source record revision history references; the assessment owner uses the byte-identical tos_source_record_digest_v1 profile, and historical producer attribution requires verification"
+    },
+    {
+      "field": "request_digest",
+      "file_suffix": "source-revision-history.json",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "source command request in revision history"
+    },
+    {
+      "field": "previous_revision",
+      "file_suffix": ".human-forms.json",
+      "class": "canonical-json",
+      "old_profile": "tos_corpus_snapshot_canonical_v1",
+      "producer_context": "source snapshot revision before the form command"
+    },
+    {
+      "field": "previous_revision",
+      "file_suffix": "source-revision-history.json",
+      "class": "canonical-json",
+      "old_profile": "tos_corpus_snapshot_canonical_v1",
+      "producer_context": "source snapshot revision before the record command"
+    },
+    {
+      "field": "record_sha256",
+      "pointer_contains": "/text_layer/record_sha256",
+      "class": "raw-bytes",
+      "producer_context": "native text layer binding hashes exact prepared record file bytes; source_text_layer_entry.rs prepared_native_binding"
+    },
+    {
+      "field": "canonical_record_sha256",
+      "pointer_contains": "/source_bindings/objects/",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "source claim receipt object binding; the assessment owner uses the byte-identical tos_source_record_digest_v1 profile, and historical producer attribution requires verification"
+    },
+    {
+      "field": "source_sha256",
+      "pointer_contains": "/source_bindings/objects/",
+      "class": "raw-bytes",
+      "producer_context": "source claim receipt source file binding"
+    },
+    {
+      "field": "source_sha256",
+      "pointer_contains": "/source_bindings/evidence/",
+      "class": "raw-bytes",
+      "producer_context": "source claim receipt evidence file binding"
+    },
+    {
+      "field": "source_sha256",
+      "file_contains": "source-claims",
+      "pointer_contains": "/provenance/",
+      "class": "other",
+      "producer_context": "source claim contexts can hash canonical payloads; resolve exact producer before migration"
+    },
+    {
+      "field": "exact_sha256",
+      "file_contains": "source-text-unit",
+      "class": "raw-bytes",
+      "producer_context": "exact selected text UTF-8 bytes in source-text-unit anchors"
+    },
+    {
+      "field": "payload_sha256",
+      "file_contains": "provenance",
+      "class": "other",
+      "producer_context": "payload custody hash; exact producer and payload require owner verification"
+    },
+    {
+      "field": "exact_sha256",
+      "file_contains": "antonovsky-1911-structural-paragraph-v2/",
+      "file_suffix": "physical-line-spine.v2.jsonl",
+      "class": "raw-bytes",
+      "producer_context": "exact selected text bytes in the structural text spine; tos-compiler antonovsky_structural"
+    },
+    {
+      "field": "exact_sha256",
+      "file_contains": "antonovsky-1911-structural-paragraph-v2/",
+      "file_suffix": "logical-row-spine.v2.jsonl",
+      "class": "raw-bytes",
+      "producer_context": "exact selected text bytes in the structural text spine; tos-compiler antonovsky_structural"
+    },
+    {
+      "field": "exact_sha256",
+      "file_contains": "antonovsky-1911-structural-paragraph-v2/",
+      "file_suffix": "paragraph-spine.v2.jsonl",
+      "class": "raw-bytes",
+      "producer_context": "exact selected text bytes in the structural text spine; tos-compiler antonovsky_structural"
+    },
+    {
+      "field": "exact_sha256",
+      "file_contains": "concept-workbench-v1/",
+      "file_suffix": "context-unit-spine.v1.jsonl",
+      "class": "raw-bytes",
+      "producer_context": "exact context text bytes; tos-compiler research_concept_workbench_source"
+    },
+    {
+      "field": "exact_sha256",
+      "file_contains": "antonovsky-1911-pdf-layout-v1/",
+      "file_suffix": "paragraph-segment-overlay.v1.jsonl",
+      "class": "raw-bytes",
+      "producer_context": "exact selected text bytes; antonovsky_structural technical_markup views"
+    },
+    {
+      "field": "exact_sha256",
+      "file_contains": "translation-alignment-packet",
+      "pointer_contains": "/anchors/*/exact_sha256",
+      "class": "raw-bytes",
+      "producer_context": "exact source or target anchor text bytes; constructor_library"
+    }
+  ],
+  "unresolved": [
+    "All other contexts, including source_sha256 outside the specified receipt bindings, record_sha256 outside text-layer bindings, payload_sha256, enclosing transaction identities, raw file and line hashes, dynamic map keys and external stores require producer-specific classification.",
+    "PostgreSQL, immutable runtime stores, archived verifiers, D1 and compressed artifacts are outside the tracked JSON/JSONL scan."
+  ],
+  "producer_and_consumer_inventory": {
+    "legacy_profile_owners": {
+      "tos_corpus_snapshot_canonical_v1": "tos-foundation Json canonical profile; tos-source-store manifest and publication; snapshot canonical bytes include LF",
+      "tos_source_record_digest_v1": "tos-foundation Json canonical profile; tos-command source_command::record_digest, source forms, claims and journals; tos-validation assessment references; no LF",
+      "tos_source_command_input_v1": "tos-foundation Json canonical profile; tos-command source_command request and configuration inputs; no LF"
+    },
+    "direct_and_indirect_consumers_to_trace": [
+      "rust/crates/tos-access",
+      "rust/crates/tos-command",
+      "rust/crates/tos-compiler",
+      "rust/crates/tos-foundation",
+      "rust/crates/tos-ops-mechanics-plan",
+      "rust/crates/tos-query",
+      "rust/crates/tos-source-store",
+      "rust/crates/tos-validation",
+      "rust/crates/tos-web-rules",
+      "access/deploy/cloudflare-worker/src/human-forms.ts",
+      "access/shared/human-form-selection-codec.ts",
+      "access/web/src/observatory/readable-context.mjs"
+    ],
+    "independent_serialization": [
+      "emit_python_compact_json is an insertion-ordered wire emitter, not a canonical digest profile",
+      "access/web/src/research-workspace.ts uses separate local FNV proposal identities"
+    ],
+    "status": "Owner-level navigation only; individual direct calls, wrappers, all producers, consumer bindings, and external stores still require reconciliation before migration."
+  }
+}

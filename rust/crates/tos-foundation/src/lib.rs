@@ -9,6 +9,7 @@ mod error;
 mod hex;
 mod identity;
 mod json;
+mod jcs;
 mod knowledge_model_abi;
 mod logical_ref;
 pub mod native_software_roles;
@@ -30,6 +31,7 @@ pub use hex::{
     encode_lower_hex_byte, is_lower_hex,
 };
 pub use identity::{ExactRecordRef, RecordVersion, SourceRevision, StableId};
+pub use jcs::{JCS_PROFILE, jcs_bytes_v1, jcs_raw_bytes_v1};
 pub use json::{
     CANONICAL_REUSE_CALL_STATE, CANONICAL_REUSE_CORE_STATE, CANONICAL_REUSE_SETUP_STATE,
     CanonicalProfile, CanonicalReusePrepared, CanonicalReuseWorkspace, CanonicalSlice, EncodedJson,

@@ -12,6 +12,7 @@ wasm = ["dep:wasm-bindgen"]
 
 [dependencies]
 ryu = "=1.0.22"
+ryu-js = "=1.0.3"
 sha2 = "0.10"
 unicode-general-category = "=1.1.0"
 wasm-bindgen = { version = "0.2", optional = true }

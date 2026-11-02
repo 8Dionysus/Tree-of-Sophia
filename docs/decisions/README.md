@@ -2345,3 +2345,4 @@ These hand-maintained views collect the decision metadata. Current behavior and 
 Start from [TEMPLATE.md](TEMPLATE.md) and the [local card](AGENTS.md). Use a stable `TOS-D-####` ID and filename. Keep the title short and record context, alternatives, rationale, consequences, source surfaces and validation. Preserve existing IDs and update this index by hand. When a choice changes, name its scope and retain historical rationale.
 
 - [TOS-D-0074 — Measured Mechanisms and Plain Governance](TOS-D-0074-measured-mechanisms-and-plain-governance.md), 2026-11-02, accepted by explicit operator instruction.
+- [TOS-D-0075 — JCS Canonical Bytes](TOS-D-0075-jcs-canonical-bytes.md), 2026-11-02, accepted by explicit operator instruction.
