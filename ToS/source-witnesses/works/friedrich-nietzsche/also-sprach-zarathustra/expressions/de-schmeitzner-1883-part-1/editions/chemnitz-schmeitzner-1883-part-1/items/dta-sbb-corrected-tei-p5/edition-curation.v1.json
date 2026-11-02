@@ -45,7 +45,13 @@
             "field": "projection_id",
             "kind": "text-unit-projection"
           }
-        ]
+        ],
+        "created_at_plan_pointer": "/created_at",
+        "identity_policy_plan_pointer": "/identity_policy/policy",
+        "ids_minted_from": "issuance-namespace-and-issued-sequence-only",
+        "source_locator_role": "binding-only-not-identity-input",
+        "automatic_remint_on_locator_drift": false,
+        "authority_boundary": "This journal records opaque identity issuance for technical source units and the source bindings used to retain them."
       },
       "plan_sha256": "313db1f8e4cf6599c93b9f60afc086cfc18598351717f4fe1573669e5adf67c2",
       "frozen_outputs": [

@@ -134,6 +134,20 @@ pub fn validate_recipe_plan(
     if let Some(profile) = recipe.get("tei_text_profile") {
         let selected = published_value(plan.raw, plan.raw.len().max(1))
             .map_err(EditionCurationError::Schema)?;
+        let issuance = &recipe["identity_issuance"];
+        for name in ["created_at_plan_pointer", "identity_policy_plan_pointer"] {
+            let pointer = issuance[name]
+                .as_str()
+                .ok_or(EditionCurationError::InvalidSchema)?;
+            if selected.pointer(pointer).and_then(Value::as_str).is_none() {
+                return Err(EditionCurationError::MissingReference);
+            }
+        }
+        if selected["identity_policy"]["automatic_remint_on_locator_drift"]
+            != issuance["automatic_remint_on_locator_drift"]
+        {
+            return Err(EditionCurationError::BindingMismatch);
+        }
         let excluded_pointer = profile["excluded_elements_plan_pointer"]
             .as_str()
             .ok_or(EditionCurationError::InvalidSchema)?;
