@@ -15,6 +15,7 @@ const outside=[
   ['model-oriented language in a reading',/методологический якорь ветви|branch.s methodological anchor|формул\w* узла|словесном окружении/i],
   ['the split rendering of doxa in claims about true or false opinion',/\b(?:true|false) beliefs?\b/i],
   ['the split Russian rendering of phantasia in the reviewed assent forms',/От впечатления к согласию с ним|соглашаться с впечатлением|Распознать впечатление|впечатление становится моим решением|Дать впечатлению подождать|переход от возникшего впечатления к его одобрению|отделяет возникшее впечатление от суждения|когда впечатление стало принятым суждением/i],
+  ['the split rendering of ethical arete in the virtue entry',/Совершенство в том, чтобы хорошо жить и действовать|Excellence in living and acting well/i],
   ['an account substituted for the common form in Meno',/Which example would make the demand for a general account clearer\?/i],
   ['a split rendering of phronesis in these Epicurean forms',/Prudence in a Pleasant Life|Pleasure Requires Prudence/i],
 ];
