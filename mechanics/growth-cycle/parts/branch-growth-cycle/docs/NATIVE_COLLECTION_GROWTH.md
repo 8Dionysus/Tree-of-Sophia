@@ -9,8 +9,7 @@ assertions in the corpus.
 standalone Corpus creator. Version 1 is unchanged. Creation requires one new
 canonical `collections/.../collection.json`, provisional identity, no
 equivalence, version 1 and an explicitly empty `membership_claim_refs`.
-The empty list says that no membership assertion was supplied to this
-transaction; it does not assert that the real collection has no members.
+The empty list records that this transaction supplied no membership assertion.
 
 `tos_local_collection_membership_owner_v1` delegates
 `collection.work.attach` and separately scoped recovery. The request binds
@@ -37,8 +36,7 @@ language/script, `membership_scope`, evidence and uncertainty. Competing
 Claims may name the same Work while keeping distinct identities. The operation
 binds metadata endpoints and declared evidence references; the new Claim
 remains unreviewed. Source-visible assessment evaluates the evidence,
-completeness and membership assertion. Canon, equivalence, translation and
-rights retain their owner routes.
+completeness and membership assertion.
 
 Only the compound handler may introduce the parent membership relation.
 Separately delegated Claim corrections preserve its exact compound origin and
@@ -51,4 +49,4 @@ historical Collection versions remain available to exact metadata readers.
 Run `tests/conformance/rust/command_collection_cases.rs`, which checks the
 native `source_collection_membership.rs` and `source_native_collection_cli.rs`
 implementations, then source-foundation and registry checks when their owner
-inputs change. Synthetic fixtures test mechanisms, never historical membership.
+inputs change. The fixtures exercise synthetic membership.

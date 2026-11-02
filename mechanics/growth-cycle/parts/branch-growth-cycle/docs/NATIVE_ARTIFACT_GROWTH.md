@@ -21,10 +21,10 @@ V2 catalog fingerprints distinguish retained (`captured: true`) and
 unretained response bytes. A retained fingerprint must match a captured
 snapshot in the independently bound discovery record: exact response URL,
 SHA-256, acquisition SHA-256 and byte size. The snapshot's discovery event
-remains distinct from native metadata serialization. This metadata check does
-not inspect private snapshots, authenticate capture or grant public access;
-it refuses a retained claim without the exact source account. A private HTML
-snapshot may contain embedded text without becoming an admitted transcription.
+remains distinct from native metadata serialization. The metadata check requires
+the exact source account for a retained claim; private snapshots and capture
+authentication remain outside its inspection. Public access and embedded HTML
+transcription require their own admission.
 Historical v1 fingerprints and all false authority fields stay unchanged.
 
 Only a version-1, unreviewed v2 Artifact with no performed human review and an
@@ -35,10 +35,10 @@ accepted into this metadata route. Earlier generic grants remain unchanged.
 
 The shared source writer atomically publishes the Artifact, its source-copy
 form set and the four conventional `source-create-*` capture companions.
-The event records `native-artifact-metadata-serialization`, not discovery,
-acquisition, rights assessment or planting. Its outputs are only metadata and
-forms; rights, discovery and research are exact inputs. It is unsigned
-mechanical evidence, not authenticated execution truth or present admission.
+The event records `native-artifact-metadata-serialization`. Its outputs are
+metadata and forms; rights, discovery and research are exact inputs. The event
+is unsigned mechanical evidence, distinct from discovery, acquisition, rights
+assessment, planting and admission.
 
 Creation replay and the read-only origin verifier preserve the initial bytes
 through separately retained native descriptive corrections and committed
@@ -52,5 +52,4 @@ Legacy discovery provenance keeps its separate unchanged validation branch.
 Run `rust/crates/tos-command/src/source_artifact_native.rs`, native
 descriptive revision and exact metadata reader tests, then relevant source
 foundation, discovery and topology checks. These synthetic checks cover
-serialization and retained history. Real Artifact assessment, rights,
-publication and canon follow their owner routes.
+serialization and retained history.

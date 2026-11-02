@@ -3,9 +3,8 @@
 The initial source-owner route implements two separately delegated steps:
 `text-layer.create` extracts a bounded representation from an already acquired
 exact EPUB member; `text-unit.create` with its v2 owner configuration constructs
-the first explicit interval partition of one real TextLayer. Both operations start from their exact source bindings. Text assessment,
-accepted reading, semantic Description, Occurrence and Lexeme construction,
-and publication each have a separate owner route.
+the first explicit interval partition of one real TextLayer. Both operations
+start from their exact source bindings.
 
 Existing source-text-layer v1, source-anchor v2, source-text-unit packet v1 and
 provenance-event v2 contracts own the output grammar. The new
@@ -65,8 +64,7 @@ an exact decision for the **new layer identity** are checked before original
 payload bytes are opened. Item-only permission is not sufficient for this new
 content-bearing output. Supported derivative posture is `local_research_only`
 or unconditional `allowed`; denied, conflicting, inactive, conditional and
-permission-required decisions fail closed. This is enforcement of already
-selected owner rights, not a legal assessment or a way to create those rights.
+permission-required decisions fail closed. These are selected owner rights.
 
 ## Narrow, versioned extraction profile
 
