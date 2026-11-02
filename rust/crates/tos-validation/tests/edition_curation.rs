@@ -1857,6 +1857,18 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let antonovsky_path = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/edition-curation.v1.json";
     let antonovsky_raw = fs::read(root.join(antonovsky_path)).unwrap();
     assert_eq!(validate(&antonovsky_raw, &schema), Ok(()));
+    let mut bad_text_ranges: Value = serde_json::from_slice(&antonovsky_raw).unwrap();
+    let pdf = bad_text_ranges["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "pdf-structural-paragraph")
+        .unwrap();
+    pdf["text_classification"]["letter_ranges"][1]["start"] = json!("А");
+    assert_eq!(
+        validate(&serde_json::to_vec(&bad_text_ranges).unwrap(), &schema),
+        Err(EditionCurationError::InvalidRange("letter_ranges"))
+    );
     let mut reordered_legacy_outputs: Value = serde_json::from_slice(&antonovsky_raw).unwrap();
     reordered_legacy_outputs["recipes"][0]["legacy_layout"]["frozen_outputs"]
         .as_array_mut()

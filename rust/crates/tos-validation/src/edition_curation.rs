@@ -1269,6 +1269,35 @@ fn check_replacements(value: &Value) -> Result<(), EditionCurationError> {
     Ok(())
 }
 
+fn character_ranges(
+    profile: &Value,
+    field: &'static str,
+) -> Result<Vec<(char, char)>, EditionCurationError> {
+    let mut result = Vec::new();
+    for range in profile[field]
+        .as_array()
+        .ok_or(EditionCurationError::InvalidSchema)?
+    {
+        let start = range["start"]
+            .as_str()
+            .and_then(|s| s.chars().next())
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        let end = range["end"]
+            .as_str()
+            .and_then(|s| s.chars().next())
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        if start > end
+            || result
+                .last()
+                .is_some_and(|(_, previous)| *previous >= start)
+        {
+            return Err(EditionCurationError::InvalidRange(field));
+        }
+        result.push((start, end));
+    }
+    Ok(result)
+}
+
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
@@ -1283,35 +1312,40 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
             if let Some(replacements) = object.get("search_replacements") {
                 check_replacements(replacements)?;
             }
+            if let Some(profile) = object.get("text_classification") {
+                let whitespace = profile["whitespace_profile"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                tos_foundation::UnicodeProfile::from_profile(whitespace)
+                    .map_err(|_| EditionCurationError::InvalidSchema)?;
+                let ranges = character_ranges(profile, "letter_ranges")?;
+                for field in ["additional_letters", "dash_characters"] {
+                    let text = profile[field]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    let mut seen = BTreeSet::new();
+                    if text.chars().any(|ch| !seen.insert(ch)) {
+                        return Err(EditionCurationError::Duplicate(
+                            "text classification character",
+                        ));
+                    }
+                }
+                let extra = profile["additional_letters"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                if extra.chars().any(|ch| {
+                    ranges
+                        .iter()
+                        .any(|(start, end)| (*start..=*end).contains(&ch))
+                }) {
+                    return Err(EditionCurationError::Duplicate(
+                        "text classification character",
+                    ));
+                }
+            }
             if let Some(profile) = object.get("guillemet_ocr_profile") {
-                let ranges =
-                    |field: &'static str| -> Result<Vec<(char, char)>, EditionCurationError> {
-                        let mut result = Vec::new();
-                        for range in profile[field]
-                            .as_array()
-                            .ok_or(EditionCurationError::InvalidSchema)?
-                        {
-                            let start = range["start"]
-                                .as_str()
-                                .and_then(|s| s.chars().next())
-                                .ok_or(EditionCurationError::InvalidSchema)?;
-                            let end = range["end"]
-                                .as_str()
-                                .and_then(|s| s.chars().next())
-                                .ok_or(EditionCurationError::InvalidSchema)?;
-                            if start > end
-                                || result
-                                    .last()
-                                    .is_some_and(|(_, previous)| *previous >= start)
-                            {
-                                return Err(EditionCurationError::InvalidRange(field));
-                            }
-                            result.push((start, end));
-                        }
-                        Ok(result)
-                    };
-                let letters = ranges("letter_ranges")?;
-                let after = ranges("after_whitespace_ranges")?;
+                let letters = character_ranges(profile, "letter_ranges")?;
+                let after = character_ranges(profile, "after_whitespace_ranges")?;
                 let extra = profile["additional_letters"]
                     .as_str()
                     .ok_or(EditionCurationError::InvalidSchema)?;

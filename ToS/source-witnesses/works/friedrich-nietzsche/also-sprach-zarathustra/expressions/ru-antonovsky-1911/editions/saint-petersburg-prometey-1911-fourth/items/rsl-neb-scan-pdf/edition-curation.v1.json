@@ -526,6 +526,26 @@
       "record_schema_versions": {
         "challenger_input": "tos_antonovsky_1911_primary_challenger_input_v2",
         "private_reconstruction": "tos_antonovsky_1911_private_reconstruction_v2"
+      },
+      "text_classification": {
+        "whitespace_profile": "tos-python-native-unicode-v1",
+        "ascii_letters": true,
+        "letter_ranges": [
+          {
+            "start": "А",
+            "end": "Я"
+          },
+          {
+            "start": "а",
+            "end": "я"
+          }
+        ],
+        "additional_letters": "Ёё",
+        "ornament_contains": "*",
+        "ornament_exact": "¥",
+        "dash_characters": "-—–",
+        "ascii_digits": true,
+        "dash_exclusion_match": "whole-value"
       }
     },
     {
