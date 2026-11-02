@@ -1,0 +1,16 @@
+/* The page for an address the Tree does not hold: the night sky of the stands, the name, the two ways in. */
+:root{color-scheme:dark}
+html,body{margin:0;min-height:100%;background:radial-gradient(ellipse at 70% 30%,#0d1b30 0%,#060c17 55%,#03060c 100%) fixed #04070e;color:#e4e6ea}
+body{display:grid;min-height:100dvh;place-items:center;font:16px/1.5 system-ui,-apple-system,'Segoe UI',sans-serif}
+.nf{box-sizing:border-box;width:min(640px,100%);padding:48px 24px}
+.nf-mark{display:inline-flex;align-items:center;gap:12px;color:#dfe3e7;text-decoration:none;font:500 12px/1.2 system-ui,sans-serif;letter-spacing:.18em;text-transform:uppercase}
+.nf-mark::before{content:'✧';color:#dfc492;font:34px/1 Georgia,serif;letter-spacing:0}
+.nf-mark:hover{color:#f1e3c3}
+.nf-say{margin-top:44px}
+.nf-say+.nf-say{margin-top:36px;padding-top:32px;border-top:1px solid #8296b22b}
+.nf h1{margin:0 0 10px;color:#f3e6c6;font:400 clamp(26px,5vw,34px)/1.2 Georgia,'Times New Roman',serif}
+.nf p{margin:0 0 18px;color:#b9c6d5;font:17px/1.6 Georgia,'Times New Roman',serif}
+.nf-ways{display:flex;flex-wrap:wrap;gap:10px}
+.nf-ways a{display:inline-flex;align-items:center;min-height:40px;padding:0 18px;border:1px solid #b79b60;border-radius:999px;background:#b79b601a;color:#f0e6cd;font:600 13px/1 system-ui,sans-serif;text-decoration:none}
+.nf-ways a:hover{background:#b79b6033}
+.nf a:focus-visible{outline:2px solid #e4cb8b;outline-offset:3px}

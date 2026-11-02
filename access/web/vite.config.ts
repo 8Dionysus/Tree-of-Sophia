@@ -25,7 +25,13 @@ export default defineConfig(({ mode }) => {
     outDir: publicResearch ? "../deploy/cloudflare-worker/dist-public-research" : "dist",
     emptyOutDir: true,
     rollupOptions: {
-      input: {
+      // The public site holds its two stands and the page for an address it does not hold; the older atlas
+      // and research pages stay in the access build only.
+      input: publicResearch ? {
+        'zarathustra/index':fileURLToPath(new URL('./zarathustra/index.html',import.meta.url)),
+        'antiquity/index':fileURLToPath(new URL('./antiquity/index.html',import.meta.url)),
+        'not-found/index':fileURLToPath(new URL('./not-found/index.html',import.meta.url)),
+      } : {
         index:fileURLToPath(new URL('./index.html',import.meta.url)),
         research:fileURLToPath(new URL('./research.html',import.meta.url)),
         'zarathustra/index':fileURLToPath(new URL('./zarathustra/index.html',import.meta.url)),
