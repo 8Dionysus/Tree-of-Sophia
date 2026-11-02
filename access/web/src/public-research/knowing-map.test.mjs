@@ -3,7 +3,7 @@ import {mountKnowing} from './knowing-map.mjs';
 class Element{
  constructor(tag){this.tagName=tag;this.children=[];this.listeners={};this.attributes={};this.dataset={};this.style={setProperty(){}};this.classes=new Set();this.classList={add:(...xs)=>xs.forEach(x=>this.classes.add(x)),remove:(...xs)=>xs.forEach(x=>this.classes.delete(x)),contains:x=>this.classes.has(x),toggle:(x,v)=>v?this.classes.add(x):this.classes.delete(x)};this.textContent='';}
  set className(value){this._className=value;for(const x of value.split(' '))this.classes.add(x);} get className(){return this._className;}
- append(...items){this.children.push(...items);} replaceChildren(...items){this.children=[...items];} setAttribute(k,v){this.attributes[k]=v;if(k==='class')this.className=v;} addEventListener(k,fn){this.listeners[k]=fn;} querySelector(sel){return all(this).find(x=>x.classes.has(sel.slice(1)))??null;} get childElementCount(){return this.children.length;} get firstChild(){return this.children[0];}
+ focus(){} append(...items){this.children.push(...items);} replaceChildren(...items){this.children=[...items];} setAttribute(k,v){this.attributes[k]=v;if(k==='class')this.className=v;} addEventListener(k,fn){this.listeners[k]=fn;} querySelector(sel){return all(this).find(x=>x.classes.has(sel.slice(1)))??null;} get childElementCount(){return this.children.length;} get firstChild(){return this.children[0];}
 }
 const all=node=>[node,...node.children.flatMap(all)];const text=node=>all(node).map(n=>n.textContent).join(' ');
 const live=[];afterEach(()=>{live.splice(0).forEach(x=>x.destroy());vi.unstubAllGlobals();});
@@ -47,4 +47,12 @@ test('a revealed link keeps the reader’s words until the interlocutor records 
  await vi.waitFor(()=>expect(send.disabled).toBe(false));expect(area.value).toBe('The child is the lion’s second birth.');expect(text(f.root)).toContain('not taking thoughts now');
  answer={id:'event-1'};send.listeners.click();
  await vi.waitFor(()=>expect(area.value).toBe(''));expect(text(f.root)).toContain('Sent.');
+});
+test('a heavy-mode reading reaches the interlocutor with the opened link',async()=>{
+ const record=vi.fn(async()=>({id:'event'}));const f=fixture({getSession:()=>({record})});await f.view.ready;f.view.setHelpLevel('heavy');
+ const star=id=>all(f.root).find(x=>x.attributes['data-id']===id);
+ star('lion').listeners.click({stopPropagation(){}});star('child').listeners.click({stopPropagation(){}});
+ const area=all(f.root).find(x=>x.tagName==='textarea');area.value='The child is a new beginning.';
+ all(f.root).find(x=>x.tagName==='button'&&x.textContent==='Check against the book').listeners.click();
+ await vi.waitFor(()=>expect(record).toHaveBeenCalledWith('trial',expect.objectContaining({id:'child-lion',text:expect.stringContaining('The reader’s reading: The child is a new beginning.')})));
 });
