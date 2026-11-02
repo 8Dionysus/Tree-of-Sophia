@@ -249,6 +249,8 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                 ("locators", "role"),
                 ("outputs", "kind"),
                 ("outputs", "filename"),
+                ("frozen_outputs", "role"),
+                ("frozen_outputs", "repository_path"),
                 ("record_identities", "role"),
                 ("role_precedence", "role"),
                 ("visual_markers", "citation_contains"),
