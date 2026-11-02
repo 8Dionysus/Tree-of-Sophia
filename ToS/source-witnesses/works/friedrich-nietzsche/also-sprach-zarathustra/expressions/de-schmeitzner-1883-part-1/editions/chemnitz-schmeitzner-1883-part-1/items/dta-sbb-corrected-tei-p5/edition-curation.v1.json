@@ -2419,6 +2419,20 @@
         "sha256": "94f986029a50f60ec9e05771ec1948059299adaccb31d2a7b5547a214be47387",
         "schema_version": "tos_zarathustra_morphology_theme_candidate_manifest_v1",
         "output_root": "ToS/candidate-intake/zarathustra/dta-antonovsky-morphology-themes-v1"
+      },
+      "candidate_selection": {
+        "provider_min_stem_characters": 3,
+        "provider_max_unambiguous_family_size": 20,
+        "provider_max_stems_per_form": 1,
+        "singleton_min_occurrences": 12,
+        "challenger_min_strict_support": 5,
+        "challenger_min_dice_millionths": 300000,
+        "bridge_min_strict_support_for_proposed": 4,
+        "bridge_min_proposed_source_count": 1,
+        "cooccurrence_max_families_per_unit": 18,
+        "cooccurrence_proposed_min_support": 12,
+        "cooccurrence_proposed_min_dice": 0.3,
+        "cooccurrence_proposed_min_pmi": 1.0
       }
     },
     {
