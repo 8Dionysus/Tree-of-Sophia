@@ -81,7 +81,9 @@ export function mountKnowing({root,index,locale,notebook,profile,fragments,onOpe
       }
     }).catch(error=>{hint.textContent=t('Не удалось сохранить познание: ','Could not save learning: ')+error.message;});
   }
-  const send=(type,detail)=>{try{void getSession?.()?.record(type,detail)?.catch?.(()=>{});}catch{}};
+  // The interlocutor records an event or answers null when it is paused or closed; trace events go without waiting.
+  const record=(type,detail)=>{try{return Promise.resolve(getSession?.()?.record(type,detail)??null);}catch(error){return Promise.reject(error);}};
+  const send=(type,detail)=>{void record(type,detail).catch(()=>{});};
 
   // ── DOM ──
   const stage=el('div','k-stage'),sky=svg('svg',{class:'k-sky',role:'group'}),dust=svg('g',{class:'k-dust'}),edgeLayer=svg('g',{class:'k-edges'}),starLayer=svg('g',{class:'k-stars'});
@@ -242,7 +244,16 @@ export function mountKnowing({root,index,locale,notebook,profile,fragments,onOpe
     const sense=tr(link.record.sense);if(sense)trialBox.append(el('p','k-sense',sense));
     const counter=link.record.assessment?.counter_reading;if(tr(counter)){const c=el('details','k-counter');c.append(el('summary','',t('Сильное другое прочтение','A strong other reading')),el('p','',tr(counter)));for(const cite of counter.grounds??[])c.append(fragments.fragment(cite));trialBox.append(c);}
     const own=el('form','k-own'),area=el('textarea');area.rows=2;area.maxLength=2000;area.placeholder=t('Как вы сами скажете эту связь? Собеседник ответит.','How would you say this link yourself? Your interlocutor will reply.');
-    own.append(area,btn(t('Отправить собеседнику','Send to the interlocutor'),()=>{if(!area.value.trim())return;send('thought',{id:link.id,text:area.value.trim()});area.value='';flash(t('Отправлено. Ответ появится в разделе «Собеседник».','Sent. The reply will appear under “Interlocutor”.'));}));
+    // The reader's words leave the field only once the interlocutor has kept them.
+    const kept=t('Собеседник сейчас не принимает мысли: он на паузе или не подключён. Текст остался в поле.','The interlocutor is not taking thoughts now: it is paused or not connected. Your text remains in the field.');
+    const submit=btn(t('Отправить собеседнику','Send to the interlocutor'),()=>{
+      const text=area.value.trim();if(!text||submit.disabled)return;submit.disabled=true;
+      void record('thought',{id:link.id,text}).then(event=>{
+        if(!event){flash(kept);return;}
+        if(area.value.trim()===text)area.value='';flash(t('Отправлено. Ответ появится в разделе «Собеседник».','Sent. The reply will appear under “Interlocutor”.'));
+      },error=>flash(`${t('Не отправлено; текст остался в поле.','Not sent; your text remains in the field.')} ${error?.message??''}`.trim())).finally(()=>{submit.disabled=false;});
+    });
+    own.append(area,submit);
     own.addEventListener('submit',event=>event.preventDefault());trialBox.append(own);
     const row=el('div','k-trial-row');row.append(btn(t('Дальше','Continue'),()=>{closeTrial();paint();}),btn(t('Открыть связь целиком','Open the whole link'),()=>onOpenReference?.(link.id)));trialBox.append(row);
   }

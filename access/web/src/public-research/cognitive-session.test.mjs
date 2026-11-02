@@ -20,7 +20,7 @@ function fixture(onHelpChange=()=>{}){
   let question='Первый вопрос',questionReady=true,saveAllowed=true;
   const api={getQuestion:()=>question,ensureCurrentQuestion:async()=>questionReady,setQuestion:vi.fn(async value=>{if(!saveAllowed)return false;question=value;return true;})};
   const index={revision:'r1',get:id=>['one','source'].includes(id)?{id,title:{ru:id},kind:id==='source'?'passage':'conception'}:null,inspect:id=>index.get(id)};
-  const mount=()=>{const root=new Element('div'),session=mountCognitiveSession({root,notebook,index,api,profile:'test',getSelection:()=> 'one',onHelpChange});active.push(session);return {root,session};};
+  const mount=(tabApi=api)=>{const root=new Element('div'),session=mountCognitiveSession({root,notebook,index,api:tabApi,profile:'test',getSelection:()=> 'one',onHelpChange});active.push(session);return {root,session};};
   return {saved,api,index,mount,setReady:value=>{questionReady=value;},setSaveAllowed:value=>{saveAllowed=value;}};
 }
 
@@ -68,6 +68,18 @@ test('two tabs see persisted events and responses',async()=>{
   expect((await agent.session.dispatch('next-event',{timeout_ms:0})).event.id).toBe(thought.id);
   await agent.session.dispatch('respond',{event_id:thought.id,question_revision:thought.question_revision,index_revision:thought.index_revision,body:'Reply across tabs'});
   await vi.waitFor(()=>expect(text(human.root)).toContain('Reply across tabs'),{timeout:2500});
+});
+
+test('a second tab reads the question another tab saved before it answers',async()=>{
+  const f=fixture(),human=f.mount();await human.session.ready;
+  let shown=f.api.getQuestion();const tabApi={...f.api,getQuestion:()=>shown,refreshQuestion:vi.fn(async()=>{shown=f.api.getQuestion();return true;})};
+  const agent=f.mount(tabApi);await agent.session.ready;
+  await f.api.setQuestion('Новый вопрос');const asked=await human.session.record('question',{text:'Новый вопрос'});
+  const next=await agent.session.dispatch('next-event',{timeout_ms:0});
+  expect(next.event.id).toBe(asked.id);expect(next.context.question).toBe('Новый вопрос');expect(next.context.question_revision).toBe(asked.question_revision);
+  const reply=await agent.session.dispatch('respond',{event_id:asked.id,question_revision:asked.question_revision,index_revision:asked.index_revision,body:'Ответ на новый вопрос'});
+  expect(reply.response.stale).toBe(false);
+  expect((await agent.session.dispatch('context')).question).toBe('Новый вопрос');
 });
 
 test('keeps a thought draft when paused',async()=>{

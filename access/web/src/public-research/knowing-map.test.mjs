@@ -7,7 +7,7 @@ class Element{
 }
 const all=node=>[node,...node.children.flatMap(all)];const text=node=>all(node).map(n=>n.textContent).join(' ');
 const live=[];afterEach(()=>{live.splice(0).forEach(x=>x.destroy());vi.unstubAllGlobals();});
-function fixture(){
+function fixture({getSession}={}){
  vi.stubGlobal('document',{createElement:t=>new Element(t),createElementNS:(_,t)=>new Element(t)});vi.stubGlobal('ResizeObserver',class{observe(){}});vi.stubGlobal('requestAnimationFrame',()=>0);
  const nodes=['lion','child','other'].map(id=>({id,owner:'bonsai/core',kind:'figure',title:{en:id},record:{title:{en:id}}}));
  const link={id:'child-lion',kind:'relation',record:{admission:'map',from:'child',to:'lion',verb:{en:'becomes'},question:{en:'How?'},grounds:[]}};
@@ -15,7 +15,7 @@ function fixture(){
  let stored={level:'light',start:'lion',known:['lion'],found:[],hypotheses:[]};const copy=x=>structuredClone(x);
  const notebook={getPreference:async()=>copy(stored),setPreference:async(_,value,{expectedValue})=>{if(JSON.stringify(stored)!==JSON.stringify(expectedValue))throw Object.assign(Error('conflict'),{code:'conflict'});stored=copy(value);}};
  const root=new Element('div'),index={items:new Map([...nodes,link,second].map(x=>[x.id,x]))};
- const view=mountKnowing({root,index,locale:()=> 'en',notebook,profile:'test',fragments:{fragment:()=>new Element('p')}});live.push(view);
+ const view=mountKnowing({root,index,locale:()=> 'en',notebook,profile:'test',fragments:{fragment:()=>new Element('p')},getSession});live.push(view);
  return {root,view,stored:()=>copy(stored),remote:value=>stored=copy(value)};
 }
 test('hovering a threshold keeps its row and expanded journal mounted',async()=>{
@@ -35,4 +35,16 @@ test('assistance changes from the interlocutor update the map',async()=>{
  const f=fixture();await f.view.ready;expect(text(f.root)).toContain('Questions at the threshold');
  f.view.setHelpLevel('heavy');expect(text(f.root)).not.toContain('Questions at the threshold');
  await vi.waitFor(()=>expect(f.stored().level).toBe('heavy'));
+});
+test('a revealed link keeps the reader’s words until the interlocutor records them',async()=>{
+ let answer=null;const record=vi.fn(async()=>answer);const f=fixture({getSession:()=>({record})});await f.view.ready;
+ all(f.root).find(x=>x.className==='k-row').listeners.click();
+ all(f.root).find(x=>x.tagName==='button'&&x.textContent==='Show the book’s answer').listeners.click();
+ const area=all(f.root).find(x=>x.tagName==='textarea'),send=all(f.root).find(x=>x.tagName==='button'&&x.textContent==='Send to the interlocutor');
+ await vi.waitFor(()=>expect(f.stored().found).toHaveLength(1));await new Promise(resolve=>setTimeout(resolve,0));
+ area.value='The child is the lion’s second birth.';send.listeners.click();
+ await vi.waitFor(()=>expect(record).toHaveBeenCalledWith('thought',{id:'child-lion',text:'The child is the lion’s second birth.'}));
+ await vi.waitFor(()=>expect(send.disabled).toBe(false));expect(area.value).toBe('The child is the lion’s second birth.');expect(text(f.root)).toContain('not taking thoughts now');
+ answer={id:'event-1'};send.listeners.click();
+ await vi.waitFor(()=>expect(area.value).toBe(''));expect(text(f.root)).toContain('Sent.');
 });

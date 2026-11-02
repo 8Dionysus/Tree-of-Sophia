@@ -186,8 +186,9 @@ async function refreshQuestion() {
     const value = await notebook.getPreference(QUESTION_KEY);
     if (questionTouched || sequence !== questionSequence) return false;
     questionExpected = value;
-    question.value = typeof value === 'string' ? value : '';
-    notifyQuestion();
+    const next = typeof value === 'string' ? value : '';
+    // Sessions refresh every second; listeners hear only a question that changed.
+    if (question.value !== next) { question.value = next; notifyQuestion(); }
     return true;
   } catch { return false; }
 }

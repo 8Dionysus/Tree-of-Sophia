@@ -42,6 +42,8 @@ export function mountCognitiveSession({root,notebook,index,api,locale=()=> 'ru',
     }
   }
   async function refresh(){
+    // Another tab may have saved a new question; its owner reloads it unless this tab holds an unsaved draft.
+    try{await api.refreshQuestion?.();}catch{}
     const latest=await notebook.getPreference(sessionKey(header.id));
     if(latest){header=latest;expected=clone(latest);}
     const packet=await notebook.exportPacket();
@@ -112,7 +114,7 @@ export function mountCognitiveSession({root,notebook,index,api,locale=()=> 'ru',
   }
   async function dispatch(action,input={},signal){
     await ready;
-    if(action==='context')return context(input);if(action==='next-event')return nextEvent(input,signal);
+    if(action==='context'){await enqueue(refresh);return context(input);}if(action==='next-event')return nextEvent(input,signal);
     return enqueue(async()=>{
       await refresh();
       if(input.session_id&&input.session_id!==header.id)throw new TypeError('Session does not match this document');
