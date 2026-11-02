@@ -777,6 +777,44 @@ pub fn validate_frozen_manifest_member(
     verify_selected_bytes(member, member.reference, digest)
 }
 
+/// Select one named field from a manifest-bound historical coverage record.
+pub fn select_frozen_coverage_field(
+    raw: &[u8],
+    stage: &str,
+    role: &str,
+    manifest: SelectedDocument<'_>,
+    coverage: SelectedDocument<'_>,
+    schema: &SchemaBackendProbe,
+) -> Result<Value, EditionCurationError> {
+    let value = document(raw, schema)?;
+    let recipe = selected_recipe(&value, stage)?;
+    let descriptor = &recipe["retained_coverage"];
+    let root = recipe["frozen_manifest"]["output_root"]
+        .as_str()
+        .ok_or(EditionCurationError::MissingReference)?;
+    let filename = descriptor["filename"]
+        .as_str()
+        .ok_or(EditionCurationError::MissingReference)?;
+    if coverage.reference != format!("{root}/{filename}") {
+        return Err(EditionCurationError::BindingMismatch);
+    }
+    let field = descriptor["coverage_fields"]
+        .as_array()
+        .ok_or(EditionCurationError::MissingReference)?
+        .iter()
+        .find(|field| field["role"] == role)
+        .ok_or(EditionCurationError::MissingReference)?;
+    validate_frozen_manifest_member(raw, stage, manifest, coverage, schema)?;
+    let data = published_value(coverage.raw, coverage.raw.len().max(1))
+        .map_err(EditionCurationError::Schema)?;
+    let pointer = field["json_pointer"]
+        .as_str()
+        .ok_or(EditionCurationError::InvalidSchema)?;
+    data.pointer(pointer)
+        .cloned()
+        .ok_or(EditionCurationError::MissingReference)
+}
+
 /// Bind the default request to its selected bytes and request key.
 pub fn validate_default_request(
     raw: &[u8],
@@ -2574,6 +2612,7 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                 ("frozen_outputs", "role"),
                 ("frozen_outputs", "repository_path"),
                 ("historical_fields", "role"),
+                ("coverage_fields", "role"),
                 ("historical_receipt_fields", "role"),
                 ("historical_templates", "role"),
                 ("retained_artifacts", "role"),

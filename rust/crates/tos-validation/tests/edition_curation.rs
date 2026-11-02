@@ -5,12 +5,12 @@ use tos_validation::{
     FormatProfile, SchemaBackendProbe, SchemaResource,
     edition_curation::{
         EditionCurationError, SCHEMA_URI, SelectedCuration, SelectedDocument,
-        select_frozen_manifest, select_historical_field, select_historical_receipt_field,
-        select_recipe_input_digest, select_retained_digest, validate, validate_bindings,
-        validate_default_request, validate_frozen_manifest_member, validate_frozen_output_fixity,
-        validate_numbered_source_map, validate_recipe_plan, validate_recipe_template,
-        validate_retained_artifact, validate_review_sources, validate_selected_historical_receipt,
-        validate_source_index_plans,
+        select_frozen_coverage_field, select_frozen_manifest, select_historical_field,
+        select_historical_receipt_field, select_recipe_input_digest, select_retained_digest,
+        validate, validate_bindings, validate_default_request, validate_frozen_manifest_member,
+        validate_frozen_output_fixity, validate_numbered_source_map, validate_recipe_plan,
+        validate_recipe_template, validate_retained_artifact, validate_review_sources,
+        validate_selected_historical_receipt, validate_source_index_plans,
     },
 };
 
@@ -795,6 +795,62 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
                     &schema,
                 )
                 .is_ok()
+            );
+        }
+        if stage == "paragraph-alignment" {
+            let coverage_ref = format!(
+                "{}/{}",
+                recipe["frozen_manifest"]["output_root"].as_str().unwrap(),
+                recipe["retained_coverage"]["filename"].as_str().unwrap()
+            );
+            let coverage_raw = fs::read(root.join(&coverage_ref)).unwrap();
+            let coverage = SelectedDocument {
+                reference: &coverage_ref,
+                raw: &coverage_raw,
+            };
+            assert_eq!(
+                select_frozen_coverage_field(
+                    &dta_raw,
+                    stage,
+                    "same-group",
+                    manifest,
+                    coverage,
+                    &schema
+                ),
+                Ok(json!(3311))
+            );
+            assert_eq!(
+                select_frozen_coverage_field(
+                    &dta_raw,
+                    stage,
+                    "disagreement",
+                    manifest,
+                    coverage,
+                    &schema
+                ),
+                Ok(json!(112))
+            );
+            assert_eq!(
+                select_frozen_coverage_field(
+                    &dta_raw, stage, "missing", manifest, coverage, &schema
+                ),
+                Err(EditionCurationError::MissingReference)
+            );
+            let mut altered = coverage_raw.clone();
+            altered[0] ^= 1;
+            assert_eq!(
+                select_frozen_coverage_field(
+                    &dta_raw,
+                    stage,
+                    "same-group",
+                    manifest,
+                    SelectedDocument {
+                        reference: &coverage_ref,
+                        raw: &altered
+                    },
+                    &schema
+                ),
+                Err(EditionCurationError::DigestMismatch)
             );
         }
         let member_ref = selected["generated_outputs"]

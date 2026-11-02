@@ -2025,6 +2025,59 @@
       "target_layer_filename": {
         "prefix": "antonovsky-1911-part-",
         "suffix": "-paragraphs.v1.txt"
+      },
+      "retained_coverage": {
+        "filename": "coverage-receipt.v1.json",
+        "coverage_fields": [
+          {
+            "role": "same-group",
+            "json_pointer": "/independent_challenger_same_group_count"
+          },
+          {
+            "role": "disagreement",
+            "json_pointer": "/independent_challenger_disagreement_count"
+          },
+          {
+            "role": "affected-units",
+            "json_pointer": "/independent_challenger_disagreement_paragraph_unit_count"
+          },
+          {
+            "role": "disagreement-by-part",
+            "json_pointer": "/independent_challenger_disagreement_by_part"
+          },
+          {
+            "role": "primary-profile",
+            "json_pointer": "/primary_profile_disagreement_count"
+          },
+          {
+            "role": "overlap",
+            "json_pointer": "/primary_profile_and_independent_disagreement_overlap_count"
+          },
+          {
+            "role": "primary-only",
+            "json_pointer": "/primary_only_machine_risk_count"
+          },
+          {
+            "role": "risk-union",
+            "json_pointer": "/machine_risk_union_count"
+          },
+          {
+            "role": "conflicts",
+            "json_pointer": "/conflict_ledger_count"
+          },
+          {
+            "role": "deferred",
+            "json_pointer": "/preserved_deferred_count"
+          },
+          {
+            "role": "reading-pairs",
+            "json_pointer": "/reading_pair_count"
+          },
+          {
+            "role": "reading-pairs-by-part",
+            "json_pointer": "/reading_pairs_by_part"
+          }
+        ]
       }
     },
     {
