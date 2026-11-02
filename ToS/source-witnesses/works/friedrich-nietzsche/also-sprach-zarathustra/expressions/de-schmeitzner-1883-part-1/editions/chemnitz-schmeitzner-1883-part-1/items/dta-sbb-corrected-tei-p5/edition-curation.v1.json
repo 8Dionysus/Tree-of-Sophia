@@ -449,6 +449,121 @@
           }
         ],
         "expected_count": 7743
+      },
+      "form_selection": {
+        "legacy_classifier_sha256": "73be454007c1759fe8c2bf54c80ec637905da748664c53582ace93e009fdfb51",
+        "ranks": [
+          "direct_exact",
+          "direct_morphology",
+          "semantic_exact",
+          "semantic_morphology"
+        ],
+        "languages": [
+          {
+            "language": "de",
+            "suffixes": [
+              "ern",
+              "est",
+              "em",
+              "en",
+              "er",
+              "es",
+              "te",
+              "st",
+              "et",
+              "e",
+              "n",
+              "s",
+              "t"
+            ],
+            "character_replacements": [
+              {
+                "from": "ä",
+                "to": "a"
+              },
+              {
+                "from": "ö",
+                "to": "o"
+              },
+              {
+                "from": "ü",
+                "to": "u"
+              }
+            ],
+            "split_hyphenated_forms": true
+          },
+          {
+            "language": "ru",
+            "suffixes": [
+              "иями",
+              "ями",
+              "ами",
+              "ого",
+              "ему",
+              "ому",
+              "ими",
+              "ыми",
+              "аться",
+              "яться",
+              "ить",
+              "ать",
+              "ять",
+              "ешь",
+              "ишь",
+              "ете",
+              "ите",
+              "ут",
+              "ют",
+              "ат",
+              "ят",
+              "ла",
+              "ли",
+              "ло",
+              "его",
+              "ой",
+              "ей",
+              "ий",
+              "ый",
+              "ая",
+              "яя",
+              "ую",
+              "юю",
+              "ов",
+              "ев",
+              "ам",
+              "ям",
+              "ах",
+              "ях",
+              "ом",
+              "ем",
+              "ою",
+              "ею",
+              "ы",
+              "и",
+              "а",
+              "я",
+              "у",
+              "ю",
+              "е",
+              "о",
+              "ь"
+            ],
+            "character_replacements": [],
+            "split_hyphenated_forms": false
+          }
+        ],
+        "unknown_language_suffix_profile": "ru",
+        "minimum_stem_characters": 4,
+        "historical_prefix": {
+          "language": "de",
+          "suffix": "niss",
+          "minimum_stem_characters": 4,
+          "method": "historical_niss_prefix_candidate"
+        },
+        "exact_method": "exact_analysis_form",
+        "signature_method": "shared_reversible_signature",
+        "unknown_language_character_replacements": [],
+        "unknown_language_split_hyphenated_forms": false
       }
     },
     {

@@ -406,6 +406,52 @@ enum MarkerPart {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if let Some(profile) = object.get("form_selection") {
+                let languages = profile["languages"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let mut seen = BTreeSet::new();
+                for language in languages {
+                    let code = language["language"]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    if !seen.insert(code) {
+                        return Err(EditionCurationError::Duplicate("form selection language"));
+                    }
+                    let mut replacements = BTreeSet::new();
+                    for replacement in language["character_replacements"]
+                        .as_array()
+                        .ok_or(EditionCurationError::InvalidSchema)?
+                    {
+                        let from = replacement["from"]
+                            .as_str()
+                            .ok_or(EditionCurationError::InvalidSchema)?;
+                        if !replacements.insert(from) {
+                            return Err(EditionCurationError::Duplicate("character replacement"));
+                        }
+                    }
+                }
+                let mut fallback_replacements = BTreeSet::new();
+                for replacement in profile["unknown_language_character_replacements"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?
+                {
+                    let from = replacement["from"]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    if !fallback_replacements.insert(from) {
+                        return Err(EditionCurationError::Duplicate("character replacement"));
+                    }
+                }
+                for code in [
+                    &profile["unknown_language_suffix_profile"],
+                    &profile["historical_prefix"]["language"],
+                ] {
+                    if !code.as_str().is_some_and(|code| seen.contains(code)) {
+                        return Err(EditionCurationError::MissingReference);
+                    }
+                }
+            }
             if let Some(profile) = object.get("speaker_cues") {
                 let cues = profile["cues"]
                     .as_array()
