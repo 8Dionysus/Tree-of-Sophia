@@ -33,6 +33,161 @@
       "event_id": "tos.event.alignment.za-i-vorrede-1.dta-1883-antonovsky-1911-opening-sentence.2026-08-12",
       "legacy_builder_ref": "scripts/build_zarathustra_opening_sentence_alignment.py",
       "legacy_builder_sha256": "80d312d541718d5fc5e57caa5689202102ec527fe311e29f362c341e76f9d52d"
+    },
+    {
+      "stage": "concept-workbench",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf"
+      ],
+      "work_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra",
+      "route": "ToS/candidate-intake/zarathustra/concept-workbench-v1",
+      "plan_ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/plan.v1.json",
+      "plan_sha256": "66558b6f0046c82417204a7b78945035e17c0ae780ff70ef736df43d0882cad6",
+      "historical_producers": [
+        {
+          "role": "builder",
+          "ref": "scripts/build_zarathustra_concept_workbench_v1.py",
+          "sha256": "c60ef9660b5bbfbc06a3ce2f710f45bd5761f8f8ced55c4352c6f16e90a57a2d"
+        },
+        {
+          "role": "query",
+          "ref": "scripts/query_zarathustra_concept_workbench_v1.py",
+          "sha256": "ca9bb4c046f306acfcbbdd06d1bf95306d3fad1444babfc4cba735276e9832ec"
+        },
+        {
+          "role": "word-analysis",
+          "ref": "scripts/prepare_zarathustra_word_analysis_v1.py",
+          "sha256": "fba47c5368663fe6877b725174ee80b9118294b8af89a78ed2ca041d9839f9fb"
+        }
+      ]
+    },
+    {
+      "stage": "concept-candidate",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf"
+      ],
+      "work_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra",
+      "route": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1",
+      "plan_ref": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/plan.v1.json",
+      "plan_sha256": "2ce7877b1c83a83647ca2ab3cc5e57e3ad2ce9c552e4953defeab049a05ca6e9",
+      "historical_producers": [
+        {
+          "role": "builder",
+          "ref": "scripts/build_zarathustra_eternal_return_concept_candidate_v1.py",
+          "sha256": "35f9a992d0f9460baea7649dde7abed4f615188a376b915041ce49c734400c12"
+        }
+      ],
+      "alignment_suffix": "alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1",
+      "output_files": [
+        {
+          "role": "concept",
+          "filename": "concept-candidate.v1.json"
+        },
+        {
+          "role": "evidence",
+          "filename": "evidence-spine.v1.jsonl"
+        },
+        {
+          "role": "formulas",
+          "filename": "formula-candidates.v1.jsonl"
+        },
+        {
+          "role": "templates",
+          "filename": "interpretation-templates.v1.jsonl"
+        },
+        {
+          "role": "exclusions",
+          "filename": "exclusion-ledger.v1.jsonl"
+        },
+        {
+          "role": "promotion",
+          "filename": "promotion-readiness.v1.json"
+        },
+        {
+          "role": "coverage",
+          "filename": "coverage-receipt.v1.json"
+        },
+        {
+          "role": "summary",
+          "filename": "summary.v1.json"
+        },
+        {
+          "role": "audit",
+          "filename": "independent-agent-audit.v1.json"
+        },
+        {
+          "role": "provenance",
+          "filename": "provenance.jsonl"
+        },
+        {
+          "role": "manifest",
+          "filename": "manifest.v1.json"
+        }
+      ]
+    },
+    {
+      "stage": "concept-review",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf"
+      ],
+      "work_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra",
+      "route": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1",
+      "plan_ref": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/review-preparation-v1/plan.v1.json",
+      "plan_sha256": "d16900b7d259d525da24a8fd2ed1567567872b2e01929f75e5988349f08877ff",
+      "historical_producers": [
+        {
+          "role": "builder",
+          "ref": "scripts/build_zarathustra_eternal_return_review_preparation_v1.py",
+          "sha256": "335df2c5ad52229d449cf6a22cdef4d5dabca49163b3154d85aed1e1a212027b"
+        }
+      ],
+      "alignment_suffix": "alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1",
+      "output_files": [
+        {
+          "role": "gaps",
+          "filename": "gap-review-candidates.v1.jsonl"
+        },
+        {
+          "role": "speakers",
+          "filename": "speaker-attribution-candidates.v1.jsonl"
+        },
+        {
+          "role": "matrix",
+          "filename": "interpretation-review-matrix.v1.json"
+        },
+        {
+          "role": "worklist",
+          "filename": "review-worklist.v1.json"
+        },
+        {
+          "role": "coverage",
+          "filename": "coverage-receipt.v1.json"
+        },
+        {
+          "role": "summary",
+          "filename": "summary.v1.json"
+        },
+        {
+          "role": "provenance",
+          "filename": "provenance.jsonl"
+        },
+        {
+          "role": "manifest",
+          "filename": "manifest.v1.json"
+        }
+      ]
     }
   ]
 }
