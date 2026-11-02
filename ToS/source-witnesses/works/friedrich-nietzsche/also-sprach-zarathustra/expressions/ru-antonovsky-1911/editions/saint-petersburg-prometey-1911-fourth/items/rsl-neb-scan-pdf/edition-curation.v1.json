@@ -178,7 +178,63 @@
         "historical_provenance_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/provenance.jsonl",
         "historical_provenance_sha256": "a7f5f9e0354c5fa8b8c41e0696497080c22bd69fec60a83cea90bc80f41d2204",
         "maintained_recipe_ref": "ToS/research-packets/retained-builder-inputs/build_antonovsky_1911_technical_markup/4c80683124592bc969e0db6ffe0d5696ec28d4079bc522725788aeff44abd8eb.py",
-        "maintained_recipe_sha256": "4c80683124592bc969e0db6ffe0d5696ec28d4079bc522725788aeff44abd8eb"
+        "maintained_recipe_sha256": "4c80683124592bc969e0db6ffe0d5696ec28d4079bc522725788aeff44abd8eb",
+        "frozen_outputs": [
+          {
+            "role": "packet_ref",
+            "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/source-text-unit.v1.json",
+            "schema_version": "tos_source_text_unit_packet_v1",
+            "expected_sha256": "6cc138df46c57f56d3ef25bece8d42fc149bce5eaa4448e675275bb85d68e7b5"
+          },
+          {
+            "role": "citation_spine_ref",
+            "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/citation-spine.v1.jsonl",
+            "schema_version": "tos_zarathustra_antonovsky_technical_citation_v1",
+            "expected_sha256": "6dc363493c9676db2fba887c07496d723c7bb743c72885d9ddd15755b1bcc040"
+          },
+          {
+            "role": "region_candidates_ref",
+            "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/region-candidates.v1.jsonl",
+            "schema_version": "tos_zarathustra_antonovsky_region_candidate_v1",
+            "expected_sha256": "cae9c562aab4f44a368eafadfa1555eba9bc6b8e12bbcdb2fe979a8c4e95f31b"
+          },
+          {
+            "role": "heading_candidates_ref",
+            "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/heading-candidates.v1.jsonl",
+            "schema_version": "tos_zarathustra_antonovsky_heading_candidate_v1",
+            "expected_sha256": "6fd30812a115473c5486e58ac18e2fbc647c640c6074d187f99080d4d21df5df"
+          },
+          {
+            "role": "summary_ref",
+            "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/summary.v1.json",
+            "schema_version": "tos_zarathustra_antonovsky_technical_markup_summary_v1",
+            "expected_sha256": "e089a061d47d1c6fedbab4f9e3973d929fb2c0d6975f62e6739490f88c8a1182"
+          },
+          {
+            "role": "heading_screening_ref",
+            "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/heading-screening.v1.jsonl",
+            "schema_version": "tos_zarathustra_antonovsky_heading_screening_v1",
+            "expected_sha256": "161a01ef2b3c616b85e7ea6f7a213185314726c29045f9995a902d13e343a02a"
+          },
+          {
+            "role": "paragraph_segment_overlay_ref",
+            "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/paragraph-segment-overlay.v1.jsonl",
+            "schema_version": "tos_zarathustra_antonovsky_paragraph_segment_overlay_v1",
+            "expected_sha256": "5c17210c3448af0fb88909ced243d2eb53928ba509c68aab738b25e68009ee0b"
+          },
+          {
+            "role": "screening_summary_ref",
+            "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/screening-summary.v1.json",
+            "schema_version": "tos_zarathustra_antonovsky_technical_screening_summary_v1",
+            "expected_sha256": "cd80384ab7ba6bf50ffc209d97cf86b5e16bcca90ddd33678cd098d974ca72fe"
+          },
+          {
+            "role": "provenance_ref",
+            "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/provenance.jsonl",
+            "schema_version": "tos_provenance_event_v1",
+            "expected_sha256": "a7f5f9e0354c5fa8b8c41e0696497080c22bd69fec60a83cea90bc80f41d2204"
+          }
+        ]
       },
       "identity_issuance": {
         "issuance_id": "tos.identity-issuance.zarathustra-antonovsky-1911-structural-paragraph-v2",

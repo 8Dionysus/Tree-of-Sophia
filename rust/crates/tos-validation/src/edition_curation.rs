@@ -103,6 +103,31 @@ pub fn validate_recipe_plan(
             }
         }
     }
+    if matches!(stage, "tei-source-foundation" | "authored-canon-evidence") {
+        let selected_plan = published_value(plan.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+            .map_err(EditionCurationError::Schema)?;
+        let selector = if stage == "tei-source-foundation" {
+            &selected_plan["selector"]
+        } else {
+            &selected_plan["source_selector"]
+        };
+        let steps = recipe["tei_selector"]["steps"]
+            .as_array()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        let mut expression = String::new();
+        for step in steps {
+            let element = step["element"]
+                .as_str()
+                .ok_or(EditionCurationError::InvalidSchema)?;
+            expression.push_str(&format!("/*[local-name()='{element}']"));
+            if let Some(ordinal) = step["ordinal"].as_u64() {
+                expression.push_str(&format!("[{ordinal}]"));
+            }
+        }
+        if selector["scheme"] != "xpath-1.0-local-name" || selector["value"] != expression {
+            return Err(EditionCurationError::BindingMismatch);
+        }
+    }
     Ok(())
 }
 
@@ -356,6 +381,32 @@ enum MarkerPart {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if let Some(Value::Array(keys)) = object.get("output_keys") {
+                let outputs = object
+                    .get("frozen_outputs")
+                    .and_then(Value::as_array)
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                if keys.len() != outputs.len()
+                    || keys
+                        .iter()
+                        .zip(outputs)
+                        .any(|(key, output)| output.get("role") != Some(key))
+                {
+                    return Err(EditionCurationError::BindingMismatch);
+                }
+                if let Some(provenance_ref) = object.get("historical_provenance_ref") {
+                    let provenance = outputs
+                        .iter()
+                        .find(|output| output["role"] == "provenance_ref")
+                        .ok_or(EditionCurationError::MissingReference)?;
+                    if provenance.get("repository_path") != Some(provenance_ref)
+                        || provenance.get("expected_sha256")
+                            != object.get("historical_provenance_sha256")
+                    {
+                        return Err(EditionCurationError::BindingMismatch);
+                    }
+                }
+            }
             if object.get("stage").and_then(Value::as_str) == Some("text-collation") {
                 let roles = object
                     .get("witness_roles")

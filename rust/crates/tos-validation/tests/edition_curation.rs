@@ -138,6 +138,53 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         .iter()
         .find(|recipe| recipe["stage"] == "tei-source-foundation")
         .unwrap();
+    let foundation_plan_ref = foundation_recipe["plan_ref"].as_str().unwrap();
+    let foundation_plan_raw = fs::read(root.join(foundation_plan_ref)).unwrap();
+    let foundation_plan = SelectedDocument {
+        reference: foundation_plan_ref,
+        raw: &foundation_plan_raw,
+    };
+    assert_eq!(
+        validate_recipe_plan(&dta_raw, "tei-source-foundation", foundation_plan, &schema),
+        Ok(())
+    );
+    let bridge_recipe = dta_value["recipes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|recipe| recipe["stage"] == "authored-canon-evidence")
+        .unwrap();
+    let bridge_plan_ref = bridge_recipe["plan_ref"].as_str().unwrap();
+    let bridge_plan_raw = fs::read(root.join(bridge_plan_ref)).unwrap();
+    assert_eq!(
+        validate_recipe_plan(
+            &dta_raw,
+            "authored-canon-evidence",
+            SelectedDocument {
+                reference: bridge_plan_ref,
+                raw: &bridge_plan_raw
+            },
+            &schema
+        ),
+        Ok(())
+    );
+    let mut wrong_selector = dta_value.clone();
+    let foundation = wrong_selector["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "tei-source-foundation")
+        .unwrap();
+    foundation["tei_selector"]["steps"][3]["ordinal"] = json!(2);
+    assert_eq!(
+        validate_recipe_plan(
+            &serde_json::to_vec(&wrong_selector).unwrap(),
+            "tei-source-foundation",
+            foundation_plan,
+            &schema
+        ),
+        Err(EditionCurationError::BindingMismatch)
+    );
     let historical_ref = foundation_recipe["frozen_outputs"]
         .as_array()
         .unwrap()
@@ -356,6 +403,28 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let antonovsky_path = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/edition-curation.v1.json";
     let antonovsky_raw = fs::read(root.join(antonovsky_path)).unwrap();
     assert_eq!(validate(&antonovsky_raw, &schema), Ok(()));
+    let mut reordered_legacy_outputs: Value = serde_json::from_slice(&antonovsky_raw).unwrap();
+    reordered_legacy_outputs["recipes"][0]["legacy_layout"]["frozen_outputs"]
+        .as_array_mut()
+        .unwrap()
+        .swap(0, 1);
+    assert_eq!(
+        validate(
+            &serde_json::to_vec(&reordered_legacy_outputs).unwrap(),
+            &schema
+        ),
+        Err(EditionCurationError::BindingMismatch)
+    );
+    let mut inconsistent_provenance: Value = serde_json::from_slice(&antonovsky_raw).unwrap();
+    inconsistent_provenance["recipes"][0]["legacy_layout"]["historical_provenance_sha256"] =
+        json!("0".repeat(64));
+    assert_eq!(
+        validate(
+            &serde_json::to_vec(&inconsistent_provenance).unwrap(),
+            &schema
+        ),
+        Err(EditionCurationError::BindingMismatch)
+    );
     let collation: Value = serde_json::from_slice(&antonovsky_raw).unwrap();
     let mut swapped_witnesses = collation.clone();
     swapped_witnesses["recipes"][1]["witness_roles"]

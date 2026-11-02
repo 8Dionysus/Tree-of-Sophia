@@ -1912,7 +1912,32 @@
         }
       ],
       "opening_calibration_sha256": "a507f7293ac73ec37f7c78a38b3270f45bc98418b8fd824f2ab72ebc18377224",
-      "derivation_prefix": "tos.derivation.za-i-vorrede-1.source-text-foundation"
+      "derivation_prefix": "tos.derivation.za-i-vorrede-1.source-text-foundation",
+      "tei_selector": {
+        "steps": [
+          {
+            "element": "TEI"
+          },
+          {
+            "element": "text"
+          },
+          {
+            "element": "body"
+          },
+          {
+            "element": "div",
+            "ordinal": 1
+          },
+          {
+            "element": "div",
+            "ordinal": 1
+          },
+          {
+            "element": "p",
+            "ordinal": 1
+          }
+        ]
+      }
     },
     {
       "stage": "authored-canon-evidence",
@@ -2018,6 +2043,27 @@
           {
             "family": "synthesis",
             "repository_path": "ToS/canon/synthesis/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1"
+          }
+        ]
+      },
+      "tei_selector": {
+        "steps": [
+          {
+            "element": "TEI"
+          },
+          {
+            "element": "text"
+          },
+          {
+            "element": "body"
+          },
+          {
+            "element": "div",
+            "ordinal": 1
+          },
+          {
+            "element": "div",
+            "ordinal": 1
           }
         ]
       }
