@@ -20,16 +20,16 @@ records govern the graph's meaning.
 | [Source witnesses](ToS/source-witnesses/README.md) | identity, exact material, provenance, rights and source-near layers |
 | [Philosophy](ToS/philosophy/README.md) | eras, traditions, works, concepts and transmission branches |
 | [Zarathustra](ToS/zarathustra/GOLDEN_GROWTH_KERNEL.md) | the first deeply worked source-to-review kernel |
-| [Candidate intake](ToS/candidate-intake/) | provisional observations and proposals |
-| [Review ledger](ToS/review-ledger/) | dated judgments, grounds, disagreement and scope |
-| [Canon](ToS/canon/) | reviewed authored nodes and relations |
+| [Candidate intake](ToS/candidate-intake/AGENTS.md) | provisional observations and proposals |
+| [Review ledger](ToS/review-ledger/AGENTS.md) | dated judgments, grounds, disagreement and scope |
+| [Canon](ToS/canon/AGENTS.md) | reviewed authored nodes and relations |
 | [Mechanics](mechanics/README.md) | repeatable operations around those sources |
 | [Access](access/README.md) | native reading, CLI/HTTP/MCP and browser delivery |
 | [Derived exports](ToS/derived-exports/README.md) | reproducible graphs, indexes and bounded public handoffs |
 | [Statistics](stats/README.md) | local measurements over declared populations and evidence |
 
 The [source-home manifest](ToS/source_home.manifest.json) records branch
-membership. Concrete record shapes live in [contracts](ToS/contracts/);
+membership. Concrete record shapes live in [contracts](ToS/contracts/AGENTS.md);
 implementation lives with its native crate or adapter.
 
 ## Coupled Growth
@@ -97,7 +97,7 @@ requires exact membership, historical locators and verified restore. Generated
 catalogs are replaceable data artifacts. Payloads, processing caches and large
 outputs stay outside the source checkout in explicitly selected storage.
 
-[Source-owner operations](mechanics/growth-cycle/parts/branch-growth-cycle/docs/SOURCE_OWNER_OPERATIONS.md)
+[Source-owner operations](mechanics/growth-cycle/README.md#source-owner-operations)
 own mutation procedures. [Release guidance](docs/RELEASING.md) separates
 software delivery, corpus admission and data publication.
 
