@@ -528,7 +528,7 @@ or deletion of unique corpus evidence is part of release.
 
 ToS builds and verifies source-return and stats exports from its own selected
 source/data revision, without consumer source code, Python environments or
-services. See `kag/VALIDATION.md` and `stats/VALIDATION.md`. Consumers import those
+services. See `kag/README.md` and `stats/VALIDATION.md`. Consumers import those
 artifacts and own indexing, composition, trust and admission on their side.
 Consumer release identities and currentness do not gate a ToS software release.
 TOS-D-0072 supersedes the former provider-pin/action-fetch requirements, including

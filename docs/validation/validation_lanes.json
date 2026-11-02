@@ -173,15 +173,15 @@
       "label": "local KAG provider",
       "layer": "local-kag-provider",
       "mode": "blocking",
-      "owner_surface": "kag/AGENTS.md",
+      "owner_surface": "kag/README.md",
       "purpose": "Verify a selected immutable ToS source-return export. Full KAG family integrity and admission belong to its explicitly selected downstream consumer.",
-      "failure_route": "kag/AGENTS.md",
+      "failure_route": "kag/README.md",
       "does_not_own": [
         "aoa-kag shared schema law",
         "runtime graph storage",
         "MCP service implementation"
       ],
-      "focused_target": "kag/VALIDATION.md"
+      "focused_target": "kag/README.md"
     },
     "local_stats_port": {
       "label": "local stats port",

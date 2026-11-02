@@ -199,7 +199,7 @@
       ]
     },
     "kag_provider": {
-      "local_owner": "kag/AGENTS.md",
+      "local_owner": "kag/README.md",
       "manifest": "kag/README.md",
       "consumer": "downstream source-return consumers",
       "load_moment": "when a portable ToS source-return export or its local verification is requested",
@@ -207,9 +207,7 @@
       "freshness": "ToS source-export contract and producer; consumer index state is outside this repository",
       "next_organ": "verified ToS source-return artifact; optional consumer import is owned outside ToS",
       "currentness_inputs": [
-        "kag/AGENTS.md",
         "kag/README.md",
-        "kag/VALIDATION.md",
         "rust/crates/tos-ops-mechanics-plan/src/kag_corpus_export.rs",
         "rust/crates/tos-ops-mechanics-plan/src/kag_release_main.rs",
         "rust/crates/tos-ops-mechanics-plan/src/release_files.rs",
@@ -218,9 +216,9 @@
       "generated_family": {
         "scope": "tos_source_export",
         "source_contract": "kag/README.md",
-        "owner_route": "kag/AGENTS.md",
+        "owner_route": "kag/README.md",
         "builder": "rust/crates/tos-ops-mechanics-plan/src/kag_corpus_export.rs",
-        "validation_route": "kag/VALIDATION.md"
+        "validation_route": "kag/README.md"
       },
       "carrier_classes": [
         "route_card",
