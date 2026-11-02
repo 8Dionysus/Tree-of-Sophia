@@ -245,3 +245,84 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         Err(EditionCurationError::InvalidSchema)
     );
 }
+
+#[test]
+fn authored_edition_curations_bind_to_their_selected_items() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
+    let schema = SchemaBackendProbe::new(
+        [SchemaResource {
+            uri: SCHEMA_URI.into(),
+            raw: fs::read(root.join("ToS/contracts/edition-curation.v1.schema.json")).unwrap(),
+        }],
+        FormatProfile::AssertedSourceCandidateV1,
+    )
+    .unwrap();
+    let mut dirs = vec![root.join("ToS/source-witnesses")];
+    let mut curations = Vec::new();
+    while let Some(dir) = dirs.pop() {
+        for entry in fs::read_dir(dir).unwrap() {
+            let entry = entry.unwrap();
+            let ty = entry.file_type().unwrap();
+            if ty.is_dir() {
+                dirs.push(entry.path());
+            } else if ty.is_file() && entry.file_name() == "edition-curation.v1.json" {
+                curations.push(entry.path());
+            }
+        }
+    }
+    assert!(!curations.is_empty());
+    for path in curations {
+        let reference = path.strip_prefix(&root).unwrap().to_str().unwrap();
+        let raw = fs::read(&path).unwrap();
+        let value: Value = serde_json::from_slice(&raw).unwrap();
+        let manifest_ref = format!(
+            "{}/{}",
+            reference.rsplit_once('/').unwrap().0,
+            value["manifest"].as_str().unwrap()
+        );
+        let manifest_raw = fs::read(root.join(&manifest_ref)).unwrap();
+        let mut references = std::collections::BTreeMap::new();
+        for recipe in value["recipes"].as_array().unwrap() {
+            if recipe["stage"] == "recipe-reference" {
+                let target = recipe["curation_ref"].as_str().unwrap();
+                let target_raw = fs::read(root.join(target)).unwrap();
+                let target_value: Value = serde_json::from_slice(&target_raw).unwrap();
+                let target_manifest = format!(
+                    "{}/{}",
+                    target.rsplit_once('/').unwrap().0,
+                    target_value["manifest"].as_str().unwrap()
+                );
+                let target_manifest_raw = fs::read(root.join(&target_manifest)).unwrap();
+                references.insert(
+                    target.to_owned(),
+                    (target_raw, target_manifest, target_manifest_raw),
+                );
+            }
+        }
+        let selected: Vec<_> = references
+            .iter()
+            .map(
+                |(reference, (raw, manifest, manifest_raw))| SelectedCuration {
+                    curation: SelectedDocument { reference, raw },
+                    manifest: SelectedDocument {
+                        reference: manifest,
+                        raw: manifest_raw,
+                    },
+                },
+            )
+            .collect();
+        let result = validate_bindings(
+            SelectedDocument {
+                reference,
+                raw: &raw,
+            },
+            SelectedDocument {
+                reference: &manifest_ref,
+                raw: &manifest_raw,
+            },
+            &selected,
+            &schema,
+        );
+        assert_eq!(result, Ok(()), "curation {reference}");
+    }
+}
