@@ -227,6 +227,51 @@
       "historical_template_sha256": "1e3506a2f72714976eecf921c66199840491df500551202fb51759b4481d0480",
       "historical_event_date": "2026-09-01",
       "historical_ended_at": "2026-09-01T21:00:00-06:00"
+    },
+    {
+      "stage": "parallel-lexical-candidates",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf"
+      ],
+      "work_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra",
+      "route": "lexical-indexes/dta-antonovsky-parallel-candidates-v1",
+      "route_base": "work",
+      "plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-antonovsky-parallel-candidates-v1/plan.v1.json",
+      "plan_sha256": "09f29b6442ce0634dde77c0945f8c559d1b4dad3f0563aab2868e87591f8c3a7",
+      "historical_producer": {
+        "ref": "scripts/build_zarathustra_parallel_lexical_candidates_v1.py",
+        "sha256": "5eeabab845a141f7ee7c34bc7ad4141694f238fde0531c4c0fa282a1ec659f84"
+      },
+      "alignment_suffix": "alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1",
+      "target_markup": "technical-markup/antonovsky-1911-structural-paragraph-v2",
+      "source_markup": "technical-markup/dta-first-editions-parts-1-4-v1",
+      "private_root": "gold-sets/foundation-pilot-v1/local-content/parallel-lexical-candidates-v1",
+      "join_allowed_characters": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÄÖÜßäöüЁІЇАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюяёіїѢѣѲѳѴѵẞ"
+    },
+    {
+      "stage": "morphology-theme-candidates",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf"
+      ],
+      "work_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra",
+      "route": "ToS/candidate-intake/zarathustra/dta-antonovsky-morphology-themes-v1",
+      "route_base": "repository",
+      "plan_ref": "ToS/candidate-intake/zarathustra/dta-antonovsky-morphology-themes-v1/plan.v1.json",
+      "plan_sha256": "3252e93ba6fc46ee7d25808872c4a08fe724aeb6b69a2583b15ef9cba9d90988",
+      "historical_producer": {
+        "ref": "scripts/build_zarathustra_morphology_theme_candidates_v1.py",
+        "sha256": "8eebdf809bd5989d6c3aae60796a0be57bc886bf3f0441a6109b9b879954ac49"
+      },
+      "historical_template_ref": "rust/crates/tos-compiler/src/research_morphology_theme_suffixes.json",
+      "historical_template_sha256": "1924bbaa00f2287cb32c92bbcfc66e72408c1b66e4c4a565f7b01a27fb307c29"
     }
   ]
 }
