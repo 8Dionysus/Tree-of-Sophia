@@ -588,7 +588,10 @@ pub fn verify_native_compound_from_input<I: Copy + Eq>(
         if !local.issues.is_empty()
             || local.input_identity != input_identity
             || local.current_membership != current_membership
-            || local.prepared_execution_binding != schemas.prepared_execution_binding()
+            || local.prepared_execution_binding
+                != tos_foundation::SchemaExecutionBinding::Worker(
+                    schemas.prepared_execution_binding(),
+                )
             || local.schema_set_sha256 != schemas.schema_set_digest()
             || local.contract_selection_sha256 != schemas.contract_selection_digest()
         {
@@ -6103,7 +6106,8 @@ impl<I: Copy + Eq> NativeCompoundSchema for CandidateCutWorkerSchemaExecutor<I> 
             )));
         }
         if local.input_identity != *self.input_identity()
-            || local.prepared_execution_binding != self.prepared_execution_binding()
+            || local.prepared_execution_binding
+                != tos_foundation::SchemaExecutionBinding::Worker(self.prepared_execution_binding())
             || local.schema_set_sha256 != self.schema_set_digest()
             || local.contract_selection_sha256 != self.contract_selection_digest()
         {
@@ -6249,6 +6253,7 @@ fn merge_candidate_diagnostics_cost(
         };
     }
     add!(completed_exchanges);
+    add!(in_process_evaluations);
     add!(issue_count);
     add!(schema_resource_bytes);
     add!(schema_resource_buffer_bytes);

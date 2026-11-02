@@ -176,6 +176,7 @@ fn add_candidate_local_claim_diagnostics_cost(
         };
     }
     add_u64!(completed_exchanges);
+    add_u64!(in_process_evaluations);
     add_u64!(issue_count);
     add_u64!(schema_resource_bytes);
     add_usize!(schema_resource_buffer_bytes);
@@ -1994,7 +1995,7 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
                                     || local_claim.current_membership
                                         != *records.source_membership()
                                     || local_claim.source_input_sha256 != Digest256::of_bytes(line)
-                                    || local_claim.prepared_execution_binding != prepared
+                                    || local_claim.prepared_execution_binding != tos_foundation::SchemaExecutionBinding::Worker(prepared)
                                     || local_claim.schema_set_sha256
                                         != schema_identity.schema_set_digest()
                                     || local_claim.contract_selection_sha256

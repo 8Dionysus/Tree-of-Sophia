@@ -2789,7 +2789,7 @@ pub struct CandidateSourceClaimLocalReport<I> {
     pub current_membership: tos_source_store::SourceMembershipV1,
     pub source_input_sha256: Digest256,
     pub decoded_input_sha256: Digest256,
-    pub prepared_execution_binding: crate::source_cut::CutPreparedSchemaExecutionBinding,
+    pub prepared_execution_binding: tos_foundation::SchemaExecutionBinding,
     pub schema_set_sha256: Digest256,
     pub contract_selection_sha256: Digest256,
     pub dependency_digests: BTreeMap<String, Digest256>,
@@ -2820,7 +2820,7 @@ pub struct CandidateSourceClaimInputLocalReport<I> {
     pub input_identity: I,
     pub source_input_sha256: Digest256,
     pub decoded_input_sha256: Digest256,
-    pub prepared_execution_binding: crate::source_cut::CutPreparedSchemaExecutionBinding,
+    pub prepared_execution_binding: tos_foundation::SchemaExecutionBinding,
     pub schema_set_sha256: Digest256,
     pub contract_selection_sha256: Digest256,
     pub dependency_digests: BTreeMap<String, Digest256>,
@@ -2841,12 +2841,14 @@ impl<I> CandidateSourceClaimInputLocalReport<I> {
     }
 }
 
-/// Exact totals from the complete candidate diagnostics-v2 exchanges used by
-/// one local Claim validation. Each value is summed from its actual validated
-/// `CandidateCutSchemaDiagnostic`; incomplete exchanges refuse the operation.
+/// Observed candidate diagnostics used by one local Claim validation.
+/// Buffer, wire, CPU, and worker exchange fields count worker executions;
+/// issue and input byte totals include both execution engines.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct CandidateLocalClaimDiagnosticsCost {
+    /// Completed worker exchanges and in-process evaluations are separate.
     pub completed_exchanges: u64,
+    pub in_process_evaluations: u64,
     pub issue_count: u64,
     pub schema_resource_bytes: u64,
     pub schema_resource_buffer_bytes: usize,
@@ -2863,6 +2865,27 @@ pub struct CandidateLocalClaimDiagnosticsCost {
 }
 
 impl CandidateLocalClaimDiagnosticsCost {
+    fn include_in_process<I>(
+        &mut self,
+        diagnostic: &crate::source_cut::InProcessCutDiagnostic<I>,
+    ) -> Result<(), crate::item_rules::ItemRefusal> {
+        let bytes = diagnostic
+            .input_size_bytes
+            .ok_or(crate::item_budget_origin!())?;
+        self.in_process_evaluations = self
+            .in_process_evaluations
+            .checked_add(1)
+            .ok_or(crate::item_budget_origin!())?;
+        self.issue_count = self
+            .issue_count
+            .checked_add(diagnostic.report.issues.len() as u64)
+            .ok_or(crate::item_budget_origin!())?;
+        self.input_instance_bytes = self
+            .input_instance_bytes
+            .checked_add(bytes)
+            .ok_or(crate::item_budget_origin!())?;
+        Ok(())
+    }
     fn include(
         &mut self,
         diagnostic: &crate::source_cut::SchemaDiagnosticResult,
@@ -3286,12 +3309,12 @@ impl<S: CutSchemaExecutor + CutSchemaReceiptRange> LocalClaimSchemaWorker for S 
     }
 }
 
-struct CandidateLocalClaimSchemaWorker<'a, I> {
-    worker: &'a mut crate::source_cut::CandidateCutWorkerSchemaExecutor<I>,
+struct CandidateLocalClaimSchemaWorker<'a, I: Eq + Clone> {
+    worker: &'a mut dyn crate::source_foundation_records::SourceFoundationCandidateSchemaBinding<I>,
     input_identity: I,
     schema_set_sha256: Digest256,
     contract_selection_sha256: Digest256,
-    prepared_execution: crate::source_cut::CutPreparedSchemaExecutionBinding,
+    prepared_execution: tos_foundation::SchemaExecutionBinding,
     cost: CandidateLocalClaimDiagnosticsCost,
 }
 
@@ -3311,25 +3334,30 @@ impl<I: Copy + Eq> LocalClaimSchemaWorker for CandidateLocalClaimSchemaWorker<'_
         use crate::item_rules::ItemRefusal;
         let diagnostic = self
             .worker
-            .check_diagnostics_v2(path, raw, contract, deadline, cancelled)?;
-        let result = diagnostic.result();
+            .check_diagnostic(path, raw, contract, deadline, cancelled)?;
         if diagnostic.input_identity() != &self.input_identity
-            || diagnostic.schema_set_sha256() != self.schema_set_sha256
+            || diagnostic.execution_binding().schema_set_sha256() != self.schema_set_sha256
             || diagnostic.contract_selection_sha256() != self.contract_selection_sha256
-            || diagnostic.prepared_execution_binding() != self.prepared_execution
-            || diagnostic.profile() != self.prepared_execution.schema_profile
-            || result.path() != path
-            || result.contract() != contract
-            || result.source_raw_sha256() != Digest256::of_bytes(raw)
+            || diagnostic.execution_binding() != self.prepared_execution
+            || diagnostic.path() != path
+            || diagnostic.contract() != contract
+            || diagnostic.input_sha256() != Digest256::of_bytes(raw)
         {
             return Err(ItemRefusal::Source(
                 "local Claim candidate diagnostics binding differs".into(),
             ));
         }
-        self.cost.include(result)?;
-        if result.is_valid() {
+        match &diagnostic {
+            crate::source_cut::CandidateSchemaDiagnostic::Worker(row) => {
+                self.cost.include(row.result())?
+            }
+            crate::source_cut::CandidateSchemaDiagnostic::InProcess(row) => {
+                self.cost.include_in_process(row.diagnostic())?
+            }
+        }
+        if diagnostic.is_valid() {
             Ok(true)
-        } else if result.is_invalid() {
+        } else if diagnostic.is_invalid() {
             Ok(false)
         } else {
             Err(ItemRefusal::Unsupported(
@@ -3387,7 +3415,7 @@ pub fn validate_source_claim_from_input<I: Copy + Eq>(
     input: &dyn crate::record_biblio_cut::SourceCutInputWithIdentity<I>,
     records: &crate::source_foundation_records::SourceFoundationRecordsStreamedReport<'_, I>,
     selected_claim_raw: &[u8],
-    worker: &mut crate::source_cut::CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut impl crate::source_foundation_records::SourceFoundationCandidateSchemaBinding<I>,
     limits: crate::item_rules::ItemLimits,
     cancelled: &std::sync::atomic::AtomicBool,
 ) -> Result<CandidateSourceClaimLocalReport<I>, crate::item_rules::ItemRefusal> {
@@ -3409,7 +3437,7 @@ pub fn validate_stored_source_claim_from_input<I: Copy + Eq>(
     input: &dyn crate::record_biblio_cut::SourceCutInputWithIdentity<I>,
     records: &crate::source_foundation_records::SourceFoundationRecordsStreamedReport<'_, I>,
     selected_claim_raw: &[u8],
-    worker: &mut crate::source_cut::CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut impl crate::source_foundation_records::SourceFoundationCandidateSchemaBinding<I>,
     limits: crate::item_rules::ItemLimits,
     cancelled: &std::sync::atomic::AtomicBool,
 ) -> Result<CandidateSourceClaimLocalReport<I>, crate::item_rules::ItemRefusal> {
@@ -3428,7 +3456,7 @@ fn validate_candidate_claim_core<I: Copy + Eq>(
     input: &dyn crate::record_biblio_cut::SourceCutInputWithIdentity<I>,
     records: &crate::source_foundation_records::SourceFoundationRecordsStreamedReport<'_, I>,
     selected_claim_raw: &[u8],
-    worker: &mut crate::source_cut::CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut impl crate::source_foundation_records::SourceFoundationCandidateSchemaBinding<I>,
     limits: crate::item_rules::ItemLimits,
     cancelled: &std::sync::atomic::AtomicBool,
     scope: LocalClaimValidationScope,
@@ -3445,14 +3473,27 @@ fn validate_candidate_claim_core<I: Copy + Eq>(
     let candidate_schema = records.candidate_schema_identity().ok_or_else(|| {
         ItemRefusal::Unsupported("local Claim requires a candidate Records schema binding".into())
     })?;
-    let prepared = worker.prepared_execution_binding();
+    let prepared = worker.schema_execution_binding().ok_or_else(|| {
+        ItemRefusal::Source("local Claim schema execution binding unavailable".into())
+    })?;
+    let mut selected_count = 0u64;
+    let mut selected_bytes = 0u64;
+    worker.for_each_selected_resource(&mut |resource| {
+        selected_count = selected_count
+            .checked_add(1)
+            .ok_or(crate::item_budget_origin!())?;
+        selected_bytes = selected_bytes
+            .checked_add(resource.size_bytes)
+            .ok_or(crate::item_budget_origin!())?;
+        Ok(())
+    })?;
     if worker.profile() != FormatProfile::LegacyPythonObserved20260923
         || candidate_schema.profile() != worker.profile()
         || candidate_schema.schema_set_digest() != worker.schema_set_digest()
         || candidate_schema.contract_selection_digest() != worker.contract_selection_digest()
-        || candidate_schema.prepared_execution_binding() != Some(prepared)
-        || candidate_schema.selected_resource_count() != worker.source_resource_count() as u64
-        || candidate_schema.selected_resource_bytes() != worker.schema_bytes() as u64
+        || candidate_schema.schema_execution_binding() != prepared
+        || candidate_schema.selected_resource_count() != selected_count
+        || candidate_schema.selected_resource_bytes() != selected_bytes
     {
         return Err(ItemRefusal::Source(
             "local Claim candidate schema binding differs from Records".into(),
@@ -3493,7 +3534,7 @@ fn validate_candidate_claim_core<I: Copy + Eq>(
 pub fn validate_source_claim_from_selected_input<I: Copy + Eq>(
     input: &dyn crate::record_biblio_cut::SourceCutInputWithIdentity<I>,
     selected_claim_raw: &[u8],
-    worker: &mut crate::source_cut::CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut impl crate::source_foundation_records::SourceFoundationCandidateSchemaBinding<I>,
     limits: crate::item_rules::ItemLimits,
     cancelled: &std::sync::atomic::AtomicBool,
 ) -> Result<CandidateSourceClaimInputLocalReport<I>, crate::item_rules::ItemRefusal> {
@@ -3514,7 +3555,7 @@ pub fn validate_source_claim_from_selected_input<I: Copy + Eq>(
 pub(crate) fn validate_stored_source_claim_from_selected_input<I: Copy + Eq>(
     input: &dyn crate::record_biblio_cut::SourceCutInputWithIdentity<I>,
     selected_claim_raw: &[u8],
-    worker: &mut crate::source_cut::CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut impl crate::source_foundation_records::SourceFoundationCandidateSchemaBinding<I>,
     limits: crate::item_rules::ItemLimits,
     cancelled: &std::sync::atomic::AtomicBool,
 ) -> Result<CandidateSourceClaimInputLocalReport<I>, crate::item_rules::ItemRefusal> {
@@ -3537,7 +3578,7 @@ pub(crate) fn validate_stored_source_claim_from_selected_input<I: Copy + Eq>(
 pub fn validate_source_claim_from_asserted_selected_input<I: Copy + Eq>(
     input: &dyn crate::record_biblio_cut::SourceCutInputWithIdentity<I>,
     selected_claim_raw: &[u8],
-    worker: &mut crate::source_cut::CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut impl crate::source_foundation_records::SourceFoundationCandidateSchemaBinding<I>,
     limits: crate::item_rules::ItemLimits,
     cancelled: &std::sync::atomic::AtomicBool,
 ) -> Result<CandidateSourceClaimInputLocalReport<I>, crate::item_rules::ItemRefusal> {
@@ -3556,7 +3597,7 @@ pub fn validate_source_claim_from_asserted_selected_input<I: Copy + Eq>(
 fn validate_candidate_claim_input_core<I: Copy + Eq>(
     input: &dyn crate::record_biblio_cut::SourceCutInputWithIdentity<I>,
     selected_claim_raw: &[u8],
-    worker: &mut crate::source_cut::CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut impl crate::source_foundation_records::SourceFoundationCandidateSchemaBinding<I>,
     limits: crate::item_rules::ItemLimits,
     cancelled: &std::sync::atomic::AtomicBool,
     scope: LocalClaimValidationScope,
@@ -3573,10 +3614,14 @@ fn validate_candidate_claim_input_core<I: Copy + Eq>(
     let profile = worker.profile();
     let schema_set_sha256 = worker.schema_set_digest();
     let contract_selection_sha256 = worker.contract_selection_digest();
-    let prepared = worker.prepared_execution_binding();
+    let prepared = worker.schema_execution_binding().ok_or_else(|| {
+        ItemRefusal::Source("local Claim schema execution binding unavailable".into())
+    })?;
     if profile != expected_profile
-        || prepared.schema_profile != profile
-        || prepared.schema_set_sha256 != schema_set_sha256
+        || prepared.schema_profile() != profile
+        || prepared.schema_set_sha256() != schema_set_sha256
+        || matches!(prepared, tos_foundation::SchemaExecutionBinding::InProcessV1(binding)
+            if binding.engine != crate::in_process::ENGINE_ID)
     {
         return Err(ItemRefusal::Source(
             "local Claim selected candidate schema binding differs".into(),
@@ -6035,4 +6080,84 @@ fn local_scoped_member_structure(
         }
     }
     Ok(Ok(()))
+}
+
+#[cfg(test)]
+mod in_process_claim_schema_tests {
+    use super::*;
+    use crate::in_process::InputMode;
+    use crate::source_cut::InProcessCandidateSchemaExecutor;
+    use crate::source_foundation_schema::{
+        CandidateSourceFoundationSchemaSet, SelectedSchemaResource, contract_selection_digest,
+        schema_resource_set_digest,
+    };
+    use std::collections::BTreeMap;
+    use std::sync::atomic::AtomicBool;
+    use std::time::{Duration, Instant};
+
+    #[test]
+    fn local_claim_schema_consumer_uses_in_process_candidate_evidence() {
+        let path = "ToS/contracts/example.schema.json".to_owned();
+        let uri = "https://example.test/schema".to_owned();
+        let raw = br#"{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://example.test/schema","type":"integer"}"#.to_vec();
+        let digest = Digest256::of_bytes(&raw);
+        let contracts = BTreeMap::from([(path.clone(), (uri.clone(), digest))]);
+        let resources = vec![crate::SchemaResource {
+            uri,
+            raw: raw.clone(),
+        }];
+        let schema_set_sha256 = schema_resource_set_digest(&resources).unwrap();
+        let contract_selection_sha256 = contract_selection_digest(&contracts);
+        let set = CandidateSourceFoundationSchemaSet {
+            input_identity: 42u64,
+            profile: FormatProfile::AssertedSourceCandidateV1,
+            resources,
+            source_resources: vec![SelectedSchemaResource {
+                path: path.clone(),
+                size_bytes: raw.len() as u64,
+                sha256: digest,
+            }],
+            contracts,
+            contract_selection_sha256,
+            schema_set_sha256,
+            limits_sha256: digest,
+            schema_bytes: raw.len(),
+            catalog_entry_schema_present: false,
+            catalog_claim_entry_schema_present: false,
+        };
+        let cancelled = AtomicBool::new(false);
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let mut executor = InProcessCandidateSchemaExecutor::from_schema_set(
+            set,
+            InputMode::PublishedStrict,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        let binding = executor.schema_execution_binding().unwrap();
+        let mut consumer = CandidateLocalClaimSchemaWorker {
+            worker: &mut executor,
+            input_identity: 42,
+            schema_set_sha256,
+            contract_selection_sha256,
+            prepared_execution: binding,
+            cost: CandidateLocalClaimDiagnosticsCost::default(),
+        };
+        assert_eq!(consumer.contract_digest(&path), Some(digest));
+        assert!(
+            consumer
+                .check_reusing_scalar("record.json", b"3", &path, deadline, &cancelled)
+                .unwrap()
+        );
+        assert!(
+            !consumer
+                .check_reusing_scalar("record.json", br#""wrong""#, &path, deadline, &cancelled)
+                .unwrap()
+        );
+        assert_eq!(consumer.cost.in_process_evaluations, 2);
+        assert_eq!(consumer.cost.completed_exchanges, 0);
+        assert_eq!(consumer.cost.worker_cpu_micros, 0);
+        assert_eq!(consumer.cost.issue_count, 1);
+        assert_eq!(consumer.cost.input_instance_bytes, 8);
+    }
 }
