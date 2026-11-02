@@ -33,7 +33,7 @@ use std::os::unix::ffi::OsStrExt;
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicUsize, Ordering};
 use std::time::Instant;
 use tos_compiler::private_tmpfs_stage::PrivateTmpfsStageIsolation;
-use tos_ops_mechanics_plan::route_cards::{MAX_BUDGETED_ROUTE_OPERATIONS, RouteSources};
+use tos_ops_mechanics_plan::source_reading::{MAX_BUDGETED_ROUTE_OPERATIONS, RouteSources};
 use tos_source_store::{CutReadLimits, ReadLimits};
 use tos_validation::item_rules::ItemRefusal;
 

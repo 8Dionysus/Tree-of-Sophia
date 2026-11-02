@@ -9,10 +9,7 @@ mechanics contracts, validators, test topology and release behavior. Tests
 prove bounded behavior; eval verdicts, scoring and proof doctrine remain with
 `aoa-evals`.
 
-Use [TEST_TOPOLOGY](../docs/testing/TEST_TOPOLOGY.md) and `tests/test_inventory.json`
-for owner and home navigation. Executable tests and selected software checks
-govern admission under TOS-D-0062; migration-era inventory names do not freeze
-future topology.
+Use the owning test and selected software checks for admission under TOS-D-0062.
 
 ## Validation
 

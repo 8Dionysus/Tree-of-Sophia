@@ -20,7 +20,7 @@ uses its explicit baseline; software CI does not accept source semantics.
 
 TOS-D-0062 separates software checks from corpus and downstream releases.
 Changed paths select software checks through `tos-software-ci` and the
-table in `docs/RELEASING.md`. The selector and documentation check must succeed.
+table in `docs/RELEASING.md`. The selector and the AGENTS.md word-limit check must succeed.
 Selected jobs must succeed; only explicitly unselected jobs may be skipped.
 Rust selection requires all three `rust` matrix groups (`conformance`,
 `workspace`, and `cold-install`) plus the independent PostgreSQL job. The
@@ -43,10 +43,7 @@ wires; browser-only verifies the stage without adding native fixture tests.
 Only the static package job owns candidate outputs.
 Unknown/shared paths select all software checks before verified main reuse;
 manual full-release runs always select all software checks.
-Known human guides and owner cards select their documentation/source-route
-checks. ToS source Markdown and Questbook inputs retain their Rust consumers.
-Generated documentation parity is selected only when that carrier changes;
-an untouched carrier does not gate ordinary source or software work.
+ToS source Markdown and Questbook inputs retain their Rust consumers. CI checks that tracked AGENTS.md files stay within 800 words.
 Absent, failed or cancelled selected jobs cannot be aggregated as success. Do not add a KAG,
 stats, complete corpus or generated documentation currentness dependency to
 the software gate. Data/integration workflows validate their own exact inputs.

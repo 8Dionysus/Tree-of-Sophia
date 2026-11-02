@@ -7,7 +7,7 @@ pub const RUNTIME_TOS_SCHEMAS: [&str; 3] = [
     "semantic-relation-type-registry.schema.json",
     "epistemic-evidence-projection.schema.json",
 ];
-pub const COMMANDS: [&str; 18] = [
+pub const COMMANDS: [&str; 16] = [
     "tos-native-owner-command",
     "tos-schema-worker",
     "tos-validation-lanes",
@@ -17,8 +17,6 @@ pub const COMMANDS: [&str; 18] = [
     "tos-constructor-library",
     "tos-constructor-fragments",
     "tos-reader",
-    "tos-route-cards",
-    "tos-agents-route-harness",
     "tos-kag-release",
     "tos-stats-release",
     "tos-unicode-tables",
@@ -27,12 +25,10 @@ pub const COMMANDS: [&str; 18] = [
     "tos-open-work-queue",
     "tos-research",
 ];
-pub const NO_DEFAULT_FEATURES: [&str; 10] = [
+pub const NO_DEFAULT_FEATURES: [&str; 8] = [
     "tos-validation-lanes",
     "tos-release-check",
     "tos-software-ci",
-    "tos-route-cards",
-    "tos-agents-route-harness",
     "tos-kag-release",
     "tos-stats-release",
     "tos-unicode-tables",
@@ -72,10 +68,7 @@ pub fn explicit_features(role: &str) -> &'static [&'static str] {
     match role {
         "tos-research" => &["research-tools"],
         "tos-constructor-library" | "tos-constructor-fragments" => &["source-tools"],
-        "tos-route-cards"
-        | "tos-agents-route-harness"
-        | "tos-kag-release"
-        | "tos-stats-release" => &["mechanics"],
+        "tos-kag-release" | "tos-stats-release" => &["mechanics"],
         _ => &[],
     }
 }

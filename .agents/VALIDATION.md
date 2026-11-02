@@ -1,13 +1,5 @@
-# Agent-surface validation
+# Agent-surface review
 
-Use this route after the affected model-facing card, skill, or owner port is
-known. Exact internal commands remain in `docs/validation/validation_lanes.json`.
-
-```bash
-tos-validation-lanes --repo-root "$PWD" --run agent_surface
-```
-
-The repository route-docs sequence is owned by [root `VALIDATION.md`](../VALIDATION.md#run).
-
-These checks establish structural and currentness evidence only. They do not
-prove model behavior, owner acceptance, or runtime activation.
+Review the manifest, owner references and public-safety boundaries by hand
+after a model-facing card, skill or owner port changes. CI checks the size of
+every AGENTS.md.

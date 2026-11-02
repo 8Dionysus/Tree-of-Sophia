@@ -56,16 +56,6 @@ name = "tos-software-ci"
 path = "src/software_ci_main.rs"
 
 [[bin]]
-name = "tos-route-cards"
-path = "src/route_cards_main.rs"
-required-features = ["mechanics"]
-
-[[bin]]
-name = "tos-agents-route-harness"
-path = "src/route_harness_main.rs"
-required-features = ["mechanics"]
-
-[[bin]]
 name = "tos-kag-release"
 path = "src/kag_release_main.rs"
 required-features = ["mechanics"]
@@ -97,18 +87,6 @@ path = "src/constructor_desktop_main.rs"
 yaml-rust2 = { version = "=0.13.0", default-features = false }
 
 [[test]]
-name = "active_naming_native"
-required-features = ["mechanics"]
-
-[[test]]
-name = "route_cards_native"
-required-features = ["mechanics"]
-
-[[test]]
-name = "decision_records_native"
-required-features = ["mechanics"]
-
-[[test]]
 name = "source_routes_native"
 required-features = ["mechanics"]
 
@@ -122,18 +100,6 @@ required-features = ["mechanics"]
 
 [[test]]
 name = "stats_release_native"
-required-features = ["mechanics"]
-
-[[test]]
-name = "documentation_cross_corpus_native"
-required-features = ["mechanics"]
-
-[[test]]
-name = "agent_surface_native"
-required-features = ["mechanics"]
-
-[[test]]
-name = "route_harness_native"
 required-features = ["mechanics"]
 
 [[test]]

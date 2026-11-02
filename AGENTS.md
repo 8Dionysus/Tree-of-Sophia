@@ -73,6 +73,14 @@ Keep downloads, model runtimes, heavy benchmarks and large generated outputs
 outside the source checkout with explicit storage and finite budgets. Honor the
 executing host's policy; no ecosystem installation is a ToS prerequisite.
 
+## Engineering rules
+
+- Place a new limit in deployment profile data after measurement.
+- Test product behavior; leave documentation text and CI shape outside tests.
+- Keep generated outputs out of Git.
+- Place data for a specific book in JSON next to its witness.
+- Ship each transitional implementation with its removal condition.
+
 ## Landing and Completion
 
 Follow [RELEASING](docs/RELEASING.md) for branch, checkpoint review, PR, CI,

@@ -129,8 +129,7 @@ setting it to true does not authorize restoring a retired archive.
 
 ## Validation
 
-The `mechanics_topology` and `route_docs` sequences in
-`docs/validation/validation_lanes.json` own executable verification. Use
+The `mechanics_local` sequence in `docs/validation/validation_lanes.json` owns local contract verification. Use
 `mechanics/AGENTS.md` for the focused operator route.
 
 For release-facing changes, repository-wide verification routes through the

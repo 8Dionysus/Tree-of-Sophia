@@ -1,5 +1,5 @@
 //! Maintained philosophy topology mechanics; no textual/semantic admission.
-use crate::route_cards::{RouteSources, python_space, splitlines};
+use crate::source_reading::{RouteSources, python_space, splitlines};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::{self, Write};
@@ -1009,7 +1009,7 @@ pub fn run_validation(root: &Path, cancel: &AtomicI32) -> io::Result<Vec<Issue>>
     for path in c.source.selected_paths_with_limits(
         "ToS",
         &|_, _| true,
-        crate::route_cards::MAX_SELECTED_PATH_DISCOVERY_ENTRIES,
+        crate::source_reading::MAX_SELECTED_PATH_DISCOVERY_ENTRIES,
         4096,
     )? {
         check_labels(&mut c, &path, &metadata_labels)?;
@@ -1045,7 +1045,7 @@ pub fn prepare_source_anchor(
     source_label: &str,
     cancel: &AtomicI32,
 ) -> io::Result<Value> {
-    use crate::route_cards::sha256_bytes;
+    use crate::source_reading::sha256_bytes;
     use serde_json::json;
     if table_index == 0 || row_index == 0 {
         return Err(io::Error::other(

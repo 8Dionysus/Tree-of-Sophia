@@ -45,12 +45,7 @@ gold slice; unresolved examples and transfer failure remain inspectable.
 
 ## Currentness and verification
 
-[agents_route_inventory.json](docs/validation/agents_route_inventory.json)
-is the authored route map. `.agents/agents-route.current.json` records
-tracked/discovered parity, inheritance, hashes and context budgets. The native
-`route_harness.rs` evaluates declared task paths. These checks establish
-structure; model behavior, semantic assessment and time-to-owner need their
-own evidence.
+CI checks the size of each tracked AGENTS.md. Review route clarity and meaning with the relevant source owner.
 
 [AGENTS_ROOT_REFERENCE.md](docs/AGENTS_ROOT_REFERENCE.md) locates historical
 guidance. Active inheritance starts at the current root card. When slimming a

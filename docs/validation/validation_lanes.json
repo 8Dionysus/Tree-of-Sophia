@@ -85,20 +85,6 @@
         "runtime visualization"
       ]
     },
-    "mechanics_topology": {
-      "label": "mechanics topology",
-      "layer": "mechanics",
-      "mode": "blocking",
-      "owner_surface": "mechanics/topology.json",
-      "purpose": "Protect mechanics packages, active parts, route-doc currentness, package-local legacy policy, moved-path accounting, and the bounded mechanics entrypoint.",
-      "command_sequence": "mechanics_topology",
-      "failure_route": "mechanics/AGENTS.md",
-      "does_not_own": [
-        "ToS authored meaning",
-        "root release publication",
-        "central proof authority"
-      ]
-    },
     "mechanics_local": {
       "label": "mechanics local",
       "layer": "mechanics-local",
@@ -125,20 +111,6 @@
         "ToS canon acceptance",
         "runtime activation",
         "office or service authority"
-      ]
-    },
-    "active_naming": {
-      "label": "active naming",
-      "layer": "active-topology",
-      "mode": "blocking",
-      "owner_surface": "rust/crates/tos-ops-mechanics-plan/src/active_naming.rs",
-      "purpose": "Keep retired active path and id names out of current surfaces while allowing archive provenance.",
-      "command_sequence": "active_naming",
-      "failure_route": "AGENTS.md",
-      "does_not_own": [
-        "ordinary prose style",
-        "legacy archive content",
-        "historical changelog language"
       ]
     },
     "generated_parity": {
@@ -183,48 +155,6 @@
         "public compatibility identity"
       ]
     },
-    "route_docs": {
-      "label": "route docs",
-      "layer": "agent-route-card",
-      "mode": "blocking",
-      "owner_surface": "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs",
-      "purpose": "Verify route-card inventory, inheritance, generated currentness, executable references, and deterministic context budgets without freezing ordinary prose as doctrine.",
-      "command_sequence": "route_docs",
-      "failure_route": "DESIGN.AGENTS.md",
-      "does_not_own": [
-        "philosophical doctrine",
-        "decision rationale",
-        "release command authority"
-      ]
-    },
-    "agent_surface": {
-      "label": "agent surface",
-      "layer": "agent-tool-owner-port",
-      "mode": "blocking",
-      "owner_surface": ".agents/agent-surface.manifest.json",
-      "purpose": "Verify model-facing discovery, trigger, on-demand, owner-port, task-probe, public-safety, and generated-currentness routes without promoting them to source or runtime authority.",
-      "command_sequence": "agent_surface",
-      "failure_route": ".agents/AGENTS.md",
-      "does_not_own": [
-        "skill source content in aoa-skills",
-        "ToS philosophical meaning",
-        "runtime, MCP, eval, stats, KAG, or memo authority"
-      ]
-    },
-    "cross_corpus_documentation": {
-      "label": "cross-corpus documentation",
-      "layer": "documentation-currentness",
-      "mode": "blocking",
-      "owner_surface": "docs/validation/documentation_family_map.json",
-      "purpose": "Coordinate family coverage, exact tracked currentness, route closure, executable references, authority declarations, public safety, and selected context budgets across existing owner validators.",
-      "command_sequence": "cross_corpus_documentation",
-      "failure_route": "docs/validation/README.md",
-      "does_not_own": [
-        "ToS authored meaning",
-        "runtime or receipt acceptance",
-        "external KAG, eval, stats, memo, or proof authority"
-      ]
-    },
     "public_entry": {
       "label": "public entry",
       "layer": "public-compatibility",
@@ -267,27 +197,13 @@
       ],
       "focused_target": "stats/VALIDATION.md"
     },
-    "questbook_surface": {
-      "label": "questbook surface",
-      "layer": "mechanics-questbook",
-      "mode": "blocking",
-      "owner_surface": "mechanics/questbook/AGENTS.md",
-      "purpose": "Protect questbook obligations, public quest items, dispatch schemas, and compatibility examples as a mechanics-local validation lane.",
-      "command_sequence": "questbook_surface",
-      "failure_route": "mechanics/questbook/AGENTS.md",
-      "does_not_own": [
-        "philosophical source meaning",
-        "canon promotion",
-        "downstream task runtime"
-      ]
-    },
     "eval_port": {
       "label": "eval port",
       "layer": "local-eval-port",
       "mode": "advisory",
       "owner_surface": "evals/AGENTS.md",
       "purpose": "Keep ToS-local eval pressure visible while central verdict and scoring authority stay with aoa-evals.",
-      "focused_target": "evals/PORT.yaml and packet evidence via evals/VALIDATION.md; ToS agent_surface/route_docs checks, consumer-side compatibility and admission",
+      "focused_target": "evals/PORT.yaml and packet evidence via evals/VALIDATION.md; consumer-side compatibility and admission",
       "failure_route": "evals/AGENTS.md",
       "does_not_own": [
         "central eval verdicts",
@@ -1016,17 +932,6 @@
         ]
       }
     ],
-    "mechanics_topology": [
-      {
-        "label": "validate mechanics topology",
-        "command": [
-          "tos-ops-mechanics-plan",
-          "--repo-root",
-          ".",
-          "--mechanics-topology-validate"
-        ]
-      }
-    ],
     "experience_contracts": [
       {
         "label": "validate Experience contracts",
@@ -1036,17 +941,6 @@
           ".",
           "--local-contracts",
           "mechanics/experience"
-        ]
-      }
-    ],
-    "active_naming": [
-      {
-        "label": "validate active naming",
-        "command": [
-          "tos-ops-mechanics-plan",
-          "--repo-root",
-          ".",
-          "--active-naming-validate"
         ]
       }
     ],
@@ -1109,25 +1003,6 @@
       {
         "label": "validate philosophy post-planting audit",
         "command_ref": "philosophy_audit_validate"
-      },
-      {
-        "label": "check decision indexes",
-        "command": [
-          "tos-ops-mechanics-plan",
-          "--repo-root",
-          ".",
-          "--decision-index-build",
-          "--check"
-        ]
-      },
-      {
-        "label": "validate decision records",
-        "command": [
-          "tos-ops-mechanics-plan",
-          "--repo-root",
-          ".",
-          "--decision-records-validate"
-        ]
       }
     ],
     "canon_contracts": [
@@ -1170,78 +1045,6 @@
         ]
       }
     ],
-    "route_docs": [
-      {
-        "label": "check AGENTS route-card currentness",
-        "command": [
-          "tos-ops-mechanics-plan",
-          "--repo-root",
-          "{repo_root}",
-          "--agents-route-currentness-build",
-          "--check"
-        ]
-      },
-      {
-        "label": "validate route-card structure",
-        "command": [
-          "tos-ops-mechanics-plan",
-          "--repo-root",
-          "{repo_root}",
-          "--nested-agents-validate"
-        ]
-      },
-      {
-        "label": "run deterministic AGENTS task route harness",
-        "command": [
-          "tos-ops-mechanics-plan",
-          "--repo-root",
-          "{repo_root}",
-          "--agents-route-harness-check"
-        ]
-      }
-    ],
-    "agent_surface": [
-      {
-        "label": "check agent-surface currentness",
-        "command": [
-          "tos-ops-mechanics-plan",
-          "--repo-root",
-          ".",
-          "--agent-surface-build",
-          "--check"
-        ]
-      },
-      {
-        "label": "validate agent-surface routes",
-        "command": [
-          "tos-ops-mechanics-plan",
-          "--repo-root",
-          ".",
-          "--agent-surface-validate"
-        ]
-      }
-    ],
-    "cross_corpus_documentation": [
-      {
-        "label": "check documentation family currentness",
-        "command": [
-          "tos-ops-mechanics-plan",
-          "--repo-root",
-          ".",
-          "--documentation-family-build",
-          "--check"
-        ]
-      },
-      {
-        "label": "validate cross-corpus documentation guards",
-        "command": [
-          "tos-ops-mechanics-plan",
-          "--repo-root",
-          ".",
-          "--documentation-cross-corpus-validate"
-        ]
-      }
-    ],
     "public_entry": [
       {
         "label": "validate tiny entry route",
@@ -1250,17 +1053,6 @@
           "--repo-root",
           "{repo_root}",
           "--tiny-entry-validate"
-        ]
-      }
-    ],
-    "questbook_surface": [
-      {
-        "label": "validate questbook surface",
-        "command": [
-          "tos-ops-mechanics-plan",
-          "--repo-root",
-          ".",
-          "--questbook-validate"
         ]
       }
     ],

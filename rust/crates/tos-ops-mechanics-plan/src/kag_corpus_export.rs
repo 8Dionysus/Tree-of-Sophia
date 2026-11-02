@@ -138,7 +138,7 @@ fn inventory(
 }
 /// Source mechanics shares the original operation clock, including cancellation.
 pub(crate) fn tick(
-    s: &crate::route_cards::RouteSources,
+    s: &crate::source_reading::RouteSources,
     cancel: &std::sync::atomic::AtomicI32,
 ) -> io::Result<()> {
     if cancel.load(Ordering::Relaxed) != 0 {
@@ -165,13 +165,13 @@ fn stamp(m: &fs::Metadata) -> (u64, u64, u64, u32, i64, i64, i64, i64) {
 }
 /// Constructible only by the current verifier; owns observed descriptor custody.
 pub struct VerifiedExport {
-    sources: std::cell::RefCell<crate::route_cards::RouteSources>,
+    sources: std::cell::RefCell<crate::source_reading::RouteSources>,
     held: BTreeMap<String, (File, fs::Metadata)>,
     manifest: Value,
     read_bytes: usize,
 }
 impl VerifiedExport {
-    fn new(sources: crate::route_cards::RouteSources) -> Self {
+    fn new(sources: crate::source_reading::RouteSources) -> Self {
         Self {
             sources: std::cell::RefCell::new(sources),
             held: BTreeMap::new(),
@@ -280,7 +280,7 @@ impl VerifiedExport {
     }
     pub fn check(
         &self,
-        primary: &crate::route_cards::RouteSources,
+        primary: &crate::source_reading::RouteSources,
         cancel: &std::sync::atomic::AtomicI32,
     ) -> io::Result<()> {
         tick(primary, cancel)?;
@@ -288,7 +288,7 @@ impl VerifiedExport {
     }
     pub fn bind_repo(
         &self,
-        sources: &mut crate::route_cards::RouteSources,
+        sources: &mut crate::source_reading::RouteSources,
         cancel: &std::sync::atomic::AtomicI32,
     ) -> io::Result<()> {
         self.check(sources, cancel)?;
@@ -322,7 +322,7 @@ impl VerifiedExport {
 pub fn verify_export(root: &Path) -> io::Result<Value> {
     let budget = crate::release_files::WholeBudget::begin()?;
     let root = crate::release_files::safe_absolute(root)?;
-    let sources = crate::route_cards::RouteSources::new_until(&root, budget.deadline()?)?;
+    let sources = crate::source_reading::RouteSources::new_until(&root, budget.deadline()?)?;
     let verified = verify_receiver(
         VerifiedExport::new(sources),
         &std::sync::atomic::AtomicI32::new(0),
@@ -332,12 +332,12 @@ pub fn verify_export(root: &Path) -> io::Result<Value> {
 /// Exact downstream handle on the caller's original shared clock and lookup ledger.
 pub fn verify_with_sources(
     root: &Path,
-    primary: &crate::route_cards::RouteSources,
+    primary: &crate::source_reading::RouteSources,
     cancel: &std::sync::atomic::AtomicI32,
 ) -> io::Result<VerifiedExport> {
     let root = crate::release_files::safe_absolute(root)?;
     let sources =
-        crate::route_cards::RouteSources::new_until_related(&root, primary.deadline(), primary)?;
+        crate::source_reading::RouteSources::new_until_related(&root, primary.deadline(), primary)?;
     verify_receiver(VerifiedExport::new(sources), cancel)
 }
 fn verify_receiver(
@@ -710,7 +710,7 @@ mod tests {
         let output = base.0.join("export");
         build_export(&repo(), &store, &revision, &output).unwrap();
         let cancel = std::sync::atomic::AtomicI32::new(0);
-        let mut primary = crate::route_cards::RouteSources::new(&repo()).unwrap();
+        let mut primary = crate::source_reading::RouteSources::new(&repo()).unwrap();
         let verified = verify_with_sources(&output, &primary, &cancel).unwrap();
         assert_eq!(verified.sources.borrow().deadline(), primary.deadline());
         verified.check(&primary, &cancel).unwrap();

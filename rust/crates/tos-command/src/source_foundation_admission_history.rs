@@ -12,7 +12,7 @@ use tos_foundation::{
     CanonicalProfile, Digest256, Digest256Hasher, JsonMode, RelativePath, canonical_bytes_v1,
     parse_json,
 };
-use tos_ops_mechanics_plan::route_cards::{RouteSourceReadHooks, RouteSources};
+use tos_ops_mechanics_plan::source_reading::{RouteSourceReadHooks, RouteSources};
 use tos_source_store::{
     CaptureRestoreLimits, PinnedSqliteIoBudget, ReadLimits, SoftwareCaptureReader,
     SoftwareCaptureSelectionV1, verify_capture_with_usage,

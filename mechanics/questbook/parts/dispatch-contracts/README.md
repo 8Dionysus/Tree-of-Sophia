@@ -10,7 +10,7 @@
 | owner | `mechanics/questbook/parts/dispatch-contracts/` |
 | next route | root `quests/` and `QUESTBOOK.md` |
 | tools | schemas and examples |
-| check | `tos-ops-mechanics-plan --repo-root . --questbook-validate`; `tos-ops-mechanics-plan --repo-root . --mechanics-topology-validate` |
+| check | manual review of the obligation and source records |
 
 ## Payload
 

@@ -11,7 +11,7 @@ continuity and soft inclusion glow. The UI-owner worktree was clean.
 
 All `access/web` source and rebuilt assets match that owner tip exactly.
 There is no new aesthetic or gesture decision here. The only merge conflict
-was generated `documentation-family.current.json`, rebuilt through its owner
+was generated the then-current generated documentation-family carrier, rebuilt through its owner
 builder from the combined sources rather than choosing an old projection.
 The peer worktree and its running preview were not changed.
 

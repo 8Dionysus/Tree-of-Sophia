@@ -12,12 +12,7 @@ source, semantic, rights, canon, runtime or downstream acceptance authority.
 ## Read before editing
 
 Read the exact source/contract and its nearest card. Internal command order
-lives in `docs/validation/validation_lanes.json`. The descriptive
-`docs/validation/script_inventory.json` and
-`docs/validation/SCRIPT_TOPOLOGY.md` locate owners and side effects.
-For route-card work also read `DESIGN.AGENTS.md` and
-`docs/validation/agents_route_inventory.json`; decision indexes follow
-`docs/decisions/AGENTS.md`.
+lives in `docs/validation/validation_lanes.json`. Decision records follow `docs/decisions/AGENTS.md`.
 
 ## Boundary Routes
 
