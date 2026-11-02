@@ -176,6 +176,19 @@ enum MarkerPart {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if let Some(Value::Array(regions)) = object.get("regions") {
+                let mut seen = BTreeSet::new();
+                for region in regions {
+                    if let (Some(page), Some(panel)) = (
+                        region.get("page").and_then(Value::as_u64),
+                        region.get("panel").and_then(Value::as_str),
+                    ) {
+                        if !seen.insert((page, panel)) {
+                            return Err(EditionCurationError::Duplicate("page region"));
+                        }
+                    }
+                }
+            }
             if object.get("stage").and_then(Value::as_str) == Some("numbered-label-correspondence")
             {
                 let count = |key: &str| object.get(key).and_then(Value::as_u64);

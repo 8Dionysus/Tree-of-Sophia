@@ -194,6 +194,124 @@
             "prefix": "tos.text-unit"
           }
         ]
+      },
+      "layout_rules": {
+        "coordinate_unit": "points",
+        "header": {
+          "y_below": 36,
+          "left_center_x": 198,
+          "right_center_x": 594,
+          "center_tolerance": 55,
+          "max_characters": 18,
+          "minimum_dashes": 2,
+          "max_letters_for_short_mark": 3,
+          "max_characters_for_short_mark": 5
+        },
+        "footer": {
+          "always_from_y": 548,
+          "inspect_from_y": 526,
+          "text_contains": [
+            "ницше",
+            "нгппчс",
+            "ихітчс",
+            "яшине",
+            "говорилъзаратустра"
+          ],
+          "allowed_symbols": "*'\"/NnWwVvІI-.•",
+          "marginal_from_y": 538,
+          "marginal_width_below": 40,
+          "right_panel_x": {
+            "x_min": 500,
+            "x_max": 620
+          },
+          "left_panel_x": {
+            "x_min": 150,
+            "x_max": 260
+          },
+          "small_height_at_most": 10.1,
+          "small_width_below": 180,
+          "small_right_panel_x_above_any": [
+            680,
+            460
+          ],
+          "small_left_panel_x_above_any": [
+            300,
+            150
+          ]
+        },
+        "regions": [
+          {
+            "page": 1,
+            "panel": "right",
+            "kind": "front_matter"
+          },
+          {
+            "page": 2,
+            "panel": "left",
+            "kind": "front_matter"
+          },
+          {
+            "page": 2,
+            "panel": "right",
+            "kind": "front_matter"
+          },
+          {
+            "page": 3,
+            "panel": "left",
+            "kind": "front_matter"
+          },
+          {
+            "page": 3,
+            "panel": "right",
+            "kind": "front_matter"
+          },
+          {
+            "page": 4,
+            "panel": "right",
+            "kind": "front_matter"
+          },
+          {
+            "page": 5,
+            "panel": "left",
+            "kind": "front_matter"
+          },
+          {
+            "page": 151,
+            "panel": "right",
+            "kind": "back_matter"
+          },
+          {
+            "page": 152,
+            "panel": "left",
+            "kind": "back_matter"
+          },
+          {
+            "page": 152,
+            "panel": "right",
+            "kind": "back_matter"
+          },
+          {
+            "page": 153,
+            "panel": "left",
+            "kind": "back_matter"
+          }
+        ],
+        "paragraph": {
+          "large_gap_at_least": 5.2,
+          "indent_gap_at_least": 2,
+          "indent_at_least": 13,
+          "same_baseline_y_tolerance": 4.8,
+          "confidence": {
+            "context_change": 1,
+            "role_change": 1,
+            "large_gap": 0.97,
+            "indent_and_gap": 0.95,
+            "new_panel_indent": 0.94,
+            "same_baseline_fragment": 0.99,
+            "first_line_indent": 0.96,
+            "continuation": 0.91
+          }
+        }
       }
     },
     {
