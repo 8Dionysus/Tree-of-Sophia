@@ -205,7 +205,27 @@
         "default"
       ],
       "default_basis": "embedded_pdf_bbox_order_candidate",
-      "page_order": "nondecreasing"
+      "page_order": "nondecreasing",
+      "frozen_outputs": [
+        {
+          "role": "map",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/numbered-unit-page-map.json",
+          "schema_version": "tos_target_numbered_unit_page_map_v1",
+          "expected_sha256": "e2621e08e49bc7f96a8c6dd6c45d32f90fdf3a9e280644e0adbefd5d2c7e09f6"
+        },
+        {
+          "role": "anchors",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/numbered-unit-anchors.jsonl",
+          "schema_version": "tos_source_anchor_v1",
+          "expected_sha256": "6a99956d224cc33d7b22f9693605756bc43c31ab77e32e7bc7f9734a77538729"
+        },
+        {
+          "role": "provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/provenance.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "ad8b6a44207e673c7d50e14f472a1e454c965c59e21c8ec86c73dd9946ea89ed"
+        }
+      ]
     },
     {
       "stage": "hierarchical-target-structure",
@@ -365,7 +385,69 @@
         "passage_prefix": "tos.passage.friedrich-nietzsche.",
         "unit_separator": ".unit-",
         "anchor_suffix": ".pdf-start-page"
-      }
+      },
+      "frozen_outputs": [
+        {
+          "role": "genealogie-map",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-page-map.json",
+          "schema_version": "tos_hierarchical_target_numbered_unit_page_map_v1",
+          "expected_sha256": "f7012f8538be5c1962eb8e7f9a38b41785e8e9d8af4dd834349115227e66d5b4"
+        },
+        {
+          "role": "genealogie-anchors",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-anchors.jsonl",
+          "schema_version": "tos_source_anchor_v1",
+          "expected_sha256": "e5e5742b98ed8cb2460d986dbc04989d29291b87de3b0de77ae18966b6fd5194"
+        },
+        {
+          "role": "genealogie-map-provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/provenance.numbered-unit-page-map.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "046c7773851bbd88a17035c39378a5acb228a122504861c596f924068f8b3d30"
+        },
+        {
+          "role": "genealogie-crosswalk",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/transfer-candidate-page-crosswalk.v1.json",
+          "schema_version": "tos_transfer_candidate_target_structural_crosswalk_v1",
+          "expected_sha256": "cbf9c84364da6bf4ce220afae7627f16b64e73e71f06156aaf3c14671be5a4a9"
+        },
+        {
+          "role": "genealogie-crosswalk-provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/provenance.transfer-candidate-page-crosswalk.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "91ed6bd2b4c93ee0e0e8f80a29946da6bc556e204360777ec75461e938d6dcae"
+        },
+        {
+          "role": "antichrist-map",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-page-map.json",
+          "schema_version": "tos_hierarchical_target_numbered_unit_page_map_v1",
+          "expected_sha256": "a07b84f2c668b248a44dde791077238a993df0eb8e18d03cf3f9470aecf6d38c"
+        },
+        {
+          "role": "antichrist-anchors",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-anchors.jsonl",
+          "schema_version": "tos_source_anchor_v1",
+          "expected_sha256": "565aeaef69c331e387a20ebdfc853d846c0cdc44f5becc72f1c460537f97bdf8"
+        },
+        {
+          "role": "antichrist-map-provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/provenance.numbered-unit-page-map.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "f7d1cbf587f1041f6bc133a7488b5334ae62045ac99aae91965c0a839a750608"
+        },
+        {
+          "role": "antichrist-crosswalk",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/transfer-candidate-page-crosswalk.v1.json",
+          "schema_version": "tos_transfer_candidate_target_structural_crosswalk_v1",
+          "expected_sha256": "dc5fc271d5298df05b77a2f02df68af80358e8878fef1a008c6914c2cde09abc"
+        },
+        {
+          "role": "antichrist-crosswalk-provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/provenance.transfer-candidate-page-crosswalk.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "cac04633db3543b91faa7e30329e0825e38bba79e220969246e28613b1b54dc2"
+        }
+      ]
     },
     {
       "stage": "target-passages",

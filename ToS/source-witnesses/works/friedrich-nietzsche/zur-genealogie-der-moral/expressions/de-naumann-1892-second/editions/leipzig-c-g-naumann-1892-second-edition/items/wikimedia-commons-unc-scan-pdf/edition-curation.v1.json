@@ -230,7 +230,27 @@
         "passage_prefix": "tos.passage.friedrich-nietzsche.",
         "unit_separator": ".unit-",
         "anchor_suffix": ".source-start-page"
-      }
+      },
+      "frozen_outputs": [
+        {
+          "role": "map",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/structure/hierarchical-numbered-unit-page-map.json",
+          "schema_version": "tos_hierarchical_source_numbered_unit_page_map_v1",
+          "expected_sha256": "2f90121d2948a88e89bfd29713327bb79ab55a666f1f73697feebae3f08ad208"
+        },
+        {
+          "role": "anchors",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/structure/hierarchical-numbered-unit-anchors.jsonl",
+          "schema_version": "tos_source_anchor_v1",
+          "expected_sha256": "2d20998b2599a54820d5de62a8a6e052d6d6e8b971e38be2c95e377bca6fbbf7"
+        },
+        {
+          "role": "map-provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/structure/provenance.numbered-unit-page-map.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "a634e48641955a65d0a39a6211b748ad1819aed0c973b127ee842e7efc3829a1"
+        }
+      ]
     },
     {
       "stage": "recipe-reference",

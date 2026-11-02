@@ -246,7 +246,27 @@
         "default"
       ],
       "default_basis": "ocr_order_candidate",
-      "page_order": "nondecreasing"
+      "page_order": "nondecreasing",
+      "frozen_outputs": [
+        {
+          "role": "map",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/structure/numbered-unit-page-map.json",
+          "schema_version": "tos_numbered_unit_page_map_v1",
+          "expected_sha256": "fb7c15005968bb5795388714ab2b725593f5f29f31cb29c71cece77f751b2b90"
+        },
+        {
+          "role": "anchors",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/structure/numbered-unit-anchors.jsonl",
+          "schema_version": "tos_source_anchor_v1",
+          "expected_sha256": "8824a470974159323078d6099fda62b68d578719955f11c4494b2408a93f1005"
+        },
+        {
+          "role": "provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/structure/provenance.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "09d3facf8fe4a405fc607246febbcf710e7d49b068755796eb0d27484a68e71c"
+        }
+      ]
     },
     {
       "stage": "source-passage-marker-returns",

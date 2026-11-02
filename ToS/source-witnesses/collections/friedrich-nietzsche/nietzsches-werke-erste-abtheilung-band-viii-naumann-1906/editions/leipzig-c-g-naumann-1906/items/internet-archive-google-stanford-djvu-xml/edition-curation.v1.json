@@ -244,7 +244,27 @@
         "passage_prefix": "tos.passage.friedrich-nietzsche.",
         "unit_separator": ".unit-",
         "anchor_suffix": ".source-start-page"
-      }
+      },
+      "frozen_outputs": [
+        {
+          "role": "map",
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/structure/hierarchical-numbered-unit-page-map.json",
+          "schema_version": "tos_hierarchical_source_numbered_unit_page_map_v1",
+          "expected_sha256": "341e57c160fcf1cce01d0e9ab191964753717fea62745fbe077e8a5159a3c0d3"
+        },
+        {
+          "role": "anchors",
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/structure/hierarchical-numbered-unit-anchors.jsonl",
+          "schema_version": "tos_source_anchor_v1",
+          "expected_sha256": "3bd187b4718039da00c6135b53c4b3dae53a80ec7f2e9e32ee28cabb9d3ecfd5"
+        },
+        {
+          "role": "map-provenance",
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/structure/provenance.numbered-unit-page-map.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "c10ace590da3c8f78156b10f32b37a4ef2ff8d36e9f15597a079edb975c469db"
+        }
+      ]
     }
   ]
 }
