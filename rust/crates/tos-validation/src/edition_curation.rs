@@ -927,6 +927,114 @@ fn check_replacements(value: &Value) -> Result<(), EditionCurationError> {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if let Some(sequence) = object.get("unit_sequence") {
+                let first = sequence["first_number"]
+                    .as_u64()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let last = sequence["last_number"]
+                    .as_u64()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let repeats = sequence["repeat_after"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                if first > last
+                    || repeats
+                        .windows(2)
+                        .any(|pair| pair[0].as_u64() >= pair[1].as_u64())
+                    || repeats
+                        .iter()
+                        .any(|number| number.as_u64().is_none_or(|n| n < first || n > last))
+                    || last
+                        .checked_sub(first)
+                        .and_then(|n| n.checked_add(1))
+                        .and_then(|n| n.checked_add(repeats.len() as u64))
+                        != sequence["expected_count"].as_u64()
+                {
+                    return Err(EditionCurationError::InvalidRange("unit_sequence"));
+                }
+                let suffix = sequence["repeat_suffix"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                for field in [
+                    "page_overrides",
+                    "gap_review_keys",
+                    "ocr_disambiguation_keys",
+                    "repeated_number_review_keys",
+                ] {
+                    if let Some(entries) = object.get(field).and_then(Value::as_array) {
+                        for entry in entries {
+                            let key = if field == "page_overrides" {
+                                entry["key"].as_str()
+                            } else {
+                                entry.as_str()
+                            }
+                            .ok_or(EditionCurationError::InvalidSchema)?;
+                            let (digits, repeated) =
+                                if key.bytes().all(|byte| byte.is_ascii_digit()) {
+                                    (key, false)
+                                } else {
+                                    (
+                                        key.strip_suffix(suffix)
+                                            .ok_or(EditionCurationError::MissingReference)?,
+                                        true,
+                                    )
+                                };
+                            let number = digits
+                                .parse::<u64>()
+                                .map_err(|_| EditionCurationError::MissingReference)?;
+                            if number.to_string() != digits
+                                || number < first
+                                || number > last
+                                || (repeated
+                                    && !repeats.iter().any(|value| value.as_u64() == Some(number)))
+                            {
+                                return Err(EditionCurationError::MissingReference);
+                            }
+                        }
+                    }
+                }
+            }
+            if let Some(profile) = object
+                .get("candidate_profile")
+                .filter(|value| value.is_object())
+            {
+                if let Some(normalization) = profile["normalization"].as_array() {
+                    let mut characters = BTreeSet::new();
+                    for substitution in normalization {
+                        let from = substitution["from"]
+                            .as_str()
+                            .ok_or(EditionCurationError::InvalidSchema)?;
+                        if !characters.insert(from) {
+                            return Err(EditionCurationError::Duplicate("normalization character"));
+                        }
+                    }
+                }
+                for (lower, upper) in [
+                    ("first_page", "last_page"),
+                    ("minimum_top", "maximum_top"),
+                    ("minimum_x", "maximum_x"),
+                    ("minimum_y", "maximum_y"),
+                    ("minimum_characters", "maximum_characters"),
+                    ("minimum_number", "maximum_number"),
+                ] {
+                    if let (Some(a), Some(b)) = (profile.get(lower), profile.get(upper)) {
+                        if !matches!(
+                            compare_numbers(a, b),
+                            Some(Ordering::Less | Ordering::Equal)
+                        ) {
+                            return Err(EditionCurationError::InvalidRange("candidate_profile"));
+                        }
+                    }
+                }
+                if profile.get("source_page_count").is_some()
+                    && !matches!(
+                        compare_numbers(&profile["last_page"], &profile["source_page_count"]),
+                        Some(Ordering::Less | Ordering::Equal)
+                    )
+                {
+                    return Err(EditionCurationError::InvalidRange("candidate_profile"));
+                }
+            }
             if let Some(rules) = object.get("posture_rules") {
                 let rules = rules
                     .as_array()

@@ -35,6 +35,30 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let raw = fs::read(root.join(path)).unwrap();
     assert_eq!(validate(&raw, &schema), Ok(()));
     let original: Value = serde_json::from_slice(&raw).unwrap();
+    let mut invalid_sequence = original.clone();
+    let numbered = invalid_sequence["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "numbered-structure")
+        .unwrap();
+    numbered["unit_sequence"]["expected_count"] = json!(298);
+    assert_eq!(
+        validate(&serde_json::to_vec(&invalid_sequence).unwrap(), &schema),
+        Err(EditionCurationError::InvalidRange("unit_sequence"))
+    );
+    let mut unknown_override = original.clone();
+    let numbered = unknown_override["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "numbered-structure")
+        .unwrap();
+    numbered["page_overrides"][0]["key"] = json!("999");
+    assert_eq!(
+        validate(&serde_json::to_vec(&unknown_override).unwrap(), &schema),
+        Err(EditionCurationError::MissingReference)
+    );
     let mut duplicate_source_layer = original.clone();
     let source = duplicate_source_layer["recipes"]
         .as_array_mut()
@@ -219,6 +243,25 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         .is_err()
     );
     let target_path = "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/edition-curation.v1.json";
+    let mut duplicate_normalization: Value =
+        serde_json::from_slice(&fs::read(root.join(target_path)).unwrap()).unwrap();
+    let numbered = duplicate_normalization["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "numbered-structure")
+        .unwrap();
+    let normalization = numbered["candidate_profile"]["normalization"]
+        .as_array_mut()
+        .unwrap();
+    normalization.push(normalization[0].clone());
+    assert_eq!(
+        validate(
+            &serde_json::to_vec(&duplicate_normalization).unwrap(),
+            &schema
+        ),
+        Err(EditionCurationError::Duplicate("normalization character"))
+    );
     let mut duplicate_target: Value =
         serde_json::from_slice(&fs::read(root.join(target_path)).unwrap()).unwrap();
     let target = duplicate_target["recipes"]

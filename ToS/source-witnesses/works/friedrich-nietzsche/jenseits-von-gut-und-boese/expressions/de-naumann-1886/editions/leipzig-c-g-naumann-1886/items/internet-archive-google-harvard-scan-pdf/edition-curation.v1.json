@@ -234,7 +234,8 @@
         "anchor_prefix": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-",
         "anchor_suffix": ".pdf-start-page",
         "passage_prefix": "tos.passage.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-",
-        "passage_suffix": ""
+        "passage_suffix": "",
+        "native_generation_separator": ".native-"
       },
       "repeated_number_review_keys": [
         "237a"
@@ -266,7 +267,35 @@
           "schema_version": "tos_provenance_event_v1",
           "expected_sha256": "09d3facf8fe4a405fc607246febbcf710e7d49b068755796eb0d27484a68e71c"
         }
-      ]
+      ],
+      "unit_sequence": {
+        "first_number": 1,
+        "last_number": 296,
+        "repeat_after": [
+          65,
+          73,
+          237
+        ],
+        "repeat_suffix": "a",
+        "expected_count": 299
+      },
+      "candidate_profile": {
+        "kind": "abbyy",
+        "source_page_count": 274,
+        "first_page": 10,
+        "last_page": 266,
+        "minimum_top": 400,
+        "maximum_top": 3500,
+        "minimum_characters": 1,
+        "maximum_characters": 14,
+        "digit_aliases": "IiLl",
+        "extra_compact_characters": "»",
+        "substitution_cost": 0.22,
+        "skipped_key_cost": 0.92,
+        "skipped_candidate_cost": 0.04,
+        "maximum_match_cost": 1.55,
+        "alignment": "weighted-ordered"
+      }
     },
     {
       "stage": "source-passage-marker-returns",

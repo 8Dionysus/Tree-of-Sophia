@@ -194,7 +194,8 @@
         "anchor_prefix": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-",
         "anchor_suffix": ".pdf-start-page",
         "passage_prefix": "tos.passage.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-",
-        "passage_suffix": ""
+        "passage_suffix": "",
+        "native_generation_separator": ".native-"
       },
       "ocr_disambiguation_keys": [
         "6"
@@ -225,7 +226,49 @@
           "schema_version": "tos_provenance_event_v1",
           "expected_sha256": "ad8b6a44207e673c7d50e14f472a1e454c965c59e21c8ec86c73dd9946ea89ed"
         }
-      ]
+      ],
+      "unit_sequence": {
+        "first_number": 1,
+        "last_number": 296,
+        "repeat_after": [
+          65,
+          73
+        ],
+        "repeat_suffix": "a",
+        "expected_count": 298
+      },
+      "candidate_profile": {
+        "kind": "pdf-bbox",
+        "first_page": 238,
+        "last_page": 406,
+        "page_batch_size": 8,
+        "minimum_x": 145,
+        "maximum_x": 175,
+        "minimum_y": 40,
+        "maximum_y": 490,
+        "minimum_characters": 1,
+        "maximum_characters": 5,
+        "required_word_count": 1,
+        "minimum_number": 1,
+        "maximum_number": 299,
+        "allow_leading_zero": false,
+        "trim_surrounding_periods": true,
+        "normalization": [
+          {
+            "from": "а",
+            "to": "a"
+          },
+          {
+            "from": "А",
+            "to": "a"
+          },
+          {
+            "from": "б",
+            "to": "6"
+          }
+        ],
+        "alignment": "monotonic-first-match"
+      }
     },
     {
       "stage": "hierarchical-target-structure",
