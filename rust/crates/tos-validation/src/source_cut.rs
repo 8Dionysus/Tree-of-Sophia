@@ -5211,6 +5211,7 @@ pub struct InProcessCutSchemaExecutor<I> {
     engine: crate::in_process::InProcessSchemaEngine,
     profile: FormatProfile,
     input_mode: crate::in_process::InputMode,
+    pending_source_rejection: Option<InProcessCutDiagnostic<()>>,
     finished: bool,
     failed: bool,
 }
@@ -5281,6 +5282,7 @@ impl<I> InProcessCutSchemaExecutor<I> {
             engine,
             profile,
             input_mode,
+            pending_source_rejection: None,
             finished: false,
             failed: false,
         })
@@ -5297,6 +5299,11 @@ impl<I> InProcessCutSchemaExecutor<I> {
             engine: crate::in_process::ENGINE_ID,
             input_mode_sha256: Some(self.input_mode.identity_sha256()),
         }
+    }
+
+    /// Move the first rejected source-cut observation from this operation.
+    pub fn take_source_diagnostic_rejection(&mut self) -> Option<InProcessCutDiagnostic<()>> {
+        self.pending_source_rejection.take()
     }
 
     pub fn diagnostic_for(
@@ -5487,7 +5494,7 @@ impl<I> CutSchemaExecutor for InProcessCutSchemaExecutor<I> {
 
     fn check(
         &mut self,
-        _path: &str,
+        path: &str,
         raw: &[u8],
         contract: &str,
         deadline: Instant,
@@ -5500,17 +5507,34 @@ impl<I> CutSchemaExecutor for InProcessCutSchemaExecutor<I> {
             deadline,
             cancelled,
         )?;
-        match report.status {
+        let status = report.status;
+        let failure = report.failure;
+        if status != schema_diagnostics::Status::Valid && self.pending_source_rejection.is_none() {
+            if let InProcessCutIdentity::Source(revision) = self.identity {
+                self.pending_source_rejection = Some(InProcessCutDiagnostic {
+                    identity: InProcessCutIdentity::Source(revision),
+                    path: path.to_owned(),
+                    contract: contract.to_owned(),
+                    selector_kind: InProcessSelectorKind::ContractPath,
+                    input_size_bytes: Some(
+                        u64::try_from(raw.len()).map_err(|_| crate::item_budget_origin!())?,
+                    ),
+                    before_issue: None,
+                    report,
+                });
+            }
+        }
+        match status {
             schema_diagnostics::Status::Valid => Ok(true),
             schema_diagnostics::Status::Invalid => Ok(false),
             schema_diagnostics::Status::InputRejected
-                if report.failure == schema_diagnostics::Failure::InputBudget =>
+                if failure == schema_diagnostics::Failure::InputBudget =>
             {
                 Err(ItemRefusal::Budget)
             }
             _ => Err(ItemRefusal::Unsupported(format!(
                 "schema diagnostic {:?}: {:?}",
-                report.status, report.failure
+                status, failure
             ))),
         }
     }
@@ -5842,6 +5866,40 @@ pub(crate) mod in_process_candidate_binding_tests {
             catalog_entry_schema_present: false,
             catalog_claim_entry_schema_present: false,
         }
+    }
+
+    #[test]
+    fn source_cut_retains_first_rejected_schema_evidence() {
+        let set = selected_set();
+        let revision = SourceRevision(Digest256::of_bytes(b"selected source"));
+        let mut executor = InProcessCutSchemaExecutor::new_selected(
+            InProcessCutIdentity::<()>::Source(revision),
+            set.contracts,
+            set.resources,
+            set.profile,
+            crate::in_process::InputMode::PublishedStrict,
+        )
+        .unwrap();
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let contract = "ToS/contracts/example.schema.json";
+        assert!(
+            !executor
+                .check("first.json", b"{}", contract, deadline, &cancelled)
+                .unwrap()
+        );
+        assert!(
+            !executor
+                .check("second.json", b"[]", contract, deadline, &cancelled)
+                .unwrap()
+        );
+        let diagnostic = executor.take_source_diagnostic_rejection().unwrap();
+        assert_eq!(diagnostic.identity, InProcessCutIdentity::Source(revision));
+        assert_eq!(diagnostic.path, "first.json");
+        assert_eq!(diagnostic.contract, contract);
+        assert_eq!(diagnostic.report.input_sha256, Digest256::of_bytes(b"{}"));
+        assert!(CutSchemaEvidence::InProcess(diagnostic).is_invalid());
+        assert!(executor.take_source_diagnostic_rejection().is_none());
     }
 
     #[test]
