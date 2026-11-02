@@ -454,7 +454,60 @@
             "priority": 80
           }
         ]
-      }
+      },
+      "structure_parent_overrides": [
+        {
+          "record_kind": "reading_unit_heading",
+          "part_id": "part_1",
+          "minimum_ordinal": 2,
+          "parent_key": "part_1.cycle_heading"
+        }
+      ],
+      "citation_profile": {
+        "prefix": "Za-RU-Ant1911.",
+        "reading_substitutions": [
+          {
+            "from": "part_",
+            "to": "P"
+          },
+          {
+            "from": ".reading_",
+            "to": ".R"
+          }
+        ],
+        "kinds": [
+          {
+            "kind": "paragraph",
+            "ordinal_marker": ".p",
+            "ordinal_width": 4
+          },
+          {
+            "kind": "verse_group",
+            "ordinal_marker": ".vg",
+            "ordinal_width": 3
+          }
+        ],
+        "conflict_prefix": "ru-ant1911.boundary-conflict.",
+        "conflict_width": 5
+      },
+      "structure_parent_defaults": [
+        {
+          "record_kind": "reading_unit_heading",
+          "source_field": "part_id"
+        },
+        {
+          "record_kind": "numbered_subpart_marker",
+          "source_field": "parent_reading_ref"
+        },
+        {
+          "record_kind": "cycle_heading",
+          "source_field": "part_id"
+        },
+        {
+          "record_kind": "publisher_catalog_heading",
+          "fixed_parent_key": "back_matter.publisher_catalog"
+        }
+      ]
     },
     {
       "stage": "text-collation",
