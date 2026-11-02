@@ -2016,7 +2016,15 @@
           "ordinal_width": 4,
           "ordinal_base": 1
         }
-      ]
+      ],
+      "import_schema_versions": {
+        "primary": "tos_zarathustra_de_ru_primary_input_receipt_v1",
+        "challenger": "tos_zarathustra_de_ru_independent_challenger_input_receipt_v1"
+      },
+      "target_layer_filename": {
+        "prefix": "antonovsky-1911-part-",
+        "suffix": "-paragraphs.v1.txt"
+      }
     },
     {
       "stage": "parallel-lexical-candidates",
