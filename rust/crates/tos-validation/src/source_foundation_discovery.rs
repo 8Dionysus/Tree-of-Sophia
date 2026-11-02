@@ -6210,10 +6210,20 @@ fn update_in_process_diagnostic_fingerprint(
     let report_digest = report_hash.finalize();
 
     let mut unit_hash = Digest256Hasher::new();
-    hash_text(&mut unit_hash, "tos-in-process-artifact-unit-v1")?;
+    hash_text(
+        &mut unit_hash,
+        if diagnostic.before_issue.is_some() {
+            "tos-in-process-artifact-unit-v2"
+        } else {
+            "tos-in-process-artifact-unit-v1"
+        },
+    )?;
     hash_text(&mut unit_hash, &diagnostic.path)?;
     hash_text(&mut unit_hash, &diagnostic.contract)?;
     hash_optional_u64(&mut unit_hash, diagnostic.input_size_bytes);
+    if let Some(before_issue) = diagnostic.before_issue {
+        hash_u64(&mut unit_hash, before_issue);
+    }
     hash_digest(&mut unit_hash, report_digest);
     let unit_digest = unit_hash.finalize();
     hash_text(hasher, "in-process-diagnostic-v1")?;
@@ -6282,6 +6292,7 @@ mod in_process_artifact_evidence_tests {
             path: "ToS/source-witnesses/artifacts/example/artifact-witness.json".into(),
             contract: V2_ARTIFACT_SCHEMA.into(),
             input_size_bytes: Some(2),
+            before_issue: None,
             report,
         };
         assert!(diagnostic.report.is_well_formed());
@@ -6302,6 +6313,13 @@ mod in_process_artifact_evidence_tests {
                 .unwrap();
         assert_ne!(unit, old_unit);
         assert_eq!(report, old_report);
+        diagnostic.input_size_bytes = Some(2);
+        diagnostic.before_issue = Some(3);
+        let (positioned_unit, positioned_report, _) =
+            update_in_process_diagnostic_fingerprint(&mut Digest256Hasher::new(), &diagnostic)
+                .unwrap();
+        assert_ne!(unit, positioned_unit);
+        assert_eq!(report, positioned_report);
         let other = SchemaExecutionBinding::InProcessV1(InProcessSchemaExecutionBinding {
             schema_set_sha256: Digest256::of_bytes(b"other"),
             schema_profile: profile,

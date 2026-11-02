@@ -4994,6 +4994,8 @@ pub struct InProcessCutDiagnostic<I> {
     pub contract: String,
     /// Exact raw input length, absent in version 1 historical evidence.
     pub input_size_bytes: Option<u64>,
+    /// Number of owner issues emitted before this record evaluation.
+    pub before_issue: Option<u64>,
     pub report: crate::in_process::Report,
 }
 
@@ -5107,6 +5109,7 @@ impl<I> InProcessCutSchemaExecutor<I> {
             input_size_bytes: Some(
                 u64::try_from(raw.len()).map_err(|_| crate::item_budget_origin!())?,
             ),
+            before_issue: None,
             report,
         })
     }
@@ -5228,6 +5231,8 @@ struct InProcessCutEvidence<I> {
     contract: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     input_size_bytes: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    before_issue: Option<u64>,
     report: serde_json::Value,
 }
 
@@ -5244,7 +5249,9 @@ impl<I: Clone + serde::Serialize + serde::de::DeserializeOwned> InProcessCutDiag
         };
         let report = serde_json::from_slice(&self.report.to_evidence_json()?)?;
         serde_json::to_vec(&InProcessCutEvidence {
-            version: if self.input_size_bytes.is_some() {
+            version: if self.before_issue.is_some() {
+                3
+            } else if self.input_size_bytes.is_some() {
                 2
             } else {
                 1
@@ -5253,6 +5260,7 @@ impl<I: Clone + serde::Serialize + serde::de::DeserializeOwned> InProcessCutDiag
             path: self.path.clone(),
             contract: self.contract.clone(),
             input_size_bytes: self.input_size_bytes,
+            before_issue: self.before_issue,
             report,
         })
     }
@@ -5264,8 +5272,12 @@ impl<I: Clone + serde::Serialize + serde::de::DeserializeOwned> InProcessCutDiag
         let evidence: InProcessCutEvidence<I> =
             serde_json::from_value(value).map_err(|_| "invalid cut evidence JSON")?;
         if !matches!(
-            (evidence.version, evidence.input_size_bytes),
-            (1, None) | (2, Some(_))
+            (
+                evidence.version,
+                evidence.input_size_bytes,
+                evidence.before_issue
+            ),
+            (1, None, None) | (2, Some(_), None) | (3, _, Some(_))
         ) || evidence.path.is_empty()
             || evidence.contract.is_empty()
             || evidence.path.len() > 4096
@@ -5290,6 +5302,7 @@ impl<I: Clone + serde::Serialize + serde::de::DeserializeOwned> InProcessCutDiag
             path: evidence.path,
             contract: evidence.contract,
             input_size_bytes: evidence.input_size_bytes,
+            before_issue: evidence.before_issue,
             report,
         })
     }

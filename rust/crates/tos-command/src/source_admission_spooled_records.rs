@@ -4411,6 +4411,7 @@ mod schema_report_codec_tests {
                     path: "source.json".into(),
                     contract: "schema.json".into(),
                     input_size_bytes: Some(raw.len() as u64),
+                    before_issue: Some(3),
                     report: report.clone(),
                 },
             );
