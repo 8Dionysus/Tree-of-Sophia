@@ -4331,6 +4331,11 @@
           "role": "relation-count",
           "output_role": "bridge_ref",
           "json_pointer": "/canon_inventory/relation_count"
+        },
+        {
+          "role": "legacy-segment-crosswalk",
+          "output_role": "bridge_ref",
+          "json_pointer": "/segment_crosswalk"
         }
       ],
       "frozen_outputs": [

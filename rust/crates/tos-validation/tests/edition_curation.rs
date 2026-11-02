@@ -1534,6 +1534,33 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         ),
         Err(EditionCurationError::MissingReference)
     );
+    let bridge = dta_value["recipes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|recipe| recipe["stage"] == "authored-canon-evidence")
+        .unwrap();
+    let bridge_ref = bridge["frozen_outputs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|output| output["role"] == "bridge_ref")
+        .unwrap()["repository_path"]
+        .as_str()
+        .unwrap();
+    let bridge_raw = fs::read(root.join(bridge_ref)).unwrap();
+    let crosswalk = select_historical_field(
+        &dta_raw,
+        "authored-canon-evidence",
+        "legacy-segment-crosswalk",
+        SelectedDocument {
+            reference: bridge_ref,
+            raw: &bridge_raw,
+        },
+        &schema,
+    )
+    .unwrap();
+    assert_eq!(crosswalk.as_array().unwrap().len(), 12);
     let mut out_of_order = dta_value.clone();
     let constructor = out_of_order["recipes"]
         .as_array_mut()
