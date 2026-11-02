@@ -91,25 +91,6 @@ struct SelectedEpoch {
     rule_version: u64,
 }
 
-fn selected_text_schemas(
-    files: &[cmd::SourceFile],
-    epoch_identity: (Digest256, Digest256),
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> SourceCommandResult<
-    tos_validation::source_cut::InProcessCandidateSchemaExecutor<(Digest256, Digest256)>,
-> {
-    tos_validation::source_cut::InProcessCandidateSchemaExecutor::from_selected_source_resources(
-        epoch_identity,
-        super::revisions::selected_text_schema_resources(files)?,
-        tos_validation::FormatProfile::LegacyPythonObserved20260923,
-        tos_validation::in_process::InputMode::SerdeNormalized,
-        deadline,
-        cancelled,
-    )
-    .map_err(|_| SourceCommandError::Denied("PostgreSQL private Text schema selection"))
-}
-
 #[cfg(test)]
 mod selected_schema_tests {
     use super::*;
@@ -123,15 +104,39 @@ mod selected_schema_tests {
             path: RelativePath::parse(path).unwrap(),
             raw: raw.to_vec(),
         };
-        let identity = (
-            Digest256::of_bytes(b"revision"),
-            Digest256::of_bytes(b"contract"),
-        );
+        let digest = Digest256::of_bytes(b"selected pg identity");
+        let identity = crate::source_cohort::revision::PgRecordRevisionIdentity {
+            domain_digest: digest,
+            store_id: [7; 16],
+            bootstrap_revision: tos_foundation::SourceRevision(digest),
+            bootstrap_membership: tos_source_store::SourceMembershipV1 { count: 1, digest },
+            cohort_digest: digest,
+            cohort_epoch: 1,
+            cohort_definition: digest,
+            cohort_generation: 2,
+            job_id_digest: digest,
+            job_fence: 3,
+            epoch: 4,
+            source_generation: 5,
+            head_seq: 6,
+            audit_generation: 7,
+            rights_version: 8,
+            rule_version: 9,
+            contract: digest,
+        };
         let deadline = Instant::now() + std::time::Duration::from_secs(30);
         let cancelled = AtomicBool::new(false);
-        let mut schemas =
-            selected_text_schemas(&[file.clone()], identity, deadline, &cancelled).unwrap();
+        let mut schemas = super::super::revisions::selected_pg_text_schemas(
+            &[file.clone()],
+            identity,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
         assert_eq!(schemas.input_identity(), &identity);
+        let mut other_epoch = identity;
+        other_epoch.rights_version += 1;
+        assert_ne!(schemas.input_identity(), &other_epoch);
         assert_eq!(schemas.selected_source_revision(), None);
         assert_eq!(
             schemas.selected_contract_digest(path),
@@ -149,7 +154,15 @@ mod selected_schema_tests {
         );
         let mut wrong = file;
         wrong.raw = br#"{"$id":"https://example.test/wrong"}"#.to_vec();
-        assert!(selected_text_schemas(&[wrong], identity, deadline, &cancelled).is_err());
+        assert!(
+            super::super::revisions::selected_pg_text_schemas(
+                &[wrong],
+                identity,
+                deadline,
+                &cancelled
+            )
+            .is_err()
+        );
     }
 }
 
@@ -1094,7 +1107,7 @@ pub(crate) fn run(
             .map_err(|_| SourceCommandError::Conflict("selected Text PostgreSQL"))?,
     );
 
-    let ((first_epoch, schema_members), _) = db
+    let ((first_epoch, schema_members, schema_identity), _) = db
         .with_source_revision_session(
             &store,
             &selection.domain,
@@ -1111,7 +1124,11 @@ pub(crate) fn run(
                 }
                 let schemas = selected_contracts(session, &family, deadline, cancelled)
                     .map_err(source_command_error)?;
-                Ok((epoch, schemas))
+                let identity =
+                    crate::source_cohort::revision::PgRecordRevisionIdentity::from_selection(
+                        session.selection(),
+                    );
+                Ok((epoch, schemas, identity))
             },
         )
         .map_err(pg::source_error)?;
@@ -1132,9 +1149,9 @@ pub(crate) fn run(
         ));
     }
     let schema_files = source_files(&schema_members)?;
-    let mut worker = selected_text_schemas(
+    let mut worker = super::revisions::selected_pg_text_schemas(
         &schema_files,
-        (first_epoch.source_revision, first_epoch.contract),
+        schema_identity,
         deadline,
         cancelled,
     )?;

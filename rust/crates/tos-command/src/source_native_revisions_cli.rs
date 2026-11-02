@@ -1214,6 +1214,23 @@ pub(crate) fn selected_text_schema_resources(
     Ok(selected)
 }
 
+pub(crate) fn selected_pg_text_schemas<I: Copy + Eq>(
+    files: &[cmd::SourceFile],
+    epoch_identity: I,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<tos_validation::source_cut::InProcessCandidateSchemaExecutor<I>> {
+    tos_validation::source_cut::InProcessCandidateSchemaExecutor::from_selected_source_resources(
+        epoch_identity,
+        selected_text_schema_resources(files)?,
+        tos_validation::FormatProfile::LegacyPythonObserved20260923,
+        tos_validation::in_process::InputMode::SerdeNormalized,
+        deadline,
+        cancelled,
+    )
+    .map_err(|_| SourceCommandError::Denied("PostgreSQL Text schema selection"))
+}
+
 pub(crate) fn selected_schema_from_context(
     invocation: &Value,
     files: &[cmd::SourceFile],
