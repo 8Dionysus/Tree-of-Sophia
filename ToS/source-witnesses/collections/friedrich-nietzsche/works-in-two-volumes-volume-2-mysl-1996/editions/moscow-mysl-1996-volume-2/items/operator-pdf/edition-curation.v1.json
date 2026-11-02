@@ -661,6 +661,55 @@
           "random",
           "hard"
         ]
+      },
+      "marker_profile": {
+        "normalization_stage": "numbered-structure",
+        "trim": "trailing-periods",
+        "minimum_x": 140,
+        "maximum_x": 180,
+        "maximum_y_exclusive": 500,
+        "required_word_count": 1,
+        "point_decimal_places": 6,
+        "normalized_decimal_places": 8,
+        "override_basis": "source-visible-exact-label-over-ocr-token",
+        "exact_basis": "exact-expected-single-line-number-label-in-pdf-bbox-layer",
+        "overrides": [
+          {
+            "page": 268,
+            "unit_key": "33",
+            "ocr_token": "171"
+          },
+          {
+            "page": 278,
+            "unit_key": "46",
+            "ocr_token": "171"
+          },
+          {
+            "page": 279,
+            "unit_key": "47",
+            "ocr_token": "171"
+          },
+          {
+            "page": 322,
+            "unit_key": "203",
+            "ocr_token": "195"
+          },
+          {
+            "page": 399,
+            "unit_key": "285",
+            "ocr_token": "263"
+          },
+          {
+            "page": 662,
+            "unit_key": "38",
+            "ocr_token": "36"
+          },
+          {
+            "page": 670,
+            "unit_key": "45",
+            "ocr_token": "36"
+          }
+        ]
       }
     },
     {

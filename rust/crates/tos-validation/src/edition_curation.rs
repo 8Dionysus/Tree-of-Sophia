@@ -970,6 +970,56 @@ fn check_replacements(value: &Value) -> Result<(), EditionCurationError> {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if let Some(recipes) = object.get("recipes").and_then(Value::as_array) {
+                for recipe in recipes
+                    .iter()
+                    .filter(|recipe| recipe["stage"] == "target-passages")
+                {
+                    if let Some(profile) = recipe.get("marker_profile") {
+                        let stage = profile["normalization_stage"]
+                            .as_str()
+                            .ok_or(EditionCurationError::InvalidSchema)?;
+                        let matches = recipes
+                            .iter()
+                            .filter(|candidate| {
+                                candidate["stage"] == stage
+                                    && candidate["candidate_profile"]["kind"] == "pdf-bbox"
+                            })
+                            .count();
+                        match matches {
+                            1 => {}
+                            0 => return Err(EditionCurationError::MissingReference),
+                            _ => return Err(EditionCurationError::AmbiguousReference),
+                        }
+                    }
+                }
+            }
+            if let Some(profile) = object
+                .get("marker_profile")
+                .filter(|_| object.get("stage").and_then(Value::as_str) == Some("target-passages"))
+            {
+                if !matches!(
+                    compare_numbers(&profile["minimum_x"], &profile["maximum_x"]),
+                    Some(Ordering::Less | Ordering::Equal)
+                ) {
+                    return Err(EditionCurationError::InvalidRange("marker_profile"));
+                }
+                let mut seen = BTreeSet::new();
+                for item in profile["overrides"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?
+                {
+                    let page = item["page"]
+                        .as_u64()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    let unit = item["unit_key"]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    if !seen.insert((page, unit)) {
+                        return Err(EditionCurationError::Duplicate("marker override"));
+                    }
+                }
+            }
             if let Some(sequence) = object.get("unit_sequence") {
                 let first = sequence["first_number"]
                     .as_u64()

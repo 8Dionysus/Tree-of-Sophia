@@ -275,6 +275,35 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         ),
         Err(EditionCurationError::Duplicate("normalization character"))
     );
+    let mut duplicate_marker: Value =
+        serde_json::from_slice(&fs::read(root.join(target_path)).unwrap()).unwrap();
+    let target = duplicate_marker["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "target-passages")
+        .unwrap();
+    let overrides = target["marker_profile"]["overrides"]
+        .as_array_mut()
+        .unwrap();
+    overrides.push(overrides[0].clone());
+    assert_eq!(
+        validate(&serde_json::to_vec(&duplicate_marker).unwrap(), &schema),
+        Err(EditionCurationError::Duplicate("marker override"))
+    );
+    let mut missing_normalizer: Value =
+        serde_json::from_slice(&fs::read(root.join(target_path)).unwrap()).unwrap();
+    let target = missing_normalizer["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "target-passages")
+        .unwrap();
+    target["marker_profile"]["normalization_stage"] = json!("missing-stage");
+    assert_eq!(
+        validate(&serde_json::to_vec(&missing_normalizer).unwrap(), &schema),
+        Err(EditionCurationError::MissingReference)
+    );
     let mut duplicate_target: Value =
         serde_json::from_slice(&fs::read(root.join(target_path)).unwrap()).unwrap();
     let target = duplicate_target["recipes"]
