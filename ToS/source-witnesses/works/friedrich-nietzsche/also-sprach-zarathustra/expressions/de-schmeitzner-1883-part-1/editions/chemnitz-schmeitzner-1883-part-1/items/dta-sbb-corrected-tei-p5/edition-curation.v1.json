@@ -911,6 +911,10 @@
           "kind": "direct-plan",
           "input_pointer": "/inputs/german_exact_occurrence_database"
         }
+      },
+      "private_schema_versions": {
+        "analysis": "tos_zarathustra_concept_request_private_analysis_v1",
+        "index": "tos_zarathustra_concept_workbench_private_index_v1"
       }
     },
     {
@@ -1427,7 +1431,10 @@
           "schema_version": "tos_zarathustra_eternal_return_candidate_manifest_v1",
           "expected_sha256": "69ef678246a310f728e11081db7823aca0b513c572ebaabdc477329119ece557"
         }
-      ]
+      ],
+      "private_schema_versions": {
+        "analysis": "tos_zarathustra_eternal_return_private_analysis_v1"
+      }
     },
     {
       "stage": "concept-review",
@@ -1845,7 +1852,10 @@
           "schema_version": "tos_zarathustra_eternal_return_review_preparation_manifest_v1",
           "expected_sha256": "cdcc26f029901df3080c30fb12da006a312ac68c5dc2c205b74fed3b9a60e802"
         }
-      ]
+      ],
+      "private_schema_versions": {
+        "analysis": "tos_zarathustra_eternal_return_review_preparation_private_analysis_v1"
+      }
     },
     {
       "stage": "paragraph-alignment",
@@ -2454,7 +2464,10 @@
           "role": "analysis",
           "filename": "parallel-candidate-analysis.v1.json"
         }
-      ]
+      ],
+      "private_schema_versions": {
+        "analysis": "tos_zarathustra_parallel_lexical_private_analysis_v1"
+      }
     },
     {
       "stage": "morphology-theme-candidates",
@@ -2570,6 +2583,9 @@
         "cooccurrence_proposed_min_support": 12,
         "cooccurrence_proposed_min_dice": 0.3,
         "cooccurrence_proposed_min_pmi": 1.0
+      },
+      "private_schema_versions": {
+        "analysis": "tos_zarathustra_morphology_theme_private_analysis_v1"
       }
     },
     {
