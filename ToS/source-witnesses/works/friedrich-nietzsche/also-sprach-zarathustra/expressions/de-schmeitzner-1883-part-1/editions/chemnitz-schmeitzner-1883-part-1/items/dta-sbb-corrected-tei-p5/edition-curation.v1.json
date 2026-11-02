@@ -403,6 +403,13 @@
         "exact_form_sha256",
         "normalized_form_sha256",
         "occurrence_count"
+      ],
+      "record_identities": [
+        {
+          "role": "input-receipt",
+          "base_id": "morphology-input-receipt:zarathustra-dta-exact-form-census-v1",
+          "generation_policy": "native-generation"
+        }
       ]
     },
     {
@@ -423,6 +430,13 @@
         {
           "role": "event",
           "sha256": "edda5ab455924ddbe7ad9ff321f637d5028e91389f72e3bacd314a1d815eaafc"
+        }
+      ],
+      "record_identities": [
+        {
+          "role": "projection",
+          "base_id": "lexical-recurrence-projection:zarathustra-dta-first-editions-parts-1-4-v1",
+          "generation_policy": "native-generation"
         }
       ]
     },
@@ -474,7 +488,14 @@
         "source_database_sha256",
         "authority"
       ],
-      "historical_event_at": "2026-08-02T14:50:00Z"
+      "historical_event_at": "2026-08-02T14:50:00Z",
+      "record_identities": [
+        {
+          "role": "receipt",
+          "base_id": "lexical-usage-context-receipt:zarathustra-work-identity-control-v1",
+          "generation_policy": "native-generation"
+        }
+      ]
     },
     {
       "stage": "morphology-context",
@@ -499,7 +520,14 @@
           "sha256": "b1d7e32b50d2d542807db610afb899fa503c718fa598135580e0362b97aff13c"
         }
       ],
-      "historical_event_at": "2026-08-10T22:00:00Z"
+      "historical_event_at": "2026-08-10T22:00:00Z",
+      "record_identities": [
+        {
+          "role": "receipt",
+          "base_id": "morphology-contextual-episode-receipt:zarathustra-selected-form-b-v1",
+          "generation_policy": "native-generation"
+        }
+      ]
     },
     {
       "stage": "semantic-recurrence",
@@ -525,6 +553,18 @@
         {
           "role": "bundle",
           "sha256": "f18515cd36f6b6dd5b68c37b6fbebd8a7b3309cef8b6d1aa6c58f2e5f339d763"
+        }
+      ],
+      "record_identities": [
+        {
+          "role": "bundle",
+          "base_id": "semantic-source-recurrence:zarathustra-initial-selected-form-v1",
+          "generation_policy": "fixed"
+        },
+        {
+          "role": "receipt",
+          "base_id": "semantic-source-recurrence-receipt:zarathustra-initial-selected-form-v1",
+          "generation_policy": "native-generation"
         }
       ]
     },
@@ -557,7 +597,14 @@
         "wheel_sha256": "395a15e15286b0c191b42355b6e3c2a43c8959621ccf3563336c2e30399a2973",
         "surface_normalized_before_analysis": false,
         "result_authority": "unreviewed-provider-candidate"
-      }
+      },
+      "record_identities": [
+        {
+          "role": "receipt",
+          "base_id": "morphology-census-result:zarathustra-dta-first-editions-parts-1-4.a.dwdsmor-open-0.18.0.v1",
+          "generation_policy": "native-generation"
+        }
+      ]
     },
     {
       "stage": "morphology-context-result",
@@ -639,6 +686,13 @@
         "parser",
         "ner",
         "trainable_lemmatizer"
+      ],
+      "record_identities": [
+        {
+          "role": "receipt",
+          "base_id": "morphology-contextual-result:zarathustra-selected-form-b.zdl-4.0.0.v1",
+          "generation_policy": "native-generation"
+        }
       ]
     },
     {
