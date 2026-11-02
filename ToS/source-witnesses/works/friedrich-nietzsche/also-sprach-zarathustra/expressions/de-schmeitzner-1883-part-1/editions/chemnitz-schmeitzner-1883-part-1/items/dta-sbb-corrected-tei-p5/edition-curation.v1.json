@@ -4279,7 +4279,11 @@
           "role": "manifest",
           "filename": "manifest.v1.json"
         }
-      ]
+      ],
+      "output_schema_versions": {
+        "coverage": "tos_zarathustra_reading_coverage_v1",
+        "manifest": "tos_zarathustra_reading_manifest_v1"
+      }
     },
     {
       "stage": "tei-source-foundation",
@@ -4620,7 +4624,8 @@
         "reported_window_boundary": "search_range",
         "tie_breaker": "earliest_page",
         "heading_selection": "prefer_exact_else_all"
-      }
+      },
+      "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
     },
     {
       "stage": "constructor-library",
