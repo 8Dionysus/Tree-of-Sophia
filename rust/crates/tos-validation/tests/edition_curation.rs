@@ -1,0 +1,71 @@
+use std::{fs, path::Path};
+
+use serde_json::{Value, json};
+use tos_validation::{
+    FormatProfile, SchemaBackendProbe, SchemaResource,
+    edition_curation::{EditionCurationError, SCHEMA_URI, validate},
+};
+
+#[test]
+fn edition_curation_checks_schema_and_cross_field_rules() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
+    let schema = SchemaBackendProbe::new(
+        [SchemaResource {
+            uri: SCHEMA_URI.into(),
+            raw: fs::read(root.join("ToS/contracts/edition-curation.v1.schema.json")).unwrap(),
+        }],
+        FormatProfile::AssertedSourceCandidateV1,
+    )
+    .unwrap();
+    let path = "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/edition-curation.v1.json";
+    let raw = fs::read(root.join(path)).unwrap();
+    assert_eq!(validate(&raw, &schema), Ok(()));
+    let original: Value = serde_json::from_slice(&raw).unwrap();
+    let mut invalid = original.clone();
+    invalid["owner_item_ref"] = json!("not-an-id");
+    assert_eq!(
+        validate(&serde_json::to_vec(&invalid).unwrap(), &schema),
+        Err(EditionCurationError::InvalidSchema)
+    );
+    let mut invalid = original.clone();
+    let overrides = invalid["recipes"][0]["page_overrides"]
+        .as_array_mut()
+        .unwrap();
+    overrides.push(overrides[0].clone());
+    assert_eq!(
+        validate(&serde_json::to_vec(&invalid).unwrap(), &schema),
+        Err(EditionCurationError::Duplicate("key"))
+    );
+    let mut duplicate_marker = original.clone();
+    let markers = duplicate_marker["recipes"][1]["marker_returns"]
+        .as_array_mut()
+        .unwrap();
+    let mut repeated = markers[0].clone();
+    repeated["key"][1] = serde_json::from_str("52.0").unwrap();
+    markers.push(repeated);
+    assert_eq!(
+        validate(&serde_json::to_vec(&duplicate_marker).unwrap(), &schema),
+        Err(EditionCurationError::Duplicate("marker key"))
+    );
+    let mut invalid_box = original.clone();
+    invalid_box["recipes"][1]["marker_returns"][0]["line_bbox"][0] = json!(999999);
+    assert_eq!(
+        validate(&serde_json::to_vec(&invalid_box).unwrap(), &schema),
+        Err(EditionCurationError::InvalidRange("line_bbox"))
+    );
+    let target_path = "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/edition-curation.v1.json";
+    let target_raw = fs::read(root.join(target_path)).unwrap();
+    assert_eq!(validate(&target_raw, &schema), Ok(()));
+    let mut target: Value = serde_json::from_slice(&target_raw).unwrap();
+    target["recipes"][1]["candidate_geometry"]["x_min"] = json!(999999);
+    assert_eq!(
+        validate(&serde_json::to_vec(&target).unwrap(), &schema),
+        Err(EditionCurationError::InvalidRange("x_min"))
+    );
+    let mut invalid = original;
+    invalid["recipes"][0]["locators"][0]["item_relative_path"] = json!("../outside");
+    assert_eq!(
+        validate(&serde_json::to_vec(&invalid).unwrap(), &schema),
+        Err(EditionCurationError::InvalidSchema)
+    );
+}

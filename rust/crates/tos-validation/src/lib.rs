@@ -18,6 +18,7 @@ use tos_foundation::{
 };
 
 mod controlled_schema;
+pub mod edition_curation;
 pub use controlled_schema::{ControlledSchemaBackendProbe, SchemaProbeControl};
 
 #[cfg(feature = "native")]
