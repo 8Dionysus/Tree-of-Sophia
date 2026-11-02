@@ -99,7 +99,7 @@ inode and fixity binding.
 
 Only after a completed copy and available inventory does the adapter publish
 the Edition delta plus Item metadata through the existing
-[selected metadata protocol](SELECTED_METADATA_TRANSACTIONS.md). Its explicit
+[selected metadata protocol](../../../README.md#selected-metadata-publication-and-recovery). Its explicit
 v2 path profile permits only exact Item siblings `fixity.sha256` and
 `forensic-report.md` in addition to ordinary selected JSON/JSONL. Legacy v1
 transaction grammar stays unchanged. The Item manifest, rights, provenance,

@@ -25,7 +25,7 @@ classes; preparation must select the actual current Cargo products before class
 dispatch. Missing route/product, zero-test selection, ignored-scope drift or a
 failed assertion prevents success. The owner contract lives in
 `growth-cycle/parts/branch-growth-cycle/docs/native-behavior-coverage.json`;
-`NATIVE_BEHAVIOR_COVERAGE.md` describes native predicates and retained API fate.
+[Native behavior coverage](growth-cycle/README.md#native-growth-behavior-and-legacy-fate) describes native predicates and retained API fate.
 A successful run proves its declared native pipeline and consumer contracts;
 source-language adequacy, rights, canon and semantic assessment retain their
 actual owners. Reference file/method counts are inventory dimensions.

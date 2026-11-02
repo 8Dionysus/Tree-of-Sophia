@@ -23,7 +23,7 @@ before dispatching the declared assertion classes.
 
 Retained Python Growth tests are comparison evidence and assertion inventory.
 Their native behavior and API fate are recorded in
-[the owner coverage matrix](parts/branch-growth-cycle/docs/NATIVE_BEHAVIOR_COVERAGE.md).
+[the owner coverage matrix](README.md#native-growth-behavior-and-legacy-fate).
 The validation route exposes the native pipeline and bounded mechanics cohort;
 historical reference material is outside executable discovery. A successful native pipeline proves only its declared
 mechanical predicates; semantic assessment, rights and canon retain their

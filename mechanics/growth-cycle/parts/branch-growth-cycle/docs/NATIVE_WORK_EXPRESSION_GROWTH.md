@@ -83,7 +83,7 @@ publishes a pending barrier before file replacement: participating readers fail
 closed until exact completion or rollback. Recovery reconstructs the complete
 retained before/after plan from its original request, not an arbitrary caller
 plan. Changed third-state files are never overwritten by recovery. See
-[the selected transaction contract](SELECTED_METADATA_TRANSACTIONS.md).
+[the selected transaction contract](../../../README.md#selected-metadata-publication-and-recovery).
 
 The parent before-package is retained in the exact record-revision archive,
 with committed publication required for admission to history. The child

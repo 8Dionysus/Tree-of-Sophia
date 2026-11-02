@@ -34,7 +34,7 @@ New homes are exactly `ToS/source-witnesses/links/<home>/link.json` and
 source-copy Forms. The Claim home retains immutable request, runtime,
 serialization provenance and compound receipt. The publication write set
 consists of those new homes. Shared [selected transaction
-mechanics](SELECTED_METADATA_TRANSACTIONS.md) own byte movement and reader
+mechanics](../../../README.md#selected-metadata-publication-and-recovery) own byte movement and reader
 barriers; source-visible assessment evaluates the association.
 
 `tos_source_link_v1` stays unchanged. New association Claims use the additive

@@ -72,7 +72,7 @@ carrier. Ordinary local paths are not interpreted as dossier handles or file
 URLs; exact local-source reading still requires the source owner's safe ABI.
 
 **Source changes / Изменение источника** opens the separate
-[source-owner command transport](../../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/SOURCE_COMMAND_HTTP.md).
+[source-owner command transport](../../../mechanics/growth-cycle/README.md#explicit-local-source-command-transport).
 The operator supplies its numeric loopback origin and a private in-memory key;
 the read-only access API never handles a write or issues a grant. The selected
 owner delegation, **not the selected star**, fixes the source and allowed forms.

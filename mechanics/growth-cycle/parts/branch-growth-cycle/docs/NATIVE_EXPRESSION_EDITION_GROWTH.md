@@ -83,7 +83,7 @@ catalog routes, not arbitrary descendants. New/resumed publication rechecks
 current account delegation, expiry, grammar, implementation and dependencies.
 
 The parent three-file delta and new Edition's eight metadata/form/capture/
-receipt files use the [selected publication protocol](SELECTED_METADATA_TRANSACTIONS.md).
+receipt files use the [selected publication protocol](../../../README.md#selected-metadata-publication-and-recovery).
 The pending barrier closes participating reads. Recovery reconstructs all
 original before/after bytes and refuses foreign or third-state changes.
 Immutable predecessor archives preserve earlier source language and receipts.

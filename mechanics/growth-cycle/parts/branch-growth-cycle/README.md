@@ -8,13 +8,13 @@ transaction recovery, cancellation and deadlines retain their existing owners.
 | Operation | Current contract |
 | --- | --- |
 | Discover an implemented command | [Discovery](docs/SOURCE_COMMAND_DISCOVERY.md) |
-| Carry an authorized command over HTTP | [Command transport](docs/SOURCE_COMMAND_HTTP.md) |
+| Carry an authorized command over HTTP | [Command transport](../../README.md#explicit-local-source-command-transport) |
 | Work / Expression / Edition growth | [Work and Expression](docs/NATIVE_WORK_EXPRESSION_GROWTH.md), [Edition](docs/NATIVE_EXPRESSION_EDITION_GROWTH.md) |
 | Retain a local File and adopt an Item | [Item adoption](docs/NATIVE_ITEM_ADOPTION.md) |
 | Construct or assess a TextLayer | [Construction](docs/NATIVE_TEXT_LAYER_CONSTRUCTION.md), [assessment](docs/NATIVE_TEXT_LAYER_ASSESSMENT.md) |
 | Assess an image/OCR layer | [Image/OCR assessment](docs/NATIVE_IMAGE_OCR_ASSESSMENT.md) |
 | Create a translation Alignment | [Alignment](docs/NATIVE_TRANSLATION_ALIGNMENT.md) |
-| Check native assertion coverage | [Coverage](docs/NATIVE_BEHAVIOR_COVERAGE.md) |
+| Check native assertion coverage | [Coverage](../../README.md#native-growth-behavior-and-legacy-fate) |
 | Grow a branch from source pressure | [Growth structure](docs/GROWTH_STRUCTURE.md), [curation](docs/HUMAN_CURATED_EXPANSION.md), [soil](docs/PRE_EXPANSION_SOIL.md) |
 
 ## Detailed operations and prior anchors
