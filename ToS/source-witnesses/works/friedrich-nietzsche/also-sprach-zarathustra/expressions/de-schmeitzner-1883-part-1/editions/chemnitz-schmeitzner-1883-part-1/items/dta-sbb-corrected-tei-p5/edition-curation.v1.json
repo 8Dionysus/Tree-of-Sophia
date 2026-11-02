@@ -1839,7 +1839,8 @@
         "readings_template_pointer": "/core_readings",
         "axes_template_pointer": "/axes",
         "primary_axis_status": "prepared_for_review",
-        "blocked_control_status": "blocked_cross_work"
+        "blocked_control_status": "blocked_cross_work",
+        "blocked_axis_plan_pointer": "/scope/competing_or_blocked_controls/1"
       },
       "output_subdirectory": "review-preparation-v1",
       "frozen_outputs": [

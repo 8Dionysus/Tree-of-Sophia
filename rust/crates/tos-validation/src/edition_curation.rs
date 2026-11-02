@@ -637,7 +637,17 @@ pub fn validate_review_sources(
         .map(|row| row["reading_ref"].clone())
         .collect();
     let mut axes = array(&plan, "primary_axes_plan_pointer")?;
-    axes.extend(array(&plan, "control_axes_plan_pointer")?);
+    let controls = array(&plan, "control_axes_plan_pointer")?;
+    let blocked_pointer = scope["blocked_axis_plan_pointer"]
+        .as_str()
+        .ok_or(EditionCurationError::InvalidSchema)?;
+    let blocked = plan
+        .pointer(blocked_pointer)
+        .ok_or(EditionCurationError::MissingReference)?;
+    if blocked.as_str().is_none() || !controls.contains(blocked) {
+        return Err(EditionCurationError::BindingMismatch);
+    }
+    axes.extend(controls);
     if gaps != template_gap_refs
         || readings != selected_readings
         || readings != array(&template, "readings_template_pointer")?
