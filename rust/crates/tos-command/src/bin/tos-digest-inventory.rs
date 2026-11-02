@@ -253,7 +253,7 @@ fn run(root: &Path) -> Result<bool, String> {
             .trim_end(),
     );
     let contract: Contract = serde_json::from_slice(
-        &std::fs::read(repo.join("ToS/contracts/digest-field-classes.v1.json"))
+        &std::fs::read(repo.join("rust/crates/tos-command/src/bin/digest-field-classes.v1.json"))
             .map_err(|e| e.to_string())?,
     )
     .map_err(|e| e.to_string())?;
@@ -419,10 +419,8 @@ mod tests {
     }
     #[test]
     fn matches_context_and_fails_closed() {
-        let c: Contract = serde_json::from_str(include_str!(
-            "../../../../../ToS/contracts/digest-field-classes.v1.json"
-        ))
-        .unwrap();
+        let c: Contract =
+            serde_json::from_str(include_str!("digest-field-classes.v1.json")).unwrap();
         let mut counts = Counts::new();
         let h = "a".repeat(64);
         walk(

@@ -85,7 +85,7 @@ an implementation decision.
 
 ## Source Surfaces
 
-- `ToS/contracts/digest-field-classes.v1.json`
+- `rust/crates/tos-command/src/bin/digest-field-classes.v1.json`
 - `rust/crates/tos-foundation/src/json.rs`
 - `rust/crates/tos-foundation/src/jcs.rs`
 - `rust/crates/tos-command/src/source_command.rs`
