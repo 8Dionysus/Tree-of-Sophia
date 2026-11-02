@@ -2004,6 +2004,31 @@ fn authored_edition_curations_bind_to_their_selected_items() {
         let mut references = std::collections::BTreeMap::new();
         let mut target_refs = std::collections::BTreeSet::new();
         for recipe in value["recipes"].as_array().unwrap() {
+            if recipe["stage"] == "numbered-structure" {
+                let prefix = recipe["identity"]["structural_path_prefix"]
+                    .as_array()
+                    .unwrap();
+                let anchor_ref = recipe["frozen_outputs"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .find(|output| output["role"] == "anchors")
+                    .unwrap()["repository_path"]
+                    .as_str()
+                    .unwrap();
+                let anchors = fs::read_to_string(root.join(anchor_ref)).unwrap();
+                for line in anchors.lines() {
+                    let anchor: Value = serde_json::from_str(line).unwrap();
+                    let selector = anchor["selectors"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .find(|selector| selector["type"] == "structural")
+                        .unwrap();
+                    let path = selector["path"].as_array().unwrap();
+                    assert_eq!(&path[..2], prefix, "structural selector in {anchor_ref}");
+                }
+            }
             if recipe["stage"] == "recipe-reference" {
                 target_refs.insert(recipe["curation_ref"].as_str().unwrap());
             }
