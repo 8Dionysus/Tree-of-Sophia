@@ -77,6 +77,20 @@ pub fn validate_recipe_plan(
         .or(historical)
         .ok_or(EditionCurationError::MissingReference)?;
     verify_selected_bytes(plan, reference, expected)?;
+    if let Some(settings) = recipe.get("sequence_settings") {
+        let selected_plan = published_value(plan.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+            .map_err(EditionCurationError::Schema)?;
+        let pointer = settings["minimum_count_plan_pointer"]
+            .as_str()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        if selected_plan
+            .pointer(pointer)
+            .and_then(Value::as_u64)
+            .is_none()
+        {
+            return Err(EditionCurationError::MissingReference);
+        }
+    }
     if let Some(profile) = recipe.get("association_classification") {
         let selected_plan = published_value(plan.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
             .map_err(EditionCurationError::Schema)?;

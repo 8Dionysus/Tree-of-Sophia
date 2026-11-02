@@ -2299,6 +2299,24 @@
           "ambiguous",
           "deferred"
         ]
+      },
+      "sequence_settings": {
+        "token_lengths": [
+          2,
+          3
+        ],
+        "minimum_token_characters": 2,
+        "minimum_count_plan_pointer": "/candidate_thresholds/phrase_minimum_frequency",
+        "minimum_proposed_count": 5,
+        "minimum_proposed_units": 3,
+        "require_non_stopword": true
+      },
+      "quality_settings": {
+        "positive_max_one_letter_share": 0.25,
+        "positive_max_mixed_script_share": 0.1,
+        "universe_max_one_letter_share": 0.5,
+        "minimum_content_tokens": 1,
+        "require_all_constituents": true
       }
     },
     {
