@@ -314,6 +314,29 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         ),
         Err(EditionCurationError::MissingReference)
     );
+    let mut large_map = source_map_raw.clone();
+    large_map.resize(SchemaBackendProbe::MAX_INSTANCE_BYTES + 1, b' ');
+    let mut large_curation = target_doc.clone();
+    let numbered = large_curation["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "numbered-structure")
+        .unwrap();
+    numbered["source_map_sha256"] = json!(tos_foundation::Digest256::of_bytes(&large_map).to_hex());
+    let mut large_curation_raw = serde_json::to_vec(&large_curation).unwrap();
+    large_curation_raw.resize(SchemaBackendProbe::MAX_INSTANCE_BYTES + 1, b' ');
+    assert_eq!(
+        validate_numbered_source_map(
+            &large_curation_raw,
+            SelectedDocument {
+                reference: source_map_ref,
+                raw: &large_map
+            },
+            &schema
+        ),
+        Ok(())
+    );
     let mut duplicate_normalization: Value =
         serde_json::from_slice(&fs::read(root.join(target_path)).unwrap()).unwrap();
     let numbered = duplicate_normalization["recipes"]

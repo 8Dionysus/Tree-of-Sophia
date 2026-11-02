@@ -68,7 +68,7 @@ pub fn validate_numbered_source_map(
         .as_str()
         .ok_or(EditionCurationError::MissingReference)?;
     verify_selected_bytes(selected, reference, digest)?;
-    let map = published_value(selected.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+    let map = published_value(selected.raw, selected.raw.len().max(1))
         .map_err(EditionCurationError::Schema)?;
     let mut keys = BTreeSet::new();
     for unit in map["unit_starts"]
@@ -124,7 +124,7 @@ pub fn validate_recipe_plan(
         .ok_or(EditionCurationError::MissingReference)?;
     verify_selected_bytes(plan, reference, expected)?;
     if let Some(settings) = recipe.get("evidence_settings") {
-        let selected_plan = published_value(plan.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+        let selected_plan = published_value(plan.raw, plan.raw.len().max(1))
             .map_err(EditionCurationError::Schema)?;
         let status = settings["positive_status_plan_pointer"]
             .as_str()
@@ -145,7 +145,7 @@ pub fn validate_recipe_plan(
         }
     }
     if let Some(settings) = recipe.get("keyword_settings") {
-        let selected_plan = published_value(plan.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+        let selected_plan = published_value(plan.raw, plan.raw.len().max(1))
             .map_err(EditionCurationError::Schema)?;
         let pointer = settings["minimum_frequency_plan_pointer"]
             .as_str()
@@ -159,7 +159,7 @@ pub fn validate_recipe_plan(
         }
     }
     if let Some(settings) = recipe.get("sequence_settings") {
-        let selected_plan = published_value(plan.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+        let selected_plan = published_value(plan.raw, plan.raw.len().max(1))
             .map_err(EditionCurationError::Schema)?;
         let pointer = settings["minimum_count_plan_pointer"]
             .as_str()
@@ -173,7 +173,7 @@ pub fn validate_recipe_plan(
         }
     }
     if let Some(profile) = recipe.get("association_classification") {
-        let selected_plan = published_value(plan.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+        let selected_plan = published_value(plan.raw, plan.raw.len().max(1))
             .map_err(EditionCurationError::Schema)?;
         for group in ["proposed", "ambiguous"] {
             let pointers = profile[group]
@@ -197,7 +197,7 @@ pub fn validate_recipe_plan(
         if entries.iter().any(|entry| {
             entry["plan_pointer"].is_string() || entry["plan_value_pointer"].is_string()
         }) {
-            let selected_plan = published_value(plan.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+            let selected_plan = published_value(plan.raw, plan.raw.len().max(1))
                 .map_err(EditionCurationError::Schema)?;
             for entry in entries {
                 if let Some(pointer) = entry["plan_pointer"].as_str() {
@@ -220,7 +220,7 @@ pub fn validate_recipe_plan(
         .get("identity_profile")
         .or_else(|| recipe.get("opaque_identity_profile"))
     {
-        let selected_plan = published_value(plan.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+        let selected_plan = published_value(plan.raw, plan.raw.len().max(1))
             .map_err(EditionCurationError::Schema)?;
         let pointer = profile["issuance_time_plan_pointer"]
             .as_str()
@@ -235,7 +235,7 @@ pub fn validate_recipe_plan(
         }
     }
     if matches!(stage, "sentence-alignment" | "text-collation") {
-        let selected_plan = published_value(plan.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+        let selected_plan = published_value(plan.raw, plan.raw.len().max(1))
             .map_err(EditionCurationError::Schema)?;
         let outputs = selected_plan["outputs"]
             .as_object()
@@ -286,7 +286,7 @@ pub fn validate_recipe_plan(
         }
     }
     if matches!(stage, "tei-source-foundation" | "authored-canon-evidence") {
-        let selected_plan = published_value(plan.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+        let selected_plan = published_value(plan.raw, plan.raw.len().max(1))
             .map_err(EditionCurationError::Schema)?;
         let selector = if stage == "tei-source-foundation" {
             &selected_plan["selector"]
@@ -340,7 +340,7 @@ pub fn validate_recipe_template(
     let digest = digest.ok_or(EditionCurationError::MissingReference)?;
     verify_selected_bytes(template, reference, digest)?;
     if stage == "morphology-theme-candidates" && role == "historical-template" {
-        let selected = published_value(template.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+        let selected = published_value(template.raw, template.raw.len().max(1))
             .map_err(EditionCurationError::Schema)?;
         for language in recipe["signature_settings"]["languages"]
             .as_array()
@@ -365,9 +365,8 @@ pub fn validate_recipe_template(
         }
     }
     if stage == "concept-candidate" && role == "legacy-output-template" {
-        let selected_template =
-            published_value(template.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
-                .map_err(EditionCurationError::Schema)?;
+        let selected_template = published_value(template.raw, template.raw.len().max(1))
+            .map_err(EditionCurationError::Schema)?;
         let claims = selected_template["claim_specs"]
             .as_object()
             .ok_or(EditionCurationError::InvalidSchema)?;
@@ -404,9 +403,9 @@ pub fn validate_review_sources(
     let value = document(raw, schema)?;
     let recipe = selected_recipe(&value, stage)?;
     let scope = &recipe["review_scope"];
-    let plan = published_value(plan.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
-        .map_err(EditionCurationError::Schema)?;
-    let template = published_value(template.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+    let plan =
+        published_value(plan.raw, plan.raw.len().max(1)).map_err(EditionCurationError::Schema)?;
+    let template = published_value(template.raw, template.raw.len().max(1))
         .map_err(EditionCurationError::Schema)?;
     let array = |document: &Value, key: &str| -> Result<Vec<Value>, EditionCurationError> {
         let pointer = scope[key]
@@ -485,8 +484,8 @@ pub fn validate_retained_artifact(
     let pointer = entry["plan_pointer"]
         .as_str()
         .ok_or(EditionCurationError::MissingReference)?;
-    let selected_plan = published_value(plan.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
-        .map_err(EditionCurationError::Schema)?;
+    let selected_plan =
+        published_value(plan.raw, plan.raw.len().max(1)).map_err(EditionCurationError::Schema)?;
     let reference = selected_plan
         .pointer(pointer)
         .and_then(Value::as_str)
@@ -516,7 +515,7 @@ pub fn select_retained_digest(
         .as_str()
         .ok_or(EditionCurationError::InvalidSchema)?;
     let selected = if let Some(pointer) = entry["plan_value_pointer"].as_str() {
-        let plan_value = published_value(plan.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+        let plan_value = published_value(plan.raw, plan.raw.len().max(1))
             .map_err(EditionCurationError::Schema)?;
         plan_value.pointer(pointer).cloned()
     } else if let Some(locator) = entry.get("artifact_value") {
@@ -626,7 +625,7 @@ pub fn validate_default_request(
         .as_str()
         .ok_or(EditionCurationError::MissingReference)?;
     verify_selected_bytes(selected, reference, digest)?;
-    let request = published_value(selected.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+    let request = published_value(selected.raw, selected.raw.len().max(1))
         .map_err(EditionCurationError::Schema)?;
     if request["request_key"] != layout["default_request_key"] {
         return Err(EditionCurationError::BindingMismatch);
@@ -731,7 +730,7 @@ fn selected_historical_receipt(
         .as_str()
         .ok_or(EditionCurationError::InvalidSchema)?;
     verify_selected_bytes(selected, reference, digest)?;
-    let receipt = published_value(selected.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+    let receipt = published_value(selected.raw, selected.raw.len().max(1))
         .map_err(EditionCurationError::Schema)?;
     if receipt["schema_version"] != recipe["receipt_identity"]["schema_version"]
         || receipt["receipt_id"] != recipe["receipt_identity"]["historical_id"]
@@ -806,7 +805,7 @@ pub fn select_historical_field(
         .as_str()
         .ok_or(EditionCurationError::InvalidSchema)?;
     verify_selected_bytes(selected, reference, digest)?;
-    let historical = published_value(selected.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+    let historical = published_value(selected.raw, selected.raw.len().max(1))
         .map_err(EditionCurationError::Schema)?;
     if historical["schema_version"] != output["schema_version"] {
         return Err(EditionCurationError::BindingMismatch);
@@ -852,8 +851,7 @@ fn selected_recipe<'a>(value: &'a Value, stage: &str) -> Result<&'a Value, Editi
 }
 
 fn document(raw: &[u8], schema: &SchemaBackendProbe) -> Result<Value, EditionCurationError> {
-    let value = published_value(raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
-        .map_err(EditionCurationError::Schema)?;
+    let value = published_value(raw, raw.len().max(1)).map_err(EditionCurationError::Schema)?;
     if !schema
         .is_valid_value(SCHEMA_URI, &value)
         .map_err(EditionCurationError::Schema)?
@@ -909,9 +907,9 @@ pub fn validate_bindings(
         if items_name != "items" || edition.reference != format!("{edition_dir}/edition.json") {
             return Err(EditionCurationError::BindingMismatch);
         }
-        let item = published_value(manifest.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+        let item = published_value(manifest.raw, manifest.raw.len().max(1))
             .map_err(EditionCurationError::Schema)?;
-        let edition = published_value(edition.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+        let edition = published_value(edition.raw, edition.raw.len().max(1))
             .map_err(EditionCurationError::Schema)?;
         if item["item_id"] != selected["owner_item_ref"]
             || item["embodiment_ref"] != selected["edition_ref"]
