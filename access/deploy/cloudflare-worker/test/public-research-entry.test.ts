@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import worker from "../src/public-research-entry.ts";
+import worker, { localizeHead } from "../src/public-research-entry.ts";
 
 function fixture(fetchAsset: (request: Request) => Promise<Response> | Response) {
   const paths: string[] = [];
@@ -76,4 +76,64 @@ test("HEAD is preserved and writes are rejected", async () => {
   assert.equal(seenMethod, "HEAD");
   assert.equal(head.status, 200);
   assert.equal((await app.fetch(new Request("https://treeofsophia.com/zarathustra", { method: "POST" }))).status, 405);
+});
+
+test("an address the site does not hold gets the Tree's own page with status 404, never the older atlas", async (t) => {
+  const originRequests: Request[] = [];
+  t.mock.method(globalThis, "fetch", async (request: Request) => { originRequests.push(request); return new Response("origin"); });
+  const app = fixture(request => new URL(request.url).pathname === "/not-found/"
+    ? new Response("<html>not in the Tree</html>", { headers: { "Content-Type": "text/html; charset=utf-8" } })
+    : new Response("unexpected"));
+  for (const path of ["/about", "/en/", "/research.html", "/static/index.html", "/static/research.html", "/zarathustra-old", "/index.html"]) {
+    const response = await app.fetch(new Request(`https://treeofsophia.com${path}`));
+    assert.equal(response.status, 404, path);
+    assert.equal(await response.text(), "<html>not in the Tree</html>", path);
+    assert.match(response.headers.get("Content-Security-Policy") ?? "", /default-src 'self'/);
+  }
+  const head = await app.fetch(new Request("https://treeofsophia.com/about", { method: "HEAD" }));
+  assert.equal(head.status, 404);
+  assert.equal(await head.text(), "");
+  assert.equal(originRequests.length, 0);
+});
+
+test("icons, crawler files and link cards come from the root of the research build", async () => {
+  const app = fixture(request => new Response(new URL(request.url).pathname));
+  for (const path of ["/favicon.svg", "/favicon.ico", "/apple-touch-icon.png", "/robots.txt", "/sitemap.xml", "/og/zarathustra-en.jpg"]) {
+    const response = await app.fetch(new Request(`https://treeofsophia.com${path}`));
+    assert.equal(app.paths.at(-1), path);
+    assert.equal(await response.text(), path);
+  }
+});
+
+const STAND = `<!doctype html>
+<html lang="ru">
+  <head>
+    <title>Заратустра · Древо Софии</title>
+    <meta name="description" content="«Так говорил Заратустра» в Древе Софии" />
+    <meta property="og:site_name" content="Древо Софии" />
+    <meta property="og:title" content="Так говорил Заратустра · Древо Софии" />
+    <meta property="og:description" content="«Так говорил Заратустра» в Древе Софии" />
+    <meta property="og:image" content="https://treeofsophia.com/og/zarathustra-ru.jpg" />
+    <meta property="og:locale" content="ru_RU" />
+  </head>
+</html>`;
+
+test("a stand's page names itself in the language its link asks for", async () => {
+  const english = localizeHead(STAND, "zarathustra", "en");
+  assert.match(english, /<html lang="en"/);
+  assert.match(english, /<title>Zarathustra · Tree of Sophia<\/title>/);
+  assert.match(english, /<meta property="og:title" content="Thus Spoke Zarathustra · Tree of Sophia"/);
+  assert.match(english, /<meta name="description" content="Thus Spoke Zarathustra in the Tree of Sophia: the German original/);
+  assert.match(english, /og\/zarathustra-en\.jpg/);
+  assert.match(english, /content="en_US"/);
+  assert.equal(localizeHead(STAND, "zarathustra", "ru"), STAND);
+  assert.equal(localizeHead(STAND, "zarathustra", null), STAND);
+  assert.match(localizeHead(STAND, "zarathustra", "zh-Hans"), /<html lang="zh"/);
+  const app = fixture(() => new Response(STAND, { headers: { "Content-Type": "text/html; charset=utf-8", "Content-Length": "999", ETag: "x" } }));
+  const response = await app.fetch(new Request("https://treeofsophia.com/?lang=en"));
+  assert.equal(app.paths.at(-1), "/zarathustra/");
+  assert.match(await response.text(), /Thus Spoke Zarathustra · Tree of Sophia/);
+  assert.equal(response.headers.get("ETag"), null);
+  const russian = await app.fetch(new Request("https://treeofsophia.com/zarathustra/?lang=ru"));
+  assert.equal(await russian.text(), STAND);
 });
