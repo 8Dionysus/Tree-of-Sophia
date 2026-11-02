@@ -6,7 +6,7 @@ const PREFIX='tos.public-research.cognitive.v1:';
 const uid=()=>crypto.randomUUID();
 const clone=value=>structuredClone(value);
 const bounded=(value,max,name)=>{if(typeof value!=='string'||!value.trim()||value.length>max)throw new TypeError(`Invalid ${name}`);return value.trim();};
-const requests=new Set(['thought','research','question']);
+const requests=new Set(['thought','research','question','trial']);
 
 export function mountCognitiveSession({root,notebook,index,api,locale=()=> 'ru',profile,getSelection=()=>null,onOpen=()=>{},workspace,isActive=()=>true,versionContext=async revision=>{if(revision!==index.revision)throw new TypeError(`Research version is unavailable: ${revision}`);return {index,current:true};}}){
   let header,expected,events=[],responses=[],disposed=false,serial=Promise.resolve(),waiters=new Set(),questionDirty=false,renderToken=0;
@@ -62,7 +62,7 @@ export function mountCognitiveSession({root,notebook,index,api,locale=()=> 'ru',
     selection.textContent='';void versionContext(selected.revision).then(resolved=>{const item=resolved.index.get(selected.id);if(!disposed&&token===renderToken)selection.textContent=item?`${t('Предмет','Item')}: ${localeValue(item.title,locale())||item.id}`:'';}).catch(()=>{if(!disposed&&token===renderToken)selection.textContent=`${t('Версия недоступна','Version unavailable')}: ${selected.revision}`;});
     questionTitle.textContent=t('Вопрос исследования','Research question');questionInput.setAttribute('aria-label',questionTitle.textContent);saveQuestion.textContent=t('Сохранить вопрос','Save question');if(!questionDirty)questionInput.value=api.getQuestion();
     launch.value=instruction();log.replaceChildren();traceBody.replaceChildren();
-    const labels={thought:t('Моя мысль','My thought'),research:t('Запрос исследования','Research request'),question:t('Новый вопрос','New question'),open:t('Открыт предмет','Item opened'),mode:t('Смена режима','Mode changed'),'help-level':t('Уровень помощи','Level of help')};
+    const labels={trial:t('Испытание','Trial'),thought:t('Моя мысль','My thought'),research:t('Запрос исследования','Research request'),question:t('Новый вопрос','New question'),open:t('Открыт предмет','Item opened'),mode:t('Смена режима','Mode changed'),'help-level':t('Уровень помощи','Level of help')};
     for(const event of events.slice(-60)){
       const row=el('article',undefined,'cognitive-event');row.dataset.eventId=event.id;
       row.append(el('small',`${event.sequence} · ${labels[event.type]??t('Действие','Action')}`));

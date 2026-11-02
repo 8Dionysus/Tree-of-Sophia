@@ -38,9 +38,10 @@ it('keeps proposed families, earlier readings and unassessed occurrences distinc
   const fragments={render(parent,value){if(value?.ru)parent.append(Object.assign(new Element('p'),{textContent:value.ru}));},fragment(c){return Object.assign(new Element('p'),{textContent:`${c.c}:${c.u.join('–')}`});}};
   const view=createCoreView({core,locale:()=> 'ru',fragments});
   const rel=new Element('div');view.renderReference(rel,{kind:'relation',id:'r'});
-  expect(text(rel)).toContain('Отношение · develops');
-  expect(text(rel)).toContain('атрибуция и роль');
-  expect(text(rel)).toContain('Точный тип не установлен');
+  expect(text(rel)).toMatch(/Говорящий\s+обращается\s+Другой/);expect(text(rel)).not.toContain('develops');
+  const family=fold(rel,'Семейство связи');family.toggle();
+  expect(text(family)).toContain('атрибуция и роль');
+  expect(text(family)).toContain('Точный тип не установлен');
   const history=fold(rel,'История');history.toggle();expect(text(history)).toContain('Прежнее чтение');expect(text(history)).toContain('Прежний ответ');expect(text(history)).toContain('Прежнее основание');
   const node=new Element('div');view.node(node,'speaker',{reference:true});
   expect(text(node)).toContain('Роль в произведении');

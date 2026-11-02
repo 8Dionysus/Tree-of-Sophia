@@ -73,7 +73,7 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
   }
   function relationFamily(parent,record){
     const family=record.relation_family;if(!family)return;
-    const box=el('section','ps-core-section');box.append(el('h3','minor-title',t('family')));
+    const box=el('section','ps-core-section');
     box.append(el('p','',tr(family.family_label)||family.family||''));
     if(family.family_reason)form(box,family.family_reason);
     if(family.family_status)box.append(el('small','ps-core-status',family.family_status==='stand-proposal'?t('familyStatus'):family.family_status));
@@ -120,14 +120,16 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
     if(item.why)form(box,item.why);review(box,item);parent.append(box);
   }
   function link(parent,record){
-    const box=el('section','ps-core-link'),ends=el('div','edge-endpoints');
-    ends.append(button(name(record.from),()=>onNode?.(core.materialIds[record.from])),el('span','',tr(record.verb)),button(name(record.to),()=>onNode?.(core.materialIds[record.to])));
-    box.append(el('p','ps-core-kind',`${t('relation')}${record.relation?` · ${record.relation}`:''}`),ends);status(box,record.admission==='rejected'?'rejected':record.status);
-    relationFamily(box,record);
+    // The link reads as a sentence of the book: subject, the book's verb, object. Its registry family and type are provenance.
+    const box=el('section','ps-core-link'),ends=el('div','edge-endpoints ps-link-sentence');
+    ends.append(button(name(record.from),()=>onNode?.(core.materialIds[record.from]),'ps-link-end'),el('span','ps-link-verb',tr(record.verb)),button(name(record.to),()=>onNode?.(core.materialIds[record.to]),'ps-link-end'));
+    const kindLine=el('p','ps-core-kind',t('relation'));status(kindLine,record.admission==='rejected'?'rejected':record.status);box.append(kindLine,ends);
     voice(box,record.voice);
+    const seen=new Set(),sense=tr(record.sense);
+    form(box,{...record.sense,cite:[...new Map([...(record.cite?[record.cite]:[]),...(record.grounds??[])].map(cite=>[JSON.stringify(cite),cite])).values()]},seen);
     actions(box,record,'relation');
-    form(box,{...record.sense,cite:[...new Map([...(record.cite?[record.cite]:[]),...(record.grounds??[])].map(cite=>[JSON.stringify(cite),cite])).values()]});
-    section(box,'question',record.question);section(box,'answer',record.answer);
+    section(box,'question',record.question);
+    if(record.answer&&tr(record.answer)!==sense)section(box,'answer',record.answer,seen);
     for(const field of ['scope','conditions'])if(record[field])section(box,field,record[field]);
     if(record.path?.length){
       const path=el('section','ps-core-path');path.append(el('h3','minor-title',t('path')));
@@ -141,7 +143,9 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
       }
       box.append(path);
     }
-    methodTransfer(box,record);review(box,record);history(box,record);personal(box,record,'relation');parent.append(box);
+    methodTransfer(box,record);
+    if(record.relation_family)fold(box,t('family'),body=>relationFamily(body,record));
+    review(box,record);history(box,record);personal(box,record,'relation');parent.append(box);
   }
   function methodTransfer(parent,record){
     const method=record.method_transfer;if(!method)return;
@@ -223,11 +227,12 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
       if(familyProposed){const box=el('section','ps-core-section'),label=core.links.find(link=>link.relation_family?.family===familyProposed.family)?.relation_family?.family_label;box.append(el('h3','minor-title',t('previousFamily')),el('p','',tr(label)||familyProposed.family||''));if(familyProposed.family_reason)form(box,familyProposed.family_reason);body.append(box);}
     });
   }
-  function sections(body,key,record,id){
+  function sections(body,key,record,id,lead){
     const essence=record.conception??record.essence??{};
     if(key==='essence'){
       const first=essence.formula??essence.formulas?.[0],seen=new Set(first?.cite?[JSON.stringify(first.cite)]:[]);
-      for(const field of ['thesis','who','position','answer','grounds','consequences','deed','function'])section(body,field,essence[field],seen);
+      // The lead field's words already open the card; here it keeps only the book's grounds for them.
+      for(const field of ['thesis','who','position','answer','grounds','consequences','deed','function'])section(body,field,field===lead?(essence[field]?.cite?{cite:essence[field].cite}:null):essence[field],seen);
       if(kind(record)==='argument')for(const field of ['premises','steps'])section(body,field,record[field]??essence[field],seen);
       if(kind(record)==='claim')for(const field of ['scope','conditions'])section(body,field,record[field]??essence[field],seen);
       for(const counter of record.counter_voices??[])fold(body,`${t('counter')} · ${name(counter.speaker)}`,box=>{voice(box,counter.voice??{speaker:counter.speaker});form(box,{...counter.line,cite:[counter.cite],status:counter.status});section(box,'reply',counter.reply);});
@@ -259,26 +264,26 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
   function node(parent,id,{reference=false}={}){
     const record=core.records[id];if(!record)return false;
     const essence=record.conception??record.essence??{},root=el('article',reference?'ps-core-card ps-kernel-reference':'ps-core-card');root.dataset.coreId=id;parent.append(root);
-    const header=el('header','ps-kernel-header');header.append(el('p','ps-core-kind',t(kind(record))),el('h2','ps-kernel-title',name(id)));root.append(header);
+    const header=el('header','ps-kernel-header');const kindLine=el('p','ps-core-kind',t(kind(record)));header.append(kindLine);if(reference)header.append(el('h2','ps-kernel-title',name(id)));root.append(header);
     if(record.work_scope?.roles?.length){const scope=el('section','ps-core-section');scope.append(el('h3','minor-title',t('figureScope')),el('p','',record.work_scope.roles.map(role=>t(role)).join(' · ')));if(record.work_scope.status)scope.append(el('small','ps-core-status',record.work_scope.status==='stand-proposal'?t('familyStatus'):record.work_scope.status));root.append(scope);}
-    const short=essence.thesis??essence.who??record.reading?.reading??record.reading;
+    const short=essence.thesis??essence.who??record.reading?.reading??record.reading,lead=essence.thesis?'thesis':essence.who?'who':null;
     if(tr(short)){const summary=el('section','ps-kernel-summary');summary.append(el('h3','minor-title',t(essence.thesis?'thesis':record.reading?'proposalReading':'who')),el('p','body',tr(short)));root.append(summary);}
     section(root,'question',record.question??essence.question);
-    if(record.reading?.reading||record.reading?.ru||record.reading?.en){status(root,'familyStatus');status(root,record.reading.independent_review?.verdict??record.independent_review?.verdict);}
-    else if(!record.conception&&!record.essence&&!record.chainId)status(root,'held');
-    else status(root,essence.thesis?.status??essence.formula?.status??record.status);
+    if(record.reading?.reading||record.reading?.ru||record.reading?.en){status(kindLine,'familyStatus');status(kindLine,record.reading.independent_review?.verdict??record.independent_review?.verdict);}
+    else if(!record.conception&&!record.essence&&!record.chainId)status(kindLine,'held');
+    else status(kindLine,essence.thesis?.status??essence.formula?.status??record.status);
     const keys=['essence','development','dimensions','links','witnesses'];let showLinks;
     actions(root,record,'node',reference?null:()=>showLinks?.());
     formula(root,essence.formula??essence.formulas?.[0]);
     if(reference){
-      for(const key of keys){const part=el('section','ps-kernel-reference-section');part.append(el('h3','ps-kernel-section-title',t(key)));const content=el('div');sections(content,key,record,id);part.append(content);root.append(part);}
+      for(const key of keys){const part=el('section','ps-kernel-reference-section');part.append(el('h3','ps-kernel-section-title',t(key)));const content=el('div');sections(content,key,record,id,lead);part.append(content);root.append(part);}
     }else{
       const tabs=el('div','ps-core-tabs'),body=el('section','ps-core-pane'),instance=++serial;tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label',name(id));body.setAttribute('role','tabpanel');
       const draw=key=>{
         body.replaceChildren();
         for(const tab of tabs.children){const chosen=tab.dataset.tab===key;tab.setAttribute('aria-selected',String(chosen));tab.tabIndex=chosen?0:-1;}
         body.setAttribute('aria-labelledby',`core-tab-${instance}-${key}`);body.id=`core-pane-${instance}-${key}`;
-        sections(body,key,record,id);
+        sections(body,key,record,id,lead);
       };
       showLinks=()=>draw('links');
       for(const key of keys){const tab=button(t(key),()=>draw(key));tab.dataset.tab=key;tab.id=`core-tab-${instance}-${key}`;tab.setAttribute('role','tab');tab.setAttribute('aria-controls',`core-pane-${instance}-${key}`);tabs.append(tab);}

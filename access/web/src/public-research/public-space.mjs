@@ -1153,7 +1153,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     for(const entry of [...new Map(rows.map(row=>[row.id,row])).values()].slice(0,40)){const target=button(tr(entry.title,locale())||entry.id,'connection-target');target.addEventListener('click',()=>shell.dispatchEvent(new CustomEvent('public-research-open',{bubbles:true,detail:{id:entry.id}})));fold.append(target);}
     parent.append(fold);
   }
-  function findEdge(id){const drawn=graphState().edges.find(edge=>edge.id===id);if(drawn)return drawn;const item=index?.get(id);return item?.kind==='relation'?{id,from:graphIdForMaterial(core?.materialIds?.[item.record.from]??item.record.from),to:graphIdForMaterial(core?.materialIds?.[item.record.to]??item.record.to),kind:'relates',coreRecord:item.record}:null;}
+  function findEdge(id){const drawn=graphState().edges.find(edge=>edge.id===id);if(drawn)return drawn;const item=index?.get(id);return item?.kind==='relation'?{id,from:graphIdForMaterial(core?.materialIds?.[item.record.from]??item.record.from),to:graphIdForMaterial(core?.materialIds?.[item.record.to]??item.record.to),kind:'relates',label:item.record.verb,coreRecord:item.record}:null;}
   // A chosen line the view no longer draws (a trace turned off, a lens changed) is let go, and the column is drawn anew without it.
   function dropEdge(){selectedEdge=null;sky?.selectEdge(null);renderColumn();renderOrientation();}
   function renderEdge(id){

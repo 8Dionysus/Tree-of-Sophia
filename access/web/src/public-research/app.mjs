@@ -6,6 +6,7 @@ import {createRetainedPublicCorpusProvider} from '../corpus-reader/retained-publ
 import {decodeReadingRoute, encodeReadingRoute} from '../corpus-reader/route.mjs';
 import {mountResearchExperience} from './experience-view.mjs';
 import {mountCognitiveSession} from './cognitive-session.mjs';
+import {mountKnowing} from './knowing-map.mjs';
 import {connectResearchPage} from './page-agent.mjs';
 import {mountPublicAgentBridge} from './agent-bridge.mjs';
 import {createPublicResearchOwners, mountPublicWorkspaceView} from './workspace-view.mjs';
@@ -111,6 +112,7 @@ let publicOwners;
 let spaceView;
 let experience;
 let cognitive;
+let knowing;
 let pageAgent;
 let appDisposed=false;
 let saveTimer = null;
@@ -337,7 +339,7 @@ function setLanguage(value,{updateUrl=true}={}){
   if(updateUrl){const url=new URL(location.href);url.searchParams.set('lang',locale);history.replaceState(history.state,'',url);}
   setUiLanguage(locale);
   document.title=`${strings.title} · ${english?localeText('Tree of Sophia',locale):'Древо Софии'}`;
-  experience?.refreshLocale();cognitive?.refreshLocale();spaceView?.refreshLocale();workspaceView?.refreshLocale?.();agentBridge?.refreshLocale?.();
+  experience?.refreshLocale();cognitive?.refreshLocale();knowing?.refreshLocale();spaceView?.refreshLocale();workspaceView?.refreshLocale?.();agentBridge?.refreshLocale?.();
 }
 
 function mountJourneys(items, documentIds) {
@@ -474,7 +476,10 @@ async function start() {
   workspaceView.connectAgentBridge(agentBridge);
   experience=mountResearchExperience({root:readerRoot,header,profile,locale:()=>locale,index:publicSpace.index,space:spaceView,api:window.tosPublicResearch,notebook:entry.notebook,
     onCognitive:detail=>{if(cognitive)void cognitive.record(detail.action,detail).catch(error=>console.error('Research event',error));}});
-  cognitive=mountCognitiveSession({root:experience.cognitiveRoot,notebook:entry.notebook,index:publicSpace.index,api:window.tosPublicResearch,locale:()=>locale,profile,workspace:publicOwners.workspace,getSelection:()=>experience.getState(),versionContext:experience.versionContext,isActive:()=>experience.getState().mode==='cognitive',onOpen:(id,options)=>experience.open(id,options)});
+  // The learning mode is the sky opened by the person's own links; the agent session lives in its journal.
+  knowing=profile==='zarathustra'?mountKnowing({root:experience.cognitiveRoot,index:publicSpace.index,locale:()=>locale,notebook:entry.notebook,profile,fragments:spaceView.fragments,getSession:()=>cognitive,
+    onOpenReference:id=>{experience.open(id);experience.setMode('reference');},onOpenSpace:id=>{experience.open(id);experience.setMode('original');}}):null;
+  cognitive=mountCognitiveSession({root:knowing?.agentRoot??experience.cognitiveRoot,notebook:entry.notebook,index:publicSpace.index,api:window.tosPublicResearch,locale:()=>locale,profile,workspace:publicOwners.workspace,getSelection:()=>experience.getState(),versionContext:experience.versionContext,isActive:()=>experience.getState().mode==='cognitive',onOpen:(id,options)=>experience.open(id,options)});
   pageAgent=connectResearchPage({index:publicSpace.index,space:spaceView,experience,session:cognitive,api:window.tosPublicResearch,workspace:publicOwners.workspace,locale:()=>locale});
   workspaceView?.render();
   spaceView.refreshLocale();
@@ -502,6 +507,7 @@ function disposeApp() {
   window.removeEventListener('beforeunload',onBeforeUnload);
   pageAgent?.destroy();
   cognitive?.destroy();
+  knowing?.destroy();knowing=null;
   experience?.destroy();
   agentBridge?.destroy();
   workspaceView?.destroy();

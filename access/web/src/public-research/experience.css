@@ -35,3 +35,28 @@
 .experience-pane .text-button:hover,.experience-pane .connection-target:hover{text-decoration:underline}
 .experience-pane .text-button:focus-visible,.experience-pane .connection-target:focus-visible{outline:2px solid #d6b37a;outline-offset:2px}
 .experience-pane .edge-endpoints{display:flex;flex-wrap:wrap;gap:.4rem;align-items:baseline}
+/* Reference contents and article frame. */
+.experience-pane:not(.is-cognitive){font-family:system-ui,-apple-system,'Segoe UI',sans-serif}
+.experience-contents{max-width:76rem}
+.experience-contents-title{margin:.4rem 0 .3rem;font:500 clamp(1.8rem,3.4vw,2.6rem)/1.1 Sophia,Georgia,serif;color:#f1ece2}
+.experience-contents-note{max-width:62ch;margin:0 0 1.4rem;color:#93a5b9;line-height:1.55}
+.experience-contents-group{margin:1.6rem 0}
+.experience-contents-group h2{margin:0 0 .7rem;color:#d7c5a4;font:600 .74rem/1.3 system-ui,sans-serif;letter-spacing:.09em;text-transform:uppercase}
+.experience-contents-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,17rem),1fr));gap:.6rem}
+.experience-entry{display:grid;gap:.3rem;align-content:start;min-height:4.4rem;padding:.75rem .85rem;border:1px solid #859ab433;border-radius:.6rem;background:#0f1b2b;color:#dfe7f1;text-align:left;font:inherit;cursor:pointer;transition:border-color .2s,background .2s}
+.experience-entry:hover{border-color:#d6b37a88;background:#152335}
+.experience-entry:focus-visible,.experience-back:focus-visible{outline:2px solid #d6b37a;outline-offset:2px}
+.experience-entry strong{font:500 1.05rem/1.3 Sophia,Georgia,serif;color:#f0ead9}
+.experience-entry span{color:#9fb0c3;font-size:.84rem;line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.experience-back{margin:.2rem 0 1rem;padding:.35rem .1rem;border:0;background:transparent;color:#d7c5a4;font:inherit;font-size:.85rem;cursor:pointer}
+.experience-back:hover{color:#f3dfbd}
+.experience-search input{font-family:system-ui,-apple-system,'Segoe UI',sans-serif}
+.experience-pane.is-cognitive{padding-top:0;padding-bottom:0}
+/* Phone: modes share one row; the remaining tools scroll in a second row beside the language. */
+@media(max-width:600px){
+  .experience-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.4rem}
+  .experience-modes{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+  .experience-modes .experience-button{padding:.4rem .2rem;font-size:.78rem}
+  .experience-tools{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .experience-tools .experience-button{flex:0 0 auto;font-size:.76rem}
+}
