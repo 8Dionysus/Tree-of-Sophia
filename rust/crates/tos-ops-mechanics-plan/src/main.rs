@@ -249,9 +249,7 @@ fn arguments() -> Result<(PathBuf, Action, Limits, SemanticOptions), String> {
                 || semantic.output.is_none()))
         || (kag_source_export_verify && semantic.kag_export.is_none())
         || (semantic.kag_export.is_some()
-            && !(root_entry_map_build
-                || root_entry_map_validate
-                || kag_source_export_verify))
+            && !(root_entry_map_build || root_entry_map_validate || kag_source_export_verify))
         || (native_contracts_only && !execute)
         || (!semantic_registry_transition
             && (semantic.baseline_commit.is_some()
@@ -823,11 +821,7 @@ fn main() {
     let code = match result {
         Ok(code) => code,
         Err(error) => {
-            if matches!(
-                action,
-                Action::DerivedKagValidate
-                    | Action::SourceHome
-            ) {
+            if matches!(action, Action::DerivedKagValidate | Action::SourceHome) {
                 eprintln!("[error] {error}");
                 std::process::exit(1);
             }

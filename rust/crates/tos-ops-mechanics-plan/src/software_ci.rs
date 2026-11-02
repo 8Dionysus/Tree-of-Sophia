@@ -551,9 +551,17 @@ mod tests {
             (vec!["AGENTS.md", "mechanics/README.md"], "none", false),
             (vec!["ToS/AGENTS.md"], "none", true),
             (vec!["ToS/doctrine/README.md", "QUESTBOOK.md"], "none", true),
-            (vec!["AGENTS.md", "new-unclassified/input.xyz"], "full", true),
+            (
+                vec!["AGENTS.md", "new-unclassified/input.xyz"],
+                "full",
+                true,
+            ),
             (vec!["unknown/README.md"], "full", true),
-            (vec!["rust/crates/tos-access/tests/fixtures/README.md"], "browser", true),
+            (
+                vec!["rust/crates/tos-access/tests/fixtures/README.md"],
+                "browser",
+                true,
+            ),
         ] {
             let result = select(paths.into_iter().map(str::to_owned).collect(), false).unwrap();
             assert_eq!((result.software_mode, result.rust), (mode, rust));
@@ -721,5 +729,4 @@ mod tests {
             }
         }
     }
-
 }

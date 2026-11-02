@@ -30,9 +30,7 @@ fn github_output(path: &Path, selection: &software_ci::Selection) -> io::Result<
     output_cancel_check()?;
     let record = format!(
         "software_mode={}\nworker={}\nrust={}\n",
-        selection.software_mode,
-        selection.worker,
-        selection.rust
+        selection.software_mode, selection.worker, selection.rust
     );
     let mut options = fs::OpenOptions::new();
     options.append(true).create(true);

@@ -422,7 +422,7 @@ jobs:
         run: |
           root="$RUNNER_TEMP/tos-verity-tests"
           if mountpoint -q "$root/mounted"; then
-            sudo umount "$root/mounted"
+            sudo umount "$root/mounted" || sudo umount --lazy "$root/mounted"
           fi
 
   software_package:

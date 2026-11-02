@@ -11,9 +11,7 @@ use std::sync::{
     atomic::{AtomicI32, AtomicUsize, Ordering},
 };
 use std::time::{Duration, Instant};
-use tos_foundation::{
-    Digest256, Digest256Hasher,
-};
+use tos_foundation::{Digest256, Digest256Hasher};
 
 const MAX_FILE: usize = 8 * 1024 * 1024;
 const MAX_INPUT: usize = 64 * 1024 * 1024;

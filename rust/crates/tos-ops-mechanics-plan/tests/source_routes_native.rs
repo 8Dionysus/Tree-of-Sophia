@@ -308,8 +308,9 @@ fn source_anchor_preparation_binds_exact_provider_and_antecedent_without_plantin
         ] {
             let raw = fs::read(root.join(v[record]["path"].as_str().unwrap())).unwrap();
             let raw = if record == "atlas_source" {
-                tos_ops_mechanics_plan::source_reading::splitlines(std::str::from_utf8(&raw).unwrap())
-                    [v[record]["line"].as_u64().unwrap() as usize - 1]
+                tos_ops_mechanics_plan::source_reading::splitlines(
+                    std::str::from_utf8(&raw).unwrap(),
+                )[v[record]["line"].as_u64().unwrap() as usize - 1]
                     .as_bytes()
                     .to_vec()
             } else {

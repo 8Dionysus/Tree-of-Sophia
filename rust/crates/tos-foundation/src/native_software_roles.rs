@@ -68,8 +68,7 @@ pub fn explicit_features(role: &str) -> &'static [&'static str] {
     match role {
         "tos-research" => &["research-tools"],
         "tos-constructor-library" | "tos-constructor-fragments" => &["source-tools"],
-        "tos-kag-release"
-        | "tos-stats-release" => &["mechanics"],
+        "tos-kag-release" | "tos-stats-release" => &["mechanics"],
         _ => &[],
     }
 }

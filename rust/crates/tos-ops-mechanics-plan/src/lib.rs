@@ -59,14 +59,14 @@ pub mod public_mirror;
 pub mod relation_pack;
 #[cfg(feature = "mechanics")]
 pub mod root_entry_map;
-#[cfg(any(feature = "mechanics", feature = "philosophy-library"))]
-pub mod source_reading;
 #[cfg(feature = "mechanics")]
 pub mod semantic_registry_transition;
 pub mod software_ci;
 pub mod software_stage;
 #[cfg(feature = "mechanics")]
 pub mod source_home;
+#[cfg(any(feature = "mechanics", feature = "philosophy-library"))]
+pub mod source_reading;
 #[cfg(feature = "mechanics")]
 pub mod threshold_registry;
 pub mod validation_lanes;
@@ -259,8 +259,7 @@ pub fn discover(root: &Path) -> io::Result<Plan> {
         let name = relative(root, &home)?;
         if matches!(
             name.as_str(),
-            "mechanics/agon/parts/threshold-registry"
-                | "mechanics/experience"
+            "mechanics/agon/parts/threshold-registry" | "mechanics/experience"
         ) {
             test_homes.insert(home.clone());
         }
