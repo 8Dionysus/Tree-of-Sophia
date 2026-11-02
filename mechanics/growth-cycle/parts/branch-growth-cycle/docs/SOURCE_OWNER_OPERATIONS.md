@@ -1050,10 +1050,14 @@ owner-context path and source root must match the independently selected
 private Profile context. Its exact binding, rights and local-only custody are
 checked before content. The Profile snapshot binds the exact grant and grant
 schema digests; current expiry, mandate and held source bytes are checked again
-by the existing creation/replay guard before atomic publication. The selected
-legacy DTA adapter uses the selected immutable source cut for metadata and the
-protected exact body mapping for content, without changing the issued source
-return. No source text is written to a receipt. The public Profile, public
+by the existing creation/replay guard before atomic publication. This explicit
+selection reads binding metadata and support through that owner context;
+schemas remain in the selected immutable source cut. Without the selection,
+public-logical metadata remains in the cut. Missing inputs never fall through
+to another transport, and dependency snapshots distinguish the authorities.
+The selected legacy DTA adapter reads content through its protected exact body
+mapping without changing the issued source return. No source text is written
+to a receipt. The public Profile, public
 compiler and public projections are unchanged. `describe` of an existing
 private DTA-bound Occurrence requires that same independently selected read
 grant; direct unit disclosure remains the separate `private-text-read` route.

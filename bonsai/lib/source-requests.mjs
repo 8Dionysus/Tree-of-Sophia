@@ -4,6 +4,11 @@
 
 const SCHEMA='tos_local_source_command_v1';
 const clone=value=>structuredClone(value);
+const lexicalContext=cite=>{
+  if(typeof cite?.c!=='string'||!cite.c.trim()||typeof cite?.w!=='string'||!cite.w.trim())
+    throw new TypeError('A cited chapter and work are required for a lexical use.');
+  return `Chapter ${cite.c} of ${cite.w}.`;
+};
 
 /** Build a source candidate for one stand use after the caller has selected
  * its exact native unit binding. Binding bytes and rights are checked again
@@ -39,7 +44,7 @@ export function occurrenceSourceCandidate(use,options={}){
     throw new TypeError('A single-unit stand lexical use is required.');
   return unitOccurrenceSourceCandidate({recordId:use?.native_candidate?.record_id,unitId:unit[0],
     label:`${use.form} — ${use.cite.c}`,account:`The stand records the form ${use.form} within the bound unit.`,
-    context:use.semantic_use?.meaning?.en??'No semantic use has been assessed for this unit.',uses:[use]},options);
+    context:lexicalContext(use.cite),uses:[use]},options);
 }
 
 /** Collect explicit candidate IDs, grouping voice and place observations of
@@ -55,10 +60,11 @@ export function collectSourceOccurrences(packet){
     else subjects.set(recordId,{recordId,unitId,label,account,context,uses:[clone(use)]});
   };
   for(const term of packet.semantic_uses?.terms??[])for(const use of term.occurrences??[]){
+    const context=lexicalContext(use.cite);
     const units=use.cite?.u;
     if(!Array.isArray(units)||units.length!==2||units[0]!==units[1]){deferred.push({kind:'lexical-use',use:clone(use)});continue;}
     add(use.native_candidate?.record_id,units[0],{kind:'lexical-use',use},`${use.form} — ${use.cite.c}`,
-      `The stand records the form ${use.form} within the bound unit.`,use.semantic_use?.meaning?.en??'No semantic use has been assessed for this unit.');
+      `The stand records the form ${use.form} within the bound unit.`,context);
   }
   for(const relation of packet.place_relations?.relations??[])for(const side of ['from','to']){
     const endpoint=relation[side],units=endpoint?.cite?.u,use={kind:'place-relation-endpoint',relation:clone(relation),side};

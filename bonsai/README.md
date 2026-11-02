@@ -320,6 +320,9 @@ requests use the public owner grammar by default. A caller selecting
 `claim.statement` forms; the resulting creation request preserves the native
 preview's exact dependencies and input bindings. This adapter neither issues
 a grant nor chooses a missing predicate, endpoint identity or source version.
+Lexical Occurrence context names the cited chapter and work; the complete
+stand interpretation and assessment remain in its retained uses, with their
+original scope.
 
 The check also reads the witnesses (every chapter listed, each unit in
 exactly one row, every sentence span inside its unit, the rights of each
