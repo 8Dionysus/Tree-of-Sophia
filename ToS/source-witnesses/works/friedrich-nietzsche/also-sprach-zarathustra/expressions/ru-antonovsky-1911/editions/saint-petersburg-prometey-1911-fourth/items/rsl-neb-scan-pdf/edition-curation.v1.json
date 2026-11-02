@@ -311,7 +311,87 @@
             "first_line_indent": 0.96,
             "continuation": 0.91
           }
-        }
+        },
+        "row_group": {
+          "disjoint_x_tolerance": 1,
+          "same_citation_center_delta_at_most": 1.5,
+          "other_center_delta_at_most": 4.8,
+          "disjoint_overlap_at_least": 1.5,
+          "disjoint_center_delta_at_most": 7,
+          "ornament_residue_distance_at_most": 8
+        },
+        "margin": {
+          "y_min": 34,
+          "y_max": 540,
+          "width_at_least": 175,
+          "minimum_samples": 3,
+          "own_quantile": 0.08,
+          "neighbor_page_radius": 3,
+          "neighbor_quantile": 0.35,
+          "own_excess_at_most": 12,
+          "fallback_left": 50,
+          "fallback_right": 430,
+          "probe_indent_at_least": 12
+        },
+        "verse": {
+          "maximum_same_panel_gap": 22,
+          "minimum_run_rows": 5,
+          "maximum_run_median_width": 245,
+          "short_run_minimum_rows": 2,
+          "short_run_maximum_rows": 4,
+          "short_run_maximum_median_width": 225,
+          "borderline_indent_min": 8,
+          "borderline_indent_below": 17
+        },
+        "expected_census": {
+          "poppler_blocks": 7225,
+          "physical_lines": 13071,
+          "logical_rows": 10686,
+          "reading_units": 81,
+          "numbered_subparts": 112,
+          "boundary_conflicts": 49,
+          "evaluated_adjacent_pairs": 13070
+        },
+        "visual_markers": [
+          {
+            "citation_contains": "@visual-number-22",
+            "page": 97,
+            "panel": "right",
+            "minimum_y": 50
+          },
+          {
+            "citation_contains": "@visual-number-1",
+            "page": 144,
+            "panel": "left",
+            "minimum_y": 292
+          }
+        ],
+        "role_precedence": [
+          {
+            "role": "terminal_marker",
+            "priority": 100
+          },
+          {
+            "role": "part_heading",
+            "priority": 95
+          },
+          {
+            "role": "reading_unit_heading",
+            "priority": 94
+          },
+          {
+            "role": "cycle_heading",
+            "priority": 93
+          },
+          {
+            "role": "numbered_subpart_marker",
+            "priority": 92
+          },
+          {
+            "role": "ornament",
+            "priority": 80
+          }
+        ]
       }
     },
     {
