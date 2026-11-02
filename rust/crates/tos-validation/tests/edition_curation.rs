@@ -82,6 +82,21 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let dta_raw = fs::read(root.join(dta_path)).unwrap();
     assert_eq!(validate(&dta_raw, &schema), Ok(()));
     let dta_value: Value = serde_json::from_slice(&dta_raw).unwrap();
+    let mut invalid_voice_order = dta_value.clone();
+    let reading = invalid_voice_order["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "reading-workbench")
+        .unwrap();
+    reading["voice_search"]["selection_order"]
+        .as_array_mut()
+        .unwrap()
+        .swap(0, 1);
+    assert_eq!(
+        validate(&serde_json::to_vec(&invalid_voice_order).unwrap(), &schema),
+        Err(EditionCurationError::InvalidSchema)
+    );
     let review = dta_value["recipes"]
         .as_array()
         .unwrap()

@@ -3378,6 +3378,45 @@
             "max_modifiers": 3
           }
         ]
+      },
+      "voice_search": {
+        "legacy_classifier_sha256": "6f1b91a7b4c813453a947b831e8bfea606e6aa82fcf17eaeaa03f91dfb015ee7",
+        "offset_unit": "unicode-scalar",
+        "distance_bound": "exclusive",
+        "preceding_distance": 180,
+        "inside_distance": 220,
+        "following_distance": 100,
+        "reporting_punctuation": [
+          ",",
+          "!",
+          "?",
+          "—",
+          "–"
+        ],
+        "following_blockers": [
+          ".",
+          "!",
+          "?",
+          "„",
+          "«"
+        ],
+        "preceding_colon": ":",
+        "selection_order": [
+          "preceding-with-colon",
+          "inside-with-reporting-punctuation",
+          "following-without-blocking-intro",
+          "pending"
+        ],
+        "inherit_parent_roles": [
+          "first_person",
+          "self"
+        ],
+        "fallback_status": "ambiguous",
+        "fallback_cue": "frame_utterer_only_quoted_voice_unresolved",
+        "override_cue": "source_visible_span_override",
+        "quoted_policy_cue": "source_visible_quoted_voice_policy",
+        "reporting_cue": "local_reporting_cue",
+        "default_status": "proposed"
       }
     },
     {
