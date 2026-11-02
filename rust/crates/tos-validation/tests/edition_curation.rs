@@ -141,6 +141,21 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     )
     .unwrap();
     assert_eq!(probe["de_direct_occurrences"], 26);
+    let all_forms_ref =
+        "ToS/candidate-intake/zarathustra/concept-workbench-v1/all-form-coverage.v1.json";
+    let all_forms_raw = fs::read(root.join(all_forms_ref)).unwrap();
+    let historical_counts = select_historical_field(
+        &concept_raw,
+        "concept-workbench",
+        "witness-context-unit-counts",
+        SelectedDocument {
+            reference: all_forms_ref,
+            raw: &all_forms_raw,
+        },
+        &schema,
+    )
+    .unwrap();
+    assert_eq!(historical_counts, json!({"de": 3815, "ru": 3928}));
     let mut bad_scope: Value =
         serde_json::from_slice(&fs::read(root.join(concept_path)).unwrap()).unwrap();
     let concept = bad_scope["recipes"]

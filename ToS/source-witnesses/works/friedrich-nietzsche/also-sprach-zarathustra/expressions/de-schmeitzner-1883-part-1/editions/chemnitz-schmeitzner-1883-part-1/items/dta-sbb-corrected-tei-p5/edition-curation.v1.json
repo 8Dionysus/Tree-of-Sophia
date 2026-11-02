@@ -902,6 +902,16 @@
           "role": "languages_scanned",
           "output_role": "coverage",
           "json_pointer": "/languages_scanned"
+        },
+        {
+          "role": "witness-context-unit-counts",
+          "output_role": "all_forms",
+          "json_pointer": "/witness_context_unit_counts"
+        },
+        {
+          "role": "unit-kind-counts",
+          "output_role": "all_forms",
+          "json_pointer": "/unit_kind_counts"
         }
       ],
       "source_index_binding": {
