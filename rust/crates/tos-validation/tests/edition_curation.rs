@@ -185,6 +185,18 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         ),
         Err(EditionCurationError::BindingMismatch)
     );
+    let mut bad_buckets: Value = serde_json::from_slice(&reading_raw).unwrap();
+    let result = bad_buckets["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "morphology-result")
+        .unwrap();
+    result["residue_profile"]["frequency_buckets"][1]["minimum"] = json!(3);
+    assert_eq!(
+        validate(&serde_json::to_vec(&bad_buckets).unwrap(), &schema),
+        Err(EditionCurationError::InvalidRange("frequency_buckets"))
+    );
     let mut bad_threshold: Value = serde_json::from_slice(&reading_raw).unwrap();
     let parallel = bad_threshold["recipes"]
         .as_array_mut()

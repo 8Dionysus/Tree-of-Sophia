@@ -1234,6 +1234,31 @@ fn check_replacements(value: &Value) -> Result<(), EditionCurationError> {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if let Some(profile) = object.get("residue_profile") {
+                for field in ["frequency_buckets", "length_buckets"] {
+                    let buckets = profile[field]
+                        .as_array()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    let mut next = Some(1_u64);
+                    for (index, bucket) in buckets.iter().enumerate() {
+                        let minimum = bucket["minimum"]
+                            .as_u64()
+                            .ok_or(EditionCurationError::InvalidSchema)?;
+                        let maximum = bucket["maximum"].as_u64();
+                        if next != Some(minimum) || maximum.is_some_and(|maximum| maximum < minimum)
+                        {
+                            return Err(EditionCurationError::InvalidRange(field));
+                        }
+                        next = maximum.and_then(|maximum| maximum.checked_add(1));
+                        if index + 1 < buckets.len() && next.is_none() {
+                            return Err(EditionCurationError::InvalidRange(field));
+                        }
+                        if index + 1 == buckets.len() && maximum.is_some() {
+                            return Err(EditionCurationError::InvalidRange(field));
+                        }
+                    }
+                }
+            }
             if let Some(recipes) = object.get("recipes").and_then(Value::as_array) {
                 for recipe in recipes {
                     if let Some(binding) = recipe.get("source_index_binding") {
@@ -2543,6 +2568,8 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                 ("private_output_files", "filename"),
                 ("difficulty_signals", "metric"),
                 ("difficulty_signals", "label"),
+                ("frequency_buckets", "label"),
+                ("length_buckets", "label"),
                 ("output_files", "filename"),
                 ("frozen_outputs", "role"),
                 ("frozen_outputs", "repository_path"),

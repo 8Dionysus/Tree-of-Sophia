@@ -2834,7 +2834,76 @@
           "base_id": "morphology-census-result:zarathustra-dta-first-editions-parts-1-4.a.dwdsmor-open-0.18.0.v1",
           "generation_policy": "native-generation"
         }
-      ]
+      ],
+      "residue_profile": {
+        "unicode_version": "16.0.0",
+        "predicate_source": "rust/crates/tos-foundation/src/unicode_predicates16.rs",
+        "frequency_buckets": [
+          {
+            "minimum": 1,
+            "label": "1",
+            "maximum": 1
+          },
+          {
+            "minimum": 2,
+            "label": "2-4",
+            "maximum": 4
+          },
+          {
+            "minimum": 5,
+            "label": "5-9",
+            "maximum": 9
+          },
+          {
+            "minimum": 10,
+            "label": "10-49",
+            "maximum": 49
+          },
+          {
+            "minimum": 50,
+            "label": "50-plus"
+          }
+        ],
+        "length_buckets": [
+          {
+            "minimum": 1,
+            "label": "1-2",
+            "maximum": 2
+          },
+          {
+            "minimum": 3,
+            "label": "3-5",
+            "maximum": 5
+          },
+          {
+            "minimum": 6,
+            "label": "6-10",
+            "maximum": 10
+          },
+          {
+            "minimum": 11,
+            "label": "11-20",
+            "maximum": 20
+          },
+          {
+            "minimum": 21,
+            "label": "21-plus"
+          }
+        ],
+        "case_order": [
+          "lower",
+          "upper",
+          "title",
+          "mixed-or-uncased"
+        ],
+        "character_order": [
+          "contains-digit",
+          "contains-joiner",
+          "alphabetic-only",
+          "contains-other"
+        ],
+        "joiner_characters": "-'’‐‑"
+      }
     },
     {
       "stage": "morphology-context-result",
