@@ -43,8 +43,7 @@ check or reveal account authority, grants, expiry, private contexts, targets,
 source text, current versions, identity availability, rights or admission.
 Execution still requires its separate current owner configuration and the
 handler's full scope, version, dependency, idempotency and recovery checks.
-For `sign.promote`, existing independent assessment admission remains a
-precondition; discovery and serialization do not grant it.
+For `sign.promote`, obtain independent assessment admission first.
 
 ## One implementation grammar
 

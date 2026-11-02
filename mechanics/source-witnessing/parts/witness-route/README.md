@@ -17,7 +17,7 @@
 Research originals and reported normalized values belong to
 `ToS/research-packets/source-registries/`. The field adapter in
 `config/registry-normalization.v1.json` and `tos-source-registry normalize`
-preserve complete raw/source trace; they never clear rights or admit identity.
+preserve complete raw/source trace.
 Select the adapter owner with `--source-root`, the packet with `--packet-root`
 and new originals with `--input-root`. Without an input root, normalization
 replays the packet's retained originals. New snapshots identify the actual
@@ -46,16 +46,12 @@ escaping or mismatched selections fail before producing a plan.
 
 Actual acquisition retains upstream bytes, checks their pinned identity and
 content structure, records per-file fixity and rights, and links the exact
-source to its branch. The preparation checkpoint is evidence of the preceding
-work; it does not create new permission. Operator scope and source rights remain
-with their actual owners. Items and Composite representations use the same
+source to its branch. Items and Composite representations use the same
 local ignored payload route with tracked metadata. A file must be opened and
 verified locally before a batch result claims it is present.
 
 The ordered checks remain in `docs/validation/validation_lanes.json` under
-`source_witness_foundation` and the affected philosophy route. A green import,
-queue or resource inventory does not accept source text, translation, semantics,
-canon, public transfer or deployment.
+`source_witness_foundation` and the affected philosophy route.
 
 The bounded registry route is the native acquisition owner, invoked through
 `tos-native-owner-command acquisition` with `family` set to `registry`.
@@ -71,10 +67,9 @@ independently verified through `tos-native-owner-command acquisition`, selecting
 the `custody` family, `cli` operation and `verify` or `copy` command. Copying
 uses explicit manifest or inventory selection, verifies source fixity, and
 publishes read-only payloads without replacing conflicting destination bytes.
-Its immutable `0600` receipts contain custody metadata only, not payload bytes.
+Its immutable `0600` receipts contain custody metadata only.
 The frozen Python reference is nonexecutable history at
-`tests/historical/oracles/acquisition/source_payload_custody.py.snapshot`. Custody and fixity do
-not admit an Item, assess rights, or authorize publication.
+`tests/historical/oracles/acquisition/source_payload_custody.py.snapshot`.
 
 For a growing provider queue, invoke the native batch route through
 `tos-native-owner-command acquisition` with `family` set to `batch` and an

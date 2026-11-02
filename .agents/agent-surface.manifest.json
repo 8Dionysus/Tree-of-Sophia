@@ -155,7 +155,7 @@
   "skills": [],
   "owner_ports": {
     "eval_port": {
-      "local_owner": "evals/AGENTS.md",
+      "local_owner": "evals/README.md",
       "manifest": "evals/PORT.yaml",
       "consumer": "eval pressure intake, ToS route checks and consumer-owned central proof review",
       "load_moment": "when a repository task produces or asks for eval pressure",
@@ -163,13 +163,10 @@
       "freshness": "local PORT.yaml, packet evidence and ToS route checks; the receiving owner checks shared protocol compatibility",
       "next_organ": "selected packet handoff to aoa-evals for consumer-side compatibility and central proof review",
       "currentness_inputs": [
-        "evals/AGENTS.md",
         "evals/PORT.yaml",
         "evals/README.md",
-        "evals/intake/README.md",
-        "evals/suites/README.md",
-        "evals/reports/README.md",
-        "evals/VALIDATION.md"
+        "evals/suites/source-observation-ru-en-v1.suite.md",
+        "evals/suites/metadata-human-form-ru-en-v1.suite.md"
       ],
       "carrier_classes": [
         "local_intake_port",
@@ -177,7 +174,7 @@
       ]
     },
     "stats_port": {
-      "local_owner": "stats/AGENTS.md",
+      "local_owner": "stats/README.md",
       "manifest": "stats/port.manifest.json",
       "consumer": "owner-local measurement readers and aoa-stats composition",
       "load_moment": "when a declared Tree-of-Sophia question needs a measurement or reference packet",
@@ -185,7 +182,6 @@
       "freshness": "manifest, source population, route map, and evidence-linked reference packet at a named revision; reference-only, not live",
       "next_organ": "atlas/source owner -> aoa-stats protocol validator and cross-owner composition",
       "currentness_inputs": [
-        "stats/AGENTS.md",
         "stats/port.manifest.json",
         "stats/README.md",
         "stats/packets/table-i-prepared-dossier-route-ratio.reference.json",
@@ -199,7 +195,7 @@
       ]
     },
     "kag_provider": {
-      "local_owner": "kag/AGENTS.md",
+      "local_owner": "kag/README.md",
       "manifest": "kag/README.md",
       "consumer": "downstream source-return consumers",
       "load_moment": "when a portable ToS source-return export or its local verification is requested",
@@ -207,9 +203,7 @@
       "freshness": "ToS source-export contract and producer; consumer index state is outside this repository",
       "next_organ": "verified ToS source-return artifact; optional consumer import is owned outside ToS",
       "currentness_inputs": [
-        "kag/AGENTS.md",
         "kag/README.md",
-        "kag/VALIDATION.md",
         "rust/crates/tos-ops-mechanics-plan/src/kag_corpus_export.rs",
         "rust/crates/tos-ops-mechanics-plan/src/kag_release_main.rs",
         "rust/crates/tos-ops-mechanics-plan/src/release_files.rs",
@@ -218,9 +212,9 @@
       "generated_family": {
         "scope": "tos_source_export",
         "source_contract": "kag/README.md",
-        "owner_route": "kag/AGENTS.md",
+        "owner_route": "kag/README.md",
         "builder": "rust/crates/tos-ops-mechanics-plan/src/kag_corpus_export.rs",
-        "validation_route": "kag/VALIDATION.md"
+        "validation_route": "kag/README.md"
       },
       "carrier_classes": [
         "route_card",
@@ -228,7 +222,7 @@
       ]
     },
     "memo_port": {
-      "local_owner": "memo/AGENTS.md",
+      "local_owner": "memo/README.md",
       "manifest": "memo/PORT.yaml",
       "consumer": "tree-local candidate intake and the stronger aoa-memo memory owner",
       "load_moment": "when reviewed evidence suggests a bounded memory candidate or owner handoff",
@@ -236,12 +230,9 @@
       "freshness": "PORT.yaml, local route docs, candidate/receipt/export posture, and generated index; no claim of durable or live memory",
       "next_organ": "candidate and evidence review -> ToS route checks -> consumer-side aoa-memo compatibility and admission",
       "currentness_inputs": [
-        "memo/AGENTS.md",
         "memo/PORT.yaml",
         "memo/README.md",
-        "memo/INDEX.md",
-        "memo/index.min.json",
-        "memo/VALIDATION.md"
+        "memo/index.min.json"
       ],
       "carrier_classes": [
         "local_intake_port",

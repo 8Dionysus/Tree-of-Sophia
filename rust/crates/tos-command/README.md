@@ -441,8 +441,7 @@ already-held exact job fence, plus a separately selected Rust software capture,
 component set and schema worker. The private owner configuration must repeat
 the selected domain, cut identity, job selection and allowed operation exactly.
 The route imports that cut through the existing durable coordinator, cold
-reopens it and returns the selected complete generation. It does not grant
-source admission, publication or canon authority. Bootstrap resumption after a
+reopens it and returns the selected complete generation. Bootstrap resumption after a
 partial import is unsupported; the selected store and domain must be unused.
 
 Mixed source bootstrap selects the existing owner for Global, Growth, Item and
@@ -881,8 +880,7 @@ request grammar, exact source/software inputs, owner context and operation
 grant. The command name is retained for compatibility; these profiles include
 their explicitly granted writes. Ordinary `source-commands` and HTTP do not
 expose these private profiles. Connection selection remains private through
-`TOS_SOURCE_PG_URL`; an invocation does not grant rights or semantic approval
-beyond its selected owner contract.
+`TOS_SOURCE_PG_URL`.
 
 The PostgreSQL Text profile also accepts `prepare-create` for its selected
 TextLayer, derived-layer or TextUnit write grant. Preparation uses current PG
@@ -944,6 +942,5 @@ participates. A legacy `owner_source_root` value in retained grants is inert
 provenance; new grants need no source-root field.
 
 The existing ToS grant still owns access, byte/receipt/key digests and expiry.
-Authenticated producer metadata does not establish source fidelity, rights,
-semantic acceptance or canon. A metadata replay reads only copied evidence;
+A metadata replay reads only copied evidence;
 it does not require the original OCR text or rerun OCR.

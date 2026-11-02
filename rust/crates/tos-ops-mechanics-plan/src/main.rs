@@ -743,6 +743,7 @@ fn main() {
                 }
                 0
             }),
+        #[cfg(feature = "compiler-backed-validators")]
         Action::PhilosophyGraphViews => {
             tos_ops_mechanics_plan::philosophy_graph_views::run(&root, &CANCEL)
         }

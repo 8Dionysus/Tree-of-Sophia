@@ -291,7 +291,7 @@ fn stats_release_uses_only_tos_inputs_and_preserves_last_success_on_invalid_sour
         assert!(!build().status.success());
         assert_eq!(status(revision)["export_revision"], identity);
     }
-    fs::write(&packet, raw).unwrap();
+    fs::write(&packet, &raw).unwrap();
     for option in ["--python", "--stats-root"] {
         assert!(
             !Command::new(binary)
@@ -436,6 +436,35 @@ fn stats_release_uses_only_tos_inputs_and_preserves_last_success_on_invalid_sour
     assert_eq!(
         status(dimensioned["source_revision"].as_str().unwrap())["export_revision"],
         dimensioned["export_revision"]
+    );
+    // Historical exports include both former guides and remain verifiable.
+    fs::write(&port, serde_json::to_vec(&port_document).unwrap()).unwrap();
+    fs::write(&packet, &raw).unwrap();
+    for guide in ["stats/AGENTS.md", "stats/VALIDATION.md"] {
+        fs::write(source.join(guide), b"# Historical guide\n").unwrap();
+    }
+    let legacy = build();
+    assert!(
+        legacy.status.success(),
+        "{}",
+        String::from_utf8_lossy(&legacy.stderr)
+    );
+    let legacy: Value = serde_json::from_slice(&legacy.stdout).unwrap();
+    for guide in ["stats/AGENTS.md", "stats/VALIDATION.md"] {
+        fs::remove_file(source.join(guide)).unwrap();
+    }
+    let legacy_export = release
+        .join("releases")
+        .join(legacy["export_revision"].as_str().unwrap());
+    let verified = Command::new(binary)
+        .args(["verify", "--release"])
+        .arg(legacy_export)
+        .output()
+        .unwrap();
+    assert!(
+        verified.status.success(),
+        "{}",
+        String::from_utf8_lossy(&verified.stderr)
     );
     let exported = release.join("releases").join(identity);
     fs::write(exported.join("extra.json"), b"{}").unwrap();
