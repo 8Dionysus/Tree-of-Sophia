@@ -15,12 +15,8 @@ use tos_foundation::Digest256;
 pub const SOURCE_SCHEMA: &str = "tos_stats_port_export_v1";
 pub const SCHEMA: &str = "tos_stats_export_release_v1";
 pub const SOURCE_KIND: &str = "stats_port_export";
-pub const SOURCE_PATHS: [&str; 4] = [
-    "stats/AGENTS.md",
-    "stats/README.md",
-    "stats/VALIDATION.md",
-    "stats/port.manifest.json",
-];
+pub const SOURCE_PATHS: [&str; 2] = ["stats/README.md", "stats/port.manifest.json"];
+const LEGACY_GUIDES: [&str; 2] = ["stats/AGENTS.md", "stats/VALIDATION.md"];
 const PORT: &str = "stats/port.manifest.json";
 const MAX_SOURCE: u64 = 1024 * 1024;
 
@@ -66,10 +62,14 @@ fn nonempty(value: &Value) -> io::Result<&str> {
         .filter(|s| !s.is_empty())
         .ok_or_else(|| invalid("stats observation text absent"))
 }
-fn source_paths(port: &Value) -> io::Result<Vec<String>> {
+fn source_paths(root: &Path, port: &Value) -> io::Result<Vec<String>> {
     validate_shape("port", port)?;
     let mut paths: std::collections::BTreeSet<String> =
         SOURCE_PATHS.iter().map(|p| (*p).to_owned()).collect();
+    // Preserve verification of exports produced before the guides were merged.
+    if LEGACY_GUIDES.iter().all(|p| root.join(p).is_file()) {
+        paths.extend(LEGACY_GUIDES.iter().map(|p| (*p).to_owned()));
+    }
     for export in port["exports"].as_array().unwrap() {
         for reference in export["packet_refs"].as_array().unwrap() {
             let reference = shared::relative(reference)?;
@@ -85,7 +85,7 @@ fn records(root: &Path) -> io::Result<Value> {
     let mut total = 0u64;
     let mut records = Vec::new();
     let port = shared::strict_json(&read_bounded(&root.join(PORT), MAX_SOURCE)?)?;
-    for name in source_paths(&port)? {
+    for name in source_paths(root, &port)? {
         budget_check()?;
         let path = root.join(&name);
         let bytes = regular(&path)?.len();

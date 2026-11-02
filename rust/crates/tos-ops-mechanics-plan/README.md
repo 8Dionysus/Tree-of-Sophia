@@ -292,7 +292,7 @@ corpus and exact source-return export. `tos-stats-release validate`, `build`,
 `verify` and `status` operate on ToS port bytes and immutable exports. Neither
 command selects an external checkout, interpreter, producer or validator.
 Consumer configuration, indexing and admission are implemented by consumers.
-See `kag/README.md` and `stats/VALIDATION.md` for the native procedures.
+See `kag/README.md` and `stats/README.md` for the native procedures.
 
 ## Maintained philosophy product commands
 
