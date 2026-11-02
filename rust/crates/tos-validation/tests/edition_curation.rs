@@ -82,6 +82,45 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let dta_raw = fs::read(root.join(dta_path)).unwrap();
     assert_eq!(validate(&dta_raw, &schema), Ok(()));
     let dta_value: Value = serde_json::from_slice(&dta_raw).unwrap();
+    let mut repeated_cue = dta_value.clone();
+    let workbench = repeated_cue["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "concept-workbench")
+        .unwrap();
+    let cues = workbench["speaker_cues"]["cues"].as_array_mut().unwrap();
+    cues.push(cues[0].clone());
+    assert_eq!(
+        validate(&serde_json::to_vec(&repeated_cue).unwrap(), &schema),
+        Err(EditionCurationError::Duplicate("speaker cue role"))
+    );
+    let mut unsafe_term = dta_value.clone();
+    let workbench = unsafe_term["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "concept-workbench")
+        .unwrap();
+    workbench["speaker_cues"]["cues"][0]["verbs"][0] = json!("a|b");
+    assert_eq!(
+        validate(&serde_json::to_vec(&unsafe_term).unwrap(), &schema),
+        Err(EditionCurationError::InvalidSchema)
+    );
+    let mut invalid_outcome = dta_value.clone();
+    let workbench = invalid_outcome["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "concept-workbench")
+        .unwrap();
+    workbench["speaker_cues"]["outcomes"][0]["primary"] = json!("{unknown}");
+    assert_eq!(
+        validate(&serde_json::to_vec(&invalid_outcome).unwrap(), &schema),
+        Err(EditionCurationError::InvalidRange(
+            "speaker outcome template"
+        ))
+    );
     let candidate = dta_value["recipes"]
         .as_array()
         .unwrap()

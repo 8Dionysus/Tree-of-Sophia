@@ -406,6 +406,50 @@ enum MarkerPart {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if let Some(profile) = object.get("speaker_cues") {
+                let cues = profile["cues"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let mut seen = BTreeSet::new();
+                for cue in cues {
+                    let language = cue["language"]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    let role = cue["role"]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    if !seen.insert((language, role)) {
+                        return Err(EditionCurationError::Duplicate("speaker cue role"));
+                    }
+                }
+                let outcomes = profile["outcomes"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                for (outcome, expected_case) in
+                    outcomes
+                        .iter()
+                        .zip(["verse", "transition", "continuation", "unresolved"])
+                {
+                    if outcome["case"] != expected_case {
+                        return Err(EditionCurationError::InvalidRange("speaker outcome order"));
+                    }
+                    let allowed: BTreeSet<_> = ["language", "reading", "role", "state"]
+                        .into_iter()
+                        .collect();
+                    for value in [outcome.get("primary"), outcome.get("exception_group")]
+                        .into_iter()
+                        .flatten()
+                        .chain(outcome["alternatives"].as_array().into_iter().flatten())
+                    {
+                        let text = value.as_str().ok_or(EditionCurationError::InvalidSchema)?;
+                        if !template_fields(text).is_some_and(|fields| fields.is_subset(&allowed)) {
+                            return Err(EditionCurationError::InvalidRange(
+                                "speaker outcome template",
+                            ));
+                        }
+                    }
+                }
+            }
             if let Some(profile) = object.get("candidate_signals") {
                 let rules = profile["signals"]
                     .as_array()

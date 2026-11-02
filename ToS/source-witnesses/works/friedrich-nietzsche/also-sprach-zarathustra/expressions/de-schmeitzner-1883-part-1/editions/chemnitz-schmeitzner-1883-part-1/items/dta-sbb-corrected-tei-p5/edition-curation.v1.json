@@ -136,7 +136,320 @@
           "sha256": "fba47c5368663fe6877b725174ee80b9118294b8af89a78ed2ca041d9839f9fb"
         }
       ],
-      "event_id_prefix": "tos.event.zarathustra-concept-workbench-v1.build.sid-"
+      "event_id_prefix": "tos.event.zarathustra-concept-workbench-v1.build.sid-",
+      "speaker_cues": {
+        "legacy_classifier_sha256": "73be454007c1759fe8c2bf54c80ec637905da748664c53582ace93e009fdfb51",
+        "match_order": "first-listed-per-language",
+        "text_normalization": "unicode16-casefold-newlines-to-spaces",
+        "match_scope": "substring-with-unicode-whitespace",
+        "cues": [
+          {
+            "language": "de",
+            "role": "zarathustra",
+            "verbs": [
+              "sprach",
+              "antwortete",
+              "rief",
+              "sagte"
+            ],
+            "subject_tokens": [
+              [
+                "zarathustra"
+              ]
+            ],
+            "subject_first": true
+          },
+          {
+            "language": "de",
+            "role": "animals_eagle_and_serpent",
+            "verbs": [
+              "sprachen",
+              "antworteten",
+              "sagten"
+            ],
+            "subject_tokens": [
+              [
+                "thiere"
+              ]
+            ],
+            "optional_intervening_token": "seine"
+          },
+          {
+            "language": "de",
+            "role": "dwarf",
+            "verbs": [
+              "sprach",
+              "antwortete",
+              "sagte",
+              "murmelte"
+            ],
+            "subject_tokens": [
+              [
+                "zwerg"
+              ]
+            ],
+            "optional_intervening_token": "der"
+          },
+          {
+            "language": "de",
+            "role": "ugliest_man",
+            "verbs": [
+              "sprach",
+              "antwortete",
+              "sagte"
+            ],
+            "subject_tokens": [
+              [
+                "hässlichste"
+              ],
+              [
+                "mensch"
+              ]
+            ],
+            "optional_intervening_token": "der"
+          },
+          {
+            "language": "de",
+            "role": "soothsayer",
+            "verbs": [
+              "sprach",
+              "antwortete",
+              "sagte"
+            ],
+            "subject_tokens": [
+              [
+                "wahrsager"
+              ]
+            ],
+            "optional_intervening_token": "der"
+          },
+          {
+            "language": "de",
+            "role": "magician",
+            "verbs": [
+              "sprach",
+              "antwortete",
+              "sagte"
+            ],
+            "subject_tokens": [
+              [
+                "zauberer"
+              ]
+            ],
+            "optional_intervening_token": "der"
+          },
+          {
+            "language": "de",
+            "role": "shadow",
+            "verbs": [
+              "sprach",
+              "antwortete",
+              "sagte"
+            ],
+            "subject_tokens": [
+              [
+                "schatten"
+              ]
+            ],
+            "optional_intervening_token": "der"
+          },
+          {
+            "language": "de",
+            "role": "kings",
+            "verbs": [
+              "sprachen",
+              "antworteten",
+              "sagten"
+            ],
+            "subject_tokens": [
+              [
+                "könige"
+              ]
+            ],
+            "optional_intervening_token": "die"
+          },
+          {
+            "language": "de",
+            "role": "people_or_crowd",
+            "verbs": [
+              "sprach",
+              "sprachen",
+              "rief",
+              "riefen"
+            ],
+            "subject_tokens": [
+              [
+                "volk"
+              ]
+            ],
+            "optional_intervening_token": "das"
+          },
+          {
+            "language": "ru",
+            "role": "zarathustra",
+            "verbs": [
+              "сказал",
+              "говорил",
+              "отвечал",
+              "воскликнул"
+            ],
+            "subject_tokens": [
+              [
+                "заратустра"
+              ]
+            ],
+            "subject_first": true
+          },
+          {
+            "language": "ru",
+            "role": "animals_eagle_and_serpent",
+            "verbs": [
+              "сказали",
+              "говорили",
+              "отвечали"
+            ],
+            "subject_tokens": [
+              [
+                "животн"
+              ]
+            ],
+            "optional_intervening_token": "его"
+          },
+          {
+            "language": "ru",
+            "role": "dwarf",
+            "verbs": [
+              "сказал",
+              "говорил",
+              "ответил",
+              "пробормотал"
+            ],
+            "subject_tokens": [
+              [
+                "карлик",
+                "карлика"
+              ]
+            ]
+          },
+          {
+            "language": "ru",
+            "role": "soothsayer",
+            "verbs": [
+              "сказал",
+              "говорил",
+              "ответил"
+            ],
+            "subject_tokens": [
+              [
+                "прорицатель"
+              ]
+            ]
+          },
+          {
+            "language": "ru",
+            "role": "magician",
+            "verbs": [
+              "сказал",
+              "говорил",
+              "ответил"
+            ],
+            "subject_tokens": [
+              [
+                "волшебник"
+              ]
+            ]
+          },
+          {
+            "language": "ru",
+            "role": "shadow",
+            "verbs": [
+              "сказала",
+              "говорила",
+              "ответила"
+            ],
+            "subject_tokens": [
+              [
+                "тень"
+              ]
+            ]
+          },
+          {
+            "language": "ru",
+            "role": "kings",
+            "verbs": [
+              "сказали",
+              "говорили",
+              "ответили"
+            ],
+            "subject_tokens": [
+              [
+                "цари"
+              ]
+            ]
+          },
+          {
+            "language": "ru",
+            "role": "people_or_crowd",
+            "verbs": [
+              "сказал",
+              "говорил",
+              "кричал"
+            ],
+            "subject_tokens": [
+              [
+                "народ"
+              ]
+            ]
+          }
+        ],
+        "initial_state": "zarathustra_or_external_narrator",
+        "verse_unit_kind": "verse_line",
+        "outcomes": [
+          {
+            "case": "verse",
+            "primary": "song_or_performative_voice",
+            "alternatives": [
+              "zarathustra",
+              "named_or_personified_voice"
+            ],
+            "status": "ambiguous",
+            "cue": "witness_attested_verse_line",
+            "exception_group": "{language}.{reading}.verse_voice"
+          },
+          {
+            "case": "transition",
+            "primary": "mixed_external_narrator_and_{role}",
+            "alternatives": [
+              "external_narrator",
+              "{role}"
+            ],
+            "status": "ambiguous",
+            "cue": "explicit_speech_reporting_cue_inside_unit",
+            "exception_group": "{language}.{reading}.explicit_transition.{role}"
+          },
+          {
+            "case": "continuation",
+            "primary": "{state}",
+            "alternatives": [
+              "external_narrator"
+            ],
+            "status": "proposed",
+            "cue": "continuation_of_last_explicit_state_within_reading"
+          },
+          {
+            "case": "unresolved",
+            "primary": "{state}",
+            "alternatives": [
+              "zarathustra",
+              "external_narrator"
+            ],
+            "status": "unresolved",
+            "cue": "no_explicit_cue_or_prior_state_in_reading",
+            "exception_group": "{language}.{reading}.unresolved_opening_state"
+          }
+        ],
+        "expected_count": 7743
+      }
     },
     {
       "stage": "concept-candidate",
