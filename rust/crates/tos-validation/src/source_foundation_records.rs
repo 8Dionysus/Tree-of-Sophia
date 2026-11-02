@@ -104,6 +104,19 @@ pub trait SourceFoundationCandidateSchemaBinding<I: Eq + Clone>: CutSchemaExecut
         ))
     }
 
+    /// Return evidence in the representation of the selected engine.
+    fn check_diagnostic(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<crate::source_cut::CandidateSchemaDiagnostic<I>, ItemRefusal> {
+        self.check_diagnostics_v2(path, raw, contract, deadline, cancelled)
+            .map(crate::source_cut::CandidateSchemaDiagnostic::Worker)
+    }
+
     /// Move the next complete invalid diagnostics report retained by a bool
     /// projection. Implementations without this protocol fail closed.
     fn take_schema_diagnostic_rejection(

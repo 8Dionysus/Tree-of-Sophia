@@ -5008,6 +5008,104 @@ pub struct InProcessCutDiagnostic<I> {
     pub report: crate::in_process::Report,
 }
 
+/// Candidate evidence with the producing engine's own representation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CandidateSchemaDiagnostic<I> {
+    Worker(CandidateCutSchemaDiagnostic<I>),
+    InProcess(InProcessCandidateSchemaDiagnostic<I>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InProcessCandidateSchemaDiagnostic<I> {
+    input_identity: I,
+    contract_selection_sha256: Digest256,
+    binding: tos_foundation::InProcessSchemaExecutionBinding,
+    diagnostic: InProcessCutDiagnostic<I>,
+}
+
+impl<I> InProcessCandidateSchemaDiagnostic<I> {
+    pub fn diagnostic(&self) -> &InProcessCutDiagnostic<I> {
+        &self.diagnostic
+    }
+}
+
+impl<I> CandidateSchemaDiagnostic<I> {
+    pub fn input_identity(&self) -> &I {
+        match self {
+            Self::Worker(row) => row.input_identity(),
+            Self::InProcess(row) => &row.input_identity,
+        }
+    }
+    pub fn contract_selection_sha256(&self) -> Digest256 {
+        match self {
+            Self::Worker(row) => row.contract_selection_sha256(),
+            Self::InProcess(row) => row.contract_selection_sha256,
+        }
+    }
+    pub fn execution_binding(&self) -> tos_foundation::SchemaExecutionBinding {
+        match self {
+            Self::Worker(row) => {
+                tos_foundation::SchemaExecutionBinding::Worker(row.prepared_execution_binding())
+            }
+            Self::InProcess(row) => {
+                tos_foundation::SchemaExecutionBinding::InProcessV1(row.binding)
+            }
+        }
+    }
+    pub fn path(&self) -> &str {
+        match self {
+            Self::Worker(row) => row.path(),
+            Self::InProcess(row) => &row.diagnostic.path,
+        }
+    }
+    pub fn contract(&self) -> &str {
+        match self {
+            Self::Worker(row) => row.contract(),
+            Self::InProcess(row) => &row.diagnostic.contract,
+        }
+    }
+    pub fn input_sha256(&self) -> Digest256 {
+        match self {
+            Self::Worker(row) => row.source_raw_sha256(),
+            Self::InProcess(row) => row.diagnostic.report.input_sha256,
+        }
+    }
+    pub fn status(&self) -> schema_diagnostics::Status {
+        match self {
+            Self::Worker(row) => row.status(),
+            Self::InProcess(row) => row.diagnostic.report.status,
+        }
+    }
+    pub fn issues(&self) -> &[schema_diagnostics::Issue] {
+        match self {
+            Self::Worker(row) => &row.report().issues,
+            Self::InProcess(row) => &row.diagnostic.report.issues,
+        }
+    }
+    pub fn is_valid(&self) -> bool {
+        match self {
+            Self::Worker(row) => row.is_valid(),
+            Self::InProcess(row) => {
+                row.diagnostic.report.is_well_formed()
+                    && row.diagnostic.report.status == schema_diagnostics::Status::Valid
+            }
+        }
+    }
+    pub fn is_invalid(&self) -> bool {
+        match self {
+            Self::Worker(row) => row.is_invalid(),
+            Self::InProcess(row) => {
+                row.diagnostic.report.is_well_formed()
+                    && row.diagnostic.report.status == schema_diagnostics::Status::Invalid
+                    && !row.diagnostic.report.truncated
+                    && row.diagnostic.report.failure == schema_diagnostics::Failure::None
+                    && u64::try_from(row.diagnostic.report.issues.len()).ok()
+                        == Some(row.diagnostic.report.total_issue_count)
+            }
+        }
+    }
+}
+
 /// Selected contract names and their exact resource digests are bound at preparation.
 pub struct InProcessCutSchemaExecutor<I> {
     identity: InProcessCutIdentity<I>,
@@ -5456,6 +5554,31 @@ impl<I: Copy + Eq> CutSchemaExecutor for InProcessCandidateSchemaExecutor<I> {
 impl<I: Copy + Eq> crate::source_foundation_records::SourceFoundationCandidateSchemaBinding<I>
     for InProcessCandidateSchemaExecutor<I>
 {
+    fn check_diagnostic(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<CandidateSchemaDiagnostic<I>, ItemRefusal> {
+        let diagnostic = self.diagnostic_for(
+            path,
+            contract,
+            raw,
+            schema_diagnostics::Caps::CURRENT,
+            deadline,
+            cancelled,
+        )?;
+        Ok(CandidateSchemaDiagnostic::InProcess(
+            InProcessCandidateSchemaDiagnostic {
+                input_identity: self.input_identity,
+                contract_selection_sha256: self.contract_selection_digest,
+                binding: self.inner.binding(),
+                diagnostic,
+            },
+        ))
+    }
     fn input_identity(&self) -> &I {
         &self.input_identity
     }
@@ -5563,17 +5686,21 @@ mod in_process_candidate_binding_tests {
             .unwrap();
         assert_eq!(count, 1);
         let row = executor
-            .diagnostic_for(
+            .check_diagnostic(
                 "record.json",
-                "ToS/contracts/example.schema.json",
                 b"3",
-                schema_diagnostics::Caps::CURRENT,
+                "ToS/contracts/example.schema.json",
                 deadline,
                 &cancelled,
             )
             .unwrap();
-        assert_eq!(row.identity, InProcessCutIdentity::Candidate(42));
-        assert_eq!(row.report.status, schema_diagnostics::Status::Valid);
+        assert_eq!(*row.input_identity(), 42);
+        assert_eq!(row.contract_selection_sha256(), expected_selection);
+        assert_eq!(row.execution_binding().schema_set_sha256(), expected_set);
+        assert_eq!(row.input_sha256(), Digest256::of_bytes(b"3"));
+        assert!(row.is_valid());
+        assert!(matches!(&row, CandidateSchemaDiagnostic::InProcess(row)
+            if row.diagnostic().identity == InProcessCutIdentity::Candidate(42)));
         assert!(
             !executor
                 .check(
