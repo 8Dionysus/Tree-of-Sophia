@@ -17,7 +17,7 @@ use crate::executor::{
 };
 use crate::{FormatProfile, SchemaBackendProbe, SchemaProbeError, SchemaResource, published_value};
 
-pub const ENGINE_ID: &str = "tos_schema_engine_in_process_v1";
+pub const ENGINE_ID: &str = tos_foundation::IN_PROCESS_SCHEMA_ENGINE_ID;
 
 /// Input decoding is independent of the schema format profile.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

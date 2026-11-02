@@ -1,6 +1,8 @@
 //! Stable schema-execution identities shared by storage and validation.
 use crate::Digest256;
 
+pub const IN_PROCESS_SCHEMA_ENGINE_ID: &str = "tos_schema_engine_in_process_v1";
+
 /// The observed legacy profile is evidence for migration comparison only.
 /// A normative profile is selected by the source owner, not by installed
 /// optional format packages on the host.
@@ -51,6 +53,18 @@ pub struct InProcessSchemaExecutionBinding {
 pub enum SchemaExecutionBinding {
     Worker(CutPreparedSchemaExecutionBinding),
     InProcessV1(InProcessSchemaExecutionBinding),
+}
+
+impl From<CutPreparedSchemaExecutionBinding> for SchemaExecutionBinding {
+    fn from(binding: CutPreparedSchemaExecutionBinding) -> Self {
+        Self::Worker(binding)
+    }
+}
+
+impl From<InProcessSchemaExecutionBinding> for SchemaExecutionBinding {
+    fn from(binding: InProcessSchemaExecutionBinding) -> Self {
+        Self::InProcessV1(binding)
+    }
 }
 
 impl SchemaExecutionBinding {

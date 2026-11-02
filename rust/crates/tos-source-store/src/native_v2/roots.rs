@@ -4,7 +4,8 @@ use crate::{SourceMembershipV1, SourceMembershipV2};
 use std::{io, mem::size_of};
 use tos_foundation::{
     CanonicalProfile, CutPreparedSchemaExecutionBinding, CutPreparedSchemaProtocol, Digest256,
-    Digest256Hasher, FormatProfile, JsonDocument, JsonLimits, JsonMode, JsonValue, SourceRevision,
+    Digest256Hasher, FormatProfile, IN_PROCESS_SCHEMA_ENGINE_ID, InProcessSchemaExecutionBinding,
+    JsonDocument, JsonLimits, JsonMode, JsonValue, SchemaExecutionBinding, SourceRevision,
     canonical_bytes_v1, parse_json_with_state_budget,
 };
 use tos_segment_store::{AuthenticatedTreeDescriptorV2, SegmentStore};
@@ -179,6 +180,98 @@ mod rootset_descriptor_tests {
     use std::sync::atomic::AtomicBool;
     use std::time::{Duration, Instant};
     use tos_segment_store::{AuthenticatedTreeEntryV1, AuthenticatedTreeLimitsV1, SegmentLimits};
+
+    #[test]
+    fn completion_schema_binding_round_trips_old_and_in_process_bytes() {
+        let schema_set = Digest256::of_bytes(b"selected schemas");
+        let worker = Digest256::of_bytes(b"historical worker");
+        let validator = Digest256::of_bytes(b"validator");
+        let parse = |value: &serde_json::Value| {
+            let raw = serde_json::to_vec(value).unwrap();
+            tos_foundation::parse_json(&raw, JsonMode::PublishedStrict, JsonLimits::default())
+                .unwrap()
+        };
+        for protocol in [
+            CutPreparedSchemaProtocol::LegacyScalar,
+            CutPreparedSchemaProtocol::DiagnosticsV2 {
+                caps_sha256: Digest256::of_bytes(b"caps"),
+            },
+        ] {
+            let old = NativeAdmissionCompletionProofV1::from_authenticated_root_fields(
+                validator,
+                None,
+                23,
+                CutPreparedSchemaExecutionBinding {
+                    schema_profile: FormatProfile::LegacyPythonObserved20260923,
+                    schema_set_sha256: schema_set,
+                    worker_sha256: worker,
+                    protocol,
+                },
+                4,
+                2,
+                3,
+            )
+            .unwrap();
+            let value = completion_proof_value(Some(old));
+            let wire = serde_json::to_vec(&value).unwrap();
+            let legacy_protocol = match protocol {
+                CutPreparedSchemaProtocol::LegacyScalar => {
+                    serde_json::json!(["legacy-scalar", null])
+                }
+                CutPreparedSchemaProtocol::DiagnosticsV2 { caps_sha256 } => {
+                    serde_json::json!(["diagnostics-v2", caps_sha256.to_hex()])
+                }
+            };
+            let historical = serde_json::json!([
+                validator.to_hex(),
+                null,
+                23,
+                [
+                    FormatProfile::LegacyPythonObserved20260923.id(),
+                    schema_set.to_hex(),
+                    worker.to_hex(),
+                    legacy_protocol
+                ],
+                4,
+                2,
+                3
+            ]);
+            assert_eq!(wire, serde_json::to_vec(&historical).unwrap());
+            let decoded = completion_proof_from(parse(&value).root())
+                .unwrap()
+                .unwrap();
+            assert_eq!(decoded, old);
+            assert_eq!(
+                serde_json::to_vec(&completion_proof_value(Some(decoded))).unwrap(),
+                wire
+            );
+            assert_eq!(
+                value[3][0],
+                FormatProfile::LegacyPythonObserved20260923.id()
+            );
+            assert_eq!(value[3][2], worker.to_hex());
+        }
+        let binding = InProcessSchemaExecutionBinding {
+            schema_profile: FormatProfile::AssertedSourceCandidateV1,
+            schema_set_sha256: schema_set,
+            engine: IN_PROCESS_SCHEMA_ENGINE_ID,
+        };
+        let current = NativeAdmissionCompletionProofV1::from_authenticated_root_fields(
+            validator, None, 23, binding, 4, 2, 3,
+        )
+        .unwrap();
+        let value = completion_proof_value(Some(current));
+        assert_eq!(value[3][0], "in-process-v1");
+        assert_eq!(value[3][3], IN_PROCESS_SCHEMA_ENGINE_ID);
+        assert!(!value.to_string().contains(&worker.to_hex()));
+        assert_eq!(
+            completion_proof_from(parse(&value).root()).unwrap(),
+            Some(current)
+        );
+        let mut unknown = value;
+        unknown[3][3] = serde_json::json!("unknown-engine");
+        assert!(completion_proof_from(parse(&unknown).root()).is_err());
+    }
 
     #[test]
     fn optional_storage_descriptors_preserve_packed_and_empty_wire_bytes() {
@@ -386,22 +479,35 @@ fn membership_v2_from(value: &JsonValue) -> io::Result<Option<SourceMembershipV2
 
 fn completion_proof_value(proof: Option<NativeAdmissionCompletionProofV1>) -> serde_json::Value {
     proof.map_or(serde_json::Value::Null, |proof| {
-        let (protocol, caps) = match proof.prepared_schema().protocol {
-            CutPreparedSchemaProtocol::LegacyScalar => ("legacy-scalar", serde_json::Value::Null),
-            CutPreparedSchemaProtocol::DiagnosticsV2 { caps_sha256 } => {
-                ("diagnostics-v2", serde_json::json!(caps_sha256.to_hex()))
+        let schema = match proof.prepared_schema() {
+            SchemaExecutionBinding::Worker(binding) => {
+                let (protocol, caps) = match binding.protocol {
+                    CutPreparedSchemaProtocol::LegacyScalar => {
+                        ("legacy-scalar", serde_json::Value::Null)
+                    }
+                    CutPreparedSchemaProtocol::DiagnosticsV2 { caps_sha256 } => {
+                        ("diagnostics-v2", serde_json::json!(caps_sha256.to_hex()))
+                    }
+                };
+                serde_json::json!([
+                    binding.schema_profile.id(),
+                    binding.schema_set_sha256.to_hex(),
+                    binding.worker_sha256.to_hex(),
+                    [protocol, caps]
+                ])
             }
+            SchemaExecutionBinding::InProcessV1(binding) => serde_json::json!([
+                "in-process-v1",
+                binding.schema_profile.id(),
+                binding.schema_set_sha256.to_hex(),
+                binding.engine
+            ]),
         };
         serde_json::json!([
             proof.validator_sha256().to_hex(),
             membership_v1_value(proof.membership_v1()),
             proof.source_bytes(),
-            [
-                proof.prepared_schema().schema_profile.id(),
-                proof.prepared_schema().schema_set_sha256.to_hex(),
-                proof.prepared_schema().worker_sha256.to_hex(),
-                [protocol, caps]
-            ],
+            schema,
             proof.identity_count(),
             proof.dependency_source_count(),
             proof.dependency_count()
@@ -423,7 +529,9 @@ fn completion_proof_from(
         .as_array()
         .filter(|fields| fields.len() == 4)
         .ok_or_else(|| invalid("native completion schema tuple shape differs"))?;
-    let schema_profile = match schema[0].as_str() {
+    let in_process = schema[0].as_str() == Some("in-process-v1");
+    let profile_field = if in_process { &schema[1] } else { &schema[0] };
+    let schema_profile = match profile_field.as_str() {
         Some("tos.schema.format.legacy-python-observed-20260923") => {
             FormatProfile::LegacyPythonObserved20260923
         }
@@ -432,27 +540,39 @@ fn completion_proof_from(
         }
         _ => return Err(invalid("native completion schema profile differs")),
     };
-    let protocol_fields = schema[3]
-        .as_array()
-        .filter(|fields| fields.len() == 2)
-        .ok_or_else(|| invalid("native completion protocol tuple shape differs"))?;
-    let protocol = match (protocol_fields[0].as_str(), protocol_fields[1].is_null()) {
-        (Some("legacy-scalar"), true) => CutPreparedSchemaProtocol::LegacyScalar,
-        (Some("diagnostics-v2"), false) => CutPreparedSchemaProtocol::DiagnosticsV2 {
-            caps_sha256: digest(&protocol_fields[1])?,
-        },
-        _ => return Err(invalid("native completion schema protocol differs")),
+    let prepared_schema = if in_process {
+        if schema[3].as_str() != Some(IN_PROCESS_SCHEMA_ENGINE_ID) {
+            return Err(invalid("native completion schema engine differs"));
+        }
+        SchemaExecutionBinding::InProcessV1(InProcessSchemaExecutionBinding {
+            schema_profile,
+            schema_set_sha256: digest(&schema[2])?,
+            engine: IN_PROCESS_SCHEMA_ENGINE_ID,
+        })
+    } else {
+        let protocol_fields = schema[3]
+            .as_array()
+            .filter(|fields| fields.len() == 2)
+            .ok_or_else(|| invalid("native completion protocol tuple shape differs"))?;
+        let protocol = match (protocol_fields[0].as_str(), protocol_fields[1].is_null()) {
+            (Some("legacy-scalar"), true) => CutPreparedSchemaProtocol::LegacyScalar,
+            (Some("diagnostics-v2"), false) => CutPreparedSchemaProtocol::DiagnosticsV2 {
+                caps_sha256: digest(&protocol_fields[1])?,
+            },
+            _ => return Err(invalid("native completion schema protocol differs")),
+        };
+        SchemaExecutionBinding::Worker(CutPreparedSchemaExecutionBinding {
+            schema_profile,
+            schema_set_sha256: digest(&schema[1])?,
+            worker_sha256: digest(&schema[2])?,
+            protocol,
+        })
     };
     NativeAdmissionCompletionProofV1::from_authenticated_root_fields(
         digest(&fields[0])?,
         membership_v1_from(&fields[1])?,
         number(&fields[2])?,
-        CutPreparedSchemaExecutionBinding {
-            schema_profile,
-            schema_set_sha256: digest(&schema[1])?,
-            worker_sha256: digest(&schema[2])?,
-            protocol,
-        },
+        prepared_schema,
         number(&fields[4])?,
         number(&fields[5])?,
         number(&fields[6])?,
