@@ -2032,14 +2032,29 @@ pub(crate) fn schema_resource_set_digest(resources: &[SchemaResource]) -> Option
             return None;
         }
     }
-    let mut hash = Digest256Hasher::new();
-    hash.update(b"tos-schema-set-v1\0");
+    let mut hash = schema_set_hasher();
     for (uri, digest) in digests {
-        hash.update(&(uri.len() as u64).to_be_bytes());
-        hash.update(uri.as_bytes());
-        hash.update(digest.as_bytes());
+        append_schema_set_member(&mut hash, uri, digest);
     }
     Some(hash.finalize())
+}
+
+fn schema_set_hasher() -> Digest256Hasher {
+    let mut hash = Digest256Hasher::new();
+    hash.update(b"tos-schema-set-v1\0");
+    hash
+}
+
+fn append_schema_set_member(hash: &mut Digest256Hasher, uri: &str, digest: Digest256) {
+    hash.update(&(uri.len() as u64).to_be_bytes());
+    hash.update(uri.as_bytes());
+    hash.update(digest.as_bytes());
+}
+
+pub(crate) fn single_schema_resource_set_digest(uri: &str, raw: &[u8]) -> Digest256 {
+    let mut hash = schema_set_hasher();
+    append_schema_set_member(&mut hash, uri, Digest256::of_bytes(raw));
+    hash.finalize()
 }
 
 fn catalog_target_selection_digest(

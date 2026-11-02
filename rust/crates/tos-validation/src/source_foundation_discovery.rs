@@ -5420,6 +5420,7 @@ impl<'report, 'store, I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'report
             "tos-candidate-artifact-schema-proof-diagnostics-v1",
         )?;
         let mut schema_diagnostic_rows_scanned = 0usize;
+        let mut artifact_route_schema_set = None;
         visit_candidate_record_pages(
             records,
             SourceFoundationRecordsCollection::RecordSchemaDiagnostics,
@@ -5477,8 +5478,22 @@ impl<'report, 'store, I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'report
                         hash_input_bytes_upper_bound = hash_input_bytes_upper_bound
                             .checked_add(hash_bytes)
                             .ok_or(crate::item_budget_origin!())?;
-                        let (exact_schema_set, complete_invalid) =
-                            in_process_artifact_binding(row, schema_identity.schema_execution_binding());
+                        let route_schema_set = match artifact_route_schema_set {
+                            Some(digest) => digest,
+                            None => {
+                                let (digest, bytes) = candidate_artifact_route_schema_set(
+                                    input.source_input(), max_state_bytes, retained_state_bytes,
+                                    page_state_bytes, deadline, cancelled,
+                                )?;
+                                hash_input_bytes_upper_bound = hash_input_bytes_upper_bound
+                                    .checked_add(bytes).ok_or(crate::item_budget_origin!())?;
+                                artifact_route_schema_set = Some(digest);
+                                digest
+                            }
+                        };
+                        let (exact_schema_set, complete_invalid) = in_process_artifact_binding(
+                            row, schema_identity.schema_execution_binding(), route_schema_set,
+                        );
                         records.index().update_candidate_artifact_schema_diagnostic(
                             &row.path,
                             &report.input_sha256.to_hex(),
@@ -5517,9 +5532,27 @@ impl<'report, 'store, I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'report
                 let member_sha256 = diagnostic.unit.raw_sha256;
                 let member_size_bytes = u64::try_from(diagnostic.input_instance_bytes)
                     .map_err(|_| crate::item_budget_origin!())?;
+                let route_schema_set = match artifact_route_schema_set {
+                    Some(digest) => digest,
+                    None => {
+                        let (digest, bytes) = candidate_artifact_route_schema_set(
+                            input.source_input(),
+                            max_state_bytes,
+                            retained_state_bytes,
+                            page_state_bytes,
+                            deadline,
+                            cancelled,
+                        )?;
+                        hash_input_bytes_upper_bound = hash_input_bytes_upper_bound
+                            .checked_add(bytes)
+                            .ok_or(crate::item_budget_origin!())?;
+                        artifact_route_schema_set = Some(digest);
+                        digest
+                    }
+                };
                 let exact_schema_set = diagnostic.verdict.format_profile
                     == schema_identity.profile()
-                    && diagnostic.verdict.schema_set_digest == schema_identity.schema_set_digest()
+                    && diagnostic.verdict.schema_set_digest == route_schema_set
                     && Some(diagnostic.verdict.worker_binary_digest)
                         == schema_identity.worker_digest();
                 let complete_invalid = exact_schema_set
@@ -6163,15 +6196,58 @@ fn diagnostic_targets_artifact_schema(
         || diagnostic.unit.root_uri == V2_ARTIFACT_SCHEMA
 }
 
+fn candidate_artifact_route_schema_set(
+    input: &dyn SourceCutInput,
+    max_state_bytes: usize,
+    retained_state_bytes: usize,
+    page_state_bytes: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<(Digest256, usize), ItemRefusal> {
+    let available = max_state_bytes
+        .checked_sub(retained_state_bytes)
+        .and_then(|bytes| bytes.checked_sub(page_state_bytes))
+        .and_then(|bytes| bytes.checked_sub(8_192))
+        .ok_or(crate::item_budget_origin!())?;
+    let mut selected = None;
+    input.with_current_member(
+        ARTIFACT_V2_SCHEMA,
+        available.min(crate::SchemaBackendProbe::MAX_RESOURCE_BYTES),
+        deadline,
+        cancelled,
+        &mut |meta, raw| {
+            if selected.is_some()
+                || meta.path != ARTIFACT_V2_SCHEMA
+                || usize::try_from(meta.size_bytes).ok() != Some(raw.len())
+                || raw.len() > available
+            {
+                return Err(ItemRefusal::Source(
+                    "Artifact route schema member differs".into(),
+                ));
+            }
+            selected = Some((
+                crate::source_foundation_schema::single_schema_resource_set_digest(
+                    V2_ARTIFACT_SCHEMA,
+                    raw,
+                ),
+                raw.len(),
+            ));
+            Ok(())
+        },
+    )?;
+    selected.ok_or_else(|| ItemRefusal::Source("Artifact route schema member absent".into()))
+}
+
 fn in_process_artifact_binding(
     diagnostic: &crate::source_cut::InProcessCutDiagnostic<Value>,
     binding: tos_foundation::SchemaExecutionBinding,
+    route_schema_set: Digest256,
 ) -> (bool, bool) {
     let report = &diagnostic.report;
     let exact = matches!(binding, tos_foundation::SchemaExecutionBinding::InProcessV1(binding)
         if binding.engine == report.engine
             && binding.schema_profile == report.profile
-            && binding.schema_set_sha256 == report.schema_set_sha256);
+            && route_schema_set == report.schema_set_sha256);
     (
         exact,
         exact && in_process_artifact_complete_invalid(diagnostic),
@@ -6342,6 +6418,102 @@ mod in_process_artifact_evidence_tests {
     use std::time::Duration;
     use tos_foundation::{InProcessSchemaExecutionBinding, SchemaExecutionBinding};
 
+    struct SelectedArtifactSchema(Vec<u8>);
+
+    impl SourceCutInput for SelectedArtifactSchema {
+        fn for_each_current_member_meta(
+            &self,
+            _: Instant,
+            _: &AtomicBool,
+            _: &mut dyn FnMut(
+                crate::record_biblio_cut::SourceCutMemberMeta<'_>,
+            ) -> Result<(), ItemRefusal>,
+        ) -> Result<(), ItemRefusal> {
+            unreachable!()
+        }
+
+        fn with_current_member(
+            &self,
+            path: &str,
+            max_bytes: usize,
+            _: Instant,
+            _: &AtomicBool,
+            visit: &mut dyn FnMut(
+                crate::record_biblio_cut::SourceCutMemberMeta<'_>,
+                &[u8],
+            ) -> Result<(), ItemRefusal>,
+        ) -> Result<(), ItemRefusal> {
+            if path != ARTIFACT_V2_SCHEMA || self.0.len() > max_bytes {
+                return Err(ItemRefusal::Budget);
+            }
+            visit(
+                crate::record_biblio_cut::SourceCutMemberMeta {
+                    path,
+                    size_bytes: self.0.len() as u64,
+                },
+                &self.0,
+            )
+        }
+
+        fn for_each_current_member(
+            &self,
+            _: Instant,
+            _: &AtomicBool,
+            _: &mut dyn FnMut(
+                crate::record_biblio_cut::SourceCutMemberMeta<'_>,
+                &[u8],
+            ) -> Result<(), ItemRefusal>,
+        ) -> Result<SourceCutInputCoverage, ItemRefusal> {
+            unreachable!()
+        }
+
+        fn path_presence(
+            &self,
+            _: &str,
+            _: Instant,
+            _: &AtomicBool,
+        ) -> Result<Option<SourcePresenceV1>, ItemRefusal> {
+            unreachable!()
+        }
+
+        fn verify_current_fence(
+            &self,
+            _: &SourceCutInputCoverage,
+            _: Instant,
+            _: &AtomicBool,
+        ) -> Result<(), ItemRefusal> {
+            unreachable!()
+        }
+    }
+
+    #[test]
+    fn artifact_route_digest_uses_exact_selected_schema_bytes() {
+        let selected = SelectedArtifactSchema(br#"{"$id":"selected"}"#.to_vec());
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let (actual, size) =
+            candidate_artifact_route_schema_set(&selected, 16_384, 0, 0, deadline, &cancelled)
+                .unwrap();
+        let expected =
+            crate::source_foundation_schema::schema_resource_set_digest(&[SchemaResource {
+                uri: V2_ARTIFACT_SCHEMA.into(),
+                raw: selected.0.clone(),
+            }])
+            .unwrap();
+        assert_eq!((actual, size), (expected, selected.0.len()));
+        let changed = SelectedArtifactSchema(br#"{"$id":"changed"}"#.to_vec());
+        assert_ne!(
+            candidate_artifact_route_schema_set(&changed, 16_384, 0, 0, deadline, &cancelled)
+                .unwrap()
+                .0,
+            actual
+        );
+        assert!(
+            candidate_artifact_route_schema_set(&selected, 8_192, 0, 0, deadline, &cancelled)
+                .is_err()
+        );
+    }
+
     #[test]
     fn complete_evidence_requires_exact_engine_set_and_known_input_length() {
         let schema = serde_json::to_vec(&serde_json::json!({
@@ -6387,7 +6559,7 @@ mod in_process_artifact_evidence_tests {
         };
         assert!(diagnostic.report.is_well_formed());
         assert_eq!(
-            in_process_artifact_binding(&diagnostic, binding),
+            in_process_artifact_binding(&diagnostic, binding, binding.schema_set_sha256()),
             (true, true)
         );
         let mut hash = Digest256Hasher::new();
@@ -6395,7 +6567,7 @@ mod in_process_artifact_evidence_tests {
             update_in_process_diagnostic_fingerprint(&mut hash, &diagnostic).unwrap();
         diagnostic.input_size_bytes = None;
         assert_eq!(
-            in_process_artifact_binding(&diagnostic, binding),
+            in_process_artifact_binding(&diagnostic, binding, binding.schema_set_sha256()),
             (true, false)
         );
         let (old_unit, old_report, _) =
@@ -6416,7 +6588,15 @@ mod in_process_artifact_evidence_tests {
             engine: crate::in_process::ENGINE_ID,
         });
         assert_eq!(
-            in_process_artifact_binding(&diagnostic, other),
+            in_process_artifact_binding(&diagnostic, other, binding.schema_set_sha256()),
+            (true, true)
+        );
+        assert_eq!(
+            in_process_artifact_binding(
+                &diagnostic,
+                binding,
+                Digest256::of_bytes(b"different route")
+            ),
             (false, false)
         );
         let revision = SourceRevision(Digest256::of_bytes(b"source"));
