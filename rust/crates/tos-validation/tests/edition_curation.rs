@@ -76,6 +76,13 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let antonovsky_path = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/edition-curation.v1.json";
     let antonovsky_raw = fs::read(root.join(antonovsky_path)).unwrap();
     assert_eq!(validate(&antonovsky_raw, &schema), Ok(()));
+    let mut duplicate_output: Value = serde_json::from_slice(&antonovsky_raw).unwrap();
+    duplicate_output["recipes"][0]["outputs"][1]["filename"] =
+        duplicate_output["recipes"][0]["outputs"][0]["filename"].clone();
+    assert_eq!(
+        validate(&serde_json::to_vec(&duplicate_output).unwrap(), &schema),
+        Err(EditionCurationError::Duplicate("filename"))
+    );
     let mut missing_provenance: Value = serde_json::from_slice(&antonovsky_raw).unwrap();
     missing_provenance["recipes"][0]["legacy_layout"]
         .as_object_mut()

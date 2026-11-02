@@ -626,7 +626,7 @@
             "expected_warning_count": {"type": "integer", "minimum": 0}
           }
         },
-        "outputs": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["kind", "filename"], "properties": {"kind": {"type": "string", "minLength": 1}, "filename": {"$ref": "#/$defs/relativePath"}}}},
+        "outputs": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["kind", "filename", "schema_version", "expected_sha256"], "properties": {"kind": {"type": "string", "minLength": 1}, "filename": {"$ref": "#/$defs/relativePath"}, "schema_version": {"type": "string", "minLength": 1}, "expected_sha256": {"$ref": "#/$defs/sha256"}}}},
         "historical_events": {"type": "object", "additionalProperties": false, "required": ["event_date", "ended_at", "event_ids"], "properties": {"event_date": {"type": "string", "format": "date"}, "ended_at": {"type": "string", "format": "date-time"}, "event_ids": {"$ref": "#/$defs/keyList"}}}
       }
     },

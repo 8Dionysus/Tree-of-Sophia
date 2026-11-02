@@ -234,6 +234,8 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
             for (array, field) in [
                 ("page_overrides", "key"),
                 ("locators", "role"),
+                ("outputs", "kind"),
+                ("outputs", "filename"),
                 ("work_mappings", "work_ref"),
                 ("works", "work_ref"),
                 ("series", "series_key"),

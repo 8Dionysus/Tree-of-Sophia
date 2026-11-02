@@ -32,59 +32,87 @@
       "outputs": [
         {
           "kind": "physical_lines",
-          "filename": "physical-line-spine.v2.jsonl"
+          "filename": "physical-line-spine.v2.jsonl",
+          "schema_version": "tos_antonovsky_1911_physical_line_spine_v2",
+          "expected_sha256": "94077d563ae6800e8f2d7d3780b73972d0a54a8477d621c4a4a52a2537e2fadc"
         },
         {
           "kind": "logical_rows",
-          "filename": "logical-row-spine.v2.jsonl"
+          "filename": "logical-row-spine.v2.jsonl",
+          "schema_version": "tos_antonovsky_1911_logical_row_spine_v2",
+          "expected_sha256": "a2570ba7fe5cf29897efaf869be51e8ec800ba1b154601ece3ed8e095c6e3b3e"
         },
         {
           "kind": "structures",
-          "filename": "structure-spine.v2.jsonl"
+          "filename": "structure-spine.v2.jsonl",
+          "schema_version": "tos_antonovsky_1911_structure_spine_v2",
+          "expected_sha256": "bd9f1e0c81325b70ee0ec63f854087525d2a09a5623a635201bd97d9d7310b93"
         },
         {
           "kind": "paragraphs",
-          "filename": "paragraph-spine.v2.jsonl"
+          "filename": "paragraph-spine.v2.jsonl",
+          "schema_version": "tos_antonovsky_1911_paragraph_spine_v2",
+          "expected_sha256": "cde553eca74e45201cb0eabb831b2ce5cccc5416d6333ed9b9eb194ac428858e"
         },
         {
           "kind": "verse_groups",
-          "filename": "verse-group-spine.v2.jsonl"
+          "filename": "verse-group-spine.v2.jsonl",
+          "schema_version": "tos_antonovsky_1911_verse_group_spine_v2",
+          "expected_sha256": "eec916765c17fd84d6dac2d4fe400748a7a422df46f0b47008aa8ec9e6818613"
         },
         {
           "kind": "verse_lines",
-          "filename": "verse-line-spine.v2.jsonl"
+          "filename": "verse-line-spine.v2.jsonl",
+          "schema_version": "tos_antonovsky_1911_verse_line_spine_v2",
+          "expected_sha256": "72214ebae8eb602a2ca70bc64ce2db385fbddeb99aac7eab218cb75e31c842be"
         },
         {
           "kind": "conflicts",
-          "filename": "boundary-conflicts.v2.jsonl"
+          "filename": "boundary-conflicts.v2.jsonl",
+          "schema_version": "tos_antonovsky_1911_boundary_conflict_v2",
+          "expected_sha256": "96b59ca74881564ab9ee5aadb00e6173cc67d9044d282beb1dabb2a9674fd8b3"
         },
         {
           "kind": "comparison",
-          "filename": "boundary-comparison.v2.json"
+          "filename": "boundary-comparison.v2.json",
+          "schema_version": "tos_antonovsky_1911_full_boundary_comparison_v2",
+          "expected_sha256": "6d358db41f58b74c68cbb6746392e5ff00c9d62cc24877be1e601b57aa3baf04"
         },
         {
           "kind": "contradictions",
-          "filename": "contradiction-ledger.v2.jsonl"
+          "filename": "contradiction-ledger.v2.jsonl",
+          "schema_version": "tos_antonovsky_1911_contradiction_v2",
+          "expected_sha256": "7d874e35689e93ca63616b369deb37c7f8c0326729e62779ec2208a26d31e385"
         },
         {
           "kind": "coverage",
-          "filename": "coverage-receipt.v2.json"
+          "filename": "coverage-receipt.v2.json",
+          "schema_version": "tos_antonovsky_1911_coverage_receipt_v2",
+          "expected_sha256": "e4c2014abc85c6f10c90d1ad19386bb27876da654e1325d95fef0d08f8873de0"
         },
         {
           "kind": "verification",
-          "filename": "agent-verification.v2.json"
+          "filename": "agent-verification.v2.json",
+          "schema_version": "tos_antonovsky_1911_agent_verification_v2",
+          "expected_sha256": "ef465ddcf90d097b28b34aa5bf7c5df69c59fc7115ae50544e0cc564734c4522"
         },
         {
           "kind": "summary",
-          "filename": "summary.v2.json"
+          "filename": "summary.v2.json",
+          "schema_version": "tos_antonovsky_1911_structural_paragraph_summary_v2",
+          "expected_sha256": "66a9d2911f5927aeaf8d9b977b5d97255c265f96e5dbbfe9bd7503fcd8d15eae"
         },
         {
           "kind": "provenance",
-          "filename": "provenance.jsonl"
+          "filename": "provenance.jsonl",
+          "schema_version": "tos_antonovsky_1911_provenance_event_v2",
+          "expected_sha256": "0a0a3b3f73cf3a50c3ce1dc8b908258c909b44d47b6fb4ef496163f879b06cac"
         },
         {
           "kind": "manifest",
-          "filename": "manifest.v2.json"
+          "filename": "manifest.v2.json",
+          "schema_version": "tos_antonovsky_1911_structural_paragraph_manifest_v2",
+          "expected_sha256": "400941db22345d9870a6c6c123c68fc59deec24b6f5550999b63fc0c2c2df5ad"
         }
       ],
       "historical_events": {
