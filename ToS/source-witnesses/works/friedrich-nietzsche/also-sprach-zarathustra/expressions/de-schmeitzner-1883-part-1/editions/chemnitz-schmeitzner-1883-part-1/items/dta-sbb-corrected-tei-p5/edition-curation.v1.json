@@ -3960,7 +3960,34 @@
           "manifest_ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/manifest.v1.json"
         }
       ],
-      "private_output_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/reading-workbench-v1/reading-workbench.v1.sqlite3"
+      "private_output_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/reading-workbench-v1/reading-workbench.v1.sqlite3",
+      "policy_ref": "ToS/candidate-intake/zarathustra/reading-workbench-v1/chapter-voice-policies.v1.json",
+      "output_files": [
+        {
+          "role": "coverage",
+          "filename": "coverage-receipt.v1.json"
+        },
+        {
+          "role": "reading_census",
+          "filename": "reading-census.v1.jsonl"
+        },
+        {
+          "role": "quote_boundaries",
+          "filename": "quote-boundary-ledger.v1.jsonl"
+        },
+        {
+          "role": "gaps",
+          "filename": "gap-ledger.v1.jsonl"
+        },
+        {
+          "role": "formula_census",
+          "filename": "formula-census.v1.jsonl"
+        },
+        {
+          "role": "manifest",
+          "filename": "manifest.v1.json"
+        }
+      ]
     },
     {
       "stage": "tei-source-foundation",
