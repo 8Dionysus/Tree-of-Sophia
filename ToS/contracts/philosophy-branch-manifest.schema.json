@@ -1,7 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://tree-of-sophia.local/ToS/contracts/philosophy-branch-manifest.schema.json",
-  "version": 2,
   "title": "Philosophy branch manifest v2",
   "description": "The source path identifies the branch location. Explicit children record exceptions to directory-derived children. Counts are derived from their source rows.",
   "type": "object",
