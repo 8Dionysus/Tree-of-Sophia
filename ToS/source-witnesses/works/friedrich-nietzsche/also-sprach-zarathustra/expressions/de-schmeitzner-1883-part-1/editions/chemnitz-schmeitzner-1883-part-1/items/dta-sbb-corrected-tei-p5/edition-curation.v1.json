@@ -884,8 +884,26 @@
           "ru_exact_forms": 17443,
           "ru_normalized_forms": 16240,
           "ru_analysis_forms": 15152
+        },
+        "unmapped_target_witness_order_offset": 1000000
+      },
+      "historical_fields": [
+        {
+          "role": "default_acceptance_probe",
+          "output_role": "coverage",
+          "json_pointer": "/acceptance_probe"
+        },
+        {
+          "role": "parts_scanned",
+          "output_role": "coverage",
+          "json_pointer": "/parts_scanned"
+        },
+        {
+          "role": "languages_scanned",
+          "output_role": "coverage",
+          "json_pointer": "/languages_scanned"
         }
-      }
+      ]
     },
     {
       "stage": "concept-candidate",

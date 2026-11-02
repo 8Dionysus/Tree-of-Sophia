@@ -77,6 +77,21 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         Err(EditionCurationError::MissingReference)
     );
     let concept_path = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/edition-curation.v1.json";
+    let concept_raw = fs::read(root.join(concept_path)).unwrap();
+    let coverage_ref = "ToS/candidate-intake/zarathustra/concept-workbench-v1/outputs/fate/coverage-receipt.v1.json";
+    let coverage_raw = fs::read(root.join(coverage_ref)).unwrap();
+    let probe = select_historical_field(
+        &concept_raw,
+        "concept-workbench",
+        "default_acceptance_probe",
+        SelectedDocument {
+            reference: coverage_ref,
+            raw: &coverage_raw,
+        },
+        &schema,
+    )
+    .unwrap();
+    assert_eq!(probe["de_direct_occurrences"], 26);
     let mut bad_scope: Value =
         serde_json::from_slice(&fs::read(root.join(concept_path)).unwrap()).unwrap();
     let concept = bad_scope["recipes"]
