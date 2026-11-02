@@ -1023,3 +1023,44 @@ fn native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidat
         current_pointer
     );
 }
+
+#[test]
+fn deployment_profile_install_defaults_and_flag_overrides() {
+    let scratch = Scratch::new("profile-install");
+    let archive = scratch.path().join("software.zip");
+    create_archive(&archive, "profile");
+    let profile = scratch.path().join("profile.json");
+    let small_profile = scratch.path().join("small-profile.json");
+    let profile_data = serde_json::json!({
+        "schema_version": "tos_deployment_profile_v1",
+        "archive_install": {
+            "max_total_bytes": 536_870_912u64,
+            "max_archive_bytes": 536_870_912u64,
+            "max_members": MAX_ARCHIVE_MEMBERS,
+            "max_metadata_bytes": 262_144
+        }
+    });
+    write_private(&profile, &serde_json::to_vec(&profile_data).unwrap());
+    let mut small = profile_data.clone();
+    small["archive_install"]["max_archive_bytes"] = serde_json::json!(1);
+    write_private(&small_profile, &serde_json::to_vec(&small).unwrap());
+
+    let run = |label: &str, selected: &Path, cli_profile: Option<&Path>, override_bytes: Option<&str>| {
+        let mut command = Command::new(CLI);
+        command.env("TOS_DEPLOYMENT_PROFILE", selected);
+        if let Some(path) = cli_profile { command.arg("--profile").arg(path); }
+        command.args(["software", "install", "--archive"]).arg(&archive)
+            .arg("--prefix").arg(scratch.path().join(label));
+        if let Some(value) = override_bytes { command.args(["--max-archive-bytes", value]); }
+        bounded_command_output(command)
+    };
+    let default = run("default", &profile, None, None);
+    assert!(default.status.success(), "{}", String::from_utf8_lossy(&default.stderr));
+    let refused = run("refused", &profile, None, Some("1"));
+    assert!(!refused.status.success());
+    assert!(!scratch.path().join("refused").exists());
+    let raised = run("raised", &small_profile, None, Some("536870912"));
+    assert!(raised.status.success(), "{}", String::from_utf8_lossy(&raised.stderr));
+    let selected = run("selected", &small_profile, Some(&profile), None);
+    assert!(selected.status.success(), "{}", String::from_utf8_lossy(&selected.stderr));
+}

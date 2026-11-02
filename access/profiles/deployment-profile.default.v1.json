@@ -1,0 +1,64 @@
+{
+  "schema_version": "tos_deployment_profile_v1",
+  "transport": {
+    "http": {
+      "max_header_bytes": 8192,
+      "max_connections": 32
+    },
+    "mcp": {
+      "max_sessions": 32,
+      "max_connections": 32,
+      "session_idle_seconds": 900
+    },
+    "access": {
+      "max_request_bytes": 65536,
+      "max_response_bytes": 1048576,
+      "max_line_bytes": 65536
+    }
+  },
+  "source_read": {
+    "max_request_bytes": 65536
+  },
+  "query": {
+    "indexed": {
+      "default_page_size": 40,
+      "max_page_size": 100,
+      "max_cursor_bytes": 16384
+    },
+    "source_text": {
+      "max_cursor_bytes": 65536,
+      "max_response_bytes": 1048576
+    },
+    "source_gap_worker": {
+      "max_source_bytes": 67108864,
+      "max_response_bytes": 16777216,
+      "max_work_steps": 100000000
+    }
+  },
+  "admission": {
+    "acquisition": {
+      "max_payload_bytes": 314572800,
+      "max_record_bytes": 16777216
+    },
+    "text_layer": {
+      "max_record_bytes": 1048576,
+      "max_package_bytes": 12582912
+    }
+  },
+  "archive_install": {
+    "max_total_bytes": null,
+    "max_archive_bytes": null,
+    "max_members": null,
+    "max_metadata_bytes": null
+  },
+  "exports": {
+    "public_d1": {
+      "max_work_bytes": 17179869184,
+      "max_model_bytes": 8589934592,
+      "max_postings": 10000000,
+      "max_build_seconds": null,
+      "max_state_bytes": null,
+      "max_json_visits": null
+    }
+  }
+}

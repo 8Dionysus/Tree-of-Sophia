@@ -14,6 +14,7 @@ A packet can preserve those recorded postures but cannot strengthen them.
 
 | Concern | Owner contract |
 | --- | --- |
+| Deployment resource profile | [`deployment-profile.v1.schema.json`](deployment-profile.v1.schema.json) · [default profile](../profiles/deployment-profile.default.v1.json) |
 | Runtime profile and admitted data members | [`runtime-manifest.v1.json`](runtime-manifest.v1.json) · [`runtime-data.v1.json`](runtime-data.v1.json) |
 | Transport-neutral read operations | [`query-operations.v1.json`](query-operations.v1.json) · [`knowledge-api.v1.json`](knowledge-api.v1.json) |
 | Normalized knowledge, lenses and search | [`knowledge-graph.v1.schema.json`](knowledge-graph.v1.schema.json) · [`lens-spec.v1.schema.json`](lens-spec.v1.schema.json) · [`lens-result.v1.schema.json`](lens-result.v1.schema.json) · [`knowledge-search-indexed.v2.md`](knowledge-search-indexed.v2.md) |

@@ -77,6 +77,7 @@ const PAGE_COMMANDS: &[&str] = &[
     "tos.page.cancel",
 ];
 const ACCESS_SCHEMAS: &[&str] = &[
+    "access/contracts/deployment-profile.v1.schema.json",
     "access/contracts/knowledge-graph.v1.schema.json",
     "access/contracts/knowledge-search-indexed.v2.schema.json",
     "access/contracts/lens-spec.v1.schema.json",
@@ -90,6 +91,7 @@ const ACCESS_SCHEMAS: &[&str] = &[
     "access/contracts/source-text-gateway-capability.v1.schema.json",
 ];
 const ALL_PROGRAM_SCHEMAS: &[&str] = &[
+    "access/contracts/deployment-profile.v1.schema.json",
     "access/contracts/knowledge-graph.v1.schema.json",
     "access/contracts/knowledge-search-indexed.v2.schema.json",
     "access/contracts/lens-spec.v1.schema.json",
