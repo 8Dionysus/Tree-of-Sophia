@@ -4118,7 +4118,7 @@ fn create_replay(
         .ok_or(SourceCommandError::Invalid(
             "retained private creation request absent",
         ))?;
-    if cmd::parse(create_raw)? != *request {
+    if !cmd::same(&cmd::parse(create_raw)?, request)? {
         return Err(SourceCommandError::Conflict(
             "retained private creation request differs",
         ));
