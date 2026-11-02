@@ -784,6 +784,45 @@ fn check_replacements(value: &Value) -> Result<(), EditionCurationError> {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if let Some(routes) = object.get("work_routes") {
+                let routes = routes
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let locators = object["locators"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let mut works = BTreeSet::new();
+                let mut slugs = BTreeSet::new();
+                for route in routes {
+                    let work = route["work_ref"]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    let slug = route["legacy_slug"]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    let role = route["source_map_role"]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    if !works.insert(work) || !slugs.insert(slug) {
+                        return Err(EditionCurationError::Duplicate("source work route"));
+                    }
+                    if !locators.iter().any(|locator| locator["role"] == role) {
+                        return Err(EditionCurationError::MissingReference);
+                    }
+                    let mut keys = BTreeSet::new();
+                    for entry in route["overrides"]
+                        .as_array()
+                        .ok_or(EditionCurationError::InvalidSchema)?
+                    {
+                        let key = entry["qualified_unit_key"]
+                            .as_str()
+                            .ok_or(EditionCurationError::InvalidSchema)?;
+                        if !keys.insert(key) {
+                            return Err(EditionCurationError::Duplicate("source layer key"));
+                        }
+                    }
+                }
+            }
             if let Some(entries) = object.get("retained_artifacts").and_then(Value::as_array) {
                 for entry in entries {
                     if let Some(value) = entry.get("artifact_value") {
@@ -1618,6 +1657,7 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                 ("historical_fields", "role"),
                 ("historical_templates", "role"),
                 ("retained_artifacts", "role"),
+                ("passage_id_substitutions", "from"),
                 ("record_identities", "role"),
                 ("role_precedence", "role"),
                 ("visual_markers", "citation_contains"),

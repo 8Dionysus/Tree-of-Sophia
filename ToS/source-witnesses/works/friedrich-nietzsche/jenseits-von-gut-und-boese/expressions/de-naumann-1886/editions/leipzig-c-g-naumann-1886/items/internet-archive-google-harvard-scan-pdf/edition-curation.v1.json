@@ -489,6 +489,81 @@
           "schema_version": "tos_provenance_event_v1",
           "expected_sha256": "f66f1f6cf5224e5bc3849b168318af581fab9813eb595c8521c38e509c238b3e"
         }
+      ],
+      "work_routes": [
+        {
+          "work_ref": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+          "legacy_slug": "jenseits",
+          "source_map_role": "first_source_map",
+          "page_field": "pdf_page",
+          "default_layer": "abbyy-xml-paragraph",
+          "overrides": [
+            {
+              "qualified_unit_key": "32",
+              "layer": "pdf-visible-marker-plus-poppler-pdf-bbox-line"
+            },
+            {
+              "qualified_unit_key": "201",
+              "layer": "poppler-pdf-bbox-line"
+            },
+            {
+              "qualified_unit_key": "202",
+              "layer": "djvu-xml-line"
+            }
+          ]
+        },
+        {
+          "work_ref": "tos.work.friedrich-nietzsche.zur-genealogie-der-moral",
+          "legacy_slug": "genealogie",
+          "source_map_role": "second_source_map",
+          "page_field": "navigation_page",
+          "default_layer": "poppler-pdf-bbox-line",
+          "overrides": [
+            {
+              "qualified_unit_key": "essay-1:10",
+              "layer": "pdf-visible-marker-plus-poppler-pdf-bbox-line"
+            }
+          ]
+        },
+        {
+          "work_ref": "tos.work.friedrich-nietzsche.der-antichrist",
+          "legacy_slug": "antichrist",
+          "source_map_role": "third_source_map",
+          "page_field": "navigation_page",
+          "default_layer": "djvu-xml-line",
+          "overrides": [
+            {
+              "qualified_unit_key": "main:8",
+              "layer": "jp2-visible-marker-plus-djvu-xml-line"
+            },
+            {
+              "qualified_unit_key": "main:9",
+              "layer": "jp2-visible-marker-plus-djvu-xml-line"
+            },
+            {
+              "qualified_unit_key": "main:43",
+              "layer": "jp2-visible-marker-plus-djvu-xml-line"
+            },
+            {
+              "qualified_unit_key": "main:44",
+              "layer": "jp2-visible-marker-plus-djvu-xml-line"
+            }
+          ]
+        }
+      ],
+      "passage_id_substitutions": [
+        {
+          "from": "tos.anchor.",
+          "to": "tos.passage."
+        },
+        {
+          "from": ".pdf-start-page",
+          "to": ""
+        },
+        {
+          "from": ".source-start-page",
+          "to": ""
+        }
       ]
     },
     {

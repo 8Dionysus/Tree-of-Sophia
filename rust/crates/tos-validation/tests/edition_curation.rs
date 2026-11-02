@@ -34,6 +34,24 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let raw = fs::read(root.join(path)).unwrap();
     assert_eq!(validate(&raw, &schema), Ok(()));
     let original: Value = serde_json::from_slice(&raw).unwrap();
+    let mut duplicate_source_layer = original.clone();
+    let source = duplicate_source_layer["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "source-passages")
+        .unwrap();
+    let overrides = source["work_routes"][0]["overrides"]
+        .as_array_mut()
+        .unwrap();
+    overrides.push(overrides[0].clone());
+    assert_eq!(
+        validate(
+            &serde_json::to_vec(&duplicate_source_layer).unwrap(),
+            &schema
+        ),
+        Err(EditionCurationError::Duplicate("source layer key"))
+    );
     let review = original["recipes"]
         .as_array()
         .unwrap()
