@@ -3569,9 +3569,8 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                     bibliographic_phase,
                     ..
                 } => {
-                    let result = diagnostic.result();
-                    let contract = Digest256::of_bytes(result.contract().as_bytes()).to_hex();
-                    let issue = result.report().issues.first();
+                    let contract = Digest256::of_bytes(diagnostic.contract().as_bytes()).to_hex();
+                    let issue = diagnostic.issues().first();
                     let reason = issue.map_or(0, |issue| issue.reason as u16);
                     let mut location = tos_foundation::Digest256Hasher::new();
                     if let Some(issue) = issue {
@@ -3594,7 +3593,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                     let site = format!(
                         "cat-b{}-s{}-r{reason:x}-c{}-i{}",
                         u8::from(*bibliographic_phase),
-                        result.status() as u8,
+                        diagnostic.status() as u8,
                         &contract[..12],
                         &location[..6],
                     );
@@ -3602,7 +3601,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         crate::source_admission_spooled_index::bounded_source_cause(
                             "receiver-source",
                             &site,
-                            result.path(),
+                            diagnostic.path(),
                         ),
                     )));
                 }

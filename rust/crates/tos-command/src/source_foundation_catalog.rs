@@ -51,6 +51,12 @@ const MANIFEST: &str = "ToS/source-witnesses/catalog/catalog.manifest.json";
 const CATALOG_ROOT: &str = "ToS/source-witnesses/catalog";
 pub(crate) type Issue = (String, String);
 
+fn complete_candidate_rejection<I>(
+    diagnostic: Option<tos_validation::source_cut::CandidateSchemaDiagnostic<I>>,
+) -> Option<tos_validation::source_cut::CandidateSchemaDiagnostic<I>> {
+    diagnostic.filter(|diagnostic| diagnostic.is_invalid())
+}
+
 struct CapturedStageOwner<'a, 'r> {
     capture: &'a FoundationCapturedCut,
     sources: &'a RefCell<&'r mut RouteSources>,
@@ -2114,7 +2120,7 @@ pub(crate) fn compare_spooled_candidate<'candidate>(
     FoundationCatalogCandidateOutcome<
         'candidate,
         CandidateValidationBinding<CandidateFence>,
-        tos_validation::source_cut::CandidateCutSchemaDiagnostic<CandidateFence>,
+        tos_validation::source_cut::CandidateSchemaDiagnostic<CandidateFence>,
     >,
 > {
     // Admit retained plan plus minimal working space before the planner can
@@ -2267,7 +2273,11 @@ pub(crate) fn compare_spooled_candidate<'candidate>(
             drop(stage);
             Ok(())
         },
-        || validator.take_candidate_schema_diagnostic_rejection::<CandidateFence>(),
+        || {
+            Ok(complete_candidate_rejection(
+                validator.take_candidate_diagnostic_rejection::<CandidateFence>()?,
+            ))
+        },
         external_reads,
     )?;
     if let (FoundationCatalogOutcome::Complete(result), Some(candidate)) =
@@ -2288,4 +2298,46 @@ pub(crate) fn compare_spooled_candidate<'candidate>(
         candidate,
         fresh_sources,
     })
+}
+
+#[cfg(test)]
+mod candidate_diagnostic_tests {
+    use super::*;
+    use std::time::Duration;
+    use tos_validation::source_cut::{CutSchemaExecutor, InProcessCandidateSchemaExecutor};
+    use tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding;
+    use tos_validation::{FormatProfile, SchemaResource, in_process::InputMode};
+
+    #[test]
+    fn only_complete_invalid_candidate_diagnostics_become_catalog_rejections() {
+        let path = "ToS/contracts/example.schema.json";
+        let cancelled = AtomicBool::new(false);
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let mut schemas = InProcessCandidateSchemaExecutor::from_selected_source_resources(
+            7u64,
+            vec![(path.into(), SchemaResource {
+                uri: "https://example.test/catalog".into(),
+                raw: br#"{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://example.test/catalog","type":"integer"}"#.to_vec(),
+            })],
+            FormatProfile::AssertedSourceCandidateV1,
+            InputMode::PublishedStrict,
+            deadline,
+            &cancelled,
+        ).unwrap();
+        assert!(
+            !schemas
+                .check("invalid.json", b"{}", path, deadline, &cancelled)
+                .unwrap()
+        );
+        let invalid = schemas.take_diagnostic_rejection().unwrap();
+        assert!(complete_candidate_rejection(invalid).is_some());
+        assert!(
+            schemas
+                .check("malformed.json", b"{", path, deadline, &cancelled)
+                .is_err()
+        );
+        let rejected_input = schemas.take_diagnostic_rejection().unwrap();
+        assert!(rejected_input.is_some());
+        assert!(complete_candidate_rejection(rejected_input).is_none());
+    }
 }
