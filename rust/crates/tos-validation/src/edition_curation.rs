@@ -1332,6 +1332,25 @@ fn character_ranges(
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            for (field, key, label) in [
+                ("private_example_forms", "name", "private example name"),
+                ("gap_proposals", "gap_code", "gap proposal code"),
+            ] {
+                if let Some(entries) = object.get(field) {
+                    let mut seen = BTreeSet::new();
+                    for entry in entries
+                        .as_array()
+                        .ok_or(EditionCurationError::InvalidSchema)?
+                    {
+                        let name = entry[key]
+                            .as_str()
+                            .ok_or(EditionCurationError::InvalidSchema)?;
+                        if !seen.insert(name) {
+                            return Err(EditionCurationError::Duplicate(label));
+                        }
+                    }
+                }
+            }
             if object.get("stage").and_then(Value::as_str) == Some("reading-workbench") {
                 let profile = object
                     .get("unicode_profile")

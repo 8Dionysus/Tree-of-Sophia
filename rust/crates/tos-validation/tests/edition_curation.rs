@@ -1359,6 +1359,28 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
             Ok(())
         );
     }
+    for (stage, field, label) in [
+        (
+            "morphology-theme-candidates",
+            "private_example_forms",
+            "private example name",
+        ),
+        ("concept-review", "gap_proposals", "gap proposal code"),
+    ] {
+        let mut duplicate = dta_value.clone();
+        let recipe = duplicate["recipes"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|recipe| recipe["stage"] == stage)
+            .unwrap();
+        let entries = recipe[field].as_array_mut().unwrap();
+        entries.push(entries[0].clone());
+        assert_eq!(
+            validate(&serde_json::to_vec(&duplicate).unwrap(), &schema),
+            Err(EditionCurationError::Duplicate(label))
+        );
+    }
     let mut duplicate_orthography = dta_value.clone();
     let parallel = duplicate_orthography["recipes"]
         .as_array_mut()

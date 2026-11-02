@@ -1881,7 +1881,29 @@
       ],
       "private_schema_versions": {
         "analysis": "tos_zarathustra_eternal_return_review_preparation_private_analysis_v1"
-      }
+      },
+      "gap_proposals": [
+        {
+          "gap_code": "ru_formula_broken_by_letterspacing",
+          "proposal": {
+            "language": "ru",
+            "candidate_tokens": [
+              "вѣчнаго",
+              "возвращенія"
+            ],
+            "operation": "collapse_letterspacing_for_search_index_only"
+          }
+        },
+        {
+          "gap_code": "ru_formula_blocked_by_ocr_substitution",
+          "proposal": {
+            "language": "ru",
+            "observed_token": "вЪчное",
+            "candidate_token": "вѣчное",
+            "operation": "single_token_ocr_correction_candidate_requires_page_image_review"
+          }
+        }
+      ]
     },
     {
       "stage": "paragraph-alignment",
@@ -2682,7 +2704,39 @@
       },
       "private_schema_versions": {
         "analysis": "tos_zarathustra_morphology_theme_private_analysis_v1"
-      }
+      },
+      "private_example_forms": [
+        {
+          "name": "de_mensch",
+          "forms": [
+            "mensch",
+            "menschen"
+          ]
+        },
+        {
+          "name": "de_liebe",
+          "forms": [
+            "liebe",
+            "lieben",
+            "liebt"
+          ]
+        },
+        {
+          "name": "ru_human",
+          "forms": [
+            "человек",
+            "людей",
+            "люди"
+          ]
+        },
+        {
+          "name": "ru_love",
+          "forms": [
+            "любовь",
+            "люблю"
+          ]
+        }
+      ]
     },
     {
       "stage": "lexical-morphology-evaluation",
