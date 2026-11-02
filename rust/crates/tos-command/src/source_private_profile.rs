@@ -2752,8 +2752,14 @@ fn validate_native_profile(
             "private occurrence binding differs from its exact delegated selection",
         ));
     }
-    let mut native_reader = ProfileNativeReader { owner, cut };
     let read_selection = owner.independent_text_selection()?;
+    // Only the independently validated private text grant selects filesystem
+    // metadata. Ordinary private Profiles retain their immutable-cut route.
+    let mut native_reader = ProfileNativeReader {
+        owner,
+        cut,
+        independent_metadata: read_selection.is_some(),
+    };
     let selected_legacy = if let Some(selection) = read_selection.as_ref() {
         selection.selected_legacy_dta(binding, deadline, cancelled)?
     } else {
@@ -2786,19 +2792,18 @@ fn validate_native_profile(
         let private = native_reader.owner_local(&input.reference)?;
         owner_local_transport |= private;
         if !private {
-            let raw = read_current_member(
-                cut,
+            // Recheck the same selected authority used by the resolver;
+            // independent metadata never falls through to a corpus-cut read.
+            let raw = native_reader.read(
                 &input.reference,
+                input.kind,
                 input.raw_size.max(1),
                 deadline,
                 cancelled,
-            )?
-            .ok_or(SourceCommandError::Conflict(
-                "native public binding input is absent from the selected corpus cut",
-            ))?;
+            )?;
             if raw.len() != input.raw_size || Digest256::of_bytes(&raw) != input.raw_sha256 {
                 return Err(SourceCommandError::Conflict(
-                    "native public binding input differs from the selected corpus cut",
+                    "native binding input differs from its selected transport",
                 ));
             }
             continue;
@@ -2868,11 +2873,7 @@ fn owner_metadata_snapshot(
     let context = owner.snapshot(deadline, cancelled)?.to_prefixed();
     let mut rows = Vec::with_capacity(inputs.len());
     for input in inputs {
-        let role = if reader.owner_local(&input.reference)? {
-            "owner-local-root"
-        } else {
-            "source-contract-root"
-        };
+        let role = reader.input_source_role(&input.reference, input.kind)?;
         rows.push(JsonValue::Array(vec![
             cmd::string(&input.reference),
             cmd::string(input.category),
@@ -2946,21 +2947,38 @@ fn owner_metadata_summary(
 /// Borrow the selected owner transport immutably for the fixed OwnerText
 /// metadata route. The mutable trait surface is historical; this adapter
 /// issues no writes and every read remains selected and bounded.
+/// Public-logical metadata stays in the cut unless an independent private
+/// text grant was explicitly attached. Schemas always retain cut authority.
 struct ProfileNativeReader<'a> {
     owner: &'a OwnerTextContext,
     cut: &'a dyn PrivateSelectedSourceInput,
+    independent_metadata: bool,
+}
+
+impl ProfileNativeReader<'_> {
+    fn reads_owner(
+        &self,
+        reference: &str,
+        kind: crate::source_sign_native::NativeReadKind,
+    ) -> SourceCommandResult<bool> {
+        use crate::source_sign_native::NativeReadKind;
+        Ok(kind != NativeReadKind::Schema
+            && (self.owner_local(reference)?
+                || self.independent_metadata
+                    && matches!(kind, NativeReadKind::Metadata | NativeReadKind::Support)))
+    }
 }
 
 impl SignNativeRead for ProfileNativeReader<'_> {
     fn read(
         &mut self,
         reference: &str,
-        _kind: crate::source_sign_native::NativeReadKind,
+        kind: crate::source_sign_native::NativeReadKind,
         max_bytes: usize,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Vec<u8>> {
-        if SignNativeRead::owner_local(self.owner, reference)? {
+        if self.reads_owner(reference, kind)? {
             self.owner.read(reference, max_bytes, deadline, cancelled)
         } else {
             read_current_member(self.cut, reference, max_bytes, deadline, cancelled)?.ok_or(
@@ -2979,6 +2997,20 @@ impl SignNativeRead for ProfileNativeReader<'_> {
 
     fn owner_local(&self, reference: &str) -> SourceCommandResult<bool> {
         SignNativeRead::owner_local(self.owner, reference)
+    }
+
+    fn input_source_role(
+        &self,
+        reference: &str,
+        kind: crate::source_sign_native::NativeReadKind,
+    ) -> SourceCommandResult<&'static str> {
+        Ok(if !self.reads_owner(reference, kind)? {
+            "source-contract-root"
+        } else if self.owner_local(reference)? {
+            "owner-local-root"
+        } else {
+            "independent-source-root"
+        })
     }
 
     fn owner_context_snapshot(

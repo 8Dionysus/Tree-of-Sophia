@@ -70,6 +70,21 @@ pub trait SignNativeRead {
     ) -> SourceCommandResult<()>;
     fn owner_local(&self, reference: &str) -> SourceCommandResult<bool>;
 
+    /// The selected input authority is distinct from content confidentiality.
+    /// Existing readers retain their snapshot roles; an explicitly selected
+    /// metadata transport must name its own role without widening owner_local.
+    fn input_source_role(
+        &self,
+        reference: &str,
+        _kind: NativeReadKind,
+    ) -> SourceCommandResult<&'static str> {
+        Ok(if self.owner_local(reference)? {
+            "owner-local-root"
+        } else {
+            "source-contract-root"
+        })
+    }
+
     /// Owner-local transports bind the derived assessment view to their
     /// protected context as well as to the exact selected input bytes. Public
     /// Sign readers retain the historical input-only snapshot by default.
@@ -367,6 +382,25 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             .cache
             .get_mut(&key)
             .ok_or(SourceCommandError::Invalid("native cached input"))?;
+        if self.reader.input_source_role(name, kind)?
+            != self.reader.input_source_role(name, input.kind)?
+        {
+            // Metadata-category caching must not substitute one authority for
+            // another. In particular, a cached Support read is not a cut Schema
+            // observation. Revisit the requested authority and retain equality.
+            let raw = self.reader.read(
+                name,
+                kind,
+                input.raw.len().max(1),
+                self.deadline,
+                self.cancelled,
+            )?;
+            if raw != input.raw {
+                return Err(SourceCommandError::Conflict(
+                    "native cached input differs across selected authorities",
+                ));
+            }
+        }
         // A support record may later also be a grammar; preserve the stronger
         // selected role while the opaque snapshot remains metadata-category.
         if kind == NativeReadKind::Schema
@@ -1411,11 +1445,9 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             }
             let mut entry = vec![cmd::string(name), cmd::string(category)];
             if owner_context.is_some() {
-                entry.push(cmd::string(if self.reader.owner_local(name)? {
-                    "owner-local-root"
-                } else {
-                    "source-contract-root"
-                }));
+                entry.push(cmd::string(
+                    self.reader.input_source_role(name, input.kind)?,
+                ));
             }
             entry.push(cmd::string(&Digest256::of_bytes(&raw).to_hex()));
             value.push(JsonValue::Array(entry));
@@ -3464,6 +3496,188 @@ pub(crate) fn read_private_disclosed_unit<R: SignNativeRead + ?Sized>(
 #[cfg(test)]
 mod legacy_dta_return_tests {
     use super::*;
+
+    struct SelectedReader {
+        independent: bool,
+        cut: Option<Vec<u8>>,
+        source: Vec<u8>,
+        reads: Vec<NativeReadKind>,
+    }
+    impl SignNativeRead for SelectedReader {
+        fn read(
+            &mut self,
+            _reference: &str,
+            kind: NativeReadKind,
+            max_bytes: usize,
+            _deadline: Instant,
+            _cancelled: &AtomicBool,
+        ) -> SourceCommandResult<Vec<u8>> {
+            self.reads.push(kind);
+            let raw = if self.independent
+                && matches!(kind, NativeReadKind::Metadata | NativeReadKind::Support)
+            {
+                &self.source
+            } else {
+                self.cut.as_ref().ok_or(SourceCommandError::Conflict(
+                    "test selected cut input absent",
+                ))?
+            };
+            if raw.len() > max_bytes {
+                return Err(SourceCommandError::Unsupported("test selected input cap"));
+            }
+            Ok(raw.clone())
+        }
+        fn verify_current(&mut self, _: Instant, _: &AtomicBool) -> SourceCommandResult<()> {
+            Ok(())
+        }
+        fn owner_local(&self, _: &str) -> SourceCommandResult<bool> {
+            Ok(false)
+        }
+        fn input_source_role(
+            &self,
+            _: &str,
+            kind: NativeReadKind,
+        ) -> SourceCommandResult<&'static str> {
+            Ok(
+                if self.independent
+                    && matches!(kind, NativeReadKind::Metadata | NativeReadKind::Support)
+                {
+                    "independent-source-root"
+                } else {
+                    "source-contract-root"
+                },
+            )
+        }
+        fn owner_context_snapshot(
+            &self,
+            _: Instant,
+            _: &AtomicBool,
+        ) -> SourceCommandResult<Option<String>> {
+            Ok(Some(
+                Digest256::of_bytes(b"same selected context").to_prefixed(),
+            ))
+        }
+    }
+    struct NoSchemaExecution;
+    impl CutSchemaExecutor for NoSchemaExecution {
+        fn check(
+            &mut self,
+            _: &str,
+            _: &[u8],
+            _: &str,
+            _: Instant,
+            _: &AtomicBool,
+        ) -> Result<bool, tos_validation::item_rules::ItemRefusal> {
+            panic!("transport fixture cannot execute a schema")
+        }
+    }
+    fn selected_native<'a>(
+        reader: &'a mut SelectedReader,
+        worker: &'a mut NoSchemaExecution,
+        cancelled: &'a AtomicBool,
+    ) -> Native<'a, SelectedReader> {
+        Native {
+            reader,
+            worker,
+            deadline: Instant::now() + std::time::Duration::from_secs(5),
+            cancelled,
+            cache: BTreeMap::new(),
+            schemas: BTreeMap::new(),
+            remaining_metadata: MAX_METADATA_BYTES,
+            remaining_content: MAX_CONTENT_BYTES,
+            route_profile: NativeRoute::OwnerText,
+            legacy_dta: None,
+        }
+    }
+
+    #[test]
+    fn cached_metadata_cannot_replace_a_different_selected_authority() {
+        let cancelled = AtomicBool::new(false);
+        let schema = "ToS/contracts/test.schema.json";
+        for cut in [None, Some(b"other!".to_vec()), Some(b"source".to_vec())] {
+            let same = cut.as_deref() == Some(b"source".as_slice());
+            let mut reader = SelectedReader {
+                independent: true,
+                cut,
+                source: b"source".to_vec(),
+                reads: Vec::new(),
+            };
+            let mut worker = NoSchemaExecution;
+            let mut native = selected_native(&mut reader, &mut worker, &cancelled);
+            assert_eq!(
+                native.raw(schema, None, NativeReadKind::Support).unwrap(),
+                b"source"
+            );
+            assert_eq!(
+                native.raw(schema, None, NativeReadKind::Schema).is_ok(),
+                same
+            );
+            assert_eq!(
+                native.reader.reads,
+                [NativeReadKind::Support, NativeReadKind::Schema]
+            );
+        }
+        let mut reader = SelectedReader {
+            independent: true,
+            cut: Some(b"source".to_vec()),
+            source: b"other!".to_vec(),
+            reads: Vec::new(),
+        };
+        let mut worker = NoSchemaExecution;
+        let mut native = selected_native(&mut reader, &mut worker, &cancelled);
+        native.raw(schema, None, NativeReadKind::Schema).unwrap();
+        assert!(native.raw(schema, None, NativeReadKind::Support).is_err());
+    }
+
+    #[test]
+    fn selected_metadata_authority_changes_snapshot_and_rereads_its_own_source() {
+        let cancelled = AtomicBool::new(false);
+        let mut snapshots = Vec::new();
+        for independent in [false, true] {
+            let mut reader = SelectedReader {
+                independent,
+                cut: Some(b"source".to_vec()),
+                source: b"source".to_vec(),
+                reads: Vec::new(),
+            };
+            let mut worker = NoSchemaExecution;
+            let mut native = selected_native(&mut reader, &mut worker, &cancelled);
+            native
+                .raw(
+                    "ToS/source-witnesses/packet.json",
+                    None,
+                    NativeReadKind::Metadata,
+                )
+                .unwrap();
+            snapshots.push(native.snapshot().unwrap());
+            assert!(
+                !native
+                    .reader
+                    .owner_local("ToS/source-witnesses/packet.json")
+                    .unwrap()
+            );
+            native.reader.source = b"other!".to_vec();
+            assert_eq!(native.snapshot().is_err(), independent);
+        }
+        assert_ne!(snapshots[0], snapshots[1]);
+        let mut reader = SelectedReader {
+            independent: false,
+            cut: None,
+            source: b"source".to_vec(),
+            reads: Vec::new(),
+        };
+        let mut worker = NoSchemaExecution;
+        let mut native = selected_native(&mut reader, &mut worker, &cancelled);
+        assert!(
+            native
+                .raw(
+                    "ToS/source-witnesses/packet.json",
+                    None,
+                    NativeReadKind::Metadata
+                )
+                .is_err()
+        );
+    }
 
     #[test]
     fn exact_tei_fragment_and_body_are_both_required() {
