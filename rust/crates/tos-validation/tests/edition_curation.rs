@@ -111,6 +111,30 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         ),
         Ok(expected_historical["authority_boundary"].clone())
     );
+    let mut wrong_historical_schema = dta_value.clone();
+    let foundation = wrong_historical_schema["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "tei-source-foundation")
+        .unwrap();
+    let output = foundation["frozen_outputs"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|output| output["role"] == "text_layer_ref")
+        .unwrap();
+    output["schema_version"] = json!("unexpected_version");
+    assert_eq!(
+        select_historical_field(
+            &serde_json::to_vec(&wrong_historical_schema).unwrap(),
+            "tei-source-foundation",
+            "layer-authority",
+            historical,
+            &schema
+        ),
+        Err(EditionCurationError::BindingMismatch)
+    );
     assert_eq!(
         select_historical_field(
             &dta_raw,

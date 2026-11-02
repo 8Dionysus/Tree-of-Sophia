@@ -123,6 +123,9 @@ pub fn select_historical_field(
     }
     let historical = published_value(selected.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
         .map_err(EditionCurationError::Schema)?;
+    if historical["schema_version"] != output["schema_version"] {
+        return Err(EditionCurationError::BindingMismatch);
+    }
     let pointer = field["json_pointer"]
         .as_str()
         .ok_or(EditionCurationError::InvalidSchema)?;
