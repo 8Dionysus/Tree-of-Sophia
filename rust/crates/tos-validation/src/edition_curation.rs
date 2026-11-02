@@ -131,6 +131,37 @@ pub fn validate_recipe_plan(
         .or(historical)
         .ok_or(EditionCurationError::MissingReference)?;
     verify_selected_bytes(plan, reference, expected)?;
+    if let Some(profile) = recipe.get("tei_text_profile") {
+        let selected = published_value(plan.raw, plan.raw.len().max(1))
+            .map_err(EditionCurationError::Schema)?;
+        let excluded_pointer = profile["excluded_elements_plan_pointer"]
+            .as_str()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        let excluded = selected
+            .pointer(excluded_pointer)
+            .and_then(Value::as_array)
+            .ok_or(EditionCurationError::MissingReference)?;
+        let mut seen = BTreeSet::new();
+        for element in excluded {
+            let name = element
+                .as_str()
+                .filter(|s| !s.is_empty())
+                .ok_or(EditionCurationError::InvalidSchema)?;
+            if !seen.insert(name) {
+                return Err(EditionCurationError::Duplicate("excluded element"));
+            }
+        }
+        let normalization_pointer = profile["normalization_plan_pointer"]
+            .as_str()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        if selected
+            .pointer(normalization_pointer)
+            .and_then(Value::as_str)
+            != Some("none")
+        {
+            return Err(EditionCurationError::BindingMismatch);
+        }
+    }
     if let Some(rules) = recipe.get("selection_rules") {
         let selected = published_value(plan.raw, plan.raw.len().max(1))
             .map_err(EditionCurationError::Schema)?;
@@ -1311,6 +1342,22 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
             }
             if let Some(replacements) = object.get("search_replacements") {
                 check_replacements(replacements)?;
+            }
+            if let Some(profile) = object.get("tei_text_profile") {
+                let unicode = profile["whitespace_profile"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                tos_foundation::UnicodeProfile::from_profile(unicode)
+                    .map_err(|_| EditionCurationError::InvalidSchema)?;
+                let markers = profile["formatting_whitespace_markers"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let mut seen = BTreeSet::new();
+                if markers.chars().any(|ch| !seen.insert(ch)) {
+                    return Err(EditionCurationError::Duplicate(
+                        "formatting whitespace marker",
+                    ));
+                }
             }
             if let Some(profile) = object.get("line_join_profile") {
                 let whitespace = profile["whitespace_profile"]

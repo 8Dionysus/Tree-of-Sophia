@@ -91,7 +91,22 @@
           "schema_version": "tos_source_text_unit_packet_v1",
           "expected_sha256": "d857eb6c714f56a2659a81eedbdac1c9170810f0a45ec5e5d965ef654a449724"
         }
-      ]
+      ],
+      "tei_text_profile": {
+        "choice_preference": [
+          "sic",
+          "orig",
+          "abbr"
+        ],
+        "choice_fallback": "first-child",
+        "line_break_element": "lb",
+        "line_break_text": "\n",
+        "trim_one_leading_newline_after_line_break": true,
+        "formatting_whitespace_markers": "\n\r\t",
+        "whitespace_profile": "tos-python-native-unicode-v1",
+        "excluded_elements_plan_pointer": "/extraction_policy/excluded_elements",
+        "normalization_plan_pointer": "/extraction_policy/unicode_normalization"
+      }
     },
     {
       "stage": "sentence-alignment",

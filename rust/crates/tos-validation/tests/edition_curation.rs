@@ -1769,6 +1769,24 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         validate_recipe_plan(&dta_raw, "tei-technical-markup", plan, &schema),
         Ok(())
     );
+    let mut bad_tei: Value = serde_json::from_slice(&dta_raw).unwrap();
+    let recipe = bad_tei["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "tei-technical-markup")
+        .unwrap();
+    recipe["tei_text_profile"]["excluded_elements_plan_pointer"] = json!("/missing");
+    assert_eq!(
+        validate_recipe_plan(
+            &serde_json::to_vec(&bad_tei).unwrap(),
+            "tei-technical-markup",
+            plan,
+            &schema
+        ),
+        Err(EditionCurationError::MissingReference)
+    );
+
     assert_eq!(
         validate_recipe_plan(
             &dta_raw,
