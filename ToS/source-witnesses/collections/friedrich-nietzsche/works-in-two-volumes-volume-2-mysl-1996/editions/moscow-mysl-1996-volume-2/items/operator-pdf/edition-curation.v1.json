@@ -715,7 +715,23 @@
       "historical_builder_sha256": "9fb18fe2ff6eb14672dfec407f0c2210e0b7f6f4286c1fc0987633709e147675",
       "historical_authority": "text-free co-availability over independently materialized source and target candidates only; shared structural route identity and frozen-page intersection create no bilingual passage pair, alignment, accepted text, eligibility, gold, human task, semantic claim, publication authority, or canon effect",
       "expected_source_count": 35,
-      "expected_target_count": 35
+      "expected_target_count": 35,
+      "output_filename": "transfer-route-readiness.v1.json",
+      "provenance_filename": "transfer-provenance.jsonl",
+      "frozen_outputs": [
+        {
+          "role": "projection",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-route-readiness.v1.json",
+          "schema_version": "tos_transfer_route_readiness_projection_v1",
+          "expected_sha256": "87db57696b663440f2dfd59957f40b308b98f169bb707bbc5855311dc1d745db"
+        },
+        {
+          "role": "provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-provenance.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "f66f1f6cf5224e5bc3849b168318af581fab9813eb595c8521c38e509c238b3e"
+        }
+      ]
     },
     {
       "stage": "structural-source-routes",

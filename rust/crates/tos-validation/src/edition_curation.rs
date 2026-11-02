@@ -679,6 +679,32 @@ fn check_replacements(value: &Value) -> Result<(), EditionCurationError> {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if object.get("stage").and_then(Value::as_str) == Some("transfer-readiness") {
+                let base = object["base_ref"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let frozen = object["frozen_outputs"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                if frozen.len() != 2 {
+                    return Err(EditionCurationError::BindingMismatch);
+                }
+                for (role, field) in [
+                    ("projection", "output_filename"),
+                    ("provenance", "provenance_filename"),
+                ] {
+                    let filename = object[field]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    let expected = format!("{base}/{filename}");
+                    if !frozen
+                        .iter()
+                        .any(|entry| entry["role"] == role && entry["repository_path"] == expected)
+                    {
+                        return Err(EditionCurationError::BindingMismatch);
+                    }
+                }
+            }
             if object.get("stage").and_then(Value::as_str) == Some("source-review-receipt") {
                 let base = object["base_ref"]
                     .as_str()
