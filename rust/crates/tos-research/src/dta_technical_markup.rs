@@ -147,6 +147,7 @@ fn kind(tag: &str) -> Option<&'static str> {
 struct TextProfile {
     choices: Vec<String>,
     excluded_elements: BTreeSet<String>,
+    wrapper_refs: BTreeSet<String>,
     line_break_element: String,
     line_break_text: String,
     trim_after_break: bool,
@@ -193,6 +194,13 @@ impl TextProfile {
             p["whitespace_profile"] == "tos-python-native-unicode-v1",
             "TEI whitespace profile",
         )?;
+        let mut wrapper_refs = BTreeSet::new();
+        for value in array(&p["wrapper_correspondence_refs"])? {
+            ensure(
+                wrapper_refs.insert(s(value)?.to_owned()),
+                "duplicate TEI wrapper correspondence",
+            )?;
+        }
         let line_break_element = s(&p["line_break_element"])?.to_owned();
         let line_break_text = s(&p["line_break_text"])?.to_owned();
         let trim_after_break = p["trim_one_leading_newline_after_line_break"]
@@ -209,6 +217,7 @@ impl TextProfile {
         Ok(Self {
             choices,
             excluded_elements,
+            wrapper_refs,
             line_break_element,
             line_break_text,
             trim_after_break,
@@ -361,7 +370,10 @@ fn observe(
                 let role = if tag == "body" {
                     "part_scope"
                 } else if let Some(c) = correspondence {
-                    if c["correspondence_id"] == "structure-i-002" {
+                    if c["correspondence_id"]
+                        .as_str()
+                        .is_some_and(|id| self.profile.wrapper_refs.contains(id))
+                    {
                         "major_wrapper_candidate"
                     } else {
                         "major_reading_unit_candidate"
@@ -1350,6 +1362,16 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
         major.len() as u64 == number(&plan["expected_counts"]["major_structure_candidates"])?,
         "major correspondence count differs",
     )?;
+    for selected in &profile.wrapper_refs {
+        ensure(
+            major
+                .values()
+                .filter(|row| row["correspondence_id"] == *selected)
+                .count()
+                == 1,
+            "selected wrapper correspondence must resolve once",
+        )?;
+    }
     let mut bindings = BTreeMap::from([
         (opts.plan_ref.to_owned(), plan_raw),
         (
