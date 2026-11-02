@@ -3475,6 +3475,30 @@ impl CutWorkerSchemaExecutor {
         self.contracts.get(base).map(|(_, digest)| *digest)
     }
 
+    /// Borrow the same selected contract map, admitting search work before it
+    /// executes. This adds no authority, worker, schema or new budget epoch.
+    pub fn contract_digest_with_admission(
+        &self,
+        contract: &str,
+        admit: &mut dyn FnMut(usize, usize) -> tos_foundation::Result<()>,
+    ) -> tos_foundation::Result<Option<Digest256>> {
+        admit(contract.len(), 1)?;
+        let base = contract.split_once('#').map_or(contract, |(base, _)| base);
+        for (candidate, (_, digest)) in &self.contracts {
+            let bytes = candidate.len().checked_add(base.len()).ok_or_else(|| {
+                tos_foundation::FoundationError::new(
+                    tos_foundation::FoundationErrorCode::BudgetExceeded,
+                    "schema contract lookup work overflow",
+                )
+            })?;
+            admit(bytes, 1)?;
+            if candidate == base {
+                return Ok(Some(*digest));
+            }
+        }
+        Ok(None)
+    }
+
     pub fn receipts(&self) -> &[CutSchemaReceipt] {
         &self.receipts
     }

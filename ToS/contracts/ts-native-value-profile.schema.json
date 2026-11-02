@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/ts-native-value-profile.schema.json",
+  "title": "Native TS value-profile Record",
+  "description": "Source-owned description/derived result under an explicitly selected TS profile. This record grants no source authority, historical interpretation, coverage or entailment.",
+  "allOf": [
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"
+    },
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticDescriptionFields"
+    }
+  ],
+  "type": "object",
+  "required": [
+    "body"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "tos_ts_native_value_profile_record_v1"
+    },
+    "record_type": {
+      "const": "ts-native-value-profile"
+    },
+    "record_id": {
+      "type": "string",
+      "pattern": "^tos\\.ts-native-value-profile\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "body": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "projection",
+        "codomain"
+      ],
+      "properties": {
+        "projection": {
+          "const": "DirectDomainValueV1"
+        },
+        "codomain": {
+          "enum": [
+            "SpanMeet",
+            "AllenRelation",
+            "OrderSolution",
+            "RelationImage",
+            "TopologyValue"
+          ]
+        }
+      }
+    }
+  },
+  "unevaluatedProperties": false
+}

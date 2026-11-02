@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/ts-native-operation-result.schema.json",
+  "title": "Native TS operation-result Record",
+  "description": "Source-owned description/derived result under an explicitly selected TS profile. This record grants no source authority, historical interpretation, coverage or entailment.",
+  "allOf": [
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"
+    },
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticDescriptionFields"
+    }
+  ],
+  "type": "object",
+  "required": [
+    "body"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "tos_ts_native_operation_result_record_v1"
+    },
+    "record_type": {
+      "const": "ts-native-operation-result"
+    },
+    "record_id": {
+      "type": "string",
+      "pattern": "^tos\\.ts-native-operation-result\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "body": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "codomain",
+        "value"
+      ],
+      "properties": {
+        "codomain": {
+          "enum": [
+            "SpanMeet",
+            "AllenRelation",
+            "OrderSolution",
+            "RelationImage",
+            "TopologyValue"
+          ]
+        },
+        "value": true
+      },
+      "description": "Native Record /body is decoded by the selected TS codec into the tagged domain value. The codec must validate the exact five payload grammars and their budgets before check_ts_output; structural schema success alone does not do so."
+    }
+  },
+  "unevaluatedProperties": false
+}

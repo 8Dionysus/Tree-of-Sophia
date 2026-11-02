@@ -20,7 +20,7 @@ compatibility guard until I/C completes that paired integration. No main,
 release, production or corpus-runtime selection is implied by this local change.
 
 The initial migration records 160 entity types, 168 properties and 196 relations
-in original registry order. The current selected manifest has 162 entity types,
+in original registry order. The current candidate manifest has 165 entity types,
 168 properties and 196 relations: the two reviewed temporal types follow the
 historical entries. The initial entries retain the complete migration mapping:
 `collection` and stable `id` identify the old array member; `path` identifies its
@@ -192,3 +192,15 @@ The feature-minimal run deliberately excludes the real schema/consumer instance
 check; it cannot claim complete T0-011 acceptance. The default-feature consumer
 run retains that evidence. The old mapping-only instance smoke test was removed
 because it duplicated setup while proving less than the retained consumer test.
+
+## Candidate native TS role profiles
+
+The C4 integration proposal appends three candidate definition homes under the
+existing SemanticObject navigation/semantic parent: native TS definition, value
+profile and operation result. All162 preceding type rows,168 property rows,196
+relation rows, current temporal definitions, historical baseline bytes and prior
+selection review locator remain unchanged. Entity envelope version is41. These
+are declared native metadata kinds, not source-created instances, assessment or
+authority. Their narrow C4 source gate remains pending; prior topology/temporal
+reviews are not represented as accepting these additions. Merge/selection of
+this proposal requires its actual common source review and native gates.

@@ -2,7 +2,7 @@
 
 This directory owns the stable machine vocabulary used when ToS material is
 composed into read-only knowledge lenses. The registry connects source-owned meanings across readers through stable
-types, relations and explicit mappings. Entity registry 40 and relation
+types, relations and explicit mappings. Entity registry 41 and relation
 registry 46 state their definitions through each subject’s properties, purpose
 and relations. Source-specific uncertainty and substantive negation remain
 part of the authored meaning.
@@ -26,6 +26,44 @@ lossless parsed baseline separately from future reviewed semantic evolution.
 Original baseline bytes and migration/home rationale remain in
 [`definitions/README.md`](definitions/README.md). The local selection review is
 [`2026-10-19-definition-topology-review.md`](../../review-ledger/2026-10-19-definition-topology-review.md).
+
+Entity registry 41 adds three candidate declared Record profiles for native TS
+definitions, value profiles and operation results. Their schemas retain shared
+source metadata and explicit semantic descriptions. Native Record `/body`
+decoding precedes the existing typed `DirectDomainValueV1` projection; the
+selected TS codec validates each actual domain payload. These type declarations
+create no source records, historical interpretation, source-use grant or
+completeness issuer. Exact role binding and retained version reads use the
+selected native source/schema/currentness route, with no latest-version fallback.
+
+### Native formal-role binding
+
+The shared [role-binding schema](../../contracts/native-role-bindings.schema.json)
+defines a `role_bindings` section for an actually selected source registry.
+Each row names `role`, `type_id`, `record_type`, `schema_version` and `schema_ref`.
+Its type and exact schema route must exist in that selected entity registry;
+duplicate role/kind/version keys refuse even if their other fields differ.
+Domain registries retain their own full-file contract and additional fields.
+This section describes a source-owned interpretation; it grants no account
+authority, current use, source truth or universal coverage.
+
+The command-owned `NativeRoleResolver` borrows the real immutable cut, protected
+owner/source frames, selected worker and the same invocation budget. It verifies
+custody of selected authored inputs, schema-checks the role declaration and
+reuses the maintained exact current/retained Record reader. The returned
+descriptor must match the declared kind/schema/role and exact entity-registry
+pin. It preserves source/history evidence and rechecks the actual owner fence.
+An unchanged label, a generic canon Context node or an unregistered profile
+does not supply a native formal-role record. Missing selection, mismatched pins,
+unsupported retained evidence or an expired/revoked owner fence refuse explicitly.
+
+Role resolution can run as one stage before native assessment: retain the
+checked records/evidence, release its mutable worker/budget borrows, and continue
+with the same budget and held frames. Fence again before later use. There is
+no resolver-to-`can_use` conversion. Existing assessment source/worker/schema
+checks and the domain's mandatory dependency closure remain required. This
+host takes an actual immutable `SourceRevision`; a PG/candidate opaque identity
+needs its own typed adapter and cannot be cast into that field.
 
 ## Source validation profiles
 

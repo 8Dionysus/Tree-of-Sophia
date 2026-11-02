@@ -11393,4 +11393,73 @@ mod retained_history_reader_regression {
             ))
         ));
     }
+    #[test]
+    fn admitted_scope_selection_preserves_data_and_original_spent_prefix() {
+        // Numerical/data selector only: no held frames, native authority,
+        // assessment report, actual source grant or completeness is created.
+        use crate::source_native_cli::private_assessment as assessment;
+        let deadline = Instant::now() + std::time::Duration::from_secs(60);
+        let cancelled = AtomicBool::new(false);
+        let row = parse(br#"{"id":"synthetic.selector","version":1,"payload":{"record_id":"synthetic.selector","record_version":1,"statement":"data only"},"origin_id":"synthetic"}"#).unwrap();
+        let reference = assessment::owner_reference(&row).unwrap();
+        let config_wire = serde_json::json!({"schema_version":"tos_local_assessment_owner_v1","subjects":{"synthetic.selector":{"record":serde_json::from_slice::<serde_json::Value>(&canonical(&reference).unwrap()).unwrap(),"assertion_layer":"reported","risk":"synthetic","languages":["en"],"maker_id":"synthetic","requested_use":"read","access_allowed":true}}});
+        let config = parse(&serde_json::to_vec(&config_wire).unwrap()).unwrap();
+        let request = assessment::ParsedRequest {
+            operation: "inspect".into(),
+            subject_id: "synthetic.selector".into(),
+            expected_subject: Some(reference),
+            expected_snapshot: None,
+            command_id: None,
+            expected_revision: None,
+            assessments: Vec::new(),
+        };
+        let rows = BTreeMap::from([("synthetic.selector".to_owned(), row)]);
+        let expected = assessment::select_current_scope(&config, &request, &rows).unwrap();
+        let numeric_invocation = serde_json::json!({"budgets":{"worker_cpu_seconds":1,"worker_address_space_bytes":67108864}});
+        let mut operation =
+            assessment::OperationBudget::new(&numeric_invocation, deadline).unwrap();
+        let whole = Rc::new(RefCell::new(ClaimCallBudget::new(0, 0).unwrap()));
+        let work_before = operation.limits().unwrap().max_work;
+        let actual = assessment::select_current_scope_with_admission(
+            &config,
+            &request,
+            &rows,
+            &mut operation,
+            &whole,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        assert_eq!(actual, expected);
+        assert!(operation.limits().unwrap().max_work < work_before);
+        assert!(whole.borrow().read_bytes > 0 && whole.borrow().live_state_bytes > 0);
+        let remaining_input = operation.limits().unwrap().max_input_bytes.min(100_000);
+        operation.lower_remaining(remaining_input, 65).unwrap();
+        assert!(
+            assessment::select_current_scope_with_admission(
+                &config,
+                &request,
+                &rows,
+                &mut operation,
+                &whole,
+                deadline,
+                &cancelled
+            )
+            .is_err()
+        );
+        assert_eq!(operation.limits().unwrap().max_work, 1); // paid64 before refusing lookup
+        assert!(
+            assessment::select_current_scope_with_admission(
+                &config,
+                &request,
+                &rows,
+                &mut operation,
+                &whole,
+                deadline,
+                &cancelled
+            )
+            .is_err()
+        );
+        assert_eq!(operation.limits().unwrap().max_work, 1); // same payer cannot refill
+    }
 }

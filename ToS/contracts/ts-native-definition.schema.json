@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/ts-native-definition.schema.json",
+  "title": "Native TS definition Record",
+  "description": "Source-owned description/derived result under an explicitly selected TS profile. This record grants no source authority, historical interpretation, coverage or entailment.",
+  "allOf": [
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"
+    },
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticDescriptionFields"
+    }
+  ],
+  "type": "object",
+  "required": [
+    "body"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "tos_ts_native_definition_record_v1"
+    },
+    "record_type": {
+      "const": "ts-native-definition"
+    },
+    "record_id": {
+      "type": "string",
+      "pattern": "^tos\\.ts-native-definition\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "body": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "definition_kind",
+        "specification"
+      ],
+      "properties": {
+        "definition_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "specification": {
+          "type": "object"
+        }
+      },
+      "description": "The named domain/rule and explicit premises. Exact payload meaning and interpretation are supplied by the selected TS definition codec, not this structural wrapper."
+    }
+  },
+  "unevaluatedProperties": false
+}

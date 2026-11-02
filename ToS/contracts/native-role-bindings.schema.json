@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/native-role-bindings.schema.json",
+  "title": "Source-owned role bindings for native declared Record consumers",
+  "description": "A selected source registry section, never an authority or completeness issuer. Domain registries may add their own fields and stricter whole-file schema.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "registry_id",
+    "registry_version",
+    "role_bindings"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "registry_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "registry_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "role_bindings": {
+      "type": "array",
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/roleBinding"
+      }
+    }
+  },
+  "$defs": {
+    "roleBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "type_id",
+        "record_type",
+        "schema_version",
+        "schema_ref"
+      ],
+      "properties": {
+        "role": {
+          "enum": [
+            "signature",
+            "predicate",
+            "qualification-profile",
+            "context",
+            "scope",
+            "criterion-policy",
+            "joint-carrier",
+            "scenario",
+            "ts-definition",
+            "ts-value-profile",
+            "ts-operation-result"
+          ]
+        },
+        "type_id": {
+          "$ref": "https://treeofsophia.local/ToS/contracts/semantic-entity-type-registry.schema.json#/$defs/typeId"
+        },
+        "record_type": {
+          "$ref": "https://treeofsophia.local/ToS/contracts/semantic-entity-type-registry.schema.json#/$defs/sourceRecordProfile/properties/record_type"
+        },
+        "schema_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schema_ref": {
+          "$ref": "https://treeofsophia.local/ToS/contracts/semantic-entity-type-registry.schema.json#/$defs/sourceRecordProfile/properties/schemas/items/properties/schema_ref"
+        }
+      }
+    }
+  }
+}

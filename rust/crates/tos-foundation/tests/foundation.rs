@@ -66,6 +66,45 @@ fn canonical_work_admission_counts_prefixes_without_spending_the_output_ceiling(
     .unwrap_err();
     assert_eq!(failure.code, FoundationErrorCode::BudgetExceeded);
     assert!(charged > 0 && charged <= 4);
+
+    // Sorting and duplicate comparison happen before object output. Refuse
+    // their input windows, rather than waiting to charge emitted key bytes.
+    for (duplicate, reject_window) in [(false, 1), (true, 2)] {
+        let prefix = "x".repeat(65_536);
+        let first = format!("{prefix}a");
+        let second = if duplicate {
+            first.clone()
+        } else {
+            format!("{prefix}bb")
+        };
+        let value = JsonValue::Object(vec![
+            (JsonString::from_utf8(&first), JsonValue::Null),
+            (JsonString::from_utf8(&second), JsonValue::Null),
+        ]);
+        let mut windows = 0;
+        let failure = canonical_bytes_v1_with_state_budget_and_visits_and_admission(
+            &value,
+            CanonicalProfile::SourceRecordDigestV1,
+            limits,
+            2 * 1024 * 1024,
+            &mut || Ok(()),
+            &mut |bytes, _| {
+                if bytes >= 2 * 65_536 {
+                    windows += 1;
+                    if windows == reject_window {
+                        return Err(FoundationError::new(
+                            FoundationErrorCode::BudgetExceeded,
+                            "test key comparison admission",
+                        ));
+                    }
+                }
+                Ok(())
+            },
+        )
+        .unwrap_err();
+        assert_eq!(failure.code, FoundationErrorCode::BudgetExceeded);
+        assert_eq!(windows, reject_window);
+    }
 }
 
 #[test]
