@@ -381,6 +381,36 @@ enum MarkerPart {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if let Some(profile) = object.get("candidate_signals") {
+                let rules = profile["signals"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let mut codes = BTreeSet::new();
+                for rule in rules {
+                    let code = rule["code"]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    if !codes.insert(code) {
+                        return Err(EditionCurationError::Duplicate("signal code"));
+                    }
+                }
+                for group in [
+                    "recurrence_signals",
+                    "eternity_signals",
+                    "ring_signals",
+                    "universal_signals",
+                    "direct_core_signals",
+                ] {
+                    for code in profile["classification"][group]
+                        .as_array()
+                        .ok_or(EditionCurationError::InvalidSchema)?
+                    {
+                        if !code.as_str().is_some_and(|code| codes.contains(code)) {
+                            return Err(EditionCurationError::MissingReference);
+                        }
+                    }
+                }
+            }
             if let Some(selection) = object.get("speaker_selection") {
                 let readings = selection["readings"]
                     .as_array()
@@ -643,6 +673,7 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                 ("chapter_labels", "key"),
                 ("class_notes", "key"),
                 ("speaker_labels", "key"),
+                ("exclusions", "code"),
                 ("demo_ids", "annotation_ref"),
                 ("demo_ids", "slug"),
                 ("work_mappings", "work_ref"),

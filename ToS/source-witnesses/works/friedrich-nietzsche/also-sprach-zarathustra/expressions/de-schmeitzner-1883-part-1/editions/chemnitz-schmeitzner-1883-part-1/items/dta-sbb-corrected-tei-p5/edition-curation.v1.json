@@ -215,7 +215,262 @@
           "ref": "rust/crates/tos-compiler/src/research_eternal_return_concept_templates.json",
           "sha256": "1ce59d4e33696f3889a99ab5002ff115b32f7a42f4edcf182a18ad384ffffc81"
         }
-      ]
+      ],
+      "candidate_signals": {
+        "legacy_classifier_sha256": "e19c44f520f530bfd50c147c343293bdc23cddbd6fa4dc27d99751579d16e9b6",
+        "core_readings": [
+          "p3.r2",
+          "p3.r13",
+          "p3.r16",
+          "p4.r19"
+        ],
+        "signals": [
+          {
+            "code": "de_recurrence_noun",
+            "language": "de",
+            "token_prefixes": [
+              "wiederkunft"
+            ]
+          },
+          {
+            "code": "de_recurrence_verb",
+            "language": "de",
+            "token_prefixes": [
+              "wiederkehr"
+            ]
+          },
+          {
+            "code": "de_eternity",
+            "language": "de",
+            "token_prefixes": [
+              "ewig"
+            ]
+          },
+          {
+            "code": "de_ring",
+            "language": "de",
+            "token_prefixes": [
+              "ring"
+            ]
+          },
+          {
+            "code": "de_time",
+            "language": "de",
+            "token_prefixes": [
+              "zeit"
+            ]
+          },
+          {
+            "code": "de_moment",
+            "language": "de",
+            "token_prefixes": [
+              "augenblick"
+            ]
+          },
+          {
+            "code": "de_joy",
+            "language": "de",
+            "token_prefixes": [
+              "freud"
+            ]
+          },
+          {
+            "code": "de_pain",
+            "language": "de",
+            "token_prefixes": [
+              "schmerz",
+              "leid"
+            ]
+          },
+          {
+            "code": "de_love",
+            "language": "de",
+            "token_prefixes": [
+              "lieb"
+            ]
+          },
+          {
+            "code": "de_life",
+            "language": "de",
+            "token_prefixes": [
+              "leb"
+            ]
+          },
+          {
+            "code": "de_affirmation",
+            "language": "de",
+            "exact_tokens": [
+              "ja"
+            ],
+            "token_prefixes": [
+              "bejah"
+            ]
+          },
+          {
+            "code": "de_universal_scope",
+            "language": "de",
+            "exact_tokens": [
+              "all",
+              "alle",
+              "allen",
+              "aller",
+              "alles"
+            ],
+            "token_prefixes": [
+              "gleich",
+              "selb"
+            ]
+          },
+          {
+            "code": "ru_recurrence",
+            "language": "ru",
+            "token_prefixes": [
+              "возвращ"
+            ]
+          },
+          {
+            "code": "ru_eternity",
+            "language": "ru",
+            "token_prefixes": [
+              "вечн"
+            ]
+          },
+          {
+            "code": "ru_ring",
+            "language": "ru",
+            "token_prefixes": [
+              "кольц"
+            ]
+          },
+          {
+            "code": "ru_time",
+            "language": "ru",
+            "token_prefixes": [
+              "врем"
+            ]
+          },
+          {
+            "code": "ru_moment",
+            "language": "ru",
+            "token_prefixes": [
+              "мгновен"
+            ]
+          },
+          {
+            "code": "ru_joy",
+            "language": "ru",
+            "token_prefixes": [
+              "радост"
+            ]
+          },
+          {
+            "code": "ru_pain",
+            "language": "ru",
+            "token_prefixes": [
+              "боль",
+              "страд"
+            ]
+          },
+          {
+            "code": "ru_love",
+            "language": "ru",
+            "token_prefixes": [
+              "люб"
+            ]
+          },
+          {
+            "code": "ru_life",
+            "language": "ru",
+            "token_prefixes": [
+              "жизн"
+            ]
+          },
+          {
+            "code": "ru_affirmation",
+            "language": "ru",
+            "exact_tokens": [
+              "да"
+            ],
+            "token_prefixes": [
+              "утвержд"
+            ]
+          },
+          {
+            "code": "ru_universal_scope",
+            "language": "ru",
+            "exact_tokens": [
+              "все",
+              "всё",
+              "всего",
+              "вся"
+            ],
+            "token_prefixes": [
+              "одинаков",
+              "тотже"
+            ]
+          }
+        ],
+        "exclusions": [
+          {
+            "kind": "all-exact",
+            "reading_ref": "p1.r1",
+            "language": "de",
+            "terms": [
+              "wieder",
+              "mensch"
+            ],
+            "code": "return_to_humans_not_eternal_return"
+          },
+          {
+            "kind": "any-prefix",
+            "reading_ref": "p3.r9",
+            "alternatives": [
+              {
+                "language": "de",
+                "prefixes": [
+                  "heimkehr"
+                ]
+              },
+              {
+                "language": "ru",
+                "prefixes": [
+                  "возврат"
+                ]
+              }
+            ],
+            "code": "return_home_not_eternal_return"
+          }
+        ],
+        "classification": {
+          "recurrence_signals": [
+            "de_recurrence_noun",
+            "de_recurrence_verb",
+            "ru_recurrence"
+          ],
+          "eternity_signals": [
+            "de_eternity",
+            "ru_eternity"
+          ],
+          "ring_signals": [
+            "de_ring",
+            "ru_ring"
+          ],
+          "universal_signals": [
+            "de_universal_scope",
+            "ru_universal_scope"
+          ],
+          "direct_core_signals": [
+            "de_recurrence_noun"
+          ],
+          "adjacent_sequence": {
+            "language": "de",
+            "tokens": [
+              "ewig",
+              "wieder"
+            ]
+          }
+        }
+      }
     },
     {
       "stage": "concept-review",
