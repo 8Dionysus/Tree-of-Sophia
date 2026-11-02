@@ -414,7 +414,7 @@ mod linux {
                 &image,
                 budget,
                 CutWorkerLimits {
-                    max_receipts: 1,
+                    max_receipts: 2,
                     max_receipt_bytes: 65536,
                 },
                 deadline,
@@ -436,6 +436,21 @@ mod linux {
         assert_eq!(diagnostic.input_sha256(), Digest256::of_bytes(b"7"));
         assert!(matches!(
             diagnostic,
+            tos_validation::source_cut::CandidateSchemaDiagnostic::Worker(_)
+        ));
+        assert!(
+            !diagnostics_candidate
+                .check("subject", br#""wrong""#, contract, deadline, &not_cancelled)
+                .unwrap()
+        );
+        let rejected = diagnostics_candidate
+            .take_diagnostic_rejection()
+            .unwrap()
+            .unwrap();
+        assert!(rejected.is_invalid());
+        assert_eq!(rejected.input_sha256(), Digest256::of_bytes(br#""wrong""#));
+        assert!(matches!(
+            rejected,
             tos_validation::source_cut::CandidateSchemaDiagnostic::Worker(_)
         ));
         diagnostics_candidate

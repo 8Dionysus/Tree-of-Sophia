@@ -127,6 +127,14 @@ pub trait SourceFoundationCandidateSchemaBinding<I: Eq + Clone>: CutSchemaExecut
         ))
     }
 
+    /// Move one retained non-valid observation in its producing representation.
+    fn take_diagnostic_rejection(
+        &mut self,
+    ) -> Result<Option<crate::source_cut::CandidateSchemaDiagnostic<I>>, ItemRefusal> {
+        self.take_schema_diagnostic_rejection()
+            .map(|row| row.map(crate::source_cut::CandidateSchemaDiagnostic::Worker))
+    }
+
     /// Report the actual number of diagnostics-v2 executions observed by the
     /// prepared worker. A scalar default must not masquerade as zero work.
     fn diagnostic_execution_count(&self) -> Result<usize, ItemRefusal> {

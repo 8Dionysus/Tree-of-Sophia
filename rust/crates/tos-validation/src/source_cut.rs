@@ -5423,6 +5423,7 @@ pub struct InProcessCandidateSchemaExecutor<I> {
     selected: Vec<SelectedSchemaResource>,
     contract_selection_digest: Digest256,
     inner: InProcessCutSchemaExecutor<I>,
+    pending_rejections: std::collections::VecDeque<CandidateSchemaDiagnostic<I>>,
     finished: bool,
 }
 
@@ -5482,6 +5483,7 @@ impl<I: Copy + Eq> InProcessCandidateSchemaExecutor<I> {
             selected: schema_set.source_resources,
             contract_selection_digest: schema_set.contract_selection_sha256,
             inner,
+            pending_rejections: std::collections::VecDeque::new(),
             finished: false,
         })
     }
@@ -5528,7 +5530,38 @@ impl<I: Copy + Eq> CutSchemaExecutor for InProcessCandidateSchemaExecutor<I> {
                 "candidate schema operation finalized".into(),
             ));
         }
-        self.inner.check(path, raw, contract, deadline, cancelled)
+        let diagnostic =
+            <Self as crate::source_foundation_records::SourceFoundationCandidateSchemaBinding<
+                I,
+            >>::check_diagnostic(self, path, raw, contract, deadline, cancelled)?;
+        if diagnostic.is_valid() {
+            return Ok(true);
+        }
+        let status = diagnostic.status();
+        let complete_invalid = diagnostic.is_invalid();
+        let failure = match &diagnostic {
+            CandidateSchemaDiagnostic::InProcess(row) => row.diagnostic.report.failure,
+            CandidateSchemaDiagnostic::Worker(_) => {
+                return Err(ItemRefusal::Source(
+                    "in-process candidate returned worker evidence".into(),
+                ));
+            }
+        };
+        self.pending_rejections.push_back(diagnostic);
+        match status {
+            schema_diagnostics::Status::Invalid if complete_invalid => Ok(false),
+            schema_diagnostics::Status::InputRejected
+                if failure == schema_diagnostics::Failure::InputBudget =>
+            {
+                Err(ItemRefusal::Budget)
+            }
+            _ => {
+                self.inner.failed = true;
+                Err(ItemRefusal::Unsupported(format!(
+                    "schema diagnostic {status:?}: {failure:?}"
+                )))
+            }
+        }
     }
     fn finish(&mut self, deadline: Instant, cancelled: &AtomicBool) -> Result<(), ItemRefusal> {
         if self.finished {
@@ -5578,6 +5611,11 @@ impl<I: Copy + Eq> crate::source_foundation_records::SourceFoundationCandidateSc
                 diagnostic,
             },
         ))
+    }
+    fn take_diagnostic_rejection(
+        &mut self,
+    ) -> Result<Option<CandidateSchemaDiagnostic<I>>, ItemRefusal> {
+        Ok(self.pending_rejections.pop_front())
     }
     fn input_identity(&self) -> &I {
         &self.input_identity
@@ -5712,6 +5750,12 @@ pub(crate) mod in_process_candidate_binding_tests {
                 )
                 .unwrap()
         );
+        let rejected = executor.take_diagnostic_rejection().unwrap().unwrap();
+        assert!(rejected.is_invalid());
+        assert_eq!(rejected.path(), "record.json");
+        assert_eq!(rejected.input_sha256(), Digest256::of_bytes(br#""wrong""#));
+        assert!(!rejected.issues().is_empty());
+        assert!(executor.take_diagnostic_rejection().unwrap().is_none());
         executor.finish(deadline, &cancelled).unwrap();
         assert!(
             executor
@@ -5763,6 +5807,28 @@ pub(crate) mod in_process_candidate_binding_tests {
                 )
                 .is_err()
         );
+        let mut projected = InProcessCandidateSchemaExecutor::from_schema_set(
+            selected_set(),
+            crate::in_process::InputMode::PublishedStrict,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        assert!(
+            projected
+                .check(
+                    "record.json",
+                    b"{",
+                    "ToS/contracts/example.schema.json",
+                    deadline,
+                    &cancelled
+                )
+                .is_err()
+        );
+        let rejected = projected.take_diagnostic_rejection().unwrap().unwrap();
+        assert_eq!(rejected.status(), schema_diagnostics::Status::InputRejected);
+        assert_eq!(rejected.input_sha256(), Digest256::of_bytes(b"{"));
+        assert!(projected.finish(deadline, &cancelled).is_err());
     }
 
     #[test]
