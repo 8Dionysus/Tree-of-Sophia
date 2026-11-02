@@ -137,6 +137,28 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         ),
         Err(EditionCurationError::BindingMismatch)
     );
+    let mut bad_threshold: Value = serde_json::from_slice(&reading_raw).unwrap();
+    let parallel = bad_threshold["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "parallel-lexical-candidates")
+        .unwrap();
+    let parallel_plan_ref = parallel["plan_ref"].as_str().unwrap().to_owned();
+    parallel["association_classification"]["proposed"]["minimum_support"] = json!("/missing");
+    let parallel_plan_raw = fs::read(root.join(&parallel_plan_ref)).unwrap();
+    assert_eq!(
+        validate_recipe_plan(
+            &serde_json::to_vec(&bad_threshold).unwrap(),
+            "parallel-lexical-candidates",
+            SelectedDocument {
+                reference: &parallel_plan_ref,
+                raw: &parallel_plan_raw
+            },
+            &schema
+        ),
+        Err(EditionCurationError::MissingReference)
+    );
     let visual_path = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/edition-curation.v1.json";
     let visual_raw = fs::read(root.join(visual_path)).unwrap();
     let visual: Value = serde_json::from_slice(&visual_raw).unwrap();

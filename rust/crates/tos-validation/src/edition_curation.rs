@@ -77,6 +77,27 @@ pub fn validate_recipe_plan(
         .or(historical)
         .ok_or(EditionCurationError::MissingReference)?;
     verify_selected_bytes(plan, reference, expected)?;
+    if let Some(profile) = recipe.get("association_classification") {
+        let selected_plan = published_value(plan.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+            .map_err(EditionCurationError::Schema)?;
+        for group in ["proposed", "ambiguous"] {
+            let pointers = profile[group]
+                .as_object()
+                .ok_or(EditionCurationError::InvalidSchema)?;
+            for pointer in pointers.values() {
+                let pointer = pointer
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                if selected_plan
+                    .pointer(pointer)
+                    .and_then(Value::as_u64)
+                    .is_none()
+                {
+                    return Err(EditionCurationError::MissingReference);
+                }
+            }
+        }
+    }
     if let Some(entries) = recipe["retained_artifacts"].as_array() {
         if entries.iter().any(|entry| {
             entry["plan_pointer"].is_string() || entry["plan_value_pointer"].is_string()

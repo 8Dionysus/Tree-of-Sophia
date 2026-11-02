@@ -2277,6 +2277,28 @@
         "sha256": "763d7e37317e184b76ac9498f70e401c3c54283413aa4e14d685068086de0db1",
         "schema_version": "tos_zarathustra_parallel_lexical_candidate_manifest_v1",
         "output_root": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-antonovsky-parallel-candidates-v1"
+      },
+      "association_classification": {
+        "proposed": {
+          "minimum_support": "/candidate_thresholds/proposed_minimum_support",
+          "minimum_dice_millionths": "/candidate_thresholds/proposed_minimum_dice_millionths",
+          "minimum_pmi_millibits": "/candidate_thresholds/proposed_minimum_pmi_millibits",
+          "maximum_mutual_rank": "/candidate_thresholds/proposed_maximum_mutual_rank",
+          "minimum_strict_support": "/candidate_thresholds/proposed_minimum_strict_support",
+          "maximum_risk_share_millionths": "/candidate_thresholds/proposed_maximum_risk_share_millionths",
+          "maximum_single_reading_share_millionths": "/candidate_thresholds/proposed_maximum_single_reading_share_millionths"
+        },
+        "ambiguous": {
+          "minimum_dice_millionths": "/candidate_thresholds/association_minimum_dice_millionths",
+          "minimum_pmi_millibits": "/candidate_thresholds/association_minimum_pmi_millibits",
+          "maximum_mutual_rank": "/candidate_thresholds/association_maximum_mutual_rank"
+        },
+        "proposed_disallowed_shape": "many_to_many",
+        "status_order": [
+          "proposed",
+          "ambiguous",
+          "deferred"
+        ]
       }
     },
     {
