@@ -424,6 +424,72 @@
       "schema_ref": "https://tree-of-sophia.local/ToS/contracts/transfer-target-passage-candidate-set.schema.json",
       "legacy_event_sha256": "13fd906ae6a3124ff71c58cb9e36c276c117e7de0a675c734eae2551ea96b5e4",
       "legacy_builder_sha256": "045f98b86c49851bb3183bf5f0d054295993a9e27f72c7a5d2d8d2c29483577e"
+    },
+    {
+      "stage": "transfer-candidates",
+      "locators": [
+        {
+          "role": "research_root",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1"
+        },
+        {
+          "role": "plan",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-samples.json"
+        },
+        {
+          "role": "anchors",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-anchors.v1.jsonl"
+        },
+        {
+          "role": "provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-provenance.jsonl"
+        },
+        {
+          "role": "private_content",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-targets/v1"
+        },
+        {
+          "role": "plan_schema",
+          "repository_path": "ToS/contracts/golden-kernel-transfer-plan.schema.json"
+        },
+        {
+          "role": "boundary_map",
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json"
+        },
+        {
+          "role": "source_pdf",
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/payload/Ницше собрание сочинений.pdf"
+        },
+        {
+          "role": "rights",
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json"
+        },
+        {
+          "role": "gold_assurance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/gold-assurance.v2.json"
+        }
+      ],
+      "event_id": "tos.event.segmentation.zarathustra-transfer-candidate-freeze-v3.2026-07-29",
+      "expected_file_sha256": "ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+      "works": [
+        {
+          "work_ref": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+          "label": "jenseits",
+          "expected_count": 4
+        },
+        {
+          "work_ref": "tos.work.friedrich-nietzsche.zur-genealogie-der-moral",
+          "label": "genealogie",
+          "expected_count": 3
+        },
+        {
+          "work_ref": "tos.work.friedrich-nietzsche.der-antichrist",
+          "label": "antichrist",
+          "expected_count": 3
+        }
+      ],
+      "legacy_event_sha256": "b87ba0c258b9d21b9d675d16691054e02adb90b2cf597f20e9d60299a663c939",
+      "legacy_builder_sha256": "71f61e32b16bd797ae3bc80c97b9cba454539661422a1ff652ddefbf2e849d2c"
     }
   ]
 }
