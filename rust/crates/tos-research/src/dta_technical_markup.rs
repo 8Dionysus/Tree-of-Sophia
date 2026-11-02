@@ -144,8 +144,80 @@ fn kind(tag: &str) -> Option<&'static str> {
         _ => return None,
     })
 }
-fn clean_text(raw: &str, after_lb: bool) -> &str {
-    let raw = if after_lb {
+struct TextProfile {
+    choices: Vec<String>,
+    excluded_elements: BTreeSet<String>,
+    line_break_element: String,
+    line_break_text: String,
+    trim_after_break: bool,
+    formatting_markers: String,
+}
+impl TextProfile {
+    fn selected(recipe: &Value, plan: &Value) -> Result<Self> {
+        let p = &recipe["tei_text_profile"];
+        let mut unique = BTreeSet::new();
+        let choices = array(&p["choice_preference"])?
+            .iter()
+            .map(|value| {
+                let value = s(value)?.to_owned();
+                ensure(unique.insert(value.clone()), "duplicate TEI choice")?;
+                Ok(value)
+            })
+            .collect::<Result<Vec<_>>>()?;
+        ensure(
+            !choices.is_empty() && p["choice_fallback"] == "first-child",
+            "TEI choice profile",
+        )?;
+        ensure(
+            plan["extraction_policy"]["choice_policy"]
+                == format!("prefer-{}-then-first", choices.join("-then-")),
+            "TEI plan choice policy differs",
+        )?;
+        let excluded = plan
+            .pointer(s(&p["excluded_elements_plan_pointer"])?)
+            .ok_or("excluded TEI elements required")?;
+        let mut excluded_elements = BTreeSet::new();
+        for value in array(excluded)? {
+            ensure(
+                excluded_elements.insert(s(value)?.to_owned()),
+                "duplicate excluded TEI element",
+            )?;
+        }
+        ensure(
+            plan.pointer(s(&p["normalization_plan_pointer"])?)
+                .and_then(Value::as_str)
+                == Some("none"),
+            "TEI normalization profile",
+        )?;
+        ensure(
+            p["whitespace_profile"] == "tos-python-native-unicode-v1",
+            "TEI whitespace profile",
+        )?;
+        let line_break_element = s(&p["line_break_element"])?.to_owned();
+        let line_break_text = s(&p["line_break_text"])?.to_owned();
+        let trim_after_break = p["trim_one_leading_newline_after_line_break"]
+            .as_bool()
+            .ok_or("TEI line break trim rule")?;
+        let formatting_markers = s(&p["formatting_whitespace_markers"])?.to_owned();
+        ensure(
+            line_break_element == "lb"
+                && line_break_text == "\n"
+                && trim_after_break
+                && formatting_markers == "\n\r\t",
+            "TEI plan line and formatting policy differs",
+        )?;
+        Ok(Self {
+            choices,
+            excluded_elements,
+            line_break_element,
+            line_break_text,
+            trim_after_break,
+            formatting_markers,
+        })
+    }
+}
+fn clean_text<'a>(raw: &'a str, after_lb: bool, profile: &TextProfile) -> &'a str {
+    let raw = if after_lb && profile.trim_after_break {
         raw.strip_prefix('\n').unwrap_or(raw)
     } else {
         raw
@@ -154,7 +226,7 @@ fn clean_text(raw: &str, after_lb: bool) -> &str {
         && raw
             .chars()
             .all(|c| c.is_whitespace() || matches!(c, '\u{1c}'..='\u{1f}'))
-        && raw.contains(['\n', '\r', '\t'])
+        && raw.chars().any(|c| profile.formatting_markers.contains(c))
     {
         ""
     } else {
@@ -189,6 +261,7 @@ fn observe(
     raw: &[u8],
     resources: &BTreeMap<String, Value>,
     major: &BTreeMap<(String, String), Value>,
+    profile: &TextProfile,
 ) -> Result<ObservedPart> {
     let root = xml_with_doctype(ctx, raw, false)?;
     ensure(
@@ -230,6 +303,7 @@ fn observe(
         resources: &'a BTreeMap<String, Value>,
         major: &'a BTreeMap<(String, String), Value>,
         excluded: &'a BTreeSet<String>,
+        profile: &'a TextProfile,
         text: String,
         length: usize,
         units: Vec<Unit>,
@@ -249,7 +323,7 @@ fn observe(
             self.ctx.tick(1)?;
             let path = &self.paths[&(n as *const _ as usize)];
             let tag = n.name.as_str();
-            if self.excluded.contains(path) || matches!(tag, "fw" | "note") {
+            if self.excluded.contains(path) || self.profile.excluded_elements.contains(tag) {
                 return Ok(());
             }
             if tag == "choice" {
@@ -264,9 +338,11 @@ fn observe(
                         }
                     })
                     .collect::<Vec<_>>();
-                let selected = ["sic", "orig", "abbr"]
-                    .into_iter()
-                    .find_map(|name| children.iter().find(|c| c.name == name).copied())
+                let selected = self
+                    .profile
+                    .choices
+                    .iter()
+                    .find_map(|name| children.iter().find(|c| &c.name == name).copied())
                     .or_else(|| children.first().copied());
                 if let Some(c) = selected {
                     self.visit(c, parent)?;
@@ -327,15 +403,15 @@ fn observe(
             for piece in &n.content {
                 match piece {
                     Part::Text(text) => {
-                        self.append(clean_text(text, after_lb))?;
+                        self.append(clean_text(text, after_lb, self.profile))?;
                         after_lb = false;
                     }
                     Part::Child(child) => {
                         let child_path = &self.paths[&(child as *const _ as usize)];
                         if self.excluded.contains(child_path) {
                             after_lb = false;
-                        } else if child.name == "lb" {
-                            self.append("\n")?;
+                        } else if child.name == self.profile.line_break_element {
+                            self.append(&self.profile.line_break_text)?;
                             after_lb = true;
                         } else {
                             self.visit(child, parent)?;
@@ -362,6 +438,7 @@ fn observe(
         resources,
         major,
         excluded: &excluded,
+        profile,
         text: String::new(),
         length: 0,
         units: vec![],
@@ -394,6 +471,7 @@ fn load_part(
     config: &Value,
     major: &BTreeMap<(String, String), Value>,
     bindings: &mut BTreeMap<String, Vec<u8>>,
+    profile: &TextProfile,
 ) -> Result<ObservedPart> {
     let (manifest_raw, manifest) = load(ctx, s(&config["manifest_ref"])?)?;
     let (inventory_raw, inventory) = load(ctx, s(&config["resource_inventory_ref"])?)?;
@@ -458,7 +536,15 @@ fn load_part(
     ] {
         bindings.insert(s(&config[key])?.to_owned(), raw);
     }
-    observe(ctx, config.clone(), payload_ref, &raw, &resources, major)
+    observe(
+        ctx,
+        config.clone(),
+        payload_ref,
+        &raw,
+        &resources,
+        major,
+        profile,
+    )
 }
 fn validate_legacy_recipe(recipe: &Value) -> Result<()> {
     for field in [
@@ -1200,6 +1286,7 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
     validate_identity_recipe(opts.recipe)?;
     validate_legacy_recipe(opts.recipe)?;
     let (plan_raw, plan) = current_plan(ctx, opts.plan_ref)?;
+    let profile = TextProfile::selected(opts.recipe, &plan)?;
     let retained = retained_event(ctx, &plan, &opts)?;
     let build = matches!(opts.action, Action::Build { .. });
     if matches!(opts.action, Action::ValidateTracked) {
@@ -1269,7 +1356,14 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
     configs.sort_by_key(|c| c["part_order"].as_u64());
     let mut parts = Vec::new();
     for config in configs {
-        parts.push(load_part(ctx, &input, config, &major, &mut bindings)?);
+        parts.push(load_part(
+            ctx,
+            &input,
+            config,
+            &major,
+            &mut bindings,
+            &profile,
+        )?);
     }
     let issuance_ref = s(&plan["identity_policy"]["issuance_ref"])?;
     let issue_new = matches!(
@@ -1548,6 +1642,7 @@ mod tests {
             s(&f["xml"]).unwrap().as_bytes(),
             &resources,
             &major,
+            &TextProfile::selected(&recipe(), &f["plan"]).unwrap(),
         )
         .unwrap()
     }
@@ -1613,6 +1708,14 @@ mod tests {
         assert_eq!(exact, "A😀\nB old tail.");
     }
     #[test]
+    fn text_profile_refuses_choice_rules_inconsistent_with_plan() {
+        let mut selected = recipe();
+        let fixture = fixture();
+        assert!(TextProfile::selected(&selected, &fixture["plan"]).is_ok());
+        selected["tei_text_profile"]["choice_preference"] = json!(["orig", "sic", "abbr"]);
+        assert!(TextProfile::selected(&selected, &fixture["plan"]).is_err());
+    }
+    #[test]
     fn issuance_profile_rejects_duplicate_fields_and_invalid_digest_length() {
         let mut selected = recipe();
         assert!(validate_identity_recipe(&selected).is_ok());
@@ -1642,7 +1745,8 @@ mod tests {
                     "payload.xml".into(),
                     raw.as_bytes(),
                     &BTreeMap::new(),
-                    &BTreeMap::new()
+                    &BTreeMap::new(),
+                    &TextProfile::selected(&recipe(), &f["plan"]).unwrap()
                 )
                 .is_err()
             );
