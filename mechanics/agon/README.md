@@ -10,15 +10,14 @@ canon review. The center Agon law belongs to `Agents-of-Abyss`.
 
 ### Threshold intake and canon restraint
 
-Receive a threshold packet, candidate scope and source boundary note. Route the
-candidate to restraint or ToS review, return, deferral, quarantine or an
-authorial request. The review boundary distinguishes intake, review,
+Receive an Agon/KAG threshold packet, candidate scope and source boundary note.
+Route the candidate to restraint or ToS review, owner evidence, return, deferral,
+quarantine or an authorial request. The review boundary distinguishes intake, review,
 rejection, deferral, branch candidates and canon drafts. Rejection,
 defer-with-cost and branch candidates are first-class routes.
 
-`Sophian threshold candidate != Tree-of-Sophia canon`. Canon follows ToS-owned
-source review and authored promotion. The detailed source records remain in
-`parts/threshold-intake/docs/` and `parts/canon-restraint/docs/`. The intake schema is
+`Sophian threshold candidate != Tree-of-Sophia canon`. Authored, slow and explicit canon
+follows ToS-owned source review and promotion. The intake schema is
 `parts/threshold-intake/schemas/tos-agon-threshold-intake.schema.json`.
 
 ### Threshold registry
@@ -41,7 +40,6 @@ are in `rust/crates/tos-ops-mechanics-plan/tests/mechanics_contracts.rs`.
 
 Carry the landing note, center pressure and ToS boundary into a handoff receipt
 and next route: center Agon law to `Agents-of-Abyss`, authored meaning to ToS.
-The landing record remains in `parts/landing-handoff/docs/`.
 
 ## History
 
