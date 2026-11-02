@@ -42,6 +42,7 @@ pub mod knowledge_presentation;
 mod knowledge_sqlite;
 #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 mod knowledge_temporal;
+pub mod research_index_search;
 pub mod research_operations;
 #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 pub use controlled_lens_adapter::{
