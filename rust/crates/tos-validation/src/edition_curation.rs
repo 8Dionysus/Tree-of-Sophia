@@ -22,6 +22,7 @@ pub enum EditionCurationError {
     InvalidRange(&'static str),
     UnsafePath,
     BindingMismatch,
+    DigestMismatch,
     MissingReference,
     AmbiguousReference,
 }
@@ -44,6 +45,54 @@ pub struct SelectedCuration<'a> {
 /// Validate exact curation JSON using the caller's selected schema resources.
 pub fn validate(raw: &[u8], schema: &SchemaBackendProbe) -> Result<(), EditionCurationError> {
     document(raw, schema).map(|_| ())
+}
+
+/// Bind a stage to the exact caller-selected plan bytes before source payloads are opened.
+pub fn validate_recipe_plan(
+    raw: &[u8],
+    stage: &str,
+    plan: SelectedDocument<'_>,
+    schema: &SchemaBackendProbe,
+) -> Result<(), EditionCurationError> {
+    tos_foundation::RelativePath::parse(plan.reference)
+        .map_err(|_| EditionCurationError::UnsafePath)?;
+    let value = document(raw, schema)?;
+    let mut matching = value["recipes"]
+        .as_array()
+        .ok_or(EditionCurationError::InvalidSchema)?
+        .iter()
+        .filter(|recipe| recipe["stage"] == stage);
+    let recipe = matching
+        .next()
+        .ok_or(EditionCurationError::MissingReference)?;
+    if matching.next().is_some() {
+        return Err(EditionCurationError::AmbiguousReference);
+    }
+    let reference = recipe["plan_ref"]
+        .as_str()
+        .or_else(|| {
+            recipe["locators"].as_array()?.iter().find_map(|locator| {
+                (locator["role"] == "index_plan")
+                    .then(|| locator["repository_path"].as_str())
+                    .flatten()
+            })
+        })
+        .ok_or(EditionCurationError::MissingReference)?;
+    if reference != plan.reference {
+        return Err(EditionCurationError::BindingMismatch);
+    }
+    let current = recipe["plan_sha256"].as_str();
+    let historical = recipe["historical_plan_sha256"].as_str();
+    if matches!((current, historical), (Some(a), Some(b)) if a != b) {
+        return Err(EditionCurationError::BindingMismatch);
+    }
+    let expected = current
+        .or(historical)
+        .ok_or(EditionCurationError::MissingReference)?;
+    if tos_foundation::Digest256::of_bytes(plan.raw).to_hex() != expected {
+        return Err(EditionCurationError::DigestMismatch);
+    }
+    Ok(())
 }
 
 fn document(raw: &[u8], schema: &SchemaBackendProbe) -> Result<Value, EditionCurationError> {

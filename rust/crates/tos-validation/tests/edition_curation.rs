@@ -5,7 +5,7 @@ use tos_validation::{
     FormatProfile, SchemaBackendProbe, SchemaResource,
     edition_curation::{
         EditionCurationError, SCHEMA_URI, SelectedCuration, SelectedDocument, validate,
-        validate_bindings,
+        validate_bindings, validate_recipe_plan,
     },
 };
 
@@ -80,6 +80,84 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let dta_path = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/edition-curation.v1.json";
     let dta_raw = fs::read(root.join(dta_path)).unwrap();
     assert_eq!(validate(&dta_raw, &schema), Ok(()));
+    let dta_value: Value = serde_json::from_slice(&dta_raw).unwrap();
+    let plan_ref = dta_value["recipes"][0]["plan_ref"].as_str().unwrap();
+    let plan_raw = fs::read(root.join(plan_ref)).unwrap();
+    let plan = SelectedDocument {
+        reference: plan_ref,
+        raw: &plan_raw,
+    };
+    assert_eq!(
+        validate_recipe_plan(&dta_raw, "tei-technical-markup", plan, &schema),
+        Ok(())
+    );
+    assert_eq!(
+        validate_recipe_plan(
+            &dta_raw,
+            "tei-technical-markup",
+            SelectedDocument {
+                reference: plan_ref,
+                raw: b"changed"
+            },
+            &schema
+        ),
+        Err(EditionCurationError::DigestMismatch)
+    );
+    assert_eq!(
+        validate_recipe_plan(
+            &dta_raw,
+            "tei-technical-markup",
+            SelectedDocument {
+                reference: "../plan.json",
+                raw: &plan_raw
+            },
+            &schema
+        ),
+        Err(EditionCurationError::UnsafePath)
+    );
+    assert_eq!(
+        validate_recipe_plan(&dta_raw, "unknown-stage", plan, &schema),
+        Err(EditionCurationError::MissingReference)
+    );
+    let mut ambiguous_plan = dta_value.clone();
+    let recipes = ambiguous_plan["recipes"].as_array_mut().unwrap();
+    recipes.push(recipes[0].clone());
+    assert_eq!(
+        validate_recipe_plan(
+            &serde_json::to_vec(&ambiguous_plan).unwrap(),
+            "tei-technical-markup",
+            plan,
+            &schema
+        ),
+        Err(EditionCurationError::AmbiguousReference)
+    );
+    let lexical = dta_value["recipes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|recipe| recipe["stage"] == "lexical-index")
+        .unwrap();
+    let lexical_plan_ref = lexical["locators"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|locator| locator["role"] == "index_plan")
+        .unwrap()["repository_path"]
+        .as_str()
+        .unwrap();
+    let lexical_plan_raw = fs::read(root.join(lexical_plan_ref)).unwrap();
+    assert_eq!(
+        validate_recipe_plan(
+            &dta_raw,
+            "lexical-index",
+            SelectedDocument {
+                reference: lexical_plan_ref,
+                raw: &lexical_plan_raw
+            },
+            &schema
+        ),
+        Ok(())
+    );
     let mut duplicate_dta_output: Value = serde_json::from_slice(&dta_raw).unwrap();
     duplicate_dta_output["recipes"][0]["frozen_outputs"][1]["repository_path"] =
         duplicate_dta_output["recipes"][0]["frozen_outputs"][0]["repository_path"].clone();
@@ -90,6 +168,21 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let antonovsky_path = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/edition-curation.v1.json";
     let antonovsky_raw = fs::read(root.join(antonovsky_path)).unwrap();
     assert_eq!(validate(&antonovsky_raw, &schema), Ok(()));
+    let collation: Value = serde_json::from_slice(&antonovsky_raw).unwrap();
+    let collation_plan_ref = collation["recipes"][1]["plan_ref"].as_str().unwrap();
+    let collation_plan_raw = fs::read(root.join(collation_plan_ref)).unwrap();
+    assert_eq!(
+        validate_recipe_plan(
+            &antonovsky_raw,
+            "text-collation",
+            SelectedDocument {
+                reference: collation_plan_ref,
+                raw: &collation_plan_raw
+            },
+            &schema
+        ),
+        Ok(())
+    );
     let mut duplicate_region: Value = serde_json::from_slice(&antonovsky_raw).unwrap();
     let regions = duplicate_region["recipes"][0]["layout_rules"]["regions"]
         .as_array_mut()
