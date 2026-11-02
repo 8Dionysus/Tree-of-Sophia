@@ -35,5 +35,11 @@
   ],
   "observability": {
     "enabled": true
-  }
+  },
+  "r2_buckets": [
+    {
+      "binding": "PUBLIC_LAYERS",
+      "bucket_name": "tos-public-layers"
+    }
+  ]
 }
