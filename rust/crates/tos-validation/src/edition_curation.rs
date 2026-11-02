@@ -77,6 +77,25 @@ pub fn validate_recipe_plan(
         .or(historical)
         .ok_or(EditionCurationError::MissingReference)?;
     verify_selected_bytes(plan, reference, expected)?;
+    if let Some(entries) = recipe["retained_artifacts"].as_array() {
+        if entries
+            .iter()
+            .any(|entry| entry["plan_pointer"].is_string())
+        {
+            let selected_plan = published_value(plan.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+                .map_err(EditionCurationError::Schema)?;
+            for entry in entries {
+                if let Some(pointer) = entry["plan_pointer"].as_str() {
+                    let reference = selected_plan
+                        .pointer(pointer)
+                        .and_then(Value::as_str)
+                        .ok_or(EditionCurationError::MissingReference)?;
+                    tos_foundation::RelativePath::parse(reference)
+                        .map_err(|_| EditionCurationError::UnsafePath)?;
+                }
+            }
+        }
+    }
     if let Some(profile) = recipe
         .get("identity_profile")
         .or_else(|| recipe.get("opaque_identity_profile"))
@@ -317,6 +336,42 @@ pub fn validate_review_sources(
         }
     }
     Ok(())
+}
+
+/// Verify a retained artifact selected from its exact plan or authored path.
+pub fn validate_retained_artifact(
+    raw: &[u8],
+    stage: &str,
+    role: &str,
+    plan: SelectedDocument<'_>,
+    artifact: SelectedDocument<'_>,
+    schema: &SchemaBackendProbe,
+) -> Result<(), EditionCurationError> {
+    validate_recipe_plan(raw, stage, plan, schema)?;
+    let value = document(raw, schema)?;
+    let recipe = selected_recipe(&value, stage)?;
+    let entry = recipe["retained_artifacts"]
+        .as_array()
+        .ok_or(EditionCurationError::MissingReference)?
+        .iter()
+        .find(|entry| entry["role"] == role)
+        .ok_or(EditionCurationError::MissingReference)?;
+    let digest = entry["sha256"]
+        .as_str()
+        .ok_or(EditionCurationError::InvalidSchema)?;
+    if let Some(reference) = entry["repository_path"].as_str() {
+        return verify_selected_bytes(artifact, reference, digest);
+    }
+    let pointer = entry["plan_pointer"]
+        .as_str()
+        .ok_or(EditionCurationError::MissingReference)?;
+    let selected_plan = published_value(plan.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+        .map_err(EditionCurationError::Schema)?;
+    let reference = selected_plan
+        .pointer(pointer)
+        .and_then(Value::as_str)
+        .ok_or(EditionCurationError::MissingReference)?;
+    verify_selected_bytes(artifact, reference, digest)
 }
 
 /// Select the exact frozen manifest and check its member metadata.
@@ -1494,6 +1549,7 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                 ("frozen_outputs", "repository_path"),
                 ("historical_fields", "role"),
                 ("historical_templates", "role"),
+                ("retained_artifacts", "role"),
                 ("record_identities", "role"),
                 ("role_precedence", "role"),
                 ("visual_markers", "citation_contains"),

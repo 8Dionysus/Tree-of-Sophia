@@ -7,7 +7,8 @@ use tos_validation::{
         EditionCurationError, SCHEMA_URI, SelectedCuration, SelectedDocument,
         select_frozen_manifest, select_historical_field, validate, validate_bindings,
         validate_default_request, validate_frozen_manifest_member, validate_frozen_output_fixity,
-        validate_recipe_plan, validate_recipe_template, validate_review_sources,
+        validate_recipe_plan, validate_recipe_template, validate_retained_artifact,
+        validate_review_sources,
     },
 };
 
@@ -127,6 +128,69 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let dta_raw = fs::read(root.join(dta_path)).unwrap();
     assert_eq!(validate(&dta_raw, &schema), Ok(()));
     let dta_value: Value = serde_json::from_slice(&dta_raw).unwrap();
+    let recurrence = dta_value["recipes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|recipe| recipe["stage"] == "lexical-recurrence")
+        .unwrap();
+    let recurrence_plan_ref = recurrence["plan_ref"].as_str().unwrap();
+    let recurrence_plan_raw = fs::read(root.join(recurrence_plan_ref)).unwrap();
+    let recurrence_plan: Value = serde_json::from_slice(&recurrence_plan_raw).unwrap();
+    let event_entry = recurrence["retained_artifacts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|entry| entry["role"] == "event")
+        .unwrap();
+    let event_ref = recurrence_plan
+        .pointer(event_entry["plan_pointer"].as_str().unwrap())
+        .unwrap()
+        .as_str()
+        .unwrap();
+    let event_raw = fs::read(root.join(event_ref)).unwrap();
+    assert_eq!(
+        validate_retained_artifact(
+            &dta_raw,
+            "lexical-recurrence",
+            "event",
+            SelectedDocument {
+                reference: recurrence_plan_ref,
+                raw: &recurrence_plan_raw,
+            },
+            SelectedDocument {
+                reference: event_ref,
+                raw: &event_raw,
+            },
+            &schema,
+        ),
+        Ok(())
+    );
+    let context_result = dta_value["recipes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|recipe| recipe["stage"] == "morphology-context-result")
+        .unwrap();
+    let context_plan_ref = context_result["plan_ref"].as_str().unwrap();
+    let context_plan_raw = fs::read(root.join(context_plan_ref)).unwrap();
+    assert_eq!(
+        validate_retained_artifact(
+            &dta_raw,
+            "morphology-context-result",
+            "form",
+            SelectedDocument {
+                reference: context_plan_ref,
+                raw: &context_plan_raw,
+            },
+            SelectedDocument {
+                reference: event_ref,
+                raw: &event_raw,
+            },
+            &schema,
+        ),
+        Err(EditionCurationError::MissingReference)
+    );
     let mut invalid_comparison_output = dta_value.clone();
     let comparison = invalid_comparison_output["recipes"]
         .as_array_mut()

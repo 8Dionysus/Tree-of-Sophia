@@ -2354,7 +2354,8 @@
       "retained_artifacts": [
         {
           "role": "receipt",
-          "sha256": "b37d789ae4e9439565acc8bc9fb91028cee7943f8ff99a515a75e85a9ffa6d83"
+          "sha256": "b37d789ae4e9439565acc8bc9fb91028cee7943f8ff99a515a75e85a9ffa6d83",
+          "plan_pointer": "/a_census/tracked_receipt_ref"
         }
       ],
       "row_fields": [
@@ -2386,11 +2387,13 @@
       "retained_artifacts": [
         {
           "role": "projection",
-          "sha256": "7b5ecdd8dc9f3911bbf25a29da1c820d836b26502a4e925e89baf39bde011edb"
+          "sha256": "7b5ecdd8dc9f3911bbf25a29da1c820d836b26502a4e925e89baf39bde011edb",
+          "plan_pointer": "/output/ref"
         },
         {
           "role": "event",
-          "sha256": "edda5ab455924ddbe7ad9ff321f637d5028e91389f72e3bacd314a1d815eaafc"
+          "sha256": "edda5ab455924ddbe7ad9ff321f637d5028e91389f72e3bacd314a1d815eaafc",
+          "plan_pointer": "/output/provenance_ref"
         }
       ],
       "record_identities": [
@@ -2414,11 +2417,13 @@
       "retained_artifacts": [
         {
           "role": "receipt",
-          "sha256": "2c0b0cb5cd36bee49a12f9c6c6452383e121b000fa556e99b73bbb9082a76a19"
+          "sha256": "2c0b0cb5cd36bee49a12f9c6c6452383e121b000fa556e99b73bbb9082a76a19",
+          "plan_pointer": "/tracked_receipt_ref"
         },
         {
           "role": "event",
-          "sha256": "a322010940c12055066cf7a283f6bdc5271b50e30170ad55ec3c33036b2d65fe"
+          "sha256": "a322010940c12055066cf7a283f6bdc5271b50e30170ad55ec3c33036b2d65fe",
+          "plan_pointer": "/provenance_ref"
         }
       ],
       "row_fields": [
@@ -2474,11 +2479,13 @@
       "retained_artifacts": [
         {
           "role": "receipt",
-          "sha256": "0baff212b114ae9d0781ad0e26cf93a25066ad42f371252dc8106d89440d936f"
+          "sha256": "0baff212b114ae9d0781ad0e26cf93a25066ad42f371252dc8106d89440d936f",
+          "plan_pointer": "/tracked_receipt_ref"
         },
         {
           "role": "event",
-          "sha256": "b1d7e32b50d2d542807db610afb899fa503c718fa598135580e0362b97aff13c"
+          "sha256": "b1d7e32b50d2d542807db610afb899fa503c718fa598135580e0362b97aff13c",
+          "plan_pointer": "/provenance_ref"
         }
       ],
       "historical_event_at": "2026-08-10T22:00:00Z",
@@ -2505,15 +2512,18 @@
       "retained_artifacts": [
         {
           "role": "receipt",
-          "sha256": "b50417321708d85ee6ec1dfc2225fe6e2206cd590fd043516a7d894843da438f"
+          "sha256": "b50417321708d85ee6ec1dfc2225fe6e2206cd590fd043516a7d894843da438f",
+          "plan_pointer": "/tracked_outputs/receipt_ref"
         },
         {
           "role": "event",
-          "sha256": "b56a8a6cbdeab1fa6d6c971dea6e6419582de0b16629d65b981e6f5835f310af"
+          "sha256": "b56a8a6cbdeab1fa6d6c971dea6e6419582de0b16629d65b981e6f5835f310af",
+          "plan_pointer": "/tracked_outputs/provenance_ref"
         },
         {
           "role": "bundle",
-          "sha256": "f18515cd36f6b6dd5b68c37b6fbebd8a7b3309cef8b6d1aa6c58f2e5f339d763"
+          "sha256": "f18515cd36f6b6dd5b68c37b6fbebd8a7b3309cef8b6d1aa6c58f2e5f339d763",
+          "plan_pointer": "/local_output/ref"
         }
       ],
       "record_identities": [
@@ -2544,11 +2554,13 @@
       "retained_artifacts": [
         {
           "role": "input",
-          "sha256": "1c734e6f8371e28b863d58e216b7a649aa6d603192f1f7310056e8caa022eb9a"
+          "sha256": "1c734e6f8371e28b863d58e216b7a649aa6d603192f1f7310056e8caa022eb9a",
+          "plan_pointer": "/a_census/local_packet/relative_path"
         },
         {
           "role": "previous-receipt",
-          "sha256": "9dbf0733e48164e25c19aceb26cf678a006fa376fd1c828f848352080482301f"
+          "sha256": "9dbf0733e48164e25c19aceb26cf678a006fa376fd1c828f848352080482301f",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-census-result.a-dwdsmor-open-0.18.0.v1.json"
         }
       ],
       "historical_provider": {
@@ -2584,19 +2596,23 @@
       "retained_artifacts": [
         {
           "role": "previous-receipt",
-          "sha256": "ff401fe42c3f2c8a496f6b944e85d348e2e952017ebe38cb3604b69cb62346ba"
+          "sha256": "ff401fe42c3f2c8a496f6b944e85d348e2e952017ebe38cb3604b69cb62346ba",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-contextual-episode.selected-form-b.result.v1.json"
         },
         {
           "role": "previous-event",
-          "sha256": "b6d3fdcd174881bd7e22c255a312755eef7416c4d9c8be34613505c5f2c73be8"
+          "sha256": "b6d3fdcd174881bd7e22c255a312755eef7416c4d9c8be34613505c5f2c73be8",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/provenance.morphology-contextual-episode.selected-form-b.result.v1.jsonl"
         },
         {
           "role": "context",
-          "sha256": "0baff212b114ae9d0781ad0e26cf93a25066ad42f371252dc8106d89440d936f"
+          "sha256": "0baff212b114ae9d0781ad0e26cf93a25066ad42f371252dc8106d89440d936f",
+          "plan_pointer": "/tracked_receipt_ref"
         },
         {
           "role": "packet",
-          "sha256": "d82a2d81b370f3131fb56e0b1328866120cb3313903ffdf115debb4f0e34aa66"
+          "sha256": "d82a2d81b370f3131fb56e0b1328866120cb3313903ffdf115debb4f0e34aa66",
+          "plan_pointer": "/local_packet/relative_path"
         },
         {
           "role": "form",
