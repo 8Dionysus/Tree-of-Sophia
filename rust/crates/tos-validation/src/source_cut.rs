@@ -5226,6 +5226,278 @@ impl<I> CutSchemaExecutor for InProcessCutSchemaExecutor<I> {
     }
 }
 
+/// Candidate-fenced schema binding prepared from the owner's complete selection.
+pub struct InProcessCandidateSchemaExecutor<I> {
+    input_identity: I,
+    selected: Vec<SelectedSchemaResource>,
+    contract_selection_digest: Digest256,
+    inner: InProcessCutSchemaExecutor<I>,
+    finished: bool,
+}
+
+impl<I: Copy + Eq> InProcessCandidateSchemaExecutor<I> {
+    pub fn from_schema_set(
+        schema_set: CandidateSourceFoundationSchemaSet<I>,
+        input_mode: crate::in_process::InputMode,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Self, ItemRefusal> {
+        check(deadline, cancelled)?;
+        if schema_set.resources.is_empty()
+            || schema_set.resources.len() != schema_set.source_resources.len()
+            || schema_set.resources.len() != schema_set.contracts.len()
+            || schema_resource_set_digest(&schema_set.resources)
+                != Some(schema_set.schema_set_sha256)
+            || contract_selection_digest(&schema_set.contracts)
+                != schema_set.contract_selection_sha256
+        {
+            return Err(ItemRefusal::Source(
+                "candidate schema selection differs".into(),
+            ));
+        }
+        let mut previous: Option<&str> = None;
+        for (metadata, resource) in schema_set
+            .source_resources
+            .iter()
+            .zip(&schema_set.resources)
+        {
+            check(deadline, cancelled)?;
+            if previous.is_some_and(|path| path >= metadata.path.as_str())
+                || metadata.size_bytes != resource.raw.len() as u64
+                || metadata.sha256 != Digest256::of_bytes(&resource.raw)
+                || !schema_set
+                    .contracts
+                    .get(&metadata.path)
+                    .is_some_and(|(uri, digest)| uri == &resource.uri && *digest == metadata.sha256)
+            {
+                return Err(ItemRefusal::Source(
+                    "candidate schema resource differs".into(),
+                ));
+            }
+            previous = Some(&metadata.path);
+        }
+        let input_identity = schema_set.input_identity;
+        let inner = InProcessCutSchemaExecutor::new(
+            InProcessCutIdentity::Candidate(input_identity),
+            schema_set.contracts,
+            schema_set.resources,
+            schema_set.profile,
+            input_mode,
+        )
+        .map_err(|error| ItemRefusal::Unsupported(format!("schema preparation: {error:?}")))?;
+        check(deadline, cancelled)?;
+        Ok(Self {
+            input_identity,
+            selected: schema_set.source_resources,
+            contract_selection_digest: schema_set.contract_selection_sha256,
+            inner,
+            finished: false,
+        })
+    }
+
+    pub fn diagnostic_for(
+        &mut self,
+        path: &str,
+        contract: &str,
+        raw: &[u8],
+        caps: schema_diagnostics::Caps,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<InProcessCutDiagnostic<I>, ItemRefusal> {
+        if self.finished {
+            return Err(ItemRefusal::Unsupported(
+                "candidate schema operation finalized".into(),
+            ));
+        }
+        self.inner
+            .diagnostic_for(path, contract, raw, caps, deadline, cancelled)
+    }
+}
+
+impl<I: Copy + Eq> CutSchemaExecutor for InProcessCandidateSchemaExecutor<I> {
+    fn schema_profile(&self) -> Option<FormatProfile> {
+        self.inner.schema_profile()
+    }
+    fn schema_execution_binding(&self) -> Option<tos_foundation::SchemaExecutionBinding> {
+        self.inner.schema_execution_binding()
+    }
+    fn selected_contract_digest(&self, contract: &str) -> Option<Digest256> {
+        self.inner.selected_contract_digest(contract)
+    }
+    fn check(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, ItemRefusal> {
+        if self.finished {
+            return Err(ItemRefusal::Unsupported(
+                "candidate schema operation finalized".into(),
+            ));
+        }
+        self.inner.check(path, raw, contract, deadline, cancelled)
+    }
+    fn finish(&mut self, deadline: Instant, cancelled: &AtomicBool) -> Result<(), ItemRefusal> {
+        if self.finished {
+            return Err(ItemRefusal::Unsupported(
+                "candidate schema operation finalized".into(),
+            ));
+        }
+        check(deadline, cancelled)?;
+        self.finished = true;
+        Ok(())
+    }
+}
+
+impl<I: Copy + Eq> crate::source_foundation_records::SourceFoundationCandidateSchemaBinding<I>
+    for InProcessCandidateSchemaExecutor<I>
+{
+    fn input_identity(&self) -> &I {
+        &self.input_identity
+    }
+    fn profile(&self) -> FormatProfile {
+        self.inner.profile
+    }
+    fn schema_set_digest(&self) -> Digest256 {
+        self.inner.binding().schema_set_sha256
+    }
+    fn contract_selection_digest(&self) -> Digest256 {
+        self.contract_selection_digest
+    }
+    fn contract_digest(&self, contract: &str) -> Option<Digest256> {
+        self.inner.selected_contract_digest(contract)
+    }
+    fn for_each_selected_resource(
+        &self,
+        visit: &mut dyn FnMut(
+            crate::source_foundation_records::SourceFoundationCandidateSchemaResource<'_>,
+        ) -> Result<(), ItemRefusal>,
+    ) -> Result<(), ItemRefusal> {
+        for resource in &self.selected {
+            visit(
+                crate::source_foundation_records::SourceFoundationCandidateSchemaResource {
+                    path: &resource.path,
+                    size_bytes: resource.size_bytes,
+                    sha256: resource.sha256,
+                },
+            )?;
+        }
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod in_process_candidate_binding_tests {
+    use super::*;
+    use crate::source_foundation_records::SourceFoundationCandidateSchemaBinding;
+    use std::time::Duration;
+
+    fn selected_set() -> CandidateSourceFoundationSchemaSet<u64> {
+        let path = "ToS/contracts/example.schema.json".to_owned();
+        let uri = "https://example.test/schema".to_owned();
+        let raw = br#"{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://example.test/schema","type":"integer"}"#.to_vec();
+        let digest = Digest256::of_bytes(&raw);
+        let contracts = BTreeMap::from([(path.clone(), (uri.clone(), digest))]);
+        let resources = vec![SchemaResource {
+            uri,
+            raw: raw.clone(),
+        }];
+        CandidateSourceFoundationSchemaSet {
+            input_identity: 42,
+            profile: FormatProfile::AssertedSourceCandidateV1,
+            schema_set_sha256: schema_resource_set_digest(&resources).unwrap(),
+            contract_selection_sha256: contract_selection_digest(&contracts),
+            source_resources: vec![SelectedSchemaResource {
+                path,
+                size_bytes: raw.len() as u64,
+                sha256: digest,
+            }],
+            contracts,
+            resources,
+            limits_sha256: digest,
+            schema_bytes: raw.len(),
+            catalog_entry_schema_present: false,
+            catalog_claim_entry_schema_present: false,
+        }
+    }
+
+    #[test]
+    fn candidate_binding_retains_exact_selection_and_refuses_changed_metadata() {
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let mut invalid = selected_set();
+        invalid.source_resources[0].size_bytes += 1;
+        assert!(
+            InProcessCandidateSchemaExecutor::from_schema_set(
+                invalid,
+                crate::in_process::InputMode::PublishedStrict,
+                deadline,
+                &cancelled
+            )
+            .is_err()
+        );
+        let expected = selected_set();
+        let expected_set = expected.schema_set_sha256;
+        let expected_selection = expected.contract_selection_sha256;
+        let mut executor = InProcessCandidateSchemaExecutor::from_schema_set(
+            expected,
+            crate::in_process::InputMode::PublishedStrict,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        assert_eq!(*executor.input_identity(), 42);
+        assert_eq!(executor.schema_set_digest(), expected_set);
+        assert_eq!(executor.contract_selection_digest(), expected_selection);
+        let mut count = 0;
+        executor
+            .for_each_selected_resource(&mut |row| {
+                assert_eq!(row.path, "ToS/contracts/example.schema.json");
+                count += 1;
+                Ok(())
+            })
+            .unwrap();
+        assert_eq!(count, 1);
+        let row = executor
+            .diagnostic_for(
+                "record.json",
+                "ToS/contracts/example.schema.json",
+                b"3",
+                schema_diagnostics::Caps::CURRENT,
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        assert_eq!(row.identity, InProcessCutIdentity::Candidate(42));
+        assert_eq!(row.report.status, schema_diagnostics::Status::Valid);
+        assert!(
+            !executor
+                .check(
+                    "record.json",
+                    br#""wrong""#,
+                    "ToS/contracts/example.schema.json",
+                    deadline,
+                    &cancelled
+                )
+                .unwrap()
+        );
+        executor.finish(deadline, &cancelled).unwrap();
+        assert!(
+            executor
+                .check(
+                    "record.json",
+                    b"3",
+                    "ToS/contracts/example.schema.json",
+                    deadline,
+                    &cancelled
+                )
+                .is_err()
+        );
+    }
+}
+
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(tag = "kind", content = "value", rename_all = "snake_case")]
 enum InProcessIdentityEvidence<I> {
