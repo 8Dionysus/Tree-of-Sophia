@@ -1994,6 +1994,326 @@
           "expected_sha256": "271815b6bc8eba4262768d229bae8ce8fdb8eda66d38556d7f39dd721528e0ed"
         }
       ]
+    },
+    {
+      "stage": "constructor-library",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf"
+      ],
+      "work_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra",
+      "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "candidate_ref": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1",
+      "alignment_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1",
+      "private_analysis_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/eternal-return-concept-candidate-v1/eternal-return-analysis.v1.json",
+      "source_citation_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1/citation-spine.v1.jsonl",
+      "target_paragraph_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-structural-paragraph-v2/paragraph-spine.v2.jsonl",
+      "target_structure_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-structural-paragraph-v2/structure-spine.v2.jsonl",
+      "annotation_ref": "tos.annotation.eternal-return-candidate.sid-5cbb125d0d411355a3b40aeefa71de2f",
+      "parts": [
+        {
+          "number": 1,
+          "label": "I",
+          "year": 1883,
+          "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5"
+        },
+        {
+          "number": 2,
+          "label": "II",
+          "year": 1883,
+          "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5"
+        },
+        {
+          "number": 3,
+          "label": "III",
+          "year": 1884,
+          "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5"
+        },
+        {
+          "number": 4,
+          "label": "IV",
+          "year": 1891,
+          "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5"
+        }
+      ],
+      "chapter_labels": [
+        {
+          "key": "p1.r1",
+          "ru": "Предисловие Заратустры",
+          "en": "Zarathustra’s Prologue"
+        },
+        {
+          "key": "p1.r4",
+          "ru": "О потусторонниках",
+          "en": "On the Otherworldly"
+        },
+        {
+          "key": "p1.r10",
+          "ru": "О проповедниках смерти",
+          "en": "On the Preachers of Death"
+        },
+        {
+          "key": "p1.r13",
+          "ru": "О базарных мухах",
+          "en": "On the Flies of the Marketplace"
+        },
+        {
+          "key": "p1.r15",
+          "ru": "О друге",
+          "en": "On the Friend"
+        },
+        {
+          "key": "p1.r16",
+          "ru": "О тысяче и одной цели",
+          "en": "On a Thousand and One Goals"
+        },
+        {
+          "key": "p1.r23",
+          "ru": "О дарящей добродетели",
+          "en": "On the Giving Virtue"
+        },
+        {
+          "key": "p2.r5",
+          "ru": "О добродетельных",
+          "en": "On the Virtuous"
+        },
+        {
+          "key": "p2.r10",
+          "ru": "Танцевальная песнь",
+          "en": "The Dance Song"
+        },
+        {
+          "key": "p2.r11",
+          "ru": "Надгробная песнь",
+          "en": "The Tomb Song"
+        },
+        {
+          "key": "p2.r15",
+          "ru": "О непорочном познании",
+          "en": "On Immaculate Knowledge"
+        },
+        {
+          "key": "p2.r17",
+          "ru": "О поэтах",
+          "en": "On Poets"
+        },
+        {
+          "key": "p2.r19",
+          "ru": "Прорицатель",
+          "en": "The Soothsayer"
+        },
+        {
+          "key": "p2.r20",
+          "ru": "Об избавлении",
+          "en": "On Redemption"
+        },
+        {
+          "key": "p2.r22",
+          "ru": "Самый тихий час",
+          "en": "The Stillest Hour"
+        },
+        {
+          "key": "p3.r1",
+          "ru": "Странник",
+          "en": "The Wanderer"
+        },
+        {
+          "key": "p3.r2",
+          "ru": "О видении и загадке",
+          "en": "On the Vision and the Riddle"
+        },
+        {
+          "key": "p3.r3",
+          "ru": "О блаженстве против воли",
+          "en": "On Bliss Against One’s Will"
+        },
+        {
+          "key": "p3.r4",
+          "ru": "Перед восходом солнца",
+          "en": "Before Sunrise"
+        },
+        {
+          "key": "p3.r5",
+          "ru": "Об умаляющей добродетели",
+          "en": "On the Diminishing Virtue"
+        },
+        {
+          "key": "p3.r8",
+          "ru": "Об отступниках",
+          "en": "On Apostates"
+        },
+        {
+          "key": "p3.r9",
+          "ru": "Возвращение домой",
+          "en": "The Homecoming"
+        },
+        {
+          "key": "p3.r10",
+          "ru": "О трёх злых",
+          "en": "On the Three Evils"
+        },
+        {
+          "key": "p3.r12",
+          "ru": "О старых и новых скрижалях",
+          "en": "On Old and New Tablets"
+        },
+        {
+          "key": "p3.r13",
+          "ru": "Выздоравливающий",
+          "en": "The Convalescent"
+        },
+        {
+          "key": "p3.r15",
+          "ru": "Другая танцевальная песнь",
+          "en": "The Other Dance Song"
+        },
+        {
+          "key": "p3.r16",
+          "ru": "Семь печатей",
+          "en": "The Seven Seals"
+        },
+        {
+          "key": "p4.r1",
+          "ru": "Медовое приношение",
+          "en": "The Honey Offering"
+        },
+        {
+          "key": "p4.r3",
+          "ru": "Беседа с королями",
+          "en": "Conversation with the Kings"
+        },
+        {
+          "key": "p4.r6",
+          "ru": "В отставке",
+          "en": "Retired"
+        },
+        {
+          "key": "p4.r9",
+          "ru": "Тень",
+          "en": "The Shadow"
+        },
+        {
+          "key": "p4.r10",
+          "ru": "В полдень",
+          "en": "At Noon"
+        },
+        {
+          "key": "p4.r15",
+          "ru": "О науке",
+          "en": "On Science"
+        },
+        {
+          "key": "p4.r17",
+          "ru": "Пробуждение",
+          "en": "The Awakening"
+        },
+        {
+          "key": "p4.r18",
+          "ru": "Праздник осла",
+          "en": "The Ass Festival"
+        },
+        {
+          "key": "p4.r19",
+          "ru": "Песнь ночного странника",
+          "en": "The Night Wanderer’s Song"
+        }
+      ],
+      "class_notes": [
+        {
+          "key": "core",
+          "ru": "Основной материал исследовательского досье: здесь отмечена явная формула возвращения. Это отбор для рассмотрения, а не принятое толкование.",
+          "en": "Core material in the research dossier: an explicit recurrence formulation was identified here. This is a selection for consideration, not an accepted interpretation."
+        },
+        {
+          "key": "supporting",
+          "ru": "Сопутствующий материал досье: фрагмент включён для чтения образов времени, круга, жизни или утверждения. Связь с понятием ещё требует рассмотрения.",
+          "en": "Supporting material in the dossier: the passage was included to examine images of time, the circle, life, or affirmation. Its relation to the concept remains open to review."
+        },
+        {
+          "key": "ambiguous",
+          "ru": "Неоднозначный материал: словесное соседство делает фрагмент интересным для сравнения, но само по себе не подтверждает вечное возвращение.",
+          "en": "Ambiguous material: verbal proximity makes the passage useful for comparison, but does not by itself establish eternal recurrence."
+        },
+        {
+          "key": "excluded",
+          "ru": "Контрольный фрагмент: в досье это местное возвращение исключено из положительных свидетельств вечного возвращения. Его сохранение помогает различать значения.",
+          "en": "Control passage: the dossier excludes this local return from positive evidence for eternal recurrence. Keeping it visible helps distinguish meanings."
+        }
+      ],
+      "speaker_labels": [
+        {
+          "key": "animals_eagle_and_serpent",
+          "ru": "Звери — орёл и змея",
+          "en": "The animals — eagle and serpent"
+        },
+        {
+          "key": "dwarf",
+          "ru": "Карлик",
+          "en": "The dwarf"
+        },
+        {
+          "key": "external_narrator",
+          "ru": "Внешний повествователь",
+          "en": "External narrator"
+        },
+        {
+          "key": "mixed_external_narrator_and_zarathustra",
+          "ru": "Повествователь и Заратустра",
+          "en": "Narrator and Zarathustra"
+        },
+        {
+          "key": "paratext_heading",
+          "ru": "Заголовок",
+          "en": "Heading"
+        },
+        {
+          "key": "spirit_of_gravity_as_dwarf_voice",
+          "ru": "Дух тяжести в голосе карлика",
+          "en": "The spirit of gravity in the dwarf’s voice"
+        },
+        {
+          "key": "ugliest_man",
+          "ru": "Самый безобразный человек",
+          "en": "The ugliest man"
+        },
+        {
+          "key": "zarathustra",
+          "ru": "Заратустра",
+          "en": "Zarathustra"
+        },
+        {
+          "key": "zarathustra_as_storyteller",
+          "ru": "Заратустра как рассказчик",
+          "en": "Zarathustra as storyteller"
+        },
+        {
+          "key": "zarathustra_midnight_song_voice",
+          "ru": "Полуночная песнь Заратустры",
+          "en": "Zarathustra’s midnight song"
+        },
+        {
+          "key": "zarathustra_song_voice",
+          "ru": "Песенный голос Заратустры",
+          "en": "Zarathustra’s singing voice"
+        }
+      ],
+      "demo_ids": [
+        {
+          "annotation_ref": "tos.annotation.semantic-evidence-candidate.sid-7ebaa9e0fcebf5be121f19eda32fa6ee",
+          "slug": "moment"
+        },
+        {
+          "annotation_ref": "tos.annotation.semantic-evidence-candidate.sid-22f2b9f4f255c2745006082db8c28909",
+          "slug": "all-things"
+        },
+        {
+          "annotation_ref": "tos.annotation.semantic-evidence-candidate.sid-ccdeb398711d81a0b4999a00748e39d2",
+          "slug": "same-life"
+        }
+      ]
     }
   ]
 }

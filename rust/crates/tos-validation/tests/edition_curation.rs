@@ -81,6 +81,18 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let dta_raw = fs::read(root.join(dta_path)).unwrap();
     assert_eq!(validate(&dta_raw, &schema), Ok(()));
     let dta_value: Value = serde_json::from_slice(&dta_raw).unwrap();
+    let mut out_of_order = dta_value.clone();
+    let constructor = out_of_order["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "constructor-library")
+        .unwrap();
+    constructor["parts"].as_array_mut().unwrap().swap(0, 1);
+    assert_eq!(
+        validate(&serde_json::to_vec(&out_of_order).unwrap(), &schema),
+        Err(EditionCurationError::InvalidRange("parts"))
+    );
     let mut missing_historical_output = dta_value.clone();
     let foundation = missing_historical_output["recipes"]
         .as_array_mut()

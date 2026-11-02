@@ -244,6 +244,24 @@ enum MarkerPart {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if object.get("stage").and_then(Value::as_str) == Some("constructor-library") {
+                let parts = object
+                    .get("parts")
+                    .and_then(Value::as_array)
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let items = object
+                    .get("source_item_refs")
+                    .and_then(Value::as_array)
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                for (index, part) in parts.iter().enumerate() {
+                    if part["number"].as_u64() != u64::try_from(index + 1).ok() {
+                        return Err(EditionCurationError::InvalidRange("parts"));
+                    }
+                    if items.get(index) != Some(&part["item_ref"]) {
+                        return Err(EditionCurationError::BindingMismatch);
+                    }
+                }
+            }
             if let Some(Value::Array(regions)) = object.get("regions") {
                 let mut seen = BTreeSet::new();
                 for region in regions {
@@ -323,6 +341,11 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                 ("record_identities", "role"),
                 ("role_precedence", "role"),
                 ("visual_markers", "citation_contains"),
+                ("chapter_labels", "key"),
+                ("class_notes", "key"),
+                ("speaker_labels", "key"),
+                ("demo_ids", "annotation_ref"),
+                ("demo_ids", "slug"),
                 ("work_mappings", "work_ref"),
                 ("works", "work_ref"),
                 ("series", "series_key"),
