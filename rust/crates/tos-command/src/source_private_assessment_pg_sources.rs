@@ -22,7 +22,6 @@ use std::time::Instant;
 use tos_foundation::{JsonString, JsonValue, RelativePath};
 use tos_validation::assessment::{AssessmentRecordInput, MAX_ASSESSMENTS, MAX_RECORD_BYTES};
 use tos_validation::record_biblio_cut::{SourceCutInput, SourceCutInputWithIdentity};
-use tos_validation::source_cut::CandidateCutWorkerSchemaExecutor;
 
 const MAX_SELECTED_PRIVATE_MEMBERS: usize = 4096;
 const MAX_SELECTED_PRIVATE_BYTES: usize = 64 * 1024 * 1024;
@@ -1815,7 +1814,7 @@ pub(crate) fn select_owner_local_sources_pg(
     ctx: &CommandContext,
     input: &PgGrowthCurrentInput<'_, '_>,
     package_histories: &BTreeMap<String, PrivateOwnerPackageHistoryV1>,
-    worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    worker: &mut impl crate::source_native_cli::private_owner::profile::CandidatePrivateSchema,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PgPrivateAssessmentSources> {

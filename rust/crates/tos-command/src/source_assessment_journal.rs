@@ -21,9 +21,7 @@ use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 use tos_foundation::{Digest256, JsonValue, SourceRevision};
 use tos_validation::FormatProfile;
-use tos_validation::source_cut::{
-    CandidateCutWorkerSchemaExecutor, CutSchemaExecutor, CutWorkerSchemaExecutor,
-};
+use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
 const BATCH_SCHEMA: &str = "ToS/contracts/knowledge-assessment-batch.schema.json";
 use crate::source_assessment_capacity::{
@@ -1814,6 +1812,7 @@ where
 pub(crate) fn with_private_assessment_and_source_histories_guard_selected_schema<
     I: Copy + Eq,
     T,
+    S: tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding<I>,
 >(
     coordinator: &mut DurablePgCoordinator,
     scope: &PrivateOwnerScopeV1,
@@ -1822,7 +1821,7 @@ pub(crate) fn with_private_assessment_and_source_histories_guard_selected_schema
     expected_heads: &BTreeMap<String, Option<String>>,
     batch_schema: &[u8],
     input_identity: &I,
-    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut S,
     max_total_rows: usize,
     max_total_bytes: usize,
     deadline: Instant,
@@ -1831,7 +1830,7 @@ pub(crate) fn with_private_assessment_and_source_histories_guard_selected_schema
         &BTreeMap<String, AssessmentHistory>,
         &BTreeMap<String, PrivateOwnerPackageHistoryV1>,
         &BTreeMap<String, PrivateOwnerPackageHistoryV1>,
-        &mut CandidateCutWorkerSchemaExecutor<I>,
+        &mut S,
         Instant,
         &AtomicBool,
     ) -> DurableResult<T>,
@@ -2021,7 +2020,7 @@ impl AssessmentHistory {
         subject: &str,
         batch_schema: &[u8],
         input_identity: &I,
-        worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+        worker: &mut impl tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding<I>,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Self> {

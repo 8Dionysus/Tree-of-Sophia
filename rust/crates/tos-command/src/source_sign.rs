@@ -22,8 +22,9 @@ use tos_validation::assessment::{
     AssessmentSourceRoute, evaluate_current_assessment,
 };
 use tos_validation::source_cut::{
-    CandidateCutWorkerSchemaExecutor, CutSchemaExecutor, CutWorkerSchemaExecutor,
+    CutSchemaExecutor, CutWorkerSchemaExecutor, InProcessCandidateSchemaExecutor,
 };
+use tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding;
 
 const CONTROL: &str = "ToS/source-witnesses/.metadata-publication.json";
 const ENTITIES: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
@@ -47,7 +48,7 @@ pub(crate) fn require_assessment_profile(worker: &CutWorkerSchemaExecutor) -> Re
 /// `SourceRevision`. Keep the maintained asserted profile check while leaving
 /// corpus completeness and source identity to their selected owner proofs.
 pub(crate) fn require_assessment_candidate_profile<I: Copy + Eq>(
-    worker: &CandidateCutWorkerSchemaExecutor<I>,
+    worker: &impl SourceFoundationCandidateSchemaBinding<I>,
 ) -> Result<()> {
     if worker.profile() != tos_validation::FormatProfile::AssertedSourceCandidateV1 {
         return Err(Error::Unsupported(
@@ -60,17 +61,14 @@ pub(crate) fn require_assessment_candidate_profile<I: Copy + Eq>(
 /// Load the exact owner-selected schema closure through the active readset and
 /// bind it to the caller's opaque candidate identity. Callers must derive
 /// `schema_paths` from their validated source profile; this helper proves only
-/// the bounded schema bytes and worker binding, not source membership.
-pub(crate) fn candidate_schema_worker_from_readset<I: Copy + Eq>(
+/// the bounded schema bytes and candidate binding.
+pub(crate) fn candidate_schema_executor_from_readset<I: Copy + Eq>(
     readset: &mut impl crate::source_revisions::ReadonlyRecordFiles,
     input_identity: I,
     schema_paths: &[String],
-    image: &tos_validation::executor::VerifiedWorkerImageHandle,
-    budget: tos_validation::executor::ExecutorBudget,
-    limits: tos_validation::source_cut::CutWorkerLimits,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> Result<CandidateCutWorkerSchemaExecutor<I>> {
+) -> Result<InProcessCandidateSchemaExecutor<I>> {
     let paths = schema_paths.iter().cloned().collect::<BTreeSet<_>>();
     if paths.len() != schema_paths.len()
         || paths.is_empty()
@@ -101,16 +99,15 @@ pub(crate) fn candidate_schema_worker_from_readset<I: Copy + Eq>(
         let uri = cmd::text(&value, "$id")?.to_owned();
         selected.push((path, tos_validation::SchemaResource { uri, raw }));
     }
-    CandidateCutWorkerSchemaExecutor::from_asserted_source_candidate_resources(
+    InProcessCandidateSchemaExecutor::from_selected_source_resources(
         input_identity,
         selected,
-        image,
-        budget,
-        limits,
+        tos_validation::FormatProfile::AssertedSourceCandidateV1,
+        tos_validation::in_process::InputMode::SerdeNormalized,
         deadline,
         cancelled,
     )
-    .map_err(|_| Error::Unsupported("Sign asserted candidate schema worker"))
+    .map_err(|_| Error::Unsupported("Sign asserted candidate schema executor"))
 }
 
 pub(crate) fn finish_worker(
@@ -2599,5 +2596,86 @@ impl OwnerAssessmentPublicSources<'_> {
         json_map!(identity_snapshots);
         json_map!(form_sets);
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod in_process_candidate_tests {
+    use super::*;
+    use crate::source_revisions::ReadonlyRecordFiles;
+    use std::time::Duration;
+    use tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding;
+
+    struct SchemaReadset;
+    impl ReadonlyRecordFiles for SchemaReadset {
+        fn read(
+            &mut self,
+            path: &str,
+            max_bytes: usize,
+            _: Instant,
+            _: &AtomicBool,
+        ) -> Result<Vec<u8>> {
+            let schema = br#"{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://example.test/sign.schema.json","type":"integer"}"#;
+            if path != "ToS/contracts/sign.schema.json" || schema.len() > max_bytes {
+                return Err(Error::Invalid("unexpected schema read"));
+            }
+            Ok(schema.to_vec())
+        }
+        fn list_directory(
+            &mut self,
+            _: &str,
+            _: Instant,
+            _: &AtomicBool,
+        ) -> Result<Vec<(String, bool)>> {
+            Err(Error::Invalid("unexpected directory read"))
+        }
+    }
+
+    #[test]
+    fn selected_sign_schemas_execute_without_worker_and_preserve_candidate_identity() {
+        let deadline = Instant::now() + Duration::from_secs(10);
+        let cancelled = AtomicBool::new(false);
+        let path = "ToS/contracts/sign.schema.json".to_owned();
+        let mut schemas = candidate_schema_executor_from_readset(
+            &mut SchemaReadset,
+            41u64,
+            &[path.clone()],
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        assert_eq!(*schemas.input_identity(), 41);
+        require_assessment_candidate_profile(&schemas).unwrap();
+        let contract = "ToS/contracts/sign.schema.json";
+        assert!(
+            schemas
+                .check("sign.json", b"12", contract, deadline, &cancelled)
+                .unwrap()
+        );
+        assert!(
+            !schemas
+                .check("sign.json", br#""invalid""#, contract, deadline, &cancelled)
+                .unwrap()
+        );
+        assert!(
+            candidate_schema_executor_from_readset(
+                &mut SchemaReadset,
+                41u64,
+                &[path.clone(), path],
+                deadline,
+                &cancelled
+            )
+            .is_err()
+        );
+        assert!(
+            candidate_schema_executor_from_readset(
+                &mut SchemaReadset,
+                41u64,
+                &["ToS/contracts/../other.schema.json".into()],
+                deadline,
+                &cancelled
+            )
+            .is_err()
+        );
     }
 }

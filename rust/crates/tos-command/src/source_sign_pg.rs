@@ -20,6 +20,7 @@ use std::time::Instant;
 use tos_foundation::{Digest256, JsonString, JsonValue, RelativePath};
 use tos_validation::record_biblio_cut::SourceCutInputWithIdentity;
 use tos_validation::source_cut::CutSchemaExecutor;
+use tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding;
 
 type Result<T> = SourceCommandResult<T>;
 type Error = SourceCommandError;
@@ -943,7 +944,7 @@ pub(crate) fn evaluate_promotion_view_selected_pg(
     expected_candidate_id: &str,
     observed_now: &str,
     identity: PgRecordRevisionIdentity,
-    worker: &mut tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<
+    worker: &mut tos_validation::source_cut::InProcessCandidateSchemaExecutor<
         PgRecordRevisionIdentity,
     >,
     budget: &mut assessment::OperationBudget,
@@ -963,7 +964,7 @@ pub(crate) fn evaluate_promotion_view_selected_pg(
     let required_sources = public_sources.required_sources(candidate_id)?;
     let mut evaluate =
         |input: &tos_validation::assessment::AssessmentReadInput,
-         worker: &mut tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<
+         worker: &mut tos_validation::source_cut::InProcessCandidateSchemaExecutor<
             PgRecordRevisionIdentity,
         >,
          limits: tos_validation::assessment::AssessmentLimits,
@@ -1219,7 +1220,7 @@ fn record_read<I: Copy + Eq>(
 fn validate_profile_pg(
     reader: &mut PgPublicSelection<'_, '_, '_>,
     input: &PgGrowthCurrentInput<'_, '_>,
-    worker: &mut tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<
+    worker: &mut tos_validation::source_cut::InProcessCandidateSchemaExecutor<
         PgRecordRevisionIdentity,
     >,
     name: &str,
@@ -1392,7 +1393,7 @@ fn validate_profile_pg(
 fn local_claim_pg(
     reader: &mut PgPublicSelection<'_, '_, '_>,
     input: &PgGrowthCurrentInput<'_, '_>,
-    worker: &mut tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<
+    worker: &mut tos_validation::source_cut::InProcessCandidateSchemaExecutor<
         PgRecordRevisionIdentity,
     >,
     claim: &JsonValue,
@@ -1435,7 +1436,7 @@ fn source_envelopes_pg(
     reader: &mut PgPublicSelection<'_, '_, '_>,
     input: &PgGrowthCurrentInput<'_, '_>,
     config: &JsonValue,
-    worker: &mut tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<
+    worker: &mut tos_validation::source_cut::InProcessCandidateSchemaExecutor<
         PgRecordRevisionIdentity,
     >,
     deadline: Instant,
@@ -1651,7 +1652,7 @@ fn source_envelopes_pg(
 fn native_envelopes_pg(
     reader: &mut PgPublicSelection<'_, '_, '_>,
     config: &JsonValue,
-    worker: &mut tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<
+    worker: &mut tos_validation::source_cut::InProcessCandidateSchemaExecutor<
         PgRecordRevisionIdentity,
     >,
     deadline: Instant,
@@ -1815,7 +1816,7 @@ fn native_envelopes_pg(
 pub(crate) fn select_owner_assessment_public_sources_pg(
     input: &PgGrowthCurrentInput<'_, '_>,
     config: &JsonValue,
-    worker: &mut tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<
+    worker: &mut tos_validation::source_cut::InProcessCandidateSchemaExecutor<
         PgRecordRevisionIdentity,
     >,
     owner_context: Option<&OwnerTextContext>,

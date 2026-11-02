@@ -5,7 +5,7 @@
 //! selection reuses the Sign resolver; Sign promotion keeps its separate
 //! protected v2/v3 selector and does not acquire new command authority.
 
-use super::{absolute, capped, digest, exact, selected_schema_with_profile, text};
+use super::{absolute, capped, selected_schema_with_profile, text};
 use crate::source_assessment_journal::{
     AssessmentHistory, AssessmentJournalFence, ProtectedAssessmentJournal,
 };
@@ -29,10 +29,11 @@ use tos_validation::assessment::{
     AssessmentReadInput, AssessmentRecordInput, AssessmentRefusal, AssessmentSourceRoute,
     AssessmentSubmissionInput, MAX_ASSESSMENTS, MAX_RECORD_BYTES, evaluate_current_assessment,
 };
-use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget, VerifiedWorkerImageHandle};
-use tos_validation::source_cut::{
-    CandidateCutWorkerSchemaExecutor, CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor,
-};
+#[cfg(test)]
+use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
+#[cfg(test)]
+use tos_validation::source_cut::CutWorkerLimits;
+use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
 const OWNER_CONTEXT_SCHEMA: &str = "ToS/contracts/owner-local-source-context.schema.json";
 const BATCH_SCHEMA: &str = "ToS/contracts/knowledge-assessment-batch.schema.json";
@@ -2796,51 +2797,19 @@ fn selected_assessment_input(
     })
 }
 
-/// Prepare the asserted candidate worker for a PG-selected Assessment source
-/// identity. Schema bytes are read through the caller's bounded readset, and
-/// the worker carries that opaque identity without claiming a SourceRevision.
-pub(crate) fn selected_assessment_candidate_worker<I: Copy + Eq>(
-    invocation: &Value,
+/// Prepare asserted schemas for a PG-selected Assessment source identity.
+/// The owner readset supplies schema bytes for the opaque candidate identity.
+pub(crate) fn selected_assessment_candidate_executor<I: Copy + Eq>(
     readset: &mut impl crate::source_revisions::ReadonlyRecordFiles,
     input_identity: I,
     schema_paths: &[String],
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> SourceCommandResult<CandidateCutWorkerSchemaExecutor<I>> {
-    let selected_worker = invocation
-        .get("schema_worker")
-        .ok_or(SourceCommandError::Invalid("assessment PG schema worker"))?;
-    exact(selected_worker, &["absolute_path", "sha256"])?;
-    let budgets = invocation
-        .get("budgets")
-        .ok_or(SourceCommandError::Invalid("assessment PG budgets"))?;
-    let mut worker_budget = ExecutorBudget::laboratory();
-    worker_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
-    worker_budget.cpu_seconds = capped(budgets, "worker_cpu_seconds", 3)?;
-    worker_budget.address_space_bytes =
-        capped(budgets, "worker_address_space_bytes", 1_073_741_824)?;
-    let worker_identity = ExactWorkerIdentity {
-        absolute_path: absolute(text(selected_worker, "absolute_path")?)?,
-        sha256: digest(text(selected_worker, "sha256")?)?,
-    };
-    let image =
-        VerifiedWorkerImageHandle::prepare(worker_identity, worker_budget, deadline, cancelled)
-            .map_err(|_| SourceCommandError::Denied("assessment PG schema worker image"))?;
-    let limits = CutWorkerLimits {
-        max_receipts: usize::try_from(capped(budgets, "max_schema_receipts", 128)?)
-            .map_err(|_| SourceCommandError::Invalid("assessment PG schema receipt budget"))?,
-        max_receipt_bytes: usize::try_from(capped(budgets, "max_schema_receipt_bytes", 262_144)?)
-            .map_err(|_| {
-            SourceCommandError::Invalid("assessment PG schema receipt budget")
-        })?,
-    };
-    crate::source_sign::candidate_schema_worker_from_readset(
+) -> SourceCommandResult<tos_validation::source_cut::InProcessCandidateSchemaExecutor<I>> {
+    crate::source_sign::candidate_schema_executor_from_readset(
         readset,
         input_identity,
         schema_paths,
-        &image,
-        worker_budget,
-        limits,
         deadline,
         cancelled,
     )

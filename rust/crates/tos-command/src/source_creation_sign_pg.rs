@@ -19,7 +19,8 @@ use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue, RelativePath};
 use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
-use tos_validation::source_cut::CandidateCutWorkerSchemaExecutor;
+use tos_validation::source_cut::InProcessCandidateSchemaExecutor;
+use tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding;
 
 const REQUIRED_SCHEMA_INPUTS: &[&str] = &[
     "ToS/doctrine/semantic-interchange/entity-types.v1.json",
@@ -174,7 +175,7 @@ impl PreparedPgSignCreation {
     pub(crate) fn serialize(
         self,
         software: &SoftwareCaptureReader,
-        worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+        worker: &mut InProcessCandidateSchemaExecutor<PgRecordRevisionIdentity>,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<PgSerializedSignCreation> {
@@ -240,7 +241,7 @@ impl PreparedPgSignCreation {
 pub(crate) fn selected_information(
     context: &CommandContext,
     identity: PgRecordRevisionIdentity,
-    worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    worker: &mut InProcessCandidateSchemaExecutor<PgRecordRevisionIdentity>,
     target_exists: bool,
     promotion: Option<&JsonValue>,
     deadline: Instant,
@@ -341,7 +342,7 @@ pub(crate) fn prepare_pg_sign_creation(
     owner_snapshot: Digest256,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    worker: &mut InProcessCandidateSchemaExecutor<PgRecordRevisionIdentity>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedPgSignCreation> {
@@ -547,7 +548,7 @@ fn validate_initial_sign_profile(
     identity: PgRecordRevisionIdentity,
     config: &JsonValue,
     record: &JsonValue,
-    worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    worker: &mut InProcessCandidateSchemaExecutor<PgRecordRevisionIdentity>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {

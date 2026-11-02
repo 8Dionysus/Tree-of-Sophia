@@ -43,7 +43,7 @@ use tos_validation::assessment::{
     AssessmentMechanicsReport, AssessmentReadInput, AssessmentRecordInput,
     evaluate_current_assessment_selected,
 };
-use tos_validation::source_cut::{CandidateCutWorkerSchemaExecutor, CutSchemaExecutor};
+use tos_validation::source_cut::{CutSchemaExecutor, InProcessCandidateSchemaExecutor};
 
 const CONTEXT_SCHEMA: &str = "ToS/contracts/owner-local-source-context.schema.json";
 const ENTITY_REGISTRY: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
@@ -674,7 +674,7 @@ struct PgAssessmentAttempt {
 
 struct AssessmentPreflight {
     identity: PgRecordRevisionIdentity,
-    worker: CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    worker: InProcessCandidateSchemaExecutor<PgRecordRevisionIdentity>,
     schema_paths: Vec<String>,
     schema_members: BTreeMap<String, Vec<u8>>,
     lock_subjects: Vec<String>,
@@ -831,8 +831,7 @@ pub(crate) fn run(
                 let context_schema =
                     pg_read_member(session, CONTEXT_SCHEMA, 1_048_576, deadline, cancelled)
                         .map_err(DurableError::Source)?;
-                let mut context_worker = assessment::selected_assessment_candidate_worker(
-                    invocation,
+                let mut context_worker = assessment::selected_assessment_candidate_executor(
                     session,
                     identity,
                     &[CONTEXT_SCHEMA.to_owned()],
@@ -1090,8 +1089,7 @@ pub(crate) fn run(
                     "private Assessment context schema absent",
                 ))?;
                 let identity = session.selection().identity();
-                let mut worker = assessment::selected_assessment_candidate_worker(
-                    invocation,
+                let mut worker = assessment::selected_assessment_candidate_executor(
                     session,
                     identity,
                     &schema_paths,
@@ -1478,7 +1476,7 @@ pub(crate) fn run(
                                 &command,
                                 &input,
                                 source_packages,
-                                &mut selected_worker.0,
+                                &mut *selected_worker.0,
                                 held_deadline,
                                 held_cancelled,
                             )
@@ -1491,7 +1489,7 @@ pub(crate) fn run(
                             let mut public = crate::source_sign::pg::select_owner_assessment_public_sources_pg(
                                 &input,
                                 config,
-                                &mut selected_worker.0,
+                                &mut *selected_worker.0,
                                 Some(&owner),
                                 held_deadline,
                                 held_cancelled,
@@ -1533,7 +1531,7 @@ pub(crate) fn run(
                                     .map_err(DurableError::Source)?,
                                 &identity,
                                 &schemas,
-                                &mut selected_worker.0,
+                                &mut *selected_worker.0,
                                 held_deadline,
                                 held_cancelled,
                             )
@@ -1661,7 +1659,7 @@ pub(crate) fn run(
                                 "private Assessment subject history absent",
                             ))?;
                             let mut evaluate = |read_input: &AssessmentReadInput,
-                                                schema_worker: &mut DeferredFinish<'_, CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>>,
+                                                schema_worker: &mut DeferredFinish<'_, InProcessCandidateSchemaExecutor<PgRecordRevisionIdentity>>,
                                                 limits: tos_validation::assessment::AssessmentLimits,
                                                 cancelled: &AtomicBool| {
                                 evaluate_current_assessment_selected(

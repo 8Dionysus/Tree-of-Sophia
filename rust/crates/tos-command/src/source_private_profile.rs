@@ -28,7 +28,10 @@ use tos_validation::assessment::MAX_RECORD_BYTES;
 use tos_validation::{
     item_rules::ItemRefusal,
     record_biblio_cut::SourceCutPrefixCoverage,
-    source_cut::{CandidateCutWorkerSchemaExecutor, CutSchemaExecutor, CutWorkerSchemaExecutor},
+    source_cut::{
+        CandidateCutWorkerSchemaExecutor, CutSchemaExecutor, CutWorkerSchemaExecutor,
+        InProcessCandidateSchemaExecutor,
+    },
 };
 
 /// Typed identity for one selected private-owner source adapter. PostgreSQL
@@ -85,12 +88,43 @@ impl PrivateSelectedSchemaExecutor for CandidateCutWorkerSchemaExecutor<PgRecord
     }
 }
 
+impl PrivateSelectedSchemaExecutor for InProcessCandidateSchemaExecutor<PgRecordRevisionIdentity> {
+    fn private_selection_identity(&self) -> PrivateSelectedSourceIdentity {
+        PrivateSelectedSourceIdentity::PgRecord(
+            crate::source_revisions::RecordSchemaWorker::input_identity(self),
+        )
+    }
+
+    fn validate_profile_registry(
+        &mut self,
+        _ctx: &CommandContext,
+        _deadline: Instant,
+        _cancelled: &AtomicBool,
+    ) -> SourceCommandResult<JsonValue> {
+        Err(SourceCommandError::Conflict(
+            "candidate profile registry requires its exact RecordRead",
+        ))
+    }
+}
+
+pub(crate) trait CandidatePrivateSchema:
+    PrivateSelectedSchemaExecutor
+    + crate::source_revisions::RecordSchemaWorker<Identity = PgRecordRevisionIdentity>
+{
+}
+impl<
+    T: PrivateSelectedSchemaExecutor
+        + crate::source_revisions::RecordSchemaWorker<Identity = PgRecordRevisionIdentity>,
+> CandidatePrivateSchema for T
+{
+}
+
 /// Binds the asserted-source worker to the exact PG `RecordRead` supplied by
 /// its held selection session. Profile and Claim kernels use this adapter so
 /// every registry read in their existing semantic path remains candidate
 /// fenced instead of being coerced to a bootstrap `SourceRevision`.
-pub(crate) struct CandidatePrivateSchemaExecutor<'a> {
-    worker: &'a mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+pub(crate) struct CandidatePrivateSchemaExecutor<'a, S: CandidatePrivateSchema> {
+    worker: &'a mut S,
     selected: &'a dyn RecordRead<Identity = PgRecordRevisionIdentity>,
 }
 
@@ -126,12 +160,12 @@ impl<I: Copy + Eq> RecordRead for RecordReadBorrow<'_, I> {
     }
 }
 
-impl<'a> CandidatePrivateSchemaExecutor<'a> {
+impl<'a, S: CandidatePrivateSchema> CandidatePrivateSchemaExecutor<'a, S> {
     pub(crate) fn new(
         ctx: &CommandContext,
         cut: &dyn PrivateSelectedSourceInput,
         selected: &'a dyn RecordRead<Identity = PgRecordRevisionIdentity>,
-        worker: &'a mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+        worker: &'a mut S,
     ) -> SourceCommandResult<Self> {
         let selected_ref = RecordReadBorrow { selected };
         candidate_record_binding_matches(ctx, cut, &selected_ref, worker)?;
@@ -139,7 +173,7 @@ impl<'a> CandidatePrivateSchemaExecutor<'a> {
     }
 }
 
-impl CutSchemaExecutor for CandidatePrivateSchemaExecutor<'_> {
+impl<S: CandidatePrivateSchema> CutSchemaExecutor for CandidatePrivateSchemaExecutor<'_, S> {
     fn schema_profile(&self) -> Option<tos_validation::FormatProfile> {
         CutSchemaExecutor::schema_profile(self.worker)
     }
@@ -218,9 +252,11 @@ impl CutSchemaExecutor for CandidatePrivateSchemaExecutor<'_> {
     }
 }
 
-impl PrivateSelectedSchemaExecutor for CandidatePrivateSchemaExecutor<'_> {
+impl<S: CandidatePrivateSchema> PrivateSelectedSchemaExecutor
+    for CandidatePrivateSchemaExecutor<'_, S>
+{
     fn private_selection_identity(&self) -> PrivateSelectedSourceIdentity {
-        PrivateSelectedSourceIdentity::PgRecord(*self.worker.input_identity())
+        self.worker.private_selection_identity()
     }
 
     fn validate_profile_registry(
@@ -874,7 +910,7 @@ pub(crate) fn profile_identity_basenames_pg(
     ctx: &CommandContext,
     cut: &dyn PrivateSelectedSourceInput,
     selected: &impl RecordRead<Identity = PgRecordRevisionIdentity>,
-    worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    worker: &mut impl CandidatePrivateSchema,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<BTreeSet<String>> {
@@ -903,7 +939,7 @@ pub(crate) fn identity_basenames_pg(
     ctx: &CommandContext,
     cut: &dyn PrivateSelectedSourceInput,
     selected: &impl RecordRead<Identity = PgRecordRevisionIdentity>,
-    worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    worker: &mut impl CandidatePrivateSchema,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<BTreeSet<String>> {
@@ -947,7 +983,7 @@ pub(crate) fn public_identity_basenames_pg(
     ctx: &CommandContext,
     cut: &dyn PrivateSelectedSourceInput,
     selected: &impl RecordRead<Identity = PgRecordRevisionIdentity>,
-    worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    worker: &mut impl CandidatePrivateSchema,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<BTreeSet<String>> {
@@ -1197,7 +1233,7 @@ pub(crate) fn validate_identity_record_pg(
     ctx: &CommandContext,
     cut: &dyn PrivateSelectedSourceInput,
     selected: &impl RecordRead<Identity = PgRecordRevisionIdentity>,
-    worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    worker: &mut impl CandidatePrivateSchema,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<SelectedProfileRecord> {
@@ -1601,7 +1637,7 @@ pub(crate) fn validate_form_set_pg(
     ctx: &CommandContext,
     cut: &dyn PrivateSelectedSourceInput,
     selected: &impl RecordRead<Identity = PgRecordRevisionIdentity>,
-    worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    worker: &mut impl CandidatePrivateSchema,
     source_path: &str,
     set: &JsonValue,
     deadline: Instant,
