@@ -42,17 +42,21 @@ impl RecordFactBudget {
     }
 }
 
-/// One exact verdict returned by a separately bounded schema worker. The
-/// auditor owns worker execution, timeout, process identity and complete
-/// response accounting; a value alone is never proof of those properties.
+/// Exact execution identity for a schema verdict.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum RecordSchemaExecution {
+    Worker { protocol: String, digest: Digest256 },
+    InProcess { engine: &'static str },
+}
+
+/// One exact schema verdict for the selected record bytes and schema set.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct BoundedSchemaVerdict {
     pub instance_sha256: Digest256,
     pub schema_set_digest: Digest256,
     pub format_profile: FormatProfile,
     pub root_uri: String,
-    pub worker_protocol_id: String,
-    pub worker_binary_digest: Digest256,
+    pub execution: RecordSchemaExecution,
     pub valid: bool,
 }
 
@@ -1240,9 +1244,7 @@ impl RecordFamily {
         let schema_uri = &self.resources[&route.schema_ref].0;
         let (schema_ok, common_ok) = match evidence {
             Some(evidence) => {
-                if evidence.route.worker_protocol_id != evidence.common.worker_protocol_id
-                    || evidence.route.worker_binary_digest != evidence.common.worker_binary_digest
-                {
+                if evidence.route.execution != evidence.common.execution {
                     return Err(unsupported("schema_worker_mismatch", path));
                 }
                 (
@@ -1531,7 +1533,10 @@ fn check_verdict(
         || verdict.schema_set_digest != probe.schema_set_digest()
         || verdict.format_profile != format_profile
         || verdict.root_uri != root_uri
-        || verdict.worker_protocol_id.is_empty()
+        || match &verdict.execution {
+            RecordSchemaExecution::Worker { protocol, .. } => protocol.is_empty(),
+            RecordSchemaExecution::InProcess { engine } => *engine != crate::in_process::ENGINE_ID,
+        }
     {
         return Err(unsupported("bounded_schema_evidence_mismatch", root_uri));
     }
@@ -2253,8 +2258,10 @@ mod tests {
             schema_set_digest,
             format_profile: profile,
             root_uri: root.to_owned(),
-            worker_protocol_id: "test-only-worker-protocol".to_owned(),
-            worker_binary_digest: Digest256::from_hex(&"a".repeat(64)).unwrap(),
+            execution: RecordSchemaExecution::Worker {
+                protocol: "test-only-worker-protocol".to_owned(),
+                digest: Digest256::from_hex(&"a".repeat(64)).unwrap(),
+            },
             valid: true,
         }
     }
@@ -2286,6 +2293,41 @@ mod tests {
                 .0
                 .iter()
                 .any(|event| matches!(event, RecordObservation::IdOwner { .. }))
+        );
+        let mut in_process = evidence.clone();
+        let identity = RecordSchemaExecution::InProcess {
+            engine: crate::in_process::ENGINE_ID,
+        };
+        in_process.route.execution = identity.clone();
+        in_process.common.execution = identity;
+        family()
+            .inspect_member_with_bounded_schema(RECORD, &raw, &in_process, &mut Events::default())
+            .unwrap();
+        in_process.route.execution = RecordSchemaExecution::InProcess { engine: "unknown" };
+        in_process.common.execution = in_process.route.execution.clone();
+        assert!(
+            family()
+                .inspect_member_with_bounded_schema(
+                    RECORD,
+                    &raw,
+                    &in_process,
+                    &mut Events::default()
+                )
+                .is_err()
+        );
+        in_process.route.execution = RecordSchemaExecution::InProcess {
+            engine: crate::in_process::ENGINE_ID,
+        };
+        in_process.common.execution = evidence.common.execution.clone();
+        assert!(
+            family()
+                .inspect_member_with_bounded_schema(
+                    RECORD,
+                    &raw,
+                    &in_process,
+                    &mut Events::default()
+                )
+                .is_err()
         );
         let mut wrong = evidence;
         wrong.common.instance_sha256 = Digest256::from_hex(&"b".repeat(64)).unwrap();

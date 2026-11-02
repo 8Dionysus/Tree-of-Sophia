@@ -10,7 +10,8 @@ use crate::item_rules::{ItemLimits, ItemRefusal};
 use crate::record_rules::{
     BoundedMemberSchemaEvidence, BoundedSchemaVerdict, GlobalIdFact, LinkUriFact,
     PathReferenceCheck, RecordFactBudget, RecordFamily, RecordFamilyReport, RecordGlobalJoin,
-    RecordObservation, RecordRuleError, RecordSchema, RecordSink, TypedIdRefFact,
+    RecordObservation, RecordRuleError, RecordSchema, RecordSchemaExecution, RecordSink,
+    TypedIdRefFact,
 };
 use crate::source_foundation_records::{
     SourceFoundationRecordFact, SourceFoundationRecordFactCollection,
@@ -762,8 +763,10 @@ impl BiblioRecordExecutor {
             schema_set_digest: identity.schema_set_sha256,
             format_profile: identity.profile,
             root_uri: root.into(),
-            worker_protocol_id: "tos_bounded_schema_worker_v1".into(),
-            worker_binary_digest: identity.worker_sha256,
+            execution: RecordSchemaExecution::Worker {
+                protocol: "tos_bounded_schema_worker_v1".into(),
+                digest: identity.worker_sha256,
+            },
             valid,
         })
     }
@@ -1079,8 +1082,10 @@ impl BiblioRecordExecutor {
             schema_set_digest: report.schema_set_sha256,
             format_profile: checkpoint.profile,
             root_uri: root.to_owned(),
-            worker_protocol_id: "tos_schema_diagnostics_v2".into(),
-            worker_binary_digest: checkpoint.worker_sha256,
+            execution: RecordSchemaExecution::Worker {
+                protocol: "tos_schema_diagnostics_v2".into(),
+                digest: checkpoint.worker_sha256,
+            },
             valid,
         };
         self.pending_schema_diagnostics
@@ -1093,8 +1098,8 @@ impl BiblioRecordExecutor {
                     schema_set_digest: verdict.schema_set_digest,
                     format_profile: verdict.format_profile,
                     root_uri: verdict.root_uri.clone(),
-                    worker_protocol_id: verdict.worker_protocol_id.clone(),
-                    worker_binary_digest: verdict.worker_binary_digest,
+                    worker_protocol_id: "tos_schema_diagnostics_v2".into(),
+                    worker_binary_digest: checkpoint.worker_sha256,
                     valid: verdict.valid,
                 },
                 checkpoint,
