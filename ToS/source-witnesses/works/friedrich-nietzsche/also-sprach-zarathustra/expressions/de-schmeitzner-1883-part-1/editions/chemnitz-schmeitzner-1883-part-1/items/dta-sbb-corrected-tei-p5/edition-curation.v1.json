@@ -523,6 +523,95 @@
         "ner",
         "trainable_lemmatizer"
       ]
+    },
+    {
+      "stage": "lexical-index",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5"
+      ],
+      "plan_sha256": "cd942ad6d08407b014acff95ddf1e2e466e7147eaa5d7f099809fe1d06aa0112",
+      "locators": [
+        {
+          "role": "index_plan",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/index-plan.v1.json"
+        },
+        {
+          "role": "projection",
+          "repository_path": "ToS/derived-exports/lexical-search/zarathustra-dta-first-editions-parts-1-4-v1.min.json"
+        },
+        {
+          "role": "legacy_index_builder",
+          "repository_path": "scripts/build_zarathustra_lexical_index.py"
+        },
+        {
+          "role": "usage_plan",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/usage-context-plan.v1.json"
+        },
+        {
+          "role": "usage_receipt",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/usage-context-receipt.v1.json"
+        },
+        {
+          "role": "usage_provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/usage-context-provenance.jsonl"
+        },
+        {
+          "role": "usage_builder",
+          "repository_path": "scripts/build_zarathustra_usage_context_bundle.py"
+        },
+        {
+          "role": "morphology_plan",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-contextual-episode.selected-form-b.v1.json"
+        },
+        {
+          "role": "morphology_receipt",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-contextual-episode.selected-form-b.receipt.v1.json"
+        },
+        {
+          "role": "morphology_provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/provenance.morphology-contextual-episode.selected-form-b.v1.jsonl"
+        },
+        {
+          "role": "morphology_admission",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-contextual-episode.selected-form-b.artifact-admission.v1.json"
+        },
+        {
+          "role": "morphology_admission_provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/provenance.morphology-contextual-episode.selected-form-b.artifact-admission.v1.jsonl"
+        },
+        {
+          "role": "morphology_result",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-contextual-episode.selected-form-b.result.v1.json"
+        },
+        {
+          "role": "morphology_result_provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/provenance.morphology-contextual-episode.selected-form-b.result.v1.jsonl"
+        },
+        {
+          "role": "morphology_result_builder",
+          "repository_path": "scripts/record_zarathustra_morphology_contextual_result.py"
+        },
+        {
+          "role": "morphology_builder",
+          "repository_path": "scripts/build_zarathustra_morphology_context_packet.py"
+        }
+      ],
+      "historical_event_id": "tos.event.export.zarathustra-lexical-index-v1.2026-07-29",
+      "historical_authority": "mechanical source-observation and rebuildable local search only; no accepted German, rights clearance, lexeme, lemma, translation, sign, concept, claim, relation, graph, canon, or publication authority",
+      "current_purpose": "This artifact records mechanical source observations and supports rebuildable local search. Source assessment and permitted uses remain explicit in their own records.",
+      "private_row_keys": [
+        "target_exact_form",
+        "left_exact_tokens",
+        "right_exact_tokens",
+        "occurrence_id",
+        "token_ordinal",
+        "text_node_path",
+        "start_offset",
+        "end_offset"
+      ]
     }
   ]
 }
