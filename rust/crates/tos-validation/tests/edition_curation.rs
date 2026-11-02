@@ -82,6 +82,47 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let dta_raw = fs::read(root.join(dta_path)).unwrap();
     assert_eq!(validate(&dta_raw, &schema), Ok(()));
     let dta_value: Value = serde_json::from_slice(&dta_raw).unwrap();
+    for stage in [
+        "paragraph-alignment",
+        "morphology-theme-candidates",
+        "witness-triangulation",
+        "bounded-translation-input",
+    ] {
+        let recipe = dta_value["recipes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|recipe| recipe["stage"] == stage)
+            .unwrap();
+        let reference = recipe["historical_template_ref"].as_str().unwrap();
+        let raw = fs::read(root.join(reference)).unwrap();
+        assert_eq!(
+            validate_recipe_template(
+                &dta_raw,
+                stage,
+                "historical-template",
+                SelectedDocument {
+                    reference,
+                    raw: &raw,
+                },
+                &schema,
+            ),
+            Ok(())
+        );
+        assert_eq!(
+            validate_recipe_template(
+                &dta_raw,
+                stage,
+                "historical-template",
+                SelectedDocument {
+                    reference,
+                    raw: b"modified",
+                },
+                &schema,
+            ),
+            Err(EditionCurationError::DigestMismatch)
+        );
+    }
     let workbench = dta_value["recipes"]
         .as_array()
         .unwrap()

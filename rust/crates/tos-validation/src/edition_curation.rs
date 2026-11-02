@@ -161,16 +161,19 @@ pub fn validate_recipe_template(
     let recipe = selected_recipe(&value, stage)?;
     let entry = recipe["historical_templates"]
         .as_array()
-        .ok_or(EditionCurationError::MissingReference)?
-        .iter()
-        .find(|entry| entry["role"] == role)
-        .ok_or(EditionCurationError::MissingReference)?;
-    let reference = entry["ref"]
-        .as_str()
-        .ok_or(EditionCurationError::InvalidSchema)?;
-    let digest = entry["sha256"]
-        .as_str()
-        .ok_or(EditionCurationError::InvalidSchema)?;
+        .and_then(|entries| entries.iter().find(|entry| entry["role"] == role));
+    let (reference, digest) = if let Some(entry) = entry {
+        (entry["ref"].as_str(), entry["sha256"].as_str())
+    } else if role == "historical-template" {
+        (
+            recipe["historical_template_ref"].as_str(),
+            recipe["historical_template_sha256"].as_str(),
+        )
+    } else {
+        return Err(EditionCurationError::MissingReference);
+    };
+    let reference = reference.ok_or(EditionCurationError::MissingReference)?;
+    let digest = digest.ok_or(EditionCurationError::MissingReference)?;
     verify_selected_bytes(template, reference, digest)?;
     if stage == "concept-candidate" && role == "legacy-output-template" {
         let selected_template =
