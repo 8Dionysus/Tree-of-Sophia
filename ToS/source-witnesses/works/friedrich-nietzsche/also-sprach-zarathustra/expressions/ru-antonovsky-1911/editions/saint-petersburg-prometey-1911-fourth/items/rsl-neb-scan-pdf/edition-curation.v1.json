@@ -101,7 +101,6 @@
       "legacy_layout": {
         "schema_ref": "ToS/contracts/source-text-unit-packet-v1.schema.json",
         "builder_ref": "scripts/build_antonovsky_1911_technical_markup.py",
-        "builder_sha256": "4c80683124592bc969e0db6ffe0d5696ec28d4079bc522725788aeff44abd8eb",
         "event_id": "tos.event.segmentation.zarathustra-antonovsky-1911-pdf-layout-v1.2026-09-01",
         "screening_event_id": "tos.event.screening.zarathustra-antonovsky-1911-pdf-layout-v1.2026-09-01",
         "output_keys": [
@@ -146,7 +145,12 @@
               "prefix": "tos.anchor.zarathustra-antonovsky-1911-layout-v1"
             }
           ]
-        }
+        },
+        "historical_event_artifact_sha256": "82452bce0c1599925e18ffd08c5d963d1a872da532d9a7aef72b155087aefcb9",
+        "historical_provenance_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/provenance.jsonl",
+        "historical_provenance_sha256": "a7f5f9e0354c5fa8b8c41e0696497080c22bd69fec60a83cea90bc80f41d2204",
+        "maintained_recipe_ref": "ToS/research-packets/retained-builder-inputs/build_antonovsky_1911_technical_markup/4c80683124592bc969e0db6ffe0d5696ec28d4079bc522725788aeff44abd8eb.py",
+        "maintained_recipe_sha256": "4c80683124592bc969e0db6ffe0d5696ec28d4079bc522725788aeff44abd8eb"
       },
       "identity_issuance": {
         "issuance_id": "tos.identity-issuance.zarathustra-antonovsky-1911-structural-paragraph-v2",

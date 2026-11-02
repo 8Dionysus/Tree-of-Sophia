@@ -73,6 +73,18 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let dta_path = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/edition-curation.v1.json";
     let dta_raw = fs::read(root.join(dta_path)).unwrap();
     assert_eq!(validate(&dta_raw, &schema), Ok(()));
+    let antonovsky_path = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/edition-curation.v1.json";
+    let antonovsky_raw = fs::read(root.join(antonovsky_path)).unwrap();
+    assert_eq!(validate(&antonovsky_raw, &schema), Ok(()));
+    let mut missing_provenance: Value = serde_json::from_slice(&antonovsky_raw).unwrap();
+    missing_provenance["recipes"][0]["legacy_layout"]
+        .as_object_mut()
+        .unwrap()
+        .remove("historical_provenance_sha256");
+    assert_eq!(
+        validate(&serde_json::to_vec(&missing_provenance).unwrap(), &schema),
+        Err(EditionCurationError::InvalidSchema)
+    );
     let mut invalid_cues: Value = serde_json::from_slice(&dta_raw).unwrap();
     invalid_cues["recipes"]
         .as_array_mut()

@@ -597,10 +597,10 @@
         "stage": {"const": "pdf-structural-paragraph"},
         "legacy_layout": {
           "type": "object", "additionalProperties": false,
-          "required": ["schema_ref", "builder_ref", "builder_sha256", "event_id", "screening_event_id", "output_keys", "identity_prefixes", "identity_issuance"],
+          "required": ["schema_ref", "builder_ref", "historical_event_artifact_sha256", "historical_provenance_ref", "historical_provenance_sha256", "maintained_recipe_ref", "maintained_recipe_sha256", "event_id", "screening_event_id", "output_keys", "identity_prefixes", "identity_issuance"],
           "properties": {
             "schema_ref": {"$ref": "#/$defs/relativePath"}, "builder_ref": {"$ref": "#/$defs/relativePath"},
-            "builder_sha256": {"$ref": "#/$defs/sha256"}, "event_id": {"$ref": "#/$defs/id"}, "screening_event_id": {"$ref": "#/$defs/id"},
+            "historical_event_artifact_sha256": {"$ref": "#/$defs/sha256"}, "historical_provenance_ref": {"$ref": "#/$defs/relativePath"}, "historical_provenance_sha256": {"$ref": "#/$defs/sha256"}, "maintained_recipe_ref": {"$ref": "#/$defs/relativePath"}, "maintained_recipe_sha256": {"$ref": "#/$defs/sha256"}, "event_id": {"$ref": "#/$defs/id"}, "screening_event_id": {"$ref": "#/$defs/id"},
             "identity_issuance": {"type": "object", "additionalProperties": false, "required": ["issuance_id", "schema_version", "identity_prefixes"], "properties": {"issuance_id": {"$ref": "#/$defs/id"}, "schema_version": {"type": "string", "minLength": 1}, "issued_on": {"type": "string", "format": "date"}, "identity_prefixes": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["kind", "prefix"], "properties": {"kind": {"type": "string", "minLength": 1}, "prefix": {"type": "string", "minLength": 1}}}}}},
             "output_keys": {"$ref": "#/$defs/keyList"},
             "identity_prefixes": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["key", "prefix"], "properties": {"key": {"type": "string", "minLength": 1}, "prefix": {"type": "string", "minLength": 1}}}}
