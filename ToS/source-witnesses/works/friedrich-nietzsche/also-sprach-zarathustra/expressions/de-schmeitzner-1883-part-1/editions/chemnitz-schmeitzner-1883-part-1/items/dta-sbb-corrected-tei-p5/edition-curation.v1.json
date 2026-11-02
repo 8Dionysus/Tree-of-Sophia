@@ -780,7 +780,30 @@
           "target_start": 276,
           "target_end": 392
         }
-      ]
+      ],
+      "identity_prefixes": [
+        {
+          "kind": "packet",
+          "prefix": "tos.german-source-triangulation.ekgwb-dta-naumann.za-i-vorrede-1."
+        },
+        {
+          "kind": "event",
+          "prefix": "tos.event.alignment.zarathustra-german-source-triangulation.za-i-vorrede-1."
+        }
+      ],
+      "source_selection": {
+        "html_start_marker": "id=\"eKGWB/Za-I-Vorrede-1\"",
+        "html_end_marker": "<a name=\"eKGWB/Za-I-Vorrede-2\"",
+        "tei_element_path": [
+          "text",
+          "body",
+          "div",
+          "div",
+          "p"
+        ],
+        "expected_paragraphs": 12,
+        "line_join_marker": "¬"
+      }
     },
     {
       "stage": "bounded-translation-input",
@@ -791,7 +814,21 @@
       "base_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1",
       "schema_ref": "ToS/contracts/bounded-translation-research-input.schema.json",
       "historical_template_ref": "rust/crates/tos-compiler/src/bounded_translation_input/templates.json",
-      "historical_template_sha256": "65d123112bbd3c6e2ebc922d2846357f30254bbf8916faa732c164aef93c5277"
+      "historical_template_sha256": "65d123112bbd3c6e2ebc922d2846357f30254bbf8916faa732c164aef93c5277",
+      "identity_prefixes": [
+        {
+          "kind": "packet",
+          "prefix": "tos.bounded-translation-research-input.za-i-vorrede-1-opening-sentence."
+        },
+        {
+          "kind": "private_artifact",
+          "prefix": "tos.local-translation-research-input.za-i-vorrede-1-opening-sentence."
+        },
+        {
+          "kind": "event",
+          "prefix": "tos.event.segmentation.zarathustra-bounded-translation-input.za-i-vorrede-1-opening-sentence."
+        }
+      ]
     },
     {
       "stage": "reading-workbench",
