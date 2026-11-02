@@ -88,10 +88,7 @@ workflow without sending the key; they do not encrypt confidential payloads.
 ## What the mockup contains
 
 `atlas-data.mjs` owns prepared **demonstration material** and its explanatory
-relations. The operator explicitly requested logically generated material to
-make the product idea visible. These are authored interpretations, paraphrases,
-questions and comparisons, not admitted ToS nodes, quotations or canon. The
-fixture does not change the source corpus, accepted graph or review history.
+relations: authored interpretations, paraphrases, questions and comparisons.
 
 A bounded selection of existing source materials can come from the private
 `library.json` built by `tos-constructor-library --source-repo REPO --demo-packet DEMO --output LIBRARY`. The exact DE/RU text, source addresses,
@@ -111,8 +108,7 @@ The two Python names are compatibility launchers for the native
 existing source selections and output options belong to those Rust producers;
 `TOS_CONSTRUCTOR_LIBRARY_BIN` and `TOS_CONSTRUCTOR_FRAGMENTS_BIN` can select an
 explicit matched executable. Normal delivery requires the named products admitted into
-the software prefix's `bin/`; selecting a binary does not select source data
-or authorize publication. The authored inquiry and guided-walk files retain
+the software prefix's `bin/`. The authored inquiry and guided-walk files retain
 their wording; their bilingual coverage, textual grounds and prepared route
 binding execute through `constructor_reading_wasm_v1` after the main browser
 entry initializes its generated WASM.
@@ -150,9 +146,7 @@ available units open in the reader, while other works lead to external texts
 or edition pages. A source node's exact text and provenance remain separate.
 `inquiry-layer.mjs` checks coverage, references and bilingual fields, including
 the independent grounds of an optional alternative. Available reader anchors
-come from those references. These mechanics cannot decide whether the passages
-warrant the interpretation; that requires the review recorded in
-`SEMANTIC_REVIEW.md`.
+come from those references.
 
 `bonsai/zarathustra/held.json` keeps, whole, what the strict rebuild of 1 November 2026 took
 off the map — readings, comparisons and the links that rest on another book —
@@ -230,9 +224,8 @@ state. Node offsets remain available when another arrangement is chosen.
 Invalid stored data is protected from automatic overwrite. Download and import
 preserve the graph and layout; the active lens is presentation state.
 
-The existing research-export adapter treats demonstration material as local,
-unreviewed hypotheses and never exports its external links as source locators.
-There is no corpus writeback, review submission or admission action.
+The research-export adapter treats demonstration material as local, unreviewed
+hypotheses. External links stay outside exported source locators.
 
 ## Build and serve locally
 
