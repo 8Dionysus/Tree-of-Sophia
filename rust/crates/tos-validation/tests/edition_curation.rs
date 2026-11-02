@@ -5,10 +5,11 @@ use tos_validation::{
     FormatProfile, SchemaBackendProbe, SchemaResource,
     edition_curation::{
         EditionCurationError, SCHEMA_URI, SelectedCuration, SelectedDocument,
-        select_frozen_manifest, select_historical_field, select_retained_digest, validate,
-        validate_bindings, validate_default_request, validate_frozen_manifest_member,
-        validate_frozen_output_fixity, validate_recipe_plan, validate_recipe_template,
-        validate_retained_artifact, validate_review_sources, validate_selected_historical_receipt,
+        select_frozen_manifest, select_historical_field, select_recipe_input_digest,
+        select_retained_digest, validate, validate_bindings, validate_default_request,
+        validate_frozen_manifest_member, validate_frozen_output_fixity, validate_recipe_plan,
+        validate_recipe_template, validate_retained_artifact, validate_review_sources,
+        validate_selected_historical_receipt,
     },
 };
 
@@ -104,6 +105,37 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     assert_eq!(
         validate(&serde_json::to_vec(&bad_scope).unwrap(), &schema),
         Err(EditionCurationError::InvalidRange("expected_census"))
+    );
+    let reading_raw = fs::read(root.join(concept_path)).unwrap();
+    let manifest_ref = "ToS/candidate-intake/zarathustra/concept-workbench-v1/manifest.v1.json";
+    let manifest_raw = fs::read(root.join(manifest_ref)).unwrap();
+    let digest = select_recipe_input_digest(
+        &reading_raw,
+        "reading-workbench",
+        "concept_workbench",
+        SelectedDocument {
+            reference: manifest_ref,
+            raw: &manifest_raw,
+        },
+        &schema,
+    )
+    .unwrap();
+    assert_eq!(
+        digest,
+        "2d072c2b7b07711b14426c86929ec67b807c8de7aea2b39e4cbdfb052bdf3332"
+    );
+    assert_eq!(
+        select_recipe_input_digest(
+            &reading_raw,
+            "reading-workbench",
+            "concept_workbench",
+            SelectedDocument {
+                reference: "other.json",
+                raw: &manifest_raw
+            },
+            &schema
+        ),
+        Err(EditionCurationError::BindingMismatch)
     );
     let visual_path = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/edition-curation.v1.json";
     let visual_raw = fs::read(root.join(visual_path)).unwrap();

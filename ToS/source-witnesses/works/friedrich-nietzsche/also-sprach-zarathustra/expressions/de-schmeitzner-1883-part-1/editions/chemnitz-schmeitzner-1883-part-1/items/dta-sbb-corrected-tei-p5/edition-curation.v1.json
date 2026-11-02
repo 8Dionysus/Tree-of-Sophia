@@ -3942,7 +3942,25 @@
             ]
           }
         }
-      ]
+      ],
+      "input_sources": [
+        {
+          "role": "source_spine",
+          "private_payload_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/linguistic-source-spine-v1/linguistic-spine.v1.sqlite3",
+          "manifest_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/zarathustra-linguistic-source-spine-v1/manifest.v1.json"
+        },
+        {
+          "role": "analysis_predecessor",
+          "private_payload_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/linguistic-analysis-spine-v1/linguistic-analysis.v1.sqlite3",
+          "manifest_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/zarathustra-linguistic-analysis-spine-v1/manifest.v1.json"
+        },
+        {
+          "role": "concept_workbench",
+          "private_payload_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/concept-workbench-v1/workbench-index.v1.sqlite3",
+          "manifest_ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/manifest.v1.json"
+        }
+      ],
+      "private_output_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/reading-workbench-v1/reading-workbench.v1.sqlite3"
     },
     {
       "stage": "tei-source-foundation",

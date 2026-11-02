@@ -543,6 +543,51 @@ pub fn validate_frozen_output_fixity(
     verify_selected_bytes(selected, reference, digest)
 }
 
+/// Select the private payload digest named by a caller-selected predecessor manifest.
+pub fn select_recipe_input_digest(
+    raw: &[u8],
+    stage: &str,
+    role: &str,
+    manifest: SelectedDocument<'_>,
+    schema: &SchemaBackendProbe,
+) -> Result<String, EditionCurationError> {
+    tos_foundation::RelativePath::parse(manifest.reference)
+        .map_err(|_| EditionCurationError::UnsafePath)?;
+    let value = document(raw, schema)?;
+    let recipe = selected_recipe(&value, stage)?;
+    let input = recipe["input_sources"]
+        .as_array()
+        .ok_or(EditionCurationError::MissingReference)?
+        .iter()
+        .find(|input| input["role"] == role)
+        .ok_or(EditionCurationError::MissingReference)?;
+    if input["manifest_ref"] != manifest.reference {
+        return Err(EditionCurationError::BindingMismatch);
+    }
+    let data =
+        published_value(manifest.raw, 8 * 1024 * 1024).map_err(EditionCurationError::Schema)?;
+    let mut matches = data["private_artifacts"]
+        .as_array()
+        .ok_or(EditionCurationError::InvalidSchema)?
+        .iter()
+        .filter(|item| item["ref"] == input["private_payload_ref"]);
+    let item = matches
+        .next()
+        .ok_or(EditionCurationError::MissingReference)?;
+    if matches.next().is_some() {
+        return Err(EditionCurationError::AmbiguousReference);
+    }
+    let digest = item["sha256"]
+        .as_str()
+        .ok_or(EditionCurationError::InvalidSchema)?;
+    let parsed = tos_foundation::Digest256::from_hex(digest)
+        .map_err(|_| EditionCurationError::InvalidSchema)?;
+    if parsed.to_hex() != digest {
+        return Err(EditionCurationError::InvalidSchema);
+    }
+    Ok(digest.to_owned())
+}
+
 /// Validate the selected historical receipt and its frozen identity.
 pub fn validate_selected_historical_receipt(
     raw: &[u8],
@@ -1744,6 +1789,8 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
             for (array, field) in [
                 ("page_overrides", "key"),
                 ("locators", "role"),
+                ("input_sources", "role"),
+                ("input_sources", "private_payload_ref"),
                 ("outputs", "kind"),
                 ("outputs", "filename"),
                 ("output_files", "role"),
