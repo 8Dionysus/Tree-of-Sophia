@@ -188,6 +188,45 @@
           "filename": "manifest.v1.json"
         }
       ]
+    },
+    {
+      "stage": "paragraph-alignment",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf"
+      ],
+      "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "work_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra",
+      "source_markup": "technical-markup/dta-first-editions-parts-1-4-v1",
+      "target_markup": "technical-markup/antonovsky-1911-structural-paragraph-v2",
+      "route": "alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1",
+      "private_root": "gold-sets/foundation-pilot-v1/local-content/translation-alignment-v1",
+      "contract_ref": "ToS/contracts/translation-alignment-packet-v1.schema.json",
+      "parts": [
+        {
+          "label": "I",
+          "expected_readings": 23
+        },
+        {
+          "label": "II",
+          "expected_readings": 22
+        },
+        {
+          "label": "III",
+          "expected_readings": 16
+        },
+        {
+          "label": "IV",
+          "expected_readings": 20
+        }
+      ],
+      "historical_template_ref": "rust/crates/tos-compiler/src/research_paragraph_alignment_templates.json",
+      "historical_template_sha256": "1e3506a2f72714976eecf921c66199840491df500551202fb51759b4481d0480",
+      "historical_event_date": "2026-09-01",
+      "historical_ended_at": "2026-09-01T21:00:00-06:00"
     }
   ]
 }
