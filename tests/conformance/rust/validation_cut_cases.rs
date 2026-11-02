@@ -3025,3 +3025,110 @@ fn maintained_assessment_whole_output_matches_native_current_view() {
     // Every true fixture value above remains a pure synthetic mechanics
     // observation. No journal, current source admission or Sign issuer exists.
 }
+
+#[test]
+fn in_process_source_claim_preserves_cut_and_local_profile_diagnostics() {
+    use tos_validation::in_process::InputMode;
+    use tos_validation::record_rules::{
+        validate_source_claim_from_asserted_cut, validate_source_claim_from_in_process_cut,
+    };
+    use tos_validation::source_cut::{
+        InProcessCutDiagnostic, InProcessCutIdentity, InProcessCutSchemaExecutor,
+    };
+
+    let mut files = selected_item_sources();
+    let relation = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
+    files.insert(
+        relation.into(),
+        fs::read(repository().join(relation)).unwrap(),
+    );
+    let claims = fs::read(
+        repository().join("ToS/source-witnesses/relations/social-research/source-claims.jsonl"),
+    )
+    .unwrap();
+    let claim = claims
+        .split(|byte| *byte == b'\n')
+        .find(|line| !line.is_empty())
+        .unwrap();
+    let mut invalid: Value = serde_json::from_slice(claim).unwrap();
+    invalid["claim_id"] = serde_json::json!(17);
+    let invalid = canonical_json(&invalid);
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().join("store");
+    let revision = write_cut_store(&files, &root);
+    let cancelled = AtomicBool::new(false);
+    let deadline = Instant::now() + Duration::from_secs(120);
+    let reader = CorpusReader::open_existing(
+        &root,
+        ReadLimits {
+            max_manifest_bytes: 1_048_576,
+            max_manifest_entries: 1024,
+            max_selected_object_bytes: 2_097_152,
+            json: JsonLimits::default(),
+        },
+    )
+    .unwrap();
+    let cut = reader
+        .open_source_cut(
+            revision,
+            CutReadLimits {
+                max_revisions: 2,
+                max_members: 2048,
+                max_total_bytes: 64_000_000,
+                max_member_bytes: 2_097_152,
+            },
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    let profile = FormatProfile::AssertedSourceCandidateV1;
+    let limits = ItemLimits {
+        max_member_bytes: 1_048_576,
+        max_total_bytes: 16_777_216,
+        max_state_bytes: 16_777_216,
+        max_issues: 128,
+        deadline,
+    };
+    let image =
+        super::command_form_cases::schema_image(ExecutorBudget::laboratory(), deadline, &cancelled);
+    let mut old = super::command_form_cases::schemas_for_profile_with_image(
+        &cut,
+        profile,
+        &image,
+        ExecutorBudget::laboratory(),
+        deadline,
+        &cancelled,
+    );
+    let mut new = InProcessCutSchemaExecutor::from_cut(
+        &cut,
+        profile,
+        InputMode::SerdeNormalized,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    for raw in [claim, invalid.as_slice()] {
+        let previous =
+            validate_source_claim_from_asserted_cut(&cut, raw, &mut old, limits, &cancelled)
+                .unwrap();
+        let current = validate_source_claim_from_in_process_cut(
+            &cut, raw, &mut new, limits, &cancelled, profile,
+        )
+        .unwrap();
+        assert_eq!(current.source_revision, revision);
+        assert_eq!(current.source_input_sha256, previous.source_input_sha256);
+        assert_eq!(current.decoded_input_sha256, previous.decoded_input_sha256);
+        assert_eq!(current.dependency_digests, previous.dependency_digests);
+        assert_eq!(current.dependency_order, previous.dependency_order);
+        assert_eq!(current.issues, previous.issues);
+        assert!(!current.schema_diagnostics.is_empty());
+        for evidence in current.schema_diagnostics {
+            let decoded = InProcessCutDiagnostic::<()>::from_evidence_json(&evidence).unwrap();
+            assert_eq!(decoded.identity, InProcessCutIdentity::Source(revision));
+            assert_eq!(
+                decoded.report.schema_set_sha256,
+                current.execution_binding.schema_set_sha256
+            );
+        }
+    }
+}

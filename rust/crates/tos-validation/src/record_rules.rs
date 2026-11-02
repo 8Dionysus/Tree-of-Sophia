@@ -2780,6 +2780,21 @@ pub struct SourceClaimLocalReport {
     workspace: usize,
 }
 
+/// Local Claim result with diagnostics from an exact in-process source cut.
+#[derive(Debug, Clone)]
+pub struct InProcessSourceClaimLocalReport {
+    pub source_revision: tos_foundation::SourceRevision,
+    pub source_input_sha256: Digest256,
+    pub decoded_input_sha256: Digest256,
+    pub execution_binding: tos_foundation::InProcessSchemaExecutionBinding,
+    pub dependency_digests: BTreeMap<String, Digest256>,
+    pub dependency_order: Vec<String>,
+    pub dependency_bytes_read: u64,
+    pub issues: Vec<crate::relation_rules::RelationIssue>,
+    /// Versioned source-cut envelopes in execution order.
+    pub schema_diagnostics: Vec<Vec<u8>>,
+}
+
 /// Candidate-fenced local Claim result. Its input identity, membership and
 /// prepared diagnostics worker stay typed; this carries no `SourceRevision`
 /// and is only local-form verification evidence.
@@ -3309,6 +3324,54 @@ impl<S: CutSchemaExecutor + CutSchemaReceiptRange> LocalClaimSchemaWorker for S 
     }
 }
 
+struct InProcessLocalClaimSchemaWorker<'a> {
+    worker: &'a mut crate::source_cut::InProcessCutSchemaExecutor<()>,
+    diagnostics: Vec<Vec<u8>>,
+    diagnostic_bytes: usize,
+    max_state_bytes: usize,
+}
+
+impl LocalClaimSchemaWorker for InProcessLocalClaimSchemaWorker<'_> {
+    fn contract_digest(&self, contract: &str) -> Option<Digest256> {
+        self.worker.selected_contract_digest(contract)
+    }
+
+    fn check_reusing_scalar(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        deadline: std::time::Instant,
+        cancelled: &std::sync::atomic::AtomicBool,
+    ) -> Result<bool, crate::item_rules::ItemRefusal> {
+        use crate::executor::schema_diagnostics::{Caps, Failure, Status};
+        use crate::item_rules::ItemRefusal;
+        let diagnostic =
+            self.worker
+                .diagnostic_for(path, contract, raw, Caps::CURRENT, deadline, cancelled)?;
+        let status = diagnostic.report.status;
+        let failure = diagnostic.report.failure;
+        let encoded = diagnostic
+            .to_evidence_json()
+            .map_err(|_| ItemRefusal::Source("local Claim diagnostic encoding".into()))?;
+        self.diagnostic_bytes = self
+            .diagnostic_bytes
+            .checked_add(encoded.len())
+            .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Vec<u8>>()))
+            .filter(|bytes| *bytes <= self.max_state_bytes)
+            .ok_or(crate::item_budget_origin!())?;
+        self.diagnostics.push(encoded);
+        match status {
+            Status::Valid => Ok(true),
+            Status::Invalid => Ok(false),
+            Status::InputRejected if failure == Failure::InputBudget => Err(ItemRefusal::Budget),
+            _ => Err(ItemRefusal::Unsupported(format!(
+                "local Claim schema diagnostic {status:?}: {failure:?}"
+            ))),
+        }
+    }
+}
+
 struct CandidateLocalClaimSchemaWorker<'a, I: Eq + Clone> {
     worker: &'a mut dyn crate::source_foundation_records::SourceFoundationCandidateSchemaBinding<I>,
     input_identity: I,
@@ -3709,6 +3772,102 @@ fn validate_candidate_claim_input_core<I: Copy + Eq>(
         issues: report.issues,
         diagnostics_cost,
         logical_state: report.logical_state,
+    })
+}
+
+/// Validate a local Claim against the schemas and records of one exact source cut.
+pub fn validate_source_claim_from_in_process_cut(
+    cut: &tos_source_store::CorpusCutReader,
+    selected_claim_raw: &[u8],
+    worker: &mut crate::source_cut::InProcessCutSchemaExecutor<()>,
+    limits: crate::item_rules::ItemLimits,
+    cancelled: &std::sync::atomic::AtomicBool,
+    expected_profile: FormatProfile,
+) -> Result<InProcessSourceClaimLocalReport, crate::item_rules::ItemRefusal> {
+    use crate::item_rules::ItemRefusal;
+    local_claim_checkpoint(limits, cancelled)?;
+    let revision = cut.current().revision();
+    let binding = worker.binding();
+    if worker.selected_source_revision() != Some(revision)
+        || binding.schema_profile != expected_profile
+    {
+        return Err(ItemRefusal::Source(
+            "local Claim source cut or schema profile differs".into(),
+        ));
+    }
+    if selected_claim_raw.len() > limits.max_member_bytes.min(MAX_RECORD_BYTES)
+        || selected_claim_raw.len() as u64 > limits.max_total_bytes
+    {
+        return Err(ItemRefusal::Budget);
+    }
+    let (claim, claim_state) = crate::record_biblio_cut::bounded_decoded_state(
+        selected_claim_raw,
+        tos_foundation::JsonLimits::default(),
+        limits.max_state_bytes,
+        limits.deadline,
+        cancelled,
+    )?;
+    crate::record_biblio_cut::decoded_wire_size(
+        &claim,
+        limits
+            .max_state_bytes
+            .checked_sub(claim_state)
+            .ok_or(crate::item_budget_origin!())?,
+    )?;
+    let decoded = serde_json::to_vec(&claim)
+        .map_err(|_| ItemRefusal::Unsupported("local Claim decoded serialization".into()))?;
+    let header = std::mem::size_of::<InProcessSourceClaimLocalReport>();
+    let logical_state = claim_state
+        .checked_add(header)
+        .and_then(|n| n.checked_add(std::mem::size_of::<LocalClaimInputs>()))
+        .ok_or(crate::item_budget_origin!())?;
+    local_claim_state_check(
+        logical_state,
+        decoded.len() + std::mem::size_of::<Vec<u8>>(),
+        limits,
+    )?;
+    let mut report = LocalClaimReportState {
+        source_input_sha256: Digest256::of_bytes(selected_claim_raw),
+        decoded_input_sha256: Digest256::of_bytes(&decoded),
+        dependency_digests: BTreeMap::new(),
+        dependency_order: Vec::new(),
+        issues: Vec::new(),
+        logical_state,
+        workspace: 0,
+    };
+    drop(decoded);
+    let mut schemas = InProcessLocalClaimSchemaWorker {
+        worker,
+        diagnostics: Vec::new(),
+        diagnostic_bytes: 0,
+        max_state_bytes: limits.max_state_bytes,
+    };
+    let mut bytes = selected_claim_raw.len() as u64;
+    validate_source_claim_local_core(
+        &CutLocalClaimSource(cut),
+        &claim,
+        selected_claim_raw,
+        LocalClaimValidationScope::PublicForm,
+        header,
+        &mut schemas,
+        limits,
+        cancelled,
+        &mut bytes,
+        &mut report,
+    )?;
+    local_claim_state_check(report.logical_state, schemas.diagnostic_bytes, limits)?;
+    Ok(InProcessSourceClaimLocalReport {
+        source_revision: revision,
+        source_input_sha256: report.source_input_sha256,
+        decoded_input_sha256: report.decoded_input_sha256,
+        execution_binding: binding,
+        dependency_digests: report.dependency_digests,
+        dependency_order: report.dependency_order,
+        dependency_bytes_read: bytes
+            .checked_sub(selected_claim_raw.len() as u64)
+            .ok_or(crate::item_budget_origin!())?,
+        issues: report.issues,
+        schema_diagnostics: schemas.diagnostics,
     })
 }
 
