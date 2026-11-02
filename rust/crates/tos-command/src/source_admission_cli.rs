@@ -1107,6 +1107,14 @@ fn run_spooled(
                     ));
                 }
             }
+            if let Err(error) = validator.finalize_without_evaluation() {
+                phase.set("prior accepted publication; final invocation custody refused");
+                return Err(recovered_publication_refusal(
+                    &accepted,
+                    "prior accepted publication; final invocation custody refused",
+                    retain_v2_allocation_custody(error, target_custody.clone()),
+                ));
+            }
             if let Err(error) = validator.write_receipt(&receipt, stdout) {
                 phase.set("prior accepted publication; bounded receipt output failed");
                 return Err(recovered_publication_refusal(
