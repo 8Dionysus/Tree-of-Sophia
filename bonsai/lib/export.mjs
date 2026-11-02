@@ -154,7 +154,7 @@ export function exportPhilosophy({manifest,core,identities={},sources={},revisio
     if(value.statement_ids)for(const [field,id] of Object.entries(value.statement_ids))statementIds.push({id,field,path});
     for(const [key,item] of Object.entries(value))visit(item,`${path}/${pointer(key)}`);
   };
-  const content={records,claims,voices:core.voices,occurrences:core.occurrences,control:core.control};
+  const content={records,claims,voices:core.voices,occurrences:core.occurrences,semantic_uses:core.semanticUses,control:core.control};
   visit(content,'');
   const seen=new Set();
   for(const item of statementIds){if(seen.has(item.id))throw new Error(`Duplicate statement identity: ${item.id}`);seen.add(item.id);}
@@ -163,7 +163,7 @@ export function exportPhilosophy({manifest,core,identities={},sources={},revisio
     graft:structuredClone(manifest.graft??null),identity_map:structuredClone(identities),
     philosophical_identities:records.map(item=>({bonsai_id:item.id,type:item.type??null,tree_candidate:item.work_scope?.figure_ref??null,status:'stand-proposal'})),
     records:structuredClone(records),claims:structuredClone(claims),citations,statement_ids:statementIds,
-    voices:structuredClone(core.voices),occurrences:structuredClone(core.occurrences),
+    voices:structuredClone(core.voices),occurrences:structuredClone(core.occurrences),semantic_uses:structuredClone(core.semanticUses??null),
     core:structuredClone(core.core),control:structuredClone(core.control),
     objects:structuredClone(objects),witnesses:structuredClone(witnesses),fragments:structuredClone(fragments),alignment:structuredClone(alignment),
     place_relations:structuredClone(core.placeRelations),history:structuredClone(history),research_operations:structuredClone(researchOperations)};

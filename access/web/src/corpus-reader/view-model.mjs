@@ -466,10 +466,10 @@ export function createCorpusReaderModel({provider, notebook = null, locale = 'ru
     }
   }
 
-  async function readDocument(documentId, {refresh = false, cache = true} = {}) {
+  async function readDocument(documentId, {refresh = false, cache = true, versionId = null, revision = null, reference = null, unitId = null, snapshotRevision = null} = {}) {
     const existing = state.catalog.items.find(item => item.id === documentId);
     if (existing && existing.versions.length && !refresh) return existing;
-    const value = await run(`${cache ? 'document' : 'document-metadata'}:${documentId}`, signal => callProvider(provider, 'document', {documentId, signal}));
+    const value = await run(`${cache ? 'document' : 'document-metadata'}:${documentId}`, signal => callProvider(provider, 'document', {documentId, ...(versionId?{versionId}:{}), ...(revision?{revision}:{}), ...(reference?{reference}:{}), ...(unitId?{unitId}:{}), ...(snapshotRevision?{snapshotRevision}:{}), signal}));
     if (!value) return null;
     const document = normalizeDocument(value);
     if (cache) {
@@ -484,12 +484,12 @@ export function createCorpusReaderModel({provider, notebook = null, locale = 'ru
     return readDocument(documentId, {...options, cache: false});
   }
 
-  async function open({documentId, versionId, reference = null, unitId = null, revision = null} = {}) {
+  async function open({documentId, versionId, reference = null, unitId = null, revision = null, snapshotRevision = null} = {}) {
     const openToken = ++latestOpen;
     // A deep link carries unitId/revision separately. Only a provider-issued
     // reference is treated as a validated source anchor.
     let requestedReference = isReference(reference) ? validateReference(reference) : null;
-    let document = documentId ? await readDocument(documentId, {refresh: true}) : state.document || state.catalog.items[0];
+    let document = documentId ? await readDocument(documentId, {refresh: true,versionId,revision,reference:requestedReference,unitId,snapshotRevision}) : state.document || state.catalog.items[0];
     if (openToken !== latestOpen) return null;
     if (!document) {
       if (!state.catalog.items.length) await catalog();
@@ -499,11 +499,16 @@ export function createCorpusReaderModel({provider, notebook = null, locale = 'ru
     if (!document) throw new Error('document-unavailable');
     if (!document.versions?.length && document.id) document = await readDocument(document.id);
     if (openToken !== latestOpen) return null;
-    const active = availableVersion(document, versionId, locale);
+    let active = availableVersion(document, versionId, locale);
     if (!active) throw new Error('version-unavailable');
     if (!requestedReference && !unitId && !revision) {
       const remembered = await storedReading(document, active);
-      if (remembered?.reference) requestedReference = remembered.reference;
+      if (remembered?.reference) {
+        requestedReference = remembered.reference;
+        document = await readDocument(document.id,{refresh:true,versionId:active.id,reference:requestedReference});
+        active = availableVersion(document,active.id,locale);
+        if(!active)throw new Error('version-unavailable');
+      }
     }
     if (openToken !== latestOpen) return null;
     if (state.document?.id !== document.id) { state.referenceStates = {}; visibleWindowKeys.clear(); }
@@ -523,7 +528,7 @@ export function createCorpusReaderModel({provider, notebook = null, locale = 'ru
       return null;
     }
     if (requestedReference && providerMethod(provider, 'resolve')) {
-      const resolved = await run(`resolve:${document.id}\u0000${active.id}`, signal => callProvider(provider, 'resolve', {documentId: document.id, versionId: active.id, reference: exactReference(requestedReference), signal}));
+      const resolved = await run(`resolve:${document.id}\u0000${active.id}`, signal => callProvider(provider, 'resolve', {documentId: document.id, versionId: active.id, reference: exactReference(requestedReference), snapshotRevision:active.snapshotRevision, signal}));
       if (openToken !== latestOpen) return null;
       if (resolved) {
         if (Array.isArray(resolved.units)) {
@@ -610,6 +615,7 @@ export function createCorpusReaderModel({provider, notebook = null, locale = 'ru
         value = await run(`window:${key}`, signal => callProvider(provider, 'window', {
           documentId: document.id,
           versionId: version.id,
+          ...(version.snapshotRevision ? {snapshotRevision:version.snapshotRevision} : {}),
           ...(pinnedRevision ? {revision: pinnedRevision} : {}),
           ...(isReference(reference) ? {reference: validateReference(reference)} : {}),
           ...(unitId ? {unitId} : {}),
@@ -686,7 +692,7 @@ export function createCorpusReaderModel({provider, notebook = null, locale = 'ru
     }
   }
 
-  async function search({documentId = state.document?.id, versionId = state.activeVersionId, query = '', scope = 'loaded', cursor = null} = {}) {
+  async function search({documentId = state.document?.id, versionId = state.activeVersionId, query = '', scope = 'loaded', cursor = null, pageOnly = false} = {}) {
     const document = state.document?.id === documentId ? state.document : state.catalog.items.find(item => item.id === documentId);
     const version = availableVersion(document, versionId, locale);
     if (!document || !version) throw new Error('version-unavailable');
@@ -705,7 +711,7 @@ export function createCorpusReaderModel({provider, notebook = null, locale = 'ru
     if (scope === 'corpus' && !capabilities.corpus) throw new Error('corpus-search-unavailable');
     if (!['version', 'corpus'].includes(scope)) throw new Error('unsupported-search-scope');
     const providerScope = scope === 'version' ? 'document' : scope;
-    const value = await run(`search:${key}:${scope}`, signal => callProvider(provider, 'search', {documentId: document.id, versionId: version.id, query, scope: providerScope, cursor, limit: READER_LIMITS.searchResults, signal}));
+    const value = await run(`search:${key}:${scope}`, signal => callProvider(provider, 'search', {documentId: document.id, versionId: version.id, revision:version.revision, snapshotRevision:version.snapshotRevision, query, scope: providerScope, cursor, limit: READER_LIMITS.searchResults, signal}));
     if (!value) return null;
     const page = normalizeSearch(value, {document, version, scope});
     const previous = state.searches[key];
@@ -714,7 +720,7 @@ export function createCorpusReaderModel({provider, notebook = null, locale = 'ru
       ? [...list(previous.items), ...page.items].slice(-SEARCH_CACHE_LIMIT)
       : page.items.slice(0, SEARCH_CACHE_LIMIT);
     const result = {...page, items, query, truncated: items.length < (page.total ?? items.length) && !page.nextCursor};
-    state.searches[key] = result; notify(); return result;
+    state.searches[key] = result; notify(); return pageOnly?{...page,query}:result;
   }
 
   const notebookCache = {

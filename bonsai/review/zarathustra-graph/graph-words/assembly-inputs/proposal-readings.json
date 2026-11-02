@@ -22,16 +22,90 @@
         }
       ],
       "reading": {
-        "ru": "Гадюка будит спящего укусом; в ответ на слова Заратустры о даре она слизывает яд с раны. Сцена связывает ранение с необычным принятием и возвращением дара.",
-        "en": "The adder wakes the sleeping Zarathustra with a bite; in response to his words about the gift, she licks the venom from the wound. The scene connects injury with an unusual acceptance and return of a gift."
+        "ru": "Змея будит спящего укусом и говорит, что её яд убивает. После ответа Заратустры она снова обвивается вокруг его шеи и лижет рану.",
+        "en": "The snake wakes the sleeper with a bite and says her venom kills. After Zarathustra replies, she winds around his neck again and licks the wound."
       },
       "limit": {
-        "ru": "Гадюка говорит в сцене, но одно её появление не даёт ей учения о даре.",
-        "en": "The adder speaks in the scene, but this single appearance does not give her a doctrine of the gift."
+        "ru": "Немецкое Natter здесь передано как «змея», без установления вида; текст говорит о лизании раны, не об извлечении яда. Сцена сама по себе не даёт змее отдельного учения о даре.",
+        "en": "Natter is rendered here as “snake” without assigning a species; the text says she licks the wound, not that she draws out venom. The scene alone gives the snake no separate doctrine of giving."
       },
       "source_status": "interpretation-grounded-in-cited-places",
       "decision": "retain-as-stand-proposal",
-      "review_status": "source-visible-agent-reading-independent-review-pending"
+      "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+      "reading_revision_history": [
+        {
+          "reading": {
+            "ru": "Гадюка будит спящего укусом; в ответ на слова Заратустры о даре она слизывает яд с раны. Сцена связывает ранение с необычным принятием и возвращением дара.",
+            "en": "The adder wakes the sleeping Zarathustra with a bite; in response to his words about the gift, she licks the venom from the wound. The scene connects injury with an unusual acceptance and return of a gift."
+          },
+          "limit": {
+            "ru": "Гадюка говорит в сцене, но одно её появление не даёт ей учения о даре.",
+            "en": "The adder speaks in the scene, but this single appearance does not give her a doctrine of the gift."
+          },
+          "grounds": [
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "I.20",
+              "u": [
+                "tos.text-unit.sid-7d5819693a40f5731fbc1f75435ce157",
+                "tos.text-unit.sid-7d5819693a40f5731fbc1f75435ce157"
+              ]
+            }
+          ],
+          "review_status": "source-visible-agent-reading-independent-review-pending",
+          "independent_review": {
+            "reviewer": "p4-independent-review",
+            "model": "gpt-6.1-terra",
+            "effort": "xhigh",
+            "date": "2026-11-01",
+            "scope": "Cited German witness places and relevant adjacent units; proposed reading, not canon.",
+            "verdict": "revise"
+          }
+        },
+        {
+          "reading": {
+            "ru": "Змея будит спящего укусом и говорит, что её яд убивает; в ответ на слова Заратустры о даре она лижет его рану.",
+            "en": "The snake wakes the sleeper with a bite and says that her venom kills; in response to Zarathustra’s words about the gift, she licks his wound."
+          },
+          "limit": {
+            "ru": "Немецкое Natter не устанавливает вид; сцена не говорит, что змея слизывает яд, и не создаёт для неё отдельного учения о даре.",
+            "en": "The German Natter does not establish the species; the scene does not say she licks out venom or give her a separate doctrine of the gift."
+          },
+          "grounds": [
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "I.20",
+              "u": [
+                "tos.text-unit.sid-7d5819693a40f5731fbc1f75435ce157",
+                "tos.text-unit.sid-7d5819693a40f5731fbc1f75435ce157"
+              ]
+            }
+          ],
+          "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+          "revision_reason": {
+            "ru": "В I.20 змея лижет рану после обмена репликами о смертельном яде и даре; в тексте нет действия «высасывает яд» и нет обобщённого учения змеи.",
+            "en": "In I.20 the snake licks the wound after the exchange about lethal venom and a gift; the text has no action of drawing out venom and no generalized doctrine from the snake."
+          }
+        }
+      ],
+      "corrected_title": {
+        "ru": "Змея (Natter)",
+        "en": "The snake (Natter)"
+      },
+      "statement_ids": {
+        "reading": "tos.bonsai.statement.adder.proposal.reading",
+        "limit": "tos.bonsai.statement.adder.proposal.limit"
+      },
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "adder",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      }
     },
     {
       "id": "body-self",
@@ -45,19 +119,107 @@
             "tos.text-unit.sid-13e7af8a5fba9b3952c7257a555f9ebd"
           ],
           "q": "Aber das Grössere ist, woran du nicht glauben willst, — dein Leib und seine grosse Vernunft: die sagt nicht Ich, aber thut Ich."
+        },
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "I.05",
+          "u": [
+            "tos.text-unit.sid-5c7b2c736c1d6af99e2530b679459508",
+            "tos.text-unit.sid-5c7b2c736c1d6af99e2530b679459508"
+          ]
         }
       ],
       "reading": {
-        "ru": "Тело названо большой разумностью: оно не говорит «я», но делает «я». Это меняет обычное направление зависимости между телом и сознательным субъектом.",
-        "en": "The body is called a great reason: it does not say “I”, but performs “I”. This reverses the usual direction of dependence between body and conscious subject."
+        "ru": "В I.05 Заратустра называет большим тело и его большую разумность: она не говорит «я», но осуществляет «я». Разум, называемый духом, служит телу и является малой работой-игрушкой большой разумности.",
+        "en": "In I.05 Zarathustra names the body and its great reason as the greater thing: it does not say “I” but enacts “I”. The reason called spirit serves the body and is a small work-plaything of the great reason."
       },
       "limit": {
-        "ru": "Одного места недостаточно для полного отождествления тела и самости во всей книге.",
-        "en": "This place alone does not establish a complete identity of body and self throughout the book."
+        "ru": "Это место не доказывает полного тождества тела, самости и большой разумности во всей книге.",
+        "en": "This passage does not establish a complete identity of body, self and great reason throughout the book."
       },
       "source_status": "interpretation-grounded-in-cited-places",
       "decision": "retain-as-stand-proposal",
-      "review_status": "source-visible-agent-reading-independent-review-pending"
+      "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+      "reading_revision_history": [
+        {
+          "reading": {
+            "ru": "Тело названо большой разумностью: оно не говорит «я», но делает «я». Это меняет обычное направление зависимости между телом и сознательным субъектом.",
+            "en": "The body is called a great reason: it does not say “I”, but performs “I”. This reverses the usual direction of dependence between body and conscious subject."
+          },
+          "limit": {
+            "ru": "Одного места недостаточно для полного отождествления тела и самости во всей книге.",
+            "en": "This place alone does not establish a complete identity of body and self throughout the book."
+          },
+          "grounds": [
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "I.05",
+              "u": [
+                "tos.text-unit.sid-13e7af8a5fba9b3952c7257a555f9ebd",
+                "tos.text-unit.sid-13e7af8a5fba9b3952c7257a555f9ebd"
+              ],
+              "q": "Aber das Grössere ist, woran du nicht glauben willst, — dein Leib und seine grosse Vernunft: die sagt nicht Ich, aber thut Ich."
+            }
+          ],
+          "review_status": "source-visible-agent-reading-independent-review-pending",
+          "independent_review": {
+            "reviewer": "p4-independent-review",
+            "model": "gpt-6.1-terra",
+            "effort": "xhigh",
+            "date": "2026-11-01",
+            "scope": "Cited German witness places and relevant adjacent units; proposed reading, not canon.",
+            "verdict": "revise"
+          }
+        },
+        {
+          "reading": {
+            "ru": "Тело и его большой разум названы тем, что не говорит «я», но делает «я»; малый разум назван орудием тела.",
+            "en": "The body and its great reason are said not to say “I” but to do “I”; the little reason is called an instrument of the body."
+          },
+          "limit": {
+            "ru": "Одного места недостаточно для полного отождествления тела и самости во всей книге.",
+            "en": "This place alone does not establish a complete identity of body and self throughout the book."
+          },
+          "grounds": [
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "I.05",
+              "u": [
+                "tos.text-unit.sid-13e7af8a5fba9b3952c7257a555f9ebd",
+                "tos.text-unit.sid-13e7af8a5fba9b3952c7257a555f9ebd"
+              ],
+              "q": "Aber das Grössere ist, woran du nicht glauben willst, — dein Leib und seine grosse Vernunft: die sagt nicht Ich, aber thut Ich."
+            },
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "I.05",
+              "u": [
+                "tos.text-unit.sid-5c7b2c736c1d6af99e2530b679459508",
+                "tos.text-unit.sid-5c7b2c736c1d6af99e2530b679459508"
+              ]
+            }
+          ],
+          "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+          "revision_reason": {
+            "ru": "В немецком die относится к большой разумности; соседний абзац отдельно называет малую разумность орудием тела и малой работой-игрушкой большой разумности.",
+            "en": "In the German, die refers to the great reason; the adjacent paragraph separately calls little reason a tool of the body and a small work-plaything of the great reason."
+          }
+        }
+      ],
+      "statement_ids": {
+        "reading": "tos.bonsai.statement.body.self.proposal.reading",
+        "limit": "tos.bonsai.statement.body.self.proposal.limit"
+      },
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "body-self",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      }
     },
     {
       "id": "camel",
@@ -90,7 +252,21 @@
       },
       "source_status": "interpretation-grounded-in-cited-places",
       "decision": "retain-as-stand-proposal",
-      "review_status": "source-visible-agent-reading-independent-review-pending"
+      "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "camel",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      },
+      "statement_ids": {
+        "reading": "tos.bonsai.statement.camel.proposal.reading",
+        "limit": "tos.bonsai.statement.camel.proposal.limit"
+      }
     },
     {
       "id": "cows",
@@ -123,7 +299,21 @@
       },
       "source_status": "interpretation-grounded-in-cited-places",
       "decision": "retain-as-stand-proposal",
-      "review_status": "source-visible-agent-reading-independent-review-pending"
+      "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "cows",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      },
+      "statement_ids": {
+        "reading": "tos.bonsai.statement.cows.proposal.reading",
+        "limit": "tos.bonsai.statement.cows.proposal.limit"
+      }
     },
     {
       "id": "death-of-god",
@@ -149,7 +339,21 @@
       },
       "source_status": "interpretation-grounded-in-cited-places",
       "decision": "retain-as-stand-proposal",
-      "review_status": "source-visible-agent-reading-independent-review-pending"
+      "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "death-of-god",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      },
+      "statement_ids": {
+        "reading": "tos.bonsai.statement.death.of.god.proposal.reading",
+        "limit": "tos.bonsai.statement.death.of.god.proposal.limit"
+      }
     },
     {
       "id": "dudu",
@@ -174,7 +378,21 @@
       },
       "source_status": "interpretation-grounded-in-cited-places",
       "decision": "retain-as-stand-proposal",
-      "review_status": "source-visible-agent-reading-independent-review-pending"
+      "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "dudu",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      },
+      "statement_ids": {
+        "reading": "tos.bonsai.statement.dudu.proposal.reading",
+        "limit": "tos.bonsai.statement.dudu.proposal.limit"
+      }
     },
     {
       "id": "earth",
@@ -209,7 +427,21 @@
       },
       "source_status": "interpretation-grounded-in-cited-places",
       "decision": "retain-as-stand-proposal",
-      "review_status": "source-visible-agent-reading-independent-review-pending"
+      "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "earth",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      },
+      "statement_ids": {
+        "reading": "tos.bonsai.statement.earth.proposal.reading",
+        "limit": "tos.bonsai.statement.earth.proposal.limit"
+      }
     },
     {
       "id": "eternity",
@@ -244,8 +476,8 @@
         }
       ],
       "reading": {
-        "ru": "Звери называют путь вечности кривым; в полуночной песне прозвучит желание вечности всякой радостью.",
-        "en": "The animals call eternity’s path crooked; in the midnight song all joy will want eternity."
+        "ru": "Звери называют путь вечности кривым; в полуночной песне радость желает вечности.",
+        "en": "The animals call eternity’s path crooked; in the midnight song joy wills eternity."
       },
       "limit": {
         "ru": "Это разные голоса и контексты: сходное слово не превращает обе речи в одно тождественное определение вечности.",
@@ -253,7 +485,71 @@
       },
       "source_status": "interpretation-grounded-in-cited-places",
       "decision": "retain-as-stand-proposal",
-      "review_status": "source-visible-agent-reading-independent-review-pending"
+      "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+      "statement_ids": {
+        "reading": "tos.bonsai.statement.eternity.proposal.reading",
+        "limit": "tos.bonsai.statement.eternity.proposal.limit"
+      },
+      "reading_revision_history": [
+        {
+          "reading": {
+            "ru": "Звери называют путь вечности кривым; в полуночной песне прозвучит желание вечности всякой радостью.",
+            "en": "The animals call eternity’s path crooked; in the midnight song all joy will want eternity."
+          },
+          "limit": {
+            "ru": "Это разные голоса и контексты: сходное слово не превращает обе речи в одно тождественное определение вечности.",
+            "en": "These are different voices and contexts: the shared word does not make the two speeches identical definitions of eternity."
+          },
+          "grounds": [
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "III.13",
+              "u": [
+                "tos.text-unit.sid-aa15ff6b6ae52c43bb05fe7316272249",
+                "tos.text-unit.sid-aa15ff6b6ae52c43bb05fe7316272249"
+              ],
+              "q": "Krumm ist der Pfad der Ewigkeit.“ —"
+            },
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "IV.19",
+              "u": [
+                "tos.text-unit.sid-5922abd141cc99f676a660eaaef80866",
+                "tos.text-unit.sid-5922abd141cc99f676a660eaaef80866"
+              ],
+              "q": "— die Stunde naht: oh Mensch, du höherer Mensch, gieb Acht!"
+            },
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "IV.19",
+              "u": [
+                "tos.text-unit.sid-ea9d997ac39761114127a6c0b1800565",
+                "tos.text-unit.sid-6f8647f0f000b169fcbceb7899b30c59"
+              ],
+              "q": "Denn alle Lust will — Ewigkeit!"
+            }
+          ],
+          "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+          "independent_review": {
+            "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+            "case_id": "eternity",
+            "verdict": "revise",
+            "findings": [
+              "EN “all joy will want eternity” suggests future; German IV.19 0ec434d…/6f8647f… uses will as present volition: joy wills eternity. RU “прозвучит желание” also puts this existing speech in the future."
+            ]
+          }
+        }
+      ],
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-correction-review-2026-11-01.json",
+        "case_id": "eternity",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      }
     },
     {
       "id": "going-under",
@@ -279,7 +575,21 @@
       },
       "source_status": "interpretation-grounded-in-cited-places",
       "decision": "retain-as-stand-proposal",
-      "review_status": "source-visible-agent-reading-independent-review-pending"
+      "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "going-under",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      },
+      "statement_ids": {
+        "reading": "tos.bonsai.statement.going.under.proposal.reading",
+        "limit": "tos.bonsai.statement.going.under.proposal.limit"
+      }
     },
     {
       "id": "golden-fire-dog",
@@ -304,7 +614,21 @@
       },
       "source_status": "interpretation-grounded-in-cited-places",
       "decision": "retain-as-stand-proposal",
-      "review_status": "source-visible-agent-reading-independent-review-pending"
+      "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "golden-fire-dog",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      },
+      "statement_ids": {
+        "reading": "tos.bonsai.statement.golden.fire.dog.proposal.reading",
+        "limit": "tos.bonsai.statement.golden.fire.dog.proposal.limit"
+      }
     },
     {
       "id": "great-ear",
@@ -329,7 +653,21 @@
       },
       "source_status": "interpretation-grounded-in-cited-places",
       "decision": "retain-as-stand-proposal",
-      "review_status": "source-visible-agent-reading-independent-review-pending"
+      "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "great-ear",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      },
+      "statement_ids": {
+        "reading": "tos.bonsai.statement.great.ear.proposal.reading",
+        "limit": "tos.bonsai.statement.great.ear.proposal.limit"
+      }
     },
     {
       "id": "innocence-play",
@@ -373,7 +711,21 @@
       },
       "source_status": "interpretation-grounded-in-cited-places",
       "decision": "retain-as-stand-proposal",
-      "review_status": "source-visible-agent-reading-independent-review-pending"
+      "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "innocence-play",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      },
+      "statement_ids": {
+        "reading": "tos.bonsai.statement.innocence.play.proposal.reading",
+        "limit": "tos.bonsai.statement.innocence.play.proposal.limit"
+      }
     },
     {
       "id": "joy-lust",
@@ -417,7 +769,21 @@
       },
       "source_status": "interpretation-grounded-in-cited-places",
       "decision": "retain-as-stand-proposal",
-      "review_status": "source-visible-agent-reading-independent-review-pending"
+      "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "joy-lust",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      },
+      "statement_ids": {
+        "reading": "tos.bonsai.statement.joy.lust.proposal.reading",
+        "limit": "tos.bonsai.statement.joy.lust.proposal.limit"
+      }
     },
     {
       "id": "last-man",
@@ -434,16 +800,88 @@
         }
       ],
       "reading": {
-        "ru": "Толпа желает последнего человека и отдаёт Заратустре сверхчеловека; он печалится.",
-        "en": "The crowd wants the last man and gives Zarathustra the overman; he becomes sad."
+        "ru": "Толпа прерывает первую речь: она просит Заратустру сделать людей последними и говорит, что тогда подарит ему сверхчеловека; толпа ликует, он печален.",
+        "en": "The crowd interrupts the first speech, asking Zarathustra to make them last men and saying it will then give him the overman as a gift; the crowd cheers and he grows sad."
       },
       "limit": {
-        "ru": "Речь толпы и реакция Заратустры не описывают все свойства последнего человека; нужен полный контекст предшествующего изображения.",
-        "en": "The crowd’s speech and Zarathustra’s response do not describe all the last man’s features; the preceding portrayal needs its full context."
+        "ru": "Это реплика толпы и реакция Заратустры, а не исчерпывающее описание последнего человека или сверхчеловека; их предшествующее изображение остаётся частью контекста.",
+        "en": "This is the crowd’s speech and Zarathustra’s reaction, not a full account of the last man or the overman; their preceding portrayal remains part of the context."
       },
       "source_status": "interpretation-grounded-in-cited-places",
       "decision": "retain-as-stand-proposal",
-      "review_status": "source-visible-agent-reading-independent-review-pending"
+      "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+      "reading_revision_history": [
+        {
+          "reading": {
+            "ru": "Толпа желает последнего человека и отдаёт Заратустре сверхчеловека; он печалится.",
+            "en": "The crowd wants the last man and gives Zarathustra the overman; he becomes sad."
+          },
+          "limit": {
+            "ru": "Речь толпы и реакция Заратустры не описывают все свойства последнего человека; нужен полный контекст предшествующего изображения.",
+            "en": "The crowd’s speech and Zarathustra’s response do not describe all the last man’s features; the preceding portrayal needs its full context."
+          },
+          "grounds": [
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "I.01",
+              "u": [
+                "tos.text-unit.sid-1854da398df3ee2655605c8612f6d608",
+                "tos.text-unit.sid-1854da398df3ee2655605c8612f6d608"
+              ],
+              "q": "Und hier endete die erste Rede Zarathustra's, welche man auch „die Vorrede“ heisst: denn an dieser Stelle unterbrach ihn das Geschrei und die Lust der Menge. „Gieb uns diesen letzten Menschen, oh Zarathustra, — so riefen sie — mache uns zu diesen letzten Menschen! So schenken wir dir den Übermenschen!“ Und alles Volk jubelte und schnalzte mit der Zunge. Zarathustra aber wurde traurig und sagte zu seinem Herzen:"
+            }
+          ],
+          "review_status": "source-visible-agent-reading-independent-review-pending",
+          "independent_review": {
+            "reviewer": "p4-independent-review",
+            "model": "gpt-6.1-terra",
+            "effort": "xhigh",
+            "date": "2026-11-01",
+            "scope": "Cited German witness places and relevant adjacent units; proposed reading, not canon.",
+            "verdict": "revise"
+          }
+        },
+        {
+          "reading": {
+            "ru": "Толпа просит сделать её последними людьми и предлагает взамен отдать Заратустре сверхчеловека; он печалится.",
+            "en": "The crowd asks to be made last men and offers Zarathustra the overman in exchange; he becomes sad."
+          },
+          "limit": {
+            "ru": "Речь толпы и реакция Заратустры не описывают все свойства последнего человека; нужен полный контекст предшествующего изображения.",
+            "en": "The crowd’s speech and Zarathustra’s response do not describe all the last man’s features; the preceding portrayal needs its full context."
+          },
+          "grounds": [
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "I.01",
+              "u": [
+                "tos.text-unit.sid-1854da398df3ee2655605c8612f6d608",
+                "tos.text-unit.sid-1854da398df3ee2655605c8612f6d608"
+              ],
+              "q": "Und hier endete die erste Rede Zarathustra's, welche man auch „die Vorrede“ heisst: denn an dieser Stelle unterbrach ihn das Geschrei und die Lust der Menge. „Gieb uns diesen letzten Menschen, oh Zarathustra, — so riefen sie — mache uns zu diesen letzten Menschen! So schenken wir dir den Übermenschen!“ Und alles Volk jubelte und schnalzte mit der Zunge. Zarathustra aber wurde traurig und sagte zu seinem Herzen:"
+            }
+          ],
+          "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+          "revision_reason": {
+            "ru": "I.01 говорит «So schenken wir dir den Übermenschen» — «мы подарим тебе сверхчеловека». Место не называет это обменом или предложением в ответ на цену.",
+            "en": "I.01 says “So schenken wir dir den Übermenschen” (“thus we will give you the overman as a gift”). The passage does not call this an exchange or a price."
+          }
+        }
+      ],
+      "statement_ids": {
+        "reading": "tos.bonsai.statement.last.man.proposal.reading",
+        "limit": "tos.bonsai.statement.last.man.proposal.limit"
+      },
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "last-man",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      }
     },
     {
       "id": "loneliness",
@@ -478,7 +916,21 @@
       },
       "source_status": "interpretation-grounded-in-cited-places",
       "decision": "retain-as-stand-proposal",
-      "review_status": "source-visible-agent-reading-independent-review-pending"
+      "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "loneliness",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      },
+      "statement_ids": {
+        "reading": "tos.bonsai.statement.loneliness.proposal.reading",
+        "limit": "tos.bonsai.statement.loneliness.proposal.limit"
+      }
     },
     {
       "id": "love-of-the-farthest",
@@ -504,7 +956,21 @@
       },
       "source_status": "interpretation-grounded-in-cited-places",
       "decision": "retain-as-stand-proposal",
-      "review_status": "source-visible-agent-reading-independent-review-pending"
+      "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "love-of-the-farthest",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      },
+      "statement_ids": {
+        "reading": "tos.bonsai.statement.love.of.the.farthest.proposal.reading",
+        "limit": "tos.bonsai.statement.love.of.the.farthest.proposal.limit"
+      }
     },
     {
       "id": "quietest-hour",
@@ -529,7 +995,21 @@
       },
       "source_status": "interpretation-grounded-in-cited-places",
       "decision": "retain-as-stand-proposal",
-      "review_status": "source-visible-agent-reading-independent-review-pending"
+      "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "quietest-hour",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      },
+      "statement_ids": {
+        "reading": "tos.bonsai.statement.quietest.hour.proposal.reading",
+        "limit": "tos.bonsai.statement.quietest.hour.proposal.limit"
+      }
     },
     {
       "id": "redemption",
@@ -573,7 +1053,21 @@
       },
       "source_status": "interpretation-grounded-in-cited-places",
       "decision": "retain-as-stand-proposal",
-      "review_status": "source-visible-agent-reading-independent-review-pending"
+      "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "redemption",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      },
+      "statement_ids": {
+        "reading": "tos.bonsai.statement.redemption.proposal.reading",
+        "limit": "tos.bonsai.statement.redemption.proposal.limit"
+      }
     },
     {
       "id": "revenge",
@@ -608,7 +1102,21 @@
       },
       "source_status": "interpretation-grounded-in-cited-places",
       "decision": "retain-as-stand-proposal",
-      "review_status": "source-visible-agent-reading-independent-review-pending"
+      "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "revenge",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      },
+      "statement_ids": {
+        "reading": "tos.bonsai.statement.revenge.proposal.reading",
+        "limit": "tos.bonsai.statement.revenge.proposal.limit"
+      }
     },
     {
       "id": "rope-bridge",
@@ -634,7 +1142,21 @@
       },
       "source_status": "interpretation-grounded-in-cited-places",
       "decision": "retain-as-stand-proposal",
-      "review_status": "source-visible-agent-reading-independent-review-pending"
+      "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "rope-bridge",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      },
+      "statement_ids": {
+        "reading": "tos.bonsai.statement.rope.bridge.proposal.reading",
+        "limit": "tos.bonsai.statement.rope.bridge.proposal.limit"
+      }
     },
     {
       "id": "self-overcoming",
@@ -668,7 +1190,21 @@
       },
       "source_status": "interpretation-grounded-in-cited-places",
       "decision": "retain-as-stand-proposal",
-      "review_status": "source-visible-agent-reading-independent-review-pending"
+      "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "self-overcoming",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      },
+      "statement_ids": {
+        "reading": "tos.bonsai.statement.self.overcoming.proposal.reading",
+        "limit": "tos.bonsai.statement.self.overcoming.proposal.limit"
+      }
     },
     {
       "id": "sleep-sage",
@@ -701,7 +1237,21 @@
       },
       "source_status": "interpretation-grounded-in-cited-places",
       "decision": "retain-as-stand-proposal",
-      "review_status": "source-visible-agent-reading-independent-review-pending"
+      "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "sleep-sage",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      },
+      "statement_ids": {
+        "reading": "tos.bonsai.statement.sleep.sage.proposal.reading",
+        "limit": "tos.bonsai.statement.sleep.sage.proposal.limit"
+      }
     },
     {
       "id": "spirit-of-gravity",
@@ -745,7 +1295,21 @@
       },
       "source_status": "interpretation-grounded-in-cited-places",
       "decision": "retain-as-stand-proposal",
-      "review_status": "source-visible-agent-reading-independent-review-pending"
+      "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "spirit-of-gravity",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      },
+      "statement_ids": {
+        "reading": "tos.bonsai.statement.spirit.of.gravity.proposal.reading",
+        "limit": "tos.bonsai.statement.spirit.of.gravity.proposal.limit"
+      }
     },
     {
       "id": "suleika",
@@ -770,7 +1334,21 @@
       },
       "source_status": "interpretation-grounded-in-cited-places",
       "decision": "retain-as-stand-proposal",
-      "review_status": "source-visible-agent-reading-independent-review-pending"
+      "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "suleika",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      },
+      "statement_ids": {
+        "reading": "tos.bonsai.statement.suleika.proposal.reading",
+        "limit": "tos.bonsai.statement.suleika.proposal.limit"
+      }
     },
     {
       "id": "tablets-values",
@@ -805,7 +1383,21 @@
       },
       "source_status": "interpretation-grounded-in-cited-places",
       "decision": "retain-as-stand-proposal",
-      "review_status": "source-visible-agent-reading-independent-review-pending"
+      "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "tablets-values",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      },
+      "statement_ids": {
+        "reading": "tos.bonsai.statement.tablets.values.proposal.reading",
+        "limit": "tos.bonsai.statement.tablets.values.proposal.limit"
+      }
     },
     {
       "id": "three-metamorphoses",
@@ -848,7 +1440,21 @@
       },
       "source_status": "interpretation-grounded-in-cited-places",
       "decision": "retain-as-stand-proposal",
-      "review_status": "source-visible-agent-reading-independent-review-pending"
+      "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "three-metamorphoses",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      },
+      "statement_ids": {
+        "reading": "tos.bonsai.statement.three.metamorphoses.proposal.reading",
+        "limit": "tos.bonsai.statement.three.metamorphoses.proposal.limit"
+      }
     },
     {
       "id": "unknown-god",
@@ -873,7 +1479,21 @@
       },
       "source_status": "interpretation-grounded-in-cited-places",
       "decision": "retain-as-stand-proposal",
-      "review_status": "source-visible-agent-reading-independent-review-pending"
+      "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "unknown-god",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      },
+      "statement_ids": {
+        "reading": "tos.bonsai.statement.unknown.god.proposal.reading",
+        "limit": "tos.bonsai.statement.unknown.god.proposal.limit"
+      }
     },
     {
       "id": "zarathustra-soul",
@@ -899,16 +1519,106 @@
         }
       ],
       "reading": {
-        "ru": "Заратустра обращается к своей душе и приглашает её петь после того, как отдал ей всё.",
-        "en": "Zarathustra addresses his soul and invites it to sing after he has given it everything."
+        "ru": "Заратустра говорит душе, что отдал ей всё и все его руки опустели; веление петь он называет своим последним делом.",
+        "en": "Zarathustra tells his soul he has given her everything and emptied his hands; he names telling her to sing as his last act."
       },
       "limit": {
-        "ru": "Обращение не устанавливает душу отдельным историческим лицом или независимым телом.",
-        "en": "The address does not establish the soul as a separate historical person or an independent body."
+        "ru": "Лирическое обращение не устанавливает душу отдельным историческим лицом или независимым телом.",
+        "en": "The lyric address does not establish the soul as a separate historical person or independent body."
       },
       "source_status": "interpretation-grounded-in-cited-places",
       "decision": "retain-as-stand-proposal",
-      "review_status": "source-visible-agent-reading-independent-review-pending"
+      "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+      "reading_revision_history": [
+        {
+          "reading": {
+            "ru": "Заратустра обращается к своей душе и приглашает её петь после того, как отдал ей всё.",
+            "en": "Zarathustra addresses his soul and invites it to sing after he has given it everything."
+          },
+          "limit": {
+            "ru": "Обращение не устанавливает душу отдельным историческим лицом или независимым телом.",
+            "en": "The address does not establish the soul as a separate historical person or an independent body."
+          },
+          "grounds": [
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "III.14",
+              "u": [
+                "tos.text-unit.sid-6d591bed8717069d8de37a902e7980c7",
+                "tos.text-unit.sid-6d591bed8717069d8de37a902e7980c7"
+              ],
+              "q": "so wirst du singen müssen, oh meine Seele!"
+            },
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "III.14",
+              "u": [
+                "tos.text-unit.sid-63e2b2591cdfbe98985342c59da65d3d",
+                "tos.text-unit.sid-63e2b2591cdfbe98985342c59da65d3d"
+              ],
+              "q": "Oh meine Seele, nun gab ich dir Alles und auch mein Letztes, und alle meine Hände"
+            }
+          ],
+          "review_status": "source-visible-agent-reading-independent-review-pending",
+          "independent_review": {
+            "reviewer": "p4-independent-review",
+            "model": "gpt-6.1-terra",
+            "effort": "xhigh",
+            "date": "2026-11-01",
+            "scope": "Cited German witness places and relevant adjacent units; proposed reading, not canon.",
+            "verdict": "revise"
+          }
+        },
+        {
+          "reading": {
+            "ru": "Заратустра обращается к своей душе; он называет веление петь своим последним даром ей.",
+            "en": "Zarathustra addresses his soul and names his command to sing as his last gift to her."
+          },
+          "limit": {
+            "ru": "Обращение не устанавливает душу отдельным историческим лицом или независимым телом.",
+            "en": "The address does not establish the soul as a separate historical person or an independent body."
+          },
+          "grounds": [
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "III.14",
+              "u": [
+                "tos.text-unit.sid-6d591bed8717069d8de37a902e7980c7",
+                "tos.text-unit.sid-6d591bed8717069d8de37a902e7980c7"
+              ],
+              "q": "so wirst du singen müssen, oh meine Seele!"
+            },
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "III.14",
+              "u": [
+                "tos.text-unit.sid-63e2b2591cdfbe98985342c59da65d3d",
+                "tos.text-unit.sid-63e2b2591cdfbe98985342c59da65d3d"
+              ],
+              "q": "Oh meine Seele, nun gab ich dir Alles und auch mein Letztes, und alle meine Hände"
+            }
+          ],
+          "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+          "revision_reason": {
+            "ru": "В III.14 слова «я отдал всё» соседствуют с уточнением: веление петь было последним; текст не называет его отдельным «последним подарком».",
+            "en": "In III.14 “I gave you everything” is followed by the clarification that telling the soul to sing was his last act; the text does not name it a separate “last gift”."
+          }
+        }
+      ],
+      "statement_ids": {
+        "reading": "tos.bonsai.statement.zarathustra.soul.proposal.reading",
+        "limit": "tos.bonsai.statement.zarathustra.soul.proposal.limit"
+      },
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "zarathustra-soul",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      }
     }
   ]
 }

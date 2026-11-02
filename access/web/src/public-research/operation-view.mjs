@@ -1,5 +1,6 @@
 import {runResearchOperation} from './research-operations.mjs';
 import {localeValue,resolveLocale} from './locale.mjs';
+import {citationId} from './research-index.mjs';
 import jgb from '../../../../bonsai/zarathustra/research-operations.json' with {type:'json'};
 import './operation-view.css';
 
@@ -146,7 +147,7 @@ export function mountResearchOperations({root,index,getSelection=()=>null,notebo
     }else if(op==='distribution'){
       line(t(`Найдено ${result.count} из ${result.denominator} размеченных употреблений.`,`Found ${result.count} of ${result.denominator} annotated occurrences.`));line(`${t('Свидетель','Witness')}: ${result.witness} · ${result.search_kind}`);
       for(const [chapter,count] of Object.entries(result.groups))line(`${chapter}: ${count}`);
-      for(const loc of result.locations){const match=[...index.items.values()].find(x=>x.kind==='passage'&&x.record?.c===loc?.c&&JSON.stringify(x.record?.u??[])===JSON.stringify(loc?.u??[]));if(match)output.append(openButton(match.id));else line(`${loc?.c??'?'} · ${(loc?.u??[]).join(' – ')}`);}
+      for(const loc of result.locations){const match=index.get(citationId(loc));if(match?.kind==='passage')output.append(openButton(match.id));else line([loc?.w,loc?.c,loc?.loc,(loc?.u??[]).join(' – '),loc?.s!==undefined||loc?.e!==undefined?`${loc.s??'?'}–${loc.e??'?'}`:''].filter(Boolean).join(' · '));}
     }else if(op==='argument_structure'){
       if(!result.steps.length)line(t('У цепочки нет записанных шагов.','This chain has no recorded steps.'));
       for(const [i,step] of result.steps.entries())line(`${i+1}. ${itemName(step.from)} → ${viewText(step.verb,lang())} → ${itemName(step.to)}${step.role?` · ${step.role}`:''}`);

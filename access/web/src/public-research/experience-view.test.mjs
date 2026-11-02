@@ -41,3 +41,18 @@ test('a concurrent preference change preserves the local draft before recovery',
   await vi.waitFor(()=>expect(writes.some(item=>item.key.includes('.recovery.')&&item.value.mode==='reference')).toBe(true));
   await vi.waitFor(()=>expect(view.getState().mode).toBe('original'));expect(remote.question).toBe('remote');view.destroy();
 });
+
+test('refreshing an unchanged question preserves the notebook generation used by import preview',async()=>{
+  const window={history:{replaceState:vi.fn(),pushState:vi.fn(),state:null},addEventListener(){},removeEventListener(){},scrollTo(){},scrollY:0};
+  vi.stubGlobal('document',{createElement:tag=>new Element(tag)});vi.stubGlobal('window',window);vi.stubGlobal('location',{href:'http://localhost/'});vi.stubGlobal('requestAnimationFrame',fn=>fn());
+  const index={revision:'current',items:new Map(),get:()=>null,search:()=>[],references:()=>[]},root=new Element('root'),space={root:new Element('space'),selection:()=>null,fragments:{}};root.append(space.root);
+  const notebook={getPreference:vi.fn(async()=>undefined),setPreference:vi.fn(async()=>{})};
+  let value='',refresh;
+  const api={getQuestion:()=>value,subscribeQuestion:listener=>{refresh=listener;return()=>{};}};
+  const view=mountResearchExperience({root,header:new Element('header'),profile:'test',locale:()=> 'en',index,space,notebook,api});
+  await vi.waitFor(()=>expect(notebook.getPreference).toHaveBeenCalled());
+  refresh();refresh();await Promise.resolve();expect(notebook.setPreference).not.toHaveBeenCalled();
+  value='Why does the receiver matter?';refresh();refresh();
+  await vi.waitFor(()=>expect(notebook.setPreference).toHaveBeenCalledTimes(1));
+  expect(view.getState().question).toBe(value);view.destroy();
+});

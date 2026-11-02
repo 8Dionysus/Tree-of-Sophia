@@ -11,6 +11,10 @@ export function readingRoute(value) {
     }
     result[key] = text;
   }
+  if(value.snapshotRevision!==undefined){
+    if(typeof value.snapshotRevision!=='string'||!/^[a-f0-9]{64}$/.test(value.snapshotRevision))throw new TypeError('Invalid corpus snapshot revision.');
+    result.snapshotRevision=value.snapshotRevision;
+  }
   return result;
 }
 export function encodeReadingRoute(value) {

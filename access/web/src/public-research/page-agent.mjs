@@ -2,6 +2,50 @@ import {createPageCommandRegistry} from '../page-commands.ts';
 import {createWebMCPAdapter} from '../webmcp.ts';
 import {runResearchOperation} from './research-operations.mjs';
 import {localeValue} from './locale.mjs';
+import {createReference,validateReference,referenceDocumentId,referenceVersionId} from '../corpus-reader/model.mjs';
+
+const SOURCE_CURSOR='tos-bonsai-source-1.';
+
+/** Read the cited selection without substituting another work or losing its end. */
+export async function readResearchSource({index,provider,fragments},input,{signal}={}){
+  const limit=input.limit??8;
+  if(!Number.isSafeInteger(limit)||limit<1||limit>20)throw new TypeError('Choose a source window limit from 1 to 20.');
+  if(Boolean(input.reference)===Boolean(input.item_id))throw new TypeError('Choose one exact passage ID or native reference.');
+  if(input.reference){
+    const reference=validateReference(input.reference),resolved=await provider.resolve({reference,signal});
+    if(resolved.status!=='exact')return resolved;
+    return provider.window({documentId:referenceDocumentId(reference),versionId:referenceVersionId(reference),reference,
+      ...(reference.target?.textLayerSha256?{revision:reference.target.textLayerSha256}:{}),
+      ...(input.cursor?{cursor:input.cursor}:{}),limit,signal});
+  }
+  const item=index.get(input.item_id);
+  if(item?.kind!=='passage')throw new TypeError('Choose an exact passage ID from research-item dependencies.');
+  const range=await fragments.sourceSelection(item.record,{signal});
+  const binding={item_id:item.id,index_revision:index.revision,documentId:range.documentId,versionId:range.versionId,revision:range.revision};
+  let offset=0;
+  if(input.cursor!==undefined){
+    try{
+      if(typeof input.cursor!=='string'||input.cursor.length>4096||!input.cursor.startsWith(SOURCE_CURSOR))throw new Error();
+      const saved=JSON.parse(decodeURIComponent(input.cursor.slice(SOURCE_CURSOR.length)));
+      if(JSON.stringify(saved.binding)!==JSON.stringify(binding)||!Number.isSafeInteger(saved.offset)||saved.offset<0||saved.offset>=range.selections.length)throw new Error();
+      offset=saved.offset;
+    }catch{throw new TypeError('The source cursor belongs to another citation or revision.');}
+  }
+  const units=[];
+  for(const selected of range.selections.slice(offset,offset+limit)){
+    const page=await provider.window({documentId:range.documentId,versionId:range.versionId,revision:range.revision,unitId:selected.unitId,limit:1,signal});
+    const unit=page.units?.[0];
+    if(page.documentId!==range.documentId||page.versionId!==range.versionId||page.revision!==range.revision||unit?.id!==selected.unitId
+      ||unit.text!==selected.raw)throw new TypeError('The cited witness words changed; this selection cannot be reproduced.');
+    const chars=Array.from(unit.text);
+    if(selected.start<0||selected.end<selected.start||selected.end>chars.length)throw new TypeError('The citation range is outside its exact source.');
+    units.push({...unit,selection:{start:selected.start,end:selected.end,text:chars.slice(selected.start,selected.end).join('')},
+      exactReference:createReference({source:range.source,versionId:range.versionId,unitId:unit.id,start:selected.start,end:selected.end})});
+  }
+  const next=offset+units.length,complete=next===range.selections.length;
+  return {...binding,units,total:range.selections.length,rangeComplete:complete,
+    nextCursor:complete?null:SOURCE_CURSOR+encodeURIComponent(JSON.stringify({binding,offset:next}))};
+}
 
 /** Public stands expose their existing owners through the shared page registry. */
 export function connectResearchPage({index,space,experience,session,api,workspace,locale,targetDocument=document}){
@@ -12,12 +56,7 @@ export function connectResearchPage({index,space,experience,session,api,workspac
       from_id:item.record?.from,to_id:item.record?.to,predicate_id:item.record?.relation,authority_posture:item.owner,review_posture:item.record?.assessment?.verdict??item.record?.reading?.review_status??'source-visible-proposal',canon_status:'stand-scope',path_available:false};
   };
   const context=()=>({mode:'philosophy',view_id:`bonsai:${api.profile}`,graph_mode:'nodes',selected:selection(),path_start_node_id:null,active_layers:[experience.getState().mode],active_predicates:[],deep_link:location.href,research_workspace:summary()});
-  const readSource=async(input,{signal})=>{
-    if(input.reference){const resolved=await api.provider.resolve({reference:input.reference,signal});if(resolved.status!=='exact')return resolved;return api.provider.window({documentId:input.reference.target.workId,versionId:input.reference.versionId,reference:input.reference,limit:Math.min(20,input.limit??8),signal});}
-    const item=index.get(input.item_id);if(item?.kind!=='passage')throw new TypeError('Choose an exact passage ID from research-item dependencies');
-    const cite=item.record;
-    return api.provider.window({documentId:'tos.work.friedrich-nietzsche.also-sprach-zarathustra',versionId:'dta-first-editions-de',unitId:cite.u?.[0]??undefined,limit:Math.min(20,input.limit??Math.max(4,cite.u?.length??4)),signal});
-  };
+  const readSource=(input,options)=>readResearchSource({index,provider:api.provider,fragments:space.fragments},input,options);
   let registry;
   const handlers={
     'tos.page.select':input=>{if(!index.get(input.item_id??input.id))throw new TypeError('Unknown item ID');experience.open(input.item_id??input.id);return selection();},
@@ -43,7 +82,7 @@ export function connectResearchPage({index,space,experience,session,api,workspac
   const extra=[
     tool('tos.bonsai.research-item','tos.page.research-item','Read an exact subject, statement, relation or passage with its current version, dependencies and backlinks. Pass a search result ID.',idSchema,undefined,true),
     tool('tos.bonsai.research-operation','tos.page.research-operation','Run the same explicit, versioned research operation as the calculations panel. Read the input records first; the result retains its request and explanation.',schema({request:{type:'object'}},['request']),undefined,true),
-    tool('tos.bonsai.read-source','tos.page.read-source','Read exact public witness words. Provide a passage item_id from research-item dependencies, or its native reference. Returns bounded original TextUnits and revision.',schema({item_id:str,reference:{type:'object'},limit:{type:'integer',minimum:1,maximum:20}}),undefined,true),
+    tool('tos.bonsai.read-source','tos.page.read-source','Read exact public witness words. Provide one passage item_id from research-item dependencies or its native reference. Passage results preserve selected ranges in Unicode code points. Repeat with the same item_id and nextCursor as cursor until rangeComplete is true.',schema({item_id:str,reference:{type:'object'},cursor:{type:'string',maxLength:8192},limit:{type:'integer',minimum:1,maximum:20}}),undefined,true),
     tool('tos.bonsai.session-context','tos.page.cognitive-next','Read the question, assistance level and selected subject without changing connection state.',schema({}),()=>({peek:true,timeout_ms:0}),true),
     tool('tos.bonsai.session-join','tos.page.cognitive-action','Join or resume this notebook session in one active host task. Continue reading session-next and respond to the human actions until paused.',schema({session_id:str},['session_id']),input=>({...input,action:'join'})),
     tool('tos.bonsai.session-next','tos.page.cognitive-next','Wait for the next human action (up to 20 seconds). Empty waiting result means repeat in the same active host task. After responding continue waiting. Every event binds exact question and index revisions.',schema({session_id:str,after_event_id:str,timeout_ms:{type:'integer',minimum:0,maximum:20000}}),undefined,true),

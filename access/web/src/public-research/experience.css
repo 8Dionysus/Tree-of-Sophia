@@ -23,7 +23,7 @@
 .experience-structured{margin:1rem 0}.experience-structured h3{font-size:.85rem;color:#d7c5a4}
 @media(max-width:600px){.experience-tools{margin-left:0}.experience-toolbar{gap:.5rem}.experience-button{flex:1 1 auto}.experience-pane{padding:1rem}.experience-pin-grid{grid-template-columns:1fr}}
 /* Keep the space mounted so its fragment dialogs remain available in reference mode. */
-.experience-space-inactive{position:absolute!important;inset:0 auto auto 0!important;width:100%!important;height:0!important;overflow:visible!important;visibility:hidden;pointer-events:none}
+.experience-space-inactive{position:absolute!important;inset:0 auto auto 0!important;width:100%!important;height:0!important;overflow:clip!important;visibility:hidden;pointer-events:none}
 .experience-space-inactive .ps-dialog[open]{visibility:visible;pointer-events:auto}
 .experience-version-notice{width:100%;margin:.3rem 0;color:#e7c99a;font-size:.8rem}
 .experience-toolbar{position:relative;z-index:10;padding:.5rem clamp(1rem,3vw,2rem);background:#08111f;border-bottom:1px solid #879eb62b;font-family:system-ui,sans-serif}

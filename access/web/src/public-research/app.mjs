@@ -2,7 +2,7 @@ import {resolveLocale,copyLocale,localeText,localeLabels} from './locale.mjs';
 import {setUiLanguage} from '../observatory/ui-i18n.mjs';
 import {mountCorpusEntry} from '../corpus-reader/host.mjs';
 import {createCorpusNotebook} from '../corpus-reader/notebook.mjs';
-import {createPublicCorpusProvider} from '../corpus-reader/public-provider.mjs';
+import {createRetainedPublicCorpusProvider} from '../corpus-reader/retained-public-provider.mjs';
 import {decodeReadingRoute, encodeReadingRoute} from '../corpus-reader/route.mjs';
 import {mountResearchExperience} from './experience-view.mjs';
 import {mountCognitiveSession} from './cognitive-session.mjs';
@@ -406,9 +406,10 @@ async function setQuestion(value) {
 async function openAddress(address) {
   const returnFocus = document.activeElement;
   if (!address || typeof address !== 'object' || Array.isArray(address)
-    || Object.keys(address).some(key => !['documentId', 'versionId', 'unitId', 'revision', 'reference'].includes(key))
+    || Object.keys(address).some(key => !['documentId', 'versionId', 'unitId', 'revision', 'reference', 'snapshotRevision'].includes(key))
     || ['documentId', 'versionId'].some(key => typeof address[key] !== 'string' || !address[key].trim() || address[key].length > 2048)
     || ['unitId', 'revision'].some(key => address[key] !== undefined && (typeof address[key] !== 'string' || !address[key].trim() || address[key].length > 2048))
+    || (address.snapshotRevision !== undefined && !/^[a-f0-9]{64}$/.test(address.snapshotRevision))
     || (address.reference !== undefined && (!address.reference || typeof address.reference !== 'object' || Array.isArray(address.reference)))) {
     throw new TypeError('Open requires documentId and versionId, with an optional exact unitId, revision, or reference.');
   }
@@ -417,6 +418,7 @@ async function openAddress(address) {
   if (address.unitId !== undefined) target.unitId = address.unitId;
   if (address.revision !== undefined) target.revision = address.revision;
   if (address.reference !== undefined) target.reference = address.reference;
+  if (address.snapshotRevision !== undefined) target.snapshotRevision = address.snapshotRevision;
   return entry?.open(target, {returnFocus}) ?? null;
 }
 
@@ -434,7 +436,7 @@ async function start() {
   if(appDisposed)return;
   await initializePublicReaderRules();
   if(appDisposed)return;
-  const provider = createPublicCorpusProvider({baseUrl: `${import.meta.env.BASE_URL}public-corpus/`, profile, fetch: globalThis.fetch.bind(globalThis)});
+  const provider = createRetainedPublicCorpusProvider({baseUrl: `${import.meta.env.BASE_URL}public-corpus/`, profile, fetch: globalThis.fetch.bind(globalThis)});
   let manifest = null;
   try { manifest = await provider.describe(); } catch { /* the reader will report delivery failure */ }
   if(appDisposed)return;

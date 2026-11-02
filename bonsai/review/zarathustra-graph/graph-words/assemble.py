@@ -455,9 +455,13 @@ if sense_revisions_path.exists():
         link['sense_revision_history'] = [prior]
         link['sense'] = revision['sense']
         link['sense_revision'] = {'reviewer': revision_doc['reviewer'], 'reason': revision['reason']}
+        if 'independent_review' in revision:
+            link['sense_revision']['independent_review'] = clean(revision['independent_review'])
         link['assessment'] = {**old_assessment, 'verdict': 'revise', 'reason': revision['reason']['ru'],
                               'reviewer': revision_doc['reviewer']['id'],
                               'review_scope': revision_doc['reviewer']['scope']}
+        if 'method_transfer' in revision:
+            link['method_transfer'] = clean(revision['method_transfer'])
         link['admission'] = 'map'
 # A source-owned family assignment never rewrites the source predicate or verb.
 # The explicit unmapped family preserves the limits of current registry matching.
@@ -526,6 +530,33 @@ if identity_path.exists():
             step.update(members[digest])
         if found != set(members):
             raise ValueError(f"chain step identities need source review: {chain['id']}")
+# Apply source-reviewed corrections only after assigning the original step IDs.
+step_revisions_path = W / 'step-revisions.json'
+if step_revisions_path.exists():
+    doc = load(step_revisions_path)
+    pending = dict(doc['revisions'])
+    for chain in chains:
+        for step in chain['steps']:
+            revision = pending.pop(step['id'], None)
+            if not revision:
+                continue
+            step['step_revision_history'] = [{k: clean(v) for k, v in step.items() if k not in ('id', 'aliases')}]
+            for key in ('verb', 'sense', 'cite', 'status'):
+                if key in revision:
+                    step[key] = clean(revision[key])
+            step['grounds'] = step.get('grounds', []) + clean(revision.get('grounds', []))
+            step['assessment'] = {**step.get('assessment', {}), 'verdict': 'revise',
+                                  'reason': revision['sense']['ru'], 'reviewer': doc['reviewer']}
+            if 'independent_review' in revision:
+                step['assessment']['independent_review'] = clean(revision['independent_review'])
+    if pending:
+        raise ValueError(f"step revisions name unknown IDs: {sorted(pending)}")
+route_path = W / 'route-growth.json'
+route_growth = load(route_path) if route_path.exists() else {'nodes': [], 'chains': []}
+for chain in route_growth['chains']:
+    chains.append(clean(chain))
+    verdict = chain['assessment']['verdict']
+    counts['chains'][verdict] = counts['chains'].get(verdict, 0) + 1
 write('voices.json', voices)
 write('concepts.json', concepts)
 write('figures.json', figures)
@@ -554,7 +585,14 @@ if readings_path.exists():
     for reading in readings['readings']:
         if reading['id'] not in proposed:
             raise ValueError(f"reading has no proposed object: {reading['id']}")
+        if reading.get('corrected_title'):
+            proposed[reading['id']]['title_revision_history'] = [proposed[reading['id']]['title']]
+            proposed[reading['id']]['title'] = clean(reading['corrected_title'])
         proposed[reading['id']]['reading'] = {k: clean(v) for k, v in reading.items() if k != 'id'}
+for node in route_growth['nodes']:
+    if node['id'] in proposed or node['id'] in node_type:
+        raise ValueError(f"route node already exists: {node['id']}")
+    proposed[node['id']] = clean(node)
 write('proposed.json', sorted(proposed.values(), key=lambda x: x['id']))
 admitted = lambda items: {s: sum(1 for x in items if x.get('admission') == s) for s in ('map', 'held', 'rejected')}
 core = {

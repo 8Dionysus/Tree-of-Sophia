@@ -71,12 +71,13 @@ function documentView(document){
     })};
 }
 
-export function createPublicCorpusProvider({baseUrl='/static/public-corpus/',profile='zarathustra',fetch:fetcher=globalThis.fetch,manifestPath='manifest.json',expectedManifestSha256=null}={}){
+export function createPublicCorpusProvider({baseUrl='/static/public-corpus/',profile='zarathustra',fetch:fetcher=globalThis.fetch,manifestPath='manifest.json',expectedManifestSha256=null,expectedManifestBytes=null}={}){
   if(typeof fetcher!=='function')throw new TypeError('A public corpus fetch transport is required.');
   if(!['zarathustra','antiquity'].includes(profile))throw new TypeError('An explicit public corpus profile is required.');
   if(typeof baseUrl!=='string'||!baseUrl.startsWith('/')||baseUrl.startsWith('//')||!baseUrl.endsWith('/')||baseUrl.includes('..')||/[?#\\]/.test(baseUrl))throw new TypeError('The public corpus base must be a same-origin directory.');
   publicPath(manifestPath);
   if(expectedManifestSha256!==null&&!digest(expectedManifestSha256))throw new TypeError('The expected manifest digest must be SHA-256.');
+  if(expectedManifestBytes!==null&&(!expectedManifestSha256||!Number.isSafeInteger(expectedManifestBytes)||expectedManifestBytes<1||expectedManifestBytes>MANIFEST_BYTES))throw new TypeError('The expected manifest size must be bounded and digest-bound.');
   let manifest=null;
   const documents=new Map(),pages=new Map(),indices=new Map(),analyses=new Map(),mappings=new Map();
 
@@ -99,7 +100,8 @@ export function createPublicCorpusProvider({baseUrl='/static/public-corpus/',pro
   async function describe({signal}={}){
     throwIfAborted(signal);
     if(!manifest){
-      const value=await read(manifestPath,null,MANIFEST_BYTES,signal,expectedManifestSha256);
+      const descriptor=expectedManifestBytes===null?null:{sha256:expectedManifestSha256,bytes:expectedManifestBytes};
+      const value=await read(manifestPath,descriptor,MANIFEST_BYTES,signal,expectedManifestSha256);
       if(value.schema_version!==SCHEMA||!digest(value.revision)||!object(value.profiles)||!Array.isArray(value.documents)||value.documents.length>1000)fail('invalid_response','Unsupported public corpus manifest.');
       const selected=value.profiles[profile];
       if(!object(selected)||!Array.isArray(selected.documentIds)||selected.documentIds.length>1000||new Set(selected.documentIds).size!==selected.documentIds.length)fail('invalid_response','The selected public profile is missing.');

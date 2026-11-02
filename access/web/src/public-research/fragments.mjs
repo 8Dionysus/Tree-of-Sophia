@@ -108,6 +108,44 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
   const externalPlaces=()=>places??=(PLACES[profile]?.()??Promise.resolve({works:{},places:{}})).catch(error=>{places=null;throw error;});
   let alignment=null;
   const corpusAlignment=()=>alignment??=(ALIGNMENTS[profile]?.()??Promise.resolve({works:{},units:{}})).catch(error=>{alignment=null;throw error;});
+  // Agent reading uses the same witness and raw citation ranges as the cards.
+  // Bonsai offsets count UTF-16 positions in its saved raw witness; native
+  // reader selectors count Unicode code points. Convert only at this boundary.
+  async function sourceSelection(cite,{signal}={}){
+    if(!provider||!cite||!Array.isArray(cite.u)||!cite.u.length)throw new TypeError('An exact TextUnit citation is required.');
+    const first=cite.u[0],last=cite.u.at(-1);
+    let documentId,versionId,revision,units,legacyOffsets=false;
+    if(cite.w===ZARATHUSTRA&&cite.c){
+      const [data,info]=await Promise.all([chapter(cite.c),witnesses()]);
+      const a=data.index.de.get(first),b=data.index.de.get(last);
+      if(a===undefined||b===undefined||b<a)throw new TypeError('The citation does not resolve in its named chapter.');
+      ({documentId}=info.corpus);({versionId,revision}=info.corpus.dta);
+      units=data.units.de.slice(a,b+1).map(unit=>({id:unit.id,text:unit.raw}));legacyOffsets=true;
+    }else{
+      const work=(await corpusAlignment()).works?.[cite.w];
+      if(!work?.original)throw new TypeError('No exact source binding exists for this work.');
+      ({documentId}=work);({versionId,revision}=work.original);
+      units=await readCorpusFragmentRange(provider,work,work.original,first,last,{signal});
+    }
+    if((cite.versionId&&cite.versionId!==versionId)||(cite.revision&&cite.revision!==revision)
+      ||(cite.documentId&&cite.documentId!==documentId))throw new TypeError('The citation names a different witness or text layer.');
+    const nativeOffset=(text,offset)=>{
+      if(!Number.isSafeInteger(offset)||offset<0||offset>(legacyOffsets?text.length:Array.from(text).length))throw new TypeError('Citation offset is outside its source unit.');
+      if(!legacyOffsets)return offset;
+      if(offset>0&&offset<text.length&&/[\uD800-\uDBFF]/u.test(text[offset-1])&&/[\uDC00-\uDFFF]/u.test(text[offset]))throw new TypeError('Citation offset splits a Unicode character.');
+      return Array.from(text.slice(0,offset)).length;
+    };
+    const selections=units.map((unit,i)=>{
+      const start=i===0&&cite.s!==undefined?nativeOffset(unit.text,cite.s):0;
+      const end=i===units.length-1&&cite.e!==undefined?nativeOffset(unit.text,cite.e):Array.from(unit.text).length;
+      if(end<start)throw new TypeError('Citation range is reversed.');
+      return {unitId:unit.id,start,end,raw:unit.text};
+    });
+    const doc=await provider.document({documentId,versionId,revision,signal});
+    const version=doc.versions?.find(value=>value.id===versionId&&value.revision===revision);
+    if(!version?.source)throw new TypeError('The exact witness version is unavailable.');
+    return {documentId,versionId,revision,source:version.source,selections};
+  }
   const words=key=>t(key);
   const local=value=>localeValue(value,locale());
 
@@ -380,7 +418,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     parent.append(box);
     return box;
   }
-  return {render,fragment,showChapter,citesOf,hasAuthored:value=>hasAuthored(value,locale()),get reader(){return reader;},dispose(){chapterRequests.cancel();reader?.dialog.remove();reader=null;}};
+  return {render,fragment,showChapter,sourceSelection,citesOf,hasAuthored:value=>hasAuthored(value,locale()),get reader(){return reader;},dispose(){chapterRequests.cancel();reader?.dialog.remove();reader=null;}};
 }
 
 export {CHAPTER_KEYS,copyLocale};

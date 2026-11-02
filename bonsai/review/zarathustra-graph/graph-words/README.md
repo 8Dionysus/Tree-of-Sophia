@@ -38,9 +38,11 @@ authored control file and is not emitted by this assembler.
 
 `assembly-inputs/proposal-readings.json` preserves a source-grounded stand reading
 of each of the 28 proposed objects. Each states a related existing object, the
-places read, a reading and its limits. These are agent assessments, with
-independent review still pending; retaining a proposal does not admit it to Tree
-canon. `place-relations.json` keeps seven exact-place comparisons and their voice
+places read, a reading and its limits. The independent source-visible reviews
+are retained in `independent-content-review-2026-11-01.json` and its two
+correction reviews. Earlier wording and the actual findings remain in the
+revision history; retaining a proposal does not admit it to Tree canon.
+`place-relations.json` keeps seven exact-place comparisons and their voice
 attributions in the same proposal posture. The assembled copies are
 `core/proposed.json` and `core/place-relations.json`.
 
@@ -71,7 +73,16 @@ other unbound voices keep their source designation and uncertainty. Neither a
 figure candidate, an Occurrence candidate ID nor a family assignment creates
 a native source record or accepts a semantic claim.
 
-`link-sense-revisions.json` records the later source-visible correction of three
+`route-growth.json` adds the gold and brothers proposals and three reviewed
+routes. The blessing-and-giving route compares seven places in branches:
+overflow → address → reception; overflow → departure → weariness;
+address → things → sacrifice. Its transitions name both compared places;
+the retired draft transitions remain in `retired_steps`. These comparisons
+do not assert a chronological argument or identify the book's different
+future groups. `step-revisions.json` corrects two earlier giving-route steps
+while keeping their stable addresses and earlier wording.
+
+`link-sense-revisions.json` records the later source-visible correction of four
 link senses. The assembler binds each revision to the digest of the previous
 sense and retains that sense and its assessment in `sense_revision_history`;
 previous maker `proposed` fields and all places remain intact. The current

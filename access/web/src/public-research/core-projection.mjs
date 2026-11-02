@@ -26,15 +26,18 @@ export function attachCore(library,core){
   const featured=new Set(['disciples-freedom','bestowing-virtue','shepherd-echo','zarathustra-giving']);
   for(const chain of core.chains){
     if(chain.admission!=='map'||!chain.steps.length)continue;
-    const sequence=[chain.steps[0].from,...chain.steps.map(step=>step.to)];
+    const sequence=chain.structure==='comparison-branching'
+      ? [...new Set(chain.steps.flatMap(step=>[step.from,step.to]))]
+      : [chain.steps[0].from,...chain.steps.map(step=>step.to)];
     const transitions=chain.steps.map((step,index)=>{
       const link=edge(step,`core-chain:${chain.id}:${index}`);edges.push(link);
       return {edgeId:link.id,fromNodeId:link.from,toNodeId:link.to,label:step.verb,body:link.body};
     });
     routes.push({id:`core:${chain.id}`,coreChainId:chain.id,featured:featured.has(chain.id),title:chain.title,
-      question:chain.question,subtitle:chain.sense,transitions,
+      question:chain.question,subtitle:chain.sense,structure:chain.structure,transitions,
       steps:sequence.map((id,index)=>({nodeId:materialIds[id],title:records[id]?.title,
-        body:{cite:[chain.states?.find(state=>state.id===id)?.cite??chain.steps[Math.max(0,index-1)]?.cite].filter(Boolean)}}))});
+        body:{...chain.states?.find(state=>state.id===id)?.reading,
+          cite:[chain.states?.find(state=>state.id===id)?.cite??chain.steps[Math.max(0,index-1)]?.cite].filter(Boolean)}}))});
   }
   library.space.core={...core,materialIds,records,edges};
   library.space.routes=[...(library.space.routes??[]),...routes];

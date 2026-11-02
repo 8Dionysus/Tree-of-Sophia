@@ -1338,7 +1338,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   function transitionAfter(current,index){
     const steps=current?.steps??[],step=steps[index],next=steps[index+1];if(!step||!next)return null;
-    const transition=(current.transitions??[]).find(item=>(item.fromNodeId===step.nodeId&&item.toNodeId===next.nodeId)||(item.from===step.nodeId&&item.to===next.nodeId))??(profile==='zarathustra'?(current.transitions??[])[index]:null);
+    const transition=(current.transitions??[]).find(item=>(item.fromNodeId===step.nodeId&&item.toNodeId===next.nodeId)||(item.from===step.nodeId&&item.to===next.nodeId))??(profile==='zarathustra'&&current.structure!=='comparison-branching'?(current.transitions??[])[index]:null);
     if(!transition)return null;
     // A route may walk an atlas link against its direction, so the line states the link as authored.
     const link=transition.kind?null:atlasEdgeFor(transition.edgeId),kind=transition.kind??link?.kind;
@@ -1427,7 +1427,12 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
         const action=stepSourceAction(step,witnesses.length);if(action?.classList.contains('ps-step-places'))body.append(action);else if(action){const row=el('div','ps-route-actions');row.append(action);body.append(row);}
         entry.append(body);
       }
-      const turn=transitionAfter(current,index);if(turn)entry.append(turnRow(turn,isCurrent));
+      if(current.structure==='comparison-branching'){
+        for(const transition of current.transitions.filter(turn=>turn.fromNodeId===step.nodeId)){
+          const destination=steps.find(target=>target.nodeId===transition.toNodeId);
+          entry.append(turnRow({kind:null,course:`${tr(transition.label,locale())} → ${tr(destination?.title,locale())}`,body:transition.body,link:atlasEdgeFor(transition.edgeId)},isCurrent));
+        }
+      }else{const turn=transitionAfter(current,index);if(turn)entry.append(turnRow(turn,isCurrent));}
       if(isCurrent)entry.append(stepNav(index,steps.length,goRouteStep));
       list.append(entry);
     });
