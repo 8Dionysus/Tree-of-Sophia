@@ -294,7 +294,15 @@
         "skipped_key_cost": 0.92,
         "skipped_candidate_cost": 0.04,
         "maximum_match_cost": 1.55,
-        "alignment": "weighted-ordered"
+        "alignment": "weighted-ordered",
+        "bounds": "closed",
+        "visit_order": "row-major",
+        "transition_order": [
+          "skip_key",
+          "skip_candidate",
+          "match"
+        ],
+        "replace_on_equal": false
       },
       "payload_roles": [
         {
