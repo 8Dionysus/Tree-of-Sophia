@@ -33,6 +33,11 @@ missing English revisions in the working copy. On the preserved originals and
 the compact inputs, it produced identical core files. `control.json` is an
 authored control file and is not emitted by this assembler.
 
+The semantic-use input also keeps `reader_readings`: a reader's lexical note on
+one use (term, unit and form), with its grounds and the word's history. The
+assembler attaches each to its use in `semantic-uses.json` and stops when one
+finds no use in the witness, so the corpus reader reads them from the core.
+
 [`language-corrections-2026-11-02.json`](assembly-inputs/language-corrections-2026-11-02.json)
 is the language review of the reader texts: each entry replaces one whole
 wording where it stands in the assembled core, with the reason in the words of

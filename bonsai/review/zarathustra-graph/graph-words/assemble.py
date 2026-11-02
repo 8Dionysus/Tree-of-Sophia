@@ -269,6 +269,15 @@ if semantic_input_path.exists():
         if key in readings:
             raise ValueError(f"semantic reading is ambiguous: {key}")
         readings[key] = reading
+    # A reader's reading of one use (the reader's lexical note, with its grounds and the word's history)
+    # is authored with the inputs and travels to that use.
+    reader_readings = {}
+    for entry in source_uses.get('reader_readings', []):
+        key = (entry['term'], entry['unit'], entry['form'].casefold())
+        if key in reader_readings:
+            raise ValueError(f"reader reading is ambiguous: {key}")
+        reader_readings[key] = entry['reader_reading']
+    attached = set()
     found = set()
     terms = []
     for term, spec in source_uses['terms'].items():
@@ -312,11 +321,16 @@ if semantic_input_path.exists():
                             'granularity': 'form-in-text-unit', 'voice': voice_at(loc), 'semantic_use': semantic,
                             'native_candidate': {'record_id': native_id, 'status': 'not-materialized',
                                                  'binding': 'requires-native-text-unit-binding'}}
+                    if key in reader_readings:
+                        item['reader_reading'] = reader_readings[key]
+                        attached.add(key)
                     uses.append(item)
                     semantic_lookup[key] = item
         terms.append({'id': term, 'lemma': spec['lemma'], 'forms': spec['forms'], 'scope': spec['scope'], 'groups': groups, 'occurrences': uses})
     if found != set(readings):
         raise ValueError(f"authored semantic readings not found in witness: {sorted(set(readings)-found)}")
+    if attached != set(reader_readings):
+        raise ValueError(f"reader readings not found in witness: {sorted(set(reader_readings)-attached)}")
     semantic_uses = {'schema': 'tos.bonsai.semantic-uses.v1', 'work': source_uses['work'], 'witness': source_uses['witness'],
                      'posture': source_uses['posture'], 'terms': terms, 'source_connections': source_uses.get('source_connections', [])}
 
