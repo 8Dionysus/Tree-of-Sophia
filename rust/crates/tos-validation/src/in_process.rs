@@ -144,7 +144,9 @@ impl InProcessSchemaEngine {
             truncated: false,
             issues: Vec::new(),
         };
-        if !caps.validate() {
+        if !caps.validate()
+            || (caps.max_report_bytes_per_unit as usize) < DIAGNOSTIC_UNIT_HEADER_BYTES
+        {
             return Err(Incomplete::BatchBudget);
         }
         if unit.input_mode == InputMode::LegacyPythonObserved

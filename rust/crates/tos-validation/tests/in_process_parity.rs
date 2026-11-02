@@ -181,6 +181,34 @@ fn limits_and_cancellation_are_explicit() {
 }
 
 #[test]
+fn report_cap_must_cover_header_and_admitted_evidence_round_trips() {
+    use tos_validation::in_process::Report;
+
+    let mut engine =
+        InProcessSchemaEngine::new(resources(), FormatProfile::AssertedSourceCandidateV1).unwrap();
+    let deadline = Instant::now() + Duration::from_secs(30);
+    let cancelled = AtomicBool::new(false);
+    let unit = || Unit {
+        root_uri: ROOT,
+        raw: br#"{"value":3}"#,
+        input_mode: InputMode::PublishedStrict,
+    };
+    let mut caps = Caps::CURRENT;
+    caps.max_report_bytes_per_unit = 100;
+    assert_eq!(
+        engine.validate(unit(), caps, deadline, &cancelled),
+        Err(Incomplete::BatchBudget)
+    );
+    caps.max_report_bytes_per_unit = 101;
+    let report = engine.validate(unit(), caps, deadline, &cancelled).unwrap();
+    assert_eq!(report.status, Status::Valid);
+    assert_eq!(
+        Report::from_evidence_json(&report.to_evidence_json().unwrap()),
+        Ok(report)
+    );
+}
+
+#[test]
 fn legacy_exceptional_values_match_worker_diagnostics() {
     use std::collections::BTreeMap;
     use tos_foundation::SourceRevision;
