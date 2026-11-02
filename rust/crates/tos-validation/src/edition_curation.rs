@@ -76,7 +76,34 @@ pub fn validate_recipe_plan(
     let expected = current
         .or(historical)
         .ok_or(EditionCurationError::MissingReference)?;
-    verify_selected_bytes(plan, reference, expected)
+    verify_selected_bytes(plan, reference, expected)?;
+    if stage == "text-collation" {
+        let selected_plan = published_value(plan.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+            .map_err(EditionCurationError::Schema)?;
+        let roles = recipe["witness_roles"]
+            .as_array()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        for role in roles {
+            let plan_key = role["plan_key"]
+                .as_str()
+                .ok_or(EditionCurationError::InvalidSchema)?;
+            let identity_key = role["identity_key"]
+                .as_str()
+                .ok_or(EditionCurationError::InvalidSchema)?;
+            if selected_plan
+                .get(plan_key)
+                .and_then(|witness| witness.get("item_ref"))
+                != Some(&role["item_ref"])
+                || selected_plan["opaque_ids"]
+                    .get(identity_key)
+                    .and_then(Value::as_str)
+                    .is_none()
+            {
+                return Err(EditionCurationError::BindingMismatch);
+            }
+        }
+    }
+    Ok(())
 }
 
 /// Check a selected stage template against its curation-owned path and digest.
@@ -329,6 +356,23 @@ enum MarkerPart {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if object.get("stage").and_then(Value::as_str) == Some("text-collation") {
+                let roles = object
+                    .get("witness_roles")
+                    .and_then(Value::as_array)
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let items = object
+                    .get("source_item_refs")
+                    .and_then(Value::as_array)
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                for (index, expected_role) in ["source", "target"].iter().enumerate() {
+                    if roles[index]["role"] != *expected_role
+                        || items.get(index) != Some(&roles[index]["item_ref"])
+                    {
+                        return Err(EditionCurationError::BindingMismatch);
+                    }
+                }
+            }
             if object.get("stage").and_then(Value::as_str)
                 == Some("witness-structure-correspondence")
             {
@@ -502,6 +546,8 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                 ("record_identities", "role"),
                 ("role_precedence", "role"),
                 ("visual_markers", "citation_contains"),
+                ("witness_roles", "plan_key"),
+                ("witness_roles", "identity_key"),
                 ("anchor_prefixes", "role"),
                 ("families", "family"),
                 ("families", "repository_path"),

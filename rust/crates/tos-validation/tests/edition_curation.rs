@@ -357,8 +357,31 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let antonovsky_raw = fs::read(root.join(antonovsky_path)).unwrap();
     assert_eq!(validate(&antonovsky_raw, &schema), Ok(()));
     let collation: Value = serde_json::from_slice(&antonovsky_raw).unwrap();
+    let mut swapped_witnesses = collation.clone();
+    swapped_witnesses["recipes"][1]["witness_roles"]
+        .as_array_mut()
+        .unwrap()
+        .swap(0, 1);
+    assert_eq!(
+        validate(&serde_json::to_vec(&swapped_witnesses).unwrap(), &schema),
+        Err(EditionCurationError::BindingMismatch)
+    );
     let collation_plan_ref = collation["recipes"][1]["plan_ref"].as_str().unwrap();
     let collation_plan_raw = fs::read(root.join(collation_plan_ref)).unwrap();
+    let mut wrong_role_key = collation.clone();
+    wrong_role_key["recipes"][1]["witness_roles"][0]["plan_key"] = json!("missing_witness");
+    assert_eq!(
+        validate_recipe_plan(
+            &serde_json::to_vec(&wrong_role_key).unwrap(),
+            "text-collation",
+            SelectedDocument {
+                reference: collation_plan_ref,
+                raw: &collation_plan_raw
+            },
+            &schema,
+        ),
+        Err(EditionCurationError::BindingMismatch)
+    );
     assert_eq!(
         validate_recipe_plan(
             &antonovsky_raw,

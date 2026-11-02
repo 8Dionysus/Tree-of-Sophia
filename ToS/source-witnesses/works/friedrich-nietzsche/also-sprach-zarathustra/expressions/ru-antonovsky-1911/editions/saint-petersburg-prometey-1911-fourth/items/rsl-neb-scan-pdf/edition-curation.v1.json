@@ -408,7 +408,21 @@
       "derivation_prefix": "tos.derivation.antonovsky.",
       "authority_template_ref": "rust/crates/tos-compiler/src/antonovsky_collation/authority-boundary.json",
       "authority_template_sha256": "95fb33b4b7d23057c72dd93ec731d0d32546530d0ee7f31e0732d03fe0663f48",
-      "uncertainty_annotation_id": "tos.annotation.antonovsky-2007-p011-human-ambiguity.sid-8846af42fb4d0b3b066b42e209f99e03"
+      "uncertainty_annotation_id": "tos.annotation.antonovsky-2007-p011-human-ambiguity.sid-8846af42fb4d0b3b066b42e209f99e03",
+      "witness_roles": [
+        {
+          "role": "source",
+          "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution-2007.operator-pdf",
+          "plan_key": "witness_2007",
+          "identity_key": "witness_2007_id"
+        },
+        {
+          "role": "target",
+          "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf",
+          "plan_key": "witness_1911",
+          "identity_key": "witness_1911_id"
+        }
+      ]
     },
     {
       "stage": "pdf-target-foundation",
