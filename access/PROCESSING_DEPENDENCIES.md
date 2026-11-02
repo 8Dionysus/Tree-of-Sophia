@@ -99,14 +99,13 @@ once. Context groups preserve source encounter order, deduplication and conflict
 records, without selecting a winner. Literal delivery uses the preserved raw
 `node_kind`, not an inferred semantic type. Trace order and the existing last-wins
 rule for multiple traces targeting one claim node remain unchanged. The versioned
-`tos_claim_association_v1` Input records supplied claim/subject/object membership;
-it does not authorize or discover it. Registry policy requires the exact completed
+`tos_claim_association_v1` Input records supplied claim/subject/object membership.
+Registry policy requires the exact completed
 `source-registry:relations` Input identity and matching output digest. Missing,
 incomplete or mismatched source producers refuse the run. Standalone finalization
 hooks without reducer producers retain explicitly named standalone Inputs.
 
-This operation still does not prove that the normalizer recorded all
-dependencies needed by the source owner. The owner still must supply complete
+The source owner supplies complete
 source-to-final-carrier mappings, including assessment, rights, placeholder and
 topology dependencies.
 New or retargeted relation endpoints, new claim-group membership, and newly added
@@ -114,10 +113,7 @@ source identities absent from the retained run need that owner's explicit
 before/after mapping. An absent join remains explicit input data, not a guessed
 empty source impact set. A baseline DAG cannot discover new membership.
 
-The result does not evaluate tasks, authorize partial execution, publish a
-prepared snapshot, certify global semantic invariants, or confer acceptance.
-`ProcessingRun::finish()` completes the graph the producer recorded; it is not a
-partial-update API and does not prove source dependency completeness. Source
+`ProcessingRun::finish()` completes the graph the producer recorded. Source
 change detection, dependency completion, normalization, validation and
 publication remain separate obligations.
 

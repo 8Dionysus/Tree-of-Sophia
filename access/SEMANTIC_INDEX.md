@@ -7,7 +7,3 @@ semantic-index preparation in
 and [`prepared_catalog_semantics.rs`](../rust/crates/tos-compiler/src/prepared_catalog_semantics.rs).
 The installed command exposes the bounded optional attachment through
 [`OFFLINE_PREPARED_BOOTSTRAP.md`](OFFLINE_PREPARED_BOOTSTRAP.md).
-
-A computed report is mechanical evidence, not semantic acceptance. Source
-admission, rights, canon and the choice to select a prepared publication remain
-with their stronger owners.

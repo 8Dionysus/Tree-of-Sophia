@@ -1,59 +1,29 @@
-# Tree of Sophia local stats port
+# Tree of Sophia stats port
 
-This directory exposes statistical questions whose domain meaning belongs to
-the authored Tree of Sophia. It uses the shared `aoa-stats` grammar without
-moving atlas meaning, source authority, graph review, or canon decisions into
-the central stats organ.
+Tree of Sophia owns its measurement questions and source populations;
+`aoa-stats` owns shared measurement grammar and cross-owner composition.
+[port.manifest.json](port.manifest.json) declares the measurements and packets.
 
-## Current reference measurement
+The reference measurement `Tree-of-Sophia/table-i-prepared-dossier-route-ratio`
+counts unique Table I atlas rows with an explicit route to an existing
+philosophy branch: 48 / 48 at source revision
+`159d57402dcfc79c65af93fae7ce1346798dc392`. An empty set of routes over a valid
+population yields zero. Missing, malformed, duplicate, unsupported or
+out-of-population inputs yield unknown. The packet preserves its original
+observation identity, time and evidence revision; a new observation requires a
+new census.
 
-| Measurement | Question | Reference value |
-| --- | --- | --- |
-| `Tree-of-Sophia/table-i-prepared-dossier-route-ratio` | What fraction of current validated Table I atlas rows have an explicit unique prepared-dossier route into an existing philosophy branch? | `48 / 48` at evidence revision `159d57402dcfc79c65af93fae7ce1346798dc392` |
+Validate, publish and inspect the owner-local export:
 
-The population is a census of unique rows in the Table I atlas. The numerator
-contains unique route-map entries that name a row in that population and an
-existing philosophy branch. Table II and III rows, dossier contents, source
-witnesses, graph projections, generated audits, and canon do not enter the
-ratio. A valid Table I population with no routes is an observed zero; malformed,
-empty, duplicate, unsupported, out-of-population, or missing-path input is
-unknown.
+```sh
+tos-stats-release validate --port /path/to/selected-source/stats/port.manifest.json
+tos-stats-release build --source-root /path/to/selected-source --release-root /path/to/stats-releases
+tos-stats-release status --release-root /path/to/stats-releases --expected-revision PORT_EXPORT_SHA256
+tos-stats-release verify --release /path/to/stats-releases/releases/EXPORT_SHA256
+cargo test --locked -p tos-ops-mechanics-plan --no-default-features --features mechanics --test stats_release_native
+```
 
-## Evidence posture
-
-The packet is a public reference snapshot of the owner-controlled atlas and
-route map at a named source revision. Its observation time and source revision fix the snapshot; terminal progress
-records completion of that declared census.
-
-Port publication has its own immutable export identity and status, separate
-from software and corpus releases. The publication command preserves the
-observation's original source revision and time. See [VALIDATION.md](VALIDATION.md)
-for explicit export and status selection. The original observation
-identity persists across publications.
-
-## Authority
-
-The ratio reports route coverage only. It does not establish dossier quality,
-source-witness adequacy, philosophical truth or value, branch maturity, graph
-review readiness, canon status, release readiness, runtime state, or what the
-tree should grow next.
-
-## Surfaces
-
-- `port.manifest.json` declares the owner-local question and measurement.
-- `packets/table-i-prepared-dossier-route-ratio.reference.json` records the
-  evidence-linked reference observation.
-- the Table I rows and prepared-dossier route map own the counted identities;
-- branch homes own their philosophical content and source posture;
-- ToS owns local port validation and export; `aoa-stats` owns the shared format
-  and cross-owner composition.
-
-## Standalone export boundary
-
-`tos-stats-release validate --port /absolute/selected-source/stats/port.manifest.json`
-performs the ToS-owned export checks. `build --source-root PATH --release-root PATH`
-publishes the port metadata and every declared packet with an immutable `export.json`; `verify` and
-`status` check that artifact. No external checkout, Python interpreter or
-consumer validator participates. The consumer owns additional compatibility
-and composition checks after importing the ToS export. Native verification does
-not turn the retained reference observation into a live measurement.
+The export binds port metadata and declared packets to an immutable identity.
+The [embedded format](../rust/crates/tos-ops-mechanics-plan/schemas/README.md)
+defines supported census values, missing states and evidence references.
+`aoa-stats` performs consumer compatibility and composition checks.
