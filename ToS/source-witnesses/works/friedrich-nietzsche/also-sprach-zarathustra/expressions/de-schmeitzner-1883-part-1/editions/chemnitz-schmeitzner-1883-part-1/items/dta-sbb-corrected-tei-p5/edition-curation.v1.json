@@ -2317,6 +2317,17 @@
         "universe_max_one_letter_share": 0.5,
         "minimum_content_tokens": 1,
         "require_all_constituents": true
+      },
+      "keyword_settings": {
+        "minimum_frequency_plan_pointer": "/candidate_thresholds/keyword_minimum_frequency",
+        "minimum_token_characters": 3,
+        "part_count": 4,
+        "entropy_floor": 0.35,
+        "entropy_weight": 0.65,
+        "part_salience_minimum_occurrences": 3,
+        "part_salience_smoothing": 0.5,
+        "part_salience_decimal_places": 6,
+        "scaled_output_factor": 1000000
       }
     },
     {
