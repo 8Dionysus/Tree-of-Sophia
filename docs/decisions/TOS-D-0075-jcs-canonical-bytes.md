@@ -95,6 +95,6 @@ an implementation decision.
 ## Validation
 
 Run foundation codec vectors and refusal tests, inventory command tests and
-workspace checks. Regenerate and validate decision indexes with the owner
-route in `docs/VALIDATION.md`. Migration, historical verification and deployed
+workspace checks. Maintain the decision index by hand and review it through the
+owner route in `docs/VALIDATION.md`. Migration, historical verification and deployed
 consumer acceptance require their own future evidence.
