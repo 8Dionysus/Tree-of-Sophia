@@ -8,7 +8,7 @@ use tos_validation::{
         select_frozen_manifest, select_historical_field, select_retained_digest, validate,
         validate_bindings, validate_default_request, validate_frozen_manifest_member,
         validate_frozen_output_fixity, validate_recipe_plan, validate_recipe_template,
-        validate_retained_artifact, validate_review_sources,
+        validate_retained_artifact, validate_review_sources, validate_selected_historical_receipt,
     },
 };
 
@@ -104,6 +104,41 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     assert_eq!(
         validate(&serde_json::to_vec(&bad_scope).unwrap(), &schema),
         Err(EditionCurationError::InvalidRange("expected_census"))
+    );
+    let visual_path = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/edition-curation.v1.json";
+    let visual_raw = fs::read(root.join(visual_path)).unwrap();
+    let visual: Value = serde_json::from_slice(&visual_raw).unwrap();
+    let visual_recipe = visual["recipes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|recipe| recipe["stage"] == "visual-retrieval-result")
+        .unwrap();
+    let receipt_ref = visual_recipe["receipt_ref"].as_str().unwrap();
+    let receipt_raw = fs::read(root.join(receipt_ref)).unwrap();
+    assert_eq!(
+        validate_selected_historical_receipt(
+            &visual_raw,
+            "visual-retrieval-result",
+            SelectedDocument {
+                reference: receipt_ref,
+                raw: &receipt_raw
+            },
+            &schema
+        ),
+        Ok(())
+    );
+    assert!(
+        validate_selected_historical_receipt(
+            &visual_raw,
+            "visual-retrieval-result",
+            SelectedDocument {
+                reference: receipt_ref,
+                raw: b"{}"
+            },
+            &schema
+        )
+        .is_err()
     );
     let target_path = "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/edition-curation.v1.json";
     let mut duplicate_target: Value =

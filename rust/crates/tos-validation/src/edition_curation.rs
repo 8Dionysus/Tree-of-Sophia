@@ -543,6 +543,34 @@ pub fn validate_frozen_output_fixity(
     verify_selected_bytes(selected, reference, digest)
 }
 
+/// Validate the selected historical receipt and its frozen identity.
+pub fn validate_selected_historical_receipt(
+    raw: &[u8],
+    stage: &str,
+    selected: SelectedDocument<'_>,
+    schema: &SchemaBackendProbe,
+) -> Result<(), EditionCurationError> {
+    tos_foundation::RelativePath::parse(selected.reference)
+        .map_err(|_| EditionCurationError::UnsafePath)?;
+    let value = document(raw, schema)?;
+    let recipe = selected_recipe(&value, stage)?;
+    let reference = recipe["receipt_ref"]
+        .as_str()
+        .ok_or(EditionCurationError::MissingReference)?;
+    let digest = recipe["historical_receipt_sha256"]
+        .as_str()
+        .ok_or(EditionCurationError::InvalidSchema)?;
+    verify_selected_bytes(selected, reference, digest)?;
+    let receipt = published_value(selected.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+        .map_err(EditionCurationError::Schema)?;
+    if receipt["schema_version"] != recipe["receipt_identity"]["schema_version"]
+        || receipt["receipt_id"] != recipe["receipt_identity"]["historical_id"]
+    {
+        return Err(EditionCurationError::BindingMismatch);
+    }
+    Ok(())
+}
+
 /// Select a historical JSON field from exact, curation-bound output bytes.
 pub fn select_historical_field(
     raw: &[u8],
