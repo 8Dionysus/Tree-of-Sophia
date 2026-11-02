@@ -87,10 +87,11 @@ if(command==='check'){
   const {home,manifest,modules}=loadBonsai(root,names[0]),module=(manifest.modules??[]).find(item=>item.id==='alignment');
   if(!module){console.error(`${names[0]} has no alignment module`);process.exit(2);}
   // What the stand cites: its own modules and the exports of the modules it borrows.
+  // Held material is preserved for later growth, not cited by the stand.
   const content=[];
   for(const item of manifest.modules??[]){
     if(item.borrowed){for(const path of [].concat(item.borrowed))if(path.endsWith('.mjs'))content.push(Object.values(await import(pathToFileURL(join(root,path)).href)));}
-    else if(item.id!=='alignment'&&modules[item.id])content.push(modules[item.id]);
+    else if(!['alignment','held'].includes(item.id)&&modules[item.id])content.push(modules[item.id]);
   }
   const works=Object.fromEntries(Object.entries(modules.identities?.works??{}).map(([key,value])=>[key,value.tree]));
   const read=corpusReader(join(root,option('--corpus')??'access/web/public/public-corpus'));

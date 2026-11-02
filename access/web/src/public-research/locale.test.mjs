@@ -45,7 +45,8 @@ test('every authored Bonsai display form has a translation entry',()=>{
   };
   for(const stand of ['antiquity','zarathustra']){
     const home=new URL(`../../../../bonsai/${stand}/`,import.meta.url);
-    for(const file of readdirSync(home))if(file.endsWith('.json'))walk(read(new URL(file,home)));
+    // Held material is not shown by the stand, so it has no display translations.
+    for(const file of readdirSync(home))if(file.endsWith('.json')&&file!=='held.json')walk(read(new URL(file,home)));
   }
   for(const language of added)for(const form of forms)expect(Object.hasOwn(catalogs[language].bonsai,form),`${language}: ${form}`).toBe(true);
 });

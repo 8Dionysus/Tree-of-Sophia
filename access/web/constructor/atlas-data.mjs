@@ -119,7 +119,7 @@ function makeEdges() {
   }));
 }
 
-// Branches to grow are held until they are grown together; see atlas-held.mjs.
+// Branches to grow are held until they are grown together; see bonsai/zarathustra/held.json.
 const extensionDefinitions = [];
 
 function makeAssemblies(edges) {

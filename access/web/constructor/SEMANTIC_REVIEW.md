@@ -13,7 +13,7 @@ three characters, two excerpts and the eight questions the places raise) — and
 
 Readings, comparisons with other thinkers and the links that rest on another
 book or on a reader's argument — 48 stars and 114 links — wait in
-`atlas-held.mjs`, whole: their rows, texts, verdicts, reasons and places, with
+`bonsai/zarathustra/held.json`, whole: their rows, texts, verdicts, reasons and places, with
 the earlier texts of what stays. They are grown together with the map later;
 the stand neither shows nor binds them.
 

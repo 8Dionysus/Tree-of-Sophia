@@ -1,7 +1,7 @@
 // Rebuilds the Zarathustra stand's graph on the strict plan Dionysus chose: on the map,
 // the links the book itself makes at a named place, and the questions those places raise
 // with their answers; everything else is kept, whole, in the held registry
-// (access/web/constructor/atlas-held.mjs) to be grown together later.
+// (bonsai/zarathustra/held.json) to be grown together later.
 //
 //   node integrate.mjs
 //
@@ -93,7 +93,7 @@ const replaceOnce=(before,after)=>{if(data.split(before).length!==2)throw new Er
 replaceOnce("const sourceIds = ['work', 'chapter-p3.r2', 'moment', 'chapter-p3.r13', 'all-things', 'same-life', 'dossier'];","const sourceIds = ['work', 'chapter-p3.r2', 'moment', 'chapter-p3.r13', 'all-things', 'same-life'];");
 for(const cluster of ['readings','echoes']){const line=data.split('\n').find(text=>text.trim().startsWith(`['${cluster}',`));if(!line)throw new Error('No cluster '+cluster);data=data.replace(line+'\n','');}
 replaceOnce(oldAssemblies,'const definitions = [\n'+routing.assemblies.map(row=>'    '+JSON.stringify(row)+',').join('\n')+'\n  ];');
-replaceOnce(oldExtensions,"// Branches to grow are held until they are grown together; see atlas-held.mjs.\nconst extensionDefinitions = [];");
+replaceOnce(oldExtensions,"// Branches to grow are held until they are grown together; see bonsai/zarathustra/held.json.\nconst extensionDefinitions = [];");
 const prominent=data.match(/const prominent = new Set\(\[[^\]]*\]\);/)[0];
 replaceOnce(prominent,`const prominent = new Set(${JSON.stringify(routing.prominent)});`);
 fs.writeFileSync(C+'atlas-data.mjs',data);
@@ -114,15 +114,15 @@ const RULE=` * Own words are kept only for what a quotation cannot give: what ha
  * speaks, how it joins the next place, the question it raises and the answer the book allows.
  * What a work itself says is never retold: a form cites the place instead ({ru, en, cite}),
  * and the stand shows the work's own text there. The map keeps the links the book itself makes
- * at a named place; everything else waits in atlas-held.mjs to be grown together.`;
+ * at a named place; everything else waits in bonsai/zarathustra/held.json to be grown together.`;
 const order=ids=>Object.fromEntries(ids.filter(id=>id in inquiry).map(id=>[id,inquiry[id]]));
 const questionIds=[...keptSlugs].filter(slug=>newNodes.find(row=>row[0]===slug)?.[1]==='question').map(idOf);
 const otherIds=[...SOURCES.filter(slug=>slug!=='dossier'),...newNodes.map(row=>row[0])].map(idOf).filter(id=>!questionIds.includes(id));
 const write=(name,text)=>fs.writeFileSync(C+name,text);
 write('atlas-content.mjs',`/** Authored introductions of the atlas materials.\n${RULE}\n * Read with the passage-specific grounds in the inquiry modules and\n * source-references.mjs; SEMANTIC_REVIEW.md records scope and review. */\nexport const NODE_CONTENT = ${json(Object.fromEntries([...otherIds,...questionIds].map(id=>[id,content[id]])))};\n`);
 write('inquiry-sources-concepts.mjs',`/** Authored source-grounded inquiry of the sources, images and concepts; source bytes remain separate.\n${RULE} */\nexport const INQUIRY_SOURCES_CONCEPTS = ${json(order(otherIds))};\n`);
-write('inquiry-readings-echoes.mjs',`/** Authored inquiry of the questions the book's places raise, with the answers the book allows.\n * Readings and comparisons with other thinkers are held in atlas-held.mjs until they are grown together.\n${RULE} */\nexport const INQUIRY_READINGS_ECHOES = ${json(order(questionIds))};\n`);
+write('inquiry-readings-echoes.mjs',`/** Authored inquiry of the questions the book's places raise, with the answers the book allows.\n * Readings and comparisons with other thinkers are held in bonsai/zarathustra/held.json until they are grown together.\n${RULE} */\nexport const INQUIRY_READINGS_ECHOES = ${json(order(questionIds))};\n`);
 write('relation-inquiry.mjs',`/** Source-grounded reading connections for the atlas.\n * Grounds identify passages to read; they do not turn a connection into proof.\n${RULE} */\nexport const RELATION_INQUIRY = ${json(Object.fromEntries(newEdges.map(row=>[edgeId(row),relations[edgeId(row)]])))};\n`);
 write('atlas-routes.mjs',`/** Authored source-grounded reading routes; transitions retain atlas edge identity.\n${RULE} */\nexport const RESEARCH_ROUTES = ${json(routing.routes)};\n`);
-write('atlas-held.mjs',`/** What the strict rebuild of 1 November 2026 took off the Zarathustra map, kept whole.\n *\n * Dionysus asked to begin with links the book itself makes at a named place, and to grow\n * the ambiguous ones together afterwards. Terra's audit of every link against the German text\n * (bonsai/review/zarathustra-graph) found 19 such links among 128; the rest are readings and\n * comparisons, most of them resting on another book or a reader's argument. They are kept\n * here with their stars, texts, verdicts, reasons and places, and with the earlier texts of\n * what stays. Nothing here is shown or bound by the stand. */\nexport const HELD = ${json(held)};\n`);
+fs.writeFileSync(ROOT+'bonsai/zarathustra/held.json',JSON.stringify(held,null,2)+'\n');
 console.log(`kept ${newNodes.length} prepared stars, ${keptEdgeIds.size} links, ${routing.routes.length} routes; held ${held.nodes.length} stars, ${held.edges.length} links`);

@@ -18,6 +18,8 @@ routes.
 | [`zarathustra/`](zarathustra/bonsai.json) | `/zarathustra/` | the book's witnesses (German first editions, Common's English, Antonovsky's Russian of 1913) aligned paragraph by paragraph and sentence by sentence, the places of other works its map cites, the alignment of the corpus works it cites, the Tree's object types of its own words, the [philosophical core](CORE.md) of the book, the chronology of the book's four parts, of the texts its map rests on and of the thought of eternal recurrence, their places, the graft map; the map itself is grafted from the [constructor atlas](../access/web/constructor/README.md) |
 | [`shared/`](shared/coastlines.json) | both | Natural Earth coastlines under the map of places |
 
+[`zarathustra/held.json`](zarathustra/held.json) keeps whole the stars and links removed by the strict rebuild of 1 November 2026, together with their texts, verdicts, reasons and places, and the earlier texts of what stays. The audit found 19 of the 128 earlier links grounded in a named place in the book; the remaining readings and comparisons are held to grow together with the operator, and the stand neither shows nor binds them.
+
 The stands under [`access/web/src/public-research/`](../access/web/src/public-research/)
 read their bonsai through one adapter, `bonsai.mjs`. They present what a bonsai
 holds and never write to it.
