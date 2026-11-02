@@ -16,7 +16,11 @@
 // stand's content cites (its own modules and the modules it borrows) and
 // reports whether the stored alignment module still matches; `--write` stores it.
 
-import {readFileSync,writeFileSync} from 'node:fs';
+import {readFileSync,writeFileSync,readdirSync,existsSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {execFileSync} from 'node:child_process';
+import {loadCore} from './core.mjs';
+import {exportPhilosophy} from './export.mjs';
 import {dirname,join} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {alignCorpus,citedUnits,corpusReader,formatAlignment} from './corpus-align.mjs';
@@ -43,6 +47,29 @@ if(command==='check'){
   const result=checkBonsai(root,names[0]);
   if(result.problems.length){for(const problem of result.problems)console.error(`problem: ${problem}`);process.exit(1);}
   const text=`${JSON.stringify(result.packet,null,2)}\n`,out=option('--out');
+  if(out)writeFileSync(out,text);else process.stdout.write(text);
+}else if(command==='export-philosophy'&&names.length===1){
+  const {home,manifest:initialManifest}=loadBonsai(root,names[0]);
+  const entry=(initialManifest.modules??[]).find(item=>item.id==='core');
+  if(!entry)throw new Error(`${names[0]} has no philosophical core`);
+  const dir=join(home,dirname(entry.path));
+  const relative=path=>path.slice(root.length+1).replaceAll('\\','/');
+  const sources={};
+  const add=path=>{sources[relative(path)]=`sha256:${createHash('sha256').update(readFileSync(path)).digest('hex')}`;};
+  const walk=path=>{for(const entry of readdirSync(path,{withFileTypes:true}).sort((a,b)=>a.name.localeCompare(b.name))){const child=join(path,entry.name);if(entry.isDirectory())walk(child);else if(entry.isFile()&&entry.name.endsWith('.json'))add(child);}};
+  add(join(home,'bonsai.json'));for(const id of ['identities','objects','witnesses','fragments','alignment']){const item=(initialManifest.modules??[]).find(item=>item.id===id);if(item?.path)add(join(home,item.path));}walk(dir);
+  const chapterDir=join(home,'witnesses');if(existsSync(chapterDir))walk(chapterDir);
+  const history={},historyDir=join(home,'history');
+  if(existsSync(historyDir))for(const name of readdirSync(historyDir).filter(name=>name.endsWith('.json')).sort()){const path=join(historyDir,name);add(path);history[name]=JSON.parse(readFileSync(path,'utf8'));}
+  const operationsPath=join(home,'research-operations.json');
+  const hasOperations=existsSync(operationsPath);if(hasOperations)add(operationsPath);
+  const researchOperations=hasOperations?JSON.parse(readFileSync(operationsPath,'utf8')):null;
+  const {manifest,modules}=loadBonsai(root,names[0]),core=loadCore(dir);
+  for(const [path,digest] of Object.entries(sources)){const actual=`sha256:${createHash('sha256').update(readFileSync(join(root,path))).digest('hex')}`;if(actual!==digest)throw new Error(`Source changed during export: ${path}`);}
+  const revision={commit:execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim(),
+    note:'The digests bind exact working-tree input bytes; the commit alone does not include uncommitted changes.'};
+  const packet=exportPhilosophy({manifest,core,identities:modules.identities??{},sources,revision,history,researchOperations,objects:modules.objects??null,witnesses:modules.witnesses??null,fragments:modules.fragments??null,alignment:modules.alignment??null});
+  const text=`${JSON.stringify(packet,null,2)}\n`,out=option('--out');
   if(out)writeFileSync(out,text);else process.stdout.write(text);
 }else if(command==='align'&&names.length===1){
   const {home,manifest,modules}=loadBonsai(root,names[0]);
@@ -74,6 +101,6 @@ if(command==='check'){
   if(rest.includes('--write')){writeFileSync(path,text);console.log('stored');}
   else if(!same)process.exit(1);
 }else{
-  console.error('usage: node bonsai/lib/cli.mjs check [<bonsai>...] | export <bonsai> [--out <file>] | align <bonsai> [--write] | align-corpus <bonsai> [--write] [--corpus <dir>]');
+  console.error('usage: node bonsai/lib/cli.mjs check [<bonsai>...] | export <bonsai> [--out <file>] | export-philosophy <bonsai> [--out <file>] | align <bonsai> [--write] | align-corpus <bonsai> [--write] [--corpus <dir>]');
   process.exit(2);
 }

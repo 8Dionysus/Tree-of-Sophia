@@ -7,6 +7,11 @@ every finding stays ready to hand to the Tree. The Tree itself grows
 independently; a bonsai records where it was grafted from and reports how far
 the Tree has moved since.
 
+The [full-kernel implementation plan](IMPLEMENTATION_PLAN.md) connects the
+existing philosophical core, reader, research workspace, references and three
+experience modes, with preservation, implementation order and working acceptance
+routes.
+
 | Bonsai | Stand | Holds |
 | --- | --- | --- |
 | [`antiquity/`](antiquity/bonsai.json) | `/antiquity/` | the collection and its fifteen branches, the first six branches, the alignment of the corpus works they cite and the places of other works, the Tree's object types of its own words, the chronology of lives, phases and writings, places, the graft map |
@@ -310,6 +315,16 @@ status; phases, agents and works to mint are listed there, not recorded. Every
 claim is `unreviewed` and `public_metadata_only`. Taking a candidate into the Tree is the Tree's own
 [declared source-claim creation](../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#declared-source-claim-creation),
 with its delegation, evidence and review.
+
+`lib/source-requests.mjs` prepares explicitly mapped owner requests. Claim
+requests use the public owner grammar by default. A caller selecting
+`{owner: 'private'}` must also supply the private owner's selected
+`claim.statement` forms; the resulting creation request preserves the native
+preview's exact dependencies and input bindings. This adapter neither issues
+a grant nor chooses a missing predicate, endpoint identity or source version.
+Lexical Occurrence context names the cited chapter and work; the complete
+stand interpretation and assessment remain in its retained uses, with their
+original scope.
 
 The check also reads the witnesses (every chapter listed, each unit in
 exactly one row, every sentence span inside its unit, the rights of each

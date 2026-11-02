@@ -13,6 +13,13 @@ test('malformed addresses do not quietly become a different text version',()=>{
   for(const hash of ['#reading=%bad','#reading=%7B%7D','#reading='+ 'a'.repeat(14001)])assert.throws(()=>decodeReadingRoute(hash));
   assert.throws(()=>encodeReadingRoute({documentId:'x',versionId:'v',unitId:'u',revision:''}));
 });
+test('snapshot-pinned addresses round trip while legacy addresses remain unchanged',()=>{
+  const legacy={documentId:'work',versionId:'v',unitId:'u',revision:'a'.repeat(64)};
+  assert.deepEqual(decodeReadingRoute(encodeReadingRoute(legacy)),legacy);
+  const pinned={...legacy,snapshotRevision:'b'.repeat(64)};
+  assert.deepEqual(decodeReadingRoute(encodeReadingRoute(pinned)),pinned);
+  assert.throws(()=>encodeReadingRoute({...legacy,snapshotRevision:'not-a-digest'}));
+});
 test('scope keeps source rows, folded display and continuation state distinct',()=>{
   const state={view:{nodes:[{},{},{}],relations:[{},{}],continuation:{next_cursor:'next'}},model:{vertices:[{}],edges:[{}]},mode:'compact'};
   const scope=explorationScope(state);assert.equal(scope.loadedNodes,3);assert.equal(scope.shownNodes,1);assert.equal(scope.hasMore,true);

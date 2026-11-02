@@ -24,7 +24,10 @@ export function installConstructorRules(runtime){
 export function createConstructorModel(library,{storage,key='tos.constructor.v1'}={}){
   if(!ConstructorSession)throw new Error('constructor WASM session is unavailable');
   if(typeof key!=='string'||!key.trim()||key.length>256)throw new Error('storage key must be nonempty text of at most 256 characters');
-  const machine=new ConstructorSession(bytes(library));
+  // The graph owner consumes this library contract. Reading panels, voice maps
+  // and research indexes remain with the public stand instead of being copied
+  // into every bounded Rust graph session.
+  const machine=new ConstructorSession(bytes({schema:library.schema,rootId:library.rootId,fingerprint:library.fingerprint,nodes:library.nodes,atlas:library.atlas}));
   let persistence=storage,blocked=false,lastError=null;
   if(storage===undefined){try{persistence=typeof globalThis.localStorage==='undefined'?null:globalThis.localStorage;}
     catch(cause){lastError=`Local storage unavailable: ${errorText(cause)}`;persistence=null;}}

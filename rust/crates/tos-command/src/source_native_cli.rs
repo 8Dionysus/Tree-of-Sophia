@@ -571,6 +571,9 @@ fn run_selected(
             "owner_context"
         },
     );
+    if source_invocation && invocation.get("native_text_read_profile").is_some() {
+        keys.push("native_text_read_profile");
+    }
     if source_invocation || agent_publication_invocation || metadata_publication_invocation {
         keys.extend(["original_source_revision", "assessment_schema_worker"]);
     } else if assessment_read_invocation {
@@ -874,6 +877,13 @@ fn run_selected(
         let hint_raw = read_absolute(&owner_path, uid, true, 8_388_608, deadline, &cancelled)?;
         let hint = cmd::parse(&hint_raw)?;
         let owner_schema = cmd::text(&hint, "schema_version")?;
+        if invocation.get("native_text_read_profile").is_some()
+            && owner_schema != "tos_local_owner_profile_command_v1"
+        {
+            return Err(SourceCommandError::Denied(
+                "independent private read selection outside private creation",
+            ));
+        }
         // This protected hint routes code only. Each family independently
         // reselects its full grant/current owner boundary before any use.
         if owner_schema == "tos_local_source_navigation_model_prepare_owner_v1" {

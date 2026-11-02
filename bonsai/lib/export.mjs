@@ -134,3 +134,37 @@ export function contractOf(item){
     tos_corpus_record_v1:`${base}corpus-record.schema.json`,
   }[item?.schema_version]??null;
 }
+
+/**
+ * A lossless research handoff. Entries are the stand's own objects, not native
+ * records or Claims: assigning a Tree identity and preparing a source-owner
+ * request are separate, explicit steps. The historical v1 export stays intact.
+ */
+export function exportPhilosophy({manifest,core,identities={},sources={},revision=null,history={},researchOperations=null,objects=null,witnesses=null,fragments=null,alignment=null}){
+  if(!manifest?.id||!core?.core)throw new TypeError('A bonsai manifest and loaded core are required.');
+  const records=[...core.concepts,...core.figures,...core.proposed];
+  const ids=new Set();
+  for(const item of records){if(!item.id||ids.has(item.id))throw new Error(`Missing or duplicate philosophical identity: ${item.id}`);ids.add(item.id);}
+  const claims=[...core.links,...core.chains,...(core.placeRelations?.relations??[])];
+  const statementIds=[],citations=[];
+  const visit=(value,path)=>{
+    if(Array.isArray(value)){value.forEach((item,i)=>visit(item,`${path}/${i}`));return;}
+    if(!value||typeof value!=='object')return;
+    if(value.w&&value.c&&Array.isArray(value.u))citations.push({path,citation:structuredClone(value)});
+    if(value.statement_ids)for(const [field,id] of Object.entries(value.statement_ids))statementIds.push({id,field,path});
+    for(const [key,item] of Object.entries(value))visit(item,`${path}/${pointer(key)}`);
+  };
+  const content={records,claims,voices:core.voices,occurrences:core.occurrences,semantic_uses:core.semanticUses,control:core.control};
+  visit(content,'');
+  const seen=new Set();
+  for(const item of statementIds){if(seen.has(item.id))throw new Error(`Duplicate statement identity: ${item.id}`);seen.add(item.id);}
+  return {schema:'tos.bonsai.philosophy-export.v1',bonsai:manifest.id,revision,sources,
+    posture:'Lossless stand proposals and prior research assessments. Tree identity bindings, source-owner creation, independent review and admission remain separate.',
+    graft:structuredClone(manifest.graft??null),identity_map:structuredClone(identities),
+    philosophical_identities:records.map(item=>({bonsai_id:item.id,type:item.type??null,tree_candidate:item.work_scope?.figure_ref??null,status:'stand-proposal'})),
+    records:structuredClone(records),claims:structuredClone(claims),citations,statement_ids:statementIds,
+    voices:structuredClone(core.voices),occurrences:structuredClone(core.occurrences),semantic_uses:structuredClone(core.semanticUses??null),
+    core:structuredClone(core.core),control:structuredClone(core.control),
+    objects:structuredClone(objects),witnesses:structuredClone(witnesses),fragments:structuredClone(fragments),alignment:structuredClone(alignment),
+    place_relations:structuredClone(core.placeRelations),history:structuredClone(history),research_operations:structuredClone(researchOperations)};
+}

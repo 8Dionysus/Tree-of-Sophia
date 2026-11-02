@@ -11,6 +11,7 @@ default = []
 wasm = ["dep:wasm-bindgen", "dep:js-sys", "tos-foundation/wasm"]
 
 [dependencies]
+serde_json = "1"
 tos-foundation = { path = "../tos-foundation" }
 tos-query = { path = "../tos-query", default-features = false }
 wasm-bindgen = { version = "0.2.128", optional = true }

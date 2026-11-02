@@ -10,10 +10,15 @@ import {installReadingRules} from '../observatory/reading-resume-rust.mjs';
 import {installConstructorRules} from '../../constructor/model.mjs';
 import {installConstructorReadingRules} from '../../constructor/reading-rules-rust.mjs';
 
+import {installWebMcpRules} from '../webmcp.ts';
+import {configureResearchOperations} from './research-operations.mjs';
+
 let ready;
 
 /** Bind every owner used by the public entry, including saved lens conditions. */
 export function installPublicReaderRules(runtime) {
+  installWebMcpRules(runtime);
+  configureResearchOperations(runtime);
   installBrowserWorkspaceMachine(runtime.BrowserWorkspaceSession);
   installCorpusReferenceRules(runtime);
   installReaderOccurrenceRules(runtime);

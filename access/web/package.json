@@ -8,7 +8,9 @@
     "build": "vite build",
     "build:public-research": "vite build --mode public-research",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prebuild:public-research": "node ../../bonsai/lib/history.mjs capture ../..",
+    "prebuild": "node ../../bonsai/lib/history.mjs capture ../.."
   },
   "dependencies": {
     "graphology": "0.26.0",

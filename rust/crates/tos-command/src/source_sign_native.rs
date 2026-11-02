@@ -70,6 +70,21 @@ pub trait SignNativeRead {
     ) -> SourceCommandResult<()>;
     fn owner_local(&self, reference: &str) -> SourceCommandResult<bool>;
 
+    /// The selected input authority is distinct from content confidentiality.
+    /// Existing readers retain their snapshot roles; an explicitly selected
+    /// metadata transport must name its own role without widening owner_local.
+    fn input_source_role(
+        &self,
+        reference: &str,
+        _kind: NativeReadKind,
+    ) -> SourceCommandResult<&'static str> {
+        Ok(if self.owner_local(reference)? {
+            "owner-local-root"
+        } else {
+            "source-contract-root"
+        })
+    }
+
     /// Owner-local transports bind the derived assessment view to their
     /// protected context as well as to the exact selected input bytes. Public
     /// Sign readers retain the historical input-only snapshot by default.
@@ -181,7 +196,29 @@ struct Native<'a, R: SignNativeRead + ?Sized> {
     remaining_metadata: usize,
     remaining_content: usize,
     route_profile: NativeRoute,
+    // Installed only by a protected private grant after binding selection.
+    legacy_dta: Option<JsonValue>,
 }
+fn legacy_dta_anchor_matches(
+    profile: &JsonValue,
+    rep: &JsonValue,
+    anchor: &JsonValue,
+) -> SourceCommandResult<bool> {
+    let locator = cmd::text(cmd::field(anchor, "source_return")?, "locator_ref")?;
+    let Some((file, fragment)) = locator.split_once('#') else {
+        return Ok(false);
+    };
+    Ok(file == cmd::text(profile, "tei_ref")?
+        && fragment
+            .strip_prefix("TEI/text[1]/body[1]")
+            .is_some_and(|tail| tail.is_empty() || tail.starts_with('/'))
+        && !fragment.contains('#')
+        && !fragment.contains("..")
+        && !fragment.contains("//")
+        && cmd::field(anchor, "text_layer_ref")? == cmd::field(rep, "content_ref")?
+        && cmd::field(anchor, "text_layer_sha256")? == cmd::field(rep, "content_sha256")?)
+}
+
 fn path(name: &str) -> SourceCommandResult<RelativePath> {
     RelativePath::parse(name)
         .map_err(|_| SourceCommandError::Invalid("unsafe native source reference"))
@@ -209,6 +246,23 @@ fn texts(value: &JsonValue, key: &str, max: usize) -> SourceCommandResult<Vec<St
         .collect()
 }
 impl<R: SignNativeRead + ?Sized> Native<'_, R> {
+    fn legacy_packet(&self, name: &str) -> bool {
+        matches!(self.route_profile, NativeRoute::OwnerText)
+            && self
+                .legacy_dta
+                .as_ref()
+                .and_then(|v| v.object_get("packet_ref"))
+                .and_then(JsonValue::as_str)
+                == Some(name)
+    }
+    fn metadata_file_limit(&self, name: &str) -> usize {
+        if self.legacy_packet(name) {
+            4_194_304
+        } else {
+            MAX_METADATA_FILE_BYTES
+        }
+    }
+
     fn tick(&self) -> SourceCommandResult<()> {
         if self.cancelled.load(Ordering::Relaxed) {
             return Err(SourceCommandError::Unsupported("native read cancelled"));
@@ -303,7 +357,7 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             let remaining = if category == "content" {
                 self.remaining_content
             } else {
-                self.remaining_metadata.min(MAX_METADATA_FILE_BYTES)
+                self.remaining_metadata.min(self.metadata_file_limit(name))
             };
             if self.cache.len() >= MAX_INPUT_FILES {
                 return Err(SourceCommandError::Invalid(
@@ -328,6 +382,25 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             .cache
             .get_mut(&key)
             .ok_or(SourceCommandError::Invalid("native cached input"))?;
+        if self.reader.input_source_role(name, kind)?
+            != self.reader.input_source_role(name, input.kind)?
+        {
+            // Metadata-category caching must not substitute one authority for
+            // another. In particular, a cached Support read is not a cut Schema
+            // observation. Revisit the requested authority and retain equality.
+            let raw = self.reader.read(
+                name,
+                kind,
+                input.raw.len().max(1),
+                self.deadline,
+                self.cancelled,
+            )?;
+            if raw != input.raw {
+                return Err(SourceCommandError::Conflict(
+                    "native cached input differs across selected authorities",
+                ));
+            }
+        }
         // A support record may later also be a grammar; preserve the stronger
         // selected role while the opaque snapshot remains metadata-category.
         if kind == NativeReadKind::Schema
@@ -467,8 +540,16 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             self as rules, TextMetadataLimits, TextMetadataState,
         };
         let limits = TextMetadataLimits {
-            max_packet_bytes: 1_048_576,
-            max_state_bytes: 8_388_608,
+            max_packet_bytes: if kind == "unit" && self.legacy_packet(name) {
+                4_194_304
+            } else {
+                1_048_576
+            },
+            max_state_bytes: if kind == "unit" && self.legacy_packet(name) {
+                128 * 1024 * 1024
+            } else {
+                8_388_608
+            },
             max_issues: 128,
             deadline: self.deadline,
         };
@@ -1347,7 +1428,7 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             let remaining = if *category == "content" {
                 content
             } else {
-                metadata.min(MAX_METADATA_FILE_BYTES)
+                metadata.min(self.metadata_file_limit(name))
             };
             let raw =
                 self.reader
@@ -1364,11 +1445,9 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             }
             let mut entry = vec![cmd::string(name), cmd::string(category)];
             if owner_context.is_some() {
-                entry.push(cmd::string(if self.reader.owner_local(name)? {
-                    "owner-local-root"
-                } else {
-                    "source-contract-root"
-                }));
+                entry.push(cmd::string(
+                    self.reader.input_source_role(name, input.kind)?,
+                ));
             }
             entry.push(cmd::string(&Digest256::of_bytes(&raw).to_hex()));
             value.push(JsonValue::Array(entry));
@@ -1451,7 +1530,11 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
         let layer_binding = cmd::field(binding, "text_layer")?;
         let layer_path = cmd::text(layer_binding, "record_ref")?;
         let packet_layer = cmd::field(&packet, "source_layer")?;
-        if cmd::text(packet_layer, "text_layer_ref")? != layer_path {
+        let legacy = self
+            .legacy_dta
+            .clone()
+            .filter(|_| self.legacy_packet(packet_path));
+        if legacy.is_none() && cmd::text(packet_layer, "text_layer_ref")? != layer_path {
             return Err(SourceCommandError::Conflict(
                 "native packet addresses another text layer",
             ));
@@ -1472,6 +1555,21 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
         let manifest =
             self.source_scope(binding, source_scope, cmd::field(&layer, "source_binding")?)?;
         let rep = cmd::field(&layer, "representation")?;
+        if let Some(profile) = &legacy {
+            if cmd::field(profile, "packet_sha256")? != cmd::field(binding, "packet_sha256")?
+                || cmd::field(profile, "body_ref")? != cmd::field(packet_layer, "text_layer_ref")?
+                || cmd::field(profile, "body_ref")? != cmd::field(rep, "content_ref")?
+                || cmd::field(profile, "body_sha256")? != cmd::field(rep, "content_sha256")?
+                || cmd::field(profile, "tei_sha256")? != cmd::field(source_scope, "file_sha256")?
+                || cmd::text(rep, "content_visibility")? != "local_only"
+                || cmd::field(rep, "publication_authorized")? != &JsonValue::Bool(false)
+                || !self.reader.owner_local(cmd::text(rep, "content_ref")?)?
+            {
+                return Err(SourceCommandError::Conflict(
+                    "legacy DTA profile scope, bytes or private custody differs",
+                ));
+            }
+        }
         let normalization = cmd::text(rep, "character_normalization")?;
         let unicode_form = if normalization == "none" {
             "source_preserved"
@@ -1493,8 +1591,13 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
         let text_scope = cmd::field(rep, "text_scope")?;
         for anchor in cmd::array(&packet, "anchors")? {
             let selector = cmd::field(anchor, "selector")?;
-            if cmd::field(cmd::field(anchor, "source_return")?, "locator_ref")?
-                != cmd::field(rep, "content_ref")?
+            let locator = cmd::text(cmd::field(anchor, "source_return")?, "locator_ref")?;
+            let source_return_matches = if let Some(profile) = &legacy {
+                legacy_dta_anchor_matches(profile, rep, anchor)?
+            } else {
+                locator == cmd::text(rep, "content_ref")?
+            };
+            if !source_return_matches
                 || !(cmd::integer(text_scope, "start")? <= cmd::integer(selector, "start")?
                     && cmd::integer(selector, "start")? <= cmd::integer(selector, "end")?
                     && cmd::integer(selector, "end")? <= cmd::integer(text_scope, "end")?)
@@ -1505,6 +1608,29 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             }
         }
         self.source_anchors(&layer, source_scope)?;
+        if let Some(profile) = &legacy {
+            for target in cmd::array(cmd::field(&layer, "source_binding")?, "anchors")? {
+                let anchor = self
+                    .record(
+                        cmd::text(target, "anchor_record_ref")?,
+                        Some(cmd::text(target, "anchor_record_sha256")?),
+                    )?
+                    .0;
+                let expression =
+                    cmd::field(cmd::field(&anchor, "selector_payload")?, "expression")?;
+                let selected = cmd::field(expression, "selector")?;
+                let state = cmd::field(selected, "state")?;
+                if cmd::text(expression, "mode")? != "single"
+                    || cmd::field(state, "representation_ref")? != cmd::field(profile, "tei_ref")?
+                    || cmd::field(state, "representation_sha256")?
+                        != cmd::field(profile, "tei_sha256")?
+                {
+                    return Err(SourceCommandError::Conflict(
+                        "legacy DTA anchor state differs from TEI selection",
+                    ));
+                }
+            }
+        }
         let rights = cmd::field(&packet, "rights_and_visibility")?;
         let rights_refs = texts(rights, "rights_record_refs", MAX_INPUT_FILES)?
             .into_iter()
@@ -1589,18 +1715,24 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             check_normalization(selected, normalization)?;
             use tos_validation::text_rules::{self as rules, TextRuleContext, TextRuleState};
             let generation = Digest256::of_bytes(&packet_raw).to_prefixed();
-            let report = rules::inspect_source_text_unit_v1(
-                &packet_raw,
-                &raw,
-                &TextRuleContext {
-                    packet_path: packet_path.into(),
-                    frozen_text_locator: content_path.into(),
-                    schema_checked: true,
-                    requested_profiles: vec![rules::TEXT_UNIT_PROFILE.into()],
-                    interval_generation: generation.clone(),
-                    reverse_generation: generation,
-                },
-            );
+            let context = TextRuleContext {
+                packet_path: packet_path.into(),
+                frozen_text_locator: content_path.into(),
+                schema_checked: true,
+                requested_profiles: vec![rules::TEXT_UNIT_PROFILE.into()],
+                interval_generation: generation.clone(),
+                reverse_generation: generation,
+            };
+            let report = if legacy.is_some() {
+                rules::inspect_source_text_unit_v1_selected_packet(
+                    &packet_raw,
+                    &raw,
+                    &context,
+                    4_194_304,
+                )
+            } else {
+                rules::inspect_source_text_unit_v1(&packet_raw, &raw, &context)
+            };
             if report.packet_digest != Some(Digest256::of_bytes(&packet_raw).to_hex())
                 || report.rule_id != rules::TEXT_UNIT_RULE_ID
             {
@@ -2058,6 +2190,7 @@ fn selected_native<'a, R: SignNativeRead + ?Sized>(
         remaining_metadata: MAX_METADATA_BYTES,
         remaining_content: MAX_CONTENT_BYTES,
         route_profile: NativeRoute::Sign,
+        legacy_dta: None,
     })
 }
 
@@ -2083,6 +2216,7 @@ pub(crate) fn resolve_initial_owner_text_source<R: SignNativeRead + ?Sized>(
         remaining_metadata: MAX_METADATA_BYTES,
         remaining_content: MAX_CONTENT_BYTES,
         route_profile: NativeRoute::OwnerText,
+        legacy_dta: None,
     };
     let payload_entry =
         native.owner_text_layer_source(&grant.config, &["application/epub+zip"], true)?;
@@ -2216,6 +2350,7 @@ pub(crate) fn resolve_derived_owner_text_source<R: SignNativeRead + ?Sized>(
         remaining_metadata: MAX_METADATA_BYTES,
         remaining_content: MAX_CONTENT_BYTES,
         route_profile: NativeRoute::OwnerText,
+        legacy_dta: None,
     };
     let supplied = cmd::text(cmd::field(config, "input")?, "kind")? != "text_layer";
     let media = if cmd::text(cmd::field(config, "input")?, "kind")? == "retained_pdf_page" {
@@ -2380,6 +2515,7 @@ pub(crate) fn resolve_owner_text_layer_metadata<R: SignNativeRead + ?Sized>(
         remaining_metadata: MAX_METADATA_BYTES,
         remaining_content: 0,
         route_profile: NativeRoute::OwnerText,
+        legacy_dta: None,
     };
     native.resolve_layer_metadata(binding)?;
     native.snapshot()?;
@@ -2404,6 +2540,7 @@ pub(crate) fn resolve_owner_text_layer<R: SignNativeRead + ?Sized>(
         remaining_metadata: MAX_METADATA_BYTES,
         remaining_content: MAX_CONTENT_BYTES,
         route_profile: NativeRoute::OwnerText,
+        legacy_dta: None,
     };
     let layer = native.resolve_layer_metadata(binding)?;
     let rep = cmd::field(&layer, "representation")?;
@@ -2448,6 +2585,7 @@ pub(crate) fn resolve_owner_text_packet<R: SignNativeRead + ?Sized>(
         remaining_metadata: MAX_METADATA_BYTES,
         remaining_content: MAX_CONTENT_BYTES,
         route_profile: NativeRoute::OwnerText,
+        legacy_dta: None,
     };
     let (packet, layer, _) = native.resolve(binding, NativeReadScope::ExactOwnerLocal)?;
     let rep = cmd::field(&layer, "representation")?;
@@ -2497,6 +2635,7 @@ pub(crate) fn resolve_owner_alignment<R: SignNativeRead + ?Sized>(
         remaining_metadata: MAX_METADATA_BYTES,
         remaining_content: MAX_CONTENT_BYTES,
         route_profile: NativeRoute::OwnerText,
+        legacy_dta: None,
     };
     let mut sides = Vec::with_capacity(2);
     for bindings in [source, target] {
@@ -2841,6 +2980,7 @@ pub(crate) fn validate_current_occurrence_binding<R: SignNativeRead + ?Sized>(
         remaining_metadata: MAX_METADATA_BYTES,
         remaining_content: MAX_CONTENT_BYTES,
         route_profile: NativeRoute::OwnerText,
+        legacy_dta: None,
     };
     native.route(occurrence_ref, NativeReadKind::Metadata)?;
     if !occurrence_ref.ends_with("/occurrence.json") {
@@ -2881,6 +3021,83 @@ pub(crate) fn resolve_owner_profile_binding<R: SignNativeRead + ?Sized>(
     let (packet, layer, summary) = native.resolve(binding, NativeReadScope::ExactOwnerLocal)?;
     let input_snapshot = native.snapshot()?;
     let inputs = selected_inputs(&native);
+    Ok((
+        ResolvedSignBinding {
+            packet,
+            layer,
+            summary,
+            inputs,
+            input_snapshot,
+            schema_digests: native.schemas,
+        },
+        metadata_inputs,
+    ))
+}
+
+/// Exact private read observation for a private Profile creator. The grant is
+/// independent of the writer grant, and rights precede every content read.
+pub(crate) fn resolve_owner_profile_binding_selected<R: SignNativeRead + ?Sized>(
+    reader: &mut R,
+    worker: &mut dyn CutSchemaExecutor,
+    binding: &JsonValue,
+    selection: &crate::source_native_text_read::LocalTextReadSelection,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<(ResolvedSignBinding, Vec<NativeInput>)> {
+    selection.selected_binding(binding, None, deadline, cancelled)?;
+    let legacy = selection.selected_legacy_dta(binding, deadline, cancelled)?;
+    let mut native = Native {
+        reader,
+        worker,
+        deadline,
+        cancelled,
+        cache: BTreeMap::new(),
+        schemas: BTreeMap::new(),
+        remaining_metadata: MAX_METADATA_BYTES,
+        remaining_content: MAX_CONTENT_BYTES,
+        route_profile: NativeRoute::OwnerText,
+        legacy_dta: legacy,
+    };
+    let (_, layer, _) = native.resolve_member(binding, NativeReadScope::MetadataOnly, false)?;
+    let rep = cmd::field(&layer, "representation")?;
+    if !native.owner_local_transport(rep)? {
+        return Err(SourceCommandError::Denied(
+            "private profile requires owner-local transport",
+        ));
+    }
+    selection.selected_binding(
+        binding,
+        Some(cmd::field(rep, "rights_record_refs")?),
+        deadline,
+        cancelled,
+    )?;
+    let mut rights = Vec::new();
+    for row in cmd::array(rep, "rights_record_refs")? {
+        rights.push(
+            native
+                .record(cmd::text(row, "ref")?, Some(cmd::text(row, "sha256")?))?
+                .0,
+        );
+    }
+    native.local_research_rights(&layer, &rights)?;
+    selection.verify(deadline, cancelled)?;
+    native.snapshot()?;
+    let metadata_inputs = selected_inputs(&native);
+    let (packet, layer, summary) =
+        native.resolve_member(binding, NativeReadScope::ExactOwnerLocal, false)?;
+    let input_snapshot = native.snapshot()?;
+    let inputs = selected_inputs(&native);
+    native.check_selected_member_bytes()?;
+    selection.selected_binding(
+        binding,
+        Some(cmd::field(
+            cmd::field(&layer, "representation")?,
+            "rights_record_refs",
+        )?),
+        deadline,
+        cancelled,
+    )?;
+    native.reader.verify_current(deadline, cancelled)?;
     Ok((
         ResolvedSignBinding {
             packet,
@@ -3012,7 +3229,7 @@ pub(crate) fn read_disclosed_unit<R: SignNativeRead + ?Sized>(
     )?;
     let text = std::str::from_utf8(&content)
         .map_err(|_| SourceCommandError::Invalid("native return UTF8"))?;
-    let spans = disclosed_spans(&packet, &binding, text)?;
+    let spans = disclosed_spans(&packet, &binding, text, false)?;
     if let Some(selection) = local {
         let current = selection.select(
             native.reader,
@@ -3078,6 +3295,7 @@ fn disclosed_spans(
     packet: &JsonValue,
     binding: &JsonValue,
     text: &str,
+    include_source_return: bool,
 ) -> SourceCommandResult<Vec<JsonValue>> {
     let mut spans = Vec::new();
     for anchor_ref in cmd::array(binding, "ordered_anchor_refs")? {
@@ -3088,7 +3306,7 @@ fn disclosed_spans(
                 "native ordered anchor missing",
             ))?;
         let selector = cmd::field(anchor, "selector")?;
-        spans.push(cmd::object(vec![
+        let mut fields = vec![
             ("anchor_ref", anchor_ref.clone()),
             ("selector", selector.clone()),
             ("exact_sha256", cmd::field(anchor, "exact_sha256")?.clone()),
@@ -3100,7 +3318,14 @@ fn disclosed_spans(
                     cmd::integer(selector, "end")?,
                 )?),
             ),
-        ]));
+        ];
+        if include_source_return {
+            fields.push((
+                "source_return",
+                cmd::field(anchor, "source_return")?.clone(),
+            ));
+        }
+        spans.push(cmd::object(fields));
     }
     Ok(spans)
 }
@@ -3125,6 +3350,7 @@ pub(crate) fn read_private_disclosed_unit<R: SignNativeRead + ?Sized>(
     // This happens before the first binding metadata read.
     let binding = binding.clone();
     selection.selected_binding(&binding, None, deadline, cancelled)?;
+    let legacy = selection.selected_legacy_dta(&binding, deadline, cancelled)?;
     let mut native = Native {
         reader,
         worker,
@@ -3135,6 +3361,7 @@ pub(crate) fn read_private_disclosed_unit<R: SignNativeRead + ?Sized>(
         remaining_metadata: MAX_METADATA_BYTES,
         remaining_content: MAX_CONTENT_BYTES,
         route_profile: NativeRoute::OwnerText,
+        legacy_dta: legacy,
     };
     let (_, layer, _) = native.resolve_member(&binding, NativeReadScope::MetadataOnly, false)?;
     let private_transport = native.owner_local_transport(cmd::field(&layer, "representation")?)?;
@@ -3205,7 +3432,7 @@ pub(crate) fn read_private_disclosed_unit<R: SignNativeRead + ?Sized>(
     )?;
     let text = std::str::from_utf8(&content)
         .map_err(|_| SourceCommandError::Invalid("private return UTF8"))?;
-    let spans = disclosed_spans(&packet, &binding, text)?;
+    let spans = disclosed_spans(&packet, &binding, text, native.legacy_dta.is_some())?;
     let snapshot = native.snapshot()?;
     selection.selected_binding(
         &binding,
@@ -3259,4 +3486,205 @@ pub(crate) fn read_private_disclosed_unit<R: SignNativeRead + ?Sized>(
     native.reader.verify_current(deadline, cancelled)?;
     native.tick()?;
     Ok(result)
+}
+
+#[cfg(test)]
+mod legacy_dta_return_tests {
+    use super::*;
+
+    struct SelectedReader {
+        independent: bool,
+        cut: Option<Vec<u8>>,
+        source: Vec<u8>,
+        reads: Vec<NativeReadKind>,
+    }
+    impl SignNativeRead for SelectedReader {
+        fn read(
+            &mut self,
+            _reference: &str,
+            kind: NativeReadKind,
+            max_bytes: usize,
+            _deadline: Instant,
+            _cancelled: &AtomicBool,
+        ) -> SourceCommandResult<Vec<u8>> {
+            self.reads.push(kind);
+            let raw = if self.independent
+                && matches!(kind, NativeReadKind::Metadata | NativeReadKind::Support)
+            {
+                &self.source
+            } else {
+                self.cut.as_ref().ok_or(SourceCommandError::Conflict(
+                    "test selected cut input absent",
+                ))?
+            };
+            if raw.len() > max_bytes {
+                return Err(SourceCommandError::Unsupported("test selected input cap"));
+            }
+            Ok(raw.clone())
+        }
+        fn verify_current(&mut self, _: Instant, _: &AtomicBool) -> SourceCommandResult<()> {
+            Ok(())
+        }
+        fn owner_local(&self, _: &str) -> SourceCommandResult<bool> {
+            Ok(false)
+        }
+        fn input_source_role(
+            &self,
+            _: &str,
+            kind: NativeReadKind,
+        ) -> SourceCommandResult<&'static str> {
+            Ok(
+                if self.independent
+                    && matches!(kind, NativeReadKind::Metadata | NativeReadKind::Support)
+                {
+                    "independent-source-root"
+                } else {
+                    "source-contract-root"
+                },
+            )
+        }
+        fn owner_context_snapshot(
+            &self,
+            _: Instant,
+            _: &AtomicBool,
+        ) -> SourceCommandResult<Option<String>> {
+            Ok(Some(
+                Digest256::of_bytes(b"same selected context").to_prefixed(),
+            ))
+        }
+    }
+    struct NoSchemaExecution;
+    impl CutSchemaExecutor for NoSchemaExecution {
+        fn check(
+            &mut self,
+            _: &str,
+            _: &[u8],
+            _: &str,
+            _: Instant,
+            _: &AtomicBool,
+        ) -> Result<bool, tos_validation::item_rules::ItemRefusal> {
+            panic!("transport fixture cannot execute a schema")
+        }
+    }
+    fn selected_native<'a>(
+        reader: &'a mut SelectedReader,
+        worker: &'a mut NoSchemaExecution,
+        cancelled: &'a AtomicBool,
+    ) -> Native<'a, SelectedReader> {
+        Native {
+            reader,
+            worker,
+            deadline: Instant::now() + std::time::Duration::from_secs(5),
+            cancelled,
+            cache: BTreeMap::new(),
+            schemas: BTreeMap::new(),
+            remaining_metadata: MAX_METADATA_BYTES,
+            remaining_content: MAX_CONTENT_BYTES,
+            route_profile: NativeRoute::OwnerText,
+            legacy_dta: None,
+        }
+    }
+
+    #[test]
+    fn cached_metadata_cannot_replace_a_different_selected_authority() {
+        let cancelled = AtomicBool::new(false);
+        let schema = "ToS/contracts/test.schema.json";
+        for cut in [None, Some(b"other!".to_vec()), Some(b"source".to_vec())] {
+            let same = cut.as_deref() == Some(b"source".as_slice());
+            let mut reader = SelectedReader {
+                independent: true,
+                cut,
+                source: b"source".to_vec(),
+                reads: Vec::new(),
+            };
+            let mut worker = NoSchemaExecution;
+            let mut native = selected_native(&mut reader, &mut worker, &cancelled);
+            assert_eq!(
+                native.raw(schema, None, NativeReadKind::Support).unwrap(),
+                b"source"
+            );
+            assert_eq!(
+                native.raw(schema, None, NativeReadKind::Schema).is_ok(),
+                same
+            );
+            assert_eq!(
+                native.reader.reads,
+                [NativeReadKind::Support, NativeReadKind::Schema]
+            );
+        }
+        let mut reader = SelectedReader {
+            independent: true,
+            cut: Some(b"source".to_vec()),
+            source: b"other!".to_vec(),
+            reads: Vec::new(),
+        };
+        let mut worker = NoSchemaExecution;
+        let mut native = selected_native(&mut reader, &mut worker, &cancelled);
+        native.raw(schema, None, NativeReadKind::Schema).unwrap();
+        assert!(native.raw(schema, None, NativeReadKind::Support).is_err());
+    }
+
+    #[test]
+    fn selected_metadata_authority_changes_snapshot_and_rereads_its_own_source() {
+        let cancelled = AtomicBool::new(false);
+        let mut snapshots = Vec::new();
+        for independent in [false, true] {
+            let mut reader = SelectedReader {
+                independent,
+                cut: Some(b"source".to_vec()),
+                source: b"source".to_vec(),
+                reads: Vec::new(),
+            };
+            let mut worker = NoSchemaExecution;
+            let mut native = selected_native(&mut reader, &mut worker, &cancelled);
+            native
+                .raw(
+                    "ToS/source-witnesses/packet.json",
+                    None,
+                    NativeReadKind::Metadata,
+                )
+                .unwrap();
+            snapshots.push(native.snapshot().unwrap());
+            assert!(
+                !native
+                    .reader
+                    .owner_local("ToS/source-witnesses/packet.json")
+                    .unwrap()
+            );
+            native.reader.source = b"other!".to_vec();
+            assert_eq!(native.snapshot().is_err(), independent);
+        }
+        assert_ne!(snapshots[0], snapshots[1]);
+        let mut reader = SelectedReader {
+            independent: false,
+            cut: None,
+            source: b"source".to_vec(),
+            reads: Vec::new(),
+        };
+        let mut worker = NoSchemaExecution;
+        let mut native = selected_native(&mut reader, &mut worker, &cancelled);
+        assert!(
+            native
+                .raw(
+                    "ToS/source-witnesses/packet.json",
+                    None,
+                    NativeReadKind::Metadata
+                )
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn exact_tei_fragment_and_body_are_both_required() {
+        let profile = cmd::parse(br#"{"tei_ref":"ToS/tei.xml"}"#).unwrap();
+        let rep = cmd::parse(br#"{"content_ref":"ToS/body.txt","content_sha256":"abc"}"#).unwrap();
+        let valid = cmd::parse(br#"{"source_return":{"locator_ref":"ToS/tei.xml#TEI/text[1]/body[1]/div[1]/p[1]"},"text_layer_ref":"ToS/body.txt","text_layer_sha256":"abc"}"#).unwrap();
+        let wrong_ref = cmd::parse(br#"{"source_return":{"locator_ref":"ToS/other.xml#TEI/text[1]/body[1]"},"text_layer_ref":"ToS/body.txt","text_layer_sha256":"abc"}"#).unwrap();
+        let wrong_digest = cmd::parse(br#"{"source_return":{"locator_ref":"ToS/tei.xml#TEI/text[1]/body[1]"},"text_layer_ref":"ToS/body.txt","text_layer_sha256":"bad"}"#).unwrap();
+        let no_fragment = cmd::parse(br#"{"source_return":{"locator_ref":"ToS/tei.xml"},"text_layer_ref":"ToS/body.txt","text_layer_sha256":"abc"}"#).unwrap();
+        assert!(legacy_dta_anchor_matches(&profile, &rep, &valid).unwrap());
+        assert!(!legacy_dta_anchor_matches(&profile, &rep, &wrong_ref).unwrap());
+        assert!(!legacy_dta_anchor_matches(&profile, &rep, &wrong_digest).unwrap());
+        assert!(!legacy_dta_anchor_matches(&profile, &rep, &no_fragment).unwrap());
+    }
 }

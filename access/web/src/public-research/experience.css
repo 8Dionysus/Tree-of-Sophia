@@ -1,0 +1,62 @@
+.experience-toolbar,.experience-modes,.experience-tools{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem}
+.experience-toolbar{width:100%;padding:.55rem 0;border-top:1px solid #879eb62b}
+.experience-tools{margin-left:auto}
+.experience-button,.experience-result{border:1px solid #859ab455;border-radius:.4rem;background:#152332;color:#e1eaf4;font:inherit;cursor:pointer}
+.experience-button{min-height:2.25rem;padding:.4rem .7rem;font-size:.8rem}
+.experience-button[aria-pressed=true]{border-color:#d6b37a;color:#f3dfbd;background:#302b27}
+.experience-button:disabled{opacity:.45;cursor:default}
+.experience-button:focus-visible,.experience-result:focus-visible,.experience-search input:focus-visible{outline:2px solid #d6b37a;outline-offset:2px}
+.experience-pane{color:#dce7f5;padding:1rem clamp(1rem,4vw,3rem);max-width:100%;overflow-wrap:anywhere}
+.experience-pane[hidden],.experience-pane [hidden]{display:none!important}
+.experience-question{color:#d7c5a4}
+.experience-message,.experience-error{color:#f2bfad}
+.experience-search{max-width:64rem;margin:0 0 1rem}
+.experience-search input{box-sizing:border-box;width:100%;padding:.7rem;background:#101d2a;color:#edf4ff;border:1px solid #849bb65c;border-radius:.4rem;font:inherit}
+.experience-search-results,.experience-reference-list,.experience-history{display:grid;gap:.35rem;margin:.7rem 0}
+.experience-result{display:block;text-align:left;padding:.5rem .65rem;font-size:.85rem;line-height:1.35}
+.experience-body{max-width:76rem}.experience-article{min-width:0;max-width:72ch}
+.experience-comparison{border-top:1px solid #879eb62b;margin-top:1.5rem;padding-top:1rem}
+.experience-pin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),1fr));gap:1rem}
+.experience-pin{min-width:0;padding:1rem;border:1px solid #879eb644;border-radius:.5rem;background:#101c29}
+.experience-version{font-size:.8rem;color:#d7c5a4;overflow-wrap:anywhere}
+.experience-history,.experience-operations{border-top:1px solid #879eb62b;padding:1rem 0}.experience-history summary,.experience-operations summary{cursor:pointer;color:#d7c5a4}
+.experience-structured{margin:1rem 0}.experience-structured h3{font-size:.85rem;color:#d7c5a4}
+@media(max-width:600px){.experience-tools{margin-left:0}.experience-toolbar{gap:.5rem}.experience-button{flex:1 1 auto}.experience-pane{padding:1rem}.experience-pin-grid{grid-template-columns:1fr}}
+/* Keep the space mounted so its fragment dialogs remain available in reference mode. */
+.experience-space-inactive{position:absolute!important;inset:0 auto auto 0!important;width:100%!important;height:0!important;overflow:clip!important;visibility:hidden;pointer-events:none}
+.experience-space-inactive .ps-dialog[open]{visibility:visible;pointer-events:auto}
+.experience-version-notice{width:100%;margin:.3rem 0;color:#e7c99a;font-size:.8rem}
+.experience-toolbar{position:relative;z-index:10;padding:.5rem clamp(1rem,3vw,2rem);background:#08111f;border-bottom:1px solid #879eb62b;font-family:system-ui,sans-serif}
+.experience-version-notice{padding:0 clamp(1rem,3vw,2rem);font-family:system-ui,sans-serif}
+.experience-language{min-height:2.25rem;border:1px solid #859ab455;border-radius:.4rem;background:#152332;color:#e1eaf4;padding:.35rem;font:inherit}.experience-language[hidden]{display:none}
+.experience-pane .body{white-space:pre-line;font:1rem/1.75 Georgia,serif;color:#d0dbe6}
+.experience-pane .minor-title{color:#d7c5a4;font:600 .76rem/1.4 system-ui,sans-serif;letter-spacing:.07em;text-transform:uppercase}
+.experience-pane .text-button,.experience-pane .connection-target{border:0;background:transparent;color:#e7ce98;padding:.3rem .15rem;text-align:left;font:inherit;cursor:pointer}
+.experience-pane .text-button:hover,.experience-pane .connection-target:hover{text-decoration:underline}
+.experience-pane .text-button:focus-visible,.experience-pane .connection-target:focus-visible{outline:2px solid #d6b37a;outline-offset:2px}
+.experience-pane .edge-endpoints{display:flex;flex-wrap:wrap;gap:.4rem;align-items:baseline}
+/* Reference contents and article frame. */
+.experience-pane:not(.is-cognitive){font-family:system-ui,-apple-system,'Segoe UI',sans-serif}
+.experience-contents{max-width:76rem}
+.experience-contents-title{margin:.4rem 0 .3rem;font:500 clamp(1.8rem,3.4vw,2.6rem)/1.1 Sophia,Georgia,serif;color:#f1ece2}
+.experience-contents-note{max-width:62ch;margin:0 0 1.4rem;color:#93a5b9;line-height:1.55}
+.experience-contents-group{margin:1.6rem 0}
+.experience-contents-group h2{margin:0 0 .7rem;color:#d7c5a4;font:600 .74rem/1.3 system-ui,sans-serif;letter-spacing:.09em;text-transform:uppercase}
+.experience-contents-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,17rem),1fr));gap:.6rem}
+.experience-entry{display:grid;gap:.3rem;align-content:start;min-height:4.4rem;padding:.75rem .85rem;border:1px solid #859ab433;border-radius:.6rem;background:#0f1b2b;color:#dfe7f1;text-align:left;font:inherit;cursor:pointer;transition:border-color .2s,background .2s}
+.experience-entry:hover{border-color:#d6b37a88;background:#152335}
+.experience-entry:focus-visible,.experience-back:focus-visible{outline:2px solid #d6b37a;outline-offset:2px}
+.experience-entry strong{font:500 1.05rem/1.3 Sophia,Georgia,serif;color:#f0ead9}
+.experience-entry span{color:#9fb0c3;font-size:.84rem;line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.experience-back{margin:.2rem 0 1rem;padding:.35rem .1rem;border:0;background:transparent;color:#d7c5a4;font:inherit;font-size:.85rem;cursor:pointer}
+.experience-back:hover{color:#f3dfbd}
+.experience-search input{font-family:system-ui,-apple-system,'Segoe UI',sans-serif}
+.experience-pane.is-cognitive{padding-top:0;padding-bottom:0}
+/* Phone: modes share one row; the remaining tools scroll in a second row beside the language. */
+@media(max-width:600px){
+  .experience-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.4rem}
+  .experience-modes{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+  .experience-modes .experience-button{padding:.4rem .2rem;font-size:.78rem}
+  .experience-tools{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .experience-tools .experience-button{flex:0 0 auto;font-size:.76rem}
+}

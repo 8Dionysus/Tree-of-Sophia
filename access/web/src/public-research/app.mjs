@@ -2,8 +2,12 @@ import {resolveLocale,copyLocale,localeText,localeLabels} from './locale.mjs';
 import {setUiLanguage} from '../observatory/ui-i18n.mjs';
 import {mountCorpusEntry} from '../corpus-reader/host.mjs';
 import {createCorpusNotebook} from '../corpus-reader/notebook.mjs';
-import {createPublicCorpusProvider} from '../corpus-reader/public-provider.mjs';
+import {createRetainedPublicCorpusProvider} from '../corpus-reader/retained-public-provider.mjs';
 import {decodeReadingRoute, encodeReadingRoute} from '../corpus-reader/route.mjs';
+import {mountResearchExperience} from './experience-view.mjs';
+import {mountCognitiveSession} from './cognitive-session.mjs';
+import {mountKnowing} from './knowing-map.mjs';
+import {connectResearchPage} from './page-agent.mjs';
 import {mountPublicAgentBridge} from './agent-bridge.mjs';
 import {createPublicResearchOwners, mountPublicWorkspaceView} from './workspace-view.mjs';
 import {initializePublicReaderRules} from './bootstrap.mjs';
@@ -106,6 +110,10 @@ let agentBridge;
 let workspaceView;
 let publicOwners;
 let spaceView;
+let experience;
+let cognitive;
+let knowing;
+let pageAgent;
 let appDisposed=false;
 let saveTimer = null;
 let questionTouched = false;
@@ -178,8 +186,9 @@ async function refreshQuestion() {
     const value = await notebook.getPreference(QUESTION_KEY);
     if (questionTouched || sequence !== questionSequence) return false;
     questionExpected = value;
-    question.value = typeof value === 'string' ? value : '';
-    notifyQuestion();
+    const next = typeof value === 'string' ? value : '';
+    // Sessions refresh every second; listeners hear only a question that changed.
+    if (question.value !== next) { question.value = next; notifyQuestion(); }
     return true;
   } catch { return false; }
 }
@@ -331,7 +340,7 @@ function setLanguage(value,{updateUrl=true}={}){
   if(updateUrl){const url=new URL(location.href);url.searchParams.set('lang',locale);history.replaceState(history.state,'',url);}
   setUiLanguage(locale);
   document.title=`${strings.title} · ${english?localeText('Tree of Sophia',locale):'Древо Софии'}`;
-  spaceView?.refreshLocale();workspaceView?.refreshLocale?.();agentBridge?.refreshLocale?.();
+  experience?.refreshLocale();cognitive?.refreshLocale();knowing?.refreshLocale();spaceView?.refreshLocale();workspaceView?.refreshLocale?.();agentBridge?.refreshLocale?.();
 }
 
 function mountJourneys(items, documentIds) {
@@ -400,9 +409,10 @@ async function setQuestion(value) {
 async function openAddress(address) {
   const returnFocus = document.activeElement;
   if (!address || typeof address !== 'object' || Array.isArray(address)
-    || Object.keys(address).some(key => !['documentId', 'versionId', 'unitId', 'revision', 'reference'].includes(key))
+    || Object.keys(address).some(key => !['documentId', 'versionId', 'unitId', 'revision', 'reference', 'snapshotRevision'].includes(key))
     || ['documentId', 'versionId'].some(key => typeof address[key] !== 'string' || !address[key].trim() || address[key].length > 2048)
     || ['unitId', 'revision'].some(key => address[key] !== undefined && (typeof address[key] !== 'string' || !address[key].trim() || address[key].length > 2048))
+    || (address.snapshotRevision !== undefined && !/^[a-f0-9]{64}$/.test(address.snapshotRevision))
     || (address.reference !== undefined && (!address.reference || typeof address.reference !== 'object' || Array.isArray(address.reference)))) {
     throw new TypeError('Open requires documentId and versionId, with an optional exact unitId, revision, or reference.');
   }
@@ -411,6 +421,7 @@ async function openAddress(address) {
   if (address.unitId !== undefined) target.unitId = address.unitId;
   if (address.revision !== undefined) target.revision = address.revision;
   if (address.reference !== undefined) target.reference = address.reference;
+  if (address.snapshotRevision !== undefined) target.snapshotRevision = address.snapshotRevision;
   return entry?.open(target, {returnFocus}) ?? null;
 }
 
@@ -428,7 +439,7 @@ async function start() {
   if(appDisposed)return;
   await initializePublicReaderRules();
   if(appDisposed)return;
-  const provider = createPublicCorpusProvider({baseUrl: `${import.meta.env.BASE_URL}public-corpus/`, profile, fetch: globalThis.fetch.bind(globalThis)});
+  const provider = createRetainedPublicCorpusProvider({baseUrl: `${import.meta.env.BASE_URL}public-corpus/`, profile, fetch: globalThis.fetch.bind(globalThis)});
   let manifest = null;
   try { manifest = await provider.describe(); } catch { /* the reader will report delivery failure */ }
   if(appDisposed)return;
@@ -455,7 +466,7 @@ async function start() {
   if(appDisposed)return;
   spaceView = mountPublicResearchSpace({host:readerRoot,header,profile,locale:()=>locale,library:publicSpace.library,
     bindings:publicSpace.bindings,documentBindings:publicSpace.documentBindings,groundTargets:publicSpace.groundTargets,routeGroundTargets:publicSpace.routeGroundTargets,graphPredecessors:publicSpace.graphPredecessors,api:window.tosPublicResearch,
-    workspace:publicOwners.workspace,shelf:publicOwners.shelf,question:questionLabel,saveState,status,journeys:profileInfo?.journeys??[]});
+    workspace:publicOwners.workspace,shelf:publicOwners.shelf,question:questionLabel,saveState,status,journeys:profileInfo?.journeys??[],index:publicSpace.index});
   saveState.after(resolveQuestionConflict, questionHistory);
   header.addEventListener('public-space-locale',onPublicSpaceLocale);
   agentBridge = mountPublicAgentBridge({root:spaceView.agentRoot, api:window.tosPublicResearch, notebook:entry.notebook,
@@ -464,6 +475,13 @@ async function start() {
     workspace:publicOwners.workspace, shelf:publicOwners.shelf, locale:()=>locale,
     graphSpaceContext:{profile,libraryFingerprint:publicSpace.library.fingerprint,pristineGraphs:spaceView.pristineGraphs,reload:()=>window.location.reload()}});
   workspaceView.connectAgentBridge(agentBridge);
+  experience=mountResearchExperience({root:readerRoot,header,profile,locale:()=>locale,index:publicSpace.index,space:spaceView,api:window.tosPublicResearch,notebook:entry.notebook,
+    onCognitive:detail=>{if(cognitive)void cognitive.record(detail.action,detail).catch(error=>console.error('Research event',error));}});
+  // The learning mode is the sky opened by the person's own links; the agent session lives in its journal.
+  knowing=profile==='zarathustra'?mountKnowing({root:experience.cognitiveRoot,index:publicSpace.index,locale:()=>locale,notebook:entry.notebook,profile,fragments:spaceView.fragments,getSession:()=>cognitive,
+    onOpenReference:id=>{experience.open(id);experience.setMode('reference');},onOpenSpace:id=>{experience.open(id);experience.setMode('original');}}):null;
+  cognitive=mountCognitiveSession({root:knowing?.agentRoot??experience.cognitiveRoot,notebook:entry.notebook,index:publicSpace.index,api:window.tosPublicResearch,locale:()=>locale,profile,workspace:publicOwners.workspace,onHelpChange:value=>knowing?.setHelpLevel(value),getSelection:()=>experience.getState(),versionContext:experience.versionContext,isActive:()=>experience.getState().mode==='cognitive',onOpen:(id,options)=>experience.open(id,options)});
+  pageAgent=connectResearchPage({index:publicSpace.index,space:spaceView,experience,session:cognitive,api:window.tosPublicResearch,workspace:publicOwners.workspace,locale:()=>locale});
   workspaceView?.render();
   spaceView.refreshLocale();
   if (manifest && profileInfo) {
@@ -488,6 +506,10 @@ function disposeApp() {
   question.removeEventListener('input',scheduleQuestionSave);
   window.removeEventListener('pagehide',onPageHide);
   window.removeEventListener('beforeunload',onBeforeUnload);
+  pageAgent?.destroy();
+  cognitive?.destroy();
+  knowing?.destroy();knowing=null;
+  experience?.destroy();
   agentBridge?.destroy();
   workspaceView?.destroy();
   spaceView?.destroy();

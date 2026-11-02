@@ -2,8 +2,8 @@
 
 This directory owns the stable machine vocabulary used when ToS material is
 composed into read-only knowledge lenses. The registry connects source-owned meanings across readers through stable
-types, relations and explicit mappings. Entity registry 40 and relation
-registry 46 state their definitions through each subject’s properties, purpose
+types, relations and explicit mappings. Entity registry 41 and relation
+registry 47 state their definitions through each subject’s properties, purpose
 and relations. Source-specific uncertainty and substantive negation remain
 part of the authored meaning.
 
@@ -26,6 +26,28 @@ lossless parsed baseline separately from future reviewed semantic evolution.
 Original baseline bytes and migration/home rationale remain in
 [`definitions/README.md`](definitions/README.md). The local selection review is
 [`2026-10-19-definition-topology-review.md`](../../review-ledger/2026-10-19-definition-topology-review.md).
+
+## Work-world figures and exact-place comparisons
+
+`tos.entity.work-figure` identifies a figure within a named work. Its
+[description profile](../../contracts/work-figure-description-record.schema.json)
+requires the Work reference and a source-described role, while keeping the
+work’s author and any historical bearer of its name separate. Attributing
+speech is a separate source-grounded Claim. `work-voice-attributed-to` relates
+an exact source-bound Occurrence to a work-world figure. Its
+[claim profile](../../contracts/work-voice-attribution-claim.schema.json) requires
+the work, mode, primary or embedded layer, carrier and addressee. Embedded
+speech requires a named carrier; a primary voice has no carrier.
+The attribution does not adopt the speech as the author’s or work’s thesis.
+
+`text-place-repeats`, `text-place-varies`, `text-place-answers`,
+`text-place-contrasts`, `text-place-echoes` and `text-place-frames` are
+source-qualified relations between Occurrences. Each endpoint must carry the
+existing immutable native TextUnit binding, and each Claim must explain its
+comparison. These relations do not make the places, voices, events or their
+interpretations identical. The existing `semantic-relation-v1` profile carries
+claims; a cited place or candidate ID alone does not create an Occurrence or
+admit a claim.
 
 ## Source validation profiles
 

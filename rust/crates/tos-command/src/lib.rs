@@ -115,7 +115,9 @@ pub use source_sign_native::{
 };
 mod source_annotation_identity_index;
 mod source_claim_dependency_index;
+mod source_foundation_invocation_client;
 mod source_item_file_index;
+pub mod source_protected_foundation_invocation;
 pub mod source_text_alignment_entry;
 mod source_text_identity;
 mod source_text_identity_index;

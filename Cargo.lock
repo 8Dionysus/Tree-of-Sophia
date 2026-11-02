@@ -1990,6 +1990,7 @@ name = "tos-web-rules"
 version = "0.0.0"
 dependencies = [
  "js-sys",
+ "serde_json",
  "tos-foundation",
  "tos-query",
  "wasm-bindgen",

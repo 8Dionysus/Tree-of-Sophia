@@ -1,0 +1,83 @@
+{
+  "schema": "tos.bonsai.step-revisions.v1",
+  "reviewer": "kernel_final_content_review",
+  "revisions": {
+    "tos.bonsai.step.bestowing.virtue.chain.01.fe8b1997a71f": {
+      "verb": {
+        "ru": "сопоставляется с вопросами души",
+        "en": "is compared with the soul’s questions to"
+      },
+      "sense": {
+        "ru": "В II.09 Заратустра спрашивает, касается ли ещё душ тех, кто принимает; в III.14 он передаёт вопросы своей души о дарении как нужде и принятии как сострадании.",
+        "en": "In II.09 Zarathustra asks whether he still touches the souls of those who take; in III.14 he reports his soul’s questions about giving as need and taking as compassion."
+      },
+      "grounds": [
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "II.09",
+          "u": [
+            "tos.text-unit.sid-2843a99935e60d5c350f2a16c2f89f12",
+            "tos.text-unit.sid-2843a99935e60d5c350f2a16c2f89f12"
+          ]
+        },
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "III.14",
+          "u": [
+            "tos.text-unit.sid-e8e279e1df353941f741c0cb295429e6",
+            "tos.text-unit.sid-c0f42aa81160c9dadc492a1cef5dd98f"
+          ]
+        }
+      ],
+      "status": "reconstruction",
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "tos.bonsai.step.bestowing.virtue.chain.01.fe8b1997a71f",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      }
+    },
+    "tos.bonsai.step.bestowing.virtue.chain.01.f50ae7a3d388": {
+      "verb": {
+        "ru": "говорит об уроке, пережитом",
+        "en": "speaks of the lesson learned by"
+      },
+      "sense": {
+        "ru": "Заратустра говорит нищему, что тот узнал, как трудно правильно отдавать по сравнению с принятием; отдельно он называет хорошее дарение искусством.",
+        "en": "Zarathustra tells the beggar he learned how much harder proper giving is than proper taking; separately he calls good gifting an art."
+      },
+      "cite": {
+        "w": "also-sprach-zarathustra",
+        "c": "IV.08",
+        "u": [
+          "tos.text-unit.sid-7213f771ff84cbf039682ea79414fa06",
+          "tos.text-unit.sid-7213f771ff84cbf039682ea79414fa06"
+        ]
+      },
+      "grounds": [
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "IV.08",
+          "u": [
+            "tos.text-unit.sid-8d6093cbded780ddbfe1f48e8018e5db",
+            "tos.text-unit.sid-8d6093cbded780ddbfe1f48e8018e5db"
+          ]
+        }
+      ],
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "tos.bonsai.step.bestowing.virtue.chain.01.f50ae7a3d388",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      }
+    }
+  }
+}

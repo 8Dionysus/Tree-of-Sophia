@@ -3703,6 +3703,62 @@
       "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.temporal-crosswalk.json",
       "navigation_parent": "tos.entity.identity",
       "previous_paths": []
+    },
+    {
+      "id": "tos.entity.work-figure",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.thought-image/tos.entity.work-figure.json",
+      "navigation_parent": "tos.entity.thought-image",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.text-place-repeats",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.text-place-repeats.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.text-place-varies",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.text-place-varies.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.text-place-answers",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.text-place-answers.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.text-place-contrasts",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.text-place-contrasts.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.text-place-echoes",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.text-place-echoes.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.text-place-frames",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.text-place-frames.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.work-voice-attributed-to",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.work-voice-attributed-to.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
     }
   ],
   "selection_review_ref": "ToS/review-ledger/2026-10-19-temporal-definition-selection-review.md"

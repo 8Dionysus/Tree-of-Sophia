@@ -62,6 +62,14 @@ fn bounded_env(name: &'static [u8], cap: usize) -> Result<std::ffi::OsString> {
     Err(Error::Budget("private stage environment byte cap"))
 }
 
+fn contain_inherited_ticket(raw: i32) -> Result<()> {
+    let flags = unsafe { libc::fcntl(raw, libc::F_GETFD) };
+    if flags < 0 || unsafe { libc::fcntl(raw, libc::F_SETFD, flags | libc::FD_CLOEXEC) } < 0 {
+        return Err(std::io::Error::last_os_error().into());
+    }
+    Ok(())
+}
+
 fn open_store(path: &Path) -> Result<File> {
     let text = path
         .to_str()
@@ -118,6 +126,24 @@ struct SearchCacheTicket {
     max_build_bytes: u64,
     max_temp_bytes: u64,
     quota_scope: String,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct InvocationCustodyTicket {
+    fd: i32,
+    socket_dev: u64,
+    socket_ino: u64,
+    socket_cookie: u64,
+    path: PathBuf,
+    sha256: String,
+    protocol: String,
+    operations: Vec<String>,
+    work_deadline_ns: u64,
+}
+fn deserialize_invocation<'de, D: serde::Deserializer<'de>>(
+    reader: D,
+) -> std::result::Result<Option<InvocationCustodyTicket>, D::Error> {
+    InvocationCustodyTicket::deserialize(reader).map(Some)
 }
 fn deserialize_cache<'de, D: serde::Deserializer<'de>>(
     reader: D,
@@ -183,6 +209,8 @@ struct Ticket {
     persistent_store: Option<PersistentStoreTicket>,
     #[serde(default, deserialize_with = "deserialize_cache")]
     search_cache: Option<SearchCacheTicket>,
+    #[serde(default, deserialize_with = "deserialize_invocation")]
+    invocation_custody: Option<InvocationCustodyTicket>,
 }
 
 /// Current kernel-accounted allocation in the selected private tmpfs.
@@ -336,6 +364,10 @@ impl PrivateTmpfsStageIsolation {
             search_cache_custody,
         };
         result.verify_kernel()?;
+        // The issuer must pass the ticket through the consumer's first exec.
+        // Once authenticated, retain it for later same-process selections but
+        // do not pass its writable memfd to Git or other exec'd descendants.
+        contain_inherited_ticket(raw)?;
         Ok(result)
     }
     /// Select the actual issuer ticket as the normal native session's resource
@@ -401,6 +433,87 @@ impl PrivateTmpfsStageIsolation {
         &self.ticket.root
     }
 
+    /// Return only the exact invocation channel bound to the issued stage.
+    pub fn invocation_custody(&self, path: &Path) -> Result<Option<(i32, String)>> {
+        self.verify_kernel()?;
+        let Some(selected) = self.ticket.invocation_custody.as_ref() else {
+            return Ok(None);
+        };
+        if selected.path != path
+            || selected.fd < 3
+            || selected.protocol != "tos_foundation_invocation_custody_v1"
+            || selected.operations.len() != 2
+            || selected.operations[0] != "initial"
+            || selected.operations[1] != "eof"
+            || selected.sha256.len() != 64
+            || !selected
+                .sha256
+                .bytes()
+                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+        {
+            return Err(Error::Invalid("stage invocation custody binding differs"));
+        }
+        let mut st = unsafe { std::mem::zeroed::<libc::stat>() };
+        let mut cookie = 0u64;
+        let mut len = std::mem::size_of::<u64>() as libc::socklen_t;
+        let mut domain = 0i32;
+        let mut kind = 0i32;
+        let mut option_len = std::mem::size_of::<i32>() as libc::socklen_t;
+        if unsafe { libc::fstat(selected.fd, &mut st) } != 0
+            || st.st_mode & libc::S_IFMT != libc::S_IFSOCK
+            || st.st_dev != selected.socket_dev
+            || st.st_ino != selected.socket_ino
+            || unsafe {
+                libc::getsockopt(
+                    selected.fd,
+                    libc::SOL_SOCKET,
+                    libc::SO_DOMAIN,
+                    (&mut domain as *mut i32).cast(),
+                    &mut option_len,
+                )
+            } != 0
+            || option_len as usize != std::mem::size_of::<i32>()
+            || domain != libc::AF_UNIX
+            || {
+                option_len = std::mem::size_of::<i32>() as libc::socklen_t;
+                (unsafe {
+                    libc::getsockopt(
+                        selected.fd,
+                        libc::SOL_SOCKET,
+                        libc::SO_TYPE,
+                        (&mut kind as *mut i32).cast(),
+                        &mut option_len,
+                    )
+                }) != 0
+            }
+            || option_len as usize != std::mem::size_of::<i32>()
+            || kind != libc::SOCK_STREAM
+            || unsafe {
+                libc::getsockopt(
+                    selected.fd,
+                    libc::SOL_SOCKET,
+                    libc::SO_COOKIE,
+                    (&mut cookie as *mut u64).cast(),
+                    &mut len,
+                )
+            } != 0
+            || len as usize != std::mem::size_of::<u64>()
+            || cookie != selected.socket_cookie
+        {
+            return Err(Error::Invalid("stage invocation socket identity differs"));
+        }
+        let mut now = unsafe { std::mem::zeroed::<libc::timespec>() };
+        if unsafe { libc::clock_gettime(libc::CLOCK_MONOTONIC, &mut now) } != 0
+            || (now.tv_sec as u64)
+                .saturating_mul(1_000_000_000)
+                .saturating_add(now.tv_nsec as u64)
+                >= selected.work_deadline_ns
+        {
+            return Err(Error::Invalid("stage invocation custody deadline expired"));
+        }
+        Ok(Some((selected.fd, selected.sha256.clone())))
+    }
+
     /// Owned inline and heap capacity only. Kernel FD custody remains charged
     /// by the original OS envelope. Currentness uses the existing quota_usage
     /// guard and its owner-declared VERIFY cost, separately from this census.
@@ -434,6 +547,19 @@ impl PrivateTmpfsStageIsolation {
             add(cache.path.capacity())?;
             add(cache.source_root.capacity())?;
             add(cache.quota_scope.capacity())?;
+        }
+        if let Some(invocation) = &ticket.invocation_custody {
+            add(invocation.path.capacity())?;
+            add(invocation.sha256.capacity())?;
+            add(invocation.protocol.capacity())?;
+            add(invocation
+                .operations
+                .capacity()
+                .checked_mul(std::mem::size_of::<String>())
+                .ok_or(Error::Budget("stage retained state overflow"))?)?;
+            for operation in &invocation.operations {
+                add(operation.capacity())?;
+            }
         }
         Ok(bytes)
     }
@@ -774,6 +900,42 @@ impl StageIsolation for PrivateTmpfsStageIsolation {
 mod persistent_boundary_controls {
     use super::*;
 
+    #[test]
+    fn authenticated_ticket_remains_readable_without_exec_inheritance() {
+        let raw = unsafe {
+            libc::memfd_create(c"tos-ticket-exec-control".as_ptr(), libc::MFD_ALLOW_SEALING)
+        };
+        assert!(raw >= 0);
+        let original = unsafe { File::from_raw_fd(raw) };
+        original.write_all_at(b"retained ticket", 0).unwrap();
+        let seals =
+            libc::F_SEAL_SEAL | libc::F_SEAL_WRITE | libc::F_SEAL_GROW | libc::F_SEAL_SHRINK;
+        assert_eq!(unsafe { libc::fcntl(raw, libc::F_ADD_SEALS, seals) }, 0);
+        // Keep the observed descriptor clear of the child's ordinary startup FDs.
+        let inherited = unsafe { libc::fcntl(raw, libc::F_DUPFD, 128) };
+        assert!(inherited >= 128);
+        let held = unsafe { File::from_raw_fd(inherited) };
+        assert_eq!(
+            unsafe { libc::fcntl(inherited, libc::F_GETFD) } & libc::FD_CLOEXEC,
+            0
+        );
+        contain_inherited_ticket(inherited).unwrap();
+        contain_inherited_ticket(inherited).unwrap();
+        let mut retained = [0; 15];
+        held.read_exact_at(&mut retained, 0).unwrap();
+        assert_eq!(&retained, b"retained ticket");
+        let child = std::process::Command::new("/usr/bin/readlink")
+            .arg(format!("/proc/self/fd/{inherited}"))
+            .output()
+            .unwrap();
+        assert!(
+            !child.status.success(),
+            "authenticated ticket survived exec"
+        );
+        held.read_exact_at(&mut retained, 0).unwrap();
+        assert_eq!(&retained, b"retained ticket");
+    }
+
     // Mechanical refusal fixtures only. No manufactured positive kernel,
     // admission, accepted source, or persistent-write authority is asserted.
     fn fixture_ticket() -> Ticket {
@@ -847,6 +1009,27 @@ mod persistent_boundary_controls {
                 "requested persistent store differs from capability"
             ))
         ));
+    }
+
+    #[test]
+    fn invocation_ticket_rejects_null_and_untyped_extra_fields() {
+        let mut value = serde_json::json!({
+            "schema":"tos_private_tmpfs_stage_v1",
+            "quota_bytes":1048576,"inode_limit":128,"working_ram_bytes":268435456,
+            "root":"/unselected-fixture-stage","root_device":7,"root_inode":8,
+            "mount_id":9,"mount_namespace_inode":10,"parent_mount_namespace_inode":11,
+            "fallbacks":[],"lifetime":"consumer-process-mount-namespace",
+            "capabilities":"dropped-before-exec","write_confinement":"landlock-v3",
+            "consumer_requires_dumpable_zero":true,"invocation_custody":null
+        });
+        assert!(serde_json::from_value::<Ticket>(value.clone()).is_err());
+        value["invocation_custody"] = serde_json::json!({
+            "fd":3,"socket_dev":1,"socket_ino":2,"socket_cookie":3,
+            "path":"/selected/invocation.json","sha256":"a".repeat(64),
+            "protocol":"tos_foundation_invocation_custody_v1",
+            "operations":["initial","eof"],"work_deadline_ns":100,"extra":true
+        });
+        assert!(serde_json::from_value::<Ticket>(value).is_err());
     }
 
     #[test]

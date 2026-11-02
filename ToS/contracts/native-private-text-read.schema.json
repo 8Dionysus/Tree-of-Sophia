@@ -124,6 +124,56 @@
           }
         }
       }
+    },
+    "legacy_dta": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "description": "Explicit private mappings for the four exact DTA technical-markup packet/body pairs. This selection is only byte custody and does not admit a layer or change rights.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "packet_ref",
+          "packet_sha256",
+          "body_ref",
+          "body_sha256",
+          "body_path",
+          "tei_ref",
+          "tei_sha256"
+        ],
+        "properties": {
+          "packet_ref": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "packet_sha256": {
+            "$ref": "#/$defs/hash"
+          },
+          "body_ref": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "body_sha256": {
+            "$ref": "#/$defs/hash"
+          },
+          "body_path": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 4096
+          },
+          "tei_ref": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "tei_sha256": {
+            "$ref": "#/$defs/hash"
+          }
+        }
+      }
     }
   },
   "$defs": {

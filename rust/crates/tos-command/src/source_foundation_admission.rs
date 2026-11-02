@@ -673,29 +673,34 @@ impl<'c> NativeSourceValidator<'c> {
                 use tos_validation::source_record_selection::{
                     SelectionLimits, SourceRecordSelection, selection_state_upper_bound,
                 };
+                let snapshot = invocation.record_selection_snapshot();
                 let remaining = ledger.remaining().map_err(command)?;
-                let custody_bound = path
-                    .as_os_str()
-                    .as_bytes()
-                    .len()
-                    .checked_mul(3)
-                    .and_then(|n| {
-                        n.checked_add(size_of::<crate::source_text_owner::HeldOwnerFile>())
-                            .and_then(|n| {
-                                n.checked_add(
-                                    size_of::<Arc<SourceRecordSelection>>()
-                                        + 2 * size_of::<usize>(),
-                                )
-                            })
-                    })
-                    .ok_or_else(|| invalid("record selection custody state overflow"))?;
+                // Frozen bytes/path already belong to the invocation's startup
+                // charge. File mode retains its original independent custody.
+                let custody_bound = if snapshot.is_some() {
+                    Some(0)
+                } else {
+                    path.as_os_str()
+                        .as_bytes()
+                        .len()
+                        .checked_mul(3)
+                        .and_then(|n| {
+                            n.checked_add(size_of::<crate::source_text_owner::HeldOwnerFile>())
+                        })
+                }
+                .and_then(|n| {
+                    n.checked_add(size_of::<Arc<SourceRecordSelection>>() + 2 * size_of::<usize>())
+                })
+                .ok_or_else(|| invalid("record selection custody state overflow"))?;
                 let model_state = remaining
                     .state_bytes
                     .checked_sub(custody_bound)
                     .ok_or_else(|| invalid("record selection custody state bound"))?;
                 let mut low = 0usize;
-                let mut high = count(invocation.budgets.max_member_bytes)?
-                    .min(count(remaining.source_read_bytes / 2)?);
+                let mut high = count(invocation.budgets.max_member_bytes)?;
+                if snapshot.is_none() {
+                    high = high.min(count(remaining.source_read_bytes / 2)?);
+                }
                 // Invert the model owner's existing simultaneous state bound;
                 // no copied parser ratio or physical-file/row count assumption.
                 while low < high {
@@ -709,34 +714,42 @@ impl<'c> NativeSourceValidator<'c> {
                 if low == 0 {
                     return Err(invalid("record selection manifest budget"));
                 }
-                let ticket = ledger
-                    .begin_window(
-                        "record-selection-manifest-read",
-                        FoundationPhaseReservation::default(),
+                let (held, raw) = if let Some(raw) = snapshot {
+                    // Exact immutable bytes selected by the protected invocation.
+                    // Its existing single terminal EOF check authenticates this
+                    // snapshot; the logical manifest address is never opened.
+                    (None, std::borrow::Cow::Borrowed(raw))
+                } else {
+                    let ticket = ledger
+                        .begin_window(
+                            "record-selection-manifest-read",
+                            FoundationPhaseReservation::default(),
+                        )
+                        .map_err(command)?;
+                    ledger
+                        .complete_window(
+                            ticket,
+                            FoundationPhaseUse {
+                                source_read_bytes: FoundationCharge::admitted_upper_bound(
+                                    (low as u64)
+                                        .checked_mul(2)
+                                        .ok_or_else(|| invalid("record selection read overflow"))?,
+                                ),
+                                ..FoundationPhaseUse::default()
+                            },
+                        )
+                        .map_err(command)?;
+                    let (held, raw) = crate::source_text_owner::select_held_file(
+                        path,
+                        unsafe { libc::geteuid() },
+                        false,
+                        low,
+                        deadline,
+                        cancel,
                     )
                     .map_err(command)?;
-                ledger
-                    .complete_window(
-                        ticket,
-                        FoundationPhaseUse {
-                            source_read_bytes: FoundationCharge::admitted_upper_bound(
-                                (low as u64)
-                                    .checked_mul(2)
-                                    .ok_or_else(|| invalid("record selection read overflow"))?,
-                            ),
-                            ..FoundationPhaseUse::default()
-                        },
-                    )
-                    .map_err(command)?;
-                let (held, raw) = crate::source_text_owner::select_held_file(
-                    path,
-                    unsafe { libc::geteuid() },
-                    false,
-                    low,
-                    deadline,
-                    cancel,
-                )
-                .map_err(command)?;
+                    (Some(held), std::borrow::Cow::Owned(raw))
+                };
                 let retained = selection_state_upper_bound(raw.len())
                     .map_err(|_| invalid("record selection model state"))?;
                 let verify_state = model_state
@@ -744,7 +757,7 @@ impl<'c> NativeSourceValidator<'c> {
                     .filter(|n| *n > 0)
                     .ok_or_else(|| invalid("record selection verification state"))?;
                 let selection = SourceRecordSelection::parse(
-                    &raw,
+                    raw.as_ref(),
                     SelectionLimits {
                         max_manifest_bytes: low,
                         max_records: raw.len(),
@@ -776,7 +789,8 @@ impl<'c> NativeSourceValidator<'c> {
                 let state = selection
                     .charged_state_bytes()
                     .checked_add(
-                        held.retained_state_bytes()
+                        held.as_ref()
+                            .map_or(Some(0), |held| held.retained_state_bytes())
                             .ok_or_else(|| invalid("record selection custody state overflow"))?,
                     )
                     .and_then(|n| {
@@ -787,7 +801,7 @@ impl<'c> NativeSourceValidator<'c> {
                     .ok_or_else(|| invalid("record selection state overflow"))?;
                 drop(raw);
                 debit(&mut ledger, "record-selection-retained-state", 0, state)?;
-                (Some(Arc::new(selection)), Some(held), Some(binding))
+                (Some(Arc::new(selection)), held, Some(binding))
             } else {
                 (None, None, None)
             };
@@ -3272,6 +3286,8 @@ impl<'c> NativeSourceValidator<'c> {
     }
     fn verify_record_selection(&mut self) -> io::Result<()> {
         let Some(held) = &self.record_selection_held else {
+            // Explicit snapshots remain immutable in the original invocation;
+            // its one existing final custody/EOF check authenticates all bytes.
             return Ok(());
         };
         let read = u64::try_from(held.size_bytes())

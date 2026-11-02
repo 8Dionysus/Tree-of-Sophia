@@ -24,7 +24,7 @@ export function loadCore(dir){
   const read=name=>existsSync(join(dir,name))?json(join(dir,name)):null;
   const core=read('core.json'),concepts=read('concepts.json')??[];
   const occurrences=Object.fromEntries(concepts.map(concept=>[concept.id,concept.occurrences?read(concept.occurrences):null]));
-  return {core,voices:read('voices.json')??{},concepts,figures:read('figures.json')??[],links:read('links.json')??[],chains:read('chains.json')??[],proposed:read('proposed.json')??[],control:read('control.json'),occurrences};
+  return {core,voices:read('voices.json')??{},concepts,figures:read('figures.json')??[],links:read('links.json')??[],chains:read('chains.json')??[],proposed:read('proposed.json')??[],placeRelations:read('place-relations.json'),semanticUses:read('semantic-uses.json'),control:read('control.json'),occurrences};
 }
 
 /** Text as the reader's search sees it: broken words joined, whitespace collapsed, case folded. */
@@ -77,11 +77,12 @@ const verbText=claim=>[claim.verb?.ru,claim.verb?.en,typeof claim.verb==='string
 /** Problems of a core against the witnesses' chapters and the Tree's registries. */
 export function coreIssues(loaded,chapters,registry=null){
   const problems=[],text=coreText(chapters);
-  const {core,voices,concepts,figures,links,chains,proposed,control,occurrences}=loaded;
+  const {core,voices,concepts,figures,links,chains,proposed,placeRelations,semanticUses,control,occurrences}=loaded;
   if(core?.schema!==CORE_SCHEMA)problems.push(`schema is not ${CORE_SCHEMA}`);
   const place=(label,cite)=>{const s=span(text,cite);if(s.issue)problems.push(`${label}: ${s.issue}`);return s.issue?null:s;};
 
   // The voice map: every German unit of a chapter in exactly one primary segment.
+  const voiceDescriptorIds=new Set();
   for(const [c,segments] of Object.entries(voices)){
     const chapter=text[c];if(!chapter){problems.push(`voices: no chapter ${c}`);continue;}
     const cover=new Array(chapter.units.length).fill(0);
@@ -89,7 +90,23 @@ export function coreIssues(loaded,chapters,registry=null){
       const s=place(`voices ${c}[${k}]`,{c,u:segment.u});
       if(!MODES.has(segment.mode))problems.push(`voices ${c}[${k}]: mode ${segment.mode}`);
       if(!segment.speaker)problems.push(`voices ${c}[${k}]: no speaker`);
+      const descriptor=segment.voice_descriptor;
+      if(descriptor){
+        if(!descriptor.id||voiceDescriptorIds.has(descriptor.id))problems.push(`voices ${c}[${k}]: missing or duplicate voice descriptor id`);
+        voiceDescriptorIds.add(descriptor.id);
+        if(descriptor.cite?.c!==c||descriptor.cite?.u?.[0]!==segment.u?.[0]||descriptor.cite?.u?.[1]!==segment.u?.[1]||descriptor.speaker_designation!==segment.speaker||descriptor.layer!==segment.layer||descriptor.mode!==segment.mode||descriptor.via!==(segment.via??null)||descriptor.addressee!==(segment.addressee??null))problems.push(`voices ${c}[${k}]: descriptor disagrees with segment`);
+        if(descriptor.identity_status==='narrator-role-only'&&(segment.speaker!=='narrator'||segment.layer!=='primary'||segment.mode!=='narration'||descriptor.role!=='work-narrator'))problems.push(`voices ${c}[${k}]: invalid narrator role`);
+      }
       if(segment.layer==='embedded'&&!segment.via)problems.push(`voices ${c}[${k}]: embedded speech names no carrier`);
+      if(segment.attribution){
+        const a=segment.attribution,figure=figures.find(item=>item.id===segment.speaker);
+        if(a.status==='speaker-identity-unresolved'){
+          if(a.speaker_designation!==segment.speaker||a.layer!==segment.layer||a.mode!==segment.mode||a.carrier!==(segment.via??null))problems.push(`voices ${c}[${k}]: invalid unresolved attribution`);
+        }else{
+          if(!figure?.work_scope||a.speaker_ref!==figure.work_scope.figure_ref||a.work_ref!==figure.work_scope.work_ref||a.anchor_unit!==segment.u?.[0]||a.occurrence_candidate!==`tos.occurrence.bonsai.za.${segment.u?.[0]?.split('.').at(-1)}`||a.layer!==segment.layer||a.mode!==segment.mode||a.carrier!==(segment.via??null)||a.role!=='speaker'||a.scope!=='first-unit-of-segment')problems.push(`voices ${c}[${k}]: invalid figure attribution`);
+          if(registry){const type=registry.relation(a.relation_type);if(!type||!registry.within('tos.entity.occurrence',type.domain_type_ids)||!registry.within('tos.entity.work-figure',type.range_type_ids))problems.push(`voices ${c}[${k}]: invalid attribution relation`);}
+        }
+      }
       if(s&&segment.layer==='primary')for(let i=s.a;i<=s.b;i++)cover[i]++;
     });
     const gaps=cover.filter(n=>n===0).length,over=cover.filter(n=>n>1).length;
@@ -108,12 +125,76 @@ export function coreIssues(loaded,chapters,registry=null){
     if(!formula?.cite)problems.push(`${label} ${node.id}: no formula`);
     else if(!formula.voice?.speaker)problems.push(`${label} ${node.id}: the formula names no voice`);
     if(label==='concept'&&!node.question?.ru)problems.push(`concept ${node.id}: no question`);
+    if(node.type==='tos.entity.work-figure'&&(!node.work_scope?.figure_ref?.startsWith('tos.work-figure.')||!node.work_scope?.work_ref?.startsWith('tos.work.')||!Array.isArray(node.work_scope?.roles)))problems.push(`figure ${node.id}: incomplete work scope`);
     for(const [path,cite] of citations(node,`${label} ${node.id}`))place(path,cite);
   }
-  for(const item of proposed)ids.add(item.id);
+  for(const item of proposed){
+    ids.add(item.id);
+    for(const [path,cite] of citations(item,`proposed ${item.id}`))place(path,cite);
+    if(item.reading?.related_existing&&!ids.has(item.reading.related_existing))problems.push(`proposed ${item.id}: unknown existing subject ${item.reading.related_existing}`);
+  }
+  if(core?.files?.includes('place-relations.json')&&!placeRelations)problems.push('place relations: missing declared file');
+  if(placeRelations){
+    if(placeRelations.schema!=='tos.bonsai.place-relations.v1'||!Array.isArray(placeRelations.relations))problems.push('place relations: invalid schema or relations');
+    for(const relation of Array.isArray(placeRelations.relations)?placeRelations.relations:[]){
+      const candidate=relation.native_candidate;
+      if(!candidate||!['from','to'].includes(candidate.subject_endpoint)||!['from','to'].includes(candidate.object_endpoint)||candidate.subject_endpoint===candidate.object_endpoint)problems.push(`place relation ${relation.id}: invalid native endpoint roles`);
+      if(registry&&candidate){
+        const type=registry.relation(candidate.relation_type);
+        if(!type||!registry.within('tos.entity.occurrence',type.domain_type_ids)||!registry.within('tos.entity.occurrence',type.range_type_ids))problems.push(`place relation ${relation.id}: invalid native relation type`);
+      }
+      for(const side of ['from','to']){
+        const endpoint=relation[side],label=`place relation ${relation.id} ${side}`;
+        const at=place(label,endpoint?.cite);
+        if(endpoint?.occurrence_candidate&&endpoint.occurrence_candidate!==`tos.occurrence.bonsai.za.${endpoint.cite?.u?.[0]?.split('.').at(-1)}`)problems.push(`${label}: occurrence candidate does not match its anchor unit`);
+        if(at){
+          const actual=voiceAt(text,voices,at.c,at.a);
+          if(!actual||actual.speaker!==endpoint.speaker||actual.layer!==endpoint.layer||actual.mode!==endpoint.mode||(endpoint.layer==='embedded'&&actual.via!==endpoint.via))problems.push(`${label}: attribution disagrees with voice map`);
+        }
+      }
+    }
+  }
   for(const [id,file] of Object.entries(occurrences)){
     if(!file){problems.push(`occurrences of ${id}: missing`);continue;}
     for(const [path,cite] of citations(file.occurrences,`occurrences ${id}`))place(path,cite);
+  }
+
+  // Contextual readings are explicit stand proposals; all other exact-form
+  // candidates remain unknown, independently of voice mode or orthography.
+  if(core?.files?.includes('semantic-uses.json')&&!semanticUses)problems.push('semantic uses: missing declared file');
+  if(semanticUses){
+    if(semanticUses.schema!=='tos.bonsai.semantic-uses.v1'||!Array.isArray(semanticUses.terms))problems.push('semantic uses: invalid schema or terms');
+    const useIds=new Set(),candidateIds=new Set(),groupIds=new Set();
+    for(const term of Array.isArray(semanticUses.terms)?semanticUses.terms:[]){
+      const groups=new Map((term.groups??[]).map(group=>[group.id,group]));
+      for(const group of groups.values()){
+        if(groupIds.has(group.id)||group.term!==term.id)problems.push(`semantic group ${group.id}: duplicate or wrong term`);
+        groupIds.add(group.id);
+      }
+      const actualMembers=new Map([...groups.keys()].map(id=>[id,[]]));
+      for(const use of term.occurrences??[]){
+        const label=`semantic use ${use.id}`;
+        if(!use.id||useIds.has(use.id)||use.term!==term.id)problems.push(`${label}: duplicate id or wrong term`);
+        useIds.add(use.id);
+        const candidate=use.native_candidate;
+        if(!candidate?.record_id||candidateIds.has(candidate.record_id)||candidate.status!=='not-materialized'||candidate.binding!=='requires-native-text-unit-binding')problems.push(`${label}: invalid native candidate`);
+        candidateIds.add(candidate?.record_id);
+        if(use.granularity!=='form-in-text-unit'||!Number.isInteger(use.matching_tokens_in_unit)||use.matching_tokens_in_unit<1||use.cite?.q!==use.form)problems.push(`${label}: invalid form scope`);
+        for(const [path,cite] of citations(use,label))place(path,cite);
+        const s=span(text,use.cite),actual=s.issue?null:voiceAt(text,voices,s.c,s.a);
+        if(!actual||actual.speaker!==use.voice?.speaker||actual.mode!==use.voice?.mode||actual.layer!==use.voice?.layer||(actual.via??null)!==(use.voice?.via??null))problems.push(`${label}: voice disagrees with voice map`);
+        const meaning=use.semantic_use;
+        if(meaning?.review_status==='stand-proposal'){
+          const group=groups.get(meaning.group_id);
+          if(!group||!meaning.meaning?.ru||!meaning.meaning?.en||!meaning.grounds?.length)problems.push(`${label}: incomplete contextual reading`);
+          else actualMembers.get(meaning.group_id).push(use.id);
+        }else if(meaning?.review_status!=='unknown'||meaning.group_id!==null||meaning.meaning!==null||meaning.grounds?.length)problems.push(`${label}: unreviewed meaning must remain unknown`);
+      }
+      for(const [id,group] of groups){
+        if(JSON.stringify([...(group.members??[])].sort())!==JSON.stringify(actualMembers.get(id).sort()))problems.push(`semantic group ${id}: inconsistent members`);
+      }
+    }
+    for(const [path,cite] of citations(semanticUses.source_connections??[],'semantic connections'))place(path,cite);
   }
 
   // Claims: statuses, verdicts and admission agree; every place resolves; a registry relation fits its ends.
@@ -122,10 +203,13 @@ export function coreIssues(loaded,chapters,registry=null){
     if(!ADMITTED[claim.admission]?.has(claim.assessment?.verdict))problems.push(`${label}: admitted as ${claim.admission} with verdict ${claim.assessment?.verdict}`);
     if(claim.status&&!STATUS.has(claim.status))problems.push(`${label}: status ${claim.status}`);
   };
+  const hasFamilies=links.some(link=>link.relation_family?.family);
   for(const link of links){
     const label=`link ${link.id}`;
+    if(hasFamilies&&(!link.relation_family?.family||!link.relation_family?.family_reason?.ru||!link.relation_family?.family_reason?.en||link.relation_family?.family_status!=='stand-proposal'))problems.push(`${label}: incomplete subject-model family`);
     claimIssues(label,link);
     if(!verbText(link))problems.push(`${label}: no verb`);
+    if(link.relation_family&&registry&&!registry.relation(link.relation_family.relation_type))problems.push(`${label}: unknown relation family`);
     if(!ids.has(link.from))problems.push(`${label}: unknown ${link.from}`);
     if(!ids.has(link.to))problems.push(`${label}: unknown ${link.to}`);
     if(!(link.grounds??[]).length)problems.push(`${label}: no grounds`);

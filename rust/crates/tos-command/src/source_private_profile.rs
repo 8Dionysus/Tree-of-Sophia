@@ -1316,26 +1316,28 @@ fn parse_grant(
         ));
     }
     let value = cmd::parse(&ctx.configuration_raw)?;
-    cmd::exact_keys(
-        &value,
-        &[
-            "schema_version",
-            "uid",
-            "principal_id",
-            "authority_ref",
-            "expires_at",
-            "source_context_ref",
-            "source_path",
-            "source_access",
-            "source_binding",
-            "profile_type_id",
-            "record_id",
-            "allowed_operations",
-            "allowed_fields",
-            "allowed_form_ids",
-            "provenance_event_id",
-        ],
-    )?;
+    let mut keys = vec![
+        "schema_version",
+        "uid",
+        "principal_id",
+        "authority_ref",
+        "expires_at",
+        "source_context_ref",
+        "source_path",
+        "source_access",
+        "source_binding",
+        "profile_type_id",
+        "record_id",
+        "allowed_operations",
+        "allowed_fields",
+        "allowed_form_ids",
+        "provenance_event_id",
+    ];
+    if value.object_get("max_held_identity_files").is_some() {
+        keys.push("max_held_identity_files");
+    }
+    cmd::exact_keys(&value, &keys)?;
+    owner.verify_private_identity_limit(&value)?;
     if cmd::text(&value, "schema_version")? != CONFIG
         || cmd::integer(&value, "uid")? != ctx.effective_uid
         || !cmd::nonblank(cmd::text(&value, "principal_id")?)
@@ -1493,6 +1495,7 @@ fn parse_grant(
 fn implementation_digests(
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
+    independent_text: bool,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -1503,7 +1506,16 @@ fn implementation_digests(
     }
     let mut result = BTreeMap::new();
     let mut remaining = 16_777_216usize;
-    for reference in IMPLEMENTATIONS {
+    let independent = [
+        "rust/crates/tos-command/src/source_native_text_read.rs",
+        "rust/crates/tos-command/src/source_sign_native.rs",
+        "rust/crates/tos-validation/src/text_rules.rs",
+    ];
+    for reference in IMPLEMENTATIONS
+        .iter()
+        .copied()
+        .chain(independent.iter().copied().filter(|_| independent_text))
+    {
         active(deadline, cancelled)?;
         let path = RelativePath::parse(reference)
             .map_err(|_| SourceCommandError::Invalid("profile implementation path"))?;
@@ -2558,6 +2570,7 @@ fn scan_identity_bytes(
     digests: &mut BTreeMap<String, String>,
     count: &mut usize,
     remaining: &mut usize,
+    max_files: usize,
 ) -> SourceCommandResult<()> {
     if raw.len() > MAX_INVENTORY_FILE_BYTES || raw.len() > *remaining {
         return Err(SourceCommandError::Invalid(
@@ -2566,7 +2579,7 @@ fn scan_identity_bytes(
     }
     *remaining -= raw.len();
     *count += 1;
-    if *count > MAX_INVENTORY_FILES {
+    if *count > max_files {
         return Err(SourceCommandError::Invalid("profile identity file count"));
     }
     if digests
@@ -2611,6 +2624,7 @@ fn identity_snapshot(
     basenames: &BTreeSet<String>,
     reserved: &BTreeSet<String>,
     creating: bool,
+    max_files: usize,
 ) -> SourceCommandResult<String> {
     let mut digests = BTreeMap::new();
     let mut count = 0usize;
@@ -2646,6 +2660,7 @@ fn identity_snapshot(
             &mut digests,
             &mut count,
             &mut remaining,
+            max_files,
         )?;
     }
     for (reference, raw) in &private.files {
@@ -2664,9 +2679,24 @@ fn identity_snapshot(
             &mut digests,
             &mut count,
             &mut remaining,
+            max_files,
         )?;
     }
     Ok(cmd::record_digest(&hash_map(digests))?.to_prefixed())
+}
+
+fn selected_private_native_input_allowed(
+    reference: &str,
+    private_prefix: &str,
+    kind: crate::source_sign_native::NativeReadKind,
+    selected_legacy: Option<&JsonValue>,
+) -> bool {
+    reference.starts_with(private_prefix)
+        || (kind == crate::source_sign_native::NativeReadKind::Content
+            && selected_legacy
+                .and_then(|profile| profile.object_get("body_ref"))
+                .and_then(JsonValue::as_str)
+                == Some(reference))
 }
 
 fn validate_native_profile(
@@ -2687,6 +2717,11 @@ fn validate_native_profile(
 )> {
     let native_binding_adapter = grant.profile.object_get("native_binding_adapter");
     if native_binding_adapter.is_none() {
+        if owner.independent_text_selection()?.is_some() {
+            return Err(SourceCommandError::Denied(
+                "independent private text selection needs native profile",
+            ));
+        }
         if record.object_get("native_text_binding").is_some()
             || grant.source_binding.is_some()
             || cmd::text(&grant.source_access, "read_scope")? != "metadata_only"
@@ -2717,14 +2752,37 @@ fn validate_native_profile(
             "private occurrence binding differs from its exact delegated selection",
         ));
     }
-    let mut native_reader = ProfileNativeReader { owner, cut };
-    let (mut resolved, metadata_inputs) = source_sign_native::resolve_owner_profile_binding(
-        &mut native_reader,
-        worker,
-        binding,
-        deadline,
-        cancelled,
-    )?;
+    let read_selection = owner.independent_text_selection()?;
+    // Only the independently validated private text grant selects filesystem
+    // metadata. Ordinary private Profiles retain their immutable-cut route.
+    let mut native_reader = ProfileNativeReader {
+        owner,
+        cut,
+        independent_metadata: read_selection.is_some(),
+    };
+    let selected_legacy = if let Some(selection) = read_selection.as_ref() {
+        selection.selected_legacy_dta(binding, deadline, cancelled)?
+    } else {
+        None
+    };
+    let (mut resolved, metadata_inputs) = if let Some(selection) = read_selection.as_ref() {
+        source_sign_native::resolve_owner_profile_binding_selected(
+            &mut native_reader,
+            worker,
+            binding,
+            selection,
+            deadline,
+            cancelled,
+        )?
+    } else {
+        source_sign_native::resolve_owner_profile_binding(
+            &mut native_reader,
+            worker,
+            binding,
+            deadline,
+            cancelled,
+        )?
+    };
     let private_prefix = cmd::text(context_config, "private_prefix")?;
     let mut reads = BTreeMap::<String, SourceFile>::new();
     owner.snapshot(deadline, cancelled)?;
@@ -2734,24 +2792,28 @@ fn validate_native_profile(
         let private = native_reader.owner_local(&input.reference)?;
         owner_local_transport |= private;
         if !private {
-            let raw = read_current_member(
-                cut,
+            // Recheck the same selected authority used by the resolver;
+            // independent metadata never falls through to a corpus-cut read.
+            let raw = native_reader.read(
                 &input.reference,
+                input.kind,
                 input.raw_size.max(1),
                 deadline,
                 cancelled,
-            )?
-            .ok_or(SourceCommandError::Conflict(
-                "native public binding input is absent from the selected corpus cut",
-            ))?;
+            )?;
             if raw.len() != input.raw_size || Digest256::of_bytes(&raw) != input.raw_sha256 {
                 return Err(SourceCommandError::Conflict(
-                    "native public binding input differs from the selected corpus cut",
+                    "native binding input differs from its selected transport",
                 ));
             }
             continue;
         }
-        if !input.reference.starts_with(private_prefix) {
+        if !selected_private_native_input_allowed(
+            &input.reference,
+            private_prefix,
+            input.kind,
+            selected_legacy.as_ref(),
+        ) {
             return Err(SourceCommandError::Denied(
                 "native binding leaves the exact selected private namespace",
             ));
@@ -2811,11 +2873,7 @@ fn owner_metadata_snapshot(
     let context = owner.snapshot(deadline, cancelled)?.to_prefixed();
     let mut rows = Vec::with_capacity(inputs.len());
     for input in inputs {
-        let role = if reader.owner_local(&input.reference)? {
-            "owner-local-root"
-        } else {
-            "source-contract-root"
-        };
+        let role = reader.input_source_role(&input.reference, input.kind)?;
         rows.push(JsonValue::Array(vec![
             cmd::string(&input.reference),
             cmd::string(input.category),
@@ -2889,21 +2947,38 @@ fn owner_metadata_summary(
 /// Borrow the selected owner transport immutably for the fixed OwnerText
 /// metadata route. The mutable trait surface is historical; this adapter
 /// issues no writes and every read remains selected and bounded.
+/// Public-logical metadata stays in the cut unless an independent private
+/// text grant was explicitly attached. Schemas always retain cut authority.
 struct ProfileNativeReader<'a> {
     owner: &'a OwnerTextContext,
     cut: &'a dyn PrivateSelectedSourceInput,
+    independent_metadata: bool,
+}
+
+impl ProfileNativeReader<'_> {
+    fn reads_owner(
+        &self,
+        reference: &str,
+        kind: crate::source_sign_native::NativeReadKind,
+    ) -> SourceCommandResult<bool> {
+        use crate::source_sign_native::NativeReadKind;
+        Ok(kind != NativeReadKind::Schema
+            && (self.owner_local(reference)?
+                || self.independent_metadata
+                    && matches!(kind, NativeReadKind::Metadata | NativeReadKind::Support)))
+    }
 }
 
 impl SignNativeRead for ProfileNativeReader<'_> {
     fn read(
         &mut self,
         reference: &str,
-        _kind: crate::source_sign_native::NativeReadKind,
+        kind: crate::source_sign_native::NativeReadKind,
         max_bytes: usize,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Vec<u8>> {
-        if self.owner.is_owner_private_reference(reference) {
+        if self.reads_owner(reference, kind)? {
             self.owner.read(reference, max_bytes, deadline, cancelled)
         } else {
             read_current_member(self.cut, reference, max_bytes, deadline, cancelled)?.ok_or(
@@ -2922,6 +2997,20 @@ impl SignNativeRead for ProfileNativeReader<'_> {
 
     fn owner_local(&self, reference: &str) -> SourceCommandResult<bool> {
         SignNativeRead::owner_local(self.owner, reference)
+    }
+
+    fn input_source_role(
+        &self,
+        reference: &str,
+        kind: crate::source_sign_native::NativeReadKind,
+    ) -> SourceCommandResult<&'static str> {
+        Ok(if !self.reads_owner(reference, kind)? {
+            "source-contract-root"
+        } else if self.owner_local(reference)? {
+            "owner-local-root"
+        } else {
+            "independent-source-root"
+        })
     }
 
     fn owner_context_snapshot(
@@ -3241,8 +3330,15 @@ fn make_snapshot(
         &basenames,
         &reservation_ids(grant, creating)?,
         creating,
+        owner.identity_file_limit(),
     )?;
-    let implementation_digests = implementation_digests(software, components, deadline, cancelled)?;
+    let implementation_digests = implementation_digests(
+        software,
+        components,
+        owner.independent_text_selection()?.is_some(),
+        deadline,
+        cancelled,
+    )?;
     let dependencies = dependencies(
         grant,
         &profile_digest,
@@ -4022,7 +4118,7 @@ fn create_replay(
         .ok_or(SourceCommandError::Invalid(
             "retained private creation request absent",
         ))?;
-    if cmd::parse(create_raw)? != *request {
+    if !cmd::same(&cmd::parse(create_raw)?, request)? {
         return Err(SourceCommandError::Conflict(
             "retained private creation request differs",
         ));
@@ -4892,6 +4988,97 @@ mod identity_inventory_tests {
     use super::*;
 
     #[test]
+    fn selected_legacy_body_does_not_grant_other_paths_or_metadata() {
+        use crate::source_sign_native::NativeReadKind;
+        let selected = cmd::parse(br#"{"body_ref":"ToS/exact-body.txt"}"#).unwrap();
+        let prefix = "ToS/source-witnesses/owner-local/sid-a/";
+        assert!(selected_private_native_input_allowed(
+            "ToS/exact-body.txt",
+            prefix,
+            NativeReadKind::Content,
+            Some(&selected)
+        ));
+        assert!(!selected_private_native_input_allowed(
+            "ToS/exact-body.txt",
+            prefix,
+            NativeReadKind::Metadata,
+            Some(&selected)
+        ));
+        assert!(!selected_private_native_input_allowed(
+            "ToS/other-body.txt",
+            prefix,
+            NativeReadKind::Content,
+            Some(&selected)
+        ));
+        assert!(!selected_private_native_input_allowed(
+            "ToS/exact-body.txt",
+            prefix,
+            NativeReadKind::Content,
+            None
+        ));
+        assert!(selected_private_native_input_allowed(
+            "ToS/source-witnesses/owner-local/sid-a/packet.json",
+            prefix,
+            NativeReadKind::Metadata,
+            None
+        ));
+        assert!(!selected_private_native_input_allowed(
+            "ToS/source-witnesses/owner-local/sid-b/packet.json",
+            prefix,
+            NativeReadKind::Metadata,
+            None
+        ));
+    }
+
+    #[test]
+    fn selected_private_inventory_extends_count_without_losing_collision_check() {
+        let raw = b"{\"record_id\":\"occupied\"}";
+        let mut count = 2048;
+        let mut remaining = MAX_INVENTORY_BYTES;
+        let mut digests = BTreeMap::new();
+        let absent = BTreeSet::new();
+        assert!(
+            scan_identity_bytes(
+                "one.json",
+                raw,
+                &absent,
+                &mut digests,
+                &mut count,
+                &mut remaining,
+                2048
+            )
+            .is_err()
+        );
+        let mut count = 2048;
+        let mut remaining = MAX_INVENTORY_BYTES;
+        let mut digests = BTreeMap::new();
+        scan_identity_bytes(
+            "one.json",
+            raw,
+            &absent,
+            &mut digests,
+            &mut count,
+            &mut remaining,
+            4096,
+        )
+        .unwrap();
+        assert_eq!(count, 2049);
+        let conflict = BTreeSet::from(["occupied".to_owned()]);
+        assert!(matches!(
+            scan_identity_bytes(
+                "two.json",
+                raw,
+                &conflict,
+                &mut digests,
+                &mut count,
+                &mut remaining,
+                4096
+            ),
+            Err(SourceCommandError::Conflict(_))
+        ));
+    }
+
+    #[test]
     fn profile_identity_json_and_jsonl_preserve_conflict_detection() {
         for (reference, raw) in [
             ("record.human-forms.json", b"{\"forms\":[{\"form_id\":\"occupied\"}],\"prior_forms\":[]}".as_slice()),
@@ -4915,6 +5102,7 @@ mod identity_inventory_tests {
                     &mut digests,
                     &mut count,
                     &mut remaining,
+                    MAX_INVENTORY_FILES,
                 );
                 if conflicts {
                     assert!(matches!(result, Err(SourceCommandError::Conflict(_))));

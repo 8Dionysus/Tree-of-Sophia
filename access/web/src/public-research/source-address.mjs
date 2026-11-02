@@ -100,7 +100,7 @@ async function describeResolvedSource(result, shelf, provider, locale) {
   if (!reference) return {...result, label: unavailable};
   let document, version, unit;
   try {
-    document = await provider.document({documentId: reference.target?.workId});
+    document = await provider.document({documentId: reference.target?.workId,versionId:reference.versionId,revision:reference.target?.textLayerSha256,reference});
     version = document?.versions?.find(item => item.id === reference.versionId);
     if (result.status === 'exact') {
       const page = await provider.window({documentId: reference.target.workId, versionId: reference.versionId,

@@ -75,6 +75,11 @@ const PAGE_COMMANDS: &[&str] = &[
     "tos.page.workspace-import",
     "tos.page.clear-focus",
     "tos.page.cancel",
+    "tos.page.research-item",
+    "tos.page.research-operation",
+    "tos.page.read-source",
+    "tos.page.cognitive-next",
+    "tos.page.cognitive-action",
 ];
 const ACCESS_SCHEMAS: &[&str] = &[
     "access/contracts/deployment-profile.v1.schema.json",

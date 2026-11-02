@@ -1042,6 +1042,29 @@ The configuration has these exact fields:
 - `allowed_form_ids`: up to 32 exact source-form IDs;
 - `provenance_event_id`: the delegated creation serialization event.
 
+An optional `native_text_read_profile` field on the protected
+`tos_local_native_source_invocation_v1` selects an independent
+`tos_native_private_text_read_v1` grant for this private Profile owner. It is
+valid only with this exact owner family and a native binding. The read grant's
+owner-context path and source root must match the independently selected
+private Profile context. Its exact binding, rights and local-only custody are
+checked before content. The Profile snapshot binds the exact grant and grant
+schema digests; current expiry, mandate and held source bytes are checked again
+by the existing creation/replay guard before atomic publication. This explicit
+selection reads binding metadata and support through that owner context;
+schemas remain in the selected immutable source cut. Without the selection,
+public-logical metadata remains in the cut. Missing inputs never fall through
+to another transport, and dependency snapshots distinguish the authorities.
+The selected legacy DTA adapter reads content through its protected exact body
+mapping without changing the issued source return. No source text is written
+to a receipt. The public Profile, public
+compiler and public projections are unchanged. `describe` of an existing
+private DTA-bound Occurrence requires that same independently selected read
+grant; direct unit disclosure remains the separate `private-text-read` route.
+The independent grant's three code dependencies (`source_native_text_read.rs`,
+`source_sign_native.rs`, `text_rules.rs`) must be present in the exact selected
+software capture as well as the established private Profile implementation set.
+
 An Occurrence requires `exact_owner_local` source-read scope and the same full
 native binding in its record. The command checks current local-derivation
 rights before reading representation bytes. A non-native semantic profile
@@ -2340,6 +2363,25 @@ Linux exchange, same-account trust and concurrent-reader limits are those of
 record correction above. Every archive remains retained, addressable source history. This implementation still scans
 source metadata for grounding and can inspect up to 128 bounded archives. Its costs follow the metadata scan and selected archive chain; graph rebuilds
 and cross-subject operations retain their own contracts.
+
+### Selected private identity file budget
+
+A protected filesystem Profile or Claim owner grant may include the optional integer
+`max_held_identity_files`, from 257 through 4096. The selection bounds the
+entire simultaneous held-file set, including identity files and other source
+dependencies, and also bounds the collision inventory file count. It is a
+resource ceiling only; it grants neither source access nor publication. With
+no selection the existing 256 held files and 2048 inventory files remain. Byte,
+entry, namespace, expiry, selected-cut, rights and atomic publication guards
+remain unchanged. The protected grant bytes are part of the owner dependency
+fence and are rechecked before publication and replay. Each held source file
+also retains its parent descriptor, so the actual process descriptor limit must
+cover roughly twice the selected held-file ceiling plus worker and process
+headroom. This ceiling does not promise that the operation fits the time or byte
+budgets. An independent protected text-read selection is still required for a
+private-bound Occurrence; selecting this budget does not issue one. The PG
+owner rejects this filesystem-only selection, including malformed values,
+instead of silently ignoring it.
 
 ### Separately delegated identity proposals
 

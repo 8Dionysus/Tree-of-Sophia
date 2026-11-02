@@ -347,19 +347,70 @@ fn select(
         return Err(SourceCommandError::Denied("private grant context differs"));
     }
     let mut worker = selected_schema(invocation, current, deadline, cancelled)?;
-    let path = RelativePath::parse("ToS/contracts/owner-local-source-context.schema.json")
-        .map_err(|_| SourceCommandError::Invalid("private context schema"))?;
-    let schema = current
-        .read_member(
-            current.current().revision(),
-            &path,
-            1_048_576,
-            deadline,
-            cancelled,
-        )
-        .map_err(|_| SourceCommandError::Conflict("private context schema cut"))?;
     let (owner, context_config) =
-        OwnerTextContext::select(&context_path, &schema.raw, &mut worker, deadline, cancelled)?;
+        if let Some(profile_value) = invocation.get("native_text_read_profile") {
+            if cmd::text(&config, "schema_version")? != profile::CONFIG
+                || cmd::field(&config, "source_binding")?.as_object().is_none()
+            {
+                return Err(SourceCommandError::Denied(
+                    "independent text grant requires a native private profile owner",
+                ));
+            }
+            let read_path = absolute(profile_value.as_str().ok_or(
+                SourceCommandError::Invalid("private text read selection path"),
+            )?)?;
+            let hint_raw = read_absolute(&read_path, uid, true, 262_144, deadline, cancelled)?;
+            let hint = cmd::parse(&hint_raw)?;
+            let public_root =
+                crate::source_text_owner::normalized_absolute(cmd::text(&hint, "source_root")?)?;
+            // This call selects diagnostics, when needed, before the first worker check.
+            let selected = crate::source_native_text_read::PrivateTextReadSelection::load(
+                &read_path,
+                &public_root,
+                &mut worker,
+                deadline,
+                cancelled,
+            )?;
+            let (read_grant, owner) = selected.into_owner_parts();
+            if owner.configuration_path() != context_path {
+                return Err(SourceCommandError::Denied(
+                    "private creator and read grant contexts differ",
+                ));
+            }
+            let raw = read_absolute(&context_path, uid, true, 65_536, deadline, cancelled)?;
+            if tos_foundation::Digest256::of_bytes(&raw).to_hex()
+                != owner.configuration_sha256(deadline, cancelled)?
+            {
+                return Err(SourceCommandError::Conflict(
+                    "private creator context changed",
+                ));
+            }
+            let context_config = cmd::parse(&raw)?;
+            owner.attach_independent_text_selection(read_grant, deadline, cancelled)?;
+            (owner, context_config)
+        } else {
+            let path = RelativePath::parse("ToS/contracts/owner-local-source-context.schema.json")
+                .map_err(|_| SourceCommandError::Invalid("private context schema"))?;
+            let schema = current
+                .read_member(
+                    current.current().revision(),
+                    &path,
+                    1_048_576,
+                    deadline,
+                    cancelled,
+                )
+                .map_err(|_| SourceCommandError::Conflict("private context schema cut"))?;
+            OwnerTextContext::select(&context_path, &schema.raw, &mut worker, deadline, cancelled)?
+        };
+    // The protected account/context/expiry checks above run before selecting
+    // the explicitly granted resource ceiling, and the family parser later
+    // validates the complete grant. Its raw bytes are in owner dependencies.
+    if config.object_get("max_held_identity_files").is_some() {
+        let limit = cmd::integer(&config, "max_held_identity_files")?;
+        let limit = usize::try_from(limit)
+            .map_err(|_| SourceCommandError::Invalid("private identity selected file budget"))?;
+        owner.select_private_identity_limit(limit)?;
+    }
     let mut context = cmd::CommandContext {
         base_revision: current.current().revision(),
         configuration_raw,

@@ -263,7 +263,7 @@ impl<'a> PrivateOwnerStore<'a> {
                 {
                     continue;
                 }
-                if !kind.is_file() || result.len() >= 2048 {
+                if !kind.is_file() || result.len() >= self.context.identity_file_limit() {
                     return Err(SourceCommandError::Invalid("private identity file budget"));
                 }
                 let logical = member
@@ -368,7 +368,7 @@ impl<'a> PrivateOwnerStore<'a> {
                     continue;
                 }
                 selected_files = selected_files.checked_add(1).ok_or(bad_plan())?;
-                if !kind.is_file() || selected_files > 2048 {
+                if !kind.is_file() || selected_files > self.context.identity_file_limit() {
                     return Err(SourceCommandError::Invalid("Claim identity file budget"));
                 }
                 let reference = member

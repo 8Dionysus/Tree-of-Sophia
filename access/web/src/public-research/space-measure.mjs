@@ -75,8 +75,8 @@ export function measureZarathustra({routes=[],timeline=null,book=null,placeOf=()
   for(const id of stars.filter(id=>timeline.isOutside(id))){const work=timeline.outsideWorkOf?.(id)??null;count(outsideTexts,work??'');if(!outsideRefs.has(work??''))outsideRefs.set(work??'',timeline.firstGround?.(id)??null);}
   const chapterOf=id=>timeline.placeOf(id)?.chapter;
   const routeRows=routes.map(route=>{
-    const ids=(route.steps??[]).map(step=>step.nodeId??step.graphNodeId).filter(id=>timeline.positions.has(id)),chapters=ids.map(chapterOf).filter(Number.isFinite);
-    return {id:route.id,title:route.title,steps:ids.length,first:chapters.length?Math.min(...chapters):null,last:chapters.length?Math.max(...chapters):null,returns:returnsIn(ids.map(chapterOf)),outside:ids.filter(id=>timeline.isOutside(id)).length};
+    const all=(route.steps??[]).map(step=>step.nodeId??step.graphNodeId).filter(Boolean),ids=all.filter(id=>timeline.positions.has(id)),chapters=ids.map(chapterOf).filter(Number.isFinite);
+    return {id:route.id,title:route.title,steps:all.length,transitions:Math.max(0,all.length-1),located:ids.length,unlocated:all.length-ids.length,first:chapters.length?Math.min(...chapters):null,last:chapters.length?Math.max(...chapters):null,returns:returnsIn(ids.map(chapterOf)),outside:ids.filter(id=>timeline.isOutside(id)).length};
   });
   return {kind:'book',total:stars.length,inBook:inBook.length,outside:stars.length-inBook.length,chapters:{cited:cited.size,total},parts,places:{bases:Object.fromEntries(bases)},
     outsideTexts:[...outsideTexts.entries()].sort((a,b)=>b[1]-a[1]).map(([work,n])=>({work,n,ref:outsideRefs.get(work)??null})),routes:routeRows,titleOf:id=>byId.get(id)?.title??id};

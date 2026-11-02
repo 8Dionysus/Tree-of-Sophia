@@ -1,0 +1,172 @@
+{
+  "schema": "tos.bonsai.independent-content-correction-review.v1",
+  "reviewer": "independent-source-visible-agent",
+  "verdict": "revise",
+  "reviewed_files": [
+    {
+      "path": "bonsai/review/zarathustra-graph/graph-words/assembly-inputs/proposal-readings.json",
+      "sha256": "21abb56c18f8cba188954e7f3d86d79ba74e27dbdd988973fddfa1b9e405fc5e"
+    },
+    {
+      "path": "bonsai/review/zarathustra-graph/graph-words/assembly-inputs/route-growth.json",
+      "sha256": "518d38f28bfbcb3426c4e5e7e0cd6f01ebecc93d069bd9e16d8e6476345eb037"
+    }
+  ],
+  "scope": "Reread eternity; two corrected gold-chain steps and chain; own-path and sacrifice states; all six blessing-and-giving steps and chain. Review exact new wording against German sources; previous confirmed cases unchanged except explicitly noted reason cleanups.",
+  "cases": [
+    {
+      "id": "eternity",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-aa15ff6b6ae52c43bb05fe7316272249",
+        "tos.text-unit.sid-5922abd141cc99f676a660eaaef80866",
+        "tos.text-unit.sid-ea9d997ac39761114127a6c0b1800565",
+        "tos.text-unit.sid-6f8647f0f000b169fcbceb7899b30c59",
+        "tos.text-unit.sid-0ec434d19549d35b5e3777e05763e65e"
+      ],
+      "findings": []
+    },
+    {
+      "id": "tos.bonsai.step.gold.bestowing.brothers.02",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-a623a857747d550bdcbb01c91e9eb217",
+        "tos.text-unit.sid-dfbf765c1fd6a1db719776653d6b8b90",
+        "tos.text-unit.sid-6ef116aacecef01c18f461c20ba52cdb"
+      ],
+      "findings": []
+    },
+    {
+      "id": "tos.bonsai.step.gold.bestowing.brothers.higher.men",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-f6f757db50a8c9d5fdce0e1d7c7f3fff",
+        "tos.text-unit.sid-ee51842cbbb5c70b08a152c5f7dfc3a5",
+        "tos.text-unit.sid-b630ed932ffdfef0287539fb5ddab22e",
+        "tos.text-unit.sid-474041af8e46b8564e0b60045b07e736"
+      ],
+      "findings": []
+    },
+    {
+      "id": "gold-bestowing-brothers:01",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-a623a857747d550bdcbb01c91e9eb217",
+        "tos.text-unit.sid-474041af8e46b8564e0b60045b07e736",
+        "tos.text-unit.sid-f6f757db50a8c9d5fdce0e1d7c7f3fff",
+        "tos.text-unit.sid-ee51842cbbb5c70b08a152c5f7dfc3a5"
+      ],
+      "findings": [
+        "The final link is a limited comparison of expected future fellowship with the exclusion of present guests, not a proven identity or difference of future groups."
+      ]
+    },
+    {
+      "id": "blessing-and-giving#own-path",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-1bdf3dd26bb92810b12e725f6c6c8ff9",
+        "tos.text-unit.sid-474041af8e46b8564e0b60045b07e736"
+      ],
+      "findings": []
+    },
+    {
+      "id": "blessing-and-giving#sacrifice",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-03d7b2fb23b1a857df83abad49e68c95",
+        "tos.text-unit.sid-bfe99dd3c0c63c08a7b68d8e392b26a1"
+      ],
+      "findings": []
+    },
+    {
+      "id": "tos.bonsai.step.blessing.and.giving.overflow.address",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-9b5926e8bcd6a467c72aaa8b8d51bcfb",
+        "tos.text-unit.sid-6e10b0a202964b8b98277942e4079f2f",
+        "tos.text-unit.sid-775c1304b982084134991ec1bc6c84bb",
+        "tos.text-unit.sid-43df5a5a008e895ca4063ac931f2eae9",
+        "tos.text-unit.sid-778b42e35fce3f7979a96c19045ceb9c"
+      ],
+      "findings": []
+    },
+    {
+      "id": "tos.bonsai.step.blessing.and.giving.address.reception",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-e8e279e1df353941f741c0cb295429e6",
+        "tos.text-unit.sid-c0f42aa81160c9dadc492a1cef5dd98f",
+        "tos.text-unit.sid-9b5926e8bcd6a467c72aaa8b8d51bcfb",
+        "tos.text-unit.sid-6e10b0a202964b8b98277942e4079f2f"
+      ],
+      "findings": []
+    },
+    {
+      "id": "tos.bonsai.step.blessing.and.giving.reception.own.path",
+      "verdict": "revise",
+      "unit_ids_read": [
+        "tos.text-unit.sid-1bdf3dd26bb92810b12e725f6c6c8ff9",
+        "tos.text-unit.sid-474041af8e46b8564e0b60045b07e736",
+        "tos.text-unit.sid-e8e279e1df353941f741c0cb295429e6",
+        "tos.text-unit.sid-c0f42aa81160c9dadc492a1cef5dd98f"
+      ],
+      "findings": [
+        "III.14 asks whether giving is a need; “the giver needs to give” turns that question into an assertion. The further contrast between receiving a gift and remaining a disciple lacks a textual connection: the cited I.23 requires departure and self-finding, without calling the demand a gift or characterising continued discipleship as the alternative to accepting one. Remove or restructure the edge rather than treat the pairing of different acts as a relation."
+      ]
+    },
+    {
+      "id": "tos.bonsai.step.blessing.and.giving.own.path.weariness",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-2843a99935e60d5c350f2a16c2f89f12",
+        "tos.text-unit.sid-2164fb8a5ad05ece977ae7ce37b3badc",
+        "tos.text-unit.sid-1bdf3dd26bb92810b12e725f6c6c8ff9",
+        "tos.text-unit.sid-474041af8e46b8564e0b60045b07e736"
+      ],
+      "findings": []
+    },
+    {
+      "id": "tos.bonsai.step.blessing.and.giving.weariness.things",
+      "verdict": "revise",
+      "unit_ids_read": [
+        "tos.text-unit.sid-433c911010562160cdf93d8706848b6a",
+        "tos.text-unit.sid-f596d6e868de08e225ed9e832c652a1b",
+        "tos.text-unit.sid-2843a99935e60d5c350f2a16c2f89f12",
+        "tos.text-unit.sid-2164fb8a5ad05ece977ae7ce37b3badc",
+        "tos.text-unit.sid-5b2e03e4e5d0028ac9da4b55089941d8"
+      ],
+      "findings": [
+        "II.09 identifies a gulf between giving and taking; it does not call the relationship between people the object given. III.04 blesses things and says chance was restored to them, but does not show that “the object of giving shifts from a relationship to freedom of things”. Compare the different subjects and acts without claiming a change of object or a recipient response."
+      ]
+    },
+    {
+      "id": "tos.bonsai.step.blessing.and.giving.things.sacrifice",
+      "verdict": "revise",
+      "unit_ids_read": [
+        "tos.text-unit.sid-03d7b2fb23b1a857df83abad49e68c95",
+        "tos.text-unit.sid-bfe99dd3c0c63c08a7b68d8e392b26a1",
+        "tos.text-unit.sid-433c911010562160cdf93d8706848b6a",
+        "tos.text-unit.sid-f596d6e868de08e225ed9e832c652a1b",
+        "tos.text-unit.sid-6078c820db50344df425ea10af89abe9",
+        "tos.text-unit.sid-953a1ec6782e4aa845d63381f433db25",
+        "tos.text-unit.sid-5b2e03e4e5d0028ac9da4b55089941d8"
+      ],
+      "findings": [
+        "IV.01 says that Zarathustra squanders what is given him, and separately names honey and his happiness as bait for people. It does not identify the happiness cast as bait with an acquired gift or say that the act of spending what was given has this purpose. Compare liberation from purpose in III.04 with declared intent of the bait, without identifying the bait with a received gift."
+      ]
+    },
+    {
+      "id": "blessing-and-giving",
+      "verdict": "revise",
+      "unit_ids_read": [],
+      "findings": [
+        "Three named steps still need revision, including one that should be removed or restructured. The generic chain assessment does not by itself establish the relationships."
+      ]
+    }
+  ],
+  "notes": [
+    "Confirmation is limited to the new wording as a stand proposal and is not admission or canon. Source unit lists identify inspected endpoints and selected intermediate units; cited ranges also include intervening units. Previous review remains unchanged."
+  ],
+  "retained_evidence_sha256": "9e842f4794d99473862f0585f264648e16627307df54798a4831d445d0b8b00f",
+  "boundary": "Independent source-visible stand assessment; not Tree admission or canon."
+}

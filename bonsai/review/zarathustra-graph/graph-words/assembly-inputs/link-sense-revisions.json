@@ -1,0 +1,241 @@
+{
+  "schema": "tos.bonsai.link-sense-revisions.v1",
+  "reviewer": {
+    "id": "p4-independent-review",
+    "model": "gpt-6.1-terra",
+    "effort": "xhigh",
+    "date": "2026-11-01",
+    "scope": "source-visible reading of the cited places, no canon or native admission",
+    "revised_wording": "independently re-read and confirmed against the cited German places"
+  },
+  "revisions": {
+    "dwarf--recurrence--4": {
+      "prior_sense_sha256": "329cc8f9085ef32e8f9f9341a743092a3aa4563f2e25c73f2dbb970b2a9b2ae6",
+      "sense": {
+        "ru": "В споре о двух путях Заратустра возражает, что карлик слишком облегчает вопрос, и спрашивает, не возвращается ли само мгновение со всеми связанными вещами.",
+        "en": "In the dispute over the two paths, Zarathustra objects that the dwarf makes the question too easy and asks whether the moment itself returns with all the things connected to it."
+      },
+      "reason": {
+        "ru": "III.02 возражает против лёгкости ответа; место не утверждает, что Заратустра отвергает формулу целиком.",
+        "en": "III.02 objects to the ease of the answer; the passage does not state that Zarathustra rejects the formula altogether."
+      },
+      "method_transfer": {
+        "title": {
+          "ru": "Метод переноса: голос и утверждение",
+          "en": "Method transfer: voice and claim"
+        },
+        "episode": {
+          "ru": "В III.02 формулу о времени произносит карлик; Заратустра отвечает ему и продолжает вопрос о мгновении. Из одного упрёка «не упрощай» не следует ни полное согласие, ни полный отказ от формулы карлика.",
+          "en": "In III.02 the dwarf voices the formula about time; Zarathustra answers him and continues with a question about the moment. The rebuke “do not make it too easy” alone establishes neither full agreement nor full rejection of the dwarf’s formula.",
+          "cite": [
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "III.02",
+              "u": [
+                "tos.text-unit.sid-40ae6f1839d679c4a2bfd41534583aa6",
+                "tos.text-unit.sid-40ae6f1839d679c4a2bfd41534583aa6"
+              ],
+              "q": "Alle Wahrheit ist krumm"
+            },
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "III.02",
+              "u": [
+                "tos.text-unit.sid-a22b43ad268d4ed093fabbdcb907f76c",
+                "tos.text-unit.sid-a22b43ad268d4ed093fabbdcb907f76c"
+              ],
+              "q": "mache dir es nicht zu leicht"
+            },
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "III.02",
+              "u": [
+                "tos.text-unit.sid-b8cef20c095784beb2dd363f1a0e98cb",
+                "tos.text-unit.sid-b8cef20c095784beb2dd363f1a0e98cb"
+              ],
+              "q": "diesen Augenblick"
+            }
+          ],
+          "status": "source-visible-stand-proposal"
+        },
+        "method": {
+          "ru": "Отметить говорящего и адресата; отделить вложенную реплику от ответа, вопрос от утверждения; прочитать продолжение; сформулировать только то, что выдерживает сильное альтернативное прочтение.",
+          "en": "Name the speaker and addressee; separate embedded speech from reply and question from assertion; read what follows; state only what survives a strong alternative reading."
+        },
+        "applications": [
+          {
+            "id": "pale-criminal-i07",
+            "title": {
+              "ru": "«О бледном преступнике», I.07",
+              "en": "“On the Pale Criminal”, I.07"
+            },
+            "result": {
+              "ru": "Красный судья объясняет убийство грабежом; Заратустра противопоставляет ему жажду крови, а затем показывает, как разум уговаривает преступника присоединить ограбление или месть. Так различаются суждение судьи, истолкование Заратустры и вложенная речь разума.",
+              "en": "The red judge explains the murder as robbery; Zarathustra counters with a thirst for blood, then shows reason persuading the criminal to add robbery or revenge. The judge’s account, Zarathustra’s interpretation and reason’s embedded speech remain distinct.",
+              "cite": [
+                {
+                  "w": "also-sprach-zarathustra",
+                  "c": "I.07",
+                  "u": [
+                    "tos.text-unit.sid-988a8431316207614090469ad0fb3e26",
+                    "tos.text-unit.sid-988a8431316207614090469ad0fb3e26"
+                  ],
+                  "q": "So spricht der rothe Richter"
+                },
+                {
+                  "w": "also-sprach-zarathustra",
+                  "c": "I.07",
+                  "u": [
+                    "tos.text-unit.sid-9a0291cdaba3950491e5eb23a04854d3",
+                    "tos.text-unit.sid-9a0291cdaba3950491e5eb23a04854d3"
+                  ],
+                  "q": "Was liegt an Blut!"
+                },
+                {
+                  "w": "also-sprach-zarathustra",
+                  "c": "I.07",
+                  "u": [
+                    "tos.text-unit.sid-d83a860fb25fc5d2550077ea190cdc63",
+                    "tos.text-unit.sid-d83a860fb25fc5d2550077ea190cdc63"
+                  ],
+                  "q": "da raubte er, als er mordete"
+                }
+              ],
+              "status": "source-visible-stand-proposal"
+            },
+            "limit": {
+              "ru": "Эта сценическая версия не доказывает независимо установленный мотив преступления: оценка судьи, чтение Заратустры и речь разума остаются различными уровнями рассказа.",
+              "en": "This narrated account does not independently prove the criminal’s motive: the judge’s judgment, Zarathustra’s reading and reason’s speech remain distinct levels of the story."
+            },
+            "statement_ids": {
+              "result": "tos.bonsai.statement.dwarf.recurrence.method.pale.criminal.i07.result",
+              "limit": "tos.bonsai.statement.dwarf.recurrence.method.pale.criminal.i07.limit"
+            },
+            "independent_review": {
+              "reviewer": "kernel_final_content_review",
+              "model": "gpt-6.1-terra",
+              "effort": "xhigh",
+              "date": "2026-11-01",
+              "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+              "case_id": "dwarf--recurrence--4/pale-criminal-i07",
+              "verdict": "confirmed",
+              "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+            }
+          },
+          {
+            "id": "jgb-21",
+            "title": {
+              "ru": "Другая книга: JGB §21",
+              "en": "Another work: JGB §21"
+            },
+            "result": {
+              "ru": "В §21 Ницше называет causa sui противоречием и просит того, кто отбросил метафизическую «свободную волю», отбросить также её противоположность — «несвободную волю». Здесь различаются утверждение, условное обращение и вывод внутри аргумента; отдельного сценического диалога нет.",
+              "en": "In §21 Nietzsche calls causa sui a contradiction and asks whoever has rejected metaphysical “free will” to reject its opposite, “unfree will”, as well. The passage distinguishes an assertion, a conditional address and a conclusion within an argument; it contains no staged dialogue.",
+              "status": "source-visible-stand-proposal"
+            },
+            "limit": {
+              "ru": "Этот параграф критикует указанные метафизические формулы и механистическую подмену; он не доказывает, что опровергнуты все возможные теории свободы.",
+              "en": "This section criticizes the named metaphysical formulas and their mechanistic replacement; it does not prove that every possible theory of freedom has been refuted."
+            },
+            "source_url": "https://www.gutenberg.org/cache/epub/7204/pg7204.html",
+            "source_label": "Jenseits von Gut und Böse · §21 · Project Gutenberg (German witness)",
+            "source_locator": "§21",
+            "source_ref": "ToS/review-ledger/2026-09-09-jgb21-inversion-source-reading.md",
+            "statement_ids": {
+              "result": "tos.bonsai.statement.dwarf.recurrence.method.jgb.21.result",
+              "limit": "tos.bonsai.statement.dwarf.recurrence.method.jgb.21.limit"
+            },
+            "independent_review": {
+              "reviewer": "kernel_final_content_review",
+              "model": "gpt-6.1-terra",
+              "effort": "xhigh",
+              "date": "2026-11-01",
+              "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+              "case_id": "dwarf--recurrence--4/jgb-21",
+              "verdict": "confirmed",
+              "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+            }
+          }
+        ],
+        "statement_ids": {
+          "episode": "tos.bonsai.statement.dwarf.recurrence.method.episode",
+          "method": "tos.bonsai.statement.dwarf.recurrence.method.rule"
+        },
+        "independent_review": {
+          "reviewer": "kernel_final_content_review",
+          "model": "gpt-6.1-terra",
+          "effort": "xhigh",
+          "date": "2026-11-01",
+          "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+          "case_id": "dwarf--recurrence--4",
+          "verdict": "confirmed",
+          "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+        }
+      },
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "dwarf--recurrence--4",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      }
+    },
+    "circle:link:04:nausea": {
+      "prior_sense_sha256": "e212cd5e97a74dc508cf8257701e385e3b1b64cdc77b1af3b2b1eb64c786cd4c",
+      "sense": {
+        "ru": "После вызова глубокой мысли Заратустра кричит об отвращении и падает как мёртвый.",
+        "en": "After summoning the deep thought, Zarathustra cries out about nausea and falls as though dead."
+      },
+      "reason": {
+        "ru": "III.13 устанавливает последовательность вызова мысли, крика и падения; дополнительная причинность не добавляется.",
+        "en": "III.13 establishes the sequence of the summoned thought, the cry and the fall; no additional causation is asserted."
+      },
+      "prior_answer_sha256": "e65782d787166494cb224a9773264a62ff809fe0248c6b6eb39c18cfa75977b5",
+      "answer": {
+        "ru": "После вызова глубокой мысли Заратустра кричит об отвращении и падает как мёртвый.",
+        "en": "After summoning the deep thought, Zarathustra cries out about nausea and falls as though dead."
+      }
+    },
+    "shepherd--zarathustra--6": {
+      "prior_sense_sha256": "d4753ffd374a0aeacc958c5dde1b77098737b995d4abf57bb46f12b64de9f5c2",
+      "sense": {
+        "ru": "Повторение укуса и отплёвывания допускает прочтение пастуха как образа Заратустры, но не устанавливает тождество фигур или окончательное преображение учителя.",
+        "en": "The repeated biting and spitting out permits a reading of the shepherd as an image of Zarathustra, but does not establish the figures’ identity or the teacher’s final transformation."
+      },
+      "reason": {
+        "ru": "III.02 и III.13 допускают сравнение сцен, но слова об узнавании могли быть поняты как тождество персонажей.",
+        "en": "III.02 and III.13 permit a comparison of scenes, but the earlier wording could be read as identifying the figures."
+      }
+    },
+    "beggar--bestowing-virtue--2": {
+      "prior_sense_sha256": "4c1daefa9dd6017cee5109aa63a3c4f4e64846ef4cc26563a52d9effd3e80c1a",
+      "sense": {
+        "ru": "Заратустра обращается к нищему с выводом о его опыте: правильно отдавать труднее, чем правильно принимать. Хорошее дарение он затем называет искусством и последним, хитрейшим мастерством доброты.",
+        "en": "Zarathustra addresses the beggar with a judgment about his experience: giving properly is harder than receiving properly. He then calls good giving an art and kindness’s final, most artful mastery."
+      },
+      "prior_answer_sha256": "a6b8af91b4962d2dd50a4b78a1d4ec761c72719588b69797fe31f17a8c72f1b6",
+      "answer": {
+        "ru": "Заратустра прерывает рассказ нищего об отказе бедняков. Его реплика различает трудность правильного отдавания и принятия и отдельно называет хорошее дарение искусством.",
+        "en": "Zarathustra interrupts the beggar’s account of rejection by the poor. His reply distinguishes proper giving from proper receiving in their difficulty and separately calls good giving an art."
+      },
+      "reason": {
+        "ru": "IV.08: «Da lerntest du» обращено Заратустрой к нищему; сравниваются recht geben и recht nehmen, а gut schenken отдельно названо искусством.",
+        "en": "In IV.08 “Da lerntest du” is Zarathustra addressing the beggar; recht geben and recht nehmen are compared, and gut schenken is separately named an art."
+      },
+      "review_status": "independent-review-pending",
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "beggar--bestowing-virtue--2",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      }
+    }
+  }
+}

@@ -52,6 +52,11 @@ export type PageContext = PageContextSnapshot & {
 };
 
 export type PageCommandId =
+  | "tos.page.research-item"
+  | "tos.page.research-operation"
+  | "tos.page.read-source"
+  | "tos.page.cognitive-next"
+  | "tos.page.cognitive-action"
   | "tos.page.context"
   | "tos.page.open-view"
   | "tos.page.search"
@@ -115,6 +120,10 @@ export function createPageCommandRegistry(
   const listeners = new Set<PageContextListener>();
   const pending = new Map<string, AbortController>();
   const readOnlyCommands = new Set<PageCommandId>([
+    "tos.page.research-item",
+    "tos.page.research-operation",
+    "tos.page.read-source",
+    "tos.page.cognitive-next",
     "tos.page.inspect-selection",
     "tos.page.research-workspace",
     "tos.page.workspace-export",

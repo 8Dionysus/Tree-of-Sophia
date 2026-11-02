@@ -145,6 +145,7 @@ test('an era filter uses the same key in every display language',()=>{
 test('every statically authored public UI message has a translation entry',()=>{
   const forms=new Set(),seen=new Set(),pending=[new URL('./app.mjs',import.meta.url)];
   const literal=node=>node&&(ts.isStringLiteral(node)||ts.isNoSubstitutionTemplateLiteral(node));
+  const presentationPair=(first,second)=>literal(first)&&literal(second)&&/[А-Яа-яЁё]/u.test(first.text);
   const strings=node=>{
     if(!node)return;
     if(literal(node)){if(node.text.trim()&&/\p{L}/u.test(node.text))forms.add(node.text);return;}
@@ -160,16 +161,21 @@ test('every statically authored public UI message has a translation entry',()=>{
         const properties=new Map(node.properties.filter(ts.isPropertyAssignment).map(property=>[property.name?.text,property.initializer]));
         if(properties.has('ru')&&properties.has('en'))strings(properties.get('en'));
       }
+      if(ts.isArrayLiteralExpression(node)&&node.elements.length===2&&presentationPair(...node.elements))strings(node.elements[1]);
       if(ts.isBinaryExpression(node)&&node.operatorToken.kind===ts.SyntaxKind.EqualsToken&&/\.en(?:\.|\[)/.test(node.left.getText(source)))strings(node.right);
       if(ts.isCallExpression(node)){
         const name=node.expression.getText(source);
         if(name==='Object.assign'&&/\.en$/.test(node.arguments[0]?.getText(source)))strings(node.arguments[1]);
         if(['localeText','bonsaiText'].includes(name)&&literal(node.arguments[0]))strings(node.arguments[0]);
+        if(name==='t'&&presentationPair(...node.arguments))strings(node.arguments[1]);
       }
       ts.forEachChild(node,visit);
     };
     visit(source);
   }
+  const operations=read(new URL('../../../../bonsai/zarathustra/research-operations.json',import.meta.url));
+  for(const axis of operations.axes)forms.add(axis.label);
+  for(const claim of operations.claims)forms.add(claim.statement);
   for(const language of added){
     const missing=[...forms].filter(form=>!Object.hasOwn(catalogs[language].public,form)&&!Object.hasOwn(catalogs[language].bonsai,form));
     expect(missing,`${language}: missing authored public messages`).toEqual([]);

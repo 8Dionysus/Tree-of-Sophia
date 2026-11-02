@@ -13,6 +13,8 @@ import {resolveLocale,copyLocale,localeText,localeValue} from './locale.mjs';
 
 import {readChronology} from '../../../../bonsai/lib/chronology.mjs';
 import {centuryOf,centuryStart,formatDating,formatYears} from '../../../../bonsai/lib/time.mjs';
+import witnessManifest from '../../../../bonsai/zarathustra/witnesses.json' with {type:'json'};
+import {citationId} from './research-index.mjs';
 
 export {formatDating,formatYears};
 const lang=resolveLocale;
@@ -180,9 +182,11 @@ export function zarathustraTimeline({materials=[],references={},clusters=[],chro
   const placeOf=new Map(),outside=new Set(),groundsOf=new Map();
   for(const material of materials){
     const refs=(material.inquiry?.grounds??[]).map(ground=>ground?.ref).filter(ref=>references?.[ref]);
-    if(!refs.length)continue;
-    groundsOf.set(material.id,refs);
+    const coreCitations=material.coreCitations??[];
+    if(!refs.length&&!coreCitations.length)continue;
+    groundsOf.set(material.id,[...refs,...coreCitations.map(citationId)]);
     const places=refs.map(ref=>({ref,...bookPlace(references[ref])})).filter(place=>Number.isFinite(place.chapter));
+    for(const cite of coreCitations){const chapter=witnessManifest.chapters.findIndex(item=>item.key===cite.c);if(chapter>=0)places.push({ref:citationId(cite),part:romanValue(cite.c.split('.')[0]),chapter});}
     if(places.length)placeOf.set(material.id,places.reduce((a,b)=>b.chapter<a.chapter?b:a));else outside.add(material.id);
   }
   // A star rests first on the earliest chapter it cites, else on the first text it cites outside the book.

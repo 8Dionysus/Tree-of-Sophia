@@ -244,6 +244,14 @@ required and are verified by the native owner. The validation lane passes the
 FD only to this exact command. Missing or mismatched source, worker, invocation,
 or stage custody fails closed; no Python validation fallback is invoked.
 
+For `corpus-admit` in the user namespace created by `private-stage-run`, the launcher may
+select `--protected-invocation /absolute/protected-invocation.json` before `--`.
+The consumer must retain the same `--invocation` path. The host holds the
+selected mode-0600 file in a private directory and rechecks the original path,
+ownership and bytes both on the initial read and before source EOF. The issued
+stage ticket binds the one invocation channel; it grants no source admission.
+Without this option the existing protected absolute-path route is unchanged.
+
 For an explicit source-first migration observation, run
 `tos source-projection-coverage --root /absolute/source-root --invocation /absolute/protected-invocation.json --rows`
 from the repository. `--invocation` selects the actual Access executable digest,
@@ -793,6 +801,23 @@ and exact tracked plans:
 Exact private text remains in owner-local ignored custody; tracked records carry
 selectors, digests, inventories, and posture. A route's result stays limited to
 its recorded source, representation, and review state.
+
+The protected [private text selection](../contracts/native-private-text-read.schema.json)
+can explicitly select `legacy_dta` for the four issued DTA technical-markup
+packet/body pairs. Each mapping pins the original packet, body and TEI references
+and digests and selects one protected physical body file. The private reader
+binds a real TextLayer record to that body representation while preserving the
+packet's original TEI/XPath source-return locators and TextUnit IDs. The native
+return verifies the selected representation bytes; it does not reopen the TEI
+or establish extraction fidelity. A TEI replay remains separate evidence.
+
+Only a selected legacy packet receives the 4 MiB metadata/predicate limit and
+the bounded Python-compatible diagnostics profile; ordinary limits and public
+content rules remain unchanged. The selection retains its mandate, expiry,
+rights conditions, exact unit bindings and owner-process-only output. Runtime
+qualification requires actual selected reads and currentness refusals. This
+read adapter does not authorize private-bound filesystem `source.create`,
+source admission or publication.
 
 ## Rebuild local resource inventories
 

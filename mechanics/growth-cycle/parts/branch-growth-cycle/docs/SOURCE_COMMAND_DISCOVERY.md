@@ -131,3 +131,22 @@ authority boundary. Family conformance owns request validation, authority,
 byte history, conflict, replay and recovery. Existing committed receipts keep
 their historical request and serialization meaning; a preparation whose
 implementation dependencies changed must be renewed.
+
+## Bonsai candidate handoff
+
+`bonsai/lib/source-requests.mjs` forms a native `prepare-create` request from
+an explicitly selected, already typed candidate and its source-copy forms. It
+forms the write request only from the owner's returned configuration,
+dependency and source bindings. The caller selects the exact protected owner
+invocation and current source cut for each operation, records the completed
+request and receipt for exact replay, and separately handles assessment. It
+neither builds a cut nor invents grants, source bindings, Tree identities,
+TextUnit records or review decisions. The lossless bonsai philosophy export
+contains stand material, not native source records; its transformation to typed
+candidates requires source-qualified identity and text bindings.
+
+The same adapter can prepare an Occurrence from a unit-scoped stand use once
+the caller supplies its exact native TextUnit binding, source references and
+form ID. It refuses a binding to a different unit or a missing layer and
+retains the original stand use, its review and token count. Its default is
+local-only; the selected owner still checks the binding, rights and visibility.

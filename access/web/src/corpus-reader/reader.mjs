@@ -205,6 +205,7 @@ export function mountCorpusReader({
   let paneSaveWork = Promise.resolve();
   let selected = null;
   let philology = {busy:false,result:null,concordance:null,error:null};
+  let concordanceSequence = 0;
   let philologyController = null;
   let noteEditor = null;
   let noteDirty = false;
@@ -279,6 +280,9 @@ export function mountCorpusReader({
     switch (error?.code || error?.message) {
       case 'document-unavailable': return t('noCatalog');
       case 'version-unavailable': return t('unavailable');
+      case 'retained-version-unavailable': return copyLocale(uiLocale())==='en'
+        ? 'The exact saved text version is unavailable in the current and retained snapshots.'
+        : 'Точная сохранённая версия текста недоступна ни в текущем, ни в сохранённых снимках.';
       case 'provider_unavailable': return t('providerUnavailable');
       case 'corpus-search-unavailable':
       case 'version-search-unavailable': return t('searchUnavailable');
@@ -326,11 +330,13 @@ export function mountCorpusReader({
     if (!reference || typeof onLocation !== 'function') return;
     const exact = exactReference(reference);
     if (!exact) return;
+    const snapshotRevision=activeVersion(exact.versionId)?.snapshotRevision;
     onLocation({
       documentId: exact.target.workId,
       versionId: exact.versionId,
       unitId: exact.unitId,
       revision: exact.target.textLayerSha256,
+      ...(snapshotRevision?{snapshotRevision}:{}),
     });
   }
 
@@ -491,7 +497,7 @@ export function mountCorpusReader({
     philology = {busy:true,result:null,concordance:null,error:null};
     renderInspector();
     try {
-      const response = await provider.analyze({reference,form,language:version.language || unit.language || '',signal:controller.signal});
+      const response = await provider.analyze({reference,form,language:version.language || unit.language || '',snapshotRevision:version.snapshotRevision,signal:controller.signal});
       if (controller.signal.aborted || selected?.reference !== reference) return;
       philology = {busy:false,result:bindPhilologyResult(response,reference,form),concordance:null,error:null};
     } catch (error) {
@@ -505,9 +511,10 @@ export function mountCorpusReader({
     const reference = selected?.reference;
     const versionId = selected?.versionId;
     if (!reference || !form || !model.searchCapabilities().version) return;
+    const request=++concordanceSequence;
     try {
-      const page = await model.search({documentId:reference.target.workId,versionId,query:form,scope:'version',cursor});
-      if (selected?.reference !== reference || !page) return;
+      const page = await model.search({documentId:reference.target.workId,versionId,query:form,scope:'version',cursor,pageOnly:true});
+      if (selected?.reference !== reference || request!==concordanceSequence || !page) return;
       const exactItems = [];
       let inexactCount = 0;
       for (const item of page.items || []) {
@@ -520,10 +527,21 @@ export function mountCorpusReader({
         }
         exactItems.push({...item,reference:hit});
       }
-      philology = {...philology,concordance:{...page,items:exactItems,inexactCount},error:null};
+      const contexts=await Promise.all(exactItems.map(async item=>{
+        const hit=item.reference;
+        try {
+          const window=await provider.window({documentId:hit.target.workId,versionId,reference:hit,revision:hit.target.textLayerSha256,snapshotRevision:activeVersion(versionId)?.snapshotRevision,limit:1});
+          const unit=window.units?.find(value=>(value.id||value.unitId)===hit.unitId);
+          return typeof unit?.text==='string' && hit.selector.end<=Array.from(unit.text).length?unit:null;
+        } catch { return null; /* retain the exact hit and its bounded search excerpt */ }
+      }));
+      if(selected?.reference!==reference||request!==concordanceSequence)return;
+      contexts.forEach((context,index)=>{if(context)Object.assign(exactItems[index],{snippet:context.text,label:context.reference||exactItems[index].label});});
+      const previous=cursor&&philology.concordance?.query===form?philology.concordance:null;
+      philology = {...philology,concordance:{...page,query:form,items:[...(previous?.items??[]),...exactItems],inexactCount:(previous?.inexactCount??0)+inexactCount},error:null};
       renderInspector();
     } catch (error) {
-      if (selected?.reference !== reference) return;
+      if (selected?.reference !== reference || request!==concordanceSequence) return;
       philology = {...philology,concordance:{items:[],nextCursor:null,total:null},error};
       announce(friendlyError(error));
       renderInspector();
@@ -1090,6 +1108,7 @@ export function mountCorpusReader({
     const head=element('header','cr-pane-head');
     const layer=editionRepresentationLabel(version);
     if(layer)head.append(element('span','cr-layer-badge',layer));
+    if(version.retainedSnapshot)head.append(element('span','cr-layer-badge',copyLocale(uiLocale())==='en'?'Retained corpus snapshot':'Сохранённый снимок корпуса'));
     head.append(element('span','cr-kicker',versionLabel(version)),element('h2','',documentTitle({id:state.document.id,title:version.title||state.document.title},[version.id])));
     const meta=[localized(version.edition,uiLocale()),localized(version.translator,uiLocale()),localized(version.locator,uiLocale())].filter(Boolean).join(' · ');
     if(meta)head.append(element('p','cr-muted',meta));pane.append(head);
@@ -1325,7 +1344,17 @@ export function mountCorpusReader({
       const section = element('section', 'cr-source'); section.append(element('h3', '', [editionRepresentationLabel(version),versionLanguage(version), localized(version.edition, uiLocale()), status].filter(Boolean).join(' · ') || t('edition')));
       const sourceUrl = safeExternalUrl(attr(version.sourceUrl || version.source_url || version.source?.url || version.source?.href));
       if (version.attribution) section.append(element('p', '', localized(version.attribution, uiLocale())));
+      if (version.retainedSnapshot) section.append(element('p','',copyLocale(uiLocale())==='en'
+        ? `Retained corpus snapshot: ${version.snapshotRevision}` : `Сохранённый снимок корпуса: ${version.snapshotRevision}`));
+      if (version.witnessNote) section.append(element('p', '', localized(version.witnessNote, uiLocale())));
+      if (version.transcriptionNote) section.append(element('p', '', localized(version.transcriptionNote, uiLocale())));
       if (sourceUrl) { const link = element('a', '', sourceLinkLabel(sourceUrl, uiLocale())); link.href = sourceUrl; link.target = '_blank'; link.rel = 'noopener noreferrer'; section.append(link); }
+      for (const witness of version.witnessSources ?? []) {
+        const url = safeExternalUrl(witness?.url);
+        if (!url || url === sourceUrl) continue;
+        const link = element('a', '', `${sourceLinkLabel(url, uiLocale())}${witness.part ? ` · ${witness.part}` : ''}`);
+        link.href = url; link.target = '_blank'; link.rel = 'noopener noreferrer'; section.append(link);
+      }
       const licenseUrl = safeExternalUrl(attr(version.license?.url));
       if (licenseUrl) {
         const notice = element('p', '', copyLocale(uiLocale)==='en' ? localeText('Source text projection · ',locale) : 'Текстовая проекция источника · ');
@@ -1358,7 +1387,7 @@ export function mountCorpusReader({
         result:philology.result,busy:philology.busy,concordance:philology.concordance,
         searchAvailable:model.searchCapabilities().version,
         onConcordance:value=>void findPhilologyConcordance(value),
-        onMore:()=>void findPhilologyConcordance(form,philology.concordance?.nextCursor),
+        onMore:()=>void findPhilologyConcordance(philology.concordance?.query||form,philology.concordance?.nextCursor),
         onOccurrence:hit=>void openPhilologyOccurrence(hit),
         onMappingTarget:mapping=>void openPhilologyTarget(mapping),
       });
@@ -1476,7 +1505,7 @@ export function mountCorpusReader({
       // Do not turn an empty intermediate catalog page into an implicit scan.
       // The rendered library exposes its next cursor for an explicit action.
       if (!args.documentId && !modelState().catalog.items.length) { render(); return; }
-      const request = {documentId: args.documentId, versionId: args.versionId, unitId: args.unitId, revision: args.revision};
+      const request = {documentId: args.documentId, versionId: args.versionId, unitId: args.unitId, revision: args.revision,snapshotRevision:args.snapshotRevision};
       if (args.reference) request.reference = args.reference;
       const openedResult = await model.open(request);
       const state = modelState();

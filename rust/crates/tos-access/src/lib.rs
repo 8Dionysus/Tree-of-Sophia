@@ -31,6 +31,11 @@ pub mod prepared_local;
 pub mod prepared_maintenance;
 #[cfg(any(feature = "source-tools", feature = "research-tools"))]
 pub mod prepared_publication;
+#[cfg(all(
+    target_os = "linux",
+    any(feature = "source-owner", feature = "research-tools")
+))]
+mod private_stage_invocation;
 #[cfg(target_os = "linux")]
 pub mod private_stage_run;
 #[cfg(any(feature = "source-tools", feature = "research-tools"))]

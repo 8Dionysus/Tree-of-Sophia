@@ -26,6 +26,35 @@ const MAX_PRIVATE_PACKAGE_FILES: usize = 12;
 const MAX_PRIVATE_PACKAGE_BYTES: usize = 12 * 1024 * 1024;
 const MAX_HELD_OWNER_READS: usize = 256;
 
+fn private_identity_limit_allowed(limit: usize) -> bool {
+    (257..=4096).contains(&limit)
+}
+
+fn verify_private_identity_selection(
+    grant: &JsonValue,
+    selected: Option<usize>,
+    pg: bool,
+) -> SourceCommandResult<()> {
+    let requested = if grant.object_get("max_held_identity_files").is_some() {
+        let limit = usize::try_from(cmd::integer(grant, "max_held_identity_files")?)
+            .map_err(|_| SourceCommandError::Invalid("private identity selected file budget"))?;
+        if !private_identity_limit_allowed(limit) {
+            return Err(SourceCommandError::Invalid(
+                "private identity selected file budget",
+            ));
+        }
+        Some(limit)
+    } else {
+        None
+    };
+    if requested != selected || (pg && requested.is_some()) {
+        return Err(SourceCommandError::Denied(
+            "private identity file budget is not selected by this owner",
+        ));
+    }
+    Ok(())
+}
+
 pub(crate) fn normalized_absolute(value: &str) -> SourceCommandResult<PathBuf> {
     let path = Path::new(value);
     if !path.is_absolute()
@@ -255,6 +284,38 @@ pub(crate) fn verify_held_file(
     verify_held_file_with_optional_io(held, uid, deadline, cancelled, None)
 }
 
+/// Verify the retained named identity without rereading file content. Callers
+/// must separately read and compare exact bytes under their own IO accounting.
+pub(crate) fn verify_held_file_identity(
+    held: &HeldOwnerFile,
+    uid: u32,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    active(deadline, cancelled)?;
+    let parent = checked_directory(&held.parent, uid, held.confidential)?;
+    let current_parent = tos_fd_open::open_absolute_directory(&held.parent_path)
+        .map_err(|_| SourceCommandError::Conflict("owner-local selected parent changed"))?;
+    if identity(&parent) != held.parent_identity
+        || identity(&checked_directory(&current_parent, uid, held.confidential)?)
+            != held.parent_identity
+        || held_file_identity(&checked_file(&held.file, uid, held.confidential)?)
+            != held.file_identity
+    {
+        return Err(SourceCommandError::Conflict(
+            "owner-local retained identity changed",
+        ));
+    }
+    let current = tos_fd_open::open_regular_at(&current_parent, Path::new(&held.name))
+        .map_err(|_| SourceCommandError::Conflict("owner-local selected file changed"))?;
+    if held_file_identity(&checked_file(&current, uid, held.confidential)?) != held.file_identity {
+        return Err(SourceCommandError::Conflict(
+            "owner-local named identity changed",
+        ));
+    }
+    Ok(())
+}
+
 pub(crate) fn verify_held_file_with_io(
     held: &HeldOwnerFile,
     uid: u32,
@@ -390,6 +451,11 @@ pub(crate) struct OwnerTextContext {
     private_identity: (u64, u64, u32, u32),
     uid: u32,
     held_reads: RefCell<BTreeMap<PathBuf, HeldOwnerFile>>,
+    private_identity_limit: std::cell::Cell<Option<usize>>,
+    // Explicit exact legacy body aliases; installed only by a private grant.
+    legacy_dta: RefCell<Option<BTreeMap<String, (PathBuf, String)>>>,
+    independent_text_selection:
+        RefCell<Option<crate::source_native_text_read::LocalTextReadSelection>>,
     /// Exact selected source bytes supplied by a fenced PG read session. When
     /// present this map is authoritative and a missing member fails closed;
     /// it never falls back to either filesystem root.
@@ -1848,15 +1914,14 @@ impl OwnerTextContext {
                 "owner-local selected context schema",
             ));
         }
+        // Schema diagnostics identify a logical unit, never an absolute host
+        // path. Both transports retain that path and its exact bytes in the
+        // held configuration boundary above.
         match worker.check_reusing_scalar(
             if pg_selected {
-                // A schema unit has a relative logical identity. The protected
-                // configuration path and bytes remain bound by the held file.
                 "native-pg-owner-local-source-context"
             } else {
-                path.to_str().ok_or(SourceCommandError::Invalid(
-                    "owner-local configuration path UTF-8",
-                ))?
+                "native-owner-local-source-context"
             },
             &cmd::canonical(&config)?,
             CONTEXT_SCHEMA,
@@ -1889,6 +1954,9 @@ impl OwnerTextContext {
                 private_identity,
                 uid,
                 held_reads: RefCell::new(BTreeMap::new()),
+                private_identity_limit: std::cell::Cell::new(None),
+                legacy_dta: RefCell::new(None),
+                independent_text_selection: RefCell::new(None),
                 pg_selected_members: RefCell::new(None),
                 pg_publication: RefCell::new(None),
                 pg_identity_snapshot: RefCell::new(None),
@@ -1897,11 +1965,118 @@ impl OwnerTextContext {
         ))
     }
 
+    /// Only the protected private Profile/Claim invocation selects this budget.
+    /// The same value limits all held files (identity and dependencies); it is
+    /// not a source grant. Every selected descriptor retains the normal lease.
+    pub(crate) fn select_private_identity_limit(&self, limit: usize) -> SourceCommandResult<()> {
+        if !private_identity_limit_allowed(limit) || self.private_identity_limit.get().is_some() {
+            return Err(SourceCommandError::Invalid(
+                "private identity selected file budget",
+            ));
+        }
+        self.private_identity_limit.set(Some(limit));
+        Ok(())
+    }
+    pub(crate) fn identity_file_limit(&self) -> usize {
+        self.private_identity_limit.get().unwrap_or(2048)
+    }
+    pub(crate) fn verify_private_identity_limit(
+        &self,
+        grant: &JsonValue,
+    ) -> SourceCommandResult<()> {
+        verify_private_identity_selection(
+            grant,
+            self.private_identity_limit.get(),
+            self.has_pg_selected_members()?,
+        )
+    }
+    fn held_file_limit(&self) -> usize {
+        self.private_identity_limit
+            .get()
+            .unwrap_or(MAX_HELD_OWNER_READS)
+    }
+
+    pub(crate) fn attach_independent_text_selection(
+        &self,
+        selection: crate::source_native_text_read::LocalTextReadSelection,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        selection.verify(deadline, cancelled)?;
+        let selected_context = cmd::field(selection.config(), "owner_context")?;
+        if normalized_absolute(cmd::text(selected_context, "path")?)? != self.configuration_path
+            || cmd::text(selected_context, "sha256")?
+                != self.configuration_sha256(deadline, cancelled)?
+            || normalized_absolute(cmd::text(selection.config(), "source_root")?)?
+                != self.public_root
+        {
+            return Err(SourceCommandError::Denied(
+                "independent text grant context or root differs",
+            ));
+        }
+        let mut stored = self
+            .independent_text_selection
+            .try_borrow_mut()
+            .map_err(|_| SourceCommandError::Invalid("independent private selection state"))?;
+        if stored.is_some() {
+            return Err(SourceCommandError::Conflict(
+                "independent private selection already installed",
+            ));
+        }
+        *stored = Some(selection);
+        Ok(())
+    }
+    pub(crate) fn independent_text_selection(
+        &self,
+    ) -> SourceCommandResult<
+        std::cell::Ref<'_, Option<crate::source_native_text_read::LocalTextReadSelection>>,
+    > {
+        self.independent_text_selection
+            .try_borrow()
+            .map_err(|_| SourceCommandError::Invalid("independent private selection state"))
+    }
+
+    /// Install an exact private mapping selected by a protected read grant.
+    /// This is transport only; the caller must still enforce binding, rights,
+    /// packet grammar and the source-return contract before opening content.
+    pub(crate) fn install_legacy_dta_mapping(
+        &self,
+        entries: BTreeMap<String, (PathBuf, String)>,
+    ) -> SourceCommandResult<()> {
+        if entries.is_empty() || entries.len() > 4 || self.has_pg_selected_members()? {
+            return Err(SourceCommandError::Denied("invalid legacy DTA mapping"));
+        }
+        let mut selected = self
+            .legacy_dta
+            .try_borrow_mut()
+            .map_err(|_| SourceCommandError::Invalid("legacy DTA mapping state"))?;
+        if selected.is_some() {
+            return Err(SourceCommandError::Conflict(
+                "legacy DTA mapping already selected",
+            ));
+        }
+        *selected = Some(entries);
+        Ok(())
+    }
+
     fn physical(&self, reference: &str) -> SourceCommandResult<(PathBuf, bool)> {
         let ref_path = RelativePath::parse(reference)
             .map_err(|_| SourceCommandError::Invalid("owner-local logical reference"))?;
         if !reference.starts_with("ToS/") {
             return Err(SourceCommandError::Invalid("owner-local source namespace"));
+        }
+        if let Some(entries) = self
+            .legacy_dta
+            .try_borrow()
+            .map_err(|_| SourceCommandError::Invalid("legacy DTA mapping state"))?
+            .as_ref()
+        {
+            if let Some((physical, _)) = entries.get(reference) {
+                return Ok((physical.clone(), true));
+            }
+            if reference.starts_with("ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/technical-markup-v1/dta-part-") {
+                return Err(SourceCommandError::Denied("legacy DTA body not selected"));
+            }
         }
         if reference.starts_with(OWNER_HOME) {
             let relative = reference
@@ -1974,12 +2149,26 @@ impl OwnerTextContext {
             active(deadline, cancelled)?;
             return Ok(bytes.clone());
         }
-        if confidential {
+        let legacy_sha = self
+            .legacy_dta
+            .try_borrow()
+            .map_err(|_| SourceCommandError::Invalid("legacy DTA mapping state"))?
+            .as_ref()
+            .and_then(|entries| entries.get(reference).map(|(_, hash)| hash.clone()));
+        if confidential && legacy_sha.is_none() {
             self.check_private_parents(reference)?;
         }
         self.verify_context_base(deadline, cancelled)?;
         let (selected, bytes) =
             select_held_file(&path, self.uid, confidential, max, deadline, cancelled)?;
+        if legacy_sha
+            .as_ref()
+            .is_some_and(|expected| Digest256::of_bytes(&bytes).to_hex() != *expected)
+        {
+            return Err(SourceCommandError::Conflict(
+                "legacy DTA body digest differs",
+            ));
+        }
         {
             let mut reads = self
                 .held_reads
@@ -1996,7 +2185,7 @@ impl OwnerTextContext {
                     ));
                 }
             } else {
-                if reads.len() >= MAX_HELD_OWNER_READS {
+                if reads.len() >= self.held_file_limit() {
                     return Err(SourceCommandError::Unsupported(
                         "owner-local held source file-count budget",
                     ));
@@ -2284,12 +2473,16 @@ impl OwnerTextContext {
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Digest256> {
         self.verify_context_base(deadline, cancelled)?;
+        let selection = self.independent_text_selection()?;
+        if let Some(selection) = selection.as_ref() {
+            selection.verify(deadline, cancelled)?;
+        }
         {
             let reads = self
                 .held_reads
                 .try_borrow()
                 .map_err(|_| SourceCommandError::Invalid("owner-local read lease state"))?;
-            if reads.len() > MAX_HELD_OWNER_READS {
+            if reads.len() > self.held_file_limit() {
                 return Err(SourceCommandError::Unsupported(
                     "owner-local held source file-count budget",
                 ));
@@ -2308,7 +2501,7 @@ impl OwnerTextContext {
         };
         // Same exact context-snapshot fields as the maintained source owner.
         // The digest remains transport evidence, never a read/write grant.
-        let binding = cmd::object(vec![
+        let mut binding = cmd::object(vec![
             (
                 "schema_version",
                 cmd::string("tos_owner_local_source_context_v1"),
@@ -2359,6 +2552,18 @@ impl OwnerTextContext {
                 ]),
             ),
         ]);
+        if let Some(selection) = selection.as_ref() {
+            cmd::set(
+                &mut binding,
+                "independent_text_selection_sha256",
+                cmd::string(&selection.protected_selection_digest()),
+            )?;
+            cmd::set(
+                &mut binding,
+                "independent_text_selection_schema_sha256",
+                cmd::string(&selection.protected_selection_schema_digest()),
+            )?;
+        }
         Ok(Digest256::of_bytes(&cmd::canonical(&binding)?))
     }
 
@@ -2509,5 +2714,63 @@ impl crate::source_sign_native::SignNativeRead for OwnerTextContext {
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Option<String>> {
         Ok(Some(self.snapshot(deadline, cancelled)?.to_prefixed()))
+    }
+}
+
+#[cfg(test)]
+mod legacy_dta_custody_tests {
+    use super::*;
+    use std::os::unix::fs::PermissionsExt;
+    use std::time::Duration;
+
+    #[test]
+    fn selected_private_identity_limit_has_a_strict_ceiling() {
+        assert!(!private_identity_limit_allowed(0));
+        assert!(!private_identity_limit_allowed(256));
+        assert!(private_identity_limit_allowed(257));
+        assert!(private_identity_limit_allowed(4096));
+        assert!(!private_identity_limit_allowed(4097));
+    }
+
+    #[test]
+    fn private_identity_grant_cannot_be_ignored_or_change_transport() {
+        let grant = cmd::parse(br#"{"max_held_identity_files":4096}"#).unwrap();
+        assert!(verify_private_identity_selection(&grant, Some(4096), false).is_ok());
+        assert!(verify_private_identity_selection(&grant, None, false).is_err());
+        assert!(verify_private_identity_selection(&grant, Some(257), false).is_err());
+        assert!(verify_private_identity_selection(&grant, Some(4096), true).is_err());
+        for raw in [
+            br#"{"max_held_identity_files":"bad"}"#.as_slice(),
+            br#"{"max_held_identity_files":4097}"#,
+        ] {
+            assert!(
+                verify_private_identity_selection(&cmd::parse(raw).unwrap(), None, true).is_err()
+            );
+        }
+        let absent = cmd::parse(b"{}").unwrap();
+        assert!(verify_private_identity_selection(&absent, None, false).is_ok());
+        assert!(verify_private_identity_selection(&absent, None, true).is_ok());
+        assert!(verify_private_identity_selection(&absent, Some(4096), false).is_err());
+    }
+
+    #[test]
+    fn held_private_file_rejects_currentness_change() {
+        let root = std::env::current_dir().expect("test directory");
+        let dir = tempfile::Builder::new()
+            .prefix("dta-custody-test-")
+            .tempdir_in(root)
+            .expect("private directory");
+        std::fs::set_permissions(dir.path(), std::fs::Permissions::from_mode(0o700)).unwrap();
+        let path = dir.path().join("body.txt");
+        std::fs::write(&path, b"first").unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+        let uid = rustix::process::getuid().as_raw();
+        let cancel = AtomicBool::new(false);
+        let deadline = Instant::now() + Duration::from_secs(10);
+        let (held, bytes) = select_held_file(&path, uid, true, 4096, deadline, &cancel).unwrap();
+        assert_eq!(bytes, b"first");
+        assert!(verify_held_file(&held, uid, deadline, &cancel).is_ok());
+        std::fs::write(&path, b"other").unwrap();
+        assert!(verify_held_file(&held, uid, deadline, &cancel).is_err());
     }
 }

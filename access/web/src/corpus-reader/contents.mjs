@@ -14,8 +14,9 @@ export function mountCorpusContents({reader,provider,locale=()=> 'ru'}) {
     loading:'Загружаются разделы…',failed:'Не удалось загрузить эти разделы.',more:'Следующие разделы',back:'Предыдущие разделы',start:'В начало',retry:'Повторить',edition:'Оглавление издания'};
   const state=()=>{const s=reader.state(),versions=reader.visibleVersions?.(s)??[];
     if(!versions.some(version=>version.id===selectedVersionId))selectedVersionId=s.activeVersionId;
-    return {documentId:s.document?.id,versionId:selectedVersionId,versions};};
-  const key=()=>{const {documentId,versionId}=state();return JSON.stringify({documentId,versionId});};
+    const version=s.document?.versions?.find(version=>version.id===selectedVersionId);
+    return {documentId:s.document?.id,versionId:selectedVersionId,revision:version?.revision,snapshotRevision:version?.snapshotRevision,versions};};
+  const key=()=>{const {documentId,versionId,revision,snapshotRevision}=state();return JSON.stringify({documentId,versionId,revision,snapshotRevision});};
   const el=(tag,text='')=>{const node=document.createElement(tag);node.textContent=text;return node;};
   const button=(label,action)=>{const node=el('button',label);node.type='button';node.onclick=action;return node;};
   const close=()=>{opened=false;generation++;request?.abort();root.querySelector('.cr-contents')?.remove();const opener=root.querySelector('.cr-contents-button');opener?.setAttribute('aria-expanded','false');opener?.focus();};
@@ -47,7 +48,7 @@ export function mountCorpusContents({reader,provider,locale=()=> 'ru'}) {
     }
   }
   async function load(cursor=null,reset=true) {
-    const {documentId,versionId}=state(),selection={documentId,versionId};currentKey=key();
+    const {documentId,versionId,revision,snapshotRevision}=state(),selection={documentId,versionId,revision,snapshotRevision};currentKey=key();
     request?.abort();request=new AbortController();const token=++generation;
     if(reset){back=[];page=null;}currentCursor=cursor;
     if(!selection.documentId){render(words().empty);return;}

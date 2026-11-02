@@ -2,6 +2,7 @@ import {localeText,copyLocale,localeLabels} from '../public-research/locale.mjs'
 import './philology.css';
 import {referenceKey, validateReference} from './model.mjs';
 import {languageName} from '../observatory/human-presentation.mjs';
+import {lexicalReading} from './bonsai-lexical-readings.mjs';
 
 const COPY = {
   ru: {
@@ -259,6 +260,23 @@ export function renderPhilology(body, {
     }
   }
 
+  const reading=lexicalReading(reference,form);
+  if(reading){
+    const section=element('section','cr-philology-source');
+    section.append(element('h3','',copyLocale(locale)==='en'?'Reading of this occurrence':'Разбор этого употребления'));
+    section.append(element('p','',localized(reading,locale)));
+    const dictionary=element('a','cr-philology-dictionary',`DWDS · ${reading.lemma}`);
+    dictionary.href='https://www.dwds.de/wb/'+encodeURIComponent(reading.lemma);dictionary.target='_blank';dictionary.rel='noopener noreferrer';
+    section.append(dictionary);
+    if(reading.history){
+      section.append(element('p','',localized(reading.history,locale)));
+      const historyLink=element('a','cr-philology-dictionary',reading.history.label);
+      historyLink.href=reading.history.url;historyLink.target='_blank';historyLink.rel='noopener noreferrer';section.append(historyLink);
+    }
+    section.append(element('p','cr-philology-muted',copyLocale(locale)==='en'?'Source: DTA first editions, 1883–1891. Contextual observation; dictionary and history are linked separately.':'Источник: первые издания DTA, 1883–1891. Контекстное наблюдение; словарь и история слова доступны по ссылке.'));
+    body.append(section);
+  }
+
   const dictionaryLinks = !multiword && Array.isArray(result?.dictionaryLinks) ? result.dictionaryLinks : [];
   const usableDictionaryLinks = dictionaryLinks.flatMap(item => {
     const url = safeUrl(item?.url);
@@ -304,13 +322,27 @@ export function renderPhilology(body, {
   search.addEventListener('click', () => onConcordance?.(form)); actions.append(search);
   if (!searchAvailable) body.append(element('p', 'cr-philology-muted', words.noSearch));
   body.append(actions);
+  const related=Array.isArray(result?.relatedForms)?result.relatedForms.filter(value=>typeof value==='string'&&value!==form).slice(0,12):[];
+  if(!multiword && related.length){
+    const section=element('section','cr-philology-source');
+    section.append(element('h3','',copyLocale(locale)==='en'?'Other source forms with a candidate lemma':'Другие формы источника с возможной общей леммой'));
+    section.append(element('p','cr-philology-muted',copyLocale(locale)==='en'?'DWDSmor candidates, not accepted equivalences. Each button searches the written form without case distinction.':'Кандидаты DWDSmor, не подтверждённые соответствия. Каждая кнопка ищет написанную форму без различия регистра.'));
+    for(const value of related){const find=element('button','',value);find.type='button';find.disabled=!searchAvailable;find.addEventListener('click',()=>onConcordance?.(value));section.append(find);}
+    if(result.relatedFormsTruncated)section.append(element('p','cr-philology-muted',copyLocale(locale)==='en'?'Additional candidate forms are not shown.':'Показаны не все возможные формы.'));
+    body.append(section);
+  }
   if (concordance) {
+    body.append(element('h3','cr-philology-heading',copyLocale(locale)==='en'?'Contexts in this public edition':'Контексты в этом публичном издании'));
+    body.append(element('p','cr-philology-muted',copyLocale(locale)==='en'
+      ? `Literal search “${concordance.query}” (case-insensitive) · ${concordance.items?.length??0} shown${concordance.nextCursor?' · more available':''}. Source: the native-built public corpus; each result retains this version and exact text reference.`
+      : `Буквальный поиск «${concordance.query}» без различия регистра · показано ${concordance.items?.length??0}${concordance.nextCursor?' · есть ещё':''}. Источник: публичный корпус, собранный native-сборщиком; каждый результат сохраняет версию и точный адрес текста.`));
     for (const hit of concordance.items || []) {
       const button = element('button', 'cr-philology-hit', ''); button.type = 'button';
       button.append(element('strong', '', hit.label || hit.unitId || words.returnContext), element('span', '', hit.snippet || ''));
       button.disabled = !hit.reference;
       button.addEventListener('click', () => hit.reference && onOccurrence?.(hit));
       body.append(button);
+      if(hit.reference){const detail=element('details','cr-philology-exact');detail.append(element('summary','',words.address),element('p','cr-philology-context-address',JSON.stringify(hit.reference)));body.append(detail);}
     }
     if (concordance.inexactCount) body.append(element('p', 'cr-philology-muted', words.noExact));
     if (concordance.items?.length === 0 && !concordance.nextCursor && !concordance.inexactCount) body.append(element('p', 'cr-philology-muted', words.noConcordance));

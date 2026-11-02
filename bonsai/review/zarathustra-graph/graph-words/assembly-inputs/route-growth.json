@@ -1,0 +1,1771 @@
+{
+  "schema": "tos.bonsai.route-growth.v1",
+  "nodes": [
+    {
+      "id": "brothers",
+      "type": "tos.entity.work-figure",
+      "title": {
+        "ru": "Братья в речи о дарящей добродетели",
+        "en": "Brothers addressed in the teaching on bestowing virtue"
+      },
+      "work_scope": {
+        "figure_ref": "tos.work-figure.also-sprach-zarathustra.brothers",
+        "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+        "roles": [
+          "addressed"
+        ],
+        "status": "stand-proposal"
+      },
+      "reading": {
+        "related_existing": "bestowing-virtue",
+        "grounds": [
+          {
+            "w": "also-sprach-zarathustra",
+            "c": "I.23",
+            "u": [
+              "tos.text-unit.sid-0ffe99fde73fa5eaa81da967507c8faf",
+              "tos.text-unit.sid-0ffe99fde73fa5eaa81da967507c8faf"
+            ]
+          },
+          {
+            "w": "also-sprach-zarathustra",
+            "c": "I.23",
+            "u": [
+              "tos.text-unit.sid-a623a857747d550bdcbb01c91e9eb217",
+              "tos.text-unit.sid-a623a857747d550bdcbb01c91e9eb217"
+            ],
+            "q": "Achtet mir, meine Brüder"
+          },
+          {
+            "w": "also-sprach-zarathustra",
+            "c": "I.23",
+            "u": [
+              "tos.text-unit.sid-dfbf765c1fd6a1db719776653d6b8b90",
+              "tos.text-unit.sid-dfbf765c1fd6a1db719776653d6b8b90"
+            ],
+            "q": "Sagt mir, meine Brüder"
+          },
+          {
+            "w": "also-sprach-zarathustra",
+            "c": "I.23",
+            "u": [
+              "tos.text-unit.sid-6ef116aacecef01c18f461c20ba52cdb",
+              "tos.text-unit.sid-6ef116aacecef01c18f461c20ba52cdb"
+            ],
+            "q": "Bleibt mir der Erde treu, meine Brüder"
+          }
+        ],
+        "reading": {
+          "ru": "В I.23 Заратустра говорит ученикам, провожающим его к развилке, и обращается к ним «мои братья». Он говорит об их стремлении к дарящей добродетели, об истоке добродетели в образной речи и о служении земле дарящей любовью и познанием.",
+          "en": "In I.23 Zarathustra speaks to the disciples who accompany him to a crossroads and addresses them as “my brothers”. He speaks of their pursuit of bestowing virtue, virtue’s origin in figurative speech, and serving the earth through giving love and knowledge."
+        },
+        "limit": {
+          "ru": "Здесь обращение к братьям относится к ученикам этой сцены. Адресатов других обращений «братья» нужно устанавливать по соответствующим местам; будущие друзья и дети одной надежды названы тем, кем ученикам ещё предстоит стать.",
+          "en": "Here the address to brothers concerns the disciples in this scene. Other addresses to “brothers” require their own local identification; friends and children of one hope name what the disciples are still to become."
+        },
+        "source_status": "interpretation-grounded-in-cited-places",
+        "decision": "retain-as-stand-proposal",
+        "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+        "statement_ids": {
+          "reading": "tos.bonsai.statement.brothers.proposal.reading",
+          "limit": "tos.bonsai.statement.brothers.proposal.limit"
+        },
+        "independent_review": {
+          "reviewer": "kernel_final_content_review",
+          "model": "gpt-6.1-terra",
+          "effort": "xhigh",
+          "date": "2026-11-01",
+          "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+          "case_id": "brothers",
+          "verdict": "confirmed",
+          "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+        }
+      },
+      "existence": "work-world"
+    },
+    {
+      "id": "gold",
+      "type": "tos.entity.thought-image",
+      "title": {
+        "ru": "Золото как образ дарящей добродетели",
+        "en": "Gold as an image of bestowing virtue"
+      },
+      "reading": {
+        "related_existing": "bestowing-virtue",
+        "grounds": [
+          {
+            "w": "also-sprach-zarathustra",
+            "c": "I.23",
+            "u": [
+              "tos.text-unit.sid-2a1b29f9c62115040c9a0330cad6d16e",
+              "tos.text-unit.sid-2a1b29f9c62115040c9a0330cad6d16e"
+            ],
+            "q": "es schenkt sich immer"
+          },
+          {
+            "w": "also-sprach-zarathustra",
+            "c": "I.23",
+            "u": [
+              "tos.text-unit.sid-3d2797d3bc2f76f6de279d6b136a5af5",
+              "tos.text-unit.sid-3d2797d3bc2f76f6de279d6b136a5af5"
+            ],
+            "q": "Nur als Abbild der höchsten Tugend"
+          },
+          {
+            "w": "also-sprach-zarathustra",
+            "c": "I.23",
+            "u": [
+              "tos.text-unit.sid-8bfa6cb283fd04386a7c9d6b5e57aab1",
+              "tos.text-unit.sid-8bfa6cb283fd04386a7c9d6b5e57aab1"
+            ],
+            "q": "eine schenkende Tugend ist die höchste Tugend"
+          }
+        ],
+        "reading": {
+          "ru": "В I.23 золото получает высшую ценность как образ высшей добродетели: оно светит мягко и «всегда дарит себя». Следом Заратустра прямо называет высшую добродетель дарящей.",
+          "en": "In I.23 gold gains its highest value as an image of the highest virtue: it shines mildly and “always gives itself”. Zarathustra then names the highest virtue as bestowing."
+        },
+        "limit": {
+          "ru": "Это сравнение в I.23 опирается на редкость, бесполезность, мягкое сияние и постоянное самоотдавание золота. Другие употребления золота в книге требуют отдельного разбора.",
+          "en": "This comparison in I.23 rests on gold’s rarity, uselessness, mild radiance and continual self-giving. Other uses of gold in the book require separate reading."
+        },
+        "source_status": "interpretation-grounded-in-cited-places",
+        "decision": "retain-as-stand-proposal",
+        "review_status": "source-visible-agent-reading-independently-reviewed-stand-proposal",
+        "statement_ids": {
+          "reading": "tos.bonsai.statement.gold.proposal.reading",
+          "limit": "tos.bonsai.statement.gold.proposal.limit"
+        },
+        "independent_review": {
+          "reviewer": "kernel_final_content_review",
+          "model": "gpt-6.1-terra",
+          "effort": "xhigh",
+          "date": "2026-11-01",
+          "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+          "case_id": "gold",
+          "verdict": "confirmed",
+          "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+        }
+      }
+    }
+  ],
+  "chains": [
+    {
+      "id": "gold-bestowing-brothers:01",
+      "from": "gold",
+      "title": {
+        "ru": "От золота к обращению к братьям",
+        "en": "From gold to the address to the brothers"
+      },
+      "steps": [
+        {
+          "id": "tos.bonsai.step.gold.bestowing.brothers.01",
+          "from": "gold",
+          "verb": {
+            "ru": "становится образом",
+            "en": "serves as an image of"
+          },
+          "to": "bestowing-virtue",
+          "cite": {
+            "w": "also-sprach-zarathustra",
+            "c": "I.23",
+            "u": [
+              "tos.text-unit.sid-3d2797d3bc2f76f6de279d6b136a5af5",
+              "tos.text-unit.sid-3d2797d3bc2f76f6de279d6b136a5af5"
+            ],
+            "q": "Nur als Abbild der höchsten Tugend"
+          },
+          "grounds": [
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "I.23",
+              "u": [
+                "tos.text-unit.sid-2a1b29f9c62115040c9a0330cad6d16e",
+                "tos.text-unit.sid-2a1b29f9c62115040c9a0330cad6d16e"
+              ],
+              "q": "es schenkt sich immer"
+            },
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "I.23",
+              "u": [
+                "tos.text-unit.sid-8bfa6cb283fd04386a7c9d6b5e57aab1",
+                "tos.text-unit.sid-8bfa6cb283fd04386a7c9d6b5e57aab1"
+              ],
+              "q": "eine schenkende Tugend ist die höchste Tugend"
+            }
+          ],
+          "sense": {
+            "ru": "Золото — не сама добродетель: его образ связывает мягкое сияние и само-дарение с высшей добродетелью, которую Заратустра называет дарящей.",
+            "en": "Gold is not the virtue itself: its image joins mild radiance and self-giving to the highest virtue Zarathustra calls bestowing."
+          },
+          "status": "reconstruction",
+          "assessment": {
+            "verdict": "reconstruction",
+            "reason": "В I.23 золото названо образом высшей добродетели; соседнее определение уточняет её как дарящую.",
+            "attention": "high",
+            "reviewer": "kernel_final_content_review",
+            "review_status": "independently-reviewed-stand-proposal"
+          },
+          "statement_ids": {
+            "sense": "tos.bonsai.statement.gold.bestowing.brothers.01.sense"
+          },
+          "independent_review": {
+            "reviewer": "kernel_final_content_review",
+            "model": "gpt-6.1-terra",
+            "effort": "xhigh",
+            "date": "2026-11-01",
+            "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+            "case_id": "tos.bonsai.step.gold.bestowing.brothers.01",
+            "verdict": "confirmed",
+            "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+          }
+        },
+        {
+          "id": "tos.bonsai.step.gold.bestowing.brothers.02",
+          "from": "bestowing-virtue",
+          "verb": {
+            "ru": "её исток указан обращением к",
+            "en": "its origin is located in an address to"
+          },
+          "to": "brothers",
+          "cite": {
+            "w": "also-sprach-zarathustra",
+            "c": "I.23",
+            "u": [
+              "tos.text-unit.sid-a623a857747d550bdcbb01c91e9eb217",
+              "tos.text-unit.sid-a623a857747d550bdcbb01c91e9eb217"
+            ],
+            "q": "Achtet mir, meine Brüder"
+          },
+          "grounds": [
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "I.23",
+              "u": [
+                "tos.text-unit.sid-dfbf765c1fd6a1db719776653d6b8b90",
+                "tos.text-unit.sid-dfbf765c1fd6a1db719776653d6b8b90"
+              ],
+              "q": "Sagt mir, meine Brüder"
+            },
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "I.23",
+              "u": [
+                "tos.text-unit.sid-6ef116aacecef01c18f461c20ba52cdb",
+                "tos.text-unit.sid-6ef116aacecef01c18f461c20ba52cdb"
+              ],
+              "q": "Eure schenkende Liebe und eure Erkenntniss"
+            }
+          ],
+          "sense": {
+            "ru": "Обращаясь к «моим братьям», Заратустра велит замечать часы, когда дух хочет говорить притчами: там он помещает исток их добродетели. Позднее он требует от них служить земле дарящей любовью и познанием.",
+            "en": "Addressing “my brothers”, Zarathustra tells them to attend to the hours when their spirit wants to speak in images: there he locates the origin of their virtue. Later he asks them to serve the earth through giving love and knowledge."
+          },
+          "status": "reconstruction",
+          "assessment": {
+            "verdict": "reconstruction",
+            "reason": "I.23 a623… содержит повеление наблюдать и указание истока; dfbf… задаёт другой вопрос — о худшем и вырождении.",
+            "attention": "high",
+            "reviewer": "kernel_final_content_review",
+            "review_status": "independently-reviewed-stand-proposal"
+          },
+          "statement_ids": {
+            "sense": "tos.bonsai.statement.gold.bestowing.brothers.02.sense"
+          },
+          "step_revision_history": [
+            {
+              "verb": {
+                "ru": "обращает вопрос о её истоке к",
+                "en": "addresses a question about its origin to"
+              },
+              "sense": {
+                "ru": "Учение о дарящей добродетели адресовано ученикам, к которым Заратустра обращается «мои братья». В той же речи он связывает дарящую любовь и познание со служением земле.",
+                "en": "The teaching on bestowing virtue addresses the disciples whom Zarathustra calls “my brothers”. In the same speech he connects giving love and knowledge with service to the earth."
+              },
+              "cite": {
+                "w": "also-sprach-zarathustra",
+                "c": "I.23",
+                "u": [
+                  "tos.text-unit.sid-a623a857747d550bdcbb01c91e9eb217",
+                  "tos.text-unit.sid-a623a857747d550bdcbb01c91e9eb217"
+                ],
+                "q": "Achtet mir, meine Brüder"
+              },
+              "grounds": [
+                {
+                  "w": "also-sprach-zarathustra",
+                  "c": "I.23",
+                  "u": [
+                    "tos.text-unit.sid-dfbf765c1fd6a1db719776653d6b8b90",
+                    "tos.text-unit.sid-dfbf765c1fd6a1db719776653d6b8b90"
+                  ],
+                  "q": "Sagt mir, meine Brüder"
+                },
+                {
+                  "w": "also-sprach-zarathustra",
+                  "c": "I.23",
+                  "u": [
+                    "tos.text-unit.sid-6ef116aacecef01c18f461c20ba52cdb",
+                    "tos.text-unit.sid-6ef116aacecef01c18f461c20ba52cdb"
+                  ],
+                  "q": "Eure schenkende Liebe und eure Erkenntniss"
+                }
+              ],
+              "status": "reconstruction",
+              "assessment": {
+                "verdict": "undecided",
+                "reason": "В I.23 обращения к братьям прямо связываются с вопросом об истоке добродетели и её дарящей силе.",
+                "attention": "high",
+                "reviewer": "kernel-content-source-20261101",
+                "review_status": "independent-review-pending"
+              },
+              "independent_review": {
+                "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+                "case_id": "tos.bonsai.step.gold.bestowing.brothers.02",
+                "verdict": "revise",
+                "findings": [
+                  "I.23 a623… asks the brothers to attend to the hour of figurative speech and locates the origin of their virtue there; dfbf… asks what is worst, not what virtue originates from. Replace the edge verb “обращает вопрос о её истоке” with the actual address or observation."
+                ]
+              }
+            }
+          ],
+          "independent_review": {
+            "reviewer": "kernel_final_content_review",
+            "model": "gpt-6.1-terra",
+            "effort": "xhigh",
+            "date": "2026-11-01",
+            "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-correction-review-2026-11-01.json",
+            "case_id": "tos.bonsai.step.gold.bestowing.brothers.02",
+            "verdict": "confirmed",
+            "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+          }
+        },
+        {
+          "id": "tos.bonsai.step.gold.bestowing.brothers.disciples",
+          "from": "brothers",
+          "to": "disciples",
+          "verb": {
+            "ru": "обозначает в этой речи",
+            "en": "addresses in this speech"
+          },
+          "sense": {
+            "ru": "Рассказчик вводит речь как обращение к ученикам; слова «мои братья» звучат внутри этой речи.",
+            "en": "The narrator introduces the speech as addressed to the disciples; “my brothers” occurs within it."
+          },
+          "cite": {
+            "w": "also-sprach-zarathustra",
+            "c": "I.23",
+            "u": [
+              "tos.text-unit.sid-0ffe99fde73fa5eaa81da967507c8faf",
+              "tos.text-unit.sid-0ffe99fde73fa5eaa81da967507c8faf"
+            ]
+          },
+          "grounds": [
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "I.23",
+              "u": [
+                "tos.text-unit.sid-0bf5dc6e46a7e01998dcc4a952efd3c7",
+                "tos.text-unit.sid-0bf5dc6e46a7e01998dcc4a952efd3c7"
+              ]
+            },
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "I.23",
+              "u": [
+                "tos.text-unit.sid-dfbf765c1fd6a1db719776653d6b8b90",
+                "tos.text-unit.sid-dfbf765c1fd6a1db719776653d6b8b90"
+              ]
+            }
+          ],
+          "status": "text",
+          "assessment": {
+            "verdict": "confirmed",
+            "reason": "Вступление и обращения одной речи устанавливают адресата именно в этой сцене.",
+            "attention": "high",
+            "reviewer": "kernel_final_content_review",
+            "review_status": "independently-reviewed-stand-proposal"
+          },
+          "statement_ids": {
+            "sense": "tos.bonsai.statement.gold.bestowing.brothers.disciples.sense"
+          },
+          "independent_review": {
+            "reviewer": "kernel_final_content_review",
+            "model": "gpt-6.1-terra",
+            "effort": "xhigh",
+            "date": "2026-11-01",
+            "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+            "case_id": "tos.bonsai.step.gold.bestowing.brothers.disciples",
+            "verdict": "confirmed",
+            "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+          }
+        },
+        {
+          "id": "tos.bonsai.step.gold.bestowing.brothers.future.friends",
+          "from": "disciples",
+          "to": "gold-bestowing-brothers:future-friends",
+          "verb": {
+            "ru": "призваны стать после собственного поиска",
+            "en": "are asked to become after their own search"
+          },
+          "sense": {
+            "ru": "Это обращённое к ученикам ожидание, а не сообщение, что они уже достигли самостоятельности.",
+            "en": "This is an expectation addressed to the disciples, not a report that they have already attained independence."
+          },
+          "cite": {
+            "w": "also-sprach-zarathustra",
+            "c": "I.23",
+            "u": [
+              "tos.text-unit.sid-fe03b22d5b0eb88e378e43a94ff08c1d",
+              "tos.text-unit.sid-474041af8e46b8564e0b60045b07e736"
+            ]
+          },
+          "status": "reconstruction",
+          "assessment": {
+            "verdict": "reconstruction",
+            "reason": "Повеление найти себя и будущие формы речи сохранены как условия и ожидание.",
+            "attention": "high",
+            "reviewer": "kernel_final_content_review",
+            "review_status": "independently-reviewed-stand-proposal"
+          },
+          "statement_ids": {
+            "sense": "tos.bonsai.statement.gold.bestowing.brothers.future.friends.sense"
+          },
+          "independent_review": {
+            "reviewer": "kernel_final_content_review",
+            "model": "gpt-6.1-terra",
+            "effort": "xhigh",
+            "date": "2026-11-01",
+            "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+            "case_id": "tos.bonsai.step.gold.bestowing.brothers.future.friends",
+            "verdict": "confirmed",
+            "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+          }
+        },
+        {
+          "id": "tos.bonsai.step.gold.bestowing.brothers.higher.men",
+          "from": "gold-bestowing-brothers:future-friends",
+          "to": "higher-men",
+          "verb": {
+            "ru": "сопоставляются с отказом признать спутниками",
+            "en": "are compared with the refusal to acknowledge as companions"
+          },
+          "sense": {
+            "ru": "В I.23 Заратустра ожидает, что ученики станут друзьями и детьми одной надежды. В IV.20 он отказывает высшим людям в имени настоящих спутников и позднее говорит, что его дети близко. Маршрут сопоставляет ожидание общности с отказом нынешним гостям; личность будущих детей в этих местах не установлена.",
+            "en": "In I.23 Zarathustra expects the disciples to become friends and children of one hope. In IV.20 he denies the higher men the name of true companions and later says his children are near. This path compares an expected fellowship with the refusal of the present guests; these places do not establish who the future children are."
+          },
+          "cite": {
+            "w": "also-sprach-zarathustra",
+            "c": "IV.20",
+            "u": [
+              "tos.text-unit.sid-f6f757db50a8c9d5fdce0e1d7c7f3fff",
+              "tos.text-unit.sid-f6f757db50a8c9d5fdce0e1d7c7f3fff"
+            ]
+          },
+          "grounds": [
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "IV.20",
+              "u": [
+                "tos.text-unit.sid-ee51842cbbb5c70b08a152c5f7dfc3a5",
+                "tos.text-unit.sid-b630ed932ffdfef0287539fb5ddab22e"
+              ]
+            }
+          ],
+          "status": "reconstruction",
+          "assessment": {
+            "verdict": "reconstruction",
+            "reason": "I.23 и IV.20 сопоставлены как ожидание и отказ в спутничестве; тождество или различие двух групп будущих детей не утверждается.",
+            "attention": "high",
+            "reviewer": "kernel_final_content_review",
+            "review_status": "independently-reviewed-stand-proposal"
+          },
+          "statement_ids": {
+            "sense": "tos.bonsai.statement.gold.bestowing.brothers.higher.men.sense"
+          },
+          "step_revision_history": [
+            {
+              "verb": {
+                "ru": "отличаются от нынешних гостей",
+                "en": "are distinguished from the present guests"
+              },
+              "sense": {
+                "ru": "В IV.20 Заратустра прямо говорит, что высшие люди не его настоящие спутники. При знаке льва он говорит, что его дети близко; высшие люди затем пугаются льва и отступают. Сопоставление сохраняет различие между ожиданием и нынешними гостями, не устанавливая личность будущих детей.",
+                "en": "In IV.20 Zarathustra explicitly says the higher men are not his true companions. At the lion’s sign he says his children are near; the higher men then fear the lion and retreat. The comparison distinguishes an expectation from the present guests without identifying the future children."
+              },
+              "cite": {
+                "w": "also-sprach-zarathustra",
+                "c": "IV.20",
+                "u": [
+                  "tos.text-unit.sid-f6f757db50a8c9d5fdce0e1d7c7f3fff",
+                  "tos.text-unit.sid-f6f757db50a8c9d5fdce0e1d7c7f3fff"
+                ]
+              },
+              "grounds": [
+                {
+                  "w": "also-sprach-zarathustra",
+                  "c": "IV.20",
+                  "u": [
+                    "tos.text-unit.sid-ee51842cbbb5c70b08a152c5f7dfc3a5",
+                    "tos.text-unit.sid-b630ed932ffdfef0287539fb5ddab22e"
+                  ]
+                }
+              ],
+              "status": "reconstruction",
+              "assessment": {
+                "verdict": "undecided",
+                "reason": "Сравниваются два прямо выраженных ожидания книги; тождество их исполнителей не приписывается тексту.",
+                "attention": "high",
+                "reviewer": "kernel-content-source-20261101",
+                "review_status": "independent-review-pending"
+              },
+              "independent_review": {
+                "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+                "case_id": "tos.bonsai.step.gold.bestowing.brothers.higher.men",
+                "verdict": "revise",
+                "findings": [
+                  "IV.20 distinguishes the higher men from Zarathustra’s true companions and mentions his children; it does not identify these children with the future friends/children of one hope in I.23. The edge claims these two groups differ without establishing their identity. Frame the places as comparison without asserting a relation between the groups."
+                ]
+              }
+            }
+          ],
+          "independent_review": {
+            "reviewer": "kernel_final_content_review",
+            "model": "gpt-6.1-terra",
+            "effort": "xhigh",
+            "date": "2026-11-01",
+            "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-correction-review-2026-11-01.json",
+            "case_id": "tos.bonsai.step.gold.bestowing.brothers.higher.men",
+            "verdict": "confirmed",
+            "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+          }
+        }
+      ],
+      "status": "reconstruction",
+      "maker": "kernel-content-finish",
+      "assessment": {
+        "verdict": "reconstruction",
+        "reason": "I.23 связывает образ золота, дарящую добродетель и адресатов речи; завершение сопоставляет ожидание будущей дружбы с отказом высшим людям в имени спутников в IV.20.",
+        "attention": "high",
+        "reviewer": "kernel_final_content_review",
+        "counter_reading": {
+          "ru": "В I.23 дарящая любовь также названа грабительницей всех ценностей и здоровым и священным эгоизмом. Поэтому чтение дара как одного лишь бескорыстного отказа от своего не охватывает всю эту речь.",
+          "en": "In I.23 giving love is also called a robber of all values and a healthy, holy selfishness. Reading the gift solely as disinterested renunciation does not cover the whole speech.",
+          "grounds": [
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "I.23",
+              "u": [
+                "tos.text-unit.sid-251b38ef10445406730ded971288bfb1",
+                "tos.text-unit.sid-7bd27dc521474b57a0c74384f08d80c3"
+              ]
+            }
+          ]
+        },
+        "review_status": "independently-reviewed-stand-proposal"
+      },
+      "admission": "map",
+      "states": [
+        {
+          "id": "gold-bestowing-brothers:future-friends",
+          "title": {
+            "ru": "Будущие друзья и дети одной надежды",
+            "en": "Future friends and children of one hope"
+          },
+          "reading": {
+            "ru": "Ученикам велено потерять учителя и найти себя; лишь затем обещано возвращение. Друзьями и детьми одной надежды им ещё предстоит стать.",
+            "en": "The disciples are told to lose the teacher and find themselves; only then is a return promised. They are still to become friends and children of one hope."
+          },
+          "cite": {
+            "w": "also-sprach-zarathustra",
+            "c": "I.23",
+            "u": [
+              "tos.text-unit.sid-fe03b22d5b0eb88e378e43a94ff08c1d",
+              "tos.text-unit.sid-474041af8e46b8564e0b60045b07e736"
+            ]
+          },
+          "statement_ids": {
+            "reading": "tos.bonsai.statement.gold.bestowing.brothers.future.friends.reading"
+          },
+          "independent_review": {
+            "reviewer": "kernel_final_content_review",
+            "model": "gpt-6.1-terra",
+            "effort": "xhigh",
+            "date": "2026-11-01",
+            "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+            "case_id": "gold-bestowing-brothers:future-friends",
+            "verdict": "confirmed",
+            "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+          }
+        }
+      ],
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-correction-review-2026-11-01.json",
+        "case_id": "gold-bestowing-brothers:01",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      }
+    },
+    {
+      "id": "bestowing-virtue:golden-lure",
+      "from": "bestowing-virtue",
+      "title": {
+        "ru": "От дара к медовой приманке",
+        "en": "From giving to the honey bait"
+      },
+      "steps": [
+        {
+          "id": "tos.bonsai.step.bestowing.virtue.golden.lure.01",
+          "from": "bestowing-virtue",
+          "verb": {
+            "ru": "сопоставляется с медовой приманкой",
+            "en": "is set beside the honey bait of"
+          },
+          "to": "zarathustra",
+          "cite": {
+            "w": "also-sprach-zarathustra",
+            "c": "IV.01",
+            "u": [
+              "tos.text-unit.sid-03d7b2fb23b1a857df83abad49e68c95",
+              "tos.text-unit.sid-03d7b2fb23b1a857df83abad49e68c95"
+            ],
+            "q": "eine List war's nur meiner Rede"
+          },
+          "grounds": [
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "I.23",
+              "u": [
+                "tos.text-unit.sid-8bfa6cb283fd04386a7c9d6b5e57aab1",
+                "tos.text-unit.sid-8bfa6cb283fd04386a7c9d6b5e57aab1"
+              ],
+              "q": "eine schenkende Tugend ist die höchste Tugend"
+            },
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "IV.01",
+              "u": [
+                "tos.text-unit.sid-6078c820db50344df425ea10af89abe9",
+                "tos.text-unit.sid-6078c820db50344df425ea10af89abe9"
+              ],
+              "q": "ich verschwende, was mir geschenkt wird"
+            },
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "IV.01",
+              "u": [
+                "tos.text-unit.sid-953a1ec6782e4aa845d63381f433db25",
+                "tos.text-unit.sid-953a1ec6782e4aa845d63381f433db25"
+              ],
+              "q": "nur nach Köder"
+            },
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "IV.01",
+              "u": [
+                "tos.text-unit.sid-bfe99dd3c0c63c08a7b68d8e392b26a1",
+                "tos.text-unit.sid-bfe99dd3c0c63c08a7b68d8e392b26a1"
+              ],
+              "q": "mein Glück selber werfe ich hinaus"
+            }
+          ],
+          "sense": {
+            "ru": "В I.23 высшая добродетель названа дарящей. В IV.01 Заратустра объявляет «жертву медовую» уловкой речи, тратит полученное и бросает своё счастье как приманку в человеческий мир. Здесь образ дара соседствует с намеренным привлечением людей; их ответ ещё не показан.",
+            "en": "I.23 names the highest virtue as bestowing. In IV.01 Zarathustra calls the “honey sacrifice” a verbal ruse, spends what he has received and casts his happiness as bait into the human world. Giving is set beside deliberate attraction; the people’s response is not shown."
+          },
+          "status": "reconstruction",
+          "assessment": {
+            "verdict": "reconstruction",
+            "reason": "IV.01 называет речь о жертве уловкой, расходует полученное и использует мёд как приманку; I.23 даёт сопоставляемое определение дарящей добродетели.",
+            "attention": "high",
+            "reviewer": "kernel_final_content_review",
+            "counter_reading": {
+              "ru": "Приманка предполагает замысел улова; IV.01 может показывать дарение как стратегическое завлечение и не сводится к бескорыстному избытку.",
+              "en": "Bait implies an intended catch; IV.01 may present giving as strategic attraction and cannot be reduced to disinterested overflow."
+            },
+            "review_status": "independently-reviewed-stand-proposal"
+          },
+          "statement_ids": {
+            "sense": "tos.bonsai.statement.bestowing.virtue.golden.lure.01.sense"
+          },
+          "independent_review": {
+            "reviewer": "kernel_final_content_review",
+            "model": "gpt-6.1-terra",
+            "effort": "xhigh",
+            "date": "2026-11-01",
+            "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+            "case_id": "tos.bonsai.step.bestowing.virtue.golden.lure.01",
+            "verdict": "confirmed",
+            "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+          }
+        }
+      ],
+      "status": "reconstruction",
+      "maker": "kernel-content-finish",
+      "assessment": {
+        "verdict": "reconstruction",
+        "reason": "Сопоставлены определение дарящей добродетели в I.23 и отказ от слова «жертва» при использовании мёда как приманки в IV.01.",
+        "attention": "high",
+        "reviewer": "kernel_final_content_review",
+        "review_status": "independently-reviewed-stand-proposal"
+      },
+      "admission": "map",
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+        "case_id": "bestowing-virtue:golden-lure",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      }
+    },
+    {
+      "id": "blessing-and-giving",
+      "from": "bestowing-virtue",
+      "title": {
+        "ru": "Благословение и дар: семь различий",
+        "en": "Blessing and giving: seven distinctions"
+      },
+      "question": {
+        "ru": "Что меняется между переливом, принятием, благословением и жертвой?",
+        "en": "What changes between overflow, receiving, blessing and sacrifice?"
+      },
+      "sense": {
+        "ru": "Сопоставление сцен и речевых действий; это исследовательский маршрут, а не единое определение благословения.",
+        "en": "A comparison of scenes and speech acts; this research path is not a single definition of blessing."
+      },
+      "states": [
+        {
+          "id": "blessing-and-giving#overflow",
+          "title": {
+            "ru": "Перелив чаши",
+            "en": "The overflowing cup"
+          },
+          "reading": {
+            "ru": "Заратустра сравнивает накопленную мудрость с избытком мёда, нуждается в протянутых руках и просит солнце благословить чашу, желающую перелиться и снова опустеть.",
+            "en": "Zarathustra compares accumulated wisdom with excess honey, needs outstretched hands and asks the sun to bless the cup that wants to overflow and become empty again."
+          },
+          "cite": {
+            "w": "also-sprach-zarathustra",
+            "c": "I.01",
+            "u": [
+              "tos.text-unit.sid-775c1304b982084134991ec1bc6c84bb",
+              "tos.text-unit.sid-43df5a5a008e895ca4063ac931f2eae9"
+            ]
+          },
+          "statement_ids": {
+            "reading": "tos.bonsai.statement.blessing.and.giving.overflow.reading"
+          },
+          "independent_review": {
+            "reviewer": "kernel_final_content_review",
+            "model": "gpt-6.1-terra",
+            "effort": "xhigh",
+            "date": "2026-11-01",
+            "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+            "case_id": "blessing-and-giving#overflow",
+            "verdict": "confirmed",
+            "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+          }
+        },
+        {
+          "id": "blessing-and-giving#address",
+          "title": {
+            "ru": "Просьба и ответное благословение",
+            "en": "Request and blessing in return"
+          },
+          "reading": {
+            "ru": "Он говорит солнцу, что сам, орёл и змея принимали его избыток и благословляли его за это; теперь сам просит благословения перед своим нисхождением. Произнесённая просьба не равна показанному ответу солнца.",
+            "en": "He tells the sun that he, the eagle and the snake received its excess and blessed it in return; now he asks for blessing before his descent. The spoken request is distinct from a shown reply by the sun."
+          },
+          "cite": {
+            "w": "also-sprach-zarathustra",
+            "c": "I.01",
+            "u": [
+              "tos.text-unit.sid-9b5926e8bcd6a467c72aaa8b8d51bcfb",
+              "tos.text-unit.sid-6e10b0a202964b8b98277942e4079f2f"
+            ]
+          },
+          "statement_ids": {
+            "reading": "tos.bonsai.statement.blessing.and.giving.address.reading"
+          },
+          "independent_review": {
+            "reviewer": "kernel_final_content_review",
+            "model": "gpt-6.1-terra",
+            "effort": "xhigh",
+            "date": "2026-11-01",
+            "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+            "case_id": "blessing-and-giving#address",
+            "verdict": "confirmed",
+            "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+          }
+        },
+        {
+          "id": "blessing-and-giving#reception",
+          "title": {
+            "ru": "Вопрос принимающего",
+            "en": "The receiver’s question"
+          },
+          "reading": {
+            "ru": "В III.14 Заратустра передаёт вопросы собственной души: кто должен благодарить, не нужда ли дарение и не сострадание ли принятие? Это вложенные вопросы души, а не готовое общее определение любого дара.",
+            "en": "In III.14 Zarathustra reports his soul’s questions: who should give thanks, is giving a need and is receiving compassion? These are the soul’s embedded questions rather than a settled definition of every gift."
+          },
+          "cite": {
+            "w": "also-sprach-zarathustra",
+            "c": "III.14",
+            "u": [
+              "tos.text-unit.sid-e8e279e1df353941f741c0cb295429e6",
+              "tos.text-unit.sid-c0f42aa81160c9dadc492a1cef5dd98f"
+            ]
+          },
+          "statement_ids": {
+            "reading": "tos.bonsai.statement.blessing.and.giving.reception.reading"
+          },
+          "independent_review": {
+            "reviewer": "kernel_final_content_review",
+            "model": "gpt-6.1-terra",
+            "effort": "xhigh",
+            "date": "2026-11-01",
+            "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+            "case_id": "blessing-and-giving#reception",
+            "verdict": "confirmed",
+            "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+          }
+        },
+        {
+          "id": "blessing-and-giving#own-path",
+          "title": {
+            "ru": "Собственный путь ученика",
+            "en": "The disciple’s own path"
+          },
+          "reading": {
+            "ru": "В I.23 Заратустра требует, чтобы ученики ушли поодиночке, потеряли его и нашли себя. Возвращение обещано после отказа от него; дружба и общая надежда названы будущим ожиданием.",
+            "en": "In I.23 Zarathustra requires the disciples to leave separately, lose him and find themselves. A return is promised after they have denied him; friendship and a shared hope are named as a future expectation."
+          },
+          "cite": {
+            "w": "also-sprach-zarathustra",
+            "c": "I.23",
+            "u": [
+              "tos.text-unit.sid-1bdf3dd26bb92810b12e725f6c6c8ff9",
+              "tos.text-unit.sid-474041af8e46b8564e0b60045b07e736"
+            ]
+          },
+          "statement_ids": {
+            "reading": "tos.bonsai.statement.blessing.and.giving.own.path.reading"
+          },
+          "reading_revision_history": [
+            {
+              "reading": {
+                "ru": "В I.23 дар учителя не закрепляет зависимость: он требует, чтобы ученики ушли, отвергли его и нашли себя. Это конкретное требование к этим адресатам, с которым можно сопоставить принятие дара.",
+                "en": "In I.23 the teacher’s gift does not fix dependence: he requires the disciples to leave, reject him and find themselves. This is a concrete demand addressed to these listeners, available for comparison with receiving a gift."
+              },
+              "cite": {
+                "w": "also-sprach-zarathustra",
+                "c": "I.23",
+                "u": [
+                  "tos.text-unit.sid-1bdf3dd26bb92810b12e725f6c6c8ff9",
+                  "tos.text-unit.sid-474041af8e46b8564e0b60045b07e736"
+                ]
+              },
+              "independent_review": {
+                "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+                "case_id": "blessing-and-giving#own-path",
+                "verdict": "revise",
+                "findings": [
+                  "The demand for independent departure and self-finding is in I.23, but calling it the teacher’s gift is an interpretation, not stated by these units; the scene opens with the disciples giving him a staff. Recast or label the inference."
+                ]
+              }
+            }
+          ],
+          "independent_review": {
+            "reviewer": "kernel_final_content_review",
+            "model": "gpt-6.1-terra",
+            "effort": "xhigh",
+            "date": "2026-11-01",
+            "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-correction-review-2026-11-01.json",
+            "case_id": "blessing-and-giving#own-path",
+            "verdict": "confirmed",
+            "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+          }
+        },
+        {
+          "id": "blessing-and-giving#weariness",
+          "title": {
+            "ru": "Усталость дарящего",
+            "en": "The giver’s weariness"
+          },
+          "reading": {
+            "ru": "В Ночной песне Заратустра спрашивает, касается ли ещё душ принимающих, и поёт, что счастье дарения угасло в самом дарении, а добродетель устала от избытка. Избыток здесь не гарантирует взаимности или радости.",
+            "en": "In the Night Song Zarathustra asks whether he still touches the receivers’ souls and sings that the happiness of giving died in giving itself and virtue grew weary of its excess. Excess here does not guarantee reciprocity or joy."
+          },
+          "cite": {
+            "w": "also-sprach-zarathustra",
+            "c": "II.09",
+            "u": [
+              "tos.text-unit.sid-2843a99935e60d5c350f2a16c2f89f12",
+              "tos.text-unit.sid-2164fb8a5ad05ece977ae7ce37b3badc"
+            ]
+          },
+          "statement_ids": {
+            "reading": "tos.bonsai.statement.blessing.and.giving.weariness.reading"
+          },
+          "independent_review": {
+            "reviewer": "kernel_final_content_review",
+            "model": "gpt-6.1-terra",
+            "effort": "xhigh",
+            "date": "2026-11-01",
+            "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+            "case_id": "blessing-and-giving#weariness",
+            "verdict": "confirmed",
+            "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+          }
+        },
+        {
+          "id": "blessing-and-giving#things",
+          "title": {
+            "ru": "Благословение вещей",
+            "en": "Blessing things"
+          },
+          "reading": {
+            "ru": "В III.04 благословение названо небом над каждой вещью: случаем, невинностью и свободой от подчинения цели. Здесь оно направлено на вещи; его предмет отличается от просьбы к солнцу и от отношений дарящего с принимающим.",
+            "en": "In III.04 blessing is named as a sky over each thing: chance, innocence and freedom from subjection to purpose. Here it concerns things; its object differs from the request to the sun and the relation between giver and receiver."
+          },
+          "cite": {
+            "w": "also-sprach-zarathustra",
+            "c": "III.04",
+            "u": [
+              "tos.text-unit.sid-433c911010562160cdf93d8706848b6a",
+              "tos.text-unit.sid-f596d6e868de08e225ed9e832c652a1b"
+            ]
+          },
+          "statement_ids": {
+            "reading": "tos.bonsai.statement.blessing.and.giving.things.reading"
+          },
+          "independent_review": {
+            "reviewer": "kernel_final_content_review",
+            "model": "gpt-6.1-terra",
+            "effort": "xhigh",
+            "date": "2026-11-01",
+            "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+            "case_id": "blessing-and-giving#things",
+            "verdict": "confirmed",
+            "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+          }
+        },
+        {
+          "id": "blessing-and-giving#sacrifice",
+          "title": {
+            "ru": "«Жертва» и приманка",
+            "en": "“Sacrifice” and bait"
+          },
+          "reading": {
+            "ru": "В IV.01 Заратустра называет разговор о медовой жертве уловкой речи и отказывается называть жертвой расходование того, что ему дарят. Мёд и собственное счастье он использует как приманку для людей.",
+            "en": "In IV.01 Zarathustra calls his talk of a honey sacrifice a verbal ruse and refuses to call spending what he is given a sacrifice. He uses honey and his own happiness as bait for people."
+          },
+          "cite": {
+            "w": "also-sprach-zarathustra",
+            "c": "IV.01",
+            "u": [
+              "tos.text-unit.sid-03d7b2fb23b1a857df83abad49e68c95",
+              "tos.text-unit.sid-bfe99dd3c0c63c08a7b68d8e392b26a1"
+            ]
+          },
+          "statement_ids": {
+            "reading": "tos.bonsai.statement.blessing.and.giving.sacrifice.reading"
+          },
+          "reading_revision_history": [
+            {
+              "reading": {
+                "ru": "В IV.01 Заратустра сам переименовывает медовую жертву: слово было уловкой речи, он тратит подаренное, а мёд и собственное счастье служат приманкой для людей. Сопоставление удерживает стратегию привлечения рядом с образом дара.",
+                "en": "In IV.01 Zarathustra renames the honey sacrifice himself: the word was a verbal ruse, he spends what was given, and honey and his own happiness serve as bait for people. The comparison keeps a strategy of attraction beside the image of giving."
+              },
+              "cite": {
+                "w": "also-sprach-zarathustra",
+                "c": "IV.01",
+                "u": [
+                  "tos.text-unit.sid-03d7b2fb23b1a857df83abad49e68c95",
+                  "tos.text-unit.sid-bfe99dd3c0c63c08a7b68d8e392b26a1"
+                ]
+              },
+              "independent_review": {
+                "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+                "case_id": "blessing-and-giving#sacrifice",
+                "verdict": "revise",
+                "findings": [
+                  "IV.01 03d7…/6078…: Zarathustra rejects calling it sacrifice and describes squandering what is given; “переименовывает медовую жертву” / “renames the honey sacrifice” asserts an act the passage does not make."
+                ]
+              }
+            }
+          ],
+          "independent_review": {
+            "reviewer": "kernel_final_content_review",
+            "model": "gpt-6.1-terra",
+            "effort": "xhigh",
+            "date": "2026-11-01",
+            "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-correction-review-2026-11-01.json",
+            "case_id": "blessing-and-giving#sacrifice",
+            "verdict": "confirmed",
+            "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+          }
+        }
+      ],
+      "steps": [
+        {
+          "id": "tos.bonsai.step.blessing.and.giving.overflow.address",
+          "from": "blessing-and-giving#overflow",
+          "to": "blessing-and-giving#address",
+          "verb": {
+            "ru": "связан с переменой роли благословляющего",
+            "en": "is linked to a change in who blesses"
+          },
+          "sense": {
+            "ru": "В I.01 Заратустра, орёл и змея благословляли солнце за принятый избыток. Теперь Заратустра сам хочет отдавать избыток и просит солнце благословить его и чашу. Меняется направление благословения: получатель солнечного избытка просит благословения на собственную отдачу.",
+            "en": "In I.01 Zarathustra, the eagle and the snake blessed the sun for the excess they received. Now Zarathustra wants to give his own excess and asks the sun to bless him and the cup. The direction of blessing changes: a receiver of the sun’s excess asks for blessing upon his own giving."
+          },
+          "cite": {
+            "w": "also-sprach-zarathustra",
+            "c": "I.01",
+            "u": [
+              "tos.text-unit.sid-9b5926e8bcd6a467c72aaa8b8d51bcfb",
+              "tos.text-unit.sid-6e10b0a202964b8b98277942e4079f2f"
+            ]
+          },
+          "grounds": [
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "I.01",
+              "u": [
+                "tos.text-unit.sid-775c1304b982084134991ec1bc6c84bb",
+                "tos.text-unit.sid-43df5a5a008e895ca4063ac931f2eae9"
+              ]
+            }
+          ],
+          "status": "reconstruction",
+          "assessment": {
+            "verdict": "reconstruction",
+            "reason": "В пределах одной речи I.01 связаны прежнее благословение солнца получателями и нынешняя просьба дарящего благословить его и чашу.",
+            "attention": "high",
+            "reviewer": "kernel_final_content_review",
+            "review_status": "independently-reviewed-stand-proposal"
+          },
+          "statement_ids": {
+            "sense": "tos.bonsai.statement.blessing.and.giving.overflow.address.sense"
+          },
+          "step_revision_history": [
+            {
+              "verb": {
+                "ru": "требует различить просьбу и ответ",
+                "en": "calls for distinguishing request from response"
+              },
+              "sense": {
+                "ru": "Он говорит солнцу, что сам, орёл и змея принимали его избыток и благословляли его за это; теперь сам просит благословения перед своим нисхождением. Произнесённая просьба не равна показанному ответу солнца.",
+                "en": "He tells the sun that he, the eagle and the snake received its excess and blessed it in return; now he asks for blessing before his descent. The spoken request is distinct from a shown reply by the sun."
+              },
+              "cite": {
+                "w": "also-sprach-zarathustra",
+                "c": "I.01",
+                "u": [
+                  "tos.text-unit.sid-9b5926e8bcd6a467c72aaa8b8d51bcfb",
+                  "tos.text-unit.sid-6e10b0a202964b8b98277942e4079f2f"
+                ]
+              },
+              "grounds": [
+                {
+                  "w": "also-sprach-zarathustra",
+                  "c": "I.01",
+                  "u": [
+                    "tos.text-unit.sid-775c1304b982084134991ec1bc6c84bb",
+                    "tos.text-unit.sid-43df5a5a008e895ca4063ac931f2eae9"
+                  ]
+                }
+              ],
+              "status": "reconstruction",
+              "assessment": {
+                "verdict": "undecided",
+                "reason": "Сопоставление двух указанных мест; переход не изображает хронологическую или причинную последовательность сцен.",
+                "attention": "high",
+                "reviewer": "kernel-content-source-20261101",
+                "review_status": "independent-review-pending"
+              },
+              "independent_review": {
+                "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+                "case_id": "tos.bonsai.step.blessing.and.giving.overflow.address",
+                "verdict": "revise",
+                "findings": [
+                  "The sense repeats the target and the edge “distinguish request from response” misses the substantive reversal: he and his animals blessed the sun for receiving its excess, whereas he now asks the sun to bless him/the cup. No solar reply is shown."
+                ]
+              }
+            }
+          ],
+          "independent_review": {
+            "reviewer": "kernel_final_content_review",
+            "model": "gpt-6.1-terra",
+            "effort": "xhigh",
+            "date": "2026-11-01",
+            "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-correction-review-2026-11-01.json",
+            "case_id": "tos.bonsai.step.blessing.and.giving.overflow.address",
+            "verdict": "confirmed",
+            "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+          }
+        },
+        {
+          "id": "tos.bonsai.step.blessing.and.giving.address.reception",
+          "from": "blessing-and-giving#address",
+          "to": "blessing-and-giving#reception",
+          "verb": {
+            "ru": "сопоставляется с обращением благодарности",
+            "en": "is compared with the reversal of gratitude"
+          },
+          "sense": {
+            "ru": "В I.01 получатели благословляют солнце за его избыток. В III.14 душа спрашивает, не должен ли, наоборот, даритель благодарить принимающего. Связь этих мест — смена направления благодарности; вопрос души остаётся вопросом.",
+            "en": "In I.01 the receivers bless the sun for its excess. In III.14 the soul asks whether, conversely, the giver should thank the receiver. The comparison turns on the direction of gratitude; the soul’s question remains a question."
+          },
+          "cite": {
+            "w": "also-sprach-zarathustra",
+            "c": "III.14",
+            "u": [
+              "tos.text-unit.sid-e8e279e1df353941f741c0cb295429e6",
+              "tos.text-unit.sid-c0f42aa81160c9dadc492a1cef5dd98f"
+            ]
+          },
+          "grounds": [
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "I.01",
+              "u": [
+                "tos.text-unit.sid-9b5926e8bcd6a467c72aaa8b8d51bcfb",
+                "tos.text-unit.sid-6e10b0a202964b8b98277942e4079f2f"
+              ]
+            }
+          ],
+          "status": "reconstruction",
+          "assessment": {
+            "verdict": "reconstruction",
+            "reason": "Сопоставляются направления благодарности: от получателей к солнцу в I.01 и возможная благодарность дарителя принимающему в вопросе души III.14.",
+            "attention": "high",
+            "reviewer": "kernel_final_content_review",
+            "review_status": "independently-reviewed-stand-proposal"
+          },
+          "statement_ids": {
+            "sense": "tos.bonsai.statement.blessing.and.giving.address.reception.sense"
+          },
+          "step_revision_history": [
+            {
+              "verb": {
+                "ru": "сопоставляется с вопросами о принятии",
+                "en": "is compared with questions about receiving"
+              },
+              "sense": {
+                "ru": "В III.14 Заратустра передаёт вопросы собственной души: кто должен благодарить, не нужда ли дарение и не сострадание ли принятие? Это вложенные вопросы души, а не готовое общее определение любого дара.",
+                "en": "In III.14 Zarathustra reports his soul’s questions: who should give thanks, is giving a need and is receiving compassion? These are the soul’s embedded questions rather than a settled definition of every gift."
+              },
+              "cite": {
+                "w": "also-sprach-zarathustra",
+                "c": "III.14",
+                "u": [
+                  "tos.text-unit.sid-e8e279e1df353941f741c0cb295429e6",
+                  "tos.text-unit.sid-c0f42aa81160c9dadc492a1cef5dd98f"
+                ]
+              },
+              "grounds": [
+                {
+                  "w": "also-sprach-zarathustra",
+                  "c": "I.01",
+                  "u": [
+                    "tos.text-unit.sid-9b5926e8bcd6a467c72aaa8b8d51bcfb",
+                    "tos.text-unit.sid-6e10b0a202964b8b98277942e4079f2f"
+                  ]
+                }
+              ],
+              "status": "reconstruction",
+              "assessment": {
+                "verdict": "undecided",
+                "reason": "Сопоставление двух указанных мест; переход не изображает хронологическую или причинную последовательность сцен.",
+                "attention": "high",
+                "reviewer": "kernel-content-source-20261101",
+                "review_status": "independent-review-pending"
+              },
+              "independent_review": {
+                "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+                "case_id": "tos.bonsai.step.blessing.and.giving.address.reception",
+                "verdict": "revise",
+                "findings": [
+                  "The sense repeats the target, not the relation: contrast the recipients blessing the sun in I.01 with the soul’s question whether the giver should thank the receiver in III.14; keep it a comparison, not a settled rule."
+                ]
+              }
+            }
+          ],
+          "independent_review": {
+            "reviewer": "kernel_final_content_review",
+            "model": "gpt-6.1-terra",
+            "effort": "xhigh",
+            "date": "2026-11-01",
+            "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-correction-review-2026-11-01.json",
+            "case_id": "tos.bonsai.step.blessing.and.giving.address.reception",
+            "verdict": "confirmed",
+            "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+          }
+        },
+        {
+          "id": "tos.bonsai.step.blessing.and.giving.overflow.own.path",
+          "from": "blessing-and-giving#overflow",
+          "to": "blessing-and-giving#own-path",
+          "verb": {
+            "ru": "сопоставляется с требованием ученикам уйти",
+            "en": "is compared with the demand that the disciples leave"
+          },
+          "sense": {
+            "ru": "В I.01 Заратустра нуждается в протянутых руках, чтобы отдать избыток мудрости. В I.23 он требует, чтобы ученики ушли от него и нашли себя. Сопоставление показывает два его обращения к другим: потребность в принимающих и требование самостоятельного ухода.",
+            "en": "In I.01 Zarathustra needs outstretched hands to give away his excess of wisdom. In I.23 he requires the disciples to leave him and find themselves. The comparison places two of his addresses to others together: a need for receivers and a demand for independent departure."
+          },
+          "cite": {
+            "w": "also-sprach-zarathustra",
+            "c": "I.23",
+            "u": [
+              "tos.text-unit.sid-1bdf3dd26bb92810b12e725f6c6c8ff9",
+              "tos.text-unit.sid-474041af8e46b8564e0b60045b07e736"
+            ]
+          },
+          "grounds": [
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "I.01",
+              "u": [
+                "tos.text-unit.sid-775c1304b982084134991ec1bc6c84bb",
+                "tos.text-unit.sid-43df5a5a008e895ca4063ac931f2eae9"
+              ]
+            }
+          ],
+          "status": "reconstruction",
+          "assessment": {
+            "verdict": "reconstruction",
+            "reason": "I.01 прямо говорит о нужде в протянутых руках; I.23 прямо требует ухода учеников. Они сопоставляются как два обращения Заратустры, без отождествления адресатов.",
+            "attention": "high",
+            "reviewer": "kernel_final_content_review",
+            "review_status": "independently-reviewed-stand-proposal"
+          },
+          "statement_ids": {
+            "sense": "tos.bonsai.statement.blessing.and.giving.overflow.own.path.sense"
+          },
+          "replaces_draft_step": "tos.bonsai.step.blessing.and.giving.reception.own.path",
+          "independent_review": {
+            "reviewer": "kernel_final_content_review",
+            "model": "gpt-6.1-terra",
+            "effort": "xhigh",
+            "date": "2026-11-01",
+            "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-route-final-review-2026-11-01.json",
+            "case_id": "tos.bonsai.step.blessing.and.giving.overflow.own.path",
+            "verdict": "confirmed",
+            "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+          }
+        },
+        {
+          "id": "tos.bonsai.step.blessing.and.giving.own.path.weariness",
+          "from": "blessing-and-giving#own-path",
+          "to": "blessing-and-giving#weariness",
+          "verb": {
+            "ru": "сопоставляется с болезненной дистанцией дарящего",
+            "en": "is compared with the giver’s painful distance"
+          },
+          "sense": {
+            "ru": "В I.23 Заратустра сам требует, чтобы ученики ушли от него. В II.09 дистанцию переживает дарящий: другие принимают, но он сомневается, касается ли их душ, и говорит об усталости от избытка. Сопоставлены желаемое расхождение с учителем и мучительный разрыв между дарением и принятием.",
+            "en": "In I.23 Zarathustra himself requires the disciples to leave him. In II.09 it is the giver who suffers distance: others receive, yet he doubts whether he touches their souls and speaks of weariness from excess. The comparison sets a desired departure from the teacher beside the painful gulf between giving and receiving."
+          },
+          "cite": {
+            "w": "also-sprach-zarathustra",
+            "c": "II.09",
+            "u": [
+              "tos.text-unit.sid-2843a99935e60d5c350f2a16c2f89f12",
+              "tos.text-unit.sid-2164fb8a5ad05ece977ae7ce37b3badc"
+            ]
+          },
+          "grounds": [
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "I.23",
+              "u": [
+                "tos.text-unit.sid-1bdf3dd26bb92810b12e725f6c6c8ff9",
+                "tos.text-unit.sid-474041af8e46b8564e0b60045b07e736"
+              ]
+            }
+          ],
+          "status": "reconstruction",
+          "assessment": {
+            "verdict": "reconstruction",
+            "reason": "I.23 требует расхождения; II.09 называет разрыв между дарением и принятием мучительным. Песня не проверяет, нашли ли ученики себя.",
+            "attention": "high",
+            "reviewer": "kernel_final_content_review",
+            "review_status": "independently-reviewed-stand-proposal"
+          },
+          "statement_ids": {
+            "sense": "tos.bonsai.statement.blessing.and.giving.own.path.weariness.sense"
+          },
+          "step_revision_history": [
+            {
+              "verb": {
+                "ru": "проверяется песней об усталости",
+                "en": "is tested against the song of weariness"
+              },
+              "sense": {
+                "ru": "В Ночной песне Заратустра спрашивает, касается ли ещё душ принимающих, и поёт, что счастье дарения угасло в самом дарении, а добродетель устала от избытка. Избыток здесь не гарантирует взаимности или радости.",
+                "en": "In the Night Song Zarathustra asks whether he still touches the receivers’ souls and sings that the happiness of giving died in giving itself and virtue grew weary of its excess. Excess here does not guarantee reciprocity or joy."
+              },
+              "cite": {
+                "w": "also-sprach-zarathustra",
+                "c": "II.09",
+                "u": [
+                  "tos.text-unit.sid-2843a99935e60d5c350f2a16c2f89f12",
+                  "tos.text-unit.sid-2164fb8a5ad05ece977ae7ce37b3badc"
+                ]
+              },
+              "grounds": [
+                {
+                  "w": "also-sprach-zarathustra",
+                  "c": "I.23",
+                  "u": [
+                    "tos.text-unit.sid-1bdf3dd26bb92810b12e725f6c6c8ff9",
+                    "tos.text-unit.sid-474041af8e46b8564e0b60045b07e736"
+                  ]
+                }
+              ],
+              "status": "reconstruction",
+              "assessment": {
+                "verdict": "undecided",
+                "reason": "Сопоставление двух указанных мест; переход не изображает хронологическую или причинную последовательность сцен.",
+                "attention": "high",
+                "reviewer": "kernel-content-source-20261101",
+                "review_status": "independent-review-pending"
+              },
+              "independent_review": {
+                "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+                "case_id": "tos.bonsai.step.blessing.and.giving.own.path.weariness",
+                "verdict": "revise",
+                "findings": [
+                  "The sense repeats the destination; II.09 asks about contact with receivers and the giver’s exhaustion, not whether disciples find their own path. “is tested against” overstates the relation. Explain a bounded comparison of different problems or remove that claim."
+                ]
+              }
+            }
+          ],
+          "independent_review": {
+            "reviewer": "kernel_final_content_review",
+            "model": "gpt-6.1-terra",
+            "effort": "xhigh",
+            "date": "2026-11-01",
+            "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-correction-review-2026-11-01.json",
+            "case_id": "tos.bonsai.step.blessing.and.giving.own.path.weariness",
+            "verdict": "confirmed",
+            "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+          }
+        },
+        {
+          "id": "tos.bonsai.step.blessing.and.giving.address.things",
+          "from": "blessing-and-giving#address",
+          "to": "blessing-and-giving#things",
+          "verb": {
+            "ru": "сопоставляется с собственным благословением вещей",
+            "en": "is compared with his own blessing of things"
+          },
+          "sense": {
+            "ru": "В I.01 Заратустра просит солнце благословить его и чашу. В III.04 он сам говорит о своём благословении: быть небом над каждой вещью и вернуть вещам случай, освободив их от подчинения цели. Меняются роль Заратустры и то, к чему обращено благословение.",
+            "en": "In I.01 Zarathustra asks the sun to bless him and the cup. In III.04 he speaks of his own blessing: to stand as a sky over each thing and restore chance to things, freeing them from subjection to purpose. Zarathustra’s role and the object of blessing change."
+          },
+          "cite": {
+            "w": "also-sprach-zarathustra",
+            "c": "III.04",
+            "u": [
+              "tos.text-unit.sid-433c911010562160cdf93d8706848b6a",
+              "tos.text-unit.sid-f596d6e868de08e225ed9e832c652a1b"
+            ]
+          },
+          "grounds": [
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "I.01",
+              "u": [
+                "tos.text-unit.sid-9b5926e8bcd6a467c72aaa8b8d51bcfb",
+                "tos.text-unit.sid-6e10b0a202964b8b98277942e4079f2f"
+              ]
+            },
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "I.01",
+              "u": [
+                "tos.text-unit.sid-778b42e35fce3f7979a96c19045ceb9c",
+                "tos.text-unit.sid-778b42e35fce3f7979a96c19045ceb9c"
+              ]
+            }
+          ],
+          "status": "reconstruction",
+          "assessment": {
+            "verdict": "reconstruction",
+            "reason": "Сопоставлены два прямо названных благословения: просьба к солнцу в I.01 и собственное благословение вещей в III.04.",
+            "attention": "high",
+            "reviewer": "kernel_final_content_review",
+            "review_status": "independently-reviewed-stand-proposal"
+          },
+          "statement_ids": {
+            "sense": "tos.bonsai.statement.blessing.and.giving.address.things.sense"
+          },
+          "replaces_draft_step": "tos.bonsai.step.blessing.and.giving.weariness.things",
+          "independent_review": {
+            "reviewer": "kernel_final_content_review",
+            "model": "gpt-6.1-terra",
+            "effort": "xhigh",
+            "date": "2026-11-01",
+            "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-route-final-review-2026-11-01.json",
+            "case_id": "tos.bonsai.step.blessing.and.giving.address.things",
+            "verdict": "confirmed",
+            "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+          }
+        },
+        {
+          "id": "tos.bonsai.step.blessing.and.giving.things.sacrifice",
+          "from": "blessing-and-giving#things",
+          "to": "blessing-and-giving#sacrifice",
+          "verb": {
+            "ru": "сопоставляется с целенаправленной приманкой",
+            "en": "is compared with purposeful bait"
+          },
+          "sense": {
+            "ru": "В III.04 Заратустра возвращает вещам случай и освобождает их от подчинения цели. В IV.01 он объявляет свой замысел: забросить счастье как приманку для людей. Здесь сопоставлены освобождение вещей от цели и целенаправленное привлечение людей.",
+            "en": "In III.04 Zarathustra restores chance to things and frees them from subjection to purpose. In IV.01 he declares his aim: to cast happiness as bait for people. The comparison sets freeing things from purpose beside the purposeful attraction of people."
+          },
+          "cite": {
+            "w": "also-sprach-zarathustra",
+            "c": "IV.01",
+            "u": [
+              "tos.text-unit.sid-03d7b2fb23b1a857df83abad49e68c95",
+              "tos.text-unit.sid-bfe99dd3c0c63c08a7b68d8e392b26a1"
+            ]
+          },
+          "grounds": [
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "III.04",
+              "u": [
+                "tos.text-unit.sid-433c911010562160cdf93d8706848b6a",
+                "tos.text-unit.sid-f596d6e868de08e225ed9e832c652a1b"
+              ]
+            }
+          ],
+          "status": "reconstruction",
+          "assessment": {
+            "verdict": "reconstruction",
+            "reason": "III.04 освобождает вещи от подчинения цели; IV.01 объявляет замысел приманки. Счастье не отождествляется с полученным даром.",
+            "attention": "high",
+            "reviewer": "kernel_final_content_review",
+            "review_status": "independently-reviewed-stand-proposal"
+          },
+          "statement_ids": {
+            "sense": "tos.bonsai.statement.blessing.and.giving.things.sacrifice.sense"
+          },
+          "step_revision_history": [
+            {
+              "verb": {
+                "ru": "сопоставляется с переименованной жертвой",
+                "en": "is compared with the renamed sacrifice"
+              },
+              "sense": {
+                "ru": "В IV.01 Заратустра сам переименовывает медовую жертву: слово было уловкой речи, он тратит подаренное, а мёд и собственное счастье служат приманкой для людей. Сопоставление удерживает стратегию привлечения рядом с образом дара.",
+                "en": "In IV.01 Zarathustra renames the honey sacrifice himself: the word was a verbal ruse, he spends what was given, and honey and his own happiness serve as bait for people. The comparison keeps a strategy of attraction beside the image of giving."
+              },
+              "cite": {
+                "w": "also-sprach-zarathustra",
+                "c": "IV.01",
+                "u": [
+                  "tos.text-unit.sid-03d7b2fb23b1a857df83abad49e68c95",
+                  "tos.text-unit.sid-bfe99dd3c0c63c08a7b68d8e392b26a1"
+                ]
+              },
+              "grounds": [
+                {
+                  "w": "also-sprach-zarathustra",
+                  "c": "III.04",
+                  "u": [
+                    "tos.text-unit.sid-433c911010562160cdf93d8706848b6a",
+                    "tos.text-unit.sid-f596d6e868de08e225ed9e832c652a1b"
+                  ]
+                }
+              ],
+              "status": "reconstruction",
+              "assessment": {
+                "verdict": "undecided",
+                "reason": "Сопоставление двух указанных мест; переход не изображает хронологическую или причинную последовательность сцен.",
+                "attention": "high",
+                "reviewer": "kernel-content-source-20261101",
+                "review_status": "independent-review-pending"
+              },
+              "independent_review": {
+                "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+                "case_id": "tos.bonsai.step.blessing.and.giving.things.sacrifice",
+                "verdict": "revise",
+                "findings": [
+                  "IV.01 03d7…/6078… refuses the sacrifice label as a verbal ruse and describes squandering what is given; it does not rename the honey sacrifice. The sense repeats the destination and never explains what the III.04 blessing of things contributes to the comparison. Recast the relationship or drop the transition."
+                ]
+              }
+            },
+            {
+              "verb": {
+                "ru": "сопоставляется с целенаправленной приманкой",
+                "en": "is compared with purposeful bait"
+              },
+              "sense": {
+                "ru": "В III.04 Заратустра возвращает вещам случай и освобождает их от подчинения цели. В IV.01 расходование подаренного, напротив, имеет объявленный замысел: счастье забрасывается как приманка для людей. Различие касается свободы вещей от цели и намеренного применения полученного дара для привлечения людей.",
+                "en": "In III.04 Zarathustra restores chance to things and frees them from subjection to purpose. In IV.01 spending what he is given has an explicit aim: happiness is cast as bait for people. The comparison distinguishes things’ freedom from purpose from the deliberate use of a received gift to attract people."
+              },
+              "cite": {
+                "w": "also-sprach-zarathustra",
+                "c": "IV.01",
+                "u": [
+                  "tos.text-unit.sid-03d7b2fb23b1a857df83abad49e68c95",
+                  "tos.text-unit.sid-bfe99dd3c0c63c08a7b68d8e392b26a1"
+                ]
+              },
+              "grounds": [
+                {
+                  "w": "also-sprach-zarathustra",
+                  "c": "III.04",
+                  "u": [
+                    "tos.text-unit.sid-433c911010562160cdf93d8706848b6a",
+                    "tos.text-unit.sid-f596d6e868de08e225ed9e832c652a1b"
+                  ]
+                }
+              ],
+              "independent_review": {
+                "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-correction-review-2026-11-01.json",
+                "case_id": "tos.bonsai.step.blessing.and.giving.things.sacrifice",
+                "verdict": "revise",
+                "findings": [
+                  "IV.01 says that Zarathustra squanders what is given him, and separately names honey and his happiness as bait for people. It does not identify the happiness cast as bait with an acquired gift or say that the act of spending what was given has this purpose. Compare liberation from purpose in III.04 with declared intent of the bait, without identifying the bait with a received gift."
+                ]
+              }
+            }
+          ],
+          "independent_review": {
+            "reviewer": "kernel_final_content_review",
+            "model": "gpt-6.1-terra",
+            "effort": "xhigh",
+            "date": "2026-11-01",
+            "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-route-final-review-2026-11-01.json",
+            "case_id": "tos.bonsai.step.blessing.and.giving.things.sacrifice",
+            "verdict": "confirmed",
+            "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+          }
+        }
+      ],
+      "assessment": {
+        "verdict": "reconstruction",
+        "reason": "Маршрут сопоставляет избыток, направление благословения, вопрос о благодарности, уход учеников, дистанцию дарящего, благословение вещей и замысел приманки. Переходы образуют разветвлённое сравнение, не развитие одного тезиса.",
+        "attention": "high",
+        "reviewer": "kernel_final_content_review",
+        "review_status": "independently-reviewed-stand-proposal"
+      },
+      "admission": "map",
+      "maker": "kernel-content-source-20261101",
+      "retired_steps": [
+        {
+          "id": "tos.bonsai.step.blessing.and.giving.reception.own.path",
+          "from": "blessing-and-giving#reception",
+          "to": "blessing-and-giving#own-path",
+          "verb": {
+            "ru": "сопоставляется с самостоятельностью ученика",
+            "en": "is compared with the disciple’s independence"
+          },
+          "sense": {
+            "ru": "Вопрос души в III.14 выделяет действие принимающего: он принимает то, что дарителю нужно отдать. В I.23 Заратустра требует от учеников другого действия — уйти от него и найти себя. Маршрут различает принятие дара и сохранение положения ученика; требование уйти не названо в тексте даром.",
+            "en": "The soul’s question in III.14 singles out the receiver’s act: receiving what the giver needs to give. In I.23 Zarathustra asks the disciples for a different act—to leave him and find themselves. The comparison distinguishes receiving a gift from remaining a disciple; the text does not call the demand to leave a gift."
+          },
+          "cite": {
+            "w": "also-sprach-zarathustra",
+            "c": "I.23",
+            "u": [
+              "tos.text-unit.sid-1bdf3dd26bb92810b12e725f6c6c8ff9",
+              "tos.text-unit.sid-474041af8e46b8564e0b60045b07e736"
+            ]
+          },
+          "grounds": [
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "III.14",
+              "u": [
+                "tos.text-unit.sid-e8e279e1df353941f741c0cb295429e6",
+                "tos.text-unit.sid-c0f42aa81160c9dadc492a1cef5dd98f"
+              ]
+            }
+          ],
+          "status": "reconstruction",
+          "assessment": {
+            "verdict": "undecided",
+            "reason": "Это сопоставление разных действий адресата: принятия в III.14 и ухода от учителя в I.23; одно не выведено из другого.",
+            "attention": "high",
+            "reviewer": "kernel-content-source-20261101",
+            "review_status": "independent-review-pending"
+          },
+          "statement_ids": {
+            "sense": "tos.bonsai.statement.blessing.and.giving.reception.own.path.sense"
+          },
+          "step_revision_history": [
+            {
+              "verb": {
+                "ru": "уточняется требованием самостоятельности",
+                "en": "is tested against a demand for independence"
+              },
+              "sense": {
+                "ru": "В I.23 дар учителя не закрепляет зависимость: он требует, чтобы ученики ушли, отвергли его и нашли себя. Это конкретное требование к этим адресатам, с которым можно сопоставить принятие дара.",
+                "en": "In I.23 the teacher’s gift does not fix dependence: he requires the disciples to leave, reject him and find themselves. This is a concrete demand addressed to these listeners, available for comparison with receiving a gift."
+              },
+              "cite": {
+                "w": "also-sprach-zarathustra",
+                "c": "I.23",
+                "u": [
+                  "tos.text-unit.sid-1bdf3dd26bb92810b12e725f6c6c8ff9",
+                  "tos.text-unit.sid-474041af8e46b8564e0b60045b07e736"
+                ]
+              },
+              "grounds": [
+                {
+                  "w": "also-sprach-zarathustra",
+                  "c": "III.14",
+                  "u": [
+                    "tos.text-unit.sid-e8e279e1df353941f741c0cb295429e6",
+                    "tos.text-unit.sid-c0f42aa81160c9dadc492a1cef5dd98f"
+                  ]
+                }
+              ],
+              "status": "reconstruction",
+              "assessment": {
+                "verdict": "undecided",
+                "reason": "Сопоставление двух указанных мест; переход не изображает хронологическую или причинную последовательность сцен.",
+                "attention": "high",
+                "reviewer": "kernel-content-source-20261101",
+                "review_status": "independent-review-pending"
+              },
+              "independent_review": {
+                "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-review-2026-11-01.json",
+                "case_id": "tos.bonsai.step.blessing.and.giving.reception.own.path",
+                "verdict": "revise",
+                "findings": [
+                  "I.23 requires disciples to leave, lose/reject him and find themselves, but the passage does not call this requirement a gift from the teacher; the tangible gift in 0ffe… is the staff given to Zarathustra by disciples. Recast this as a comparison or label the gift reading as interpretation, and avoid presenting it as resolving the soul’s questions."
+                ]
+              }
+            }
+          ],
+          "independent_review": {
+            "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-correction-review-2026-11-01.json",
+            "case_id": "tos.bonsai.step.blessing.and.giving.reception.own.path",
+            "verdict": "revise",
+            "findings": [
+              "III.14 asks whether giving is a need; “the giver needs to give” turns that question into an assertion. The further contrast between receiving a gift and remaining a disciple lacks a textual connection: the cited I.23 requires departure and self-finding, without calling the demand a gift or characterising continued discipleship as the alternative to accepting one. Remove or restructure the edge rather than treat the pairing of different acts as a relation."
+            ]
+          }
+        },
+        {
+          "id": "tos.bonsai.step.blessing.and.giving.weariness.things",
+          "from": "blessing-and-giving#weariness",
+          "to": "blessing-and-giving#things",
+          "verb": {
+            "ru": "сопоставляется с дарованной вещам свободой",
+            "en": "is compared with freedom restored to things"
+          },
+          "sense": {
+            "ru": "В II.09 дарящий ждёт прикосновения к душам принимающих и переживает разрыв между ними. В III.04 благословение обращено к вещам: Заратустра возвращает им случай и освобождает от рабства цели. Здесь нет показанного ответа принимающего; меняется сам предмет дарования — от отношения между людьми к свободе вещей от цели.",
+            "en": "In II.09 the giver seeks contact with the receivers’ souls and suffers the gulf between them. In III.04 blessing concerns things: Zarathustra restores chance to them and frees them from bondage to purpose. No receiver’s reply is shown here; the object of giving shifts from a relation between people to the freedom of things from purpose."
+          },
+          "cite": {
+            "w": "also-sprach-zarathustra",
+            "c": "III.04",
+            "u": [
+              "tos.text-unit.sid-433c911010562160cdf93d8706848b6a",
+              "tos.text-unit.sid-f596d6e868de08e225ed9e832c652a1b"
+            ]
+          },
+          "grounds": [
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "II.09",
+              "u": [
+                "tos.text-unit.sid-2843a99935e60d5c350f2a16c2f89f12",
+                "tos.text-unit.sid-2164fb8a5ad05ece977ae7ce37b3badc"
+              ]
+            }
+          ],
+          "status": "reconstruction",
+          "assessment": {
+            "verdict": "undecided",
+            "reason": "Сопоставлены разрыв между людьми в II.09 и названное в III.04 возвращение вещам свободы от цели.",
+            "attention": "high",
+            "reviewer": "kernel-content-source-20261101",
+            "review_status": "independent-review-pending"
+          },
+          "statement_ids": {
+            "sense": "tos.bonsai.statement.blessing.and.giving.weariness.things.sense"
+          },
+          "step_revision_history": [
+            {
+              "verb": {
+                "ru": "отличается от благословения вещей",
+                "en": "differs from blessing things"
+              },
+              "sense": {
+                "ru": "В III.04 благословение названо небом над каждой вещью: случаем, невинностью и свободой от подчинения цели. Здесь оно направлено на вещи; его предмет отличается от просьбы к солнцу и от отношений дарящего с принимающим.",
+                "en": "In III.04 blessing is named as a sky over each thing: chance, innocence and freedom from subjection to purpose. Here it concerns things; its object differs from the request to the sun and the relation between giver and receiver."
+              },
+              "cite": {
+                "w": "also-sprach-zarathustra",
+                "c": "III.04",
+                "u": [
+                  "tos.text-unit.sid-433c911010562160cdf93d8706848b6a",
+                  "tos.text-unit.sid-f596d6e868de08e225ed9e832c652a1b"
+                ]
+              },
+              "grounds": [
+                {
+                  "w": "also-sprach-zarathustra",
+                  "c": "II.09",
+                  "u": [
+                    "tos.text-unit.sid-2843a99935e60d5c350f2a16c2f89f12",
+                    "tos.text-unit.sid-2164fb8a5ad05ece977ae7ce37b3badc"
+                  ]
+                }
+              ],
+              "status": "reconstruction",
+              "assessment": {
+                "verdict": "undecided",
+                "reason": "Сопоставление двух указанных мест; переход не изображает хронологическую или причинную последовательность сцен.",
+                "attention": "high",
+                "reviewer": "kernel-content-source-20261101",
+                "review_status": "independent-review-pending"
+              },
+              "revision_reason": "Author expanded the previously confirmed comparison to state how both places differ, rather than repeat the target state."
+            }
+          ],
+          "independent_review": {
+            "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-correction-review-2026-11-01.json",
+            "case_id": "tos.bonsai.step.blessing.and.giving.weariness.things",
+            "verdict": "revise",
+            "findings": [
+              "II.09 identifies a gulf between giving and taking; it does not call the relationship between people the object given. III.04 blesses things and says chance was restored to them, but does not show that “the object of giving shifts from a relationship to freedom of things”. Compare the different subjects and acts without claiming a change of object or a recipient response."
+            ]
+          }
+        }
+      ],
+      "structure": "comparison-branching",
+      "independent_review": {
+        "reviewer": "kernel_final_content_review",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "date": "2026-11-01",
+        "ref": "bonsai/review/zarathustra-graph/graph-words/independent-content-route-final-review-2026-11-01.json",
+        "case_id": "blessing-and-giving",
+        "verdict": "confirmed",
+        "scope": "Source-visible assessment of the cited German places as a bounded stand proposal."
+      }
+    }
+  ]
+}

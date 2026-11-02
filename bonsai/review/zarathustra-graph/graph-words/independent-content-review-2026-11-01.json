@@ -1,0 +1,679 @@
+{
+  "schema": "tos.bonsai.independent-content-review.v1",
+  "reviewer": "independent-source-visible-agent",
+  "scope": "Read current authored meanings against the cited German witness places and adjacent context; identify filler, unsupported inference, voice/direction/modality errors; no source mutation.",
+  "verdict": "revise",
+  "reviewed_files": [
+    {
+      "path": "bonsai/review/zarathustra-graph/graph-words/assembly-inputs/proposal-readings.json",
+      "sha256": "e56e04652587335d59fe0a07d5e012da8b15a77b68a148124ad8b6345dfaca7b"
+    },
+    {
+      "path": "bonsai/review/zarathustra-graph/graph-words/assembly-inputs/route-growth.json",
+      "sha256": "bd347f03a901a7d32fc61dc6bc903741791453931403839c6bac39aa1b3b7d88"
+    },
+    {
+      "path": "bonsai/review/zarathustra-graph/graph-words/assembly-inputs/step-revisions.json",
+      "sha256": "77b2abb3b26a834685e510a2961fc9639a45396ae0e17aab0cf0c5d47de14fe7"
+    },
+    {
+      "path": "bonsai/review/zarathustra-graph/graph-words/assembly-inputs/link-sense-revisions.json",
+      "sha256": "5d6e9b319b69e618f27f2e7166eadfed4d25bd072ec0fcca353485b0207b37a9"
+    },
+    {
+      "path": "bonsai/review/zarathustra-graph/graph-words/assembly-inputs/link-families.json",
+      "sha256": "8edd22380732428cc3766eb7f295aaafd976623d71645532ccd5ba6ea1b4d34f"
+    }
+  ],
+  "cases": [
+    {
+      "id": "adder",
+      "category": "proposal reading and limit",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-7d5819693a40f5731fbc1f75435ce157"
+      ],
+      "findings": []
+    },
+    {
+      "id": "body-self",
+      "category": "proposal reading and limit",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-13e7af8a5fba9b3952c7257a555f9ebd",
+        "tos.text-unit.sid-5c7b2c736c1d6af99e2530b679459508"
+      ],
+      "findings": []
+    },
+    {
+      "id": "camel",
+      "category": "proposal reading and limit",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-32dbfb5bbf74851f8e864356790d227e",
+        "tos.text-unit.sid-32d5ea17befccc04193b32cd8b0c1ed4"
+      ],
+      "findings": []
+    },
+    {
+      "id": "cows",
+      "category": "proposal reading and limit",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-8b21d9f589f735b9d386791990417b19",
+        "tos.text-unit.sid-558d3af70491ab04ba39187df621fdef"
+      ],
+      "findings": []
+    },
+    {
+      "id": "death-of-god",
+      "category": "proposal reading and limit",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-f585907d3c7a54afb3c54d7ec02c99f6"
+      ],
+      "findings": []
+    },
+    {
+      "id": "dudu",
+      "category": "proposal reading and limit",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-560c8e1bc5e590cf6443e36f4cc8d830"
+      ],
+      "findings": []
+    },
+    {
+      "id": "earth",
+      "category": "proposal reading and limit",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-ed69e3c67d9d7ed5f4c8bcaa584c0356",
+        "tos.text-unit.sid-6ef116aacecef01c18f461c20ba52cdb"
+      ],
+      "findings": []
+    },
+    {
+      "id": "eternity",
+      "category": "proposal reading and limit",
+      "verdict": "revise",
+      "unit_ids_read": [
+        "tos.text-unit.sid-aa15ff6b6ae52c43bb05fe7316272249",
+        "tos.text-unit.sid-5922abd141cc99f676a660eaaef80866",
+        "tos.text-unit.sid-ea9d997ac39761114127a6c0b1800565",
+        "tos.text-unit.sid-6f8647f0f000b169fcbceb7899b30c59",
+        "tos.text-unit.sid-0ec434d19549d35b5e3777e05763e65e"
+      ],
+      "findings": [
+        "EN “all joy will want eternity” suggests future; German IV.19 0ec434d…/6f8647f… uses will as present volition: joy wills eternity. RU “прозвучит желание” also puts this existing speech in the future."
+      ]
+    },
+    {
+      "id": "going-under",
+      "category": "proposal reading and limit",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-141fcbf511cfb1dfc36bb084891e48b0",
+        "tos.text-unit.sid-3a6801215ba78a0dc2f5b55cfb86379c"
+      ],
+      "findings": []
+    },
+    {
+      "id": "golden-fire-dog",
+      "category": "proposal reading and limit",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-f0a18b2fccdd55c06d86e241cdebe2e7",
+        "tos.text-unit.sid-4f33ae880d1595948cd20c810420aaec"
+      ],
+      "findings": []
+    },
+    {
+      "id": "great-ear",
+      "category": "proposal reading and limit",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-b003bab9168e85ef8eea6629dabcd8ba"
+      ],
+      "findings": []
+    },
+    {
+      "id": "innocence-play",
+      "category": "proposal reading and limit",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-78b5795aca827182f53ba266a3271646",
+        "tos.text-unit.sid-1823f88f8c05b9d921dda6868c4b3bea",
+        "tos.text-unit.sid-f5bfc91bb67aca2f0758c4e4166ac242"
+      ],
+      "findings": []
+    },
+    {
+      "id": "joy-lust",
+      "category": "proposal reading and limit",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-4c6965df3cda4fac17ddff4d6b911a29",
+        "tos.text-unit.sid-5922abd141cc99f676a660eaaef80866",
+        "tos.text-unit.sid-ea9d997ac39761114127a6c0b1800565",
+        "tos.text-unit.sid-6f8647f0f000b169fcbceb7899b30c59"
+      ],
+      "findings": []
+    },
+    {
+      "id": "last-man",
+      "category": "proposal reading and limit",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-1854da398df3ee2655605c8612f6d608"
+      ],
+      "findings": []
+    },
+    {
+      "id": "loneliness",
+      "category": "proposal reading and limit",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-f49bbb4996c1e7aa11c07b808b428b9f",
+        "tos.text-unit.sid-600e6ab99f37af138840458f18fb74b8",
+        "tos.text-unit.sid-0ed3ad3a2d6c7a77170d446c9ede339f",
+        "tos.text-unit.sid-fc5f59456f0902a531221ee3ca04d63b"
+      ],
+      "findings": []
+    },
+    {
+      "id": "love-of-the-farthest",
+      "category": "proposal reading and limit",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-22ec1714a02b773fb8cdaf3e052261e2"
+      ],
+      "findings": []
+    },
+    {
+      "id": "quietest-hour",
+      "category": "proposal reading and limit",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-fe1ef56823d8ed0e1b58e40b9660f7a8"
+      ],
+      "findings": []
+    },
+    {
+      "id": "redemption",
+      "category": "proposal reading and limit",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-c1a61ec1014026941c54254a0978115d",
+        "tos.text-unit.sid-4f156d0bad165d016f941204caf55153",
+        "tos.text-unit.sid-84372be8e00752c845bc3a1987f79499",
+        "tos.text-unit.sid-a99544808fde51500062340690366a76"
+      ],
+      "findings": []
+    },
+    {
+      "id": "revenge",
+      "category": "proposal reading and limit",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-bc8111269b7adf1e6f1a2c297ae8b00b",
+        "tos.text-unit.sid-d0da4f88d01d03d4f85805f9f62a77be"
+      ],
+      "findings": []
+    },
+    {
+      "id": "rope-bridge",
+      "category": "proposal reading and limit",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-992a7291ae2c1aafcd976cb8ffc2ff7e"
+      ],
+      "findings": []
+    },
+    {
+      "id": "self-overcoming",
+      "category": "proposal reading and limit",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-9285a033c0768930b770b3806e9fe210",
+        "tos.text-unit.sid-9db3d3aedd872649b179a80267c19257"
+      ],
+      "findings": []
+    },
+    {
+      "id": "sleep-sage",
+      "category": "proposal reading and limit",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-bee3550cc1061ac463629cffeb1b3a10",
+        "tos.text-unit.sid-70d0938f663e9e0b6d26710a98fa2cb9"
+      ],
+      "findings": []
+    },
+    {
+      "id": "spirit-of-gravity",
+      "category": "proposal reading and limit",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-c515e160e9084b0952538c15223fc388",
+        "tos.text-unit.sid-f46bf51f26dfc0eec605081de85b019c",
+        "tos.text-unit.sid-7a171175ea446da3734da0fa4a82b03a"
+      ],
+      "findings": []
+    },
+    {
+      "id": "suleika",
+      "category": "proposal reading and limit",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-560c8e1bc5e590cf6443e36f4cc8d830"
+      ],
+      "findings": []
+    },
+    {
+      "id": "tablets-values",
+      "category": "proposal reading and limit",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-5fe203a2311a7f5a2ecdf09140b704e3",
+        "tos.text-unit.sid-172817236250da89e8e05187cbd15fd6",
+        "tos.text-unit.sid-a8dd02ecabbd6c697be69da99e8604ec",
+        "tos.text-unit.sid-6de0df5144142c3078578d035f066f5a",
+        "tos.text-unit.sid-4d132d438650d1e6138eca8bb7b4c512"
+      ],
+      "findings": []
+    },
+    {
+      "id": "three-metamorphoses",
+      "category": "proposal reading and limit",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-32dbfb5bbf74851f8e864356790d227e",
+        "tos.text-unit.sid-78b5795aca827182f53ba266a3271646",
+        "tos.text-unit.sid-1823f88f8c05b9d921dda6868c4b3bea",
+        "tos.text-unit.sid-1444d006a038716b06a33646bf0b0439"
+      ],
+      "findings": []
+    },
+    {
+      "id": "unknown-god",
+      "category": "proposal reading and limit",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-f09690e3c3134ca9c0a486d47941c0f4"
+      ],
+      "findings": []
+    },
+    {
+      "id": "zarathustra-soul",
+      "category": "proposal reading and limit",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-6d591bed8717069d8de37a902e7980c7",
+        "tos.text-unit.sid-63e2b2591cdfbe98985342c59da65d3d"
+      ],
+      "findings": []
+    },
+    {
+      "id": "brothers",
+      "category": "new node",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-0ffe99fde73fa5eaa81da967507c8faf",
+        "tos.text-unit.sid-a623a857747d550bdcbb01c91e9eb217",
+        "tos.text-unit.sid-dfbf765c1fd6a1db719776653d6b8b90",
+        "tos.text-unit.sid-6ef116aacecef01c18f461c20ba52cdb"
+      ],
+      "findings": []
+    },
+    {
+      "id": "gold",
+      "category": "new node",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-2a1b29f9c62115040c9a0330cad6d16e",
+        "tos.text-unit.sid-3d2797d3bc2f76f6de279d6b136a5af5",
+        "tos.text-unit.sid-8bfa6cb283fd04386a7c9d6b5e57aab1"
+      ],
+      "findings": []
+    },
+    {
+      "id": "gold-bestowing-brothers:future-friends",
+      "category": "route state",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-fe03b22d5b0eb88e378e43a94ff08c1d",
+        "tos.text-unit.sid-474041af8e46b8564e0b60045b07e736"
+      ],
+      "findings": []
+    },
+    {
+      "id": "tos.bonsai.step.gold.bestowing.brothers.01",
+      "category": "route step",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-3d2797d3bc2f76f6de279d6b136a5af5",
+        "tos.text-unit.sid-2a1b29f9c62115040c9a0330cad6d16e",
+        "tos.text-unit.sid-8bfa6cb283fd04386a7c9d6b5e57aab1"
+      ],
+      "findings": []
+    },
+    {
+      "id": "tos.bonsai.step.gold.bestowing.brothers.02",
+      "category": "route step",
+      "verdict": "revise",
+      "unit_ids_read": [
+        "tos.text-unit.sid-a623a857747d550bdcbb01c91e9eb217",
+        "tos.text-unit.sid-dfbf765c1fd6a1db719776653d6b8b90",
+        "tos.text-unit.sid-6ef116aacecef01c18f461c20ba52cdb"
+      ],
+      "findings": [
+        "I.23 a623… asks the brothers to attend to the hour of figurative speech and locates the origin of their virtue there; dfbf… asks what is worst, not what virtue originates from. Replace the edge verb “обращает вопрос о её истоке” with the actual address or observation."
+      ]
+    },
+    {
+      "id": "tos.bonsai.step.gold.bestowing.brothers.disciples",
+      "category": "route step",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-0ffe99fde73fa5eaa81da967507c8faf",
+        "tos.text-unit.sid-0bf5dc6e46a7e01998dcc4a952efd3c7",
+        "tos.text-unit.sid-dfbf765c1fd6a1db719776653d6b8b90"
+      ],
+      "findings": []
+    },
+    {
+      "id": "tos.bonsai.step.gold.bestowing.brothers.future.friends",
+      "category": "route step",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-fe03b22d5b0eb88e378e43a94ff08c1d",
+        "tos.text-unit.sid-474041af8e46b8564e0b60045b07e736"
+      ],
+      "findings": []
+    },
+    {
+      "id": "tos.bonsai.step.gold.bestowing.brothers.higher.men",
+      "category": "route step",
+      "verdict": "revise",
+      "unit_ids_read": [
+        "tos.text-unit.sid-f6f757db50a8c9d5fdce0e1d7c7f3fff",
+        "tos.text-unit.sid-ee51842cbbb5c70b08a152c5f7dfc3a5",
+        "tos.text-unit.sid-b630ed932ffdfef0287539fb5ddab22e"
+      ],
+      "findings": [
+        "IV.20 distinguishes the higher men from Zarathustra’s true companions and mentions his children; it does not identify these children with the future friends/children of one hope in I.23. The edge claims these two groups differ without establishing their identity. Frame the places as comparison without asserting a relation between the groups."
+      ]
+    },
+    {
+      "id": "gold-bestowing-brothers:01",
+      "category": "route chain",
+      "verdict": "revise",
+      "unit_ids_read": [],
+      "findings": [
+        "See the individually identified states and steps."
+      ]
+    },
+    {
+      "id": "tos.bonsai.step.bestowing.virtue.golden.lure.01",
+      "category": "route step",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-03d7b2fb23b1a857df83abad49e68c95",
+        "tos.text-unit.sid-8bfa6cb283fd04386a7c9d6b5e57aab1",
+        "tos.text-unit.sid-6078c820db50344df425ea10af89abe9",
+        "tos.text-unit.sid-953a1ec6782e4aa845d63381f433db25",
+        "tos.text-unit.sid-bfe99dd3c0c63c08a7b68d8e392b26a1"
+      ],
+      "findings": []
+    },
+    {
+      "id": "bestowing-virtue:golden-lure",
+      "category": "route chain",
+      "verdict": "confirmed",
+      "unit_ids_read": [],
+      "findings": []
+    },
+    {
+      "id": "blessing-and-giving#overflow",
+      "category": "route state",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-775c1304b982084134991ec1bc6c84bb",
+        "tos.text-unit.sid-43df5a5a008e895ca4063ac931f2eae9"
+      ],
+      "findings": []
+    },
+    {
+      "id": "blessing-and-giving#address",
+      "category": "route state",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-9b5926e8bcd6a467c72aaa8b8d51bcfb",
+        "tos.text-unit.sid-6e10b0a202964b8b98277942e4079f2f"
+      ],
+      "findings": []
+    },
+    {
+      "id": "blessing-and-giving#reception",
+      "category": "route state",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-e8e279e1df353941f741c0cb295429e6",
+        "tos.text-unit.sid-c0f42aa81160c9dadc492a1cef5dd98f"
+      ],
+      "findings": []
+    },
+    {
+      "id": "blessing-and-giving#own-path",
+      "category": "route state",
+      "verdict": "revise",
+      "unit_ids_read": [
+        "tos.text-unit.sid-1bdf3dd26bb92810b12e725f6c6c8ff9",
+        "tos.text-unit.sid-474041af8e46b8564e0b60045b07e736"
+      ],
+      "findings": [
+        "The demand for independent departure and self-finding is in I.23, but calling it the teacher’s gift is an interpretation, not stated by these units; the scene opens with the disciples giving him a staff. Recast or label the inference."
+      ]
+    },
+    {
+      "id": "blessing-and-giving#weariness",
+      "category": "route state",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-2843a99935e60d5c350f2a16c2f89f12",
+        "tos.text-unit.sid-2164fb8a5ad05ece977ae7ce37b3badc"
+      ],
+      "findings": []
+    },
+    {
+      "id": "blessing-and-giving#things",
+      "category": "route state",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-433c911010562160cdf93d8706848b6a",
+        "tos.text-unit.sid-f596d6e868de08e225ed9e832c652a1b"
+      ],
+      "findings": []
+    },
+    {
+      "id": "blessing-and-giving#sacrifice",
+      "category": "route state",
+      "verdict": "revise",
+      "unit_ids_read": [
+        "tos.text-unit.sid-03d7b2fb23b1a857df83abad49e68c95",
+        "tos.text-unit.sid-bfe99dd3c0c63c08a7b68d8e392b26a1"
+      ],
+      "findings": [
+        "IV.01 03d7…/6078…: Zarathustra rejects calling it sacrifice and describes squandering what is given; “переименовывает медовую жертву” / “renames the honey sacrifice” asserts an act the passage does not make."
+      ]
+    },
+    {
+      "id": "tos.bonsai.step.blessing.and.giving.overflow.address",
+      "category": "route step",
+      "verdict": "revise",
+      "unit_ids_read": [
+        "tos.text-unit.sid-9b5926e8bcd6a467c72aaa8b8d51bcfb",
+        "tos.text-unit.sid-6e10b0a202964b8b98277942e4079f2f",
+        "tos.text-unit.sid-775c1304b982084134991ec1bc6c84bb",
+        "tos.text-unit.sid-43df5a5a008e895ca4063ac931f2eae9"
+      ],
+      "findings": [
+        "The sense repeats the target and the edge “distinguish request from response” misses the substantive reversal: he and his animals blessed the sun for receiving its excess, whereas he now asks the sun to bless him/the cup. No solar reply is shown."
+      ]
+    },
+    {
+      "id": "tos.bonsai.step.blessing.and.giving.address.reception",
+      "category": "route step",
+      "verdict": "revise",
+      "unit_ids_read": [
+        "tos.text-unit.sid-e8e279e1df353941f741c0cb295429e6",
+        "tos.text-unit.sid-c0f42aa81160c9dadc492a1cef5dd98f",
+        "tos.text-unit.sid-9b5926e8bcd6a467c72aaa8b8d51bcfb",
+        "tos.text-unit.sid-6e10b0a202964b8b98277942e4079f2f"
+      ],
+      "findings": [
+        "The sense repeats the target, not the relation: contrast the recipients blessing the sun in I.01 with the soul’s question whether the giver should thank the receiver in III.14; keep it a comparison, not a settled rule."
+      ]
+    },
+    {
+      "id": "tos.bonsai.step.blessing.and.giving.reception.own.path",
+      "category": "route step",
+      "verdict": "revise",
+      "unit_ids_read": [
+        "tos.text-unit.sid-1bdf3dd26bb92810b12e725f6c6c8ff9",
+        "tos.text-unit.sid-474041af8e46b8564e0b60045b07e736",
+        "tos.text-unit.sid-e8e279e1df353941f741c0cb295429e6",
+        "tos.text-unit.sid-c0f42aa81160c9dadc492a1cef5dd98f"
+      ],
+      "findings": [
+        "I.23 requires disciples to leave, lose/reject him and find themselves, but the passage does not call this requirement a gift from the teacher; the tangible gift in 0ffe… is the staff given to Zarathustra by disciples. Recast this as a comparison or label the gift reading as interpretation, and avoid presenting it as resolving the soul’s questions."
+      ]
+    },
+    {
+      "id": "tos.bonsai.step.blessing.and.giving.own.path.weariness",
+      "category": "route step",
+      "verdict": "revise",
+      "unit_ids_read": [
+        "tos.text-unit.sid-2843a99935e60d5c350f2a16c2f89f12",
+        "tos.text-unit.sid-2164fb8a5ad05ece977ae7ce37b3badc",
+        "tos.text-unit.sid-1bdf3dd26bb92810b12e725f6c6c8ff9",
+        "tos.text-unit.sid-474041af8e46b8564e0b60045b07e736"
+      ],
+      "findings": [
+        "The sense repeats the destination; II.09 asks about contact with receivers and the giver’s exhaustion, not whether disciples find their own path. “is tested against” overstates the relation. Explain a bounded comparison of different problems or remove that claim."
+      ]
+    },
+    {
+      "id": "tos.bonsai.step.blessing.and.giving.weariness.things",
+      "category": "route step",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-433c911010562160cdf93d8706848b6a",
+        "tos.text-unit.sid-f596d6e868de08e225ed9e832c652a1b",
+        "tos.text-unit.sid-2843a99935e60d5c350f2a16c2f89f12",
+        "tos.text-unit.sid-2164fb8a5ad05ece977ae7ce37b3badc"
+      ],
+      "findings": []
+    },
+    {
+      "id": "tos.bonsai.step.blessing.and.giving.things.sacrifice",
+      "category": "route step",
+      "verdict": "revise",
+      "unit_ids_read": [
+        "tos.text-unit.sid-03d7b2fb23b1a857df83abad49e68c95",
+        "tos.text-unit.sid-bfe99dd3c0c63c08a7b68d8e392b26a1",
+        "tos.text-unit.sid-433c911010562160cdf93d8706848b6a",
+        "tos.text-unit.sid-f596d6e868de08e225ed9e832c652a1b"
+      ],
+      "findings": [
+        "IV.01 03d7…/6078… refuses the sacrifice label as a verbal ruse and describes squandering what is given; it does not rename the honey sacrifice. The sense repeats the destination and never explains what the III.04 blessing of things contributes to the comparison. Recast the relationship or drop the transition."
+      ]
+    },
+    {
+      "id": "blessing-and-giving",
+      "category": "route chain",
+      "verdict": "revise",
+      "unit_ids_read": [],
+      "findings": [
+        "See the individually identified states and steps."
+      ]
+    },
+    {
+      "id": "tos.bonsai.step.bestowing.virtue.chain.01.fe8b1997a71f",
+      "category": "step revision",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-2843a99935e60d5c350f2a16c2f89f12",
+        "tos.text-unit.sid-e8e279e1df353941f741c0cb295429e6",
+        "tos.text-unit.sid-c0f42aa81160c9dadc492a1cef5dd98f"
+      ],
+      "findings": []
+    },
+    {
+      "id": "tos.bonsai.step.bestowing.virtue.chain.01.f50ae7a3d388",
+      "category": "step revision",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-7213f771ff84cbf039682ea79414fa06",
+        "tos.text-unit.sid-8d6093cbded780ddbfe1f48e8018e5db"
+      ],
+      "findings": []
+    },
+    {
+      "id": "beggar--bestowing-virtue--2",
+      "category": "revised sense and answer",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-8d6093cbded780ddbfe1f48e8018e5db",
+        "tos.text-unit.sid-fd92e7dea0fe79afbafb91f0e0d31699",
+        "tos.text-unit.sid-7213f771ff84cbf039682ea79414fa06",
+        "tos.text-unit.sid-327ec5b18c7b130de3c424c2130b6d1b"
+      ],
+      "findings": []
+    },
+    {
+      "id": "dwarf--recurrence--4",
+      "category": "revised sense and method transfer: III.02",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-40ae6f1839d679c4a2bfd41534583aa6",
+        "tos.text-unit.sid-a22b43ad268d4ed093fabbdcb907f76c",
+        "tos.text-unit.sid-b8cef20c095784beb2dd363f1a0e98cb",
+        "tos.text-unit.sid-e060da93a6971669a066b72b51ff92bf",
+        "tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d",
+        "tos.text-unit.sid-55f238a2f371dd7f806cdad1f08bc576",
+        "tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"
+      ],
+      "findings": []
+    },
+    {
+      "id": "dwarf--recurrence--4/pale-criminal-i07",
+      "category": "method transfer application",
+      "verdict": "confirmed",
+      "unit_ids_read": [
+        "tos.text-unit.sid-988a8431316207614090469ad0fb3e26",
+        "tos.text-unit.sid-9a0291cdaba3950491e5eb23a04854d3",
+        "tos.text-unit.sid-d83a860fb25fc5d2550077ea190cdc63"
+      ],
+      "findings": []
+    },
+    {
+      "id": "dwarf--recurrence--4/jgb-21",
+      "category": "method transfer application",
+      "verdict": "confirmed",
+      "unit_ids_read": [],
+      "findings": [
+        "Actual §21 distinguishes the causa sui contradiction, the conditional address to one who has discarded metaphysical free will, and the criticism of unfree will and reified causation. No native unit ID is asserted."
+      ],
+      "source_url": "https://www.gutenberg.org/cache/epub/7204/pg7204.html",
+      "source_locator": "§21, full paragraph"
+    }
+  ],
+  "notes": [
+    "Confirmed means the checked wording is supportable as a bounded stand proposal, not canon or semantic admission. Unit lists identify inspected cited units and selected additional context; ranges in the inputs include intermediate units. JGB was read at its actual §21 URL.",
+    "Generic repeated route assessment “not chronological” is not a substitute for explaining the relation; the first two states also occur in one speech in the opposite textual order to their presentation."
+  ],
+  "retained_evidence_sha256": "a1dc53a556a2110a9b825713bb5460e43c7455a57c9e11a3ea04d738115d728e",
+  "boundary": "Independent source-visible stand assessment; not Tree admission or canon."
+}

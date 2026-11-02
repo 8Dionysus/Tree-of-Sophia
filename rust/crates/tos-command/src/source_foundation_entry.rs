@@ -606,8 +606,89 @@ impl FoundationV2CaseSelection {
     }
 }
 
+/// Explicit frozen manifest bytes, authenticated as part of the whole protected
+/// invocation. The address selects these bytes; it is never opened in this mode.
+struct FoundationRecordSelectionSnapshot {
+    absolute_path: PathBuf,
+    raw_utf8: Vec<u8>,
+}
+
+impl FoundationRecordSelectionSnapshot {
+    fn parse(
+        invocation: &tos_foundation::JsonValue,
+        arguments: &FoundationArguments,
+        max_extra_state_bytes: usize,
+    ) -> Result<Option<Self>> {
+        let Some(value) = invocation.object_get("record_selection_snapshot") else {
+            return Ok(None);
+        };
+        crate::source_command::exact_keys(value, &["absolute_path", "raw_utf8", "sha256"])
+            .map_err(|_| Error::Invalid("foundation record-selection snapshot fields"))?;
+        let path_text = crate::source_command::text(value, "absolute_path")?;
+        use tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope;
+        if !matches!(
+            arguments.validation_profile.scope,
+            SourceFoundationDefaultRuleScope::SelectedRecordClosure
+                | SourceFoundationDefaultRuleScope::SelectedGeneratedRecordClosure
+        ) || arguments
+            .record_selection_manifest
+            .as_ref()
+            .and_then(|path| path.to_str())
+            != Some(path_text)
+        {
+            return Err(Error::Invalid(
+                "foundation record-selection snapshot selector mismatch",
+            ));
+        }
+        let raw_utf8 = crate::source_command::text(value, "raw_utf8")?.as_bytes();
+        if raw_utf8.is_empty() || raw_utf8.len() > INVOCATION_BYTES {
+            return Err(Error::Invalid(
+                "foundation record-selection snapshot byte cap",
+            ));
+        }
+        let expected = Digest256::from_prefixed(crate::source_command::text(value, "sha256")?)
+            .map_err(|_| Error::Invalid("foundation record-selection snapshot digest"))?;
+        if Digest256::of_bytes(raw_utf8) != expected {
+            return Err(Error::Conflict(
+                "foundation record-selection snapshot digest mismatch",
+            ));
+        }
+        if raw_utf8
+            .len()
+            .checked_add(path_text.len())
+            .is_none_or(|bytes| bytes > max_extra_state_bytes)
+        {
+            return Err(Error::Unsupported(
+                "foundation record-selection snapshot state budget",
+            ));
+        }
+        let snapshot = Self {
+            absolute_path: normalize_selected_text(path_text)?,
+            raw_utf8: raw_utf8.to_vec(),
+        };
+        if snapshot.retained_storage_bytes()? > max_extra_state_bytes {
+            return Err(Error::Unsupported(
+                "foundation record-selection snapshot state budget",
+            ));
+        }
+        Ok(Some(snapshot))
+    }
+
+    /// The inline slot belongs to FoundationInvocation; charge both owned
+    /// buffers at their actual capacity, including the decoded raw copy.
+    fn retained_storage_bytes(&self) -> Result<usize> {
+        self.absolute_path
+            .capacity()
+            .checked_add(self.raw_utf8.capacity())
+            .ok_or(Error::Unsupported(
+                "foundation record-selection snapshot state overflow",
+            ))
+    }
+}
+
 pub(crate) struct FoundationInvocation<'cancel> {
     path: PathBuf,
+    custody: Option<crate::source_foundation_invocation_client::Client>,
     raw: Vec<u8>,
     raw_sha256: Digest256,
     expected_executable_sha256: Digest256,
@@ -616,6 +697,7 @@ pub(crate) struct FoundationInvocation<'cancel> {
     pub schema_worker: FoundationSchemaWorkerSelection,
     pub artifact_root: Option<PathBuf>,
     v2_case: Option<FoundationV2CaseSelection>,
+    record_selection_snapshot: Option<FoundationRecordSelectionSnapshot>,
     pub budgets: FoundationInvocationBudgets,
     started: Instant,
     deadline: Instant,
@@ -625,6 +707,12 @@ pub(crate) struct FoundationInvocation<'cancel> {
 }
 
 impl<'cancel> FoundationInvocation<'cancel> {
+    pub(crate) fn record_selection_snapshot(&self) -> Option<&[u8]> {
+        self.record_selection_snapshot
+            .as_ref()
+            .map(|snapshot| snapshot.raw_utf8.as_slice())
+    }
+
     pub(crate) fn catalogue_representation(&self) -> FoundationCatalogueRepresentation {
         self.catalogue_representation
     }
@@ -729,14 +817,19 @@ impl<'cancel> FoundationInvocation<'cancel> {
             ));
         }
 
-        let current = read_absolute(
-            &self.path,
-            self.uid,
-            true,
-            INVOCATION_BYTES,
-            self.deadline,
-            self.cancelled,
-        )?;
+        let current = if let Some(custody) = self.custody.as_mut() {
+            custody.terminal(self.deadline, self.cancelled)?;
+            self.raw.clone()
+        } else {
+            read_absolute(
+                &self.path,
+                self.uid,
+                true,
+                INVOCATION_BYTES,
+                self.deadline,
+                self.cancelled,
+            )?
+        };
         self.cost.invocation_read_calls =
             self.cost
                 .invocation_read_calls
@@ -808,14 +901,19 @@ pub(crate) fn read_invocation<'cancel>(
         .as_deref()
         .ok_or(Error::Denied("foundation invocation file must be explicit"))?;
     let path = normalize_selected_path(selected)?;
-    let raw = read_absolute(
-        &path,
-        clock.uid,
-        true,
-        INVOCATION_BYTES,
-        clock.hard_deadline,
-        cancelled,
-    )?;
+    let mut custody = crate::source_foundation_invocation_client::Client::select(&path)?;
+    let raw = if let Some(custody) = custody.as_mut() {
+        custody.initial(clock.hard_deadline, cancelled)?
+    } else {
+        read_absolute(
+            &path,
+            clock.uid,
+            true,
+            INVOCATION_BYTES,
+            clock.hard_deadline,
+            cancelled,
+        )?
+    };
     if raw.is_empty() {
         return Err(Error::Invalid("empty foundation invocation"));
     }
@@ -836,7 +934,7 @@ pub(crate) fn read_invocation<'cancel>(
             .iter()
             .any(|(key, _)| key.as_str() == Some("artifact_root"))
     });
-    // At most eight static keys; retain strict optional shapes without a heap
+    // At most nine static keys; retain strict optional shapes without a heap
     // allocation or Vec growth before the invocation state is accounted.
     let mut invocation_keys = [
         "schema_version",
@@ -847,6 +945,7 @@ pub(crate) fn read_invocation<'cancel>(
         "admission_representation",
         "catalogue_representation",
         "v2_case",
+        "record_selection_snapshot",
     ];
     let mut invocation_key_count = 4;
     if artifact_root_selected {
@@ -862,6 +961,10 @@ pub(crate) fn read_invocation<'cancel>(
     }
     if value.object_get("v2_case").is_some() {
         invocation_keys[invocation_key_count] = "v2_case";
+        invocation_key_count += 1;
+    }
+    if value.object_get("record_selection_snapshot").is_some() {
+        invocation_keys[invocation_key_count] = "record_selection_snapshot";
         invocation_key_count += 1;
     }
     crate::source_command::exact_keys(&value, &invocation_keys[..invocation_key_count])
@@ -922,9 +1025,6 @@ pub(crate) fn read_invocation<'cancel>(
             )
         })
         .transpose()?;
-    drop(value);
-
-    let deadline = clock.select_operation_deadline(budgets.operation_wall_ms, cancelled)?;
     let max_state = FoundationInvocationBudgets::as_usize(
         budgets.max_state_bytes,
         "foundation state limit range",
@@ -944,6 +1044,24 @@ pub(crate) fn read_invocation<'cancel>(
     if parse_state > max_state {
         return Err(Error::Unsupported("foundation invocation state budget"));
     }
+    let record_selection_snapshot = FoundationRecordSelectionSnapshot::parse(
+        &value,
+        &launch.arguments,
+        max_state - parse_state,
+    )?;
+    let snapshot_state = record_selection_snapshot
+        .as_ref()
+        .map(FoundationRecordSelectionSnapshot::retained_storage_bytes)
+        .transpose()?
+        .unwrap_or(0);
+    // The copied UTF-8 bytes and path coexist with the bounded decoded JSON
+    // tree until drop(value). Retaining them is charged separately below.
+    let parse_state = parse_state
+        .checked_add(snapshot_state)
+        .ok_or(Error::Unsupported("foundation invocation state overflow"))?;
+    drop(value);
+
+    let deadline = clock.select_operation_deadline(budgets.operation_wall_ms, cancelled)?;
     let (actual_executable, executable_bytes) = executable_with_size(deadline, cancelled)?;
     if actual_executable != expected_executable_sha256 {
         return Err(Error::Conflict("foundation native executable identity"));
@@ -963,6 +1081,8 @@ pub(crate) fn read_invocation<'cancel>(
             })
         })
         .and_then(|n| n.checked_add(case_retained))
+        .and_then(|n| n.checked_add(snapshot_state))
+        .and_then(|n| n.checked_add(custody.as_ref().map_or(0, |c| c.retained_state_bytes())))
         .and_then(|n| n.checked_add(launch.state_upper_bound_bytes))
         .and_then(|n| n.checked_add(size_of::<FoundationInvocation<'_>>()))
         .ok_or(Error::Unsupported(
@@ -970,8 +1090,13 @@ pub(crate) fn read_invocation<'cancel>(
         ))?;
     let mut cost = FoundationBootstrapCost {
         launch_state_upper_bound_bytes: launch.state_upper_bound_bytes,
-        invocation_read_bytes: raw_len as u64,
-        invocation_read_calls: 1,
+        // Host selection performs two exact reads before the initial relay read.
+        invocation_read_bytes: (raw_len as u64)
+            .checked_mul(if custody.is_some() { 3 } else { 1 })
+            .ok_or(Error::Unsupported(
+                "foundation invocation read size overflow",
+            ))?,
+        invocation_read_calls: if custody.is_some() { 3 } else { 1 },
         self_image_read_bytes: executable_bytes,
         self_image_read_calls: 1,
         hash_workspace_bytes: HASH_WORKSPACE_BYTES,
@@ -989,6 +1114,7 @@ pub(crate) fn read_invocation<'cancel>(
 
     Ok(FoundationInvocation {
         path,
+        custody,
         raw,
         raw_sha256,
         expected_executable_sha256,
@@ -1000,6 +1126,7 @@ pub(crate) fn read_invocation<'cancel>(
         },
         artifact_root,
         v2_case,
+        record_selection_snapshot,
         budgets,
         started: clock.started,
         deadline,
@@ -1527,6 +1654,110 @@ impl ReadonlyRecordFiles for CapturedReadonlyRecordFiles<'_, '_> {
 #[cfg(test)]
 mod clock_selection_tests {
     use super::*;
+
+    fn snapshot_arguments() -> FoundationArguments {
+        foundation_cli::parse_arguments(
+            &[
+                OsString::from("--repo-root=/selected/repository"),
+                OsString::from("--validation-profile=selected-record-closure"),
+                OsString::from("--record-selection-manifest=/selected/manifest.json"),
+            ],
+            None,
+        )
+        .unwrap()
+    }
+
+    fn snapshot_value(raw: &str) -> serde_json::Value {
+        serde_json::json!({"record_selection_snapshot": {
+            "absolute_path": "/selected/manifest.json",
+            "raw_utf8": raw,
+            "sha256": format!("sha256:{}", Digest256::of_bytes(raw.as_bytes()).to_hex())
+        }})
+    }
+
+    #[test]
+    fn protected_record_selection_snapshot_preserves_bytes_and_charges_owned_buffers() {
+        let raw = "{\r\n  \"label\": \"Мир 🌲\", \"escaped\": \"\\n\"\r\n}\n";
+        let value =
+            crate::source_command::parse(&serde_json::to_vec(&snapshot_value(raw)).unwrap())
+                .unwrap();
+        let arguments = snapshot_arguments();
+        let snapshot =
+            FoundationRecordSelectionSnapshot::parse(&value, &arguments, INVOCATION_JSON_WORKSPACE)
+                .unwrap()
+                .unwrap();
+        assert_eq!(snapshot.raw_utf8, raw.as_bytes());
+        assert_eq!(snapshot.absolute_path, Path::new("/selected/manifest.json"));
+        let state = snapshot.retained_storage_bytes().unwrap();
+        assert_eq!(
+            state,
+            snapshot.raw_utf8.capacity() + snapshot.absolute_path.capacity()
+        );
+        assert!(FoundationRecordSelectionSnapshot::parse(&value, &arguments, state - 1).is_err());
+        assert!(FoundationRecordSelectionSnapshot::parse(&value, &arguments, state).is_ok());
+    }
+
+    #[test]
+    fn protected_record_selection_snapshot_requires_exact_digest_selector_and_shape() {
+        let good = snapshot_value("{\"unchanged\":true}\n");
+        let arguments = snapshot_arguments();
+        let parse = |value: &serde_json::Value, arguments: &FoundationArguments| {
+            let value = crate::source_command::parse(&serde_json::to_vec(value).unwrap()).unwrap();
+            FoundationRecordSelectionSnapshot::parse(&value, arguments, INVOCATION_JSON_WORKSPACE)
+        };
+        for (field, replacement) in [
+            (
+                "sha256",
+                serde_json::json!("sha256:".to_owned() + &"0".repeat(64)),
+            ),
+            (
+                "sha256",
+                serde_json::json!(Digest256::of_bytes(b"{\"unchanged\":true}\n").to_hex()),
+            ),
+            ("absolute_path", serde_json::json!("/selected/another.json")),
+            (
+                "absolute_path",
+                serde_json::json!("/selected/./manifest.json"),
+            ),
+            ("raw_utf8", serde_json::Value::Null),
+            ("unexpected", serde_json::json!(true)),
+        ] {
+            let mut invalid = good.clone();
+            invalid["record_selection_snapshot"][field] = replacement;
+            assert!(parse(&invalid, &arguments).is_err());
+        }
+        let mut full_audit = foundation_cli::parse_arguments(
+            &[OsString::from("--repo-root=/selected/repository")],
+            None,
+        )
+        .unwrap();
+        full_audit.record_selection_manifest = arguments.record_selection_manifest.clone();
+        assert!(parse(&good, &full_audit).is_err());
+        let mut unused = snapshot_arguments();
+        unused.record_selection_manifest = None;
+        assert!(parse(&good, &unused).is_err());
+        let mut different_spelling = snapshot_arguments();
+        different_spelling.record_selection_manifest =
+            Some(PathBuf::from("/selected//manifest.json"));
+        assert!(parse(&good, &different_spelling).is_err());
+        let mut invalid = good;
+        invalid["record_selection_snapshot"] = serde_json::Value::Null;
+        assert!(parse(&invalid, &arguments).is_err());
+        // Omission keeps ordinary selected file custody and full-audit defaults.
+        assert!(parse(&serde_json::json!({}), &arguments).unwrap().is_none());
+        assert!(
+            parse(
+                &serde_json::json!({}),
+                &foundation_cli::parse_arguments(
+                    &[OsString::from("--repo-root=/selected/repository")],
+                    None,
+                )
+                .unwrap(),
+            )
+            .unwrap()
+            .is_none()
+        );
+    }
 
     #[test]
     fn protected_operation_uses_original_start_and_cannot_renew_bootstrap() {

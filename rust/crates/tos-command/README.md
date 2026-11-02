@@ -920,6 +920,16 @@ The operation rechecks the grant, context, sources and schema before return;
 it neither opens original Item payloads nor changes source or publication
 state. The ordinary source-command/HTTP dispatcher refuses this operation.
 
+For filesystem private Occurrence creation, an invocation may explicitly select
+this independent grant through `native_text_read_profile`. Its validated owner
+context supplies the binding's metadata and content; schemas still come from
+the selected corpus cut. Without that selection, public-logical metadata stays
+in the cut. Missing inputs refuse without trying another root. Dependency
+snapshots bind the selected transport even when the bytes match, and a cached
+metadata read cannot stand in for a schema read from another authority. The
+creation grant, exact binding, rights, expiry and replay checks still apply;
+the read grant alone permits no creation or corpus admission.
+
 ## Portable signed OCR import
 
 The owner OCR commands consume independently pinned receipt, signature, public

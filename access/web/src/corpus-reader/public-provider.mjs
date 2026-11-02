@@ -5,6 +5,8 @@ import {findInParagraphs} from '../reader/occurrences-rust.mjs';
 import {readBoundedJSON,withAbort} from '../observatory/bounded-response.mjs';
 import {corpusWorkTitle} from '../observatory/human-presentation.mjs';
 import {editorialKindForMatch} from './editorial.mjs';
+import bonsaiWitnesses from '../../../../bonsai/zarathustra/witnesses.json';
+import {bonsaiCorrespondences} from './bonsai-correspondence.mjs';
 
 // A delivery adapter for an explicitly selected, immutable public export.
 // Source identities, order, rights, wording and structure come from the native
@@ -63,37 +65,43 @@ function documentView(document){
   return {id:document.id,title:document.title,author:document.author,status:'available',visibility:'public',
     unitCount:null,versions:document.versions.map(version=>{
       const {pages,units,structure,searchIndex,analysis,...metadata}=version;
-      return {...metadata,status:'available',visibility:'public',available:true,textAvailable:true};
+      const witness = version.id === bonsaiWitnesses.corpus.ru?.versionId ? bonsaiWitnesses.witnesses.ru
+        : version.id === bonsaiWitnesses.corpus.dta?.versionId ? bonsaiWitnesses.witnesses.de : null;
+      return {...metadata,...(witness ? {witnessNote:witness.omits,transcriptionNote:witness.quality,witnessSources:witness.sources} : {}),status:'available',visibility:'public',available:true,textAvailable:true};
     })};
 }
 
-export function createPublicCorpusProvider({baseUrl='/static/public-corpus/',profile='zarathustra',fetch:fetcher=globalThis.fetch}={}){
+export function createPublicCorpusProvider({baseUrl='/static/public-corpus/',profile='zarathustra',fetch:fetcher=globalThis.fetch,manifestPath='manifest.json',expectedManifestSha256=null,expectedManifestBytes=null}={}){
   if(typeof fetcher!=='function')throw new TypeError('A public corpus fetch transport is required.');
   if(!['zarathustra','antiquity'].includes(profile))throw new TypeError('An explicit public corpus profile is required.');
   if(typeof baseUrl!=='string'||!baseUrl.startsWith('/')||baseUrl.startsWith('//')||!baseUrl.endsWith('/')||baseUrl.includes('..')||/[?#\\]/.test(baseUrl))throw new TypeError('The public corpus base must be a same-origin directory.');
+  publicPath(manifestPath);
+  if(expectedManifestSha256!==null&&!digest(expectedManifestSha256))throw new TypeError('The expected manifest digest must be SHA-256.');
+  if(expectedManifestBytes!==null&&(!expectedManifestSha256||!Number.isSafeInteger(expectedManifestBytes)||expectedManifestBytes<1||expectedManifestBytes>MANIFEST_BYTES))throw new TypeError('The expected manifest size must be bounded and digest-bound.');
   let manifest=null;
   const documents=new Map(),pages=new Map(),indices=new Map(),analyses=new Map(),mappings=new Map();
 
-  async function read(path,descriptor,maximum,signal){
+  async function read(path,descriptor,maximum,signal,expectedSha256=null){
     throwIfAborted(signal);
     const timeout=AbortSignal.timeout(DEADLINE_MS),active=signal?AbortSignal.any([signal,timeout]):timeout;
     const response=await withAbort(fetcher(baseUrl+publicPath(path),{signal:active,credentials:'same-origin',redirect:'error',headers:{Accept:'application/json'}}),active);
     if(!response.ok)fail('provider_unavailable','The selected public corpus member is unavailable.');
     if(!/^application\/json\b/i.test(response.headers.get('Content-Type')??''))fail('invalid_response','The public corpus member is not JSON.');
-    if(descriptor){
-      if(!digest(descriptor.sha256)||!Number.isSafeInteger(descriptor.bytes)||descriptor.bytes<1||descriptor.bytes>maximum)fail('invalid_response','Invalid public corpus member descriptor.');
-      const {packet,bytes}=await readBoundedJSON(response,descriptor.bytes,active,{includeBytes:true});
-      if(bytes.byteLength!==descriptor.bytes)fail('invalid_response','The public corpus member size changed.');
-      const actual=Array.from(new Uint8Array(await withAbort(crypto.subtle.digest('SHA-256',bytes),active)),value=>value.toString(16).padStart(2,'0')).join('');
-      if(actual!==descriptor.sha256)fail('invalid_response','The public corpus member failed its source digest check.');
-      return packet;
+    if(descriptor||expectedSha256){
+      if(descriptor&&(!digest(descriptor.sha256)||!Number.isSafeInteger(descriptor.bytes)||descriptor.bytes<1||descriptor.bytes>maximum))fail('invalid_response','Invalid public corpus member descriptor.');
+      return readBoundedJSON(response,descriptor?.bytes??maximum,active,{verifyBytes:async bytes=>{
+        if(descriptor&&bytes.byteLength!==descriptor.bytes)fail('invalid_response','The public corpus member size changed.');
+        const actual=Array.from(new Uint8Array(await withAbort(crypto.subtle.digest('SHA-256',bytes),active)),value=>value.toString(16).padStart(2,'0')).join('');
+        if(actual!==(descriptor?.sha256??expectedSha256))fail('invalid_response','The public corpus member failed its source digest check.');
+      }});
     }
     return readBoundedJSON(response,maximum,active);
   }
   async function describe({signal}={}){
     throwIfAborted(signal);
     if(!manifest){
-      const value=await read('manifest.json',null,MANIFEST_BYTES,signal);
+      const descriptor=expectedManifestBytes===null?null:{sha256:expectedManifestSha256,bytes:expectedManifestBytes};
+      const value=await read(manifestPath,descriptor,MANIFEST_BYTES,signal,expectedManifestSha256);
       if(value.schema_version!==SCHEMA||!digest(value.revision)||!object(value.profiles)||!Array.isArray(value.documents)||value.documents.length>1000)fail('invalid_response','Unsupported public corpus manifest.');
       const selected=value.profiles[profile];
       if(!object(selected)||!Array.isArray(selected.documentIds)||selected.documentIds.length>1000||new Set(selected.documentIds).size!==selected.documentIds.length)fail('invalid_response','The selected public profile is missing.');
@@ -149,6 +157,14 @@ export function createPublicCorpusProvider({baseUrl='/static/public-corpus/',pro
       for(const unit of value.units){
         const expected=version.units[unit.ordinal-1];
         if(!expected||expected.id!==unit.id||expected.page!==index||typeof unit.text!=='string'||points(unit.text).length>65536)fail('invalid_response','The public text unit does not match its source index.');
+      }
+      if([bonsaiWitnesses.corpus.dta?.versionId,bonsaiWitnesses.corpus.ru?.versionId].includes(version.id)){
+        const ordinals=new Map(version.units.map(unit=>[unit.id,unit.ordinal]));
+        const chapters=(version.structure??[]).map(item=>({...item,ordinal:ordinals.get(item.unitId)})).filter(item=>item.ordinal);
+        for(const unit of value.units){
+          const chapter=[...chapters].reverse().find(item=>item.ordinal<=unit.ordinal);
+          if(chapter&&/^Unit \d+$/.test(unit.reference??''))unit.reference=`${chapter.label} · ${unit.ordinal-chapter.ordinal+1}`;
+        }
       }
       cacheSet(pages,key,value,4);
     }
@@ -253,7 +269,20 @@ export function createPublicCorpusProvider({baseUrl='/static/public-corpus/',pro
     const {document,version}=await versionData({documentId:checked.target.workId,versionId:checked.versionId,signal});
     const meta=version.units.find(value=>value.id===checked.unitId),page=await pageData(document,version,meta.page,signal),unit=page.units.find(value=>value.id===meta.id);
     if(language!==version.language||points(unit.text).slice(checked.selector.start,checked.selector.end).join('')!==form)return {...unavailable,reason:'form_mismatch'};
-    const mappingFields=await occurrenceMappings(document,version,checked,form,signal);
+    let mappingFields=await occurrenceMappings(document,version,checked,form,signal);
+    if(version.id===bonsaiWitnesses.corpus.dta?.versionId){
+      const mappings=await bonsaiCorrespondences({document,version,reference:checked,form,readTarget:async (target,unitId)=>{
+        const meta=target.units.find(value=>value.id===unitId);if(!meta)return null;
+        try {
+          const page=await pageData(document,target,meta.page,signal);
+          return page.units.find(value=>value.id===unitId)?.text??null;
+        } catch(error) {
+          if(signal?.aborted)throw error;
+          return null;
+        }
+      }});
+      mappingFields={mappings,mappingStatus:mappings.length?'available':'none'};
+    }
     if(version.analysis){
       const key=version.analysis.sha256;let data=cacheGet(analyses,key);
       if(!data){data=await read(version.analysis.path,version.analysis,INDEX_BYTES,signal);if(data.schema_version!=='tos_public_morphology_candidates_v1'||data.textLayerSha256!==version.revision||data.language!==language||!object(data.forms))fail('invalid_response','The analysis carrier does not match the source.');cacheSet(analyses,key,data,2);}
@@ -264,7 +293,11 @@ export function createPublicCorpusProvider({baseUrl='/static/public-corpus/',pro
         const dictionaryUrl=typeof lemma==='string'&&lemma?language==='de'?'https://www.dwds.de/wb/'+encodeURIComponent(lemma):['grc','lat'].includes(language)?'https://logeion.uchicago.edu/'+encodeURIComponent(lemma):null:null;
         return dictionaryUrl?{...candidate,dictionaryUrl}:candidate;
       });
-      return {...unavailable,status:candidates.length?'available':'unavailable',reason:candidates.length?null:result?.failure?'provider_error':(result||data.unknownForms?.includes(form))?'unrecognized':'not_processed',analysisVersion:data.analysisVersion,source:data.source,...(result??{}),candidates,...mappingFields};
+      // These are source forms with at least one shared *candidate* lemma,
+      // never a contextually accepted family or a new lexical index.
+      const lemmas=new Set(candidates.map(candidate=>candidate?.lemma).filter(value=>typeof value==='string'&&value));
+      const related=Object.entries(data.forms).filter(([other,value])=>other!==form&&(value?.candidates??[]).some(candidate=>lemmas.has(candidate?.lemma))).map(([other])=>other).sort();
+      return {...unavailable,status:candidates.length?'available':'unavailable',reason:candidates.length?null:result?.failure?'provider_error':(result||data.unknownForms?.includes(form))?'unrecognized':'not_processed',analysisVersion:data.analysisVersion,source:data.source,...(result??{}),candidates,relatedForms:related.slice(0,12),relatedFormsTruncated:related.length>12,...mappingFields};
     }
     return {...unavailable,...mappingFields};
   }

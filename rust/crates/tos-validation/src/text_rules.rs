@@ -1313,6 +1313,42 @@ pub fn inspect_source_text_unit_v1(
     frozen_text: &[u8],
     context: &TextRuleContext,
 ) -> TextRuleReport {
+    inspect_source_text_unit_v1_with_packet_limit(
+        raw_packet,
+        frozen_text,
+        context,
+        MAX_PACKET_BYTES,
+    )
+}
+
+/// Selected private source route only. The caller owns exact packet identity,
+/// source rights, scope and transport selection; this is never an admission.
+/// Other predicates and the ordinary route retain their existing limits.
+pub fn inspect_source_text_unit_v1_selected_packet(
+    raw_packet: &[u8],
+    frozen_text: &[u8],
+    context: &TextRuleContext,
+    max_packet_bytes: usize,
+) -> TextRuleReport {
+    if !(MAX_PACKET_BYTES..=4_194_304).contains(&max_packet_bytes) {
+        let mut report = TextRuleReport::new_for(TEXT_UNIT_RULE_ID);
+        report.state = TextRuleState::BudgetExceeded;
+        return report;
+    }
+    inspect_source_text_unit_v1_with_packet_limit(
+        raw_packet,
+        frozen_text,
+        context,
+        max_packet_bytes,
+    )
+}
+
+fn inspect_source_text_unit_v1_with_packet_limit(
+    raw_packet: &[u8],
+    frozen_text: &[u8],
+    context: &TextRuleContext,
+    max_packet_bytes: usize,
+) -> TextRuleReport {
     let mut out = TextRuleReport::new_for(TEXT_UNIT_RULE_ID);
     for profile in &context.requested_profiles {
         if profile != TEXT_UNIT_PROFILE {
@@ -1343,11 +1379,11 @@ pub fn inspect_source_text_unit_v1(
         }
         return out;
     }
-    if raw_packet.len() > MAX_PACKET_BYTES || frozen_text.len() > MAX_TEXT_BYTES {
+    if raw_packet.len() > max_packet_bytes || frozen_text.len() > MAX_TEXT_BYTES {
         out.state = TextRuleState::BudgetExceeded;
         return out;
     }
-    let limits = match JsonLimits::new(MAX_PACKET_BYTES, 64, 300_000, 4_300) {
+    let limits = match JsonLimits::new(max_packet_bytes, 64, 300_000, 4_300) {
         Ok(limits) => limits,
         Err(_) => {
             out.state = TextRuleState::BudgetExceeded;

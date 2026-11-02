@@ -149,7 +149,11 @@ impl ClaimRoute {
         (self.reader == "identity-relation-v1"
             && schema_ref == "ToS/contracts/source-relation-claim.schema.json")
             || (self.reader == "semantic-relation-v1"
-                && schema_ref == "ToS/contracts/semantic-relation-claim.schema.json")
+                && matches!(
+                    schema_ref,
+                    "ToS/contracts/semantic-relation-claim.schema.json"
+                        | "ToS/contracts/work-voice-attribution-claim.schema.json"
+                ))
     }
 }
 
@@ -1864,6 +1868,53 @@ mod tests {
             }
         }
         SchemaBackendProbe::new(resources, FormatProfile::AssertedSourceCandidateV1).unwrap()
+    }
+
+    #[test]
+    fn embedded_work_voice_requires_its_carrier() {
+        let source =
+            bytes("ToS/source-witnesses/relations/jgb-inquiry-research/source-claims.jsonl");
+        let first = source.split(|byte| *byte == b'\n').next().unwrap();
+        let mut claim: Value = serde_json::from_slice(first).unwrap();
+        claim["subject_ref"] =
+            json!("tos.occurrence.bonsai.za.sid-40ae6f1839d679c4a2bfd41534583aa6");
+        claim["object"] = json!("tos.work-figure.also-sprach-zarathustra.dwarf");
+        claim["predicate"] = json!("work_voice_attributed_to");
+        claim["qualifiers"]["work_ref"] =
+            json!("tos.work.friedrich-nietzsche.also-sprach-zarathustra");
+        claim["qualifiers"]["voice_layer"] = json!("embedded");
+        claim["qualifiers"]["voice_mode"] = json!("quoted");
+        claim["qualifiers"]["carrier"] = json!("zarathustra");
+        claim["qualifiers"]["addressee"] = json!("zarathustra");
+        let uri =
+            "https://tree-of-sophia.local/ToS/contracts/work-voice-attribution-claim.schema.json";
+        let backend = probe();
+        assert!(schema_valid(&backend, uri, &serde_json::to_vec(&claim).unwrap()).unwrap());
+        claim["qualifiers"]["carrier"] = Value::Null;
+        assert!(!schema_valid(&backend, uri, &serde_json::to_vec(&claim).unwrap()).unwrap());
+        let registry: Value = serde_json::from_slice(&bytes(
+            "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+        ))
+        .unwrap();
+        let mut shadow = RelationShadow::default();
+        let routes = relation_profile_routes(&registry, &mut shadow).unwrap();
+        assert!(shadow.issues.is_empty(), "{:?}", shadow.issues);
+        let route = &routes["work_voice_attributed_to"];
+        assert!(route.generic_endpoint("ToS/contracts/work-voice-attribution-claim.schema.json"));
+        assert_eq!(route.domain, ["tos.entity.occurrence"]);
+        assert_eq!(route.range, ["tos.entity.work-figure"]);
+        for predicate in [
+            "text_place_repeats",
+            "text_place_varies",
+            "text_place_answers",
+            "text_place_contrasts",
+            "text_place_echoes",
+            "text_place_frames",
+        ] {
+            let route = &routes[predicate];
+            assert_eq!(route.domain, ["tos.entity.occurrence"]);
+            assert_eq!(route.range, ["tos.entity.occurrence"]);
+        }
     }
 
     #[test]

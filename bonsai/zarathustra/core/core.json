@@ -34,6 +34,15 @@
    "date": "2026-11-01",
    "method": "bonsai/review/zarathustra-graph/graph-words/verify-batch.py",
    "reads": "the cards and the places of the book, without the maker's reasoning"
+  },
+  {
+   "id": "language-review-20261102",
+   "model": "gpt-6.1-terra",
+   "effort": "xhigh",
+   "date": "2026-11-02",
+   "admitted_by": "claude",
+   "reads": "Reader texts speak with the words of the Russian witness shown beside them (Antonovsky 1913) and of Common 1909 in English; editorial and data-model words leave reader texts; a negation stands only where the book negates.",
+   "corrections": "bonsai/review/zarathustra-graph/graph-words/assembly-inputs/language-corrections-2026-11-02.json"
   }
  ],
  "files": [
@@ -44,7 +53,9 @@
   "chains.json",
   "proposed.json",
   "occurrences/<concept>.json",
-  "control.json"
+  "control.json",
+  "semantic-uses.json",
+  "place-relations.json"
  ],
  "counts": {
   "voices": 775,
@@ -52,19 +63,19 @@
   "concepts": 30,
   "figures": 33,
   "links": 400,
-  "chains": 97,
-  "proposed": 28,
+  "chains": 100,
+  "proposed": 30,
   "occurrences": 3100,
   "verdicts": {
    "links": {
-    "revise": 123,
-    "confirmed": 227,
+    "revise": 124,
+    "confirmed": 226,
     "reconstruction": 47,
     "rejected": 3
    },
    "chains": {
     "revise": 63,
-    "reconstruction": 27,
+    "reconstruction": 30,
     "confirmed": 7
    },
    "formulas": {
@@ -79,10 +90,20 @@
     "rejected": 3
    },
    "chains": {
-    "map": 97,
+    "map": 100,
     "held": 0,
     "rejected": 0
    }
+  },
+  "semantic_use_terms": 6,
+  "semantic_uses_assessed": 26,
+  "semantic_uses_unknown": 214,
+  "place_relations": 7,
+  "language_corrections": {
+   "admitted": 1543,
+   "applied": 1543,
+   "unmatched": 0,
+   "fillers_dropped": 189
   },
   "english_missing": 0
  }
