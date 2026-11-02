@@ -612,6 +612,78 @@
         "start_offset",
         "end_offset"
       ]
+    },
+    {
+      "stage": "witness-triangulation",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub"
+      ],
+      "base_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1",
+      "schema_ref": "ToS/contracts/german-source-triangulation.schema.json",
+      "historical_template_ref": "rust/crates/tos-compiler/src/german_triangulation/templates.json",
+      "historical_template_sha256": "e1c0d5dc548174b912fb81b5a532a9382328228fe2072fcb3de3244f0be27371",
+      "discovery_ref": "ToS/source-witnesses/discovery/runs/ekgwb-za-i-vorrede-1-http-fallback.2026-07-29.v2.json",
+      "reference_tokens_sha256": "6d3deb76b489989f2a8ed3782f3ae9c12914a0ab6baea1b9f21432bcc8749e16",
+      "expected_reference_tokens": 261,
+      "expected_response_bytes": 180138,
+      "page_furniture_insertions": 15,
+      "trailing_next_section_tokens": 116,
+      "comparison_opcodes": [
+        {
+          "kind": "equal",
+          "source_start": 0,
+          "source_end": 111,
+          "target_start": 0,
+          "target_end": 111
+        },
+        {
+          "kind": "replace",
+          "source_start": 111,
+          "source_end": 112,
+          "target_start": 111,
+          "target_end": 112
+        },
+        {
+          "kind": "equal",
+          "source_start": 112,
+          "source_end": 165,
+          "target_start": 112,
+          "target_end": 165
+        },
+        {
+          "kind": "insert",
+          "source_start": 165,
+          "source_end": 165,
+          "target_start": 165,
+          "target_end": 180
+        },
+        {
+          "kind": "equal",
+          "source_start": 165,
+          "source_end": 261,
+          "target_start": 180,
+          "target_end": 276
+        },
+        {
+          "kind": "insert",
+          "source_start": 261,
+          "source_end": 261,
+          "target_start": 276,
+          "target_end": 392
+        }
+      ]
+    },
+    {
+      "stage": "bounded-translation-input",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub"
+      ],
+      "base_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1",
+      "schema_ref": "ToS/contracts/bounded-translation-research-input.schema.json",
+      "historical_template_ref": "rust/crates/tos-compiler/src/bounded_translation_input/templates.json",
+      "historical_template_sha256": "65d123112bbd3c6e2ebc922d2846357f30254bbf8916faa732c164aef93c5277"
     }
   ]
 }

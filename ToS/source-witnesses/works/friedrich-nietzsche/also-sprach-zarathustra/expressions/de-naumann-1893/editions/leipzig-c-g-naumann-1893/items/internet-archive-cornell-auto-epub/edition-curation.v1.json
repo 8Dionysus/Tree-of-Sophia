@@ -1,0 +1,22 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/edition-curation.v1.schema.json",
+  "schema_version": "tos_edition_curation_v1",
+  "curation_id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub.edition-curation.v1",
+  "version": 1,
+  "status": "historical-constants",
+  "owner_item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+  "edition_ref": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.leipzig-c-g-naumann-1893",
+  "manifest": "item.manifest.json",
+  "recipes": [
+    {
+      "stage": "recipe-reference",
+      "curation_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/edition-curation.v1.json",
+      "recipe_stage": "witness-triangulation"
+    },
+    {
+      "stage": "recipe-reference",
+      "curation_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/edition-curation.v1.json",
+      "recipe_stage": "bounded-translation-input"
+    }
+  ]
+}
