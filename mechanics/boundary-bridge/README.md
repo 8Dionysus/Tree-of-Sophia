@@ -13,7 +13,7 @@
 | output | bounded bridge seam and owner split |
 | owner | `mechanics/boundary-bridge/` |
 | stronger route | `ToS/` remains authored truth; sibling repos own their layers |
-| next route | [Derived KAG Seam](#derived-kag-seam) or [Public Mirror Sync](parts/public-mirror-sync/README.md) |
+| next route | [Derived KAG Seam](#derived-kag-seam) or [Public Mirror Sync](#public-mirror-sync) |
 | validation | `tos-ops-mechanics-plan --repo-root ROOT --public-mirror-validate`; `tos-ops-mechanics-plan --kag-source-export-verify --kag-export EXPORT` |
 
 ## Operations
@@ -29,7 +29,7 @@ Each part owns one bridge operation route.
 | Part | Function | Stronger owner route |
 | --- | --- | --- |
 | [Derived KAG Seam](#derived-kag-seam) | keep KAG/public handoff bounded and downstream | `ToS/` authored truth and downstream KAG owner |
-| [Public Mirror Sync](parts/public-mirror-sync/README.md) | keep public compatibility mirrors aligned with canon without making them canon | `ToS/canon/` and source review |
+| [Public Mirror Sync](#public-mirror-sync) | keep public compatibility mirrors aligned with canon without making them canon | `ToS/canon/` and source review |
 
 The [local card](AGENTS.md) owns editing; [validation](../VALIDATION.md) owns checks.
 Source or semantic questions return to [the source owner](../../ToS/AGENTS.md).
@@ -46,6 +46,17 @@ model. Follow `ToS/derived-exports/` or the sibling KAG owner. The tools are
 `parts/derived-kag-seam/docs/KAG_EXPORT.md` and
 `rust/crates/tos-ops-mechanics-plan/src/kag_corpus_export.rs`; verify with
 `tos-kag-release export-verify --release EXPORT`.
+
+### Public Mirror Sync
+
+Sync maps canonical source, concept, principle, lineage, event, state, support,
+analogy and synthesis nodes to checked public compatibility mirrors. The native
+owner is `rust/crates/tos-ops-mechanics-plan/src/public_mirror.rs`. Use
+`tos-ops-mechanics-plan --repo-root ROOT --public-mirror-sync` to write the
+declared mirrors and `tos-ops-mechanics-plan --repo-root ROOT --public-mirror-validate`
+to validate them; `tos-ops-mechanics-plan --repo-root . --public-mirror-validate`
+is the local check. Outputs live in `ToS/public-compatibility/`; exports may
+continue through the bounded KAG seam.
 
 ## History
 
