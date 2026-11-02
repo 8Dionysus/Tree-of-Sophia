@@ -2750,7 +2750,34 @@
             "люблю"
           ]
         }
-      ]
+      ],
+      "retained_coverage": {
+        "filename": "coverage-receipt.v1.json",
+        "coverage_fields": [
+          {
+            "role": "russian-provider",
+            "json_pointer": "/russian_provider"
+          }
+        ]
+      },
+      "provider_profile": {
+        "language": "ru",
+        "coverage_field_role": "russian-provider",
+        "form_character_ranges": [
+          {
+            "start": "а",
+            "end": "я"
+          }
+        ],
+        "form_extra_characters": "ё",
+        "stem_replacements": [
+          {
+            "from": "ё",
+            "to": "е"
+          }
+        ],
+        "stem_field_prefix": "st:"
+      }
     },
     {
       "stage": "lexical-morphology-evaluation",

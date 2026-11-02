@@ -1384,6 +1384,19 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                 tos_foundation::UnicodeProfile::from_profile(profile)
                     .map_err(|_| EditionCurationError::InvalidSchema)?;
             }
+            if let Some(profile) = object.get("provider_profile") {
+                character_ranges(profile, "form_character_ranges")?;
+                check_replacements(&profile["stem_replacements"])?;
+                let role = profile["coverage_field_role"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let fields = object["retained_coverage"]["coverage_fields"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                if !fields.iter().any(|field| field["role"] == role) {
+                    return Err(EditionCurationError::MissingReference);
+                }
+            }
             if let Some(replacements) = object.get("search_replacements") {
                 check_replacements(replacements)?;
             }

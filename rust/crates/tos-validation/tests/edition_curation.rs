@@ -900,6 +900,30 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
                 .is_ok()
             );
         }
+        if stage == "morphology-theme-candidates" {
+            let coverage_ref = format!(
+                "{}/{}",
+                recipe["frozen_manifest"]["output_root"].as_str().unwrap(),
+                recipe["retained_coverage"]["filename"].as_str().unwrap()
+            );
+            let coverage_raw = fs::read(root.join(&coverage_ref)).unwrap();
+            let selected = select_frozen_coverage_field(
+                &dta_raw,
+                stage,
+                "russian-provider",
+                manifest,
+                SelectedDocument {
+                    reference: &coverage_ref,
+                    raw: &coverage_raw,
+                },
+                &schema,
+            )
+            .unwrap();
+            assert_eq!(
+                selected["command"],
+                json!(["hunspell", "-d", "ru_RU", "-m"])
+            );
+        }
         if stage == "paragraph-alignment" {
             let coverage_ref = format!(
                 "{}/{}",
