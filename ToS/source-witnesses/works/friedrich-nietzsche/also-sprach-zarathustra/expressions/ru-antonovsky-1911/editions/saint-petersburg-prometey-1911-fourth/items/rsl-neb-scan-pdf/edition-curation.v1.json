@@ -234,7 +234,12 @@
             "schema_version": "tos_provenance_event_v1",
             "expected_sha256": "a7f5f9e0354c5fa8b8c41e0696497080c22bd69fec60a83cea90bc80f41d2204"
           }
-        ]
+        ],
+        "boundary_confidence": {
+          "source_attested": 1.0,
+          "panel": 0.85,
+          "paragraph": 0.55
+        }
       },
       "identity_issuance": {
         "issuance_id": "tos.identity-issuance.zarathustra-antonovsky-1911-structural-paragraph-v2",
