@@ -1919,6 +1919,16 @@
           "role": "builder-agent",
           "output_role": "provenance_event_ref",
           "json_pointer": "/responsibility/0/agent_ref"
+        },
+        {
+          "role": "node-count",
+          "output_role": "bridge_ref",
+          "json_pointer": "/canon_inventory/node_count"
+        },
+        {
+          "role": "relation-count",
+          "output_role": "bridge_ref",
+          "json_pointer": "/canon_inventory/relation_count"
         }
       ],
       "frozen_outputs": [
