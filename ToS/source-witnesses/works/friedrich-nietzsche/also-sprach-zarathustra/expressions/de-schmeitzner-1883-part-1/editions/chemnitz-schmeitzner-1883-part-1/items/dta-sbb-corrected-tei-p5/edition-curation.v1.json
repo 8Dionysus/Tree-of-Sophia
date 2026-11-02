@@ -1834,6 +1834,166 @@
           }
         ]
       }
+    },
+    {
+      "stage": "tei-source-foundation",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5"
+      ],
+      "plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-source-text-foundation.plan.v1.json",
+      "plan_sha256": "ff9343b8af24828b91a87ee9cbbd3d9de7326246942177e5282de37140fa900e",
+      "legacy_event_id": "tos.event.native-extraction.za-i-vorrede-1.dta-part-1-p1.2026-08-12",
+      "legacy_builder_ref": "scripts/build_zarathustra_source_text_foundation.py",
+      "historical_fields": [
+        {
+          "role": "layer-authority",
+          "output_role": "text_layer_ref",
+          "json_pointer": "/authority_boundary"
+        },
+        {
+          "role": "unit-reason",
+          "output_role": "text_unit_packet_ref",
+          "json_pointer": "/units/0/status_reason"
+        },
+        {
+          "role": "segmentation-reason",
+          "output_role": "text_unit_packet_ref",
+          "json_pointer": "/segmentations/0/status_reason"
+        }
+      ],
+      "frozen_outputs": [
+        {
+          "role": "anchor_ref",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-anchor-v2.za-i-vorrede-1-p1.dta.v1.json",
+          "schema_version": "tos_source_anchor_v2",
+          "expected_sha256": "a0f895355db939014763812a8e392f66ae89344990ea652fc0f99aeb3865b128"
+        },
+        {
+          "role": "text_layer_ref",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.dta-machine.v1.json",
+          "schema_version": "tos_source_text_layer_v1",
+          "expected_sha256": "da6f419b73ead06b24a307ef917b6387d66600882968698170e99d6aba10c9ed"
+        },
+        {
+          "role": "text_unit_packet_ref",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-p1.dta-layout.v1.json",
+          "schema_version": "tos_source_text_unit_packet_v1",
+          "expected_sha256": "eb1947576475abe92370e3b233fd0aa24f1e36e3536ee5e499ccc6a71a612081"
+        },
+        {
+          "role": "provenance_event_ref",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/provenance.source-text-foundation.za-i-vorrede-1.v2.json",
+          "schema_version": "tos_provenance_event_v2",
+          "expected_sha256": "4ae28b46e33d9090b02c068e92b3b5ee2e832210696cc9180ec13dfe192ba02f"
+        }
+      ],
+      "opening_calibration_sha256": "a507f7293ac73ec37f7c78a38b3270f45bc98418b8fd824f2ab72ebc18377224"
+    },
+    {
+      "stage": "authored-canon-evidence",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5"
+      ],
+      "plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-canon-evidence-bridge.plan.v1.json",
+      "plan_sha256": "097b12fe1c183b31dd15e720a50b437664011a4c70150cb7335fa3a5d7b2e04e",
+      "legacy_event_id": "tos.event.reconciliation.zarathustra-authored-canon-evidence-bridge.2026-08-12",
+      "legacy_builder_ref": "scripts/build_zarathustra_authored_canon_evidence_bridge.py",
+      "historical_fields": [
+        {
+          "role": "bridge-authority",
+          "output_role": "bridge_ref",
+          "json_pointer": "/authority_boundary"
+        },
+        {
+          "role": "builder-agent",
+          "output_role": "provenance_event_ref",
+          "json_pointer": "/responsibility/0/agent_ref"
+        }
+      ],
+      "frozen_outputs": [
+        {
+          "role": "anchor_ref",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-anchor-v2.za-i-vorrede-1-section.dta.v1.json",
+          "schema_version": "tos_source_anchor_v2",
+          "expected_sha256": "09199af3ccd59d602607eba022b3d0d8b629719ab5b8cec5a62b507e4b6fe03e"
+        },
+        {
+          "role": "raw_layer_ref",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-section.dta-raw.v1.json",
+          "schema_version": "tos_source_text_layer_v1",
+          "expected_sha256": "31a09432845ecd3b805c407b0d3c559ec570b961f84a7b07e720ca73b664adbc"
+        },
+        {
+          "role": "normalized_layer_ref",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-section.dta-normalized.v1.json",
+          "schema_version": "tos_source_text_layer_v1",
+          "expected_sha256": "30f40d967f0e6bdc4c3812553162832bec13f0f04e0c55aa229c3f103ab6c41e"
+        },
+        {
+          "role": "unit_packet_ref",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-section.dta-authored-crosswalk.v1.json",
+          "schema_version": "tos_source_text_unit_packet_v1",
+          "expected_sha256": "123ba3ad10907740322acd176aa3abc05a81739f5412525f5063021c39aaa018"
+        },
+        {
+          "role": "bridge_ref",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-route-evidence-bridge.za-i-vorrede-1.v1.json",
+          "schema_version": "tos_authored_route_evidence_bridge_v1",
+          "expected_sha256": "a35a34920bb2835ef77f51dcd1396d9b1b567716bab8091fa5ff687c5d68f4fb"
+        },
+        {
+          "role": "provenance_event_ref",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/provenance.authored-canon-evidence-bridge.za-i-vorrede-1.v2.json",
+          "schema_version": "tos_provenance_event_v2",
+          "expected_sha256": "b4db0cf0f05f630d25d608c2fd41d6fd8d2f0989fa86bc0d2178861219436e8f"
+        }
+      ]
+    },
+    {
+      "stage": "witness-structure-correspondence",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf"
+      ],
+      "map_id": "tos.structure-map.friedrich-nietzsche.also-sprach-zarathustra.dta-parts-to-naumann-1893",
+      "anchor_set_id": "tos.structure-anchor-set.friedrich-nietzsche.also-sprach-zarathustra.dta-parts-to-naumann-1893",
+      "event_id": "tos.event.structure-correspondence.friedrich-nietzsche.also-sprach-zarathustra.dta-parts-to-naumann-1893.2026-07-28",
+      "anchor_event_id": "tos.event.structure-anchors.friedrich-nietzsche.also-sprach-zarathustra.dta-parts-to-naumann-1893.2026-07-28",
+      "normalization_profile": "unicode-nfkc-casefold-alpha-token-sequence",
+      "witness_manifest_refs": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/item.manifest.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-image-container-pdf/item.manifest.json"
+      ],
+      "frozen_outputs": [
+        {
+          "role": "correspondence",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/structure/naumann-1893-dta-parts/structure-correspondence.json",
+          "schema_version": "tos_witness_structure_correspondence_v1",
+          "expected_sha256": "7b4fc0a2d3cbbb2fc6c72ba9ea95bb14c300cf363d928dc8fe534194fd8acc96"
+        },
+        {
+          "role": "anchor-set",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/structure/naumann-1893-dta-parts/structure-anchor-set.json",
+          "schema_version": "tos_witness_structure_anchor_set_v1",
+          "expected_sha256": "c444e9375a1ba23f3fc0ce8104c8e5ff6751b5493910c7689bce889ec85b908b"
+        },
+        {
+          "role": "anchors",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/structure/naumann-1893-dta-parts/structure-anchors.jsonl",
+          "schema_version": "tos_source_anchor_v1",
+          "expected_sha256": "9efd9557e22d637cd7f2e0bfe81e0932af1a705dd03f4bd5e08b997be6c616f9"
+        },
+        {
+          "role": "provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/structure/naumann-1893-dta-parts/provenance.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "271815b6bc8eba4262768d229bae8ce8fdb8eda66d38556d7f39dd721528e0ed"
+        }
+      ]
     }
   ]
 }

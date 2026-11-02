@@ -409,6 +409,54 @@
       "authority_template_ref": "rust/crates/tos-compiler/src/antonovsky_collation/authority-boundary.json",
       "authority_template_sha256": "95fb33b4b7d23057c72dd93ec731d0d32546530d0ee7f31e0732d03fe0663f48",
       "uncertainty_annotation_id": "tos.annotation.antonovsky-2007-p011-human-ambiguity.sid-8846af42fb4d0b3b066b42e209f99e03"
+    },
+    {
+      "stage": "pdf-target-foundation",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf"
+      ],
+      "plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-antonovsky-1911-target-text-foundation.plan.v1.json",
+      "plan_sha256": "b0ea384938569f8ff660217334fa48a1e54f301e3480b1fbf122bf963c905c4b",
+      "legacy_event_id": "tos.event.native-extraction.za-i-vorrede-1.antonovsky-1911-pdf-page-6-opening.2026-08-12",
+      "legacy_builder_ref": "scripts/build_zarathustra_target_text_foundation.py",
+      "historical_fields": [
+        {
+          "role": "layer-authority",
+          "output_role": "text_layer_ref",
+          "json_pointer": "/authority_boundary"
+        },
+        {
+          "role": "unit-reason",
+          "output_role": "text_unit_packet_ref",
+          "json_pointer": "/units/0/status_reason"
+        }
+      ],
+      "frozen_outputs": [
+        {
+          "role": "anchor_ref",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-anchor-v2.za-i-vorrede-1-p1.antonovsky-1911.v1.json",
+          "schema_version": "tos_source_anchor_v2",
+          "expected_sha256": "8669be117aa3058a4a21f7453b83d4e7c5c9d11483efa6a201beb55c8fc06dde"
+        },
+        {
+          "role": "text_layer_ref",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.antonovsky-1911-embedded.v1.json",
+          "schema_version": "tos_source_text_layer_v1",
+          "expected_sha256": "fe6660ea7d473a57290c23904fde948ddb6cb437edea1730fb33a775e7168dee"
+        },
+        {
+          "role": "text_unit_packet_ref",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-p1.antonovsky-1911-layout.v1.json",
+          "schema_version": "tos_source_text_unit_packet_v1",
+          "expected_sha256": "285ced48c13ea395c9e09465ac974c79b64f35915470bc3b75abb8ac54d91472"
+        },
+        {
+          "role": "provenance_event_ref",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/provenance.target-text-foundation.za-i-vorrede-1.antonovsky-1911.v2.json",
+          "schema_version": "tos_provenance_event_v2",
+          "expected_sha256": "52289451cb3acb8b0c850db7cca246898f8a0bda38531a2d768038043ac52ab2"
+        }
+      ]
     }
   ]
 }

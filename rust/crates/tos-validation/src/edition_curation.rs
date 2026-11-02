@@ -319,6 +319,7 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                 ("outputs", "filename"),
                 ("frozen_outputs", "role"),
                 ("frozen_outputs", "repository_path"),
+                ("historical_fields", "role"),
                 ("record_identities", "role"),
                 ("role_precedence", "role"),
                 ("visual_markers", "citation_contains"),
@@ -334,6 +335,20 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                                 return Err(EditionCurationError::Duplicate(field));
                             }
                         }
+                    }
+                }
+            }
+            if let Some(Value::Array(fields)) = object.get("historical_fields") {
+                let outputs = object
+                    .get("frozen_outputs")
+                    .and_then(Value::as_array)
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                for field in fields {
+                    let role = field["output_role"]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    if !outputs.iter().any(|output| output["role"] == role) {
+                        return Err(EditionCurationError::MissingReference);
                     }
                 }
             }

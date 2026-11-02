@@ -81,6 +81,21 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let dta_raw = fs::read(root.join(dta_path)).unwrap();
     assert_eq!(validate(&dta_raw, &schema), Ok(()));
     let dta_value: Value = serde_json::from_slice(&dta_raw).unwrap();
+    let mut missing_historical_output = dta_value.clone();
+    let foundation = missing_historical_output["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "tei-source-foundation")
+        .unwrap();
+    foundation["historical_fields"][0]["output_role"] = json!("missing-output");
+    assert_eq!(
+        validate(
+            &serde_json::to_vec(&missing_historical_output).unwrap(),
+            &schema
+        ),
+        Err(EditionCurationError::MissingReference)
+    );
     let plan_ref = dta_value["recipes"][0]["plan_ref"].as_str().unwrap();
     let plan_raw = fs::read(root.join(plan_ref)).unwrap();
     let plan = SelectedDocument {
