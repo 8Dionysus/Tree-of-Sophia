@@ -113,7 +113,10 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                     }
                 }
             }
-            if let Some(Value::Array(overrides)) = object.get("page_overrides") {
+            if object.get("page_order").and_then(Value::as_str) == Some("nondecreasing") {
+                let overrides = object["page_overrides"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
                 for pair in overrides.windows(2) {
                     if !matches!(
                         compare_numbers(&pair[0]["page"], &pair[1]["page"]),

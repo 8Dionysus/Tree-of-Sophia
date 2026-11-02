@@ -204,7 +204,8 @@
         "ocr-disambiguation",
         "default"
       ],
-      "default_basis": "embedded_pdf_bbox_order_candidate"
+      "default_basis": "embedded_pdf_bbox_order_candidate",
+      "page_order": "nondecreasing"
     },
     {
       "stage": "hierarchical-target-structure",

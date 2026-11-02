@@ -45,6 +45,11 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         validate(&serde_json::to_vec(&unordered).unwrap(), &schema),
         Err(EditionCurationError::InvalidRange("page_overrides"))
     );
+    unordered["recipes"][0]["page_order"] = json!("unconstrained");
+    assert_eq!(
+        validate(&serde_json::to_vec(&unordered).unwrap(), &schema),
+        Ok(())
+    );
     let mut duplicate_marker = original.clone();
     let markers = duplicate_marker["recipes"][1]["marker_returns"]
         .as_array_mut()

@@ -245,7 +245,8 @@
         "ocr-disambiguation",
         "default"
       ],
-      "default_basis": "ocr_order_candidate"
+      "default_basis": "ocr_order_candidate",
+      "page_order": "nondecreasing"
     },
     {
       "stage": "source-passage-marker-returns",
