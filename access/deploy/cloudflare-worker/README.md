@@ -65,8 +65,7 @@ bindings and request limits.
 
 The Worker shares one 65-second deadline across JWT/JWKS validation, request
 body reading, native response headers and body. Preflight time reduces the
-remaining native-query time; the native 60-second cap is not added on top. This
-gateway does not grant publication authority or change source admission.
+remaining native-query time; the native 60-second cap is not added on top.
 
 ## Production flow
 
@@ -118,8 +117,8 @@ checks the source descriptor and pathname around reads; temporary owned files
 are removed after a confirmed child close. If child close cannot be observed,
 the helper reports the unreaped PID and retains the exact scratch directory.
 
-The generated model is not a native-current read model and does not grant
-publication authority. A D1 migration is not applied by an HTTP request. Apply
+The generated D1 model is distinct from the native-current read model. A D1
+migration is not applied by an HTTP request. Apply
 [`0001-exploration.sql`](migrations/0001-exploration.sql) before serving the
 knowledge routes that depend on its publication clock and indexes. Readers
 bracket their bounded work with revision/epoch checks and fail closed on a
