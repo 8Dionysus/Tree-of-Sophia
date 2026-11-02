@@ -13,13 +13,19 @@
 | output | source compost route or canon-facing candidate |
 | owner | `mechanics/distillation/` |
 | stronger route | `ToS/` owns source, philosophy, and canon meaning |
-| next route | [Source Compost](parts/source-compost/README.md) |
+| next route | [Source Compost](parts/source-compost/docs/CONTEXT_COMPOST.md) |
 | validation | `tos-ops-mechanics-plan --repo-root ABS --source-home` |
 
 ## Operations
 | Part | Function |
 | --- | --- |
-| [Source Compost](parts/source-compost/README.md) | move source-linked material through raw, note, synthesis, principle, and canon-facing review |
+| [Source Compost](parts/source-compost/docs/CONTEXT_COMPOST.md) | move source-linked material through raw, note, synthesis, principle, and canon-facing review |
+
+The part owner is `mechanics/distillation/parts/source-compost/`. Its inputs are
+raw sources, witnesses, notes and synthesis candidates; its outputs are
+reviewable candidates or returns to source. Follow `ToS/source-witnesses/`,
+`ToS/candidate-intake/` or `ToS/canon/` for the next route. The operation uses
+source-home validators and `tos-ops-mechanics-plan --repo-root ABS --source-home`.
 
 The [local card](AGENTS.md) owns editing; [validation](../VALIDATION.md) owns checks.
 Source or semantic questions return to [the source owner](../../ToS/AGENTS.md).

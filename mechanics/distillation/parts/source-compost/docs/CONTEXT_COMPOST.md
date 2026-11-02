@@ -1,161 +1,90 @@
 # Context Compost
 
-This document records the current fourth-phase ToS doctrine for `Context Compost`.
-
-It is separate from
-[PRACTICE_BRANCH](../../../../../ToS/doctrine/PRACTICE_BRANCH.md) and
-[COUNTERPART_POLICY](../../../../../ToS/doctrine/COUNTERPART_POLICY.md).
-`PRACTICE_BRANCH.md` explains why ToS may recognize a neighboring genealogy of practices.
-`COUNTERPART_POLICY.md` explains how derived bridges to AoA operational forms stay optional and non-identity.
-This note explains the source and review method for turning witness-facing or
-other source-linked material into layered ToS knowledge. Runtime
-implementation follows its own owner route.
+Context Compost is the source and review method for turning witness-facing or
+other source-linked material into layered ToS knowledge. [PRACTICE_BRANCH](../../../../../ToS/doctrine/PRACTICE_BRANCH.md)
+addresses neighboring practice genealogies; [COUNTERPART_POLICY](../../../../../ToS/doctrine/COUNTERPART_POLICY.md)
+addresses optional bridges to AoA operational forms. Runtime implementation
+follows its owner route.
 
 ## Core rule
 
-ToS may compost context into layered knowledge.
-
-That compost cycle must stay:
-
-- source-first
-- reviewable
-- layered
-- reversible
-- non-platform-sovereign in this phase
-
-This phase develops doctrine and reviewable document contracts; executable
-schema coverage is tracked through its implementation route.
+Compost stays source-first, reviewable, layered, reversible and
+non-platform-sovereign in this phase. Executable schema coverage follows its
+implementation route.
 
 ## Canonical compost cycle
-
-The canonical cycle is:
 
 `raw -> note -> synthesis -> principle -> canon`
 
 ### `raw`
 
-Raw material is an intake surface that has not yet been digested into ToS-authored knowledge.
-
-Examples:
-- source excerpts
-- commentary fragments
-- witness-facing route artifacts such as `WitnessTrace`
-- bounded summaries that still need source review
+Undigested intake, such as source excerpts, commentary fragments,
+`WitnessTrace` artifacts or bounded summaries awaiting source review.
 
 ### `note`
 
-A note is the first bounded compost artifact.
-
-It should keep:
-- explicit source refs
-- current review state
-- visible limits
-- enough context that later digestion still has a route backward
+The first bounded artifact keeps source refs, review state, visible limits and
+enough context to return to its sources.
 
 ### `synthesis`
 
-Synthesis gathers and distills multiple notes into a revisable, source-linked
-interpretation.
-
-It should remain linked to the notes and source refs it depends on.
+A revisable, source-linked interpretation distills multiple notes and retains
+links to those notes and their source refs.
 
 ### `principle`
 
-A principle is a higher-order distilled statement that remains review-gated and reversible.
-
-It may be stronger than a note.
-It should still preserve route visibility and should not sever its source basis.
+A higher-order statement remains review-gated and reversible, with a visible
+route to its source basis.
 
 ### `canon`
 
-Canon is a rare and explicit stabilization surface.
-
-It should arrive only through reviewable promotion.
-Canon retains its source route and promotion evidence.
+Explicit, reviewable promotion stabilizes canon while retaining its source
+route and promotion evidence.
 
 ## Contract objects
 
 ### `CompostNode`
 
-A bounded compost artifact that records:
-- its current stage in the compost cycle
-- a reviewable summary
-- source refs
-- review state
-- visible limits
-- lineage or relation notes when they matter
+A bounded artifact records its cycle stage, reviewable summary, source refs,
+review state, visible limits and relevant lineage or relation notes.
 
 ### `SourceRef`
 
-An explicit reference back toward the material that justifies the compost artifact.
-
-`SourceRef` may point to:
-- ToS-authored sources
-- source excerpts
-- commentary fragments
-- witness-facing route artifacts
+A reference to supporting ToS-authored sources, excerpts, commentary fragments
+or witness-facing route artifacts.
 
 ### `DecayPolicy`
 
-A named posture for how a compost artifact may stale, require refresh, or be demoted.
-
-The policy makes staleness, refresh and demotion explicit parts of growth.
+A named posture for staleness, refresh and demotion.
 
 ### `CanonBundle`
 
-A reviewable bundle that stabilizes one or more canon-facing outputs while preserving source route and promotion history.
-
-Canonization should remain explicit rather than ambient.
+A reviewable bundle stabilizing one or more canon-facing outputs with source
+route and promotion history.
 
 ## Worked path
 
 ### `WitnessTrace -> Note -> Principle`
 
-One compact path for the current pilot phase:
-
-1. `WitnessTrace` enters ToS as `raw` context with its source, status and
-original ownership recorded.
-2. A bounded `note` digests the route into source-linked language while preserving review state and limits.
-3. A `principle` may later be proposed if the note holds up under review and still keeps explicit source refs.
-
-This path prepares source-linked proposals for later review and canon
-decisions.
+1. `WitnessTrace` enters as `raw` context with source, status and original ownership.
+2. A bounded `note` preserves source links, review state and limits.
+3. A `principle` may be proposed after review, retaining explicit source refs.
 
 ### Memory bridge fragment
 
-For the current public bridge-bearing memo pilot, ToS may expose one bounded
-fragment that downstream AoA layers can cite without treating compost doctrine
-as graph truth, routing authority, or operational ownership.
-
-That fragment should stay:
-
-- source-first
-- non-identity
-- reviewable
-- subordinate to authored ToS doctrine
-
-It may support memo-side or KAG-side bridge readiness references.
-Memory, runtime and derived-substrate decisions remain with their named
-owners.
+The public bridge-bearing memo pilot may expose one bounded, source-first,
+non-identity, reviewable fragment subordinate to authored ToS doctrine. It may
+support memo-side or KAG-side bridge readiness references. Memory, runtime and
+derived-substrate decisions remain with their owners.
 
 ## Ownership boundary
 
-Operational ownership follows the existing owner chain.
-
-Keep the chain explicit:
-- `aoa-playbooks` owns the scenario route
-- `aoa-memo` owns witness-facing memory contracts
-- `aoa-evals` owns proof of trace integrity and provenance preservation
-- `Tree-of-Sophia` owns the compost-cycle doctrine and canon-facing digestion
-- `abyss-stack` remains later runtime instrumentation, not part of this phase
+- `aoa-playbooks`: scenario route.
+- `aoa-memo`: witness-facing memory contracts.
+- `aoa-evals`: proof of trace integrity and provenance preservation.
+- `Tree-of-Sophia`: compost-cycle doctrine and canon-facing digestion.
+- `abyss-stack`: later runtime instrumentation.
 
 ## Connection to later growth
 
-Context compost may prepare the ground for later ToS growth work.
-
-The later growth candidates retain their own scope:
-- `TOS-GROWTH-03`
-- `TOS-GROWTH-05`
-- `TOS-GROWTH-08`
-
-It gives those later growth candidates a cleaner future intake route.
+This intake may prepare `TOS-GROWTH-03`, `TOS-GROWTH-05` and `TOS-GROWTH-08`.
