@@ -117,7 +117,66 @@ pub struct SourceFoundationRecordObservation {
 #[derive(Debug, Clone)]
 pub struct SourceFoundationRecordSchemaDiagnostic {
     pub ordinal: u64,
-    pub diagnostic: SourceCutSchemaDiagnostic,
+    pub diagnostic: SourceFoundationStoredSchemaDiagnostic,
+}
+
+/// The spool preserves the evidence generation that produced each record.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SourceFoundationStoredSchemaDiagnostic {
+    Worker(SourceCutSchemaDiagnostic),
+    InProcess(crate::source_cut::InProcessCutDiagnostic<Value>),
+}
+
+impl SourceFoundationStoredSchemaDiagnostic {
+    pub fn minimum_state_bytes(&self) -> Result<usize, ItemRefusal> {
+        match self {
+            Self::Worker(row) => Ok(row.accounted_state_bytes),
+            Self::InProcess(row) => Self::in_process_minimum_state_bytes(row),
+        }
+    }
+
+    pub fn in_process_minimum_state_bytes(
+        row: &crate::source_cut::InProcessCutDiagnostic<Value>,
+    ) -> Result<usize, ItemRefusal> {
+        use crate::executor::schema_diagnostics::{Issue, PathSegment};
+        use crate::source_cut::InProcessCutIdentity;
+        let identity = match &row.identity {
+            InProcessCutIdentity::Source(_) => 0,
+            InProcessCutIdentity::Candidate(value) => {
+                crate::record_biblio_cut::decoded_state(value)?
+            }
+        };
+        let mut size = std::mem::size_of::<Self>()
+            .checked_add(identity)
+            .and_then(|n| n.checked_add(row.path.capacity()))
+            .and_then(|n| n.checked_add(row.contract.capacity()))
+            .and_then(|n| n.checked_add(row.report.root_uri.capacity()))
+            .and_then(|n| {
+                n.checked_add(
+                    row.report.issues.capacity().checked_mul(std::mem::size_of::<Issue>())?,
+                )
+            })
+            .ok_or(crate::item_budget_origin!())?;
+        for issue in &row.report.issues {
+            size = size
+                .checked_add(issue.schema_keyword.capacity())
+                .ok_or(crate::item_budget_origin!())?;
+            for path in [&issue.instance_path, &issue.schema_path] {
+                size = size
+                    .checked_add(path.capacity().checked_mul(std::mem::size_of::<PathSegment>())
+                        .ok_or(crate::item_budget_origin!())?)
+                    .ok_or(crate::item_budget_origin!())?;
+                for segment in path {
+                    if let PathSegment::Property(name) = segment {
+                        size = size
+                            .checked_add(name.capacity())
+                            .ok_or(crate::item_budget_origin!())?;
+                    }
+                }
+            }
+        }
+        Ok(size)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -449,6 +508,15 @@ pub trait SourceFoundationRecordsStore {
         &mut self,
         ordinal: u64,
         row: &SourceCutSchemaDiagnostic,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(), ItemRefusal>;
+
+    /// Store in-process evidence alongside historical worker diagnostics.
+    fn record_in_process_schema_diagnostic(
+        &mut self,
+        ordinal: u64,
+        row: &crate::source_cut::InProcessCutDiagnostic<Value>,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<(), ItemRefusal>;
@@ -1453,7 +1521,7 @@ fn source_foundation_stored_fact_minimum_state_bytes(
             record_observation_minimum_state_bytes(&row.observation)?
         }
         SourceFoundationRecordsStoredFact::RecordSchemaDiagnostic(row) => {
-            row.diagnostic.accounted_state_bytes
+            row.diagnostic.minimum_state_bytes()?
         }
     };
     size.checked_add(payload)

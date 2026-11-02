@@ -34,6 +34,7 @@ use tos_validation::{
         SourceFoundationRecordFactCollection, SourceFoundationRecordFactPage,
         SourceFoundationRecordIdCarrier, SourceFoundationRecordObservation,
         SourceFoundationRecordPathReference, SourceFoundationRecordSchemaDiagnostic,
+        SourceFoundationStoredSchemaDiagnostic,
         SourceFoundationRecordsCollection, SourceFoundationRecordsCursor,
         SourceFoundationRecordsCursorPage, SourceFoundationRecordsIssue,
         SourceFoundationRecordsIssueFamily, SourceFoundationRecordsLookup,
@@ -51,6 +52,20 @@ const NATIVE_ARTIFACT_RECORD_SUFFIX: &str = "/artifact-witness.json";
 
 fn is_candidate_artifact_record_path(path: &str) -> bool {
     path.starts_with(NATIVE_ARTIFACT_RECORD_PREFIX) && path.ends_with(NATIVE_ARTIFACT_RECORD_SUFFIX)
+}
+
+pub(crate) fn candidate_fence_value(fence: &super::CandidateFence) -> Value {
+    json!({
+        "v": 1,
+        "batch_sha256": fence.batch_sha256.to_hex(),
+        "base_revision": fence.base_revision.map(|revision| revision.0.to_hex()),
+        "validator_sha256": fence.validator_sha256.to_hex(),
+        "membership_count": fence.membership.count,
+        "membership_digest": fence.membership.digest.to_hex(),
+        "source_bytes": fence.source_bytes,
+        "retirement_count": fence.retirement_count,
+        "retirement_digest": fence.retirement_digest.to_hex(),
+    })
 }
 
 #[track_caller]
@@ -1180,20 +1195,21 @@ fn stored_fact_from_value(
         }
         SourceFoundationRecordsCollection::RecordSchemaDiagnostics => {
             SourceFoundationRecordsStoredFact::RecordSchemaDiagnostic(
-                SourceFoundationRecordSchemaDiagnostic {
-                    ordinal: uint(value, "ordinal")?,
-                    diagnostic: match stored_schema_diagnostic_from_value(field(
-                        value,
-                        "diagnostic",
-                    )?)? {
-                        StoredSchemaDiagnostic::Worker(row) => row,
-                        StoredSchemaDiagnostic::InProcess(_) => {
-                            return Err(invalid("worker diagnostic expected"));
-                        }
-                    },
-                },
+                stored_record_schema_diagnostic_from_value(value)?,
             )
         }
+    })
+}
+
+fn stored_record_schema_diagnostic_from_value(
+    value: &Value,
+) -> io::Result<SourceFoundationRecordSchemaDiagnostic> {
+    if uint(value, "v")? != STORE_CODEC_VERSION {
+        return Err(invalid("stored Records row codec version invalid"));
+    }
+    Ok(SourceFoundationRecordSchemaDiagnostic {
+        ordinal: uint(value, "ordinal")?,
+        diagnostic: stored_schema_diagnostic_from_value(field(value, "diagnostic")?)?,
     })
 }
 
@@ -3134,6 +3150,52 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         Ok(())
     }
 
+    fn record_in_process_schema_diagnostic(
+        &mut self,
+        ordinal: u64,
+        row: &tos_validation::source_cut::InProcessCutDiagnostic<Value>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(), ItemRefusal> {
+        check_operation(self, deadline, cancelled)?;
+        if ordinal != self.record_schema_diagnostic_count {
+            return Err(ItemRefusal::Source(
+                "Biblio schema diagnostic ordinal is not contiguous".into(),
+            ));
+        }
+        if row.identity
+            != tos_validation::source_cut::InProcessCutIdentity::Candidate(candidate_fence_value(&self.fence))
+        {
+            return Err(ItemRefusal::Source(
+                "Biblio schema diagnostic candidate identity differs".into(),
+            ));
+        }
+        let state = StoredSchemaDiagnostic::in_process_minimum_state_bytes(row)?;
+        preflight_row_clone(self, state).map_err(refusal)?;
+        let diagnostic = StoredSchemaDiagnostic::InProcess(row.clone());
+        let value = json!({
+            "v": STORE_CODEC_VERSION,
+            "ordinal": ordinal,
+            "diagnostic": stored_schema_diagnostic_value(&diagnostic).map_err(refusal)?,
+        });
+        let seq = self
+            .append_stored_row(
+                SourceFoundationRecordsCollection::RecordSchemaDiagnostics,
+                "", "", &value, &[], state, WriteLaw::Append, Some(deadline), Some(cancelled),
+            )
+            .map_err(refusal)?;
+        if u64::try_from(seq).ok() != Some(ordinal) {
+            return Err(ItemRefusal::Source(
+                "Biblio diagnostic storage order changed".into(),
+            ));
+        }
+        self.record_schema_diagnostic_count = self
+            .record_schema_diagnostic_count
+            .checked_add(1)
+            .ok_or(tos_validation::item_budget_origin!())?;
+        Ok(())
+    }
+
     fn record_fact_page(
         &self,
         collection: SourceFoundationRecordFactCollection,
@@ -4185,6 +4247,23 @@ mod schema_report_codec_tests {
     };
 
     #[test]
+    fn candidate_fence_evidence_changes_with_the_selected_input() {
+        let digest = Digest256::of_bytes(b"candidate");
+        let mut fence = super::super::CandidateFence {
+            batch_sha256: digest,
+            base_revision: None,
+            validator_sha256: digest,
+            membership: tos_source_store::SourceMembershipV1 { count: 1, digest },
+            source_bytes: 12,
+            retirement_count: 0,
+            retirement_digest: digest,
+        };
+        let original = candidate_fence_value(&fence);
+        fence.source_bytes += 1;
+        assert_ne!(candidate_fence_value(&fence), original);
+    }
+
+    #[test]
     fn reads_historical_worker_and_round_trips_in_process_reports() {
         let caps = schema_diag::Caps::CURRENT;
         let digest = Digest256::of_bytes(b"fixture");
@@ -4325,10 +4404,25 @@ mod schema_report_codec_tests {
                 },
             );
             let envelope = stored_schema_diagnostic_value(&diagnostic).unwrap();
-            assert_eq!(
-                stored_schema_diagnostic_from_value(&envelope).unwrap(),
-                diagnostic
-            );
+            assert_eq!(stored_schema_diagnostic_from_value(&envelope).unwrap(), diagnostic);
+            let db = rusqlite::Connection::open_in_memory().unwrap();
+            db.execute_batch("CREATE TABLE diagnostic (payload BLOB NOT NULL)")
+                .unwrap();
+            let row = json!({"v": STORE_CODEC_VERSION, "ordinal": 7, "diagnostic": envelope});
+            db.execute(
+                "INSERT INTO diagnostic (payload) VALUES (?1)",
+                [serde_json::to_vec(&row).unwrap()],
+            )
+            .unwrap();
+            let bytes: Vec<u8> = db
+                .query_row("SELECT payload FROM diagnostic", [], |row| row.get(0))
+                .unwrap();
+            let stored = stored_record_schema_diagnostic_from_value(
+                &serde_json::from_slice(&bytes).unwrap(),
+            )
+            .unwrap();
+            assert_eq!(stored.ordinal, 7);
+            assert_eq!(stored.diagnostic, diagnostic);
             let evidence = StoredSchemaReport::InProcess(report);
             let value = stored_schema_report_value(&evidence).unwrap();
             assert_eq!(stored_schema_report_from_value(&value).unwrap(), evidence);
@@ -4513,11 +4607,7 @@ fn worker_diagnostic_from_value(value: &Value) -> io::Result<SourceCutSchemaDiag
 
 /// Both diagnostic generations share the spool codec boundary. Existing
 /// worker-only collections use the worker variant until caller migration.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum StoredSchemaDiagnostic {
-    Worker(SourceCutSchemaDiagnostic),
-    InProcess(tos_validation::source_cut::InProcessCutDiagnostic<Value>),
-}
+type StoredSchemaDiagnostic = SourceFoundationStoredSchemaDiagnostic;
 
 pub(crate) fn stored_schema_diagnostic_value(row: &StoredSchemaDiagnostic) -> io::Result<Value> {
     match row {

@@ -39,6 +39,7 @@ pub use source_foundation_records_storage::{
     SourceFoundationRecordFactCollection, SourceFoundationRecordFactPage,
     SourceFoundationRecordIdCarrier, SourceFoundationRecordObservation,
     SourceFoundationRecordPathReference, SourceFoundationRecordSchemaDiagnostic,
+    SourceFoundationStoredSchemaDiagnostic,
     SourceFoundationRecordsCollection, SourceFoundationRecordsCursor,
     SourceFoundationRecordsCursorPage, SourceFoundationRecordsIndex, SourceFoundationRecordsLookup,
     SourceFoundationRecordsPageBudget, SourceFoundationRecordsStore,

@@ -5438,7 +5438,18 @@ impl<'report, 'store, I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'report
                 schema_diagnostic_rows_scanned = schema_diagnostic_rows_scanned
                     .checked_add(1)
                     .ok_or(crate::item_budget_origin!())?;
-                let diagnostic = &row.diagnostic;
+                // In-process record proof binding is completed with the executor
+                // migration (package D); until then this proof refuses it.
+                let diagnostic = match &row.diagnostic {
+                    crate::source_foundation_records::SourceFoundationStoredSchemaDiagnostic::Worker(row) => row,
+                    crate::source_foundation_records::SourceFoundationStoredSchemaDiagnostic::InProcess(row)
+                        if row.report.root_uri != V2_ARTIFACT_SCHEMA => return Ok(()),
+                    crate::source_foundation_records::SourceFoundationStoredSchemaDiagnostic::InProcess(_) => {
+                        return Err(ItemRefusal::Unsupported(
+                            "in-process Artifact schema proof binding unavailable".into(),
+                        ));
+                    }
+                };
                 if !diagnostic_targets_artifact_schema(diagnostic) {
                     return Ok(());
                 }
