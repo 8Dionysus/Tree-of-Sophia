@@ -1272,6 +1272,134 @@ fn check_replacements(value: &Value) -> Result<(), EditionCurationError> {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if object.get("stage").and_then(Value::as_str) == Some("reading-workbench") {
+                let profile = object
+                    .get("unicode_profile")
+                    .and_then(Value::as_str)
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                tos_foundation::UnicodeProfile::from_profile(profile)
+                    .map_err(|_| EditionCurationError::InvalidSchema)?;
+            }
+            if let Some(replacements) = object.get("search_replacements") {
+                check_replacements(replacements)?;
+            }
+            if let Some(profile) = object.get("guillemet_ocr_profile") {
+                let ranges =
+                    |field: &'static str| -> Result<Vec<(char, char)>, EditionCurationError> {
+                        let mut result = Vec::new();
+                        for range in profile[field]
+                            .as_array()
+                            .ok_or(EditionCurationError::InvalidSchema)?
+                        {
+                            let start = range["start"]
+                                .as_str()
+                                .and_then(|s| s.chars().next())
+                                .ok_or(EditionCurationError::InvalidSchema)?;
+                            let end = range["end"]
+                                .as_str()
+                                .and_then(|s| s.chars().next())
+                                .ok_or(EditionCurationError::InvalidSchema)?;
+                            if start > end
+                                || result
+                                    .last()
+                                    .is_some_and(|(_, previous)| *previous >= start)
+                            {
+                                return Err(EditionCurationError::InvalidRange(field));
+                            }
+                            result.push((start, end));
+                        }
+                        Ok(result)
+                    };
+                let letters = ranges("letter_ranges")?;
+                let after = ranges("after_whitespace_ranges")?;
+                let extra = profile["additional_letters"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let contains = |ch: char| {
+                    extra.contains(ch)
+                        || letters
+                            .iter()
+                            .any(|(start, end)| (*start..=*end).contains(&ch))
+                };
+                for field in [
+                    "additional_letters",
+                    "before_whitespace_characters",
+                    "after_whitespace_additional_letters",
+                ] {
+                    let text = profile[field]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    let mut seen = BTreeSet::new();
+                    if text.chars().any(|ch| !seen.insert(ch)) {
+                        return Err(EditionCurationError::Duplicate("OCR character"));
+                    }
+                }
+                let after_extra = profile["after_whitespace_additional_letters"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                if extra.chars().any(|ch| {
+                    letters
+                        .iter()
+                        .any(|(start, end)| (*start..=*end).contains(&ch))
+                }) || after_extra.chars().any(|ch| {
+                    after
+                        .iter()
+                        .any(|(start, end)| (*start..=*end).contains(&ch))
+                }) {
+                    return Err(EditionCurationError::Duplicate("OCR character"));
+                }
+                if profile["before_whitespace_characters"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?
+                    .chars()
+                    .any(|ch| !contains(ch))
+                    || profile["after_whitespace_additional_letters"]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?
+                        .chars()
+                        .any(|ch| !contains(ch))
+                    || after.iter().any(|(start, end)| {
+                        !letters
+                            .iter()
+                            .any(|(left, right)| left <= start && end <= right)
+                    })
+                    || !object
+                        .get("quote_pairs")
+                        .and_then(Value::as_array)
+                        .is_some_and(|pairs| {
+                            pairs.iter().any(|pair| pair["close"] == profile["marker"])
+                        })
+                {
+                    return Err(EditionCurationError::MissingReference);
+                }
+            }
+            if let Some(context) = object.get("quote_context") {
+                if context["continuation_uses_ocr_marker"] == true
+                    && !object.contains_key("guillemet_ocr_profile")
+                {
+                    return Err(EditionCurationError::MissingReference);
+                }
+                let pairs = object
+                    .get("quote_pairs")
+                    .and_then(Value::as_array)
+                    .ok_or(EditionCurationError::MissingReference)?;
+                for field in ["unmatched_close_marker", "literal_apostrophe_marker"] {
+                    if !pairs.iter().any(|pair| {
+                        pair["open"] == context[field] || pair["close"] == context[field]
+                    }) {
+                        return Err(EditionCurationError::MissingReference);
+                    }
+                }
+                for field in ["leading_prefix_characters", "closing_following_characters"] {
+                    let text = context[field]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    let mut seen = BTreeSet::new();
+                    if text.chars().any(|ch| !seen.insert(ch)) {
+                        return Err(EditionCurationError::Duplicate("quote context character"));
+                    }
+                }
+            }
             if let Some(profile) = object.get("residue_profile") {
                 for field in ["frequency_buckets", "length_buckets"] {
                     let buckets = profile[field]
@@ -2613,6 +2741,7 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                 ("frozen_outputs", "repository_path"),
                 ("historical_fields", "role"),
                 ("coverage_fields", "role"),
+                ("quote_pairs", "open"),
                 ("historical_receipt_fields", "role"),
                 ("historical_templates", "role"),
                 ("retained_artifacts", "role"),

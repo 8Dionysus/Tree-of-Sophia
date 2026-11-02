@@ -4346,7 +4346,76 @@
       "output_schema_versions": {
         "coverage": "tos_zarathustra_reading_coverage_v1",
         "manifest": "tos_zarathustra_reading_manifest_v1"
-      }
+      },
+      "search_replacements": [
+        {
+          "from": "ſ",
+          "to": "s"
+        },
+        {
+          "from": "İ",
+          "to": "i"
+        },
+        {
+          "from": "ı",
+          "to": "i"
+        },
+        {
+          "from": "K",
+          "to": "k"
+        },
+        {
+          "from": "ѣ",
+          "to": "е"
+        },
+        {
+          "from": "Ѣ",
+          "to": "Е"
+        },
+        {
+          "from": "і",
+          "to": "и"
+        },
+        {
+          "from": "І",
+          "to": "И"
+        },
+        {
+          "from": "ѵ",
+          "to": "и"
+        }
+      ],
+      "guillemet_ocr_profile": {
+        "language": "ru",
+        "marker": "»",
+        "letter_ranges": [
+          {
+            "start": "А",
+            "end": "Я"
+          },
+          {
+            "start": "а",
+            "end": "я"
+          }
+        ],
+        "additional_letters": "ѣѢіІ",
+        "before_whitespace_characters": "бвгджзклмнпрстфхцчшщБВГДЖЗКЛМНПРСТФХЦЧШЩ",
+        "after_whitespace_ranges": [
+          {
+            "start": "а",
+            "end": "я"
+          }
+        ],
+        "after_whitespace_additional_letters": "ѣі"
+      },
+      "quote_context": {
+        "leading_prefix_characters": " \n\t—–-",
+        "closing_following_characters": ".,;:!?—–",
+        "unmatched_close_marker": "“",
+        "literal_apostrophe_marker": "’",
+        "continuation_uses_ocr_marker": true
+      },
+      "unicode_profile": "tos-python-native-unicode-v1"
     },
     {
       "stage": "tei-source-foundation",

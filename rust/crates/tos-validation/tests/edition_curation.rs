@@ -200,6 +200,70 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         ),
         Err(EditionCurationError::BindingMismatch)
     );
+    let mut bad_unicode: Value = serde_json::from_slice(&reading_raw).unwrap();
+    let reading = bad_unicode["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "reading-workbench")
+        .unwrap();
+    reading["unicode_profile"] = json!("unknown-unicode-profile");
+    assert_eq!(
+        validate(&serde_json::to_vec(&bad_unicode).unwrap(), &schema),
+        Err(EditionCurationError::InvalidSchema)
+    );
+    let mut duplicate_opener: Value = serde_json::from_slice(&reading_raw).unwrap();
+    let reading = duplicate_opener["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "reading-workbench")
+        .unwrap();
+    reading["quote_pairs"][1]["open"] = reading["quote_pairs"][0]["open"].clone();
+    assert_eq!(
+        validate(&serde_json::to_vec(&duplicate_opener).unwrap(), &schema),
+        Err(EditionCurationError::Duplicate("open"))
+    );
+    let mut bad_quote_marker: Value = serde_json::from_slice(&reading_raw).unwrap();
+    let reading = bad_quote_marker["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "reading-workbench")
+        .unwrap();
+    reading["quote_context"]["literal_apostrophe_marker"] = json!("x");
+    assert_eq!(
+        validate(&serde_json::to_vec(&bad_quote_marker).unwrap(), &schema),
+        Err(EditionCurationError::MissingReference)
+    );
+    let mut bad_ocr: Value = serde_json::from_slice(&reading_raw).unwrap();
+    let reading = bad_ocr["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "reading-workbench")
+        .unwrap();
+    reading["guillemet_ocr_profile"]["letter_ranges"][0]["start"] = json!("Я");
+    reading["guillemet_ocr_profile"]["letter_ranges"][0]["end"] = json!("А");
+    assert_eq!(
+        validate(&serde_json::to_vec(&bad_ocr).unwrap(), &schema),
+        Err(EditionCurationError::InvalidRange("letter_ranges"))
+    );
+    let mut duplicate_replacement: Value = serde_json::from_slice(&reading_raw).unwrap();
+    let reading = duplicate_replacement["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "reading-workbench")
+        .unwrap();
+    reading["search_replacements"][1]["from"] = reading["search_replacements"][0]["from"].clone();
+    assert_eq!(
+        validate(
+            &serde_json::to_vec(&duplicate_replacement).unwrap(),
+            &schema
+        ),
+        Err(EditionCurationError::Duplicate("character replacement"))
+    );
     let mut bad_buckets: Value = serde_json::from_slice(&reading_raw).unwrap();
     let result = bad_buckets["recipes"]
         .as_array_mut()
