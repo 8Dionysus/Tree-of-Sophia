@@ -608,6 +608,7 @@ impl FoundationV2CaseSelection {
 
 pub(crate) struct FoundationInvocation<'cancel> {
     path: PathBuf,
+    custody: Option<crate::source_foundation_invocation_client::Client>,
     raw: Vec<u8>,
     raw_sha256: Digest256,
     expected_executable_sha256: Digest256,
@@ -729,14 +730,19 @@ impl<'cancel> FoundationInvocation<'cancel> {
             ));
         }
 
-        let current = read_absolute(
-            &self.path,
-            self.uid,
-            true,
-            INVOCATION_BYTES,
-            self.deadline,
-            self.cancelled,
-        )?;
+        let current = if let Some(custody) = self.custody.as_mut() {
+            custody.terminal(self.deadline, self.cancelled)?;
+            self.raw.clone()
+        } else {
+            read_absolute(
+                &self.path,
+                self.uid,
+                true,
+                INVOCATION_BYTES,
+                self.deadline,
+                self.cancelled,
+            )?
+        };
         self.cost.invocation_read_calls =
             self.cost
                 .invocation_read_calls
@@ -808,14 +814,19 @@ pub(crate) fn read_invocation<'cancel>(
         .as_deref()
         .ok_or(Error::Denied("foundation invocation file must be explicit"))?;
     let path = normalize_selected_path(selected)?;
-    let raw = read_absolute(
-        &path,
-        clock.uid,
-        true,
-        INVOCATION_BYTES,
-        clock.hard_deadline,
-        cancelled,
-    )?;
+    let mut custody = crate::source_foundation_invocation_client::Client::select(&path)?;
+    let raw = if let Some(custody) = custody.as_mut() {
+        custody.initial(clock.hard_deadline, cancelled)?
+    } else {
+        read_absolute(
+            &path,
+            clock.uid,
+            true,
+            INVOCATION_BYTES,
+            clock.hard_deadline,
+            cancelled,
+        )?
+    };
     if raw.is_empty() {
         return Err(Error::Invalid("empty foundation invocation"));
     }
@@ -963,6 +974,7 @@ pub(crate) fn read_invocation<'cancel>(
             })
         })
         .and_then(|n| n.checked_add(case_retained))
+        .and_then(|n| n.checked_add(custody.as_ref().map_or(0, |c| c.retained_state_bytes())))
         .and_then(|n| n.checked_add(launch.state_upper_bound_bytes))
         .and_then(|n| n.checked_add(size_of::<FoundationInvocation<'_>>()))
         .ok_or(Error::Unsupported(
@@ -970,8 +982,13 @@ pub(crate) fn read_invocation<'cancel>(
         ))?;
     let mut cost = FoundationBootstrapCost {
         launch_state_upper_bound_bytes: launch.state_upper_bound_bytes,
-        invocation_read_bytes: raw_len as u64,
-        invocation_read_calls: 1,
+        // Host selection performs two exact reads before the initial relay read.
+        invocation_read_bytes: (raw_len as u64)
+            .checked_mul(if custody.is_some() { 3 } else { 1 })
+            .ok_or(Error::Unsupported(
+                "foundation invocation read size overflow",
+            ))?,
+        invocation_read_calls: if custody.is_some() { 3 } else { 1 },
         self_image_read_bytes: executable_bytes,
         self_image_read_calls: 1,
         hash_workspace_bytes: HASH_WORKSPACE_BYTES,
@@ -989,6 +1006,7 @@ pub(crate) fn read_invocation<'cancel>(
 
     Ok(FoundationInvocation {
         path,
+        custody,
         raw,
         raw_sha256,
         expected_executable_sha256,

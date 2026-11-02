@@ -1009,6 +1009,7 @@ struct Options {
     shutdown_ms: u64,
     persistent: Option<PathBuf>,
     protected_ro: Option<PathBuf>,
+    protected_invocation: Option<PathBuf>,
     search_cache: Option<SearchCacheSelection>,
     control_fd: Option<i32>,
     retained_fds: [Option<i32>; 2],
@@ -1304,6 +1305,7 @@ impl Leader {
         persistent_fd: Option<i32>,
         search_cache_fd: Option<i32>,
         protected_ro_fd: Option<i32>,
+        invocation_fd: Option<i32>,
         release_ro_fd: Option<i32>,
         control_fd: Option<i32>,
         retained_fds: [Option<i32>; 2],
@@ -1326,6 +1328,7 @@ impl Leader {
                     persistent_fd,
                     search_cache_fd,
                     protected_ro_fd,
+                    invocation_fd,
                     release_ro_fd,
                     control_fd,
                 ]
@@ -1731,6 +1734,40 @@ fn outer(o: &Options) -> Result<i32, String> {
     }
     limits(o)?;
     let end = Cutoff::select(o.original, o.shutdown_ms)?;
+    #[cfg(any(feature = "source-owner", feature = "research-tools"))]
+    let (mut invocation_relay, invocation_child, invocation_auth) =
+        if let Some(path) = &o.protected_invocation {
+            path_shape(path)?;
+            let selected: Vec<_> = o
+                .command
+                .windows(2)
+                .filter(|pair| pair[0] == "--invocation")
+                .collect();
+            if selected.len() != 1 || Path::new(&selected[0][1]) != path.as_path() {
+                return Err(
+                    "protected invocation must equal the one selected consumer invocation".into(),
+                );
+            }
+            let remaining = end
+                .work
+                .checked_sub(clock_ns()?)
+                .ok_or("invocation custody deadline")?;
+            let deadline = std::time::Instant::now()
+                .checked_add(Duration::from_nanos(remaining))
+                .ok_or("invocation custody deadline overflow")?;
+            let (relay, child, mut auth) =
+                crate::private_stage_invocation::Relay::select(path, deadline, &CANCELLED)?;
+            auth["work_deadline_ns"] = serde_json::json!(end.work);
+            (Some(relay), Some(child), Some(auth))
+        } else {
+            (None, None, None)
+        };
+    #[cfg(not(any(feature = "source-owner", feature = "research-tools")))]
+    if o.protected_invocation.is_some() {
+        return Err("protected invocation owner unavailable".into());
+    }
+    #[cfg(not(any(feature = "source-owner", feature = "research-tools")))]
+    let invocation_child: Option<File> = None;
     if o.sdk_phase_as.is_some() && o.control_fd.is_none() {
         return Err("SDK phase direct parent control required".into());
     }
@@ -1940,6 +1977,12 @@ fn outer(o: &Options) -> Result<i32, String> {
             .arg("--protected-ro-fd")
             .arg(held.as_raw_fd().to_string());
     }
+    #[cfg(any(feature = "source-owner", feature = "research-tools"))]
+    if let Some(auth) = &invocation_auth {
+        command
+            .arg("--invocation-auth")
+            .arg(serde_json::to_string(auth).map_err(|e| e.to_string())?);
+    }
     if let Some(held) = &release_ro {
         command
             .arg("--release-ro-fd")
@@ -1994,6 +2037,7 @@ fn outer(o: &Options) -> Result<i32, String> {
         persistent.as_ref().map(AsRawFd::as_raw_fd),
         search_cache.as_ref().map(AsRawFd::as_raw_fd),
         protected_ro.as_ref().map(AsRawFd::as_raw_fd),
+        invocation_child.as_ref().map(AsRawFd::as_raw_fd),
         release_ro.as_ref().map(AsRawFd::as_raw_fd),
         o.control_fd,
         child_retained_fds,
@@ -2011,6 +2055,7 @@ fn outer(o: &Options) -> Result<i32, String> {
         }
     };
     drop(pinned_images);
+    drop(invocation_child);
     drop(unshare_image);
     if let Some(relay) = retained_reply.as_mut() {
         drop(relay.sender.take());
@@ -2021,10 +2066,29 @@ fn outer(o: &Options) -> Result<i32, String> {
         }
         loop {
             end.check()?;
+            #[cfg(any(feature = "source-owner", feature = "research-tools"))]
+            if let Some(relay) = invocation_relay.as_mut() {
+                let remaining = end
+                    .work
+                    .checked_sub(clock_ns()?)
+                    .ok_or("invocation custody deadline")?;
+                let deadline = std::time::Instant::now()
+                    .checked_add(Duration::from_nanos(remaining))
+                    .ok_or("invocation custody deadline overflow")?;
+                relay.service(deadline, &CANCELLED)?;
+            }
             if let Some(relay) = retained_reply.as_mut() {
                 relay.receive(end)?;
             }
             if let Some(code) = leader.exited()? {
+                #[cfg(any(feature = "source-owner", feature = "research-tools"))]
+                if code == 0
+                    && invocation_relay
+                        .as_ref()
+                        .is_some_and(|relay| !relay.completed())
+                {
+                    return Err("protected invocation terminal check missing".into());
+                }
                 if let Some(relay) = retained_reply.as_mut() {
                     relay.receive(end)?;
                 }
@@ -2346,6 +2410,7 @@ struct Inner {
     host_uid: u64,
     host_gid: u64,
     control_auth: Option<ControlAuth>,
+    invocation_auth: Option<serde_json::Value>,
 }
 
 fn pinned_consumer_image(o: &Options, i: &Inner, end: Cutoff) -> Result<Option<File>, String> {
@@ -2777,6 +2842,53 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
         return Err("actual private mount ID unavailable".into());
     }
     let mut ticket = serde_json::json!({"schema":SCHEMA,"quota_bytes":o.quota,"inode_limit":o.inodes,"working_ram_bytes":o.ram,"root":i.root,"root_device":meta.dev(),"root_inode":meta.ino(),"mount_id":mount_id.stx_mnt_id,"mount_namespace_inode":mnt,"parent_mount_namespace_inode":i.parent_mnt,"fallbacks":fallbacks,"lifetime":"consumer-process-mount-namespace","capabilities":"dropped-before-exec","write_confinement":"landlock-v3","consumer_requires_dumpable_zero":true});
+    if let Some(auth) = &i.invocation_auth {
+        let raw = auth["fd"]
+            .as_i64()
+            .and_then(|v| i32::try_from(v).ok())
+            .filter(|v| *v >= 3)
+            .ok_or("invocation custody FD")?;
+        if [
+            Some(i.consumer_fd),
+            i.persistent_fd,
+            i.search_cache_fd,
+            i.protected_ro_fd,
+            i.release_ro_fd,
+            i.controller_image_fd,
+            i.consumer_image_fd,
+            o.control_fd,
+        ]
+        .into_iter()
+        .chain(o.retained_fds)
+        .flatten()
+        .any(|fd| fd == raw)
+        {
+            return Err("invocation custody overlaps another descriptor role".into());
+        }
+        let mut st = unsafe { std::mem::zeroed::<libc::stat>() };
+        if unsafe { libc::fstat(raw, &mut st) } != 0
+            || st.st_mode & libc::S_IFMT != libc::S_IFSOCK
+            || auth["socket_dev"].as_u64() != Some(st.st_dev)
+            || auth["socket_ino"].as_u64() != Some(st.st_ino)
+            || auth["socket_cookie"].as_u64() != Some(socket_option::<u64>(raw, libc::SO_COOKIE)?)
+            || socket_option::<i32>(raw, libc::SO_DOMAIN)? != libc::AF_UNIX
+            || socket_option::<i32>(raw, libc::SO_TYPE)? != libc::SOCK_STREAM
+            || auth["work_deadline_ns"].as_u64() != Some(end.work)
+            || auth["operations"] != serde_json::json!(["initial", "eof"])
+            || auth["protocol"].as_str() != Some("tos_foundation_invocation_custody_v1")
+        {
+            return Err("protected invocation custody handoff differs".into());
+        }
+        let selected: Vec<_> = o
+            .command
+            .windows(2)
+            .filter(|pair| pair[0] == "--invocation")
+            .collect();
+        if selected.len() != 1 || auth["path"].as_str() != Some(selected[0][1].as_str()) {
+            return Err("protected invocation consumer selection differs".into());
+        }
+        ticket["invocation_custody"] = auth.clone();
+    }
     if let Some(held) = persistent.as_ref() {
         let path = o.persistent.as_ref().ok_or("persistent selection absent")?;
         let info = stage_result(
@@ -2937,6 +3049,16 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
     if unsafe { libc::fcntl(fd, libc::F_SETFD, flags & !libc::FD_CLOEXEC) } < 0 {
         return Err(syscall_failure("exec.retain-ticket-fd"));
     }
+    if let Some(auth) = &i.invocation_auth {
+        let raw = auth["fd"]
+            .as_i64()
+            .and_then(|v| i32::try_from(v).ok())
+            .ok_or("invocation custody FD")?;
+        let flags = unsafe { libc::fcntl(raw, libc::F_GETFD) };
+        if flags < 0 || unsafe { libc::fcntl(raw, libc::F_SETFD, flags & !libc::FD_CLOEXEC) } < 0 {
+            return Err("invocation custody FD retain failed".into());
+        }
+    }
     if let Some(held) = search_cache.as_ref() {
         let raw = held.as_raw_fd();
         let flags = unsafe { libc::fcntl(raw, libc::F_GETFD) };
@@ -3013,6 +3135,11 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
         .env("TOS_STAGE_TICKET_FD", fd.to_string())
         .env("TMPDIR", &temporary)
         .env("SQLITE_TMPDIR", &temporary);
+    if i.invocation_auth.is_some() {
+        command.env("TOS_FOUNDATION_INVOCATION_CUSTODY", "1");
+    } else {
+        command.env_remove("TOS_FOUNDATION_INVOCATION_CUSTODY");
+    }
     Err(io_failure("exec.consumer", command.exec()))
 }
 fn selected_direct_custody(
@@ -3212,6 +3339,15 @@ fn options(args: &[String]) -> Result<(Options, Option<Inner>), String> {
         return Err("Reference release FD is issuer namespace handoff only".into());
     }
     let persistent = values.remove("--persistent-store").map(PathBuf::from);
+    let protected_invocation = values.remove("--protected-invocation").map(PathBuf::from);
+    let invocation_auth = values
+        .remove("--invocation-auth")
+        .map(|v| serde_json::from_str::<serde_json::Value>(v).map_err(|e| e.to_string()))
+        .transpose()?;
+    if (!inner_flag && invocation_auth.is_some()) || (inner_flag && protected_invocation.is_some())
+    {
+        return Err("protected invocation selection is issuer-only".into());
+    }
     let persistent_fd = values
         .remove("--persistent-fd")
         .map(|value| value.parse::<i32>().map_err(|e| e.to_string()))
@@ -3242,6 +3378,7 @@ fn options(args: &[String]) -> Result<(Options, Option<Inner>), String> {
         shutdown_ms: n!("--maximum-shutdown-ms"),
         persistent,
         protected_ro,
+        protected_invocation,
         search_cache,
         control_fd,
         retained_fds,
@@ -3265,6 +3402,7 @@ fn options(args: &[String]) -> Result<(Options, Option<Inner>), String> {
             host_uid: n!("--host-uid"),
             host_gid: n!("--host-gid"),
             control_auth,
+            invocation_auth,
         })
     } else {
         None
@@ -3643,6 +3781,7 @@ fn sdk_python_run(args: &[String]) -> Result<i32, String> {
         shutdown_ms: shutdown,
         persistent,
         protected_ro: selected.get("--protected-ro").map(|v| PathBuf::from(*v)),
+        protected_invocation: None,
         search_cache,
         control_fd: selected
             .get("--ordinary-session-control-fd")
@@ -3768,6 +3907,7 @@ fn sdk_python_run(args: &[String]) -> Result<i32, String> {
             None,
             None,
             None,
+            None,
             [None, None],
             [None, None],
         )?;
@@ -3861,6 +4001,7 @@ fn host_command(
     let (mut leader, restore) = Leader::spawn(
         c,
         -1,
+        None,
         None,
         None,
         None,

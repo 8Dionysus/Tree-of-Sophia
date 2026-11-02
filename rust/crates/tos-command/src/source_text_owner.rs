@@ -255,6 +255,38 @@ pub(crate) fn verify_held_file(
     verify_held_file_with_optional_io(held, uid, deadline, cancelled, None)
 }
 
+/// Verify the retained named identity without rereading file content. Callers
+/// must separately read and compare exact bytes under their own IO accounting.
+pub(crate) fn verify_held_file_identity(
+    held: &HeldOwnerFile,
+    uid: u32,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    active(deadline, cancelled)?;
+    let parent = checked_directory(&held.parent, uid, held.confidential)?;
+    let current_parent = tos_fd_open::open_absolute_directory(&held.parent_path)
+        .map_err(|_| SourceCommandError::Conflict("owner-local selected parent changed"))?;
+    if identity(&parent) != held.parent_identity
+        || identity(&checked_directory(&current_parent, uid, held.confidential)?)
+            != held.parent_identity
+        || held_file_identity(&checked_file(&held.file, uid, held.confidential)?)
+            != held.file_identity
+    {
+        return Err(SourceCommandError::Conflict(
+            "owner-local retained identity changed",
+        ));
+    }
+    let current = tos_fd_open::open_regular_at(&current_parent, Path::new(&held.name))
+        .map_err(|_| SourceCommandError::Conflict("owner-local selected file changed"))?;
+    if held_file_identity(&checked_file(&current, uid, held.confidential)?) != held.file_identity {
+        return Err(SourceCommandError::Conflict(
+            "owner-local named identity changed",
+        ));
+    }
+    Ok(())
+}
+
 pub(crate) fn verify_held_file_with_io(
     held: &HeldOwnerFile,
     uid: u32,
