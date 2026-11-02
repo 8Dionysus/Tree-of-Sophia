@@ -2234,7 +2234,7 @@ fn mint(prefix: &str) -> Result<String> {
         .map_err(|e| e.to_string())?;
     Ok(format!(
         "{prefix}.sid-{}",
-        bytes.iter().map(|b| format!("{b:02x}")).collect::<String>()
+        tos_foundation::encode_lower_hex(&bytes)
     ))
 }
 fn issue(root: &Path, m: &Model, writer: &OutputOwner) -> Result<Value> {

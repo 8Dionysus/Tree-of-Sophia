@@ -275,14 +275,10 @@ fn put_u16_bytes(out: &mut Vec<u8>, bytes: &[u8]) {
 }
 
 fn digest_from_raw(raw: &[u8]) -> Result<Digest256> {
-    const HEX: &[u8; 16] = b"0123456789abcdef";
-    let mut text = String::with_capacity(64);
-    for byte in raw {
-        text.push(HEX[(byte >> 4) as usize] as char);
-        text.push(HEX[(byte & 15) as usize] as char);
-    }
-    Digest256::from_hex(&text)
-        .map_err(|_| SegmentError::new(Code::InvalidReceipt, "pin digest invalid"))
+    let bytes = raw
+        .try_into()
+        .map_err(|_| SegmentError::new(Code::InvalidReceipt, "pin digest invalid"))?;
+    Ok(Digest256::from_bytes(bytes))
 }
 
 struct Cursor<'a> {

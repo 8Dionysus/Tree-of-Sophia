@@ -75,7 +75,7 @@ impl D1ProjectionSnapshot {
         {
             return Err(Error::Invalid("D1 projection namespace path"));
         }
-        let snapshot_sha256 = sha256(&root_bytes);
+        let snapshot_sha256 = Digest256::of_bytes(&root_bytes).to_hex();
         let value = strict_json(&root_bytes, MAX_ROOT_BYTES)?;
         validate_manifest(&value, &namespace_path)?;
         Ok(Self {
@@ -455,7 +455,7 @@ impl SnapshotReader {
         let mut stored = Vec::with_capacity(cap.min(1024 * 1024));
         file.take(declared.saturating_add(1))
             .read_to_end(&mut stored)?;
-        if stored.len() as u64 != declared || sha256(&stored) != string(descriptor, "sha256")? {
+        if stored.len() as u64 != declared || Digest256::of_bytes(&stored).to_hex() != string(descriptor, "sha256")? {
             return Err(Error::Invalid("D1 projection stored part digest"));
         }
         let decoded = if string(descriptor, "kind")? == "index" {
@@ -469,7 +469,7 @@ impl SnapshotReader {
             decode_gzip(&stored, uint(descriptor, "decoded_bytes")?)?
         };
         if decoded.len() as u64 != uint(descriptor, "decoded_bytes")?
-            || sha256(&decoded) != string(descriptor, "decoded_sha256")?
+            || Digest256::of_bytes(&decoded).to_hex() != string(descriptor, "decoded_sha256")?
         {
             return Err(Error::Invalid("D1 projection decoded part digest"));
         }
@@ -557,7 +557,7 @@ impl SnapshotReader {
                 .filter(|key| !key.is_empty() && key.len() <= MAX_KEY_BYTES)
                 .ok_or(Error::Invalid("D1 projection row key"))?;
             if previous.as_deref().is_some_and(|prior| prior >= key)
-                || !sha256(key.as_bytes()).starts_with(prefix)
+                || !Digest256::of_bytes(key.as_bytes()).to_hex().starts_with(prefix)
             {
                 return Err(Error::Invalid("D1 projection row ordering/placement"));
             }
@@ -705,7 +705,7 @@ fn branches(
     let rows = read_subtree_rows(reader, name, subtree, prefix, work)?;
     let mut result = BTreeMap::new();
     for (key, value) in rows {
-        let digest = sha256(key.as_bytes());
+        let digest = Digest256::of_bytes(key.as_bytes()).to_hex();
         let digit = digest
             .as_bytes()
             .get(prefix.len()..prefix.len() + 1)
@@ -1093,15 +1093,9 @@ fn valid_collection_name(value: &str) -> bool {
 }
 
 fn valid_sha256(value: &str) -> bool {
-    value.len() == 64
-        && value
-            .bytes()
-            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    tos_foundation::is_lower_hex(value, 64)
 }
 
-fn sha256(raw: &[u8]) -> String {
-    Digest256::of_bytes(raw).to_hex()
-}
 
 fn add(a: u64, b: u64) -> Result<u64> {
     a.checked_add(b)
@@ -1127,7 +1121,7 @@ mod tests {
         let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
         encoder.write_all(&decoded).unwrap();
         let stored = encoder.finish().unwrap();
-        let part_digest = sha256(&stored);
+        let part_digest = Digest256::of_bytes(&stored).to_hex();
         let stem = Path::new(name).file_stem().unwrap().to_str().unwrap();
         let relative = format!("{stem}.parts/{}/{part_digest}.jsonl.gz", &part_digest[..2]);
         let part_path = directory.join(&relative);
@@ -1157,8 +1151,8 @@ mod tests {
                     "order_fields":["id"],
                     "root": {
                         "kind":"data","prefix":"","path":relative,
-                        "sha256":sha256(stored),"size_bytes":stored.len(),
-                        "decoded_bytes":decoded.len(),"decoded_sha256":sha256(decoded),"count":count
+                        "sha256":Digest256::of_bytes(stored).to_hex(),"size_bytes":stored.len(),
+                        "decoded_bytes":decoded.len(),"decoded_sha256":Digest256::of_bytes(decoded).to_hex(),"count":count
                     }
                 }
             }

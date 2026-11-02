@@ -5220,14 +5220,7 @@ fn digest_from_raw(bytes: &[u8]) -> Result<Digest256> {
     if bytes.len() != 32 {
         return Err(invalid("authenticated digest length differs"));
     }
-    const HEX: &[u8; 16] = b"0123456789abcdef";
-    let mut text = [0u8; 64];
-    for (index, byte) in bytes.iter().copied().enumerate() {
-        text[2 * index] = HEX[(byte >> 4) as usize];
-        text[2 * index + 1] = HEX[(byte & 0x0f) as usize];
-    }
-    Digest256::from_hex(std::str::from_utf8(&text).expect("hex is ASCII"))
-        .map_err(|_| invalid("authenticated digest encoding differs"))
+    Ok(Digest256::from_bytes(bytes.try_into().expect("length checked")))
 }
 
 fn invalid(detail: &'static str) -> SegmentError {

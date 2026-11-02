@@ -248,7 +248,7 @@ pub fn observation_time() -> io::Result<String> {
 fn random_id() -> io::Result<String> {
     let mut bytes = [0u8; 16];
     File::open("/dev/urandom")?.read_exact(&mut bytes)?;
-    Ok(bytes.iter().map(|b| format!("{b:02x}")).collect())
+    Ok(tos_foundation::encode_lower_hex(&bytes))
 }
 fn cstr(name: &std::ffi::OsStr) -> io::Result<CString> {
     CString::new(name.as_bytes()).map_err(|_| bad("path contains NUL"))

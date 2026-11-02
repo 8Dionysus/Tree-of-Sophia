@@ -85,10 +85,7 @@ impl HttpSessions {
         // local client from guessing a session to cancel or terminate it.
         let mut entropy = [0u8; 32];
         std::fs::File::open("/dev/urandom")?.read_exact(&mut entropy)?;
-        let id = entropy
-            .iter()
-            .map(|b| format!("{b:02x}"))
-            .collect::<String>();
+        let id = tos_foundation::encode_lower_hex(&entropy);
         if sessions.contains_key(&id) {
             return Err(io::Error::other("MCP session identity collision"));
         }

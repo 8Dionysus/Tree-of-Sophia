@@ -67,9 +67,7 @@ fn guard(reader: &mut dyn SourceLayerRead, c: &LayerContext<'_>) -> Result<()> {
     reader.verify_current(c.deadline, c.cancelled)
 }
 fn bare_digest(v: &str) -> bool {
-    v.len() == 64
-        && v.bytes()
-            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    tos_foundation::is_lower_hex(v, 64)
 }
 fn text<'a>(v: &'a Value, k: &str) -> Result<&'a str> {
     v.get(k)

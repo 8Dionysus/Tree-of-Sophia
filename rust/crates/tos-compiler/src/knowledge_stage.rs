@@ -6864,7 +6864,7 @@ fn read_seek_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<SeekRow> {
         source_graph: row.get(1)?,
         source_order: row.get(2)?,
         payload: row.get(3)?,
-        payload_sha256: digest.iter().map(|b| format!("{b:02x}")).collect(),
+        payload_sha256: tos_foundation::encode_lower_hex(&digest),
     })
 }
 #[cfg(feature = "source-tools")]

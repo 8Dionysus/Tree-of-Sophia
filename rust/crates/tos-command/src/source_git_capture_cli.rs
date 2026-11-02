@@ -75,9 +75,7 @@ fn recheck(path: &Path, fd: &File, private: bool) -> Result<(), &'static str> {
     Ok(())
 }
 fn hex(s: &str, length: usize) -> bool {
-    s.len() == length
-        && s.bytes()
-            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    tos_foundation::is_lower_hex(s, length)
 }
 fn scalar(m: &JsonValue, name: &str) -> Result<u64, &'static str> {
     m.object_get(name)

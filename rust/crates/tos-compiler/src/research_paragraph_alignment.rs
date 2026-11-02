@@ -1339,7 +1339,7 @@ fn issue(repo: &ResearchExecution, m: &Material) -> Result<()> {
             repo.tick(1)?;
             let mut raw = [0u8; 16];
             repo.read_exact(&mut entropy, &mut raw)?;
-            let hex = raw.iter().map(|b| format!("{b:02x}")).collect::<String>();
+            let hex = tos_foundation::encode_lower_hex(&raw);
             let id = format!("{prefix}.sid-{hex}");
             ensure(ids.insert(id.clone()), "identity collision")?;
             records

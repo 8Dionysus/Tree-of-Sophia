@@ -103,12 +103,6 @@ fn matches(path: &str, prefixes: &[String]) -> bool {
         .iter()
         .any(|p| path == p || path.strip_prefix(p).is_some_and(|s| s.starts_with('/')))
 }
-fn hex40(value: &str) -> bool {
-    value.len() == 40
-        && value
-            .bytes()
-            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
-}
 fn string(value: &str) -> JsonValue {
     JsonValue::String(JsonString::from_utf8(value))
 }
@@ -315,7 +309,7 @@ fn resolve(
     }
     child.finish()?;
     let text = String::from_utf8(line).map_err(|_| fail("Git object ID encoding"))?;
-    if !hex40(&text) {
+    if !tos_foundation::is_lower_hex(&text, 40) {
         return Err(fail("Git object ID syntax"));
     }
     Ok(text)
@@ -405,7 +399,7 @@ fn entries(
                 if !safe(path)
                     || !matches!(fields[0], "100644" | "100755")
                     || fields[1] != "blob"
-                    || !hex40(fields[2])
+                    || !tos_foundation::is_lower_hex(fields[2], 40)
                 {
                     return Err(fail("selected Git path is not a regular safe blob"));
                 }
@@ -628,7 +622,7 @@ pub fn capture_git(
     cancelled: &AtomicBool,
 ) -> Result<CaptureGitResult> {
     active(deadline, cancelled).map_err(ioe)?;
-    if !hex40(request.commit)
+    if !tos_foundation::is_lower_hex(request.commit, 40)
         || limits.max_members == 0
         || limits.max_member_bytes == 0
         || limits.max_source_bytes == 0
@@ -812,7 +806,7 @@ pub fn resolve_git_member(
     cancelled: &AtomicBool,
 ) -> Result<GitMemberDescriptor> {
     active(deadline, cancelled).map_err(ioe)?;
-    if !hex40(commit) || !safe(path) || tos_foundation::RelativePath::parse(path).is_err() {
+    if !tos_foundation::is_lower_hex(commit, 40) || !safe(path) || tos_foundation::RelativePath::parse(path).is_err() {
         return Err(fail("exact Git commit and safe member required"));
     }
     let root = tos_fd_open::open_absolute_directory(repository)
@@ -854,7 +848,7 @@ pub fn resolve_git_member(
         std::str::from_utf8(&raw[..raw.len() - 1]).map_err(|_| fail("Git descriptor encoding"))?;
     let (facts, selected) = text.split_once('\t').ok_or(fail("Git descriptor row"))?;
     let facts: Vec<_> = facts.split_whitespace().collect();
-    if selected != path || facts.len() != 4 || facts[1] != "blob" || !hex40(facts[2]) {
+    if selected != path || facts.len() != 4 || facts[1] != "blob" || !tos_foundation::is_lower_hex(facts[2], 40) {
         return Err(fail("Git descriptor differs"));
     }
     let mode = match facts[0] {

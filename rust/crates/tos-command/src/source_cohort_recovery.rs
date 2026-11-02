@@ -348,10 +348,7 @@ fn is_revision_auxiliary_path(path: &str) -> bool {
 }
 
 fn is_lower_hex_digest(value: &str) -> bool {
-    value.len() == 64
-        && value
-            .bytes()
-            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    tos_foundation::is_lower_hex(value, 64)
 }
 
 /// Refresh an explicitly invalidated projection at the assessed cut. Earlier

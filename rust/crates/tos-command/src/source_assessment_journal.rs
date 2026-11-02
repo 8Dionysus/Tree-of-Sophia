@@ -2714,10 +2714,7 @@ impl AssessmentJournalFence<'_> {
     }
 }
 fn digest(value: &str) -> bool {
-    value.len() == 64
-        && value
-            .bytes()
-            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    tos_foundation::is_lower_hex(value, 64)
 }
 
 fn parse_head_bytes(bytes: &[u8]) -> SourceCommandResult<String> {

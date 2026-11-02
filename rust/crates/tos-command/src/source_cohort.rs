@@ -69,21 +69,14 @@ pub(crate) fn valid_owned_predicate_shape(
     scope: &str,
     token: &str,
 ) -> bool {
-    fn lower_hex(bytes: &[u8]) -> bool {
-        bytes
-            .iter()
-            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(byte))
-    }
-
     fn prefixed_digest(token: &str) -> bool {
         token.len() == 71
             && token.starts_with("sha256:")
-            && lower_hex(&token.as_bytes()[7..])
             && Digest256::from_hex(&token[7..]).is_ok()
     }
 
     fn bare_digest(token: &str) -> bool {
-        token.len() == 64 && lower_hex(token.as_bytes()) && Digest256::from_hex(token).is_ok()
+        Digest256::from_hex(token).is_ok()
     }
 
     if owner != OWNER {
@@ -104,7 +97,6 @@ pub(crate) fn valid_owned_predicate_shape(
         ("range", crate::source_claim_dependency_index::NAVIGATION_REFERENCE_SCOPE) => {
             token.starts_with("sha256:")
                 && token.len() == 71
-                && lower_hex(&token.as_bytes()[7..])
                 && Digest256::from_prefixed(token).is_ok()
         }
         ("range", crate::source_pg_work_revision::PREDICATE_SCOPE) => bare_digest(token),

@@ -1774,20 +1774,15 @@ pub(crate) fn ascii_snapshot_bytes(raw: &[u8]) -> SourceCommandResult<String> {
     let text = std::str::from_utf8(raw)
         .map_err(|_| SourceCommandError::Invalid("native snapshot UTF-8"))?;
     let mut digest = tos_foundation::Digest256Hasher::new();
-    const HEX: &[u8; 16] = b"0123456789abcdef";
     for ch in text.chars() {
         if ch < '\u{007f}' {
             digest.update(&[ch as u8]);
         } else {
             for unit in ch.encode_utf16(&mut [0; 2]).iter() {
-                digest.update(&[
-                    b'\\',
-                    b'u',
-                    HEX[usize::from((unit >> 12) & 15)],
-                    HEX[usize::from((unit >> 8) & 15)],
-                    HEX[usize::from((unit >> 4) & 15)],
-                    HEX[usize::from(unit & 15)],
-                ]);
+                let [high, low] = unit.to_be_bytes();
+                digest.update(b"\\u");
+                digest.update(&tos_foundation::encode_lower_hex_byte(high));
+                digest.update(&tos_foundation::encode_lower_hex_byte(low));
             }
         }
     }

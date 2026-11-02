@@ -638,9 +638,7 @@ pub(super) fn decode(value: &str) -> Result<[u8; 32]> {
     }
     Ok(out)
 }
-fn hex(value: &[u8; 32]) -> String {
-    value.iter().map(|b| format!("{b:02x}")).collect()
-}
+use tos_foundation::encode_lower_hex as hex;
 pub(super) fn aggregate(xor: &mut [u8; 32], sum: &mut [u8; 32], value: &[u8; 32]) {
     let mut carry = 0u16;
     for i in (0..32).rev() {

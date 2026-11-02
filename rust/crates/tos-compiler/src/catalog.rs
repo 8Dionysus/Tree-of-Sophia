@@ -2580,14 +2580,7 @@ fn presentation(entity_registry: &Value, creation: Option<&CreationState<'_>>) -
                     owner.charge_work(canonical.len())?;
                     let digest = Digest256::of_bytes(canonical);
                     owner.retain(71)?;
-                    let mut text = String::with_capacity(71);
-                    text.push_str("sha256:");
-                    const HEX: &[u8; 16] = b"0123456789abcdef";
-                    for byte in digest.as_bytes() {
-                        text.push(HEX[(byte >> 4) as usize] as char);
-                        text.push(HEX[(byte & 0x0f) as usize] as char);
-                    }
-                    Ok(text)
+                    Ok(digest.to_prefixed())
                 })
             })
         })?

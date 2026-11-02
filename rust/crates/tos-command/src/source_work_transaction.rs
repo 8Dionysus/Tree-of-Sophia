@@ -3482,34 +3482,13 @@ fn legacy_import_origin_from_value(
 }
 
 fn legacy_store_id_text(store_id: &[u8; 16]) -> String {
-    const HEX: &[u8; 16] = b"0123456789abcdef";
-    let mut text = String::with_capacity(32);
-    for byte in store_id {
-        text.push(HEX[(*byte >> 4) as usize] as char);
-        text.push(HEX[(*byte & 15) as usize] as char);
-    }
-    text
+    tos_foundation::encode_lower_hex(store_id)
 }
 
 fn legacy_store_id_from_text(value: &str) -> SourceCommandResult<[u8; 16]> {
-    if value.len() != 32
-        || value
-            .bytes()
-            .any(|byte| !byte.is_ascii_hexdigit() || byte.is_ascii_uppercase())
-    {
-        return Err(SourceCommandError::Invalid("legacy publication store ID"));
-    }
     let mut store_id = [0; 16];
-    for (index, pair) in value.as_bytes().chunks_exact(2).enumerate() {
-        let digit = |byte: u8| match byte {
-            b'0'..=b'9' => Some(byte - b'0'),
-            b'a'..=b'f' => Some(byte - b'a' + 10),
-            _ => None,
-        };
-        store_id[index] = (digit(pair[0])
-            .ok_or(SourceCommandError::Invalid("legacy publication store ID"))?
-            << 4)
-            | digit(pair[1]).ok_or(SourceCommandError::Invalid("legacy publication store ID"))?;
+    if !tos_foundation::decode_lower_hex_into(value, &mut store_id) {
+        return Err(SourceCommandError::Invalid("legacy publication store ID"));
     }
     Ok(store_id)
 }
@@ -4951,7 +4930,7 @@ fn entropy_hex(bytes: usize) -> SourceCommandResult<String> {
     File::open("/dev/urandom")
         .and_then(|mut file| file.read_exact(&mut random))
         .map_err(|_| SourceCommandError::Invalid("selected metadata entropy"))?;
-    Ok(random.iter().map(|byte| format!("{byte:02x}")).collect())
+    Ok(tos_foundation::encode_lower_hex(&random))
 }
 pub(crate) fn atomic_write(
     parent: &File,

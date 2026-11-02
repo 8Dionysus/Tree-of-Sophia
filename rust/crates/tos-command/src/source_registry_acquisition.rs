@@ -76,9 +76,6 @@ fn u64_field(value: &Value, key: &str) -> Result<u64> {
         .as_u64()
         .ok_or_else(|| format!("{key} must be a nonnegative integer"))
 }
-fn sha256(body: &[u8]) -> String {
-    Digest256::of_bytes(body).to_hex()
-}
 fn json_bytes(value: &Value) -> Result<Vec<u8>> {
     let mut body = serde_json::to_vec_pretty(value).map_err(|error| error.to_string())?;
     body.push(b'\n');
@@ -179,7 +176,7 @@ pub fn invoke(request: &Value) -> Result<Value> {
 
 fn helper(name: &str, args: &Value) -> Result<Value> {
     match name {
-        "sha256" => Ok(Value::String(sha256(&decode_bytes(args, "body")?))),
+        "sha256" => Ok(Value::String(Digest256::of_bytes(&decode_bytes(args, "body")?).to_hex())),
         "utcnow" => Ok(Value::String(utcnow()?)),
         "event" => {
             let inputs = arr(args, "inputs")?.clone();
@@ -683,7 +680,7 @@ fn check_file(body: &[u8], entry: &Value) -> Result<String> {
             text(entry, "basename")?
         ));
     }
-    Ok(sha256(body))
+    Ok(Digest256::of_bytes(body).to_hex())
 }
 
 thread_local! {
@@ -762,7 +759,7 @@ fn load_preparation(
     let package_ref = text(&manifest, "prepared_packages_ref")?;
     let package_path = path_ref(root, package_ref)?;
     let package_raw = custody::read_bytes(&package_path, None, false, false, MAX_JSON)?;
-    if sha256(&package_raw) != text(&manifest, "prepared_packages_sha256")? {
+    if Digest256::of_bytes(&package_raw).to_hex() != text(&manifest, "prepared_packages_sha256")? {
         return Err("prepared source package digest mismatch".into());
     }
     let package_text =
@@ -790,14 +787,14 @@ fn load_preparation(
     }
     if let Some(snapshot_ref) = snapshot_ref {
         let snapshot = read_ref(root, snapshot_ref)?;
-        if sha256(&snapshot) != text(&manifest, "source_registry_snapshot_sha256")? {
+        if Digest256::of_bytes(&snapshot).to_hex() != text(&manifest, "source_registry_snapshot_sha256")? {
             return Err("normalized source-registry snapshot digest mismatch".into());
         }
     }
     for observation in arr(&manifest, "metadata_observations")? {
         let body = read_ref(root, text(observation, "retained_ref")?)?;
         if body.len() as u64 != u64_field(observation, "retained_byte_size")?
-            || sha256(&body) != text(observation, "retained_sha256")?
+            || Digest256::of_bytes(&body).to_hex() != text(observation, "retained_sha256")?
         {
             return Err("upstream evidence snapshot fixity mismatch".into());
         }
@@ -902,7 +899,7 @@ fn validate_work_extension(
         return Err("existing Work binding names another record".into());
     }
     let before = read_ref(root, text(binding, "preimage_ref")?)?;
-    if sha256(&before) != text(binding, "sha256")? {
+    if Digest256::of_bytes(&before).to_hex() != text(binding, "sha256")? {
         return Err("existing Work preimage digest mismatch".into());
     }
     let old = strict_json(&before)?;
@@ -1171,7 +1168,7 @@ fn check_preparation_receipt(
         }
     }
     let raw_manifest = custody::read_bytes(manifest_path, None, false, false, MAX_JSON)?;
-    if text(&receipt, "manifest_sha256")? != sha256(&raw_manifest) {
+    if text(&receipt, "manifest_sha256")? != Digest256::of_bytes(&raw_manifest).to_hex() {
         return Err("preparation receipt does not bind this manifest".into());
     }
     let cancel = AtomicBool::new(false);
@@ -1465,7 +1462,7 @@ fn inspect_payloads(target: &Value, bodies: &[(Value, Vec<u8>)]) -> Result<Value
             .and_then(Value::as_u64);
         if bodies.len() != 1
             || length.is_none_or(|length| length == 0 || length as usize > bodies[0].1.len())
-            || sha256(&bodies[0].1[..length.unwrap_or(0) as usize])
+            || Digest256::of_bytes(&bodies[0].1[..length.unwrap_or(0) as usize]).to_hex()
                 != coverage
                     .get("reviewed_body_prefix_sha256")
                     .and_then(Value::as_str)
@@ -1507,7 +1504,7 @@ fn inspect_payloads(target: &Value, bodies: &[(Value, Vec<u8>)]) -> Result<Value
                     .get("reviewed_body_prefix_bytes")
                     .and_then(Value::as_u64);
                 if length.is_none_or(|length| length == 0 || length as usize > body.len())
-                    || sha256(&body[..length.unwrap_or(0) as usize])
+                    || Digest256::of_bytes(&body[..length.unwrap_or(0) as usize]).to_hex()
                         != text(coverage, "reviewed_body_prefix_sha256")?
                 {
                     return Err("source opening differs from the reviewed language evidence".into());
@@ -1520,7 +1517,7 @@ fn inspect_payloads(target: &Value, bodies: &[(Value, Vec<u8>)]) -> Result<Value
                 .ok_or("Perseus header differs from the reviewed metadata prefix")?;
             let mut prefix = body[..position].to_vec();
             prefix.extend_from_slice(marker);
-            if sha256(&prefix) != text(coverage, "header_prefix_sha256")? {
+            if Digest256::of_bytes(&prefix).to_hex() != text(coverage, "header_prefix_sha256")? {
                 return Err("Perseus header differs from the reviewed metadata prefix".into());
             }
             let document = parse_xml(body)?;
@@ -1631,7 +1628,7 @@ fn inspect_payloads(target: &Value, bodies: &[(Value, Vec<u8>)]) -> Result<Value
                 if addresses.is_empty() || count < 1000 {
                     return Err("Perseus qualified divisions or nonempty language-profile text check failed".into());
                 }
-                let address_digest = sha256((addresses.join("\n") + "\n").as_bytes());
+                let address_digest = Digest256::of_bytes((addresses.join("\n") + "\n").as_bytes()).to_hex();
                 let address_scope = if milestones {
                     "occurrence-qualified source divisions and section markers; repeated numbering is retained, not corrected; no CTS service resolution asserted"
                 } else {
@@ -2022,7 +2019,7 @@ fn inspect_oraec(target: &Value, bodies: &[(Value, Vec<u8>)], report: &mut Value
     }
     report["files"].as_array_mut().ok_or("report files missing")?.push(json!({"basename":text(entry,"basename")?,"root_type":if parsed.is_object(){"dict"}else{"list"},"root_member_count":root_member_count}));
     let ids = field(target, "ids")?;
-    let file_digest = sha256(body);
+    let file_digest = Digest256::of_bytes(body).to_hex();
     let mut witnesses = Vec::new();
     for language in ["egy", "de"] {
         let id_key = if language == "egy" {
@@ -2088,7 +2085,7 @@ fn run_command(request: &Value) -> Result<Value> {
     if operation == "registry.verify_preparation" {
         let manifest_bytes = custody::read_bytes(&manifest_path, None, false, false, MAX_JSON)?;
         return Ok(
-            json!({"status":"preparation-verified","manifest_sha256":sha256(&manifest_bytes),"totals":preparation["totals"],"registry_bound":preparation.get("source_registry_snapshot_ref").is_some_and(|value|!value.is_null()),"payloads_downloaded":false}),
+            json!({"status":"preparation-verified","manifest_sha256":Digest256::of_bytes(&manifest_bytes).to_hex(),"totals":preparation["totals"],"registry_bound":preparation.get("source_registry_snapshot_ref").is_some_and(|value|!value.is_null()),"payloads_downloaded":false}),
         );
     }
     if operation == "registry.acquire" {
@@ -2484,7 +2481,7 @@ fn replace_bytes_guarded(path: &Path, before: &[u8], after: &[u8], mode: u32) ->
 fn refresh_topology(root: &Path, evidence_root: &Path, ended: &str) -> Result<()> {
     let path = path_ref(root, TOPOLOGY)?;
     let before = custody::read_bytes(&path, None, false, false, MAX_JSON)?;
-    let history_ref = format!("topology-before/{}.json", sha256(&before));
+    let history_ref = format!("topology-before/{}.json", Digest256::of_bytes(&before).to_hex());
     let history = path_ref(evidence_root, &history_ref)?;
     if !history.exists() {
         custody::publish(&history, &before, 0o644)?;
@@ -2522,7 +2519,7 @@ fn refresh_topology(root: &Path, evidence_root: &Path, ended: &str) -> Result<()
             .map(|line| strict_json(line.as_bytes()))
             .collect::<Result<Vec<_>>>()?;
         batch["method"]["configuration"][count_field] = json!(claims.len());
-        outputs.push(json!({"ref":reference,"role":role,"sha256":sha256(&data)}));
+        outputs.push(json!({"ref":reference,"role":role,"sha256":Digest256::of_bytes(&data).to_hex()}));
         for claim in claims {
             for evidence_ref_value in arr(&claim, "evidence_refs")? {
                 let evidence_ref = evidence_ref_value
@@ -2542,7 +2539,7 @@ fn refresh_topology(root: &Path, evidence_root: &Path, ended: &str) -> Result<()
                 };
                 let evidence_raw =
                     custody::read_bytes(&evidence_path, None, false, false, MAX_JSON)?;
-                required_inputs.insert(evidence_ref.to_owned(), json!({"ref":evidence_ref,"role":format!("declared-{kind}"),"sha256":sha256(&evidence_raw)}));
+                required_inputs.insert(evidence_ref.to_owned(), json!({"ref":evidence_ref,"role":format!("declared-{kind}"),"sha256":Digest256::of_bytes(&evidence_raw).to_hex()}));
             }
         }
     }
@@ -2575,7 +2572,7 @@ fn event(
         "schema_version":"tos_provenance_event_v1","event_id":event_id,"event_type":event_type,
         "started_at":started,"ended_at":ended,"agent_refs":["model:codex","software:acquire-registry-sources"],
         "inputs":inputs,"outputs":outputs,
-        "method":{"maker_type":"mixed","name":name,"version":"1","artifact_digest":sha256(include_bytes!("source_registry_acquisition.rs")),"runtime":"rust-native","configuration":configuration},
+        "method":{"maker_type":"mixed","name":name,"version":"1","artifact_digest":Digest256::of_bytes(include_bytes!("source_registry_acquisition.rs")).to_hex(),"runtime":"rust-native","configuration":configuration},
         "status":"completed_with_warnings","warnings":["Exact local custody and mechanical observations, retaining the source records and their current assessment, rights and publication status."],
         "receipt_refs":receipts,"rights_basis_ref":rights_ref,"event_version":1,"supersedes_event_ref":null
     })
@@ -2688,10 +2685,10 @@ fn write_discovery(
         started,
         text(acquisition, "ended_at")?,
         vec![
-            json!({"ref":manifest_ref,"role":"frozen-registry-version-target","sha256":sha256(&manifest_raw)}),
+            json!({"ref":manifest_ref,"role":"frozen-registry-version-target","sha256":Digest256::of_bytes(&manifest_raw).to_hex()}),
         ],
         vec![
-            json!({"ref":run_ref,"role":"ordered-source-discovery-and-acquisition-receipt","sha256":sha256(&run_raw)}),
+            json!({"ref":run_ref,"role":"ordered-source-discovery-and-acquisition-receipt","sha256":Digest256::of_bytes(&run_raw).to_hex()}),
         ],
         "ordered-exact-provider-source-route",
         json!({"general_web_search_performed":false,"earlier_research_queries_not_reconstructed":true,"originating_project_first_applicable":true}),
@@ -2768,7 +2765,7 @@ fn install_target(
                 || !arr(acquisitions[0], "inputs")?.iter().any(|input| {
                     input.get("ref").and_then(Value::as_str) == Some(&manifest_ref)
                         && input.get("sha256").and_then(Value::as_str)
-                            == Some(&sha256(&manifest_bytes))
+                            == Some(&Digest256::of_bytes(&manifest_bytes).to_hex())
                 })
             {
                 return Err("incomplete discovery does not bind the current preparation".into());
@@ -2900,7 +2897,7 @@ fn install_target(
     source_refs.push(json!(snapshot_ref));
     let mut payload_files = Vec::new();
     for (entry, body) in &bodies {
-        let digest = sha256(body);
+        let digest = Digest256::of_bytes(body).to_hex();
         payload_files.push(json!({
             "file_id":format!("tos.file.sha256.{digest}"),"relative_path":format!("payload/{}",text(entry,"basename")?),"original_basename":text(entry,"basename")?,
             "media_type":text(entry,"media_type")?,"byte_size":body.len(),"sha256":digest,"fixity_verified_at":ended
@@ -2989,7 +2986,7 @@ fn install_target(
     }
     let package_raw = read_ref(root, package_ref)?;
     let inputs = vec![
-        json!({"ref":manifest_ref,"role":"reviewed-exact-version-file-list","sha256":sha256(&custody::read_bytes(manifest_path,None,false,false,MAX_JSON)?)}),
+        json!({"ref":manifest_ref,"role":"reviewed-exact-version-file-list","sha256":Digest256::of_bytes(&custody::read_bytes(manifest_path,None,false,false,MAX_JSON)?).to_hex()}),
         json!({"ref":package_ref,"role":"prepared-source-and-rights-records","sha256":text(preparation,"prepared_packages_sha256")?}),
     ];
     let _ = package_raw;
@@ -3038,7 +3035,7 @@ fn install_target(
         &ended,
         inputs.clone(),
         vec![
-            json!({"ref":rights_ref,"role":"layer-separated-license-assessment","sha256":sha256(&custody::read_bytes(&rights_path,None,false,false,MAX_JSON)? )}),
+            json!({"ref":rights_ref,"role":"layer-separated-license-assessment","sha256":Digest256::of_bytes(&custody::read_bytes(&rights_path,None,false,false,MAX_JSON)? ).to_hex()}),
         ],
         "prepared-provider-license-scope-assessment",
         json!({"jurisdictions_reviewed":["MX"],"publication_authority":false,"human_legal_review_performed":false,"acquired_rights_transformations":["Bind every computed File ID to the assessed Item scope.","Use the Public Domain Mark URI for layers explicitly assessed from provider public-domain statements; retain the separate digital-object license."],"prepared_rights_template_unchanged":true,"file_scope_binding_performed_at":ended}),
@@ -3052,7 +3049,7 @@ fn install_target(
         &ended,
         payload_outputs,
         vec![
-            json!({"ref":inventory_ref,"role":"tracked_text_free_resource_inventory","sha256":sha256(&custody::read_bytes(&path_ref(root,inventory_ref)?,None,false,false,MAX_JSON)? )}),
+            json!({"ref":inventory_ref,"role":"tracked_text_free_resource_inventory","sha256":Digest256::of_bytes(&custody::read_bytes(&path_ref(root,inventory_ref)?,None,false,false,MAX_JSON)? ).to_hex()}),
         ],
         "source-resource-inventory",
         json!({"profiles":inventory["files"].as_array().ok_or("inventory files missing")?.iter().map(|row|text(row,"profile").map(str::to_owned)).collect::<Result<BTreeSet<_>>>()?,"source_text_included":false}),
@@ -3065,8 +3062,8 @@ fn install_target(
             custody::read_bytes(&path_ref(root, work_ref)?, None, false, false, MAX_JSON)?;
         events.push(event(
             &format!("tos.event.annotation.registry-{}.{}.work-extension",operation_date(target)?.replace('-',""),text(target,"slug")?),"annotation",&started,&ended,
-            vec![json!({"ref":text(field(package,"existing_work")?,"preimage_ref")?,"role":"exact-prior-work-record","sha256":sha256(before)}),inputs.first().ok_or("manifest input missing")?.clone(),inputs.get(1).ok_or("package input missing")?.clone()],
-            vec![json!({"ref":work_ref,"role":"existing-work-with-additive-expression-claim","sha256":sha256(&work_after)})],
+            vec![json!({"ref":text(field(package,"existing_work")?,"preimage_ref")?,"role":"exact-prior-work-record","sha256":Digest256::of_bytes(before).to_hex()}),inputs.first().ok_or("manifest input missing")?.clone(),inputs.get(1).ok_or("package input missing")?.clone()],
+            vec![json!({"ref":work_ref,"role":"existing-work-with-additive-expression-claim","sha256":Digest256::of_bytes(&work_after).to_hex()})],
             "guarded-existing-work-expression-extension",json!({"allowed_fields":["expression_claim_refs","record_version"],"prior_claims_preserved":true,"no_new_work_created":true}),
             &rights_ref,receipt_refs.clone(),
         ));

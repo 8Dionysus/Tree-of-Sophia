@@ -1409,7 +1409,7 @@ fn issue(root: &ResearchExecution, bindings: &[String]) -> R<()> {
         root.tick(1)?;
         let mut bytes = [0u8; 16];
         root.read_exact(&mut random, &mut bytes)?;
-        let hex: String = bytes.iter().map(|x| format!("{x:02x}")).collect();
+        let hex: String = tos_foundation::encode_lower_hex(&bytes);
         rows.push(
             json!({"binding":binding,"id":format!("tos.lexical-association-candidate.sid-{hex}")}),
         );

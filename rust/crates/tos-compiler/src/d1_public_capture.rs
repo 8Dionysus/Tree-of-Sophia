@@ -3200,7 +3200,6 @@ fn partition_collection_policy(
 }
 
 fn encode_order_tuple(order: &[String], max_bytes: usize) -> Result<String> {
-    const HEX: &[u8; 16] = b"0123456789abcdef";
     let capacity = order.iter().try_fold(0usize, |total, field| {
         field
             .len()
@@ -3212,9 +3211,10 @@ fn encode_order_tuple(order: &[String], max_bytes: usize) -> Result<String> {
     })?;
     let mut encoded = String::with_capacity(capacity);
     for field in order {
-        for byte in field.as_bytes() {
-            encoded.push(HEX[(byte >> 4) as usize] as char);
-            encoded.push(HEX[(byte & 0x0f) as usize] as char);
+        for &byte in field.as_bytes() {
+            let [high, low] = tos_foundation::encode_lower_hex_byte(byte);
+            encoded.push(high as char);
+            encoded.push(low as char);
         }
         // Hex contains no exclamation mark, and the terminator sorts before
         // another encoded byte. This preserves lexicographic tuple order.

@@ -80,7 +80,12 @@ fn exact_hash_stream_and_lexical_types() {
         "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
     );
     assert_eq!(Digest256::from_hex(&digest.to_hex()).unwrap(), digest);
-    assert!(Digest256::from_hex(&digest.to_hex().to_uppercase()).is_err());
+    let invalid_case = Digest256::from_hex(&digest.to_hex().to_uppercase()).unwrap_err();
+    assert_eq!(invalid_case.code, FoundationErrorCode::InvalidDigest);
+    assert_eq!(invalid_case.detail, "expected lowercase hex");
+    let invalid_length = Digest256::from_hex("abc").unwrap_err();
+    assert_eq!(invalid_length.code, FoundationErrorCode::InvalidDigest);
+    assert_eq!(invalid_length.detail, "expected 64 lowercase hex digits");
     assert_eq!(
         StableId::parse("tos.new-family.subject-é")
             .unwrap()
