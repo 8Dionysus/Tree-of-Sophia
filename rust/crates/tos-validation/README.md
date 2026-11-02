@@ -17,5 +17,6 @@ The existing command admission spool keeps worker diagnostics in the
 `sf_rows` SQLite payload within its selected index scope. Its v1 report codec
 continues to read those rows. The in-process evidence codec is available to
 new adapters for a separately versioned report. The command report codec
-reads historical version 1 worker reports and version 2 in-process reports.
-Command admission continues to write version 1 until caller migration.
+reads historical version 1 worker evidence and version 2 in-process reports
+and envelopes. Command admission continues to write version 1 until caller
+migration.
