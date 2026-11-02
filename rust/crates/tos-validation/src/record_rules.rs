@@ -6087,44 +6087,16 @@ mod in_process_claim_schema_tests {
     use super::*;
     use crate::in_process::InputMode;
     use crate::source_cut::InProcessCandidateSchemaExecutor;
-    use crate::source_foundation_schema::{
-        CandidateSourceFoundationSchemaSet, SelectedSchemaResource, contract_selection_digest,
-        schema_resource_set_digest,
-    };
-    use std::collections::BTreeMap;
     use std::sync::atomic::AtomicBool;
     use std::time::{Duration, Instant};
 
     #[test]
     fn local_claim_schema_consumer_uses_in_process_candidate_evidence() {
-        let path = "ToS/contracts/example.schema.json".to_owned();
-        let uri = "https://example.test/schema".to_owned();
-        let raw = br#"{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://example.test/schema","type":"integer"}"#.to_vec();
-        let digest = Digest256::of_bytes(&raw);
-        let contracts = BTreeMap::from([(path.clone(), (uri.clone(), digest))]);
-        let resources = vec![crate::SchemaResource {
-            uri,
-            raw: raw.clone(),
-        }];
-        let schema_set_sha256 = schema_resource_set_digest(&resources).unwrap();
-        let contract_selection_sha256 = contract_selection_digest(&contracts);
-        let set = CandidateSourceFoundationSchemaSet {
-            input_identity: 42u64,
-            profile: FormatProfile::AssertedSourceCandidateV1,
-            resources,
-            source_resources: vec![SelectedSchemaResource {
-                path: path.clone(),
-                size_bytes: raw.len() as u64,
-                sha256: digest,
-            }],
-            contracts,
-            contract_selection_sha256,
-            schema_set_sha256,
-            limits_sha256: digest,
-            schema_bytes: raw.len(),
-            catalog_entry_schema_present: false,
-            catalog_claim_entry_schema_present: false,
-        };
+        let set = crate::source_cut::in_process_candidate_binding_tests::selected_set();
+        let path = set.source_resources[0].path.clone();
+        let digest = set.source_resources[0].sha256;
+        let schema_set_sha256 = set.schema_set_sha256;
+        let contract_selection_sha256 = set.contract_selection_sha256;
         let cancelled = AtomicBool::new(false);
         let deadline = Instant::now() + Duration::from_secs(30);
         let mut executor = InProcessCandidateSchemaExecutor::from_schema_set(

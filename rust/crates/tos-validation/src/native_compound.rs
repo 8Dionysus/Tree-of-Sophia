@@ -10,7 +10,9 @@ use crate::source_cut::{
     CandidateCutWorkerSchemaExecutor, CutExecutionBinding, CutPreparedSchemaExecutionBinding,
     CutSchemaExecutor, CutSchemaReceiptRange, CutWorkerSchemaExecutor,
 };
-use crate::source_foundation_records::SourceFoundationRecordsStreamedReport;
+use crate::source_foundation_records::{
+    SourceFoundationCandidateSchemaBinding, SourceFoundationRecordsStreamedReport,
+};
 use serde_json::{Value, json};
 use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
@@ -462,7 +464,7 @@ pub fn verify_work_expression_from_cut(
 /// owner verifier without requiring a synthesized full-corpus report.
 pub fn verify_work_expression_from_selected_input<I: Copy + Eq>(
     input: &dyn SourceCutInputWithIdentity<I>,
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
+    schemas: &mut impl SourceFoundationCandidateSchemaBinding<I>,
     claim_path: &str,
     claim: &Value,
     limits: ItemLimits,
@@ -474,7 +476,9 @@ pub fn verify_work_expression_from_selected_input<I: Copy + Eq>(
         return Err(bad("selected Work compound type/schema input"));
     }
     let mut reader = NativeCompoundReader::new_from_input(input.source_input(), limits, cancelled)?;
-    let observation = reader.verify(claim_path, claim, schemas)?;
+    let mut selected = CandidateCompoundSchemas::new(schemas, *input.input_identity())?;
+    let observation = reader.verify(claim_path, claim, &mut selected)?;
+    selected.guard()?;
     measured_compound_observation(reader, observation)
 }
 
@@ -1344,7 +1348,7 @@ pub fn verify_collection_membership_from_cut(
 /// and read accounting as the full-cut route while keeping PG reads addressed.
 pub fn verify_collection_membership_from_selected_input<I: Copy + Eq>(
     input: &dyn SourceCutInputWithIdentity<I>,
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
+    schemas: &mut impl SourceFoundationCandidateSchemaBinding<I>,
     claim_path: &str,
     claim: &Value,
     limits: ItemLimits,
@@ -1357,7 +1361,9 @@ pub fn verify_collection_membership_from_selected_input<I: Copy + Eq>(
         ));
     }
     let mut reader = NativeCompoundReader::new_from_input(input.source_input(), limits, cancelled)?;
-    let observation = reader.verify(claim_path, claim, schemas)?;
+    let mut selected = CandidateCompoundSchemas::new(schemas, *input.input_identity())?;
+    let observation = reader.verify(claim_path, claim, &mut selected)?;
+    selected.guard()?;
     measured_compound_observation(reader, observation)
 }
 
@@ -1388,7 +1394,7 @@ pub fn verify_expression_responsibility_from_cut(
 /// addressed.
 pub fn verify_expression_responsibility_from_selected_input<I: Copy + Eq>(
     input: &dyn SourceCutInputWithIdentity<I>,
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
+    schemas: &mut impl SourceFoundationCandidateSchemaBinding<I>,
     claim_path: &str,
     claim: &Value,
     limits: ItemLimits,
@@ -1401,7 +1407,9 @@ pub fn verify_expression_responsibility_from_selected_input<I: Copy + Eq>(
         ));
     }
     let mut reader = NativeCompoundReader::new_from_input(input.source_input(), limits, cancelled)?;
-    let observation = reader.verify(claim_path, claim, schemas)?;
+    let mut selected = CandidateCompoundSchemas::new(schemas, *input.input_identity())?;
+    let observation = reader.verify(claim_path, claim, &mut selected)?;
+    selected.guard()?;
     measured_compound_observation(reader, observation)
 }
 
@@ -1432,7 +1440,7 @@ pub fn verify_expression_edition_from_cut(
 /// readset.
 pub fn verify_expression_edition_from_selected_input<I: Copy + Eq>(
     input: &dyn SourceCutInputWithIdentity<I>,
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
+    schemas: &mut impl SourceFoundationCandidateSchemaBinding<I>,
     claim_path: &str,
     claim: &Value,
     limits: ItemLimits,
@@ -1445,7 +1453,9 @@ pub fn verify_expression_edition_from_selected_input<I: Copy + Eq>(
         ));
     }
     let mut reader = NativeCompoundReader::new_from_input(input.source_input(), limits, cancelled)?;
-    let observation = reader.verify(claim_path, claim, schemas)?;
+    let mut selected = CandidateCompoundSchemas::new(schemas, *input.input_identity())?;
+    let observation = reader.verify(claim_path, claim, &mut selected)?;
+    selected.guard()?;
     measured_compound_observation(reader, observation)
 }
 
@@ -1475,7 +1485,7 @@ pub fn verify_edition_item_from_cut(
 /// addressed while reusing the same compound and history verifier.
 pub fn verify_edition_item_from_selected_input<I: Copy + Eq>(
     input: &dyn SourceCutInputWithIdentity<I>,
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
+    schemas: &mut impl SourceFoundationCandidateSchemaBinding<I>,
     claim_path: &str,
     claim: &Value,
     limits: ItemLimits,
@@ -1487,7 +1497,9 @@ pub fn verify_edition_item_from_selected_input<I: Copy + Eq>(
         return Err(bad("selected Edition/Item compound type/schema input"));
     }
     let mut reader = NativeCompoundReader::new_from_input(input.source_input(), limits, cancelled)?;
-    let observation = reader.verify(claim_path, claim, schemas)?;
+    let mut selected = CandidateCompoundSchemas::new(schemas, *input.input_identity())?;
+    let observation = reader.verify(claim_path, claim, &mut selected)?;
+    selected.guard()?;
     measured_compound_observation(reader, observation)
 }
 
@@ -6024,7 +6036,7 @@ struct WorkGrammar {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum NativeSchemaBinding {
     Cut(CutExecutionBinding),
-    Selected(CutPreparedSchemaExecutionBinding),
+    Selected(tos_foundation::SchemaExecutionBinding),
 }
 
 pub(crate) trait NativeCompoundSchema: CutSchemaExecutor {
@@ -6080,7 +6092,9 @@ impl<I: Copy + Eq> NativeCompoundSchema for CandidateCutWorkerSchemaExecutor<I> 
     }
 
     fn native_schema_binding(&self) -> NativeSchemaBinding {
-        NativeSchemaBinding::Selected(self.prepared_execution_binding())
+        NativeSchemaBinding::Selected(tos_foundation::SchemaExecutionBinding::Worker(
+            self.prepared_execution_binding(),
+        ))
     }
 
     fn validate_local_claim(
@@ -6091,33 +6105,165 @@ impl<I: Copy + Eq> NativeCompoundSchema for CandidateCutWorkerSchemaExecutor<I> 
         limits: ItemLimits,
         cancelled: &AtomicBool,
     ) -> Result<LocalClaimValidation, ItemRefusal> {
-        let input = input.ok_or_else(|| bad("selected Claim input absent"))?;
-        let selected = SelectedCompoundInput {
-            input,
-            identity: *self.input_identity(),
-        };
-        let local = crate::record_rules::validate_stored_source_claim_from_selected_input(
-            &selected, claim_raw, self, limits, cancelled,
-        )?;
-        if let Some(issue) = local.issues.first() {
-            return Err(bad(&format!(
-                "selected compound Claim local owner profile: {}",
-                issue.code
-            )));
-        }
-        if local.input_identity != *self.input_identity()
-            || local.prepared_execution_binding
-                != tos_foundation::SchemaExecutionBinding::Worker(self.prepared_execution_binding())
-            || local.schema_set_sha256 != self.schema_set_digest()
-            || local.contract_selection_sha256 != self.contract_selection_digest()
-        {
-            return Err(bad("selected compound Claim local owner profile"));
-        }
-        Ok(LocalClaimValidation {
-            dependency_digests: local.dependency_digests,
-            dependency_bytes_read: local.dependency_bytes_read,
-        })
+        let identity = *self.input_identity();
+        let binding =
+            tos_foundation::SchemaExecutionBinding::Worker(self.prepared_execution_binding());
+        let selection = self.contract_selection_digest();
+        selected_compound_local_claim(
+            self, identity, binding, selection, input, claim_raw, limits, cancelled,
+        )
     }
+}
+
+/// Pins one candidate binding while the shared compound verifier borrows it.
+struct CandidateCompoundSchemas<'a, I: Copy + Eq, S: SourceFoundationCandidateSchemaBinding<I>> {
+    inner: &'a mut S,
+    identity: I,
+    binding: tos_foundation::SchemaExecutionBinding,
+    selection: Digest256,
+}
+
+impl<'a, I: Copy + Eq, S: SourceFoundationCandidateSchemaBinding<I>>
+    CandidateCompoundSchemas<'a, I, S>
+{
+    fn new(inner: &'a mut S, identity: I) -> Result<Self, ItemRefusal> {
+        let binding = inner
+            .schema_execution_binding()
+            .ok_or_else(|| bad("candidate compound schema binding absent"))?;
+        let selection = inner.contract_selection_digest();
+        let selected = Self {
+            inner,
+            identity,
+            binding,
+            selection,
+        };
+        selected.guard()?;
+        Ok(selected)
+    }
+    fn guard(&self) -> Result<(), ItemRefusal> {
+        if self.inner.input_identity() != &self.identity
+            || self.inner.schema_execution_binding() != Some(self.binding)
+            || self.inner.schema_set_digest() != self.binding.schema_set_sha256()
+            || self.inner.profile() != self.binding.schema_profile()
+            || self.inner.contract_selection_digest() != self.selection
+            || matches!(self.binding, tos_foundation::SchemaExecutionBinding::InProcessV1(binding)
+                if binding.engine != crate::in_process::ENGINE_ID)
+        {
+            return Err(bad("candidate compound schema binding changed"));
+        }
+        Ok(())
+    }
+}
+
+impl<I: Copy + Eq, S: SourceFoundationCandidateSchemaBinding<I>> CutSchemaExecutor
+    for CandidateCompoundSchemas<'_, I, S>
+{
+    fn schema_profile(&self) -> Option<crate::FormatProfile> {
+        Some(self.binding.schema_profile())
+    }
+    fn schema_execution_binding(&self) -> Option<tos_foundation::SchemaExecutionBinding> {
+        Some(self.binding)
+    }
+    fn selected_contract_digest(&self, contract: &str) -> Option<Digest256> {
+        self.inner.contract_digest(contract)
+    }
+    fn check(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, ItemRefusal> {
+        self.guard()?;
+        let result = self.inner.check(path, raw, contract, deadline, cancelled);
+        self.guard()?;
+        result
+    }
+    fn check_reusing_scalar(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, ItemRefusal> {
+        self.guard()?;
+        let result = self
+            .inner
+            .check_with_fragment(path, raw, contract, deadline, cancelled);
+        self.guard()?;
+        result
+    }
+}
+
+impl<I: Copy + Eq, S: SourceFoundationCandidateSchemaBinding<I>> NativeCompoundSchema
+    for CandidateCompoundSchemas<'_, I, S>
+{
+    fn cut_execution_binding(&self) -> Option<CutExecutionBinding> {
+        None
+    }
+    fn native_schema_binding(&self) -> NativeSchemaBinding {
+        NativeSchemaBinding::Selected(self.binding)
+    }
+    fn validate_local_claim(
+        &mut self,
+        _cut: Option<&CorpusCutReader>,
+        input: Option<&dyn SourceCutInput>,
+        claim_raw: &[u8],
+        limits: ItemLimits,
+        cancelled: &AtomicBool,
+    ) -> Result<LocalClaimValidation, ItemRefusal> {
+        self.guard()?;
+        let result = selected_compound_local_claim(
+            self.inner,
+            self.identity,
+            self.binding,
+            self.selection,
+            input,
+            claim_raw,
+            limits,
+            cancelled,
+        );
+        self.guard()?;
+        result
+    }
+}
+
+fn selected_compound_local_claim<I: Copy + Eq>(
+    schemas: &mut impl SourceFoundationCandidateSchemaBinding<I>,
+    identity: I,
+    binding: tos_foundation::SchemaExecutionBinding,
+    selection: Digest256,
+    input: Option<&dyn SourceCutInput>,
+    claim_raw: &[u8],
+    limits: ItemLimits,
+    cancelled: &AtomicBool,
+) -> Result<LocalClaimValidation, ItemRefusal> {
+    let selected = SelectedCompoundInput {
+        input: input.ok_or_else(|| bad("selected Claim input absent"))?,
+        identity,
+    };
+    let local = crate::record_rules::validate_stored_source_claim_from_selected_input(
+        &selected, claim_raw, schemas, limits, cancelled,
+    )?;
+    if let Some(issue) = local.issues.first() {
+        return Err(bad(&format!(
+            "selected compound Claim local owner profile: {}",
+            issue.code
+        )));
+    }
+    if local.input_identity != identity
+        || local.prepared_execution_binding != binding
+        || local.schema_set_sha256 != binding.schema_set_sha256()
+        || local.contract_selection_sha256 != selection
+    {
+        return Err(bad("selected compound Claim local owner profile"));
+    }
+    Ok(LocalClaimValidation {
+        dependency_digests: local.dependency_digests,
+        dependency_bytes_read: local.dependency_bytes_read,
+    })
 }
 
 struct SelectedCompoundInput<'a, I> {
@@ -11103,5 +11249,55 @@ impl NativeCompoundReader<'_> {
         }
         check(self.limits.deadline, self.cancelled)?;
         Ok(observation)
+    }
+}
+
+#[cfg(test)]
+mod in_process_compound_schema_tests {
+    use super::*;
+    use crate::in_process::InputMode;
+    use crate::source_cut::InProcessCandidateSchemaExecutor;
+    use std::time::Duration;
+
+    #[test]
+    fn selected_compound_checks_bind_in_process_candidate() {
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let mut executor = InProcessCandidateSchemaExecutor::from_schema_set(
+            crate::source_cut::in_process_candidate_binding_tests::selected_set(),
+            InputMode::PublishedStrict,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        assert!(CandidateCompoundSchemas::new(&mut executor, 99).is_err());
+        let mut selected = CandidateCompoundSchemas::new(&mut executor, 42).unwrap();
+        assert!(matches!(
+            selected.native_schema_binding(),
+            NativeSchemaBinding::Selected(tos_foundation::SchemaExecutionBinding::InProcessV1(_))
+        ));
+        assert!(
+            selected
+                .check_reusing_scalar(
+                    "record.json",
+                    b"3",
+                    "ToS/contracts/example.schema.json",
+                    deadline,
+                    &cancelled
+                )
+                .unwrap()
+        );
+        assert!(
+            !selected
+                .check_reusing_scalar(
+                    "record.json",
+                    br#""wrong""#,
+                    "ToS/contracts/example.schema.json",
+                    deadline,
+                    &cancelled
+                )
+                .unwrap()
+        );
+        selected.guard().unwrap();
     }
 }

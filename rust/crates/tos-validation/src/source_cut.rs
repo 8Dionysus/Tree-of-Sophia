@@ -5614,12 +5614,12 @@ impl<I: Copy + Eq> crate::source_foundation_records::SourceFoundationCandidateSc
 }
 
 #[cfg(test)]
-mod in_process_candidate_binding_tests {
+pub(crate) mod in_process_candidate_binding_tests {
     use super::*;
     use crate::source_foundation_records::SourceFoundationCandidateSchemaBinding;
     use std::time::Duration;
 
-    fn selected_set() -> CandidateSourceFoundationSchemaSet<u64> {
+    pub(crate) fn selected_set() -> CandidateSourceFoundationSchemaSet<u64> {
         let path = "ToS/contracts/example.schema.json".to_owned();
         let uri = "https://example.test/schema".to_owned();
         let raw = br#"{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://example.test/schema","type":"integer"}"#.to_vec();
