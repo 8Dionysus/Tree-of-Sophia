@@ -2740,9 +2740,13 @@ fn maintained_assessment_whole_output_matches_native_current_view() {
     use tos_validation::assessment::{
         AssessmentLimits, AssessmentReadInput, AssessmentRecordInput, AssessmentRefusal,
         AssessmentSchemaBindingV1, AssessmentSourceRoute, AssessmentSubmissionInput,
-        evaluate_current_assessment,
+        evaluate_current_assessment, evaluate_current_assessment_selected,
     };
     use tos_validation::executor::BatchBudget;
+    use tos_validation::in_process::InputMode;
+    use tos_validation::source_cut::{
+        CutSchemaExecutor, InProcessCandidateSchemaExecutor, InProcessCutSchemaExecutor,
+    };
 
     let cases = crate::frozen_legacy_python_oracle("assessment-whole-view");
     let cases = cases.as_array().unwrap();
@@ -2823,6 +2827,39 @@ fn maintained_assessment_whole_output_matches_native_current_view() {
         batch: BatchBudget::laboratory(),
         deadline,
     };
+    let selected_resources = files
+        .iter()
+        .filter(|(path, _)| path.starts_with("ToS/contracts/") && path.ends_with(".schema.json"))
+        .map(|(path, raw)| {
+            let schema: Value = serde_json::from_slice(raw).unwrap();
+            (
+                path.clone(),
+                tos_validation::SchemaResource {
+                    uri: schema["$id"].as_str().unwrap().to_owned(),
+                    raw: raw.clone(),
+                },
+            )
+        })
+        .collect();
+    let candidate_identity = 42u64;
+    let candidate_digest = Digest256::of_bytes(b"assessment-selected-input");
+    let mut candidate = InProcessCandidateSchemaExecutor::from_selected_source_resources(
+        candidate_identity,
+        selected_resources,
+        FormatProfile::AssertedSourceCandidateV1,
+        InputMode::SerdeNormalized,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    let mut in_process_cut = InProcessCutSchemaExecutor::from_cut(
+        &cut,
+        FormatProfile::AssertedSourceCandidateV1,
+        InputMode::SerdeNormalized,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
     let mut hashes = BTreeSet::new();
     let mut last_input = None;
     for case in cases {
@@ -2874,6 +2911,39 @@ fn maintained_assessment_whole_output_matches_native_current_view() {
         assert_eq!(worker.worker_sha256, worker_digest);
         assert_eq!(report.source_input_identity(), revision.0);
         assert_eq!(report.observed_now(), required(case, "observed_now"));
+        let selected_cut =
+            evaluate_current_assessment(&input, &mut in_process_cut, limits, &cancelled)
+                .unwrap_or_else(|error| panic!("{name}: in-process cut assessment: {error:?}"));
+        assert_eq!(
+            selected_cut.current_admission(),
+            report.current_admission(),
+            "source cut output: {name}"
+        );
+        assert!(
+            matches!(selected_cut.schema_binding(), AssessmentSchemaBindingV1::SourceCutInProcessV1 { source_revision, engine }
+            if source_revision == revision && engine.engine == tos_validation::in_process::ENGINE_ID)
+        );
+        let mut candidate_input = input.clone();
+        candidate_input.source_revision = None;
+        candidate_input.source_input_identity = candidate_digest;
+        let selected = evaluate_current_assessment_selected(
+            &candidate_input,
+            &candidate_identity,
+            candidate_digest,
+            &mut candidate,
+            limits,
+            &cancelled,
+        )
+        .unwrap_or_else(|error| panic!("{name}: in-process assessment: {error:?}"));
+        assert_eq!(
+            selected.current_admission(),
+            report.current_admission(),
+            "selected candidate output: {name}"
+        );
+        assert!(
+            matches!(selected.schema_binding(), AssessmentSchemaBindingV1::SelectedInputInProcessV1 { source_identity, engine }
+            if source_identity == candidate_digest && engine.engine == tos_validation::in_process::ENGINE_ID)
+        );
         if case["source_read"].is_null() {
             assert!(
                 !report.source_read_required(),
@@ -2906,6 +2976,8 @@ fn maintained_assessment_whole_output_matches_native_current_view() {
         last_input = Some(input);
     }
     let mut input = last_input.unwrap();
+    candidate.finish(deadline, &cancelled).unwrap();
+    in_process_cut.finish(deadline, &cancelled).unwrap();
     let start = schemas.receipts().len();
     let current_revision = input.source_revision;
     input.source_revision = Some(SourceRevision(Digest256::of_bytes(

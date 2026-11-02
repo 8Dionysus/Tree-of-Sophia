@@ -1668,7 +1668,7 @@ pub(crate) fn run(
                                     read_input,
                                     &identity,
                                     identity.digest(),
-                                    &mut schema_worker.0,
+                                    &mut *schema_worker.0,
                                     limits,
                                     cancelled,
                                 )
