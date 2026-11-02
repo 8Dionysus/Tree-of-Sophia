@@ -22,9 +22,12 @@ follows ToS-owned source review and promotion. The intake schema is
 
 ### Threshold registry
 
-The [registry](parts/threshold-registry/README.md) maintains candidate-only
-entries, its config, schema, example and generated companion. Build and validate
-with:
+The registry maintains candidate-only entries. Under
+`mechanics/agon/parts/threshold-registry/`, its payload is
+`config/tos_agon_threshold_intakes.config.json`,
+`schemas/tos-agon-threshold-intake-registry.schema.json`,
+`examples/tos_agon_threshold_intake_registry.example.json` and
+`generated/tos_agon_threshold_intake_registry.min.json`. Build and validate with:
 
 ```sh
 tos-ops-mechanics-plan --repo-root ROOT --threshold-registry-build
@@ -33,8 +36,11 @@ tos-ops-mechanics-plan --repo-root ABS --local-contracts mechanics/agon/parts/th
 tos-ops-mechanics-plan --repo-root ROOT --execute
 ```
 
-The builder accepts `--check` to compare its current output. Retained assertions
-are in `rust/crates/tos-ops-mechanics-plan/tests/mechanics_contracts.rs`.
+The installed builder is `tos-ops-mechanics-plan --repo-root . --threshold-registry-build`;
+it accepts `--check` to compare its current output. Retained assertions are in
+`rust/crates/tos-ops-mechanics-plan/tests/mechanics_contracts.rs`.
+Python modules retain comparison APIs; executable compatibility selects the
+installed native command without fallback.
 
 ### Landing handoff
 
