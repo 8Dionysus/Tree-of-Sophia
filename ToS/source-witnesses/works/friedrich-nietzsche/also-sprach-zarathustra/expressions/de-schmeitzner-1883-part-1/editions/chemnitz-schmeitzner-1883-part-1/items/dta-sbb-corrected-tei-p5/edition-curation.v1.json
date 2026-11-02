@@ -5227,6 +5227,18 @@
         "epigraph_label": {
           "ru": "Эпиграф",
           "en": "Epigraph"
+        },
+        "part_title_template": {
+          "ru": "Часть {part_label}",
+          "en": "Part {part_label}"
+        },
+        "chapter_description_template": {
+          "ru": "Часть {part_label} · фрагментов для чтения: {count}. Откройте любой, чтобы читать и сравнивать.",
+          "en": "Part {part_label} · {count} passages to explore. Open any passage to read and compare."
+        },
+        "chapter_source_note_template": {
+          "ru": "{heading} Здесь собрано {count} фрагментов, отобранных досье. Откройте их для чтения и сравнения. Русское и английское названия служат навигации; немецкий заголовок возвращает к конкретной главе исходного издания.",
+          "en": "{heading} This chapter contains {count} passages selected by the dossier. Open them for reading and comparison. Russian and English titles provide navigation; the German heading returns to the specific chapter in the source edition."
         }
       },
       "expected_counts": {

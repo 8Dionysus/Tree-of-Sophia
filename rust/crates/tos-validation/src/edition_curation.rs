@@ -2778,6 +2778,9 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                         "chapter_body_template",
                         &["chapter_label", "part_label"][..],
                     ),
+                    ("part_title_template", &["part_label"][..]),
+                    ("chapter_description_template", &["part_label", "count"][..]),
+                    ("chapter_source_note_template", &["heading", "count"][..]),
                     ("provisional_speaker_template", &["speaker"][..]),
                 ] {
                     let expected: BTreeSet<_> = expected.iter().copied().collect();
