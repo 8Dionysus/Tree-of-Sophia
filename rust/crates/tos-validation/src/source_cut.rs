@@ -5055,6 +5055,57 @@ pub struct InProcessCutDiagnostic<I> {
     pub report: crate::in_process::Report,
 }
 
+/// Source-cut evidence retains the representation of the executing engine.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CutSchemaEvidence {
+    Worker(CutSchemaDiagnostic),
+    InProcess(InProcessCutDiagnostic<()>),
+}
+
+impl From<CutSchemaDiagnostic> for CutSchemaEvidence {
+    fn from(diagnostic: CutSchemaDiagnostic) -> Self {
+        Self::Worker(diagnostic)
+    }
+}
+
+impl CutSchemaEvidence {
+    pub fn source_revision(&self) -> Option<SourceRevision> {
+        match self {
+            Self::Worker(row) => Some(row.source_revision()),
+            Self::InProcess(row) => match &row.identity {
+                InProcessCutIdentity::Source(revision) => Some(*revision),
+                InProcessCutIdentity::Candidate(()) => None,
+            },
+        }
+    }
+    pub fn path(&self) -> &str {
+        match self {
+            Self::Worker(row) => row.path(),
+            Self::InProcess(row) => &row.path,
+        }
+    }
+    pub fn issues(&self) -> &[schema_diagnostics::Issue] {
+        match self {
+            Self::Worker(row) => &row.report().issues,
+            Self::InProcess(row) => &row.report.issues,
+        }
+    }
+    pub fn is_invalid(&self) -> bool {
+        match self {
+            Self::Worker(row) => row.is_invalid(),
+            Self::InProcess(row) => {
+                self.source_revision().is_some()
+                    && row.report.is_well_formed()
+                    && row.report.status == schema_diagnostics::Status::Invalid
+                    && !row.report.truncated
+                    && row.report.failure == schema_diagnostics::Failure::None
+                    && u64::try_from(row.report.issues.len()).ok()
+                        == Some(row.report.total_issue_count)
+            }
+        }
+    }
+}
+
 /// Candidate evidence with the producing engine's own representation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CandidateSchemaDiagnostic<I> {

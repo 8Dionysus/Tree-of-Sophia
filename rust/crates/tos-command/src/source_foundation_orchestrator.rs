@@ -1060,7 +1060,7 @@ fn catalog_issue_count<B>(
             catalog_issues,
             diagnostic,
             ..
-        } => checked_add_usize(catalog_issues.len(), diagnostic.report().issues.len()),
+        } => checked_add_usize(catalog_issues.len(), diagnostic.issues().len()),
     }
 }
 

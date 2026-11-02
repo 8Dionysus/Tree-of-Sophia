@@ -43,7 +43,7 @@ use tos_validation::executor::{
     BatchStreamBudget, ExactWorkerIdentity, ExecutorBudget, VerifiedWorkerImageHandle,
 };
 use tos_validation::source_cut::{
-    CutSchemaDiagnostic, CutSchemaDiagnosticsLimits, CutWorkerLimits,
+    CutSchemaDiagnosticsLimits, CutSchemaEvidence, CutWorkerLimits,
     cut_schema_resource_preparation_state_upper_bound,
 };
 
@@ -1369,6 +1369,23 @@ impl SourceCatalogProfileObserver for SpoolingCatalogProfileObserver<'_, '_> {
     }
 }
 
+pub(crate) enum FoundationCatalogSchemaCost {
+    Worker(tos_validation::source_cut::CutSchemaDiagnosticsCumulativeCost),
+    InProcess,
+}
+
+fn catalog_schema_cost(
+    validator: &SourceCatalogValidator<'_>,
+) -> Result<FoundationCatalogSchemaCost> {
+    if validator.worker.is_some() {
+        validator
+            .diagnostics_v2_cumulative_cost()
+            .map(FoundationCatalogSchemaCost::Worker)
+    } else {
+        Ok(FoundationCatalogSchemaCost::InProcess)
+    }
+}
+
 pub(crate) struct FoundationCatalogResult<B = ColdAuthoredBinding> {
     pub(crate) observed_plan_work_bytes: u64,
     pub(crate) profiles: FoundationCatalogProfiles,
@@ -1380,11 +1397,10 @@ pub(crate) struct FoundationCatalogResult<B = ColdAuthoredBinding> {
     pub(crate) generated_read_bytes: usize,
     pub(crate) generated_inputs: GeneratedCatalogObservation,
     pub(crate) source_recheck_read_bytes: usize,
-    pub(crate) schema_execution_cost:
-        tos_validation::source_cut::CutSchemaDiagnosticsCumulativeCost,
+    pub(crate) schema_execution_cost: FoundationCatalogSchemaCost,
 }
 
-pub(crate) enum FoundationCatalogOutcome<B = ColdAuthoredBinding, D = CutSchemaDiagnostic> {
+pub(crate) enum FoundationCatalogOutcome<B = ColdAuthoredBinding, D = CutSchemaEvidence> {
     Complete(FoundationCatalogResult<B>),
     /// Complete authenticated schema rejection; the failed compiler phase
     /// produced no receipt. Independent default owner checks still continue.
@@ -1397,7 +1413,7 @@ pub(crate) enum FoundationCatalogOutcome<B = ColdAuthoredBinding, D = CutSchemaD
         generated_read_bytes: usize,
         generated_inputs: Option<GeneratedCatalogObservation>,
         source_recheck_read_bytes: usize,
-        schema_execution_cost: tos_validation::source_cut::CutSchemaDiagnosticsCumulativeCost,
+        schema_execution_cost: FoundationCatalogSchemaCost,
     },
 }
 
@@ -1406,7 +1422,7 @@ struct CatalogCandidateArtifact<'a> {
     fresh_sources: RouteSources,
 }
 
-struct CatalogKernelOutput<'a, B = ColdAuthoredBinding, D = CutSchemaDiagnostic> {
+struct CatalogKernelOutput<'a, B = ColdAuthoredBinding, D = CutSchemaEvidence> {
     outcome: FoundationCatalogOutcome<B, D>,
     candidate: Option<CatalogCandidateArtifact<'a>>,
 }
@@ -1417,7 +1433,7 @@ struct CatalogKernelOutput<'a, B = ColdAuthoredBinding, D = CutSchemaDiagnostic>
 pub(crate) struct FoundationCatalogCandidateOutcome<
     'a,
     B = ColdAuthoredBinding,
-    D = CutSchemaDiagnostic,
+    D = CutSchemaEvidence,
 > {
     pub(crate) outcome: FoundationCatalogOutcome<B, D>,
     pub(crate) candidate: Option<FreshCatalogCandidate<'a>>,
@@ -1599,7 +1615,11 @@ fn compare_kernel<'candidate>(
         || owner.recheck_sealed_cut(&owner.receipt),
         || owner.source_recheck_read_bytes.get(),
         |stage| stage.finish_cold().map(|_| ()),
-        || validator.take_schema_diagnostic_rejection(),
+        || {
+            validator
+                .take_schema_diagnostic_rejection()
+                .map(|row| row.map(Into::into))
+        },
         &std::cell::Cell::new(0),
     )
 }
@@ -1792,7 +1812,7 @@ fn compare_prepared_kernel<'candidate, 'stage, 'rows, B, D>(
         validator.finish()?;
         // Observation remains provisional until the original terminal fences succeed.
         observe(&mut stage, &catalog, limits.catalog)?;
-        let schema_execution_cost = validator.diagnostics_v2_cumulative_cost()?;
+        let schema_execution_cost = catalog_schema_cost(validator)?;
         recheck()?;
         let mut selected_generated = generated_inputs
             .take()
@@ -1840,7 +1860,7 @@ fn compare_prepared_kernel<'candidate, 'stage, 'rows, B, D>(
             // Retrieval exposes only complete, fully bound Invalid reports;
             // cleanup/currentness failure still refuses the whole evaluation.
             validator.finish()?;
-            let schema_execution_cost = validator.diagnostics_v2_cumulative_cost()?;
+            let schema_execution_cost = catalog_schema_cost(validator)?;
             recheck()?;
             if let Some(selected) = generated_inputs.as_mut() {
                 if let Some(candidate) = candidate_output.as_mut() {
