@@ -8760,7 +8760,10 @@ fn find_record(ctx: &CommandContext, id: &str) -> SourceCommandResult<(JsonValue
                 _ if record
                     .object_get("record_type")
                     .and_then(JsonValue::as_str)
-                    .is_some() => "record_id",
+                    .is_some() =>
+                {
+                    "record_id"
+                }
                 _ => continue,
             };
             if record.object_get(id_field).and_then(JsonValue::as_str) == Some(id) {
@@ -10993,10 +10996,22 @@ mod mixed_inventory_boundary_tests {
             recorded_at: String::new(),
             effective_uid: 0,
             files: vec![
-                item("ToS/source-witnesses/semantic-descriptions/example/thesis.json", record),
-                item("ToS/source-witnesses/semantic-descriptions/example/source-revision-history.json", history),
-                item("ToS/source-witnesses/.metadata-transactions/transaction/old.blob", record),
-                item("ToS/source-witnesses/.record-revisions/archive/old.blob", record),
+                item(
+                    "ToS/source-witnesses/semantic-descriptions/example/thesis.json",
+                    record,
+                ),
+                item(
+                    "ToS/source-witnesses/semantic-descriptions/example/source-revision-history.json",
+                    history,
+                ),
+                item(
+                    "ToS/source-witnesses/.metadata-transactions/transaction/old.blob",
+                    record,
+                ),
+                item(
+                    "ToS/source-witnesses/.record-revisions/archive/old.blob",
+                    record,
+                ),
             ],
         };
         let (_, path) = find_record(&context, id).unwrap();

@@ -832,7 +832,8 @@ mod wasm {
     #[wasm_bindgen]
     pub fn research_operation_wasm_v1(raw: &[u8]) -> Result<Vec<u8>, JsValue> {
         let request = serde_json::from_slice(raw).map_err(|e| JsValue::from_str(&e.to_string()))?;
-        let result = tos_query::research_operations::execute(&request).map_err(|e| JsValue::from_str(&e))?;
+        let result =
+            tos_query::research_operations::execute(&request).map_err(|e| JsValue::from_str(&e))?;
         serde_json::to_vec(&result).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 

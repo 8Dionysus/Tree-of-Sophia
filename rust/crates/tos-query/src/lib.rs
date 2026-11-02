@@ -21,7 +21,6 @@ mod controlled_query_adapter;
 #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 pub mod corpus_read;
 pub mod exploration_plan;
-pub mod research_operations;
 mod inspect_plan;
 #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 mod knowledge_binding;
@@ -43,6 +42,7 @@ pub mod knowledge_presentation;
 mod knowledge_sqlite;
 #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 mod knowledge_temporal;
+pub mod research_operations;
 #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 pub use controlled_lens_adapter::{
     ControlledLensRequest, execute_controlled_lens_request_response,
