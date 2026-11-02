@@ -1930,6 +1930,53 @@
           "reading_ordinal": 15,
           "trigger": "either_side_empty"
         }
+      ],
+      "unstable_resolution_prefix": "unresolved",
+      "unstable_confidence": "low",
+      "posture_rules": [
+        {
+          "condition": "outside_reading",
+          "status": "deferred",
+          "shape_mode": "fixed",
+          "fixed_shape": "unresolved",
+          "reason": "source-only in bounded 81-reading technical scope; not evidence of translator omission"
+        },
+        {
+          "condition": "empty_side_cross_kind",
+          "status": "ambiguous",
+          "shape_mode": "proposal",
+          "reason": "cross-kind/out-of-paragraph-scope candidate; not evidence of translator omission"
+        },
+        {
+          "condition": "empty_side",
+          "status": "ambiguous",
+          "shape_mode": "proposal",
+          "reason": "structural-role mismatch; not evidence of translator omission"
+        },
+        {
+          "condition": "challenger_disagreement",
+          "status": "ambiguous",
+          "shape_mode": "proposal",
+          "reason": "independent mixed-content challenger disagrees; machine ambiguity preserved without resolution"
+        },
+        {
+          "condition": "verse_barrier",
+          "status": "ambiguous",
+          "shape_mode": "proposal",
+          "reason": "excluded verse boundary qualifies this paragraph grouping; machine ambiguity preserved"
+        },
+        {
+          "condition": "unstable",
+          "status": "ambiguous",
+          "shape_mode": "proposal",
+          "reason": "length-profile result is unstable or low-fit; source-and-target-visible review required"
+        },
+        {
+          "condition": "always",
+          "status": "proposed",
+          "shape_mode": "proposal",
+          "reason": "machine grouping agrees across compared technical profiles; proposal is not translation truth"
+        }
       ]
     },
     {

@@ -927,6 +927,23 @@ fn check_replacements(value: &Value) -> Result<(), EditionCurationError> {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if let Some(rules) = object.get("posture_rules") {
+                let rules = rules
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                if rules.last().and_then(|rule| rule["condition"].as_str()) != Some("always") {
+                    return Err(EditionCurationError::InvalidRange("posture_rules"));
+                }
+                let mut seen = BTreeSet::new();
+                for rule in rules {
+                    let condition = rule["condition"]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    if !seen.insert(condition) {
+                        return Err(EditionCurationError::Duplicate("posture condition"));
+                    }
+                }
+            }
             if let Some(risks) = object.get("cross_kind_risks") {
                 let mut sides = BTreeSet::new();
                 for exclusion in object["scope_census"]["exclusions"]
