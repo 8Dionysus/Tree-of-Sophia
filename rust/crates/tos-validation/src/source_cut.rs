@@ -4996,6 +4996,8 @@ pub struct InProcessCutDiagnostic<I> {
     pub identity: InProcessCutIdentity<I>,
     pub path: String,
     pub contract: String,
+    /// Exact raw input length, absent in version 1 historical evidence.
+    pub input_size_bytes: Option<u64>,
     pub report: crate::in_process::Report,
 }
 
@@ -5091,6 +5093,9 @@ impl<I> InProcessCutSchemaExecutor<I> {
             identity: self.identity.clone(),
             path: path.to_owned(),
             contract: contract.to_owned(),
+            input_size_bytes: Some(
+                u64::try_from(raw.len()).map_err(|_| crate::item_budget_origin!())?,
+            ),
             report,
         })
     }
@@ -5210,6 +5215,8 @@ struct InProcessCutEvidence<I> {
     identity: InProcessIdentityEvidence<I>,
     path: String,
     contract: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    input_size_bytes: Option<u64>,
     report: serde_json::Value,
 }
 
@@ -5226,10 +5233,15 @@ impl<I: Clone + serde::Serialize + serde::de::DeserializeOwned> InProcessCutDiag
         };
         let report = serde_json::from_slice(&self.report.to_evidence_json()?)?;
         serde_json::to_vec(&InProcessCutEvidence {
-            version: 1,
+            version: if self.input_size_bytes.is_some() {
+                2
+            } else {
+                1
+            },
             identity,
             path: self.path.clone(),
             contract: self.contract.clone(),
+            input_size_bytes: self.input_size_bytes,
             report,
         })
     }
@@ -5240,8 +5252,10 @@ impl<I: Clone + serde::Serialize + serde::de::DeserializeOwned> InProcessCutDiag
             .map_err(|_| "invalid cut evidence JSON")?;
         let evidence: InProcessCutEvidence<I> =
             serde_json::from_value(value).map_err(|_| "invalid cut evidence JSON")?;
-        if evidence.version != 1
-            || evidence.path.is_empty()
+        if !matches!(
+            (evidence.version, evidence.input_size_bytes),
+            (1, None) | (2, Some(_))
+        ) || evidence.path.is_empty()
             || evidence.contract.is_empty()
             || evidence.path.len() > 4096
             || evidence.contract.len() > 4096
@@ -5264,6 +5278,7 @@ impl<I: Clone + serde::Serialize + serde::de::DeserializeOwned> InProcessCutDiag
             identity,
             path: evidence.path,
             contract: evidence.contract,
+            input_size_bytes: evidence.input_size_bytes,
             report,
         })
     }

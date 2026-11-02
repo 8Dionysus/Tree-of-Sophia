@@ -402,11 +402,38 @@ fn cut_adapter_binds_source_and_candidate_separately() {
         InProcessCutIdentity::Candidate("candidate".to_owned())
     );
     assert_eq!(evidence.report.status, Status::Invalid);
+    assert_eq!(evidence.input_size_bytes, Some(1));
     let encoded = evidence.to_evidence_json().unwrap();
     assert_eq!(
         tos_validation::source_cut::InProcessCutDiagnostic::<String>::from_evidence_json(&encoded)
             .unwrap(),
         evidence
+    );
+    let mut historical = evidence.clone();
+    historical.input_size_bytes = None;
+    let old_bytes = historical.to_evidence_json().unwrap();
+    assert_eq!(
+        tos_validation::source_cut::InProcessCutDiagnostic::<String>::from_evidence_json(
+            &old_bytes
+        )
+        .unwrap(),
+        historical
+    );
+    let mut invalid: serde_json::Value = serde_json::from_slice(&encoded).unwrap();
+    invalid["version"] = serde_json::json!(1);
+    assert!(
+        tos_validation::source_cut::InProcessCutDiagnostic::<String>::from_evidence_json(
+            &serde_json::to_vec(&invalid).unwrap()
+        )
+        .is_err()
+    );
+    invalid["version"] = serde_json::json!(2);
+    invalid.as_object_mut().unwrap().remove("input_size_bytes");
+    assert!(
+        tos_validation::source_cut::InProcessCutDiagnostic::<String>::from_evidence_json(
+            &serde_json::to_vec(&invalid).unwrap()
+        )
+        .is_err()
     );
 }
 
