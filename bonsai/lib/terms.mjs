@@ -8,7 +8,7 @@
 // the translation's text holds one of the forms the term gives for it. The Tree's
 // own words are a choice of the stand and are kept as given.
 
-import {citeIssues,fragmentOf,readChapter} from './witnesses.mjs';
+import {citeIssues,fragmentOf,readChapter,readingText} from './witnesses.mjs';
 
 export const TERMS_SCHEMA='tos.bonsai.terms.v1';
 const LANGUAGES=['ru','en'];
@@ -61,8 +61,18 @@ export function termsIssues(module,chapterFiles={},{pivot='de'}={}){
     if(!chapter){issues.push(`${at}: no witness chapter ${cite.c}`);continue;}
     const problems=citeIssues(cite,chapter,{pivot});
     if(problems.length){issues.push(...problems.map(problem=>`${at}: first place ${problem}`));continue;}
-    const said=language=>(fragmentOf(cite,chapter,language,{pivot})?.units??[]).map(unit=>unit.text.slice(unit.from,unit.to)).join(' ');
-    if(original.forms&&!holdsForm(said(pivot),original.forms))issues.push(`${at}: the original does not say ${original.lemma} at ${cite.c}`);
+    const originalUnits=fragmentOf(cite,chapter,pivot,{pivot})?.units??[];
+    const said=originalUnits.map(unit=>unit.text.slice(unit.from,unit.to)).join(' ');
+    if(!text(cite.q)||!readingText(said,'p').includes(readingText(cite.q,'p')))issues.push(`${at}: first place quote is not in the cited original`);
+    // Keep the characters just outside the cited span when checking word boundaries.
+    // Otherwise a slice such as "esel" inside "geselltest" becomes a false word.
+    const firstUnit=originalUnits[0],lastUnit=originalUnits.at(-1);
+    const before=firstUnit?.from>0?firstUnit.text[firstUnit.from-1]:' ';
+    const after=lastUnit?.to<lastUnit?.text.length?lastUnit.text[lastUnit.to]:' ';
+    const context=before+said+after;
+    const pattern=original.forms?new RegExp(formPattern(original.forms).source,'giu'):null;
+    const inPlace=pattern&&[...context.matchAll(pattern)].some(match=>match.index>=before.length&&match.index+match[0].length<=before.length+said.length);
+    if(original.forms&&!inPlace)issues.push(`${at}: the original does not say ${original.lemma} at ${cite.c}`);
     for(const language of LANGUAGES){
       const witness=term.renderings?.[language]?.witness;
       if(!witness?.edition||!words(witness.forms))continue;

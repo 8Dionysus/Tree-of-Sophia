@@ -31,6 +31,17 @@ describe('the terms of a bonsai',()=>{
     const term=kobolde();term.original={lang:'de',lemma:'Übermensch',forms:['Übermensch']};
     expect(termsIssues(module([term]),chapters)).toEqual(['term kobolde: the original does not say Übermensch at I.08']);
   });
+  it('does not turn a substring into a word by cutting the citation short',()=>{
+    const term=kobolde(),raw=chapters['I.08'].units.de.find(entry=>entry[0]===unit)[2];
+    const start=raw.indexOf('Kobolde');
+    term.first.s=start;term.first.e=start+'Kobold'.length;term.first.q='Kobold';
+    term.original={lang:'de',lemma:'Kobold',forms:['Kobold']};
+    expect(termsIssues(module([term]),chapters)).toContain('term kobolde: the original does not say Kobold at I.08');
+  });
+  it('checks the quoted words against the cited place',()=>{
+    const term=kobolde();term.first.q='a different quotation';
+    expect(termsIssues(module([term]),chapters)).toContain('term kobolde: first place quote is not in the cited original');
+  });
   it('keeps a form to one term and apart from what the term avoids',()=>{
     const term=kobolde(),other={...kobolde(),id:'goblins'};term.renderings.ru.avoid=['горные духи'];
     expect(termsIssues(module([term,other]),chapters)).toEqual(expect.arrayContaining(['term kobolde: ru form "горные духи" is also avoided','term goblins: ru form "горные духи" belongs to kobolde']));

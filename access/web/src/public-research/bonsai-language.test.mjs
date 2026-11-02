@@ -6,7 +6,17 @@ import {describe,expect,it} from 'vitest';
 // brings one back fails here. A reviewer's note kept as a plain string is provenance and keeps its words.
 const root=new URL('../../../../bonsai/zarathustra/core/',import.meta.url);
 const read=name=>JSON.parse(readFileSync(new URL(name,root),'utf8'));
-const files=['concepts.json','figures.json','links.json','chains.json','proposed.json','voices.json',...readdirSync(new URL('occurrences/',root)).map(name=>`occurrences/${name}`)];
+const terms=JSON.parse(readFileSync(new URL('../../../../bonsai/zarathustra/terms.json',import.meta.url),'utf8'));
+function jsonFiles(directory=''){
+  return readdirSync(new URL(directory,root),{withFileTypes:true}).flatMap(entry=>{
+    const name=`${directory}${entry.name}`;
+    return entry.isDirectory()?jsonFiles(`${name}/`):entry.isFile()&&entry.name.endsWith('.json')&&name!=='control.json'?[name]:[];
+  });
+}
+const files=jsonFiles();
+// The earlier review's phrase bans apply to its original reader-text scope;
+// semantic-use assessments may explicitly state the limits of a comparison.
+const reviewedFiles=new Set(['concepts.json','figures.json','links.json','chains.json','proposed.json','voices.json',...files.filter(name=>name.startsWith('occurrences/'))]);
 
 const outside=[
   ['a word the translation does not use for Kobolde',/домов(ой|ых|ые|ым)/i],
@@ -22,16 +32,38 @@ const outside=[
 function readerTexts(value,found=[]){
   if(Array.isArray(value))for(const item of value)readerTexts(item,found);
   else if(value&&typeof value==='object'){
-    if(typeof value.ru==='string')found.push(value.ru);
+    for(const lang of ['ru','en'])if(typeof value[lang]==='string')found.push({lang,text:value[lang]});
     for(const [key,item] of Object.entries(value))if(key!=='ru'&&key!=='en')readerTexts(item,found);
   }
   return found;
 }
 
+const escape=value=>value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+const avoidPattern=(word,lang)=>{
+  // Lower-case English entries reject any capitalization. An entry with capitals
+  // names a case-sensitive form, while Russian avoid forms always ignore case.
+  const caseSensitive=lang==='en'&&word!==word.toLocaleLowerCase('en');
+  const flags=caseSensitive?'u':'iu';
+  return new RegExp(`(?<![\\p{L}\\p{N}])${escape(word)}(?![\\p{L}\\p{N}])`,flags);
+};
+
 describe('the language of the bonsai core',()=>{
-  const texts=files.flatMap(name=>readerTexts(read(name)).map(text=>({name,text})));
-  it('reads the reader texts of every core file',()=>{expect(texts.length).toBeGreaterThan(8000);});
+  const texts=files.flatMap(name=>readerTexts(read(name)).map(({lang,text})=>({name,lang,text})));
+  it('reads the Russian and English reader texts of every core file',()=>{
+    for(const lang of ['ru','en'])expect(texts.filter(entry=>entry.lang===lang).length).toBeGreaterThan(8000);
+  });
   for(const [what,pattern] of outside)it(`holds no ${what}`,()=>{
-    expect(texts.filter(({text})=>pattern.test(text)).map(({name,text})=>`${name}: ${text}`)).toEqual([]);
+    expect(texts.filter(({name,lang,text})=>reviewedFiles.has(name)&&lang==='ru'&&pattern.test(text)).map(({name,text})=>`${name}: ${text}`)).toEqual([]);
+  });
+  it('uses the registered Russian and English words for every term',()=>{
+    const violations=[];
+    for(const term of terms.terms??[])for(const lang of ['ru','en']){
+      const languageTexts=texts.filter(entry=>entry.lang===lang);
+      for(const word of term.renderings?.[lang]?.avoid??[]){
+        const pattern=avoidPattern(word,lang);
+        for(const {name,text} of languageTexts)if(pattern.test(text))violations.push(`${name} (${term.id}, ${lang}, avoid “${word}”): ${text}`);
+      }
+    }
+    expect(violations).toEqual([]);
   });
 });

@@ -621,15 +621,58 @@ if place_relations_path.exists():
     core['files'].append('place-relations.json')
     core['counts']['place_relations'] = len(load(place_relations_path)['relations'])
 
-# A language review is its own event: it corrects the reader texts of the assembled core, each wording replaced
-# whole where it stands, and the makers' and reviewers' wordings stay in their inputs. Only a text the reader sees as
-# {ru, en} is corrected; a reviewer's note kept as a plain string keeps its words.
-corrections_path = W / 'language-corrections-2026-11-02.json'
-if corrections_path.exists():
+# Language reviews are their own events: they correct whole reader-text fields in the assembled core, while the
+# makers' and reviewers' wordings stay in their inputs. The manifest keeps review order explicit; the original
+# language review stays first because later ledgers extend its reader-language decisions.
+corrections_manifest_path = W / 'corrections.json'
+if corrections_manifest_path.exists():
+    corrections_manifest = load(corrections_manifest_path)
+    if corrections_manifest.get('schema') != 'tos.bonsai.correction-ledgers.v1':
+        raise ValueError(f'unsupported correction-ledger manifest: {corrections_manifest_path}')
+    correction_names = corrections_manifest.get('ledgers')
+    if not isinstance(correction_names, list) or not correction_names or correction_names[0] != 'language-corrections-2026-11-02.json':
+        raise ValueError('corrections.json must list language-corrections-2026-11-02.json first')
+else:
+    # Keep older isolated replay work copies usable; checked-in assembly inputs always carry the manifest.
+    correction_names = ['language-corrections-2026-11-02.json']
+
+correction_reviews = []
+for correction_name in correction_names:
+    if not isinstance(correction_name, str) or pathlib.Path(correction_name).name != correction_name:
+        raise ValueError(f'correction ledger must be a file name: {correction_name!r}')
+    corrections_path = W / correction_name
+    if not corrections_path.exists():
+        raise FileNotFoundError(f'correction ledger listed in corrections.json is missing: {corrections_path}')
     review = load(corrections_path)
-    ru_map = {c['ru'][0]: c['ru'][1] for c in review['corrections']}
-    en_map = {c['ru'][0]: tuple(c['en']) for c in review['corrections'] if c.get('en')}
-    used, dropped = set(), [0]
+    if not isinstance(review.get('corrections'), list):
+        raise ValueError(f'correction ledger has no corrections array: {corrections_path}')
+    ru_map, paired_en_map, en_only_map = {}, {}, {}
+    for correction in review['corrections']:
+        for lang in ('ru', 'en'):
+            pair = correction.get(lang)
+            if pair is not None and (not isinstance(pair, list) or len(pair) != 2 or not all(isinstance(item, str) and item for item in pair)):
+                raise ValueError(f'{lang} correction must be [old, new] strings: {correction!r}')
+        if correction.get('ru'):
+            old_ru, new_ru = correction['ru']
+            if old_ru in ru_map and ru_map[old_ru] != new_ru:
+                raise ValueError(f'conflicting Russian corrections for {old_ru!r} in {corrections_path.name}')
+            ru_map[old_ru] = new_ru
+            if correction.get('en'):
+                old_en, new_en = correction['en']
+                if old_ru in paired_en_map and paired_en_map[old_ru] != (old_en, new_en):
+                    raise ValueError(f'conflicting paired English corrections for {old_ru!r} in {corrections_path.name}')
+                paired_en_map[old_ru] = (old_en, new_en)
+        elif correction.get('en'):
+            old_en, new_en = correction['en']
+            if old_en in en_only_map and en_only_map[old_en] != new_en:
+                raise ValueError(f'conflicting English-only corrections for {old_en!r} in {corrections_path.name}')
+            en_only_map[old_en] = new_en
+    correction_reviews.append({'name': correction_name, 'review': review, 'ru_map': ru_map,
+                               'paired_en_map': paired_en_map, 'en_only_map': en_only_map,
+                               'used_ru': set(), 'used_paired_en': set(), 'used_en': set()})
+
+if correction_reviews:
+    dropped = [0]
     # A proposed node's generated filler (its name 'occurs in the concept's verbal neighbourhood and routes') says
     # nothing of its own; the review leaves the node without it.
     filler = re.compile(r'возникает в словесном окружении и маршрутах понятия')
@@ -642,12 +685,26 @@ if corrections_path.exists():
             if isinstance(why, dict) and isinstance(why.get('ru'), str) and filler.search(why['ru']):
                 del value['why']
                 dropped[0] += 1
-            old = value.get('ru')
-            if isinstance(old, str) and old in ru_map:
-                value['ru'] = ru_map[old]
-                used.add(old)
-                if old in en_map and value.get('en') == en_map[old][0]:
-                    value['en'] = en_map[old][1]
+            # Apply ledgers in manifest order. Paired entries preserve the old review's RU/EN linkage;
+            # an en-only entry is intentionally global to every exact matching English reader text.
+            for correction_review in correction_reviews:
+                ru_map = correction_review['ru_map']
+                paired_en_map = correction_review['paired_en_map']
+                en_only_map = correction_review['en_only_map']
+                old_ru, old_en = value.get('ru'), value.get('en')
+                ru_matches = isinstance(old_ru, str) and old_ru in ru_map
+                if ru_matches:
+                    value['ru'] = ru_map[old_ru]
+                    correction_review['used_ru'].add(old_ru)
+                paired_applied = False
+                paired = paired_en_map.get(old_ru) if ru_matches else None
+                if paired and isinstance(old_en, str) and old_en == paired[0]:
+                    value['en'] = paired[1]
+                    correction_review['used_paired_en'].add(old_ru)
+                    paired_applied = True
+                if not paired_applied and isinstance(old_en, str) and old_en in en_only_map:
+                    value['en'] = en_only_map[old_en]
+                    correction_review['used_en'].add(old_en)
             for key, item in value.items():
                 if key not in ('ru', 'en'):
                     correct(item)
@@ -658,10 +715,42 @@ if corrections_path.exists():
         data = load(OUT / name)
         correct(data)
         write(name, data)
-    core['reviewers'].append({'id': 'language-review-20261102', 'model': 'gpt-6.1-terra', 'effort': 'xhigh', 'date': review['date'],
-                              'admitted_by': 'claude', 'reads': review['basis'],
-                              'corrections': f'bonsai/review/zarathustra-graph/graph-words/assembly-inputs/{corrections_path.name}'})
-    core['counts']['language_corrections'] = {'admitted': len(ru_map), 'applied': len(used), 'unmatched': len(ru_map) - len(used), 'fillers_dropped': dropped[0]}
+    language_counts = {'ru': {'admitted': 0, 'applied': 0, 'unmatched': 0},
+                       'en': {'admitted': 0, 'applied': 0, 'unmatched': 0}}
+    ledger_counts = []
+    for index, correction_review in enumerate(correction_reviews):
+        review = correction_review['review']
+        ru_map, paired_en_map, en_only_map = (correction_review[k] for k in ('ru_map', 'paired_en_map', 'en_only_map'))
+        used_ru = correction_review['used_ru']
+        admitted_ru, applied_ru = len(ru_map), len(used_ru)
+        admitted_en = len(paired_en_map) + len(en_only_map)
+        applied_en = len(correction_review['used_paired_en']) + len(correction_review['used_en'])
+        ledger_counts.append({'ledger': correction_review['name'],
+                              'ru': {'admitted': admitted_ru, 'applied': applied_ru, 'unmatched': admitted_ru - applied_ru},
+                              'en': {'admitted': admitted_en, 'applied': applied_en, 'unmatched': admitted_en - applied_en}})
+        language_counts['ru']['admitted'] += admitted_ru
+        language_counts['ru']['applied'] += applied_ru
+        language_counts['en']['admitted'] += admitted_en
+        language_counts['en']['applied'] += applied_en
+        stem = pathlib.Path(correction_review['name']).stem
+        reviewer = {'id': 'language-review-' + stem.removeprefix('language-corrections-'),
+                    'date': review.get('date'), 'reviewer': review.get('reviewer'), 'reads': review.get('basis'),
+                    'corrections': f'bonsai/review/zarathustra-graph/graph-words/assembly-inputs/{correction_review["name"]}'}
+        # Retain the original review's established identity and authorship fields.
+        if index == 0 and correction_review['name'] == 'language-corrections-2026-11-02.json':
+            reviewer.update({'id': 'language-review-20261102', 'model': 'gpt-6.1-terra', 'effort': 'xhigh', 'admitted_by': 'claude'})
+        core['reviewers'].append({k: v for k, v in reviewer.items() if v is not None})
+    for lang in ('ru', 'en'):
+        language_counts[lang]['unmatched'] = language_counts[lang]['admitted'] - language_counts[lang]['applied']
+    core['counts']['language_corrections'] = {
+        # Keep the original Russian aggregate keys for existing readers of core.json.
+        'admitted': language_counts['ru']['admitted'],
+        'applied': language_counts['ru']['applied'],
+        'unmatched': language_counts['ru']['unmatched'],
+        'by_language': language_counts,
+        'ledgers': ledger_counts,
+        'fillers_dropped': dropped[0]
+    }
 (W / 'english-input.json').write_text(json.dumps(wanted, ensure_ascii=False, indent=1) + '\n')
 core['counts']['english_missing'] = len(wanted)
 (OUT / 'core.json').write_text(json.dumps(core, ensure_ascii=False, indent=1) + '\n')
