@@ -22,7 +22,7 @@ use std::time::Instant;
 use tos_foundation::{Digest256, JsonString, JsonValue, RelativePath, SourceRevision};
 use tos_source_store::CorpusCutReader;
 use tos_validation::assessment::{AssessmentRecordInput, MAX_ASSESSMENTS, MAX_RECORD_BYTES};
-use tos_validation::source_cut::CutWorkerSchemaExecutor;
+use tos_validation::source_cut::{CutSchemaExecutor, InProcessCutSchemaExecutor};
 
 const MAX_SELECTIONS: usize = 64;
 const MAX_SELECTED_FILES: usize = 128;
@@ -1728,12 +1728,12 @@ pub(crate) fn select_owner_local_sources(
     owner_local_source_claims: Option<&JsonValue>,
     ctx: &CommandContext,
     cut: &CorpusCutReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_native_cli::private_owner::profile::PrivateSelectedSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PrivateAssessmentSources> {
     if cut.current().revision() != ctx.base_revision
-        || worker.source_revision() != ctx.base_revision
+        || worker.selected_source_revision() != Some(ctx.base_revision)
     {
         return Err(SourceCommandError::Conflict(
             "private assessment profile worker and selected source cut differ",
@@ -1847,7 +1847,7 @@ pub(crate) fn select_owner_local_sources(
             cancelled,
         )?;
         if raw.as_slice() != selected
-            || worker.contract_digest(reference) != Some(Digest256::of_bytes(&raw))
+            || worker.selected_contract_digest(reference) != Some(Digest256::of_bytes(&raw))
         {
             return Err(SourceCommandError::Conflict(
                 "assessment owner grammar differs from the selected source cut",
@@ -2440,8 +2440,6 @@ pub fn resolve_native_text_units_for_conformance(
     context_path: &Path,
     native_text_units: &JsonValue,
     cut: &CorpusCutReader,
-    worker_path: &Path,
-    worker_sha256: Digest256,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<NativeTextUnitResolutionForConformance> {
@@ -2456,28 +2454,16 @@ pub fn resolve_native_text_units_for_conformance(
             "conformance resolver requires an explicit native TextUnit selection",
         ));
     }
-    let mut worker_budget = tos_validation::executor::ExecutorBudget::laboratory();
-    worker_budget.execution_wall = deadline.saturating_duration_since(std::time::Instant::now());
-    worker_budget.cpu_seconds = 3;
-    worker_budget.address_space_bytes = 1_073_741_824;
-    let mut worker = CutWorkerSchemaExecutor::from_cut(
+    let mut worker = InProcessCutSchemaExecutor::from_cut(
         cut,
         tos_validation::FormatProfile::AssertedSourceCandidateV1,
-        tos_validation::executor::ExactWorkerIdentity {
-            absolute_path: worker_path.to_path_buf(),
-            sha256: worker_sha256,
-        },
-        worker_budget,
-        tos_validation::source_cut::CutWorkerLimits {
-            max_receipts: 128,
-            max_receipt_bytes: 262_144,
-        },
+        tos_validation::in_process::InputMode::SerdeNormalized,
         deadline,
         cancelled,
     )
     .map_err(|error| {
         SourceCommandError::DeniedWithReason(format!(
-            "conformance schema worker selection failed: {error:?}"
+            "conformance schema selection failed: {error:?}"
         ))
     })?;
 
@@ -2502,7 +2488,8 @@ pub fn resolve_native_text_units_for_conformance(
                 )
             })?;
         if reference == OWNER_CONTEXT_SCHEMA_FOR_CONFORMANCE {
-            if worker.contract_digest(reference) != Some(Digest256::of_bytes(&member.raw)) {
+            if worker.selected_contract_digest(reference) != Some(Digest256::of_bytes(&member.raw))
+            {
                 return Err(SourceCommandError::Conflict(
                     "conformance owner-context schema differs from selected worker",
                 ));
@@ -2547,6 +2534,9 @@ pub fn resolve_native_text_units_for_conformance(
         deadline,
         cancelled,
     )?;
+    worker
+        .finish(deadline, cancelled)
+        .map_err(|_| SourceCommandError::Denied("conformance schema operation incomplete"))?;
     let native_records = selected
         .native_records
         .into_iter()

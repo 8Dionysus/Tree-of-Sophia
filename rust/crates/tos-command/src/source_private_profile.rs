@@ -30,7 +30,7 @@ use tos_validation::{
     record_biblio_cut::SourceCutPrefixCoverage,
     source_cut::{
         CandidateCutWorkerSchemaExecutor, CutSchemaExecutor, CutWorkerSchemaExecutor,
-        InProcessCandidateSchemaExecutor,
+        InProcessCandidateSchemaExecutor, InProcessCutSchemaExecutor,
     },
 };
 
@@ -41,6 +41,7 @@ use tos_validation::{
 pub(crate) enum PrivateSelectedSourceIdentity {
     BootstrapRevision(SourceRevision),
     PgRecord(PgRecordRevisionIdentity),
+    Unbound,
 }
 
 /// Shared selected schema worker identity for the maintained Profile/Claim
@@ -59,6 +60,24 @@ pub(crate) trait PrivateSelectedSchemaExecutor: CutSchemaExecutor {
 impl PrivateSelectedSchemaExecutor for CutWorkerSchemaExecutor {
     fn private_selection_identity(&self) -> PrivateSelectedSourceIdentity {
         PrivateSelectedSourceIdentity::BootstrapRevision(self.source_revision())
+    }
+
+    fn validate_profile_registry(
+        &mut self,
+        ctx: &CommandContext,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<JsonValue> {
+        crate::source_revisions::validate_source_profile_registry(self, deadline, cancelled, ctx)
+    }
+}
+
+impl PrivateSelectedSchemaExecutor for InProcessCutSchemaExecutor<()> {
+    fn private_selection_identity(&self) -> PrivateSelectedSourceIdentity {
+        self.selected_source_revision().map_or(
+            PrivateSelectedSourceIdentity::Unbound,
+            PrivateSelectedSourceIdentity::BootstrapRevision,
+        )
     }
 
     fn validate_profile_registry(
@@ -518,6 +537,7 @@ pub(crate) fn source_bootstrap_context_matches(
         PrivateSelectedSourceIdentity::PgRecord(identity) => {
             identity.bootstrap_revision == ctx.base_revision
         }
+        PrivateSelectedSourceIdentity::Unbound => false,
     }
 }
 
@@ -530,6 +550,7 @@ fn worker_bootstrap_context_matches(
         PrivateSelectedSourceIdentity::PgRecord(identity) => {
             identity.bootstrap_revision == ctx.base_revision
         }
+        PrivateSelectedSourceIdentity::Unbound => false,
     }
 }
 
