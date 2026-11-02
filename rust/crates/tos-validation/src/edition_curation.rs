@@ -927,6 +927,49 @@ fn check_replacements(value: &Value) -> Result<(), EditionCurationError> {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if let Some(risks) = object.get("cross_kind_risks") {
+                let mut sides = BTreeSet::new();
+                for exclusion in object["scope_census"]["exclusions"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?
+                {
+                    let side = exclusion["side"]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    if !sides.insert(side) {
+                        return Err(EditionCurationError::Duplicate("exclusion side"));
+                    }
+                }
+                let parts = object["parts"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let mut seen = BTreeSet::new();
+                for risk in risks
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?
+                {
+                    let part = risk["part_order"]
+                        .as_u64()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    let reading = risk["reading_ordinal"]
+                        .as_u64()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    let selected = usize::try_from(part)
+                        .ok()
+                        .and_then(|n| n.checked_sub(1))
+                        .and_then(|n| parts.get(n))
+                        .ok_or(EditionCurationError::InvalidRange("cross_kind_risks"))?;
+                    if selected["expected_readings"]
+                        .as_u64()
+                        .is_none_or(|count| reading > count)
+                    {
+                        return Err(EditionCurationError::InvalidRange("cross_kind_risks"));
+                    }
+                    if !seen.insert((part, reading)) {
+                        return Err(EditionCurationError::Duplicate("cross kind risk"));
+                    }
+                }
+            }
             if let Some(scope) = object.get("legacy_work_scope") {
                 let sources = object["source_item_refs"]
                     .as_array()

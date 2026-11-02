@@ -159,6 +159,18 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         ),
         Err(EditionCurationError::MissingReference)
     );
+    let mut bad_reading: Value = serde_json::from_slice(&reading_raw).unwrap();
+    let alignment = bad_reading["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "paragraph-alignment")
+        .unwrap();
+    alignment["cross_kind_risks"][0]["reading_ordinal"] = json!(99);
+    assert_eq!(
+        validate(&serde_json::to_vec(&bad_reading).unwrap(), &schema),
+        Err(EditionCurationError::InvalidRange("cross_kind_risks"))
+    );
     let visual_path = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/edition-curation.v1.json";
     let visual_raw = fs::read(root.join(visual_path)).unwrap();
     let visual: Value = serde_json::from_slice(&visual_raw).unwrap();

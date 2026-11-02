@@ -1907,7 +1907,30 @@
         "sha256": "eeeb266954ffc4ae22da42b6fd168b2e64094917c46e505551c04778743df313",
         "schema_version": "tos_zarathustra_de_ru_paragraph_alignment_manifest_v1",
         "output_root": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1"
-      }
+      },
+      "scope_census": {
+        "primary_proposals": 3423,
+        "target_paragraphs": 3569,
+        "exclusions": [
+          {
+            "side": "source",
+            "groups": 39,
+            "lines": 368
+          },
+          {
+            "side": "target",
+            "groups": 13,
+            "lines": 359
+          }
+        ]
+      },
+      "cross_kind_risks": [
+        {
+          "part_order": 3,
+          "reading_ordinal": 15,
+          "trigger": "either_side_empty"
+        }
+      ]
     },
     {
       "stage": "parallel-lexical-candidates",
