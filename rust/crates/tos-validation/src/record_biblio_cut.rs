@@ -308,6 +308,11 @@ pub trait SourceCutInput {
 pub trait SourceCutInputWithIdentity<I: Eq>: SourceCutInput {
     fn input_identity(&self) -> &I;
 
+    /// Compare a stored candidate identity using the input owner's encoding.
+    fn matches_candidate_evidence(&self, _evidence: &serde_json::Value) -> bool {
+        false
+    }
+
     /// Explicit object-safe view avoids relying on trait-object upcasting in
     /// command adapters that also implement the identity-bearing subtrait.
     fn source_input(&self) -> &dyn SourceCutInput;

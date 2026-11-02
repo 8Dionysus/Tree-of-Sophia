@@ -3499,7 +3499,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         &self,
         path: &str,
         member_sha256_hex: &str,
-        member_size_bytes: u64,
+        member_size_bytes: Option<u64>,
         diagnostic_unit_sha256_hex: &str,
         diagnostic_report_sha256_hex: &str,
         exact_schema_set: bool,
@@ -3518,12 +3518,13 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             || !is_sha256(member_sha256_hex)
             || !is_sha256(diagnostic_unit_sha256_hex)
             || !is_sha256(diagnostic_report_sha256_hex)
+            || (complete_invalid && member_size_bytes.is_none())
         {
             return Err(ItemRefusal::Source(
                 "candidate Artifact proof diagnostic binding is malformed".into(),
             ));
         }
-        let size_bytes = member_size_bytes.to_be_bytes();
+        let size_bytes = member_size_bytes.map(u64::to_be_bytes);
         let state = string_fields(&[
             path,
             member_sha256_hex,
@@ -3531,7 +3532,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             diagnostic_report_sha256_hex,
         ])
         .map_err(|error| refusal(error))?
-        .checked_add(size_bytes.len())
+        .checked_add(std::mem::size_of::<u64>())
         .and_then(|bytes| bytes.checked_add(256))
         .ok_or(tos_validation::item_budget_origin!())?;
         if state > max_state_bytes.get() {
@@ -3551,7 +3552,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
                 params![
                     path,
                     member_sha256_hex,
-                    &size_bytes[..],
+                    size_bytes.as_ref().map(|bytes| &bytes[..]),
                     diagnostic_unit_sha256_hex,
                     diagnostic_report_sha256_hex,
                     exact_schema_set,

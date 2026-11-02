@@ -432,33 +432,37 @@ impl Report {
             truncated: value.truncated,
             issues: value.issues,
         };
-        if !report.caps.validate()
-            || report.issues.len() > report.caps.max_issues_per_unit as usize
-            || report.root_uri.is_empty()
-            || report.root_uri.len() > crate::executor::MAX_URI_BYTES
-            || !diag::status_is_well_formed(
-                report.status,
-                report.failure,
-                report.total_issue_count,
-                report.truncated,
-                report.issues.len(),
+        if !report.is_well_formed() {
+            return Err("invalid diagnostic report");
+        }
+        Ok(report)
+    }
+
+    pub(crate) fn is_well_formed(&self) -> bool {
+        self.engine == ENGINE_ID
+            && self.caps.validate()
+            && self.issues.len() <= self.caps.max_issues_per_unit as usize
+            && !self.root_uri.is_empty()
+            && self.root_uri.len() <= crate::executor::MAX_URI_BYTES
+            && diag::status_is_well_formed(
+                self.status,
+                self.failure,
+                self.total_issue_count,
+                self.truncated,
+                self.issues.len(),
             )
-            || report.issues.windows(2).any(|p| p[0] > p[1])
-            || report.issues.iter().any(|i| {
+            && !self.issues.windows(2).any(|p| p[0] > p[1])
+            && !self.issues.iter().any(|i| {
                 i.schema_keyword != i.reason.schema_keyword()
-                    || !diag::path_within_caps(&i.instance_path, report.caps)
-                    || !diag::path_within_caps(&i.schema_path, report.caps)
+                    || !diag::path_within_caps(&i.instance_path, self.caps)
+                    || !diag::path_within_caps(&i.schema_path, self.caps)
             })
-            || report
+            && self
                 .issues
                 .iter()
                 .try_fold(DIAGNOSTIC_UNIT_HEADER_BYTES, |n, i| {
                     n.checked_add(diag::issue_payload(i)?.len())
                 })
-                .is_none_or(|n| n > report.caps.max_report_bytes_per_unit as usize)
-        {
-            return Err("invalid diagnostic report");
-        }
-        Ok(report)
+                .is_some_and(|n| n <= self.caps.max_report_bytes_per_unit as usize)
     }
 }
