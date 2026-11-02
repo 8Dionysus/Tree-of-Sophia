@@ -327,7 +327,10 @@ mod tests {
         assert_eq!(default, partial);
         assert_eq!(default.transport.http.max_header_bytes, 8192);
         assert_eq!(default.query.indexed.default_page_size, 40);
-        assert_eq!(default.archive_install.max_members, None);
+        assert_eq!(default.archive_install.max_total_bytes, Some(4_294_967_296));
+        assert_eq!(default.archive_install.max_archive_bytes, Some(1_073_741_824));
+        assert_eq!(default.archive_install.max_members, Some(4_096));
+        assert_eq!(default.archive_install.max_metadata_bytes, Some(4_194_304));
         let changed = parse_deployment_profile(br#"{"schema_version":"tos_deployment_profile_v1","archive_install":{"max_members":123}}"#).unwrap();
         assert_eq!(changed.archive_install.max_members, Some(123));
         assert_eq!(changed.transport, default.transport);

@@ -20,12 +20,12 @@ https://github.com/user-attachments/assets/9a75a3a2-7033-4d86-822c-805efb07ef7a
 ## Quick start
 
 Install the verified native Linux x86_64 software archive into a fresh user
-prefix using a deployment profile with admitted archive limits. It includes built
+prefix using the built-in deployment profile. It includes built
 browser assets and needs no Python runtime. Software
 installation does not include or select a corpus.
 
 ```sh
-/path/to/verified/tos-access --profile /absolute/deployment-profile.json software install \
+/path/to/verified/tos-access software install \
   --archive /absolute/tos-software.zip --prefix /absolute/fresh-prefix
 /absolute/fresh-prefix/bin/tos serve 127.0.0.1:8080
 ```

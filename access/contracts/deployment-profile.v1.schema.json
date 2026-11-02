@@ -238,7 +238,8 @@
           ],
           "minimum": 1,
           "maximum": 18446744073709551615,
-          "description": "Unit: bytes."
+          "description": "Unit: bytes. Expanded member total, including the embedded manifest. The software archive from commit 32e66c79 measured 809387221 bytes on 2026-11-02; the default rounds four times that value up to a power of two.",
+          "default": 4294967296
         },
         "max_archive_bytes": {
           "type": [
@@ -247,7 +248,8 @@
           ],
           "minimum": 1,
           "maximum": 18446744073709551615,
-          "description": "Unit: bytes."
+          "description": "Unit: bytes. Size of the ZIP file. The software archive from commit 32e66c79 measured 204451830 bytes on 2026-11-02; the default rounds four times that value up to a power of two.",
+          "default": 1073741824
         },
         "max_members": {
           "type": [
@@ -256,7 +258,8 @@
           ],
           "minimum": 1,
           "maximum": 18446744073709551615,
-          "description": "Unit: members."
+          "description": "Unit: members. Number of ZIP entries, including the embedded manifest. The software archive from commit 32e66c79 measured 823 members on 2026-11-02; the default rounds four times that value up to a power of two.",
+          "default": 4096
         },
         "max_metadata_bytes": {
           "type": [
@@ -265,7 +268,8 @@
           ],
           "minimum": 224,
           "maximum": 18446744073709551615,
-          "description": "Unit: bytes."
+          "description": "Unit: bytes. The installer separately bounds the ZIP central-directory tail and structural charges for two buffers, member names, typed member and range records, and manifest declarations. The software archive from commit 32e66c79 measured a 126497-byte tail and 626711 structural bytes on x86_64 on 2026-11-02, using the default-sized buffers; the default rounds four times the larger value up to a power of two.",
+          "default": 4194304
         }
       }
     },
