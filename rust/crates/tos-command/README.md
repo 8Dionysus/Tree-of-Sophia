@@ -572,7 +572,7 @@ Their placeholders are not runnable credentials or owner selections. The
 module's source regression test checks the closed invocation and request
 grammar. Full fields, command order, source-selection boundary and recovery
 semantics live in the
-[public construction contract](../../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/PUBLIC_NATIVE_TEXT_CONSTRUCTION.md).
+[public construction contract](../../../mechanics/growth-cycle/README.md#public-project-text-native-construction).
 Construction selects only the ten contract schemas it consumes and checks
 delegated Text identities with batched, generation-fenced point lookups; it
 does not census the full Text metadata namespace.

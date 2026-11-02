@@ -26,7 +26,7 @@ Source or semantic questions return to [the source owner](../../ToS/AGENTS.md).
 
 ### Direct contracts
 
-- `branch-growth-cycle`: [GROWTH_STRUCTURE](parts/branch-growth-cycle/docs/GROWTH_STRUCTURE.md), [HUMAN_CURATED_EXPANSION](parts/branch-growth-cycle/docs/HUMAN_CURATED_EXPANSION.md), [NATIVE_ARTIFACT_GROWTH](parts/branch-growth-cycle/docs/NATIVE_ARTIFACT_GROWTH.md), [NATIVE_BEHAVIOR_COVERAGE](README.md#native-growth-behavior-and-legacy-fate), [NATIVE_COLLECTION_GROWTH](parts/branch-growth-cycle/docs/NATIVE_COLLECTION_GROWTH.md), [NATIVE_EXPRESSION_EDITION_GROWTH](parts/branch-growth-cycle/docs/NATIVE_EXPRESSION_EDITION_GROWTH.md), [NATIVE_EXPRESSION_RESPONSIBILITY](parts/branch-growth-cycle/docs/NATIVE_EXPRESSION_RESPONSIBILITY.md), [NATIVE_IMAGE_OCR_ASSESSMENT](parts/branch-growth-cycle/docs/NATIVE_IMAGE_OCR_ASSESSMENT.md), [NATIVE_ITEM_ADOPTION](parts/branch-growth-cycle/docs/NATIVE_ITEM_ADOPTION.md), [NATIVE_OBJECT_LINK_GROWTH](parts/branch-growth-cycle/docs/NATIVE_OBJECT_LINK_GROWTH.md), [NATIVE_TEXT_LAYER_ASSESSMENT](parts/branch-growth-cycle/docs/NATIVE_TEXT_LAYER_ASSESSMENT.md), [NATIVE_TEXT_LAYER_CONSTRUCTION](parts/branch-growth-cycle/docs/NATIVE_TEXT_LAYER_CONSTRUCTION.md), [NATIVE_TRANSLATION_ALIGNMENT](parts/branch-growth-cycle/docs/NATIVE_TRANSLATION_ALIGNMENT.md), [NATIVE_WORK_EXPRESSION_GROWTH](parts/branch-growth-cycle/docs/NATIVE_WORK_EXPRESSION_GROWTH.md), [PRE_EXPANSION_SOIL](parts/branch-growth-cycle/docs/PRE_EXPANSION_SOIL.md), [PUBLIC_NATIVE_TEXT_CONSTRUCTION](parts/branch-growth-cycle/docs/PUBLIC_NATIVE_TEXT_CONSTRUCTION.md), [SELECTED_METADATA_TRANSACTIONS](README.md#selected-metadata-publication-and-recovery), [SOURCE_COMMAND_DISCOVERY](parts/branch-growth-cycle/docs/SOURCE_COMMAND_DISCOVERY.md), [SOURCE_COMMAND_HTTP](README.md#explicit-local-source-command-transport)
+- `branch-growth-cycle`: [GROWTH_STRUCTURE](parts/branch-growth-cycle/docs/GROWTH_STRUCTURE.md), [HUMAN_CURATED_EXPANSION](parts/branch-growth-cycle/docs/HUMAN_CURATED_EXPANSION.md), [NATIVE_ARTIFACT_GROWTH](#native-artifact-metadata-creation), [NATIVE_BEHAVIOR_COVERAGE](README.md#native-growth-behavior-and-legacy-fate), [NATIVE_COLLECTION_GROWTH](parts/branch-growth-cycle/docs/NATIVE_COLLECTION_GROWTH.md), [NATIVE_EXPRESSION_EDITION_GROWTH](parts/branch-growth-cycle/docs/NATIVE_EXPRESSION_EDITION_GROWTH.md), [NATIVE_EXPRESSION_RESPONSIBILITY](parts/branch-growth-cycle/docs/NATIVE_EXPRESSION_RESPONSIBILITY.md), [NATIVE_IMAGE_OCR_ASSESSMENT](parts/branch-growth-cycle/docs/NATIVE_IMAGE_OCR_ASSESSMENT.md), [NATIVE_ITEM_ADOPTION](parts/branch-growth-cycle/docs/NATIVE_ITEM_ADOPTION.md), [NATIVE_OBJECT_LINK_GROWTH](parts/branch-growth-cycle/docs/NATIVE_OBJECT_LINK_GROWTH.md), [NATIVE_TEXT_LAYER_ASSESSMENT](parts/branch-growth-cycle/docs/NATIVE_TEXT_LAYER_ASSESSMENT.md), [NATIVE_TEXT_LAYER_CONSTRUCTION](parts/branch-growth-cycle/docs/NATIVE_TEXT_LAYER_CONSTRUCTION.md), [NATIVE_TRANSLATION_ALIGNMENT](parts/branch-growth-cycle/docs/NATIVE_TRANSLATION_ALIGNMENT.md), [NATIVE_WORK_EXPRESSION_GROWTH](parts/branch-growth-cycle/docs/NATIVE_WORK_EXPRESSION_GROWTH.md), [PRE_EXPANSION_SOIL](parts/branch-growth-cycle/docs/PRE_EXPANSION_SOIL.md), [PUBLIC_NATIVE_TEXT_CONSTRUCTION](#public-project-text-native-construction), [SELECTED_METADATA_TRANSACTIONS](README.md#selected-metadata-publication-and-recovery), [SOURCE_COMMAND_DISCOVERY](parts/branch-growth-cycle/docs/SOURCE_COMMAND_DISCOVERY.md), [SOURCE_COMMAND_HTTP](README.md#explicit-local-source-command-transport)
 
 ## Source-owner operations
 
@@ -933,10 +933,118 @@ source-visible assessment remain separate owner routes.
 
 ### Public project-text native construction
 
-The [public construction contract](parts/branch-growth-cycle/docs/PUBLIC_NATIVE_TEXT_CONSTRUCTION.md) owns the
-dedicated grant, project-text source binding, rights gate, limits, retained
-recovery and separate downstream source creation. It does not widen private
-grants or create an Occurrence implicitly.
+This independent adapter implements bounded public source construction through
+the `public-project-native-text-create` handler in
+`rust/crates/tos-command/src/source_native_public_text_cli.rs` and the native
+`source-commands` front door. Its closed, source-owned input contracts are
+`ToS/contracts/public-native-text-create-owner.schema.json` and
+`ToS/contracts/public-native-text-authority.schema.json`. Request discovery
+uses the common grant-free handler grammar; the adapter requires its dedicated
+public-construction grant.
+
+#### Scope and authority
+
+The protected current-account mode-0600 grant names one source root, disjoint
+mode-0700 recovery root, new exact package path, maker, expiry, explicit
+Work/Expression/Edition/Item/File records, Item manifest, existing authored
+UTF-8 documentation bytes and code-point range, native identities, rights,
+license evidence and retained operator-scoped publication authority. Only
+`ToS/review-ledger`, `ToS/doctrine` and `docs` source selections are supported.
+Reserved private, payload, local-content, catalog and hidden paths are refused.
+
+The source must already have been retained by normal corpus commands. The
+original Item rights remain mandatory inputs and are not rewritten. Every
+output-bearing rights record must affirm the exact new layer/representation
+File, public payload visibility, redistribution and derivation, with retained
+license and publication-authority evidence. Denied, inactive, missing, foreign
+or drifted evidence fails before source text is opened. Parsing does not
+authenticate authorship or manufacture licensing: the source-owned authority
+records a real operator delegation and exact authorized output scope.
+
+#### Construction and downstream use
+
+`describe` does not open source text. `prepare-create` returns exact prepared
+configuration/dependency hashes and native bindings. `native-text.create`
+requires those hashes, null expected prior source/revision and an exact
+command ID. It constructs a literal UTF-8 range without newline, Unicode,
+markup, spelling or punctuation rewrite; the source selector returns to the
+original acquired File. The new layer remains an unreviewed machine
+transcription with structural-extraction provenance. A separately supplied
+finite partition covers the new representation with units and explicit gaps;
+it does not infer language units or semantic significance.
+
+The native resolver verifies the new public binding and exact content. A
+separate `source.create` can then create an Occurrence with its own identity
+and native binding. HumanForm creation, assessment, admission, canon and
+external publication follow their own operations. Existing private historical
+inputs remain private.
+
+#### Persistence and limits
+
+The common no-replace native package installer retains the exact request,
+public plan (not the protected grant), runtime, inputs, execution provenance,
+native bindings and receipt. The public plan omits the grant's source/recovery
+root fields and local UID; the protected grant is represented only by its
+digest. This is not a general redactor for authorized authored source text.
+Up to 128 KiB source and output, 60 seconds, 128 distinct input files,
+16 MiB input bytes, 12 output files and 2 MiB output bytes are allowed.
+
+Source and recovery locks, no-follow reads, current authority/rights/input
+rechecks and atomic new-directory publication protect commit. Exact retries
+return retained bytes. `inspect-recovery` addresses one command and compares
+an installed package with its retained plan before reporting committed. An
+interrupted exact plan can resume through the same create request; torn or
+foreign evidence is preserved and refused, never automatically deleted or
+overwritten. The shared installer preserves original private writer controls.
+
+#### Bounded PostgreSQL route
+
+The ordinary `tos-native-owner-command source-commands --invocation ABS`
+front door also accepts `tos_local_pg_public_text_invocation_v1`. Its exact
+top-level fields are `schema_version`, `owner_config`, `native_executable`,
+`native_executable_sha256`, `source_selection`, `software_capture`,
+`software_restored_root`, `software_selection`, `software_components`,
+`schema_worker`, and `budgets`. The invocation and create-request shapes are
+captured in the [invocation](../../rust/crates/tos-command/tests/fixtures/source-public-text-pg-v1/invocation.example.json)
+and [create request](../../rust/crates/tos-command/tests/fixtures/source-public-text-pg-v1/create.request.example.json) examples.
+The zero digests and absolute paths in those examples are placeholders; select
+the actual executable, capture, worker, source contract, store and current job
+lease. Keep the invocation and protected owner configuration readable only by
+the local owner account, and supply PostgreSQL 16 credentials privately via
+`TOS_SOURCE_PG_URL`.
+
+`source_selection` repeats the existing CMD `domain`, source contract digest,
+private STO root and limits, plus an existing `job_id` and positive
+`job_fence`. The route reads authored `ToS/` inputs from that selected PG/STO
+epoch. A `docs/` source reference is selected separately through the exact
+software capture and is rechecked before commit; it does not widen the CMD
+readset. `software_selection` binds the exact capture commit, tree and manifest
+digest, and `software_components` selects the implementation closure. The
+schema worker and finite `budgets` use the ordinary PG source-owner profile.
+`describe` selects only the three owner-grant schemas; construction and recovery
+select the ten schemas consumed by public authority, endpoint, binding, and
+provenance validation. Delegated Text IDs use batched point observations in the
+PG Text identity index, with one fenced absence or exact-owner generation per
+requested ID; the route does not walk the whole Text metadata namespace.
+
+Send a `tos_local_source_command_v1` request on stdin. `describe` and
+`prepare-create` are non-mutating. Then send `native-text.create` with a fresh
+`command_id`, the exact `expected_configuration` and `expected_dependencies`
+returned by `prepare-create`, and null `expected_source` and
+`expected_revision`. `inspect-recovery` accepts only an exact retained command
+ID. The PG writer commits all twelve package members as one source revision.
+See the `tos-command` crate README for the CLI entry and fixture test.
+
+#### Verification boundary
+
+`test_source_public_native_commands.py` covers exact public native resolution,
+distinct Occurrence validation, Unicode/newline preservation, no path leakage,
+grant/rights/authority rejection, dependency drift, identity/partition errors,
+precommit changes, interrupted resume, torn evidence and installed corruption.
+Fixtures are synthetic mechanics evidence, not real corpus or rights review.
+Existing discovery, private construction and pure proposal suites remain the
+regression surface. Real source-visible judgment and retained operator scope
+must be reviewed separately from green tests.
 
 ### Confidential native TextUnit creation
 
@@ -2465,10 +2573,59 @@ owner route; neither this proposal grant nor an old assessment grants it.
 
 ### Native Artifact metadata creation
 
-The [native Artifact contract](parts/branch-growth-cycle/docs/NATIVE_ARTIFACT_GROWTH.md) owns the dedicated
-creation grant, Artifact v2 metadata, source-copy forms and serialization
-origin. Rights, acquisition, witness assessment and prior discovery provenance
-remain separate source records.
+`tos_local_artifact_create_owner_v1` delegates one new physical Artifact v2
+metadata record under `artifacts/<tradition>/<site>/<physical-identity>/`. The
+target directory must be absent; existing independent input records live
+outside it. The actual `artifact_id` owns the physical identity; provider
+labels remain attributed descriptive metadata.
+
+The grant fixes the record ID/path, principal and maker kind, creation event,
+source-copy form IDs, allowed operation and expiry. `source_bindings` contains
+exactly `rights_ref`, `discovery_ref` and `research_ref`, each as
+`{"ref": "ToS/...", "sha256": "<64 lowercase hex>"}`. The same whole binding
+object is required in `prepare-create` and `source.create`; it survives in the
+retained request and cannot be replaced by caller input or a later live grant.
+All three inputs must already exist as public source metadata. Rights must
+cover the Artifact with metadata-only visibility/redistribution. Discovery
+must address that exact Artifact identity. Research bytes are bound, not
+assessed, and no remote source or provider is fetched.
+
+V2 catalog fingerprints distinguish retained (`captured: true`) and
+unretained response bytes. A retained fingerprint must match a captured
+snapshot in the independently bound discovery record: exact response URL,
+SHA-256, acquisition SHA-256 and byte size. The snapshot's discovery event
+remains distinct from native metadata serialization. The metadata check requires
+the exact source account for a retained claim; private snapshots and capture
+authentication remain outside its inspection. Public access and embedded HTML
+transcription require their own admission.
+Historical v1 fingerprints and all false authority fields stay unchanged.
+
+Only a version-1, unreviewed v2 Artifact with no performed human review and an
+empty `philosophy_planting_refs` is writable. The source schema retains false
+text/semantic/graph/canon/publication authority. Text, transliteration,
+translation, images, payloads, private inputs and owner-local paths are not
+accepted into this metadata route. Earlier generic grants remain unchanged.
+
+The shared source writer atomically publishes the Artifact, its source-copy
+form set and the four conventional `source-create-*` capture companions.
+The event records `native-artifact-metadata-serialization`. Its outputs are
+metadata and forms; rights, discovery and research are exact inputs. The event
+is unsigned mechanical evidence, distinct from discovery, acquisition, rights
+assessment, planting and admission.
+
+Creation replay and the read-only origin verifier preserve the initial bytes
+through separately retained native descriptive corrections and committed
+selected-file history. They do not enumerate or read Artifact descendants.
+The origin verifier never consults mutable grants or runs the foundation
+validator recursively. Missing/corrupt capture fails closed. If exact earlier
+input bytes are no longer available, the original origin cannot be rebound to
+today's rights or research; availability must be restored by their owner.
+Legacy discovery provenance keeps its separate unchanged validation branch.
+
+Run `rust/crates/tos-command/src/source_artifact_native.rs`, native
+descriptive revision and exact metadata reader tests, then relevant source
+foundation, discovery and topology checks. These synthetic checks cover
+serialization and retained history.
 
 ## Native Growth behavior and legacy fate
 
