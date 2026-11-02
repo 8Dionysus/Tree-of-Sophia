@@ -27,12 +27,9 @@ use tos_foundation::{Digest256, JsonValue, RelativePath, SourceRevision};
 use tos_segment_store::SegmentStore;
 use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::SchemaResource;
-use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget, VerifiedWorkerImageHandle};
 use tos_validation::item_rules::ItemRefusal;
 use tos_validation::record_biblio_cut::SourceCutPrefixCoverage;
-use tos_validation::source_cut::{
-    CandidateCutWorkerSchemaExecutor, CutSchemaExecutor, CutWorkerLimits,
-};
+use tos_validation::source_cut::{CutSchemaExecutor, InProcessCandidateSchemaExecutor};
 
 const INVOCATION_SCHEMA: &str = "tos_local_pg_private_owner_invocation_v1";
 const MAX_SCHEMA_FILES: usize = 128;
@@ -263,37 +260,11 @@ impl crate::source_native_cli::private_owner::profile::PrivateSelectedSourceInpu
 }
 
 fn selected_asserted_candidate_schema_from_context(
-    invocation: &Value,
     files: &[cmd::SourceFile],
     identity: PgRecordRevisionIdentity,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> SourceCommandResult<CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>> {
-    let worker = &invocation["schema_worker"];
-    super::exact(worker, &["absolute_path", "sha256"])?;
-    let budgets = &invocation["budgets"];
-    let mut worker_budget = ExecutorBudget::laboratory();
-    worker_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
-    worker_budget.cpu_seconds = super::capped(budgets, "worker_cpu_seconds", 3)?;
-    worker_budget.address_space_bytes =
-        super::capped(budgets, "worker_address_space_bytes", 1_073_741_824)?;
-    let worker_identity = ExactWorkerIdentity {
-        absolute_path: super::absolute(super::text(worker, "absolute_path")?)?,
-        sha256: super::digest(super::text(worker, "sha256")?)?,
-    };
-    let worker_image =
-        VerifiedWorkerImageHandle::prepare(worker_identity, worker_budget, deadline, cancelled)
-            .map_err(|_| SourceCommandError::Denied("native schema worker image"))?;
-    let limits = CutWorkerLimits {
-        max_receipts: usize::try_from(super::capped(budgets, "max_schema_receipts", 128)?)
-            .map_err(|_| SourceCommandError::Invalid("schema receipt budget"))?,
-        max_receipt_bytes: usize::try_from(super::capped(
-            budgets,
-            "max_schema_receipt_bytes",
-            262_144,
-        )?)
-        .map_err(|_| SourceCommandError::Invalid("schema receipt budget"))?,
-    };
+) -> SourceCommandResult<InProcessCandidateSchemaExecutor<PgRecordRevisionIdentity>> {
     let mut resources = Vec::new();
     for file in files.iter().filter(|file| {
         file.path.as_str().starts_with("ToS/contracts/")
@@ -313,16 +284,15 @@ fn selected_asserted_candidate_schema_from_context(
             },
         ));
     }
-    CandidateCutWorkerSchemaExecutor::from_asserted_source_candidate_resources(
+    InProcessCandidateSchemaExecutor::from_selected_source_resources(
         identity,
         resources,
-        &worker_image,
-        worker_budget,
-        limits,
+        tos_validation::FormatProfile::AssertedSourceCandidateV1,
+        tos_validation::in_process::InputMode::SerdeNormalized,
         deadline,
         cancelled,
     )
-    .map_err(|_| SourceCommandError::Denied("native asserted-source candidate schema worker"))
+    .map_err(|_| SourceCommandError::Denied("native asserted-source candidate schema executor"))
 }
 
 struct PgPrivateArchiveReader<'a> {
@@ -1077,7 +1047,6 @@ pub(crate) fn run(
                 let schema_files = source_files(&schema_members).map_err(DurableError::Source)?;
                 let identity = session.selection().identity();
                 let mut worker = selected_asserted_candidate_schema_from_context(
-                    invocation,
                     &schema_files,
                     identity,
                     deadline,
@@ -1825,4 +1794,77 @@ fn check_software_budget(
             .map_err(|_| SourceCommandError::Conflict("selected private owner software changed"))?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod in_process_schema_tests {
+    use super::*;
+    use std::time::Duration;
+    use tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding;
+
+    #[test]
+    fn private_owner_uses_only_selected_schemas_and_the_pg_identity() {
+        let digest = Digest256::of_bytes(b"private-owner-identity");
+        let identity = PgRecordRevisionIdentity {
+            domain_digest: digest,
+            store_id: [7; 16],
+            bootstrap_revision: SourceRevision(digest),
+            bootstrap_membership: tos_source_store::SourceMembershipV1 { count: 1, digest },
+            cohort_digest: digest,
+            cohort_epoch: 1,
+            cohort_definition: digest,
+            cohort_generation: 2,
+            job_id_digest: digest,
+            job_fence: 3,
+            epoch: 4,
+            source_generation: 5,
+            head_seq: 6,
+            audit_generation: 7,
+            rights_version: 8,
+            rule_version: 9,
+            contract: digest,
+        };
+        let path = "ToS/contracts/private-owner-test.schema.json";
+        let schema = br#"{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://example.test/private-owner","type":"integer"}"#.to_vec();
+        let files = vec![
+            cmd::SourceFile {
+                path: RelativePath::parse(path).unwrap(),
+                raw: schema.clone(),
+            },
+            cmd::SourceFile {
+                path: RelativePath::parse("ToS/source-witnesses/example.json").unwrap(),
+                raw: b"not a schema".to_vec(),
+            },
+        ];
+        let cancelled = AtomicBool::new(false);
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let mut schemas =
+            selected_asserted_candidate_schema_from_context(&files, identity, deadline, &cancelled)
+                .unwrap();
+        assert_eq!(*schemas.input_identity(), identity);
+        assert_eq!(
+            schemas.selected_contract_digest(path),
+            Some(Digest256::of_bytes(&schema))
+        );
+        assert!(
+            schemas
+                .check("record.json", b"3", path, deadline, &cancelled)
+                .unwrap()
+        );
+        assert!(
+            !schemas
+                .check("record.json", br#""wrong""#, path, deadline, &cancelled)
+                .unwrap()
+        );
+        assert!(schemas.take_diagnostic_rejection().unwrap().is_some());
+        assert!(
+            selected_asserted_candidate_schema_from_context(
+                &files[1..],
+                identity,
+                deadline,
+                &cancelled
+            )
+            .is_err()
+        );
+    }
 }
