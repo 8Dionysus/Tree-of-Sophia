@@ -1,5 +1,9 @@
 //! Structural checks for edition-curation records before selecting source bytes.
-use std::{cmp::Ordering, collections::BTreeSet, str::FromStr};
+use std::{
+    cmp::Ordering,
+    collections::{BTreeMap, BTreeSet},
+    str::FromStr,
+};
 
 use num_bigint::BigInt;
 
@@ -16,10 +20,32 @@ pub enum EditionCurationError {
     InvalidSchema,
     Duplicate(&'static str),
     InvalidRange(&'static str),
+    UnsafePath,
+    BindingMismatch,
+    MissingReference,
+    AmbiguousReference,
+}
+
+/// Exact caller-selected bytes and their normalized repository-relative path.
+#[derive(Clone, Copy)]
+pub struct SelectedDocument<'a> {
+    pub reference: &'a str,
+    pub raw: &'a [u8],
+}
+
+/// A referenced curation and the item manifest selected alongside it.
+#[derive(Clone, Copy)]
+pub struct SelectedCuration<'a> {
+    pub curation: SelectedDocument<'a>,
+    pub manifest: SelectedDocument<'a>,
 }
 
 /// Validate exact curation JSON using the caller's selected schema resources.
 pub fn validate(raw: &[u8], schema: &SchemaBackendProbe) -> Result<(), EditionCurationError> {
+    document(raw, schema).map(|_| ())
+}
+
+fn document(raw: &[u8], schema: &SchemaBackendProbe) -> Result<Value, EditionCurationError> {
     let value = published_value(raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
         .map_err(EditionCurationError::Schema)?;
     if !schema
@@ -28,7 +54,117 @@ pub fn validate(raw: &[u8], schema: &SchemaBackendProbe) -> Result<(), EditionCu
     {
         return Err(EditionCurationError::InvalidSchema);
     }
-    check_rules(&value)
+    check_rules(&value)?;
+    Ok(value)
+}
+
+/// Bind a curation to its selected manifest and explicit cross-item recipes.
+/// Callers select the exact bytes through their source-custody interface.
+pub fn validate_bindings(
+    current: SelectedDocument<'_>,
+    manifest: SelectedDocument<'_>,
+    references: &[SelectedCuration<'_>],
+    schema: &SchemaBackendProbe,
+) -> Result<(), EditionCurationError> {
+    fn path(value: &str) -> Result<(), EditionCurationError> {
+        tos_foundation::RelativePath::parse(value)
+            .map(|_| ())
+            .map_err(|_| EditionCurationError::UnsafePath)
+    }
+    fn bind_manifest(
+        current: SelectedDocument<'_>,
+        selected: &Value,
+        manifest: SelectedDocument<'_>,
+    ) -> Result<(), EditionCurationError> {
+        path(current.reference)?;
+        path(manifest.reference)?;
+        let manifest_relative = selected["manifest"]
+            .as_str()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        path(manifest_relative)?;
+        let (parent, _) = current
+            .reference
+            .rsplit_once('/')
+            .ok_or(EditionCurationError::UnsafePath)?;
+        if manifest.reference != format!("{parent}/{manifest_relative}") {
+            return Err(EditionCurationError::BindingMismatch);
+        }
+        let item = published_value(manifest.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+            .map_err(EditionCurationError::Schema)?;
+        if item["item_id"] != selected["owner_item_ref"]
+            || item["embodiment_ref"] != selected["edition_ref"]
+        {
+            return Err(EditionCurationError::BindingMismatch);
+        }
+        Ok(())
+    }
+    let selected = document(current.raw, schema)?;
+    bind_manifest(current, &selected, manifest)?;
+    let mut ids = BTreeSet::new();
+    ids.insert(
+        selected["curation_id"]
+            .as_str()
+            .ok_or(EditionCurationError::InvalidSchema)?
+            .to_owned(),
+    );
+    let mut chosen = BTreeMap::new();
+    for binding in references {
+        let reference = binding.curation;
+        path(reference.reference)?;
+        if reference.reference == current.reference || chosen.contains_key(reference.reference) {
+            return Err(EditionCurationError::Duplicate("curation reference"));
+        }
+        let value = document(reference.raw, schema)?;
+        bind_manifest(reference, &value, binding.manifest)?;
+        let id = value["curation_id"]
+            .as_str()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        if !ids.insert(id.to_owned()) {
+            return Err(EditionCurationError::Duplicate("curation id"));
+        }
+        chosen.insert(reference.reference, value);
+    }
+    let owner = selected["owner_item_ref"]
+        .as_str()
+        .ok_or(EditionCurationError::InvalidSchema)?;
+    for recipe in selected["recipes"]
+        .as_array()
+        .ok_or(EditionCurationError::InvalidSchema)?
+    {
+        if recipe["stage"] != "recipe-reference" {
+            continue;
+        }
+        let reference = recipe["curation_ref"]
+            .as_str()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        path(reference)?;
+        let target = chosen
+            .get(reference)
+            .ok_or(EditionCurationError::MissingReference)?;
+        let target_owner = target["owner_item_ref"]
+            .as_str()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        let matching = target["recipes"]
+            .as_array()
+            .ok_or(EditionCurationError::InvalidSchema)?
+            .iter()
+            .filter(|candidate| {
+                candidate["stage"] == recipe["recipe_stage"]
+                    && candidate["source_item_refs"]
+                        .as_array()
+                        .is_some_and(|items| {
+                            items.iter().any(|item| item.as_str() == Some(owner))
+                                && items.iter().any(|item| item.as_str() == Some(target_owner))
+                        })
+            })
+            .count();
+        match matching {
+            1 => {}
+            0 => return Err(EditionCurationError::BindingMismatch),
+            _ => return Err(EditionCurationError::AmbiguousReference),
+        }
+    }
+    Ok(())
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
