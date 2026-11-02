@@ -6186,6 +6186,7 @@ fn update_in_process_diagnostic_fingerprint(
     report_hash.update(&[match report.input_mode {
         InputMode::PublishedStrict => 0,
         InputMode::LegacyPythonObserved => 1,
+        InputMode::PublishedStrictSelected => 2,
     }]);
     hash_u64(&mut report_hash, u64::from(report.caps.max_issues_per_unit));
     hash_u64(

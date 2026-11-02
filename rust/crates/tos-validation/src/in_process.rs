@@ -24,6 +24,8 @@ pub const ENGINE_ID: &str = "tos_schema_engine_in_process_v1";
 #[serde(rename_all = "snake_case")]
 pub enum InputMode {
     PublishedStrict,
+    /// The existing selected finite JSON profile allows the batch raw-byte limit.
+    PublishedStrictSelected,
     LegacyPythonObserved,
 }
 
@@ -157,14 +159,18 @@ impl InProcessSchemaEngine {
             return Ok(report);
         }
         let value = match unit.input_mode {
-            InputMode::PublishedStrict => {
-                published_value(unit.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES).map_err(|e| {
-                    match e {
-                        SchemaProbeError::BudgetExceeded => Failure::InputBudget,
-                        SchemaProbeError::InvalidJson
-                        | SchemaProbeError::InvalidPublishedJson(_) => Failure::InvalidJson,
-                        _ => Failure::UnsupportedInputSemantics,
+            InputMode::PublishedStrict | InputMode::PublishedStrictSelected => {
+                let max_bytes = if unit.input_mode == InputMode::PublishedStrictSelected {
+                    BatchBudget::MAX_RAW_BYTES
+                } else {
+                    SchemaBackendProbe::MAX_INSTANCE_BYTES
+                };
+                published_value(unit.raw, max_bytes).map_err(|e| match e {
+                    SchemaProbeError::BudgetExceeded => Failure::InputBudget,
+                    SchemaProbeError::InvalidJson | SchemaProbeError::InvalidPublishedJson(_) => {
+                        Failure::InvalidJson
                     }
+                    _ => Failure::UnsupportedInputSemantics,
                 })
             }
             InputMode::LegacyPythonObserved => match legacy_tree(unit.raw) {

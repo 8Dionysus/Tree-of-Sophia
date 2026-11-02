@@ -22,6 +22,44 @@ fn resources() -> Vec<SchemaResource> {
 }
 
 #[test]
+fn selected_finite_input_retains_its_distinct_byte_limit() {
+    let mut engine =
+        InProcessSchemaEngine::new(resources(), FormatProfile::AssertedSourceCandidateV1).unwrap();
+    let mut raw = br#"{"value":3}"#.to_vec();
+    raw.resize(SchemaBackendProbe::MAX_INSTANCE_BYTES + 1, b' ');
+    let cancelled = AtomicBool::new(false);
+    let deadline = Instant::now() + Duration::from_secs(30);
+    let validate = |engine: &mut InProcessSchemaEngine, input_mode| {
+        engine
+            .validate(
+                Unit {
+                    root_uri: ROOT,
+                    raw: &raw,
+                    input_mode,
+                },
+                Caps::CURRENT,
+                deadline,
+                &cancelled,
+            )
+            .unwrap()
+    };
+    let ordinary = validate(&mut engine, InputMode::PublishedStrict);
+    assert_eq!(
+        (ordinary.status, ordinary.failure),
+        (Status::InputRejected, Failure::InputBudget)
+    );
+    let selected = validate(&mut engine, InputMode::PublishedStrictSelected);
+    assert_eq!(selected.status, Status::Valid);
+    assert_eq!(
+        selected,
+        tos_validation::in_process::Report::from_evidence_json(
+            &selected.to_evidence_json().unwrap()
+        )
+        .unwrap()
+    );
+}
+
+#[test]
 fn finite_worker_and_in_process_diagnostics_match() {
     let path = PathBuf::from(env!("CARGO_BIN_EXE_tos-schema-worker"));
     let worker = ExactWorkerIdentity {
