@@ -925,6 +925,122 @@ pub struct CutWorkerSchemaExecutor {
     protocol_started: bool,
 }
 
+struct SelectedCandidateSchemaResources {
+    resources: Vec<SchemaResource>,
+    source_resources: Vec<SelectedSchemaResource>,
+    contracts: BTreeMap<String, (String, Digest256)>,
+    schema_set_sha256: Digest256,
+    contract_selection_sha256: Digest256,
+    schema_bytes: usize,
+    catalog_entry_schema_present: bool,
+    catalog_claim_entry_schema_present: bool,
+}
+
+fn select_candidate_schema_resources(
+    mut selected: Vec<(String, SchemaResource)>,
+    profile: FormatProfile,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<SelectedCandidateSchemaResources, ItemRefusal> {
+    check(deadline, cancelled)?;
+    if !matches!(
+        profile,
+        FormatProfile::LegacyPythonObserved20260923 | FormatProfile::AssertedSourceCandidateV1
+    ) || selected.is_empty()
+        || selected.len() > SchemaBackendProbe::MAX_RESOURCES
+    {
+        return Err(ItemRefusal::Source(
+            "selected candidate schema resource bounds".into(),
+        ));
+    }
+    selected.sort_by(|left, right| left.0.cmp(&right.0));
+    let mut resources = Vec::with_capacity(selected.len());
+    let mut source_resources = Vec::with_capacity(selected.len());
+    let mut contracts = BTreeMap::new();
+    let mut schema_bytes = 0usize;
+    let mut catalog_entry_schema_present = false;
+    let mut catalog_claim_entry_schema_present = false;
+    for (path, resource) in selected {
+        check(deadline, cancelled)?;
+        if path.len() > crate::source_foundation_schema::MAX_LOCATION_BYTES
+            || !path.starts_with("ToS/contracts/")
+            || !path.ends_with(".schema.json")
+            || RelativePath::parse(&path).is_err()
+            || resource.raw.is_empty()
+            || resource.raw.len() > SchemaBackendProbe::MAX_RESOURCE_BYTES
+        {
+            return Err(ItemRefusal::Source(
+                "selected candidate schema resource identity or bounds".into(),
+            ));
+        }
+        let value = published_value(&resource.raw, SchemaBackendProbe::MAX_RESOURCE_BYTES)
+            .map_err(|_| ItemRefusal::Unsupported("selected candidate schema JSON".into()))?;
+        // The authenticated source bytes own $id. Maintained schemas also
+        // use /contracts/ and public GitHub identities; a filesystem path
+        // does not manufacture or replace their declared resource URI.
+        if source_foundation_schema_resource_uri(&value) != Some(resource.uri.as_str()) {
+            return Err(ItemRefusal::Source(
+                "selected candidate schema URI differs from its source bytes".into(),
+            ));
+        }
+        schema_bytes = schema_bytes
+            .checked_add(resource.raw.len())
+            .filter(|total| *total <= SchemaBackendProbe::MAX_TOTAL_BYTES)
+            .ok_or(crate::item_budget_origin!())?;
+        let digest = Digest256::of_bytes(&resource.raw);
+        if contracts
+            .insert(path.clone(), (resource.uri.clone(), digest))
+            .is_some()
+        {
+            return Err(ItemRefusal::Source(
+                "duplicate selected candidate schema path".into(),
+            ));
+        }
+        if path == "ToS/contracts/source-witness-catalog.schema.json" {
+            let definitions = value.get("$defs").and_then(serde_json::Value::as_object);
+            catalog_entry_schema_present = definitions
+                .and_then(|definitions| definitions.get("entry"))
+                .is_some_and(serde_json::Value::is_object);
+            catalog_claim_entry_schema_present = definitions
+                .and_then(|definitions| definitions.get("claim_entry"))
+                .is_some_and(serde_json::Value::is_object);
+        }
+        source_resources.push(SelectedSchemaResource {
+            path,
+            size_bytes: resource.raw.len() as u64,
+            sha256: digest,
+        });
+        resources.push(resource);
+    }
+    let schema_set_sha256 = schema_resource_set_digest(&resources)
+        .ok_or_else(|| ItemRefusal::Source("selected candidate schema closure".into()))?;
+    let contract_selection_sha256 = contract_selection_digest(&contracts);
+    let source_resource_metadata_state_bytes =
+        crate::source_foundation_schema::selected_source_resource_metadata_state(
+            &source_resources,
+            source_resources.capacity(),
+        )
+        .ok_or(crate::item_budget_origin!())?;
+    let source_resource_metadata_limit =
+        CandidateSourceFoundationSchemaSet::<()>::source_resource_metadata_state_upper_bound(
+            source_resources.len(),
+        )
+        .ok_or(crate::item_budget_origin!())?;
+    if source_resource_metadata_state_bytes > source_resource_metadata_limit {
+        return Err(crate::item_budget_origin!());
+    }
+    Ok(SelectedCandidateSchemaResources {
+        resources,
+        source_resources,
+        contracts,
+        schema_set_sha256,
+        contract_selection_sha256,
+        schema_bytes,
+        catalog_entry_schema_present,
+        catalog_claim_entry_schema_present,
+    })
+}
+
 /// Candidate-fenced wrapper around the same prepared schema executor used by
 /// immutable cuts. The input identity and selected source census stay typed;
 /// the inner worker has no SourceRevision and owns the same image, protocol,
@@ -1007,7 +1123,7 @@ impl<I: Copy + Eq> CandidateCutWorkerSchemaExecutor<I> {
 
     fn from_selected_source_resources_with_profile(
         input_identity: I,
-        mut selected: Vec<(String, SchemaResource)>,
+        selected: Vec<(String, SchemaResource)>,
         profile: FormatProfile,
         image: &VerifiedWorkerImageHandle,
         budget: ExecutorBudget,
@@ -1015,93 +1131,16 @@ impl<I: Copy + Eq> CandidateCutWorkerSchemaExecutor<I> {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<Self, ItemRefusal> {
-        check(deadline, cancelled)?;
-        if !matches!(
-            profile,
-            FormatProfile::LegacyPythonObserved20260923 | FormatProfile::AssertedSourceCandidateV1
-        ) || selected.is_empty()
-            || selected.len() > SchemaBackendProbe::MAX_RESOURCES
-        {
-            return Err(ItemRefusal::Source(
-                "selected candidate schema resource bounds".into(),
-            ));
-        }
-        selected.sort_by(|left, right| left.0.cmp(&right.0));
-        let mut resources = Vec::with_capacity(selected.len());
-        let mut source_resources = Vec::with_capacity(selected.len());
-        let mut contracts = BTreeMap::new();
-        let mut schema_bytes = 0usize;
-        let mut catalog_entry_schema_present = false;
-        let mut catalog_claim_entry_schema_present = false;
-        for (path, resource) in selected {
-            check(deadline, cancelled)?;
-            if path.len() > crate::source_foundation_schema::MAX_LOCATION_BYTES
-                || !path.starts_with("ToS/contracts/")
-                || !path.ends_with(".schema.json")
-                || RelativePath::parse(&path).is_err()
-                || resource.raw.is_empty()
-                || resource.raw.len() > SchemaBackendProbe::MAX_RESOURCE_BYTES
-            {
-                return Err(ItemRefusal::Source(
-                    "selected candidate schema resource identity or bounds".into(),
-                ));
-            }
-            let value = published_value(&resource.raw, SchemaBackendProbe::MAX_RESOURCE_BYTES)
-                .map_err(|_| ItemRefusal::Unsupported("selected candidate schema JSON".into()))?;
-            // The authenticated source bytes own $id. Maintained schemas also
-            // use /contracts/ and public GitHub identities; a filesystem path
-            // does not manufacture or replace their declared resource URI.
-            if source_foundation_schema_resource_uri(&value) != Some(resource.uri.as_str()) {
-                return Err(ItemRefusal::Source(
-                    "selected candidate schema URI differs from its source bytes".into(),
-                ));
-            }
-            schema_bytes = schema_bytes
-                .checked_add(resource.raw.len())
-                .filter(|total| *total <= SchemaBackendProbe::MAX_TOTAL_BYTES)
-                .ok_or(crate::item_budget_origin!())?;
-            let digest = Digest256::of_bytes(&resource.raw);
-            if contracts
-                .insert(path.clone(), (resource.uri.clone(), digest))
-                .is_some()
-            {
-                return Err(ItemRefusal::Source(
-                    "duplicate selected candidate schema path".into(),
-                ));
-            }
-            if path == "ToS/contracts/source-witness-catalog.schema.json" {
-                let definitions = value.get("$defs").and_then(serde_json::Value::as_object);
-                catalog_entry_schema_present = definitions
-                    .and_then(|definitions| definitions.get("entry"))
-                    .is_some_and(serde_json::Value::is_object);
-                catalog_claim_entry_schema_present = definitions
-                    .and_then(|definitions| definitions.get("claim_entry"))
-                    .is_some_and(serde_json::Value::is_object);
-            }
-            source_resources.push(SelectedSchemaResource {
-                path,
-                size_bytes: resource.raw.len() as u64,
-                sha256: digest,
-            });
-            resources.push(resource);
-        }
-        let schema_set_sha256 = schema_resource_set_digest(&resources)
-            .ok_or_else(|| ItemRefusal::Source("selected candidate schema closure".into()))?;
-        let contract_selection_sha256 = contract_selection_digest(&contracts);
-        let source_resource_metadata_state_bytes =
-            crate::source_foundation_schema::selected_source_resource_metadata_state(
-                &source_resources,
-                source_resources.capacity(),
-            )
-            .ok_or(crate::item_budget_origin!())?;
-        let source_resource_metadata_limit =
-            CandidateSourceFoundationSchemaSet::<I>::source_resource_metadata_state_upper_bound(
-                source_resources.len(),
-            )
-            .ok_or(crate::item_budget_origin!())?;
-        if source_resource_metadata_state_bytes > source_resource_metadata_limit {
-            return Err(crate::item_budget_origin!());
-        }
+        let SelectedCandidateSchemaResources {
+            resources,
+            source_resources,
+            contracts,
+            schema_set_sha256,
+            contract_selection_sha256,
+            schema_bytes,
+            catalog_entry_schema_present,
+            catalog_claim_entry_schema_present,
+        } = select_candidate_schema_resources(selected, profile, deadline, cancelled)?;
         let mut limits_hash = Digest256Hasher::new();
         limits_hash.update(b"tos-selected-candidate-schema-limits-v1\0");
         for value in [
@@ -5437,6 +5476,41 @@ pub struct InProcessCandidateSchemaExecutor<I> {
 }
 
 impl<I: Copy + Eq> InProcessCandidateSchemaExecutor<I> {
+    /// Prepare an explicitly selected, candidate-fenced schema closure.
+    pub fn from_selected_source_resources(
+        input_identity: I,
+        selected: Vec<(String, SchemaResource)>,
+        profile: FormatProfile,
+        input_mode: crate::in_process::InputMode,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Self, ItemRefusal> {
+        let selected = select_candidate_schema_resources(selected, profile, deadline, cancelled)?;
+        let inner = InProcessCutSchemaExecutor::new(
+            InProcessCutIdentity::Candidate(input_identity),
+            selected.contracts,
+            selected.resources,
+            profile,
+            input_mode,
+        )
+        .map_err(|error| ItemRefusal::Unsupported(format!("schema preparation: {error:?}")))?;
+        if inner.binding().schema_set_sha256 != selected.schema_set_sha256 {
+            return Err(ItemRefusal::Source(
+                "candidate prepared schema set differs".into(),
+            ));
+        }
+        check(deadline, cancelled)?;
+        Ok(Self {
+            input_identity,
+            selected: selected.source_resources,
+            schema_bytes: selected.schema_bytes,
+            contract_selection_digest: selected.contract_selection_sha256,
+            inner,
+            pending_rejections: std::collections::VecDeque::new(),
+            finished: false,
+        })
+    }
+
     pub fn from_schema_set(
         schema_set: CandidateSourceFoundationSchemaSet<I>,
         input_mode: crate::in_process::InputMode,
@@ -5709,6 +5783,73 @@ pub(crate) mod in_process_candidate_binding_tests {
             catalog_entry_schema_present: false,
             catalog_claim_entry_schema_present: false,
         }
+    }
+
+    #[test]
+    fn selected_resources_prepare_candidate_without_worker_identity() {
+        let set = selected_set();
+        let selected: Vec<_> = set
+            .source_resources
+            .iter()
+            .zip(&set.resources)
+            .map(|(metadata, resource)| (metadata.path.clone(), resource.clone()))
+            .collect();
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let mut wrong_uri = selected.clone();
+        wrong_uri[0].1.uri = "https://example.test/other".into();
+        assert!(
+            InProcessCandidateSchemaExecutor::from_selected_source_resources(
+                42,
+                wrong_uri,
+                set.profile,
+                crate::in_process::InputMode::PublishedStrict,
+                deadline,
+                &cancelled
+            )
+            .is_err()
+        );
+        assert!(
+            InProcessCandidateSchemaExecutor::from_selected_source_resources(
+                42,
+                vec![selected[0].clone(), selected[0].clone()],
+                set.profile,
+                crate::in_process::InputMode::PublishedStrict,
+                deadline,
+                &cancelled
+            )
+            .is_err()
+        );
+        let mut executor = InProcessCandidateSchemaExecutor::from_selected_source_resources(
+            42,
+            selected,
+            set.profile,
+            crate::in_process::InputMode::PublishedStrict,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        assert_eq!(executor.schema_set_digest(), set.schema_set_sha256);
+        assert_eq!(
+            executor.contract_selection_digest(),
+            set.contract_selection_sha256
+        );
+        assert_eq!(
+            executor.selected_resource_totals().unwrap(),
+            (1, set.schema_bytes as u64)
+        );
+        assert!(
+            executor
+                .check(
+                    "record.json",
+                    b"3",
+                    "ToS/contracts/example.schema.json",
+                    deadline,
+                    &cancelled
+                )
+                .unwrap()
+        );
+        executor.finish(deadline, &cancelled).unwrap();
     }
 
     #[test]
