@@ -27,26 +27,16 @@ Each part owns one boundary operation family.
 
 | Part | Function | Stronger owner route |
 | --- | --- | --- |
-| [Candidate Review](parts/candidate-review/README.md) | candidate dossiers and intake decisions | `ToS/` review and source authority |
-| [Adoption Boundary](parts/adoption-boundary/README.md) | adoption dossiers and no-runtime adoption guard | runtime and owner repos |
-| [Governance Boundary](parts/governance-boundary/README.md) | governance dossiers, precedents, and review notes | governance owner surfaces |
-| [Installation Boundary](parts/installation-boundary/README.md) | installation dossiers and install-write guard | installation and runtime owners |
-| [Service Office Boundary](parts/service-office-boundary/README.md) | service dossiers and office runtime guard | service and office owners |
-| [Pattern Review](parts/pattern-review/README.md) | pattern review notes | ToS source review and stronger owner handoff |
-| [Write Guards](parts/write-guards/README.md) | generic no-direct-write guard surfaces | source, runtime, and center owners stay stronger |
+| [Candidate Review](#candidate-review) | candidate dossiers and intake decisions | `ToS/` review and source authority |
+| [Adoption Boundary](#adoption-boundary) | adoption dossiers and no-runtime adoption guard | runtime and owner repos |
+| [Governance Boundary](#governance-boundary) | governance dossiers, precedents, and review notes | governance owner surfaces |
+| [Installation Boundary](#installation-boundary) | installation dossiers and install-write guard | installation and runtime owners |
+| [Service Office Boundary](#service-office-boundary) | service dossiers and office runtime guard | service and office owners |
+| [Pattern Review](#pattern-review) | pattern review notes | ToS source review and stronger owner handoff |
+| [Write Guards](#write-guards) | generic no-direct-write guard surfaces | source, runtime, and center owners stay stronger |
 
 The [local card](AGENTS.md) owns editing; [validation](../VALIDATION.md) owns checks.
 Source or semantic questions return to [the source owner](../../ToS/AGENTS.md).
-
-### Direct contracts
-
-- `candidate-review`: [AOA_EXPERIENCE_CANDIDATE_INTAKE_BOUNDARY](parts/candidate-review/docs/AOA_EXPERIENCE_CANDIDATE_INTAKE_BOUNDARY.md), [TOS_CANDIDATE_DOSSIER_REVIEW](parts/candidate-review/docs/TOS_CANDIDATE_DOSSIER_REVIEW.md)
-- `adoption-boundary`: [NO_RUNTIME_ADOPTION_FROM_TOS](parts/adoption-boundary/docs/NO_RUNTIME_ADOPTION_FROM_TOS.md), [TOS_ADOPTION_BOUNDARY_DOSSIER](parts/adoption-boundary/docs/TOS_ADOPTION_BOUNDARY_DOSSIER.md)
-- `governance-boundary`: [GOVERNANCE_DOSSIER_INTAKE_BOUNDARY](parts/governance-boundary/docs/GOVERNANCE_DOSSIER_INTAKE_BOUNDARY.md), [GOVERNANCE_PRECEDENT_DOSSIER_BOUNDARY](parts/governance-boundary/docs/GOVERNANCE_PRECEDENT_DOSSIER_BOUNDARY.md), [NO_DIRECT_POLIS_GOVERNANCE_WRITE](parts/governance-boundary/docs/NO_DIRECT_POLIS_GOVERNANCE_WRITE.md), [TOS_GOVERNANCE_REVIEW_NOTE](parts/governance-boundary/docs/TOS_GOVERNANCE_REVIEW_NOTE.md)
-- `installation-boundary`: [INSTALLATION_DOSSIER_BOUNDARY](parts/installation-boundary/docs/INSTALLATION_DOSSIER_BOUNDARY.md), [NO_DIRECT_EXPERIENCE_INSTALL_WRITE](parts/installation-boundary/docs/NO_DIRECT_EXPERIENCE_INSTALL_WRITE.md)
-- `service-office-boundary`: [NO_RUNTIME_OFFICE_WRITE](parts/service-office-boundary/docs/NO_RUNTIME_OFFICE_WRITE.md), [SERVICE_DOSSIER_BOUNDARY](parts/service-office-boundary/docs/SERVICE_DOSSIER_BOUNDARY.md)
-- `pattern-review`: [TOS_PATTERN_REVIEW_NOTE](parts/pattern-review/docs/TOS_PATTERN_REVIEW_NOTE.md)
-- `write-guards`: [NO_DIRECT_ARENA_OR_EXPERIENCE_WRITE](parts/write-guards/docs/NO_DIRECT_ARENA_OR_EXPERIENCE_WRITE.md), [NO_DIRECT_GOVERNANCE_RUNTIME_WRITE](parts/write-guards/docs/NO_DIRECT_GOVERNANCE_RUNTIME_WRITE.md)
 
 ## Shared boundary
 
