@@ -480,6 +480,19 @@
       "target_only_keys": [],
       "map_version": 3,
       "event_version": 2
+    },
+    {
+      "stage": "source-review-receipt",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf"
+      ],
+      "base_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1",
+      "private_bundle_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-source-visible-review/v1/jenseits-187/review-bundle.json",
+      "private_schema_ref": "ToS/contracts/private-transfer-source-visible-review-bundle.schema.json",
+      "receipt_schema_ref": "ToS/contracts/transfer-source-visible-review-receipt.schema.json",
+      "historical_builder_ref": "scripts/record_golden_kernel_transfer_source_visible_review.py",
+      "historical_builder_sha256": "ac20b7dce1259aa3ce6d6efaf356dafa010c9fd7af392caf1c47d58b0a2f6679",
+      "historical_bundle_sha256": "4db81ebd5c819da431faca7a5a02b5c4a58e7c8a69e26b2b2cd5cac517da4a2b"
     }
   ]
 }

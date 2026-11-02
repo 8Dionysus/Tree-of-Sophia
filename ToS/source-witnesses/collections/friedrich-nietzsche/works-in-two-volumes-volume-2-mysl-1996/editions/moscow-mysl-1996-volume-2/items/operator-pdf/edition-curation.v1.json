@@ -544,6 +544,30 @@
       ],
       "legacy_event_sha256": "b87ba0c258b9d21b9d675d16691054e02adb90b2cf597f20e9d60299a663c939",
       "legacy_builder_sha256": "71f61e32b16bd797ae3bc80c97b9cba454539661422a1ff652ddefbf2e849d2c"
+    },
+    {
+      "stage": "transfer-readiness",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf",
+        "tos.item.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.wikimedia-commons-unc-scan-pdf",
+        "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.internet-archive-google-stanford-djvu-xml",
+        "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf"
+      ],
+      "base_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1",
+      "target_filename": "transfer-target-passage-candidates.v1.json",
+      "source_filename": "transfer-source-passage-candidates.v1.json",
+      "schema_ref": "ToS/contracts/transfer-route-readiness-projection.schema.json",
+      "schema_uri": "https://tree-of-sophia.local/ToS/contracts/transfer-route-readiness-projection.schema.json",
+      "schema_v2_ref": "ToS/contracts/transfer-route-readiness-projection-v2.schema.json",
+      "schema_v2_uri": "https://tree-of-sophia.local/ToS/contracts/transfer-route-readiness-projection-v2.schema.json",
+      "projection_id": "tos.transfer-route-readiness.golden-kernel-v1",
+      "historical_event_id": "tos.event.projection.golden-kernel-transfer-route-readiness-v1.2026-08-09",
+      "historical_event_sha256": "75becae2f58c85dcc30d7098eb90f87d2a38706649c5e69226a0b05f4d7448e4",
+      "historical_builder_ref": "scripts/build_golden_kernel_transfer_route_readiness.py",
+      "historical_builder_sha256": "9fb18fe2ff6eb14672dfec407f0c2210e0b7f6f4286c1fc0987633709e147675",
+      "historical_authority": "text-free co-availability over independently materialized source and target candidates only; shared structural route identity and frozen-page intersection create no bilingual passage pair, alignment, accepted text, eligibility, gold, human task, semantic claim, publication authority, or canon effect",
+      "expected_source_count": 35,
+      "expected_target_count": 35
     }
   ]
 }
