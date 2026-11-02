@@ -82,6 +82,24 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let dta_raw = fs::read(root.join(dta_path)).unwrap();
     assert_eq!(validate(&dta_raw, &schema), Ok(()));
     let dta_value: Value = serde_json::from_slice(&dta_raw).unwrap();
+    let mut duplicate_orthography = dta_value.clone();
+    let parallel = duplicate_orthography["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "parallel-lexical-candidates")
+        .unwrap();
+    let replacements = parallel["orthography"]["language_profiles"][0]["character_replacements"]
+        .as_array_mut()
+        .unwrap();
+    replacements.push(replacements[0].clone());
+    assert_eq!(
+        validate(
+            &serde_json::to_vec(&duplicate_orthography).unwrap(),
+            &schema
+        ),
+        Err(EditionCurationError::Duplicate("character replacement"))
+    );
     let mut invalid_stopwords = dta_value.clone();
     let parallel = invalid_stopwords["recipes"]
         .as_array_mut()

@@ -1690,6 +1690,41 @@
           }
         ],
         "unknown_language_profile": "ru"
+      },
+      "orthography": {
+        "legacy_classifier_sha256": "68235e306bdcc96a9ec4f83413d1ff76655e3148351227197caf8d279a2d296a",
+        "base_normalization": "nfc-unicode16-casefold",
+        "language_profiles": [
+          {
+            "language": "ru",
+            "character_replacements": [
+              {
+                "from": "ѣ",
+                "to": "е"
+              },
+              {
+                "from": "і",
+                "to": "и"
+              },
+              {
+                "from": "ї",
+                "to": "и"
+              },
+              {
+                "from": "ѵ",
+                "to": "и"
+              },
+              {
+                "from": "ѳ",
+                "to": "ф"
+              }
+            ],
+            "terminal_removal": {
+              "character": "ъ",
+              "minimum_input_characters": 3
+            }
+          }
+        ]
       }
     },
     {

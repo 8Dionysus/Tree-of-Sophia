@@ -406,6 +406,32 @@ enum MarkerPart {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if let Some(orthography) = object.get("orthography") {
+                let profiles = orthography["language_profiles"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let mut languages = BTreeSet::new();
+                for profile in profiles {
+                    let language = profile["language"]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    if !languages.insert(language) {
+                        return Err(EditionCurationError::Duplicate("orthography language"));
+                    }
+                    let mut replacements = BTreeSet::new();
+                    for replacement in profile["character_replacements"]
+                        .as_array()
+                        .ok_or(EditionCurationError::InvalidSchema)?
+                    {
+                        let from = replacement["from"]
+                            .as_str()
+                            .ok_or(EditionCurationError::InvalidSchema)?;
+                        if !replacements.insert(from) {
+                            return Err(EditionCurationError::Duplicate("character replacement"));
+                        }
+                    }
+                }
+            }
             if let Some(selection) = object.get("stopword_selection") {
                 let profiles = selection["profiles"]
                     .as_array()
