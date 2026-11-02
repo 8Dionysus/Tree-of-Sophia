@@ -7,15 +7,15 @@ transaction recovery, cancellation and deadlines retain their existing owners.
 
 | Operation | Current contract |
 | --- | --- |
-| Discover an implemented command | [Discovery](docs/SOURCE_COMMAND_DISCOVERY.md) |
+| Discover an implemented command | [Discovery](../../README.md#op-doc-source-command-discovery) |
 | Carry an authorized command over HTTP | [Command transport](../../README.md#explicit-local-source-command-transport) |
-| Work / Expression / Edition growth | [Work and Expression](docs/NATIVE_WORK_EXPRESSION_GROWTH.md), [Edition](docs/NATIVE_EXPRESSION_EDITION_GROWTH.md) |
-| Retain a local File and adopt an Item | [Item adoption](docs/NATIVE_ITEM_ADOPTION.md) |
+| Work / Expression / Edition growth | [Work and Expression](../../README.md#op-doc-native-work-expression-growth), [Edition](../../README.md#op-doc-native-expression-edition-growth) |
+| Retain a local File and adopt an Item | [Item adoption](../../README.md#op-doc-native-item-adoption) |
 | Construct or assess a TextLayer | [Construction](../../README.md#private-native-textlayer-and-first-textunit-construction), [assessment](../../README.md#exact-text-layer-comparison-and-current-quality-use) |
 | Assess an image/OCR layer | [Image/OCR assessment](../../README.md#exact-imageocr-comparison) |
 | Create a translation Alignment | [Alignment](../../README.md#confidential-native-translation-alignment) |
 | Check native assertion coverage | [Coverage](../../README.md#native-growth-behavior-and-legacy-fate) |
-| Grow a branch from source pressure | [Growth structure](docs/GROWTH_STRUCTURE.md), [curation](docs/HUMAN_CURATED_EXPANSION.md), [soil](docs/PRE_EXPANSION_SOIL.md) |
+| Grow a branch from source pressure | [Growth structure](../../README.md#op-doc-growth-structure), [curation](../../README.md#op-doc-human-curated-expansion), [soil](../../README.md#op-doc-pre-expansion-soil) |
 
 ## Detailed operations and prior anchors
 

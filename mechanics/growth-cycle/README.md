@@ -26,14 +26,14 @@ Source or semantic questions return to [the source owner](../../ToS/AGENTS.md).
 
 ### Direct contracts
 
-- `branch-growth-cycle`: [GROWTH_STRUCTURE](parts/branch-growth-cycle/docs/GROWTH_STRUCTURE.md), [HUMAN_CURATED_EXPANSION](parts/branch-growth-cycle/docs/HUMAN_CURATED_EXPANSION.md), [NATIVE_ARTIFACT_GROWTH](#native-artifact-metadata-creation), [NATIVE_BEHAVIOR_COVERAGE](README.md#native-growth-behavior-and-legacy-fate), [NATIVE_COLLECTION_GROWTH](parts/branch-growth-cycle/docs/NATIVE_COLLECTION_GROWTH.md), [NATIVE_EXPRESSION_EDITION_GROWTH](parts/branch-growth-cycle/docs/NATIVE_EXPRESSION_EDITION_GROWTH.md), [NATIVE_EXPRESSION_RESPONSIBILITY](parts/branch-growth-cycle/docs/NATIVE_EXPRESSION_RESPONSIBILITY.md), [NATIVE_IMAGE_OCR_ASSESSMENT](#exact-imageocr-comparison), [NATIVE_ITEM_ADOPTION](parts/branch-growth-cycle/docs/NATIVE_ITEM_ADOPTION.md), [NATIVE_OBJECT_LINK_GROWTH](parts/branch-growth-cycle/docs/NATIVE_OBJECT_LINK_GROWTH.md), [NATIVE_TEXT_LAYER_ASSESSMENT](#exact-text-layer-comparison-and-current-quality-use), [NATIVE_TEXT_LAYER_CONSTRUCTION](#private-native-textlayer-and-first-textunit-construction), [NATIVE_TRANSLATION_ALIGNMENT](#confidential-native-translation-alignment), [NATIVE_WORK_EXPRESSION_GROWTH](parts/branch-growth-cycle/docs/NATIVE_WORK_EXPRESSION_GROWTH.md), [PRE_EXPANSION_SOIL](parts/branch-growth-cycle/docs/PRE_EXPANSION_SOIL.md), [PUBLIC_NATIVE_TEXT_CONSTRUCTION](#public-project-text-native-construction), [SELECTED_METADATA_TRANSACTIONS](README.md#selected-metadata-publication-and-recovery), [SOURCE_COMMAND_DISCOVERY](parts/branch-growth-cycle/docs/SOURCE_COMMAND_DISCOVERY.md), [SOURCE_COMMAND_HTTP](README.md#explicit-local-source-command-transport)
+- `branch-growth-cycle`: [GROWTH_STRUCTURE](#op-doc-growth-structure), [HUMAN_CURATED_EXPANSION](#op-doc-human-curated-expansion), [NATIVE_ARTIFACT_GROWTH](#native-artifact-metadata-creation), [NATIVE_BEHAVIOR_COVERAGE](README.md#native-growth-behavior-and-legacy-fate), [NATIVE_COLLECTION_GROWTH](#op-doc-native-collection-growth), [NATIVE_EXPRESSION_EDITION_GROWTH](#op-doc-native-expression-edition-growth), [NATIVE_EXPRESSION_RESPONSIBILITY](#op-doc-native-expression-responsibility), [NATIVE_IMAGE_OCR_ASSESSMENT](#exact-imageocr-comparison), [NATIVE_ITEM_ADOPTION](#op-doc-native-item-adoption), [NATIVE_OBJECT_LINK_GROWTH](#op-doc-native-object-link-growth), [NATIVE_TEXT_LAYER_ASSESSMENT](#exact-text-layer-comparison-and-current-quality-use), [NATIVE_TEXT_LAYER_CONSTRUCTION](#private-native-textlayer-and-first-textunit-construction), [NATIVE_TRANSLATION_ALIGNMENT](#confidential-native-translation-alignment), [NATIVE_WORK_EXPRESSION_GROWTH](#op-doc-native-work-expression-growth), [PRE_EXPANSION_SOIL](#op-doc-pre-expansion-soil), [PUBLIC_NATIVE_TEXT_CONSTRUCTION](#public-project-text-native-construction), [SELECTED_METADATA_TRANSACTIONS](README.md#selected-metadata-publication-and-recovery), [SOURCE_COMMAND_DISCOVERY](#op-doc-source-command-discovery), [SOURCE_COMMAND_HTTP](README.md#explicit-local-source-command-transport)
 
 ## Source-owner operations
 
 ## Find a source-owner command
 
 Use `tos-native-owner-command source-commands --discover` before selecting a
-grant. The [discovery contract](parts/branch-growth-cycle/docs/SOURCE_COMMAND_DISCOVERY.md) owns the command
+grant. The [discovery contract](#op-doc-source-command-discovery) owns the command
 grammar, result shape and limits; discovery reports implemented operations,
 while a separately selected current grant authorizes execution. The
 [loopback transport](README.md#explicit-local-source-command-transport) carries that same grammar for
@@ -126,11 +126,11 @@ creation.
 Composition, sending, receipt, historical events and Place creation each
 require the grant for that separate operation.
 
-[Native Expression/Edition growth](parts/branch-growth-cycle/docs/NATIVE_EXPRESSION_EDITION_GROWTH.md)
+[Native Expression/Edition growth](#op-doc-native-expression-edition-growth)
 adds one separately delegated provisional Edition and exact `embodied_by`
 Claim without creating an Item/File or changing global bibliographic cardinality.
 
-[Native local Item adoption](parts/branch-growth-cycle/docs/NATIVE_ITEM_ADOPTION.md) separately retains
+[Native local Item adoption](#op-doc-native-item-adoption) separately retains
 one already obtained File under an exact canonical payload grant, then publishes
 an acquired Item and `exemplified_by` Claim with one Edition append. Private byte recovery and public metadata evidence retain their separate
 scopes. Download, source reading, rights decisions and publication each follow
@@ -191,7 +191,7 @@ canon status. `inspect` remains a metadata-only owner view, not acceptance.
 The local filesystem `source-commands` route accepts the separately delegated
 `tos_local_sign_promote_owner_v1` configuration. The distinct PostgreSQL Growth
 route requires Sign owner v2 and Assessment owner v5/v6; see the
-[selected PostgreSQL Growth route](parts/branch-growth-cycle/docs/SOURCE_COMMAND_DISCOVERY.md#selected-postgresql-growth-route).
+[selected PostgreSQL Growth route](#op-doc-source-command-discovery-selected-postgresql-growth-route).
 Run `tos-native-owner-command` with `source-commands --invocation ABSOLUTE_PATH`.
 It has the public profile-creation fields (`uid`, `principal_id`, `source_root`,
 `source_path`, `authority_ref`, `allowed_form_ids`, `allowed_operations`,
@@ -2145,10 +2145,10 @@ Version 1 does not create Expression, Edition, Collection, Item or physical
 Artifact. Version 2 (`tos_local_corpus_create_owner_v2`) additionally creates
 an empty provisional Collection; it does not add membership or publication
 assertions. Its independently delegated
-[Collection growth route](parts/branch-growth-cycle/docs/NATIVE_COLLECTION_GROWTH.md) attaches an existing
+[Collection growth route](#op-doc-native-collection-growth) attaches an existing
 Work through a qualified `contains_work` Claim. Other native kinds retain their
 own source contracts and related-record closure.
-Native [object-Link growth](parts/branch-growth-cycle/docs/NATIVE_OBJECT_LINK_GROWTH.md) creates a Link
+Native [object-Link growth](#op-doc-native-object-link-growth) creates a Link
 and qualified association Claim atomically under its own grant, including an
 existing physical Artifact without changing that subject's metadata.
 Relationship assertions use separately delegated `claims.create`; a label,
@@ -2430,14 +2430,14 @@ their owner decisions.
 
 ### Native Work / Expression growth
 
-The [native compound owner contract](parts/branch-growth-cycle/docs/NATIVE_WORK_EXPRESSION_GROWTH.md) owns the
+The [native compound owner contract](#op-doc-native-work-expression-growth) owns the
 Work/Expression grant, `work.expression.create`, pending recovery and its
 selected-metadata transaction. Edition, Item, responsibility, assessment and
 publication remain separate routes.
 
 ### Native Expression responsibility attachment
 
-The [responsibility owner contract](parts/branch-growth-cycle/docs/NATIVE_EXPRESSION_RESPONSIBILITY.md) owns
+The [responsibility owner contract](#op-doc-native-expression-responsibility) owns
 the dedicated grant, exact Claim attachment, forms/evidence and recovery. It
 does not create or edit the Agent or the Expression's earlier topology Claim
 stream; evidence URLs remain declared addresses, not remote source evidence.
@@ -3132,7 +3132,7 @@ authorization proof. The private token itself is **never sent**:
 For example, the configured handler's context is requested with
 `{"schema_version":"tos_local_source_command_v1","operation":"describe"}`.
 Choose subsequent preparation and mutation shapes from the handler-owned
-[discovery contract](parts/branch-growth-cycle/docs/SOURCE_COMMAND_DISCOVERY.md), and retain the exact
+[discovery contract](#op-doc-source-command-discovery), and retain the exact
 prepared expected versions and original command ID. The transport never
 replaces a stale expectation, synthesizes a grant or automatically retries.
 The configuration is reread and its delegation rechecked by the existing
@@ -3218,6 +3218,1093 @@ test delegation. Browser client tests live beside the client module and
 cover request/response proofs, impostor responses, nonce binding, deadlines and
 explicit close. UI close/unload protection must cover in-flight and uncertain
 commands, not just successful replies.
+
+## Native Growth source operation contracts
+
+<a id="op-doc-growth-structure"></a>
+### Growth Structure
+
+This route applies ToS growth doctrine through explicit choices about nodes,
+branches, depth and relations, grounded in the source material being developed.
+
+<a id="op-doc-growth-structure-core-rule"></a>
+#### Core rule
+
+Growth counts when structure becomes clearer.
+
+Healthy growth strengthens source anchoring and makes the tree easier to
+traverse. Assess added files, fragments and notes by those effects.
+
+<a id="op-doc-growth-structure-three-main-growth-moves"></a>
+#### Three main growth moves
+
+<a id="op-doc-growth-structure-deepen-an-existing-node"></a>
+##### Deepen an existing node
+
+Deepen a node when:
+
+- the same source route remains central
+- the existing node can carry the added extraction, context, or interpretation cleanly
+- the new material clarifies the current authored surface while keeping it readable
+
+<a id="op-doc-growth-structure-create-a-new-node"></a>
+##### Create a new node
+
+Create a new node when:
+
+- a distinct source, concept, or context needs its own authored home
+- keeping the material in the current node would blur lineage or interpretation layers
+- the new material deserves its own stable source anchor
+
+<a id="op-doc-growth-structure-form-a-branch"></a>
+##### Form a branch
+
+Form a branch when:
+
+- multiple nodes now justify a durable lineage or thematic path
+- readers need a stable traversal route rather than scattered cross-links
+- the structure is becoming important enough that naming the branch improves orientation
+
+<a id="op-doc-growth-structure-structural-signs-of-bad-growth"></a>
+#### Structural signs of bad growth
+
+Pause when growth starts to look like:
+
+- node explosion with weak lineage
+- branch explosion with no clear rooted path
+- repeated summaries that differ only cosmetically
+- quantity metrics replacing structural judgment
+
+<a id="op-doc-growth-structure-working-question"></a>
+#### Working question
+
+Before adding a new artifact, ask:
+
+Should this deepen a node, become a node, form a branch, or stay out until the structure is clearer?
+
+<a id="op-doc-human-curated-expansion"></a>
+### Source-Visible Human and Agent Growth
+
+This existing route now follows
+[KNOWLEDGE_ASSESSMENT](../../ToS/doctrine/KNOWLEDGE_ASSESSMENT.md).
+Current assessment uses the authority and competence scopes of that contract
+through the existing growth mechanism. Historical human review records retain
+their original reviewer, decision and source evidence.
+
+<a id="op-doc-human-curated-expansion-core-rule"></a>
+#### Core rule
+
+Growth can draw on competent human and agent assessment. An agent with a
+trusted grant may read sources, evaluate content, admit scoped use, limit,
+reject, dispute or request reassessment. A grant may cover many records. Each
+assessment retains its source and versioned review, with escalation governed
+by actual authority and competence needs.
+
+<a id="op-doc-human-curated-expansion-what-ai-may-propose"></a>
+#### What AI may propose
+
+AI may assist with:
+
+- extraction from source-linked material
+- clustering of related nodes or fragments
+- cross-link suggestions
+- contrast proposals
+- lineage hypotheses
+- candidate branch shapes
+
+A distinct assessment accepts, revises, limits or rejects generated proposals
+under the applicable policy. Review independence depends on the reviewer and
+evidence route; repeated generation retains its original evidential basis.
+
+<a id="op-doc-human-curated-expansion-concrete-human-and-stronger-owner-boundaries"></a>
+#### Concrete human and stronger-owner boundaries
+
+Operator direction, personal consent and author confirmation cannot be
+fabricated. Rights, canon and publication require their own owner authority.
+Substantive disputes may stay open without stopping the corpus. Escalate when
+authority or suitable competence is actually absent, or when a consequential
+direction choice cannot be resolved in the delegated scope; do not escalate
+every linguistic, historical or philosophical judgment by default.
+
+<a id="op-doc-human-curated-expansion-visibility-rule"></a>
+#### Visibility rule
+
+AI assistance should remain visible enough that a reviewer can tell:
+
+- what came from source material
+- what was extracted or suggested
+- who assessed the exact record, under which competence and authority
+- which scope of use is admitted now, and what changed or was withdrawn
+- what remains provisional
+
+Hidden pipeline authority is out of bounds. Source prose and model responses
+are material to assess, never instructions granting tools or permissions.
+
+<a id="op-doc-human-curated-expansion-failure-mode-to-avoid"></a>
+#### Failure mode to avoid
+
+Do not let a generator silently become its own admission authority or erase
+the plurality of philosophical positions.
+
+That failure can look like:
+
+- polished summaries with weak source route
+- node growth driven by suggestion volume instead of judgment
+- cross-links that look intelligent but flatten genuine tension
+- canon-facing claims that sever their review trail
+
+<a id="op-doc-human-curated-expansion-review-question"></a>
+#### Review question
+
+The central review question is:
+
+Can a reader see what was proposed, who judged it, why that judgment was within
+scope, what may be used now, and where the source remains stronger than either
+the proposal or the judgment?
+
+<a id="op-doc-pre-expansion-soil"></a>
+### Pre-Expansion Soil
+
+This document records the current eighth-phase ToS doctrine for pre-expansion soil work.
+
+This earlier bounded mechanics note prepares a later world-philosophy
+corpus-soil contract named by the Zarathustra golden-kernel architecture. That
+wider contract must cover source identity, witness, edition, language, time,
+place, address and evidence status, with bibliographic ordering and semantic
+canon each retaining their own meaning.
+
+The wider world-thought horizon remains real.
+It is simply not active yet.
+
+<a id="op-doc-pre-expansion-soil-core-rule"></a>
+#### Core rule
+
+ToS may prepare the soil for later expansion without pretending that expansion has begun.
+
+Allowed preparation in this phase includes:
+
+- context-node template law
+- manual corpus-entry gating
+- review-route hardening for pre-expansion work
+- additive schema alignment for already published node families
+
+<a id="op-doc-pre-expansion-soil-why-preparation-still-matters"></a>
+#### Why preparation still matters
+
+Preparation is not decorative.
+
+It helps ToS:
+
+- keep growth structural rather than impulsive
+- avoid fake plurality claims with no new source movement beneath them
+- make later context work legible before later corpus growth arrives
+
+<a id="op-doc-pre-expansion-soil-what-this-phase-does-not-do"></a>
+#### What this phase does not do
+
+This phase does not:
+
+- add a second family
+- add new branch nodes
+- reopen wider world-thought expansion
+- treat empty scaffolding as earned plurality
+
+Plurality should arrive through real source-linked movement, not through symbolic expansion theater.
+
+<a id="op-doc-native-collection-growth"></a>
+### Native Collection growth
+
+A Collection identifies a multi-work publication and carries its membership
+assertions in the corpus.
+
+<a id="op-doc-native-collection-growth-independent-boundaries"></a>
+#### Independent boundaries
+
+`tos_local_corpus_create_owner_v2` adds initial `collection` to the existing
+standalone Corpus creator. Version 1 is unchanged. Creation requires one new
+canonical `collections/.../collection.json`, provisional identity, no
+equivalence, version 1 and an explicitly empty `membership_claim_refs`.
+The empty list records that this transaction supplied no membership assertion.
+
+`tos_local_collection_membership_owner_v1` delegates
+`collection.work.attach` and separately scoped recovery. The request binds
+one exact existing Collection, one unchanged existing Work and one new
+`contains_work` relation Claim under a separate relation home. It appends only
+that Claim reference, advances the Collection once, rebinds its source-copy
+forms and retains the exact selected predecessor/history. Shared selected
+metadata publication owns atomicity, pending barriers and recovery, not
+membership meaning.
+
+The grant fixes both IDs and source paths, predicate, new Claim/home/event,
+principal, form IDs, evidence allowlist and expiry. Retained legacy membership
+provenance streams must be selected explicitly when the parent already contains
+legacy membership assertions. Native current closure is verified against its
+committed compound capture; old batch bytes are never rewritten.
+
+The selected PostgreSQL backend, exact mutation-replay rule and local-only
+recovery boundary are documented in [source-command discovery](#op-doc-source-command-discovery-selected-postgresql-growth-route).
+
+<a id="op-doc-native-collection-growth-qualified-membership-assertion"></a>
+#### Qualified membership assertion
+
+The source caller supplies the membership statement, statement
+language/script, `membership_scope`, evidence and uncertainty. Competing
+Claims may name the same Work while keeping distinct identities. The operation
+binds metadata endpoints and declared evidence references; the new Claim
+remains unreviewed. Source-visible assessment evaluates the evidence,
+completeness and membership assertion.
+
+Only the compound handler may introduce the parent membership relation.
+Separately delegated Claim corrections preserve its exact compound origin and
+continuous history; qualified wording can change without silently retargeting
+the endpoints or deleting the membership qualification. Both current and
+historical Collection versions remain available to exact metadata readers.
+
+<a id="op-doc-native-collection-growth-verification"></a>
+#### Verification
+
+Run `tests/conformance/rust/command_collection_cases.rs`, which checks the
+native `source_collection_membership.rs` and `source_native_collection_cli.rs`
+implementations, then source-foundation and registry checks when their owner
+inputs change. The fixtures exercise synthetic membership.
+
+<a id="op-doc-native-expression-edition-growth"></a>
+### Native Expression / Edition growth
+
+The native handler `native-expression-edition`, implemented by
+`rust/crates/tos-command/src/source_native_edition_cli.rs` and
+`rust/crates/tos-command/src/source_expression_edition.rs`, owns the separately
+delegated `expression.edition.create` and `expression.edition.recover`
+operations through the `tos-native-owner-command source-commands` front door.
+
+<a id="op-doc-native-expression-edition-growth-source-boundary"></a>
+#### Source boundary
+
+This first operation selects one existing Expression under its exact read-only
+Work and creates one provisional Edition plus a distinct `embodied_by` Claim.
+Only the Expression's version and appended `embodiment_claim_refs` change.
+All other fields, lists, source-copy form history and earlier compound receipts
+remain retained. Work metadata, existing editions and descendants are not
+rewritten. The new Claim lives inside the new Edition home, never in the
+Expression's immutable `has_expression` source carrier.
+
+An Edition identifies a published or edited manifestation. The caller supplies
+its explicit referent and evidence, distinguishing historical printing from an
+ebook release, publication dates from download/update dates, and translator
+responsibility from later editorial changes. Bibliographic assessment,
+equivalence, rights, publication and canon follow their owner routes.
+
+The initial Edition is version 1, provisional, with `no_equivalence_claim`,
+no supersession, one explicit `embodies_expression_refs` backlink, unverified
+identity variants and empty publication/provision, responsibility and exemplar
+claims. Its source-owned name, optional edition statement and qualified notes
+remain supplied input. The new Claim is initial, positive, observed, unreviewed
+public metadata, with no assessment admission. `observed` describes the declared
+record link only. Its evidence is exactly the two linked metadata paths and
+its qualified statement has explicit language and script.
+
+This operation writes one selected Expression. Existing Editions may embody
+several Expressions or belong to a collection, and an Edition may await
+acquisition of an Item. Attaching an existing Edition or creating an Item/File
+requires the corresponding owner route and grant. Reuse an existing Edition
+identity whenever the evidence identifies the same manifestation.
+
+<a id="op-doc-native-expression-edition-growth-exact-delegation-and-abi"></a>
+#### Exact delegation and ABI
+
+The protected configuration schema is `tos_local_expression_edition_owner_v1`.
+It contains `uid`, `principal_id`, `maker_type`, `source_root`, `authority_ref`,
+`expires_at`, `allowed_operations`, and these exact targets:
+
+- Read-only `work_id` and `work_source_path`.
+- Existing `expression_id` and `expression_source_path` under that Work.
+- New `edition_id` and `edition_source_path`, exactly
+  `<expression-home>/editions/<slug>/edition.json`.
+- New `claim_id`, `provenance_event_id`, and distinct bounded
+  `allowed_expression_form_ids`, `allowed_edition_form_ids`, `allowed_claim_form_ids`.
+
+Requests use `tos_local_expression_edition_command_v1`:
+
+1. `describe` returns the selected Expression, revision, publication token,
+   source fields and existing Expression/Edition/Claim owner profile handles.
+2. `prepare-create` accepts `record` (the Edition), `claim`, `forms` (the
+   Expression), `edition_forms`, `claim_forms`, and `reason`. It writes no source
+   and returns `prepared_expression`, `prepared_edition`, `prepared_fields`,
+   forms and exact dependency/publication bindings.
+3. `expression.edition.create` adds `command_id`, those prepared `fields`,
+   `expected_source`, `expected_revision`, `expected_configuration`,
+   `expected_dependencies`, and `expected_publication` to the same proposal.
+4. `expression.edition.recover` names the pending `transaction_id`, explicit
+   `decision` (`resume` or `rollback`), and current `expected_configuration`.
+   A recovery-only renewal never authorizes a new creation.
+
+The selected PostgreSQL backend, exact mutation-replay rule and local-only
+recovery boundary are documented in [source-command discovery](#op-doc-source-command-discovery-selected-postgresql-growth-route).
+
+All current Expression source-copy forms must be explicitly rebound. New
+Edition name and Claim statement forms are explicit source copies; each
+language comes from its source field. Authored forms require their own route.
+Keep confidential owner paths, grants and credentials out of public inputs;
+the public receipt retains only bounded scope, principal and authority refs.
+
+<a id="op-doc-native-expression-edition-growth-retained-evidence-and-recovery"></a>
+#### Retained evidence and recovery
+
+Preparation binds current catalog identity, the Expression's unique verified
+Work origin, and its existing Edition forward/backlink closure. The exact
+catalog must bind the current publication token. The adapter reads selected
+catalog routes, not arbitrary descendants. New/resumed publication rechecks
+current account delegation, expiry, grammar, implementation and dependencies.
+
+The parent three-file delta and new Edition's eight metadata/form/capture/
+receipt files use the [selected publication protocol](README.md#selected-metadata-publication-and-recovery).
+The pending barrier closes participating reads. Recovery reconstructs all
+original before/after bytes and refuses foreign or third-state changes.
+Immutable predecessor archives preserve earlier source language and receipts.
+
+`verify_compound` admits only an exact committed transaction, immutable Claim,
+request/environment/provenance captures, the transition in current Expression
+history and the original Edition bytes in current or verified retained history.
+An orphan archive is not history. Exact completed retries remain valid after
+catalog regeneration and later sibling growth, subject to current authority
+and verified lineage. Unsigned runtime capture is not external execution proof.
+
+Foundation closure joins verified native `has_expression` and `embodied_by`
+Claims with unchanged legacy topology streams. The old batch counts and raw
+digests retain their own historical scope; altered legacy Expression inputs
+resolve only through their exact original path and committed retained bytes.
+The read-only metadata version reader now resolves Edition records; this does
+not enable generic Edition creation or revision grants. Earlier Work/Expression
+and translator receipts remain independently verifiable after this append.
+
+Synthetic command tests protect these boundaries without changing the corpus.
+Catalog regeneration and wider downstream validation remain separate owner
+steps; a successful command reports `grants_admission: false`. No Item, File,
+payload acquisition, extraction, OCR, text-layer or rights transition is performed.
+
+<a id="op-doc-native-expression-responsibility"></a>
+### Native Expression responsibility attachment
+
+The native handler `native-expression-responsibility`, implemented by
+`rust/crates/tos-command/src/source_native_responsibility_cli.rs` and dispatched
+through `tos-native-owner-command source-commands`, owns one separately delegated
+`translated_by` attachment from an existing
+Expression to an existing Agent. It uses the canonical relation registry and
+`tos_source_relation_claim_v1`, with its own compound attachment grant.
+
+<a id="op-doc-native-expression-responsibility-exact-source-change"></a>
+#### Exact source change
+
+The Expression keeps its identity, Work backlink, language, role, identity
+posture, notes and all other fields. Its version advances once and
+`responsibility_claim_refs` appends exactly one new Claim, preserving earlier
+order. Only its record, forms and history are selected. All current source-copy
+forms are explicitly rebound; old forms remain retained. Authored parent forms
+that are not source copies require their own explicit rebind route.
+
+The new qualified version-1 Claim and its statement form occupy a new standard
+`ToS/source-witnesses/relations/<slug>/source-claims.jsonl` home. The existing
+Expression's `has_expression` stream and immutable creation package are not
+append targets. The Agent is an exact read dependency, never an output.
+
+The Claim remains unreviewed public metadata, with no assessment or supersession
+grant. `bibliographic_assertion` and `scholarly_report` use the canonical
+registry's existing layers. Epistemic status and polarity remain explicit
+authored values; the command does not convert them into positive certainty.
+`qualifiers.statement`, `statement_language`, `statement_script` and
+`attribution_scope` must all be explicit. The scope distinguishes provider
+attribution from a historical printing or later electronic editing when those
+limits matter. All other qualifiers and nested context remain intact.
+
+Two Claims may name the same Expression, predicate and Agent. Competing reports
+are not rejected by a person-uniqueness or endpoint-pair rule. Claim identities
+remain unique and each current Claim must belong to the parent's reference
+list. Other responsibility predicates need their actual owner type matrix and
+explicit operation before this narrow command can grow into a family.
+
+<a id="op-doc-native-expression-responsibility-attribution-evidence-is-not-endpoint-metadata"></a>
+#### Attribution evidence is not endpoint metadata
+
+`evidence_refs` and `counterevidence_refs` cite the attribution's declared
+evidence. They are checked against an exact protected allowlist. HTTP(S) URLs
+locate sources; fetching, source reading, reliability and witness independence
+require their own evidence. Several pages from one provider retain that common
+provenance.
+
+The graph carries each external citation as a Claim-specific occurrence. Its
+top-level path, line and canonical hash identify the local citing Claim; the
+literal URL lives in `properties.evidence_ref` with `evidence_kind:
+external_citation`, `resolved: false`, `remote_content_sha256: null` and
+`observation_posture: address_only_not_observed`. Identity includes Claim ID
+and literal URL, not Claim version, so another citing Claim is a separate
+occurrence. The existing graph node schema retains its non-null local source
+hash contract; no remote-content identity or first-class observed Link is made.
+
+The Expression and Agent logical paths, exact record references and raw hashes
+are separately bound by the receipt, parent before-package, Agent packet and
+dependency snapshot. The endpoint metadata paths are not mandatory attribution
+evidence: derived records created from the same report cannot manufacture
+additional grounds for it. Explicit public metadata evidence paths are also
+supported; anchor and other evidence carrier families require their owner route.
+
+<a id="op-doc-native-expression-responsibility-protected-configuration-and-request"></a>
+#### Protected configuration and request
+
+Configuration schema: `tos_local_expression_responsibility_owner_v1`. In
+addition to `uid`, `principal_id`, `maker_type`, `source_root`, `authority_ref`,
+`expires_at` and `allowed_operations`, it names:
+
+- exact `expression_id` / `expression_source_path` and existing `agent_id` /
+  `agent_source_path`;
+- `predicate: translated_by`, new `claim_id`, separate `claim_source_path`,
+  and unique `provenance_event_id`;
+- bounded `allowed_expression_form_ids`, `allowed_claim_form_ids` and
+  `allowed_evidence_refs`.
+
+Requests use `tos_local_expression_responsibility_command_v1`:
+
+1. `describe` returns the exact Expression source/revision/publication, schema
+   and type handles, form-selectable source fields, plus `agent_record` and its
+   explicit logical-path/canonical-reference/raw-byte binding.
+2. `prepare-attach` takes `agent`, `claim`, `forms`, `claim_forms` and `reason`.
+   `agent` is the complete current source Agent packet, checked against the
+   exact catalog locator and source bytes; it does not create or revise Agent
+   truth. `forms` and `claim_forms` are explicit `{form_id, field_id}` selections.
+   Preparation makes no source write and returns the required bindings.
+3. `expression.responsibility.attach` submits the same inputs, `command_id`,
+   returned `prepared_fields` as `fields`, `source` as `expected_source`,
+   `revision` as `expected_revision`, `owner_configuration` as
+   `expected_configuration`, and `expected_dependencies` / `expected_publication`.
+4. `expression.responsibility.recover` requires its current explicit grant,
+   exact `transaction_id`, `decision: resume|rollback`, and
+   `expected_configuration`. A recovery-only renewal cannot start a new Claim.
+
+The selected PostgreSQL backend, exact mutation-replay rule and local-only
+recovery boundary are documented in [source-command discovery](#op-doc-source-command-discovery-selected-postgresql-growth-route).
+
+The command discovers selected records and existing translator Claims through
+exact current catalog routes. Catalog generation is a separate post-publication
+step before the next growth operation. No descendant enumeration is needed.
+
+<a id="op-doc-native-expression-responsibility-shared-publication-and-retained-reading"></a>
+#### Shared publication and retained reading
+
+The adapter uses the same common-lock, selected-metadata publication and
+current-authority recovery as
+[native Work/Expression growth](#op-doc-native-work-expression-growth). Shared
+catalog, form, dependency and lifecycle mechanics live in the native selected
+publication modules under `rust/crates/tos-command/`; each adapter owns its distinct scope, typed
+delta and complete before/after reconstruction. Old Work/Expression receipt
+serialization and historical replay remain unchanged.
+
+The new home retains the exact request, runtime capture, version-2
+serialization provenance and `responsibility-attachment-receipt.json`. This
+unsigned capture records serialization; source reading requires its own
+evidence. The committed transaction establishes the attachment. Current
+authority, expiry and exact dependencies are rechecked during publication and
+recovery; resume and rollback reject an external third state.
+
+Historical verification requires the exact committed attachment plan, immutable
+capture bytes and its transition in the current Expression lineage. A later
+descriptive Agent correction must preserve the original raw bytes in continuous
+owner history; selected corrections additionally require their committed
+transaction. An arbitrary archive or matching ID cannot substitute for that
+history. Ordinary separately delegated Claim correction remains available:
+the existing Claim revision reader must reconstruct the continuous current
+stream from the exact initial compound stream. The initial receipt never
+pretends to certify corrected wording or later assessment.
+The current generic Claim-writer URL branch is limited to descriptive correction
+of such a verified native `translated_by` Claim. It explicitly labels the
+proposed citation binding `candidate_claim`: its hash identifies the proposed
+Claim declaration, not pre-existing source input or remote contents. Non-URL
+writer bindings and older receipt reconstruction remain unchanged. Qualification
+is checked again before publishing the Claim successor; completed attachment
+replay reads that current verified successor while matching its original request.
+
+The foundation validator joins unchanged legacy responsibility streams and
+verified native translator attachments, then checks exact parent/ref closure.
+Source review, attribution and translation judgment, equivalence, rights,
+publication and canon follow their owner routes.
+
+<a id="op-doc-native-expression-responsibility-verification"></a>
+#### Verification
+
+`tests/conformance/rust/command_responsibility_cases.rs`
+exercises the actual adapter and transaction engine on bounded synthetic
+metadata, including current grants, competing assertions, process
+death/recovery, historical raw-byte resolution and independent Claim
+corrections.
+
+<a id="op-doc-native-item-adoption"></a>
+### Native local Item adoption
+
+The native handler `native-item-adoption` uses
+`rust/crates/tos-command/src/source_item_adoption.rs` through the
+`tos-native-owner-command source-commands` front door. It adds `item.adopt` and
+`item.adoption.recover` and adopts one **already obtained
+local file**, creates one provisional acquired Item and distinct
+`exemplified_by` Claim, and appends the existing Edition's
+`exemplar_claim_refs` with one version/form successor. Acquisition, text
+processing, source assessment, rights and publication use their dedicated
+routes. Artifact and scholarly Composite representations also retain their own
+routes; the corpus supports each declared bibliographic topology.
+
+<a id="op-doc-native-item-adoption-exact-delegation"></a>
+#### Exact delegation
+
+The protected owner configuration uses `tos_local_item_adoption_owner_v1`.
+`--discover --handler native-item-adoption` exposes operation/request shapes
+without selecting a grant. Configuration keys are exactly:
+
+- Common metadata authority: `uid`, `principal_id`, `maker_type`, `source_root`,
+  `authority_ref`, `expires_at`, `allowed_operations`, `schema_version`.
+- Existing `edition_id`, `edition_source_path`; new `item_id`,
+  `item_source_path` (`<edition-home>/items/<slug>/item.json`), `claim_id`,
+  `provenance_event_id`; `allowed_edition_form_ids`, `allowed_item_form_ids`,
+  `allowed_claim_form_ids` (distinct bounded form sets).
+- Exact File: `file_id`, `payload_basename`, `original_basename`, `media_type`,
+  `byte_size`, `sha256` (bare 64 hexadecimal digits).
+- Separate source records: `rights_id`, `acquisition_event_id`,
+  `inventory_event_id`. All three event IDs must differ.
+- Separate local-copy authority: `input_path`, `payload_root`,
+  `payload_authority_ref`, `payload_expires_at`, `recovery_root`.
+
+All roots and input are canonical absolute, protected, owner-selected paths.
+`source_root` is the metadata checkout. `payload_root` is the canonical
+**source-witnesses directory**, not a repository root; no request or worktree
+default may choose it. Destination is exactly
+`payload_root / item-home-relative-to-ToS/source-witnesses / payload / payload_basename`.
+The independent original input remains untouched. The existing Item manifest
+v1 and legacy `payload/<basename>` grammar remain unchanged.
+
+`recovery_root` is an existing account-owned mode-0700 directory outside the
+metadata checkout, canonical source checkout/payload root and input. Its
+mode-0700 `<transaction-sha256>/` companion contains a mode-0600
+`item-deposit.json`. This is private continuation for the **same transaction
+identity**, not another registry or authority. No absolute input/root paths,
+copy-inode/ancestor pins, raw private grant or credentials enter the tracked source
+transaction journal, public request, human forms or receipt. Recovery requires
+the same explicit private companion; missing evidence is not reconstructed
+from a same-hash destination.
+
+Both metadata and payload authority expire. The Unix account must match the
+grant. A grant is scoped transport permission, not copyright permission;
+acquisition, retention, processing and public redistribution remain distinct.
+
+<a id="op-doc-native-item-adoption-request-sequence"></a>
+#### Request sequence
+
+Requests use `tos_local_item_adoption_command_v1`.
+
+1. `describe` reports the exact selected Edition/version and handler grammar.
+2. `prepare-create` supplies `record` (new Item), `claim`, `rights`, `item_kind`,
+   `forms` (all current Edition source-copy forms), `item_forms`, `claim_forms`,
+   and `reason`. It reads/hash-checks the already obtained file and enumerates
+   supported resources, but writes neither bytes nor metadata.
+3. Keep that proposal unchanged, set `operation: item.adopt`, choose a stable
+   `command_id`, and copy `prepared_fields` into `fields`, `source` into
+   `expected_source`, `revision` into `expected_revision`,
+   `owner_configuration` into `expected_configuration`. Copy returned
+   `expected_dependencies`, `expected_publication`, `inventory`,
+   `inventory_limitation`, and `fixity_verified_at` verbatim.
+4. An explicit `item.adoption.recover` selects `transaction_id`, `decision`
+   (`resume` or `rollback`) and the **current** `expected_configuration`.
+   Exact-root/ID/input renewal may permit recovery but never new adoption.
+
+The Item is version 1, `provisional`, with `no_equivalence_claim`, no
+supersession, unverified identity variants, and exact `item_manifest_ref`.
+The Claim is an initial positive, unreviewed, observed public-metadata
+`bibliographic_assertion`; its evidence is exactly the Edition and Item record
+paths. “Observed” denotes the declared record link, not accepted bibliography.
+Standalone/generic Claim creation or correction cannot bypass the compound
+handler, including when the separate payload root leaves a flat Item metadata
+package. Changing this native topology Claim needs its compound owner route.
+
+This handler serializes the supplied local-only rights record for the exact
+Item/File: unreviewed status, empty permissions and layer clearances,
+`not_authorized` redistribution and `local_research_only` derivatives.
+Rationale and source references remain attributed to their supplier. Rights
+assessment follows the rights-owner route.
+
+<a id="op-doc-native-item-adoption-two-stages-not-cross-root-atomicity"></a>
+#### Two stages, not cross-root atomicity
+
+The byte stage hashes a stable no-symlink input descriptor and ancestor chain,
+streams within the exact byte-size bound (hard ceiling 512 MiB), verifies the
+original again, fsyncs and publishes with Linux `renameat2(RENAME_NOREPLACE)`.
+The destination must be absent; equal hashes never authorize adopting a
+foreign inode. A bound partial prefix may resume, while unbound/replaced
+partials or changed ancestors fail closed. No byte or original is deleted by
+rollback. A crash after file publication is recoverable through the retained
+inode and fixity binding.
+
+Only after a completed copy and available inventory does the adapter publish
+the Edition delta plus Item metadata through the existing
+[selected metadata protocol](README.md#selected-metadata-publication-and-recovery). Its explicit
+v2 path profile permits only exact Item siblings `fixity.sha256` and
+`forensic-report.md` in addition to ordinary selected JSON/JSONL. Legacy v1
+transaction grammar stays unchanged. The Item manifest, rights, provenance,
+resource inventory, forms, request/runtime captures and compound receipt are
+metadata; payload bytes never enter selected blobs. Colocated payload-bearing
+ancestors are not metadata rollback directories.
+
+`item-deposit-receipt.json` exposes only bounded source-safe File identity,
+fixity, separate actual observation and copy intervals, original/configuration digest, private-stage digest
+and optional renewed-configuration digest. It explicitly does not attest a
+metadata commit. The compound transaction separately binds its exact bytes.
+The initial observation interval is retained once and supplies the forensic
+inventory event; replay/recovery verification does not rewrite that interval.
+The private state may say `prepared`, `copying`, `deposited`, or
+`rolled-back-retained`; partial/deposited-only states are not acquired Items.
+Rollback of an already committed adoption is rejected without changing stage,
+source or publication state. Reversing acquired metadata needs another owner
+operation, not recovery.
+
+The original native inventory profile is bounded EPUB: at most 2048
+members, 1 MiB central-directory bytes, 16 MiB per expanded member and 64 MiB
+total expansion, and 256 KiB serialized inventory; ordinary single-disk ZIP
+using only STORED or DEFLATED compression, no duplicate/unsafe members or
+encryption. Other codecs are rejected before decoder creation (an LZMA member
+can otherwise request a large dictionary before expanded-byte checks).
+Actual member streams are bounded before invoking the existing
+`build_file_inventory` enumerator. It emits resource structure, counts and one-way fingerprints. Source text
+remains with the acquired File.
+
+Inventory generator version 2 uses a concise purpose statement. Retained version-1
+receipts reconstruct their original descriptive bytes through the explicitly
+versioned producer; current source construction emits version 2.
+
+The separate `plain_utf8_file_v1` profile supports `text/plain` and
+`text/markdown` up to 128 KiB. It enumerates one complete inert file with exact
+raw-byte fixity and extent, strict UTF-8 encoding/BOM, code-point count
+(including any BOM), CRLF/lone-CR/lone-LF counts, terminal newline and observed
+Unicode normalization form/version. Nothing normalizes, renders, executes,
+follows links, expands Markdown includes, extracts language units or outputs
+source text. Invalid encoding, NUL-bearing, empty and over-budget files are
+outside this profile. Raw bytes remain with the acquired File; normalized or
+segmented text requires a separate source event.
+
+Other formats, unsupported ZIP profiles
+and parse/budget failures return an explicit limitation, retain the copied
+file and private continuation, and create **no acquired Item metadata**. The
+next owner is the inventory profile route; no fake empty inventory is emitted.
+
+Before mutation/recovery, current authority, exact metadata snapshot, grammar,
+implementation and source dependencies are checked again. Item IDs, File
+ownership and Edition backlinks are read from catalog-bound Item manifests
+(bounded to 96 current Items), not inferred from a directory or a nonexistent
+File catalog. Readers preserve exact Edition and older Expression/Edition
+compound history; stable identity never implies bibliographic or textual truth.
+
+The same Unix-account trust boundary remains: hashes and unsigned local
+receipts detect mismatches, not malicious self-forgery by that account. The command's transaction covers the selected Item package. Execution
+assessment, payload resolution, legacy migration, publication and source
+review follow their respective owner routes.
+Catalog/derived regeneration, wider validation, checkpoint review and landing
+remain separate owner steps. A first Item adoption may target an Edition whose
+predecessor has no `source-revision-history.json`; the first `item.adopt`
+transition creates that history. Any history already present is checked before
+the adoption proceeds. PG recovery accepts exactly the two-member record/forms
+predecessor or the three-member record/forms/history predecessor; fixity and
+receipt checks remain exact, and committed successors still require history.
+
+Before source-foundation closure, create the
+new Item's exact future-server plan under
+`ToS/source-witnesses/server-import/plans/` and its provenance in the existing
+`server-import/provenance.jsonl`, following `SERVER_IMPORT_PROTOCOL.md`.
+The plan covers the committed manifest and rights digests; current local
+Items remain metadata-only with payload transfer and content-bearing server
+derivatives prohibited. This owner companion is not part of the adoption
+transaction and must not alter its committed bytes or imply server upload.
+
+<a id="op-doc-native-item-adoption-current-claim-projection-after-revisions"></a>
+#### Current Claim projection after revisions
+
+The retained `edition-item-receipt.json` and the original adoption transaction
+remain immutable evidence for the Item's first Edition backlink. A current
+read-only Claim projection must not reinterpret that historical 3-member
+Edition and 15-member Item package as the current package after later record
+revisions.
+
+The V2 current projection verifies the complete retained Edition and Item
+history with the record-revision owner, including each predecessor archive,
+its exact prefix and selected bytes. It locates the one Edition `item.adopt`
+transition bound by the compound receipt, then reconstructs the adopted
+Edition output from the next transition's predecessor archive (or the current
+tip when adoption is still the tip) and the adopted Item v1 from its first
+ordinary-revision archive (or the current Item when it remains v1). The strict
+V1 adoption contribution is derived from those original packages without
+rewriting the receipt.
+
+Current Edition and Item tips are carried separately, with exact member
+digests and their full revision chains. The current Item history member is
+optional only for an unrevised Item v1. This keeps the historical transaction
+closure and present-day source binding independently reviewable in both full
+and streamed inventory routes.
+
+<a id="op-doc-native-object-link-growth"></a>
+### Native object-Link growth
+
+`object.link.create` publishes one native Link and one qualified association
+Claim in separate new source homes under one selected-metadata transaction.
+The existing subject is read-only: Work, Expression, Edition, Collection, Item
+or physical Artifact. An Artifact retains `artifact_id` and its native witness
+schema; it is never recast as a CorpusRecord or an ArtifactLink entity.
+
+The independent owner grant is `tos_local_object_link_create_owner_v1`.
+It specifies the exact source subject ID/path/type, new Link and Claim IDs and
+paths, one predicate, provenance event ID, URI, observation ref, disjoint Form
+allowlists, evidence allowlist, account, maker, principal, authority and expiry.
+It grants `object.link.create` and optionally `object.link.recover`. Existing
+Corpus, flat Claim and descriptive-revision grants gain no creation power.
+
+Commands use `tos_local_object_link_command_v1`:
+
+- `describe` exposes the exact selected scope and supported source contracts.
+- `prepare-create` takes `subject`, `link`, `claim`, `forms`, `claim_forms` and
+  a bounded authored `reason`. It binds the current catalog, subject bytes,
+  metadata evidence, grammar and implementation; it writes nothing.
+- `object.link.create` adds `command_id`, `expected_configuration`,
+  `expected_dependencies` and `expected_publication` from preparation.
+- `object.link.recover` selects an exact pending `transaction_id`, an explicit
+  `resume` or `rollback` decision and the current `expected_configuration`.
+  Renewal does not rewrite the original maker or capture. Changed dependencies,
+  a mismatched scope or foreign third-state bytes prevent either action.
+
+The selected PostgreSQL backend, exact mutation-replay rule and local-only
+recovery boundary are documented in [source-command discovery](#op-doc-source-command-discovery-selected-postgresql-growth-route).
+
+New homes are exactly `ToS/source-witnesses/links/<home>/link.json` and
+`ToS/source-witnesses/relations/<home>/source-claims.jsonl`. Each has its own
+source-copy Forms. The Claim home retains immutable request, runtime,
+serialization provenance and compound receipt. The publication write set
+consists of those new homes. Shared [selected transaction
+mechanics](README.md#selected-metadata-publication-and-recovery) own byte movement and reader
+barriers; source-visible assessment evaluates the association.
+
+`tos_source_link_v1` stays unchanged. New association Claims use the additive
+[`tos_object_link_claim_v2`](../../ToS/contracts/object-link-claim-v2.schema.json)
+contract on the existing shared SourceClaimRecord. The four exact reified
+predicates are `described_by`, `metadata_at`, `downloadable_at` and
+`rights_statement_at`. Their domain is the six subject types above and their
+range is Link; the older direct source-navigation `link-access` projection
+and `tos_object_link_claim_v1` remain intact.
+
+The Claim carries `forensic_observation` as its layer and a caller-authored
+qualified statement with language, script, link role and explicit
+`availability_is_rights_conclusion: false`. It records the supplied
+observation and its evidence. Source URLs locate material; remote observation
+requires a separate execution record. Rights-statement links point to the
+rights basis, which the rights owner assesses. Source assessment, equivalence,
+publication and canon follow their respective owner routes.
+
+Independent native Link revision changes only its allowed descriptive fields;
+URI, observation, identity, association and original provenance remain fixed.
+The exact current and historical Link versions use MetadataVersionReader.
+The qualified Claim uses the ordinary Claim correction/Form/history route;
+its native compound origin and qualification must remain verifiable. Old Form
+and source versions stay historical, not current assessments. A forged receipt,
+partial capture, missing creation baseline or uncommitted correction is not
+accepted as a native origin.
+
+After successful creation, correction or rollback, rebuild source-owned
+derived catalogs before preparing a new catalog-dependent operation.
+Historical retry returns the exact original receipt. Indexing and graph
+projection consume the resulting source metadata through their own builders.
+
+Focused validation:
+`tests/conformance/rust/command_object_link_cases.rs`, shared discovery,
+Claim/metadata history tests, source-witness foundation and the explicit
+semantic-registry transition baseline. All fixtures are synthetic; green
+mechanics never constitutes a real source assessment or rights acceptance.
+
+<a id="op-doc-native-work-expression-growth"></a>
+### Native Work / Expression growth
+
+The native handler `native-work-expression` is implemented by
+`rust/crates/tos-command/src/source_native_work_cli.rs` and
+`rust/crates/tos-command/src/source_work_expression.rs`. It is the separately
+delegated owner adapter for one current native Work, one newly named child
+Expression and one explicit `has_expression` Claim. Its command is dispatched
+through the `tos-native-owner-command source-commands` front door. Shared
+catalog/form/dependency and publication lifecycle mechanics live in the native
+selected-publication modules; typed scope and retained reconstruction remain
+with this adapter. [Expression responsibility attachment](#op-doc-native-expression-responsibility)
+uses that same transport with its own separate delegation and attribution law.
+The `has_expression` source reader profile is not a standalone creation or
+revision grant: ordinary public and private Claim writers refuse that predicate.
+
+<a id="op-doc-native-work-expression-growth-scope-and-source-law"></a>
+#### Scope and source law
+
+The parent keeps every authored field and existing list order. Its version
+advances exactly once and `expression_claim_refs` appends the exact new Claim.
+Only its record, human forms and revision history are selected; nested sources,
+unrelated companions and payloads are neither enumerated nor changed.
+
+The caller supplies an initial version-1 provisional Expression, explicit Work
+backlink, language and expression role, unverified identity variants, and
+empty responsibility, embodiment and derivation bindings. The Claim starts as
+positive, observed, unreviewed public metadata. Its observation scope is the
+declared record link. The caller supplies the qualified statement and exact
+two metadata evidence paths. Bibliographic assessment, equivalence and
+downstream use follow their owner routes.
+
+Every current parent source-copy form is explicitly rebound with its own
+successor; old forms remain retained. New Expression name and Claim statement
+forms are explicit source copies. Their language follows the exact field's
+declaration, not `Expression.language`. Authored non-source-copy parent forms
+require another explicit owner rebind route and fail closed here.
+
+<a id="op-doc-native-work-expression-growth-delegation-and-commands"></a>
+#### Delegation and commands
+
+The protected local owner configuration uses
+`tos_local_work_expression_owner_v1`. It names the local account, principal,
+maker, source root, authority, expiry and exact allowed operations, plus:
+
+- `work_id` and canonical `work_source_path`;
+- `expression_id` and an exact `expressions/<slug>/expression.json` child path;
+- `claim_id` and `provenance_event_id`;
+- separate bounded `allowed_work_form_ids`, `allowed_expression_form_ids` and
+  `allowed_claim_form_ids`, distinct across the three subjects.
+
+Requests use `tos_local_work_expression_command_v1`:
+
+1. `describe` returns the selected parent, exact revision and publication token,
+   existing Work/Expression/Claim `source_profiles` with owner type/schema
+   handles, and the current Work `source_fields` for explicit form selection.
+2. `prepare-create` validates `record`, `claim`, `forms`, `expression_forms`,
+   `claim_forms` and `reason` without a source write. It returns the exact parent
+   fields and source, revision, configuration, dependency and publication
+   bindings needed by the next command.
+3. `work.expression.create` supplies those same authored inputs, `command_id`,
+   prepared `fields`, `expected_source`, `expected_revision`,
+   `expected_configuration`, `expected_dependencies` and `expected_publication`.
+4. `work.expression.recover` names the exact pending transaction, an explicit
+   `resume` or `rollback` decision and current `expected_configuration`.
+   A recovery-only renewal does not authorize new creation.
+
+The selected PostgreSQL backend, exact mutation-replay rule and local-only
+recovery boundary are documented in [source-command discovery](#op-doc-source-command-discovery-selected-postgresql-growth-route).
+
+Configuration is not embedded in public evidence. The immutable request and
+receipt do retain the bounded public authority reference and principal; private
+owner paths, credentials and private source content must not be placed there.
+
+<a id="op-doc-native-work-expression-growth-publication-recovery-and-historical-evidence"></a>
+#### Publication, recovery and historical evidence
+
+The adapter binds exact catalog routes and the selected current Work's existing
+forward/backlink closure. The catalog must bind the current participating
+publication token. The adapter does not scan descendants to discover sources.
+All new or resumed mutations recheck current delegation, expiry, contracts,
+implementation and selected dependency bytes throughout publication.
+
+The parent three-file delta and every new child metadata/form/capture/receipt
+file use the shared selected-metadata transaction protocol. That protocol
+publishes a pending barrier before file replacement: participating readers fail
+closed until exact completion or rollback. Recovery reconstructs the complete
+retained before/after plan from its original request, not an arbitrary caller
+plan. Changed third-state files are never overwritten by recovery. See
+[the selected transaction contract](README.md#selected-metadata-publication-and-recovery).
+
+The parent before-package is retained in the exact record-revision archive,
+with committed publication required for admission to history. The child
+retains its request, runtime description, version-2 serialization provenance
+and compound receipt. The unsigned provenance captures prepared buffer
+serialization; a separate check verifies the committed transaction. Execution
+authentication, historical correctness and source acceptance require their own
+evidence.
+
+An exact retry of a completed request observes its committed operation without
+reapplying its former catalog dependency guard: later catalog regeneration or a
+sibling addition does not invalidate a retained exact receipt. Current scope,
+expiry and typed continuous lineage still apply. Historical reader admission
+requires committed publication, exact immutable Claim/capture bytes, the parent
+transition in current verified history and the original Expression bytes in
+its current record or verified retained successor archive.
+
+Foundation closure joins the three legacy topology streams with verified
+native `has_expression` carriers and separately delegated [`embodied_by`
+carriers](#op-doc-native-expression-edition-growth). Each legacy event retains its
+original stream digests and batch counts. Revised public metadata inputs
+resolve by original logical path and exact raw digest through committed
+source-owner history. Current global closure checks both carrier families,
+including duplicate pairs and one-Work-per-Expression.
+
+<a id="op-doc-native-work-expression-growth-verification-and-limits"></a>
+#### Verification and limits
+
+The synthetic tests live in
+`tests/conformance/rust/command_work_cases.rs` and the pure
+closure boundary in `rust/crates/tos-compiler/src/source_bibliographic.rs`. They exercise
+the actual command, transaction transport, protected reader, restart and
+recovery on bounded temporary metadata, never historical source mutation.
+
+Translation assessment, printing identification, Edition/Item creation,
+rights, publication, semantics and canon use their respective owner routes.
+Catalog regeneration and downstream validation follow source publication
+before wider use of the new records.
+
+<a id="op-doc-source-command-discovery"></a>
+### Source-command discovery
+
+Ask the existing source-command front door what it implements before selecting
+any protected delegation or source target:
+
+```sh
+tos-native-owner-command source-commands --discover
+tos-native-owner-command source-commands --discover --handler native-expression-responsibility
+```
+
+The Rust API is `tos_command::source_native_cli::discover_commands(handler)`.
+An optional handler ID selects one exact handler from the complete catalogue.
+Unknown selectors and additional CLI arguments refuse. Discovery ignores stdin
+and takes no owner configuration or invocation. Execution uses the separate
+`source-commands --invocation ABSOLUTE_PATH` entry and its protected inputs.
+HTTP `GET /commands/catalog` uses the same function under the listener's
+existing request authentication.
+
+<a id="op-doc-source-command-discovery-meaning-of-the-result"></a>
+#### Meaning of the result
+
+`tos_source_command_discovery_v1` contains the connected handler IDs, owner
+configuration schema tags, request schema tags, owner routes, definitions,
+typed source schema/profile handles, preconditions and operation shapes.
+`handler_count` counts the returned handlers, not currently authorized grants.
+
+Each `request_shape` is an exact top-level JSON Schema: required fields,
+constant envelope/operation tags and `additionalProperties: false`. Empty
+property schemas delegate nested validation to the named handler and its typed
+contracts. Profile handles point to the canonical type/relation registries.
+Discovery exposes those handles; execution loads applicable contracts and
+checks the independently issued writer grant.
+
+`mutation` names the operation's possible source effect under an independently
+valid grant. `none` means the command does not publish source changes; the
+ordinary delegated `describe`/preparation/version commands may still read
+protected inputs and require configuration. `delegated_operation_names` names
+the grant vocabulary that the handler checks, not a set of permissions held
+by the current caller. Form batches check each actual form operation.
+
+The result always says `implemented_capabilities_not_authorized_now`,
+`authorization_status: not_evaluated` and `grants_admission: false`. It does not
+check or reveal account authority, grants, expiry, private contexts, targets,
+source text, current versions, identity availability, rights or admission.
+Execution still requires its separate current owner configuration and the
+handler's full scope, version, dependency, idempotency and recovery checks.
+For `sign.promote`, obtain independent assessment admission first.
+
+<a id="op-doc-source-command-discovery-one-implementation-grammar"></a>
+#### One implementation grammar
+
+The authored packaged descriptor is
+`rust/crates/tos-command/src/source_command_catalog.json`. Rust CLI and HTTP
+embed it directly. Each entry names the native implementation that owns
+execution and nested validation; descriptor edits accompany a change to that
+owner's grammar. Discovery describes the connected implementation and supplies
+no delegation. The former Python descriptor builder is retired.
+
+Currently connected families include public source/Claim forms;
+historical, declared-profile and standalone native creation; Sign promotion;
+public record and Claim correction; selected native correction/recovery;
+private TextUnit, metadata-profile and Claim transport; native Work/Expression
+growth; qualified Expression translator attachment; and separately delegated
+[Expression/Edition growth](#op-doc-native-expression-edition-growth). Distinct owner-schema
+versions retain their actual typed-value and recovery boundaries.
+
+The separately selected [private native extraction and first-segmentation
+route](README.md#private-native-textlayer-and-first-textunit-construction) exposes `owner-local-text-layer-create`
+and adds the v2 layer-only input to `owner-local-text-unit-create`. Discovery
+lists implemented grammar only, never an existing source, usable payload,
+private selector/slot, current grant, rights decision or accepted TextLayer.
+The same route's separate `owner-local-text-layer-derive` handler exposes
+correction, Unicode normalization and recording supplied OCR/transcription.
+One independent grant chooses one operation; reported upstream methods are not
+provider execution receipts and new layers do not inherit prior quality.
+
+The translation-alignment owner exposes its [native record
+route](README.md#confidential-native-translation-alignment) through
+`owner-local-native-translation-alignment`: exact private create/revise,
+metadata-only version inspection and retained native recovery. Alignment
+subject identity, descriptive record and Claim versions each retain their own
+role. The operation captures supplied mappings; aligner execution and
+translation assessment require their respective evidence. Packet-v1 review
+semantics remain unchanged.
+
+<a id="op-doc-source-command-discovery-selected-postgresql-growth-route"></a>
+#### Selected PostgreSQL Growth route
+
+The same native front door accepts a separately configured
+`tos_local_pg_growth_invocation_v1` invocation for these maintained Growth
+owners: Work/Expression, Expression/Edition, Expression responsibility,
+Collection membership, ObjectLink and Sign promotion. PG Sign requires its v2
+owner configuration and a separately protected Assessment owner v5/v6. Their
+`describe` and `prepare-*`
+operations read and validate the selected, fenced PostgreSQL/STO source
+revision without publishing a change. Their mutation operation commits the
+owner package and its source indexes in that PostgreSQL revision; it does not
+publish a local filesystem transaction or mirror the PG change into local
+authored files.
+
+The local `*.recover` operations remain available only through the local
+filesystem owner route. PostgreSQL recovery is exact replay of the original
+mutation command: retry the same request with the same `command_id`. A PG
+invocation does not accept the local transaction-ID/resume/rollback request.
+The compatible legacy Sign v1 owner remains on its existing local filesystem
+route; PG Sign uses the v2 protected Assessment history guard and typed commit
+package. Backend selection does not broaden owner grants or replace assessment,
+rights, publication or canon authority.
+
+The distinct `owner-local-text-layer-record-owner-ocr` handler records one
+authenticated signed OCR result under a separate protected grant.
+ToS verifies the pinned signer and exact receipt natively without producer code,
+interpreter selection or OCR execution;
+copied signed metadata remains independently verifiable without reading text.
+The distinct `owner-local-text-layer-record-owner-page-ocr` handler retains
+the original PDF identity and separately pinned retained page image, authenticates
+the owner's new execution/capture receipt and never claims a fresh render.
+Neither handler grants image disclosure or textual quality.
+
+Assessment-journal and semantic-registry evolution use their explicit owner
+routes. Access CLI, HTTP, WebMCP and native MCP retain read-only access
+contracts. Source commands execute through the separately configured
+source-owner front door.
+
+<a id="op-doc-source-command-discovery-verification-and-limits"></a>
+#### Verification and limits
+
+Discovery reads the packaged descriptor and performs no owner/configuration,
+source-target, credential, clock or network reads and writes no source files.
+Its output is deterministic for the loaded implementation, with no target
+currentness or remote/runtime availability claim.
+
+The native catalogue regression checks all handler selectors and the shared
+authority boundary. Family conformance owns request validation, authority,
+byte history, conflict, replay and recovery. Existing committed receipts keep
+their historical request and serialization meaning; a preparation whose
+implementation dependencies changed must be renewed.
+
+<a id="op-doc-source-command-discovery-bonsai-candidate-handoff"></a>
+#### Bonsai candidate handoff
+
+`bonsai/lib/source-requests.mjs` forms a native `prepare-create` request from
+an explicitly selected, already typed candidate and its source-copy forms. It
+forms the write request only from the owner's returned configuration,
+dependency and source bindings. The caller selects the exact protected owner
+invocation and current source cut for each operation, records the completed
+request and receipt for exact replay, and separately handles assessment. It
+neither builds a cut nor invents grants, source bindings, Tree identities,
+TextUnit records or review decisions. The lossless bonsai philosophy export
+contains stand material, not native source records; its transformation to typed
+candidates requires source-qualified identity and text bindings.
+
+The same adapter can prepare an Occurrence from a unit-scoped stand use once
+the caller supplies its exact native TextUnit binding, source references and
+form ID. It refuses a binding to a different unit or a missing layer and
+retains the original stand use, its review and token count. Its default is
+local-only; the selected owner still checks the binding, rights and visibility.
 
 ## Native TextLayer operation contracts
 
