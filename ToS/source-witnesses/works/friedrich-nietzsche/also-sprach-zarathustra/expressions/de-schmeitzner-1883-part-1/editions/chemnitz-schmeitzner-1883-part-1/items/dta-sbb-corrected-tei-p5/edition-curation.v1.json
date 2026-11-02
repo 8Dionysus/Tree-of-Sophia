@@ -272,6 +272,101 @@
       },
       "historical_template_ref": "rust/crates/tos-compiler/src/research_morphology_theme_suffixes.json",
       "historical_template_sha256": "1924bbaa00f2287cb32c92bbcfc66e72408c1b66e4c4a565f7b01a27fb307c29"
+    },
+    {
+      "stage": "lexical-morphology-evaluation",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5"
+      ],
+      "plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-evaluation-plan.v1.json",
+      "plan_sha256": "6075b2926b49c4b79b0a186e5338eaa7dd33e847ea1b38b322ef3403dcfcd4c5",
+      "retained_artifacts": [
+        {
+          "role": "receipt",
+          "sha256": "b37d789ae4e9439565acc8bc9fb91028cee7943f8ff99a515a75e85a9ffa6d83"
+        }
+      ],
+      "row_fields": [
+        "schema_version",
+        "form_key",
+        "exact_form",
+        "exact_form_sha256",
+        "normalized_form_sha256",
+        "occurrence_count"
+      ]
+    },
+    {
+      "stage": "lexical-recurrence",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5"
+      ],
+      "plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/recurrence-plan.v1.json",
+      "plan_sha256": "e1b4345122777ff2cbbd2f6c3ff41061983fe1bf7f71ac1db5a0260d48138a3d",
+      "retained_artifacts": [
+        {
+          "role": "projection",
+          "sha256": "7b5ecdd8dc9f3911bbf25a29da1c820d836b26502a4e925e89baf39bde011edb"
+        },
+        {
+          "role": "event",
+          "sha256": "edda5ab455924ddbe7ad9ff321f637d5028e91389f72e3bacd314a1d815eaafc"
+        }
+      ]
+    },
+    {
+      "stage": "lexical-usage-context",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5"
+      ],
+      "plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/usage-context-plan.v1.json",
+      "plan_sha256": "208e271d9fbb4fec6604a99e2b7589b432506c180b108437004d3e5eac82d81a",
+      "retained_artifacts": [
+        {
+          "role": "receipt",
+          "sha256": "2c0b0cb5cd36bee49a12f9c6c6452383e121b000fa556e99b73bbb9082a76a19"
+        },
+        {
+          "role": "event",
+          "sha256": "a322010940c12055066cf7a283f6bdc5271b50e30170ad55ec3c33036b2d65fe"
+        }
+      ],
+      "row_fields": [
+        "schema_version",
+        "context_id",
+        "question_id",
+        "form_key",
+        "exact_form_sha256",
+        "occurrence_id",
+        "item_ref",
+        "part_order",
+        "source_file_sha256",
+        "token_ordinal",
+        "page_resource_id",
+        "section_resource_id",
+        "text_node_path",
+        "start_offset",
+        "end_offset",
+        "editorial_status",
+        "target_exact_form",
+        "left_exact_tokens",
+        "right_exact_tokens",
+        "left_token_count",
+        "right_token_count",
+        "requested_window_each_side",
+        "page_start_clipped",
+        "page_end_clipped",
+        "source_database_sha256",
+        "authority"
+      ]
     }
   ]
 }
