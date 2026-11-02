@@ -12,6 +12,20 @@
       "stage": "recipe-reference",
       "curation_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/edition-curation.v1.json",
       "recipe_stage": "text-collation"
+    },
+    {
+      "stage": "visual-retrieval-result",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution-2007.operator-pdf",
+        "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf"
+      ],
+      "plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/visual-retrieval-plan.v1.json",
+      "plan_sha256": "27e142883d4385b8b69857ab7ebcbee7facb16454e54649ef6ed1df15e3b7c25",
+      "receipt_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/visual-retrieval-result.c-qwen3-vl-embedding-2b.v1.json",
+      "historical_receipt_sha256": "9e07d5581e600220efa885aeddc3c5870e5669b4a68d80f72e7ac92e1906e7da",
+      "sample_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/ocr-visual-samples.json",
+      "sample_plan_sha256": "3fd111023cf2ffdbee935d771f36f314d8087677d57e9ef34a64e19e27ddae06"
     }
   ]
 }
