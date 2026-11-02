@@ -1173,6 +1173,47 @@ pub(crate) fn selected_candidate_schema_from_context(
     Ok(executor)
 }
 
+/// Select the exact local contract resources used by the native Text callers.
+pub(crate) fn selected_text_schema_resources(
+    files: &[cmd::SourceFile],
+) -> SourceCommandResult<Vec<(String, SchemaResource)>> {
+    let mut selected = Vec::new();
+    let mut paths = BTreeSet::new();
+    for file in files.iter().filter(|file| {
+        file.path.as_str().starts_with("ToS/contracts/")
+            && file.path.as_str().ends_with(".schema.json")
+    }) {
+        if selected.len() >= 128 || file.raw.len() > 4 * 1024 * 1024 {
+            return Err(SourceCommandError::Invalid(
+                "record revision selected schema budget",
+            ));
+        }
+        let parsed = cmd::parse(&file.raw)?;
+        let uri = cmd::text(&parsed, "$id")?.to_owned();
+        if uri != format!("https://tree-of-sophia.local/{}", file.path.as_str())
+            && uri != format!("https://treeofsophia.local/{}", file.path.as_str())
+        {
+            return Err(SourceCommandError::Invalid(
+                "record revision schema identity",
+            ));
+        }
+        let path = file.path.as_str().to_owned();
+        if !paths.insert(path.clone()) {
+            return Err(SourceCommandError::Invalid(
+                "duplicate selected schema resource",
+            ));
+        }
+        selected.push((
+            path,
+            SchemaResource {
+                uri,
+                raw: file.raw.clone(),
+            },
+        ));
+    }
+    Ok(selected)
+}
+
 pub(crate) fn selected_schema_from_context(
     invocation: &Value,
     files: &[cmd::SourceFile],
@@ -1190,37 +1231,12 @@ pub(crate) fn selected_schema_from_context(
         capped(budgets, "worker_address_space_bytes", 1_073_741_824)?;
     let mut contracts = BTreeMap::new();
     let mut resources = Vec::new();
-    for file in files.iter().filter(|file| {
-        file.path.as_str().starts_with("ToS/contracts/")
-            && file.path.as_str().ends_with(".schema.json")
-    }) {
-        if resources.len() >= 128 || file.raw.len() > 4 * 1024 * 1024 {
-            return Err(SourceCommandError::Invalid(
-                "record revision selected schema budget",
-            ));
-        }
-        let parsed = cmd::parse(&file.raw)?;
-        let uri = cmd::text(&parsed, "$id")?.to_owned();
-        if uri != format!("https://tree-of-sophia.local/{}", file.path.as_str())
-            && uri != format!("https://treeofsophia.local/{}", file.path.as_str())
-        {
-            return Err(SourceCommandError::Invalid(
-                "record revision schema identity",
-            ));
-        }
-        let path = file.path.as_str().to_owned();
-        if contracts
-            .insert(path, (uri.clone(), Digest256::of_bytes(&file.raw)))
-            .is_some()
-        {
-            return Err(SourceCommandError::Invalid(
-                "duplicate selected schema resource",
-            ));
-        }
-        resources.push(SchemaResource {
-            uri,
-            raw: file.raw.clone(),
-        });
+    for (path, resource) in selected_text_schema_resources(files)? {
+        contracts.insert(
+            path,
+            (resource.uri.clone(), Digest256::of_bytes(&resource.raw)),
+        );
+        resources.push(resource);
     }
     CutWorkerSchemaExecutor::from_selected_resources(
         source_revision,

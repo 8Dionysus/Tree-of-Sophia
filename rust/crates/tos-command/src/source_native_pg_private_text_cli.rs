@@ -38,7 +38,7 @@ use std::io::Read;
 use std::path::Path;
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
-use tos_foundation::{Digest256, JsonValue, RelativePath, SourceRevision};
+use tos_foundation::{Digest256, JsonValue, RelativePath};
 use tos_segment_store::SegmentStore;
 use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::source_cut::CutSchemaExecutor;
@@ -89,6 +89,68 @@ struct SelectedEpoch {
     source_audit_generation: u64,
     rights_version: u64,
     rule_version: u64,
+}
+
+fn selected_text_schemas(
+    files: &[cmd::SourceFile],
+    epoch_identity: (Digest256, Digest256),
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<
+    tos_validation::source_cut::InProcessCandidateSchemaExecutor<(Digest256, Digest256)>,
+> {
+    tos_validation::source_cut::InProcessCandidateSchemaExecutor::from_selected_source_resources(
+        epoch_identity,
+        super::revisions::selected_text_schema_resources(files)?,
+        tos_validation::FormatProfile::LegacyPythonObserved20260923,
+        tos_validation::in_process::InputMode::SerdeNormalized,
+        deadline,
+        cancelled,
+    )
+    .map_err(|_| SourceCommandError::Denied("PostgreSQL private Text schema selection"))
+}
+
+#[cfg(test)]
+mod selected_schema_tests {
+    use super::*;
+    use tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding;
+
+    #[test]
+    fn selected_pg_text_schemas_keep_epoch_identity_and_validate_exact_contract() {
+        let path = "ToS/contracts/example.schema.json";
+        let raw = br#"{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://tree-of-sophia.local/ToS/contracts/example.schema.json","type":"integer"}"#;
+        let file = cmd::SourceFile {
+            path: RelativePath::parse(path).unwrap(),
+            raw: raw.to_vec(),
+        };
+        let identity = (
+            Digest256::of_bytes(b"revision"),
+            Digest256::of_bytes(b"contract"),
+        );
+        let deadline = Instant::now() + std::time::Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let mut schemas =
+            selected_text_schemas(&[file.clone()], identity, deadline, &cancelled).unwrap();
+        assert_eq!(schemas.input_identity(), &identity);
+        assert_eq!(schemas.selected_source_revision(), None);
+        assert_eq!(
+            schemas.selected_contract_digest(path),
+            Some(Digest256::of_bytes(raw))
+        );
+        assert!(
+            schemas
+                .check("one.json", b"1", path, deadline, &cancelled)
+                .unwrap()
+        );
+        assert!(
+            !schemas
+                .check("bad.json", br#""x""#, path, deadline, &cancelled)
+                .unwrap()
+        );
+        let mut wrong = file;
+        wrong.raw = br#"{"$id":"https://example.test/wrong"}"#.to_vec();
+        assert!(selected_text_schemas(&[wrong], identity, deadline, &cancelled).is_err());
+    }
 }
 
 fn epoch_from_selection(selected: &SourceRevisionSelection) -> SelectedEpoch {
@@ -521,7 +583,7 @@ fn pg_private_text_read(
     first_epoch: &SelectedEpoch,
     schema_members: &BTreeMap<String, Vec<u8>>,
     db: &mut DurablePgCoordinator,
-    worker: &mut super::CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Value> {
@@ -1070,10 +1132,9 @@ pub(crate) fn run(
         ));
     }
     let schema_files = source_files(&schema_members)?;
-    let mut worker = super::revisions::selected_schema_from_context(
-        invocation,
+    let mut worker = selected_text_schemas(
         &schema_files,
-        SourceRevision(first_epoch.source_revision),
+        (first_epoch.source_revision, first_epoch.contract),
         deadline,
         cancelled,
     )?;
