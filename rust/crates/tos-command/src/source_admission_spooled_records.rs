@@ -1182,7 +1182,15 @@ fn stored_fact_from_value(
             SourceFoundationRecordsStoredFact::RecordSchemaDiagnostic(
                 SourceFoundationRecordSchemaDiagnostic {
                     ordinal: uint(value, "ordinal")?,
-                    diagnostic: diagnostic_from_value(field(value, "diagnostic")?)?,
+                    diagnostic: match stored_schema_diagnostic_from_value(field(
+                        value,
+                        "diagnostic",
+                    )?)? {
+                        StoredSchemaDiagnostic::Worker(row) => row,
+                        StoredSchemaDiagnostic::InProcess(_) => {
+                            return Err(invalid("worker diagnostic expected"));
+                        }
+                    },
                 },
             )
         }
@@ -3997,7 +4005,7 @@ fn path_segment_from_value(value: &Value) -> io::Result<schema_diag::PathSegment
     }
 }
 
-fn report_value(report: &schema_diag::Report) -> Value {
+fn worker_report_value(report: &schema_diag::Report) -> Value {
     json!({
         "v":1,
         "protocol_version":report.protocol_version,
@@ -4055,7 +4063,7 @@ fn failure_from_u64(value: u64) -> io::Result<schema_diag::Failure> {
     }
 }
 
-fn report_from_value(value: &Value) -> io::Result<schema_diag::Report> {
+fn worker_report_from_value(value: &Value) -> io::Result<schema_diag::Report> {
     if uint(value, "v")? != 1 {
         return Err(invalid("schema diagnostics report codec version invalid"));
     }
@@ -4127,6 +4135,207 @@ fn report_from_value(value: &Value) -> io::Result<schema_diag::Report> {
         ));
     }
     Ok(report)
+}
+
+/// The v1 worker codec remains the historical row representation. New
+/// callers can carry an in-process report through the v2 representation.
+/// Remove the worker-only diagnostic adapter after the callers migrate.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum StoredSchemaReport {
+    Worker(schema_diag::Report),
+    InProcess(tos_validation::in_process::Report),
+}
+
+pub(crate) fn stored_schema_report_value(report: &StoredSchemaReport) -> io::Result<Value> {
+    match report {
+        StoredSchemaReport::Worker(report) => Ok(worker_report_value(report)),
+        StoredSchemaReport::InProcess(report) => {
+            let bytes = report
+                .to_evidence_json()
+                .map_err(|_| invalid("schema report encode failed"))?;
+            let value: Value = serde_json::from_slice(&bytes)
+                .map_err(|_| invalid("schema report encode failed"))?;
+            Ok(json!({"v":2, "report":value}))
+        }
+    }
+}
+
+pub(crate) fn stored_schema_report_from_value(value: &Value) -> io::Result<StoredSchemaReport> {
+    match uint(value, "v")? {
+        1 => worker_report_from_value(value).map(StoredSchemaReport::Worker),
+        2 => {
+            let bytes = serde_json::to_vec(field(value, "report")?)
+                .map_err(|_| invalid("schema report invalid"))?;
+            tos_validation::in_process::Report::from_evidence_json(&bytes)
+                .map(StoredSchemaReport::InProcess)
+                .map_err(|_| invalid("schema report invalid"))
+        }
+        _ => Err(invalid("schema diagnostics report codec version invalid")),
+    }
+}
+
+#[cfg(test)]
+mod schema_report_codec_tests {
+    use super::*;
+    use std::time::Duration;
+    use tos_foundation::Digest256Hasher;
+    use tos_validation::{
+        SchemaResource,
+        in_process::{InProcessSchemaEngine, InputMode, Unit},
+    };
+
+    #[test]
+    fn reads_historical_worker_and_round_trips_in_process_reports() {
+        let caps = schema_diag::Caps::CURRENT;
+        let digest = Digest256::of_bytes(b"fixture");
+        let mut issues_hash = Digest256Hasher::new();
+        issues_hash.update(b"tos-schema-diagnostics-issues-v2\0");
+        issues_hash.update(&0u64.to_be_bytes());
+        let issues_sha256 = issues_hash.finalize();
+        let mut report_hash = Digest256Hasher::new();
+        report_hash.update(b"tos-schema-diagnostics-report-v2\0");
+        report_hash.update(&schema_diag::PROTOCOL_VERSION.to_be_bytes());
+        for _ in 0..4 {
+            report_hash.update(digest.as_bytes());
+        }
+        report_hash.update(caps.digest().as_bytes());
+        report_hash.update(&[
+            schema_diag::Status::Valid as u8,
+            schema_diag::Failure::None as u8,
+            0,
+        ]);
+        report_hash.update(&0u64.to_be_bytes());
+        report_hash.update(issues_sha256.as_bytes());
+        let worker = schema_diag::Report {
+            protocol_version: schema_diag::PROTOCOL_VERSION,
+            worker_sha256: digest,
+            request_sha256: digest,
+            unit_sha256: digest,
+            schema_set_sha256: digest,
+            caps,
+            status: schema_diag::Status::Valid,
+            failure: schema_diag::Failure::None,
+            total_issue_count: 0,
+            truncated: false,
+            issues_sha256,
+            report_sha256: report_hash.finalize(),
+            issues: vec![],
+        };
+        let historical = worker_report_value(&worker);
+        let legacy = StoredSchemaReport::Worker(worker.clone());
+        assert_eq!(stored_schema_report_value(&legacy).unwrap(), historical);
+        assert_eq!(
+            stored_schema_report_from_value(&historical).unwrap(),
+            legacy
+        );
+
+        let worker_row = SourceCutSchemaDiagnostic {
+            evaluation_ordinal: 0,
+            path: "source.json".into(),
+            before_issue: 0,
+            verdict: SourceCutSchemaVerdict {
+                instance_sha256: digest,
+                schema_set_digest: digest,
+                format_profile: FormatProfile::AssertedSourceCandidateV1,
+                root_uri: "https://example.test/schema".into(),
+                worker_protocol_id: "worker-v2".into(),
+                worker_binary_digest: digest,
+                valid: true,
+            },
+            checkpoint: SchemaDiagnosticsCheckpoint {
+                worker_sha256: digest,
+                request_sha256: digest,
+                profile: FormatProfile::AssertedSourceCandidateV1,
+                schema_set_sha256: digest,
+                ordered_manifest_sha256: digest,
+                caps_sha256: caps.digest(),
+                completed_count: 1,
+                result_stream_sha256: digest,
+                worker_request_bytes: 1,
+                worker_response_bytes: 1,
+                worker_cpu_micros: Some(1),
+                exceptional_remaining: None,
+                exceptional_usage: None,
+            },
+            unit: SchemaDiagnosticUnit {
+                ordinal: 0,
+                member_id: "member".into(),
+                relative_path: "source.json".into(),
+                root_uri: "https://example.test/schema".into(),
+                raw_sha256: digest,
+                unit_sha256: digest,
+                report: worker,
+            },
+            schema_resource_bytes: 1,
+            schema_resource_buffer_bytes: 1,
+            input_instance_bytes: 1,
+            input_instance_buffer_bytes: 1,
+            input_metadata_bytes: 1,
+            request_bytes: 1,
+            request_buffer_bytes: 1,
+            response_bytes: 1,
+            response_buffer_bytes: 1,
+            worker_cpu_micros: 1,
+            retained_state_bytes: 1,
+            accounted_state_bytes: 1,
+        };
+        let historical = diagnostic_value(&worker_row);
+        let legacy = StoredSchemaDiagnostic::Worker(worker_row);
+        assert_eq!(stored_schema_diagnostic_value(&legacy).unwrap(), historical);
+        assert_eq!(
+            stored_schema_diagnostic_from_value(&historical).unwrap(),
+            legacy
+        );
+
+        let root = "https://example.test/schema";
+        let resources = vec![SchemaResource { uri: root.into(), raw: br#"{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://example.test/schema","type":"object","required":["a","b"]}"#.to_vec() }];
+        let mut engine =
+            InProcessSchemaEngine::new(resources, FormatProfile::AssertedSourceCandidateV1)
+                .unwrap();
+        let caps = schema_diag::Caps {
+            max_issues_per_unit: 1,
+            ..caps
+        };
+        let cancelled = AtomicBool::new(false);
+        for (raw, expected) in [
+            (b"{}".as_slice(), schema_diag::Status::Truncated),
+            (br#"{"a":1,"a":2}"#, schema_diag::Status::InputRejected),
+        ] {
+            let report = engine
+                .validate(
+                    Unit {
+                        root_uri: root,
+                        raw,
+                        input_mode: InputMode::PublishedStrict,
+                    },
+                    caps,
+                    Instant::now() + Duration::from_secs(30),
+                    &cancelled,
+                )
+                .unwrap();
+            assert_eq!(report.status, expected);
+            let diagnostic = StoredSchemaDiagnostic::InProcess(
+                tos_validation::source_cut::InProcessCutDiagnostic {
+                    identity: tos_validation::source_cut::InProcessCutIdentity::Candidate(
+                        json!({"fence":"candidate"}),
+                    ),
+                    path: "source.json".into(),
+                    contract: "schema.json".into(),
+                    report: report.clone(),
+                },
+            );
+            let envelope = stored_schema_diagnostic_value(&diagnostic).unwrap();
+            assert_eq!(
+                stored_schema_diagnostic_from_value(&envelope).unwrap(),
+                diagnostic
+            );
+            let evidence = StoredSchemaReport::InProcess(report);
+            let value = stored_schema_report_value(&evidence).unwrap();
+            assert_eq!(stored_schema_report_from_value(&value).unwrap(), evidence);
+            assert!(!value.to_string().contains("worker_sha256"));
+        }
+        assert!(stored_schema_report_from_value(&json!({"v":3})).is_err());
+    }
 }
 
 fn exceptional_value(value: Option<ExceptionalSchemaUsage>) -> Value {
@@ -4235,7 +4444,7 @@ fn diagnostic_value(row: &SourceCutSchemaDiagnostic) -> Value {
             "root_uri":unit.root_uri,
             "raw_sha256":unit.raw_sha256.to_hex(),
             "unit_sha256":unit.unit_sha256.to_hex(),
-            "report":report_value(&unit.report)
+            "report":worker_report_value(&unit.report)
         },
         "schema_resource_bytes":row.schema_resource_bytes,
         "schema_resource_buffer_bytes":row.schema_resource_buffer_bytes,
@@ -4252,13 +4461,16 @@ fn diagnostic_value(row: &SourceCutSchemaDiagnostic) -> Value {
     })
 }
 
-fn diagnostic_from_value(value: &Value) -> io::Result<SourceCutSchemaDiagnostic> {
+fn worker_diagnostic_from_value(value: &Value) -> io::Result<SourceCutSchemaDiagnostic> {
     if uint(value, "v")? != 1 {
         return Err(invalid("schema diagnostic codec version invalid"));
     }
     let verdict = field(value, "verdict")?;
     let unit = field(value, "unit")?;
-    let report = report_from_value(field(unit, "report")?)?;
+    let report = match stored_schema_report_from_value(field(unit, "report")?)? {
+        StoredSchemaReport::Worker(report) => report,
+        StoredSchemaReport::InProcess(_) => return Err(invalid("worker diagnostic expected")),
+    };
     let unit = SchemaDiagnosticUnit {
         ordinal: uint(unit, "ordinal")?,
         member_id: owned_text(unit, "member_id")?,
@@ -4297,4 +4509,42 @@ fn diagnostic_from_value(value: &Value) -> io::Result<SourceCutSchemaDiagnostic>
         retained_state_bytes: usize_value(value, "retained_state_bytes")?,
         accounted_state_bytes: usize_value(value, "accounted_state_bytes")?,
     })
+}
+
+/// Both diagnostic generations share the spool codec boundary. Existing
+/// worker-only collections use the worker variant until caller migration.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum StoredSchemaDiagnostic {
+    Worker(SourceCutSchemaDiagnostic),
+    InProcess(tos_validation::source_cut::InProcessCutDiagnostic<Value>),
+}
+
+pub(crate) fn stored_schema_diagnostic_value(row: &StoredSchemaDiagnostic) -> io::Result<Value> {
+    match row {
+        StoredSchemaDiagnostic::Worker(row) => Ok(diagnostic_value(row)),
+        StoredSchemaDiagnostic::InProcess(row) => {
+            let bytes = row
+                .to_evidence_json()
+                .map_err(|_| invalid("schema diagnostic encode failed"))?;
+            let evidence: Value = serde_json::from_slice(&bytes)
+                .map_err(|_| invalid("schema diagnostic encode failed"))?;
+            Ok(json!({"v":2, "evidence":evidence}))
+        }
+    }
+}
+
+pub(crate) fn stored_schema_diagnostic_from_value(
+    value: &Value,
+) -> io::Result<StoredSchemaDiagnostic> {
+    match uint(value, "v")? {
+        1 => worker_diagnostic_from_value(value).map(StoredSchemaDiagnostic::Worker),
+        2 => {
+            let bytes = serde_json::to_vec(field(value, "evidence")?)
+                .map_err(|_| invalid("schema diagnostic invalid"))?;
+            tos_validation::source_cut::InProcessCutDiagnostic::<Value>::from_evidence_json(&bytes)
+                .map(StoredSchemaDiagnostic::InProcess)
+                .map_err(|_| invalid("schema diagnostic invalid"))
+        }
+        _ => Err(invalid("schema diagnostic codec version invalid")),
+    }
 }

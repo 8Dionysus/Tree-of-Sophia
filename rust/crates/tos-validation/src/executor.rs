@@ -17,7 +17,7 @@ use tos_foundation::{Digest256, Digest256Hasher};
 
 use crate::{FormatProfile, SchemaResource};
 
-const MAX_URI_BYTES: usize = 4096;
+pub(crate) const MAX_URI_BYTES: usize = 4096;
 const MAX_FRAME_BYTES: usize = 36 * 1024 * 1024;
 const BATCH_REQUEST_MAGIC: &[u8; 8] = b"TOSV2BQ1";
 const BATCH_ACK_MAGIC: &[u8; 8] = b"TOSV2BA1";
@@ -42,7 +42,7 @@ const DIAGNOSTIC_ACK_MAGIC: &[u8; 8] = b"TOSV2DA2";
 const DIAGNOSTIC_UNIT_MAGIC: &[u8; 8] = b"TOSV2DU2";
 const DIAGNOSTIC_FINAL_MAGIC: &[u8; 8] = b"TOSV2DF2";
 const DIAGNOSTIC_ACK_BYTES: usize = 8 + 2 + 32 * 4 + 4;
-const DIAGNOSTIC_UNIT_HEADER_BYTES: usize = 8 + 2 + 8 + 32 + 1 + 1 + 8 + 1 + 4 + 4 + 32;
+pub(crate) const DIAGNOSTIC_UNIT_HEADER_BYTES: usize = 8 + 2 + 8 + 32 + 1 + 1 + 8 + 1 + 4 + 4 + 32;
 const DIAGNOSTIC_FINAL_BYTES: usize = 8 + 2 + 32 * 5 + 4;
 const DIAGNOSTIC_EXCEPTIONAL_COUNTERS_BYTES: usize = 9 * 8;
 const DIAGNOSTIC_FIXED_REQUEST_BYTES: usize = 8 + 2 + 4 + 4 + 2 + 4 + 32 + 32 + 1;
@@ -301,6 +301,7 @@ pub(crate) struct MixedDiagnosticsBatchUnit {
 /// verdict exchange above remains byte-for-byte unchanged.
 pub mod schema_diagnostics {
     use jsonschema::error::{TypeKind, ValidationErrorKind};
+    use serde::{Deserialize, Serialize};
     use tos_foundation::{Digest256, Digest256Hasher};
 
     pub const PROTOCOL_VERSION: u16 = 2;
@@ -310,7 +311,7 @@ pub mod schema_diagnostics {
     pub const MAX_PATH_BYTES: u32 = 16 * 1024;
     pub const MAX_RESPONSE_BYTES: usize = 20 * 1024 * 1024;
 
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
     pub struct Caps {
         pub max_issues_per_unit: u32,
         pub max_report_bytes_per_unit: u32,
@@ -349,14 +350,16 @@ pub mod schema_diagnostics {
         }
     }
 
-    #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+    #[serde(rename_all = "snake_case")]
     pub enum PathSegment {
         Property(String),
         Index(u64),
     }
 
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
     #[repr(u16)]
+    #[serde(rename_all = "snake_case")]
     pub enum Reason {
         AdditionalItems = 1,
         AdditionalProperties = 2,
@@ -516,8 +519,9 @@ pub mod schema_diagnostics {
         }
     }
 
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
     #[repr(u8)]
+    #[serde(rename_all = "snake_case")]
     pub enum CompatibilityText {
         NullIsNotObject = 1,
         NullIsNotArray = 2,
@@ -541,7 +545,7 @@ pub mod schema_diagnostics {
         }
     }
 
-    #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
     pub struct Issue {
         pub instance_path: Vec<PathSegment>,
         pub schema_keyword: String,
@@ -556,8 +560,9 @@ pub mod schema_diagnostics {
         }
     }
 
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
     #[repr(u8)]
+    #[serde(rename_all = "snake_case")]
     pub enum Status {
         Valid = 0,
         Invalid = 1,
@@ -579,8 +584,9 @@ pub mod schema_diagnostics {
         }
     }
 
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
     #[repr(u8)]
+    #[serde(rename_all = "snake_case")]
     pub enum Failure {
         None = 0,
         InvalidJson = 1,
@@ -687,7 +693,7 @@ pub mod schema_diagnostics {
         }
     }
 
-    fn path_within_caps(path: &[PathSegment], caps: Caps) -> bool {
+    pub(crate) fn path_within_caps(path: &[PathSegment], caps: Caps) -> bool {
         if path.len() > caps.max_path_segments as usize {
             return false;
         }
@@ -2929,6 +2935,78 @@ mod native {
 
     #[path = "source_foundation_exceptional_schema.rs"]
     mod exceptional_schema;
+
+    /// Evaluate the legacy values that cannot be represented by serde_json.
+    pub(crate) fn in_process_exceptional(
+        resources: &BTreeMap<String, serde_json::Value>,
+        root: &str,
+        instance: &JsonValue,
+        caps: schema_diagnostics::Caps,
+    ) -> (
+        schema_diagnostics::Status,
+        schema_diagnostics::Failure,
+        u64,
+        bool,
+        Vec<schema_diagnostics::Issue>,
+    ) {
+        use exceptional_schema::{
+            EvaluationContext, EvaluationFailure, Plan, PreparationBudget, PrepareFailure,
+        };
+        use schema_diagnostics::{Failure, Status};
+        let limits = ExceptionalSchemaUsage::whole();
+        let result = PreparationBudget::new(limits)
+            .and_then(|mut budget| Plan::prepare(resources, root, &mut budget));
+        let plan = match result {
+            Ok(plan) => plan,
+            Err(PrepareFailure::Unsupported) => {
+                return (
+                    Status::Indeterminate,
+                    Failure::UnsupportedInputSemantics,
+                    0,
+                    false,
+                    vec![],
+                );
+            }
+            Err(PrepareFailure::Budget) => {
+                return (
+                    Status::Indeterminate,
+                    Failure::ValidatorRuntime,
+                    0,
+                    false,
+                    vec![],
+                );
+            }
+        };
+        let mut context = match EvaluationContext::new(limits) {
+            Ok(context) => context,
+            Err(_) => {
+                return (
+                    Status::Indeterminate,
+                    Failure::ValidatorRuntime,
+                    0,
+                    false,
+                    vec![],
+                );
+            }
+        };
+        let evaluation = plan.evaluate(instance, caps, &mut context);
+        let (status, failure) = match evaluation.failure {
+            Some(EvaluationFailure::Unsupported) => {
+                (Status::Indeterminate, Failure::UnsupportedInputSemantics)
+            }
+            Some(EvaluationFailure::Budget) => (Status::Indeterminate, Failure::ValidatorRuntime),
+            None if evaluation.truncated => (Status::Truncated, Failure::None),
+            None if evaluation.total_issue_count == 0 => (Status::Valid, Failure::None),
+            None => (Status::Invalid, Failure::None),
+        };
+        (
+            status,
+            failure,
+            evaluation.total_issue_count,
+            evaluation.truncated,
+            evaluation.issues,
+        )
+    }
 
     // Linux UAPI MFD_EXEC. Requiring this flag fails closed on older kernels
     // or hosts that refuse executable anonymous files.
@@ -10505,3 +10583,6 @@ mod native {
         }
     }
 }
+
+#[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+pub(crate) use native::in_process_exceptional;
