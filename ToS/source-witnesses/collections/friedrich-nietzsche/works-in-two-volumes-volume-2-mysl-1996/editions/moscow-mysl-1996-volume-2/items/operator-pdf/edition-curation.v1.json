@@ -423,7 +423,61 @@
       "set_id": "tos.transfer-candidate-set.golden-kernel-transfer-target-passages-v1",
       "schema_ref": "https://tree-of-sophia.local/ToS/contracts/transfer-target-passage-candidate-set.schema.json",
       "legacy_event_sha256": "13fd906ae6a3124ff71c58cb9e36c276c117e7de0a675c734eae2551ea96b5e4",
-      "legacy_builder_sha256": "045f98b86c49851bb3183bf5f0d054295993a9e27f72c7a5d2d8d2c29483577e"
+      "legacy_builder_sha256": "045f98b86c49851bb3183bf5f0d054295993a9e27f72c7a5d2d8d2c29483577e",
+      "inputs": [
+        {
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-samples.json",
+          "role": "frozen-golden-kernel-transfer-page-candidate-plan"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/item.manifest.json",
+          "role": "exact-local-target-item-manifest"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/resource-inventory.json",
+          "role": "tracked-target-resource-inventory"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json",
+          "role": "target-rights-posture"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/numbered-unit-page-map.json",
+          "role": "tracked-Jenseits-target-numbered-unit-map"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996/transfer-candidate-page-crosswalk.v1.json",
+          "role": "tracked-Jenseits-conservative-page-crosswalk"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996/numbered-unit-label-correspondence.json",
+          "role": "tracked-Jenseits-source-route-pairings"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-page-map.json",
+          "role": "tracked-Genealogie-target-numbered-unit-map"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/alignments/structure/naumann-1892-second-svasyan-mysl-1996/transfer-candidate-source-structural-route.v1.json",
+          "role": "tracked-Genealogie-source-structural-routes"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-page-map.json",
+          "role": "tracked-Antichrist-target-numbered-unit-map"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/alignments/structure/naumann-1906-flerova-mysl-1996/transfer-candidate-source-structural-route.v1.json",
+          "role": "tracked-Antichrist-source-structural-routes"
+        },
+        {
+          "repository_path": "ToS/contracts/transfer-target-passage-candidate-set.schema.json",
+          "role": "target-passage-candidate-set-contract"
+        },
+        {
+          "repository_path": "ToS/contracts/source-anchor.schema.json",
+          "role": "source-anchor-contract"
+        }
+      ]
     },
     {
       "stage": "transfer-candidates",
