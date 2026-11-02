@@ -2067,7 +2067,63 @@
           "prefix": "tos.anchor.zarathustra-structure.naumann-1893-pdf-"
         }
       ],
-      "anchor_namespace": "tos.anchor.zarathustra-structure."
+      "anchor_namespace": "tos.anchor.zarathustra-structure.",
+      "historical_parts_sha256": "2235becfcb3e95a655d2f2679867901a853c5410ff8455dd1f702d6334a3cbfb",
+      "parts": [
+        {
+          "part_label": "I",
+          "source_item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+          "manifest_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/item.manifest.json",
+          "first_target_page": 53,
+          "last_target_page": 162,
+          "legacy_selection_policy": "body depth-one named containers plus named depth-two divisions under body div[2]; contents and numbered prologue subdivisions excluded",
+          "depth_two_prefix": "TEI/text[1]/body[1]/div[2]/div["
+        },
+        {
+          "part_label": "II",
+          "source_item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+          "manifest_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/editions/chemnitz-schmeitzner-1883-part-2/items/dta-sbb-corrected-tei-p5/item.manifest.json",
+          "first_target_page": 165,
+          "last_target_page": 265,
+          "legacy_selection_policy": "named body depth-one divisions; contents excluded"
+        },
+        {
+          "part_label": "III",
+          "source_item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+          "manifest_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/items/dta-sbb-corrected-tei-p5/item.manifest.json",
+          "first_target_page": 269,
+          "last_target_page": 385,
+          "legacy_selection_policy": "named body depth-one divisions; contents excluded"
+        },
+        {
+          "part_label": "IV",
+          "source_item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+          "manifest_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1891-part-4/editions/leipzig-naumann-1891-part-4/items/dta-sub-goettingen-corrected-tei-p5/item.manifest.json",
+          "first_target_page": 389,
+          "last_target_page": 522,
+          "legacy_selection_policy": "named body depth-one divisions through div[20]; div[21] auxiliary verse sequence, contents, and back matter excluded",
+          "excluded_prefix": "TEI/text[1]/body[1]/div[21]"
+        }
+      ],
+      "matching": {
+        "body_path_contains": "/body[1]/",
+        "target_page_count": 529,
+        "epub_page_index_base": 0,
+        "pdf_page_index_base": 1,
+        "source_prefix_tokens": 160,
+        "target_window_pages": 2,
+        "cosine_weight": 0.8,
+        "heading_coverage_weight": 0.2,
+        "score_decimal_places": 6,
+        "epub_member_prefix": "EPUB/page_",
+        "epub_member_suffix": ".html",
+        "pdf_resource_prefix": "pdf-page-",
+        "pdf_resource_digits": 4,
+        "scoring_window_boundary": "whole_witness",
+        "reported_window_boundary": "search_range",
+        "tie_breaker": "earliest_page",
+        "heading_selection": "prefer_exact_else_all"
+      }
     },
     {
       "stage": "constructor-library",

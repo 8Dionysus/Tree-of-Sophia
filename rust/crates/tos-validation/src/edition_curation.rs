@@ -299,6 +299,51 @@ enum MarkerPart {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if object.get("stage").and_then(Value::as_str)
+                == Some("witness-structure-correspondence")
+            {
+                let parts = object
+                    .get("parts")
+                    .and_then(Value::as_array)
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let items = object
+                    .get("source_item_refs")
+                    .and_then(Value::as_array)
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let matching = object
+                    .get("matching")
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let base = matching["epub_page_index_base"]
+                    .as_u64()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let limit = base
+                    .checked_add(
+                        matching["target_page_count"]
+                            .as_u64()
+                            .ok_or(EditionCurationError::InvalidSchema)?,
+                    )
+                    .ok_or(EditionCurationError::InvalidRange("target_page_count"))?;
+                let mut previous_start = None;
+                for (index, part) in parts.iter().enumerate() {
+                    if items.get(index) != Some(&part["source_item_ref"]) {
+                        return Err(EditionCurationError::BindingMismatch);
+                    }
+                    let first = part["first_target_page"]
+                        .as_u64()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    let last = part["last_target_page"]
+                        .as_u64()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    if first < base
+                        || first > last
+                        || last >= limit
+                        || previous_start.is_some_and(|previous| first < previous)
+                    {
+                        return Err(EditionCurationError::InvalidRange("parts"));
+                    }
+                    previous_start = Some(first);
+                }
+            }
             if object.get("stage").and_then(Value::as_str) == Some("constructor-library") {
                 let parts = object
                     .get("parts")
@@ -429,6 +474,8 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                 ("anchor_prefixes", "role"),
                 ("families", "family"),
                 ("families", "repository_path"),
+                ("parts", "part_label"),
+                ("parts", "manifest_ref"),
                 ("chapter_labels", "key"),
                 ("class_notes", "key"),
                 ("speaker_labels", "key"),
