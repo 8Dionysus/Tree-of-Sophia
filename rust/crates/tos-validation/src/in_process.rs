@@ -26,6 +26,8 @@ pub enum InputMode {
     PublishedStrict,
     /// The existing selected finite JSON profile allows the batch raw-byte limit.
     PublishedStrictSelected,
+    /// Preserve the existing scalar route's serde decode and re-encoding.
+    SerdeNormalized,
     LegacyPythonObserved,
 }
 
@@ -172,6 +174,28 @@ impl InProcessSchemaEngine {
                     }
                     _ => Failure::UnsupportedInputSemantics,
                 })
+            }
+            InputMode::SerdeNormalized => {
+                if unit.raw.len() > SchemaBackendProbe::MAX_INSTANCE_BYTES {
+                    Err(Failure::InputBudget)
+                } else {
+                    serde_json::from_slice::<Value>(unit.raw)
+                        .map_err(|_| Failure::InvalidJson)
+                        .and_then(|decoded| {
+                            serde_json::to_vec(&decoded).map_err(|_| Failure::ValidatorRuntime)
+                        })
+                        .and_then(|normalized| {
+                            published_value(&normalized, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+                                .map_err(|error| match error {
+                                    SchemaProbeError::BudgetExceeded => Failure::InputBudget,
+                                    SchemaProbeError::InvalidJson
+                                    | SchemaProbeError::InvalidPublishedJson(_) => {
+                                        Failure::InvalidJson
+                                    }
+                                    _ => Failure::UnsupportedInputSemantics,
+                                })
+                        })
+                }
             }
             InputMode::LegacyPythonObserved => match legacy_tree(unit.raw) {
                 Ok(tree) => match legacy_value(&tree) {
