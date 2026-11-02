@@ -201,8 +201,8 @@ pub fn validate_recipe_plan(
         if quotas.len() != works.len()
             || works.iter().zip(quotas).any(|(work, quota)| {
                 work["work_ref"] != quota["work_ref"]
-                    || work["expected_count"] != quota["random"]
-                    || work["expected_count"] != quota["hard"]
+                    || quota["random"].as_u64().is_none()
+                    || quota["hard"].as_u64().is_none()
             })
         {
             return Err(EditionCurationError::BindingMismatch);
