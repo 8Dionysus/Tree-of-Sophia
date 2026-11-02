@@ -429,6 +429,16 @@
           "role": "unit-reason",
           "output_role": "text_unit_packet_ref",
           "json_pointer": "/units/0/status_reason"
+        },
+        {
+          "role": "builder-artifact-sha256",
+          "output_role": "provenance_event_ref",
+          "json_pointer": "/method/software_components/0/artifact_sha256"
+        },
+        {
+          "role": "builder-agent",
+          "output_role": "provenance_event_ref",
+          "json_pointer": "/responsibility/0/agent_ref"
         }
       ],
       "frozen_outputs": [
@@ -456,7 +466,8 @@
           "schema_version": "tos_provenance_event_v2",
           "expected_sha256": "52289451cb3acb8b0c850db7cca246898f8a0bda38531a2d768038043ac52ab2"
         }
-      ]
+      ],
+      "derivation_prefix": "tos.derivation.za-i-vorrede-1.antonovsky-1911-target-text-foundation"
     },
     {
       "stage": "recipe-reference",

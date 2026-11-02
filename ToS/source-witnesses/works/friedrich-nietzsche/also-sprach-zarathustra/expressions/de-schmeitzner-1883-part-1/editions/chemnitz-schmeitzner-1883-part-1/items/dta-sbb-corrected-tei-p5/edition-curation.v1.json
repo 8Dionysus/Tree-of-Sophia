@@ -1859,6 +1859,16 @@
           "role": "segmentation-reason",
           "output_role": "text_unit_packet_ref",
           "json_pointer": "/segmentations/0/status_reason"
+        },
+        {
+          "role": "builder-artifact-sha256",
+          "output_role": "provenance_event_ref",
+          "json_pointer": "/method/software_components/0/artifact_sha256"
+        },
+        {
+          "role": "builder-agent",
+          "output_role": "provenance_event_ref",
+          "json_pointer": "/responsibility/0/agent_ref"
         }
       ],
       "frozen_outputs": [
@@ -1887,7 +1897,8 @@
           "expected_sha256": "4ae28b46e33d9090b02c068e92b3b5ee2e832210696cc9180ec13dfe192ba02f"
         }
       ],
-      "opening_calibration_sha256": "a507f7293ac73ec37f7c78a38b3270f45bc98418b8fd824f2ab72ebc18377224"
+      "opening_calibration_sha256": "a507f7293ac73ec37f7c78a38b3270f45bc98418b8fd824f2ab72ebc18377224",
+      "derivation_prefix": "tos.derivation.za-i-vorrede-1.source-text-foundation"
     },
     {
       "stage": "authored-canon-evidence",
@@ -1947,7 +1958,45 @@
           "schema_version": "tos_provenance_event_v2",
           "expected_sha256": "b4db0cf0f05f630d25d608c2fd41d6fd8d2f0989fa86bc0d2178861219436e8f"
         }
-      ]
+      ],
+      "derivation_prefix": "tos.derivation.authored-bridge.",
+      "bridge_id": "tos.authored-route-evidence-bridge.zarathustra-prologue-1",
+      "authored_route_refs": {
+        "explicit": [
+          "ToS/canon/concept/becoming/node.json",
+          "ToS/canon/concept/overcoming/node.json"
+        ],
+        "families": [
+          {
+            "family": "analogy",
+            "repository_path": "ToS/canon/analogy/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1"
+          },
+          {
+            "family": "event",
+            "repository_path": "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1"
+          },
+          {
+            "family": "lineage",
+            "repository_path": "ToS/canon/lineage/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1"
+          },
+          {
+            "family": "principle",
+            "repository_path": "ToS/canon/principle/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1"
+          },
+          {
+            "family": "state",
+            "repository_path": "ToS/canon/state/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1"
+          },
+          {
+            "family": "support",
+            "repository_path": "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1"
+          },
+          {
+            "family": "synthesis",
+            "repository_path": "ToS/canon/synthesis/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1"
+          }
+        ]
+      }
     },
     {
       "stage": "witness-structure-correspondence",
@@ -1993,7 +2042,22 @@
           "schema_version": "tos_provenance_event_v1",
           "expected_sha256": "271815b6bc8eba4262768d229bae8ce8fdb8eda66d38556d7f39dd721528e0ed"
         }
-      ]
+      ],
+      "anchor_prefixes": [
+        {
+          "role": "source-tei",
+          "prefix": "tos.anchor.zarathustra-structure.dta-"
+        },
+        {
+          "role": "target-epub",
+          "prefix": "tos.anchor.zarathustra-structure.naumann-1893-epub-"
+        },
+        {
+          "role": "target-pdf",
+          "prefix": "tos.anchor.zarathustra-structure.naumann-1893-pdf-"
+        }
+      ],
+      "anchor_namespace": "tos.anchor.zarathustra-structure."
     },
     {
       "stage": "constructor-library",
