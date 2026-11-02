@@ -1729,6 +1729,8 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                 ("record_identities", "role"),
                 ("role_precedence", "role"),
                 ("visual_markers", "citation_contains"),
+                ("visual_markers", "technical_structure_key"),
+                ("visual_markers", "contradiction_ref"),
                 ("witness_roles", "plan_key"),
                 ("witness_roles", "identity_key"),
                 ("anchor_prefixes", "role"),
