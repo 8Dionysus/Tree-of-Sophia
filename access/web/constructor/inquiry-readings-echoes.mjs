@@ -1,10 +1,10 @@
 /** Authored inquiry of the questions the book's places raise, with the answers the book allows.
- * Readings and comparisons with other thinkers are held in atlas-held.mjs until they are grown together.
+ * Readings and comparisons with other thinkers are held in bonsai/zarathustra/held.json until they are grown together.
  * Own words are kept only for what a quotation cannot give: what happens at a place and who
  * speaks, how it joins the next place, the question it raises and the answer the book allows.
  * What a work itself says is never retold: a form cites the place instead ({ru, en, cite}),
  * and the stand shows the work's own text there. The map keeps the links the book itself makes
- * at a named place; everything else waits in atlas-held.mjs to be grown together. */
+ * at a named place; everything else waits in bonsai/zarathustra/held.json to be grown together. */
 export const INQUIRY_READINGS_ECHOES = {
   "demo:paths-opposition": {
     "argument": {

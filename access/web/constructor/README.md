@@ -155,7 +155,7 @@ come from those references. These mechanics cannot decide whether the passages
 warrant the interpretation; that requires the review recorded in
 `SEMANTIC_REVIEW.md`.
 
-`atlas-held.mjs` keeps, whole, what the strict rebuild of 1 November 2026 took
+`bonsai/zarathustra/held.json` keeps, whole, what the strict rebuild of 1 November 2026 took
 off the map — readings, comparisons and the links that rest on another book —
 until they are grown together with it; nothing there is shown or bound.
 

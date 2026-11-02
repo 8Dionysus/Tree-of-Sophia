@@ -1,0 +1,159 @@
+name: Publish Bonsai
+
+on:
+  workflow_run:
+    workflows: [Repo Validation]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  actions: read
+  contents: read
+
+# Preserve every successful main run in the queue. An older run must never
+# replace or overtake a newer deployment; stale runs check main and exit.
+concurrency:
+  group: bonsai-production
+  queue: max
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TARGET_SHA: ${{ github.event.workflow_run.head_sha }}
+      VALIDATION_RUN_ID: ${{ github.event.workflow_run.id }}
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - name: Check out the validated commit
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+
+      - name: Confirm the required gate and exact source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$VALIDATION_RUN_ID" =~ ^[0-9]+$ ]]
+          test "$(git rev-parse HEAD)" = "$TARGET_SHA"
+          gh api --paginate --slurp \
+            "repos/$GITHUB_REPOSITORY/actions/runs/$VALIDATION_RUN_ID/jobs?per_page=100&filter=latest" |
+            jq -e '[.[].jobs[] | select(.name == "Repo Validation" and .status == "completed" and .conclusion == "success")] | length == 1' >/dev/null
+
+      - name: Skip an obsolete validation
+        id: current
+        run: |
+          set -euo pipefail
+          main=$(git ls-remote --exit-code https://github.com/8Dionysus/Tree-of-Sophia.git refs/heads/main | cut -f1)
+          if [[ "$main" = "$TARGET_SHA" ]]; then
+            echo 'deploy=true' >> "$GITHUB_OUTPUT"
+          else
+            echo "Skipping $TARGET_SHA: main is now $main"
+            echo 'deploy=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      # CLOUDFLARE_API_TOKEN is an Actions secret; CLOUDFLARE_ACCOUNT_ID may
+      # be an Actions variable or secret. Provisioning access is separate.
+      - name: Check Cloudflare configuration
+        if: steps.current.outputs.deploy == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID || secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [[ -z "$CLOUDFLARE_API_TOKEN" || -z "$CLOUDFLARE_ACCOUNT_ID" ]]; then
+            echo '::error::Configure CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in Actions.'
+            exit 1
+          fi
+
+      - name: Set up Node
+        if: steps.current.outputs.deploy == 'true'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            access/web/package-lock.json
+            access/deploy/cloudflare-worker/package-lock.json
+
+      - name: Build the exact browser rules
+        if: steps.current.outputs.deploy == 'true'
+        env:
+          CARGO_BUILD_JOBS: '2'
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.98.1 --profile minimal --target wasm32-unknown-unknown
+          cargo +1.98.1 build --locked --release -p tos-web-rules --features wasm --target wasm32-unknown-unknown
+          archive="$RUNNER_TEMP/wasm-bindgen.tar.gz"
+          curl --fail --location --silent --show-error \
+            'https://github.com/wasm-bindgen/wasm-bindgen/releases/download/0.2.128/wasm-bindgen-0.2.128-x86_64-unknown-linux-musl.tar.gz' \
+            --output "$archive"
+          printf '%s  %s\n' 'b51f0208fdff83515a787bd8ab9ac5865ed84dabb66d0c709957bb59793c645f' "$archive" | sha256sum --check --status
+          tar -xzf "$archive" -C "$RUNNER_TEMP"
+          "$RUNNER_TEMP/wasm-bindgen-0.2.128-x86_64-unknown-linux-musl/wasm-bindgen" \
+            --target web --out-name tos_web_rules --out-dir access/deploy/cloudflare-worker/generated \
+            target/wasm32-unknown-unknown/release/tos_web_rules.wasm
+
+      - name: Build Bonsai and its commit marker
+        if: steps.current.outputs.deploy == 'true'
+        run: |
+          set -euo pipefail
+          npm ci --prefix access/web
+          npm ci --prefix access/deploy/cloudflare-worker
+          npm --prefix access/web run build:public-research
+          output=access/deploy/cloudflare-worker/dist-public-research
+          mkdir -p "$output/_builds"
+          tree=$(git rev-parse 'HEAD^{tree}')
+          printf '{"commit":"%s","tree":"%s"}\n' "$TARGET_SHA" "$tree" > "$output/_builds/$TARGET_SHA.json"
+
+      - name: Recheck main before publication
+        if: steps.current.outputs.deploy == 'true'
+        id: final_check
+        run: |
+          set -euo pipefail
+          main=$(git ls-remote --exit-code https://github.com/8Dionysus/Tree-of-Sophia.git refs/heads/main | cut -f1)
+          if [[ "$main" = "$TARGET_SHA" ]]; then
+            echo 'deploy=true' >> "$GITHUB_OUTPUT"
+          else
+            echo "Skipping $TARGET_SHA: main is now $main"
+            echo 'deploy=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy the existing public research Worker
+        if: steps.final_check.outputs.deploy == 'true'
+        working-directory: access/deploy/cloudflare-worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID || secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          npx --no-install wrangler deploy --config wrangler.public-research.jsonc --keep-vars \
+            --message "Bonsai $TARGET_SHA; GitHub Actions $GITHUB_RUN_ID" | tee "$RUNNER_TEMP/bonsai-deploy.log"
+          version=$(sed -n 's/^Current Version ID: //p' "$RUNNER_TEMP/bonsai-deploy.log" | tail -n 1)
+          test -n "$version"
+          printf 'Published commit `%s`; Cloudflare version `%s`.\n' "$TARGET_SHA" "$version" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify the published commit and pages
+        if: steps.final_check.outputs.deploy == 'true'
+        run: |
+          set -euo pipefail
+          marker="https://treeofsophia.com/__research/_builds/$TARGET_SHA.json"
+          for attempt in {1..12}; do
+            if curl --fail --silent --show-error --max-time 20 "$marker" |
+                 jq -e --arg sha "$TARGET_SHA" '.commit == $sha' >/dev/null; then
+              curl --fail --silent --show-error --max-time 20 https://treeofsophia.com/zarathustra/ >/dev/null
+              curl --fail --silent --show-error --max-time 20 https://treeofsophia.com/antiquity/ >/dev/null
+              echo "Verified $marker" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo '::error::The published commit marker was not observed; inspect the Cloudflare deployment before retrying.'
+          exit 1

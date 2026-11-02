@@ -4,7 +4,7 @@
  * speaks, how it joins the next place, the question it raises and the answer the book allows.
  * What a work itself says is never retold: a form cites the place instead ({ru, en, cite}),
  * and the stand shows the work's own text there. The map keeps the links the book itself makes
- * at a named place; everything else waits in atlas-held.mjs to be grown together. */
+ * at a named place; everything else waits in bonsai/zarathustra/held.json to be grown together. */
 export const RELATION_INQUIRY = {
   "atlas:moment:supports:gateway": {
     "warrant": {
