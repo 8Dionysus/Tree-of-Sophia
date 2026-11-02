@@ -324,9 +324,8 @@ software check or Rust lane fails. The cgroup `cpu.stat` snapshots bracket the
 measured validation work but can include work charged to the runner cgroup
 outside it. `memory.peak` is recorded before and after
 without resetting the job cgroup, so its high-watermark may include setup that
-ran earlier in that job and is not a lane-only maximum. These artifacts help
-explain cost and limits; they do not prove validation, product identity or
-release authority.
+ran earlier in that job and is not a lane-only maximum. These artifacts explain
+cost and limits; validation, product identity and release use their own evidence.
 
 PR and `main` checks use the same rules. `workflow_dispatch` explicitly runs the
 full release suite, as does the local `tos-release-check --repo-root "$PWD"` command
