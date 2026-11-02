@@ -8,6 +8,7 @@ import {hypothesisTitle,workspaceConflictLabel} from './presentation-i18n.mjs';
 import {corpusWorkTitle} from '../observatory/human-presentation.mjs';
 import {morphologyLabel} from '../corpus-reader/philology.mjs';
 import {collectionPeriodKey} from './collection-view.mjs';
+import {loadBonsai} from './bonsai.mjs';
 
 const added=['es','de','zh-Hans'];
 const read=url=>JSON.parse(readFileSync(url,'utf8'));
@@ -34,8 +35,9 @@ test('catalogs cover the same messages with intact placeholders and boundary spa
   }
 });
 
-test('every authored Bonsai display form has a translation entry',()=>{
+test('every authored Bonsai display form has a translation entry',async()=>{
   const forms=new Set();
+  const zarathustraModules=await loadBonsai('zarathustra');
   const walk=value=>{
     if(Array.isArray(value)){value.forEach(walk);return;}
     if(!value||typeof value!=='object')return;
@@ -45,8 +47,9 @@ test('every authored Bonsai display form has a translation entry',()=>{
   };
   for(const stand of ['antiquity','zarathustra']){
     const home=new URL(`../../../../bonsai/${stand}/`,import.meta.url);
-    // Held material is not shown by the stand, so it has no display translations.
-    for(const file of readdirSync(home))if(file.endsWith('.json')&&file!=='held.json')walk(read(new URL(file,home)));
+    // Held material is not shown by the stand. The terms module is also excluded
+    // until loadBonsai returns it; this exclusion lifts when the stand loader consumes it.
+    for(const file of readdirSync(home))if(file.endsWith('.json')&&file!=='held.json'&&!(stand==='zarathustra'&&file==='terms.json'&&!Object.hasOwn(zarathustraModules,'terms')))walk(read(new URL(file,home)));
   }
   for(const language of added)for(const form of forms)expect(Object.hasOwn(catalogs[language].bonsai,form),`${language}: ${form}`).toBe(true);
 });
