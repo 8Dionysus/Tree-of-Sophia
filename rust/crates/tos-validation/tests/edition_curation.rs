@@ -82,6 +82,18 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let dta_raw = fs::read(root.join(dta_path)).unwrap();
     assert_eq!(validate(&dta_raw, &schema), Ok(()));
     let dta_value: Value = serde_json::from_slice(&dta_raw).unwrap();
+    let mut invalid_stopwords = dta_value.clone();
+    let parallel = invalid_stopwords["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "parallel-lexical-candidates")
+        .unwrap();
+    parallel["stopword_selection"]["unknown_language_profile"] = json!("missing");
+    assert_eq!(
+        validate(&serde_json::to_vec(&invalid_stopwords).unwrap(), &schema),
+        Err(EditionCurationError::MissingReference)
+    );
     let mut invalid_language = dta_value.clone();
     let workbench = invalid_language["recipes"]
         .as_array_mut()

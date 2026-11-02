@@ -406,6 +406,26 @@ enum MarkerPart {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if let Some(selection) = object.get("stopword_selection") {
+                let profiles = selection["profiles"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let mut languages = BTreeSet::new();
+                for profile in profiles {
+                    let language = profile["language"]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    if !languages.insert(language) {
+                        return Err(EditionCurationError::Duplicate("stopword language"));
+                    }
+                }
+                if !selection["unknown_language_profile"]
+                    .as_str()
+                    .is_some_and(|language| languages.contains(language))
+                {
+                    return Err(EditionCurationError::MissingReference);
+                }
+            }
             if let Some(profile) = object.get("form_selection") {
                 let languages = profile["languages"]
                     .as_array()
