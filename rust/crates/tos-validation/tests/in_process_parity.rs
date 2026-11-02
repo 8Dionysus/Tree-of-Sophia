@@ -141,6 +141,85 @@ fn scalar_serde_normalization_matches_the_existing_cut_worker() {
 }
 
 #[test]
+fn selected_legacy_limits_match_the_worker() {
+    use std::collections::BTreeMap;
+    use tos_foundation::SourceRevision;
+    use tos_validation::executor::{ExecutorBudget, LegacySelectedDiagnosticsLimits};
+    use tos_validation::source_cut::{
+        CutSchemaDiagnosticsLimits, CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor,
+    };
+    let path = PathBuf::from(env!("CARGO_BIN_EXE_tos-schema-worker"));
+    let worker = ExactWorkerIdentity {
+        sha256: Digest256::of_bytes(&std::fs::read(&path).unwrap()),
+        absolute_path: path,
+    };
+    let schemas = resources();
+    let contract = "ToS/contracts/test.schema.json";
+    let contracts = BTreeMap::from([(
+        contract.into(),
+        (ROOT.into(), Digest256::of_bytes(&schemas[0].raw)),
+    )]);
+    let cancelled = AtomicBool::new(false);
+    let deadline = Instant::now() + Duration::from_secs(60);
+    let limits = LegacySelectedDiagnosticsLimits {
+        max_instance_bytes: 2 * 1024 * 1024,
+        max_visits: 300_000,
+        parser_state_bytes: 32 * 1024 * 1024,
+        conversion_state_bytes: 32 * 1024 * 1024,
+    };
+    let mut old = CutWorkerSchemaExecutor::from_selected_resources(
+        SourceRevision(Digest256::of_bytes(b"test")),
+        contracts,
+        schemas.clone(),
+        FormatProfile::LegacyPythonObserved20260923,
+        worker,
+        ExecutorBudget::laboratory(),
+        CutWorkerLimits {
+            max_receipts: 4,
+            max_receipt_bytes: 8192,
+        },
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    old.enable_diagnostics_v2(CutSchemaDiagnosticsLimits {
+        max_total_issues: 16,
+        max_total_report_bytes: 8192,
+        max_total_state_bytes: 64 * 1024 * 1024,
+    })
+    .unwrap();
+    old.set_diagnostics_v2_legacy_selected_limits(limits)
+        .unwrap();
+    let mut raw = br#"{"value":1,"value":3}"#.to_vec();
+    raw.resize(SchemaBackendProbe::MAX_INSTANCE_BYTES + 1, b' ');
+    let expected = old
+        .check_diagnostics_v2_legacy_selected("record.json", &raw, contract, deadline, &cancelled)
+        .unwrap();
+    let mut engine =
+        InProcessSchemaEngine::new(schemas, FormatProfile::LegacyPythonObserved20260923).unwrap();
+    let actual = engine
+        .validate(
+            Unit {
+                root_uri: ROOT,
+                raw: &raw,
+                input_mode: InputMode::LegacyPythonObservedSelected(limits),
+            },
+            Caps::CURRENT,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    assert!(expected.is_valid());
+    assert_eq!(actual.status, Status::Valid);
+    assert_eq!(
+        tos_validation::in_process::Report::from_evidence_json(&actual.to_evidence_json().unwrap())
+            .unwrap(),
+        actual
+    );
+    old.finish(deadline, &cancelled).unwrap();
+}
+
+#[test]
 fn finite_worker_and_in_process_diagnostics_match() {
     let path = PathBuf::from(env!("CARGO_BIN_EXE_tos-schema-worker"));
     let worker = ExactWorkerIdentity {

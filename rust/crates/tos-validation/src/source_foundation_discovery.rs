@@ -6133,8 +6133,11 @@ fn in_process_artifact_binding(
             && binding.schema_set_sha256 == report.schema_set_sha256);
     let complete_invalid = exact
         && diagnostic.input_size_bytes.is_some()
-        && (report.input_mode != crate::in_process::InputMode::LegacyPythonObserved
-            || report.profile == crate::FormatProfile::LegacyPythonObserved20260923)
+        && (!matches!(
+            report.input_mode,
+            crate::in_process::InputMode::LegacyPythonObserved
+                | crate::in_process::InputMode::LegacyPythonObservedSelected(_)
+        ) || report.profile == crate::FormatProfile::LegacyPythonObserved20260923)
         && report.status == DiagnosticStatus::Invalid
         && report.failure == DiagnosticFailure::None
         && !report.truncated
@@ -6188,7 +6191,14 @@ fn update_in_process_diagnostic_fingerprint(
         InputMode::LegacyPythonObserved => 1,
         InputMode::PublishedStrictSelected => 2,
         InputMode::SerdeNormalized => 3,
+        InputMode::LegacyPythonObservedSelected(_) => 4,
     }]);
+    if let InputMode::LegacyPythonObservedSelected(limits) = report.input_mode {
+        hash_u64(&mut report_hash, limits.max_instance_bytes as u64);
+        hash_u64(&mut report_hash, u64::from(limits.max_visits));
+        hash_u64(&mut report_hash, limits.parser_state_bytes);
+        hash_u64(&mut report_hash, limits.conversion_state_bytes);
+    }
     hash_u64(&mut report_hash, u64::from(report.caps.max_issues_per_unit));
     hash_u64(
         &mut report_hash,

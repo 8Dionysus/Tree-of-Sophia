@@ -86,7 +86,7 @@ pub(crate) enum DiagnosticsUnitInputMode {
 
 /// Caller-selected finite limits for the LegacyPythonObserved diagnostics-v2
 /// sibling. This does not change the historical 300,000-visit raw lane.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct LegacySelectedDiagnosticsLimits {
     pub max_instance_bytes: usize,
     pub max_visits: u32,
@@ -8754,6 +8754,22 @@ mod native {
         Ok(converted)
     }
 
+    pub(crate) fn in_process_selected_legacy(
+        raw: &[u8],
+        limits: LegacySelectedDiagnosticsLimits,
+    ) -> Result<serde_json::Value, schema_diagnostics::Failure> {
+        limits
+            .validate()
+            .map_err(|_| schema_diagnostics::Failure::InputBudget)?;
+        parse_convert_selected_legacy(raw, limits).map_err(|failure| match failure {
+            LegacySelectedFailure::InvalidJson => schema_diagnostics::Failure::InvalidJson,
+            LegacySelectedFailure::InputBudget => schema_diagnostics::Failure::InputBudget,
+            LegacySelectedFailure::UnsupportedInputSemantics => {
+                schema_diagnostics::Failure::UnsupportedInputSemantics
+            }
+        })
+    }
+
     fn parse_diagnostics_units<'a>(
         cursor: &mut Cursor<'a>,
         input_profile: DiagnosticsInputProfile,
@@ -10586,3 +10602,5 @@ mod native {
 
 #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
 pub(crate) use native::in_process_exceptional;
+#[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+pub(crate) use native::in_process_selected_legacy;

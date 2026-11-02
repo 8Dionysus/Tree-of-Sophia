@@ -29,6 +29,7 @@ pub enum InputMode {
     /// Preserve the existing scalar route's serde decode and re-encoding.
     SerdeNormalized,
     LegacyPythonObserved,
+    LegacyPythonObservedSelected(crate::executor::LegacySelectedDiagnosticsLimits),
 }
 
 /// Evidence refers to the exact input and selected resource set.
@@ -153,8 +154,14 @@ impl InProcessSchemaEngine {
         {
             return Err(Incomplete::BatchBudget);
         }
-        if unit.input_mode == InputMode::LegacyPythonObserved
-            && self.profile != FormatProfile::LegacyPythonObserved20260923
+        if matches!(unit.input_mode, InputMode::LegacyPythonObservedSelected(limits) if limits.validate().is_err())
+        {
+            return Err(Incomplete::BatchBudget);
+        }
+        if matches!(
+            unit.input_mode,
+            InputMode::LegacyPythonObserved | InputMode::LegacyPythonObservedSelected(_)
+        ) && self.profile != FormatProfile::LegacyPythonObserved20260923
         {
             report.failure = Failure::UnsupportedInputSemantics;
             check(deadline, cancelled)?;
@@ -195,6 +202,17 @@ impl InProcessSchemaEngine {
                                     _ => Failure::UnsupportedInputSemantics,
                                 })
                         })
+                }
+            }
+            InputMode::LegacyPythonObservedSelected(limits) => {
+                #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+                {
+                    crate::executor::in_process_selected_legacy(unit.raw, limits)
+                }
+                #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
+                {
+                    let _ = limits;
+                    Err(Failure::UnsupportedInputSemantics)
                 }
             }
             InputMode::LegacyPythonObserved => match legacy_tree(unit.raw) {
@@ -471,6 +489,10 @@ impl Report {
     pub(crate) fn is_well_formed(&self) -> bool {
         self.engine == ENGINE_ID
             && self.caps.validate()
+            && match self.input_mode {
+                InputMode::LegacyPythonObservedSelected(limits) => limits.validate().is_ok(),
+                _ => true,
+            }
             && self.issues.len() <= self.caps.max_issues_per_unit as usize
             && !self.root_uri.is_empty()
             && self.root_uri.len() <= crate::executor::MAX_URI_BYTES
