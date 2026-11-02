@@ -570,11 +570,7 @@ fn measured(file: &File) -> Result<NativeFsVerityMeasurement> {
         if digest.algorithm != 1 || digest.size != 32 {
             return Err(Error::Invalid("native measured fs-verity profile"));
         }
-        let hex = digest
-            .digest
-            .iter()
-            .map(|b| format!("{b:02x}"))
-            .collect::<String>();
+        let hex = tos_foundation::encode_lower_hex(&digest.digest);
         return Ok(NativeFsVerityMeasurement {
             algorithm: "sha256".into(),
             digest: hex,

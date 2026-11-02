@@ -15,7 +15,6 @@ const MAGIC: &[u8; 8] = b"TOSIDX01";
 const TTL_SECONDS: u64 = 900;
 const MAX_KEY_BYTES: usize = 3 * 1024;
 pub(crate) const MAX_CURSOR_BYTES: usize = 16 * 1024;
-const HEX: &[u8; 16] = b"0123456789abcdef";
 
 pub(crate) struct NativeIndexedCursorCodec {
     initial: SearchContinuationState,
@@ -91,31 +90,14 @@ fn hex_encode(raw: &[u8]) -> Result<String, SearchV2Error> {
     {
         return Err(budget());
     }
-    let mut out = String::with_capacity(raw.len() * 2);
-    for byte in raw {
-        out.push(HEX[(byte >> 4) as usize] as char);
-        out.push(HEX[(byte & 15) as usize] as char);
-    }
-    Ok(out)
+    Ok(tos_foundation::encode_lower_hex(raw))
 }
 fn hex_decode(token: &str) -> Result<Vec<u8>, SearchV2Error> {
     if token.is_empty() || token.len() > MAX_CURSOR_BYTES || !token.len().is_multiple_of(2) {
         return Err(invalid("indexed cursor encoding is invalid"));
     }
-    let nibble = |byte: u8| match byte {
-        b'0'..=b'9' => Some(byte - b'0'),
-        b'a'..=b'f' => Some(byte - b'a' + 10),
-        _ => None,
-    };
-    token
-        .as_bytes()
-        .chunks_exact(2)
-        .map(|pair| {
-            let high = nibble(pair[0]).ok_or_else(|| invalid("indexed cursor hex is invalid"))?;
-            let low = nibble(pair[1]).ok_or_else(|| invalid("indexed cursor hex is invalid"))?;
-            Ok((high << 4) | low)
-        })
-        .collect()
+    tos_foundation::decode_lower_hex(token, token.len() / 2)
+        .ok_or_else(|| invalid("indexed cursor hex is invalid"))
 }
 
 struct Reader<'a> {

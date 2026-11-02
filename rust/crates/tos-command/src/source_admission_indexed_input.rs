@@ -1176,11 +1176,10 @@ impl<W: Write> Write for IndexedIdentityWriterV1<'_, W> {
 }
 
 fn write_identity_digest_v1(output: &mut impl Write, digest: Digest256) -> io::Result<()> {
-    const HEX: &[u8; 16] = b"0123456789abcdef";
     let mut encoded = [0u8; 64];
-    for (index, byte) in digest.as_bytes().iter().enumerate() {
-        encoded[index * 2] = HEX[(byte >> 4) as usize];
-        encoded[index * 2 + 1] = HEX[(byte & 15) as usize];
+    for (index, &byte) in digest.as_bytes().iter().enumerate() {
+        encoded[index * 2..index * 2 + 2]
+            .copy_from_slice(&tos_foundation::encode_lower_hex_byte(byte));
     }
     output.write_all(&encoded)
 }

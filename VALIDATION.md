@@ -17,18 +17,15 @@ only; the validator rejects Python commands in the manifest.
 
 | Changed surface | Start with |
 | --- | --- |
-| AGENTS cards or route topology | `route_docs` |
-| model-facing skills or owner ports | `agent_surface` |
 | source-home structure | `source_home` |
 | semantic registry/profile changes | `semantic_registry_transition` with the exact baseline required by `docs/RELEASING.md` |
 | source witnesses, provenance, rights, or corpus mechanics | `source_witness_foundation` |
 | philosophy atlas or graph workbench | `philosophy_topology` |
-| mechanics topology or package-local checks | `mechanics_topology`, then `mechanics_local` |
+| mechanics package-local checks | `mechanics_local` |
 | canon or candidate intake | `canon_contracts` or `intake_contracts` |
 | generated readers | `generated_parity` and the affected export lane |
 | public entry or local KAG provider | `public_entry` or `local_kag_provider` |
 | owner-local statistics | `local_stats_port` |
-| cross-family documentation | `cross_corpus_documentation` |
 | standalone software | `release` through `tos-release-check`; `software_browser` for browser behavior after the software build |
 | a stand's bonsai under `bonsai/` | `release` builds the stands that read it; `software_browser` runs their tests, which check each bonsai and its export against the Tree's contracts |
 | Rust workspace and crates | `rust_workspace` with the pinned toolchain, WASM target and matching wasm-bindgen CLI; it verifies implemented Rust packages and installed native consumers |
@@ -43,13 +40,13 @@ compatibility and admission checks after handoff.
 Inspect an exact current sequence without executing it:
 
 ```bash
-tos-validation-lanes --repo-root "$PWD" --sequence route_docs
+tos-validation-lanes --repo-root "$PWD" --sequence rust_workspace
 ```
 
 Execute one selected internal sequence:
 
 ```bash
-tos-validation-lanes --repo-root "$PWD" --run route_docs
+tos-validation-lanes --repo-root "$PWD" --run rust_workspace
 ```
 
 Execute the full software contracts and fixture-based behavior route locally

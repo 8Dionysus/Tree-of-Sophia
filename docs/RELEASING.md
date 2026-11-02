@@ -201,9 +201,8 @@ use the full suite; a missing or failed selector fails the required gate.
 | Changed paths | Selected checks |
 | --- | --- |
 | Human Markdown at root or a known guide home in the [selector](../rust/crates/tos-ops-mechanics-plan/src/software_ci.rs); Rust guides outside `src/` and `tests/`; test README/validation guides | Changed-document checks; fixture directories retain their consumer route |
-| `AGENTS.md` in those homes | Source card shape, inventory, inheritance, script references and task-route harness; no unrelated package/browser/Worker build |
-| `ToS/` Markdown, `QUESTBOOK.md`, `quests/` Markdown or Questbook's `QUESTBOOK_TOS_INTEGRATION.md` | Complete Rust consumer lane and installs; ToS cards additionally select the source route checks |
-| `.agents/agents-route.current.json`, `.agents/agent-surface.current.json`, `docs/validation/documentation-family.current.json` | Check the changed carrier through its existing owner builder/validator; route-carrier changes also check cards and task routes |
+| `AGENTS.md` in those homes | The plan job checks the 800-word limit |
+| `ToS/` Markdown, `QUESTBOOK.md`, `quests/` Markdown or Questbook's `QUESTBOOK_TOS_INTEGRATION.md` | Complete Rust consumer lane and installs |
 | `access/web/` or `access/e2e/` code/configuration, or a stand's data under `bonsai/` | Source-bound software preparation, fixture tests, browser build/unit/types/behavior (including each bonsai's check against the Tree's contracts), and isolated package install |
 | `access/src/` or `access/tests/` | Source-bound software preparation, package/browser checks, reader/API fixture tests, and Worker cross-adapter tests |
 | `access/deploy/cloudflare-worker/` code/configuration | Worker type and behavior tests, including cross-adapter fixtures |
@@ -318,21 +317,11 @@ or `testdata` component keeps its enclosing consumer checks. Unknown homes keep
 the full selection. `ToS/` source Markdown retains the complete Rust consumer
 lane because owner cards and research packets are exact source-test inputs;
 the independent browser and Worker implementations do not consume those bytes.
-`QUESTBOOK.md` and its integration guide also retain Rust because they are
-parsed or required inputs to the Questbook owner validator.
+`QUESTBOOK.md` and its integration guide also retain the Rust consumer lane.
 Source assessment/admission still belongs to
 its owner, not to a green software gate. This selector does not publish data.
 
-Source route checks use `tos-route-cards validate-source` and the existing task
-harness. This runs the same authored card/inventory/inheritance/reference laws
-as `validate`, without requiring an untouched generated route carrier to be
-rebuilt. `validate` keeps its existing parity check. When a generated carrier
-itself changes, CI selects that owner's parity check explicitly. Ordinary
-software and documentation changes do not acquire a repository-wide currentness
-dependency. All selected documentation checks run inside the required plan job;
-failure, missing selection outputs or cancellation still reject the gate.
-Each Rust matrix runner uses the existing sparse checkout and its own temporary
-Cargo target. The software producer and its fixture/package consumers share
+The plan job checks each tracked AGENTS.md against the 800-word limit. All selected jobs must succeed for the required gate. Each Rust matrix runner uses a normal checkout and its own temporary Cargo target. The software producer and its fixture/package consumers share
 their source checkout scope and use the pinned Ubuntu 26.04 image that matched
 the measured software baseline. Rust host-program fixtures use the qualified
 Ubuntu 24.04 runner explicitly; changing its distribution is a separate

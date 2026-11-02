@@ -179,9 +179,7 @@ fn finite(n: usize) -> bool {
     n > 0 && n < usize::MAX
 }
 fn digest(v: &str) -> bool {
-    v.len() == 64
-        && v.bytes()
-            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    tos_foundation::is_lower_hex(v, 64)
 }
 fn identity(v: &str) -> bool {
     if v.len() > 4096 {

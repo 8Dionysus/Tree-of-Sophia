@@ -445,7 +445,7 @@ fn issue(root: &ResearchExecution, bindings: &[(String, String)], plan: &Value) 
         };
         let mut raw = [0u8; 16];
         root.read_exact(&mut entropy, &mut raw)?;
-        let token = raw.iter().map(|b| format!("{b:02x}")).collect::<String>();
+        let token = tos_foundation::encode_lower_hex(&raw);
         rows.push(json!({"kind":k,"binding":b,"id":format!("tos.annotation.{prefix}.sid-{token}")}))
     }
     write(

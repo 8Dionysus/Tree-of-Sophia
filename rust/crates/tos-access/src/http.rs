@@ -99,12 +99,7 @@ impl ScopedHttpResponse<'_> {
 }
 
 fn hex(byte: u8) -> Option<u8> {
-    match byte {
-        b'0'..=b'9' => Some(byte - b'0'),
-        b'a'..=b'f' => Some(byte - b'a' + 10),
-        b'A'..=b'F' => Some(byte - b'A' + 10),
-        _ => None,
-    }
+    tos_foundation::decode_lower_hex_digit(byte.to_ascii_lowercase())
 }
 
 fn percent_decode(raw: &str, plus_space: bool) -> Result<String, AccessError> {

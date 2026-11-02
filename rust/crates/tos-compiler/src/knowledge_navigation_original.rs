@@ -878,7 +878,7 @@ fn digest(raw: Vec<u8>) -> Result<String> {
     if raw.len() != 32 {
         return Err(Error::Invalid("navigation original stored digest"));
     }
-    Ok(raw.iter().map(|b| format!("{b:02x}")).collect())
+    Ok(tos_foundation::encode_lower_hex(&raw))
 }
 pub(crate) fn receipt(db: &Connection) -> Result<NavigationOriginalReceipt> {
     if !present(db)? {

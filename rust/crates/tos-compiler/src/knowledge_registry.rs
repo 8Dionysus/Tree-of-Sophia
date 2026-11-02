@@ -189,9 +189,8 @@ fn stable_digest_owned(value: &Value, state: &CreationState<'_>) -> Result<Strin
                 }
                 state.charge_work(19)?;
                 hasher.update(b"d");
-                const HEX: &[u8; 16] = b"0123456789abcdef";
                 for byte in float.to_be_bytes() {
-                    hasher.update(&[HEX[(byte >> 4) as usize], HEX[(byte & 0x0f) as usize]]);
+                    hasher.update(&tos_foundation::encode_lower_hex_byte(byte));
                 }
                 hasher.update(b";");
             }

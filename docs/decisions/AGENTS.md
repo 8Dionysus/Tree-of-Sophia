@@ -20,15 +20,6 @@ Preserve existing IDs. A changed choice gets an explicit superseding record
 that names the affected scope; historical rationale stays readable. Ordinary
 documentation cleanup alone does not require a new record.
 
-## Boundary Routes
+## Index and validation
 
-Generated indexes are lookup views, weaker than current source authority. Keep `modeled_surfaces` in
-`docs/decisions/indexes/index_contract.yaml` as a top-level list of normalized
-repo-relative paths under `docs/decisions/`; root non-record Markdown does not
-belong in that list.
-
-## Validation
-
-Use [docs/VALIDATION.md](../VALIDATION.md) to regenerate indexes and check
-record shape, then validate the changed source through its owner. Index parity
-does not accept a decision or prove its implementation.
+Maintain the decision index in [README.md](README.md) by hand. Review each record and validate its changed source through the owning route.

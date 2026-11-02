@@ -104,10 +104,6 @@ fn read_json(path: &Path) -> Result<Value> {
     io_owner::parse(&raw)
 }
 
-fn digest_hex(bytes: &[u8]) -> String {
-    Digest256::of_bytes(bytes).to_hex()
-}
-
 fn validate_schema(repo: &Path, ref_path: &str, value: &Value) -> Result<()> {
     let path = io_owner::path_under(repo, ref_path)?;
     let schema = read_json(&path)?;
@@ -157,7 +153,7 @@ fn load_plan(repo: &Path, requested: &Path) -> Result<PlanContext> {
     let raw = io_owner::read_bytes(&path, None, false, false, MAX_JSON)?;
     let plan = io_owner::parse(&raw)?;
     validate_schema(repo, PLAN_SCHEMA, &plan)?;
-    let plan_sha256 = digest_hex(&raw);
+    let plan_sha256 = Digest256::of_bytes(&raw).to_hex();
     let plan_ref = match path.strip_prefix(repo) {
         Ok(relative) => {
             let value = relative.to_str().ok_or("plan reference must be UTF-8")?;
@@ -184,7 +180,7 @@ fn load_plan(repo: &Path, requested: &Path) -> Result<PlanContext> {
             .ok_or("agent-reviewed plan lacks rights_review")?;
         let review_path = repo_file(repo, text(review, "ref")?)?;
         let review_bytes = io_owner::read_bytes(&review_path, None, false, false, MAX_JSON)?;
-        if digest_hex(&review_bytes) != text(review, "sha256")? {
+        if Digest256::of_bytes(&review_bytes).to_hex() != text(review, "sha256")? {
             return Err("rights review SHA-256 differs from frozen plan".into());
         }
         let review_doc = io_owner::parse(&review_bytes)?;
@@ -197,7 +193,7 @@ fn checked_plan_inputs(context: &PlanContext) -> Result<(PathBuf, Value, PathBuf
     let manifest_ref = text(&context.plan["manifest"], "ref")?;
     let manifest_path = repo_file(&context.repo, manifest_ref)?;
     let manifest_bytes = io_owner::read_bytes(&manifest_path, None, false, false, MAX_JSON)?;
-    if digest_hex(&manifest_bytes) != text(&context.plan["manifest"], "sha256")? {
+    if Digest256::of_bytes(&manifest_bytes).to_hex() != text(&context.plan["manifest"], "sha256")? {
         return Err("manifest SHA-256 differs from frozen plan".into());
     }
     if context.plan["manifest"]["verified"] != true {
@@ -249,7 +245,9 @@ fn checked_plan_inputs(context: &PlanContext) -> Result<(PathBuf, Value, PathBuf
     let rights_ref = text(&context.plan["rights_policy"], "rights_record_ref")?;
     let rights_path = repo_file(&context.repo, rights_ref)?;
     let rights_bytes = io_owner::read_bytes(&rights_path, None, false, false, MAX_JSON)?;
-    if digest_hex(&rights_bytes) != text(&context.plan["rights_policy"], "rights_record_sha256")? {
+    if Digest256::of_bytes(&rights_bytes).to_hex()
+        != text(&context.plan["rights_policy"], "rights_record_sha256")?
+    {
         return Err("rights-record SHA-256 differs from frozen plan".into());
     }
     let rights = io_owner::parse(&rights_bytes)?;
@@ -404,7 +402,7 @@ fn validate_agent_review(
     let path = repo_file(&context.repo, reference)?;
     let raw = io_owner::read_bytes(&path, None, false, false, MAX_JSON)?;
     let expected = text(info, "sha256")?;
-    if digest_hex(&raw) != expected {
+    if Digest256::of_bytes(&raw).to_hex() != expected {
         return Err("agent rights review evidence digest mismatch".into());
     }
     let review = io_owner::parse(&raw)?;
@@ -476,7 +474,7 @@ fn validate_agent_review(
         let evidence_ref = text(item, "evidence_ref")?;
         let evidence_path = repo_file(&context.repo, evidence_ref)?;
         let evidence_raw = io_owner::read_bytes(&evidence_path, None, false, false, MAX_JSON)?;
-        if digest_hex(&evidence_raw) != text(item, "evidence_sha256")? {
+        if Digest256::of_bytes(&evidence_raw).to_hex() != text(item, "evidence_sha256")? {
             return Err("tracked license evidence digest mismatch".into());
         }
         if !license_refs.contains(text(item, "source_ref")?) && !license_refs.contains(evidence_ref)
@@ -641,9 +639,7 @@ fn validate_rights(context: &PlanContext, rights: &Value) -> Result<()> {
 }
 
 fn digest_file(path: &Path) -> Result<String> {
-    Ok(digest_hex(&io_owner::read_bytes(
-        path, None, false, false, MAX_JSON,
-    )?))
+    Ok(Digest256::of_bytes(&io_owner::read_bytes(path, None, false, false, MAX_JSON)?).to_hex())
 }
 
 fn check_expiry(value: Option<&Value>) -> Result<()> {
@@ -989,7 +985,7 @@ fn publication_id(item: &str, file: &str, rights: &str) -> String {
     bytes.extend_from_slice(file.as_bytes());
     bytes.push(0);
     bytes.extend_from_slice(rights.as_bytes());
-    format!("pub-{}", &digest_hex(&bytes)[..32])
+    format!("pub-{}", &Digest256::of_bytes(&bytes).to_hex()[..32])
 }
 
 fn receipt_filename(context: &PlanContext, file: &VerifiedFile) -> String {
@@ -1686,7 +1682,7 @@ where
     let plans_sha = text(request, "expected_plans_sha256")?;
     batch_digest(plans_sha)?;
     let raw = io_owner::read_bytes(&plans_path, None, false, false, MAX_JSON)?;
-    if digest_hex(&raw) != plans_sha {
+    if Digest256::of_bytes(&raw).to_hex() != plans_sha {
         return Err("frozen plans file SHA-256 differs".into());
     }
     let index = io_owner::parse(&raw)?;
@@ -2471,7 +2467,7 @@ mod transfer_tests {
             fs::create_dir_all(payload.parent().unwrap()).unwrap();
             let body = b"exact source witness\n".to_vec();
             fs::write(&payload, &body).unwrap();
-            let file_sha = digest_hex(&body);
+            let file_sha = Digest256::of_bytes(&body).to_hex();
             let file_ref = format!("tos.file.sha256.{file_sha}");
             let manifest = json!({"item_id":item,"rights_ref":rights_ref,"payload_files":[{"file_id":file_ref,"relative_path":"payload/witness.txt","byte_size":body.len(),"sha256":file_sha,"media_type":"text/plain"}]});
             let rights = json!({"item_id":item,"scope_refs":[item,file_ref],"assessment_status":"licensed","permissions":["retain exact bytes"],"restrictions":[],"visibility":"controlled","redistribution_posture":"authorized","server_processing_posture":"authorized","source":"https://example.test/license"});
@@ -2572,7 +2568,7 @@ mod transfer_tests {
 
         fn add_second_file(&mut self) -> String {
             let body = b"second exact source witness\n";
-            let file_sha = digest_hex(body);
+            let file_sha = Digest256::of_bytes(body).to_hex();
             let file_ref = format!("tos.file.sha256.{file_sha}");
             let relative_path = "payload/z-second.txt";
             let payload_path = self
@@ -2963,10 +2959,10 @@ mod transfer_tests {
             .as_array_mut()
             .unwrap()
             .push(json!({
-                "file_id":format!("tos.file.sha256.{}", digest_hex(extra)),
+                "file_id":format!("tos.file.sha256.{}", Digest256::of_bytes(extra).to_hex()),
                 "relative_path":"payload/unlisted.txt",
                 "byte_size":extra.len(),
-                "sha256":digest_hex(extra),
+                "sha256":Digest256::of_bytes(extra).to_hex(),
                 "media_type":"text/plain"
             }));
         fs::write(&manifest_path, json_pretty(&manifest).unwrap()).unwrap();

@@ -10,7 +10,7 @@
 | owner | `mechanics/questbook/parts/obligation-boundary/` |
 | next route | root `QUESTBOOK.md` or root `quests/` when public records change |
 | tools | boundary doc and questbook route card |
-| check | `tos-ops-mechanics-plan --repo-root . --questbook-validate`; `tos-ops-mechanics-plan --repo-root . --mechanics-topology-validate` |
+| check | manual review of the obligation and source records |
 
 ## Payload
 

@@ -195,7 +195,9 @@ pub(crate) fn pg_item_adoption_response_from_attempt(
             .ok_or(SourceCommandError::Conflict(
                 "PG Item recovery archive identity differs",
             ))?;
-    if !lower_hex_64(archive_claim) || !lower_hex_64(archive_revision) {
+    if !tos_foundation::is_lower_hex(archive_claim, 64)
+        || !tos_foundation::is_lower_hex(archive_revision, 64)
+    {
         return Err(SourceCommandError::Conflict(
             "PG Item recovery archive identity differs",
         ));
@@ -610,7 +612,7 @@ pub(crate) fn pg_item_adoption_response_from_attempt(
         let digest = cmd::text(row, "sha256")?;
         let digest_hex = digest
             .strip_prefix("sha256:")
-            .filter(|value| lower_hex_64(value))
+            .filter(|value| tos_foundation::is_lower_hex(value, 64))
             .ok_or(SourceCommandError::Conflict(
                 "PG Item recovery archive file digest differs",
             ))?;
@@ -704,14 +706,8 @@ fn flat_digest_blob_or_manifest(name: &str) -> bool {
 }
 
 fn flat_digest_blob(name: &str) -> bool {
-    name.strip_suffix(".blob").is_some_and(lower_hex_64)
-}
-
-fn lower_hex_64(value: &str) -> bool {
-    value.len() == 64
-        && value
-            .bytes()
-            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    name.strip_suffix(".blob")
+        .is_some_and(|value| tos_foundation::is_lower_hex(value, 64))
 }
 
 fn current_children(
@@ -3010,7 +3006,7 @@ pub(crate) fn item_adoption_insertion_paths(
     let transaction = cmd::text(&receipt, "transaction_id").map_err(crate::DurableError::Source)?;
     let transaction = transaction
         .strip_prefix("sha256:")
-        .filter(|id| lower_hex_64(id))
+        .filter(|id| tos_foundation::is_lower_hex(id, 64))
         .ok_or(crate::DurableError::Corrupt(
             "Item insertion transaction identity",
         ))?;

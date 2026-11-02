@@ -84,23 +84,13 @@ A synthetic PID stream covers the prior count/byte cutoff without spawning
 thousands of live processes. No authored ToS meaning is admitted.
 
 `--execute` runs the native Growth pipeline and other selected mechanics.
-Agon registry, relation pack, Questbook and public mirror
+Agon registry, relation pack and public mirror
 routes bind directly to their native owner flags by package/part home. The
 route survives removal of Python wrappers; unexpected Python builders or
 validators in those homes fail discovery. Artifact validation uses the native
 software or selected data export route. Consumers own their admission checks.
 Mirror sync and KAG generation remain explicit writes.
 Historical Growth assertions are retained evidence and have no executable oracle flag.
-
-`--mechanics-topology-validate` is a separate read-only native candidate for
-the existing `mechanics_topology` lane. It checks package/part membership,
-route documents, local Markdown references and fragments, script/test
-inventories, context budget and moved-path accounting. It bounds traversal to
-10,000 entries, retained input to 64 MiB (8 MiB per file), and diagnostics to
-4,096 issues of at most 8 KiB each; references have separate 100,000-entry
-and 64 MiB byte bounds, and retained anchor text has its own 64 MiB bound.
-The former Python command entry is retired; the native mode owns this operation. This validates mechanics topology
-and does not accept authored ToS meaning.
 
 `tos-validation-lanes` owns the validation command plane. Its `--check`,
 `--sequence ID`, and `--run ID` modes read the existing
@@ -143,97 +133,14 @@ skipped jobs. It cannot run checks or accept a release. The `.github` workflow i
 
 Git capture uses the existing dedicated Linux pidfd/subreaper boundary, capped
 at 30 seconds per command and 120 seconds for the plan. Input is limited to
-4096 changed paths / 4 MiB, 8 MiB per Markdown or prior Git document, and
-64 MiB across changed paths, current documents and captured Git output. Current
-Markdown and `GITHUB_OUTPUT` must be regular files without a final symlink;
+4 MiB of changed paths and 64 MiB across captured Git output.
+`GITHUB_OUTPUT` must be a regular file without a final symlink;
 `CI_NEEDS` and the existing append destination are capped at 1 MiB. These are
 explicit finite candidate limits. Git error text/exception tracebacks are not
-promised byte-identical; selection, successful output and document findings
+promised byte-identical; selection and successful output
 retain the maintained semantics within this profile. No remote fetch occurs.
 
-`--active-naming-validate` preserves pruned top-down/sorted path checking,
-token-first maximal runs, exact content-only domain/provenance exceptions,
-experience route scope and active fields of mechanics topology. Generated KAG
-carriers and retired history remain outside the active naming source.
-The Python implementation and its test module are retired; Rust unit tests and
-the actual CLI scenario cover naming and optional feedback-cache behavior.
-
-On Linux, `--feedback-cache ABSOLUTE_SQLITE_FILE` selects an optional external
-local cache. Every path and file is still read live; only the pure content
-result is reused by digest. Policy binds the native source and resolved
-Rust dependencies, so old Python hints are recomputed. The parent must be
-owned and not writable by other users; the cache cannot be inside the source
-root or reached through a symlink into it. New files use mode `0600`.
-Reserve up to 128 MiB for the 64 MiB database and its rollback journal before
-selecting this write route. Corrupt rows are recomputed; storage, lock and
-schema failures fall back immediately to uncached validation and are reported.
-CI and release commands do not select feedback caches.
-
-The validator refuses encountered active symlinks, bounds traversal to 10,000
-entries / 128 directory levels, each text file to 8 MiB and aggregate read input
-to 64 MiB, and issues to 4096 of at most 8 KiB each. Invalid UTF-8 text is skipped
-as in Python; ordinary newline decoding is preserved. JSON topology is bounded
-by the existing serde parser depth and cannot use a depth refusal as clean
-validation. Whole validation has a 300-second wall. One fixed bounded pass over
-Unicode scalars prepares the digit grammar from the existing Unicode16 category
-primitive, while lowercasing uses FND's pinned Python16 implementation. The
-controlled fixture compares the actual whole CLI/Python default consumer on
-failing, cleaned, and changed-current-target states of one small disposable tree.
-These are finite candidate limits and controls, not a whole repository run or
-optional-cache retirement result.
-
-`tos-route-cards --repo-root ABSOLUTE_PATH build [--check] [--output PATH]`
-and `validate` are the maintained route-card builder and validator.
-`tos-agents-route-harness --repo-root ABSOLUTE_PATH [--check] [--output PATH]`
-retains the declared-task harness, including `--source-ref` and
-`--volatile-timing`. Their shared snapshot reader preserves raw digests,
-Unicode text rules, target inheritance and a separate owner handoff. Generated
-currentness names `rust/crates/tos-ops-mechanics-plan/src/route_cards.rs` as its
-builder source. Authored cards and inventory retain their authority, and harness
-results make no model-behavior claim. The Python implementations and replaced
-tests are retired; the native CLI contracts preserve structural refusals,
-currentness, output paths, context budgets and source provenance.
-
-One source snapshot bounds raw input to 64 MiB / 8 MiB per file, with at most
-another 64 MiB of normalized cached text, 10,000 retained files/cards,
-100,000 lookups, 128 path levels and 4096-byte relative paths. The maintained
-whole-repository card, currentness and harness routes stream up to 131,072
-physical directory entries without retaining unrelated files; narrower source
-APIs keep their original discovery limits. Cached metadata is computed once
-per unique source. Inventory punctuation is preflighted before JSON parsing;
-arrays/tasks are limited to 4096 and cards to 65,536 lines of at most 8192 bytes.
-The snapshot checks a cooperative 30-second deadline. Each build/validator Git
-capture uses the existing Linux pidfd/subreaper executor with a 10-second wall,
-one-second cleanup grace and 4 MiB combined output. Harness provenance uses at
-most two such captures. Supervisor or finite-bound refusals cannot become clean
-validation; ordinary unavailable Git retains the maintained conservative route.
-
-The shared conservative output budget limits amplified fields before copying
-to 16 MiB; rendering, output and currentness checks have the same byte ceiling.
-Explicit writes retain nofollow directory descriptors and refuse symlinks,
-FIFOs and shared hardlinks before truncation. Diagnostics are limited to 4096
-findings of at most 8192 bytes. Harness additionally charges repeated cached
-lower/search/token scans to a 512 MiB logical-work ceiling and limits route
-text and joined prompts to 8 MiB. These are finite candidate limits and can
-refuse inputs the Python scripts previously read without limits.
-
-Caller costs include a second inventory snapshot for default build output,
-a second discovery walk during currentness verification and successful
-validator CLI recount, plus an existing-output read for `--check`. Rendering
-and local writes retain the enclosing wall guard. Native route-card fixtures
-exercise these callers; `route_docs` runs the maintained native commands.
-
-The validation-lanes, release-check, software-CI and topology
-commands use the selected installed native tools. Active naming
-is invoked directly as `tos-ops-mechanics-plan --repo-root PATH --active-naming-validate`.
-`TOS_VALIDATION_LANES_EXECUTOR`, `TOS_RELEASE_CHECK_EXECUTOR` and
-`TOS_SOFTWARE_CI_EXECUTOR` select their corresponding standalone binaries;
-`TOS_OPS_MECHANICS_EXECUTOR` selects topology mode. Each entry uses
-its exact override or the corresponding PATH binary, without compile-on-call
-or fallback. Active naming and its optional feedback cache are native.
-OPS owns installation and packaging availability independently
-from the prepared read-model fs-verity route; source wiring alone proves neither
-installed availability nor an actual release/CI execution.
+The validation-lanes, release-check and software-CI commands use the selected installed native tools. `TOS_VALIDATION_LANES_EXECUTOR`, `TOS_RELEASE_CHECK_EXECUTOR` and `TOS_SOFTWARE_CI_EXECUTOR` select their corresponding binaries.
 
 `--semantic-registry-transition` is an explicit native gate for the maintained
 semantic registry transition law. `--baseline-commit` supplies the immutable
@@ -439,14 +346,7 @@ Root-entry route values have one authored generator input,
 `RouteSources` and the current root-entry schema. The compact output ABI and selected export
 verification stay unchanged.
 
-Agent surface, documentation family, decision indexes and root-entry map use
-`tos-ops-mechanics-plan --repo-root PATH` directly in the validation manifest.
-Select `--agent-surface-build [--check]`, `--agent-surface-validate`, `--documentation-family-build [--check]`,
-`--documentation-cross-corpus-validate`, `--decision-index-build [--check]`,
-`--decision-records-validate`, `--root-entry-map-build [--check]`, or
-`--root-entry-map-validate`. The two root-entry operations accept an explicit
-`--kag-export PATH`; selected exports require the genuine corpus admission and
-installed Ops `--kag-source-export-build` / `--kag-source-export-verify` route.
+Use `--root-entry-map-build [--check]` or `--root-entry-map-validate` with `tos-ops-mechanics-plan --repo-root PATH`. Both accept `--kag-export PATH`; selected exports require the corpus export route.
 
 Root-entry map has no Python builder, validator or imported comparison engine.
 Its route declaration remains `scripts/root_entry_map.source.json`; the native
@@ -457,19 +357,14 @@ historical names without requiring those launchers.
 
 ## Native validation lanes
 
-`tos-validation-lanes --repo-root ABSOLUTE_PATH --sequence route_docs`
-shows the authored command sequence; `--run route_docs` executes it under the
+`tos-validation-lanes --repo-root ABSOLUTE_PATH --sequence rust_workspace`
+shows the authored command sequence; `--run rust_workspace` executes it under the
 same bounded process supervisor. Maintained sequences are native-only; manifest
 checking and command selection reject Python commands.
 The manifest's exact `{repo_root}` argument resolves to the selected canonical
 root without shell expansion.
 
-Route currentness, nested cards, task harness, tiny entry and the philosophy
-projection lanes call their existing Rust implementations directly.
-`tos-ops-mechanics-plan --agents-route-harness-check --repo-root ABSOLUTE_PATH`
-and `--tiny-entry-validate` also expose those narrow owner checks individually.
-`tos-release-check` follows the same native-only manifest contract; maintained
-ToS test steps execute native products.
+Tiny entry and philosophy projection lanes call their existing Rust implementations directly.
 
 The source-home lane runs `--lived-witness-validate` through the native owner.
 It checks the schema, exact body/review digests, purpose-specific permissions,
@@ -493,12 +388,7 @@ Both operations share native child-process custody, cancellation, a default
 child. Caller-selected resource/storage admission remains external.
 
 
-The source-home validator and decision builder/validator are native commands:
-`--source-home`, `--decision-index-build [--check]` and
-`--decision-records-validate`. Their Python implementations and replaced tests
-are retired. Source-home schema assertions run in Rust. Decision tests use
-fixed reviewed output bytes and explicit refusal cases with an empty PATH;
-record validation remains separate from generated-index currentness.
+The source-home validator is a native command: `--source-home`. Source-home schema assertions run in Rust.
 
 The semantic-registry transition gate is a native command. Its thirteen native
 CLI tests preserve immutable baseline selection, independent version advances,
@@ -507,19 +397,10 @@ Git replacement, shallow-history and graft refusal. Git is the explicit host
 operation; the former Python gate and wrapper are retired. The historical
 reader path remains an identity sentinel for earlier commits, never a fallback.
 
-Agon, Experience and Questbook retain their package-local schema and mutation
+Agon and Experience retain their package-local schema and mutation
 assertions in the native `--local-contracts HOME` command and
 `tests/mechanics_contracts.rs`. Their five replaced Python test files are
 retired. Native discovery selects the existing owner homes directly and
 refuses new unreviewed Python tests there; it no longer hashes retired source
 files to discover a supported command. `experience_contracts` runs that same
 native consumer through the validation lane.
-
-
-Agent-surface currentness and validation use `--agent-surface-build [--check]`
-and `--agent-surface-validate`. Their replaced Python builder, validator and
-executable test oracles are retired. Rust tests retain immutable profile binding,
-activation metadata, package fixity, tracked-file selection, context probes,
-public-safety and ToS-owned source-export routes. Agent validation checks the
-local export contract, builder and navigation without selecting a consumer
-artifact, checkout, interpreter or runtime.

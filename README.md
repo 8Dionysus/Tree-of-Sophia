@@ -102,7 +102,7 @@ authority, and canon require matching source evidence and owner review.
 | Follow the golden kernel | [contract](ToS/zarathustra/GOLDEN_GROWTH_KERNEL.md) · [public route](ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md) · [worked capsule](ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md) |
 | Follow derived routes | [root-map source](scripts/root_entry_map.source.json) · [bounded KAG export](mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md) |
 | Contribute and validate | [validation](VALIDATION.md) · [agent routes](AGENTS.md) · [mechanics](mechanics/README.md) · [cross-corpus map](docs/validation/README.md#cross-corpus-documentation) |
-| Track direction and decisions | [ROADMAP](ROADMAP.md) · [CHANGELOG](CHANGELOG.md) · [records](docs/decisions/README.md) |
+| Track direction and decisions | [ROADMAP](ROADMAP.md) · [CHANGELOG](CHANGELOG.md) · [records](docs/decisions/README.md) · [retirement conditions](docs/RETIREMENT.md) |
 
 Meaning stays in authored sources, operations in `mechanics/`, and decisions
 and projections with their named owners.

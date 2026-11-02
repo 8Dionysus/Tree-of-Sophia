@@ -98,9 +98,7 @@ fn union<'a>(sets: impl IntoIterator<Item = &'a Set>) -> Set {
     sets.into_iter().flat_map(|s| s.iter().cloned()).collect()
 }
 fn valid_sha(s: &str) -> bool {
-    s.len() == 64
-        && s.bytes()
-            .all(|c| c.is_ascii_digit() || (b'a'..=b'f').contains(&c))
+    tos_foundation::is_lower_hex(s, 64)
 }
 fn sha(v: &Value) -> Result<&str> {
     let s = txt(v)?;
@@ -518,7 +516,7 @@ pub fn check(root: &Path, expected: &Value, cancel: &AtomicI32) -> Result<()> {
     )
 }
 pub fn write(root: &Path, expected: &Value) -> Result<()> {
-    crate::route_cards::write_output(root, Path::new(QUEUE), &render(expected)?)
+    crate::source_reading::write_output(root, Path::new(QUEUE), &render(expected)?)
 }
 
 #[cfg(test)]

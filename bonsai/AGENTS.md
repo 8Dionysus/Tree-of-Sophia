@@ -42,5 +42,4 @@ holds the shared readers, the Tree-contract check and the export. Stands under
 
 [README](README.md) explains module shapes, the check and the export. Select
 the bonsai route in [VALIDATION.md](../VALIDATION.md): the stands' tests carry
-each bonsai's module, Tree-contract and export checks. Card or routing changes
-also select `route_docs`.
+each bonsai's module, Tree-contract and export checks.

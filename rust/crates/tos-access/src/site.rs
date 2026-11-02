@@ -963,10 +963,7 @@ impl SoftwareSite {
         File::open("/dev/urandom")
             .and_then(|mut f| f.read_exact(&mut entropy))
             .map_err(|_| unavailable("site nonce unavailable"))?;
-        let nonce = entropy
-            .iter()
-            .map(|byte| format!("{byte:02x}"))
-            .collect::<String>();
+        let nonce = tos_foundation::encode_lower_hex(&entropy);
         let body = INDEX
             .replace("__CSP_NONCE__", &nonce)
             .replace("__BOOT__", &boot)

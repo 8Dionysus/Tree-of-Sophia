@@ -23,10 +23,7 @@ pub(crate) fn text<'a>(value: &'a Value, key: &str) -> SourceCommandResult<&'a s
     value.get(key).and_then(Value::as_str).ok_or_else(invalid)
 }
 fn bare(value: &str) -> bool {
-    value.len() == 64
-        && value
-            .bytes()
-            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    tos_foundation::is_lower_hex(value, 64)
 }
 fn sha(value: &str) -> bool {
     value.strip_prefix("sha256:").is_some_and(bare)

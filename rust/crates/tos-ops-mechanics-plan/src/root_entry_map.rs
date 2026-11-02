@@ -1,6 +1,6 @@
 //! Maintained root-entry readmodel kernel, schema and orientation checks.
 use crate::kag_corpus_export::{self, VerifiedExport};
-use crate::route_cards::{self, RouteSources};
+use crate::source_reading::{self, RouteSources};
 use serde_json::Value;
 use std::{
     io,
@@ -349,7 +349,7 @@ fn build_verified(
         // builder. RouteSources text retains that read profile with bounded custody.
         Ok(s.text(OUTPUT)?.as_deref() == Some(rendered.as_str()))
     } else {
-        route_cards::write_output(root, Path::new(OUTPUT), &rendered)?;
+        source_reading::write_output(root, Path::new(OUTPUT), &rendered)?;
         tick(s, cancel)?;
         Ok(true)
     }

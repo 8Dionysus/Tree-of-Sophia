@@ -239,7 +239,7 @@ impl<'a, 'conn> CatalogIndex<'a, 'conn> {
         facts: &str,
         summary: &str,
     ) -> Result<String> {
-        let hex: String = order.iter().map(|b| format!("{b:02x}")).collect();
+        let hex: String = tos_foundation::encode_lower_hex(&order);
         semantics::catalog_digest(&json!([kind, id, hex, row, facts, summary]))
     }
     fn endpoint(&self, id: &str) -> Result<JsonValue> {

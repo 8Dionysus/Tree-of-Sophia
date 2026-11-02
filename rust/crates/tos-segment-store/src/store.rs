@@ -3808,13 +3808,7 @@ fn map_fd_open(error: OpenError, unsafe_code: Code, detail: &'static str) -> Seg
 }
 
 fn hex_id(id: [u8; 16]) -> String {
-    const HEX: &[u8; 16] = b"0123456789abcdef";
-    let mut text = String::with_capacity(32);
-    for byte in id {
-        text.push(HEX[(byte >> 4) as usize] as char);
-        text.push(HEX[(byte & 15) as usize] as char);
-    }
-    text
+    tos_foundation::encode_lower_hex(&id)
 }
 
 const INTENT_MAGIC: &[u8; 8] = b"TOSINT1\0";

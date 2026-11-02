@@ -248,11 +248,6 @@ fn string<'a>(v: &'a Value, k: &str) -> Result<&'a str> {
 fn count(v: &Value, k: &str) -> Result<u64> {
     v[k].as_u64().ok_or_else(|| err("source diagnostic count"))
 }
-fn hex(s: &str) -> bool {
-    s.len() == 64
-        && s.bytes()
-            .all(|c| c.is_ascii_digit() || (b'a'..=b'f').contains(&c))
-}
 fn descriptor(root: &Path, v: &Value, prefix: &str) -> Result<PathBuf> {
     exact(
         v,
@@ -275,8 +270,8 @@ fn descriptor(root: &Path, v: &Value, prefix: &str) -> Result<PathBuf> {
         || !prefix
             .bytes()
             .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
-        || !hex(sha)
-        || !hex(string(v, "decoded_sha256")?)
+        || !tos_foundation::is_lower_hex(sha, 64)
+        || !tos_foundation::is_lower_hex(string(v, "decoded_sha256")?, 64)
     {
         return Err(err("source diagnostic part identity"));
     }

@@ -675,15 +675,7 @@ fn identity_value(identity: PgRecordRevisionIdentity) -> tos_foundation::JsonVal
     ])
 }
 
-fn hex(bytes: &[u8]) -> String {
-    const DIGITS: &[u8; 16] = b"0123456789abcdef";
-    let mut output = String::with_capacity(bytes.len() * 2);
-    for byte in bytes {
-        output.push(DIGITS[(byte >> 4) as usize] as char);
-        output.push(DIGITS[(byte & 0x0f) as usize] as char);
-    }
-    output
-}
+use tos_foundation::encode_lower_hex as hex;
 
 /// Concrete output accepted by the PostgreSQL adapter. Fields are private;
 /// construction requires the shared semantic preparation and serializer.

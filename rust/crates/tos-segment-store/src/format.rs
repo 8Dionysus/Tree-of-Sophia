@@ -480,12 +480,4 @@ fn read_observed(
     Ok(())
 }
 
-fn hex_bytes(bytes: &[u8]) -> String {
-    const HEX: &[u8; 16] = b"0123456789abcdef";
-    let mut result = String::with_capacity(bytes.len() * 2);
-    for byte in bytes {
-        result.push(HEX[(byte >> 4) as usize] as char);
-        result.push(HEX[(byte & 15) as usize] as char);
-    }
-    result
-}
+use tos_foundation::encode_lower_hex as hex_bytes;

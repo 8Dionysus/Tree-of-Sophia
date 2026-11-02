@@ -11,7 +11,7 @@ use std::io;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 use tos_foundation::{Digest256Hasher, RelativePath};
-use tos_ops_mechanics_plan::route_cards::{RouteSourceReadHooks, RouteSources};
+use tos_ops_mechanics_plan::source_reading::{RouteSourceReadHooks, RouteSources};
 use tos_source_store::CorpusCutReader;
 use tos_validation::item_rules::{ItemPayload, ItemRefusal};
 use tos_validation::layer_family_cut::CutLayerPayloadReader;
@@ -1109,12 +1109,4 @@ fn snapshot_row_state_bytes(path: &str) -> Result<usize, ItemRefusal> {
         .ok_or(ItemRefusal::Budget)
 }
 
-fn hex_lower(bytes: &[u8]) -> String {
-    const HEX: &[u8; 16] = b"0123456789abcdef";
-    let mut output = String::with_capacity(bytes.len() * 2);
-    for byte in bytes {
-        output.push(HEX[(byte >> 4) as usize] as char);
-        output.push(HEX[(byte & 0x0f) as usize] as char);
-    }
-    output
-}
+use tos_foundation::encode_lower_hex as hex_lower;

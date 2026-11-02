@@ -3321,11 +3321,10 @@ fn write_unicode_escape(
     output: &mut JsonOutput<'_, '_>,
     limits: JsonLimits,
 ) -> Result<()> {
-    const HEX: &[u8; 16] = b"0123456789abcdef";
     let mut escaped = *b"\\u0000";
-    for (index, shift) in [12, 8, 4, 0].into_iter().enumerate() {
-        escaped[index + 2] = HEX[((unit >> shift) & 15) as usize];
-    }
+    let bytes = unit.to_be_bytes();
+    escaped[2..4].copy_from_slice(&crate::encode_lower_hex_byte(bytes[0]));
+    escaped[4..6].copy_from_slice(&crate::encode_lower_hex_byte(bytes[1]));
     emit(output, &escaped, limits)
 }
 

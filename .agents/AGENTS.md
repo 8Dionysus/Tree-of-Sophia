@@ -18,7 +18,5 @@ runtime, SDK, KAG and playbook authority with their corresponding owners.
 
 ## Validation
 
-Use `agent_surface` or `route_docs` through [VALIDATION.md](../VALIDATION.md).
-The native route-card validator checks structural routes. Rebuild generated
-companions from their authored maps. A valid declaration
-is not evidence that a package is installed or active.
+Review the manifest, owner references and public-safety boundaries by hand.
+A declaration and its installation or activation are separate states.

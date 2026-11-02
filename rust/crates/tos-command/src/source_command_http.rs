@@ -6,7 +6,7 @@ use crate::{
 };
 use hmac::{Hmac, KeyInit, Mac};
 use serde_json::{Value, json};
-use sha2::{Digest, Sha256};
+use sha2::Sha256;
 use std::{
     collections::HashMap,
     io::{self, Read, Write},
@@ -25,24 +25,15 @@ const NONCES: usize = 1024;
 const HELP: &str = "usage: tos-native-owner-command http --owner-config ABSOLUTE_PATH --native-invocation ABSOLUTE_PATH --token-file ABSOLUTE_PATH --browser-origin http://127.0.0.1:PORT --port PORT\n";
 
 type Error = (u16, &'static str);
-fn hex(raw: &[u8]) -> String {
-    raw.iter().map(|v| format!("{v:02x}")).collect()
-}
+use tos_foundation::encode_lower_hex as hex;
 fn is_hex(s: &str) -> bool {
-    s.len() == 64
-        && s.bytes()
-            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    tos_foundation::is_lower_hex(s, 64)
 }
 fn decode(s: &str) -> Option<Vec<u8>> {
-    if !is_hex(s) {
-        return None;
-    }
-    (0..32)
-        .map(|i| u8::from_str_radix(&s[2 * i..2 * i + 2], 16).ok())
-        .collect()
+    tos_foundation::decode_lower_hex(s, 32)
 }
 fn digest(raw: &[u8]) -> String {
-    hex(&Sha256::digest(raw))
+    tos_foundation::Digest256::of_bytes(raw).to_hex()
 }
 // The wire contract uses Python ensure_ascii=True compact JSON.
 fn signature_fields(fields: &Value) -> Vec<u8> {

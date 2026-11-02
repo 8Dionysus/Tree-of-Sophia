@@ -76,17 +76,7 @@ fn check_row(len: usize, digest: &[u8], raw: Option<Vec<u8>>) -> Result<Value> {
     serde_json::from_slice(&raw).map_err(|error| Error::Source(error.to_string()))
 }
 fn digest_matches_hex(digest: &Digest256, expected: &str) -> bool {
-    if expected.len() != 64 {
-        return false;
-    }
-    const HEX: &[u8; 16] = b"0123456789abcdef";
-    expected
-        .as_bytes()
-        .chunks_exact(2)
-        .zip(digest.as_bytes())
-        .all(|(pair, byte)| {
-            pair[0] == HEX[(*byte >> 4) as usize] && pair[1] == HEX[(*byte & 0x0f) as usize]
-        })
+    Digest256::from_hex(expected).is_ok_and(|value| value == *digest)
 }
 fn sql_blob_ref<'row>(row: &'row Row<'_>, column: usize) -> Result<&'row [u8]> {
     match row.get_ref(column)? {
@@ -1402,13 +1392,12 @@ fn current_ref_digest_owned(
     version: u64,
     record_digest: &Digest256,
 ) -> Result<([u8; 71], Digest256)> {
-    const HEX: &[u8; 16] = b"0123456789abcdef";
     let mut digest_text = [0u8; 71];
     digest_text[..7].copy_from_slice(b"sha256:");
     for (index, byte) in record_digest.as_bytes().iter().enumerate() {
         state.active()?;
-        digest_text[7 + index * 2] = HEX[(byte >> 4) as usize];
-        digest_text[8 + index * 2] = HEX[(byte & 0x0f) as usize];
+        digest_text[7 + index * 2..9 + index * 2]
+            .copy_from_slice(&tos_foundation::encode_lower_hex_byte(*byte));
     }
     let digest_str = std::str::from_utf8(&digest_text)
         .map_err(|_| Error::Invalid("public D1 metadata digest text"))?;

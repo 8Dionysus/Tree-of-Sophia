@@ -28,6 +28,4 @@ through the ToS source home.
 
 ## Validation
 
-Select the `questbook_surface` or `mechanics_local` route from
-[`mechanics/VALIDATION.md`](../VALIDATION.md) after the obligation surface is
-known. The questbook validator and route-card checks retain the procedure.
+Review the obligation surface and its source records using [`mechanics/VALIDATION.md`](../VALIDATION.md).

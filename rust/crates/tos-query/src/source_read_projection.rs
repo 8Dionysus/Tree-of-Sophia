@@ -21,10 +21,7 @@ fn get<'a>(value: &'a JsonValue, key: &str) -> Option<&'a str> {
     value.object_get(key)?.as_str()
 }
 fn digest(value: &str) -> bool {
-    value.len() == 64
-        && value
-            .bytes()
-            .all(|c| c.is_ascii_digit() || (b'a'..=b'f').contains(&c))
+    tos_foundation::is_lower_hex(value, 64)
 }
 fn integer(value: &JsonValue) -> Option<u64> {
     let JsonValue::Number(number) = value else {

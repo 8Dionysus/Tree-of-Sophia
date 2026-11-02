@@ -37,7 +37,7 @@ use tos_foundation::{
     Digest256, JsonEmissionProfile, JsonLimits, JsonMode, JsonString, JsonValue, emit_json_profile,
     parse_json,
 };
-use tos_ops_mechanics_plan::route_cards::{RouteResolvedTarget, RouteSources};
+use tos_ops_mechanics_plan::source_reading::{RouteResolvedTarget, RouteSources};
 use tos_source_store::{MetadataPublicationEpoch, ReadLimits};
 use tos_validation::executor::{
     BatchStreamBudget, ExactWorkerIdentity, ExecutorBudget, VerifiedWorkerImageHandle,
@@ -1183,7 +1183,7 @@ pub(crate) fn inspect_persisted_catalog(
         )?;
         let first_file_schema = report.schema_requests.len();
         let mut accepted = 0usize;
-        for (line_index, line) in tos_ops_mechanics_plan::route_cards::splitlines(text)
+        for (line_index, line) in tos_ops_mechanics_plan::source_reading::splitlines(text)
             .into_iter()
             .enumerate()
         {
@@ -1195,7 +1195,7 @@ pub(crate) fn inspect_persisted_catalog(
             let location = format!("{path}:{}", line_index + 1);
             if line
                 .chars()
-                .all(tos_ops_mechanics_plan::route_cards::python_space)
+                .all(tos_ops_mechanics_plan::source_reading::python_space)
             {
                 budget.issue(
                     &mut report.issues,

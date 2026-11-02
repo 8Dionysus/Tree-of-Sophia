@@ -79,9 +79,9 @@ impl Fixture {
             "schema_version":"tos_registry_first_planting_preparation_v1",
             "status":"prepared-not-acquired",
             "prepared_packages_ref":package_ref,
-            "prepared_packages_sha256":sha256(&package_bytes),
+            "prepared_packages_sha256":Digest256::of_bytes(&package_bytes).to_hex(),
             "source_registry_snapshot_ref":snapshot_ref,
-            "source_registry_snapshot_sha256":sha256(snapshot),
+            "source_registry_snapshot_sha256":Digest256::of_bytes(snapshot).to_hex(),
             "provider_pins":{"bilara":pin},
             "metadata_observations":[],
             "targets":[{
@@ -287,7 +287,7 @@ fn registry_transfer_keeps_exact_pinned_bytes_and_a_completed_receipt() {
     assert_eq!(receipt["status"], "completed");
     assert_eq!(receipt["http_status"], 200);
     assert_eq!(receipt["final_url"], url);
-    assert_eq!(receipt["sha256"], sha256(&retained));
+    assert_eq!(receipt["sha256"], Digest256::of_bytes(&retained).to_hex());
     assert_eq!(receipt["expected_git_blob_sha1"], entry["git_blob_sha1"]);
     let payload = fixture
         .payload_root
@@ -366,7 +366,7 @@ fn reviewed_tei_profiles_bind_language_role_identity_and_exact_opening() {
         );
         let mut target = json!({"slug":"profile-fixture","language":language,"expression_role":role,
             "coverage":{"kind":kind,"citation_scope":"hierarchical_divisions","cts_urn":urn,
-            "identity_anchor":identity_anchor,"header_prefix_sha256":sha256(prefix.as_bytes())}});
+            "identity_anchor":identity_anchor,"header_prefix_sha256":Digest256::of_bytes(prefix.as_bytes()).to_hex()}});
         let report = inspected(&target, "source.xml", &body).unwrap();
         assert_eq!(report["source_bytes_changed"], false);
         for (before, after) in [
@@ -381,7 +381,7 @@ fn reviewed_tei_profiles_bind_language_role_identity_and_exact_opening() {
         }
         target["coverage"]["reviewed_body_prefix_bytes"] = json!(prefix.len() + 100);
         target["coverage"]["reviewed_body_prefix_sha256"] =
-            json!(sha256(&body.as_bytes()[..prefix.len() + 100]));
+            json!(Digest256::of_bytes(&body.as_bytes()[..prefix.len() + 100]).to_hex());
         inspected(&target, "source.xml", &body).unwrap();
         target["coverage"]["reviewed_body_prefix_sha256"] = json!("0".repeat(64));
         assert!(inspected(&target, "source.xml", &body).is_err());
@@ -436,7 +436,7 @@ fn tei_repeated_markers_and_unnumbered_scope_preserve_source_addresses() {
         r#"{prefix}<text><body xml:base="urn:cts:latinLit:fixture.eng1"><div type="translation" xml:lang="eng"><div type="textpart" subtype="book" n="1"><p><milestone unit="section" n="1"/>{}</p></div><div type="textpart" subtype="book" n="2"><p><milestone unit="section" n="1"/>text</p></div></div></body></text></TEI>"#,
         "English translation ".repeat(100)
     );
-    let target = json!({"slug":"milestones","language":"en","expression_role":"translation","coverage":{"kind":"perseus-tei-translation","cts_urn":"urn:cts:latinLit:fixture.eng1","identity_anchor":"body_xml_base","citation_scope":"hierarchical_divisions_and_section_milestones","header_prefix_sha256":sha256(prefix.as_bytes())}});
+    let target = json!({"slug":"milestones","language":"en","expression_role":"translation","coverage":{"kind":"perseus-tei-translation","cts_urn":"urn:cts:latinLit:fixture.eng1","identity_anchor":"body_xml_base","citation_scope":"hierarchical_divisions_and_section_milestones","header_prefix_sha256":Digest256::of_bytes(prefix.as_bytes()).to_hex()}});
     let original = inspected(&target, "source.xml", &body).unwrap();
     assert_eq!(original["files"][0]["division_count"], 4);
     let repeated = body.replacen("<p>", r#"<p><milestone unit="section" n="1"/>"#, 1);
@@ -473,7 +473,7 @@ fn bilara_and_osis_profiles_preserve_reviewed_units_and_language_boundaries() {
     ] {
         let body = r#"{"dn1:0.1":"Heading", "dn1:1":"Text"}"#;
         let basename = format!("dn1_{suffix}.json");
-        let target = json!({"slug":"dn1","language":language,"expression_role":role,"coverage":{"kind":kind,"uid":"dn1","file_count":1,"reviewed_body_prefix_bytes":20,"reviewed_body_prefix_sha256":sha256(&body.as_bytes()[..20])}});
+        let target = json!({"slug":"dn1","language":language,"expression_role":role,"coverage":{"kind":kind,"uid":"dn1","file_count":1,"reviewed_body_prefix_bytes":20,"reviewed_body_prefix_sha256":Digest256::of_bytes(&body.as_bytes()[..20]).to_hex()}});
         let report = inspected(&target, &basename, body).unwrap();
         assert_eq!(report["textual_acceptance"], false);
         assert!(inspected(&target, &basename, &body.replace("Heading", "Changed")).is_err());
@@ -563,7 +563,10 @@ fn egyptian_and_german_components_remain_separate_and_text_free() {
 fn exact_registry_bytes_paths_and_metadata_time_refuse_ambiguous_input() {
     let body = b"exact\r\n";
     let entry = json!({"basename":"source.txt","byte_size":body.len(),"git_blob_sha1":format!("{:x}",Sha1::digest(b"blob 7\0exact\r\n"))});
-    assert_eq!(check_file(body, &entry).unwrap(), sha256(body));
+    assert_eq!(
+        check_file(body, &entry).unwrap(),
+        Digest256::of_bytes(body).to_hex()
+    );
     for altered in [b"exact\n".as_slice(), b"other\r\n"] {
         assert!(check_file(altered, &entry).is_err());
     }
@@ -694,7 +697,7 @@ fn existing_work_extension_preserves_identity_assertions_and_exact_preimage() {
     expected["expression_claim_refs"] = json!(["tos.claim.old", "tos.claim.new"]);
     expected["record_version"] = json!(3);
     let target = json!({"ids":{"work":"tos.work.author.work"},"paths":{"work":work_ref}});
-    let package = json!({"existing_work":{"record_ref":work_ref,"preimage_ref":before_ref,"sha256":sha256(&before)},"records":{(work_ref):expected,"new-expression":{"record_type":"expression","record_id":"tos.expression.new","work_ref":"tos.work.author.work"}},"claims":[{"record":{"subject_ref":"tos.work.author.work","predicate":"has_expression","object":"tos.expression.new","claim_id":"tos.claim.new"}}]});
+    let package = json!({"existing_work":{"record_ref":work_ref,"preimage_ref":before_ref,"sha256":Digest256::of_bytes(&before).to_hex()},"records":{(work_ref):expected,"new-expression":{"record_type":"expression","record_id":"tos.expression.new","work_ref":"tos.work.author.work"}},"claims":[{"record":{"subject_ref":"tos.work.author.work","predicate":"has_expression","object":"tos.expression.new","claim_id":"tos.claim.new"}}]});
     assert_eq!(
         validate_work_extension(root, &target, &package).unwrap(),
         Some((work_ref.into(), before.clone()))
@@ -806,9 +809,16 @@ fn topology_refresh_keeps_one_record_and_exact_prior_bytes() {
     assert_eq!(refreshed["event_id"], original["event_id"]);
     assert_eq!(refreshed["event_version"], 2);
     assert_eq!(refreshed["outputs"].as_array().unwrap().len(), 3);
-    assert_eq!(refreshed["inputs"][0]["sha256"], sha256(evidence));
     assert_eq!(
-        fs::read(retained.join(format!("topology-before/{}.json", sha256(&before)))).unwrap(),
+        refreshed["inputs"][0]["sha256"],
+        Digest256::of_bytes(evidence).to_hex()
+    );
+    assert_eq!(
+        fs::read(retained.join(format!(
+            "topology-before/{}.json",
+            Digest256::of_bytes(&before).to_hex()
+        )))
+        .unwrap(),
         before
     );
 }
@@ -852,7 +862,7 @@ fn preparation_receipt_binds_real_git_commit_manifest_and_named_checks() {
     let manifest_bytes = b"{\"version\":1}\n";
     fs::write(&manifest, manifest_bytes).unwrap();
     let receipt_path = root.join("checkpoint.json");
-    let receipt = json!({"manifest_sha256":sha256(manifest_bytes),"commit":commit.trim(),"runtime_session_id":"test-session","checkpoint_review_ref":"review:test","passed_checks":["prepared source closure"],"status":"passed"});
+    let receipt = json!({"manifest_sha256":Digest256::of_bytes(manifest_bytes).to_hex(),"commit":commit.trim(),"runtime_session_id":"test-session","checkpoint_review_ref":"review:test","passed_checks":["prepared source closure"],"status":"passed"});
     fs::write(&receipt_path, json_bytes(&receipt).unwrap()).unwrap();
     check_preparation_receipt(root, &manifest, &receipt_path).unwrap();
     for (field, value) in [

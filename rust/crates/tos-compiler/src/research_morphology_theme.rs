@@ -946,7 +946,7 @@ fn issue(root: &ResearchExecution, bindings: &[Identity]) -> R<()> {
         };
         let mut bytes = [0u8; 16];
         root.read_exact(&mut random, &mut bytes)?;
-        rows.push(json!({"kind":kind,"binding":binding,"id":format!("{prefix}{}",bytes.iter().map(|x|format!("{x:02x}")).collect::<String>())}));
+        rows.push(json!({"kind":kind,"binding":binding,"id":format!("{prefix}{}",tos_foundation::encode_lower_hex(&bytes))}));
     }
     crate::research_parallel_lexical::write_exclusive(
         root,

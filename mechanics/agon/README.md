@@ -18,7 +18,7 @@ home without gaining canon-write authority.
 | owner | `mechanics/agon/AGENTS.md`, the operation map below, and active part routes |
 | stronger route | `ToS/` owns authored philosophy and canon; `Agents-of-Abyss` owns center Agon law |
 | next route | active part first; ToS canon review only through ToS-owned authority |
-| validation | `tos-ops-mechanics-plan --repo-root ROOT --execute`; `tos-ops-mechanics-plan --repo-root ROOT --mechanics-topology-validate` |
+| validation | `tos-ops-mechanics-plan --repo-root ROOT --execute` |
 
 ## Operations
 Each Agon part owns a functioning operation route and its concrete inputs,
