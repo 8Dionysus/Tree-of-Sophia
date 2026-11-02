@@ -14,7 +14,7 @@
     "owner_item_ref": {"$ref": "#/$defs/id"},
     "edition_ref": {"$ref": "#/$defs/id"},
     "manifest": {"$ref": "#/$defs/relativePath"},
-    "recipes": {"type": "array", "minItems": 1, "items": {"oneOf": [{"$ref": "#/$defs/numbered"}, {"$ref": "#/$defs/markers"}, {"$ref": "#/$defs/pdfStructural"}]}}
+    "recipes": {"type": "array", "minItems": 1, "items": {"oneOf": [{"$ref": "#/$defs/numbered"}, {"$ref": "#/$defs/markers"}, {"$ref": "#/$defs/hierarchicalTarget"}, {"$ref": "#/$defs/hierarchicalSource"}, {"$ref": "#/$defs/pdfStructural"}]}}
   },
   "$defs": {
     "id": {"type": "string", "pattern": "^tos\\.[a-z0-9][a-z0-9.-]*$"},
@@ -38,6 +38,547 @@
         "gap_review_keys": {"$ref": "#/$defs/keyList"}, "ocr_disambiguation_keys": {"$ref": "#/$defs/keyList"},
         "ocr_substitutions": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["digit", "allowed_characters"], "properties": {"digit": {"type": "string", "pattern": "^[0-9]$"}, "allowed_characters": {"type": "string", "minLength": 1}}}},
         "ocr_allowed_characters": {"type": "string", "minLength": 1}
+      }
+    },
+    "hierarchicalTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stage",
+        "locators",
+        "tools",
+        "works",
+        "candidate_geometry",
+        "historical_input_sha256",
+        "historical_text"
+      ],
+      "properties": {
+        "stage": {
+          "const": "hierarchical-target-structure"
+        },
+        "locators": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/locator"
+          }
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "version"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "version": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "works": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "slug",
+              "work_ref",
+              "expression_ref",
+              "member_sequence",
+              "start_page",
+              "end_page",
+              "map_id",
+              "map_event_id",
+              "crosswalk_id",
+              "crosswalk_event_id",
+              "output_dir",
+              "series"
+            ],
+            "properties": {
+              "slug": {
+                "type": "string",
+                "minLength": 1
+              },
+              "work_ref": {
+                "$ref": "#/$defs/id"
+              },
+              "expression_ref": {
+                "$ref": "#/$defs/id"
+              },
+              "member_sequence": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "start_page": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "end_page": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "map_id": {
+                "$ref": "#/$defs/id"
+              },
+              "map_event_id": {
+                "$ref": "#/$defs/id"
+              },
+              "crosswalk_id": {
+                "$ref": "#/$defs/id"
+              },
+              "crosswalk_event_id": {
+                "$ref": "#/$defs/id"
+              },
+              "output_dir": {
+                "$ref": "#/$defs/relativePath"
+              },
+              "series": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "series_key",
+                    "series_kind",
+                    "start_page",
+                    "end_page",
+                    "expected_unit_count",
+                    "overrides"
+                  ],
+                  "properties": {
+                    "series_key": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "series_kind": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "start_page": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "end_page": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "expected_unit_count": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "overrides": {
+                      "type": "object",
+                      "propertyNames": {
+                        "pattern": "^[1-9][0-9]*$"
+                      },
+                      "additionalProperties": {
+                        "type": "integer",
+                        "minimum": 1
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "candidate_geometry": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "page_min",
+            "page_max",
+            "x_min",
+            "x_max",
+            "y_min",
+            "y_max",
+            "words_per_line",
+            "max_label_length",
+            "label_suffix",
+            "forbidden_initial"
+          ],
+          "properties": {
+            "page_min": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "page_max": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "x_min": {
+              "type": "number"
+            },
+            "x_max": {
+              "type": "number"
+            },
+            "y_min": {
+              "type": "number"
+            },
+            "y_max": {
+              "type": "number"
+            },
+            "words_per_line": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "max_label_length": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "label_suffix": {
+              "type": "string",
+              "minLength": 1
+            },
+            "forbidden_initial": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "historical_input_sha256": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "transfer_plan",
+            "target_rights"
+          ],
+          "properties": {
+            "transfer_plan": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "target_rights": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        "historical_text": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "map_authority",
+            "crosswalk_authority",
+            "map_warning",
+            "crosswalk_warning"
+          ],
+          "properties": {
+            "map_authority": {
+              "type": "string",
+              "minLength": 1
+            },
+            "crosswalk_authority": {
+              "type": "string",
+              "minLength": 1
+            },
+            "map_warning": {
+              "type": "string",
+              "minLength": 1
+            },
+            "crosswalk_warning": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "hierarchicalSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stage",
+        "configuration",
+        "tools",
+        "historical_text",
+        "candidate_geometry",
+        "ocr_substitutions"
+      ],
+      "properties": {
+        "stage": {
+          "const": "hierarchical-source-structure"
+        },
+        "configuration": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "slug",
+            "work_ref",
+            "expression_ref",
+            "address_item_dir",
+            "navigation_item_dir",
+            "address_media_type",
+            "navigation_media_type",
+            "address_profile",
+            "navigation_profile",
+            "navigation_offset",
+            "navigation_relation_scope",
+            "compared_address_pages",
+            "candidate_profile",
+            "represented_start_page",
+            "represented_end_page",
+            "represented_basis",
+            "work_boundary_path",
+            "map_id",
+            "event_id",
+            "output_dir",
+            "series"
+          ],
+          "properties": {
+            "slug": {
+              "type": "string",
+              "minLength": 1
+            },
+            "work_ref": {
+              "$ref": "#/$defs/id"
+            },
+            "expression_ref": {
+              "$ref": "#/$defs/id"
+            },
+            "address_item_dir": {
+              "$ref": "#/$defs/relativePath"
+            },
+            "navigation_item_dir": {
+              "$ref": "#/$defs/relativePath"
+            },
+            "address_media_type": {
+              "type": "string",
+              "minLength": 1
+            },
+            "navigation_media_type": {
+              "type": "string",
+              "minLength": 1
+            },
+            "address_profile": {
+              "type": "string",
+              "minLength": 1
+            },
+            "navigation_profile": {
+              "type": "string",
+              "minLength": 1
+            },
+            "navigation_offset": {
+              "type": "integer"
+            },
+            "navigation_relation_scope": {
+              "type": "string",
+              "minLength": 1
+            },
+            "compared_address_pages": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "candidate_profile": {
+              "type": "string",
+              "minLength": 1
+            },
+            "represented_start_page": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "represented_end_page": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "represented_basis": {
+              "type": "string",
+              "minLength": 1
+            },
+            "work_boundary_path": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/relativePath"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "map_id": {
+              "$ref": "#/$defs/id"
+            },
+            "event_id": {
+              "$ref": "#/$defs/id"
+            },
+            "output_dir": {
+              "$ref": "#/$defs/relativePath"
+            },
+            "series": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "series_key",
+                  "series_kind",
+                  "start_page",
+                  "end_page",
+                  "start_pages",
+                  "overrides"
+                ],
+                "properties": {
+                  "series_key": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "series_kind": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "start_page": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "end_page": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "start_pages": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  },
+                  "overrides": {
+                    "type": "object",
+                    "propertyNames": {
+                      "pattern": "^[1-9][0-9]*$"
+                    },
+                    "additionalProperties": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "version"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "version": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "historical_text": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "authority",
+            "warning"
+          ],
+          "properties": {
+            "authority": {
+              "type": "string",
+              "minLength": 1
+            },
+            "warning": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "candidate_geometry": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "x_min",
+            "x_max",
+            "y_min",
+            "y_max",
+            "min_word_gap_exclusive",
+            "max_word_gap",
+            "max_vertical_delta",
+            "min_words",
+            "max_words"
+          ],
+          "properties": {
+            "x_min": {
+              "type": "number"
+            },
+            "x_max": {
+              "type": "number"
+            },
+            "y_min": {
+              "type": "number"
+            },
+            "y_max": {
+              "type": "number"
+            },
+            "min_word_gap_exclusive": {
+              "type": "number"
+            },
+            "max_word_gap": {
+              "type": "number"
+            },
+            "max_vertical_delta": {
+              "type": "number"
+            },
+            "min_words": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "max_words": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "ocr_substitutions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "characters",
+              "digit"
+            ],
+            "properties": {
+              "characters": {
+                "type": "string",
+                "minLength": 1
+              },
+              "digit": {
+                "type": "string",
+                "pattern": "^[0-9]$"
+              }
+            }
+          }
+        }
       }
     },
     "pdfStructural": {

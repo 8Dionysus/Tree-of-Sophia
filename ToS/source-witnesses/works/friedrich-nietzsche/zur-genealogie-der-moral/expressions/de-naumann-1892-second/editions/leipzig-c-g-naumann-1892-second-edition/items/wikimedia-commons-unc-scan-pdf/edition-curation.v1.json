@@ -36,6 +36,195 @@
           ]
         }
       ]
+    },
+    {
+      "stage": "hierarchical-source-structure",
+      "configuration": {
+        "slug": "zur-genealogie-der-moral",
+        "work_ref": "tos.work.friedrich-nietzsche.zur-genealogie-der-moral",
+        "expression_ref": "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second",
+        "address_item_dir": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf",
+        "navigation_item_dir": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf",
+        "address_media_type": "application/pdf",
+        "navigation_media_type": "application/pdf",
+        "address_profile": "pdf_pages_v1",
+        "navigation_profile": "pdf_pages_v1",
+        "navigation_offset": 0,
+        "navigation_relation_scope": "same-fixity-bound-file-page-index",
+        "compared_address_pages": [],
+        "candidate_profile": "poppler-pdftotext-bbox-short-line-number-candidate-v1",
+        "represented_start_page": 7,
+        "represented_end_page": 202,
+        "represented_basis": "source-visible numbered preface and three essay title, opening, number-label, transition, and terminal page inspection",
+        "work_boundary_path": null,
+        "map_id": "tos.hierarchical-source-numbered-unit-page-map.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second",
+        "event_id": "tos.event.hierarchical-source-numbered-unit-page-map.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.2026-08-08",
+        "output_dir": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/structure",
+        "series": [
+          {
+            "series_key": "preface",
+            "series_kind": "numbered-preface",
+            "start_page": 7,
+            "end_page": 18,
+            "start_pages": [
+              7,
+              8,
+              9,
+              11,
+              13,
+              14,
+              15,
+              17
+            ],
+            "overrides": {
+              "1": 7
+            }
+          },
+          {
+            "series_key": "essay-1",
+            "series_kind": "numbered-essay",
+            "start_page": 19,
+            "end_page": 58,
+            "start_pages": [
+              21,
+              22,
+              25,
+              26,
+              27,
+              29,
+              31,
+              33,
+              35,
+              36,
+              40,
+              44,
+              46,
+              48,
+              51,
+              54,
+              57
+            ],
+            "overrides": {
+              "11": 40
+            }
+          },
+          {
+            "series_key": "essay-2",
+            "series_kind": "numbered-essay",
+            "start_page": 59,
+            "end_page": 114,
+            "start_pages": [
+              61,
+              63,
+              65,
+              68,
+              69,
+              71,
+              74,
+              78,
+              79,
+              81,
+              82,
+              86,
+              90,
+              92,
+              94,
+              96,
+              99,
+              101,
+              102,
+              105,
+              106,
+              108,
+              109,
+              111,
+              113
+            ],
+            "overrides": {
+              "1": 61,
+              "13": 90,
+              "15": 94,
+              "20": 105
+            }
+          },
+          {
+            "series_key": "essay-3",
+            "series_kind": "numbered-essay",
+            "start_page": 115,
+            "end_page": 202,
+            "start_pages": [
+              117,
+              117,
+              119,
+              121,
+              123,
+              125,
+              128,
+              131,
+              137,
+              140,
+              142,
+              145,
+              147,
+              150,
+              155,
+              159,
+              161,
+              167,
+              170,
+              173,
+              177,
+              179,
+              182,
+              186,
+              190,
+              195,
+              198,
+              201
+            ],
+            "overrides": {}
+          }
+        ]
+      },
+      "tools": [
+        {
+          "name": "pdftotext",
+          "version": "26.01.0"
+        }
+      ],
+      "historical_text": {
+        "authority": "fixity-bound German source-page start candidates for independently named series-qualified printed number labels only, verified through disposable embedded or provider OCR navigation plus a bounded model-visible review of explicit OCR gaps; all anchors remain proposed whole-page addresses, the provider OCR remains unaccepted, and no source prose, exact passage end, accepted German, source-to-target passage alignment, translation relation, equivalence, quality, textual or edition identity, semantics, rights clearance, transfer eligibility, target gold, or canon authority follows",
+        "warning": "No source-to-target passage alignment, translation relation, accepted German, semantics, eligible target unit, target gold, publication route, human task, or canon effect was created."
+      },
+      "candidate_geometry": {
+        "x_min": 150.0,
+        "x_max": 220.0,
+        "y_min": 50.0,
+        "y_max": 520.0,
+        "max_word_gap": 15.0,
+        "max_vertical_delta": 3.0,
+        "min_word_gap_exclusive": 0.0,
+        "min_words": 1,
+        "max_words": 2
+      },
+      "ocr_substitutions": [
+        {
+          "characters": "ilx",
+          "digit": "1"
+        },
+        {
+          "characters": "o",
+          "digit": "0"
+        },
+        {
+          "characters": "s",
+          "digit": "5"
+        },
+        {
+          "characters": "z",
+          "digit": "2"
+        }
+      ]
     }
   ]
 }
