@@ -34,7 +34,7 @@ Source or semantic questions return to [the source owner](../../ToS/AGENTS.md).
 
 ### Direct contracts
 
-- `obligation-boundary`: [QUESTBOOK_TOS_INTEGRATION](parts/obligation-boundary/docs/QUESTBOOK_TOS_INTEGRATION.md)
+- `obligation-boundary`: [integration boundary](#integration-boundary)
 
 ### Obligation Boundary
 
@@ -44,6 +44,25 @@ Review the obligation and source records manually. Reading progress belongs to
 the selected ToS branch; tracked obligations follow root `QUESTBOOK.md` and
 `quests/`. Progress remains a reflection, with no score, rank, gameplay or
 canon authority.
+
+#### Integration boundary
+
+`QUESTBOOK.md` records operational obligations in the source-first knowledge
+architecture. Interpretation, authored knowledge and source meaning stay in
+their ToS homes. Use quests for source, identifier and node-template hardening;
+intake-to-tree follow-through; public compatibility and source-first contracts;
+and bounded, derived, review-gated requests to `aoa-kag`. Interpretation,
+nodes, lineages, authored prose and private reading notes retain their source
+homes. A philosophical ambition needs a bounded architectural seam for a quest.
+
+Useful anchors are `CHARTER.md`, `BOUNDARIES.md`,
+`ToS/doctrine/KNOWLEDGE_MODEL.md`, `ToS/doctrine/NODE_CONTRACT.md`,
+`mechanics/distillation/parts/source-compost/docs/CONTEXT_COMPOST.md`,
+`ToS/doctrine/COUNTERPART_POLICY.md`, `ToS/doctrine/IDENTIFIER_DISCIPLINE.md`
+and node templates under `docs/*_NODE_TEMPLATE.md`. Identifier, boundary,
+growth-law, source-intake, compatibility and derived-export obligations can
+use quests. Dispatch examples retain their compatibility role; live routing
+follows its own owner.
 
 ### Dispatch Contracts
 

@@ -202,7 +202,7 @@ use the full suite; a missing or failed selector fails the required gate.
 | --- | --- |
 | Human Markdown at root or a known guide home in the [selector](../rust/crates/tos-ops-mechanics-plan/src/software_ci.rs); Rust guides outside `src/` and `tests/`; test README/validation guides | Changed-document checks; fixture directories retain their consumer route |
 | `AGENTS.md` in those homes | The plan job checks the 800-word limit |
-| `ToS/` Markdown, `QUESTBOOK.md`, `quests/` Markdown or Questbook's `QUESTBOOK_TOS_INTEGRATION.md` | Complete Rust consumer lane and installs |
+| `ToS/` Markdown, `QUESTBOOK.md`, `quests/` Markdown or `mechanics/questbook/README.md` | Complete Rust consumer lane and installs |
 | `access/web/` or `access/e2e/` code/configuration, or a stand's data under `bonsai/` | Source-bound software preparation, fixture tests, browser build/unit/types/behavior (including each bonsai's check against the Tree's contracts), and isolated package install |
 | `access/src/` or `access/tests/` | Source-bound software preparation, package/browser checks, reader/API fixture tests, and Worker cross-adapter tests |
 | `access/deploy/cloudflare-worker/` code/configuration | Worker type and behavior tests, including cross-adapter fixtures |
