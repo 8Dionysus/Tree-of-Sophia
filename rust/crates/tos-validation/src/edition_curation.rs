@@ -1675,6 +1675,8 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                 ("demo_ids", "annotation_ref"),
                 ("demo_ids", "slug"),
                 ("work_mappings", "work_ref"),
+                ("work_mappings", "candidate_token"),
+                ("work_mappings", "work_path_segment"),
                 ("works", "work_ref"),
                 ("series", "series_key"),
             ] {

@@ -506,17 +506,23 @@
           "work_ref": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
           "target_map_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/numbered-unit-page-map.json",
           "crosswalk_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996/transfer-candidate-page-crosswalk.v1.json",
-          "label_correspondence_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996/numbered-unit-label-correspondence.json"
+          "label_correspondence_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996/numbered-unit-label-correspondence.json",
+          "candidate_token": "jenseits",
+          "work_path_segment": "jenseits-von-gut-und-boese"
         },
         {
           "work_ref": "tos.work.friedrich-nietzsche.zur-genealogie-der-moral",
           "target_map_ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-page-map.json",
-          "source_route_ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/alignments/structure/naumann-1892-second-svasyan-mysl-1996/transfer-candidate-source-structural-route.v1.json"
+          "source_route_ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/alignments/structure/naumann-1892-second-svasyan-mysl-1996/transfer-candidate-source-structural-route.v1.json",
+          "candidate_token": "genealogie",
+          "work_path_segment": "zur-genealogie-der-moral"
         },
         {
           "work_ref": "tos.work.friedrich-nietzsche.der-antichrist",
           "target_map_ref": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-page-map.json",
-          "source_route_ref": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/alignments/structure/naumann-1906-flerova-mysl-1996/transfer-candidate-source-structural-route.v1.json"
+          "source_route_ref": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/alignments/structure/naumann-1906-flerova-mysl-1996/transfer-candidate-source-structural-route.v1.json",
+          "candidate_token": "antichrist",
+          "work_path_segment": "der-antichrist"
         }
       ],
       "extraction_tool": {
@@ -603,7 +609,16 @@
           "schema_version": "tos_provenance_event_v1",
           "expected_sha256": "f66f1f6cf5224e5bc3849b168318af581fab9813eb595c8521c38e509c238b3e"
         }
-      ]
+      ],
+      "legacy_candidate_syntax": {
+        "prefix": "tos-target-candidate-",
+        "page_marker": "-p",
+        "page_digits": 4,
+        "kinds": [
+          "random",
+          "hard"
+        ]
+      }
     },
     {
       "stage": "transfer-candidates",
