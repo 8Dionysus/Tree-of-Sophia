@@ -294,6 +294,56 @@ pub fn validate_review_sources(
     Ok(())
 }
 
+/// Bind the default request to its selected bytes and request key.
+pub fn validate_default_request(
+    raw: &[u8],
+    stage: &str,
+    selected: SelectedDocument<'_>,
+    schema: &SchemaBackendProbe,
+) -> Result<(), EditionCurationError> {
+    let value = document(raw, schema)?;
+    let recipe = selected_recipe(&value, stage)?;
+    let layout = &recipe["output_layout"];
+    let reference = layout["default_request_ref"]
+        .as_str()
+        .ok_or(EditionCurationError::MissingReference)?;
+    let digest = layout["default_request_sha256"]
+        .as_str()
+        .ok_or(EditionCurationError::MissingReference)?;
+    verify_selected_bytes(selected, reference, digest)?;
+    let request = published_value(selected.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+        .map_err(EditionCurationError::Schema)?;
+    if request["request_key"] != layout["default_request_key"] {
+        return Err(EditionCurationError::BindingMismatch);
+    }
+    Ok(())
+}
+
+/// Verify exact selected bytes against a frozen output's path and digest.
+pub fn validate_frozen_output_fixity(
+    raw: &[u8],
+    stage: &str,
+    role: &str,
+    selected: SelectedDocument<'_>,
+    schema: &SchemaBackendProbe,
+) -> Result<(), EditionCurationError> {
+    let value = document(raw, schema)?;
+    let recipe = selected_recipe(&value, stage)?;
+    let output = recipe["frozen_outputs"]
+        .as_array()
+        .ok_or(EditionCurationError::MissingReference)?
+        .iter()
+        .find(|output| output["role"] == role)
+        .ok_or(EditionCurationError::MissingReference)?;
+    let reference = output["repository_path"]
+        .as_str()
+        .ok_or(EditionCurationError::InvalidSchema)?;
+    let digest = output["expected_sha256"]
+        .as_str()
+        .ok_or(EditionCurationError::InvalidSchema)?;
+    verify_selected_bytes(selected, reference, digest)
+}
+
 /// Select a historical JSON field from exact, curation-bound output bytes.
 pub fn select_historical_field(
     raw: &[u8],
@@ -535,6 +585,82 @@ fn check_replacements(value: &Value) -> Result<(), EditionCurationError> {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if let Some(layout) = object.get("output_layout") {
+                let files = object
+                    .get("output_files")
+                    .and_then(Value::as_array)
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let frozen = object
+                    .get("frozen_outputs")
+                    .and_then(Value::as_array)
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let mut scopes = BTreeMap::new();
+                for (group, scope) in [
+                    ("root_roles", false),
+                    ("request_roles", true),
+                    ("default_or_request_roles", false),
+                ] {
+                    for role in layout[group]
+                        .as_array()
+                        .ok_or(EditionCurationError::InvalidSchema)?
+                    {
+                        let role = role.as_str().ok_or(EditionCurationError::InvalidSchema)?;
+                        if scopes.insert(role, scope).is_some() {
+                            return Err(EditionCurationError::Duplicate("output role scope"));
+                        }
+                    }
+                }
+                if files.len() != scopes.len() || files.len() != frozen.len() {
+                    return Err(EditionCurationError::BindingMismatch);
+                }
+                let route = object["route"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let directory = layout["scope_directory"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let default_scope = layout["default_scope"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let issuance = layout["issuance_filename"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let issuance_role = object["identity_profile"]["historical_issuance_role"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let issuance_ref = format!("{route}/{issuance}");
+                if !object["historical_templates"]
+                    .as_array()
+                    .is_some_and(|entries| {
+                        entries.iter().any(|entry| {
+                            entry["role"] == issuance_role && entry["ref"] == issuance_ref
+                        })
+                    })
+                {
+                    return Err(EditionCurationError::BindingMismatch);
+                }
+                for file in files {
+                    let role = file["role"]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    let filename = file["filename"]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    let request_scope = scopes
+                        .get(role)
+                        .ok_or(EditionCurationError::MissingReference)?;
+                    let expected = if *request_scope {
+                        format!("{route}/{directory}/{default_scope}/{filename}")
+                    } else {
+                        format!("{route}/{filename}")
+                    };
+                    if !frozen.iter().any(|output| {
+                        output["role"] == role && output["repository_path"] == expected
+                    }) {
+                        return Err(EditionCurationError::BindingMismatch);
+                    }
+                }
+            }
             if let Some(profiles) = object.get("identity_profiles") {
                 let mut roles = BTreeSet::new();
                 let mut kinds = BTreeSet::new();
@@ -1034,6 +1160,8 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                 ("locators", "role"),
                 ("outputs", "kind"),
                 ("outputs", "filename"),
+                ("output_files", "role"),
+                ("output_files", "filename"),
                 ("frozen_outputs", "role"),
                 ("frozen_outputs", "repository_path"),
                 ("historical_fields", "role"),

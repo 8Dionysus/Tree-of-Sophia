@@ -5,8 +5,9 @@ use tos_validation::{
     FormatProfile, SchemaBackendProbe, SchemaResource,
     edition_curation::{
         EditionCurationError, SCHEMA_URI, SelectedCuration, SelectedDocument,
-        select_historical_field, validate, validate_bindings, validate_recipe_plan,
-        validate_recipe_template, validate_review_sources,
+        select_historical_field, validate, validate_bindings, validate_default_request,
+        validate_frozen_output_fixity, validate_recipe_plan, validate_recipe_template,
+        validate_review_sources,
     },
 };
 
@@ -82,6 +83,30 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let dta_raw = fs::read(root.join(dta_path)).unwrap();
     assert_eq!(validate(&dta_raw, &schema), Ok(()));
     let dta_value: Value = serde_json::from_slice(&dta_raw).unwrap();
+    let mut invalid_output_scope = dta_value.clone();
+    let workbench = invalid_output_scope["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "concept-workbench")
+        .unwrap();
+    workbench["output_layout"]["root_roles"][0] = json!("unknown");
+    assert_eq!(
+        validate(&serde_json::to_vec(&invalid_output_scope).unwrap(), &schema),
+        Err(EditionCurationError::MissingReference)
+    );
+    let mut unsafe_output_scope = dta_value.clone();
+    let workbench = unsafe_output_scope["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "concept-workbench")
+        .unwrap();
+    workbench["output_layout"]["default_scope"] = json!("../other");
+    assert_eq!(
+        validate(&serde_json::to_vec(&unsafe_output_scope).unwrap(), &schema),
+        Err(EditionCurationError::InvalidSchema)
+    );
     let mut invalid_identity_method = dta_value.clone();
     let reading = invalid_identity_method["recipes"]
         .as_array_mut()
@@ -246,6 +271,58 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         .iter()
         .find(|recipe| recipe["stage"] == "concept-workbench")
         .unwrap();
+    let frozen_context = workbench["frozen_outputs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|output| output["role"] == "contexts")
+        .unwrap()["repository_path"]
+        .as_str()
+        .unwrap();
+    let request_ref = workbench["output_layout"]["default_request_ref"]
+        .as_str()
+        .unwrap();
+    let request_raw = fs::read(root.join(request_ref)).unwrap();
+    assert_eq!(
+        validate_default_request(
+            &dta_raw,
+            "concept-workbench",
+            SelectedDocument {
+                reference: request_ref,
+                raw: &request_raw,
+            },
+            &schema,
+        ),
+        Ok(())
+    );
+    let context_raw = fs::read(root.join(frozen_context)).unwrap();
+    assert!(context_raw.len() > SchemaBackendProbe::MAX_INSTANCE_BYTES);
+    assert_eq!(
+        validate_frozen_output_fixity(
+            &dta_raw,
+            "concept-workbench",
+            "contexts",
+            SelectedDocument {
+                reference: frozen_context,
+                raw: &context_raw,
+            },
+            &schema,
+        ),
+        Ok(())
+    );
+    assert_eq!(
+        validate_frozen_output_fixity(
+            &dta_raw,
+            "concept-workbench",
+            "contexts",
+            SelectedDocument {
+                reference: frozen_context,
+                raw: b"modified",
+            },
+            &schema,
+        ),
+        Err(EditionCurationError::DigestMismatch)
+    );
     let issuance_ref = workbench["historical_templates"][0]["ref"]
         .as_str()
         .unwrap();

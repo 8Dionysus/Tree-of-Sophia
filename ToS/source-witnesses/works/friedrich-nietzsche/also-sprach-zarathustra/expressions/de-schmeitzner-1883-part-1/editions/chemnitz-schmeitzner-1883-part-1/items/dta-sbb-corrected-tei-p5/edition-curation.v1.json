@@ -630,7 +630,214 @@
         "workbench_binding": "foundation-v1",
         "concept_binding_prefix": "concept|",
         "event_digest_hex_characters": 32
-      }
+      },
+      "output_files": [
+        {
+          "role": "contexts",
+          "filename": "context-unit-spine.v1.jsonl"
+        },
+        {
+          "role": "speakers",
+          "filename": "speaker-state-candidates.v1.jsonl"
+        },
+        {
+          "role": "all_forms",
+          "filename": "all-form-coverage.v1.json"
+        },
+        {
+          "role": "speaker_worklist",
+          "filename": "speaker-exception-worklist.v1.json"
+        },
+        {
+          "role": "concept",
+          "filename": "concept-candidate.v1.json"
+        },
+        {
+          "role": "forms",
+          "filename": "form-family-candidates.v1.jsonl"
+        },
+        {
+          "role": "occurrences",
+          "filename": "occurrence-spine.v1.jsonl"
+        },
+        {
+          "role": "relations",
+          "filename": "relation-candidates.v1.jsonl"
+        },
+        {
+          "role": "gaps",
+          "filename": "gap-ledger.v1.jsonl"
+        },
+        {
+          "role": "exclusions",
+          "filename": "exclusion-ledger.v1.jsonl"
+        },
+        {
+          "role": "graph",
+          "filename": "candidate-graph.v1.json"
+        },
+        {
+          "role": "coverage",
+          "filename": "coverage-receipt.v1.json"
+        },
+        {
+          "role": "english_tasks",
+          "filename": "english-on-demand-worklist.v1.jsonl"
+        },
+        {
+          "role": "summary",
+          "filename": "summary.v1.json"
+        },
+        {
+          "role": "provenance",
+          "filename": "provenance.jsonl"
+        },
+        {
+          "role": "manifest",
+          "filename": "manifest.v1.json"
+        }
+      ],
+      "output_layout": {
+        "default_request_ref": "ToS/candidate-intake/zarathustra/concept-workbench-v1/requests/fate.concept-request.v2.json",
+        "default_request_key": "fate",
+        "default_scope": "fate",
+        "request_scope_fields": [
+          "request_key",
+          "request_version",
+          "request_identity_key_last_component"
+        ],
+        "request_scope_separator": "-",
+        "request_scope_version_prefix": "v",
+        "identity_component_separator": "-",
+        "scope_directory": "outputs",
+        "root_roles": [
+          "contexts",
+          "speakers",
+          "all_forms",
+          "speaker_worklist"
+        ],
+        "request_roles": [
+          "concept",
+          "forms",
+          "occurrences",
+          "relations",
+          "gaps",
+          "exclusions",
+          "graph",
+          "coverage",
+          "english_tasks"
+        ],
+        "default_or_request_roles": [
+          "summary",
+          "provenance",
+          "manifest"
+        ],
+        "issuance_filename": "identity-issuance.v1.json",
+        "issuance_scope": "default-or-request",
+        "private_root_suffix": "gold-sets/foundation-pilot-v1/local-content/concept-workbench-v1",
+        "private_request_directory": "requests",
+        "private_request_suffix": ".request-analysis.v1.json",
+        "private_database_filename": "workbench-index.v1.sqlite3",
+        "default_request_sha256": "0e4dae0e68826078c1e5e214be5919d87ae9de6f618717bdf4660ea2f9af1028"
+      },
+      "frozen_outputs": [
+        {
+          "role": "contexts",
+          "repository_path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/context-unit-spine.v1.jsonl",
+          "schema_version": "tos_zarathustra_context_unit_candidate_v1",
+          "expected_sha256": "c7aeec6f0a32c83db1c19723dac16b63365745524efa62e4a2ca8353bf16a40c"
+        },
+        {
+          "role": "speakers",
+          "repository_path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/speaker-state-candidates.v1.jsonl",
+          "schema_version": "tos_zarathustra_speaker_state_candidate_v1",
+          "expected_sha256": "9088b636cca11170a4afe8616a42c644cd5a1cbfea95b05720f333c324b6b3ef"
+        },
+        {
+          "role": "all_forms",
+          "repository_path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/all-form-coverage.v1.json",
+          "schema_version": "tos_zarathustra_all_form_coverage_v1",
+          "expected_sha256": "8e4fbba30127851319c4dddf7f9ce505272c3369c59f5c5ceb3f193a725adeba"
+        },
+        {
+          "role": "speaker_worklist",
+          "repository_path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/speaker-exception-worklist.v1.json",
+          "schema_version": "tos_zarathustra_speaker_exception_worklist_v1",
+          "expected_sha256": "937bac81857c0322069ad98d938432dae68639834676918ae208704ba9b7fd8b"
+        },
+        {
+          "role": "concept",
+          "repository_path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/outputs/fate/concept-candidate.v1.json",
+          "schema_version": "tos_zarathustra_generic_concept_candidate_v1",
+          "expected_sha256": "d1d379b5d68c568906bb2e7388c0cf3365dd73c0f55b613de3d7ccd790392bfe"
+        },
+        {
+          "role": "forms",
+          "repository_path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/outputs/fate/form-family-candidates.v1.jsonl",
+          "schema_version": "tos_zarathustra_request_form_family_candidate_v1",
+          "expected_sha256": "eb057273711f3cf151df4b6ddbdfbb8e165f41cf9f5689e4fa51d76d29f4759d"
+        },
+        {
+          "role": "occurrences",
+          "repository_path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/outputs/fate/occurrence-spine.v1.jsonl",
+          "schema_version": "tos_zarathustra_concept_occurrence_candidate_v1",
+          "expected_sha256": "906a3187fc86e7f47326117391107c465fcbd11291e0a987cba0192ec754721b"
+        },
+        {
+          "role": "relations",
+          "repository_path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/outputs/fate/relation-candidates.v1.jsonl",
+          "schema_version": "tos_zarathustra_concept_relation_candidate_v1",
+          "expected_sha256": "e6708b77605da9d203472054269a901f9c4430de817e4ec7cf409ffec6339ea3"
+        },
+        {
+          "role": "gaps",
+          "repository_path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/outputs/fate/gap-ledger.v1.jsonl",
+          "schema_version": "tos_zarathustra_concept_probe_gap_v1",
+          "expected_sha256": "48ce0b42dca12abda116e6fbc1fd89316b7c6934036cb2838f50fe323d77a4fa"
+        },
+        {
+          "role": "exclusions",
+          "repository_path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/outputs/fate/exclusion-ledger.v1.jsonl",
+          "schema_version": "tos_zarathustra_concept_exclusion_candidate_v1",
+          "expected_sha256": "d0503ee9bc556eca901f92d8502ed90b3a9f01e9395ddc391f22e824674c9421"
+        },
+        {
+          "role": "graph",
+          "repository_path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/outputs/fate/candidate-graph.v1.json",
+          "schema_version": "tos_zarathustra_candidate_concept_graph_v1",
+          "expected_sha256": "745ffc15db36f4e5250efab4f9c9a6c7f3a0f96ee6c358ba5415c2121043f7b9"
+        },
+        {
+          "role": "coverage",
+          "repository_path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/outputs/fate/coverage-receipt.v1.json",
+          "schema_version": "tos_zarathustra_concept_request_coverage_v1",
+          "expected_sha256": "2f54cc4eaefcfe92be9c4d14508603f546bc59ca68f0574b1f0ec4ae7e77c060"
+        },
+        {
+          "role": "english_tasks",
+          "repository_path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/outputs/fate/english-on-demand-worklist.v1.jsonl",
+          "schema_version": "tos_zarathustra_english_on_demand_task_v1",
+          "expected_sha256": "da5c10d30d47946dcd94bd2cf6c88615173cb3048b3483d8fd2fc2c26e161a6d"
+        },
+        {
+          "role": "summary",
+          "repository_path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/summary.v1.json",
+          "schema_version": "tos_zarathustra_concept_workbench_summary_v1",
+          "expected_sha256": "ece2c5581bcbfea65239d11eae21c19bbb0cb587129b4173e6238a379cda9bd4"
+        },
+        {
+          "role": "provenance",
+          "repository_path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/provenance.jsonl",
+          "schema_version": "tos_zarathustra_concept_workbench_event_v1",
+          "expected_sha256": "25ae73658530fb6949ae583d17765f1ab543eeda9acd813f28c0ae046b03c3b7"
+        },
+        {
+          "role": "manifest",
+          "repository_path": "ToS/candidate-intake/zarathustra/concept-workbench-v1/manifest.v1.json",
+          "schema_version": "tos_zarathustra_concept_workbench_manifest_v1",
+          "expected_sha256": "312a808288743451520028a0a82119b9c8ce143e9cf8d681b382bf8f4b941d40"
+        }
+      ]
     },
     {
       "stage": "concept-candidate",
