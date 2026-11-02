@@ -82,6 +82,44 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let dta_raw = fs::read(root.join(dta_path)).unwrap();
     assert_eq!(validate(&dta_raw, &schema), Ok(()));
     let dta_value: Value = serde_json::from_slice(&dta_raw).unwrap();
+    let mut bad_ratio = dta_value.clone();
+    let morphology = bad_ratio["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "morphology-theme-candidates")
+        .unwrap();
+    morphology["case_settings"]["lower_ratio"] = json!(0.9);
+    assert_eq!(
+        validate(&serde_json::to_vec(&bad_ratio).unwrap(), &schema),
+        Err(EditionCurationError::InvalidRange("case ratios"))
+    );
+    let mut missing_suffix_table = dta_value.clone();
+    let morphology = missing_suffix_table["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "morphology-theme-candidates")
+        .unwrap();
+    morphology["signature_settings"]["languages"][0]["table_key"] = json!("missing");
+    let reference = morphology["historical_template_ref"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let template_raw = fs::read(root.join(&reference)).unwrap();
+    assert_eq!(
+        validate_recipe_template(
+            &serde_json::to_vec(&missing_suffix_table).unwrap(),
+            "morphology-theme-candidates",
+            "historical-template",
+            SelectedDocument {
+                reference: &reference,
+                raw: &template_raw,
+            },
+            &schema,
+        ),
+        Err(EditionCurationError::MissingReference)
+    );
     for stage in [
         "paragraph-alignment",
         "morphology-theme-candidates",

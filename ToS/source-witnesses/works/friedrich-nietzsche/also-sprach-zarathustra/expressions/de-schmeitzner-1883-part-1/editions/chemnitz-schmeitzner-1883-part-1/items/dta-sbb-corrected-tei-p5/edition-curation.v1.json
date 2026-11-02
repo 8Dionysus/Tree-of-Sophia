@@ -1907,6 +1907,56 @@
             "prefix": "tos.claim.typed-relation-candidate.sid-"
           }
         ]
+      },
+      "signature_settings": {
+        "legacy_classifier_sha256": "cbd73bda03a01571acd7c87ad96430911391b8ded553cda005dd599f094af196",
+        "languages": [
+          {
+            "language": "de",
+            "table_key": "DE_SUFFIXES",
+            "character_replacements": [
+              {
+                "from": "ä",
+                "to": "a"
+              },
+              {
+                "from": "ö",
+                "to": "o"
+              },
+              {
+                "from": "ü",
+                "to": "u"
+              },
+              {
+                "from": "ß",
+                "to": "ss"
+              }
+            ]
+          },
+          {
+            "language": "ru",
+            "table_key": "RU_SUFFIXES",
+            "character_replacements": []
+          }
+        ],
+        "unknown_language_table": "ru",
+        "unknown_language_character_replacements": [],
+        "minimum_stem_characters": 4,
+        "base_method": "orthographic_base",
+        "base_rank": 3,
+        "priority_method": "inflection",
+        "priority_rank": 1,
+        "other_rank": 2,
+        "deduplicate": "stem-method-rank"
+      },
+      "case_settings": {
+        "language": "de",
+        "minimum_samples": 3,
+        "upper_ratio": 0.8,
+        "lower_ratio": 0.2,
+        "upper_label": "noun_like_initial_upper",
+        "lower_label": "lowercase_like",
+        "otherwise_label": "mixed_or_sparse"
       }
     },
     {

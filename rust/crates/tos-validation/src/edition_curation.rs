@@ -175,6 +175,31 @@ pub fn validate_recipe_template(
     let reference = reference.ok_or(EditionCurationError::MissingReference)?;
     let digest = digest.ok_or(EditionCurationError::MissingReference)?;
     verify_selected_bytes(template, reference, digest)?;
+    if stage == "morphology-theme-candidates" && role == "historical-template" {
+        let selected = published_value(template.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+            .map_err(EditionCurationError::Schema)?;
+        for language in recipe["signature_settings"]["languages"]
+            .as_array()
+            .ok_or(EditionCurationError::InvalidSchema)?
+        {
+            let key = language["table_key"]
+                .as_str()
+                .ok_or(EditionCurationError::InvalidSchema)?;
+            let rows = selected[key]
+                .as_array()
+                .ok_or(EditionCurationError::MissingReference)?;
+            if rows.iter().any(|row| {
+                !row.as_array().is_some_and(|pair| {
+                    pair.len() == 2
+                        && pair
+                            .iter()
+                            .all(|entry| entry.as_str().is_some_and(|text| !text.is_empty()))
+                })
+            }) {
+                return Err(EditionCurationError::InvalidSchema);
+            }
+        }
+    }
     if stage == "concept-candidate" && role == "legacy-output-template" {
         let selected_template =
             published_value(template.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
@@ -424,9 +449,60 @@ enum MarkerPart {
     Number(bool, String, BigInt),
 }
 
+fn check_replacements(value: &Value) -> Result<(), EditionCurationError> {
+    let mut seen = BTreeSet::new();
+    for replacement in value
+        .as_array()
+        .ok_or(EditionCurationError::InvalidSchema)?
+    {
+        let from = replacement["from"]
+            .as_str()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        if !seen.insert(from) {
+            return Err(EditionCurationError::Duplicate("character replacement"));
+        }
+    }
+    Ok(())
+}
+
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if let Some(profile) = object.get("signature_settings") {
+                let mut languages = BTreeSet::new();
+                for language in profile["languages"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?
+                {
+                    let code = language["language"]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    if !languages.insert(code) {
+                        return Err(EditionCurationError::Duplicate("signature language"));
+                    }
+                    check_replacements(&language["character_replacements"])?;
+                }
+                check_replacements(&profile["unknown_language_character_replacements"])?;
+                let fallback = profile["unknown_language_table"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let case = object
+                    .get("case_settings")
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                if !languages.contains(fallback)
+                    || !case["language"]
+                        .as_str()
+                        .is_some_and(|code| languages.contains(code))
+                {
+                    return Err(EditionCurationError::MissingReference);
+                }
+                if !matches!(
+                    compare_numbers(&case["lower_ratio"], &case["upper_ratio"]),
+                    Some(Ordering::Less | Ordering::Equal)
+                ) {
+                    return Err(EditionCurationError::InvalidRange("case ratios"));
+                }
+            }
             if object.contains_key("identity_profile")
                 && object.contains_key("opaque_identity_profile")
             {
@@ -471,18 +547,7 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                     if !languages.insert(language) {
                         return Err(EditionCurationError::Duplicate("orthography language"));
                     }
-                    let mut replacements = BTreeSet::new();
-                    for replacement in profile["character_replacements"]
-                        .as_array()
-                        .ok_or(EditionCurationError::InvalidSchema)?
-                    {
-                        let from = replacement["from"]
-                            .as_str()
-                            .ok_or(EditionCurationError::InvalidSchema)?;
-                        if !replacements.insert(from) {
-                            return Err(EditionCurationError::Duplicate("character replacement"));
-                        }
-                    }
+                    check_replacements(&profile["character_replacements"])?;
                 }
             }
             if let Some(selection) = object.get("stopword_selection") {
@@ -517,31 +582,9 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                     if !seen.insert(code) {
                         return Err(EditionCurationError::Duplicate("form selection language"));
                     }
-                    let mut replacements = BTreeSet::new();
-                    for replacement in language["character_replacements"]
-                        .as_array()
-                        .ok_or(EditionCurationError::InvalidSchema)?
-                    {
-                        let from = replacement["from"]
-                            .as_str()
-                            .ok_or(EditionCurationError::InvalidSchema)?;
-                        if !replacements.insert(from) {
-                            return Err(EditionCurationError::Duplicate("character replacement"));
-                        }
-                    }
+                    check_replacements(&language["character_replacements"])?;
                 }
-                let mut fallback_replacements = BTreeSet::new();
-                for replacement in profile["unknown_language_character_replacements"]
-                    .as_array()
-                    .ok_or(EditionCurationError::InvalidSchema)?
-                {
-                    let from = replacement["from"]
-                        .as_str()
-                        .ok_or(EditionCurationError::InvalidSchema)?;
-                    if !fallback_replacements.insert(from) {
-                        return Err(EditionCurationError::Duplicate("character replacement"));
-                    }
-                }
+                check_replacements(&profile["unknown_language_character_replacements"])?;
                 for code in [
                     &profile["unknown_language_suffix_profile"],
                     &profile["historical_prefix"]["language"],
