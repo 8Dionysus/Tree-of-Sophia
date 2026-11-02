@@ -5,10 +5,10 @@ use tos_validation::{
     FormatProfile, SchemaBackendProbe, SchemaResource,
     edition_curation::{
         EditionCurationError, SCHEMA_URI, SelectedCuration, SelectedDocument,
-        select_frozen_manifest, select_historical_field, validate, validate_bindings,
-        validate_default_request, validate_frozen_manifest_member, validate_frozen_output_fixity,
-        validate_recipe_plan, validate_recipe_template, validate_retained_artifact,
-        validate_review_sources,
+        select_frozen_manifest, select_historical_field, select_retained_digest, validate,
+        validate_bindings, validate_default_request, validate_frozen_manifest_member,
+        validate_frozen_output_fixity, validate_recipe_plan, validate_recipe_template,
+        validate_retained_artifact, validate_review_sources,
     },
 };
 
@@ -174,6 +174,60 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         .unwrap();
     let context_plan_ref = context_result["plan_ref"].as_str().unwrap();
     let context_plan_raw = fs::read(root.join(context_plan_ref)).unwrap();
+    let selected_context_plan = SelectedDocument {
+        reference: context_plan_ref,
+        raw: &context_plan_raw,
+    };
+    let form_digest = context_result["retained_artifacts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|entry| entry["role"] == "form")
+        .unwrap()["sha256"]
+        .as_str()
+        .unwrap();
+    assert_eq!(
+        select_retained_digest(
+            &dta_raw,
+            "morphology-context-result",
+            "form",
+            selected_context_plan,
+            None,
+            &schema,
+        ),
+        Ok(form_digest.to_owned())
+    );
+    let previous_ref = context_result["retained_artifacts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|entry| entry["role"] == "previous-receipt")
+        .unwrap()["repository_path"]
+        .as_str()
+        .unwrap();
+    let previous_raw = fs::read(root.join(previous_ref)).unwrap();
+    let runner_digest = context_result["retained_artifacts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|entry| entry["role"] == "runner")
+        .unwrap()["sha256"]
+        .as_str()
+        .unwrap();
+    assert_eq!(
+        select_retained_digest(
+            &dta_raw,
+            "morphology-context-result",
+            "runner",
+            selected_context_plan,
+            Some(SelectedDocument {
+                reference: previous_ref,
+                raw: &previous_raw,
+            }),
+            &schema,
+        ),
+        Ok(runner_digest.to_owned())
+    );
     assert_eq!(
         validate_retained_artifact(
             &dta_raw,

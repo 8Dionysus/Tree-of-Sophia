@@ -2616,23 +2616,37 @@
         },
         {
           "role": "form",
-          "sha256": "0007489cd4b0a84b926a341d3540ae1e8a2ff9cfc2062069dbf5a4e994f6ef37"
+          "sha256": "0007489cd4b0a84b926a341d3540ae1e8a2ff9cfc2062069dbf5a4e994f6ef37",
+          "plan_value_pointer": "/a_trigger/exact_form_sha256"
         },
         {
           "role": "runner",
-          "sha256": "e86c0cafe281e73832a9475b5a54e4a12d75f26b8e8389a73e4595b9d6ffb672"
+          "sha256": "e86c0cafe281e73832a9475b5a54e4a12d75f26b8e8389a73e4595b9d6ffb672",
+          "artifact_value": {
+            "source_role": "previous-receipt",
+            "json_pointer": "/implementation/runner_sha256"
+          }
         },
         {
           "role": "runtime",
-          "sha256": "89c8a70b779c3782cfdf5b10bdd7963736c181afa86918a92d4d967aebdc820c"
+          "sha256": "89c8a70b779c3782cfdf5b10bdd7963736c181afa86918a92d4d967aebdc820c",
+          "artifact_value": {
+            "source_role": "previous-receipt",
+            "json_pointer": "/runtime/manifest_sha256"
+          }
         },
         {
           "role": "artifact-set",
-          "sha256": "591824890eefdbc9f2d79897640a47fdd5c128b87f7eb29e70203f5dda97f561"
+          "sha256": "591824890eefdbc9f2d79897640a47fdd5c128b87f7eb29e70203f5dda97f561",
+          "artifact_value": {
+            "source_role": "previous-receipt",
+            "json_pointer": "/runtime/artifact_set_sha256"
+          }
         },
         {
           "role": "wheel",
-          "sha256": "9d35263ac80e80e9730ee21830ffdbe96cf256b72c71e30326ae5865456ade9a"
+          "sha256": "9d35263ac80e80e9730ee21830ffdbe96cf256b72c71e30326ae5865456ade9a",
+          "plan_value_pointer": "/variants/1/wheel_sha256"
         }
       ],
       "digest_identities": [

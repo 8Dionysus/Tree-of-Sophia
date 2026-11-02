@@ -78,10 +78,9 @@ pub fn validate_recipe_plan(
         .ok_or(EditionCurationError::MissingReference)?;
     verify_selected_bytes(plan, reference, expected)?;
     if let Some(entries) = recipe["retained_artifacts"].as_array() {
-        if entries
-            .iter()
-            .any(|entry| entry["plan_pointer"].is_string())
-        {
+        if entries.iter().any(|entry| {
+            entry["plan_pointer"].is_string() || entry["plan_value_pointer"].is_string()
+        }) {
             let selected_plan = published_value(plan.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
                 .map_err(EditionCurationError::Schema)?;
             for entry in entries {
@@ -92,6 +91,11 @@ pub fn validate_recipe_plan(
                         .ok_or(EditionCurationError::MissingReference)?;
                     tos_foundation::RelativePath::parse(reference)
                         .map_err(|_| EditionCurationError::UnsafePath)?;
+                }
+                if let Some(pointer) = entry["plan_value_pointer"].as_str() {
+                    if selected_plan.pointer(pointer) != Some(&entry["sha256"]) {
+                        return Err(EditionCurationError::BindingMismatch);
+                    }
                 }
             }
         }
@@ -372,6 +376,52 @@ pub fn validate_retained_artifact(
         .and_then(Value::as_str)
         .ok_or(EditionCurationError::MissingReference)?;
     verify_selected_bytes(artifact, reference, digest)
+}
+
+/// Select a digest value from the exact plan or a verified retained artifact.
+pub fn select_retained_digest(
+    raw: &[u8],
+    stage: &str,
+    role: &str,
+    plan: SelectedDocument<'_>,
+    source: Option<SelectedDocument<'_>>,
+    schema: &SchemaBackendProbe,
+) -> Result<String, EditionCurationError> {
+    validate_recipe_plan(raw, stage, plan, schema)?;
+    let value = document(raw, schema)?;
+    let recipe = selected_recipe(&value, stage)?;
+    let entry = recipe["retained_artifacts"]
+        .as_array()
+        .ok_or(EditionCurationError::MissingReference)?
+        .iter()
+        .find(|entry| entry["role"] == role)
+        .ok_or(EditionCurationError::MissingReference)?;
+    let expected = entry["sha256"]
+        .as_str()
+        .ok_or(EditionCurationError::InvalidSchema)?;
+    let selected = if let Some(pointer) = entry["plan_value_pointer"].as_str() {
+        let plan_value = published_value(plan.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+            .map_err(EditionCurationError::Schema)?;
+        plan_value.pointer(pointer).cloned()
+    } else if let Some(locator) = entry.get("artifact_value") {
+        let source = source.ok_or(EditionCurationError::MissingReference)?;
+        let source_role = locator["source_role"]
+            .as_str()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        validate_retained_artifact(raw, stage, source_role, plan, source, schema)?;
+        let parent = published_value(source.raw, source.raw.len().max(1))
+            .map_err(EditionCurationError::Schema)?;
+        let pointer = locator["json_pointer"]
+            .as_str()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        parent.pointer(pointer).cloned()
+    } else {
+        return Err(EditionCurationError::MissingReference);
+    };
+    if selected.as_ref().and_then(Value::as_str) != Some(expected) {
+        return Err(EditionCurationError::BindingMismatch);
+    }
+    Ok(expected.to_owned())
 }
 
 /// Select the exact frozen manifest and check its member metadata.
@@ -734,6 +784,24 @@ fn check_replacements(value: &Value) -> Result<(), EditionCurationError> {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if let Some(entries) = object.get("retained_artifacts").and_then(Value::as_array) {
+                for entry in entries {
+                    if let Some(value) = entry.get("artifact_value") {
+                        let source_role = value["source_role"]
+                            .as_str()
+                            .ok_or(EditionCurationError::InvalidSchema)?;
+                        if entry["role"] == source_role
+                            || !entries.iter().any(|source| {
+                                source["role"] == source_role
+                                    && (source["repository_path"].is_string()
+                                        || source["plan_pointer"].is_string())
+                            })
+                        {
+                            return Err(EditionCurationError::MissingReference);
+                        }
+                    }
+                }
+            }
             if object.get("stage").and_then(Value::as_str) == Some("transfer-readiness") {
                 let base = object["base_ref"]
                     .as_str()
