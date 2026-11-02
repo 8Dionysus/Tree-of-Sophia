@@ -267,8 +267,32 @@
             "to": "6"
           }
         ],
-        "alignment": "monotonic-first-match"
-      }
+        "alignment": "monotonic-first-match",
+        "source_page_count": 831,
+        "member_sequence": 2
+      },
+      "payload_roles": [
+        {
+          "role": "pdf",
+          "media_type": "application/pdf",
+          "inventory_profile": "pdf_pages_v1"
+        }
+      ],
+      "required_ocr_keys": [
+        "6",
+        "65a",
+        "73a"
+      ],
+      "ocr_evidence": [
+        {
+          "unit_key": "6",
+          "pdf_page": 244,
+          "raw_token": "б"
+        }
+      ],
+      "source_map_required_keys": [
+        "237a"
+      ]
     },
     {
       "stage": "hierarchical-target-structure",

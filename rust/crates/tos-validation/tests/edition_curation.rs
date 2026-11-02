@@ -8,8 +8,8 @@ use tos_validation::{
         select_frozen_manifest, select_historical_field, select_historical_receipt_field,
         select_recipe_input_digest, select_retained_digest, validate, validate_bindings,
         validate_default_request, validate_frozen_manifest_member, validate_frozen_output_fixity,
-        validate_recipe_plan, validate_recipe_template, validate_retained_artifact,
-        validate_review_sources, validate_selected_historical_receipt,
+        validate_numbered_source_map, validate_recipe_plan, validate_recipe_template,
+        validate_retained_artifact, validate_review_sources, validate_selected_historical_receipt,
     },
 };
 
@@ -256,6 +256,64 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         .is_err()
     );
     let target_path = "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/edition-curation.v1.json";
+    let target_raw = fs::read(root.join(target_path)).unwrap();
+    let target_doc: Value = serde_json::from_slice(&target_raw).unwrap();
+    let numbered = target_doc["recipes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|recipe| recipe["stage"] == "numbered-structure")
+        .unwrap();
+    let source_map_ref = numbered["locators"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|locator| locator["role"] == "source_map_path")
+        .unwrap()["repository_path"]
+        .as_str()
+        .unwrap();
+    let source_map_raw = fs::read(root.join(source_map_ref)).unwrap();
+    assert_eq!(
+        validate_numbered_source_map(
+            &target_raw,
+            SelectedDocument {
+                reference: source_map_ref,
+                raw: &source_map_raw
+            },
+            &schema
+        ),
+        Ok(())
+    );
+    assert_eq!(
+        validate_numbered_source_map(
+            &target_raw,
+            SelectedDocument {
+                reference: source_map_ref,
+                raw: b"{}"
+            },
+            &schema
+        ),
+        Err(EditionCurationError::DigestMismatch)
+    );
+    let mut wrong_source_key = target_doc.clone();
+    let numbered = wrong_source_key["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "numbered-structure")
+        .unwrap();
+    numbered["source_map_required_keys"][0] = json!("missing");
+    assert_eq!(
+        validate_numbered_source_map(
+            &serde_json::to_vec(&wrong_source_key).unwrap(),
+            SelectedDocument {
+                reference: source_map_ref,
+                raw: &source_map_raw
+            },
+            &schema
+        ),
+        Err(EditionCurationError::MissingReference)
+    );
     let mut duplicate_normalization: Value =
         serde_json::from_slice(&fs::read(root.join(target_path)).unwrap()).unwrap();
     let numbered = duplicate_normalization["recipes"]

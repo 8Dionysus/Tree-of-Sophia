@@ -295,7 +295,28 @@
         "skipped_candidate_cost": 0.04,
         "maximum_match_cost": 1.55,
         "alignment": "weighted-ordered"
-      }
+      },
+      "payload_roles": [
+        {
+          "role": "pdf",
+          "media_type": "application/pdf",
+          "inventory_profile": "pdf_pages_v1"
+        },
+        {
+          "role": "djvu",
+          "media_type": "application/vnd.djvu+xml",
+          "inventory_profile": "djvu_xml_pages_v1"
+        },
+        {
+          "role": "abbyy",
+          "media_type": "application/gzip",
+          "inventory_profile": "abbyy_xml_pages_v1",
+          "relative_path_suffix": ".abbyy.xml.gz"
+        }
+      ],
+      "required_ocr_keys": [],
+      "ocr_evidence": [],
+      "source_map_required_keys": []
     },
     {
       "stage": "source-passage-marker-returns",

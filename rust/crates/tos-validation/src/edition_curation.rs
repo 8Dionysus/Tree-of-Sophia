@@ -47,6 +47,52 @@ pub fn validate(raw: &[u8], schema: &SchemaBackendProbe) -> Result<(), EditionCu
     document(raw, schema).map(|_| ())
 }
 
+/// Bind a numbered recipe to its selected historical source map and required keys.
+pub fn validate_numbered_source_map(
+    raw: &[u8],
+    selected: SelectedDocument<'_>,
+    schema: &SchemaBackendProbe,
+) -> Result<(), EditionCurationError> {
+    let value = document(raw, schema)?;
+    let recipe = selected_recipe(&value, "numbered-structure")?;
+    let locator = recipe["locators"]
+        .as_array()
+        .ok_or(EditionCurationError::InvalidSchema)?
+        .iter()
+        .find(|locator| locator["role"] == "source_map_path")
+        .ok_or(EditionCurationError::MissingReference)?;
+    let reference = locator["repository_path"]
+        .as_str()
+        .ok_or(EditionCurationError::InvalidSchema)?;
+    let digest = recipe["source_map_sha256"]
+        .as_str()
+        .ok_or(EditionCurationError::MissingReference)?;
+    verify_selected_bytes(selected, reference, digest)?;
+    let map = published_value(selected.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+        .map_err(EditionCurationError::Schema)?;
+    let mut keys = BTreeSet::new();
+    for unit in map["unit_starts"]
+        .as_array()
+        .ok_or(EditionCurationError::InvalidSchema)?
+    {
+        let key = unit["unit_key"]
+            .as_str()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        if !keys.insert(key) {
+            return Err(EditionCurationError::Duplicate("source numbered key"));
+        }
+    }
+    for required in recipe["source_map_required_keys"]
+        .as_array()
+        .ok_or(EditionCurationError::InvalidSchema)?
+    {
+        if !required.as_str().is_some_and(|key| keys.contains(key)) {
+            return Err(EditionCurationError::MissingReference);
+        }
+    }
+    Ok(())
+}
+
 /// Bind a stage to the exact caller-selected plan bytes before source payloads are opened.
 pub fn validate_recipe_plan(
     raw: &[u8],
@@ -1045,6 +1091,56 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                 {
                     return Err(EditionCurationError::InvalidRange("unit_sequence"));
                 }
+                let required = object["required_ocr_keys"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let overrides = object["page_overrides"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let profile = &object["candidate_profile"];
+                for evidence in object["ocr_evidence"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?
+                {
+                    if !required.contains(&evidence["unit_key"])
+                        || !matches!(
+                            compare_numbers(&profile["first_page"], &evidence["pdf_page"]),
+                            Some(Ordering::Less | Ordering::Equal)
+                        )
+                        || !matches!(
+                            compare_numbers(&evidence["pdf_page"], &profile["last_page"]),
+                            Some(Ordering::Less | Ordering::Equal)
+                        )
+                    {
+                        return Err(EditionCurationError::MissingReference);
+                    }
+                }
+                if required
+                    .iter()
+                    .any(|key| overrides.iter().any(|entry| entry["key"] == *key))
+                {
+                    return Err(EditionCurationError::BindingMismatch);
+                }
+                if object["source_map_required_keys"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?
+                    .len()
+                    > 0
+                    && (object
+                        .get("source_map_sha256")
+                        .and_then(Value::as_str)
+                        .is_none()
+                        || !object["locators"]
+                            .as_array()
+                            .ok_or(EditionCurationError::InvalidSchema)?
+                            .iter()
+                            .any(|locator| {
+                                locator["role"] == "source_map_path"
+                                    && locator["repository_path"].is_string()
+                            }))
+                {
+                    return Err(EditionCurationError::MissingReference);
+                }
                 let suffix = sequence["repeat_suffix"]
                     .as_str()
                     .ok_or(EditionCurationError::InvalidSchema)?;
@@ -1053,11 +1149,15 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                     "gap_review_keys",
                     "ocr_disambiguation_keys",
                     "repeated_number_review_keys",
+                    "required_ocr_keys",
+                    "ocr_evidence",
                 ] {
                     if let Some(entries) = object.get(field).and_then(Value::as_array) {
                         for entry in entries {
                             let key = if field == "page_overrides" {
                                 entry["key"].as_str()
+                            } else if field == "ocr_evidence" {
+                                entry["unit_key"].as_str()
                             } else {
                                 entry.as_str()
                             }
@@ -2121,6 +2221,8 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                 ("page_overrides", "key"),
                 ("locators", "role"),
                 ("input_sources", "role"),
+                ("payload_roles", "role"),
+                ("ocr_evidence", "unit_key"),
                 ("derived_reference_formats", "role"),
                 ("input_sources", "private_payload_ref"),
                 ("outputs", "kind"),
