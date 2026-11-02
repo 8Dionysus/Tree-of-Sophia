@@ -123,8 +123,6 @@ jobs:
             "$TOS_SOFTWARE_CI_EXECUTOR" plan --repo-root "$GITHUB_WORKSPACE" --base "$BASE_SHA" "${args[@]}"
           fi
 
-
-
   software_prepare:
     needs: plan
     if: ${{ needs.plan.outputs.software_mode != 'none' }}
@@ -136,9 +134,6 @@ jobs:
     steps:
       - name: Checkout software and bounded test fixtures
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-        # Select complete implementation modules, not their current import graph.
-        # Corpus inputs remain limited to contracts and named synthetic fixtures.
-        with: &software_fixture_checkout
       - &configure_software_cargo
         name: Configure Cargo paths
         run: |
@@ -284,7 +279,6 @@ jobs:
     steps:
       - name: Checkout software consumer sources
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-        with: *software_fixture_checkout
       - *configure_software_cargo
       - *fetch_software_ci_executors
       - *bind_software_ci_executors
@@ -444,7 +438,6 @@ jobs:
     steps:
       - name: Checkout software consumer sources
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-        with: *software_fixture_checkout
       - *configure_software_cargo
       - *fetch_software_ci_executors
       - *bind_software_ci_executors
@@ -541,8 +534,6 @@ jobs:
     steps:
       - name: Checkout Worker software
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-        # Keep the same owner implementation boundary as the native software job.
-        with:
 
       - name: Identify Cargo cache platform
         id: cargo_platform
@@ -605,7 +596,6 @@ jobs:
           npm run typecheck --prefix access/deploy/cloudflare-worker
           npm test --prefix access/deploy/cloudflare-worker
 
-
   rust:
     needs: plan
     if: ${{ needs.plan.outputs.rust == 'true' }}
@@ -620,8 +610,6 @@ jobs:
     steps:
       - name: Checkout Rust sources and validation route
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-        with: &rust_fixture_checkout
-          # Keep external include_* inputs and selected tos-validation fixtures within bounded owner paths.
       - name: Configure Cargo paths
         run: |
           printf 'CARGO_HOME=%s/cargo-home\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
@@ -724,7 +712,6 @@ jobs:
     steps:
       - name: Checkout bounded Rust and PostgreSQL fixtures
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-        with: *rust_fixture_checkout
       - name: Configure Cargo paths
         run: |
           printf 'CARGO_HOME=%s/cargo-home\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
@@ -783,7 +770,6 @@ jobs:
 
       - *cleanup_native_verity
 
-
   required_gate:
     name: Repo Validation
     if: ${{ always() }}
@@ -791,7 +777,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-        with:
       - name: Fetch same-run native CI executors
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
