@@ -105,7 +105,11 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
             &ctx,
             Options {
                 recipe,
-                plan_ref: plan.as_deref().unwrap_or(dta_technical_markup::PLAN),
+                plan_ref: plan.as_deref().unwrap_or(
+                    recipe["plan_ref"]
+                        .as_str()
+                        .ok_or("TEI plan reference required")?,
+                ),
                 input_root: input.as_deref(),
                 output_root: output.as_deref(),
                 action,

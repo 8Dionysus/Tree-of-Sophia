@@ -15,16 +15,11 @@ use tos_source_store::execution::Execution as ResearchExecution;
 #[path = "dta_technical_markup/records.rs"]
 mod records;
 type Result<T> = std::result::Result<T, String>;
-pub const PLAN: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1/plan.v1.json";
 const BUILDER: &str = "rust/crates/tos-research/src/dta_technical_markup.rs";
-const LEGACY_BUILDER: &str = "scripts/build_zarathustra_technical_markup.py";
-const LEGACY_EVENT: &str = "tos.event.segmentation.zarathustra-dta-technical-markup-v1.2026-09-01";
-const LEGACY_EVENT_SHA: &str = "16a93b52ee7a86b72bd4ad1a8bb4e0f245c2eab95f447a9f600faf04890fdd17";
 const SCHEMA: &str = "ToS/contracts/source-text-unit-packet-v1.schema.json";
 const PROVENANCE_SCHEMA: &str = "ToS/contracts/provenance-event.schema.json";
 const CAP: usize = 32 * 1024 * 1024;
 const UNIT_CAP: usize = 20_000;
-const LEGACY_UNIT_REASON: &str = "The unit records only a boundary explicitly present in the exact selected DTA TEI representation; this is not accepted German, editorial hierarchy, linguistic analysis, translation, or semantics.";
 #[derive(Clone, Copy)]
 pub enum Action {
     Build { issue_identities: bool },
@@ -465,6 +460,24 @@ fn load_part(
     }
     observe(ctx, config.clone(), payload_ref, &raw, &resources, major)
 }
+fn validate_legacy_recipe(recipe: &Value) -> Result<()> {
+    for field in [
+        "plan_ref",
+        "legacy_builder_ref",
+        "legacy_event_id",
+        "legacy_unit_reason",
+    ] {
+        s(&recipe[field])?;
+    }
+    let digest = s(&recipe["legacy_event_sha256"])?;
+    ensure(
+        digest.len() == 64
+            && digest
+                .bytes()
+                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)),
+        "legacy event digest syntax",
+    )
+}
 fn validate_identity_recipe(recipe: &Value) -> Result<()> {
     let issuance = &recipe["identity_issuance"];
     let namespace = s(&recipe["identity_namespace"])?;
@@ -696,6 +709,7 @@ fn packet(
     citation_digest: &str,
     method: &Value,
     historical: bool,
+    recipe: &Value,
 ) -> Result<Value> {
     let order = number(&part.config["part_order"])?;
     let private_ref = pattern(plan, "private_layer_pattern", order)?;
@@ -733,7 +747,7 @@ fn packet(
             .collect::<Vec<_>>();
         let mut value = records::unit(id, u, &json!(parents), &json!(children));
         if historical {
-            value["status_reason"] = json!(LEGACY_UNIT_REASON);
+            value["status_reason"] = recipe["legacy_unit_reason"].clone();
         }
         units.push(value);
     }
@@ -932,9 +946,9 @@ fn retained_event(
             "selected event differs from retained provenance",
         )?;
     }
-    if event["event_id"] == LEGACY_EVENT {
+    if event["event_id"] == opts.recipe["legacy_event_id"] {
         ensure(
-            sha(&raw) == LEGACY_EVENT_SHA,
+            sha(&raw) == s(&opts.recipe["legacy_event_sha256"])?,
             "historical provenance must retain exact original bytes",
         )?;
     }
@@ -1184,6 +1198,7 @@ fn tracked(ctx: &ResearchExecution, plan: &Value, plan_ref: &str, event: &Value)
 }
 pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
     validate_identity_recipe(opts.recipe)?;
+    validate_legacy_recipe(opts.recipe)?;
     let (plan_raw, plan) = current_plan(ctx, opts.plan_ref)?;
     let retained = retained_event(ctx, &plan, &opts)?;
     let build = matches!(opts.action, Action::Build { .. });
@@ -1206,12 +1221,14 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
             .event_id
             .ok_or("fresh native output requires a new --event-id")?;
         ensure(
-            id != LEGACY_EVENT && id.starts_with("tos.event.") && id.len() < 512,
+            id != s(&opts.recipe["legacy_event_id"])?
+                && id.starts_with("tos.event.")
+                && id.len() < 512,
             "new event identity",
         )?;
         id.to_owned()
     };
-    let historical = event_id == LEGACY_EVENT;
+    let historical = event_id == s(&opts.recipe["legacy_event_id"])?;
     let made_at = if historical {
         s(&plan["created_at"])?.to_owned()
     } else if let Some((_, e)) = &retained {
@@ -1300,7 +1317,11 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
     let citation_ref = out(&plan, "citation_spine_ref")?;
     let mut tracked = BTreeMap::from([(citation_ref.clone(), citation_raw)]);
     let mut private = BTreeMap::new();
-    let builder = if historical { LEGACY_BUILDER } else { BUILDER };
+    let builder = if historical {
+        s(&opts.recipe["legacy_builder_ref"])?
+    } else {
+        BUILDER
+    };
     let method = records::method(opts.plan_ref, builder, &event_id, &made_at);
     for p in &parts {
         let n = number(&p.config["part_order"])?;
@@ -1313,6 +1334,7 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
             &citation_digest,
             &method,
             historical,
+            opts.recipe,
         )?;
         let reference = pattern(&plan, "part_packet_pattern", n)?;
         ensure(
@@ -1560,9 +1582,9 @@ mod tests {
         let csraw = jsonl(&ctx, &cs).unwrap();
         assert_eq!(sha(&csraw), f["citations_sha256"]);
         let method = records::method(
-            PLAN,
-            LEGACY_BUILDER,
-            LEGACY_EVENT,
+            s(&recipe()["plan_ref"]).unwrap(),
+            s(&recipe()["legacy_builder_ref"]).unwrap(),
+            s(&recipe()["legacy_event_id"]).unwrap(),
             s(&f["plan"]["created_at"]).unwrap(),
         );
         let packet = packet(
@@ -1574,6 +1596,7 @@ mod tests {
             &sha(&csraw),
             &method,
             false,
+            &recipe(),
         )
         .unwrap();
         assert_eq!(
@@ -1638,7 +1661,7 @@ mod tests {
         let ids = identities(&issue(&f["plan"], &parts, &recipe()).unwrap()).unwrap();
         let cs = citations(&ctx, &f["plan"], &parts, &ids).unwrap();
         let method = records::method(
-            PLAN,
+            s(&recipe()["plan_ref"]).unwrap(),
             BUILDER,
             "tos.event.native.test",
             s(&f["plan"]["created_at"]).unwrap(),
@@ -1652,6 +1675,7 @@ mod tests {
             &sha(&jsonl(&ctx, &cs).unwrap()),
             &method,
             false,
+            &recipe(),
         )
         .unwrap();
         let mut v = p.clone();
