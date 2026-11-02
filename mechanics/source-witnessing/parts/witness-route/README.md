@@ -53,47 +53,24 @@ verified locally before a batch result claims it is present.
 The ordered checks remain in `docs/validation/validation_lanes.json` under
 `source_witness_foundation` and the affected philosophy route.
 
-The bounded registry route is the native acquisition owner, invoked through
-`tos-native-owner-command acquisition` with `family` set to `registry`.
-`registry.verify_preparation` checks the frozen manifest and retained evidence;
-`registry.acquire` requires the actual preparation checkpoint receipt;
-`registry.verify_local` opens and verifies the exact installed files. Select the
-durable payload root explicitly in `payload_source_root`; its relative Item
-paths contain `payload/`. Metadata and review records stay in the source
-checkout; payload custody must survive its worktree. Pass that same root to
-`registry.verify_local` and to the foundation validator with
-`--require-local-payloads`. Existing retained files can be copied and
-independently verified through `tos-native-owner-command acquisition`, selecting
-the `custody` family, `cli` operation and `verify` or `copy` command. Copying
-uses explicit manifest or inventory selection, verifies source fixity, and
-publishes read-only payloads without replacing conflicting destination bytes.
-Its immutable `0600` receipts contain custody metadata only.
-The frozen Python reference is nonexecutable history at
-`tests/historical/oracles/acquisition/source_payload_custody.py.snapshot`.
+The native acquisition owner is `tos-native-owner-command acquisition` with
+`family` set to `registry`. `registry.verify_preparation` checks the frozen
+manifest and retained evidence; `registry.acquire` requires the preparation
+checkpoint receipt; `registry.verify_local` verifies installed files. Select a
+durable `payload_source_root` that survives the worktree; relative Item paths
+contain `payload/`. Metadata and review records stay in the checkout. Pass the
+same root to `registry.verify_local` and the foundation validator with
+`--require-local-payloads`. The
+[custody route](docs/ACQUISITION_BATCH_ROUTE.md#standalone-retained-payload-custody)
+copies or verifies retained files.
 
-For a growing provider queue, invoke the native batch route through
-`tos-native-owner-command acquisition` with `family` set to `batch` and an
-operation of `prepare`, `acquire`, or `verify_local`, using the
-`ToS/contracts/acquisition-batch.schema.json` manifest. It copies only the
-explicitly selected reviewed records into a new handoff, writes one
-batch-level provenance delta bound to the exact base revision, and acquires
-payloads into an explicit local custody root. It does not read or copy a
-complete relation topology and never creates a per-target `topology-before`
-preimage. Each payload retains a credential-free provider URL (no userinfo,
-query string, or fragment), provider revision, source ID,
-ToS Item/File identity, expected bytes, SHA-256, optional Git blob digest, and
-rights record binding. A content-addressed File ID may recur under separate
-Items, with one destination per File ID within each Item. Custody and fixity
-remain distinct for each Item/File destination; the provenance delta lists
-that File ID once. The acquisition journal isolates
-source failures and allows restart; `receipts/handoff-*.json` reports `admission_status` as
-`not-admitted` even when all bytes have been verified. The independent fixity
-receipt is a separate handoff input for the corpus-intake owner. The native
-`handoff` family on the same acquisition command verifies one selected handoff
-against the accepted-store pointer and accepted source bytes, then emits the
-existing `tos_corpus_batch_v1` input shape for `corpus-admit` without
-performing admission; it remains separate from the legacy seven-package
-converter.
+For a growing provider queue, use the [versioned batch route](docs/ACQUISITION_BATCH_ROUTE.md)
+with `tos-native-owner-command acquisition`, `family` set to `batch`, and
+`prepare`, `acquire`, or `verify_local`. The route uses the
+`ToS/contracts/acquisition-batch.schema.json` manifest and an explicit local
+custody root. Its `handoff` family prepares a selected handoff for
+`corpus-admit`; the legacy seven-package converter remains separate. The batch
+route creates no per-target `topology-before` preimage.
 The separate frozen-plan import route in
 `ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md` binds those bytes
 to the exact Item, File and rights revision before private R2 transfer. Adding
