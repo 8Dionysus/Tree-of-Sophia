@@ -2081,7 +2081,7 @@ fn private_read_lifecycle(
     drop(worker);
 
     let binary = PathBuf::from(std::env::var_os("TOS_NATIVE_OWNER_COMMAND_PATH").unwrap());
-    let schema = PathBuf::from(std::env::var_os("TOS_SCHEMA_WORKER_PATH").unwrap());
+    let missing_schema_worker = root.join("missing-schema-worker");
     let capture = &seed._software_capture;
     let invocation = serde_json::json!({"schema_version":"tos_local_native_source_invocation_v1",
         "owner_config":grant_path,"owner_context":seed.owner_context,"assessment_schema_worker":null,
@@ -2091,7 +2091,7 @@ fn private_read_lifecycle(
         "software_capture":capture.capture,"software_restored_root":capture.restored,
         "software_selection":{"source_git_commit":capture.selection.source_git_commit,"source_git_tree":capture.selection.source_git_tree,"capture_manifest_sha256":capture.selection.capture_manifest_sha256.to_prefixed()},
         "software_components":seed.components.members().map(|m|m.path.as_str()).collect::<Vec<_>>(),
-        "schema_worker":{"absolute_path":schema,"sha256":alignment_image_digest(&schema).to_prefixed()},
+        "schema_worker":{"absolute_path":missing_schema_worker,"sha256":Digest256::of_bytes(b"unavailable worker").to_prefixed()},
         "budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":33554432,"max_member_bytes":8388608,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,"worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}});
     let invocation_path = root.join("private-read-invocation.json");
     fs::write(&invocation_path, serde_json::to_vec(&invocation).unwrap()).unwrap();

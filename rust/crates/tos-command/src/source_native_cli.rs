@@ -951,7 +951,14 @@ fn run_selected(
                     "private text invocation context differs",
                 ));
             }
-            let mut worker = selected_schema(&invocation, &cut, deadline, &cancelled)?;
+            let mut worker = tos_validation::source_cut::InProcessCutSchemaExecutor::from_cut(
+                &cut,
+                FormatProfile::LegacyPythonObserved20260923,
+                tos_validation::in_process::InputMode::SerdeNormalized,
+                deadline,
+                &cancelled,
+            )
+            .map_err(|_| SourceCommandError::Denied("native private text schema selection"))?;
             let mut grant = crate::source_native_text_read::PrivateTextReadSelection::load(
                 &owner_path,
                 &source_root,
@@ -969,6 +976,7 @@ fn run_selected(
                 deadline,
                 &cancelled,
             )?;
+            crate::source_sign::finish_worker(&mut worker, deadline, &cancelled)?;
             if read_absolute(&selected, uid, true, raw.len(), deadline, &cancelled)? != raw
                 || read_absolute(&owner_path, uid, true, hint_raw.len(), deadline, &cancelled)?
                     != hint_raw

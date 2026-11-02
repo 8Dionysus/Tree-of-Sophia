@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue, RelativePath};
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::CutSchemaExecutor;
 const SCHEMA: &str = "ToS/contracts/native-local-text-read.schema.json";
 pub(crate) const PG_PRIVATE_SCHEMA: &str = "ToS/contracts/native-pg-private-text-read.schema.json";
 
@@ -32,7 +32,7 @@ impl LocalTextReadSelection {
     pub fn load(
         path: &Path,
         source_root: &Path,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut dyn CutSchemaExecutor,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Self> {
@@ -42,7 +42,7 @@ impl LocalTextReadSelection {
         path: &Path,
         source_root: &Path,
         schema_ref: &'static str,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut dyn CutSchemaExecutor,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Self> {
@@ -405,7 +405,7 @@ impl LocalTextReadSelection {
 
 pub fn read_native_unit<R: NativeUnitRead + ?Sized>(
     reader: &mut R,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     binding: &JsonValue,
     local_selection: Option<&LocalTextReadSelection>,
     max_return_bytes: usize,
@@ -443,7 +443,7 @@ impl PrivateTextReadSelection {
     pub fn load(
         path: &Path,
         source_root: &Path,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut dyn CutSchemaExecutor,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Self> {
@@ -598,7 +598,7 @@ impl PrivateTextReadSelection {
 /// are rechecked before return. No original Item payload is opened.
 pub fn read_private_native_unit(
     selection: &mut PrivateTextReadSelection,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     binding: &JsonValue,
     max_return_bytes: usize,
     deadline: Instant,

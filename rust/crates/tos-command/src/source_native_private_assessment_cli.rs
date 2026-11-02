@@ -33,6 +33,8 @@ use tos_validation::assessment::{
 use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
 #[cfg(test)]
 use tos_validation::source_cut::CutWorkerLimits;
+#[cfg(test)]
+use tos_validation::source_cut::CutWorkerSchemaExecutor;
 use tos_validation::source_cut::{CutSchemaExecutor, InProcessCutSchemaExecutor};
 
 const OWNER_CONTEXT_SCHEMA: &str = "ToS/contracts/owner-local-source-context.schema.json";
