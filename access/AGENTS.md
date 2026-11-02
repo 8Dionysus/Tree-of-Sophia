@@ -9,8 +9,7 @@ the native Rust query core, its thin imported SDK bridge, installed CLI, local
 HTTP/MCP service, web application, WebMCP action contract, standalone
 profiles, and native software/data builders.
 
-It does not author philosophical meaning. `ToS/` source, review, canon, and
-derived-export owners remain stronger than every packet emitted here.
+`ToS/` owns source meaning, review, canon and derived exports.
 
 ## Boundary
 
@@ -18,9 +17,8 @@ derived-export owners remain stronger than every packet emitted here.
   search and exploration semantics. `rust/crates/tos-access/` owns source-read,
   managed-release, transport and installed-product integration. The Python
   `src/tos_access/core.py` surface is a thin imported SDK bridge to the
-  installed native product; it contains no query, HTTP, or source-reading
-  engine.
-- Installed CLI, HTTP, MCP, and browser actions route to the native owner.
+  installed native product. Installed CLI, HTTP, MCP and browser actions route
+  to the native owner.
 - `contracts/` and `profiles/` own the portable consumer-facing ABI.
 - `packaging/` contains explicit data-generation/validation tools only; the
   native software archive owner assembles software subjects.
@@ -33,8 +31,8 @@ derived-export owners remain stronger than every packet emitted here.
 - Explicit data selection (`--root` or `TOS_DATA_ROOT`) chooses data, never
   installed code, browser assets or API schemas. Missing data does not discover
   another checkout through the current directory.
-- Full snapshot validation and compilation belong to data release. API-schema
-  checking must not traverse production graph rows as a hidden side effect.
+- Data release owns full snapshot validation and compilation. API-schema
+  checking uses schemas without traversing production graph rows.
 
 ## Validation route
 
