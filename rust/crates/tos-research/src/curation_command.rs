@@ -12,7 +12,7 @@ use tos_validation::{
 };
 
 const SCHEMA_PATH: &str = "ToS/contracts/edition-curation.v1.schema.json";
-const HELP: &str = "usage: tos-research build|check --curation PATH --stage STAGE [--source-root ABS] [--local-input-root ABS] [OPTIONS]\n       tos-research validate --curation PATH [--stage STAGE] [--source-root ABS]\n\nThe selected source root defaults to the current directory. The curation, item, edition and referenced recipes are validated before a stage is selected. Historical command aliases remain available during stage migration.\n";
+const HELP: &str = "usage: tos-research build|check --curation PATH --stage STAGE [--source-root ABS] [--local-input-root ABS] [--local-output-root ABS] [OPTIONS]\n       tos-research validate --curation PATH [--stage STAGE] [--source-root ABS]\n\nThe selected source root defaults to the current directory. The curation, item, edition and referenced recipes are validated before a stage is selected. Historical command aliases remain available during stage migration.\n";
 
 struct Curation {
     reference: String,
@@ -139,8 +139,8 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
     if args.len() == 2 && matches!(args[1].as_str(), "--help" | "-h") {
         return write!(out, "{HELP}").map_err(|e| e.to_string());
     }
-    let (mut curation, mut stage, mut root, mut input_root, mut seconds) =
-        (None, None, None, None, None);
+    let (mut curation, mut stage, mut root, mut input_root, mut output_root, mut seconds) =
+        (None, None, None, None, None, None);
     let mut options = args.iter().skip(1);
     while let Some(option) = options.next() {
         let slot = match option.as_str() {
@@ -148,6 +148,7 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
             "--stage" => &mut stage,
             "--source-root" => &mut root,
             "--local-input-root" => &mut input_root,
+            "--local-output-root" => &mut output_root,
             "--max-seconds" => &mut seconds,
             _ => return Err(format!("unknown curation option: {option}")),
         };
@@ -159,8 +160,8 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
         }
     }
     let curation = curation.ok_or("--curation is required")?;
-    if action == "validate" && input_root.is_some() {
-        return Err("--local-input-root applies to check or build".into());
+    if action == "validate" && (input_root.is_some() || output_root.is_some()) {
+        return Err("local input and output roots apply to check or build".into());
     }
     if action != "validate" && stage.is_none() {
         return Err("--stage is required".into());
@@ -243,6 +244,101 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
         } else {
             (&selected, choices[0])
         };
+        // The TEI implementation retains its historical plan-specific checks until its
+        // record templates and rules are fully selected from curation.
+        if action == "check" && stage == "tei-technical-markup" {
+            let plan_ref = recipe["plan_ref"]
+                .as_str()
+                .ok_or("TEI plan reference required")?;
+            let plan = ctx.read(plan_ref)?;
+            edition_curation::validate_recipe_plan(
+                &owner.raw,
+                stage,
+                SelectedDocument {
+                    reference: plan_ref,
+                    raw: &plan,
+                },
+                &schema,
+            )
+            .map_err(|e| format!("TEI plan binding: {e:?}"))?;
+            let plan_value: Value =
+                serde_json::from_slice(&plan).map_err(|error| error.to_string())?;
+            let plan_items = plan_value["source_items"]
+                .as_array()
+                .ok_or("TEI plan source items required")?;
+            let selected_items = recipe["source_item_refs"]
+                .as_array()
+                .ok_or("TEI selected item references required")?;
+            let mut unique = BTreeSet::new();
+            if plan_items.len() != selected_items.len()
+                || plan_items
+                    .iter()
+                    .zip(selected_items)
+                    .any(|(item, expected)| {
+                        item["item_ref"] != *expected
+                            || expected
+                                .as_str()
+                                .is_none_or(|value| !unique.insert(value.to_owned()))
+                    })
+            {
+                return Err("TEI selected items differ from plan or contain duplicates".into());
+            }
+            let mut frozen = Vec::new();
+            for output in recipe["frozen_outputs"]
+                .as_array()
+                .ok_or("TEI frozen outputs required")?
+            {
+                let role = output["role"].as_str().ok_or("TEI output role required")?;
+                let reference = output["repository_path"]
+                    .as_str()
+                    .ok_or("TEI output path required")?;
+                let raw = ctx.read(reference)?;
+                edition_curation::validate_frozen_output_fixity(
+                    &owner.raw,
+                    stage,
+                    role,
+                    SelectedDocument {
+                        reference,
+                        raw: &raw,
+                    },
+                    &schema,
+                )
+                .map_err(|e| format!("TEI frozen output: {e:?}"))?;
+                frozen.push((reference.to_owned(), raw));
+            }
+            let input = Path::new(input_root.ok_or("--local-input-root is required")?);
+            let output = Path::new(output_root.ok_or("--local-output-root is required")?);
+            if !input.is_absolute() || !output.is_absolute() {
+                return Err("local roots must be absolute".into());
+            }
+            let mut result = crate::dta_technical_markup::run(
+                &ctx,
+                crate::dta_technical_markup::Options {
+                    plan_ref,
+                    input_root: Some(input),
+                    output_root: Some(output),
+                    action: crate::dta_technical_markup::Action::Check,
+                    event_id: None,
+                },
+            )?;
+            if ctx.read(plan_ref)? != plan {
+                return Err("selected TEI plan changed during verification".into());
+            }
+            for (reference, raw) in frozen {
+                if ctx.read(&reference)? != raw {
+                    return Err("selected TEI output changed during verification".into());
+                }
+            }
+            selected.verify_unchanged(&ctx)?;
+            for referenced in &refs {
+                referenced.verify_unchanged(&ctx)?;
+            }
+            result["stage"] = serde_json::json!(stage);
+            result["curation_ref"] = serde_json::json!(relative);
+            result["implementation"] = serde_json::json!("retained-plan-specific-executor");
+            writeln!(out, "{result}").map_err(|error| error.to_string())?;
+            return Ok(());
+        }
         if action == "check" && stage == "numbered-structure" {
             let input = Path::new(input_root.ok_or("--local-input-root is required")?);
             let result = crate::numbered_check::check(

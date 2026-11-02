@@ -127,3 +127,15 @@ fn numbered_structure_validation_checks_both_frozen_witness_maps() {
         );
     }
 }
+
+#[test]
+fn curated_tei_check_requires_explicit_local_custody() {
+    let root =
+        std::fs::canonicalize(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.."))
+            .unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_tos-research"))
+        .args(["check", "--source-root", root.to_str().unwrap(), "--curation", "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/edition-curation.v1.json", "--stage", "tei-technical-markup"])
+        .output().unwrap();
+    assert_eq!(output.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("--local-input-root is required"));
+}
