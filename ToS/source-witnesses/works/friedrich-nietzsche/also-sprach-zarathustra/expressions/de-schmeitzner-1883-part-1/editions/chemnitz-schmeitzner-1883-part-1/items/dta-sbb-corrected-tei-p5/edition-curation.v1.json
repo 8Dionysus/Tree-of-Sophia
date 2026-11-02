@@ -1433,6 +1433,18 @@
             "prefix": "interpretation-review-candidate"
           }
         ]
+      },
+      "review_scope": {
+        "gap_count_plan_pointer": "/scope/gap_count",
+        "gap_refs_plan_pointer": "/scope/gap_alignment_refs",
+        "reading_refs_plan_pointer": "/scope/speaker_readings",
+        "primary_axes_plan_pointer": "/scope/interpretation_axes",
+        "control_axes_plan_pointer": "/scope/competing_or_blocked_controls",
+        "gaps_template_pointer": "/gaps",
+        "readings_template_pointer": "/core_readings",
+        "axes_template_pointer": "/axes",
+        "primary_axis_status": "prepared_for_review",
+        "blocked_control_status": "blocked_cross_work"
       }
     },
     {

@@ -6,7 +6,7 @@ use tos_validation::{
     edition_curation::{
         EditionCurationError, SCHEMA_URI, SelectedCuration, SelectedDocument,
         select_historical_field, validate, validate_bindings, validate_recipe_plan,
-        validate_recipe_template,
+        validate_recipe_template, validate_review_sources,
     },
 };
 
@@ -82,6 +82,55 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let dta_raw = fs::read(root.join(dta_path)).unwrap();
     assert_eq!(validate(&dta_raw, &schema), Ok(()));
     let dta_value: Value = serde_json::from_slice(&dta_raw).unwrap();
+    let review = dta_value["recipes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|recipe| recipe["stage"] == "concept-review")
+        .unwrap();
+    let review_plan_ref = review["plan_ref"].as_str().unwrap();
+    let review_template_ref = review["historical_templates"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|entry| entry["role"] == "legacy-output-template")
+        .unwrap()["ref"]
+        .as_str()
+        .unwrap();
+    let review_plan_raw = fs::read(root.join(review_plan_ref)).unwrap();
+    let review_template_raw = fs::read(root.join(review_template_ref)).unwrap();
+    let selected_plan = SelectedDocument {
+        reference: review_plan_ref,
+        raw: &review_plan_raw,
+    };
+    let selected_template = SelectedDocument {
+        reference: review_template_ref,
+        raw: &review_template_raw,
+    };
+    assert_eq!(
+        validate_review_sources(&dta_raw, selected_plan, selected_template, &schema),
+        Ok(())
+    );
+    let mut reordered_review = dta_value.clone();
+    let review = reordered_review["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "concept-review")
+        .unwrap();
+    review["speaker_selection"]["readings"]
+        .as_array_mut()
+        .unwrap()
+        .swap(0, 1);
+    assert_eq!(
+        validate_review_sources(
+            &serde_json::to_vec(&reordered_review).unwrap(),
+            selected_plan,
+            selected_template,
+            &schema,
+        ),
+        Err(EditionCurationError::BindingMismatch)
+    );
     let mut bad_ratio = dta_value.clone();
     let morphology = bad_ratio["recipes"]
         .as_array_mut()

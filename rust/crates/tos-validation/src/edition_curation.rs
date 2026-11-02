@@ -227,6 +227,73 @@ pub fn validate_recipe_template(
     Ok(())
 }
 
+/// Bind the selected review scope to its plan and historical candidate template.
+pub fn validate_review_sources(
+    raw: &[u8],
+    plan: SelectedDocument<'_>,
+    template: SelectedDocument<'_>,
+    schema: &SchemaBackendProbe,
+) -> Result<(), EditionCurationError> {
+    let stage = "concept-review";
+    validate_recipe_plan(raw, stage, plan, schema)?;
+    validate_recipe_template(raw, stage, "legacy-output-template", template, schema)?;
+    let value = document(raw, schema)?;
+    let recipe = selected_recipe(&value, stage)?;
+    let scope = &recipe["review_scope"];
+    let plan = published_value(plan.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+        .map_err(EditionCurationError::Schema)?;
+    let template = published_value(template.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+        .map_err(EditionCurationError::Schema)?;
+    let array = |document: &Value, key: &str| -> Result<Vec<Value>, EditionCurationError> {
+        let pointer = scope[key]
+            .as_str()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        document
+            .pointer(pointer)
+            .and_then(Value::as_array)
+            .cloned()
+            .ok_or(EditionCurationError::MissingReference)
+    };
+    let gaps = array(&plan, "gap_refs_plan_pointer")?;
+    let count_pointer = scope["gap_count_plan_pointer"]
+        .as_str()
+        .ok_or(EditionCurationError::InvalidSchema)?;
+    if plan.pointer(count_pointer).and_then(Value::as_u64) != Some(gaps.len() as u64) {
+        return Err(EditionCurationError::BindingMismatch);
+    }
+    let template_gaps = array(&template, "gaps_template_pointer")?;
+    let template_gap_refs: Vec<_> = template_gaps
+        .iter()
+        .map(|row| row["alignment_ref"].clone())
+        .collect();
+    let readings = array(&plan, "reading_refs_plan_pointer")?;
+    let selected_readings: Vec<_> = recipe["speaker_selection"]["readings"]
+        .as_array()
+        .ok_or(EditionCurationError::InvalidSchema)?
+        .iter()
+        .map(|row| row["reading_ref"].clone())
+        .collect();
+    let mut axes = array(&plan, "primary_axes_plan_pointer")?;
+    axes.extend(array(&plan, "control_axes_plan_pointer")?);
+    if gaps != template_gap_refs
+        || readings != selected_readings
+        || readings != array(&template, "readings_template_pointer")?
+        || axes != array(&template, "axes_template_pointer")?
+    {
+        return Err(EditionCurationError::BindingMismatch);
+    }
+    for entries in [&gaps, &readings, &axes] {
+        let mut seen = BTreeSet::new();
+        for entry in entries {
+            let id = entry.as_str().ok_or(EditionCurationError::InvalidSchema)?;
+            if !seen.insert(id) {
+                return Err(EditionCurationError::Duplicate("review scope reference"));
+            }
+        }
+    }
+    Ok(())
+}
+
 /// Select a historical JSON field from exact, curation-bound output bytes.
 pub fn select_historical_field(
     raw: &[u8],
