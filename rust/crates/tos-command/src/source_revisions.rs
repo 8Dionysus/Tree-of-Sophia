@@ -28,7 +28,7 @@ use tos_validation::native_compound::{
 };
 use tos_validation::record_biblio_cut::SourceCutInputWithIdentity;
 use tos_validation::source_cut::{
-    CandidateCutWorkerSchemaExecutor, InProcessCandidateSchemaExecutor,
+    CandidateCutWorkerSchemaExecutor, InProcessCandidateSchemaExecutor, InProcessCutSchemaExecutor,
 };
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
@@ -1627,7 +1627,7 @@ impl<I: Copy + Eq> RecordRead for CandidateRecordVersionReadInput<'_, I> {
 pub(crate) trait RecordSchemaWorker: CutSchemaExecutor {
     type Identity: Copy + Eq;
 
-    fn input_identity(&self) -> Self::Identity;
+    fn input_identity(&self) -> Option<Self::Identity>;
     fn contract_digest(&self, contract: &str) -> Option<Digest256>;
     fn collection_cut_worker(&mut self) -> Option<&mut CutWorkerSchemaExecutor> {
         None
@@ -1661,8 +1661,8 @@ pub(crate) trait RecordSchemaWorker: CutSchemaExecutor {
 impl RecordSchemaWorker for CutWorkerSchemaExecutor {
     type Identity = tos_foundation::SourceRevision;
 
-    fn input_identity(&self) -> Self::Identity {
-        self.source_revision()
+    fn input_identity(&self) -> Option<Self::Identity> {
+        Some(self.source_revision())
     }
 
     fn contract_digest(&self, contract: &str) -> Option<Digest256> {
@@ -1693,8 +1693,8 @@ impl RecordSchemaWorker for CutWorkerSchemaExecutor {
 impl<I: Copy + Eq> RecordSchemaWorker for CandidateCutWorkerSchemaExecutor<I> {
     type Identity = I;
 
-    fn input_identity(&self) -> Self::Identity {
-        *CandidateCutWorkerSchemaExecutor::input_identity(self)
+    fn input_identity(&self) -> Option<Self::Identity> {
+        Some(*CandidateCutWorkerSchemaExecutor::input_identity(self))
     }
 
     fn contract_digest(&self, contract: &str) -> Option<Digest256> {
@@ -1726,8 +1726,8 @@ impl<I: Copy + Eq> RecordSchemaWorker for CandidateCutWorkerSchemaExecutor<I> {
 impl<I: Copy + Eq> RecordSchemaWorker for InProcessCandidateSchemaExecutor<I> {
     type Identity = I;
 
-    fn input_identity(&self) -> Self::Identity {
-        *tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding::input_identity(self)
+    fn input_identity(&self) -> Option<Self::Identity> {
+        Some(*tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding::input_identity(self))
     }
 
     fn contract_digest(&self, contract: &str) -> Option<Digest256> {
@@ -1753,6 +1753,34 @@ impl<I: Copy + Eq> RecordSchemaWorker for InProcessCandidateSchemaExecutor<I> {
             ));
         }
         public_profile_candidate(self, deadline, cancelled, ctx, config, record)
+    }
+}
+
+impl RecordSchemaWorker for InProcessCutSchemaExecutor<()> {
+    type Identity = tos_foundation::SourceRevision;
+
+    fn input_identity(&self) -> Option<Self::Identity> {
+        self.selected_source_revision()
+    }
+
+    fn contract_digest(&self, contract: &str) -> Option<Digest256> {
+        self.selected_contract_digest(contract)
+    }
+
+    fn source_revision(&self) -> Option<tos_foundation::SourceRevision> {
+        self.selected_source_revision()
+    }
+
+    fn public_profile(
+        &mut self,
+        cut: Option<&CorpusCutReader>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        ctx: &impl RecordRead<Identity = Self::Identity>,
+        config: &JsonValue,
+        record: &JsonValue,
+    ) -> SourceCommandResult<(JsonValue, Vec<String>, Option<String>, Option<String>)> {
+        public_profile(cut, self, deadline, cancelled, ctx, config, record)
     }
 }
 
@@ -4116,7 +4144,7 @@ where
             "Artifact correction replay deadline or cancellation",
         ));
     }
-    if worker.input_identity() != ctx.input_identity()
+    if worker.input_identity() != Some(ctx.input_identity())
         || *native_history.input_identity() != ctx.input_identity()
     {
         return Err(SourceCommandError::Conflict(
@@ -4970,7 +4998,7 @@ where
     C: RecordRevisionCommandContext<Identity = W::Identity>,
     W: RecordSchemaWorker,
 {
-    if worker.input_identity() != ctx.input_identity() {
+    if worker.input_identity() != Some(ctx.input_identity()) {
         return Err(SourceCommandError::Conflict(
             "schema worker and selected record revision identity differ",
         ));
@@ -6065,7 +6093,7 @@ where
     W: RecordSchemaWorker,
     C: RecordRead<Identity = W::Identity>,
 {
-    if worker.input_identity() != ctx.input_identity() {
+    if worker.input_identity() != Some(ctx.input_identity()) {
         return Err(SourceCommandError::Conflict(
             "schema worker and selected source input differ",
         ));
@@ -6295,7 +6323,7 @@ fn uses_native_identity_inventory(record_id: &str) -> bool {
 
 fn native_identity_inventory(
     cut: Option<&CorpusCutReader>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl RecordSchemaWorker<Identity = tos_foundation::SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
     ctx: &impl RecordRead<Identity = tos_foundation::SourceRevision>,
@@ -6408,7 +6436,7 @@ pub(crate) fn native_identity_inventory_from_members(
 fn selected_native_identity_inventory(
     ctx: &CommandContext,
     cut: &CorpusCutReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl RecordSchemaWorker<Identity = tos_foundation::SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
     reserved_id: Option<&str>,
@@ -6482,7 +6510,7 @@ fn selected_native_identity_inventory(
 pub(crate) fn native_identity_inventory_from_packet_members(
     ctx: &CommandContext,
     packet_members: &[SourceFile],
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl RecordSchemaWorker<Identity = tos_foundation::SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
     reserved_id: Option<&str>,
@@ -6564,17 +6592,17 @@ pub(crate) fn native_identity_inventory_from_packet_members_with_validator(
     Ok((identities, python_ascii_digest(&value)?, used_schema))
 }
 
-struct NativeBindingReader<'a> {
+struct NativeBindingReader<'a, W: RecordSchemaWorker<Identity = tos_foundation::SourceRevision>> {
     ctx: &'a CommandContext,
     cut: &'a CorpusCutReader,
-    worker: &'a mut CutWorkerSchemaExecutor,
+    worker: &'a mut W,
     deadline: Instant,
     cancelled: &'a AtomicBool,
     inputs: BTreeMap<String, String>,
     contracts: BTreeSet<String>,
     remaining: usize,
 }
-impl NativeBindingReader<'_> {
+impl<W: RecordSchemaWorker<Identity = tos_foundation::SourceRevision>> NativeBindingReader<'_, W> {
     fn route(name: &str, support: bool, contract: bool, content: bool) -> SourceCommandResult<()> {
         path(name)?;
         let home = if contract {
@@ -6926,7 +6954,7 @@ pub(crate) fn python_ascii_digest(value: &JsonValue) -> SourceCommandResult<Stri
 /// not verified content, an authenticated producer, rights judgment or admission.
 fn native_text_binding(
     cut: Option<&CorpusCutReader>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl RecordSchemaWorker<Identity = tos_foundation::SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
     ctx: &CommandContext,
@@ -7168,14 +7196,19 @@ fn native_text_binding(
         }
     }
     // Validate navigation without opening, executing, hashing or projecting text.
-    NativeBindingReader::route(cmd::text(rep, "content_ref")?, false, false, true)?;
+    NativeBindingReader::<CutWorkerSchemaExecutor>::route(
+        cmd::text(rep, "content_ref")?,
+        false,
+        false,
+        true,
+    )?;
     reader.snapshot()
 }
 
 /// Reuse the maintained registry constructor law without loading unused profile
 /// schemas or confusing a profile declaration with writer authority.
 pub(crate) fn validate_source_profile_registry(
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl RecordSchemaWorker<Identity = tos_foundation::SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
     ctx: &impl RecordRead<Identity = tos_foundation::SourceRevision>,
@@ -7422,7 +7455,7 @@ pub(crate) fn selected_source_profile_schema_ref(
 
 pub(crate) fn public_profile(
     cut: Option<&CorpusCutReader>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl RecordSchemaWorker<Identity = tos_foundation::SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
     ctx: &impl RecordRead<Identity = tos_foundation::SourceRevision>,
@@ -8093,7 +8126,7 @@ where
         ctx.check()?;
     }
     exact_ref(exact)?;
-    if worker.input_identity() != ctx.input_identity() {
+    if worker.input_identity() != Some(ctx.input_identity()) {
         return Err(SourceCommandError::Conflict(
             "metadata resolver worker and source cut differ",
         ));
@@ -8621,6 +8654,60 @@ mod readonly_descriptor_tests {
         fn check(&self) -> SourceCommandResult<()> {
             Ok(())
         }
+    }
+
+    #[test]
+    fn candidate_cut_executor_cannot_claim_a_source_revision() {
+        use std::time::Duration;
+        use tos_foundation::SourceRevision;
+        use tos_validation::in_process::InputMode;
+        use tos_validation::source_cut::InProcessCutIdentity;
+        let path = "ToS/contracts/example.schema.json";
+        let raw = br#"{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://example.test/schema","type":"integer"}"#.to_vec();
+        let uri = "https://example.test/schema".to_owned();
+        let contracts =
+            BTreeMap::from([(path.to_owned(), (uri.clone(), Digest256::of_bytes(&raw)))]);
+        let schemas = vec![tos_validation::SchemaResource { uri, raw }];
+        let mut executor = InProcessCutSchemaExecutor::new(
+            InProcessCutIdentity::Candidate(()),
+            contracts,
+            schemas,
+            tos_validation::FormatProfile::AssertedSourceCandidateV1,
+            InputMode::SerdeNormalized,
+        )
+        .unwrap();
+        struct Read(SourceRevision);
+        impl RecordRead for Read {
+            type Identity = SourceRevision;
+            fn files(&self) -> &[SourceFile] {
+                &[]
+            }
+            fn input_identity(&self) -> SourceRevision {
+                self.0
+            }
+            fn schema_source_path(&self) -> SourceCommandResult<String> {
+                Ok("ToS/source-witnesses/test/record.json".into())
+            }
+            fn check(&self) -> SourceCommandResult<()> {
+                Ok(())
+            }
+        }
+        assert_eq!(RecordSchemaWorker::input_identity(&executor), None);
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let read = Read(SourceRevision(Digest256::of_bytes(b"source")));
+        assert!(matches!(
+            schema_candidate(
+                &mut executor,
+                deadline,
+                &cancelled,
+                &read,
+                &[path.into()],
+                path,
+                &cmd::parse(b"3").unwrap()
+            ),
+            Err(SourceCommandError::Conflict(_))
+        ));
     }
 
     #[test]

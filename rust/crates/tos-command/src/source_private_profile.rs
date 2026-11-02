@@ -91,7 +91,7 @@ impl PrivateSelectedSchemaExecutor for CandidateCutWorkerSchemaExecutor<PgRecord
 impl PrivateSelectedSchemaExecutor for InProcessCandidateSchemaExecutor<PgRecordRevisionIdentity> {
     fn private_selection_identity(&self) -> PrivateSelectedSourceIdentity {
         PrivateSelectedSourceIdentity::PgRecord(
-            crate::source_revisions::RecordSchemaWorker::input_identity(self),
+            *tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding::input_identity(self),
         )
     }
 

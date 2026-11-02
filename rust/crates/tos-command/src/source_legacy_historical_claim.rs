@@ -5244,8 +5244,8 @@ mod pg_identity_selection_tests {
         }
         impl source_revisions::RecordSchemaWorker for Worker {
             type Identity = SourceRevision;
-            fn input_identity(&self) -> SourceRevision {
-                self.revision
+            fn input_identity(&self) -> Option<SourceRevision> {
+                Some(self.revision)
             }
             fn contract_digest(&self, contract: &str) -> Option<Digest256> {
                 (contract == GRAMMAR).then_some(self.digest)
