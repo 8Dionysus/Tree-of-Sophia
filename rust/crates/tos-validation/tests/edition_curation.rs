@@ -83,6 +83,39 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let dta_raw = fs::read(root.join(dta_path)).unwrap();
     assert_eq!(validate(&dta_raw, &schema), Ok(()));
     let dta_value: Value = serde_json::from_slice(&dta_raw).unwrap();
+    let alignment = dta_value["recipes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|recipe| recipe["stage"] == "sentence-alignment")
+        .unwrap();
+    let alignment_plan_ref = alignment["plan_ref"].as_str().unwrap();
+    let alignment_plan_raw = fs::read(root.join(alignment_plan_ref)).unwrap();
+    let alignment_plan = SelectedDocument {
+        reference: alignment_plan_ref,
+        raw: &alignment_plan_raw,
+    };
+    assert_eq!(
+        validate_recipe_plan(&dta_raw, "sentence-alignment", alignment_plan, &schema),
+        Ok(())
+    );
+    let mut wrong_alignment_output = dta_value.clone();
+    let alignment = wrong_alignment_output["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "sentence-alignment")
+        .unwrap();
+    alignment["frozen_outputs"][0]["repository_path"] = json!("different.json");
+    assert_eq!(
+        validate_recipe_plan(
+            &serde_json::to_vec(&wrong_alignment_output).unwrap(),
+            "sentence-alignment",
+            alignment_plan,
+            &schema,
+        ),
+        Err(EditionCurationError::BindingMismatch)
+    );
     for stage in [
         "paragraph-alignment",
         "parallel-lexical-candidates",

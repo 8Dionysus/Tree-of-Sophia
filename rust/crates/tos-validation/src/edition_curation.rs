@@ -95,29 +95,54 @@ pub fn validate_recipe_plan(
             return Err(EditionCurationError::MissingReference);
         }
     }
-    if stage == "text-collation" {
+    if matches!(stage, "sentence-alignment" | "text-collation") {
         let selected_plan = published_value(plan.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
             .map_err(EditionCurationError::Schema)?;
-        let roles = recipe["witness_roles"]
+        let outputs = selected_plan["outputs"]
+            .as_object()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        let frozen = recipe["frozen_outputs"]
             .as_array()
             .ok_or(EditionCurationError::InvalidSchema)?;
-        for role in roles {
-            let plan_key = role["plan_key"]
+        if outputs
+            .keys()
+            .filter(|role| !role.starts_with("private_"))
+            .count()
+            != frozen.len()
+        {
+            return Err(EditionCurationError::BindingMismatch);
+        }
+        for output in frozen {
+            let role = output["role"]
                 .as_str()
                 .ok_or(EditionCurationError::InvalidSchema)?;
-            let identity_key = role["identity_key"]
-                .as_str()
-                .ok_or(EditionCurationError::InvalidSchema)?;
-            if selected_plan
-                .get(plan_key)
-                .and_then(|witness| witness.get("item_ref"))
-                != Some(&role["item_ref"])
-                || selected_plan["opaque_ids"]
-                    .get(identity_key)
-                    .and_then(Value::as_str)
-                    .is_none()
+            if role.starts_with("private_") || outputs.get(role) != Some(&output["repository_path"])
             {
                 return Err(EditionCurationError::BindingMismatch);
+            }
+        }
+        if stage == "text-collation" {
+            let roles = recipe["witness_roles"]
+                .as_array()
+                .ok_or(EditionCurationError::InvalidSchema)?;
+            for role in roles {
+                let plan_key = role["plan_key"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let identity_key = role["identity_key"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                if selected_plan
+                    .get(plan_key)
+                    .and_then(|witness| witness.get("item_ref"))
+                    != Some(&role["item_ref"])
+                    || selected_plan["opaque_ids"]
+                        .get(identity_key)
+                        .and_then(Value::as_str)
+                        .is_none()
+                {
+                    return Err(EditionCurationError::BindingMismatch);
+                }
             }
         }
     }

@@ -104,7 +104,33 @@
       "legacy_builder_ref": "scripts/build_zarathustra_opening_sentence_alignment.py",
       "legacy_builder_sha256": "80d312d541718d5fc5e57caa5689202102ec527fe311e29f362c341e76f9d52d",
       "derivation_prefix": "tos.derivation.za-i-vorrede-1.opening-sentence-alignment.",
-      "plan_sha256": "39c6e6e90f1c325d9995099f9df6beef2bd1a34af7e620f9b19ae160586897ad"
+      "plan_sha256": "39c6e6e90f1c325d9995099f9df6beef2bd1a34af7e620f9b19ae160586897ad",
+      "frozen_outputs": [
+        {
+          "role": "source_sentence_packet_ref",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-p1.dta-sentence-proposal.v1.json",
+          "schema_version": "tos_source_text_unit_packet_v1",
+          "expected_sha256": "7375b25355d28cb86aa2102eed879659b62a3816d3c21e8419348408ccaf7fcf"
+        },
+        {
+          "role": "target_sentence_packet_ref",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-p1.antonovsky-1911-sentence-proposal.v1.json",
+          "schema_version": "tos_source_text_unit_packet_v1",
+          "expected_sha256": "61644c8f199de32233226bece7d0301cf9e7309e380c5dc415cf55de1e44ddcb"
+        },
+        {
+          "role": "alignment_packet_ref",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-alignment.za-i-vorrede-1-opening-sentence.dta-1883-antonovsky-1911.v1.json",
+          "schema_version": "tos_translation_alignment_packet_v1",
+          "expected_sha256": "64181d7020b7f43937c0e3eb35e9aaa7c70c5a6debfa1ff85102eb378e15b73c"
+        },
+        {
+          "role": "provenance_event_ref",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/provenance.opening-sentence-alignment.za-i-vorrede-1.v2.json",
+          "schema_version": "tos_provenance_event_v2",
+          "expected_sha256": "c7f4be59e94c6cf0d88c31ad0196533069c5eef9fb46deda58844ec38a7372b0"
+        }
+      ]
     },
     {
       "stage": "concept-workbench",

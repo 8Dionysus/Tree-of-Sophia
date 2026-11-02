@@ -478,6 +478,38 @@
           "plan_key": "witness_1911",
           "identity_key": "witness_1911_id"
         }
+      ],
+      "frozen_outputs": [
+        {
+          "role": "source_anchor_ref",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-anchor-v2.antonovsky-2007-p011.v1.json",
+          "schema_version": "tos_source_anchor_v2",
+          "expected_sha256": "3ac384b121515d5c14107a7e334785396b614aff076a83d4d1e3200b7d042cd6"
+        },
+        {
+          "role": "source_text_layer_ref",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.antonovsky-2007-p011-human-observation.v1.json",
+          "schema_version": "tos_source_text_layer_v1",
+          "expected_sha256": "65393408e2d6e5ed1fa71f8792f726a58de6759d60327693b32009010c823aff"
+        },
+        {
+          "role": "source_text_unit_packet_ref",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.antonovsky-2007-p011-opening-sentence-proposal.v1.json",
+          "schema_version": "tos_source_text_unit_packet_v1",
+          "expected_sha256": "ab0f4a5a971d2500561e99a2ac0bb8b4f069e08876892961ba46b4f98a2aa93f"
+        },
+        {
+          "role": "collation_packet_ref",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/witness-text-collation.antonovsky-2007-1911-opening-sentence.v1.json",
+          "schema_version": "tos_witness_text_collation_packet_v1",
+          "expected_sha256": "3de499de1c474ad5a8bac6af7452faed9169d8c6848ae5faa161ff9356192c63"
+        },
+        {
+          "role": "provenance_event_ref",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/provenance.witness-text-collation.antonovsky-2007-1911-opening-sentence.v2.json",
+          "schema_version": "tos_provenance_event_v2",
+          "expected_sha256": "57e2402b14185e1c1f3245272600104efb1c3fb9d5e66c73d35773a9ee6c5a47"
+        }
       ]
     },
     {
