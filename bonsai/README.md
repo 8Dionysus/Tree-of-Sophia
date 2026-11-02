@@ -314,6 +314,13 @@ claim is `unreviewed` and `public_metadata_only`. Taking a candidate into the Tr
 [declared source-claim creation](../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#declared-source-claim-creation),
 with its delegation, evidence and review.
 
+`lib/source-requests.mjs` prepares explicitly mapped owner requests. Claim
+requests use the public owner grammar by default. A caller selecting
+`{owner: 'private'}` must also supply the private owner's selected
+`claim.statement` forms; the resulting creation request preserves the native
+preview's exact dependencies and input bindings. This adapter neither issues
+a grant nor chooses a missing predicate, endpoint identity or source version.
+
 The check also reads the witnesses (every chapter listed, each unit in
 exactly one row, every sentence span inside its unit, the rights of each
 witness), the places of other works (a rights basis for every witness, no text

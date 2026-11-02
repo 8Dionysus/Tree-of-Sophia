@@ -77,7 +77,8 @@ export function collectSourceOccurrences(packet){
 
 /** A single ordered source-owner preparation. Bindings and forms must already
  * be selected by the caller against the destination's source and grant. */
-export function prepareSourceRequest(candidate){
+export function prepareSourceRequest(candidate,{owner='public'}={}){
+  if(!['public','private'].includes(owner))throw new TypeError('Select the public or private source owner.');
   if(candidate?.kind==='record'){
     if(!candidate.record?.record_id||!Array.isArray(candidate.forms)||!candidate.forms.length)throw new TypeError('Record identity and source-copy forms are required.');
     return {schema_version:SCHEMA,operation:'prepare-create',record:clone(candidate.record),forms:clone(candidate.forms)};
@@ -85,23 +86,42 @@ export function prepareSourceRequest(candidate){
   if(candidate?.kind==='claims'){
     if(!Array.isArray(candidate.claims)||!candidate.claims.length||candidate.claims.length>32)throw new TypeError('A batch of 1–32 Claims is required.');
     if(candidate.claims.some(item=>item.review_status!=='unreviewed'))throw new TypeError('Initial Claims must be unreviewed.');
-    return {schema_version:SCHEMA,operation:'prepare-create',claims:clone(candidate.claims)};
+    const request={schema_version:SCHEMA,operation:'prepare-create',claims:clone(candidate.claims)};
+    if(owner==='private'){
+      const ids=candidate.claims.map(claim=>claim.claim_id);
+      if(ids.some(id=>typeof id!=='string'||!/^tos\.claim\.[a-z0-9]+(?:[.-][a-z0-9]+)*$/.test(id))||new Set(ids).size!==ids.length)
+        throw new TypeError('Private Claims require distinct exact claim IDs.');
+      if(!Array.isArray(candidate.forms)||!candidate.forms.length||candidate.forms.length>32)
+        throw new TypeError('Private Claims require 1–32 selected source-copy forms.');
+      const formIds=new Set(),covered=new Set();
+      for(const form of candidate.forms){
+        if(!form||typeof form!=='object'||Array.isArray(form)||Object.keys(form).sort().join(',')!=='claim_id,field_id,form_id'||
+           !ids.includes(form.claim_id)||typeof form.form_id!=='string'||!/^tos\.form\.[a-z0-9]+(?:[.-][a-z0-9]+)*$/.test(form.form_id)||
+           form.field_id!=='claim.statement'||formIds.has(form.form_id))
+          throw new TypeError('Each private form must uniquely select a Claim and its complete statement.');
+        formIds.add(form.form_id);covered.add(form.claim_id);
+      }
+      if(covered.size!==ids.length)throw new TypeError('Every private Claim requires a selected statement form.');
+      request.forms=clone(candidate.forms);
+    }
+    return request;
   }
   throw new TypeError('Select record or claims.');
 }
 
 /** Complete the exact write request from the native owner's own preview. Save
  * this complete request for exact retry; never manufacture preview digests. */
-export function commitSourceRequest(candidate,preview,commandId){
+export function commitSourceRequest(candidate,preview,commandId,options={}){
   if(typeof commandId!=='string'||!commandId)throw new TypeError('A stable command ID is required.');
   const result=preview?.result??preview;
   if(!result?.owner_configuration||!result?.expected_dependencies)throw new TypeError('The native preview lacks required owner bindings.');
-  const request=prepareSourceRequest(candidate);
+  const request=prepareSourceRequest(candidate,options);
   Object.assign(request,{operation:candidate.kind==='record'?'source.create':'claims.create',command_id:commandId,
     expected_configuration:result.owner_configuration,expected_dependencies:result.expected_dependencies,expected_revision:null});
   if(candidate.kind==='record')request.expected_source=null;
   else {
     if(!result.source_bindings)throw new TypeError('The native Claim preview lacks source bindings.');
+    if(options.owner==='private')request.expected_source=null;
     request.expected_inputs=clone(result.source_bindings);
   }
   return request;
