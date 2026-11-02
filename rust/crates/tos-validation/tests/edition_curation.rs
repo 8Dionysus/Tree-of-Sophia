@@ -797,6 +797,18 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         ),
         Err(EditionCurationError::MissingReference)
     );
+    let mut bad_nfkc = dta_value.clone();
+    let recipe = bad_nfkc["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "witness-structure-correspondence")
+        .unwrap();
+    recipe["matching"]["nfkc_unicode_version"] = json!("17.0.0");
+    assert_eq!(
+        validate(&serde_json::to_vec(&bad_nfkc).unwrap(), &schema),
+        Err(EditionCurationError::BindingMismatch)
+    );
     let mut invalid_comparison_output = dta_value.clone();
     let comparison = invalid_comparison_output["recipes"]
         .as_array_mut()

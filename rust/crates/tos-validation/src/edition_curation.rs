@@ -1343,6 +1343,29 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
             if let Some(replacements) = object.get("search_replacements") {
                 check_replacements(replacements)?;
             }
+            if object.get("stage").and_then(Value::as_str)
+                == Some("witness-structure-correspondence")
+            {
+                let matching = object
+                    .get("matching")
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let casefold = matching["casefold_unicode_profile"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                tos_foundation::UnicodeProfile::from_profile(casefold)
+                    .map_err(|_| EditionCurationError::InvalidSchema)?;
+                let (major, minor, patch) = unicode_normalization::UNICODE_VERSION;
+                if matching["nfkc_unicode_version"] != format!("{major}.{minor}.{patch}") {
+                    return Err(EditionCurationError::BindingMismatch);
+                }
+                let alphabet = matching["token_alphabet"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let mut seen = BTreeSet::new();
+                if alphabet.chars().any(|ch| !seen.insert(ch)) {
+                    return Err(EditionCurationError::Duplicate("token character"));
+                }
+            }
             if let Some(profile) = object.get("tei_text_profile") {
                 let unicode = profile["whitespace_profile"]
                     .as_str()

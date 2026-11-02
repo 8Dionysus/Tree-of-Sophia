@@ -4779,7 +4779,10 @@
         "scoring_window_boundary": "whole_witness",
         "reported_window_boundary": "search_range",
         "tie_breaker": "earliest_page",
-        "heading_selection": "prefer_exact_else_all"
+        "heading_selection": "prefer_exact_else_all",
+        "token_alphabet": "abcdefghijklmnopqrstuvwxyzäöüß",
+        "nfkc_unicode_version": "16.0.0",
+        "casefold_unicode_profile": "tos-python-native-unicode-v1"
       },
       "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
     },
