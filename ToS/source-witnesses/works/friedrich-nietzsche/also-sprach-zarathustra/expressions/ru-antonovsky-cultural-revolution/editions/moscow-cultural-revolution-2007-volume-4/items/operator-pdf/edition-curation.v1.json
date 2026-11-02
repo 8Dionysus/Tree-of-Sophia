@@ -84,7 +84,12 @@
           "role": "artifact_owner",
           "json_pointer": "/private_run/artifact_owner"
         }
-      ]
+      ],
+      "numeric_tolerances": {
+        "pre_serialization_norm_error": 0.02,
+        "post_serialization_norm_error": 1e-05,
+        "page_norm_audit_difference": 1e-06
+      }
     }
   ]
 }
