@@ -99,65 +99,96 @@
       "rights_posture": "not_authorized"
     }
   ],
-  "unresolved_groups": [
+  "unresolved_snapshot_members": [],
+  "witness_output_policy": "The listed witness outputs retain text-free technical structure; source PDF and TEI payloads remain local.",
+  "resolved_groups": [
     {
       "group": ".agents/agent-surface.current.json",
-      "reason": "No item rights record and source item mapping were established.",
       "members": [
         {
           "path": ".agents/agent-surface.current.json",
           "sha256": "6f11afae7258153b0f90387da031568e96f5c65f8183b1a2d884b398d8eb0b33",
           "bytes": 6988
         }
-      ]
+      ],
+      "rights_posture": "authorized",
+      "basis": "Tree-of-Sophia repository license, Apache-2.0.",
+      "evidence_refs": [
+        "LICENSE"
+      ],
+      "manifest_ref": "access/public-corpus/snapshots/r2-manifest.v1.json",
+      "custody": "uploaded_and_sha256_size_verified"
     },
     {
       "group": ".agents/agents-route.current.json",
-      "reason": "No item rights record and source item mapping were established.",
       "members": [
         {
           "path": ".agents/agents-route.current.json",
           "sha256": "7ff830d6b8d06c88a1faaf70730a1b58bab600734e281f56874a863f2d768d02",
           "bytes": 88529
         }
-      ]
+      ],
+      "rights_posture": "authorized",
+      "basis": "Tree-of-Sophia repository license, Apache-2.0.",
+      "evidence_refs": [
+        "LICENSE"
+      ],
+      "manifest_ref": "access/public-corpus/snapshots/r2-manifest.v1.json",
+      "custody": "uploaded_and_sha256_size_verified"
     },
     {
       "group": "docs/validation/documentation-family.current.json",
-      "reason": "No item rights record and source item mapping were established.",
       "members": [
         {
           "path": "docs/validation/documentation-family.current.json",
           "sha256": "65f82eb44cd0c4667cb76339d5988b778e44a8bef26f40b289a4112eb29077fb",
           "bytes": 2202569
         }
-      ]
+      ],
+      "rights_posture": "authorized",
+      "basis": "Tree-of-Sophia repository license, Apache-2.0.",
+      "evidence_refs": [
+        "LICENSE"
+      ],
+      "manifest_ref": "access/public-corpus/snapshots/r2-manifest.v1.json",
+      "custody": "uploaded_and_sha256_size_verified"
     },
     {
       "group": "ToS/source-witnesses/discovery/candidates/queue.current.json",
-      "reason": "No item rights record and source item mapping were established.",
       "members": [
         {
           "path": "ToS/source-witnesses/discovery/candidates/queue.current.json",
           "sha256": "72b857be0361ea72d12051210863bd5d12eae708c4a11d5ecc72486d1d7f5285",
           "bytes": 99319
         }
-      ]
+      ],
+      "rights_posture": "authorized",
+      "basis": "Tree-of-Sophia repository license, Apache-2.0.",
+      "evidence_refs": [
+        "LICENSE"
+      ],
+      "manifest_ref": "access/public-corpus/snapshots/r2-manifest.v1.json",
+      "custody": "uploaded_and_sha256_size_verified"
     },
     {
       "group": "mechanics/agon/parts/threshold-registry/generated/tos_agon_threshold_intake_registry.min.json",
-      "reason": "No item rights record and source item mapping were established.",
       "members": [
         {
           "path": "mechanics/agon/parts/threshold-registry/generated/tos_agon_threshold_intake_registry.min.json",
           "sha256": "a1080fe43e140921a9653218e7930e4a674c108b26de63f4e215ba4b945db69d",
           "bytes": 8310
         }
-      ]
+      ],
+      "rights_posture": "authorized",
+      "basis": "Tree-of-Sophia repository license, Apache-2.0.",
+      "evidence_refs": [
+        "LICENSE"
+      ],
+      "manifest_ref": "access/public-corpus/snapshots/r2-manifest.v1.json",
+      "custody": "uploaded_and_sha256_size_verified"
     },
     {
       "group": "decision lookup indexes",
-      "reason": "No item rights record and source item mapping were established.",
       "members": [
         {
           "path": "docs/decisions/indexes/README.md",
@@ -199,31 +230,53 @@
           "sha256": "2cc02ab5077b5de2f31808be47773e15da469521036a6a4ff8b526f351e560ee",
           "bytes": 1180
         }
-      ]
+      ],
+      "rights_posture": "authorized",
+      "basis": "Tree-of-Sophia repository license, Apache-2.0.",
+      "evidence_refs": [
+        "LICENSE"
+      ],
+      "manifest_ref": "access/public-corpus/snapshots/r2-manifest.v1.json",
+      "custody": "uploaded_and_sha256_size_verified"
     },
     {
       "group": "Unicode UCD tables",
-      "reason": "No item rights record and source item mapping were established.",
       "members": [
         {
           "path": "access/shared/native-unicode.generated.ts",
           "sha256": "8aa0f34b6547782d343066a7b4ec7611cb6b7a53df6e06943f1191f314d57791",
           "bytes": 81612
         }
-      ]
+      ],
+      "rights_posture": "authorized_with_conditions",
+      "basis": "Unicode License V3 permits redistribution with its copyright and permission notice; the project generator is covered by Apache-2.0.",
+      "evidence_refs": [
+        "access/shared/UNICODE-LICENSE.txt",
+        "LICENSE",
+        "rust/crates/tos-ops-mechanics-plan/src/unicode_tables_main.rs"
+      ],
+      "manifest_ref": "access/public-corpus/snapshots/r2-manifest.v1.json",
+      "custody": "uploaded_and_sha256_size_verified"
     },
     {
       "group": "Rust Unicode tables",
-      "reason": "No item rights record and source item mapping were established.",
       "members": [
         {
           "path": "rust/crates/tos-foundation/src/unicode_generated.rs",
           "sha256": "d8cb909255c05f4c8f68729d461f9c81cc86841f041198c9e35a3fda6f60c6fa",
           "bytes": 70695
         }
-      ]
+      ],
+      "rights_posture": "authorized_with_conditions",
+      "basis": "Unicode License V3 permits redistribution with its copyright and permission notice; the project generator is covered by Apache-2.0.",
+      "evidence_refs": [
+        "access/shared/UNICODE-LICENSE.txt",
+        "LICENSE",
+        "rust/crates/tos-ops-mechanics-plan/src/unicode_tables_main.rs"
+      ],
+      "manifest_ref": "access/public-corpus/snapshots/r2-manifest.v1.json",
+      "custody": "uploaded_and_sha256_size_verified"
     }
   ],
-  "unresolved_snapshot_members": [],
-  "witness_output_policy": "The listed witness outputs retain text-free technical structure; source PDF and TEI payloads remain local."
+  "unresolved_groups": []
 }
