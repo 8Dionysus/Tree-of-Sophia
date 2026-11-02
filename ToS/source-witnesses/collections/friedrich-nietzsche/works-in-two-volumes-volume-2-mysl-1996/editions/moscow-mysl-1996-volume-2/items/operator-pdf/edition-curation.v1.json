@@ -844,7 +844,70 @@
           "schema_version": "tos_provenance_event_v1",
           "expected_sha256": "f66f1f6cf5224e5bc3849b168318af581fab9813eb595c8521c38e509c238b3e"
         }
-      ]
+      ],
+      "plan_sha256": "55f9cf6486f57a83ad28c1439493cd946862eb43e1750110fc55a8c961769fbf",
+      "selection_rules": {
+        "content_filter_pointer": "/candidate_preparation/content_filter",
+        "work_quotas_pointer": "/candidate_preparation/work_quotas",
+        "seed_domain": "candidate-protocol-v1",
+        "rank_profile": "sha256-seed-work-page-payload-v1",
+        "scoring_weights": {
+          "nonspace_characters": 1,
+          "punctuation_characters": 6,
+          "line_end_hyphenations": 160,
+          "page_edge_fragment_signals": 250,
+          "numbered_heading_candidates": 100
+        },
+        "signal_baselines": {
+          "random": "digest-random-baseline",
+          "hard": "mechanical-hardness-top-rank"
+        },
+        "difficulty_signals": [
+          {
+            "metric": "nonspace_characters",
+            "minimum": 3200,
+            "label": "dense-text"
+          },
+          {
+            "metric": "punctuation_characters",
+            "minimum": 180,
+            "label": "punctuation-rich"
+          },
+          {
+            "metric": "line_end_hyphenations",
+            "minimum": 1,
+            "label": "line-end-hyphenation"
+          },
+          {
+            "metric": "page_edge_fragment_signals",
+            "minimum": 1,
+            "label": "page-edge-fragment-risk"
+          },
+          {
+            "metric": "numbered_heading_candidates",
+            "minimum": 1,
+            "label": "numbered-heading-candidate"
+          }
+        ],
+        "text_metrics": {
+          "punctuation_characters": ".,;:!?—–-«»\"()…",
+          "line_end_characters": "-—–",
+          "edge_end_characters": ",;:-—–",
+          "substantive_min_characters": 3,
+          "numeric_line_max_bytes": 4,
+          "decimal_heading_max_characters": 3,
+          "roman_heading_max_characters": 8,
+          "roman_characters": "IVXLCDM",
+          "heading_suffixes": [
+            ".",
+            ")"
+          ],
+          "line_profile": "python-splitlines-and-trim-v1"
+        },
+        "extraction_pointer": "/candidate_preparation/source_extraction",
+        "plan_id_pointer": "/transfer_plan_id",
+        "seed_digest_pointer": "/candidate_preparation/deterministic_randomization_key_sha256"
+      }
     },
     {
       "stage": "transfer-readiness",

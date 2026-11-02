@@ -104,16 +104,24 @@ pub fn validate_recipe_plan(
         .map_err(|_| EditionCurationError::UnsafePath)?;
     let value = document(raw, schema)?;
     let recipe = selected_recipe(&value, stage)?;
-    let reference = recipe["plan_ref"]
-        .as_str()
-        .or_else(|| {
-            recipe["locators"].as_array()?.iter().find_map(|locator| {
-                (locator["role"] == "index_plan")
-                    .then(|| locator["repository_path"].as_str())
-                    .flatten()
-            })
-        })
-        .ok_or(EditionCurationError::MissingReference)?;
+    let reference = if let Some(reference) = recipe["plan_ref"].as_str() {
+        reference
+    } else {
+        let mut matches = recipe["locators"]
+            .as_array()
+            .ok_or(EditionCurationError::MissingReference)?
+            .iter()
+            .filter(|locator| locator["role"] == "index_plan" || locator["role"] == "plan");
+        let locator = matches
+            .next()
+            .ok_or(EditionCurationError::MissingReference)?;
+        if matches.next().is_some() {
+            return Err(EditionCurationError::AmbiguousReference);
+        }
+        locator["repository_path"]
+            .as_str()
+            .ok_or(EditionCurationError::MissingReference)?
+    };
     let current = recipe["plan_sha256"].as_str();
     let historical = recipe["historical_plan_sha256"].as_str();
     if matches!((current, historical), (Some(a), Some(b)) if a != b) {
@@ -123,6 +131,84 @@ pub fn validate_recipe_plan(
         .or(historical)
         .ok_or(EditionCurationError::MissingReference)?;
     verify_selected_bytes(plan, reference, expected)?;
+    if let Some(rules) = recipe.get("selection_rules") {
+        let selected = published_value(plan.raw, plan.raw.len().max(1))
+            .map_err(EditionCurationError::Schema)?;
+        let pointer = |key: &str| -> Result<&str, EditionCurationError> {
+            rules[key]
+                .as_str()
+                .ok_or(EditionCurationError::InvalidSchema)
+        };
+        let extraction = selected
+            .pointer(pointer("extraction_pointer")?)
+            .and_then(Value::as_object)
+            .ok_or(EditionCurationError::MissingReference)?;
+        for field in ["tool", "version", "mode"] {
+            if extraction
+                .get(field)
+                .and_then(Value::as_str)
+                .is_none_or(str::is_empty)
+            {
+                return Err(EditionCurationError::MissingReference);
+            }
+        }
+        let plan_id = selected
+            .pointer(pointer("plan_id_pointer")?)
+            .and_then(Value::as_str)
+            .ok_or(EditionCurationError::MissingReference)?;
+        let expected_seed = selected
+            .pointer(pointer("seed_digest_pointer")?)
+            .and_then(Value::as_str)
+            .ok_or(EditionCurationError::MissingReference)?;
+        let pdf_sha = recipe["expected_file_sha256"]
+            .as_str()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        let domain = rules["seed_domain"]
+            .as_str()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        let seed =
+            tos_foundation::Digest256::of_bytes(format!("{pdf_sha}|{plan_id}|{domain}").as_bytes())
+                .to_hex();
+        if seed != expected_seed {
+            return Err(EditionCurationError::BindingMismatch);
+        }
+        let filter_pointer = rules["content_filter_pointer"]
+            .as_str()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        let filter = selected
+            .pointer(filter_pointer)
+            .and_then(Value::as_object)
+            .ok_or(EditionCurationError::MissingReference)?;
+        for key in [
+            "boundary_trim_pages",
+            "minimum_alphabetic_characters",
+            "minimum_nonblank_lines",
+        ] {
+            if filter.get(key).and_then(Value::as_u64).is_none() {
+                return Err(EditionCurationError::MissingReference);
+            }
+        }
+        let quota_pointer = rules["work_quotas_pointer"]
+            .as_str()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        let quotas = selected
+            .pointer(quota_pointer)
+            .and_then(Value::as_array)
+            .ok_or(EditionCurationError::MissingReference)?;
+        let works = recipe["works"]
+            .as_array()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        if quotas.len() != works.len()
+            || works.iter().zip(quotas).any(|(work, quota)| {
+                work["work_ref"] != quota["work_ref"]
+                    || work["expected_count"] != quota["random"]
+                    || work["expected_count"] != quota["hard"]
+            })
+        {
+            return Err(EditionCurationError::BindingMismatch);
+        }
+    }
+
     if let Some(binding) = recipe.get("source_index_binding") {
         let selected_plan = published_value(plan.raw, plan.raw.len().max(1))
             .map_err(EditionCurationError::Schema)?;
@@ -2455,6 +2541,8 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                 ("output_files", "role"),
                 ("private_output_files", "role"),
                 ("private_output_files", "filename"),
+                ("difficulty_signals", "metric"),
+                ("difficulty_signals", "label"),
                 ("output_files", "filename"),
                 ("frozen_outputs", "role"),
                 ("frozen_outputs", "repository_path"),

@@ -1650,6 +1650,29 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         ),
         Ok(())
     );
+    let mut ambiguous_locator = dta_value.clone();
+    let lexical = ambiguous_locator["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "lexical-index")
+        .unwrap();
+    lexical["locators"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!({"role": "plan", "repository_path": lexical_plan_ref}));
+    assert_eq!(
+        validate_recipe_plan(
+            &serde_json::to_vec(&ambiguous_locator).unwrap(),
+            "lexical-index",
+            SelectedDocument {
+                reference: lexical_plan_ref,
+                raw: &lexical_plan_raw
+            },
+            &schema
+        ),
+        Err(EditionCurationError::AmbiguousReference)
+    );
     let mut duplicate_dta_output: Value = serde_json::from_slice(&dta_raw).unwrap();
     duplicate_dta_output["recipes"][0]["frozen_outputs"][1]["repository_path"] =
         duplicate_dta_output["recipes"][0]["frozen_outputs"][0]["repository_path"].clone();
@@ -1908,6 +1931,109 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let target_path = "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/edition-curation.v1.json";
     let target_raw = fs::read(root.join(target_path)).unwrap();
     assert_eq!(validate(&target_raw, &schema), Ok(()));
+    let transfer: Value = serde_json::from_slice(&target_raw).unwrap();
+    let recipe = transfer["recipes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|recipe| recipe["stage"] == "transfer-candidates")
+        .unwrap();
+    let plan_ref = recipe["locators"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|locator| locator["role"] == "plan")
+        .unwrap()["repository_path"]
+        .as_str()
+        .unwrap();
+    let plan_raw = fs::read(root.join(plan_ref)).unwrap();
+    let selected_plan = SelectedDocument {
+        reference: plan_ref,
+        raw: &plan_raw,
+    };
+    assert_eq!(
+        validate_recipe_plan(&target_raw, "transfer-candidates", selected_plan, &schema),
+        Ok(())
+    );
+    assert_eq!(
+        validate_recipe_plan(
+            &target_raw,
+            "transfer-candidates",
+            SelectedDocument {
+                reference: plan_ref,
+                raw: b"{}"
+            },
+            &schema
+        ),
+        Err(EditionCurationError::DigestMismatch)
+    );
+    let plan: Value = serde_json::from_slice(&plan_raw).unwrap();
+    let rules = &recipe["selection_rules"];
+    let weights = rules["scoring_weights"].as_object().unwrap();
+    for candidate in plan["candidate_target_units"].as_array().unwrap() {
+        let metrics = &candidate["selection_metrics"];
+        let score: u64 = weights
+            .iter()
+            .map(|(key, weight)| metrics[key].as_u64().unwrap() * weight.as_u64().unwrap())
+            .sum();
+        assert_eq!(
+            score,
+            metrics["mechanical_hardness_score"].as_u64().unwrap()
+        );
+        let mut signals =
+            vec![rules["signal_baselines"][candidate["stratum"].as_str().unwrap()].clone()];
+        signals.extend(
+            rules["difficulty_signals"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter(|rule| {
+                    metrics[rule["metric"].as_str().unwrap()].as_u64().unwrap()
+                        >= rule["minimum"].as_u64().unwrap()
+                })
+                .map(|rule| rule["label"].clone()),
+        );
+        assert_eq!(
+            signals,
+            *candidate["provisional_difficulty_signals"]
+                .as_array()
+                .unwrap()
+        );
+    }
+    let mut wrong_seed = transfer.clone();
+    let recipe = wrong_seed["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "transfer-candidates")
+        .unwrap();
+    recipe["selection_rules"]["seed_domain"] = json!("different");
+    assert_eq!(
+        validate_recipe_plan(
+            &serde_json::to_vec(&wrong_seed).unwrap(),
+            "transfer-candidates",
+            selected_plan,
+            &schema
+        ),
+        Err(EditionCurationError::BindingMismatch)
+    );
+    let mut wrong_transfer = transfer.clone();
+    let recipe = wrong_transfer["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "transfer-candidates")
+        .unwrap();
+    recipe["selection_rules"]["work_quotas_pointer"] = json!("/missing");
+    assert_eq!(
+        validate_recipe_plan(
+            &serde_json::to_vec(&wrong_transfer).unwrap(),
+            "transfer-candidates",
+            selected_plan,
+            &schema
+        ),
+        Err(EditionCurationError::MissingReference)
+    );
     let mut wrong_readiness: Value = serde_json::from_slice(&target_raw).unwrap();
     let readiness = wrong_readiness["recipes"]
         .as_array_mut()
