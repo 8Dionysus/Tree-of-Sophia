@@ -942,7 +942,6 @@ fn update_atlas(
         "prepared atlas for ToS philosophy growth from master tables and admitted prepared dossiers"
     );
     let mut dossier_branch = inputs.dossier_branch_manifest.clone();
-    dossier_branch["dossier_count"] = json!(admitted.len());
     dossier_branch["source_anchor_backlog"] = json!(SOURCE_ANCHOR_REF);
     dossier_branch["term_index"] = json!(TERM_INDEX_REF);
     dossier_branch["transmission_backlog"] = json!(TRANSMISSION_REF);
@@ -1365,10 +1364,10 @@ fn graph_workbench(
         plan,
         format!("{LANGUAGE_PACKETS_ROOT}/branch.manifest.json"),
         json_bytes(&json!({
-            "branch_id":"philosophy.graph-workbench.language-packets","path":LANGUAGE_PACKETS_ROOT,
+            "branch_id":"philosophy.graph-workbench.language-packets",
             "role":"text-bearing language packets emitted by prepared dossier planting before canon promotion",
             "contract_ref":LANGUAGE_PACKET_CONTRACT_REF,"language_registry_ref":LANGUAGE_REGISTRY_REF,
-            "packet_count":packets.len(),"source_ref":package(inputs,"table-i")?.refs.language_packets,"source_refs":packet_refs
+            "source_ref":package(inputs,"table-i")?.refs.language_packets,"source_refs":packet_refs
         }))?,
         check,
     )?;
@@ -1697,14 +1696,11 @@ fn branch_surfaces(
                 )
             });
         let refs = format!("{path}/branch.manifest.json");
-        add_output(
-            plan,
-            refs,
-            json_bytes(
-                &json!({"branch_id":branch_id(path),"children":all,"path":path,"role":role}),
-            )?,
-            check,
-        )?;
+        let mut manifest = json!({"branch_id":branch_id(path),"role":role});
+        if existing.is_some_and(|v| v.get("children").is_some()) {
+            manifest["children"] = json!(all);
+        }
+        add_output(plan, refs, json_bytes(&manifest)?, check)?;
     }
     for dossier in &admitted {
         let path = dossier
@@ -1724,7 +1720,7 @@ fn branch_surfaces(
         plants.sort();
         let (_, fields) = route_review(inputs, dossier)?;
         let mut root_manifest = json!({
-            "branch_id":branch_id(path),"path":path,"role":role,"atlas_rows":[dossier.dossier_id],
+            "branch_id":branch_id(path),"role":role,"atlas_rows":[dossier.dossier_id],
             "prepared_dossiers":[dossier.dossier_id],"evidence_status":"prepared_dossier_branch",
             "expected_local_children":["sources","graph-workbench"],
             "source_anchor_backlog":format!("{path}/sources/source-anchor-backlog.jsonl"),
@@ -1732,7 +1728,6 @@ fn branch_surfaces(
         });
         put_route(&mut root_manifest, &fields)?;
         if !plants.is_empty() {
-            root_manifest["source_planting_count"] = json!(plants.len());
             root_manifest["source_planting_refs"] = json!(plants);
         }
         add_output(
@@ -1747,10 +1742,9 @@ fn branch_surfaces(
             render_branch_readme(inputs, dossier)?.into_bytes(),
             check,
         )?;
-        let mut source_manifest = json!({"branch_id":branch_id(&format!("{path}/sources")),"path":format!("{path}/sources"),"role":if inputs.source_planting_refs.get(&dossier.dossier_id).is_some_and(|v|!v.is_empty()){format!("source-anchor backlog and planted source routes for {}",dossier.dossier_id)}else{format!("source-anchor backlog for {}",dossier.dossier_id)},"anchor_count":dossier.source_rows.len()});
+        let mut source_manifest = json!({"branch_id":branch_id(&format!("{path}/sources")),"role":if inputs.source_planting_refs.get(&dossier.dossier_id).is_some_and(|v|!v.is_empty()){format!("source-anchor backlog and planted source routes for {}",dossier.dossier_id)}else{format!("source-anchor backlog for {}",dossier.dossier_id)}});
         put_route(&mut source_manifest, &fields)?;
         if !plants.is_empty() {
-            source_manifest["planting_count"] = json!(plants.len());
             source_manifest["planting_refs"] = json!(plants);
         }
         add_output(
@@ -1765,7 +1759,7 @@ fn branch_surfaces(
             jsonl_bytes(&dossier.source_rows)?,
             check,
         )?;
-        let mut graph_manifest = json!({"branch_id":branch_id(&format!("{path}/graph-workbench")),"path":format!("{path}/graph-workbench"),"role":format!("local pre-canon graph summary for {}",dossier.dossier_id),"proposed_node_count":dossier.node_rows.len(),"proposed_relation_count":dossier.relation_rows.len()});
+        let mut graph_manifest = json!({"branch_id":branch_id(&format!("{path}/graph-workbench")),"role":format!("local pre-canon graph summary for {}",dossier.dossier_id)});
         put_route(&mut graph_manifest, &fields)?;
         add_output(
             plan,

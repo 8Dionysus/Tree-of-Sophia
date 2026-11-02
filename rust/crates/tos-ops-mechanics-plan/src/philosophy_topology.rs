@@ -726,13 +726,6 @@ pub fn run_validation(root: &Path, cancel: &AtomicI32) -> io::Result<Vec<Issue>>
             let Some(v) = c.json(entry)? else {
                 continue;
             };
-            c.equal(
-                entry,
-                &v,
-                "path",
-                &parent(entry),
-                "branch manifest path must match its parent directory",
-            )?;
             if !string(&v, "branch_id").is_some_and(|s| s.starts_with("philosophy.")) {
                 c.issue(entry, "branch_id must start with philosophy.")?;
             }
@@ -951,19 +944,9 @@ pub fn run_validation(root: &Path, cancel: &AtomicI32) -> io::Result<Vec<Issue>>
         branch_refs.entry(branch).or_default();
     }
     for (branch, actual) in branch_refs {
-        for (label, suffix, key, count_key) in [
-            (
-                "branch",
-                "branch.manifest.json",
-                "source_planting_refs",
-                "source_planting_count",
-            ),
-            (
-                "sources",
-                "sources/branch.manifest.json",
-                "planting_refs",
-                "planting_count",
-            ),
+        for (label, suffix, key) in [
+            ("branch", "branch.manifest.json", "source_planting_refs"),
+            ("sources", "sources/branch.manifest.json", "planting_refs"),
         ] {
             let file = format!("{branch}/{suffix}");
             if actual.is_empty() && !c.source.is_file(&file)? {
@@ -991,14 +974,6 @@ pub fn run_validation(root: &Path, cancel: &AtomicI32) -> io::Result<Vec<Issue>>
                             format!("{key} differs from exact planting files"),
                         )?;
                     }
-                }
-                if (!actual.is_empty() || v.get(count_key).is_some())
-                    && !py_equal(v.get(count_key), Some(&Value::from(actual.len() as u64)))?
-                {
-                    c.issue(
-                        &format!("{branch}/{label}"),
-                        format!("{count_key} differs from exact planting count"),
-                    )?;
                 }
             }
         }
@@ -1143,11 +1118,6 @@ pub fn prepare_source_anchor(
             .is_some_and(|a| a.iter().any(|v| v.as_str() == Some(atlas_row_id)))
             && truth(branch.get("source_anchor_backlog"))
         {
-            if branch["path"].as_str() != Some(parent(path).as_str()) {
-                return Err(io::Error::other(
-                    "branch path differs from its canonical manifest",
-                ));
-            }
             branches.push((path.to_owned(), bytes, branch));
             if branches.len() > 1 {
                 return Err(io::Error::other(
@@ -1162,6 +1132,7 @@ pub fn prepare_source_anchor(
         ));
     }
     let (branch_path, branch_bytes, branch) = branches.pop().unwrap();
+    let branch_directory = parent(&branch_path);
     let backlog = branch["source_anchor_backlog"]
         .as_str()
         .ok_or_else(|| io::Error::other("source backlog path must be a string"))?;
@@ -1189,7 +1160,7 @@ pub fn prepare_source_anchor(
         {
             if row["atlas_row_id"].as_str() != Some(atlas_row_id)
                 || row["dossier_id"].as_str() != Some(atlas_row_id)
-                || row["branch_path"] != branch["path"]
+                || row["branch_path"].as_str() != Some(branch_directory.as_str())
                 || row["source_label"].as_str() != Some(source_label)
             {
                 return Err(io::Error::other(
@@ -1212,7 +1183,7 @@ pub fn prepare_source_anchor(
     let (line, row, row_digest) = anchors.pop().unwrap();
     c.source.verify_root()?;
     c.check()?;
-    let plan = json!({"schema_version":"tos_philosophy_source_anchor_preparation_v1","status":"prepared-not-planted","atlas_row_id":atlas_row_id,"dossier_id":atlas_row_id,"atlas_source":atlas_matches.pop().unwrap(),"branch_path":branch["path"],"branch_manifest":{"path":branch_path,"sha256":sha256_bytes(&branch_bytes)},"source_backlog_anchor":{"path":backlog,"line":line,"source_table_index":table_index,"source_row_index":row_index,"source_label":source_label},"backlog_sha256":sha256_bytes(&backlog_bytes),"backlog_row_sha256":row_digest,"source_backlog_record":row,"authority_boundary":"This plan records the exact source-planting routes prepared from the supplied inputs."});
+    let plan = json!({"schema_version":"tos_philosophy_source_anchor_preparation_v1","status":"prepared-not-planted","atlas_row_id":atlas_row_id,"dossier_id":atlas_row_id,"atlas_source":atlas_matches.pop().unwrap(),"branch_path":branch_directory,"branch_manifest":{"path":branch_path,"sha256":sha256_bytes(&branch_bytes)},"source_backlog_anchor":{"path":backlog,"line":line,"source_table_index":table_index,"source_row_index":row_index,"source_label":source_label},"backlog_sha256":sha256_bytes(&backlog_bytes),"backlog_row_sha256":row_digest,"source_backlog_record":row,"authority_boundary":"This plan records the exact source-planting routes prepared from the supplied inputs."});
     if serde_json::to_vec(&plan).map_err(io::Error::other)?.len() > 1024 * 1024 {
         return Err(io::Error::other("source anchor output exceeds its bound"));
     }
