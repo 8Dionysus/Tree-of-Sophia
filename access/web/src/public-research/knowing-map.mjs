@@ -63,7 +63,24 @@ export function mountKnowing({root,index,locale,notebook,profile,fragments,onOpe
   const frontier=()=>{const k=known(),out=new Set();for(const link of frontierLinks())out.add(k.has(link.record.from)?link.record.to:link.record.from);return out;};
   const foundLinks=()=>new Set(state.found.map(item=>item.link));
   const clean=value=>({level:LEVELS.includes(value?.level)?value.level:'light',start:nodes.has(value?.start)?value.start:null,known:Array.isArray(value?.known)?value.known.filter(id=>nodes.has(id)):[],found:Array.isArray(value?.found)?value.found.filter(item=>links.some(link=>link.id===item?.link)):[],hypotheses:Array.isArray(value?.hypotheses)?value.hypotheses.slice(-200):[]});
-  function save(){const value=structuredClone(state);saving=saving.then(async()=>{await notebook.setPreference(key,value,{expectedValue:expected});expected=value;}).catch(async error=>{if(error?.code==='conflict'){expected=await notebook.getPreference(key);await notebook.setPreference(key,value,{expectedValue:expected});expected=value;}});}
+  function save(){
+    const value=structuredClone(state),base=clean(expected);
+    const mergeList=(before,local,remote,key)=>{
+      const localKeys=new Set(local.map(key)),removed=new Set(before.map(key).filter(id=>!localKeys.has(id)));
+      const result=remote.filter(item=>!removed.has(key(item))),seen=new Set(result.map(key));
+      for(const item of local)if(!seen.has(key(item))){result.push(item);seen.add(key(item));}
+      return result;
+    };
+    saving=saving.catch(()=>{}).then(async()=>{
+      for(let attempt=0;attempt<3;attempt++){
+        const current=await notebook.getPreference(key),remote=clean(current);
+        const merged={level:value.level!==base.level?value.level:remote.level,start:value.start!==base.start?value.start:remote.start,
+          known:mergeList(base.known,value.known,remote.known,x=>x),found:mergeList(base.found,value.found,remote.found,x=>x.link),hypotheses:mergeList(base.hypotheses,value.hypotheses,remote.hypotheses,x=>JSON.stringify(x))};
+        try{await notebook.setPreference(key,merged,{expectedValue:current});expected=merged;if(JSON.stringify(state)===JSON.stringify(value)){state=merged;paint();}return;}
+        catch(error){if(error?.code!=='conflict'||attempt===2)throw error;}
+      }
+    }).catch(error=>{hint.textContent=t('Не удалось сохранить познание: ','Could not save learning: ')+error.message;});
+  }
   const send=(type,detail)=>{try{void getSession?.()?.record(type,detail)?.catch?.(()=>{});}catch{}};
 
   // ── DOM ──
@@ -101,7 +118,7 @@ export function mountKnowing({root,index,locale,notebook,profile,fragments,onOpe
       g.classList.toggle('is-label-below',marks.known.has(id)&&marks.marked.some(([x,y])=>Math.abs(x-at[0])<half&&y<at[1]+2*kz&&y>at[1]-34*kz));
     }
   }
-  function paint(){
+  function paint(journal=true){
     const k=known(),f=frontier(),found=foundLinks(),heavy=state.level==='heavy',candidates=new Set(trial?.kind==='verb'?[trial.target]:trial?.candidates??[]);
     for(const [id,g] of stars){
       const isKnown=k.has(id),isFrontier=!isKnown&&f.has(id);
@@ -119,7 +136,7 @@ export function mountKnowing({root,index,locale,notebook,profile,fragments,onOpe
     }
     if(!state.known.length&&!trial&&!trialBox.classList.contains('is-start'))startPanel();
     hint.textContent=!state.known.length?'':state.level==='heavy'?t('Выберите открытую звезду, затем любую тёмную — и скажите, что их связывает.','Choose an opened star, then any dark one, and say what joins them.'):state.level==='medium'?t('Звёзды на пороге отмечены «?». Откройте их местом книги.','Stars at the threshold are marked “?”. Open them through a place in the book.'):t('Нажмите «?» рядом с открытой звездой.','Click a “?” next to an opened star.');
-    renderLog();
+    if(journal)renderLog();
   }
 
   // ── Camera ──
@@ -184,8 +201,8 @@ export function mountKnowing({root,index,locale,notebook,profile,fragments,onOpe
   }
   function trialHead(){
     const {link,origin,target,kind}=trial,head=el('div','k-trial-head');
-    const shownTarget=kind==='target'?'?':title(target);
-    head.append(el('span','k-chip',kindWord(origin)),el('strong','',title(origin)),el('span','k-arrow','→'),el('strong','',shownTarget));
+    const label=id=>kind==='target'&&id===target?'?':title(id);
+    head.append(el('span','k-chip',kindWord(origin)),el('strong','',label(link.record.from)),el('span','k-arrow','→'),el('strong','',label(link.record.to)));
     const q=tr(link.record.question);trialBox.append(head);if(q)trialBox.append(el('p','k-question',q));
     const cite=placeOf(link);if(cite)trialBox.append(fragments.fragment(cite));
   }
@@ -277,7 +294,7 @@ export function mountKnowing({root,index,locale,notebook,profile,fragments,onOpe
       for(const link of rumors){const from=k.has(link.record.from)?link.record.from:link.record.to;if(!groups.has(from))groups.set(from,[]);groups.get(from).push(link);}
       for(const [from,items] of groups){
         box.append(el('h4','k-group',title(from)));
-        for(const link of items.slice(0,12)){const target=other(link,from),rumor=rumorOf(link,from),row=btn('',()=>{anchor=from;openTrial(link,target);},'k-row');row.append(el('span','k-row-head',rumor.head));if(rumor.question)row.append(el('span','k-row-question',rumor.question));row.addEventListener('mouseenter',()=>{focus=target;paint();});box.append(row);}
+        for(const link of items.slice(0,12)){const target=other(link,from),rumor=rumorOf(link,from),row=btn('',()=>{anchor=from;openTrial(link,target);},'k-row');row.append(el('span','k-row-head',rumor.head));if(rumor.question)row.append(el('span','k-row-question',rumor.question));row.addEventListener('mouseenter',()=>{focus=target;paint(false);});box.append(row);}
       }
       log.append(box);
     }
@@ -292,5 +309,5 @@ export function mountKnowing({root,index,locale,notebook,profile,fragments,onOpe
   }
 
   const ready=(async()=>{try{expected=await notebook.getPreference(key);state=clean(expected);}catch{}if(disposed)return;anchor=state.known.at(-1)??null;paint();frame();})();
-  return {agentRoot,ready,focusItem(id){if(nodes.has(id)&&state.known.includes(id)){focus=id;anchor=id;show(id);paint();}},refreshLocale(){paint();if(trialBox.classList.contains('is-start'))startPanel();else if(trial?.kind==='revealed')revealed(trial.link);else if(trial&&trial.kind!=='reading')renderTrial();},destroy(){disposed=true;clearTimeout(flashTimer);root.classList.remove('k-root');root.replaceChildren();}};
+  return {agentRoot,ready,setHelpLevel(value){if(LEVELS.includes(value)&&state.level!==value){state.level=value;save();closeTrial();paint();}},focusItem(id){if(nodes.has(id)&&state.known.includes(id)){focus=id;anchor=id;show(id);paint();}},refreshLocale(){paint();if(trialBox.classList.contains('is-start'))startPanel();else if(trial?.kind==='revealed')revealed(trial.link);else if(trial&&trial.kind!=='reading')renderTrial();},destroy(){disposed=true;clearTimeout(flashTimer);root.classList.remove('k-root');root.replaceChildren();}};
 }

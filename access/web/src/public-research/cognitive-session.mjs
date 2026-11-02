@@ -8,7 +8,7 @@ const clone=value=>structuredClone(value);
 const bounded=(value,max,name)=>{if(typeof value!=='string'||!value.trim()||value.length>max)throw new TypeError(`Invalid ${name}`);return value.trim();};
 const requests=new Set(['thought','research','question','trial']);
 
-export function mountCognitiveSession({root,notebook,index,api,locale=()=> 'ru',profile,getSelection=()=>null,onOpen=()=>{},workspace,isActive=()=>true,versionContext=async revision=>{if(revision!==index.revision)throw new TypeError(`Research version is unavailable: ${revision}`);return {index,current:true};}}){
+export function mountCognitiveSession({root,notebook,index,api,locale=()=> 'ru',profile,getSelection=()=>null,onOpen=()=>{},onHelpChange=()=>{},workspace,isActive=()=>true,versionContext=async revision=>{if(revision!==index.revision)throw new TypeError(`Research version is unavailable: ${revision}`);return {index,current:true};}}){
   let header,expected,events=[],responses=[],disposed=false,serial=Promise.resolve(),waiters=new Set(),questionDirty=false,renderToken=0;
   const key=`${PREFIX}active:${profile}`,sessionKey=id=>`${PREFIX}session:${id}`,eventPrefix=id=>`${PREFIX}event:${id}:`,responsePrefix=id=>`${PREFIX}response:${id}:`;
   const el=(tag,value,cls='')=>{const node=document.createElement(tag);node.className=cls;if(value!==undefined)node.textContent=value;return node;};
@@ -134,7 +134,7 @@ export function mountCognitiveSession({root,notebook,index,api,locale=()=> 'ru',
   newStep.addEventListener('click',()=>void record('research').catch(error=>message.textContent=error.message));
   questionInput.addEventListener('input',()=>{questionDirty=true;});
   saveQuestion.addEventListener('click',()=>{saveQuestion.disabled=true;const value=questionInput.value;void Promise.resolve().then(()=>api.setQuestion(value)).then(async saved=>{if(!saved)throw new Error(t('Вопрос не сохранён; черновик оставлен в поле.','The question was not saved; its draft remains in the field.'));questionDirty=false;await record('question',{text:value});message.textContent=t('Вопрос сохранён.','Question saved.');}).catch(error=>message.textContent=error.message).finally(()=>{saveQuestion.disabled=false;render();});});
-  level.addEventListener('change',()=>void enqueue(async()=>{await update(next=>({...next,help:level.value}));render();}).then(()=>record('help-level')).catch(error=>message.textContent=error.message));
+  level.addEventListener('change',()=>void enqueue(async()=>{await update(next=>({...next,help:level.value}));onHelpChange(header.help);render();}).then(()=>record('help-level')).catch(error=>message.textContent=error.message));
   form.addEventListener('submit',event=>{event.preventDefault();const value=answer.value;if(!value.trim())return;send.disabled=true;void Promise.resolve().then(async()=>{if(questionDirty){const draft=questionInput.value;if(!(await api.setQuestion(draft)))throw new Error(t('Вопрос не сохранён; черновик оставлен в поле.','The question was not saved; its draft remains in the field.'));if(questionInput.value!==draft)throw new Error(t('Вопрос изменился во время сохранения; мысль осталась в поле.','The question changed while saving; the thought remains in its field.'));questionDirty=false;}return record('thought',{text:value});}).then(saved=>{if(saved&&answer.value===value)answer.value='';}).catch(error=>message.textContent=error.message).finally(()=>send.disabled=false);});
   const unsub=api.subscribeQuestion?.(()=>{render();});
   const timer=setInterval(()=>{if(!disposed)void enqueue(refresh).then(render).catch(()=>{});},1000);

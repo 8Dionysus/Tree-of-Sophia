@@ -13,14 +13,14 @@ const all=root=>[root,...root.children.flatMap(all)];
 const text=root=>all(root).map(item=>item.textContent).join(' ');
 const active=[];
 afterEach(()=>{for(const session of active.splice(0))session.destroy();vi.unstubAllGlobals();});
-function fixture(){
+function fixture(onHelpChange=()=>{}){
   vi.stubGlobal('document',{createElement:tag=>new Element(tag)});vi.stubGlobal('location',{href:'http://localhost/zarathustra/'});
   const saved=new Map(),copy=value=>value===undefined?undefined:structuredClone(value);
   const notebook={getPreference:async key=>copy(saved.get(key)),setPreference:async(key,value,options)=>{if(options&&JSON.stringify(options.expectedValue)!==JSON.stringify(saved.get(key)))throw Object.assign(new Error('conflict'),{code:'conflict'});saved.set(key,copy(value));},exportPacket:async()=>({preferences:[...saved].map(([key,value])=>({key,value:copy(value)}))})};
   let question='Первый вопрос',questionReady=true,saveAllowed=true;
   const api={getQuestion:()=>question,ensureCurrentQuestion:async()=>questionReady,setQuestion:vi.fn(async value=>{if(!saveAllowed)return false;question=value;return true;})};
   const index={revision:'r1',get:id=>['one','source'].includes(id)?{id,title:{ru:id},kind:id==='source'?'passage':'conception'}:null,inspect:id=>index.get(id)};
-  const mount=()=>{const root=new Element('div'),session=mountCognitiveSession({root,notebook,index,api,profile:'test',getSelection:()=> 'one'});active.push(session);return {root,session};};
+  const mount=()=>{const root=new Element('div'),session=mountCognitiveSession({root,notebook,index,api,profile:'test',getSelection:()=> 'one',onHelpChange});active.push(session);return {root,session};};
   return {saved,api,index,mount,setReady:value=>{questionReady=value;},setSaveAllowed:value=>{saveAllowed=value;}};
 }
 
@@ -76,4 +76,11 @@ test('keeps a thought draft when paused',async()=>{
   answer.value='Keep this';form.listeners.submit({preventDefault(){}});
   await vi.waitFor(()=>expect(all(root).find(item=>item.tagName==='button'&&item.textContent==='Отправить мысль').disabled).toBe(false));
   expect(answer.value).toBe('Keep this');
+});
+
+
+test('propagates assistance selector changes to the learning map',async()=>{
+ const onHelpChange=vi.fn(),f=fixture(onHelpChange),{root,session}=f.mount();await session.ready;
+ const level=all(root).find(item=>item.tagName==='select');level.value='heavy';level.listeners.change();
+ await vi.waitFor(()=>expect(onHelpChange).toHaveBeenCalledWith('heavy'));
 });
