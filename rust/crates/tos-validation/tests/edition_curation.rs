@@ -33,6 +33,29 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let raw = fs::read(root.join(path)).unwrap();
     assert_eq!(validate(&raw, &schema), Ok(()));
     let original: Value = serde_json::from_slice(&raw).unwrap();
+    let review = original["recipes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|recipe| recipe["stage"] == "source-review-receipt")
+        .unwrap();
+    let receipt_ref = review["frozen_outputs"][0]["repository_path"]
+        .as_str()
+        .unwrap();
+    let receipt_raw = fs::read(root.join(receipt_ref)).unwrap();
+    assert_eq!(
+        validate_frozen_output_fixity(
+            &raw,
+            "source-review-receipt",
+            "receipt",
+            SelectedDocument {
+                reference: receipt_ref,
+                raw: &receipt_raw,
+            },
+            &schema,
+        ),
+        Ok(())
+    );
     let mut wrong_transfer_output = original.clone();
     let transfer = wrong_transfer_output["recipes"]
         .as_array_mut()

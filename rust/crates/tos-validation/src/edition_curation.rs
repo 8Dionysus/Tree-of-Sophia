@@ -679,6 +679,27 @@ fn check_replacements(value: &Value) -> Result<(), EditionCurationError> {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if object.get("stage").and_then(Value::as_str) == Some("source-review-receipt") {
+                let base = object["base_ref"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let prefix = object["receipt_filename_prefix"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let generation = object["historical_generation"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let expected = format!("{base}/{prefix}{generation}.json");
+                let frozen = object["frozen_outputs"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                if frozen.len() != 1
+                    || frozen[0]["role"] != "receipt"
+                    || frozen[0]["repository_path"] != expected
+                {
+                    return Err(EditionCurationError::BindingMismatch);
+                }
+            }
             if object.get("stage").and_then(Value::as_str) == Some("structural-source-routes") {
                 let root = object["alignment_root"]
                     .as_str()
