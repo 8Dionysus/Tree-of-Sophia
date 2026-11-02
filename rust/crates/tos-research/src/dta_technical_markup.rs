@@ -970,6 +970,24 @@ fn summary(plan: &Value, parts: &[ObservedPart], citations: &[Value]) -> Result<
 fn schema(ctx: &ResearchExecution, path: &str, value: &Value) -> Result<()> {
     crate::research_support::schema(ctx, path, value)
 }
+fn part_orders(plan: &Value) -> Result<BTreeSet<u64>> {
+    let sources = array(&plan["source_items"])?;
+    let mut orders = BTreeSet::new();
+    let mut labels = BTreeSet::new();
+    for source in sources {
+        ensure(
+            orders.insert(number(&source["part_order"])?)
+                && labels.insert(s(&source["part_label"])?),
+            "duplicate TEI part order or label",
+        )?;
+    }
+    let count = u64::try_from(sources.len()).map_err(|_| "TEI part count overflow")?;
+    ensure(
+        count > 0 && orders.iter().copied().eq(1..=count),
+        "TEI part orders must be contiguous",
+    )?;
+    Ok(orders)
+}
 fn current_plan(ctx: &ResearchExecution, reference: &str) -> Result<(Vec<u8>, Value)> {
     let (raw, plan) = load(ctx, reference)?;
     ensure(
@@ -988,21 +1006,7 @@ fn current_plan(ctx: &ResearchExecution, reference: &str) -> Result<(Vec<u8>, Va
             == json!({"included_region":"TEI/text[1]/body[1] minus exact excluded resource subtrees or milestones","excluded_elements":["fw","note"],"choice_policy":"prefer-sic-then-orig-then-abbr-then-first","line_break_policy":"render-lb-as-one-U+000A-and-drop-one-XML-formatting-newline-from-its-tail","formatting_whitespace_policy":"drop-whitespace-only-node-content-containing-newline-carriage-return-or-tab; preserve-space-only-content","unicode_normalization":"none","source_text_mutation_authorized":false}),
         "unsupported extraction policy",
     )?;
-    let sources = array(&plan["source_items"])?;
-    let orders = sources
-        .iter()
-        .map(|c| number(&c["part_order"]))
-        .collect::<Result<BTreeSet<_>>>()?;
-    ensure(
-        sources.len() == 4 && orders == BTreeSet::from([1, 2, 3, 4]),
-        "technical source must declare four distinct parts",
-    )?;
-    for c in sources {
-        ensure(
-            c["part_label"] == ["I", "II", "III", "IV"][(number(&c["part_order"])? - 1) as usize],
-            "part order/label differs",
-        )?;
-    }
+    part_orders(&plan)?;
     Ok((raw, plan))
 }
 fn retained_event(
@@ -1109,7 +1113,7 @@ fn tracked(ctx: &ResearchExecution, plan: &Value, plan_ref: &str, event: &Value)
     let (issuance_raw, issuance) = load(ctx, s(&plan["identity_policy"]["issuance_ref"])?)?;
     let ids = identities(&issuance)?;
     ensure(
-        ids.0.keys().copied().collect::<BTreeSet<_>>() == BTreeSet::from([1, 2, 3, 4]),
+        ids.0.keys().copied().collect::<BTreeSet<_>>() == part_orders(plan)?,
         "tracked part identity set drift",
     )?;
     let citation_ref = out(plan, "citation_spine_ref")?;
@@ -1269,15 +1273,16 @@ fn tracked(ctx: &ResearchExecution, plan: &Value, plan_ref: &str, event: &Value)
             &format!("tracked count differs: {k}"),
         )?;
     }
-    ensure(
-        !citations.iter().any(|v| {
-            v["part_label"] == "IV"
-                && ["tei-pb-0143", "tei-pb-0144", "tei-div-0070"]
-                    .iter()
-                    .any(|r| v["source_resource_id"] == *r)
-        }),
-        "Part IV auxiliary exclusion escaped",
-    )?;
+    for source in array(&plan["source_items"])? {
+        let excluded = array(&source["excluded_resource_ids"])?;
+        ensure(
+            !citations.iter().any(|citation| {
+                citation["part_label"] == source["part_label"]
+                    && excluded.contains(&citation["source_resource_id"])
+            }),
+            "excluded source resource escaped",
+        )?;
+    }
     outputs.insert(summary_ref, raw);
     event_closure(ctx, plan, plan_ref, event, &sha(&issuance_raw), &outputs)?;
     Ok(summary)
@@ -1402,7 +1407,7 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
         .collect::<BTreeSet<_>>();
     ensure(
         ids.1.keys().cloned().collect::<BTreeSet<_>>() == expected
-            && ids.0.keys().copied().collect::<BTreeSet<_>>() == BTreeSet::from([1, 2, 3, 4]),
+            && ids.0.keys().copied().collect::<BTreeSet<_>>() == part_orders(&plan)?,
         "locator identity set drifted; explicit successor work required",
     )?;
     let citations = citations(ctx, &plan, &parts, &ids)?;
@@ -1706,6 +1711,16 @@ mod tests {
         let exact = &parts[0].content
             [parts[0].positions[paragraph.start]..parts[0].positions[paragraph.end]];
         assert_eq!(exact, "A😀\nB old tail.");
+    }
+    #[test]
+    fn part_selection_uses_plan_and_refuses_gaps_and_duplicates() {
+        let mut plan = json!({"source_items":[{"part_order":1,"part_label":"A"},{"part_order":2,"part_label":"B"}]});
+        assert_eq!(part_orders(&plan).unwrap(), BTreeSet::from([1, 2]));
+        plan["source_items"][1]["part_order"] = json!(3);
+        assert!(part_orders(&plan).is_err());
+        plan["source_items"][1]["part_order"] = json!(2);
+        plan["source_items"][1]["part_label"] = json!("A");
+        assert!(part_orders(&plan).is_err());
     }
     #[test]
     fn text_profile_refuses_choice_rules_inconsistent_with_plan() {
