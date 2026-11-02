@@ -11,6 +11,9 @@ mod lexical_derivatives_command;
 mod lexical_index_command;
 mod morphology_result_command;
 mod nietzsche_transfer_routes_command;
+// The numbered builder adopts this matching core when source navigation moves here.
+#[allow(dead_code)]
+mod numbered_matching;
 mod numbered_structure;
 mod provenance_event_lab_command;
 mod research_builders_command;
