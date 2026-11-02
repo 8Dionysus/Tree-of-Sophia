@@ -33,14 +33,19 @@ missing English revisions in the working copy. On the preserved originals and
 the compact inputs, it produced identical core files. `control.json` is an
 authored control file and is not emitted by this assembler.
 
+[`assembly-inputs/corrections.json`](assembly-inputs/corrections.json) lists
+the language-review ledgers in application order, with the original
 [`language-corrections-2026-11-02.json`](assembly-inputs/language-corrections-2026-11-02.json)
-is the language review of the reader texts: each entry replaces one whole
-wording where it stands in the assembled core, with the reason in the words of
-Antonovsky 1913 or the first editions. The assembler applies it after the
-verdicts, so the makers' and reviewers' wordings stay in their inputs, and drops
-the generated filler of proposed nodes. `access/web/src/public-research/
-bonsai-language.test.mjs` keeps the words the review took out of the core from
-coming back.
+first, followed by
+[`term-corrections-2026-11-02.json`](assembly-inputs/term-corrections-2026-11-02.json).
+Each entry replaces a whole reader-text wording in the assembled core;
+paired Russian and English entries stay linked to their matching Russian text,
+while an English-only entry applies to every exact matching English reader
+text. The assembler applies these reviews after the verdicts, so the makers'
+and reviewers' wordings stay in their inputs, and drops the generated filler of
+proposed nodes. Counts in `core.json` retain the Russian totals and report each
+language and ledger separately. `access/web/src/public-research/
+bonsai-language.test.mjs` keeps reviewed-out words from coming back.
 
 
 ## Source-visible additions and stable addresses

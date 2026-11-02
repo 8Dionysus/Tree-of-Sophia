@@ -37,12 +37,20 @@
   },
   {
    "id": "language-review-20261102",
+   "date": "2026-11-02",
+   "reviewer": "language review by GPT-6.1 Terra (xhigh), admitted by Claude on the operator's request; titles and names corrected by Claude (entries marked by)",
+   "reads": "Reader texts speak with the words of the Russian witness shown beside them (Antonovsky 1913) and of Common 1909 in English; editorial and data-model words leave reader texts; a negation stands only where the book negates.",
+   "corrections": "bonsai/review/zarathustra-graph/graph-words/assembly-inputs/language-corrections-2026-11-02.json",
    "model": "gpt-6.1-terra",
    "effort": "xhigh",
+   "admitted_by": "claude"
+  },
+  {
+   "id": "language-review-term-corrections-2026-11-02",
    "date": "2026-11-02",
-   "admitted_by": "claude",
-   "reads": "Reader texts speak with the words of the Russian witness shown beside them (Antonovsky 1913) and of Common 1909 in English; editorial and data-model words leave reader texts; a negation stands only where the book negates.",
-   "corrections": "bonsai/review/zarathustra-graph/graph-words/assembly-inputs/language-corrections-2026-11-02.json"
+   "reviewer": "Codex, term consistency review",
+   "reads": "Use the registered Tree words, keeping Antonovsky’s term in Russian and the Tree’s selected English term; retain each whole reader wording and its sense.",
+   "corrections": "bonsai/review/zarathustra-graph/graph-words/assembly-inputs/term-corrections-2026-11-02.json"
   }
  ],
  "files": [
@@ -100,9 +108,49 @@
   "semantic_uses_unknown": 214,
   "place_relations": 7,
   "language_corrections": {
-   "admitted": 1543,
-   "applied": 1543,
+   "admitted": 1665,
+   "applied": 1665,
    "unmatched": 0,
+   "by_language": {
+    "ru": {
+     "admitted": 1665,
+     "applied": 1665,
+     "unmatched": 0
+    },
+    "en": {
+     "admitted": 498,
+     "applied": 498,
+     "unmatched": 0
+    }
+   },
+   "ledgers": [
+    {
+     "ledger": "language-corrections-2026-11-02.json",
+     "ru": {
+      "admitted": 1543,
+      "applied": 1543,
+      "unmatched": 0
+     },
+     "en": {
+      "admitted": 404,
+      "applied": 404,
+      "unmatched": 0
+     }
+    },
+    {
+     "ledger": "term-corrections-2026-11-02.json",
+     "ru": {
+      "admitted": 122,
+      "applied": 122,
+      "unmatched": 0
+     },
+     "en": {
+      "admitted": 94,
+      "applied": 94,
+      "unmatched": 0
+     }
+    }
+   ],
    "fillers_dropped": 189
   },
   "english_missing": 0
