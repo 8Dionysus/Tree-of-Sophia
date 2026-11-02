@@ -294,6 +294,75 @@ pub fn validate_review_sources(
     Ok(())
 }
 
+/// Select the exact frozen manifest and check its member metadata.
+pub fn select_frozen_manifest(
+    raw: &[u8],
+    stage: &str,
+    selected: SelectedDocument<'_>,
+    schema: &SchemaBackendProbe,
+) -> Result<Value, EditionCurationError> {
+    let value = document(raw, schema)?;
+    let recipe = selected_recipe(&value, stage)?;
+    let descriptor = &recipe["frozen_manifest"];
+    let reference = descriptor["ref"]
+        .as_str()
+        .ok_or(EditionCurationError::MissingReference)?;
+    let digest = descriptor["sha256"]
+        .as_str()
+        .ok_or(EditionCurationError::InvalidSchema)?;
+    verify_selected_bytes(selected, reference, digest)?;
+    let manifest = published_value(selected.raw, selected.raw.len().max(1))
+        .map_err(EditionCurationError::Schema)?;
+    if manifest["schema_version"] != descriptor["schema_version"] {
+        return Err(EditionCurationError::BindingMismatch);
+    }
+    let root = descriptor["output_root"]
+        .as_str()
+        .ok_or(EditionCurationError::InvalidSchema)?;
+    let prefix = format!("{root}/");
+    let members = manifest["generated_outputs"]
+        .as_object()
+        .ok_or(EditionCurationError::InvalidSchema)?;
+    for (path, member) in members {
+        tos_foundation::RelativePath::parse(path).map_err(|_| EditionCurationError::UnsafePath)?;
+        if !path.starts_with(&prefix) || path == reference {
+            return Err(EditionCurationError::BindingMismatch);
+        }
+        let digest = member["sha256"]
+            .as_str()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        let parsed = tos_foundation::Digest256::from_hex(digest)
+            .map_err(|_| EditionCurationError::InvalidSchema)?;
+        if parsed.to_hex() != digest || member["byte_size"].as_u64().is_none() {
+            return Err(EditionCurationError::InvalidSchema);
+        }
+    }
+    Ok(manifest)
+}
+
+/// Verify one selected member against a selected frozen manifest.
+pub fn validate_frozen_manifest_member(
+    raw: &[u8],
+    stage: &str,
+    manifest: SelectedDocument<'_>,
+    member: SelectedDocument<'_>,
+    schema: &SchemaBackendProbe,
+) -> Result<(), EditionCurationError> {
+    tos_foundation::RelativePath::parse(member.reference)
+        .map_err(|_| EditionCurationError::UnsafePath)?;
+    let selected = select_frozen_manifest(raw, stage, manifest, schema)?;
+    let entry = selected["generated_outputs"]
+        .get(member.reference)
+        .ok_or(EditionCurationError::MissingReference)?;
+    if entry["byte_size"].as_u64() != Some(member.raw.len() as u64) {
+        return Err(EditionCurationError::BindingMismatch);
+    }
+    let digest = entry["sha256"]
+        .as_str()
+        .ok_or(EditionCurationError::InvalidSchema)?;
+    verify_selected_bytes(member, member.reference, digest)
+}
+
 /// Bind the default request to its selected bytes and request key.
 pub fn validate_default_request(
     raw: &[u8],
@@ -585,6 +654,28 @@ fn check_replacements(value: &Value) -> Result<(), EditionCurationError> {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if let Some(manifest) = object.get("frozen_manifest") {
+                let route = object["route"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let root = if object.get("route_base").and_then(Value::as_str) == Some("repository")
+                {
+                    route.to_owned()
+                } else {
+                    let work = object["work_path"]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    format!("{work}/{route}")
+                };
+                let reference = manifest["ref"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                if manifest["output_root"] != root
+                    || reference.rsplit_once('/').map(|(parent, _)| parent) != Some(root.as_str())
+                {
+                    return Err(EditionCurationError::BindingMismatch);
+                }
+            }
             if object.contains_key("output_files")
                 && object.contains_key("frozen_outputs")
                 && !object.contains_key("output_layout")

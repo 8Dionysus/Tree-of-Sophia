@@ -5,9 +5,9 @@ use tos_validation::{
     FormatProfile, SchemaBackendProbe, SchemaResource,
     edition_curation::{
         EditionCurationError, SCHEMA_URI, SelectedCuration, SelectedDocument,
-        select_historical_field, validate, validate_bindings, validate_default_request,
-        validate_frozen_output_fixity, validate_recipe_plan, validate_recipe_template,
-        validate_review_sources,
+        select_frozen_manifest, select_historical_field, validate, validate_bindings,
+        validate_default_request, validate_frozen_manifest_member, validate_frozen_output_fixity,
+        validate_recipe_plan, validate_recipe_template, validate_review_sources,
     },
 };
 
@@ -83,6 +83,84 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let dta_raw = fs::read(root.join(dta_path)).unwrap();
     assert_eq!(validate(&dta_raw, &schema), Ok(()));
     let dta_value: Value = serde_json::from_slice(&dta_raw).unwrap();
+    for stage in [
+        "paragraph-alignment",
+        "parallel-lexical-candidates",
+        "morphology-theme-candidates",
+    ] {
+        let recipe = dta_value["recipes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|recipe| recipe["stage"] == stage)
+            .unwrap();
+        let reference = recipe["frozen_manifest"]["ref"].as_str().unwrap();
+        let manifest_raw = fs::read(root.join(reference)).unwrap();
+        let manifest = SelectedDocument {
+            reference,
+            raw: &manifest_raw,
+        };
+        let selected = select_frozen_manifest(&dta_raw, stage, manifest, &schema).unwrap();
+        if stage == "paragraph-alignment" {
+            let mut large_raw = manifest_raw.clone();
+            large_raw.resize(SchemaBackendProbe::MAX_INSTANCE_BYTES + 1, b' ');
+            let mut larger_curation = dta_value.clone();
+            let recipe = larger_curation["recipes"]
+                .as_array_mut()
+                .unwrap()
+                .iter_mut()
+                .find(|recipe| recipe["stage"] == stage)
+                .unwrap();
+            recipe["frozen_manifest"]["sha256"] =
+                json!(tos_foundation::Digest256::of_bytes(&large_raw).to_hex());
+            assert!(
+                select_frozen_manifest(
+                    &serde_json::to_vec(&larger_curation).unwrap(),
+                    stage,
+                    SelectedDocument {
+                        reference,
+                        raw: &large_raw,
+                    },
+                    &schema,
+                )
+                .is_ok()
+            );
+        }
+        let member_ref = selected["generated_outputs"]
+            .as_object()
+            .unwrap()
+            .keys()
+            .find(|path| path.ends_with("/summary.v1.json"))
+            .unwrap();
+        let mut member_raw = fs::read(root.join(member_ref)).unwrap();
+        assert_eq!(
+            validate_frozen_manifest_member(
+                &dta_raw,
+                stage,
+                manifest,
+                SelectedDocument {
+                    reference: member_ref,
+                    raw: &member_raw,
+                },
+                &schema,
+            ),
+            Ok(())
+        );
+        member_raw[0] ^= 1;
+        assert_eq!(
+            validate_frozen_manifest_member(
+                &dta_raw,
+                stage,
+                manifest,
+                SelectedDocument {
+                    reference: member_ref,
+                    raw: &member_raw,
+                },
+                &schema,
+            ),
+            Err(EditionCurationError::DigestMismatch)
+        );
+    }
     let mut wrong_review_output = dta_value.clone();
     let review = wrong_review_output["recipes"]
         .as_array_mut()
