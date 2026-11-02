@@ -513,7 +513,10 @@
   #tree .ps-column>.reading-top{padding:4px 6px 4px 16px;border-radius:10px 10px 0 0}
   #tree .ps-column-title{flex:1;display:flex;align-items:center;gap:8px;min-height:40px;cursor:pointer}
   #tree .ps-column-title::after{content:'▴';margin-left:auto;padding-right:6px;color:#8fa1b4;font-size:12px;letter-spacing:0}
-  #tree.pr-public-space[data-sheet=open] .ps-column-title::after{content:'▾'}
+  #tree.pr-public-space:is([data-sheet=open],[data-sheet=full]) .ps-column-title::after{content:'▾'}
+  #tree.pr-public-space[data-sheet=full] .ps-column{max-height:calc(100dvh - var(--rb-h,56px) - 72px)}
+  @media (prefers-reduced-motion:no-preference){#tree.pr-public-space .ps-column{transition:max-height .28s ease-out}}
+  #tree.pr-public-space[data-sheet=full] :is(.ps-map-tools,.ps-relations){visibility:hidden}
   #tree.pr-public-space[data-sheet=peek] .ps-column>:not(.reading-top){display:none}
   #tree.pr-public-space[data-sheet=peek] .ps-column>.reading-top{border-bottom:0;border-radius:10px}
   #tree .ps-column>.ps-lens-controls{padding:10px 16px 10px}

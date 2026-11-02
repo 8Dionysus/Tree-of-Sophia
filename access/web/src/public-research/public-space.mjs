@@ -1301,11 +1301,13 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const mode=columnMode(),wide=desktop();shell.dataset.column=mode;reading.dataset.mode=mode;
     // A card for another star or link opens at its top, however it was chosen: from the map, a search, a route or a card.
     const subject=mode==='node'?`node:${selected}`:mode==='edge'?`edge:${selectedEdge}`:mode;
+    const subjectChanged=subject!==columnSubject;
     if(subject!==columnSubject){const fresh=columnSubject&&(mode==='node'||mode==='edge');columnSubject=subject;if(fresh){reading.scrollTop=0;requestAnimationFrame(()=>{if(columnSubject===subject)reading.scrollTop=0;});}}
     if(mode==='personal'){reading.hidden=true;columnTab.hidden=true;shell.dataset.reading='true';shell.dataset.columnOpen='true';return;}
     // A wide screen shows the column or a tab to reopen it; a narrow screen always keeps the sheet's top bar.
     reading.hidden=wide&&!columnOpen;columnTab.hidden=!wide||columnOpen;columnTab.firstChild.textContent=`‹ ${columnCaption(mode)}`;
-    shell.dataset.columnOpen=String(columnOpen);shell.dataset.sheet=wide?'':columnOpen?'open':'peek';shell.dataset.reading=String(columnOpen);
+    if(!columnOpen||subjectChanged)sheetFull=false;
+    shell.dataset.columnOpen=String(columnOpen);shell.dataset.sheet=wide?'':columnOpen?(sheetFull?'full':'open'):'peek';shell.dataset.reading=String(columnOpen);
     panelTitle.textContent=columnCaption(mode);panelTitle.setAttribute('aria-expanded',String(columnOpen));
     panelClose.hidden=!wide&&!columnOpen;panelClose.setAttribute('aria-label',t(mode==='overview'&&!browsingRoutes?'collapseColumn':mode==='route'?'resetRoute':'close'));
     renderRoutes();renderLensControls(mode);
@@ -1325,7 +1327,10 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     else return;
     reflect();refitAfter(wasOpen);
   }
-  function toggleSheet(){if(desktop()){reading.scrollTo?.({top:0,behavior:'smooth'});return;}const wasOpen=columnOpen;columnOpen=!columnOpen;renderColumn();refitAfter(wasOpen);}
+  function toggleSheet(){if(desktop()){reading.scrollTo?.({top:0,behavior:'smooth'});return;}if(sheetFull){sheetFull=false;reading.scrollTop=0;renderColumn();return;}const wasOpen=columnOpen;columnOpen=!columnOpen;renderColumn();refitAfter(wasOpen);}
+  // On a phone the open sheet leaves the upper map in view; reading on down its card raises it to the whole height, and its title lowers it again.
+  let sheetFull=false;
+  reading.addEventListener('scroll',()=>{if(sheetFull||desktop()||!columnOpen||reading.scrollTop<28)return;sheetFull=true;shell.dataset.sheet='full';},{passive:true});
   function openColumn(){const wasOpen=columnOpen;columnOpen=true;renderColumn();refitAfter(wasOpen);}
   // A column or sheet opened or closed beside the scale of time changes its free area, so the scale refits; elsewhere the camera stays.
   // A sheet that opens or closes changes the room an aspect has: it is laid out and framed again.
