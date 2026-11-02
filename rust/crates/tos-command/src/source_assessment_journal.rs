@@ -21,7 +21,7 @@ use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 use tos_foundation::{Digest256, JsonValue, SourceRevision};
 use tos_validation::FormatProfile;
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::CutSchemaExecutor;
 
 const BATCH_SCHEMA: &str = "ToS/contracts/knowledge-assessment-batch.schema.json";
 use crate::source_assessment_capacity::{
@@ -1440,7 +1440,7 @@ impl AssessmentJournalReadBatch<'_> {
         &self,
         subject: &str,
         ctx: &CommandContext,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut impl CutSchemaExecutor,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<AssessmentHistory> {
@@ -2526,7 +2526,7 @@ impl AssessmentJournalFence<'_> {
         &self,
         subject: &str,
         ctx: &CommandContext,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut impl CutSchemaExecutor,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<AssessmentHistory> {
@@ -3014,7 +3014,7 @@ fn read_assessment_history<V: AssessmentJournalReadView>(
     view: &V,
     subject: &str,
     ctx: &CommandContext,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<AssessmentHistory> {

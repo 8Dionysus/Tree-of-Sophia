@@ -35,10 +35,8 @@ const RELATIONS: &str = "ToS/doctrine/semantic-interchange/relation-types.v1.jso
 #[path = "source_sign_pg.rs"]
 pub(crate) mod pg;
 
-pub(crate) fn require_assessment_profile(worker: &CutWorkerSchemaExecutor) -> Result<()> {
-    if worker.execution_binding().schema_profile
-        != tos_validation::FormatProfile::AssertedSourceCandidateV1
-    {
+pub(crate) fn require_assessment_profile(worker: &impl CutSchemaExecutor) -> Result<()> {
+    if worker.schema_profile() != Some(tos_validation::FormatProfile::AssertedSourceCandidateV1) {
         return Err(Error::Unsupported(
             "Sign assessment requires asserted source grammar formats",
         ));

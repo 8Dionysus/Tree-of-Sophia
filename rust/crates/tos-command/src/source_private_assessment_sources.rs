@@ -22,7 +22,9 @@ use std::time::Instant;
 use tos_foundation::{Digest256, JsonString, JsonValue, RelativePath, SourceRevision};
 use tos_source_store::CorpusCutReader;
 use tos_validation::assessment::{AssessmentRecordInput, MAX_ASSESSMENTS, MAX_RECORD_BYTES};
-use tos_validation::source_cut::{CutSchemaExecutor, InProcessCutSchemaExecutor};
+use tos_validation::source_cut::CutSchemaExecutor;
+#[cfg(feature = "conformance-owner-local-source-resolver")]
+use tos_validation::source_cut::InProcessCutSchemaExecutor;
 
 const MAX_SELECTIONS: usize = 64;
 const MAX_SELECTED_FILES: usize = 128;

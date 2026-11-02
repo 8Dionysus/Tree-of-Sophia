@@ -5,7 +5,7 @@
 //! selection reuses the Sign resolver; Sign promotion keeps its separate
 //! protected v2/v3 selector and does not acquire new command authority.
 
-use super::{absolute, capped, selected_schema_with_profile, text};
+use super::{absolute, capped, text};
 use crate::source_assessment_journal::{
     AssessmentHistory, AssessmentJournalFence, ProtectedAssessmentJournal,
 };
@@ -33,7 +33,7 @@ use tos_validation::assessment::{
 use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
 #[cfg(test)]
 use tos_validation::source_cut::CutWorkerLimits;
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::{CutSchemaExecutor, InProcessCutSchemaExecutor};
 
 const OWNER_CONTEXT_SCHEMA: &str = "ToS/contracts/owner-local-source-context.schema.json";
 const BATCH_SCHEMA: &str = "ToS/contracts/knowledge-assessment-batch.schema.json";
@@ -62,7 +62,7 @@ struct SelectedOperation<'a> {
     owner_context: OwnerTextContext,
     selected_context: JsonValue,
     context: CommandContext,
-    worker: CutWorkerSchemaExecutor,
+    worker: InProcessCutSchemaExecutor<()>,
     request: ParsedRequest,
     version: OwnerVersion,
     private_sources: PrivateAssessmentSources,
@@ -509,14 +509,14 @@ pub(super) fn run(
     };
 
     let context_path = absolute(text(invocation, "owner_context")?)?;
-    let mut worker = selected_schema_with_profile(
-        invocation,
+    let mut worker = InProcessCutSchemaExecutor::from_cut(
         cut,
-        "assessment_schema_worker",
         tos_validation::FormatProfile::AssertedSourceCandidateV1,
+        tos_validation::in_process::InputMode::SerdeNormalized,
         deadline,
         cancelled,
-    )?;
+    )
+    .map_err(|_| SourceCommandError::Denied("native assessment schema selection"))?;
     crate::source_sign::require_assessment_profile(&worker)?;
     let context_schema_path = RelativePath::parse(OWNER_CONTEXT_SCHEMA)
         .map_err(|_| SourceCommandError::Invalid("assessment context schema path"))?;
@@ -529,7 +529,7 @@ pub(super) fn run(
             cancelled,
         )
         .map_err(|_| SourceCommandError::Conflict("assessment context schema selection"))?;
-    if worker.contract_digest(OWNER_CONTEXT_SCHEMA)
+    if worker.selected_contract_digest(OWNER_CONTEXT_SCHEMA)
         != Some(Digest256::of_bytes(&context_schema.raw))
     {
         return Err(SourceCommandError::Conflict(
@@ -713,14 +713,14 @@ pub(crate) fn run_public_v2_batch(
         .collect::<Vec<_>>();
     let journal = owner.read_only_subjects(&subject_ids, deadline, cancelled)?;
 
-    let mut worker = selected_schema_with_profile(
-        invocation,
+    let mut worker = InProcessCutSchemaExecutor::from_cut(
         cut,
-        "assessment_schema_worker",
         tos_validation::FormatProfile::AssertedSourceCandidateV1,
+        tos_validation::in_process::InputMode::SerdeNormalized,
         deadline,
         cancelled,
-    )?;
+    )
+    .map_err(|_| SourceCommandError::Denied("native assessment schema selection"))?;
     crate::source_sign::require_assessment_profile(&worker)?;
     let context = selected_command_context(
         cut,
@@ -1054,7 +1054,7 @@ fn public_v2_owner_snapshot(
     identity_snapshots: &BTreeMap<String, JsonValue>,
     claim_dependencies: &BTreeMap<String, Vec<JsonValue>>,
     context: &CommandContext,
-    worker: &CutWorkerSchemaExecutor,
+    worker: &impl CutSchemaExecutor,
 ) -> SourceCommandResult<String> {
     let mut entries = BTreeMap::<String, JsonValue>::new();
     entries.insert("configuration".to_owned(), config.clone());
@@ -1102,24 +1102,40 @@ fn public_v2_owner_snapshot(
                 .collect(),
         ),
     );
-    let execution = worker.execution_binding();
-    entries.insert(
-        "assessment_schema_execution".to_owned(),
-        cmd::object(vec![
+    let execution = worker
+        .schema_execution_binding()
+        .ok_or(SourceCommandError::Conflict(
+            "assessment schema execution binding unavailable",
+        ))?;
+    let execution = match execution {
+        tos_foundation::SchemaExecutionBinding::Worker(binding) => cmd::object(vec![
             (
                 "profile",
-                cmd::string(&format!("{:?}", execution.schema_profile)),
+                cmd::string(&format!("{:?}", binding.schema_profile)),
             ),
             (
                 "schema_set_sha256",
-                cmd::string(&execution.schema_set_sha256.to_prefixed()),
+                cmd::string(&binding.schema_set_sha256.to_prefixed()),
             ),
             (
                 "worker_sha256",
-                cmd::string(&execution.worker_sha256.to_prefixed()),
+                cmd::string(&binding.worker_sha256.to_prefixed()),
             ),
         ]),
-    );
+        tos_foundation::SchemaExecutionBinding::InProcessV1(binding) => cmd::object(vec![
+            ("version", cmd::string("in_process_schema_v1")),
+            (
+                "profile",
+                cmd::string(&format!("{:?}", binding.schema_profile)),
+            ),
+            (
+                "schema_set_sha256",
+                cmd::string(&binding.schema_set_sha256.to_prefixed()),
+            ),
+            ("engine", cmd::string(binding.engine)),
+        ]),
+    };
+    entries.insert("assessment_schema_execution".to_owned(), execution);
     let snapshot = JsonValue::Object(
         entries
             .into_iter()
@@ -1143,7 +1159,7 @@ fn materialize_public_v2_selection(
     all_by_id: &BTreeMap<String, JsonValue>,
     history: &AssessmentHistory,
     public_sources: &mut crate::source_sign::OwnerAssessmentPublicSources<'_>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_sign::SignSourceSchemas,
     budget: &mut OperationBudget,
     cancelled: &AtomicBool,
     deadline: Instant,
@@ -2185,9 +2201,15 @@ fn run_selected(
         deadline,
         cancelled,
     )?;
-    let source_revision = selected.worker.source_revision();
+    let source_revision =
+        selected
+            .worker
+            .selected_source_revision()
+            .ok_or(SourceCommandError::Conflict(
+                "assessment schema source revision unavailable",
+            ))?;
     let mut evaluate = |input: &AssessmentReadInput,
-                        worker: &mut CutWorkerSchemaExecutor,
+                        worker: &mut InProcessCutSchemaExecutor<()>,
                         limits: AssessmentLimits,
                         cancelled: &AtomicBool| {
         evaluate_current_assessment(input, worker, limits, cancelled)
@@ -2688,11 +2710,15 @@ fn evaluate_selected_subject(
     source_route: AssessmentSourceRoute,
     layer_quality: Option<AssessmentLayerQualityObservation>,
     observed_now: &str,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_sign::SignSourceSchemas,
     budget: &mut OperationBudget,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<AssessmentMechanicsReport> {
-    let source_revision = worker.source_revision();
+    let source_revision = worker
+        .selected_source_revision()
+        .ok_or(SourceCommandError::Conflict(
+            "assessment schema source revision unavailable",
+        ))?;
     evaluate_selected_subject_with_executor(
         config,
         subject_id,
@@ -3613,7 +3639,7 @@ fn committed_scopes_match(a: &JsonValue, b: &JsonValue) -> SourceCommandResult<b
 #[allow(clippy::too_many_arguments)]
 fn execute_journal_operation(
     selected: &SelectedOperationView<'_>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_sign::SignSourceSchemas,
     config: &JsonValue,
     scope: &JsonValue,
     current: &JsonValue,
@@ -4325,7 +4351,7 @@ pub(crate) fn prepare_assessment_append<W: CutSchemaExecutor>(
 #[allow(clippy::too_many_arguments)]
 fn append_assessment_batch(
     selected: &SelectedOperationView<'_>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_sign::SignSourceSchemas,
     config: &JsonValue,
     scope: &JsonValue,
     current: &JsonValue,
@@ -4453,7 +4479,7 @@ fn expected_source_form_set_path(
 #[allow(clippy::too_many_arguments)]
 fn materialize_selected_form(
     selected: &SelectedOperationView<'_>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_sign::SignSourceSchemas,
     current: &JsonValue,
     scope: &JsonValue,
     history: &AssessmentHistory,
@@ -4498,7 +4524,7 @@ fn materialize_selected_form(
 fn materialize_assessed_form(
     private_sources: Option<&PrivateAssessmentSources>,
     selected_subject_id: &str,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_sign::SignSourceSchemas,
     current: &JsonValue,
     scope: &JsonValue,
     history: &AssessmentHistory,
