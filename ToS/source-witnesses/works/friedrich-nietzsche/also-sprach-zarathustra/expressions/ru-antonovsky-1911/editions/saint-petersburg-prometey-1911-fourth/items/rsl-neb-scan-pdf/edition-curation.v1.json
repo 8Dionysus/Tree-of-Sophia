@@ -97,6 +97,42 @@
           "ru-ant1911-v2.challenger-comparison",
           "ru-ant1911-v2.agent-verification"
         ]
+      },
+      "legacy_layout": {
+        "schema_ref": "ToS/contracts/source-text-unit-packet-v1.schema.json",
+        "builder_ref": "scripts/build_antonovsky_1911_technical_markup.py",
+        "builder_sha256": "4c80683124592bc969e0db6ffe0d5696ec28d4079bc522725788aeff44abd8eb",
+        "event_id": "tos.event.segmentation.zarathustra-antonovsky-1911-pdf-layout-v1.2026-09-01",
+        "screening_event_id": "tos.event.screening.zarathustra-antonovsky-1911-pdf-layout-v1.2026-09-01",
+        "output_keys": [
+          "packet_ref",
+          "citation_spine_ref",
+          "region_candidates_ref",
+          "heading_candidates_ref",
+          "summary_ref",
+          "heading_screening_ref",
+          "paragraph_segment_overlay_ref",
+          "screening_summary_ref",
+          "provenance_ref"
+        ],
+        "identity_prefixes": [
+          {
+            "key": "packet_id",
+            "prefix": "source-text-unit-packet"
+          },
+          {
+            "key": "scheme_id",
+            "prefix": "text-unit-scheme"
+          },
+          {
+            "key": "segmentation_id",
+            "prefix": "text-segmentation"
+          },
+          {
+            "key": "projection_id",
+            "prefix": "text-unit-projection"
+          }
+        ]
       }
     }
   ]

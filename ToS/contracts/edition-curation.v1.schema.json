@@ -586,6 +586,16 @@
       "required": ["stage", "layout_plan_dir", "structural_output_dir", "fixity", "extraction", "outputs", "historical_events"],
       "properties": {
         "stage": {"const": "pdf-structural-paragraph"},
+        "legacy_layout": {
+          "type": "object", "additionalProperties": false,
+          "required": ["schema_ref", "builder_ref", "builder_sha256", "event_id", "screening_event_id", "output_keys", "identity_prefixes"],
+          "properties": {
+            "schema_ref": {"$ref": "#/$defs/relativePath"}, "builder_ref": {"$ref": "#/$defs/relativePath"},
+            "builder_sha256": {"$ref": "#/$defs/sha256"}, "event_id": {"$ref": "#/$defs/id"}, "screening_event_id": {"$ref": "#/$defs/id"},
+            "output_keys": {"$ref": "#/$defs/keyList"},
+            "identity_prefixes": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["key", "prefix"], "properties": {"key": {"type": "string", "minLength": 1}, "prefix": {"type": "string", "minLength": 1}}}}
+          }
+        },
         "layout_plan_dir": {"$ref": "#/$defs/relativePath"},
         "structural_output_dir": {"$ref": "#/$defs/relativePath"},
         "fixity": {
