@@ -30,7 +30,61 @@
         "historical_id": "visual-retrieval-result:zarathustra-foundation-pilot-v1.c.qwen3-vl-embedding-2b.v1",
         "schema_version": "tos_visual_retrieval_result_receipt_v1",
         "native_generation_separator": ".native-"
-      }
+      },
+      "historical_receipt_fields": [
+        {
+          "role": "experiment_id",
+          "json_pointer": "/experiment_id"
+        },
+        {
+          "role": "variant",
+          "json_pointer": "/variant"
+        },
+        {
+          "role": "execution_status",
+          "json_pointer": "/status"
+        },
+        {
+          "role": "model_id",
+          "json_pointer": "/method/model_id"
+        },
+        {
+          "role": "model_revision",
+          "json_pointer": "/method/repository_revision"
+        },
+        {
+          "role": "vector_dimension",
+          "json_pointer": "/method/vector_dimension"
+        },
+        {
+          "role": "similarity_metric",
+          "json_pointer": "/method/distance"
+        },
+        {
+          "role": "normalization",
+          "json_pointer": "/method/normalization"
+        },
+        {
+          "role": "runtime_route",
+          "json_pointer": "/method/runtime_route"
+        },
+        {
+          "role": "query_count",
+          "json_pointer": "/inputs/query_count"
+        },
+        {
+          "role": "page_image_count",
+          "json_pointer": "/inputs/page_image_count"
+        },
+        {
+          "role": "normalization_records",
+          "json_pointer": "/runtime/normalization_record_count"
+        },
+        {
+          "role": "artifact_owner",
+          "json_pointer": "/private_run/artifact_owner"
+        }
+      ]
     }
   ]
 }

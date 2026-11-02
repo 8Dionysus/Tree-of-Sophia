@@ -665,6 +665,15 @@ pub fn validate_selected_historical_receipt(
     selected: SelectedDocument<'_>,
     schema: &SchemaBackendProbe,
 ) -> Result<(), EditionCurationError> {
+    selected_historical_receipt(raw, stage, selected, schema).map(|_| ())
+}
+
+fn selected_historical_receipt(
+    raw: &[u8],
+    stage: &str,
+    selected: SelectedDocument<'_>,
+    schema: &SchemaBackendProbe,
+) -> Result<(Value, Value), EditionCurationError> {
     tos_foundation::RelativePath::parse(selected.reference)
         .map_err(|_| EditionCurationError::UnsafePath)?;
     let value = document(raw, schema)?;
@@ -683,7 +692,41 @@ pub fn validate_selected_historical_receipt(
     {
         return Err(EditionCurationError::BindingMismatch);
     }
-    Ok(())
+    for field in recipe["historical_receipt_fields"]
+        .as_array()
+        .ok_or(EditionCurationError::InvalidSchema)?
+    {
+        let pointer = field["json_pointer"]
+            .as_str()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        if receipt.pointer(pointer).is_none() {
+            return Err(EditionCurationError::MissingReference);
+        }
+    }
+    Ok((value, receipt))
+}
+
+/// Select one field from the exact historical receipt named by the recipe.
+pub fn select_historical_receipt_field(
+    raw: &[u8],
+    stage: &str,
+    role: &str,
+    selected: SelectedDocument<'_>,
+    schema: &SchemaBackendProbe,
+) -> Result<Value, EditionCurationError> {
+    let (value, receipt) = selected_historical_receipt(raw, stage, selected, schema)?;
+    let recipe = selected_recipe(&value, stage)?;
+    let pointer = recipe["historical_receipt_fields"]
+        .as_array()
+        .ok_or(EditionCurationError::InvalidSchema)?
+        .iter()
+        .find(|field| field["role"] == role)
+        .and_then(|field| field["json_pointer"].as_str())
+        .ok_or(EditionCurationError::MissingReference)?;
+    receipt
+        .pointer(pointer)
+        .cloned()
+        .ok_or(EditionCurationError::MissingReference)
 }
 
 /// Select a historical JSON field from exact, curation-bound output bytes.
@@ -2037,6 +2080,7 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                 ("frozen_outputs", "role"),
                 ("frozen_outputs", "repository_path"),
                 ("historical_fields", "role"),
+                ("historical_receipt_fields", "role"),
                 ("historical_templates", "role"),
                 ("retained_artifacts", "role"),
                 ("passage_id_substitutions", "from"),

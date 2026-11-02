@@ -5,11 +5,11 @@ use tos_validation::{
     FormatProfile, SchemaBackendProbe, SchemaResource,
     edition_curation::{
         EditionCurationError, SCHEMA_URI, SelectedCuration, SelectedDocument,
-        select_frozen_manifest, select_historical_field, select_recipe_input_digest,
-        select_retained_digest, validate, validate_bindings, validate_default_request,
-        validate_frozen_manifest_member, validate_frozen_output_fixity, validate_recipe_plan,
-        validate_recipe_template, validate_retained_artifact, validate_review_sources,
-        validate_selected_historical_receipt,
+        select_frozen_manifest, select_historical_field, select_historical_receipt_field,
+        select_recipe_input_digest, select_retained_digest, validate, validate_bindings,
+        validate_default_request, validate_frozen_manifest_member, validate_frozen_output_fixity,
+        validate_recipe_plan, validate_recipe_template, validate_retained_artifact,
+        validate_review_sources, validate_selected_historical_receipt,
     },
 };
 
@@ -229,6 +229,19 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
             &schema
         ),
         Ok(())
+    );
+    assert_eq!(
+        select_historical_receipt_field(
+            &visual_raw,
+            "visual-retrieval-result",
+            "model_id",
+            SelectedDocument {
+                reference: receipt_ref,
+                raw: &receipt_raw
+            },
+            &schema
+        ),
+        Ok(json!("Qwen/Qwen3-VL-Embedding-2B"))
     );
     assert!(
         validate_selected_historical_receipt(
