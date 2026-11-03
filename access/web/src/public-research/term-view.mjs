@@ -5,7 +5,7 @@
 // place where the book first says it; opening it opens the book at that place. A finger's first touch
 // shows the origin, and the origin's own button opens the book.
 
-import {localeText,resolveLocale} from './locale.mjs';
+import {localeText,localeValue,resolveLocale} from './locale.mjs';
 
 const WORDS={
   ru:{original:'В оригинале',tree:'В Древе',open:'Открыть первое место в книге',first:'Впервые'},
@@ -23,16 +23,28 @@ export function termForms(module,language){
   const forms=new Map();
   for(const term of module?.terms??[]){
     const own=language==='de'?term.original?.forms??[]:[...(term.renderings?.[language]?.tos?.forms??[]),...(term.renderings?.[language]?.witness?.forms??[])];
-    for(const form of own)if(!forms.has(form.toLowerCase()))forms.set(form.toLowerCase(),term);
+    for(const form of own)if(!forms.has(form))forms.set(form,term);
   }
   return forms;
 }
 
-/** A matcher for whole-word forms, ignoring case, longest form first. */
+// A form written with a capital (a German noun, Antonovsky's «Само», Common's "Superman") is read with
+// that capital, so the verb "werden" stays apart from das Werden and «самого» from «Самого»; a form
+// written in lower case is read in any case, so a sentence may begin with it.
+const exact=form=>/^\p{Lu}/u.test(form);
+
+/** A matcher for whole-word forms, longest form first; `find(text)` lists the found forms in text order. */
 export function termMatcher(forms){
   if(!forms.size)return null;
-  const alternatives=[...forms.keys()].sort((a,b)=>b.length-a.length).map(escape).join('|');
-  return {pattern:new RegExp(`(?<![\\p{L}\\p{N}])(?:${alternatives})(?![\\p{L}\\p{N}])`,'giu'),forms};
+  const byCase=new Map(),anyCase=new Map();
+  for(const [form,term]of forms){if(exact(form))byCase.set(form,term);else if(!anyCase.has(form.toLowerCase()))anyCase.set(form.toLowerCase(),term);}
+  const pattern=(keys,flags)=>keys.length?new RegExp(`(?<![\\p{L}\\p{N}])(?:${keys.sort((a,b)=>b.length-a.length).map(escape).join('|')})(?![\\p{L}\\p{N}])`,flags):null;
+  const patterns=[[pattern([...byCase.keys()],'gu'),text=>byCase.get(text)],[pattern([...anyCase.keys()],'giu'),text=>anyCase.get(text.toLowerCase())]].filter(([regex])=>regex);
+  return {find(text){
+    const found=[];
+    for(const [regex,termOf]of patterns){regex.lastIndex=0;for(let match;(match=regex.exec(text));)found.push({index:match.index,text:match[0],term:termOf(match[0])});}
+    return found.filter(item=>item.term).sort((a,b)=>a.index-b.index||b.text.length-a.text.length);
+  }};
 }
 
 /**
@@ -56,11 +68,10 @@ export function createTerms({module,locale=()=> 'ru',open=()=>{}}={}){
       const queue=[];while(walker.nextNode())queue.push(walker.currentNode);
       while(queue.length){
         const node=queue.shift(),matcher=matcherFor(languageOf(node.parentElement));if(!matcher)continue;
-        matcher.pattern.lastIndex=0;let found=null;
-        for(let match;(match=matcher.pattern.exec(node.nodeValue));){const term=matcher.forms.get(match[0].toLowerCase());if(term&&!seen.has(term.id)){found={match,term};break;}}
+        const found=matcher.find(node.nodeValue).find(item=>!seen.has(item.term.id));
         if(!found)continue;
         seen.add(found.term.id);
-        const start=found.match.index,end=start+found.match[0].length,rest=node.splitText(start).splitText(end-start);
+        const start=found.index,end=start+found.text.length,rest=node.splitText(start).splitText(end-start);
         const word=node.nextSibling,span=make('span','ps-term');
         span.dataset.term=found.term.id;span.tabIndex=0;span.setAttribute('role','button');span.setAttribute('aria-haspopup','dialog');
         word.replaceWith(span);span.append(word);queue.unshift(rest);
@@ -79,16 +90,16 @@ export function createTerms({module,locale=()=> 'ru',open=()=>{}}={}){
   let shownFor=null,showTimer=0,hideTimer=0;
   function paint(term){
     const w=words(locale()),ui=resolveLocale(locale())==='ru'?'ru':'en',editions=module.editions??{};
-    const label=(edition,language)=>editions[edition]?.label?.[ui]??edition;
+    const label=edition=>localeValue(editions[edition]?.label,locale())||edition;
     const rows=[];
     const head=make('p','ps-term-original');head.append(make('span','ps-term-eyebrow',w.original),Object.assign(make('span','ps-term-lemma',term.original?.lemma??''),{lang:'de'}));rows.push(head);
     for(const language of ['ru','en']){
       const witness=term.renderings?.[language]?.witness;if(!witness?.edition)continue;
-      const line=make('p','ps-term-witness');const said=make('span','ps-term-word',witness.term);said.lang=language;line.append(said,make('span','ps-term-source',label(witness.edition,language)));rows.push(line);
+      const line=make('p','ps-term-witness');const said=make('span','ps-term-word',witness.term);said.lang=language;line.append(said,make('span','ps-term-source',label(witness.edition)));rows.push(line);
     }
     const own=term.renderings?.[ui]?.tos?.term,shown=term.renderings?.[ui]?.witness?.term;
     if(own&&shown&&own.toLowerCase()!==shown.toLowerCase()){const line=make('p','ps-term-witness is-tree');const said=make('span','ps-term-word',own);said.lang=ui;line.append(said,make('span','ps-term-source',w.tree));rows.push(line);}
-    const gloss=term.gloss?.[ui];if(gloss)rows.push(make('p','ps-term-gloss',gloss));
+    const gloss=localeValue(term.gloss,locale());if(gloss)rows.push(make('p','ps-term-gloss',gloss));
     if(term.first?.q){const first=make('p','ps-term-first');first.append(make('span','ps-term-eyebrow',w.first),Object.assign(make('q','',term.first.q),{lang:'de'}));rows.push(first);}
     const go=make('button','ps-term-open',w.open);go.type='button';go.addEventListener('click',()=>{hide(true);open(term.first);});rows.push(go);
     card.replaceChildren(...rows);card.setAttribute('aria-label',term.original?.lemma??term.id);
