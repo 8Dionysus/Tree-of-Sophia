@@ -480,6 +480,7 @@ async function start() {
   // The learning mode is the sky opened by the person's own links; the agent session lives in its journal.
   knowing=profile==='zarathustra'?mountKnowing({root:experience.cognitiveRoot,index:publicSpace.index,locale:()=>locale,notebook:entry.notebook,profile,fragments:spaceView.fragments,getSession:()=>cognitive,
     onOpenReference:id=>{experience.open(id);experience.setMode('reference');},onOpenSpace:id=>{experience.open(id);experience.setMode('original');}}):null;
+  if(knowing)spaceView.markTerms?.(experience.cognitiveRoot);
   cognitive=mountCognitiveSession({root:knowing?.agentRoot??experience.cognitiveRoot,notebook:entry.notebook,index:publicSpace.index,api:window.tosPublicResearch,locale:()=>locale,profile,workspace:publicOwners.workspace,onHelpChange:value=>knowing?.setHelpLevel(value),getSelection:()=>experience.getState(),versionContext:experience.versionContext,isActive:()=>experience.getState().mode==='cognitive',onOpen:(id,options)=>experience.open(id,options)});
   pageAgent=connectResearchPage({index:publicSpace.index,space:spaceView,experience,session:cognitive,api:window.tosPublicResearch,workspace:publicOwners.workspace,locale:()=>locale});
   workspaceView?.render();
