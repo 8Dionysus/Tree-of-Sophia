@@ -1,6 +1,6 @@
 {
   "schema_version": "tos_digest_field_classes_v1",
-  "scope": "Field-family patterns identify historical producer profiles and exact-byte classes. Unlisted or conflicting contexts remain unclassified.",
+  "scope": "Field-family patterns identify historical producer profiles and exact-byte classes. Unlisted or conflicting contexts remain unclassified. In pointer_pattern, * matches one path segment and ** matches zero or more segments.",
   "rules": [
     {
       "field": "token",
@@ -126,9 +126,9 @@
     {
       "field": "exact_sha256",
       "file_contains": "translation-alignment-packet",
-      "pointer_contains": "/anchors/*/exact_sha256",
       "class": "raw-bytes",
-      "producer_context": "exact source or target anchor text bytes; constructor_library"
+      "producer_context": "exact source or target anchor text bytes; constructor_library",
+      "pointer_pattern": "/anchors/*/exact_sha256"
     },
     {
       "field": "request_digest",
@@ -196,9 +196,9 @@
     },
     {
       "field": "text_layer_sha256",
-      "pointer_contains": "/anchors/*/text_layer_sha256",
       "class": "raw-bytes",
-      "producer_context": "tos-compiler constructor_library.rs validates each anchor against the exact bound text-layer contents"
+      "producer_context": "tos-compiler constructor_library.rs validates each anchor against the exact bound text-layer contents",
+      "pointer_pattern": "/anchors/*/text_layer_sha256"
     },
     {
       "field": "exact_sha256",
@@ -217,9 +217,9 @@
     {
       "field": "*",
       "file_suffix": ".human-forms.json",
-      "pointer_contains": "/growth_history/*/source_contracts/",
       "class": "raw-bytes",
-      "producer_context": "tos-command source_forms.rs binds each contract path to the SHA-256 of its exact file bytes"
+      "producer_context": "tos-command source_forms.rs binds each contract path to the SHA-256 of its exact file bytes",
+      "pointer_pattern": "/growth_history/*/source_contracts/**/digest"
     },
     {
       "field": "owner_configuration",
@@ -247,16 +247,16 @@
     {
       "field": "sha256",
       "file_suffix": "resource-inventory.json",
-      "pointer_contains": "/files/*/resources/*/content_fingerprint/sha256",
       "class": "raw-bytes",
-      "producer_context": "tos-command source_item_inventory.rs hashes the resulting normalized or preserved text UTF-8 bytes"
+      "producer_context": "tos-command source_item_inventory.rs hashes the resulting normalized or preserved text UTF-8 bytes",
+      "pointer_pattern": "/files/*/resources/*/content_fingerprint/sha256"
     },
     {
       "field": "sha256",
       "file_suffix": "resource-inventory.json",
-      "pointer_contains": "/files/*/resources/*/label_fingerprint/sha256",
       "class": "raw-bytes",
-      "producer_context": "tos-command source_item_inventory.rs hashes the resulting normalized or preserved text UTF-8 bytes"
+      "producer_context": "tos-command source_item_inventory.rs hashes the resulting normalized or preserved text UTF-8 bytes",
+      "pointer_pattern": "/files/*/resources/*/label_fingerprint/sha256"
     },
     {
       "field": "subject_form_sha256",
@@ -356,98 +356,98 @@
     {
       "field": "digest",
       "file_suffix": "claim-revision-history.json",
-      "pointer_contains": "/receipts/*/previous_source/",
       "old_profile": "tos_source_command_input_v1",
       "class": "canonical-json",
-      "producer_context": "tos-command source_claims.rs records references built by source_copy_kernel::metadata_subject or form_reference, which hash canonical records"
+      "producer_context": "tos-command source_claims.rs records references built by source_copy_kernel::metadata_subject or form_reference, which hash canonical records",
+      "pointer_pattern": "/receipts/*/previous_source/**/digest"
     },
     {
       "field": "digest",
       "file_suffix": "claim-revision-history.json",
-      "pointer_contains": "/receipts/*/source/",
       "old_profile": "tos_source_command_input_v1",
       "class": "canonical-json",
-      "producer_context": "tos-command source_claims.rs records references built by source_copy_kernel::metadata_subject or form_reference, which hash canonical records"
+      "producer_context": "tos-command source_claims.rs records references built by source_copy_kernel::metadata_subject or form_reference, which hash canonical records",
+      "pointer_pattern": "/receipts/*/source/**/digest"
     },
     {
       "field": "digest",
       "file_suffix": "claim-revision-history.json",
-      "pointer_contains": "/receipts/*/forms/",
       "old_profile": "tos_source_command_input_v1",
       "class": "canonical-json",
-      "producer_context": "tos-command source_claims.rs records references built by source_copy_kernel::metadata_subject or form_reference, which hash canonical records"
+      "producer_context": "tos-command source_claims.rs records references built by source_copy_kernel::metadata_subject or form_reference, which hash canonical records",
+      "pointer_pattern": "/receipts/*/forms/**/digest"
     },
     {
       "field": "digest",
       "file_suffix": "source-create-receipt.json",
-      "pointer_contains": "/claims/*/digest",
       "class": "canonical-json",
       "old_profile": "tos_source_command_input_v1",
-      "producer_context": "tos-command source_claims::claim_creation_receipt maps each supplied claim through metadata_subject, which hashes its canonical record"
+      "producer_context": "tos-command source_claims::claim_creation_receipt maps each supplied claim through metadata_subject, which hashes its canonical record",
+      "pointer_pattern": "/claims/*/digest"
     },
     {
       "field": "request_digest",
       "file_suffix": "claim-revision-history.json",
-      "pointer_contains": "/receipts/*/request_digest",
       "class": "canonical-json",
       "old_profile": "tos_source_command_input_v1",
-      "producer_context": "tos-command source_claims.rs hashes the claim request, owner configuration, dependency grounding or previous package file references with record_digest"
+      "producer_context": "tos-command source_claims.rs hashes the claim request, owner configuration, dependency grounding or previous package file references with record_digest",
+      "pointer_pattern": "/receipts/*/request_digest"
     },
     {
       "field": "owner_configuration",
       "file_suffix": "claim-revision-history.json",
-      "pointer_contains": "/receipts/*/owner_configuration",
       "class": "canonical-json",
       "old_profile": "tos_source_command_input_v1",
-      "producer_context": "tos-command source_claims.rs hashes the claim request, owner configuration, dependency grounding or previous package file references with record_digest"
+      "producer_context": "tos-command source_claims.rs hashes the claim request, owner configuration, dependency grounding or previous package file references with record_digest",
+      "pointer_pattern": "/receipts/*/owner_configuration"
     },
     {
       "field": "dependencies",
       "file_suffix": "claim-revision-history.json",
-      "pointer_contains": "/receipts/*/dependencies",
       "class": "canonical-json",
       "old_profile": "tos_source_command_input_v1",
-      "producer_context": "tos-command source_claims.rs hashes the claim request, owner configuration, dependency grounding or previous package file references with record_digest"
+      "producer_context": "tos-command source_claims.rs hashes the claim request, owner configuration, dependency grounding or previous package file references with record_digest",
+      "pointer_pattern": "/receipts/*/dependencies"
     },
     {
       "field": "previous_revision",
       "file_suffix": "claim-revision-history.json",
-      "pointer_contains": "/receipts/*/previous_revision",
       "class": "canonical-json",
       "old_profile": "tos_source_command_input_v1",
-      "producer_context": "tos-command source_claims.rs hashes the claim request, owner configuration, dependency grounding or previous package file references with record_digest"
+      "producer_context": "tos-command source_claims.rs hashes the claim request, owner configuration, dependency grounding or previous package file references with record_digest",
+      "pointer_pattern": "/receipts/*/previous_revision"
     },
     {
       "field": "expected_revision",
       "file_suffix": "claim-revision-history.json",
-      "pointer_contains": "/receipts/*/request/expected_revision",
       "class": "canonical-json",
       "old_profile": "tos_source_command_input_v1",
-      "producer_context": "tos-command source_claims.rs hashes the claim request, owner configuration, dependency grounding or previous package file references with record_digest"
+      "producer_context": "tos-command source_claims.rs hashes the claim request, owner configuration, dependency grounding or previous package file references with record_digest",
+      "pointer_pattern": "/receipts/*/request/expected_revision"
     },
     {
       "field": "expected_dependencies",
       "file_suffix": "claim-revision-history.json",
-      "pointer_contains": "/receipts/*/request/expected_dependencies",
       "class": "canonical-json",
       "old_profile": "tos_source_command_input_v1",
-      "producer_context": "tos-command source_claims.rs hashes the claim request, owner configuration, dependency grounding or previous package file references with record_digest"
+      "producer_context": "tos-command source_claims.rs hashes the claim request, owner configuration, dependency grounding or previous package file references with record_digest",
+      "pointer_pattern": "/receipts/*/request/expected_dependencies"
     },
     {
       "field": "expected_configuration",
       "file_suffix": "claim-revision-history.json",
-      "pointer_contains": "/receipts/*/request/expected_configuration",
       "class": "canonical-json",
       "old_profile": "tos_source_command_input_v1",
-      "producer_context": "tos-command source_claims.rs hashes the claim request, owner configuration, dependency grounding or previous package file references with record_digest"
+      "producer_context": "tos-command source_claims.rs hashes the claim request, owner configuration, dependency grounding or previous package file references with record_digest",
+      "pointer_pattern": "/receipts/*/request/expected_configuration"
     },
     {
       "field": "digest",
       "file_suffix": "claim-revision-history.json",
-      "pointer_contains": "/receipts/*/request/expected_source/digest",
       "class": "canonical-json",
       "old_profile": "tos_source_command_input_v1",
-      "producer_context": "tos-command source_claims.rs validates expected_source against metadata_subject of the canonical claim record"
+      "producer_context": "tos-command source_claims.rs validates expected_source against metadata_subject of the canonical claim record",
+      "pointer_pattern": "/receipts/*/request/expected_source/digest"
     },
     {
       "field": "digest",
@@ -476,18 +476,18 @@
     {
       "field": "digest",
       "file_suffix": "source-create-request.json",
-      "pointer_contains": "/memberships/*/ref/digest",
       "class": "canonical-json",
       "old_profile": "tos_source_command_input_v1",
-      "producer_context": "tos-command source_claims.rs validates typed collection and membership version references against canonical source records"
+      "producer_context": "tos-command source_claims.rs validates typed collection and membership version references against canonical source records",
+      "pointer_pattern": "/memberships/*/ref/digest"
     },
     {
       "field": "digest",
       "file_suffix": "source-create-request.json",
-      "pointer_contains": "/memberships/*/provenance/catalog/current_record_ref/digest",
       "class": "canonical-json",
       "old_profile": "tos_source_command_input_v1",
-      "producer_context": "tos-command source_claims.rs validates typed collection and membership version references against canonical source records"
+      "producer_context": "tos-command source_claims.rs validates typed collection and membership version references against canonical source records",
+      "pointer_pattern": "/memberships/*/provenance/catalog/current_record_ref/digest"
     },
     {
       "field": "digest",
@@ -532,18 +532,18 @@
     {
       "field": "digest",
       "file_suffix": "source-create-receipt.json",
-      "pointer_contains": "/memberships/*/ref/digest",
       "class": "canonical-json",
       "old_profile": "tos_source_command_input_v1",
-      "producer_context": "tos-command source_claims.rs carries exact collection and membership version references in the source bindings receipt"
+      "producer_context": "tos-command source_claims.rs carries exact collection and membership version references in the source bindings receipt",
+      "pointer_pattern": "/memberships/*/ref/digest"
     },
     {
       "field": "digest",
       "file_suffix": "source-create-receipt.json",
-      "pointer_contains": "/memberships/*/provenance/catalog/current_record_ref/digest",
       "class": "canonical-json",
       "old_profile": "tos_source_command_input_v1",
-      "producer_context": "tos-command source_claims.rs carries exact collection and membership version references in the source bindings receipt"
+      "producer_context": "tos-command source_claims.rs carries exact collection and membership version references in the source bindings receipt",
+      "pointer_pattern": "/memberships/*/provenance/catalog/current_record_ref/digest"
     },
     {
       "field": "digest",
@@ -644,6 +644,96 @@
       "class": "canonical-json",
       "old_profile": "tos_source_record_digest_v1",
       "producer_context": "tos-compiler source_bibliographic_render hashes the selected predicate mapping using SourceRecordDigestV1."
+    },
+    {
+      "field": "request_digest",
+      "file_contains": "assessment-journal/",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "tos-command source_native_private_assessment_cli.rs hashes the assessment append request with source_command::record_digest"
+    },
+    {
+      "field": "previous_revision",
+      "file_contains": "assessment-journal/",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "tos-command source_native_private_assessment_cli.rs carries the previous assessment batch revision, derived from source_command::record_digest"
+    },
+    {
+      "field": "digest",
+      "file_contains": "assessment-journal/",
+      "pointer_contains": "/request/subject/",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "assessment batch request subject exactRef from source_native_private_assessment_cli.rs owner_reference"
+    },
+    {
+      "field": "digest",
+      "file_contains": "assessment-journal/",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "assessment batch request execution profile exactRef from source_native_private_assessment_cli.rs owner_reference",
+      "pointer_pattern": "/request/events/*/execution_profile/**/digest"
+    },
+    {
+      "field": "digest",
+      "file_contains": "assessment-journal/",
+      "class": "canonical-json",
+      "old_profile": "tos_source_record_digest_v1",
+      "producer_context": "assessment batch request assessment exactRefs follow the knowledge-assessment record payload schema",
+      "pointer_pattern": "/request/events/*/assessment/**/digest"
+    },
+    {
+      "field": "digest",
+      "file_contains": "assessment-journal/",
+      "pointer_contains": "/qualification/policy/",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "assessment batch qualification policy exactRef from source_native_private_assessment_cli.rs owner_reference"
+    },
+    {
+      "field": "digest",
+      "file_contains": "assessment-journal/",
+      "class": "canonical-json",
+      "old_profile": "tos_source_record_digest_v1",
+      "producer_context": "assessment batch event assessment exactRefs follow the knowledge-assessment record payload schema",
+      "pointer_pattern": "/events/*/assessment/**/digest"
+    },
+    {
+      "field": "digest",
+      "file_contains": "assessment-journal/",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "assessment batch event execution profile exactRef from source_native_private_assessment_cli.rs owner_reference",
+      "pointer_pattern": "/events/*/execution_profile/**/digest"
+    },
+    {
+      "field": "digest",
+      "file_contains": "assessment-journal/",
+      "pointer_contains": "/admission_at_commit/",
+      "class": "canonical-json",
+      "old_profile": "tos_source_record_digest_v1",
+      "producer_context": "assessment batch admission refs from tos-validation assessment records and admission report"
+    },
+    {
+      "field": "digest",
+      "pointer_contains": "/readable_context/vocabulary/digest",
+      "class": "canonical-json",
+      "old_profile": "tos_source_record_digest_v1",
+      "producer_context": "tos-compiler knowledge_readable_context.rs hashes the canonical context-presentation source record"
+    },
+    {
+      "field": "digest",
+      "class": "canonical-json",
+      "old_profile": "tos_source_record_digest_v1",
+      "producer_context": "tos-compiler knowledge_readable_context.rs source_ref binds each entry to its canonical source record",
+      "pointer_pattern": "/readable_context/contexts/*/entries/*/binding/record/digest"
+    },
+    {
+      "field": "digest",
+      "class": "raw-bytes",
+      "producer_context": "tos-compiler knowledge_readable_context.rs hashes exact UTF-8 bytes of the canonical_json field",
+      "pointer_pattern": "/readable_context/exact_materials/*/digest"
     }
   ]
 }
