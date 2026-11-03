@@ -1315,6 +1315,11 @@ mod tests {
         );
         package_manifest(
             &root,
+            "tos-research",
+            include_str!("../../tos-research/Cargo.toml"),
+        );
+        package_manifest(
+            &root,
             "tos-command",
             "[package]\nname = \"tos-command\"\n[features]\npostgres-lab = []\n",
         );
