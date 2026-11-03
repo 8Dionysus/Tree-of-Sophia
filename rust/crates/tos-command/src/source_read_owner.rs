@@ -16,7 +16,6 @@ use std::{
 };
 use tos_compiler::prepared_source_binding::PreparedSourceInputs;
 use tos_foundation::{Digest256, JsonLimits, JsonMode, JsonValue, SourceRevision};
-pub use tos_validation::executor::ExactWorkerIdentity;
 use tos_validation::{
     FormatProfile, SchemaResource,
     in_process::InputMode,
@@ -176,13 +175,9 @@ impl SelectedSourceReadOwner {
         source_root: &Path,
         inputs_raw: &[u8],
         expected_revision: &str,
-        worker: ExactWorkerIdentity,
         local_selection: Option<&Path>,
     ) -> Result<Self> {
-        if !source_root.is_absolute()
-            || !worker.absolute_path.is_absolute()
-            || local_selection.is_some_and(|p| !p.is_absolute())
-        {
+        if !source_root.is_absolute() || local_selection.is_some_and(|p| !p.is_absolute()) {
             return Err(Error::Invalid("explicit source owner selection"));
         }
         let input = PreparedSourceInputs::parse(inputs_raw, Default::default()).map_err(project)?;
@@ -911,6 +906,31 @@ pub fn software_packet(operation: SourceReadOperation) -> Result<Vec<u8>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn selected_owner_opens_retained_source_vector_without_worker() {
+        let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../tests/conformance/rust/legacy-python-oracles-v1/metadata/prepared-before.packet.json");
+        let packet: Value = serde_json::from_slice(&std::fs::read(fixture).unwrap()).unwrap();
+        let inputs = &packet["source_inputs"];
+        let revision = inputs["source_revision"].as_str().unwrap();
+        let mut raw = tos_foundation::canonical_raw_bytes_v1(
+            &serde_json::to_vec(inputs).unwrap(),
+            tos_foundation::CanonicalProfile::SourceRecordDigestV1,
+            JsonLimits::new(1_048_576, 128, 1_000_000, 4300).unwrap(),
+        )
+        .unwrap();
+        raw.push(b'\n');
+        let selected = SelectedSourceReadOwner::open(Path::new("/"), &raw, revision, None).unwrap();
+        assert_eq!(
+            selected.source_inputs_sha256(),
+            Digest256::of_bytes(&raw).to_hex()
+        );
+        assert!(matches!(
+            SelectedSourceReadOwner::open(Path::new("/"), &raw, &"0".repeat(64), None),
+            Err(Error::Conflict(_))
+        ));
+    }
 
     #[test]
     fn selected_read_schema_retains_candidate_scope_and_contract_digest() {
