@@ -98,6 +98,15 @@
           "expected_sha256": "d857eb6c714f56a2659a81eedbdac1c9170810f0a45ec5e5d965ef654a449724"
         }
       ],
+      "citation_profile": {
+        "root_prefix": "Za-DE-",
+        "separator": ".",
+        "ordinal_width": 3,
+        "unit_prefixes": {"section": "s", "paragraph": "p", "verse_group": "vg", "verse_line": "v", "milestone": "m"},
+        "tag_prefixes": {"pb": "pb", "head": "h", "item": "item", "quote": "q", "bibl": "b"},
+        "tag_specific_kinds": ["milestone", "other"],
+        "fallback_prefix": "u"
+      },
       "tei_text_profile": {
         "choice_preference": [
           "sic",

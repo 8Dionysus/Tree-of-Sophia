@@ -1,6 +1,12 @@
 //! Text-free records for exact DTA TEI technical structure.
 use super::*;
-pub(super) fn method(plan_ref: &str, builder: &str, event_id: &str, made_at: &str) -> Value {
+pub(super) fn method(
+    plan_ref: &str,
+    builder: &str,
+    event_id: &str,
+    made_at: &str,
+    language: &str,
+) -> Value {
     json!({
     "maker_kind": "software",
     "agent_ref": "software:tos-zarathustra-technical-markup-builder",
@@ -9,7 +15,7 @@ pub(super) fn method(plan_ref: &str, builder: &str, event_id: &str, made_at: &st
     "software_refs": [builder],
     "model_ref": null,
     "configuration_ref": plan_ref,
-    "locale": "de",
+    "locale": language,
     "unicode_version": null,
     "unicode_revision": null,
     "tailoring_ref": null,
@@ -109,7 +115,7 @@ pub(super) fn packet(
     "source_layer": {
     "text_layer_ref": private_ref,
     "text_layer_sha256": content_digest,
-    "language": "de",
+    "language": plan["language"],
     "media_type": "text/plain; charset=utf-8",
     "unicode_form": "source_preserved",
     "position_unit": "unicode_code_point",

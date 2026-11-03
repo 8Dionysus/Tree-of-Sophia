@@ -707,11 +707,80 @@ fn identities(issuance: &Value) -> Result<Identities> {
     }
     Ok((part, units))
 }
+struct CitationProfile<'a> {
+    root_prefix: &'a str,
+    separator: &'a str,
+    ordinal_width: usize,
+    unit_prefixes: &'a serde_json::Map<String, Value>,
+    tag_prefixes: &'a serde_json::Map<String, Value>,
+    tag_specific_kinds: BTreeSet<&'a str>,
+    fallback_prefix: &'a str,
+}
+impl<'a> CitationProfile<'a> {
+    fn selected(ctx: &ResearchExecution, recipe: &'a Value) -> Result<Self> {
+        let p = &recipe["citation_profile"];
+        let width = number(&p["ordinal_width"])?;
+        let budget = ctx.budget_report();
+        let remaining = number(&budget["work_units_max"])?
+            .saturating_sub(number(&budget["charged_work_units"])?);
+        ensure(
+            width > 0 && width <= remaining,
+            "citation width exceeds remaining work",
+        )?;
+        let unit_prefixes = p["unit_prefixes"]
+            .as_object()
+            .ok_or("citation unit prefixes")?;
+        let tag_prefixes = p["tag_prefixes"]
+            .as_object()
+            .ok_or("citation tag prefixes")?;
+        for (key, value) in unit_prefixes.iter().chain(tag_prefixes.iter()) {
+            ensure(!key.is_empty(), "empty citation prefix key")?;
+            s(value)?;
+        }
+        let mut tag_specific_kinds = BTreeSet::new();
+        for kind in array(&p["tag_specific_kinds"])? {
+            ensure(
+                tag_specific_kinds.insert(s(kind)?),
+                "duplicate citation tag kind",
+            )?;
+        }
+        Ok(Self {
+            root_prefix: s(&p["root_prefix"])?,
+            separator: s(&p["separator"])?,
+            ordinal_width: usize::try_from(width).map_err(|_| "citation width overflow")?,
+            unit_prefixes,
+            tag_prefixes,
+            tag_specific_kinds,
+            fallback_prefix: s(&p["fallback_prefix"])?,
+        })
+    }
+    fn prefix(&self, unit: &Unit) -> Result<&str> {
+        let tag = self
+            .tag_specific_kinds
+            .contains(unit.unit_kind)
+            .then(|| self.tag_prefixes.get(&unit.source_tag))
+            .flatten();
+        match tag.or_else(|| self.unit_prefixes.get(unit.unit_kind)) {
+            Some(value) => s(value),
+            None => Ok(self.fallback_prefix),
+        }
+    }
+}
+fn frozen_schema<'a>(recipe: &'a Value, role: &str) -> Result<&'a str> {
+    let mut found = array(&recipe["frozen_outputs"])?
+        .iter()
+        .filter(|row| row["role"] == role);
+    let row = found.next().ok_or("frozen output schema missing")?;
+    ensure(found.next().is_none(), "duplicate frozen output role")?;
+    s(&row["schema_version"])
+}
 fn citations(
     ctx: &ResearchExecution,
     plan: &Value,
     parts: &[ObservedPart],
     ids: &Identities,
+    profile: &CitationProfile<'_>,
+    schema_version: &str,
 ) -> Result<Vec<Value>> {
     let mut rows = Vec::new();
     let mut displayed = BTreeSet::new();
@@ -733,35 +802,21 @@ fn citations(
         for (i, u) in part.units.iter().enumerate() {
             ctx.tick(1)?;
             let (citation, ordinal) = if u.unit_kind == "document" {
-                (format!("Za-DE-{label}"), 1)
+                (format!("{}{label}", profile.root_prefix), 1)
             } else {
-                let prefix = match u.unit_kind {
-                    "section" => "s",
-                    "paragraph" => "p",
-                    "verse_group" => "vg",
-                    "verse_line" => "v",
-                    "milestone" => {
-                        if u.source_tag == "pb" {
-                            "pb"
-                        } else {
-                            "m"
-                        }
-                    }
-                    _ => match u.source_tag.as_str() {
-                        "head" => "h",
-                        "item" => "item",
-                        "quote" => "q",
-                        "bibl" => "b",
-                        _ => "u",
-                    },
-                };
+                let prefix = profile.prefix(u)?;
                 let ordinal = counters.entry((u.parent, prefix)).or_insert(0);
                 *ordinal += 1;
+                ctx.tick(
+                    u64::try_from(profile.ordinal_width).map_err(|_| "citation width overflow")?,
+                )?;
                 (
                     format!(
-                        "{}.{prefix}{:03}",
+                        "{}{}{prefix}{:0width$}",
                         citations[u.parent.ok_or("citation parent absent")?],
-                        ordinal
+                        profile.separator,
+                        ordinal,
+                        width = profile.ordinal_width
                     ),
                     *ordinal,
                 )
@@ -794,7 +849,7 @@ fn citations(
                 .iter()
                 .map(|&c| &part.units[c])
                 .collect::<Vec<_>>();
-            rows.push(json!({"schema_version":"tos_zarathustra_technical_citation_v1","work_ref":plan["work_ref"],"part_order":order,"part_label":label,"unit_id":identity["unit_id"],"anchor_ref":identity["anchor_ref"],"parent_unit_id":parent,"unit_kind":u.unit_kind,"source_tag":u.source_tag,"structural_role":u.structural_role,"display_citation":citation,"ordinal_within_parent_kind":ordinal,"nearest_major_unit_id":major_id,"nearest_major_correspondence_id":major.map(|m|&m.correspondence_id),"ordinal_within_nearest_major_kind":major_ordinal,"direct_child_count":children.len(),"direct_paragraph_count":children.iter().filter(|u|u.unit_kind=="paragraph").count(),"descendant_paragraph_count":descendants[i].0,"direct_verse_line_count":children.iter().filter(|u|u.unit_kind=="verse_line").count(),"descendant_verse_line_count":descendants[i].1,"source_locator":u.locator,"source_resource_id":u.resource_id,"major_correspondence_id":u.correspondence_id,"major_correspondence_sequence":u.correspondence_sequence,"boundary_posture":"source_attested","segmentation_status":"observed_source_structure","source_text_included":false,"semantic_promotion":false}));
+            rows.push(json!({"schema_version":schema_version,"work_ref":plan["work_ref"],"part_order":order,"part_label":label,"unit_id":identity["unit_id"],"anchor_ref":identity["anchor_ref"],"parent_unit_id":parent,"unit_kind":u.unit_kind,"source_tag":u.source_tag,"structural_role":u.structural_role,"display_citation":citation,"ordinal_within_parent_kind":ordinal,"nearest_major_unit_id":major_id,"nearest_major_correspondence_id":major.map(|m|&m.correspondence_id),"ordinal_within_nearest_major_kind":major_ordinal,"direct_child_count":children.len(),"direct_paragraph_count":children.iter().filter(|u|u.unit_kind=="paragraph").count(),"descendant_paragraph_count":descendants[i].0,"direct_verse_line_count":children.iter().filter(|u|u.unit_kind=="verse_line").count(),"descendant_verse_line_count":descendants[i].1,"source_locator":u.locator,"source_resource_id":u.resource_id,"major_correspondence_id":u.correspondence_id,"major_correspondence_sequence":u.correspondence_sequence,"boundary_posture":"source_attested","segmentation_status":"observed_source_structure","source_text_included":false,"semantic_promotion":false}));
         }
     }
     Ok(rows)
@@ -947,7 +1002,12 @@ fn count<'a>(iter: impl Iterator<Item = &'a str>) -> BTreeMap<String, usize> {
     }
     out
 }
-fn summary(plan: &Value, parts: &[ObservedPart], citations: &[Value]) -> Result<Value> {
+fn summary(
+    plan: &Value,
+    parts: &[ObservedPart],
+    citations: &[Value],
+    schema_version: &str,
+) -> Result<Value> {
     let mut part_rows = Vec::new();
     let kinds = count(
         parts
@@ -970,7 +1030,7 @@ fn summary(plan: &Value, parts: &[ObservedPart], citations: &[Value]) -> Result<
         )?;
         part_rows.push(json!({"part_order":p.config["part_order"],"part_label":p.config["part_label"],"item_ref":p.config["item_ref"],"source_file_sha256":p.config["file_sha256"],"private_text_layer_sha256":sha(p.content.as_bytes()),"private_text_layer_code_points":p.positions.len()-1,"unit_count":p.units.len(),"unit_kind_counts":kinds,"source_tag_counts":tags,"structural_role_counts":roles,"excluded_resources":p.excluded,"source_text_included":false}));
     }
-    let value = json!({"schema_version":"tos_zarathustra_dta_technical_markup_summary_v1","work_ref":plan["work_ref"],"language":"de","part_count":parts.len(),"unit_count":parts.iter().map(|p|p.units.len()).sum::<usize>(),"citation_count":citations.len(),"display_citations_unique":citations.iter().map(|r|r["display_citation"].as_str()).collect::<BTreeSet<_>>().len()==citations.len(),"unit_kind_counts":kinds,"source_tag_counts":tags,"major_structure_candidate_count":citations.iter().filter(|r|!r["major_correspondence_id"].is_null()).count(),"major_reading_unit_candidate_count":citations.iter().filter(|r|r["structural_role"]=="major_reading_unit_candidate").count(),"major_wrapper_candidate_count":citations.iter().filter(|r|r["structural_role"]=="major_wrapper_candidate").count(),"parts":part_rows,"source_text_included":false,"segmentation_status":"observed_source_structure","human_review_status":"unreviewed","semantic_fields_materialized":false,"russian_parallel_structure_materialized":false,"authority_boundary":plan["authority_boundary"]});
+    let value = json!({"schema_version":schema_version,"work_ref":plan["work_ref"],"language":plan["language"],"part_count":parts.len(),"unit_count":parts.iter().map(|p|p.units.len()).sum::<usize>(),"citation_count":citations.len(),"display_citations_unique":citations.iter().map(|r|r["display_citation"].as_str()).collect::<BTreeSet<_>>().len()==citations.len(),"unit_kind_counts":kinds,"source_tag_counts":tags,"major_structure_candidate_count":citations.iter().filter(|r|!r["major_correspondence_id"].is_null()).count(),"major_reading_unit_candidate_count":citations.iter().filter(|r|r["structural_role"]=="major_reading_unit_candidate").count(),"major_wrapper_candidate_count":citations.iter().filter(|r|r["structural_role"]=="major_wrapper_candidate").count(),"parts":part_rows,"source_text_included":false,"segmentation_status":"observed_source_structure","human_review_status":"unreviewed","semantic_fields_materialized":false,"russian_parallel_structure_materialized":false,"authority_boundary":plan["authority_boundary"]});
     let actual = json!({"parts":parts.len(),"major_structure_candidates":value["major_structure_candidate_count"],"reading_units_excluding_wrapper":value["major_reading_unit_candidate_count"],"divisions":tags.get("div").unwrap_or(&0),"paragraphs":kinds.get("paragraph").unwrap_or(&0),"verse_groups":kinds.get("verse_group").unwrap_or(&0),"verse_lines":kinds.get("verse_line").unwrap_or(&0)});
     for (k, v) in actual.as_object().unwrap() {
         ensure(
@@ -1303,6 +1363,9 @@ fn tracked(ctx: &ResearchExecution, plan: &Value, plan_ref: &str, event: &Value)
 pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
     validate_identity_recipe(opts.recipe)?;
     validate_legacy_recipe(opts.recipe)?;
+    let citation_profile = CitationProfile::selected(ctx, opts.recipe)?;
+    let citation_schema = frozen_schema(opts.recipe, "citation-spine")?;
+    let summary_schema = frozen_schema(opts.recipe, "summary")?;
     let (plan_raw, plan) = current_plan(ctx, opts.plan_ref)?;
     let profile = TextProfile::selected(opts.recipe, &plan)?;
     let retained = retained_event(ctx, &plan, &opts)?;
@@ -1434,7 +1497,7 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
             && ids.0.keys().copied().collect::<BTreeSet<_>>() == part_orders(&plan)?,
         "locator identity set drifted; explicit successor work required",
     )?;
-    let citations = citations(ctx, &plan, &parts, &ids)?;
+    let citations = citations(ctx, &plan, &parts, &ids, &citation_profile, citation_schema)?;
     let citation_raw = jsonl(ctx, &citations)?;
     let citation_digest = sha(&citation_raw);
     let citation_ref = out(&plan, "citation_spine_ref")?;
@@ -1445,7 +1508,13 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
     } else {
         BUILDER
     };
-    let method = records::method(opts.plan_ref, builder, &event_id, &made_at);
+    let method = records::method(
+        opts.plan_ref,
+        builder,
+        &event_id,
+        &made_at,
+        s(&plan["language"])?,
+    );
     for p in &parts {
         let n = number(&p.config["part_order"])?;
         let packet = packet(
@@ -1475,7 +1544,7 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
             "duplicate private output",
         )?;
     }
-    let summary = summary(&plan, &parts, &citations)?;
+    let summary = summary(&plan, &parts, &citations, summary_schema)?;
     ensure(
         tracked
             .insert(out(&plan, "summary_ref")?, encode(ctx, &summary, true)?)
@@ -1703,7 +1772,17 @@ mod tests {
             f["issuance_sha256"]
         );
         let ids = identities(&issued).unwrap();
-        let cs = citations(&ctx, &f["plan"], &parts, &ids).unwrap();
+        let chosen = recipe();
+        let profile = CitationProfile::selected(&ctx, &chosen).unwrap();
+        let cs = citations(
+            &ctx,
+            &f["plan"],
+            &parts,
+            &ids,
+            &profile,
+            frozen_schema(&chosen, "citation-spine").unwrap(),
+        )
+        .unwrap();
         let csraw = jsonl(&ctx, &cs).unwrap();
         assert_eq!(sha(&csraw), f["citations_sha256"]);
         let method = records::method(
@@ -1711,6 +1790,7 @@ mod tests {
             s(&recipe()["legacy_builder_ref"]).unwrap(),
             s(&recipe()["legacy_event_id"]).unwrap(),
             s(&f["plan"]["created_at"]).unwrap(),
+            s(&f["plan"]["language"]).unwrap(),
         );
         let packet = packet(
             &ctx,
@@ -1803,12 +1883,23 @@ mod tests {
         let f = fixture();
         let parts = vec![observed(&ctx, &f)];
         let ids = identities(&issue(&f["plan"], &parts, &recipe()).unwrap()).unwrap();
-        let cs = citations(&ctx, &f["plan"], &parts, &ids).unwrap();
+        let chosen = recipe();
+        let profile = CitationProfile::selected(&ctx, &chosen).unwrap();
+        let cs = citations(
+            &ctx,
+            &f["plan"],
+            &parts,
+            &ids,
+            &profile,
+            frozen_schema(&chosen, "citation-spine").unwrap(),
+        )
+        .unwrap();
         let method = records::method(
             s(&recipe()["plan_ref"]).unwrap(),
             BUILDER,
             "tos.event.native.test",
             s(&f["plan"]["created_at"]).unwrap(),
+            s(&f["plan"]["language"]).unwrap(),
         );
         let p = packet(
             &ctx,
