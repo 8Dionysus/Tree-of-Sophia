@@ -11446,7 +11446,21 @@ fn sign_promotion_native_entry_v3_assesses_prepares_commits_reads_and_replays() 
     let (capture, _software, components) =
         super::command_record_cases::captured_components(&captured, deadline, &cancelled);
     let store = temporary.path().join("sign-native-entry-cut");
-    let initial_revision = super::validation_cut_cases::write_cut_store(&authored, &store);
+    let modes = authored
+        .keys()
+        .map(|path| {
+            (
+                path.clone(),
+                fs::metadata(public_root.join(path))
+                    .unwrap()
+                    .permissions()
+                    .mode()
+                    & 0o777,
+            )
+        })
+        .collect();
+    let initial_revision =
+        super::validation_cut_cases::write_cut_store_with_modes(&authored, &store, &modes);
     let images = [
         std::env::current_exe().unwrap(),
         PathBuf::from(
@@ -11683,10 +11697,24 @@ fn sign_promotion_native_entry_v3_assesses_prepares_commits_reads_and_replays() 
 
     let mut current_files = super::command_text_cases::authored_text_files(&public_root);
     current_files.remove("ToS/source-witnesses/.historical-create.writer.lock");
-    let successor = super::validation_cut_cases::write_cut_store_on_base(
+    let current_modes = current_files
+        .keys()
+        .map(|path| {
+            (
+                path.clone(),
+                fs::metadata(public_root.join(path))
+                    .unwrap()
+                    .permissions()
+                    .mode()
+                    & 0o777,
+            )
+        })
+        .collect();
+    let successor = super::validation_cut_cases::write_cut_store_with_optional_modes(
         &current_files,
         &store,
         Some(initial_revision),
+        Some(&current_modes),
     );
     invocation["source_revision"] = Value::from(successor.0.to_prefixed());
     let replayed = invoke(&mut invocation, &sign_owner, None, &command);
