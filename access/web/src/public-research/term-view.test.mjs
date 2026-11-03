@@ -36,6 +36,15 @@ describe('active terms',()=>{
     expect(termMatcher(termForms(terms,'ru')).find('превзойти его самого; служит своему Самому, Самого.').map(item=>item.text)).toEqual(['Самого']);
     expect(termMatcher(new Map())).toBeNull();
   });
+  it('matches Greek accents and breathings while preserving the spelling in the text',()=>{
+    const term={id:'logos',original:{lang:'grc',forms:['λόγος']}};
+    const matcher=termMatcher(termForms({terms:[term]},'grc'),{greek:true});
+    expect(matcher.find('ὁ λόγος, λο\u0301γος, διαλόγος').map(item=>item.text)).toEqual(['λόγος','λο\u0301γος']);
+  });
+  it('includes the forms of each translation edition',()=>{
+    const term={id:'appearance',renderings:{en:{tos:{forms:['impression']},witness:[{forms:['appearance']},{forms:['semblance']}]}}};
+    expect([...termForms({terms:[term]},'en').keys()]).toEqual(['impression','appearance','semblance']);
+  });
 });
 
 it('marks quoted it-was forms without matching ordinary past-tense words',()=>{
@@ -65,6 +74,29 @@ it('first touch remains a preview when focus arrives before click',()=>{
   handlers.pointerdown(event);handlers.focusin(event);handlers.click(event);
   expect(open).not.toHaveBeenCalled();expect(body.children[0].hidden).toBe(false);
   handlers.pointerdown(event);handlers.click(event);expect(open).toHaveBeenCalledOnce();
+  terms.dispose();vi.unstubAllGlobals();
+});
+
+it('shows the original, edition words and gloss before opening an Antiquity place',()=>{
+  const handlers={};
+  class Element{
+    constructor(tag){this.tagName=tag.toUpperCase();this.dataset={};this.style={};this.attrs={};this.children=[];this.listeners={};this.hidden=false;}
+    setAttribute(k,v){this.attrs[k]=v;} removeAttribute(k){delete this.attrs[k];}
+    append(...nodes){for(const node of nodes){node.parentElement=this;this.children.push(node);}}
+    replaceChildren(...nodes){this.children=[];this.append(...nodes);}
+    addEventListener(type,fn){this.listeners[type]=fn;} remove(){} contains(node){return this===node||this.children.includes(node);}
+    closest(selector){return selector==='.ps-term'&&this.dataset.term?this:null;}
+    getBoundingClientRect(){return {left:0,width:20,top:20,bottom:40};}
+  }
+  const body=new Element('body');
+  vi.stubGlobal('document',{body,documentElement:{lang:'en'},createElement:tag=>new Element(tag),addEventListener:(type,fn)=>{handlers[type]=fn;},removeEventListener(){}});
+  vi.stubGlobal('innerWidth',800);vi.stubGlobal('innerHeight',600);vi.stubGlobal('addEventListener',()=>{});vi.stubGlobal('removeEventListener',()=>{});
+  const first={w:'discourses',u:['first','first'],s:0,e:30},open=vi.fn();
+  const terms=createTerms({locale:()=> 'en',open,module:{editions:{long:{label:{en:'Long'}},higginson:{label:{en:'Higginson'}}},terms:[{id:'phantasia',original:{lang:'grc',lemma:'φαντασία'},first,renderings:{en:{tos:{term:'impression'},witness:[{edition:'long',term:'appearance'},{edition:'higginson',term:'semblance'}]}},gloss:{en:'An impression meets judgment.'}}]}});
+  const span=new Element('span');span.dataset.term='phantasia';handlers.focusin({target:span});
+  const card=body.children[0],text=node=>[node.textContent??'',...node.children.map(text)].join(' ');
+  expect(text(card)).toContain('φαντασία');expect(text(card)).toContain('appearance');expect(text(card)).toContain('semblance');expect(text(card)).toContain('An impression meets judgment.');
+  card.children.at(-1).listeners.click();expect(open).toHaveBeenCalledWith(first);
   terms.dispose();vi.unstubAllGlobals();
 });
 

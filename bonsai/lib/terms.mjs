@@ -27,8 +27,18 @@ export function formPattern(forms){
 /** Whether a text holds one of the forms as a whole word. */
 export const holdsForm=(value,forms)=>formPattern(forms).test(String(value??'').replace(/\s+/g,' '));
 
+// Greek accents and breathings differ between editions. Keep the original text
+// for display, but compare Greek spellings without those marks or final sigma.
+export const greekKey=value=>String(value??'').normalize('NFD').replace(/\p{M}/gu,'').toLowerCase().replaceAll('ς','σ');
+const holdsOriginal=(place,forms,language)=>{
+  const key=language==='grc'?greekKey:value=>String(value??'').toLowerCase();
+  const before=key(place.before??' '),value=key(place.text),after=key(place.after??' ');
+  const pattern=new RegExp(formPattern(forms.map(key)).source,'giu');
+  return [...(before+value+after).matchAll(pattern)].some(match=>match.index>=before.length&&match.index+match[0].length<=before.length+value.length);
+};
+
 /** Problems of a terms module, its first places checked against the witness chapters (by key). */
-export function termsIssues(module,chapterFiles={},{pivot='de'}={}){
+export function termsIssues(module,chapterFiles={},{pivot='de',place=null}={}){
   const issues=[];
   if(module?.schema!==TERMS_SCHEMA)issues.push('schema');
   if(!Array.isArray(module?.terms)||!module.terms.length){issues.push('no terms');return issues;}
@@ -41,12 +51,19 @@ export function termsIssues(module,chapterFiles={},{pivot='de'}={}){
     if(!ID.test(term?.id??'')){issues.push(`${at}: id`);continue;}
     if(seen.has(term.id))issues.push(`${at}: repeated`);seen.add(term.id);
     const original=term.original??{};
-    if(original.lang!==pivot||!text(original.lemma)||!words(original.forms)||!original.forms.includes(original.lemma))issues.push(`${at}: original lang, lemma and forms (with the lemma)`);
+    if(!(Array.isArray(pivot)?pivot.includes(original.lang):original.lang===pivot)||!text(original.lemma)||!words(original.forms)||!original.forms.includes(original.lemma))issues.push(`${at}: original lang, lemma and forms (with the lemma)`);
+    if(place)for(const form of original.forms??[]){
+      const key=`${original.lang}:${original.lang==='grc'?greekKey(form):form.toLowerCase()}`;
+      if(claimed.has(key)&&claimed.get(key)!==term.id)issues.push(`${at}: original form "${form}" belongs to ${claimed.get(key)}`);
+      claimed.set(key,term.id);
+    }
     for(const language of LANGUAGES){
-      const rendering=term.renderings?.[language]??{},tos=rendering.tos??{},witness=rendering.witness??{};
+      const rendering=term.renderings?.[language]??{},tos=rendering.tos??{};
       if(!text(tos.term)||!words(tos.forms)||!tos.forms.includes(tos.term))issues.push(`${at}: the Tree's ${language} term and its forms (with the term)`);
-      if(witness.edition&&(!editions[witness.edition]||editions[witness.edition].lang!==language))issues.push(`${at}: ${language} witness edition ${witness.edition}`);
-      if(witness.edition&&(!text(witness.term)||!words(witness.forms)))issues.push(`${at}: the ${language} witness's term and forms`);
+      for(const witness of [].concat(rendering.witness??[])){
+        if(witness.edition&&(!editions[witness.edition]||editions[witness.edition].lang!==language))issues.push(`${at}: ${language} witness edition ${witness.edition}`);
+        if(witness.edition&&(!text(witness.term)||!words(witness.forms)))issues.push(`${at}: the ${language} witness's term and forms`);
+      }
       if(rendering.avoid!==undefined&&!words(rendering.avoid))issues.push(`${at}: ${language} avoid`);
       // A form the Tree reads may not be one it avoids, and two terms may not claim the same form.
       for(const form of tos.forms??[]){
@@ -56,6 +73,13 @@ export function termsIssues(module,chapterFiles={},{pivot='de'}={}){
     }
     if(!text(term.gloss?.ru)||!text(term.gloss?.en))issues.push(`${at}: gloss`);
     const cite=term.first;
+    if(!cite?.c&&place){
+      const result=place(cite,original.lang);
+      if(result?.error)issues.push(`${at}: first place ${result.error}`);
+      else if(!result||!holdsOriginal(result,original.forms??[],original.lang))issues.push(`${at}: the original does not say ${original.lemma} at ${cite?.w??'?'}`);
+      if(result&&!result.error&&cite?.q&&!result.text.includes(cite.q))issues.push(`${at}: first place quote is not in the cited original`);
+      continue;
+    }
     if(!cite?.c||!Array.isArray(cite.u)){issues.push(`${at}: first place`);continue;}
     const chapter=chapterOf(cite.c);
     if(!chapter){issues.push(`${at}: no witness chapter ${cite.c}`);continue;}

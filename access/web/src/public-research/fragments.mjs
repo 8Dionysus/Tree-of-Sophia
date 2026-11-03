@@ -374,7 +374,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       for(const [language,value] of parts){
         if(!value.length)continue;
         const version=versionFor(language);
-        const quote=el('blockquote','ps-fragment-text');quote.lang=language==='grc'?'grc':language==='la'?'la':language;
+        const quote=el('blockquote','ps-fragment-text');quote.lang=language==='grc'?'grc':language==='la'?'la':language;quote.dataset.edition=version.versionId;
         const {nodes}=clip(value.flatMap(item=>item.text.split(/\n{2,}/)).map(part=>el('p','ps-fragment-line',part.replace(/\s*\n\s*/g,' ').trim())).filter(node=>node.textContent));
         quote.append(...nodes);
         const references=[...new Set(value.map(item=>placeName(item.reference)).filter(Boolean))];

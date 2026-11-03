@@ -107,7 +107,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // The stand's bonsai: its chronology, places, and how each of its lenses reads.
   const bonsai=bonsaiFor(profile);
   // The stand's terms open on their origin wherever a card names them; opening one opens the book at its first place.
-  const terms=createTerms({module:bonsai?.terms??null,locale,open:cite=>{if(cite?.c)void fragments.showChapter(cite.c,cite).catch(()=>{});}});
+  const terms=createTerms({module:bonsai?.terms??null,locale,open:cite=>{if(cite?.c)void fragments.showChapter(cite.c,cite).catch(()=>{});else if(cite)shell.dispatchEvent(new CustomEvent('public-research-action',{bubbles:true,detail:{action:'read',cite}}));}});
   // The lens "Time" exists where the data dates or orders its material: Antiquity by the years its bonsai gives the writings, Zarathustra by the order of the book.
   const timeline=profile==='antiquity'?antiquityTimeline({routes,entries:library.space?.collection??[],chronology:bonsai?.chronology}):profile==='zarathustra'?zarathustraTimeline({materials:[...materials.values()],references:atlas.references??{},clusters:atlas.clusters??[],chronology:bonsai?.chronology}):null;
   // What a star's dating and place are about: the writing of its passage or work (Antiquity), of the text it first rests on (Zarathustra).

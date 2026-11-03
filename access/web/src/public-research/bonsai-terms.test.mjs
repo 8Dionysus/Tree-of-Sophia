@@ -1,6 +1,8 @@
 import {readFileSync,readdirSync} from 'node:fs';
 import {describe,expect,it} from 'vitest';
 import {formPattern,holdsForm,termsIssues} from '../../../../bonsai/lib/terms.mjs';
+import {termPlaceReader} from '../../../../bonsai/lib/graft.mjs';
+import {fileURLToPath} from 'node:url';
 
 // The philological core checks each term against the witnesses: the original says
 // the word at its first place, and each translation says its own word there.
@@ -16,6 +18,21 @@ const kobolde=()=>({
     en:{tos:{term:'goblins',forms:['goblins']},witness:{edition:'common-1909',term:'goblins',forms:['goblins']}},
   },
   gloss:{ru:'Заратустра хочет горных духов вокруг себя, потому что он мужествен.',en:'Zarathustra wants goblins about him, for he is courageous.'},
+});
+
+it('checks an Antiquity corpus place, its exact word boundaries and normalized Greek forms',()=>{
+  const root=fileURLToPath(new URL('../../../../',import.meta.url));
+  const alignment=JSON.parse(readFileSync(new URL('../../../../bonsai/antiquity/alignment.json',import.meta.url),'utf8'));
+  const collection=JSON.parse(readFileSync(new URL('../../../../bonsai/antiquity/collection.json',import.meta.url),'utf8'));
+  const source=collection.terms.find(term=>term.id==='psyche');
+  const cite=source.uses[0].body.cite[0];
+  const term={id:'psyche',original:{lang:'grc',lemma:'ψυχή',forms:['ψυχή','ψυχῆς']},first:cite,renderings:{ru:{tos:{term:'душа',forms:['душа']}},en:{tos:{term:'soul',forms:['soul']}}},gloss:{ru:'Душа живёт.',en:'The soul lives.'}};
+  const options={pivot:['grc','la'],place:termPlaceReader(root,alignment,null)};
+  expect(termsIssues({schema:'tos.bonsai.terms.v1',terms:[term]}, {},options)).toEqual([]);
+  term.first={...cite,u:['missing','missing']};
+  expect(termsIssues({schema:'tos.bonsai.terms.v1',terms:[term]}, {},options).join(' ')).toContain('unknown or unordered units');
+  term.first=cite;term.original.forms=['ψυχή','ψυχ'];
+  expect(termsIssues({schema:'tos.bonsai.terms.v1',terms:[term]}, {},options).join(' ')).toContain('original does not say');
 });
 const module=terms=>({schema:'tos.bonsai.terms.v1',work:'za',editions,terms});
 
