@@ -444,14 +444,14 @@ pub struct NativeCompoundObservation {
 /// publication, source/software and journal fences for any replay decision.
 pub fn verify_work_expression_from_cut(
     cut: &CorpusCutReader,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
     claim_path: &str,
     claim: &Value,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> Result<NativeCompoundObservation, ItemRefusal> {
     if claim["predicate"] != "has_expression"
-        || schemas.source_revision() != cut.current().revision()
+        || schemas.selected_source_revision() != Some(cut.current().revision())
     {
         return Err(bad("selected Work compound type/cut"));
     }
@@ -1320,14 +1320,14 @@ fn measured_compound_observation(
 /// Existing descriptive Work observation API remains unchanged.
 pub fn verify_work_expression_reads_from_cut(
     cut: &CorpusCutReader,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
     claim_path: &str,
     claim: &Value,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> Result<NativeCompoundReadObservation, ItemRefusal> {
     if claim["predicate"] != "has_expression"
-        || schemas.source_revision() != cut.current().revision()
+        || schemas.selected_source_revision() != Some(cut.current().revision())
     {
         return Err(bad("selected Work compound type/cut"));
     }
@@ -1338,14 +1338,14 @@ pub fn verify_work_expression_reads_from_cut(
 /// Exact qualified Collection membership verification and existing read custody.
 pub fn verify_collection_membership_from_cut(
     cut: &CorpusCutReader,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
     claim_path: &str,
     claim: &Value,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> Result<NativeCompoundReadObservation, ItemRefusal> {
     if claim["predicate"] != "contains_work"
-        || schemas.source_revision() != cut.current().revision()
+        || schemas.selected_source_revision() != Some(cut.current().revision())
     {
         return Err(bad("selected Collection membership compound type/cut"));
     }
@@ -1383,14 +1383,14 @@ pub fn verify_collection_membership_from_selected_input<I: Copy + Eq>(
 /// publication, source/software and journal fences for any replay decision.
 pub fn verify_expression_responsibility_from_cut(
     cut: &CorpusCutReader,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
     claim_path: &str,
     claim: &Value,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> Result<NativeCompoundReadObservation, ItemRefusal> {
     if claim["predicate"] != "translated_by"
-        || schemas.source_revision() != cut.current().revision()
+        || schemas.selected_source_revision() != Some(cut.current().revision())
     {
         return Err(bad("selected Expression responsibility compound type/cut"));
     }
@@ -1429,7 +1429,7 @@ pub fn verify_expression_responsibility_from_selected_input<I: Copy + Eq>(
 /// publication, source/software and journal fences for any replay decision.
 pub fn verify_expression_edition_from_cut(
     cut: &CorpusCutReader,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
     claim_path: &str,
     claim: &Value,
     limits: ItemLimits,
@@ -1499,7 +1499,7 @@ pub fn verify_expression_edition_from_selected_input<I: Copy + Eq>(
 /// publication, source/software and journal fences for any replay decision.
 pub fn verify_edition_item_from_cut(
     cut: &CorpusCutReader,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
     claim_path: &str,
     claim: &Value,
     limits: ItemLimits,
@@ -1591,7 +1591,7 @@ pub struct CollectionVersionObservation {
 /// that lineage still goes through the existing compound verifier.
 pub fn verify_collection_version_from_cut(
     cut: &CorpusCutReader,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
     collection_source_path: &str,
     exact: &Value,
     limits: ItemLimits,
@@ -6147,6 +6147,14 @@ pub(crate) trait NativeCompoundSchema: CutSchemaExecutor {
     ) -> Result<LocalClaimValidation, ItemRefusal>;
 }
 
+/// Source-compatible bridge while cut-backed worker consumers migrate.
+/// Remove this bridge when the worker is retired.
+#[allow(private_bounds)]
+pub trait CutCompoundSchemaExecutor: NativeCompoundSchema {}
+
+impl CutCompoundSchemaExecutor for CutWorkerSchemaExecutor {}
+impl CutCompoundSchemaExecutor for InProcessCutSchemaExecutor<()> {}
+
 impl<S: CutSchemaExecutor + CutSchemaReceiptRange> NativeCompoundSchema for S {
     fn source_revision(&self) -> Option<SourceRevision> {
         Some(CutSchemaReceiptRange::execution_binding(self).source_revision)
@@ -6818,7 +6826,7 @@ pub fn finish_work_expression_bytes(
     core: WorkExpressionCore<'_>,
     environment_raw: &[u8],
     event_raw: &[u8],
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
 ) -> Result<WorkExpressionBytes, ItemRefusal> {
     finish_prepared_compound_bytes(core, environment_raw, event_raw, schemas, true)
 }
@@ -6955,7 +6963,7 @@ fn finish_prepared_compound_bytes(
 /// current Work package. The caller still owns physical publication authority.
 pub fn prepare_work_expression_bytes<'a>(
     cut: &'a CorpusCutReader,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
     scope: &Value,
     request_raw: &[u8],
     owned_before: &BTreeMap<String, Vec<u8>>,
@@ -6965,7 +6973,9 @@ pub fn prepare_work_expression_bytes<'a>(
     authorize: impl FnOnce(&BTreeMap<String, String>) -> Result<Value, ItemRefusal>,
 ) -> Result<WorkExpressionCore<'a>, ItemRefusal> {
     check(limits.deadline, cancelled)?;
-    if schemas.source_revision() != cut.current().revision() || request_raw.len() > MAX_FILE {
+    if schemas.selected_source_revision() != Some(cut.current().revision())
+        || request_raw.len() > MAX_FILE
+    {
         return Err(bad("Work source/schema revision or request size"));
     }
     crate::retirement_rules::observed_instant_order(recorded_at, recorded_at)
@@ -7319,7 +7329,7 @@ pub fn prepare_selected_collection_membership_preview_bytes<'a, I: Copy + Eq>(
 /// the later create operation independently rereads the current cut.
 pub fn prepare_work_expression_preview_bytes<'a>(
     cut: &'a CorpusCutReader,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
     scope: &Value,
     proposed_claim_raw: &[u8],
     owned_before: &BTreeMap<String, Vec<u8>>,
@@ -7347,7 +7357,7 @@ pub fn prepare_work_expression_preview_bytes<'a>(
 fn prepare_typed_compound_preview_bytes<'a>(
     kind: CompoundKind,
     cut: &'a CorpusCutReader,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
     scope: &Value,
     proposed_claim_raw: &[u8],
     owned_before: &BTreeMap<String, Vec<u8>>,
@@ -7359,7 +7369,8 @@ fn prepare_typed_compound_preview_bytes<'a>(
     ) -> Result<(Vec<u8>, Value), ItemRefusal>,
 ) -> Result<WorkExpressionCore<'a>, ItemRefusal> {
     check(limits.deadline, cancelled)?;
-    if schemas.source_revision() != cut.current().revision() || proposed_claim_raw.len() > MAX_FILE
+    if schemas.selected_source_revision() != Some(cut.current().revision())
+        || proposed_claim_raw.len() > MAX_FILE
     {
         return Err(bad("Work grammar source/schema or Claim size"));
     }
@@ -7383,7 +7394,7 @@ fn prepare_typed_compound_preview_bytes<'a>(
     drop(expected);
     reader.release_temporary(encoded_state);
     let grammar = preparation_grammar_from_cut(kind, &mut reader, schemas, proposed_claim_raw)?;
-    if grammar.binding != NativeSchemaBinding::Cut(schemas.execution_binding()) {
+    if grammar.binding != schemas.native_schema_binding() {
         return Err(bad("Work preview schema binding changed"));
     }
     let (request_raw, authority) = build_request_and_authorization(&grammar.digests)?;
@@ -7434,7 +7445,7 @@ impl CollectionMembershipCore<'_> {
 }
 pub fn prepare_collection_membership_bytes<'a>(
     cut: &'a CorpusCutReader,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
     scope: &Value,
     request_raw: &[u8],
     owned_before: &BTreeMap<String, Vec<u8>>,
@@ -7444,7 +7455,9 @@ pub fn prepare_collection_membership_bytes<'a>(
     authorize: impl FnOnce(&BTreeMap<String, String>) -> Result<Value, ItemRefusal>,
 ) -> Result<CollectionMembershipCore<'a>, ItemRefusal> {
     check(limits.deadline, cancelled)?;
-    if schemas.source_revision() != cut.current().revision() || request_raw.len() > MAX_FILE {
+    if schemas.selected_source_revision() != Some(cut.current().revision())
+        || request_raw.len() > MAX_FILE
+    {
         return Err(bad("compound source/schema revision or request size"));
     }
     crate::retirement_rules::observed_instant_order(recorded_at, recorded_at)
@@ -7466,7 +7479,7 @@ pub fn prepare_collection_membership_bytes<'a>(
 }
 pub fn prepare_collection_membership_preview_bytes<'a>(
     cut: &'a CorpusCutReader,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
     scope: &Value,
     proposed_claim_raw: &[u8],
     owned_before: &BTreeMap<String, Vec<u8>>,
@@ -7496,7 +7509,7 @@ pub fn finish_collection_membership_bytes(
     core: CollectionMembershipCore<'_>,
     environment_raw: &[u8],
     event_raw: &[u8],
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
 ) -> Result<CollectionMembershipBytes, ItemRefusal> {
     finish_work_expression_bytes(core.inner, environment_raw, event_raw, schemas)
 }
@@ -7505,7 +7518,7 @@ pub fn restore_collection_membership_bytes(
     core: CollectionMembershipCore<'_>,
     environment_raw: &[u8],
     event_raw: &[u8],
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
 ) -> Result<CollectionMembershipBytes, ItemRefusal> {
     finish_prepared_compound_bytes(core.inner, environment_raw, event_raw, schemas, false)
 }
@@ -7543,7 +7556,7 @@ impl ExpressionResponsibilityCore<'_> {
 }
 pub fn prepare_expression_responsibility_bytes<'a>(
     cut: &'a CorpusCutReader,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
     scope: &Value,
     request_raw: &[u8],
     owned_before: &BTreeMap<String, Vec<u8>>,
@@ -7553,7 +7566,9 @@ pub fn prepare_expression_responsibility_bytes<'a>(
     authorize: impl FnOnce(&BTreeMap<String, String>) -> Result<Value, ItemRefusal>,
 ) -> Result<ExpressionResponsibilityCore<'a>, ItemRefusal> {
     check(limits.deadline, cancelled)?;
-    if schemas.source_revision() != cut.current().revision() || request_raw.len() > MAX_FILE {
+    if schemas.selected_source_revision() != Some(cut.current().revision())
+        || request_raw.len() > MAX_FILE
+    {
         return Err(bad("compound source/schema revision or request size"));
     }
     crate::retirement_rules::observed_instant_order(recorded_at, recorded_at)
@@ -7575,7 +7590,7 @@ pub fn prepare_expression_responsibility_bytes<'a>(
 }
 pub fn prepare_expression_responsibility_preview_bytes<'a>(
     cut: &'a CorpusCutReader,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
     scope: &Value,
     proposed_claim_raw: &[u8],
     owned_before: &BTreeMap<String, Vec<u8>>,
@@ -7605,7 +7620,7 @@ pub fn finish_expression_responsibility_bytes(
     core: ExpressionResponsibilityCore<'_>,
     environment_raw: &[u8],
     event_raw: &[u8],
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
 ) -> Result<ExpressionResponsibilityBytes, ItemRefusal> {
     finish_work_expression_bytes(core.inner, environment_raw, event_raw, schemas)
 }
@@ -7614,7 +7629,7 @@ pub fn restore_expression_responsibility_bytes(
     core: ExpressionResponsibilityCore<'_>,
     environment_raw: &[u8],
     event_raw: &[u8],
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
 ) -> Result<ExpressionResponsibilityBytes, ItemRefusal> {
     finish_prepared_compound_bytes(core.inner, environment_raw, event_raw, schemas, false)
 }
@@ -7652,7 +7667,7 @@ impl ExpressionEditionCore<'_> {
 }
 pub fn prepare_expression_edition_bytes<'a>(
     cut: &'a CorpusCutReader,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
     scope: &Value,
     request_raw: &[u8],
     owned_before: &BTreeMap<String, Vec<u8>>,
@@ -7662,7 +7677,9 @@ pub fn prepare_expression_edition_bytes<'a>(
     authorize: impl FnOnce(&BTreeMap<String, String>) -> Result<Value, ItemRefusal>,
 ) -> Result<ExpressionEditionCore<'a>, ItemRefusal> {
     check(limits.deadline, cancelled)?;
-    if schemas.source_revision() != cut.current().revision() || request_raw.len() > MAX_FILE {
+    if schemas.selected_source_revision() != Some(cut.current().revision())
+        || request_raw.len() > MAX_FILE
+    {
         return Err(bad("compound source/schema revision or request size"));
     }
     crate::retirement_rules::observed_instant_order(recorded_at, recorded_at)
@@ -7684,7 +7701,7 @@ pub fn prepare_expression_edition_bytes<'a>(
 }
 pub fn prepare_expression_edition_preview_bytes<'a>(
     cut: &'a CorpusCutReader,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
     scope: &Value,
     proposed_claim_raw: &[u8],
     owned_before: &BTreeMap<String, Vec<u8>>,
@@ -7714,7 +7731,7 @@ pub fn finish_expression_edition_bytes(
     core: ExpressionEditionCore<'_>,
     environment_raw: &[u8],
     event_raw: &[u8],
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
 ) -> Result<ExpressionEditionBytes, ItemRefusal> {
     finish_work_expression_bytes(core.inner, environment_raw, event_raw, schemas)
 }
@@ -7723,7 +7740,7 @@ pub fn restore_expression_edition_bytes(
     core: ExpressionEditionCore<'_>,
     environment_raw: &[u8],
     event_raw: &[u8],
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
 ) -> Result<ExpressionEditionBytes, ItemRefusal> {
     finish_prepared_compound_bytes(core.inner, environment_raw, event_raw, schemas, false)
 }
@@ -7737,7 +7754,7 @@ pub struct EditionItemGrammarObservation {
 }
 pub fn inspect_edition_item_grammar(
     cut: &CorpusCutReader,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
     edition_raw: &[u8],
     item_raw: &[u8],
     claim_raw: &[u8],
@@ -8009,7 +8026,7 @@ impl EditionItemCore<'_> {
 /// its metadata binding, never possession, payload fixity or publication rights.
 pub fn prepare_edition_item_bytes<'a>(
     cut: &'a CorpusCutReader,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
     scope: &Value,
     request_raw: &[u8],
     owned_before: &BTreeMap<String, Vec<u8>>,
@@ -8155,7 +8172,7 @@ pub fn finish_edition_item_bytes(
     core: EditionItemCore<'_>,
     environment_raw: &[u8],
     event_raw: &[u8],
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
 ) -> Result<EditionItemBytes, ItemRefusal> {
     finish_edition_item_bytes_with_schema(core, environment_raw, event_raw, schemas)
 }
@@ -8190,7 +8207,7 @@ pub fn restore_edition_item_bytes(
     core: EditionItemCore<'_>,
     environment_raw: &[u8],
     event_raw: &[u8],
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
 ) -> Result<EditionItemBytes, ItemRefusal> {
     restore_edition_item_bytes_with_schema(core, environment_raw, event_raw, schemas)
 }
@@ -8364,7 +8381,7 @@ fn native_preparation_warning(kind: CompoundKind) -> &'static str {
 /// the later create operation independently rereads the current cut.
 pub fn prepare_edition_item_preview_bytes<'a>(
     cut: &'a CorpusCutReader,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
     scope: &Value,
     proposed_claim_raw: &[u8],
     owned_before: &BTreeMap<String, Vec<u8>>,
@@ -8793,7 +8810,7 @@ pub fn prepare_selected_native_object_link_bytes<'a, I: Copy + Eq>(
 /// only prepared source/form bytes and supplies actual environment/event buffers.
 pub fn prepare_native_object_link_bytes<'a>(
     cut: &'a CorpusCutReader,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
     scope: &Value,
     authorization: &Value,
     request_raw: &[u8],
@@ -8803,7 +8820,9 @@ pub fn prepare_native_object_link_bytes<'a>(
     mut capture: impl FnMut(&[(String, &[u8])]) -> Result<(Vec<u8>, Vec<u8>), ItemRefusal>,
 ) -> Result<ObjectLinkBytes, ItemRefusal> {
     check(limits.deadline, cancelled)?;
-    if schemas.source_revision() != cut.current().revision() || request_raw.len() > MAX_FILE {
+    if schemas.selected_source_revision() != Some(cut.current().revision())
+        || request_raw.len() > MAX_FILE
+    {
         return Err(bad("object-Link source/schema revision or request size"));
     }
     let mut reader = NativeCompoundReader::new(cut, limits, cancelled)?;
@@ -8835,7 +8854,7 @@ pub fn prepare_native_object_link_bytes<'a>(
 /// The owner must compare this package with its actual retained journal plan.
 pub fn reconstruct_object_link_bytes<'a>(
     cut: &'a CorpusCutReader,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
     scope: &Value,
     authorization: &Value,
     request_raw: &[u8],
@@ -8846,7 +8865,7 @@ pub fn reconstruct_object_link_bytes<'a>(
     cancelled: &'a AtomicBool,
 ) -> Result<ObjectLinkBytes, ItemRefusal> {
     check(limits.deadline, cancelled)?;
-    if schemas.source_revision() != cut.current().revision()
+    if schemas.selected_source_revision() != Some(cut.current().revision())
         || [request_raw.len(), environment_raw.len(), event_raw.len()]
             .iter()
             .any(|size| *size > MAX_FILE)
@@ -8880,13 +8899,13 @@ pub fn reconstruct_object_link_bytes<'a>(
 /// existing native verifier. This descriptive observation grants no authority.
 pub fn verify_object_link_from_cut(
     cut: &CorpusCutReader,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutCompoundSchemaExecutor,
     claim_path: &str,
     claim: &Value,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> Result<NativeCompoundReadObservation, ItemRefusal> {
-    if schemas.source_revision() != cut.current().revision()
+    if schemas.selected_source_revision() != Some(cut.current().revision())
         || claim["schema_version"] != OBJECT_LINK_CLAIM
         || !claim["predicate"]
             .as_str()
@@ -10642,7 +10661,7 @@ impl NativeCompoundReader<'_> {
         }
         Ok(result)
     }
-    fn compose_object_link<S: CutSchemaExecutor + CutSchemaReceiptRange>(
+    fn compose_object_link<S: NativeCompoundSchema>(
         &mut self,
         scope: &Value,
         authority: &Value,
@@ -10658,20 +10677,16 @@ impl NativeCompoundReader<'_> {
         let cut = self.cut;
         let cancelled = self.cancelled;
         let mut validate_local_claim = |raw: &[u8], schemas: &mut S, limits: ItemLimits| {
-            let mut local = crate::record_rules::validate_stored_source_claim_from_cut(
-                cut.ok_or_else(|| bad("ObjectLink writer requires corpus cut"))?,
+            let mut local = schemas.validate_local_claim(
+                Some(cut.ok_or_else(|| bad("ObjectLink writer requires corpus cut"))?),
+                None,
                 raw,
-                schemas,
                 limits,
                 cancelled,
             )?;
-            if !local.issues.is_empty() {
-                return Err(bad("object-Link exact local Claim profile"));
-            }
-            Ok(LocalClaimValidation {
-                dependency_digests: std::mem::take(&mut local.dependency_digests),
-                dependency_bytes_read: 0,
-            })
+            // The ObjectLink composer accounts these dependency reads itself.
+            local.dependency_bytes_read = 0;
+            Ok(local)
         };
         self.compose_object_link_with_validator(
             scope,
