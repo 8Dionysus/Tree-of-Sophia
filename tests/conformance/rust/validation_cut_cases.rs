@@ -546,11 +546,17 @@ fn actual_cut_worker_and_item_companions_preserve_metadata_only_outcome() {
         base_revision: base,
         candidate_revision: revision,
         request_canonical_sha256: canonical_digest(&request_raw),
+        request_digest_profile: tos_foundation::CanonicalDigestProfileV1::Legacy(
+            tos_foundation::CanonicalProfile::SourceCommandInputV1,
+        ),
         request_raw,
         // This protected namespace is deliberately absent from authored members.
         configuration_path: RelativePath::parse("protected/owner-operation.json").unwrap(),
         configuration_raw_sha256: Digest256::of_bytes(&configuration_raw),
         configuration_canonical_sha256: canonical_digest(&configuration_raw),
+        configuration_digest_profile: tos_foundation::CanonicalDigestProfileV1::Legacy(
+            tos_foundation::CanonicalProfile::SourceCommandInputV1,
+        ),
         configuration_raw,
         changes: vec![OperationChange {
             path: RelativePath::parse(&changed_path).unwrap(),
@@ -1167,10 +1173,16 @@ fn actual_general_operation_keeps_selected_family_coverage_below_source_admissio
         base_revision: base,
         candidate_revision: revision,
         request_canonical_sha256: canonical_digest(&request_raw),
+        request_digest_profile: tos_foundation::CanonicalDigestProfileV1::Legacy(
+            tos_foundation::CanonicalProfile::SourceCommandInputV1,
+        ),
         request_raw,
         configuration_path: RelativePath::parse("protected/owner-operation.json").unwrap(),
         configuration_raw_sha256: Digest256::of_bytes(&configuration_raw),
         configuration_canonical_sha256: canonical_digest(&configuration_raw),
+        configuration_digest_profile: tos_foundation::CanonicalDigestProfileV1::Legacy(
+            tos_foundation::CanonicalProfile::SourceCommandInputV1,
+        ),
         configuration_raw,
         changes: vec![OperationChange {
             path: RelativePath::parse(&changed_path).unwrap(),

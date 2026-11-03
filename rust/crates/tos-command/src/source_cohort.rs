@@ -29,7 +29,9 @@ pub use source_cohort_streamed::{StreamedColdSourceLimitsV1, StreamedColdSourceW
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Cursor;
 use tos_compiler::managed_source::ManagedProducerProof;
-use tos_foundation::{Digest256, RelativePath, SourceRevision};
+use tos_foundation::{
+    CanonicalDigestProfileV1, CanonicalProfile, Digest256, RelativePath, SourceRevision,
+};
 use tos_segment_store::{FrameInput, OwnerBinding};
 use tos_source_store::{
     CorpusCutReader, MemberMetadata, SoftwareCaptureReader, SoftwareComponentSelectionV1,
@@ -9544,6 +9546,12 @@ impl DurablePgCoordinator {
                 request_canonical_sha256: request_canonical_digest,
                 configuration_raw_sha256: owner_configuration_raw_digest,
                 configuration_canonical_sha256: owner_configuration_canonical_digest,
+                request_digest_profile: CanonicalDigestProfileV1::Legacy(
+                    CanonicalProfile::SourceCommandInputV1,
+                ),
+                configuration_digest_profile: CanonicalDigestProfileV1::Legacy(
+                    CanonicalProfile::SourceCommandInputV1,
+                ),
                 response: cmd::object(Vec::new()),
                 changes,
                 reads: Vec::new(),
@@ -9618,6 +9626,12 @@ impl DurablePgCoordinator {
                 request_canonical_sha256: request_canonical_digest,
                 configuration_raw_sha256: persisted_configuration_raw_digest,
                 configuration_canonical_sha256: persisted_configuration_canonical_digest,
+                request_digest_profile: CanonicalDigestProfileV1::Legacy(
+                    CanonicalProfile::SourceCommandInputV1,
+                ),
+                configuration_digest_profile: CanonicalDigestProfileV1::Legacy(
+                    CanonicalProfile::SourceCommandInputV1,
+                ),
                 response: cmd::object(Vec::new()),
                 changes,
                 reads: Vec::new(),
