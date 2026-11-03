@@ -43,7 +43,8 @@
       "$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/predicate"
     },
     "object": {
-      "$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/object"
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/object",
+      "description": "jcs1 source records store values that cannot be represented exactly as JSON numbers as strings containing their exact decimal spelling."
     },
     "evidence_refs": {
       "$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/evidence_refs"

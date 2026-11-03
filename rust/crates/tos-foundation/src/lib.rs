@@ -26,7 +26,8 @@ mod unicode;
 pub use unicode::predicates16 as unicode_predicates16;
 
 pub use canonical_digest::{
-    CanonicalDigestV1, JCS_DIGEST_TAG, jcs_digest_v1, verify_canonical_digest_v1,
+    CanonicalDigestProfileV1, CanonicalDigestV1, JCS_DIGEST_TAG, jcs_digest_v1,
+    verify_canonical_digest_v1,
 };
 pub use capability::{FoundationCapabilities, capabilities};
 pub use coordinates::{ByteSpan, CodePointSpan};
@@ -37,7 +38,7 @@ pub use hex::{
     encode_lower_hex_byte, is_lower_hex,
 };
 pub use identity::{ExactRecordRef, RecordVersion, SourceRevision, StableId};
-pub use jcs::{JCS_PROFILE, jcs_bytes_v1, jcs_raw_bytes_v1};
+pub use jcs::{JCS_PROFILE, jcs_bytes_v1, jcs_raw_bytes_v1, stringify_non_jcs_numbers_v1};
 pub use json::{
     CANONICAL_REUSE_CALL_STATE, CANONICAL_REUSE_CORE_STATE, CANONICAL_REUSE_SETUP_STATE,
     CanonicalProfile, CanonicalReusePrepared, CanonicalReuseWorkspace, CanonicalSlice, EncodedJson,

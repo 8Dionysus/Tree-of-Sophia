@@ -7128,6 +7128,305 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
 }
 
 #[test]
+fn new_classification_claim_stringifies_unsafe_extensions_and_cold_replays() {
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+    use tos_command::source_creation_store::{CreationFilesystem, IsolatedCreationRoot};
+
+    let repository = super::validation_cut_cases::repository()
+        .canonicalize()
+        .unwrap();
+    let (mut files, mut claim, _, _) = claim_fixture();
+    let historical_source = repository
+        .join("rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v1/source.json");
+    let historical_bytes = fs::read(&historical_source).unwrap();
+    let source_path =
+        "ToS/source-witnesses/relations/command-claim-jcs/source-claims.jsonl".to_owned();
+    let evidence = claim["evidence_refs"][0].clone();
+    let subject_ref = "tos.work.synthetic-claim-create-jcs1";
+    let work = serde_json::json!({
+        "schema_version":"tos_corpus_record_v1", "record_type":"work",
+        "record_id":subject_ref,
+        "preferred_label":"Synthetic work for Claim creation conformance",
+        "identity_status":"provisional", "source_refs":[evidence],
+        "external_identifiers":[], "same_as_posture":"no_equivalence_claim",
+        "record_version":1
+    });
+    files.insert(
+        "ToS/source-witnesses/works/command-claim-jcs/work.json".into(),
+        source_bytes(&source_value(&work)),
+    );
+
+    let extensions = serde_json::json!({
+        "large_integer":"9007199254740994",
+        "negative_zero":"-0.0",
+        "unknown_numeric_extension":[
+            0, 1, "0.100000000000000005", "9007199254740994.0"
+        ]
+    });
+    let object = serde_json::json!({
+        "kind":"genre-classification",
+        "source_wording":{"text":"Synthetic source wording.","language":"en","script":"Latn"},
+        "term":"synthetic genre", "term_language":"en", "term_script":"Latn",
+        "classification_basis":"Synthetic conformance input only.",
+        "scope_note":"No scholarly classification is admitted.",
+        "extensions":extensions
+    });
+    claim["claim_id"] = Value::String("tos.claim.synthetic-classification-jcs1".into());
+    claim["claim_version"] = Value::from(1);
+    claim["schema_version"] = Value::String("tos_source_classification_claim_v1".into());
+    claim["assertion_layer"] = Value::String("scholarly_report".into());
+    claim["subject_ref"] = Value::String(subject_ref.into());
+    claim["predicate"] = Value::String("classified_genre".into());
+    claim["provenance_event_ref"] = Value::String("tos.event.synthetic.claim-create-jcs1".into());
+    claim["object"] = object.clone();
+    claim["qualifiers"] = serde_json::json!({
+        "statement":"A synthetic classification Claim exercises exact extension storage.",
+        "statement_language":"en", "statement_script":"Latn"
+    });
+    claim["assessment_refs"] = serde_json::json!([]);
+    claim["supersedes_claim_ref"] = Value::Null;
+
+    let request_raw = |request: &Value| {
+        let mut request = request.clone();
+        request["claims"][0]["object"]["extensions"] =
+            Value::String("__RAW_UNSAFE_EXTENSIONS__".into());
+        let encoded = String::from_utf8(serde_json::to_vec(&request).unwrap()).unwrap();
+        let replaced = encoded.replacen(
+            "\"__RAW_UNSAFE_EXTENSIONS__\"",
+            r#"{"large_integer":9007199254740994,"negative_zero":-0.0,"unknown_numeric_extension":[0,1,0.100000000000000005,9007199254740994.0]}"#,
+            1,
+        );
+        assert_ne!(replaced, encoded);
+        replaced.into_bytes()
+    };
+
+    let mut software_names = CLAIM_GROUNDING_RULE_INPUTS
+        .iter()
+        .chain(CLAIM_REVISION_RULE_INPUTS)
+        .copied()
+        .filter(|name| !name.starts_with("ToS/"))
+        .collect::<Vec<_>>();
+    software_names.extend([
+        "rust/crates/tos-command/src/source_claims.rs",
+        "rust/crates/tos-command/src/source_serialization.rs",
+    ]);
+    software_names.sort_unstable();
+    software_names.dedup();
+    for name in software_names {
+        files.insert(name.into(), fs::read(repository.join(name)).unwrap());
+    }
+    let cancellation = AtomicBool::new(false);
+    let deadline = Instant::now() + Duration::from_secs(240);
+    let (_capture, software, components) =
+        super::command_record_cases::captured_components(&files, deadline, &cancellation);
+    let temporary = tempfile::tempdir().unwrap();
+    let authored = files
+        .iter()
+        .filter(|(name, _)| name.starts_with("ToS/"))
+        .map(|(name, raw)| (name.clone(), raw.clone()))
+        .collect::<BTreeMap<_, _>>();
+    let store = temporary.path().join("selected-store");
+    let base = super::validation_cut_cases::write_cut_store(&authored, &store);
+    let cut = open_cut(&store, base, deadline, &cancellation);
+    let mut image_budget = ExecutorBudget::laboratory();
+    image_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
+    assert!(!image_budget.execution_wall.is_zero());
+    let worker_image =
+        super::command_form_cases::schema_image(image_budget, deadline, &cancellation);
+    let claim_worker = || {
+        let mut budget = ExecutorBudget::laboratory();
+        budget.execution_wall = deadline.saturating_duration_since(Instant::now());
+        assert!(!budget.execution_wall.is_zero());
+        super::command_form_cases::schemas_for_profile_with_image(
+            &cut,
+            FormatProfile::LegacyPythonObserved20260923,
+            &worker_image,
+            budget,
+            deadline,
+            &cancellation,
+        )
+    };
+
+    let isolated = IsolatedCreationRoot::create(temporary.path(), deadline, &cancellation).unwrap();
+    for (name, raw) in &files {
+        let target = isolated.path().join(name);
+        fs::create_dir_all(target.parent().unwrap()).unwrap();
+        fs::write(&target, raw).unwrap();
+        fs::set_permissions(&target, fs::Permissions::from_mode(0o644)).unwrap();
+    }
+    fs::create_dir_all(
+        isolated
+            .path()
+            .join(&source_path)
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap(),
+    )
+    .unwrap();
+    let uid = fs::metadata(isolated.path()).unwrap().uid();
+    let configuration = serde_json::json!({
+        "schema_version":"tos_local_claim_create_owner_v3", "uid":uid,
+        "principal_id":claim["maker"]["agent_ref"],
+        "maker_type":claim["maker"]["maker_type"],
+        "source_root":isolated.path(), "source_path":source_path,
+        "authority_ref":"synthetic-test-only:claim-creation-no-assessment",
+        "expires_at":"2099-01-01T00:00:00Z",
+        "provenance_event_id":claim["provenance_event_ref"],
+        "allowed_operations":["claims.create"],
+        "allowed_claim_ids":[claim["claim_id"]],
+        "allowed_subject_refs":[claim["subject_ref"]],
+        "allowed_object_refs":[], "allowed_object_values":[object],
+        "allowed_predicates":[claim["predicate"]],
+        "allowed_evidence_refs":claim["evidence_refs"]
+    });
+    let config_raw = source_bytes(&source_value(&configuration));
+    let owner = isolated.path().join("owner.json");
+    fs::write(&owner, &config_raw).unwrap();
+    fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
+    let filesystem =
+        CreationFilesystem::select_isolated(&isolated, &owner, deadline, &cancellation).unwrap();
+    let software_files = files
+        .iter()
+        .filter(|(name, _)| !name.starts_with("ToS/"))
+        .map(|(name, raw)| (name.clone(), raw.clone()))
+        .collect::<BTreeMap<_, _>>();
+    let preview_request = serde_json::json!({
+        "schema_version":"tos_local_source_command_v1",
+        "operation":"prepare-create", "claims":[claim]
+    });
+    let mut context = selected_context(
+        &authored,
+        &software_files,
+        &configuration,
+        &preview_request,
+        base,
+    );
+    let preview_raw = request_raw(&preview_request);
+    context.request_raw = preview_raw.clone();
+    context.configuration_raw = config_raw.clone();
+    context.effective_uid = u64::from(uid);
+
+    let mut worker = claim_worker();
+    let preview = prepare_isolated_claim_creation_from_captures(
+        &filesystem,
+        &context,
+        &cut,
+        &software,
+        &components,
+        &mut worker,
+        deadline,
+        &cancellation,
+    )
+    .unwrap();
+    assert_eq!(context.request_raw, preview_raw);
+    let expected = response(&preview);
+    let proposed_stream = preview.changes[0].after.as_ref().unwrap();
+    let proposed_claim: Value =
+        serde_json::from_slice(proposed_stream.strip_suffix(b"\n").unwrap()).unwrap();
+    assert_eq!(proposed_claim["object"]["extensions"], extensions);
+    assert_eq!(
+        expected["prepared_files"]["source-claims.jsonl"]["sha256"],
+        serde_json::json!(Digest256::of_bytes(proposed_stream).to_prefixed())
+    );
+
+    let mut request = preview_request;
+    request["operation"] = Value::String("claims.create".into());
+    request["command_id"] = Value::String("synthetic:claim-create-jcs1".into());
+    request["expected_configuration"] = expected["owner_configuration"].clone();
+    request["expected_revision"] = Value::Null;
+    request["expected_dependencies"] = expected["expected_dependencies"].clone();
+    request["expected_inputs"] = expected["source_bindings"].clone();
+    let create_raw = request_raw(&request);
+    context.request_raw = create_raw.clone();
+
+    let mut unauthorized = request.clone();
+    unauthorized["expected_inputs"] = serde_json::json!({});
+    let mut unauthorized_context = context.clone();
+    unauthorized_context.request_raw = request_raw(&unauthorized);
+    let mut unauthorized_worker = claim_worker();
+    assert!(matches!(
+        execute_isolated_claim_creation_from_captures(
+            &filesystem,
+            &unauthorized_context,
+            &cut,
+            &cut,
+            &software,
+            &components,
+            &mut unauthorized_worker,
+            None,
+            deadline,
+            &cancellation,
+        ),
+        Err(SourceCommandError::Conflict(_))
+    ));
+    assert_eq!(context.request_raw, create_raw);
+    assert!(!isolated.path().join(&source_path).exists());
+    drop(unauthorized_worker);
+
+    let (created, publication, result) = execute_isolated_claim_creation_from_captures(
+        &filesystem,
+        &context,
+        &cut,
+        &cut,
+        &software,
+        &components,
+        &mut worker,
+        None,
+        deadline,
+        &cancellation,
+    )
+    .unwrap();
+    drop(worker);
+    assert!(!publication.replayed);
+    assert_eq!(created.files().len(), 5);
+    let stored_stream = &created.files()["source-claims.jsonl"];
+    let stored_claim: Value =
+        serde_json::from_slice(stored_stream.strip_suffix(b"\n").unwrap()).unwrap();
+    assert_eq!(stored_claim["object"]["extensions"], extensions);
+    assert_eq!(context.request_raw, create_raw);
+    assert_eq!(fs::read(&historical_source).unwrap(), historical_bytes);
+
+    let original_files = created.files().clone();
+    let mut current_files = authored;
+    for (name, raw) in created.files() {
+        current_files.insert(format!("{}/{name}", created.home().as_str()), raw.clone());
+    }
+    let current = successor(&current_files, &store, base);
+    let current_cut = open_cut(&store, current, deadline, &cancellation);
+    let mut replay_worker = claim_worker();
+    let mut current_budget = ExecutorBudget::laboratory();
+    current_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
+    assert!(!current_budget.execution_wall.is_zero());
+    let mut current_worker = super::command_form_cases::schemas_for_profile_with_image(
+        &current_cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        &worker_image,
+        current_budget,
+        deadline,
+        &cancellation,
+    );
+    let (restored, replayed, replay_result) = execute_isolated_claim_creation_from_captures(
+        &filesystem,
+        &context,
+        &cut,
+        &current_cut,
+        &software,
+        &components,
+        &mut replay_worker,
+        Some(&mut current_worker),
+        deadline,
+        &cancellation,
+    )
+    .unwrap();
+    assert!(replayed.replayed);
+    assert_eq!(restored.command().changes.len(), 0);
+    assert_eq!(restored.files(), &original_files);
+    assert_eq!(replay_result, result);
+    assert_eq!(fs::read(&historical_source).unwrap(), historical_bytes);
+}
+
+#[test]
 fn initial_identity_proposals_retain_selected_catalog_and_cold_replay() {
     use std::os::unix::fs::{MetadataExt, PermissionsExt};
     use tos_command::source_creation_store::{CreationFilesystem, IsolatedCreationRoot};

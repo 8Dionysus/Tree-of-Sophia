@@ -1,6 +1,6 @@
 use tos_foundation::{
-    CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonValue, jcs_digest_v1, parse_json,
-    verify_canonical_digest_v1,
+    CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonValue, jcs_bytes_v1, jcs_digest_v1,
+    parse_json, verify_canonical_digest_v1,
 };
 
 fn value(raw: &str) -> JsonValue {
@@ -37,6 +37,9 @@ fn tagged_jcs_record_round_trips_with_exact_number_strings() {
         .is_err()
     );
     assert!(jcs_digest_v1(&value("9007199254740994"), JsonLimits::default()).is_err());
+    let exact_large_decimal = value("9007199254740994.0");
+    assert!(jcs_bytes_v1(&exact_large_decimal, JsonLimits::default()).is_ok());
+    assert!(jcs_digest_v1(&exact_large_decimal, JsonLimits::default()).is_err());
     assert!(jcs_digest_v1(&value("9007199254740992"), JsonLimits::default()).is_ok());
     // An exactly representable binary64 integer can still exceed the ToS
     // admission limit. Verification applies the same policy as writing.
