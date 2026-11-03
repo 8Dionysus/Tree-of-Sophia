@@ -1,7 +1,7 @@
 //! Source-selected curation and stage entry for research producers.
 use serde_json::Value;
 use std::{
-    collections::BTreeSet,
+    collections::{BTreeMap, BTreeSet},
     io::Write,
     path::{Path, PathBuf},
 };
@@ -315,6 +315,108 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
         };
         if boundary_root.is_some() && stage != "sentence-alignment" {
             return Err("boundary root applies to sentence alignment".into());
+        }
+        if matches!(action, "check" | "build") && stage == "hierarchical-source-structure" {
+            if output_root.is_some() {
+                return Err(
+                    "hierarchical source structure writes selected text-free outputs only".into(),
+                );
+            }
+            let input = Path::new(
+                input_root.ok_or("hierarchical source structure requires --local-input-root")?,
+            );
+            if !input.is_absolute() {
+                return Err("hierarchical source input root must be absolute".into());
+            }
+            // The remaining geometry, OCR, identity and historical text are
+            // still implemented by the retained producer. Remove this gate
+            // as those fields migrate into the research-owned stage.
+            let mut compatibility = recipe.clone();
+            let object = compatibility
+                .as_object_mut()
+                .ok_or("hierarchical source recipe required")?;
+            object.remove("configuration");
+            object.remove("frozen_outputs");
+            compatibility.sort_all_objects();
+            let raw = serde_json::to_vec(&compatibility).map_err(|e| e.to_string())?;
+            if tos_foundation::Digest256::of_bytes(&raw).to_hex()
+                != "a83a6707d363ab47e722894c60e2702a460f5d8e483cb153374a7b2a8258334c"
+            {
+                return Err("unsupported hierarchical source compatibility parameters".into());
+            }
+            let mut expected = BTreeMap::new();
+            let mut frozen = Vec::new();
+            for output in recipe["frozen_outputs"]
+                .as_array()
+                .ok_or("hierarchical source outputs required")?
+            {
+                let role = output["role"]
+                    .as_str()
+                    .ok_or("hierarchical source output role required")?;
+                let reference = output["repository_path"]
+                    .as_str()
+                    .ok_or("hierarchical source output path required")?;
+                let digest = output["expected_sha256"]
+                    .as_str()
+                    .ok_or("hierarchical source output digest required")?;
+                let raw = ctx.read(reference)?;
+                edition_curation::validate_frozen_output_fixity(
+                    &owner.raw,
+                    stage,
+                    role,
+                    SelectedDocument {
+                        reference,
+                        raw: &raw,
+                    },
+                    &schema,
+                )
+                .map_err(|e| format!("hierarchical source frozen output: {e:?}"))?;
+                if expected
+                    .insert(reference.to_owned(), digest.to_owned())
+                    .is_some()
+                {
+                    return Err("duplicate hierarchical source output".into());
+                }
+                frozen.push((reference.to_owned(), raw));
+            }
+            let target = if action == "build" {
+                let path = Path::new(tracked_root.ok_or("build requires --tracked-output-root")?);
+                Some(select_empty_output(&ctx, path, &[&root, input])?)
+            } else {
+                None
+            };
+            let mut result = tos_compiler::nietzsche_transfer_source_structure::replay_selected(
+                &ctx,
+                input,
+                &recipe["configuration"],
+                &expected,
+                target.as_ref(),
+            )?;
+            if target.is_some() {
+                result["status"] = serde_json::json!("built");
+                result["outputs_written"] = serde_json::json!(expected.len());
+            }
+            for (reference, raw) in frozen {
+                if ctx.read(&reference)? != raw {
+                    return Err("hierarchical source frozen output changed during replay".into());
+                }
+            }
+            selected.verify_unchanged(&ctx)?;
+            for referenced in &refs {
+                referenced.verify_unchanged(&ctx)?;
+            }
+            result["stage"] = serde_json::json!(stage);
+            result["curation_ref"] = serde_json::json!(relative);
+            result["current_curation_sha256"] =
+                serde_json::json!(tos_foundation::Digest256::of_bytes(&owner.raw).to_hex());
+            result["current_execution_sources"] = serde_json::json!({
+                "producer":tos_foundation::Digest256::of_bytes(include_bytes!("../../tos-compiler/src/nietzsche_transfer_source_structure.rs")).to_hex(),
+                "records":tos_foundation::Digest256::of_bytes(include_bytes!("../../tos-compiler/src/nietzsche_transfer_source_structure/records.rs")).to_hex(),
+                "constants":tos_foundation::Digest256::of_bytes(include_bytes!("../../tos-compiler/src/nietzsche_transfer_source_structure/constants.rs")).to_hex(),
+                "compatibility_config":tos_foundation::Digest256::of_bytes(include_bytes!("../../tos-compiler/src/nietzsche_transfer_source_structure/config.json")).to_hex()
+            });
+            writeln!(out, "{result}").map_err(|error| error.to_string())?;
+            return Ok(());
         }
         if matches!(action, "check" | "build") && stage == "sentence-alignment" {
             if output_root.is_some() {

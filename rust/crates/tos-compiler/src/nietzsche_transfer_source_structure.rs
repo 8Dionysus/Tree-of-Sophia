@@ -334,6 +334,55 @@ pub struct Options<'a> {
     pub event_at: Option<&'a str>,
 }
 pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
+    let configs: Vec<Value> = serde_json::from_slice(include_bytes!(
+        "nietzsche_transfer_source_structure/config.json"
+    ))
+    .map_err(|e| e.to_string())?;
+    run_selected_configs(ctx, options, configs, None, None)
+}
+/// Replay one retained configuration while the hierarchical producer migrates.
+/// Remove this compatibility entry when the research-owned stage replaces it.
+pub fn replay_selected(
+    ctx: &ResearchExecution,
+    input_root: &Path,
+    config: &Value,
+    expected: &BTreeMap<String, String>,
+    target: Option<&ResearchExecution>,
+) -> Result<Value> {
+    let retained: Vec<Value> = serde_json::from_slice(include_bytes!(
+        "nietzsche_transfer_source_structure/config.json"
+    ))
+    .map_err(|e| e.to_string())?;
+    ensure(
+        retained.iter().filter(|v| *v == config).count() == 1,
+        "unsupported hierarchical source compatibility configuration",
+    )?;
+    let selected = paths(config, None)?;
+    let membership: BTreeSet<_> = selected.values().cloned().collect();
+    ensure(
+        membership == expected.keys().cloned().collect(),
+        "hierarchical source output membership differs",
+    )?;
+    run_selected_configs(
+        ctx,
+        Options {
+            build: false,
+            input_root: Some(input_root),
+            generation: None,
+            event_at: None,
+        },
+        vec![config.clone()],
+        Some(expected),
+        target,
+    )
+}
+fn run_selected_configs(
+    ctx: &ResearchExecution,
+    options: Options<'_>,
+    configs: Vec<Value>,
+    expected: Option<&BTreeMap<String, String>>,
+    target: Option<&ResearchExecution>,
+) -> Result<Value> {
     ensure(
         !options.build || options.generation.is_some(),
         "build requires new generation",
@@ -384,10 +433,6 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
         )
     };
     let source = ctx.select_directory(options.input_root.unwrap_or(ctx.root()))?;
-    let configs: Vec<Value> = serde_json::from_slice(include_bytes!(
-        "nietzsche_transfer_source_structure/config.json"
-    ))
-    .map_err(|e| e.to_string())?;
     let mut poppler = Poppler::open(ctx)?;
     let mut outputs = Vec::new();
     let mut summaries = Vec::new();
@@ -781,6 +826,12 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
     poppler.verify()?;
     let mut missing = Vec::new();
     for (reference, bytes) in &outputs {
+        if let Some(expected) = expected {
+            ensure(
+                expected.get(reference) == Some(&sha(bytes)),
+                "curation output fixity differs",
+            )?;
+        }
         match std::fs::symlink_metadata(ctx.root().join(reference)) {
             Ok(_) => {
                 let retained = ctx.read(reference)?;
@@ -803,6 +854,15 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
     for (reference, bytes) in &outputs {
         if missing.contains(&reference.as_str()) {
             ctx.write(reference, bytes, 0o644, true)?;
+        }
+    }
+    if let Some(target) = target {
+        for (reference, bytes) in &outputs {
+            target.write(reference, bytes, 0o644, true)?;
+            ensure(
+                target.read(reference)? == *bytes,
+                "isolated hierarchical source output drift",
+            )?;
         }
     }
     Ok(
