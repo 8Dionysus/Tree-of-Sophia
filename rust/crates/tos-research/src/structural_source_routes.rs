@@ -235,16 +235,17 @@ fn event_at(
     )?;
     Ok(s(&v["started_at"])?.into())
 }
-fn build_one(
+fn build_one<'a>(
     ctx: &ResearchExecution,
     c: &Config<'_>,
+    profile: &Profile<'a>,
     generation: &Option<Generation<'_>>,
     held: &mut Vec<Held>,
-) -> Result<Vec<(String, Vec<u8>, &'static str)>> {
+) -> Result<Vec<(String, Vec<u8>, &'a str)>> {
     let (source, source_digest) = load(ctx, c.source, held)?;
     let (target, target_digest) = load(ctx, c.target, held)?;
     let (crosswalk, crosswalk_digest) = load(ctx, c.crosswalk, held)?;
-    let work = format!("tos.work.friedrich-nietzsche.{}", c.slug);
+    let work = format!("{}{}", profile.work_prefix, c.slug);
     ensure(
         s(&source["work_ref"])? == work
             && source["work_ref"] == target["work_ref"]
@@ -281,56 +282,43 @@ fn build_one(
         ]));
         rights_inputs.push(input(reference, &format!("{role}-rights-basis"), &digest));
     }
-    let (_, target_rights_digest) = load(ctx, TARGET_RIGHTS, held)?;
+    let (_, target_rights_digest) = load(ctx, profile.target_rights, held)?;
     rights.push(o(vec![
         ("role", q("target")),
-        ("ref", q(TARGET_RIGHTS)),
+        ("ref", q(profile.target_rights)),
         ("sha256", q(&target_rights_digest)),
     ]));
     rights_inputs.push(input(
-        TARGET_RIGHTS,
+        profile.target_rights,
         "target-rights-basis",
         &target_rights_digest,
     ));
     let authority = if generation.is_some() {
-        AUTHORITY
+        profile.current_authority
     } else {
-        "mechanical pairing and routing of identical series-qualified structural number-label keys already materialized independently in exact source and target witness maps; it reads no witness text and establishes neither exact passage boundaries nor passage or translation alignment, accepted German or Russian, eligibility, gold, semantics, rights, or canon authority"
+        profile.historical_authority
     };
     let base = format!(
-        "ToS/source-witnesses/works/friedrich-nietzsche/{}/alignments/structure/{}",
-        c.slug, c.pair_slug
+        "{}/{}/{}/{}",
+        profile.alignment_root, c.slug, profile.output_subdirectory, c.pair_slug
     );
     let directory = if let Some(g) = generation {
         format!("{base}/native-{}", g.name)
     } else {
         base
     };
-    let pair_ref = format!("{directory}/hierarchical-numbered-unit-label-correspondence.json");
-    let pair_prov = format!("{directory}/provenance.numbered-unit-label-correspondence.jsonl");
-    let route_ref = format!("{directory}/transfer-candidate-source-structural-route.v1.json");
-    let route_prov =
-        format!("{directory}/provenance.transfer-candidate-source-structural-route.jsonl");
+    let pair_ref = format!("{directory}/{}", profile.pair_file);
+    let pair_prov = format!("{directory}/{}", profile.pair_provenance_file);
+    let route_ref = format!("{directory}/{}", profile.route_file);
+    let route_prov = format!("{directory}/{}", profile.route_provenance_file);
     let suffix = generation
         .as_ref()
         .map(|g| format!("native-{}", g.name))
-        .unwrap_or_else(|| "2026-08-08".into());
-    let pair_id = format!(
-        "tos.event.hierarchical-numbered-unit-label-correspondence.friedrich-nietzsche.{}.{}",
-        c.slug, suffix
-    );
-    let route_id = format!(
-        "tos.event.transfer-candidate-source-structural-route.friedrich-nietzsche.{}.{}",
-        c.slug, suffix
-    );
-    let old_map_id = format!(
-        "tos.map.hierarchical-numbered-unit-label-correspondence.friedrich-nietzsche.{}",
-        c.slug
-    );
-    let old_route_id = format!(
-        "tos.route-set.transfer-candidate-source-structural.friedrich-nietzsche.{}",
-        c.slug
-    );
+        .unwrap_or_else(|| profile.historical_suffix.to_owned());
+    let pair_id = format!("{}{}.{}", profile.pair_event_prefix, c.slug, suffix);
+    let route_id = format!("{}{}.{}", profile.route_event_prefix, c.slug, suffix);
+    let old_map_id = format!("{}{}", profile.pair_map_prefix, c.slug);
+    let old_route_id = format!("{}{}", profile.route_set_prefix, c.slug);
     let map_id = if generation.is_some() {
         format!("{old_map_id}.{suffix}")
     } else {
@@ -369,7 +357,7 @@ fn build_one(
         })
         .collect();
     let pair = o(vec![
-        ("$schema", q(CORRESPONDENCE_SCHEMA)),
+        ("$schema", q(profile.correspondence_uri)),
         (
             "schema_version",
             q("tos_hierarchical_numbered_unit_label_correspondence_v1"),
@@ -436,7 +424,7 @@ fn build_one(
             },
         ),
         ("authority_boundary", q(authority)),
-        ("does_not_establish", arr(DOES_NOT_ESTABLISH)),
+        ("does_not_establish", arr(&profile.exclusions)),
     ]);
     let pair_raw = render(&pair, true)?;
     let pair_digest = sha(&pair_raw);
@@ -544,7 +532,7 @@ fn build_one(
     }
     let candidate_count = candidates.len();
     let route = o(vec![
-        ("$schema", q(ROUTE_SCHEMA)),
+        ("$schema", q(profile.route_uri)),
         (
             "schema_version",
             q("tos_transfer_candidate_source_structural_route_v1"),
@@ -619,7 +607,7 @@ fn build_one(
             ]),
         ),
         ("provenance_event_ref", q(&route_id)),
-        ("does_not_establish", arr(DOES_NOT_ESTABLISH)),
+        ("does_not_establish", arr(&profile.exclusions)),
         ("authority_boundary", q(authority)),
     ]);
     let route_raw = render(&route, true)?;
@@ -679,13 +667,13 @@ fn build_one(
         generation.is_some(),
     );
     Ok(vec![
-        (pair_ref, pair_raw, SCHEMA_PAIR),
+        (pair_ref, pair_raw, profile.correspondence_contract),
         (
             pair_prov,
             render(&pair_event, false)?,
             "ToS/contracts/provenance-event.schema.json",
         ),
-        (route_ref, route_raw, SCHEMA_ROUTE),
+        (route_ref, route_raw, profile.route_contract),
         (
             route_prov,
             render(&route_event, false)?,
@@ -700,6 +688,7 @@ pub fn run(
     generation: Option<Generation<'_>>,
 ) -> Result<Value> {
     let configs = selected_configs(selected)?;
+    let profile = Profile::selected(selected)?;
     let expected_total = configs.iter().try_fold(0usize, |total, config| {
         total
             .checked_add(config.expected)
@@ -723,7 +712,7 @@ pub fn run(
     let mut outputs = Vec::new();
     for c in &configs {
         ctx.tick(1)?;
-        outputs.extend(build_one(ctx, c, &generation, &mut held)?);
+        outputs.extend(build_one(ctx, c, &profile, &generation, &mut held)?);
     }
     for (_, raw, contract) in &outputs {
         let value: Value = serde_json::from_slice(raw).map_err(|e| e.to_string())?;
@@ -772,31 +761,125 @@ pub fn run(
 }
 
 const CAP: u64 = 2 * 1024 * 1024;
-const SCHEMA_PAIR: &str =
-    "ToS/contracts/hierarchical-numbered-unit-label-correspondence.schema.json";
-const SCHEMA_ROUTE: &str = "ToS/contracts/transfer-candidate-source-structural-route.schema.json";
-const TARGET_RIGHTS: &str = "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json";
-const CORRESPONDENCE_SCHEMA: &str = "https://tree-of-sophia.local/ToS/contracts/hierarchical-numbered-unit-label-correspondence.schema.json";
-const ROUTE_SCHEMA: &str = "https://tree-of-sophia.local/ToS/contracts/transfer-candidate-source-structural-route.schema.json";
-const AUTHORITY: &str = "This map pairs and routes identical series-qualified structural number-label keys from independently prepared exact source and target maps. The operation uses the maps as structural metadata.";
-const DOES_NOT_ESTABLISH: &[&str] = &[
-    "source_text",
-    "target_text",
-    "exact_line_boundaries",
-    "exact_passage_end_boundaries",
-    "source_to_target_passage_alignment",
-    "translation_correspondence",
-    "translation_equivalence",
-    "translation_quality",
-    "textual_identity",
-    "accepted_german",
-    "accepted_russian",
-    "target_gold",
-    "eligible_target_unit",
-    "semantics",
-    "rights_clearance",
-    "canon_promotion",
-];
+struct Profile<'a> {
+    correspondence_contract: &'a str,
+    route_contract: &'a str,
+    target_rights: &'a str,
+    correspondence_uri: &'a str,
+    route_uri: &'a str,
+    historical_authority: &'a str,
+    current_authority: &'a str,
+    exclusions: Vec<&'a str>,
+    historical_suffix: &'a str,
+    alignment_root: &'a str,
+    output_subdirectory: &'a str,
+    work_prefix: &'a str,
+    pair_event_prefix: &'a str,
+    route_event_prefix: &'a str,
+    pair_map_prefix: &'a str,
+    route_set_prefix: &'a str,
+    pair_file: &'a str,
+    pair_provenance_file: &'a str,
+    route_file: &'a str,
+    route_provenance_file: &'a str,
+    expected_candidate_pages: usize,
+    expected_source_routes: usize,
+}
+fn unique_selection<'a>(
+    selected: &'a Value,
+    array: &str,
+    key: &str,
+    name: &str,
+    field: &str,
+) -> Result<&'a str> {
+    let mut rows = selected[array]
+        .as_array()
+        .ok_or("structural selection required")?
+        .iter()
+        .filter(|row| row[key] == name);
+    let row = rows.next().ok_or("structural selection missing")?;
+    ensure(rows.next().is_none(), "duplicate structural selection")?;
+    s(&row[field])
+}
+impl<'a> Profile<'a> {
+    fn selected(value: &'a Value) -> Result<Self> {
+        let prefix = |name| unique_selection(value, "identity_prefixes", "kind", name, "prefix");
+        let filename = |name| unique_selection(value, "output_files", "role", name, "filename");
+        let count = |name: &str| -> Result<usize> {
+            usize::try_from(
+                value[name]
+                    .as_u64()
+                    .ok_or("structural expected count required")?,
+            )
+            .map_err(|_| "structural count overflow".to_owned())
+        };
+        let selected = Self {
+            correspondence_contract: s(&value["correspondence_contract_ref"])?,
+            route_contract: s(&value["route_contract_ref"])?,
+            target_rights: s(&value["target_rights_ref"])?,
+            correspondence_uri: s(&value["correspondence_schema_uri"])?,
+            route_uri: s(&value["route_schema_uri"])?,
+            historical_authority: s(&value["historical_authority"])?,
+            current_authority: s(&value["current_authority"])?,
+            exclusions: value["historical_exclusions"]
+                .as_array()
+                .ok_or("structural exclusions required")?
+                .iter()
+                .map(s)
+                .collect::<Result<Vec<_>>>()?,
+            historical_suffix: s(&value["historical_event_suffix"])?,
+            alignment_root: s(&value["alignment_root"])?,
+            output_subdirectory: s(&value["output_subdirectory"])?,
+            work_prefix: prefix("work")?,
+            pair_event_prefix: prefix("correspondence_event")?,
+            route_event_prefix: prefix("route_event")?,
+            pair_map_prefix: prefix("correspondence_map")?,
+            route_set_prefix: prefix("route_set")?,
+            pair_file: filename("correspondence")?,
+            pair_provenance_file: filename("correspondence-provenance")?,
+            route_file: filename("route")?,
+            route_provenance_file: filename("route-provenance")?,
+            expected_candidate_pages: count("expected_candidate_pages")?,
+            expected_source_routes: count("expected_source_routes")?,
+        };
+        for path in [
+            selected.correspondence_contract,
+            selected.route_contract,
+            selected.target_rights,
+            selected.alignment_root,
+            selected.output_subdirectory,
+        ] {
+            tos_foundation::RelativePath::parse(path).map_err(|error| error.to_string())?;
+        }
+        for filename in [
+            selected.pair_file,
+            selected.pair_provenance_file,
+            selected.route_file,
+            selected.route_provenance_file,
+        ] {
+            tos_foundation::RelativePath::parse(filename).map_err(|error| error.to_string())?;
+            ensure(
+                std::path::Path::new(filename).components().count() == 1,
+                "output filename must be one component",
+            )?;
+        }
+        ensure(
+            selected.correspondence_uri
+                == format!(
+                    "https://tree-of-sophia.local/{}",
+                    selected.correspondence_contract
+                )
+                && selected.route_uri
+                    == format!("https://tree-of-sophia.local/{}", selected.route_contract),
+            "structural schema URI differs from contract",
+        )?;
+        ensure(
+            selected.exclusions.iter().collect::<BTreeSet<_>>().len() == selected.exclusions.len(),
+            "duplicate structural exclusion",
+        )?;
+        Ok(selected)
+    }
+}
 struct Config<'a> {
     slug: &'a str,
     pair_slug: &'a str,
@@ -999,6 +1082,7 @@ fn ordered_units(value: &Value, page: &str, expected: usize) -> Result<Vec<Strin
 /// This is the full former validator scope; no payload or authority admission.
 pub fn validate_tracked(ctx: &ResearchExecution, selected: &Value) -> Result<Value> {
     let configs = selected_configs(selected)?;
+    let profile = Profile::selected(selected)?;
     let expected_total = configs.iter().try_fold(0usize, |total, config| {
         total
             .checked_add(config.expected)
@@ -1116,7 +1200,11 @@ pub fn validate_tracked(ctx: &ResearchExecution, selected: &Value) -> Result<Val
         }
     }
     ensure(
-        (total_routes, total_candidates) == (20, 12),
+        (total_routes, total_candidates)
+            == (
+                profile.expected_source_routes,
+                profile.expected_candidate_pages,
+            ),
         "aggregate source route/candidate closure drifted",
     )?;
     // Reconstructing every pair, route and event also checks their schemas,
