@@ -72,6 +72,7 @@ export function termsIssues(module,chapterFiles={},{pivot='de',place=null}={}){
       }
     }
     if(!text(term.gloss?.ru)||!text(term.gloss?.en))issues.push(`${at}: gloss`);
+    if(term.contextWorks!==undefined&&!words(term.contextWorks))issues.push(`${at}: context works`);
     const cite=term.first;
     if(!cite?.c&&place){
       const result=place(cite,original.lang);

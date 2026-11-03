@@ -71,6 +71,15 @@
   },
   "modules": [
     {
+      "id": "terms",
+      "path": "terms.json",
+      "format": "tos.bonsai.terms.v1",
+      "role": {
+        "ru": "Слова Античности, их формы, переводы и места в произведениях.",
+        "en": "The words of Antiquity, their forms, translations and places in the works."
+      }
+    },
+    {
       "id": "collection",
       "path": "collection.json",
       "role": {

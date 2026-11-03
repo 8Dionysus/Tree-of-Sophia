@@ -3,6 +3,7 @@ import {describe,expect,it} from 'vitest';
 import {formPattern,holdsForm,termsIssues} from '../../../../bonsai/lib/terms.mjs';
 import {termPlaceReader} from '../../../../bonsai/lib/graft.mjs';
 import {fileURLToPath} from 'node:url';
+import {citationId,createResearchIndex} from './research-index.mjs';
 
 // The philological core checks each term against the witnesses: the original says
 // the word at its first place, and each translation says its own word there.
@@ -33,6 +34,21 @@ it('checks an Antiquity corpus place, its exact word boundaries and normalized G
   expect(termsIssues({schema:'tos.bonsai.terms.v1',terms:[term]}, {},options).join(' ')).toContain('unknown or unordered units');
   term.first=cite;term.original.forms=['ψυχή','ψυχ'];
   expect(termsIssues({schema:'tos.bonsai.terms.v1',terms:[term]}, {},options).join(' ')).toContain('original does not say');
+  term.original.forms=['ψυχή','ψυχῆς'];term.first={...cite,q:'unrelated words'};
+  expect(termsIssues({schema:'tos.bonsai.terms.v1',terms:[term]}, {},options).join(' ')).toContain('quote is not in the cited original');
+});
+it('keeps every Antiquity origin among the addressable cited uses',()=>{
+  const collection=JSON.parse(readFileSync(new URL('../../../../bonsai/antiquity/collection.json',import.meta.url),'utf8'));
+  const registry=JSON.parse(readFileSync(new URL('../../../../bonsai/antiquity/terms.json',import.meta.url),'utf8'));
+  const nodes=collection.terms.map(term=>({...term,id:`lexical:${term.id}`,readingSteps:term.uses}));
+  const index=createResearchIndex({nodes,space:{}});
+  expect(registry.terms).toHaveLength(41);
+  for(const term of registry.terms){
+    const source=collection.terms.find(item=>item.id===term.id);
+    expect(source?.uses.flatMap(use=>use.body.cite??[]).some(cite=>citationId(cite)===citationId(term.first)),term.id).toBe(true);
+    for(const work of term.contextWorks??[])expect(source.uses.some(use=>use.work===work),`${term.id}: ${work}`).toBe(true);
+    expect(index.get(citationId(term.first)),term.id).toMatchObject({kind:'passage'});
+  }
 });
 const module=terms=>({schema:'tos.bonsai.terms.v1',work:'za',editions,terms});
 

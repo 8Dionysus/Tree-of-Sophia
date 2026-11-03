@@ -1,6 +1,6 @@
 import {describe,expect,it,vi} from 'vitest';
 import {readFileSync} from 'node:fs';
-import {createTerms,termForms,termMatcher,treeRendering} from './term-view.mjs';
+import {createTerms,termContextAllows,termForms,termMatcher,treeRendering} from './term-view.mjs';
 
 const module={terms:[
   {id:'ubermensch',original:{lemma:'Übermensch',forms:['Übermensch','Übermenschen']},renderings:{ru:{tos:{term:'сверхчеловек',forms:['сверхчеловек','сверхчеловека']},witness:{term:'сверхчеловек',forms:['сверхчеловеке']}},en:{tos:{term:'overman',forms:['overman']},witness:{term:'Superman',forms:['Superman']}}}},
@@ -44,6 +44,28 @@ describe('active terms',()=>{
   it('includes the forms of each translation edition',()=>{
     const term={id:'appearance',renderings:{en:{tos:{forms:['impression']},witness:[{forms:['appearance']},{forms:['semblance']}]}}};
     expect([...termForms({terms:[term]},'en').keys()]).toEqual(['impression','appearance','semblance']);
+  });
+  it('limits Antiquity witness words to their edition and lets that edition resolve collisions',()=>{
+    const module={work:'antiquity',terms:[
+      {id:'officium',renderings:{en:{tos:{forms:['duty']}}}},
+      {id:'kathekon',renderings:{en:{tos:{forms:['appropriate action']},witness:[{edition:'epictetus',forms:['duty']}]}}},
+    ]};
+    expect(termForms(module,'en').get('duty').id).toBe('officium');
+    expect(termForms(module,'en',{edition:'epictetus'}).get('duty').id).toBe('kathekon');
+    expect(termForms(module,'en',{edition:'another'}).get('duty').id).toBe('officium');
+  });
+  it('keeps the English noun will and the mean apart from ordinary verbs',()=>{
+    const module={work:'antiquity'},allows=(s,word)=>termContextAllows(module,'en',s,{text:word,index:s.indexOf(word)});
+    expect(allows('We will return to the text.','will')).toBe(false);
+    expect(allows('Each person’s will gives movement its start.','will')).toBe(true);
+    expect(allows('What does this mean?','mean')).toBe(false);
+    expect(allows('Virtue observes the mean.','mean')).toBe(true);
+  });
+  it('uses the cited work to distinguish an ordinary word from an evidenced term',()=>{
+    const module={work:'antiquity'},match={text:'роль',index:0,term:{id:'persona',contextWorks:['de-officiis']}};
+    expect(termContextAllows(module,'ru','роль гражданина',match,['politics'])).toBe(false);
+    expect(termContextAllows(module,'ru','роль человека',match,['de-officiis'])).toBe(true);
+    expect(termContextAllows(module,'la','persona',match,['politics'])).toBe(true);
   });
 });
 

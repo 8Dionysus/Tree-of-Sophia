@@ -14,7 +14,7 @@ const WORDS={
 const words=locale=>{const ru=resolveLocale(locale)==='ru';return ru?WORDS.ru:Object.fromEntries(Object.entries(WORDS.en).map(([key,value])=>[key,localeText(value,locale)]));};
 
 // Text that is already an action, a title or a term keeps its own behaviour.
-const SKIP='a,button,input,textarea,select,code,h1,summary,figcaption,.ps-term,.ps-term-card,[data-terms="off"]';
+const SKIP='a,button,input,textarea,select,code,h1,summary,.ps-term,.ps-term-card,[data-terms="off"]';
 const escape=value=>value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 const make=(tag,className,text)=>{const node=document.createElement(tag);if(className)node.className=className;if(text!==undefined)node.textContent=text;return node;};
 const witnesses=rendering=>[].concat(rendering?.witness??[]);
@@ -50,6 +50,23 @@ export function treeRendering(term,language){
 // written in lower case is read in any case, so a sentence may begin with it.
 const exact=form=>/^\p{Lu}/u.test(form);
 
+// In English these two terms also have very frequent ordinary grammatical uses.
+// Keep their noun phrases, including a bare heading, without marking the future
+// auxiliary "will" or the verb "mean" throughout the reader.
+export function termContextAllows(module,language,value,match,works=[]){
+  if(module?.work!=='antiquity')return true;
+  // Some everyday words name several different concepts. When an article has
+  // a source work, only use those ambiguous renderings in works evidenced by
+  // that term's cited uses; original-language forms remain available anywhere.
+  if(['ru','en'].includes(language)&&works.length&&match.term?.contextWorks&&!works.some(work=>match.term.contextWorks.includes(work)))return false;
+  if(language!=='en')return true;
+  const word=match.text.toLowerCase();if(word!=='will'&&word!=='mean')return true;
+  const before=value.slice(0,match.index),after=value.slice(match.index+match.text.length);
+  if(!before.trim()&&!after.trim())return true;
+  if(word==='will')return /(?:\b(?:the|a|his|her|my|your|our|their|its|one's|own|free)|[\p{L}][’']s)\s+$/iu.test(before);
+  return /\b(?:the|a|its)\s+$/iu.test(before);
+}
+
 /** A matcher for whole-word forms, longest form first; `find(text)` lists the found forms in text order. */
 export function termMatcher(forms,{greek=false}={}){
   if(!forms.size)return null;
@@ -79,6 +96,7 @@ export function termMatcher(forms,{greek=false}={}){
  */
 export function createTerms({module,locale=()=> 'ru',open=()=>{}}={}){
   if(!module?.terms?.length)return {mark(){},dispose(){},get size(){return 0;}};
+  const skip=module.work==='antiquity'?`${SKIP},figcaption,.eyebrow,.minor-title,.muted,.ps-source-status`:SKIP;
   const byId=new Map(module.terms.map(term=>[term.id,term]));
   const matchers=new Map();
   const matcherFor=(language,edition)=>{const key=`${language}:${edition??''}`;if(!matchers.has(key))matchers.set(key,termMatcher(termForms(module,language,{edition}),{greek:language==='grc'}));return matchers.get(key);};
@@ -101,11 +119,12 @@ export function createTerms({module,locale=()=> 'ru',open=()=>{}}={}){
     try{
       // Once per term in each language of the root: a parallel reading opens the word in the original and in its translation.
       const seen=new Set([...root.querySelectorAll('.ps-term')].map(node=>`${languageOf(node)}:${node.dataset.term}`));
-      const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:node=>node.nodeValue.trim().length<3||node.parentElement?.closest(SKIP)?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});
+      const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:node=>node.nodeValue.trim().length<3||node.parentElement?.closest(skip)?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});
       const queue=[];while(walker.nextNode())queue.push(walker.currentNode);
       while(queue.length){
         const node=queue.shift(),language=languageOf(node.parentElement),edition=node.parentElement?.closest?.('[data-edition]')?.dataset.edition,matcher=matcherFor(language,edition);if(!matcher)continue;
-        const found=matcher.find(node.nodeValue).find(item=>!seen.has(`${language}:${item.term.id}`));
+        const works=(node.parentElement?.closest?.('[data-term-works]')?.dataset.termWorks??'').split(' ').filter(Boolean);
+        const found=matcher.find(node.nodeValue).find(item=>!seen.has(`${language}:${item.term.id}`)&&termContextAllows(module,language,node.nodeValue,item,works));
         if(!found)continue;
         seen.add(`${language}:${found.term.id}`);
         const start=found.index,end=start+found.text.length,rest=node.splitText(start).splitText(end-start);

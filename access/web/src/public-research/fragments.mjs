@@ -284,7 +284,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       for(const language of showing){
         const text=place.texts[language];
         const narrowed=shownIn(language,language===work.original&&Number.isInteger(cite.s)?text.slice(cite.s,Number.isInteger(cite.e)?cite.e:text.length):text);
-        const quote=el('blockquote','ps-fragment-text');quote.lang=language==='zh-Hans'?'zh':language;
+        const quote=el('blockquote','ps-fragment-text');quote.lang=language==='zh-Hans'?'zh':language;quote.dataset.termWorks=cite.w;
         const {nodes}=clip(narrowed.split(/\n{2,}/).map(part=>el('p','ps-fragment-line',part.trim())).filter(node=>node.textContent));
         quote.append(...nodes);
         const witness=witnessOf(language);
@@ -374,7 +374,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       for(const [language,value] of parts){
         if(!value.length)continue;
         const version=versionFor(language);
-        const quote=el('blockquote','ps-fragment-text');quote.lang=language==='grc'?'grc':language==='la'?'la':language;quote.dataset.edition=version.versionId;
+        const quote=el('blockquote','ps-fragment-text');quote.lang=language==='grc'?'grc':language==='la'?'la':language;quote.dataset.edition=version.versionId;quote.dataset.termWorks=cite.w;
         const {nodes}=clip(value.flatMap(item=>item.text.split(/\n{2,}/)).map(part=>el('p','ps-fragment-line',part.replace(/\s*\n\s*/g,' ').trim())).filter(node=>node.textContent));
         quote.append(...nodes);
         const references=[...new Set(value.map(item=>placeName(item.reference)).filter(Boolean))];
