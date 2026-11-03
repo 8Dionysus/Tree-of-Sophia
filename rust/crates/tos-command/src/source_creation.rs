@@ -2017,7 +2017,7 @@ pub fn describe_sign_promotion_from_captures(
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
     local_worker: &mut impl CreationSchemaExecutor,
-    assessment_worker: &mut CutWorkerSchemaExecutor,
+    assessment_worker: &mut impl CutSchemaExecutor,
     limits: tos_validation::assessment::AssessmentLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -2048,7 +2048,7 @@ pub fn prepare_sign_promotion_from_captures(
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
     local_worker: &mut impl CreationSchemaExecutor,
-    assessment_worker: &mut CutWorkerSchemaExecutor,
+    assessment_worker: &mut impl CutSchemaExecutor,
     limits: tos_validation::assessment::AssessmentLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCreation> {

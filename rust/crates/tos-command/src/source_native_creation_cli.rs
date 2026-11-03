@@ -1,6 +1,6 @@
 //! Maintained initial-package CLI bridge. All mutation and retained-byte
 //! semantics remain in the existing creation and filesystem owners.
-use super::{absolute, capped, digest, selected_schema, selected_schema_with_profile, text};
+use super::{absolute, capped, digest, selected_in_process_schema, text};
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
 use crate::source_creation::{self as owner, CreationFamily};
 use crate::source_creation_store::CreationFilesystem;
@@ -127,14 +127,14 @@ pub(super) fn run(
             cancelled,
         )?;
         if family == CreationFamily::Sign && operation == "describe" {
-            let mut assessment = selected_schema_with_profile(
-                invocation,
+            let mut assessment = tos_validation::source_cut::InProcessCutSchemaExecutor::from_cut(
                 &original,
-                "assessment_schema_worker",
                 tos_validation::FormatProfile::AssertedSourceCandidateV1,
+                tos_validation::in_process::InputMode::SerdeNormalized,
                 deadline,
                 cancelled,
-            )?;
+            )
+            .map_err(|_| SourceCommandError::Denied("Sign assessment schema selection"))?;
             let promotion = owner::describe_sign_promotion_from_captures(
                 &configuration_path,
                 &context,
@@ -152,14 +152,14 @@ pub(super) fn run(
         return envelope(response);
     }
     let prepared = if family == CreationFamily::Sign {
-        let mut assessment = selected_schema_with_profile(
-            invocation,
+        let mut assessment = tos_validation::source_cut::InProcessCutSchemaExecutor::from_cut(
             &original,
-            "assessment_schema_worker",
             tos_validation::FormatProfile::AssertedSourceCandidateV1,
+            tos_validation::in_process::InputMode::SerdeNormalized,
             deadline,
             cancelled,
-        )?;
+        )
+        .map_err(|_| SourceCommandError::Denied("Sign assessment schema selection"))?;
         owner::prepare_sign_promotion_from_captures(
             &configuration_path,
             &context,
@@ -218,15 +218,15 @@ pub(super) fn run(
         };
         crate::source_creation_store::finish_creation_worker(&mut worker, deadline, cancelled)?;
         let publication = if family == CreationFamily::Sign {
-            let mut local = selected_schema(invocation, &original, deadline, cancelled)?;
-            let mut assessment = selected_schema_with_profile(
-                invocation,
+            let mut local = selected_in_process_schema(&original, deadline, cancelled)?;
+            let mut assessment = tos_validation::source_cut::InProcessCutSchemaExecutor::from_cut(
                 &original,
-                "assessment_schema_worker",
                 tos_validation::FormatProfile::AssertedSourceCandidateV1,
+                tos_validation::in_process::InputMode::SerdeNormalized,
                 deadline,
                 cancelled,
-            )?;
+            )
+            .map_err(|_| SourceCommandError::Denied("Sign assessment schema selection"))?;
             if replay {
                 filesystem.replay_sign_isolated(
                     &serialized,

@@ -4263,19 +4263,22 @@ impl CreationFilesystem {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<CreationPublication> {
-        self.publish(
+        self.publish::<tos_validation::source_cut::CutWorkerSchemaExecutor, tos_validation::source_cut::CutWorkerSchemaExecutor>(
             package, cut, software, components, deadline, cancelled, None,
         )
     }
 
-    pub fn publish_sign_isolated(
+    pub fn publish_sign_isolated<
+        L: crate::source_creation::CreationSchemaExecutor,
+        A: CutSchemaExecutor,
+    >(
         &self,
         package: &SerializedCreation,
         cut: &CorpusCutReader,
         software: &SoftwareCaptureReader,
         components: &SoftwareComponentSelectionV1,
-        local_worker: &mut tos_validation::source_cut::CutWorkerSchemaExecutor,
-        assessment_worker: &mut tos_validation::source_cut::CutWorkerSchemaExecutor,
+        local_worker: &mut L,
+        assessment_worker: &mut A,
         limits: tos_validation::assessment::AssessmentLimits,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<CreationPublication> {
@@ -4301,7 +4304,7 @@ impl CreationFilesystem {
         )
     }
 
-    fn publish(
+    fn publish<L: crate::source_creation::CreationSchemaExecutor, A: CutSchemaExecutor>(
         &self,
         package: &SerializedCreation,
         cut: &CorpusCutReader,
@@ -4311,8 +4314,8 @@ impl CreationFilesystem {
         cancelled: &AtomicBool,
         sign: Option<(
             &mut crate::source_sign::SignPromotionRead<'_>,
-            &mut tos_validation::source_cut::CutWorkerSchemaExecutor,
-            &mut tos_validation::source_cut::CutWorkerSchemaExecutor,
+            &mut L,
+            &mut A,
             tos_validation::assessment::AssessmentLimits,
         )>,
     ) -> SourceCommandResult<CreationPublication> {
@@ -4450,7 +4453,7 @@ impl CreationFilesystem {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<CreationPublication> {
-        self.replay(
+        self.replay::<tos_validation::source_cut::CutWorkerSchemaExecutor, tos_validation::source_cut::CutWorkerSchemaExecutor>(
             package,
             original_base,
             software,
@@ -4461,14 +4464,17 @@ impl CreationFilesystem {
         )
     }
 
-    pub fn replay_sign_isolated(
+    pub fn replay_sign_isolated<
+        L: crate::source_creation::CreationSchemaExecutor,
+        A: CutSchemaExecutor,
+    >(
         &self,
         package: &SerializedCreation,
         original_base: &CorpusCutReader,
         software: &SoftwareCaptureReader,
         components: &SoftwareComponentSelectionV1,
-        local_worker: &mut tos_validation::source_cut::CutWorkerSchemaExecutor,
-        assessment_worker: &mut tos_validation::source_cut::CutWorkerSchemaExecutor,
+        local_worker: &mut L,
+        assessment_worker: &mut A,
         limits: tos_validation::assessment::AssessmentLimits,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<CreationPublication> {
@@ -4494,7 +4500,7 @@ impl CreationFilesystem {
         )
     }
 
-    fn replay(
+    fn replay<L: crate::source_creation::CreationSchemaExecutor, A: CutSchemaExecutor>(
         &self,
         package: &SerializedCreation,
         original_base: &CorpusCutReader,
@@ -4504,8 +4510,8 @@ impl CreationFilesystem {
         cancelled: &AtomicBool,
         sign: Option<(
             &mut crate::source_sign::SignPromotionRead<'_>,
-            &mut tos_validation::source_cut::CutWorkerSchemaExecutor,
-            &mut tos_validation::source_cut::CutWorkerSchemaExecutor,
+            &mut L,
+            &mut A,
             tos_validation::assessment::AssessmentLimits,
         )>,
     ) -> SourceCommandResult<CreationPublication> {

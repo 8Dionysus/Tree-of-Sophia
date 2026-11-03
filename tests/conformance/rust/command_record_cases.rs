@@ -11474,8 +11474,8 @@ fn sign_promotion_native_entry_v3_assesses_prepares_commits_reads_and_replays() 
             "capture_manifest_sha256":capture.selection.capture_manifest_sha256.to_prefixed()
         },
         "software_components":components.members().map(|member|member.path.as_str()).collect::<Vec<_>>(),
-        "schema_worker":{"absolute_path":images[2],"sha256":image_digests[2].to_prefixed()},
-        "assessment_schema_worker":{"absolute_path":images[2],"sha256":image_digests[2].to_prefixed()},
+        "schema_worker":{"absolute_path":"/nonexistent/hostguard-schema-worker","sha256":image_digests[2].to_prefixed()},
+        "assessment_schema_worker":{"absolute_path":"/nonexistent/hostguard-assessment-worker","sha256":image_digests[2].to_prefixed()},
         "budgets":{
             "max_revisions":4,"max_members":2048,"max_total_bytes":33554432,
             "max_member_bytes":8388608,"max_schema_receipts":128,
