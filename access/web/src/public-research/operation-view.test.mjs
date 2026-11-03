@@ -40,3 +40,12 @@ it('calculates from selected records, saves and restores the same reproducible r
   const reopened=new Element('div'),second=mountResearchOperations({root:reopened,index,notebook,locale:'en'});await new Promise(resolve=>setTimeout(resolve,0));
   const saved=find(reopened,'button',el=>el.textContent.startsWith('Common grounds ·'));expect(saved).toBeDefined();saved.dispatch('click');expect(second.getLastResult().request).toEqual(original);second.destroy();
 });
+it('offers no occurrence distribution for a past revision, whose occurrence sets are not kept',()=>{
+  const values=[{id:'bestowing-virtue',kind:'concept',title:'Bestowing virtue',record:{},revision:'v0',dependencies:[]}];
+  const items=new Map(values.map(x=>[x.id,x])),index={items,revision:'v0',get:id=>items.get(id),resolveId:id=>id,references:()=>[]};
+  const notebook={setPreference:async()=>{},exportPacket:async()=>({preferences:[]})};
+  const past=new Element('div');mountResearchOperations({root:past,index,notebook,locale:'en',current:false});
+  expect(find(past,'select').options.map(option=>option.value)).not.toContain('distribution');
+  const present=new Element('div');mountResearchOperations({root:present,index,notebook,locale:'en'});
+  expect(find(present,'select').options.map(option=>option.value)).toContain('distribution');
+});

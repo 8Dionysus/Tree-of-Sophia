@@ -12,6 +12,7 @@ import {installConstructorReadingRules} from '../../constructor/reading-rules-ru
 
 import {installWebMcpRules} from '../webmcp.ts';
 import {configureResearchOperations} from './research-operations.mjs';
+import {configureResearchIndexSearch} from './research-index.mjs';
 
 let ready;
 
@@ -19,6 +20,7 @@ let ready;
 export function installPublicReaderRules(runtime) {
   installWebMcpRules(runtime);
   configureResearchOperations(runtime);
+  configureResearchIndexSearch(runtime);
   installBrowserWorkspaceMachine(runtime.BrowserWorkspaceSession);
   installCorpusReferenceRules(runtime);
   installReaderOccurrenceRules(runtime);

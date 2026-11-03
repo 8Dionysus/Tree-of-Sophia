@@ -234,7 +234,8 @@ export function mountKnowing({root,index,locale,notebook,profile,fragments,onOpe
     if(!state.known.includes(target))state.known=[...state.known,target];
     if(!state.found.some(item=>item.link===link.id))state.found=[...state.found,{link:link.id,level:state.level,hinted,at:new Date().toISOString(),...(reading?{reading}:{})}];
     save();focus=target;anchor=target;
-    send('trial',{id:link.id,text:t('Открыта связь: {0} — {1} → {2} ({3}). Уровень: {4}{5}.','Link opened: {0} — {1} → {2} ({3}). Level: {4}{5}.',[title(from),tr(link.record.verb),title(to),placeOf(link)?.c??'',state.level,hinted?t(', с подсказкой',', with a hint'):''])});
+    // The reader's own reading goes to the interlocutor with the opened link.
+    send('trial',{id:link.id,text:t('Открыта связь: {0} — {1} → {2} ({3}). Уровень: {4}{5}.','Link opened: {0} — {1} → {2} ({3}). Level: {4}{5}.',[title(from),tr(link.record.verb),title(to),placeOf(link)?.c??'',state.level,hinted?t(', с подсказкой',', with a hint'):''])+(reading?` ${t('Прочтение читателя: {0}','The reader’s reading: {0}',[reading])}`:'')});
     revealed(link,reading);paint();shown=target;renderLog();const [x,y]=pos.get(target);glide({x:x-view.w/2,y:y-view.h*.36,w:view.w,h:view.h});
   }
   function revealed(link,reading){

@@ -829,6 +829,30 @@ mod wasm {
         }
     }
 
+    /// The public research index's search: built once from the index's documents, asked per query.
+    #[wasm_bindgen]
+    pub struct ResearchIndexSearchV1 {
+        inner: tos_query::research_index_search::ResearchIndexSearch,
+    }
+
+    #[wasm_bindgen]
+    impl ResearchIndexSearchV1 {
+        #[wasm_bindgen(constructor)]
+        pub fn new(documents_json: &[u8]) -> Result<ResearchIndexSearchV1, JsValue> {
+            Ok(Self {
+                inner: tos_query::research_index_search::ResearchIndexSearch::new(documents_json)
+                    .map_err(|e| JsValue::from_str(&e))?,
+            })
+        }
+        pub fn search(&self, query_json: &[u8]) -> Result<Vec<u8>, JsValue> {
+            let ids = self
+                .inner
+                .search(query_json)
+                .map_err(|e| JsValue::from_str(&e))?;
+            serde_json::to_vec(&ids).map_err(|e| JsValue::from_str(&e.to_string()))
+        }
+    }
+
     #[wasm_bindgen]
     pub fn research_operation_wasm_v1(raw: &[u8]) -> Result<Vec<u8>, JsValue> {
         let request = serde_json::from_slice(raw).map_err(|e| JsValue::from_str(&e.to_string()))?;

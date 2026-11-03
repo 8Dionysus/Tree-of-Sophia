@@ -2,6 +2,15 @@
 // Authored records retain their owners; this index records references, not new claims.
 export {canonicalJSON} from '../../../../bonsai/lib/history-format.mjs';
 import {canonicalJSON} from '../../../../bonsai/lib/history-format.mjs';
+
+// The index's search belongs to the native query owner (tos-query, through the rules WASM): the index
+// hands it each item's canonical texts once and asks it per query.
+let SearchKernel=null;
+const encoder=new TextEncoder(),decoder=new TextDecoder();
+export function configureResearchIndexSearch(runtime){
+  if(typeof runtime?.ResearchIndexSearchV1!=='function')throw new TypeError('Research index search WASM rule is unavailable');
+  SearchKernel=runtime.ResearchIndexSearchV1;
+}
 const ZARATHUSTRA='also-sprach-zarathustra';
 const hasUnits=cite=>Array.isArray(cite?.u)&&cite.u.length>0&&cite.u.every(id=>typeof id==='string'&&id.length>0);
 const locatorKeys=['w','c','u','s','e','loc','documentId','workId','version','versionId','revision','witness','witnessId','layer','layerId','layerDigest','textRevision','reference'];
@@ -81,8 +90,14 @@ export function createResearchIndex(library,{revision=library.space?.researchRev
   for(const item of items.values())for(const dependency of item.dependencies){const id=resolveId(dependency);if(!incoming.has(id))incoming.set(id,new Set());incoming.get(id).add(item.id);}
   const get=id=>items.get(resolveId(id))??null;
   const references=id=>[...(incoming.get(resolveId(id))??[])].map(get).filter(Boolean);
+  let native=null;
   return {revision,items,resolveId,get,references,
-    search(query,{limit=30,kind}={}){const terms=String(query??'').toLocaleLowerCase().split(/\s+/).filter(Boolean);return [...items.values()].filter(item=>(!kind||item.kind===kind)&&terms.every(term=>`${item.id} ${canonicalJSON(item.title)} ${(canonicalJSON(item.record)??'').slice(0,5000)}`.toLocaleLowerCase().includes(term))).slice(0,Math.min(100,limit));},
+    search(query,{limit=30,kind}={}){
+      if(!SearchKernel)throw new Error('Research index search WASM rule is not configured');
+      native??=new SearchKernel(encoder.encode(JSON.stringify([...items.values()].map(item=>({id:item.id,kind:item.kind,title:canonicalJSON(item.title)??'',record:canonicalJSON(item.record)??''})))));
+      const ids=JSON.parse(decoder.decode(native.search(encoder.encode(JSON.stringify({query:String(query??''),limit,kind:kind??null})))));
+      return ids.map(get).filter(Boolean);
+    },
     inspect(id){const item=get(id);return item?{...item,dependencies:item.dependencies.map(key=>({id:key,kind:get(key)?.kind??'external'})),referencedBy:references(id).map(value=>({id:value.id,kind:value.kind,title:value.title}))}:null;},
     affected(id){const queue=[resolveId(id)],seen=new Set(queue);for(let i=0;i<queue.length;i++)for(const item of references(queue[i]))if(!seen.has(item.id)){seen.add(item.id);queue.push(item.id);}return queue.slice(1).map(get).filter(Boolean);}
   };

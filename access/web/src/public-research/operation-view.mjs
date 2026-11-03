@@ -17,8 +17,10 @@ const idOf=(index,reference)=>{const id=typeof reference==='string'?reference:re
 const rand=()=>globalThis.crypto?.randomUUID?.()??`${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 /** Mounts one self-contained research panel. `run` accepts the same request as the agent. */
-export function mountResearchOperations({root,index,getSelection=()=>null,notebook,locale='ru',onOpen=()=>{},timeOf=()=>null,placeOf=()=>null}){
+export function mountResearchOperations({root,index,getSelection=()=>null,notebook,locale='ru',onOpen=()=>{},timeOf=()=>null,placeOf=()=>null,current=true}){
   if(!root||!index?.items)throw new TypeError('root and research index required');
+  // Occurrence sets are annotated on the present core and are not kept with past revisions: a past revision counts no distributions.
+  const occurrenceSet=current?occurrences:new Map();
   let last=null,disposed=false,saved=[];
   const lang=()=>resolveLocale(typeof locale==='function'?locale():locale);
   const t=(ru,en,values=[])=>localeText(lang()==='ru'?ru:en,lang(),values);
@@ -36,7 +38,7 @@ export function mountResearchOperations({root,index,getSelection=()=>null,notebo
   const optionsFor=slot=>{
     let items=itemList();const op=state.operation;
     if(op==='argument_structure')items=items.filter(x=>x.kind==='chain');
-    if(op==='distribution')items=items.filter(x=>occurrences.has(x.id));
+    if(op==='distribution')items=items.filter(x=>occurrenceSet.has(x.id));
     if(op==='directed_path'){
       const nodes=new Set(itemList().filter(x=>x.kind==='relation'&&x.record?.relation&&x.record?.from&&x.record?.to).flatMap(x=>[idOf(index,x.record.from),idOf(index,x.record.to)]));
       items=items.filter(x=>nodes.has(x.id));
@@ -115,7 +117,7 @@ export function mountResearchOperations({root,index,getSelection=()=>null,notebo
       for(let i=0;i<queue.length;i++)for(const item of index.references(queue[i])){dependencies.push({from:queue[i],to:item.id,revision:item.revision});if(!seen.has(item.id)){seen.add(item.id);queue.push(item.id);}}
       input={changed:a.id,dependencies,subjects};
     }else if(op==='distribution'){
-      const packet=occurrences.get(a.id);if(!packet)throw new Error(t('Для этого предмета нет массива употреблений.','No occurrence set for this item.'));
+      const packet=occurrenceSet.get(a.id);if(!packet)throw new Error(t('Для этого предмета нет массива употреблений.','No occurrence set for this item.'));
       const query=state.form.trim().toLocaleLowerCase();
       input={witness:'DTA: German first editions',search_kind:query?'exact annotated form':'all annotated occurrences',form:state.form.trim()||null,items:packet.occurrences.map(o=>({matches:!query||o.form.toLocaleLowerCase()===query,group:o.cite?.c??'unknown',location:o.cite,form:o.form,mode:o.mode,speaker:o.speaker})),subjects};
     }else if(op==='time_place'){
@@ -186,7 +188,7 @@ export function mountResearchOperations({root,index,getSelection=()=>null,notebo
   function renderSaved(){history.replaceChildren();history.append(make('h3',t('Сохранённые расчёты','Saved calculations')));if(!saved.length){history.append(make('p',t('Пока нет сохранённых расчётов.','No saved calculations yet.')));return;}for(const value of saved){const name=labels[value.request.operation],button=make('button',`${name?t(...name):value.request.operation} · ${value.createdAt??''}`);button.type='button';button.addEventListener('click',()=>{last={request:value.request,...value.result};show(last);message.textContent=t('Показан сохранённый результат; прежние входы сохранены.','Showing the saved result with its original inputs.');});history.append(button);}}
   function render(){
     heading.textContent=t('Вычисления над содержанием','Research operations');help.textContent=t('Выберите операцию и предметы. Результат сохраняет область, версии и основания.','Choose an operation and items. The result retains scope, versions and grounds.');
-    form.firstChild.firstChild.textContent=t('Операция','Operation');operation.replaceChildren();for(const [id,label]of Object.entries(labels)){const opt=make('option',t(...label));opt.value=id;operation.append(opt);}operation.value=state.operation;runButton.textContent=t('Вычислить','Calculate');renderFields();if(last)show(last);renderSaved();
+    form.firstChild.firstChild.textContent=t('Операция','Operation');operation.replaceChildren();for(const [id,label]of Object.entries(labels)){if(id==='distribution'&&!current)continue;const opt=make('option',t(...label));opt.value=id;operation.append(opt);}operation.value=state.operation;runButton.textContent=t('Вычислить','Calculate');renderFields();if(last)show(last);renderSaved();
   }
   operation.addEventListener('change',()=>{state.operation=operation.value;state.searchA='';state.searchB='';state.a=idOf(index,selection());state.b='';state.types=[];renderFields();});
   form.addEventListener('submit',event=>{event.preventDefault();try{run(buildRequest());}catch(error){message.textContent=error.message;}});

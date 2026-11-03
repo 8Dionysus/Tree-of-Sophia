@@ -88,7 +88,7 @@ export function mountResearchExperience({root,header,profile,locale=()=> 'ru',in
     try{
       const context=await versionContext(revision);if(disposed||token!==opsToken||!opsVisible)return;
       ops?.destroy();opsRevision=revision;
-      ops=mountResearchOperations({root:operationRoot,index:context.index,locale,notebook,getSelection:()=>state.revision===revision?state.id:null,onOpen:id=>open(id,{revision}),timeOf:context.current?space.timeOf:()=>null,placeOf:context.current?space.placeOf:()=>null});
+      ops=mountResearchOperations({root:operationRoot,index:context.index,locale,notebook,getSelection:()=>state.revision===revision?state.id:null,onOpen:id=>open(id,{revision}),timeOf:context.current?space.timeOf:()=>null,placeOf:context.current?space.placeOf:()=>null,current:Boolean(context.current)});
     }catch{
       if(disposed||token!==opsToken||!opsVisible)return;ops?.destroy();ops=null;opsRevision=null;operationRoot.textContent=`${t('unavailable')}: ${revision}`;
     }
