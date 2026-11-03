@@ -43,6 +43,7 @@ describe('the witnesses of Zarathustra',()=>{
     expect(chapter('IV.10').units.ru.find(unit=>unit.id==='ru1913.IV.10.022').raw).toContain('Вставай, ты, сонливец!');
     expect(chapter('IV.12').units.ru.find(unit=>unit.id==='ru1913.IV.12.007').raw).toContain('импровизованное здоровье');
     expect(chapter('IV.13').units.ru.find(unit=>unit.id==='ru1913.IV.13.096').raw).toContain('Заратустра смеющийся');
+    expect(chapter('IV.13').units.ru.find(unit=>unit.id==='ru1913.IV.13.028').raw).toContain('Не всякое слово годится ко всякому рылу');
     expect(chapter('IV.20').units.ru.find(unit=>unit.id==='ru1913.IV.20.011').raw).toContain('он увидел, что у ног его лежал');
     expect(chapter('III.16').units.ru.find(unit=>unit.id==='ru1913.III.16.051').raw).toContain('даже у бога есть есть свой ад');
     expect(chapter('III.12').units.ru.find(unit=>unit.id==='ru1913.III.12.036').raw).toContain('самым дальным: не щади');
