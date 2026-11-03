@@ -25,7 +25,7 @@ use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue};
 use tos_source_store::CorpusCutReader;
 use tos_validation::assessment::{AssessmentRecordInput, MAX_RECORD_BYTES};
-use tos_validation::source_cut::{CandidateCutWorkerSchemaExecutor, CutSchemaExecutor};
+use tos_validation::source_cut::CutSchemaExecutor;
 
 const LAYER_SCHEMA: &str = "ToS/contracts/source-text-layer.schema.json";
 const BINDING_SCHEMA: &str = "ToS/contracts/native-text-layer-binding.schema.json";
@@ -524,7 +524,9 @@ pub(crate) fn select_owner_local_layers_selected_pg<I: Copy + Eq>(
     source_records: &[AssessmentRecordInput],
     input_identity: &I,
     contract_members: &BTreeMap<String, Vec<u8>>,
-    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut impl tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding<
+        I,
+    >,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PrivateAssessmentLayers> {

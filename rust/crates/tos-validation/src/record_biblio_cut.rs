@@ -10,12 +10,14 @@ use crate::item_rules::{ItemLimits, ItemRefusal};
 use crate::record_rules::{
     BoundedMemberSchemaEvidence, BoundedSchemaVerdict, GlobalIdFact, LinkUriFact,
     PathReferenceCheck, RecordFactBudget, RecordFamily, RecordFamilyReport, RecordGlobalJoin,
-    RecordObservation, RecordRuleError, RecordSchema, RecordSink, TypedIdRefFact,
+    RecordObservation, RecordRuleError, RecordSchema, RecordSchemaExecution, RecordSink,
+    TypedIdRefFact,
 };
 use crate::source_foundation_records::{
     SourceFoundationRecordFact, SourceFoundationRecordFactCollection,
     SourceFoundationRecordIdCarrier, SourceFoundationRecordsCursor, SourceFoundationRecordsIndex,
     SourceFoundationRecordsPageBudget, SourceFoundationRecordsStore,
+    SourceFoundationStoredSchemaDiagnostic,
 };
 use crate::{FormatProfile, SchemaResource};
 use std::cell::RefCell;
@@ -117,6 +119,10 @@ pub use crate::source_record_selection::GeneratedSourceSelection;
 /// The command adapter keeps raw member bytes borrowed inside each visitor and
 /// retains its own opaque input identity; this interface creates no revision.
 pub trait SourceCutInput {
+    /// Compare a stored candidate identity using the input owner's encoding.
+    fn matches_candidate_evidence(&self, _evidence: &serde_json::Value) -> bool {
+        false
+    }
     fn record_selection(
         &self,
     ) -> Option<std::sync::Arc<crate::source_record_selection::SourceRecordSelection>> {
@@ -322,20 +328,31 @@ const REGISTRY_SCHEMA: &str = "ToS/contracts/semantic-entity-type-registry.schem
 /// finalizes/reaps the old child before the same operation-owned image starts
 /// another closure, without resetting aggregate CPU, wall, wire or selector caps.
 pub struct BiblioRecordExecutor {
-    pub worker: ExactWorkerIdentity,
-    pub budget: ExecutorBudget,
+    pub worker: Option<ExactWorkerIdentity>,
+    pub budget: Option<ExecutorBudget>,
     pub profile: FormatProfile,
     pub max_executions: usize,
     executions: usize,
     image: Option<VerifiedWorkerImage>,
-    operation_budget: BatchStreamBudget,
+    operation_budget: Option<BatchStreamBudget>,
     diagnostics_v2: Option<BiblioSchemaDiagnosticsLimits>,
     shared_schema_worker_quota: Option<SharedSchemaWorkerQuota>,
     diagnostic_issues_used: usize,
     diagnostic_report_bytes_used: usize,
     diagnostic_state_bytes_used: usize,
     pending_schema_diagnostics: Vec<SourceCutSchemaDiagnostic>,
+    in_process: Option<InProcessBiblioExecutor>,
     finished: bool,
+}
+
+struct InProcessBiblioExecutor {
+    identity: crate::source_cut::InProcessCutIdentity<serde_json::Value>,
+    input_mode: crate::in_process::InputMode,
+    engines: BTreeMap<Digest256, crate::in_process::InProcessSchemaEngine>,
+    pending: Option<(
+        u64,
+        crate::source_cut::InProcessCutDiagnostic<serde_json::Value>,
+    )>,
 }
 
 /// Caller-owned aggregate limits for the opt-in schema-diagnostics-v2 path.
@@ -432,21 +449,94 @@ impl BiblioRecordExecutor {
         operation_budget.operation_cpu_seconds = budget.cpu_seconds;
         operation_budget.operation_address_space_bytes = budget.address_space_bytes;
         Self {
-            worker,
-            budget,
+            worker: Some(worker),
+            budget: Some(budget),
             profile,
             max_executions,
             executions: 0,
             image: None,
-            operation_budget,
+            operation_budget: Some(operation_budget),
             diagnostics_v2: None,
             shared_schema_worker_quota: None,
             diagnostic_issues_used: 0,
             diagnostic_report_bytes_used: 0,
             diagnostic_state_bytes_used: 0,
             pending_schema_diagnostics: Vec::new(),
+            in_process: None,
             finished: false,
         }
+    }
+
+    /// Prepare candidate-fenced in-process execution for stored record inspection.
+    pub fn new_in_process_candidate(
+        candidate_identity: serde_json::Value,
+        profile: FormatProfile,
+        input_mode: crate::in_process::InputMode,
+        max_executions: usize,
+    ) -> Result<Self, ItemRefusal> {
+        Self::new_in_process(
+            crate::source_cut::InProcessCutIdentity::Candidate(candidate_identity),
+            profile,
+            input_mode,
+            max_executions,
+        )
+    }
+
+    /// Bind resident inspection to the current revision of an exact cut.
+    pub fn new_in_process_cut(
+        cut: &CorpusCutReader,
+        profile: FormatProfile,
+        input_mode: crate::in_process::InputMode,
+        max_executions: usize,
+    ) -> Result<Self, ItemRefusal> {
+        Self::new_in_process(
+            crate::source_cut::InProcessCutIdentity::Source(cut.current().revision()),
+            profile,
+            input_mode,
+            max_executions,
+        )
+    }
+
+    fn new_in_process(
+        identity: crate::source_cut::InProcessCutIdentity<serde_json::Value>,
+        profile: FormatProfile,
+        input_mode: crate::in_process::InputMode,
+        max_executions: usize,
+    ) -> Result<Self, ItemRefusal> {
+        if max_executions == 0 || max_executions == usize::MAX {
+            return Err(crate::item_budget_origin!());
+        }
+        Ok(Self {
+            worker: None,
+            budget: None,
+            profile,
+            max_executions,
+            executions: 0,
+            image: None,
+            operation_budget: None,
+            diagnostics_v2: None,
+            shared_schema_worker_quota: None,
+            diagnostic_issues_used: 0,
+            diagnostic_report_bytes_used: 0,
+            diagnostic_state_bytes_used: 0,
+            pending_schema_diagnostics: Vec::new(),
+            in_process: Some(InProcessBiblioExecutor {
+                identity,
+                input_mode,
+                engines: BTreeMap::new(),
+                pending: None,
+            }),
+            finished: false,
+        })
+    }
+
+    pub(crate) fn in_process_candidate_identity(&self) -> Option<&serde_json::Value> {
+        self.in_process
+            .as_ref()
+            .and_then(|backend| match &backend.identity {
+                crate::source_cut::InProcessCutIdentity::Candidate(identity) => Some(identity),
+                crate::source_cut::InProcessCutIdentity::Source(_) => None,
+            })
     }
 
     /// Construct the record-plan executor over the caller operation's already
@@ -490,7 +580,12 @@ impl BiblioRecordExecutor {
                 "record operation already started".into(),
             ));
         }
-        if !diagnostics_limits_valid(limits, self.max_executions, self.operation_budget) {
+        let operation = self.operation_budget.ok_or_else(|| {
+            ItemRefusal::Unsupported(
+                "worker diagnostics unavailable for in-process execution".into(),
+            )
+        })?;
+        if !diagnostics_limits_valid(limits, self.max_executions, operation) {
             return Err(ItemRefusal::BudgetCheck {
                 check: "record schema diagnostics limits",
                 used: None,
@@ -523,6 +618,11 @@ impl BiblioRecordExecutor {
     }
 
     pub fn set_operation_budget(&mut self, budget: BatchStreamBudget) -> Result<(), ItemRefusal> {
+        if self.in_process.is_some() {
+            return Err(ItemRefusal::Unsupported(
+                "worker operation budget unavailable for in-process execution".into(),
+            ));
+        }
         if self.executions != 0 || self.finished {
             return Err(ItemRefusal::Unsupported(
                 "record operation already started".into(),
@@ -539,14 +639,14 @@ impl BiblioRecordExecutor {
                 "record schema diagnostics exceed operation envelope".into(),
             ));
         }
-        self.operation_budget = budget;
+        self.operation_budget = Some(budget);
         Ok(())
     }
     pub(crate) fn is_unused(&self) -> bool {
         self.executions == 0 && !self.finished
     }
 
-    pub(crate) fn operation_budget(&self) -> BatchStreamBudget {
+    pub(crate) fn operation_budget(&self) -> Option<BatchStreamBudget> {
         self.operation_budget
     }
 
@@ -554,6 +654,15 @@ impl BiblioRecordExecutor {
         if self.finished {
             return Err(ItemRefusal::Unsupported(
                 "record operation finalized".into(),
+            ));
+        }
+        if self
+            .in_process
+            .as_ref()
+            .is_some_and(|backend| backend.pending.is_some())
+        {
+            return Err(ItemRefusal::Unsupported(
+                "record diagnostic was not retained".into(),
             ));
         }
         self.finished = true;
@@ -587,6 +696,21 @@ impl BiblioRecordExecutor {
         limits: ItemLimits,
         cancelled: &AtomicBool,
     ) -> Result<BoundedSchemaVerdict, ItemRefusal> {
+        if self.in_process.is_some() {
+            let result = self.evaluate_in_process(
+                resources,
+                location,
+                root,
+                raw,
+                expected_set,
+                limits,
+                cancelled,
+            );
+            if result.is_err() {
+                self.finished = true;
+            }
+            return result;
+        }
         if self.diagnostics_v2.is_some() {
             let result = self.evaluate_diagnostics_v2(
                 resources,
@@ -640,7 +764,13 @@ impl BiblioRecordExecutor {
             });
         }
         self.executions += 1;
-        let mut budget = self.budget;
+        let worker = self
+            .worker
+            .clone()
+            .ok_or_else(|| ItemRefusal::Unsupported("record worker identity unavailable".into()))?;
+        let mut budget = self
+            .budget
+            .ok_or_else(|| ItemRefusal::Unsupported("record worker budget unavailable".into()))?;
         budget.execution_wall = budget.execution_wall.min(
             limits
                 .deadline
@@ -650,7 +780,7 @@ impl BiblioRecordExecutor {
         if self
             .image
             .as_ref()
-            .is_some_and(|image| !image.matches(&self.worker))
+            .is_some_and(|image| !image.matches(&worker))
         {
             self.image
                 .as_mut()
@@ -663,22 +793,25 @@ impl BiblioRecordExecutor {
         let started = Instant::now();
         if self.image.is_none() {
             self.image = Some(
-                VerifiedWorkerImage::prepare(&self.worker, budget, limits.deadline, cancelled)
-                    .map_err(|reason| {
+                VerifiedWorkerImage::prepare(&worker, budget, limits.deadline, cancelled).map_err(
+                    |reason| {
                         crate::item_rules::executor_refusal(
                             "record worker preparation",
                             reason,
                             None,
                             self.shared_schema_worker_quota.as_ref(),
                         )
-                    })?,
+                    },
+                )?,
             );
         }
         if self.executions == 1 {
             self.image
                 .as_mut()
                 .unwrap()
-                .set_operation_budget(self.operation_budget)
+                .set_operation_budget(self.operation_budget.ok_or_else(|| {
+                    ItemRefusal::Unsupported("record worker operation budget unavailable".into())
+                })?)
                 .map_err(|reason| {
                     crate::item_rules::executor_refusal(
                         "record operation envelope",
@@ -748,7 +881,7 @@ impl BiblioRecordExecutor {
                 ));
             }
         };
-        if identity.worker_sha256 != self.worker.sha256
+        if identity.worker_sha256 != worker.sha256
             || identity.instance_sha256 != Digest256::of_bytes(raw)
             || identity.schema_set_sha256 != expected_set
             || identity.profile != self.profile
@@ -762,8 +895,182 @@ impl BiblioRecordExecutor {
             schema_set_digest: identity.schema_set_sha256,
             format_profile: identity.profile,
             root_uri: root.into(),
-            worker_protocol_id: "tos_bounded_schema_worker_v1".into(),
-            worker_binary_digest: identity.worker_sha256,
+            execution: RecordSchemaExecution::Worker {
+                protocol: "tos_bounded_schema_worker_v1".into(),
+                digest: identity.worker_sha256,
+            },
+            valid,
+        })
+    }
+
+    fn evaluate_in_process(
+        &mut self,
+        resources: &[SchemaResource],
+        location: &str,
+        root: &str,
+        raw: &[u8],
+        expected_set: Digest256,
+        limits: ItemLimits,
+        cancelled: &AtomicBool,
+    ) -> Result<BoundedSchemaVerdict, ItemRefusal> {
+        use crate::in_process::{Incomplete, Unit};
+        use crate::source_cut::{InProcessCutDiagnostic, InProcessSelectorKind};
+        use crate::source_foundation_records::SourceFoundationStoredSchemaDiagnostic;
+
+        if self.finished {
+            return Err(ItemRefusal::Unsupported(
+                "record operation finalized".into(),
+            ));
+        }
+        check(limits.deadline, cancelled)?;
+        if self.executions >= self.max_executions {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "record schema executions",
+                used: (self.executions as u64).checked_add(1),
+                limit: Some(self.max_executions as u64),
+            });
+        }
+        if raw.len() > limits.max_member_bytes {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "record schema member bytes",
+                used: Some(raw.len() as u64),
+                limit: Some(limits.max_member_bytes as u64),
+            });
+        }
+        if location.len() > 4096 || root.len() > 4096 {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "record schema diagnostic metadata bytes",
+                used: Some(location.len().max(root.len()) as u64),
+                limit: Some(4096),
+            });
+        }
+        let actual_set = crate::source_foundation_schema::schema_resource_set_digest(resources)
+            .ok_or_else(|| ItemRefusal::Unsupported("record schema resource set".into()))?;
+        if actual_set != expected_set {
+            return Err(ItemRefusal::Source(
+                "record schema resource set differs".into(),
+            ));
+        }
+        let backend = self.in_process.as_mut().ok_or_else(|| {
+            ItemRefusal::Unsupported("in-process record executor unavailable".into())
+        })?;
+        if backend.pending.is_some() {
+            return Err(ItemRefusal::Unsupported(
+                "record diagnostic was not retained".into(),
+            ));
+        }
+        if !backend.engines.contains_key(&actual_set) {
+            let engine = crate::in_process::InProcessSchemaEngine::new(
+                resources.iter().cloned(),
+                self.profile,
+            )
+            .map_err(|error| match error {
+                crate::SchemaProbeError::BudgetExceeded => ItemRefusal::Budget,
+                other => ItemRefusal::Unsupported(format!("record schema preparation: {other:?}")),
+            })?;
+            if engine.schema_set_digest() != actual_set {
+                return Err(ItemRefusal::Source(
+                    "prepared record schema set differs".into(),
+                ));
+            }
+            backend.engines.insert(actual_set, engine);
+        }
+        check(limits.deadline, cancelled)?;
+        let report = backend
+            .engines
+            .get_mut(&actual_set)
+            .ok_or_else(|| ItemRefusal::Source("prepared record schema set disappeared".into()))?
+            .validate(
+                Unit {
+                    root_uri: root,
+                    raw,
+                    input_mode: backend.input_mode,
+                },
+                schema_diagnostics::Caps::CURRENT,
+                limits.deadline,
+                cancelled,
+            )
+            .map_err(|reason| {
+                crate::item_rules::executor_refusal(
+                    "record in-process schema evaluation",
+                    match reason {
+                        Incomplete::Cancelled => ExecutorFailure::Cancelled,
+                        Incomplete::Deadline => ExecutorFailure::Timeout,
+                        Incomplete::BatchBudget => ExecutorFailure::InputBudget,
+                    },
+                    None,
+                    None,
+                )
+            })?;
+        let ordinal = u64::try_from(self.executions).map_err(|_| crate::item_budget_origin!())?;
+        let diagnostic = InProcessCutDiagnostic {
+            identity: backend.identity.clone(),
+            path: location.to_owned(),
+            contract: root.to_owned(),
+            selector_kind: InProcessSelectorKind::SchemaUri,
+            input_size_bytes: Some(
+                u64::try_from(raw.len()).map_err(|_| crate::item_budget_origin!())?,
+            ),
+            before_issue: None,
+            report,
+        };
+        let issues = diagnostic.report.issues.len();
+        let state =
+            SourceFoundationStoredSchemaDiagnostic::in_process_minimum_state_bytes(&diagnostic)?;
+        let next_issues = self
+            .diagnostic_issues_used
+            .checked_add(issues)
+            .ok_or(crate::item_budget_origin!())?;
+        if state > limits.max_state_bytes {
+            return Err(crate::item_budget_origin!());
+        }
+        self.executions = self
+            .executions
+            .checked_add(1)
+            .ok_or(crate::item_budget_origin!())?;
+        self.diagnostic_issues_used = next_issues;
+        self.diagnostic_state_bytes_used = state;
+        let status = diagnostic.report.status;
+        let failure = diagnostic.report.failure;
+        backend.pending = Some((ordinal, diagnostic));
+        let valid = match status {
+            schema_diagnostics::Status::Valid => true,
+            schema_diagnostics::Status::Invalid => false,
+            schema_diagnostics::Status::InputRejected => {
+                self.finished = true;
+                return Err(crate::item_rules::executor_refusal(
+                    "record in-process schema evaluation",
+                    if failure == schema_diagnostics::Failure::InputBudget {
+                        ExecutorFailure::InputBudget
+                    } else {
+                        ExecutorFailure::ParseRejected
+                    },
+                    None,
+                    None,
+                ));
+            }
+            schema_diagnostics::Status::Truncated | schema_diagnostics::Status::Indeterminate => {
+                self.finished = true;
+                return Err(crate::item_rules::executor_refusal(
+                    "record in-process schema evaluation",
+                    if status == schema_diagnostics::Status::Truncated {
+                        ExecutorFailure::CoverageMismatch
+                    } else {
+                        ExecutorFailure::Backend
+                    },
+                    None,
+                    None,
+                ));
+            }
+        };
+        Ok(BoundedSchemaVerdict {
+            instance_sha256: Digest256::of_bytes(raw),
+            schema_set_digest: actual_set,
+            format_profile: self.profile,
+            root_uri: root.to_owned(),
+            execution: RecordSchemaExecution::InProcess {
+                engine: crate::in_process::ENGINE_ID,
+            },
             valid,
         })
     }
@@ -821,7 +1128,13 @@ impl BiblioRecordExecutor {
             });
         }
         self.executions += 1;
-        let mut budget = self.budget;
+        let worker = self
+            .worker
+            .clone()
+            .ok_or_else(|| ItemRefusal::Unsupported("record worker identity unavailable".into()))?;
+        let mut budget = self
+            .budget
+            .ok_or_else(|| ItemRefusal::Unsupported("record worker budget unavailable".into()))?;
         budget.execution_wall = budget.execution_wall.min(
             limits
                 .deadline
@@ -831,7 +1144,7 @@ impl BiblioRecordExecutor {
         if self
             .image
             .as_ref()
-            .is_some_and(|image| !image.matches(&self.worker))
+            .is_some_and(|image| !image.matches(&worker))
         {
             self.image
                 .as_mut()
@@ -844,21 +1157,24 @@ impl BiblioRecordExecutor {
         let started = Instant::now();
         if self.image.is_none() {
             self.image = Some(
-                VerifiedWorkerImage::prepare(&self.worker, budget, limits.deadline, cancelled)
-                    .map_err(|reason| {
+                VerifiedWorkerImage::prepare(&worker, budget, limits.deadline, cancelled).map_err(
+                    |reason| {
                         crate::item_rules::executor_refusal(
                             "record schema diagnostics",
                             reason,
                             None,
                             self.shared_schema_worker_quota.as_ref(),
                         )
-                    })?,
+                    },
+                )?,
             );
         }
         if self.executions == 1 {
             let image = self.image.as_mut().unwrap();
             image
-                .set_operation_budget(self.operation_budget)
+                .set_operation_budget(self.operation_budget.ok_or_else(|| {
+                    ItemRefusal::Unsupported("record worker operation budget unavailable".into())
+                })?)
                 .map_err(|reason| {
                     crate::item_rules::executor_refusal(
                         "record schema diagnostics",
@@ -938,12 +1254,12 @@ impl BiblioRecordExecutor {
             || unit.root_uri != root
             || unit.raw_sha256 != Digest256::of_bytes(raw)
             || unit.member_id != "biblio-record-schema-unit"
-            || checkpoint.worker_sha256 != self.worker.sha256
+            || checkpoint.worker_sha256 != worker.sha256
             || checkpoint.profile != self.profile
             || checkpoint.schema_set_sha256 != expected_set
             || checkpoint.caps_sha256 != caps_sha256
             || checkpoint.request_sha256 != report.request_sha256
-            || report.worker_sha256 != self.worker.sha256
+            || report.worker_sha256 != worker.sha256
             || report.request_sha256 != checkpoint.request_sha256
             || report.unit_sha256 != unit.unit_sha256
             || report.schema_set_sha256 != expected_set
@@ -1079,8 +1395,10 @@ impl BiblioRecordExecutor {
             schema_set_digest: report.schema_set_sha256,
             format_profile: checkpoint.profile,
             root_uri: root.to_owned(),
-            worker_protocol_id: "tos_schema_diagnostics_v2".into(),
-            worker_binary_digest: checkpoint.worker_sha256,
+            execution: RecordSchemaExecution::Worker {
+                protocol: "tos_schema_diagnostics_v2".into(),
+                digest: checkpoint.worker_sha256,
+            },
             valid,
         };
         self.pending_schema_diagnostics
@@ -1093,8 +1411,8 @@ impl BiblioRecordExecutor {
                     schema_set_digest: verdict.schema_set_digest,
                     format_profile: verdict.format_profile,
                     root_uri: verdict.root_uri.clone(),
-                    worker_protocol_id: verdict.worker_protocol_id.clone(),
-                    worker_binary_digest: verdict.worker_binary_digest,
+                    worker_protocol_id: "tos_schema_diagnostics_v2".into(),
+                    worker_binary_digest: checkpoint.worker_sha256,
                     valid: verdict.valid,
                 },
                 checkpoint,
@@ -1127,6 +1445,28 @@ impl BiblioRecordExecutor {
             diagnostic.before_issue = before_issue;
         }
         diagnostics
+    }
+
+    fn take_in_process_schema_diagnostic(
+        &mut self,
+        before_issue: usize,
+    ) -> Result<
+        Option<(
+            u64,
+            crate::source_cut::InProcessCutDiagnostic<serde_json::Value>,
+        )>,
+        ItemRefusal,
+    > {
+        let Some(backend) = self.in_process.as_mut() else {
+            return Ok(None);
+        };
+        let Some((ordinal, mut diagnostic)) = backend.pending.take() else {
+            return Ok(None);
+        };
+        diagnostic.before_issue =
+            Some(u64::try_from(before_issue).map_err(|_| crate::item_budget_origin!())?);
+        self.diagnostic_state_bytes_used = 0;
+        Ok(Some((ordinal, diagnostic)))
     }
 }
 
@@ -1342,7 +1682,7 @@ pub struct SourceCutRecordReport {
     pub retained_record_profiles: Vec<RetainedRecordProfile>,
     pub records: BTreeMap<String, BiblioCurrentRecord>,
     pub observations: Vec<RecordObservation>,
-    pub schema_diagnostics: Vec<SourceCutSchemaDiagnostic>,
+    pub schema_diagnostics: Vec<SourceFoundationStoredSchemaDiagnostic>,
     pub record_family: RecordFamilyReport,
     pub global_issues: u64,
     pub retained_profile_limits: Vec<String>,
@@ -1355,9 +1695,121 @@ pub struct RetainedRecordProfile {
     pub source_revision: SourceRevision,
     pub membership: SourceMembershipV1,
     pub observations: Vec<RecordObservation>,
-    pub schema_diagnostics: Vec<SourceCutSchemaDiagnostic>,
+    pub schema_diagnostics: Vec<SourceFoundationStoredSchemaDiagnostic>,
     pub record_family: RecordFamilyReport,
     pub identity_version_issues: u64,
+}
+
+#[cfg(test)]
+mod in_process_record_executor_tests {
+    use super::*;
+    use crate::in_process::InputMode;
+    use crate::source_cut::InProcessCutIdentity;
+    use std::time::Duration;
+
+    #[test]
+    fn candidate_record_execution_keeps_complete_and_refused_evidence() {
+        let root = "https://example.test/record";
+        let raw_schema = br#"{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://example.test/record","type":"object","properties":{"name":{"type":"string"}}}"#.to_vec();
+        let resources = vec![SchemaResource {
+            uri: root.into(),
+            raw: raw_schema,
+        }];
+        let digest =
+            crate::source_foundation_schema::schema_resource_set_digest(&resources).unwrap();
+        let candidate = serde_json::json!({"fence":"candidate"});
+        let mut executor = BiblioRecordExecutor::new_in_process_candidate(
+            candidate.clone(),
+            FormatProfile::AssertedSourceCandidateV1,
+            InputMode::PublishedStrict,
+            4,
+        )
+        .unwrap();
+        let cancelled = AtomicBool::new(false);
+        let limits = ItemLimits {
+            max_member_bytes: 1024 * 1024,
+            max_total_bytes: 4 * 1024 * 1024,
+            max_state_bytes: 8 * 1024 * 1024,
+            max_issues: 128,
+            deadline: Instant::now() + Duration::from_secs(30),
+        };
+        for (ordinal, raw, expected) in [
+            (
+                0,
+                br#"{"name":"valid"}"#.as_slice(),
+                schema_diagnostics::Status::Valid,
+            ),
+            (
+                1,
+                br#"{"name":3}"#.as_slice(),
+                schema_diagnostics::Status::Invalid,
+            ),
+            (
+                2,
+                br#"{"name":1,"name":2}"#.as_slice(),
+                schema_diagnostics::Status::InputRejected,
+            ),
+        ] {
+            let result = executor.evaluate(
+                &resources,
+                "record.json",
+                root,
+                raw,
+                digest,
+                limits,
+                &cancelled,
+            );
+            assert_eq!(
+                result.is_ok(),
+                expected != schema_diagnostics::Status::InputRejected
+            );
+            assert!(executor.finish(limits.deadline, &cancelled).is_err());
+            let (actual_ordinal, row) = executor
+                .take_in_process_schema_diagnostic(5)
+                .unwrap()
+                .unwrap();
+            assert_eq!(actual_ordinal, ordinal);
+            assert_eq!(
+                row.identity,
+                InProcessCutIdentity::Candidate(candidate.clone())
+            );
+            assert_eq!(row.report.status, expected);
+            assert_eq!(row.before_issue, Some(5));
+            assert_eq!(row.input_size_bytes, Some(raw.len() as u64));
+            assert_eq!(row.report.input_sha256, Digest256::of_bytes(raw));
+            assert!(
+                !String::from_utf8(row.to_evidence_json().unwrap())
+                    .unwrap()
+                    .contains("worker_sha256")
+            );
+        }
+        assert!(executor.finish(limits.deadline, &cancelled).is_err());
+        let mut unsupported = BiblioRecordExecutor::new_in_process_candidate(
+            candidate,
+            FormatProfile::AssertedSourceCandidateV1,
+            InputMode::LegacyPythonObserved,
+            1,
+        )
+        .unwrap();
+        assert!(
+            unsupported
+                .evaluate(
+                    &resources,
+                    "record.json",
+                    root,
+                    b"{}",
+                    digest,
+                    limits,
+                    &cancelled
+                )
+                .is_err()
+        );
+        let (_, row) = unsupported
+            .take_in_process_schema_diagnostic(0)
+            .unwrap()
+            .unwrap();
+        assert_eq!(row.report.status, schema_diagnostics::Status::Indeterminate);
+    }
 }
 
 #[derive(Clone)]
@@ -2341,7 +2793,7 @@ impl Iterator for TypedIdRefPageIterator<'_> {
 }
 
 fn aggregate_schema_cost(
-    current: &[SourceCutSchemaDiagnostic],
+    current: &[SourceFoundationStoredSchemaDiagnostic],
     retained: &[RetainedRecordProfile],
     executor: &BiblioRecordExecutor,
     initial_executions: usize,
@@ -2352,10 +2804,20 @@ fn aggregate_schema_cost(
     }
     let mut total = empty_schema_cost();
     for diagnostic in current {
+        let SourceFoundationStoredSchemaDiagnostic::Worker(diagnostic) = diagnostic else {
+            return Err(ItemRefusal::Source(
+                "worker diagnostic accounting received in-process evidence".into(),
+            ));
+        };
         add_schema_diagnostic_cost(&mut total, diagnostic)?;
     }
     for profile in retained {
         for diagnostic in &profile.schema_diagnostics {
+            let SourceFoundationStoredSchemaDiagnostic::Worker(diagnostic) = diagnostic else {
+                return Err(ItemRefusal::Source(
+                    "worker diagnostic accounting received in-process evidence".into(),
+                ));
+            };
             add_schema_diagnostic_cost(&mut total, diagnostic)?;
         }
     }
@@ -2590,7 +3052,7 @@ impl RecordSink for BoundedSink<'_> {
 fn retain_schema_diagnostics(
     executor: &mut BiblioRecordExecutor,
     before_issue: usize,
-    output: &mut Vec<SourceCutSchemaDiagnostic>,
+    output: &mut Vec<SourceFoundationStoredSchemaDiagnostic>,
     state_bytes: &mut usize,
     max_state_bytes: usize,
 ) -> Result<(), ItemRefusal> {
@@ -2600,6 +3062,17 @@ fn retain_schema_diagnostics(
             diagnostic.accounted_state_bytes,
             max_state_bytes,
         )?;
+        output.push(SourceFoundationStoredSchemaDiagnostic::Worker(diagnostic));
+    }
+    if let Some((_, diagnostic)) = executor.take_in_process_schema_diagnostic(before_issue)? {
+        let diagnostic = SourceFoundationStoredSchemaDiagnostic::InProcess(diagnostic);
+        if let Err(error) = diagnostic
+            .minimum_state_bytes()
+            .and_then(|size| reserve(state_bytes, size, max_state_bytes))
+        {
+            executor.finished = true;
+            return Err(error);
+        }
         output.push(diagnostic);
     }
     Ok(())
@@ -2675,7 +3148,53 @@ fn retain_stored_schema_diagnostics(
         add_schema_diagnostic_cost(accumulated_cost, &diagnostic)?;
         check(sink.deadline, sink.cancelled)?;
     }
+    if let Some((ordinal, diagnostic)) = executor.take_in_process_schema_diagnostic(before_issue)? {
+        let state = crate::source_foundation_records::SourceFoundationStoredSchemaDiagnostic::in_process_minimum_state_bytes(&diagnostic)?;
+        let transient = sink
+            .state_bytes
+            .checked_add(sink.live_page_reservation)
+            .and_then(|bytes| bytes.checked_add(state))
+            .ok_or(crate::item_budget_origin!())?;
+        if transient > sink.max_state_bytes {
+            return Err(crate::item_budget_origin!());
+        }
+        {
+            let mut progress = sink.progress.borrow_mut();
+            progress.peak_state_bytes = progress.peak_state_bytes.max(transient);
+        }
+        sink.store.with(|store| {
+            store.record_in_process_schema_diagnostic(
+                ordinal,
+                &diagnostic,
+                sink.deadline,
+                sink.cancelled,
+            )
+        })?;
+        check(sink.deadline, sink.cancelled)?;
+    }
     Ok(())
+}
+
+fn retain_stored_schema_evaluation(
+    executor: &mut BiblioRecordExecutor,
+    before_issue: usize,
+    accumulated_cost: &mut SourceCutRecordSchemaCost,
+    sink: &mut StoredRecordObservationSink<'_>,
+    result: Result<BoundedSchemaVerdict, ItemRefusal>,
+) -> Result<BoundedSchemaVerdict, ItemRefusal> {
+    if executor.in_process.is_none() {
+        let verdict = result?;
+        retain_stored_schema_diagnostics(executor, before_issue, accumulated_cost, sink)?;
+        Ok(verdict)
+    } else {
+        if let Err(error) =
+            retain_stored_schema_diagnostics(executor, before_issue, accumulated_cost, sink)
+        {
+            executor.finished = true;
+            return Err(error);
+        }
+        result
+    }
 }
 
 fn refresh_stored_sink_issue_limit(
@@ -2819,6 +3338,24 @@ pub fn inspect_records_from_input_stored(
     executor: &mut BiblioRecordExecutor,
 ) -> Result<SourceCutStreamedRecordSummary, ItemRefusal> {
     check(limits.deadline, cancelled)?;
+    if executor.in_process.as_ref().is_some_and(|backend| {
+        matches!(
+            backend.identity,
+            crate::source_cut::InProcessCutIdentity::Source(_)
+        )
+    }) {
+        return Err(ItemRefusal::Source(
+            "candidate record inspection requires a candidate identity".into(),
+        ));
+    }
+    if executor
+        .in_process_candidate_identity()
+        .is_some_and(|identity| !input.matches_candidate_evidence(identity))
+    {
+        return Err(ItemRefusal::Source(
+            "record schema candidate identity differs from input".into(),
+        ));
+    }
     if fact_budget.max_facts == 0 || fact_budget.max_encoded_bytes == 0 {
         return Err(ItemRefusal::BudgetCheck {
             check: "Biblio caller fact budget",
@@ -3160,7 +3697,7 @@ pub fn inspect_records_from_input_stored(
             .map_err(record_error)?;
     let evidence = executor.evaluate(
         &resources, REGISTRY, &root, &registry, set, limits, cancelled,
-    )?;
+    );
     let mut schema_cost = empty_schema_cost();
     let progress = Rc::new(RefCell::new(BiblioRecordProgress::new(base_state)));
     let mut sink = StoredRecordObservationSink {
@@ -3173,7 +3710,8 @@ pub fn inspect_records_from_input_stored(
         max_issues: limits.max_issues,
         live_page_reservation: 0,
     };
-    retain_stored_schema_diagnostics(executor, 0, &mut schema_cost, &mut sink)?;
+    let evidence =
+        retain_stored_schema_evaluation(executor, 0, &mut schema_cost, &mut sink, evidence)?;
     refresh_stored_sink_issue_limit(
         &mut sink,
         limits.max_issues,
@@ -3331,12 +3869,13 @@ pub fn inspect_records_from_input_stored(
                         plan.schema_set_digest,
                         limits,
                         cancelled,
-                    )?;
-                    retain_stored_schema_diagnostics(
+                    );
+                    let route = retain_stored_schema_evaluation(
                         executor,
                         before_issue,
                         &mut schema_cost,
                         &mut sink,
+                        route,
                     )?;
                     refresh_stored_sink_issue_limit(
                         &mut sink,
@@ -3354,12 +3893,13 @@ pub fn inspect_records_from_input_stored(
                         plan.schema_set_digest,
                         limits,
                         cancelled,
-                    )?;
-                    retain_stored_schema_diagnostics(
+                    );
+                    let common = retain_stored_schema_evaluation(
                         executor,
                         before_issue,
                         &mut schema_cost,
                         &mut sink,
+                        common,
                     )?;
                     refresh_stored_sink_issue_limit(
                         &mut sink,
@@ -3392,13 +3932,14 @@ pub fn inspect_records_from_input_stored(
                         plan.schema_set_digest,
                         limits,
                         cancelled,
-                    )?;
+                    );
                     let before_issue = progress.borrow().issue_count;
-                    retain_stored_schema_diagnostics(
+                    let verdict = retain_stored_schema_evaluation(
                         executor,
                         before_issue,
                         &mut schema_cost,
                         &mut sink,
+                        verdict,
                     )?;
                     refresh_stored_sink_issue_limit(
                         &mut sink,
@@ -3743,6 +4284,14 @@ pub fn inspect_records_from_cut(
     executor: &mut BiblioRecordExecutor,
 ) -> Result<SourceCutRecordReport, ItemRefusal> {
     check(limits.deadline, cancelled)?;
+    if executor.in_process.as_ref().is_some_and(|backend| {
+        backend.identity
+            != crate::source_cut::InProcessCutIdentity::Source(cut.current().revision())
+    }) {
+        return Err(ItemRefusal::Source(
+            "record schema executor differs from current cut".into(),
+        ));
+    }
     let initial_executions = executor.executions;
     let initial_diagnostic_issues = executor.diagnostic_issues_used;
     let mut used = 0u64;
@@ -3779,14 +4328,14 @@ pub fn inspect_records_from_cut(
     let evidence = executor.evaluate(
         &resources, REGISTRY, &root, &registry, set, limits, cancelled,
     )?;
-    let mut schema_diagnostics = executor.take_schema_diagnostics(0);
-    for diagnostic in &schema_diagnostics {
-        reserve(
-            &mut state,
-            diagnostic.accounted_state_bytes,
-            limits.max_state_bytes,
-        )?;
-    }
+    let mut schema_diagnostics = Vec::new();
+    retain_schema_diagnostics(
+        executor,
+        0,
+        &mut schema_diagnostics,
+        &mut state,
+        limits.max_state_bytes,
+    )?;
     let registry_diagnostic_issues = executor
         .diagnostic_issues_used
         .checked_sub(initial_diagnostic_issues)
@@ -4071,6 +4620,14 @@ pub fn inspect_records_from_cut(
         check(limits.deadline, cancelled)?;
         let history_diagnostic_start = executor.diagnostic_issues_used;
         let revision = snapshot.revision();
+        if let Some(backend) = executor.in_process.as_mut() {
+            if backend.pending.is_some() {
+                return Err(ItemRefusal::Source(
+                    "record diagnostic was not retained".into(),
+                ));
+            }
+            backend.identity = crate::source_cut::InProcessCutIdentity::Source(revision);
+        }
         let historical_registry =
             historical_required(cut, revision, REGISTRY, limits, cancelled, &mut used)?;
         let historical_contract =
@@ -4112,14 +4669,14 @@ pub fn inspect_records_from_cut(
             limits,
             cancelled,
         )?;
-        let mut historical_schema_diagnostics = executor.take_schema_diagnostics(0);
-        for diagnostic in &historical_schema_diagnostics {
-            reserve(
-                &mut historical_state,
-                diagnostic.accounted_state_bytes,
-                limits.max_state_bytes,
-            )?;
-        }
+        let mut historical_schema_diagnostics = Vec::new();
+        retain_schema_diagnostics(
+            executor,
+            0,
+            &mut historical_schema_diagnostics,
+            &mut historical_state,
+            limits.max_state_bytes,
+        )?;
         let history_registry_diagnostic_issues = executor
             .diagnostic_issues_used
             .checked_sub(history_diagnostic_start)
@@ -4358,6 +4915,10 @@ pub fn inspect_records_from_cut(
         initial_executions,
         initial_diagnostic_issues,
     )?;
+    if let Some(backend) = executor.in_process.as_mut() {
+        backend.identity =
+            crate::source_cut::InProcessCutIdentity::Source(cut.current().revision());
+    }
     Ok(SourceCutRecordReport {
         source_revision: cut.current().revision(),
         current_membership,

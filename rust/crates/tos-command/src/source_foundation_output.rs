@@ -3,7 +3,8 @@
 //! findings; it never turns issue absence into source admission.
 
 use super::foundation_catalog::{
-    EvaluatedPersistedCatalog, FoundationCatalogOutcome, GeneratedCatalogObservation, Issue,
+    EvaluatedPersistedCatalog, FoundationCatalogOutcome, FoundationCatalogSchemaCost,
+    GeneratedCatalogObservation, Issue,
 };
 use super::foundation_payload::PhysicalPayloadCompletion;
 use super::foundation_physical::PhysicalSourceCost;
@@ -15,7 +16,7 @@ use super::foundation_run::{FinalizedFoundationDefaultInputs, FoundationBiblioEv
 use std::mem::size_of;
 use tos_compiler::source_witness_catalog::ColdSourceCatalogReceipt;
 use tos_validation::executor::schema_diagnostics::PathSegment;
-use tos_validation::source_cut::CutSchemaDiagnostic;
+use tos_validation::source_cut::CutSchemaEvidence;
 use tos_validation::source_foundation_default_rules::SourceFoundationDefaultRulesReport;
 use tos_validation::source_foundation_labs::SourceFoundationLab;
 use tos_validation::source_foundation_records::SourceFoundationRecordsOwnerIssue;
@@ -100,17 +101,17 @@ pub(crate) enum SourceFoundationCatalogOutputEvidence {
         generated_read_bytes: usize,
         generated_inputs: GeneratedCatalogObservation,
         source_recheck_read_bytes: usize,
-        schema_execution_cost: tos_validation::source_cut::CutSchemaDiagnosticsCumulativeCost,
+        schema_execution_cost: FoundationCatalogSchemaCost,
     },
     /// A complete, authenticated invalid schema report is retained as a
     /// negative finding. Its mapped prose is already present in `issues`.
     SchemaRejected {
-        diagnostic: CutSchemaDiagnostic,
+        diagnostic: CutSchemaEvidence,
         bibliographic_phase: bool,
         generated_read_bytes: usize,
         generated_inputs: Option<GeneratedCatalogObservation>,
         source_recheck_read_bytes: usize,
-        schema_execution_cost: tos_validation::source_cut::CutSchemaDiagnosticsCumulativeCost,
+        schema_execution_cost: FoundationCatalogSchemaCost,
     },
 }
 
@@ -351,7 +352,9 @@ fn collect_gaps(evidence: &FinalizedFoundationDefaultInputs) -> Vec<SourceFounda
     if matches!(
         &evidence.catalog,
         FoundationCatalogOutcome::SchemaRejected { diagnostic, .. }
-            if !diagnostic.is_invalid() || diagnostic.report().issues.is_empty()
+            if !diagnostic.is_invalid()
+                || diagnostic.issues().is_empty()
+                || diagnostic.source_revision() != Some(evidence.rules.owner_report.records.source_revision)
     ) {
         gaps.push(SourceFoundationOutputGap::CatalogDiagnostic);
     }
@@ -606,13 +609,13 @@ fn add_issue_stats(count: &mut usize, bytes: &mut usize, issues: &[Issue]) -> bo
     true
 }
 
-fn cut_schema_output_bound(diagnostic: &CutSchemaDiagnostic) -> Option<(usize, usize, usize)> {
-    if !diagnostic.is_invalid() || diagnostic.report().issues.is_empty() {
+fn cut_schema_output_bound(diagnostic: &CutSchemaEvidence) -> Option<(usize, usize, usize)> {
+    if !diagnostic.is_invalid() || diagnostic.issues().is_empty() {
         return None;
     }
     let mut bytes = 0usize;
     let mut suffix_max = 0usize;
-    for issue in &diagnostic.report().issues {
+    for issue in diagnostic.issues() {
         let suffix = path_suffix_upper_bound(&issue.instance_path)?;
         suffix_max = suffix_max.max(suffix);
         let message = issue
@@ -623,7 +626,7 @@ fn cut_schema_output_bound(diagnostic: &CutSchemaDiagnostic) -> Option<(usize, u
             .checked_add(suffix)?
             .checked_add(message.len())?;
     }
-    Some((diagnostic.report().issues.len(), bytes, suffix_max))
+    Some((diagnostic.issues().len(), bytes, suffix_max))
 }
 
 fn path_suffix_upper_bound(path: &[PathSegment]) -> Option<usize> {
@@ -658,7 +661,7 @@ fn map_catalog_diagnostic(
         .try_reserve_exact(preflight.schema_issue_count)
         .map_err(|_| "foundation catalog diagnostic allocation")?;
     let mut bytes = 0usize;
-    for issue in &diagnostic.report().issues {
+    for issue in diagnostic.issues() {
         let suffix = python_path_suffix(&issue.instance_path);
         if suffix.len() > preflight.schema_suffix_upper {
             return Err("foundation catalog diagnostic path bound");
@@ -705,4 +708,58 @@ fn refused(
     reason: &'static str,
 ) -> SourceFoundationOutputOutcome {
     SourceFoundationOutputOutcome::Refused { evidence, reason }
+}
+
+#[cfg(test)]
+mod catalog_evidence_tests {
+    use super::*;
+    use std::sync::atomic::AtomicBool;
+    use std::time::{Duration, Instant};
+    use tos_foundation::{Digest256, SourceRevision};
+    use tos_validation::executor::schema_diagnostics::Caps;
+    use tos_validation::in_process::{InProcessSchemaEngine, InputMode, Unit};
+    use tos_validation::source_cut::{
+        InProcessCutDiagnostic, InProcessCutIdentity, InProcessSelectorKind,
+    };
+    use tos_validation::{FormatProfile, SchemaResource};
+
+    #[test]
+    fn in_process_cut_diagnostic_maps_only_complete_source_rejection() {
+        let uri = "https://example.test/catalog-output";
+        let mut engine = InProcessSchemaEngine::new(
+            [SchemaResource {
+                uri: uri.into(),
+                raw: br#"{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://example.test/catalog-output","type":"integer"}"#.to_vec(),
+            }],
+            FormatProfile::AssertedSourceCandidateV1,
+        ).unwrap();
+        let report = engine
+            .validate(
+                Unit {
+                    root_uri: uri,
+                    raw: b"{}",
+                    input_mode: InputMode::PublishedStrict,
+                },
+                Caps::CURRENT,
+                Instant::now() + Duration::from_secs(30),
+                &AtomicBool::new(false),
+            )
+            .unwrap();
+        let revision = SourceRevision(Digest256::of_bytes(b"source"));
+        let row = InProcessCutDiagnostic {
+            identity: InProcessCutIdentity::Source(revision),
+            path: "catalog.json".into(),
+            contract: uri.into(),
+            selector_kind: InProcessSelectorKind::SchemaUri,
+            input_size_bytes: Some(2),
+            before_issue: None,
+            report,
+        };
+        let evidence = CutSchemaEvidence::InProcess(row.clone());
+        assert_eq!(evidence.source_revision(), Some(revision));
+        assert_eq!(cut_schema_output_bound(&evidence).unwrap().0, 1);
+        let mut candidate = row;
+        candidate.identity = InProcessCutIdentity::Candidate(());
+        assert!(cut_schema_output_bound(&CutSchemaEvidence::InProcess(candidate)).is_none());
+    }
 }

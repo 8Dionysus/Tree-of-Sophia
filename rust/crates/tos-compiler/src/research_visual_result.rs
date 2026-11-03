@@ -1480,7 +1480,7 @@ mod tests {
     fn explicit_model_fixity_and_original_input_reverification() {
         let m = tempfile::tempdir().unwrap();
         let imp = tempfile::tempdir().unwrap();
-        let ctx = ResearchExecution::new_visual_result(m.path(), 30, None).unwrap();
+        let ctx = crate::research_execution::new_visual_result(m.path(), 30, None).unwrap();
         let ic = ctx.select_directory(imp.path()).unwrap();
         for r in ["qwen_vl_visual_retrieval.py", "qwen_vl_embedding_bridge.py"] {
             std::fs::write(imp.path().join(r), b"reviewed").unwrap();

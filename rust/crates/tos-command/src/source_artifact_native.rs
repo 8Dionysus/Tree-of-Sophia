@@ -6,7 +6,6 @@ use std::collections::BTreeSet;
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue, RelativePath};
-use tos_validation::source_cut::CutWorkerSchemaExecutor;
 
 pub(crate) const SCHEMA: &str = "ToS/contracts/artifact-source-witness-v2.schema.json";
 const INPUTS: [&str; 3] = ["rights_ref", "discovery_ref", "research_ref"];
@@ -73,7 +72,7 @@ pub(crate) fn initial(
     ctx: &CommandContext,
     config: &JsonValue,
     record: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl revisions::RecordSchemaWorker<Identity = tos_foundation::SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Vec<String>> {

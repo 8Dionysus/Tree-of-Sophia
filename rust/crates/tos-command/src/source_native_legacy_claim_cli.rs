@@ -1,5 +1,5 @@
 //! Maintained historical Claim revision/forms with an exact public owner.
-use super::{absolute, capped, digest, selected_schema, text};
+use super::{absolute, capped, digest, text};
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
 use crate::source_creation_store::{CreationFilesystem, LegacyOwnerStore};
 use serde_json::Value;
@@ -10,7 +10,11 @@ use tos_source_store::{
     CorpusCutReader, CorpusReader, CutReadLimits, SoftwareCaptureReader,
     SoftwareComponentSelectionV1,
 };
-use tos_validation::source_cut::CutSchemaExecutor;
+use tos_validation::{
+    FormatProfile,
+    in_process::InputMode,
+    source_cut::{CutSchemaExecutor, InProcessCutSchemaExecutor},
+};
 
 #[path = "source_legacy_historical_claim.rs"]
 pub(super) mod engine;
@@ -88,7 +92,14 @@ pub(super) fn run(
     filesystem.current_context(&context, deadline, cancelled)?;
     let mut selected = LegacyOwnerStore::select(&filesystem, &context)?;
     let before = selected.read_package(deadline, cancelled)?;
-    let mut worker = selected_schema(invocation, current, deadline, cancelled)?;
+    let mut worker = InProcessCutSchemaExecutor::from_cut(
+        current,
+        FormatProfile::LegacyPythonObserved20260923,
+        InputMode::SerdeNormalized,
+        deadline,
+        cancelled,
+    )
+    .map_err(|_| SourceCommandError::Denied("historical Claim schema preparation"))?;
     let plan = engine::prepare(
         &context,
         current,
@@ -110,7 +121,7 @@ pub(super) fn run(
     }
     worker
         .finish(deadline, cancelled)
-        .map_err(|_| SourceCommandError::Invalid("historical Claim worker finish"))?;
+        .map_err(|_| SourceCommandError::Invalid("historical Claim schema execution finish"))?;
     if let Some(after) = plan.files {
         let guard = || {
             selected.verify_current_cut(current, deadline, cancelled)?;

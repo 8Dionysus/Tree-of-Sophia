@@ -15,8 +15,8 @@ use tos_validation::executor::{
     ExactWorkerIdentity, SharedSchemaWorkerQuota, VerifiedWorkerImageHandle,
 };
 use tos_validation::source_cut::{
-    CandidateCutSchemaDiagnostic, CandidateCutWorkerSchemaExecutor, CutPreparedSchemaProtocol,
-    CutSchemaDiagnosticsCumulativeCost,
+    CandidateCutWorkerSchemaExecutor, CandidateSchemaDiagnostic, CutPreparedSchemaProtocol,
+    CutSchemaDiagnosticsCumulativeCost, InProcessCandidateSchemaExecutor,
 };
 use tos_validation::source_foundation_closure::{
     SourceFoundationClosureSchemaRequest, SourceFoundationClosureSchemaRequestStore,
@@ -28,10 +28,7 @@ use tos_validation::source_foundation_default_rules::{
 use tos_validation::source_foundation_discovery::{
     DiscoverySchemaRequestStore, Issue as DiscoveryIssue, SchemaRequest as DiscoverySchemaRequest,
 };
-use tos_validation::source_foundation_goldsets::SourceFoundationSchemaRequest as GoldsetSchemaRequest;
-use tos_validation::source_foundation_labs::{
-    SourceFoundationLab, SourceFoundationLabResult, SourceFoundationSchemaCheck,
-};
+use tos_validation::source_foundation_labs::{SourceFoundationLab, SourceFoundationLabResult};
 use tos_validation::source_foundation_records::{
     SourceFoundationRecordsCollection, SourceFoundationRecordsOwnerIssue,
     SourceFoundationRecordsPageBudget, SourceFoundationRecordsSchemaCheck,
@@ -39,9 +36,10 @@ use tos_validation::source_foundation_records::{
 };
 use tos_validation::source_foundation_schema::{
     SourceFoundationLegacySchemaInput, SourceFoundationMixedSchemaInput,
-    SourceFoundationSchemaCheckReport, SourceFoundationSchemaFailure, SourceFoundationSchemaInput,
-    SourceFoundationSchemaIssue, SourceFoundationSchemaLimits, SourceFoundationSchemaOutcome,
-    SourceFoundationSchemaReport, SourceFoundationSchemaSet,
+    SourceFoundationSchemaCheck, SourceFoundationSchemaCheckReport, SourceFoundationSchemaFailure,
+    SourceFoundationSchemaInput, SourceFoundationSchemaIssue, SourceFoundationSchemaLimits,
+    SourceFoundationSchemaOutcome, SourceFoundationSchemaReport,
+    SourceFoundationSchemaRequest as GoldsetSchemaRequest, SourceFoundationSchemaSet,
     evaluate_source_foundation_mixed_schema_checks,
     evaluate_source_foundation_mixed_schema_checks_with_shared_quota,
     evaluate_source_foundation_mixed_schema_checks_with_shared_quota_and_image,
@@ -124,6 +122,75 @@ enum ProcessError {
     Refused(&'static str),
 }
 
+/// Engine-aware facts for a live candidate diagnostic operation.
+pub(crate) trait CandidateRuleExecutor<I: Copy + Eq>:
+    tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding<I>
+{
+    fn rule_count(&self) -> Result<usize, tos_validation::item_rules::ItemRefusal>;
+    fn rule_worker_cost(
+        &self,
+    ) -> Result<Option<CutSchemaDiagnosticsCumulativeCost>, tos_validation::item_rules::ItemRefusal>;
+    fn rule_controller_state(
+        &self,
+        bytes: usize,
+        path_bytes: usize,
+    ) -> Result<Option<usize>, tos_validation::item_rules::ItemRefusal>;
+    fn rule_limits_digest(&self) -> Option<Digest256>;
+    fn rule_finished(&self) -> bool;
+}
+impl<I: Copy + Eq> CandidateRuleExecutor<I> for CandidateCutWorkerSchemaExecutor<I> {
+    fn rule_count(&self) -> Result<usize, tos_validation::item_rules::ItemRefusal> {
+        self.diagnostic_execution_count()
+    }
+    fn rule_worker_cost(
+        &self,
+    ) -> Result<Option<CutSchemaDiagnosticsCumulativeCost>, tos_validation::item_rules::ItemRefusal>
+    {
+        self.diagnostics_v2_cumulative_cost().map(Some)
+    }
+    fn rule_controller_state(
+        &self,
+        bytes: usize,
+        path_bytes: usize,
+    ) -> Result<Option<usize>, tos_validation::item_rules::ItemRefusal> {
+        self.diagnostics_v2_controller_state_upper_bound(bytes, path_bytes)
+            .map(Some)
+    }
+    fn rule_limits_digest(&self) -> Option<Digest256> {
+        Some(self.limits_sha256())
+    }
+    fn rule_finished(&self) -> bool {
+        self.is_finished()
+    }
+}
+impl<I: Copy + Eq> CandidateRuleExecutor<I> for InProcessCandidateSchemaExecutor<I> {
+    fn rule_count(&self) -> Result<usize, tos_validation::item_rules::ItemRefusal> {
+        self.completed_checks()
+            .ok_or(tos_validation::item_rules::ItemRefusal::Unsupported(
+                "candidate completed-check count unavailable".into(),
+            ))
+    }
+    fn rule_worker_cost(
+        &self,
+    ) -> Result<Option<CutSchemaDiagnosticsCumulativeCost>, tos_validation::item_rules::ItemRefusal>
+    {
+        Ok(None)
+    }
+    fn rule_controller_state(
+        &self,
+        _: usize,
+        _: usize,
+    ) -> Result<Option<usize>, tos_validation::item_rules::ItemRefusal> {
+        Ok(None)
+    }
+    fn rule_limits_digest(&self) -> Option<Digest256> {
+        self.selected_schema_limits_sha256()
+    }
+    fn rule_finished(&self) -> bool {
+        self.is_finished()
+    }
+}
+
 /// Cost and evidence returned by the actual candidate diagnostic worker. The
 /// stored owner report contains no Records payload. Its authenticated Records
 /// request pages execute under the same worker; local completed exchanges are
@@ -140,7 +207,7 @@ impl<I: Copy + Eq> EvaluatedCandidateSourceFoundationRules<I> {
     /// Worker EOF remains the orchestrator's separate final custody obligation.
     pub(crate) fn diagnostics_bound_to(
         &self,
-        worker: &CandidateCutWorkerSchemaExecutor<I>,
+        worker: &impl CandidateRuleExecutor<I>,
         scope: SourceFoundationDefaultRuleScope,
     ) -> bool {
         let d = &self.diagnostics;
@@ -155,14 +222,16 @@ impl<I: Copy + Eq> EvaluatedCandidateSourceFoundationRules<I> {
         d.input_identity == *worker.input_identity()
             && d.scope == scope
             && self.owner_report.scope == scope
-            && d.prepared == worker.prepared_execution_binding()
+            && Some(d.prepared) == worker.schema_execution_binding()
             && d.selection_sha256 == worker.contract_selection_digest()
-            && d.limits_sha256 == worker.limits_sha256()
-            && !worker.is_finished()
-            && worker.diagnostic_execution_count().ok() == Some(d.after_count)
-            && worker.diagnostics_v2_cumulative_cost().ok() == Some(d.after_cost)
-            && d.before_cost.completed_exchanges() == d.before_count as u64
-            && d.after_cost.completed_exchanges() == d.after_count as u64
+            && Some(d.limits_sha256) == worker.rule_limits_digest()
+            && !worker.rule_finished()
+            && worker.rule_count().ok() == Some(d.after_count)
+            && worker.rule_worker_cost().ok() == Some(d.after_cost)
+            && d.before_cost
+                .is_none_or(|cost| cost.completed_exchanges() == d.before_count as u64)
+            && d.after_cost
+                .is_none_or(|cost| cost.completed_exchanges() == d.after_count as u64)
             && d.after_count.checked_sub(d.before_count) == Some(d.terminal_count)
             && d.terminal_count == self.cost.schema_check_count
             && d.terminal_count == self.owner_report.cost.queued_schema_document_count
@@ -196,7 +265,7 @@ impl<I: Copy + Eq> EvaluatedCandidateSourceFoundationRules<I> {
             count.checked_add(phase.semantic_failure_count)
         })
     }
-    pub(crate) fn first_invalid(&self) -> Option<&CandidateCutSchemaDiagnostic<I>> {
+    pub(crate) fn first_invalid(&self) -> Option<&CandidateSchemaDiagnostic<I>> {
         self.diagnostics.first_invalid.as_ref()
     }
     pub(crate) fn ordered_observation_sha256(&self) -> Digest256 {
@@ -216,7 +285,7 @@ pub(crate) struct CandidateRuleDiagnosticOperationLimits {
 pub(crate) struct CandidateRuleDiagnosticSummary<I> {
     input_identity: I,
     scope: SourceFoundationDefaultRuleScope,
-    prepared: tos_validation::source_cut::CutPreparedSchemaExecutionBinding,
+    prepared: tos_foundation::SchemaExecutionBinding,
     selection_sha256: Digest256,
     limits_sha256: Digest256,
     ordered_observation_sha256: Digest256,
@@ -225,9 +294,9 @@ pub(crate) struct CandidateRuleDiagnosticSummary<I> {
     terminal_count: usize,
     before_count: usize,
     after_count: usize,
-    before_cost: CutSchemaDiagnosticsCumulativeCost,
-    after_cost: CutSchemaDiagnosticsCumulativeCost,
-    first_invalid: Option<CandidateCutSchemaDiagnostic<I>>,
+    before_cost: Option<CutSchemaDiagnosticsCumulativeCost>,
+    after_cost: Option<CutSchemaDiagnosticsCumulativeCost>,
+    first_invalid: Option<CandidateSchemaDiagnostic<I>>,
 }
 
 /// Fixed order: Labs, Records, Gold, Discovery, Closure. Counts are global
@@ -246,8 +315,8 @@ pub(crate) struct CandidateRuleDiagnosticPhase {
 
 pub(crate) struct CandidateRuleDiagnosticProgress<I> {
     phases: [CandidateRuleDiagnosticPhase; 5],
-    pub first_refusal: Option<CandidateCutSchemaDiagnostic<I>>,
-    pub first_invalid: Option<CandidateCutSchemaDiagnostic<I>>,
+    pub first_refusal: Option<CandidateSchemaDiagnostic<I>>,
+    pub first_invalid: Option<CandidateSchemaDiagnostic<I>>,
     ordered: Digest256Hasher,
     terminal_count: usize,
     status_counts: [usize; 5],
@@ -263,7 +332,7 @@ impl<I> CandidateRuleDiagnosticProgress<I> {
             status_counts: [0; 5],
         }
     }
-    fn retain_nonverdict(&mut self, diagnostic: CandidateCutSchemaDiagnostic<I>) {
+    fn retain_nonverdict(&mut self, diagnostic: CandidateSchemaDiagnostic<I>) {
         if self.first_refusal.is_none() {
             self.first_refusal = Some(diagnostic);
         }
@@ -271,7 +340,7 @@ impl<I> CandidateRuleDiagnosticProgress<I> {
 }
 
 fn candidate_lab_semantic_failure_count<I>(
-    diagnostic: &CandidateCutSchemaDiagnostic<I>,
+    diagnostic: &CandidateSchemaDiagnostic<I>,
     lab: Option<&SourceFoundationSchemaCheck>,
 ) -> Option<usize> {
     let valid = diagnostic.is_valid();
@@ -289,7 +358,7 @@ fn candidate_lab_semantic_failure_count<I>(
             .is_some_and(|expected| expected != valid)
     };
     let issues = if request.negative_control.is_none() {
-        diagnostic.report().issues.len()
+        diagnostic.issues().len()
     } else {
         0
     };
@@ -303,13 +372,14 @@ pub(crate) struct CandidateSourceFoundationRuleDiagnosticsCost {
     pub schema_result_state_upper_bound_bytes: usize,
     pub fixed_diagnostic_summary_state_upper_bound_bytes: usize,
     pub diagnostic_issue_count: usize,
-    pub worker_schema_resource_bytes: u64,
-    pub worker_request_bytes: u64,
-    pub worker_response_bytes: u64,
-    pub worker_cpu_micros: u64,
+    pub worker_schema_resource_bytes: Option<u64>,
+    pub worker_request_bytes: Option<u64>,
+    pub worker_response_bytes: Option<u64>,
+    pub worker_cpu_micros: Option<u64>,
     pub cumulative_execution_count_before: usize,
     pub cumulative_execution_count_after: usize,
-    pub peak_additional_state_upper_bound_bytes: usize,
+    /// Peak state of diagnostic assembly and retained reports; engine cache is owned separately.
+    pub peak_assembly_state_upper_bound_bytes: usize,
 }
 
 /// A refused or incomplete candidate run keeps the real stored owner report
@@ -329,13 +399,13 @@ pub(crate) enum CandidateRuleDiagnosticsError<I> {
 }
 
 struct CandidateRuleStepFailure<I> {
-    diagnostic: Option<CandidateCutSchemaDiagnostic<I>>,
+    diagnostic: Option<CandidateSchemaDiagnostic<I>>,
     reason: &'static str,
     incomplete: bool,
 }
 
 struct CandidateRuleStepSuccess<I> {
-    diagnostic: CandidateCutSchemaDiagnostic<I>,
+    diagnostic: CandidateSchemaDiagnostic<I>,
     input_bytes: usize,
     diagnostic_state: usize,
     issue_count: usize,
@@ -963,8 +1033,8 @@ fn check_candidate_rule_request<I: Copy + Eq>(
     decoded_instance: Option<&Value>,
     legacy_raw_instance: Option<&[u8]>,
     input_identity: I,
-    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
-    expected_binding: tos_validation::source_cut::CutPreparedSchemaExecutionBinding,
+    worker: &mut impl CandidateRuleExecutor<I>,
+    expected_binding: tos_foundation::SchemaExecutionBinding,
     schema_limits: SourceFoundationSchemaLimits,
     operation: CandidateRuleDiagnosticOperationLimits,
     deadline: Instant,
@@ -1048,13 +1118,14 @@ fn check_candidate_rule_request<I: Copy + Eq>(
         .filter(|used| *used <= operation.max_total_instance_bytes)
         .ok_or_else(|| fail("candidate rule diagnostics aggregate input limit", None))?;
     let worker_controller_state = worker
-        .diagnostics_v2_controller_state_upper_bound(encoded_len, location.len())
+        .rule_controller_state(encoded_len, location.len())
         .map_err(|_| {
             fail(
                 "candidate rule diagnostics controller state unavailable",
                 None,
             )
-        })?;
+        })?
+        .unwrap_or(0);
     let encoded_buffer_bound = if legacy_raw_instance.is_some() {
         0
     } else {
@@ -1112,16 +1183,18 @@ fn check_candidate_rule_request<I: Copy + Eq>(
         ));
     }
     let diagnostic = worker
-        .check_diagnostics_v2(location, raw, contract, deadline, cancelled)
+        .check_diagnostic(location, raw, contract, deadline, cancelled)
         .map_err(|_| fail("candidate rule diagnostics worker refused", None))?;
     if diagnostic.input_identity() != &input_identity
-        || diagnostic.schema_set_sha256() != worker.schema_set_digest()
+        || diagnostic.execution_binding().schema_set_sha256() != worker.schema_set_digest()
         || diagnostic.contract_selection_sha256() != worker.contract_selection_digest()
-        || diagnostic.profile() != worker.profile()
-        || diagnostic.profile() != FormatProfile::LegacyPythonObserved20260923
-        || diagnostic.prepared_execution_binding() != expected_binding
-        || diagnostic.result().path() != location
-        || diagnostic.result().contract() != contract
+        || diagnostic.execution_binding().schema_profile() != worker.profile()
+        || diagnostic.execution_binding().schema_profile()
+            != FormatProfile::LegacyPythonObserved20260923
+        || diagnostic.execution_binding() != expected_binding
+        || diagnostic.path() != location
+        || diagnostic.contract() != contract
+        || diagnostic.input_sha256() != Digest256::of_bytes(raw)
     {
         return Err(fail(
             "candidate rule diagnostics result binding invalid",
@@ -1129,7 +1202,7 @@ fn check_candidate_rule_request<I: Copy + Eq>(
         ));
     }
     if !diagnostic.is_valid() && !diagnostic.is_invalid() {
-        let reason = match (diagnostic.report().status, diagnostic.report().failure) {
+        let reason = match (diagnostic.status(), diagnostic.failure()) {
             (
                 tos_validation::executor::schema_diagnostics::Status::Indeterminate,
                 tos_validation::executor::schema_diagnostics::Failure::UnsupportedInputSemantics,
@@ -1147,7 +1220,7 @@ fn check_candidate_rule_request<I: Copy + Eq>(
         });
     }
     let Some(next_issues) = diagnostic_issue_count
-        .checked_add(diagnostic.report().issues.len())
+        .checked_add(diagnostic.issues().len())
         .filter(|count| *count <= schema_limits.max_total_issues)
     else {
         return Err(fail(
@@ -1155,8 +1228,9 @@ fn check_candidate_rule_request<I: Copy + Eq>(
             Some(diagnostic),
         ));
     };
-    let Some(returned_state) =
-        prior_diagnostic_state.checked_add(diagnostic.accounted_state_bytes())
+    let Some(returned_state) = diagnostic
+        .retained_state_bytes()
+        .and_then(|bytes| prior_diagnostic_state.checked_add(bytes))
     else {
         return Err(fail(
             "candidate rule diagnostics result state overflow",
@@ -1212,7 +1286,7 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
     records_page_budget: SourceFoundationRecordsPageBudget,
     discovery_schema_requests: &mut dyn DiscoverySchemaRequestStore,
     closure_schema_requests: &mut dyn SourceFoundationClosureSchemaRequestStore,
-    schema_worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    schema_worker: &mut impl CandidateRuleExecutor<I>,
     schema_limits: SourceFoundationSchemaLimits,
     operation: CandidateRuleDiagnosticOperationLimits,
     deadline: Instant,
@@ -1235,23 +1309,35 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
         }
     };
     let input_identity = owner_report.input_identity;
-    let worker_binding = schema_worker.prepared_execution_binding();
+    let Some(worker_binding) = schema_worker.schema_execution_binding() else {
+        return Err(CandidateRuleDiagnosticsError::Refused {
+            owner_report,
+            diagnostics,
+            reason: "candidate stored rule engine binding absent",
+        });
+    };
     if !schema_limits.validate()
         || limits.max_state_bytes == 0
         || records.input_identity() != &input_identity
         || records.source_membership() != &owner_report.source_membership
         || records.candidate_schema_identity().is_none_or(|identity| {
-            identity.prepared_execution_binding() != worker_binding
+            identity.schema_execution_binding() != worker_binding
                 || identity.contract_selection_digest() != schema_worker.contract_selection_digest()
         })
         || schema_worker.input_identity() != &input_identity
         || schema_worker.profile() != FormatProfile::LegacyPythonObserved20260923
-        || schema_worker.limits_sha256() != schema_limits.digest()
-        || schema_worker.is_finished()
-        || !matches!(
-            worker_binding.protocol,
-            CutPreparedSchemaProtocol::DiagnosticsV2 { .. }
-        )
+        || schema_worker.rule_limits_digest() != Some(schema_limits.digest())
+        || schema_worker.rule_finished()
+        || !match worker_binding {
+            tos_foundation::SchemaExecutionBinding::Worker(binding) => matches!(
+                binding.protocol,
+                CutPreparedSchemaProtocol::DiagnosticsV2 { .. }
+            ),
+            tos_foundation::SchemaExecutionBinding::InProcessV1(binding) => {
+                binding.engine == tos_validation::in_process::ENGINE_ID
+                    && binding.input_mode_sha256.is_some()
+            }
+        }
     {
         return Err(CandidateRuleDiagnosticsError::Refused {
             owner_report,
@@ -1275,7 +1361,7 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
             reason: "candidate stored rule schema count limit",
         });
     }
-    let before_count = match schema_worker.diagnostic_execution_count() {
+    let before_count = match schema_worker.rule_count() {
         Ok(count) => count,
         Err(_) => {
             return Err(CandidateRuleDiagnosticsError::Refused {
@@ -1285,7 +1371,7 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
             });
         }
     };
-    let before_cost = match schema_worker.diagnostics_v2_cumulative_cost() {
+    let before_cost = match schema_worker.rule_worker_cost() {
         Ok(cost) => cost,
         Err(_) => {
             return Err(CandidateRuleDiagnosticsError::Refused {
@@ -1302,7 +1388,9 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
             reason: "candidate stored rule queued diagnostic count binding invalid",
         });
     }
-    if usize::try_from(before_cost.completed_exchanges()).ok() != Some(before_count) {
+    if before_cost
+        .is_some_and(|cost| usize::try_from(cost.completed_exchanges()).ok() != Some(before_count))
+    {
         return Err(CandidateRuleDiagnosticsError::Refused {
             owner_report,
             diagnostics,
@@ -1320,12 +1408,23 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
         });
     }
     let vector_state = size_of::<CandidateRuleDiagnosticProgress<I>>();
-    diagnostics
-        .ordered
-        .update(b"tos-candidate-rules-inline-diagnostics-v1\0");
-    diagnostics
-        .ordered
-        .update(worker_binding.worker_sha256.as_bytes());
+    match worker_binding {
+        tos_foundation::SchemaExecutionBinding::Worker(binding) => {
+            diagnostics
+                .ordered
+                .update(b"tos-candidate-rules-inline-diagnostics-v1\0");
+            diagnostics.ordered.update(binding.worker_sha256.as_bytes());
+        }
+        tos_foundation::SchemaExecutionBinding::InProcessV1(binding) => {
+            diagnostics
+                .ordered
+                .update(b"tos-candidate-rules-inline-diagnostics-in-process-v1\0");
+            diagnostics.ordered.update(binding.engine.as_bytes());
+            if let Some(mode) = binding.input_mode_sha256 {
+                diagnostics.ordered.update(mode.as_bytes());
+            }
+        }
+    }
     diagnostics
         .ordered
         .update(schema_worker.schema_set_digest().as_bytes());
@@ -1334,12 +1433,14 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
         .update(schema_worker.contract_selection_digest().as_bytes());
     diagnostics
         .ordered
-        .update(schema_worker.limits_sha256().as_bytes());
+        .update(schema_limits.digest().as_bytes());
     diagnostics
         .ordered
-        .update(&[worker_binding.schema_profile as u8]);
-    if let CutPreparedSchemaProtocol::DiagnosticsV2 { caps_sha256 } = worker_binding.protocol {
-        diagnostics.ordered.update(caps_sha256.as_bytes());
+        .update(&[worker_binding.schema_profile() as u8]);
+    if let tos_foundation::SchemaExecutionBinding::Worker(binding) = worker_binding {
+        if let CutPreparedSchemaProtocol::DiagnosticsV2 { caps_sha256 } = binding.protocol {
+            diagnostics.ordered.update(caps_sha256.as_bytes());
+        }
     }
     diagnostics
         .ordered
@@ -1496,43 +1597,89 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
                         diagnostics.phases[current_phase].semantic_failure_count = semantic;
                         diagnostics.status_counts[status] = next_status;
                         diagnostics.terminal_count = next_terminal;
-                        let result = success.diagnostic.result();
-                        diagnostics
-                            .ordered
-                            .update(&(current_phase as u64).to_be_bytes());
-                        diagnostics
-                            .ordered
-                            .update(&(next_terminal as u64).to_be_bytes());
-                        diagnostics
-                            .ordered
-                            .update(result.source_raw_sha256().as_bytes());
-                        diagnostics
-                            .ordered
-                            .update(result.decoded_instance_sha256().as_bytes());
-                        diagnostics
-                            .ordered
-                            .update(result.aggregate_caps_sha256().as_bytes());
-                        diagnostics
-                            .ordered
-                            .update(result.unit().unit_sha256.as_bytes());
-                        diagnostics
-                            .ordered
-                            .update(result.report().report_sha256.as_bytes());
-                        diagnostics
-                            .ordered
-                            .update(result.checkpoint().result_stream_sha256.as_bytes());
-                        diagnostics
-                            .ordered
-                            .update(&(result.schema_resource_bytes() as u64).to_be_bytes());
-                        diagnostics
-                            .ordered
-                            .update(&(result.request_bytes() as u64).to_be_bytes());
-                        diagnostics
-                            .ordered
-                            .update(&(result.response_bytes() as u64).to_be_bytes());
-                        diagnostics
-                            .ordered
-                            .update(&result.worker_cpu_micros().to_be_bytes());
+                        match &success.diagnostic {
+                            CandidateSchemaDiagnostic::Worker(row) => {
+                                let result = row.result();
+                                diagnostics
+                                    .ordered
+                                    .update(&(current_phase as u64).to_be_bytes());
+                                diagnostics
+                                    .ordered
+                                    .update(&(next_terminal as u64).to_be_bytes());
+                                diagnostics
+                                    .ordered
+                                    .update(result.source_raw_sha256().as_bytes());
+                                diagnostics
+                                    .ordered
+                                    .update(result.decoded_instance_sha256().as_bytes());
+                                diagnostics
+                                    .ordered
+                                    .update(result.aggregate_caps_sha256().as_bytes());
+                                diagnostics
+                                    .ordered
+                                    .update(result.unit().unit_sha256.as_bytes());
+                                diagnostics
+                                    .ordered
+                                    .update(result.report().report_sha256.as_bytes());
+                                diagnostics
+                                    .ordered
+                                    .update(result.checkpoint().result_stream_sha256.as_bytes());
+                                diagnostics
+                                    .ordered
+                                    .update(&(result.schema_resource_bytes() as u64).to_be_bytes());
+                                diagnostics
+                                    .ordered
+                                    .update(&(result.request_bytes() as u64).to_be_bytes());
+                                diagnostics
+                                    .ordered
+                                    .update(&(result.response_bytes() as u64).to_be_bytes());
+                                diagnostics
+                                    .ordered
+                                    .update(&result.worker_cpu_micros().to_be_bytes());
+                            }
+                            CandidateSchemaDiagnostic::InProcess(row) => {
+                                let report = &row.diagnostic().report;
+                                diagnostics
+                                    .ordered
+                                    .update(&(current_phase as u64).to_be_bytes());
+                                diagnostics
+                                    .ordered
+                                    .update(&(next_terminal as u64).to_be_bytes());
+                                diagnostics.ordered.update(b"in-process\0");
+                                diagnostics.ordered.update(report.input_sha256.as_bytes());
+                                diagnostics
+                                    .ordered
+                                    .update(&(report.root_uri.len() as u64).to_be_bytes());
+                                diagnostics.ordered.update(report.root_uri.as_bytes());
+                                diagnostics.ordered.update(&[
+                                    report.status as u8,
+                                    report.failure as u8,
+                                    u8::from(report.truncated),
+                                ]);
+                                diagnostics
+                                    .ordered
+                                    .update(&report.total_issue_count.to_be_bytes());
+                                struct HashWriter<'a>(&'a mut Digest256Hasher);
+                                impl Write for HashWriter<'_> {
+                                    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+                                        self.0.update(bytes);
+                                        Ok(bytes.len())
+                                    }
+                                    fn flush(&mut self) -> io::Result<()> {
+                                        Ok(())
+                                    }
+                                }
+                                if serde_json::to_writer(
+                                    HashWriter(&mut diagnostics.ordered),
+                                    &report.issues,
+                                )
+                                .is_err()
+                                {
+                                    failed =
+                                        Some(("candidate diagnostic fingerprint failed", false));
+                                }
+                            }
+                        }
                         if semantic != phase_failures_before
                             && success.diagnostic.is_invalid()
                             && diagnostics.first_invalid.is_none()
@@ -1558,13 +1705,12 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
     macro_rules! phase_begin {
         ($phase:expr, $exit:lifetime) => {
             current_phase = $phase;
-            match (
-                schema_worker.diagnostic_execution_count(),
-                schema_worker.diagnostics_v2_cumulative_cost(),
-            ) {
-                (Ok(count), Ok(cost)) if cost.completed_exchanges() == count as u64 => {
+            match (schema_worker.rule_count(), schema_worker.rule_worker_cost()) {
+                (Ok(count), Ok(cost))
+                    if cost.is_none_or(|cost| cost.completed_exchanges() == count as u64) =>
+                {
                     diagnostics.phases[current_phase].before_count = count;
-                    diagnostics.phases[current_phase].before_cost = Some(cost);
+                    diagnostics.phases[current_phase].before_cost = cost;
                 }
                 _ => {
                     failed = Some(("candidate phase start binding unavailable", false));
@@ -1575,19 +1721,23 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
     }
     macro_rules! phase_end {
         ($exit:lifetime) => {
-            match (
-                schema_worker.diagnostic_execution_count(),
-                schema_worker.diagnostics_v2_cumulative_cost(),
-            ) {
+            match (schema_worker.rule_count(), schema_worker.rule_worker_cost()) {
                 (Ok(count), Ok(cost)) => {
                     let phase = &mut diagnostics.phases[current_phase];
                     phase.after_count = count;
-                    phase.after_cost = Some(cost);
-                    phase.queue_eof = count.checked_sub(phase.before_count) == Some(phase.queued)
-                        && cost
-                            .completed_exchanges()
-                            .checked_sub(phase.before_cost.unwrap().completed_exchanges())
-                            == Some(phase.queued as u64);
+                    phase.after_cost = cost;
+                    let cost_matches = match (phase.before_cost, cost) {
+                        (None, None) => true,
+                        (Some(before), Some(after)) => {
+                            after
+                                .completed_exchanges()
+                                .checked_sub(before.completed_exchanges())
+                                == Some(phase.queued as u64)
+                        }
+                        _ => false,
+                    };
+                    phase.queue_eof =
+                        count.checked_sub(phase.before_count) == Some(phase.queued) && cost_matches;
                     if !phase.queue_eof {
                         failed = Some(("candidate phase EOF execution count invalid", false));
                         break $exit;
@@ -2293,7 +2443,7 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
             }
         });
     }
-    let after_count = match schema_worker.diagnostic_execution_count() {
+    let after_count = match schema_worker.rule_count() {
         Ok(count) => count,
         Err(_) => {
             return Err(CandidateRuleDiagnosticsError::Refused {
@@ -2303,7 +2453,7 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
             });
         }
     };
-    let after_cost = match schema_worker.diagnostics_v2_cumulative_cost() {
+    let after_cost = match schema_worker.rule_worker_cost() {
         Ok(cost) => cost,
         Err(_) => {
             return Err(CandidateRuleDiagnosticsError::Incomplete {
@@ -2313,56 +2463,51 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
             });
         }
     };
-    let delta_exchanges = after_cost
-        .completed_exchanges()
-        .checked_sub(before_cost.completed_exchanges());
-    let delta_resource_bytes = after_cost
-        .schema_resource_bytes()
-        .checked_sub(before_cost.schema_resource_bytes());
-    let delta_request_bytes = after_cost
-        .request_bytes()
-        .checked_sub(before_cost.request_bytes());
-    let delta_response_bytes = after_cost
-        .response_bytes()
-        .checked_sub(before_cost.response_bytes());
-    let delta_cpu_micros = after_cost
-        .worker_cpu_micros()
-        .checked_sub(before_cost.worker_cpu_micros());
-    let expected_after = before_count.checked_add(request_count);
-    if expected_after != Some(after_count)
-        || u64::try_from(request_count).ok() != delta_exchanges
-        || delta_resource_bytes.is_none()
-        || delta_request_bytes.is_none()
-        || delta_response_bytes.is_none()
-        || delta_cpu_micros.is_none()
-        || (request_count > 0
-            && (delta_resource_bytes == Some(0)
-                || delta_request_bytes == Some(0)
-                || delta_response_bytes == Some(0)))
-    {
+    if before_count.checked_add(request_count) != Some(after_count) {
         return Err(CandidateRuleDiagnosticsError::Incomplete {
             owner_report,
             diagnostics,
-            reason: "candidate stored rule cumulative execution accounting invalid",
+            reason: "candidate stored rule completed-check count invalid",
         });
     }
-    let (
-        Some(worker_schema_resource_bytes),
-        Some(worker_request_bytes),
-        Some(worker_response_bytes),
-        Some(worker_cpu_micros),
-    ) = (
-        delta_resource_bytes,
-        delta_request_bytes,
-        delta_response_bytes,
-        delta_cpu_micros,
-    )
-    else {
-        return Err(CandidateRuleDiagnosticsError::Incomplete {
-            owner_report,
-            diagnostics,
-            reason: "candidate stored rule cumulative execution counters regressed",
-        });
+    let worker_cost = match (before_cost, after_cost) {
+        (None, None) => None,
+        (Some(before), Some(after)) => {
+            let delta = after
+                .completed_exchanges()
+                .checked_sub(before.completed_exchanges());
+            let resource = after
+                .schema_resource_bytes()
+                .checked_sub(before.schema_resource_bytes());
+            let request = after.request_bytes().checked_sub(before.request_bytes());
+            let response = after.response_bytes().checked_sub(before.response_bytes());
+            let cpu = after
+                .worker_cpu_micros()
+                .checked_sub(before.worker_cpu_micros());
+            match (delta, resource, request, response, cpu) {
+                (Some(count), Some(resource), Some(request), Some(response), Some(cpu))
+                    if count == request_count as u64
+                        && (request_count == 0
+                            || (resource > 0 && request > 0 && response > 0)) =>
+                {
+                    Some((resource, request, response, cpu))
+                }
+                _ => {
+                    return Err(CandidateRuleDiagnosticsError::Incomplete {
+                        owner_report,
+                        diagnostics,
+                        reason: "candidate stored rule worker counters invalid",
+                    });
+                }
+            }
+        }
+        _ => {
+            return Err(CandidateRuleDiagnosticsError::Incomplete {
+                owner_report,
+                diagnostics,
+                reason: "candidate stored rule engine counters changed",
+            });
+        }
     };
     let result_state_with_header = result_state.checked_add(vector_state).and_then(|bytes| {
         bytes.checked_add(size_of::<EvaluatedCandidateSourceFoundationRules<I>>())
@@ -2418,22 +2563,18 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
     diagnostics
         .ordered
         .update(&(input_bytes as u64).to_be_bytes());
-    diagnostics
-        .ordered
-        .update(&worker_schema_resource_bytes.to_be_bytes());
-    diagnostics
-        .ordered
-        .update(&worker_request_bytes.to_be_bytes());
-    diagnostics
-        .ordered
-        .update(&worker_response_bytes.to_be_bytes());
-    diagnostics.ordered.update(&worker_cpu_micros.to_be_bytes());
+    if let Some((resource, request, response, cpu)) = worker_cost {
+        diagnostics.ordered.update(&resource.to_be_bytes());
+        diagnostics.ordered.update(&request.to_be_bytes());
+        diagnostics.ordered.update(&response.to_be_bytes());
+        diagnostics.ordered.update(&cpu.to_be_bytes());
+    }
     let summary = CandidateRuleDiagnosticSummary {
         input_identity,
         scope: owner_report.scope,
         prepared: worker_binding,
         selection_sha256: schema_worker.contract_selection_digest(),
-        limits_sha256: schema_worker.limits_sha256(),
+        limits_sha256: schema_limits.digest(),
         ordered_observation_sha256: diagnostics.ordered.finalize(),
         status_counts: diagnostics.status_counts,
         raw_issue_count: issue_count,
@@ -2454,13 +2595,13 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
             schema_result_state_upper_bound_bytes: result_state,
             fixed_diagnostic_summary_state_upper_bound_bytes: vector_state,
             diagnostic_issue_count: issue_count,
-            worker_schema_resource_bytes,
-            worker_request_bytes,
-            worker_response_bytes,
-            worker_cpu_micros,
+            worker_schema_resource_bytes: worker_cost.map(|cost| cost.0),
+            worker_request_bytes: worker_cost.map(|cost| cost.1),
+            worker_response_bytes: worker_cost.map(|cost| cost.2),
+            worker_cpu_micros: worker_cost.map(|cost| cost.3),
             cumulative_execution_count_before: before_count,
             cumulative_execution_count_after: after_count,
-            peak_additional_state_upper_bound_bytes: peak_state,
+            peak_assembly_state_upper_bound_bytes: peak_state,
         },
     })
 }
@@ -3886,9 +4027,11 @@ fn lab_clone_state(lab: &SourceFoundationLabResult) -> Option<usize> {
             lab.unimplemented.len().checked_mul(size_of::<String>())?,
             |n, text| n.checked_add(text_storage(text)?),
         )?)?
-        .checked_add(lab.schema_checks.len().checked_mul(size_of::<
-            tos_validation::source_foundation_labs::SourceFoundationSchemaCheck,
-        >())?)?;
+        .checked_add(
+            lab.schema_checks
+                .len()
+                .checked_mul(size_of::<SourceFoundationSchemaCheck>())?,
+        )?;
     for check in &lab.schema_checks {
         for text in [
             Some(check.location.as_str()),
@@ -4046,5 +4189,98 @@ fn refused(
         owner_report,
         diagnostics,
         reason,
+    }
+}
+
+#[cfg(test)]
+mod candidate_engine_tests {
+    use super::*;
+    use tos_validation::in_process::InputMode;
+    use tos_validation::source_cut::CutSchemaExecutor;
+
+    #[test]
+    fn in_process_rule_step_preserves_status_and_has_no_worker_cost() {
+        let deadline = Instant::now() + std::time::Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let path = "ToS/contracts/candidate-rule.schema.json";
+        let uri = "https://example.test/candidate-rule";
+        let raw = br#"{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://example.test/candidate-rule","type":"integer"}"#.to_vec();
+        let mut schemas = InProcessCandidateSchemaExecutor::from_selected_source_resources(
+            42u64,
+            vec![(
+                path.into(),
+                tos_validation::SchemaResource {
+                    uri: uri.into(),
+                    raw,
+                },
+            )],
+            FormatProfile::LegacyPythonObserved20260923,
+            InputMode::LegacyPythonObserved,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        let binding = schemas.schema_execution_binding().unwrap();
+        let batch = tos_validation::executor::BatchBudget::laboratory();
+        let schema_limits = SourceFoundationSchemaLimits {
+            max_schema_resources: 1,
+            max_schema_resource_bytes: 4096,
+            max_total_schema_bytes: 4096,
+            max_checks: 8,
+            max_chunks: 1,
+            max_total_cpu_seconds: 1,
+            max_instance_bytes: 4096,
+            max_total_instance_bytes: 8192,
+            max_total_issues: 128,
+            max_total_report_bytes: 128 * 1024,
+            max_total_worker_wire_bytes: 1024 * 1024,
+            batch,
+        };
+        let operation = CandidateRuleDiagnosticOperationLimits {
+            max_checks: 8,
+            max_total_instance_bytes: 8192,
+        };
+        let limits = SourceFoundationRuleDiagnosticsLimits {
+            max_issues: 128,
+            max_output_bytes: 128 * 1024,
+            max_state_bytes: 1024 * 1024,
+        };
+        for (value, valid) in [
+            (serde_json::json!(3), true),
+            (serde_json::json!("wrong"), false),
+        ] {
+            let result = check_candidate_rule_request(
+                "record.json",
+                path,
+                Some(&value),
+                None,
+                42,
+                &mut schemas,
+                binding,
+                schema_limits,
+                operation,
+                deadline,
+                &cancelled,
+                limits,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            );
+            let success = match result {
+                Ok(success) => success,
+                Err(error) => panic!("{}", error.reason),
+            };
+            assert_eq!(success.diagnostic.is_valid(), valid);
+            assert_eq!(success.diagnostic.is_invalid(), !valid);
+            assert!(matches!(
+                success.diagnostic,
+                CandidateSchemaDiagnostic::InProcess(_)
+            ));
+        }
+        assert_eq!(schemas.completed_checks(), Some(2));
+        assert!(schemas.rule_worker_cost().unwrap().is_none());
     }
 }

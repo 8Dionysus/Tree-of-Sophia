@@ -17,13 +17,14 @@ use crate::source_cohort::{IndexRows, SourceRevisionWrite};
 use crate::source_command::{
     self as cmd, CommandContext, CommandPlan, SourceCommandError, SourceCommandResult,
 };
-use crate::source_revisions::{self as revisions, PgRecordRevisionCommandContext};
+use crate::source_revisions::{
+    self as revisions, PgRecordRevisionCommandContext, RecordSchemaWorker,
+};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue, RelativePath};
 use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
-use tos_validation::source_cut::CandidateCutWorkerSchemaExecutor;
 
 pub(crate) const PG_HISTORICAL_V1_FAMILY_TAG: &str =
     "tos-pg-historical-create-v1:tos_local_historical_create_owner_v1:historical.create";
@@ -503,14 +504,16 @@ pub(crate) fn prepare_pg_family_creation(
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
     replay_binding: Digest256,
-    worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    worker: &mut impl crate::source_claims::MaintainedInventorySchemaWorker<
+        Identity = PgRecordRevisionIdentity,
+    >,
     native_reader: Option<&mut dyn crate::source_sign_native::SignNativeRead>,
     private_selection: Option<&crate::source_native_text_read::LocalTextReadSelection>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedPgFamilyCreation> {
     if context.base_revision != identity.bootstrap_revision
-        || worker.input_identity() != &identity
+        || worker.input_identity() != Some(identity)
         || components.capture() != software.selection()
         || observations.identity_closure.selection_identity() != identity
     {
@@ -958,11 +961,11 @@ impl PreparedPgFamilyCreation {
     pub(crate) fn serialize(
         self,
         software: &SoftwareCaptureReader,
-        worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+        worker: &mut impl RecordSchemaWorker<Identity = PgRecordRevisionIdentity>,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<PgSerializedFamilyCreation> {
-        if worker.input_identity() != &self.identity {
+        if worker.input_identity() != Some(self.identity) {
             return Err(SourceCommandError::Conflict(
                 "PG Historical/Profile schema worker identity changed",
             ));

@@ -1,5 +1,5 @@
 //! Actual isolated Forms caller; protected config selects the fixed owner.
-use super::{absolute, capped, digest, selected_schema, text};
+use super::{absolute, capped, digest, text};
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
 use crate::source_creation_store::{CreationFilesystem, forms_publication};
 use serde_json::{Value, json};
@@ -139,7 +139,14 @@ pub(super) fn run(
         effective_uid: u64::from(rustix::process::getuid().as_raw()),
         files,
     };
-    let mut worker = selected_schema(invocation, selected, deadline, cancelled)?;
+    let mut worker = tos_validation::source_cut::InProcessCutSchemaExecutor::from_cut(
+        selected,
+        tos_validation::FormatProfile::LegacyPythonObserved20260923,
+        tos_validation::in_process::InputMode::LegacyPythonObserved,
+        deadline,
+        cancelled,
+    )
+    .map_err(|_| SourceCommandError::Denied("Forms schema selection"))?;
     let proposal = forms_publication::run(
         &filesystem,
         &context,

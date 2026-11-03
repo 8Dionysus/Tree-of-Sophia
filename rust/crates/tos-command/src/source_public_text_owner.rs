@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue, RelativePath};
-use tos_validation::source_cut::CutWorkerSchemaExecutor;
+use tos_validation::source_cut::CutSchemaExecutor;
 
 const CONFIG_SCHEMA: &str = "ToS/contracts/public-native-text-create-owner.schema.json";
 pub(crate) const SCHEMAS: [&str; 3] = [
@@ -80,7 +80,7 @@ impl PublicNativeTextSelection {
     pub(crate) fn select(
         path: &Path,
         selected_schemas: &BTreeMap<String, Vec<u8>>,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut dyn CutSchemaExecutor,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> R<Self> {
@@ -94,7 +94,7 @@ impl PublicNativeTextSelection {
     pub(crate) fn select_from_pg(
         path: &Path,
         selected_schemas: &BTreeMap<String, Vec<u8>>,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut dyn CutSchemaExecutor,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> R<Self> {
@@ -104,7 +104,7 @@ impl PublicNativeTextSelection {
     fn select_with_pg_schemas(
         path: &Path,
         selected_schemas: &BTreeMap<String, Vec<u8>>,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut dyn CutSchemaExecutor,
         verify_schema_filesystem: bool,
         deadline: Instant,
         cancelled: &AtomicBool,
@@ -141,7 +141,7 @@ impl PublicNativeTextSelection {
                     deadline,
                     cancelled,
                 )? != bytes)
-                || worker.contract_digest(reference) != Some(Digest256::of_bytes(&bytes))
+                || worker.selected_contract_digest(reference) != Some(Digest256::of_bytes(&bytes))
                 || cmd::text(&cmd::parse(&bytes)?, "$id")?
                     != format!("https://tree-of-sophia.local/{reference}")
             {

@@ -18,7 +18,7 @@ use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue, RelativePath};
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::item_rules::{ItemLimits, ItemRefusal};
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::{CutSchemaExecutor, InProcessCutSchemaExecutor};
 const CONFIG: &str = "tos_local_item_adoption_owner_v1";
 const REQUEST: &str = "tos_local_item_adoption_command_v1";
 const OPERATION: &str = "item.adopt";
@@ -822,7 +822,7 @@ fn current_catalog(
     owner: &ItemOwner,
     before: &BTreeMap<String, Vec<u8>>,
     cut: &CorpusCutReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut InProcessCutSchemaExecutor<()>,
     limits: ItemLimits,
     publication_token: Option<&str>,
     mut check_publication: impl FnMut() -> SourceCommandResult<()>,
@@ -1094,15 +1094,16 @@ fn current_catalog(
             remaining.max_state_bytes = limits.max_state_bytes.checked_sub(native_state).ok_or(
                 SourceCommandError::Invalid("Item cumulative topology state budget"),
             )?;
-            let observation = tos_validation::native_compound::verify_expression_edition_from_cut(
-                cut,
-                worker,
-                path,
-                &serde_value(&claim)?,
-                remaining,
-                cancelled,
-            )
-            .map_err(item_error)?;
+            let observation =
+                tos_validation::native_compound::verify_expression_edition_from_in_process_cut(
+                    cut,
+                    worker,
+                    path,
+                    &serde_value(&claim)?,
+                    remaining,
+                    cancelled,
+                )
+                .map_err(item_error)?;
             retain_native_topology(
                 fs,
                 &observation,
@@ -1300,15 +1301,16 @@ fn current_catalog(
             remaining.max_state_bytes = limits.max_state_bytes.checked_sub(native_state).ok_or(
                 SourceCommandError::Invalid("Item cumulative topology state budget"),
             )?;
-            let observation = tos_validation::native_compound::verify_edition_item_from_cut(
-                cut,
-                worker,
-                path,
-                &serde_value(&claim)?,
-                remaining,
-                cancelled,
-            )
-            .map_err(item_error)?;
+            let observation =
+                tos_validation::native_compound::verify_edition_item_from_in_process_cut(
+                    cut,
+                    worker,
+                    path,
+                    &serde_value(&claim)?,
+                    remaining,
+                    cancelled,
+                )
+                .map_err(item_error)?;
             retain_native_topology(
                 fs,
                 &observation,
@@ -1728,7 +1730,7 @@ fn unavailable_grammar(
     owner: &ItemOwner,
     before: &BTreeMap<String, Vec<u8>>,
     cut: &CorpusCutReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut InProcessCutSchemaExecutor<()>,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<tos_validation::native_compound::EditionItemGrammarObservation> {
@@ -1737,16 +1739,17 @@ fn unavailable_grammar(
         .ok_or(SourceCommandError::Conflict("Item parent absent"))?;
     let item_raw = cmd::canonical(cmd::field(&owner.request, "record")?)?;
     let claim_raw = cmd::canonical(cmd::field(&owner.request, "claim")?)?;
-    let mut grammar = tos_validation::native_compound::inspect_edition_item_grammar(
-        cut,
-        worker,
-        edition_raw,
-        &item_raw,
-        &claim_raw,
-        limits,
-        cancelled,
-    )
-    .map_err(item_error)?;
+    let mut grammar =
+        tos_validation::native_compound::inspect_edition_item_grammar_from_in_process_cut(
+            cut,
+            worker,
+            edition_raw,
+            &item_raw,
+            &claim_raw,
+            limits,
+            cancelled,
+        )
+        .map_err(item_error)?;
     let mut revised = cmd::parse(edition_raw)?;
     cmd::set(
         &mut revised,
@@ -1870,7 +1873,7 @@ pub fn prepare_isolated_item_adoption_from_proposal(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut InProcessCutSchemaExecutor<()>,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ItemAdoptionPreparation> {
@@ -1918,35 +1921,36 @@ pub fn prepare_isolated_item_adoption_from_proposal(
         claim_raw.push(b'\n');
         let mut authorization_error = None;
         let scope = serde_value(&owner.scope()?)?;
-        let core = tos_validation::native_compound::prepare_edition_item_preview_bytes(
-            cut,
-            worker,
-            &scope,
-            &claim_raw,
-            &before,
-            &ctx.recorded_at,
-            GENERATOR,
-            remaining,
-            cancelled,
-            |grammar| {
-                let result = (|| {
-                    let dependencies = dependency_bindings(&catalog, grammar, ctx)?;
-                    cmd::set(
-                        &mut owner.request,
-                        "expected_dependencies",
-                        cmd::string(&cmd::record_digest(&dependencies)?.to_prefixed()),
-                    )?;
-                    let authorization = serde_value(&owner.authorization(dependencies)?)?;
-                    let mut raw = cmd::canonical(&owner.request)?;
-                    raw.push(b'\n');
-                    Ok((raw, authorization))
-                })();
-                result.map_err(|e| {
-                    authorization_error = Some(e);
-                    ItemRefusal::Source("Item preview authorization rejected".to_owned())
-                })
-            },
-        );
+        let core =
+            tos_validation::native_compound::prepare_edition_item_preview_bytes_from_in_process_cut(
+                cut,
+                worker,
+                &scope,
+                &claim_raw,
+                &before,
+                &ctx.recorded_at,
+                GENERATOR,
+                remaining,
+                cancelled,
+                |grammar| {
+                    let result = (|| {
+                        let dependencies = dependency_bindings(&catalog, grammar, ctx)?;
+                        cmd::set(
+                            &mut owner.request,
+                            "expected_dependencies",
+                            cmd::string(&cmd::record_digest(&dependencies)?.to_prefixed()),
+                        )?;
+                        let authorization = serde_value(&owner.authorization(dependencies)?)?;
+                        let mut raw = cmd::canonical(&owner.request)?;
+                        raw.push(b'\n');
+                        Ok((raw, authorization))
+                    })();
+                    result.map_err(|e| {
+                        authorization_error = Some(e);
+                        ItemRefusal::Source("Item preview authorization rejected".to_owned())
+                    })
+                },
+            );
         let core = core.map_err(|e| authorization_error.unwrap_or_else(|| item_error(e)))?;
         let authorization = foundation_value(core.authorization())?;
         let reads = core.reads().to_vec();
@@ -2084,7 +2088,7 @@ pub fn execute_isolated_item_adoption_from_captures(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut InProcessCutSchemaExecutor<()>,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ItemAdoptionPublication> {
@@ -2114,7 +2118,7 @@ fn execute_item_selected(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut InProcessCutSchemaExecutor<()>,
     recovery: bool,
     limits: ItemLimits,
     cancelled: &AtomicBool,
@@ -2227,7 +2231,7 @@ fn execute_item_selected(
         ))?;
     let authorization = owner.authorization(dependencies.clone())?;
     let mut authorization_error = None;
-    let core = tos_validation::native_compound::prepare_edition_item_bytes(
+    let core = tos_validation::native_compound::prepare_edition_item_bytes_from_in_process_cut(
         cut,
         worker,
         &scope,
@@ -2278,7 +2282,7 @@ fn execute_item_selected(
         limits.deadline,
         cancelled,
     )?;
-    let finished = tos_validation::native_compound::finish_edition_item_bytes(
+    let finished = tos_validation::native_compound::finish_edition_item_bytes_from_in_process_cut(
         core,
         &capture.environment_raw,
         &capture.event_raw,
@@ -2391,7 +2395,7 @@ pub fn replay_isolated_item_adoption_from_captures(
     current_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut InProcessCutSchemaExecutor<()>,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ItemAdoptionPublication> {
@@ -2500,7 +2504,7 @@ pub fn replay_isolated_item_adoption_from_captures(
     }
     let current_claim =
         current_claim.ok_or(SourceCommandError::Conflict("current Item Claim absent"))?;
-    let observation = tos_validation::native_compound::verify_edition_item_from_cut(
+    let observation = tos_validation::native_compound::verify_edition_item_from_in_process_cut(
         current_cut,
         worker,
         claims_path.as_str(),
@@ -2695,7 +2699,7 @@ pub fn recover_isolated_item_adoption_from_captures(
     original_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut InProcessCutSchemaExecutor<()>,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ItemAdoptionPublication> {
@@ -2717,7 +2721,7 @@ fn recover_item_selected(
     original_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut InProcessCutSchemaExecutor<()>,
     exact_retry: bool,
     limits: ItemLimits,
     cancelled: &AtomicBool,
@@ -2941,7 +2945,7 @@ fn recover_item_selected(
     let authorization =
         owner.authorization(cmd::field(&plan.authorization, "dependency_bindings")?.clone())?;
     let mut authorization_error = None;
-    let core = tos_validation::native_compound::prepare_edition_item_bytes(
+    let core = tos_validation::native_compound::prepare_edition_item_bytes_from_in_process_cut(
         original_cut,
         worker,
         &scope,
@@ -2977,7 +2981,7 @@ fn recover_item_selected(
             "Item pending native recipe identity differs",
         ));
     }
-    let finished = tos_validation::native_compound::restore_edition_item_bytes(
+    let finished = tos_validation::native_compound::restore_edition_item_bytes_from_in_process_cut(
         core,
         selected_after("source-create-environment.json")?,
         selected_after("source-create-provenance.jsonl")?,

@@ -79,6 +79,9 @@ pub use git_capture::{GitMemberDescriptor, read_git_member, resolve_git_member};
 mod publication;
 pub use publication::{MetadataPublicationEpoch, validate_metadata_publication};
 
+#[cfg(feature = "execution")]
+pub mod execution;
+
 mod pinned_sqlite_aux;
 pub use pinned_sqlite::{
     PinnedBoundedStatement, PinnedSqliteConnection, PinnedSqliteDerivedWriteGuard,

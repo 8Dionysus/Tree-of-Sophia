@@ -14,7 +14,7 @@ use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue};
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::{CutSchemaExecutor, InProcessCutSchemaExecutor};
 
 struct FormLock {
     directory: File,
@@ -281,7 +281,7 @@ pub(crate) fn run(
     selected: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut InProcessCutSchemaExecutor<()>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCommand> {
@@ -328,12 +328,12 @@ pub(crate) fn run(
             ));
         }
     }
-    let mut proposal = crate::source_forms::run_form_command_from_captures(
+    let mut proposal = crate::source_forms::run_form_command_from_in_process_captures(
         &context, selected, software, components, worker, deadline, cancelled,
     )?;
     worker
         .finish(deadline, cancelled)
-        .map_err(|_| SourceCommandError::Denied("Forms worker FINAL"))?;
+        .map_err(|_| SourceCommandError::Denied("Forms schema completion"))?;
     if operation != "apply" || proposal.replayed {
         if pending.is_some() {
             return Err(SourceCommandError::Conflict(

@@ -17,10 +17,7 @@ use tos_compiler::{
 use tos_foundation::{
     Digest256, JsonLimits, JsonMode, JsonValue, RelativePath, emit_value_preserved_json, parse_json,
 };
-use tos_validation::{
-    item_rules::ItemLimits,
-    source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor},
-};
+use tos_validation::item_rules::ItemLimits;
 const CATALOG_SCHEMA: &str = "ToS/contracts/source-catalog-projection-v2.schema.json";
 const ENTITIES: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
 const RELATIONS: &str = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
@@ -100,11 +97,11 @@ struct Metadata {
     history: Value,
     versions: Vec<(Value, Value)>,
 }
-struct Reader<'a, 'o> {
+struct Reader<'a, 'o, W: crate::source_creation::CreationSchemaExecutor> {
     observation: &'a CommittedRecordObservation<'o>,
     side: Side,
     roots: &'a mut Roots,
-    worker: &'a mut CutWorkerSchemaExecutor,
+    worker: &'a mut W,
     header: &'a Value,
     revised_row: Option<&'a Value>,
     files: BTreeMap<String, Option<Vec<u8>>>,
@@ -114,7 +111,7 @@ struct Reader<'a, 'o> {
     limits: BibliographicLimits,
     cancelled: &'a AtomicBool,
 }
-impl Reader<'_, '_> {
+impl<W: crate::source_creation::CreationSchemaExecutor> Reader<'_, '_, W> {
     fn active(&self) -> Result<()> {
         if self.cancelled.load(Ordering::Relaxed)
             || std::time::Instant::now() >= self.limits.deadline
@@ -164,7 +161,7 @@ impl Reader<'_, '_> {
     fn check(&mut self, reference: &str, raw: &[u8], contract: &str) -> Result<()> {
         let (resource, _) = contract.split_once('#').unwrap_or((contract, ""));
         let schema = self.read(resource)?;
-        if self.worker.contract_digest(resource) != Some(Digest256::of_bytes(&schema)) {
+        if self.worker.selected_contract_digest(resource) != Some(Digest256::of_bytes(&schema)) {
             return Err(Error::Invalid(
                 "Agent actual selected schema/executor binding",
             ));
@@ -1102,7 +1099,7 @@ impl Reader<'_, '_> {
                     self.observation.current_cut(),
                 ),
             };
-            if self.worker.source_revision() != cut.current().revision()
+            if self.worker.selected_source_revision() != Some(cut.current().revision())
                 || ctx.base_revision != cut.current().revision()
             {
                 return Err(Error::Invalid("Agent actual resolver worker/cut revision"));
@@ -1194,12 +1191,12 @@ impl Reader<'_, '_> {
 /// The parent retains observation and checks the indexed selection again under
 /// its caller-owned transaction before any prepared publication.
 #[allow(clippy::too_many_arguments)]
-pub(super) fn assemble(
+pub(super) fn assemble<W: crate::source_creation::CreationSchemaExecutor>(
     observation: &CommittedRecordObservation<'_>,
     roots: &mut Roots,
     reverse: &[Declaration],
-    original_worker: &mut CutWorkerSchemaExecutor,
-    current_worker: &mut CutWorkerSchemaExecutor,
+    original_worker: &mut W,
+    current_worker: &mut W,
     limits: BibliographicLimits,
     cancelled: &AtomicBool,
 ) -> Result<AssembledAgentCorrection> {
@@ -1210,8 +1207,10 @@ pub(super) fn assemble(
         || limits.catalog.max_file_bytes > 8_388_608
         || limits.max_output_bytes == 0
         || limits.max_output_bytes > 16_777_216
-        || original_worker.source_revision() != observation.original_cut().current().revision()
-        || current_worker.source_revision() != observation.current_cut().current().revision()
+        || original_worker.selected_source_revision()
+            != Some(observation.original_cut().current().revision())
+        || current_worker.selected_source_revision()
+            != Some(observation.current_cut().current().revision())
     {
         return Err(Error::Invalid("Agent assembly bounded actual cut workers"));
     }

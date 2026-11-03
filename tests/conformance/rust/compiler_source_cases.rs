@@ -292,6 +292,9 @@ impl ReferenceDiagnostic {
 }
 // Test-owned cumulative scenario work; not RAM, a product quota or a new clock.
 // The original source_inputs bootstrap remains 32 MiB / 1 M visits.
+// Logical reference budget for the authored inputs; it grows with the tracked
+// ToS/ contracts and data the reference reads (edition curation added 2026-11).
+const REFERENCE_BOOTSTRAP_BYTES: usize = 48 * 1024 * 1024;
 const COMPOSITION_REFERENCE_SCENARIO_V2_BYTES: usize = 2_147_483_648;
 const COMPOSITION_REFERENCE_SCENARIO_V2_VISITS: usize = 67_108_864;
 struct CompositionPhase {
@@ -325,7 +328,7 @@ fn activate_composition_reference_scenario_v2(
     if cancelled.load(Ordering::Relaxed) {
         return Err("composition reference cancelled");
     }
-    if COMPOSITION_REFERENCE_SCENARIO_V2_BYTES < 32 * 1024 * 1024
+    if COMPOSITION_REFERENCE_SCENARIO_V2_BYTES < REFERENCE_BOOTSTRAP_BYTES
         || COMPOSITION_REFERENCE_SCENARIO_V2_VISITS < 1_000_000
     {
         return Err("composition reference profile below bootstrap");
@@ -333,7 +336,7 @@ fn activate_composition_reference_scenario_v2(
     // Both snapshots include the setup AND activation admissions above.
     let old_b = work.left;
     let old_v = work.visits_left;
-    let Some(spent_b) = (32usize * 1024 * 1024).checked_sub(old_b) else {
+    let Some(spent_b) = REFERENCE_BOOTSTRAP_BYTES.checked_sub(old_b) else {
         return Err("composition reference bootstrap bytes");
     };
     let Some(spent_v) = 1_000_000usize.checked_sub(old_v) else {
@@ -734,7 +737,7 @@ fn source_inputs(deadline: Instant) -> (BTreeMap<String, Vec<u8>>, CurrentRefere
     let repository = super::validation_cut_cases::repository();
     let mut reference = CurrentReference {
         commit: String::new(),
-        left: 32 * 1024 * 1024,
+        left: REFERENCE_BOOTSTRAP_BYTES,
         visits_left: 1_000_000,
         deadline,
         diagnostic: None,
@@ -1927,7 +1930,17 @@ fn actual_selected_catalog_and_native_forms_match_maintained_python() {
 /// distinct; neither the owner stubs nor this oracle issue source admission.
 #[test]
 fn actual_native_corpus_composition_with_retained_claim_matches_maintained_python() {
-    native_corpus_composition_case(false);
+    native_corpus_composition_case(false, false, false);
+}
+
+#[test]
+fn in_process_native_corpus_composition_matches_maintained_python() {
+    native_corpus_composition_case(false, true, false);
+}
+
+#[test]
+fn in_process_legacy_diagnostics_catalog_matches_maintained_python() {
+    native_corpus_composition_case(false, true, true);
 }
 
 /// Required installed-native producer and consumer stage of the same authored
@@ -1937,7 +1950,7 @@ fn actual_native_corpus_composition_with_retained_claim_matches_maintained_pytho
 #[ignore = "requires admitted Linux private-stage ticket, fs-verity, and native owner/consumer binaries"]
 fn actual_native_corpus_managed_installed_consumer() {
     if !native_managed_corpus_consumer::resume_selected_phase() {
-        native_corpus_composition_case(true);
+        native_corpus_composition_case(true, false, false);
     }
 }
 
@@ -2846,7 +2859,7 @@ pub(crate) fn native_selected_model_at_existing_cut(
     selected
 }
 
-fn native_corpus_composition_case(installed: bool) {
+fn native_corpus_composition_case(installed: bool, in_process: bool, diagnostics: bool) {
     use tos_compiler::knowledge_canon_source::*;
     use tos_compiler::knowledge_stage::{InputCollectionReceipt, InputRow};
     use tos_compiler::source_bibliographic::{BibliographicLimits, BibliographicSourceCut};
@@ -3353,14 +3366,15 @@ fn native_corpus_composition_case(installed: bool) {
     let mut operation = tos_validation::executor::BatchStreamBudget::laboratory();
     operation.max_chunks = limits.max_output_rows;
     operation.max_total_units = limits.max_output_rows;
-    let worker_path = super::validation_cut_cases::selected_worker_path();
-    let worker = ExactWorkerIdentity {
-        sha256: Digest256::of_bytes(&fs::read(&worker_path).unwrap()),
-        absolute_path: worker_path,
+    let worker = if in_process {
+        None
+    } else {
+        let worker_path = super::validation_cut_cases::selected_worker_path();
+        Some(ExactWorkerIdentity {
+            sha256: Digest256::of_bytes(&fs::read(&worker_path).unwrap()),
+            absolute_path: worker_path,
+        })
     };
-    // Exact schema closure and image preparation belong to this whole case.
-    // The scalar laboratory's five-second default may expire during that
-    // preparation; only time left on the original whole clock is available.
     let remaining = deadline
         .checked_duration_since(Instant::now())
         .filter(|duration| !duration.is_zero())
@@ -3372,18 +3386,57 @@ fn native_corpus_composition_case(installed: bool) {
     operation.total_execution_wall = remaining;
     operation.operation_cpu_seconds = remaining.as_secs().saturating_add(1);
     operation.operation_address_space_bytes = schema_budget.address_space_bytes;
-    let validator = SourceCatalogValidator::from_cut(
-        &cut,
-        &worker,
-        schema_budget,
-        CutWorkerLimits {
-            max_receipts: 4096,
-            max_receipt_bytes: 16 * 1024 * 1024,
-        },
-        operation,
-        deadline,
-        &cancelled,
-    )
+    if diagnostics {
+        let validator = SourceCatalogValidator::from_in_process_cut_diagnostics(
+            &cut,
+            2 * 1024 * 1024,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        let path = "source-test/invalid-record.json";
+        assert!(
+            validator
+                .check_selected_document(
+                    revision,
+                    path,
+                    b"{}",
+                    "ToS/contracts/corpus-record.schema.json",
+                )
+                .is_err()
+        );
+        let report = validator
+            .take_schema_diagnostic_rejection()
+            .unwrap()
+            .unwrap();
+        assert!(report.is_invalid());
+        assert_eq!(report.source_revision(), Some(revision));
+        assert_eq!(report.path(), path);
+        assert!(!report.issues().is_empty());
+    }
+    let validator = if diagnostics {
+        SourceCatalogValidator::from_in_process_cut_diagnostics(
+            &cut,
+            2 * 1024 * 1024,
+            deadline,
+            &cancelled,
+        )
+    } else if in_process {
+        SourceCatalogValidator::from_in_process_cut(&cut, deadline, &cancelled)
+    } else {
+        SourceCatalogValidator::from_cut(
+            &cut,
+            worker.as_ref().unwrap(),
+            schema_budget,
+            CutWorkerLimits {
+                max_receipts: 4096,
+                max_receipt_bytes: 16 * 1024 * 1024,
+            },
+            operation,
+            deadline,
+            &cancelled,
+        )
+    }
     .unwrap();
     let mut forms = tos_command::source_forms_compiler::NativeBibliographicForms;
     phase(started, deadline, "bibliographic-render-start");
@@ -3401,6 +3454,10 @@ fn native_corpus_composition_case(installed: bool) {
     )
     .unwrap();
     phase(started, deadline, "bibliographic-candidate-ready");
+    if in_process {
+        assert!(candidate.catalog.worker_sha256.is_none());
+        assert!(candidate.catalog.in_process_schema.is_some());
+    }
     assert!(candidate.catalog.record_count > 1);
     assert!(candidate.bibliographic.edge_count > 0);
     let canon_files = files

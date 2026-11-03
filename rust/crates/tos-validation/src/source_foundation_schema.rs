@@ -14,6 +14,7 @@ use crate::executor::{
     SchemaDiagnosticsCheckpoint, SchemaDiagnosticsOutcome, SharedSchemaWorkerQuota,
     VerifiedWorkerImageHandle, schema_diagnostics,
 };
+use crate::item_rules::ItemRefusal;
 use crate::record_biblio_cut::SourceCutInputWithIdentity;
 use crate::{FormatProfile, SchemaBackendProbe, SchemaResource};
 use serde_json::Value;
@@ -23,6 +24,48 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 use tos_foundation::{Digest256, Digest256Hasher, RelativePath, SourceRevision};
 use tos_source_store::CorpusCutReader;
+
+/// A scheduled exact schema diagnostic. In a lab result, `before_issue` is its
+/// local direct-issue ordinal so the caller can interleave diagnostic-v2
+/// findings without a speculative boolean schema verdict or a second parse.
+/// The aggregate report carries separate copies with aggregate ordinals.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourceFoundationSchemaCheck {
+    pub before_issue: usize,
+    pub location: String,
+    pub contract: String,
+    /// Already decoded once by the source adapter. The executor normalizes
+    /// this owner-local DTO into its bounded diagnostic unit.
+    pub instance: Value,
+    /// Optional local report-control identity for a schema-only negative.
+    pub negative_control: Option<String>,
+    /// Expected schema validity for reports that assert the result.
+    pub expected_valid: Option<bool>,
+    /// Expected combined rejection result for a maintained negative control.
+    pub expected_rejected: Option<bool>,
+    /// Direct semantic rejection result for controls whose owner contract
+    /// rejects on schema OR semantic findings.
+    pub semantic_rejected: Option<bool>,
+    /// JSON pointer in the route report that receives the resolved verdict.
+    pub report_slot: Option<String>,
+    /// JSON pointer for maintained rejection prose, merged with exact schema
+    /// diagnostics before the caller sorts and deduplicates that field.
+    pub rejection_reasons_slot: Option<String>,
+    /// Fixed maintained document-label prefix for bridge schema issues.
+    pub schema_message_prefix: Option<String>,
+    /// Exact owner message emitted only if the frozen result expectation fails.
+    pub mismatch_message: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct SourceFoundationSchemaRequest {
+    /// Insert the complete schema diagnostics immediately before this many
+    /// already-produced owner issues.
+    pub before_issue: usize,
+    pub location: String,
+    pub contract: String,
+    pub document: Value,
+}
 
 const CONTRACT_PREFIX: &str = "ToS/contracts/";
 const CONTRACT_SUFFIX: &str = ".schema.json";
@@ -409,6 +452,34 @@ impl SourceFoundationSchemaSet {
     pub fn contract_digest(&self, contract: &str) -> Option<Digest256> {
         let base = contract.split_once('#').map_or(contract, |(base, _)| base);
         self.contracts.get(base).map(|(_, digest)| *digest)
+    }
+
+    /// Resolve exact schema bytes to their unique authenticated source path.
+    pub fn selected_contract_for_schema_raw(&self, raw: &[u8]) -> Result<&str, ItemRefusal> {
+        if raw.is_empty() || raw.len() > SchemaBackendProbe::MAX_RESOURCE_BYTES {
+            return Err(crate::item_budget_origin!());
+        }
+        let digest = Digest256::of_bytes(raw);
+        let mut selected = None;
+        for (path, (uri, selected_digest)) in &self.contracts {
+            if *selected_digest != digest
+                || !self
+                    .resources
+                    .iter()
+                    .any(|resource| resource.uri == *uri && resource.raw == raw)
+            {
+                continue;
+            }
+            if selected.is_some() {
+                return Err(ItemRefusal::Unsupported(
+                    "source schema bytes select multiple contracts".into(),
+                ));
+            }
+            selected = Some(path.as_str());
+        }
+        selected.ok_or_else(|| {
+            ItemRefusal::Unsupported("source schema bytes are not in the selected closure".into())
+        })
     }
 
     /// True when the selected catalog schema contains `$defs.entry` as an
@@ -1206,6 +1277,241 @@ impl SourceFoundationSchemaReport {
     pub fn is_valid(&self) -> bool {
         self.is_complete() && self.checks.iter().all(|check| check.diagnostic.is_valid())
     }
+}
+
+/// A completed in-process check bound to its exact selected schema and input.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InProcessFoundationCheck {
+    pub location: String,
+    pub contract: String,
+    pub diagnostic: crate::in_process::Report,
+    pub issues: Vec<SourceFoundationSchemaIssue>,
+}
+
+/// Execution evidence for an immutable source cut, without worker transport fields.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InProcessFoundationReport {
+    pub source_revision: SourceRevision,
+    pub profile: FormatProfile,
+    pub engine: &'static str,
+    pub schema_set_sha256: Digest256,
+    pub contract_selection_sha256: Digest256,
+    pub limits_sha256: Digest256,
+    pub expected_check_count: usize,
+    pub checks: Vec<InProcessFoundationCheck>,
+}
+
+impl InProcessFoundationReport {
+    pub fn is_complete(&self) -> bool {
+        self.engine == crate::in_process::ENGINE_ID
+            && self.expected_check_count > 0
+            && self.checks.len() == self.expected_check_count
+            && self.checks.iter().all(|check| {
+                check.diagnostic.engine == self.engine
+                    && check.diagnostic.profile == self.profile
+                    && check.diagnostic.schema_set_sha256 == self.schema_set_sha256
+                    && !check.diagnostic.truncated
+                    && check.diagnostic.failure == schema_diagnostics::Failure::None
+                    && check.diagnostic.total_issue_count == check.diagnostic.issues.len() as u64
+                    && check
+                        .diagnostic
+                        .issues
+                        .windows(2)
+                        .all(|pair| pair[0] <= pair[1])
+                    && check.issues == map_issues(&check.location, &check.diagnostic.issues)
+                    && matches!(
+                        check.diagnostic.status,
+                        schema_diagnostics::Status::Valid | schema_diagnostics::Status::Invalid
+                    )
+            })
+    }
+}
+
+/// Partial results retain their actual diagnostics and refusal reason.
+pub enum InProcessFoundationOutcome {
+    Complete(InProcessFoundationReport),
+    Incomplete {
+        report: InProcessFoundationReport,
+        reason: SourceFoundationSchemaFailure,
+    },
+}
+
+/// Evaluate the selected mixed finite and legacy inputs in encounter order.
+pub fn evaluate_in_process_foundation_checks(
+    schema_set: &SourceFoundationSchemaSet,
+    checks: &[SourceFoundationMixedSchemaInput<'_>],
+    limits: SourceFoundationSchemaLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> InProcessFoundationOutcome {
+    use crate::in_process::{InProcessSchemaEngine, Incomplete, InputMode, Unit};
+    let mut report = InProcessFoundationReport {
+        source_revision: schema_set.source_revision,
+        profile: schema_set.profile,
+        engine: crate::in_process::ENGINE_ID,
+        schema_set_sha256: schema_set.schema_set_sha256,
+        contract_selection_sha256: schema_set.contract_selection_sha256,
+        limits_sha256: limits.digest(),
+        expected_check_count: checks.len(),
+        checks: Vec::new(),
+    };
+    macro_rules! refuse {
+        ($reason:expr) => {
+            return InProcessFoundationOutcome::Incomplete {
+                report,
+                reason: $reason,
+            }
+        };
+    }
+    if !limits.validate()
+        || limits.digest() != schema_set.limits_sha256
+        || deadline > schema_set.deadline
+        || checks.is_empty()
+        || checks.len() > limits.max_checks
+    {
+        refuse!(SourceFoundationSchemaFailure::InvalidLimits);
+    }
+    if let Err(reason) = check_active(deadline, cancelled) {
+        refuse!(reason);
+    }
+    let mut engine =
+        match InProcessSchemaEngine::new(schema_set.resources.clone(), schema_set.profile) {
+            Ok(engine) if engine.schema_set_digest() == schema_set.schema_set_sha256 => engine,
+            _ => refuse!(SourceFoundationSchemaFailure::DiagnosticBinding),
+        };
+    let mut input_bytes = 0usize;
+    let mut issue_count = 0usize;
+    let mut report_bytes = 0usize;
+    for check in checks {
+        if let Err(reason) = check_active(deadline, cancelled) {
+            refuse!(reason);
+        }
+        let location = check.location();
+        let contract = check.contract_key();
+        if location.len() > MAX_LOCATION_BYTES || RelativePath::parse(location).is_err() {
+            refuse!(SourceFoundationSchemaFailure::InvalidLocation);
+        }
+        let Some((root_uri, _)) = schema_set.contracts.get(contract) else {
+            refuse!(SourceFoundationSchemaFailure::ContractNotSelected);
+        };
+        let remaining = limits.max_total_instance_bytes.saturating_sub(input_bytes);
+        let maximum = limits
+            .max_instance_bytes
+            .min(remaining)
+            .min(BatchBudget::MAX_RAW_BYTES);
+        let (raw, mode) = match check.instance() {
+            SourceFoundationSchemaInstance::Decoded(value) => {
+                let raw = match encode_instance_bounded(value, maximum) {
+                    Ok(raw) => raw,
+                    Err(()) => refuse!(SourceFoundationSchemaFailure::InputBudget),
+                };
+                let mode = if raw.len() > SchemaBackendProbe::MAX_INSTANCE_BYTES {
+                    InputMode::PublishedStrictSelected
+                } else {
+                    InputMode::PublishedStrict
+                };
+                (raw, mode)
+            }
+            SourceFoundationSchemaInstance::LegacyPythonRaw(raw) => {
+                if raw.len() > maximum {
+                    refuse!(SourceFoundationSchemaFailure::InputBudget);
+                }
+                (
+                    raw.to_vec(),
+                    InputMode::LegacyPythonObservedBounded {
+                        max_instance_bytes: limits.max_instance_bytes,
+                    },
+                )
+            }
+        };
+        input_bytes = match input_bytes.checked_add(raw.len()) {
+            Some(bytes) if bytes <= limits.max_total_instance_bytes => bytes,
+            _ => refuse!(SourceFoundationSchemaFailure::InputBudget),
+        };
+        let diagnostic = match engine.validate(
+            Unit {
+                root_uri,
+                raw: &raw,
+                input_mode: mode,
+            },
+            schema_diagnostics::Caps::CURRENT,
+            deadline,
+            cancelled,
+        ) {
+            Ok(diagnostic) => diagnostic,
+            Err(Incomplete::Cancelled) => refuse!(SourceFoundationSchemaFailure::Cancelled),
+            Err(Incomplete::Deadline) => refuse!(SourceFoundationSchemaFailure::Deadline),
+            Err(Incomplete::BatchBudget) => refuse!(SourceFoundationSchemaFailure::InputBudget),
+        };
+        let issues = map_issues(location, &diagnostic.issues);
+        issue_count = match issue_count.checked_add(issues.len()) {
+            Some(count) if count <= limits.max_total_issues => count,
+            _ => refuse!(SourceFoundationSchemaFailure::DiagnosticReportBudget),
+        };
+        let mapped_bytes = issues.iter().fold(0usize, |total, issue| {
+            total
+                .saturating_add(issue.location.len())
+                .saturating_add(issue.schema_keyword.len())
+                .saturating_add(issue.message.len())
+                .saturating_add(std::mem::size_of::<SourceFoundationSchemaIssue>())
+        });
+        let diagnostic_bytes =
+            diagnostic.issues.iter().fold(0usize, |total, issue| {
+                let path_bytes = issue.instance_path.iter().chain(&issue.schema_path).fold(
+                    0usize,
+                    |sum, part| {
+                        sum.saturating_add(match part {
+                            schema_diagnostics::PathSegment::Property(value) => value.len(),
+                            schema_diagnostics::PathSegment::Index(_) => std::mem::size_of::<u64>(),
+                        })
+                    },
+                );
+                total
+                    .saturating_add(std::mem::size_of::<schema_diagnostics::Issue>())
+                    .saturating_add(issue.schema_keyword.len())
+                    .saturating_add(path_bytes)
+            });
+        report_bytes = report_bytes
+            .saturating_add(std::mem::size_of::<InProcessFoundationCheck>())
+            .saturating_add(location.len())
+            .saturating_add(contract.len())
+            .saturating_add(root_uri.len())
+            .saturating_add(mapped_bytes)
+            .saturating_add(diagnostic_bytes);
+        if report_bytes > limits.max_total_report_bytes {
+            refuse!(SourceFoundationSchemaFailure::DiagnosticReportBudget);
+        }
+        let reason = match (diagnostic.status, diagnostic.failure) {
+            (schema_diagnostics::Status::Valid | schema_diagnostics::Status::Invalid, _)
+                if !diagnostic.truncated =>
+            {
+                None
+            }
+            (_, schema_diagnostics::Failure::UnsupportedInputSemantics) => {
+                Some(SourceFoundationSchemaFailure::UnsupportedInputSemantics)
+            }
+            (schema_diagnostics::Status::Truncated, _) => {
+                Some(SourceFoundationSchemaFailure::TruncatedDiagnostics)
+            }
+            _ => Some(SourceFoundationSchemaFailure::IncompleteDiagnostic),
+        };
+        report.checks.push(InProcessFoundationCheck {
+            location: location.to_owned(),
+            contract: contract.to_owned(),
+            diagnostic,
+            issues,
+        });
+        if let Some(reason) = reason {
+            refuse!(reason);
+        }
+    }
+    if let Err(reason) = check_active(deadline, cancelled) {
+        refuse!(reason);
+    }
+    if !report.is_complete() {
+        refuse!(SourceFoundationSchemaFailure::DiagnosticBinding);
+    }
+    InProcessFoundationOutcome::Complete(report)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -2032,14 +2338,36 @@ pub(crate) fn schema_resource_set_digest(resources: &[SchemaResource]) -> Option
             return None;
         }
     }
-    let mut hash = Digest256Hasher::new();
-    hash.update(b"tos-schema-set-v1\0");
+    let mut hash = schema_set_hasher();
     for (uri, digest) in digests {
-        hash.update(&(uri.len() as u64).to_be_bytes());
-        hash.update(uri.as_bytes());
-        hash.update(digest.as_bytes());
+        append_schema_set_member(&mut hash, uri, digest);
     }
     Some(hash.finalize())
+}
+
+fn schema_set_hasher() -> Digest256Hasher {
+    let mut hash = Digest256Hasher::new();
+    hash.update(b"tos-schema-set-v1\0");
+    hash
+}
+
+fn append_schema_set_member(hash: &mut Digest256Hasher, uri: &str, digest: Digest256) {
+    hash.update(&(uri.len() as u64).to_be_bytes());
+    hash.update(uri.as_bytes());
+    hash.update(digest.as_bytes());
+}
+
+pub(crate) fn single_schema_resource_set_digest(uri: &str, raw: &[u8]) -> Digest256 {
+    single_schema_resource_set_digest_from_digest(uri, Digest256::of_bytes(raw))
+}
+
+pub(crate) fn single_schema_resource_set_digest_from_digest(
+    uri: &str,
+    digest: Digest256,
+) -> Digest256 {
+    let mut hash = schema_set_hasher();
+    append_schema_set_member(&mut hash, uri, digest);
+    hash.finalize()
 }
 
 fn catalog_target_selection_digest(

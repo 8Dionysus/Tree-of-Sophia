@@ -38,6 +38,7 @@ pub(super) struct FixtureReferenceBudget {
     pub(super) max_members: usize,
     pub(super) max_member_bytes: usize,
 }
+
 impl FixtureReferenceBudget {
     pub(super) fn new(max_members: usize, bytes: usize, max_member_bytes: usize) -> Self {
         Self {
@@ -1799,6 +1800,38 @@ fn actual_native_object_link_binds_committed_origin_and_corrected_lineage() {
         .unwrap();
         schemas.finish(deadline, &cancelled).unwrap();
         drop(schemas);
+        let mut in_process = tos_validation::source_cut::InProcessCutSchemaExecutor::from_cut(
+            &cut,
+            FormatProfile::LegacyPythonObserved20260923,
+            tos_validation::in_process::InputMode::LegacyPythonObserved,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        let in_process_report =
+            tos_validation::biblio_rules::inspect_bibliography_from_in_process_cut(
+                &cut,
+                &current,
+                limits,
+                &cancelled,
+                &mut in_process,
+            )
+            .unwrap();
+        in_process.finish(deadline, &cancelled).unwrap();
+        assert_eq!(in_process_report.source_revision, report.source_revision);
+        assert_eq!(in_process_report.shadow, report.shadow);
+        assert_eq!(
+            in_process_report
+                .native_compounds
+                .iter()
+                .map(|row| (&row.claim_path, &row.transaction_id, row.transport))
+                .collect::<Vec<_>>(),
+            report
+                .native_compounds
+                .iter()
+                .map(|row| (&row.claim_path, &row.transaction_id, row.transport))
+                .collect::<Vec<_>>()
+        );
         assert!(
             report
                 .native_compounds
@@ -1902,6 +1935,146 @@ fn actual_native_object_link_binds_committed_origin_and_corrected_lineage() {
 }
 
 #[test]
+fn in_process_resident_records_bind_current_and_historical_evidence() {
+    use tos_validation::in_process::InputMode;
+    use tos_validation::record_biblio_cut::{BiblioRecordExecutor, inspect_records_from_cut};
+    use tos_validation::source_cut::InProcessCutIdentity;
+    use tos_validation::source_foundation_discovery::CurrentArtifactInvalidSchemaProofs;
+    use tos_validation::source_foundation_records::SourceFoundationStoredSchemaDiagnostic;
+
+    let mut files = selected_item_sources();
+    let temporary = tempfile::tempdir().unwrap();
+    let root = temporary.path().join("store");
+    let previous = write_cut_store(&files, &root);
+    let artifact_path =
+        "ToS/source-witnesses/artifacts/sumerian/adab/oim-a00645/artifact-witness.json";
+    let mut artifact: Value =
+        serde_json::from_slice(&fs::read(repository().join(artifact_path)).unwrap()).unwrap();
+    artifact
+        .as_object_mut()
+        .unwrap()
+        .remove("physical_description");
+    let artifact_raw = canonical_json(&artifact);
+    files.insert(artifact_path.into(), artifact_raw.clone());
+    let revision = write_cut_store_on_base(&files, &root, Some(previous));
+    let cancelled = AtomicBool::new(false);
+    let deadline = Instant::now() + Duration::from_secs(90);
+    let reader = CorpusReader::open_existing(
+        &root,
+        ReadLimits {
+            max_manifest_bytes: 1_048_576,
+            max_manifest_entries: 1024,
+            max_selected_object_bytes: 2_097_152,
+            json: JsonLimits::default(),
+        },
+    )
+    .unwrap();
+    let cut = reader
+        .open_source_cut(
+            revision,
+            CutReadLimits {
+                max_revisions: 4,
+                max_members: 2048,
+                max_total_bytes: 64_000_000,
+                max_member_bytes: 2_097_152,
+            },
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    let limits = ItemLimits {
+        max_member_bytes: 2_097_152,
+        max_total_bytes: 128_000_000,
+        max_state_bytes: 64 * 1024 * 1024,
+        max_issues: 2048,
+        deadline,
+    };
+    let mut executor = BiblioRecordExecutor::new_in_process_cut(
+        &cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        InputMode::PublishedStrict,
+        512,
+    )
+    .unwrap();
+    let mut report = inspect_records_from_cut(&cut, limits, &cancelled, &mut executor).unwrap();
+    executor.finish(deadline, &cancelled).unwrap();
+    assert!(!report.schema_diagnostics.is_empty());
+    for row in &report.schema_diagnostics {
+        let SourceFoundationStoredSchemaDiagnostic::InProcess(row) = row else {
+            panic!("unexpected worker diagnostic")
+        };
+        assert_eq!(row.identity, InProcessCutIdentity::Source(revision));
+    }
+    assert_eq!(report.retained_record_profiles.len(), 1);
+    for row in &report.retained_record_profiles[0].schema_diagnostics {
+        let SourceFoundationStoredSchemaDiagnostic::InProcess(row) = row else {
+            panic!("unexpected worker diagnostic")
+        };
+        assert_eq!(row.identity, InProcessCutIdentity::Source(previous));
+    }
+    assert!(
+        !report.retained_record_profiles[0]
+            .schema_diagnostics
+            .is_empty()
+    );
+    let proofs = CurrentArtifactInvalidSchemaProofs::prepare(
+        &cut,
+        &report,
+        limits.max_state_bytes,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    assert!(proofs.proves_invalid(
+        artifact_path,
+        revision,
+        report.current_membership,
+        Digest256::of_bytes(&artifact_raw),
+        artifact_raw.len() as u64
+    ));
+    assert!(!proofs.proves_invalid(
+        artifact_path,
+        revision,
+        report.current_membership,
+        Digest256::of_bytes(b"different"),
+        artifact_raw.len() as u64
+    ));
+    drop(proofs);
+    let diagnostic = report
+        .schema_diagnostics
+        .iter_mut()
+        .find_map(|row| match row {
+            SourceFoundationStoredSchemaDiagnostic::InProcess(row)
+                if row.path == artifact_path
+                    && row
+                        .report
+                        .root_uri
+                        .ends_with("/artifact-source-witness-v2.schema.json") =>
+            {
+                Some(row)
+            }
+            _ => None,
+        })
+        .unwrap();
+    diagnostic.report.schema_set_sha256 = Digest256::of_bytes(b"different schema");
+    let changed = CurrentArtifactInvalidSchemaProofs::prepare(
+        &cut,
+        &report,
+        limits.max_state_bytes,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    assert!(!changed.proves_invalid(
+        artifact_path,
+        revision,
+        report.current_membership,
+        Digest256::of_bytes(&artifact_raw),
+        artifact_raw.len() as u64
+    ));
+}
+
+#[test]
 fn actual_cut_schema_batch_binds_ordered_units_and_refuses_partial_receipts() {
     use tos_validation::executor::BatchBudget;
     use tos_validation::source_cut::{CutSchemaCheck, CutSchemaExecutor};
@@ -1957,6 +2130,33 @@ fn actual_cut_schema_batch_binds_ordered_units_and_refuses_partial_receipts() {
     let version = serde_json::to_vec(&item["record_version"]).unwrap();
     let label = serde_json::to_vec(&item["preferred_label"]).unwrap();
     let version_contract = "ToS/contracts/corpus-record.schema.json#/properties/record_version";
+    #[cfg(feature = "research")]
+    {
+        use tos_compiler::zarathustra_lexical::LexicalSchema;
+        use tos_compiler::zarathustra_lexical_schema::{
+            LexicalSchemaExecutor, LexicalSchemaLimits,
+        };
+        let limits: LexicalSchemaLimits = serde_json::from_value(serde_json::json!({
+            "max_instance_bytes": 1048576, "max_visits": 300000,
+            "parser_state_bytes": 33554432, "conversion_state_bytes": 33554432,
+            "max_units": 4, "max_raw_bytes": 1048576, "max_issues": 32
+        }))
+        .unwrap();
+        let mut lexical = LexicalSchemaExecutor::new(&cut, limits, deadline, &cancelled).unwrap();
+        lexical.check(version_contract, &version).unwrap();
+        lexical.finish().unwrap();
+        let receipt = lexical.receipt().unwrap();
+        assert_eq!(receipt["profile"], "tos_schema_engine_in_process_v1");
+        assert_eq!(receipt["instances"], 1);
+        assert_eq!(
+            receipt["input_mode"]["legacy_python_observed_selected"]["max_instance_bytes"],
+            1048576
+        );
+        assert!(receipt.get("worker_sha256").is_none());
+        let mut invalid = LexicalSchemaExecutor::new(&cut, limits, deadline, &cancelled).unwrap();
+        assert!(invalid.check(version_contract, b"0").is_err());
+        assert!(invalid.finish().is_err());
+    }
     // These are field-instance probes and deliberate negative mutations, not
     // whole-record validation, source enumeration or owner admission.
     let mut spaced_version = vec![b' '];
@@ -1993,6 +2193,33 @@ fn actual_cut_schema_batch_binds_ordered_units_and_refuses_partial_receipts() {
             .unwrap(),
         vec![true, false, true, true]
     );
+    let mut in_process = tos_validation::source_cut::InProcessCutSchemaExecutor::from_cut(
+        &cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        tos_validation::in_process::InputMode::PublishedStrict,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    assert_eq!(in_process.selected_source_revision(), Some(revision));
+    assert_eq!(
+        in_process.binding().schema_set_sha256,
+        binding.schema_set_sha256
+    );
+    for (input, expected) in inputs.iter().zip([true, false, true, true]) {
+        assert_eq!(
+            in_process
+                .check(
+                    &input.path,
+                    &input.raw,
+                    &input.contract,
+                    deadline,
+                    &cancelled
+                )
+                .unwrap(),
+            expected
+        );
+    }
     assert_eq!(schemas.receipts().len(), inputs.len());
     let checkpoint = schemas.receipts()[0].batch.unwrap().checkpoint;
     assert_eq!(checkpoint.completed_count, inputs.len() as u64);
@@ -2113,6 +2340,68 @@ fn actual_cut_schema_batch_binds_ordered_units_and_refuses_partial_receipts() {
             .is_err()
     );
     assert_eq!(schemas.receipts().len(), accepted);
+}
+
+#[test]
+fn foundation_layer_in_process_matches_legacy_cut_schema_verdicts() {
+    use tos_validation::in_process::InputMode;
+    use tos_validation::source_cut::{
+        CutSchemaDiagnosticsLimits, CutSchemaExecutor, InProcessCutSchemaExecutor,
+    };
+
+    const CONTRACT: &str = "ToS/contracts/foundation-layer-fixture.schema.json";
+    let files = BTreeMap::from([(
+        CONTRACT.to_owned(),
+        br#"{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://tree-of-sophia.local/foundation-layer-fixture.schema.json","type":"number"}"#.to_vec(),
+    )]);
+    let temporary = tempfile::tempdir().unwrap();
+    let revision = write_cut_store(&files, temporary.path());
+    let cancelled = AtomicBool::new(false);
+    let deadline = Instant::now() + Duration::from_secs(120);
+    let cut = super::command_form_cases::open_cut(temporary.path(), revision, deadline, &cancelled);
+    let image =
+        super::command_form_cases::schema_image(ExecutorBudget::laboratory(), deadline, &cancelled);
+    let mut old = super::command_form_cases::schemas_for_profile_with_image(
+        &cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        &image,
+        ExecutorBudget::laboratory(),
+        deadline,
+        &cancelled,
+    );
+    old.enable_diagnostics_v2(CutSchemaDiagnosticsLimits {
+        max_total_issues: 512,
+        max_total_report_bytes: 262_144,
+        max_total_state_bytes: 1_048_576,
+    })
+    .unwrap();
+    let mut new = InProcessCutSchemaExecutor::from_cut(
+        &cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        InputMode::LegacyPythonObserved,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    assert_eq!(new.selected_source_revision(), Some(revision));
+    for (raw, expected) in [
+        (&b"1"[..], true),
+        (&b"\"text\""[..], false),
+        (&b"NaN"[..], true),
+    ] {
+        let previous = old
+            .check("layer.json", raw, CONTRACT, deadline, &cancelled)
+            .unwrap();
+        let current = new
+            .check("layer.json", raw, CONTRACT, deadline, &cancelled)
+            .unwrap();
+        assert_eq!((previous, current), (expected, expected));
+        if !previous {
+            assert!(old.take_schema_diagnostic_rejection().is_some());
+        }
+    }
+    old.finish(deadline, &cancelled).unwrap();
+    new.finish(deadline, &cancelled).unwrap();
 }
 
 #[test]
@@ -2280,6 +2569,64 @@ fn actual_source_foundation_inventory_profile2_binds_exceptional_schema_results(
             Some(Digest256::of_bytes(raw)),
         );
     }
+    let selected_raw = &contracts[NEW_DECLARATION];
+    assert_eq!(
+        original_schemas
+            .selected_contract_for_schema_raw(selected_raw)
+            .unwrap(),
+        NEW_DECLARATION
+    );
+    let mut changed_raw = selected_raw.clone();
+    changed_raw.push(b' ');
+    assert!(
+        original_schemas
+            .selected_contract_for_schema_raw(&changed_raw)
+            .is_err()
+    );
+    assert!(
+        original_schemas
+            .selected_contract_for_schema_raw(b"")
+            .is_err()
+    );
+    let exact_cut = super::command_form_cases::open_cut(
+        &original_store,
+        original_revision,
+        deadline,
+        &cancelled,
+    );
+    let mut callback = tos_validation::source_cut::InProcessCutSchemaExecutor::from_cut(
+        &exact_cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        tos_validation::in_process::InputMode::LegacyPythonObservedBounded {
+            max_instance_bytes: 1_048_576,
+        },
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    assert_eq!(
+        callback.binding().schema_set_sha256,
+        original_schemas.schema_set_sha256()
+    );
+    for (raw, status) in [(&b"{}"[..], Status::Valid), (&b"1"[..], Status::Invalid)] {
+        let diagnostic = callback
+            .diagnostic_for(
+                "candidate.json",
+                original_schemas
+                    .selected_contract_for_schema_raw(selected_raw)
+                    .unwrap(),
+                raw,
+                tos_validation::executor::schema_diagnostics::Caps::CURRENT,
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        assert_eq!(diagnostic.report.status, status);
+        assert_eq!(
+            diagnostic.identity,
+            tos_validation::source_cut::InProcessCutIdentity::Source(original_revision)
+        );
+    }
 
     let inventory_schema: Value = serde_json::from_slice(&contracts[INVENTORY_SCHEMA]).unwrap();
     let inventory_uri = inventory_schema["$id"].as_str().unwrap();
@@ -2377,6 +2724,38 @@ fn actual_source_foundation_inventory_profile2_binds_exceptional_schema_results(
             panic!("selected inventory profile-2 batch incomplete: {reason:?}; {report:?}")
         }
     };
+    let in_process =
+        match tos_validation::source_foundation_schema::evaluate_in_process_foundation_checks(
+            &original_schemas,
+            &checks,
+            limits,
+            deadline,
+            &cancelled,
+        ) {
+            tos_validation::source_foundation_schema::InProcessFoundationOutcome::Complete(
+                report,
+            ) => report,
+            tos_validation::source_foundation_schema::InProcessFoundationOutcome::Incomplete {
+                reason,
+                ..
+            } => {
+                panic!("in-process mixed schema checks incomplete: {reason:?}")
+            }
+        };
+    assert!(in_process.is_complete());
+    assert_eq!(in_process.source_revision, original_revision);
+    assert_eq!(
+        in_process.schema_set_sha256,
+        original_report.schema_set_sha256
+    );
+    for (new, old) in in_process.checks.iter().zip(&original_report.checks) {
+        assert_eq!(new.location, old.location);
+        assert_eq!(new.contract, old.contract);
+        assert_eq!(new.diagnostic.status, old.diagnostic.status);
+        assert_eq!(new.diagnostic.failure, old.diagnostic.failure);
+        assert_eq!(new.diagnostic.issues, old.diagnostic.issues);
+        assert_eq!(new.issues, old.issues);
+    }
     assert!(original_report.is_complete());
     assert!(!original_report.is_valid());
     assert_eq!(original_report.source_revision, original_revision);
@@ -2531,6 +2910,28 @@ fn actual_source_foundation_inventory_profile2_binds_exceptional_schema_results(
         raw_instance: raw_nan_width.clone(),
     }])
     .unwrap();
+    match tos_validation::source_foundation_schema::evaluate_in_process_foundation_checks(
+        &derived_schemas,
+        &indeterminate_check,
+        limits,
+        deadline,
+        &cancelled,
+    ) {
+        tos_validation::source_foundation_schema::InProcessFoundationOutcome::Incomplete {
+            report,
+            reason,
+        } => {
+            assert_eq!(
+                reason,
+                SourceFoundationSchemaFailure::UnsupportedInputSemantics
+            );
+            assert!(!report.is_complete());
+            assert_eq!(report.source_revision, derived_revision);
+        }
+        tos_validation::source_foundation_schema::InProcessFoundationOutcome::Complete(_) => {
+            panic!("unsupported in-process schema closure was accepted")
+        }
+    }
     let (indeterminate_report, reason) = match evaluate_source_foundation_mixed_schema_checks(
         &derived_schemas,
         &worker,
@@ -2579,9 +2980,13 @@ fn maintained_assessment_whole_output_matches_native_current_view() {
     use tos_validation::assessment::{
         AssessmentLimits, AssessmentReadInput, AssessmentRecordInput, AssessmentRefusal,
         AssessmentSchemaBindingV1, AssessmentSourceRoute, AssessmentSubmissionInput,
-        evaluate_current_assessment,
+        evaluate_current_assessment, evaluate_current_assessment_selected,
     };
     use tos_validation::executor::BatchBudget;
+    use tos_validation::in_process::InputMode;
+    use tos_validation::source_cut::{
+        CutSchemaExecutor, InProcessCandidateSchemaExecutor, InProcessCutSchemaExecutor,
+    };
 
     let cases = crate::frozen_legacy_python_oracle("assessment-whole-view");
     let cases = cases.as_array().unwrap();
@@ -2662,6 +3067,39 @@ fn maintained_assessment_whole_output_matches_native_current_view() {
         batch: BatchBudget::laboratory(),
         deadline,
     };
+    let selected_resources = files
+        .iter()
+        .filter(|(path, _)| path.starts_with("ToS/contracts/") && path.ends_with(".schema.json"))
+        .map(|(path, raw)| {
+            let schema: Value = serde_json::from_slice(raw).unwrap();
+            (
+                path.clone(),
+                tos_validation::SchemaResource {
+                    uri: schema["$id"].as_str().unwrap().to_owned(),
+                    raw: raw.clone(),
+                },
+            )
+        })
+        .collect();
+    let candidate_identity = 42u64;
+    let candidate_digest = Digest256::of_bytes(b"assessment-selected-input");
+    let mut candidate = InProcessCandidateSchemaExecutor::from_selected_source_resources(
+        candidate_identity,
+        selected_resources,
+        FormatProfile::AssertedSourceCandidateV1,
+        InputMode::SerdeNormalized,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    let mut in_process_cut = InProcessCutSchemaExecutor::from_cut(
+        &cut,
+        FormatProfile::AssertedSourceCandidateV1,
+        InputMode::SerdeNormalized,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
     let mut hashes = BTreeSet::new();
     let mut last_input = None;
     for case in cases {
@@ -2713,6 +3151,39 @@ fn maintained_assessment_whole_output_matches_native_current_view() {
         assert_eq!(worker.worker_sha256, worker_digest);
         assert_eq!(report.source_input_identity(), revision.0);
         assert_eq!(report.observed_now(), required(case, "observed_now"));
+        let selected_cut =
+            evaluate_current_assessment(&input, &mut in_process_cut, limits, &cancelled)
+                .unwrap_or_else(|error| panic!("{name}: in-process cut assessment: {error:?}"));
+        assert_eq!(
+            selected_cut.current_admission(),
+            report.current_admission(),
+            "source cut output: {name}"
+        );
+        assert!(
+            matches!(selected_cut.schema_binding(), AssessmentSchemaBindingV1::SourceCutInProcessV1 { source_revision, engine }
+            if source_revision == revision && engine.engine == tos_validation::in_process::ENGINE_ID)
+        );
+        let mut candidate_input = input.clone();
+        candidate_input.source_revision = None;
+        candidate_input.source_input_identity = candidate_digest;
+        let selected = evaluate_current_assessment_selected(
+            &candidate_input,
+            &candidate_identity,
+            candidate_digest,
+            &mut candidate,
+            limits,
+            &cancelled,
+        )
+        .unwrap_or_else(|error| panic!("{name}: in-process assessment: {error:?}"));
+        assert_eq!(
+            selected.current_admission(),
+            report.current_admission(),
+            "selected candidate output: {name}"
+        );
+        assert!(
+            matches!(selected.schema_binding(), AssessmentSchemaBindingV1::SelectedInputInProcessV1 { source_identity, engine }
+            if source_identity == candidate_digest && engine.engine == tos_validation::in_process::ENGINE_ID)
+        );
         if case["source_read"].is_null() {
             assert!(
                 !report.source_read_required(),
@@ -2745,6 +3216,8 @@ fn maintained_assessment_whole_output_matches_native_current_view() {
         last_input = Some(input);
     }
     let mut input = last_input.unwrap();
+    candidate.finish(deadline, &cancelled).unwrap();
+    in_process_cut.finish(deadline, &cancelled).unwrap();
     let start = schemas.receipts().len();
     let current_revision = input.source_revision;
     input.source_revision = Some(SourceRevision(Digest256::of_bytes(
@@ -2791,4 +3264,272 @@ fn maintained_assessment_whole_output_matches_native_current_view() {
     assert_eq!(schemas.receipts().len(), start);
     // Every true fixture value above remains a pure synthetic mechanics
     // observation. No journal, current source admission or Sign issuer exists.
+}
+
+#[test]
+fn in_process_source_claim_preserves_cut_and_local_profile_diagnostics() {
+    use tos_validation::in_process::InputMode;
+    use tos_validation::record_rules::{
+        validate_source_claim_from_asserted_cut, validate_source_claim_from_in_process_cut,
+    };
+    use tos_validation::source_cut::{
+        InProcessCutDiagnostic, InProcessCutIdentity, InProcessCutSchemaExecutor,
+    };
+
+    let mut files = selected_item_sources();
+    let relation = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
+    files.insert(
+        relation.into(),
+        fs::read(repository().join(relation)).unwrap(),
+    );
+    let claims = fs::read(
+        repository().join("ToS/source-witnesses/relations/social-research/source-claims.jsonl"),
+    )
+    .unwrap();
+    let claim = claims
+        .split(|byte| *byte == b'\n')
+        .find(|line| !line.is_empty())
+        .unwrap();
+    let mut invalid: Value = serde_json::from_slice(claim).unwrap();
+    invalid["claim_id"] = serde_json::json!(17);
+    let invalid = canonical_json(&invalid);
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().join("store");
+    let revision = write_cut_store(&files, &root);
+    let cancelled = AtomicBool::new(false);
+    let deadline = Instant::now() + Duration::from_secs(120);
+    let reader = CorpusReader::open_existing(
+        &root,
+        ReadLimits {
+            max_manifest_bytes: 1_048_576,
+            max_manifest_entries: 1024,
+            max_selected_object_bytes: 2_097_152,
+            json: JsonLimits::default(),
+        },
+    )
+    .unwrap();
+    let cut = reader
+        .open_source_cut(
+            revision,
+            CutReadLimits {
+                max_revisions: 2,
+                max_members: 2048,
+                max_total_bytes: 64_000_000,
+                max_member_bytes: 2_097_152,
+            },
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    let profile = FormatProfile::AssertedSourceCandidateV1;
+    let limits = ItemLimits {
+        max_member_bytes: 1_048_576,
+        max_total_bytes: 16_777_216,
+        max_state_bytes: 16_777_216,
+        max_issues: 128,
+        deadline,
+    };
+    let image =
+        super::command_form_cases::schema_image(ExecutorBudget::laboratory(), deadline, &cancelled);
+    let mut old = super::command_form_cases::schemas_for_profile_with_image(
+        &cut,
+        profile,
+        &image,
+        ExecutorBudget::laboratory(),
+        deadline,
+        &cancelled,
+    );
+    let mut new = InProcessCutSchemaExecutor::from_cut(
+        &cut,
+        profile,
+        InputMode::SerdeNormalized,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    for raw in [claim, invalid.as_slice()] {
+        let previous =
+            validate_source_claim_from_asserted_cut(&cut, raw, &mut old, limits, &cancelled)
+                .unwrap();
+        let current = validate_source_claim_from_in_process_cut(
+            &cut, raw, &mut new, limits, &cancelled, profile,
+        )
+        .unwrap();
+        assert_eq!(current.source_revision, revision);
+        assert_eq!(current.source_input_sha256, previous.source_input_sha256);
+        assert_eq!(current.decoded_input_sha256, previous.decoded_input_sha256);
+        assert_eq!(current.dependency_digests, previous.dependency_digests);
+        assert_eq!(current.dependency_order, previous.dependency_order);
+        assert_eq!(current.issues, previous.issues);
+        assert!(!current.schema_diagnostics.is_empty());
+        for evidence in current.schema_diagnostics {
+            let decoded = InProcessCutDiagnostic::<()>::from_evidence_json(&evidence).unwrap();
+            assert_eq!(decoded.identity, InProcessCutIdentity::Source(revision));
+            assert_eq!(
+                decoded.report.schema_set_sha256,
+                current.execution_binding.schema_set_sha256
+            );
+        }
+    }
+
+    let legacy = FormatProfile::LegacyPythonObserved20260923;
+    let mut legacy_worker = super::command_form_cases::schemas_for_profile_with_image(
+        &cut,
+        legacy,
+        &image,
+        ExecutorBudget::laboratory(),
+        deadline,
+        &cancelled,
+    );
+    let selected = files
+        .iter()
+        .map(|(path, raw)| (path.as_str(), raw.as_slice()))
+        .collect::<Vec<_>>();
+    let resources: Vec<_> = files
+        .iter()
+        .filter(|(path, _)| path.starts_with("ToS/contracts/") && path.ends_with(".schema.json"))
+        .map(|(path, raw)| {
+            let document: Value = serde_json::from_slice(raw).unwrap();
+            (
+                path.clone(),
+                tos_validation::SchemaResource {
+                    uri: document["$id"].as_str().unwrap().to_owned(),
+                    raw: raw.clone(),
+                },
+            )
+        })
+        .collect();
+    let mut candidate = tos_validation::source_cut::InProcessCandidateSchemaExecutor::from_selected_source_resources(
+        42u64, resources.clone(), legacy, InputMode::LegacyPythonObserved, deadline, &cancelled,
+    )
+    .unwrap();
+    let selected_schemas = InProcessCutSchemaExecutor::from_cut_selected_resources(
+        &cut,
+        resources.clone(),
+        legacy,
+        InputMode::LegacyPythonObserved,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    assert_eq!(
+        selected_schemas.identity(),
+        &InProcessCutIdentity::Source(revision)
+    );
+    let mut changed_resources = resources;
+    changed_resources[0].1.raw.push(b' ');
+    assert!(
+        InProcessCutSchemaExecutor::from_cut_selected_resources(
+            &cut,
+            changed_resources,
+            legacy,
+            InputMode::LegacyPythonObserved,
+            deadline,
+            &cancelled,
+        )
+        .is_err()
+    );
+    assert!(
+        tos_validation::record_rules::validate_source_claim_from_selected_members(
+            43,
+            claim,
+            &selected,
+            &mut candidate,
+            limits,
+            &cancelled,
+        )
+        .is_err()
+    );
+    for raw in [claim, invalid.as_slice()] {
+        let previous = tos_validation::record_rules::validate_source_claim_from_members(
+            revision,
+            raw,
+            &selected,
+            &mut legacy_worker,
+            limits,
+            &cancelled,
+        )
+        .unwrap();
+        let current = tos_validation::record_rules::validate_source_claim_from_selected_members(
+            42,
+            raw,
+            &selected,
+            &mut candidate,
+            limits,
+            &cancelled,
+        )
+        .unwrap();
+        assert_eq!(current.input_identity, 42);
+        assert_eq!(current.source_input_sha256, previous.source_input_sha256);
+        assert_eq!(current.decoded_input_sha256, previous.decoded_input_sha256);
+        assert_eq!(current.dependency_digests, previous.dependency_digests);
+        assert_eq!(current.dependency_order, previous.dependency_order);
+        assert_eq!(current.issues, previous.issues);
+    }
+
+    let streamed = reader
+        .open_source_cut_streamed(
+            revision,
+            tos_source_store::StreamedCutReadLimitsV1 {
+                cut: CutReadLimits {
+                    max_revisions: 2,
+                    max_members: 2048,
+                    max_total_bytes: 64_000_000,
+                    max_member_bytes: 2_097_152,
+                },
+                manifest_json: JsonLimits::default(),
+                max_manifest_entries: 2048,
+                max_index_bytes: 16 * 1024 * 1024,
+                max_manifest_row_bytes: 1_048_576,
+                sqlite_cache_bytes: 1024 * 1024,
+            },
+            {
+                // The streamed reader takes a fresh unnamed owner-private inode.
+                use std::os::unix::fs::OpenOptionsExt;
+                fs::OpenOptions::new()
+                    .read(true)
+                    .write(true)
+                    .mode(0o600)
+                    .custom_flags((1 << 22) | (1 << 16)) // O_TMPFILE
+                    .open(temp.path())
+                    .unwrap()
+            },
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    for mode in [InputMode::LegacyPythonObserved, InputMode::SerdeNormalized] {
+        let mut streamed_schemas = InProcessCutSchemaExecutor::from_streamed_cut(
+            &streamed, legacy, mode, deadline, &cancelled,
+        )
+        .unwrap();
+        let mut resident_schemas =
+            InProcessCutSchemaExecutor::from_cut(&cut, legacy, mode, deadline, &cancelled).unwrap();
+        assert_eq!(streamed_schemas.binding(), resident_schemas.binding());
+        assert_eq!(
+            streamed_schemas.identity(),
+            &InProcessCutIdentity::Source(revision)
+        );
+        let contract = "ToS/contracts/corpus-record.schema.json";
+        assert_eq!(
+            tos_validation::source_cut::CutSchemaExecutor::check(
+                &mut streamed_schemas,
+                "record.json",
+                b"{}",
+                contract,
+                deadline,
+                &cancelled,
+            )
+            .unwrap(),
+            tos_validation::source_cut::CutSchemaExecutor::check(
+                &mut resident_schemas,
+                "record.json",
+                b"{}",
+                contract,
+                deadline,
+                &cancelled,
+            )
+            .unwrap()
+        );
+    }
 }

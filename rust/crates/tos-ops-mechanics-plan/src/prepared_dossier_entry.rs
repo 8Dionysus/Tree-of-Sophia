@@ -10,7 +10,7 @@ use std::sync::{
     atomic::{AtomicBool, AtomicI32},
 };
 use std::time::{Duration, Instant};
-use tos_compiler::research_execution::ResearchExecution;
+use tos_source_store::execution::Execution as ResearchExecution;
 
 struct Options {
     inputs: NativePreparedDossierInputs,

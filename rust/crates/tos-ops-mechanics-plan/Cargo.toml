@@ -9,7 +9,7 @@ license.workspace = true
 [features]
 default = ["compiler-backed-validators"]
 # CMD needs the philosophy producer library without standalone validator families.
-philosophy-library = ["dep:tos-compiler", "dep:unicode-general-category", "dep:jsonschema"]
+philosophy-library = ["dep:tos-compiler", "dep:tos-source-store", "dep:unicode-general-category", "dep:jsonschema"]
 compiler-backed-validators = ["philosophy-library", "mechanics"]
 # The CI selector/executors need no source, schema, publication or mechanics bodies.
 mechanics = [
@@ -27,7 +27,7 @@ rusqlite = { version = "0.37", features = ["bundled", "hooks", "limits"], option
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["arbitrary_precision", "preserve_order"] }
 tos-foundation = { path = "../tos-foundation" }
-tos-source-store = { path = "../tos-source-store", optional = true }
+tos-source-store = { path = "../tos-source-store", optional = true, features = ["execution"] }
 tos-compiler = { path = "../tos-compiler", optional = true, features = ["preserve-order-workspace", "source-tools"] }
 tos-validation = { path = "../tos-validation", optional = true }
 toml = { version = "=0.9.11", default-features = false, features = ["std", "parse", "serde"] }

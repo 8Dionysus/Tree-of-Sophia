@@ -6,9 +6,8 @@ use std::{
     path::{Path, PathBuf},
     time::{SystemTime, UNIX_EPOCH},
 };
-use tos_compiler::{
-    PublicCaptureLimits, epistemic_evidence, research_execution::ResearchExecution,
-};
+use tos_compiler::{PublicCaptureLimits, epistemic_evidence};
+use tos_source_store::execution::Execution;
 
 const OUTPUT_ALLOWANCE: u64 = 2 * 1024 * 1024;
 const MAX_STAGE: u64 = 1024 * 1024 * 1024;
@@ -153,7 +152,7 @@ fn run(args: &[String], stdout: &mut dyn Write) -> Result<(), String> {
     if stage_limit < 65536 {
         return Err("Evidence scratch quota cannot fit the minimum SQLite capture".into());
     }
-    let execution = ResearchExecution::new_evidence_output(&root, seconds, OUTPUT_ALLOWANCE)?;
+    let execution = Execution::new_evidence_output(&root, seconds, OUTPUT_ALLOWANCE)?;
     let mut owned = None;
     let staging = match staging {
         Some(path) => {

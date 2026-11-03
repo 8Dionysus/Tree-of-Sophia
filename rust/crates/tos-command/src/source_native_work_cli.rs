@@ -1,5 +1,5 @@
 //! Fixed Work→Expression native caller over the existing isolated owner.
-use super::{absolute, capped, digest, selected_schema, text};
+use super::{absolute, capped, digest, text};
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
 use crate::source_creation_store::{self as owner, CreationFilesystem};
 use serde_json::{Value, json};
@@ -210,7 +210,17 @@ pub(super) fn run(
         max_issues: 256,
         deadline,
     };
-    let mut worker = selected_schema(invocation, selected, deadline, cancelled)?;
+    let schemas = |cut: &CorpusCutReader| {
+        tos_validation::source_cut::InProcessCutSchemaExecutor::from_cut(
+            cut,
+            tos_validation::FormatProfile::LegacyPythonObserved20260923,
+            tos_validation::in_process::InputMode::SerdeNormalized,
+            deadline,
+            cancelled,
+        )
+        .map_err(|_| SourceCommandError::Denied("Work schema selection"))
+    };
+    let mut worker = schemas(selected)?;
     let mut current_worker = None;
     let mut original_worker_finished = false;
     let mut current_worker_finished = false;
@@ -432,7 +442,7 @@ pub(super) fn run(
                     }
                 })?;
                 original_worker_finished = true;
-                current_worker = Some(selected_schema(invocation, current, deadline, cancelled)?);
+                current_worker = Some(schemas(current)?);
                 let replay = owner::replay_isolated_work_expression_from_captures(
                     &filesystem,
                     ctx,

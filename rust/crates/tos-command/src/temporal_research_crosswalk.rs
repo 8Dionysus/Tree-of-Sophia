@@ -639,8 +639,7 @@ use tos_foundation::{
 };
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::assessment::{AssessmentMechanicsReport, evaluate_current_assessment};
-use tos_validation::executor::{ExecutorBudget, VerifiedWorkerImageHandle};
-use tos_validation::source_cut::{CutWorkerLimits, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::InProcessCutSchemaExecutor;
 
 pub struct C01ResearchBindingForConformance<'a> {
     pub configuration_path: &'a Path,
@@ -648,7 +647,6 @@ pub struct C01ResearchBindingForConformance<'a> {
     pub cut: &'a CorpusCutReader,
     pub software: &'a SoftwareCaptureReader,
     pub components: &'a SoftwareComponentSelectionV1,
-    pub image: &'a VerifiedWorkerImageHandle,
     pub source_revision: SourceRevision,
     pub current_root: &'a ExactRecordRef,
     pub predecessor_root: &'a ExactRecordRef,
@@ -963,7 +961,7 @@ pub struct C01ResearchSessionForConformance<'w> {
     j1_ref: Option<ExactRecordRef>,
     deadline: Instant,
     cancelled: &'w AtomicBool,
-    worker: Option<CutWorkerSchemaExecutor>,
+    schemas: Option<InProcessCutSchemaExecutor<()>>,
     pure: [Option<JsonValue>; 6],
     payloads: [Option<JsonValue>; 2],
     active_input: Option<JsonValue>,
@@ -1065,8 +1063,6 @@ fn new_workspace(
     add!(size_of::<[Error; 8]>());
     add!(size_of::<[FoundationError; 4]>());
     add!(size_of::<[TemporalError; 4]>());
-    add!(size_of::<[ExecutorBudget; 2]>());
-    add!(size_of::<[CutWorkerLimits; 2]>());
     add!(size_of::<[Option<(u8, usize, &JsonValue)>; 65]>());
     add!(128 * size_of::<usize>());
     add!(size_of::<[Option<usize>; 64]>());
@@ -1310,7 +1306,7 @@ pub fn with_research_crosswalk_for_conformance<'w>(
         j1_ref: None,
         deadline,
         cancelled,
-        worker: None,
+        schemas: None,
         pure: std::array::from_fn(|_| None),
         payloads: std::array::from_fn(|_| None),
         active_input: None,
@@ -1323,7 +1319,7 @@ pub fn with_research_crosswalk_for_conformance<'w>(
     session.build.visit(8)?;
     if session.state != ProtocolState::WithdrawalRefused
         || !session.anchored
-        || session.worker.is_some()
+        || session.schemas.is_some()
     {
         return Err(Error::Invalid("C01 protocol incomplete"));
     }
@@ -1363,30 +1359,18 @@ impl CurrentGuard<'_, '_, '_> {
             .verify_current_with_read_limits(self.read, self.deadline, self.cancelled)
     }
 }
-fn worker(
+fn prepare_schemas(
     binding: &C01ResearchBindingForConformance<'_>,
     b: &mut BuildDebit<'_>,
-    op: &mut OperationBudget,
-    seconds: u64,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> Result<CutWorkerSchemaExecutor> {
+) -> Result<InProcessCutSchemaExecutor<()>> {
     b.visit(128)?;
-    op.lower_worker_resources(seconds, 1073741824)?;
-    let mut budget = ExecutorBudget::laboratory();
-    budget.execution_wall = deadline.saturating_duration_since(Instant::now());
-    budget.cpu_seconds = seconds;
-    budget.address_space_bytes = 1073741824;
-    b.own(3, 4096)?; // first-error interface, before delegated construction
-    match CutWorkerSchemaExecutor::from_cut_with_image(
+    b.own(3, 4096)?; // first-error interface, before schema preparation
+    match InProcessCutSchemaExecutor::from_cut(
         binding.cut,
         tos_validation::FormatProfile::AssertedSourceCandidateV1,
-        binding.image,
-        budget,
-        CutWorkerLimits {
-            max_receipts: 64,
-            max_receipt_bytes: 131072,
-        },
+        tos_validation::in_process::InputMode::SerdeNormalized,
         deadline,
         cancelled,
     ) {
@@ -2249,7 +2233,7 @@ fn evaluate(
     histories: &BTreeMap<String, AssessmentHistory>,
     observed: &str,
     binding: &C01ResearchBindingForConformance<'_>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut InProcessCutSchemaExecutor<()>,
     operation: &mut OperationBudget,
     payer: &mut C01AdapterPayer<'_>,
     cancelled: &AtomicBool,
@@ -2334,7 +2318,7 @@ impl C01ResearchSessionForConformance<'_> {
             Err(e) => {
                 // Failure cannot disclose or reset. Preserve the first operation
                 // error; cleanup FINAL errors cannot replace it.
-                if let Some(mut w) = self.worker.take() {
+                if let Some(mut w) = self.schemas.take() {
                     let _ =
                         crate::source_sign::finish_worker(&mut w, self.deadline, self.cancelled);
                 }
@@ -2354,7 +2338,7 @@ impl C01ResearchSessionForConformance<'_> {
                 Err(Error::Denied("C01 current research admission withdrawn"))
             }
             Err(e) => {
-                if let Some(mut w) = self.worker.take() {
+                if let Some(mut w) = self.schemas.take() {
                     let _ =
                         crate::source_sign::finish_worker(&mut w, self.deadline, self.cancelled);
                 }
@@ -2381,15 +2365,17 @@ fn positive(
         j1_ref,
         deadline,
         cancelled,
-        worker: live,
+        schemas: live,
         pure,
         payloads,
         active_input,
         payload_wire,
         ..
     } = session;
-    *live = Some(worker(binding, build, operation, 2, *deadline, cancelled)?);
-    let w = live.as_mut().ok_or(Error::Invalid("C01 initial worker"))?;
+    *live = Some(prepare_schemas(binding, build, *deadline, cancelled)?);
+    let w = live
+        .as_mut()
+        .ok_or(Error::Invalid("C01 initial schema executor"))?;
     *context = Some(assessment::selected_c01_command_context_with_return_limit(
         binding.cut,
         owner.configuration_raw(),
@@ -2555,9 +2541,9 @@ fn positive(
     )?;
     let mut completed = live
         .take()
-        .ok_or(Error::Invalid("C01 finish initial worker"))?;
+        .ok_or(Error::Invalid("C01 finish initial schema executor"))?;
     crate::source_sign::finish_worker(&mut completed, *deadline, cancelled)?;
-    drop(completed); // literal one-live-worker boundary before disclosure
+    drop(completed); // one live schema executor before disclosure
     output.visit(128)?;
     // Pay the bounded top-level cleanup before disclosure. The six pure
     // results, two bridge payloads, two wire buffers and active input are
@@ -2618,7 +2604,7 @@ fn withdrawal(session: &mut C01ResearchSessionForConformance<'_>, head: Digest25
         j1_ref,
         deadline,
         cancelled,
-        worker: live,
+        schemas: live,
         ..
     } = session;
     build.visit(128)?;
@@ -2634,8 +2620,10 @@ fn withdrawal(session: &mut C01ResearchSessionForConformance<'_>, head: Digest25
     let selected = sources
         .as_mut()
         .ok_or(Error::Invalid("C01 retained public sources"))?;
-    *live = Some(worker(binding, build, operation, 1, *deadline, cancelled)?);
-    let w = live.as_mut().ok_or(Error::Invalid("C01 second worker"))?;
+    *live = Some(prepare_schemas(binding, build, *deadline, cancelled)?);
+    let w = live
+        .as_mut()
+        .ok_or(Error::Invalid("C01 second schema executor"))?;
     let empty_refs = BTreeMap::new();
     let empty_languages = BTreeMap::new();
     let plan = assessment::resolve_and_plan_c01_with_return_limit(
@@ -2742,7 +2730,7 @@ fn withdrawal(session: &mut C01ResearchSessionForConformance<'_>, head: Digest25
     drop(current);
     let mut completed = live
         .take()
-        .ok_or(Error::Invalid("C01 finish withdrawal worker"))?;
+        .ok_or(Error::Invalid("C01 finish withdrawal schema executor"))?;
     crate::source_sign::finish_worker(&mut completed, *deadline, cancelled)?;
     drop(completed);
     // Return actual Denied only after caller method records this FULL refusal.

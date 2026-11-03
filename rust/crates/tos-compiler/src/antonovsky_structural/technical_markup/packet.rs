@@ -72,6 +72,60 @@ fn screening_provenance(
         json!({"schema_version":"tos_provenance_event_v1","event_id":SCREEN_EVENT,"event_type":"annotation","started_at":screening["created_at"],"ended_at":screening["created_at"],"agent_refs":["model:codex"],"inputs":[bound(ctx,&screening_ref(),"tracked-text-free-technical-screening-plan")?,{"ref":heading,"role":"tracked-text-free-heading-candidate-set","sha256":sha(&base[heading])},{"ref":citation,"role":"tracked-text-free-source-block-citation-spine","sha256":sha(&base[citation])},{"ref":plan["source_item"]["file_ref"],"role":"local-source-visible-exact-PDF","sha256":plan["source_item"]["file_sha256"]}],"outputs":outputs,"method":{"maker_type":"model_source_visible","name":"antonovsky-1911-heading-and-indent-boundary-screening","version":"1","artifact_digest":builder_sha,"runtime":null,"device":"cpu","configuration":{"heading_candidate_coverage":"all_enumerated_candidates","split_sample_block_count":screening["paragraph_split_screening"]["source_visible_sample"]["sample_block_count"],"packet_review_created":false,"real_human_reviewer":false,"source_target_alignment_created":false,"semantic_fields_materialized":false},"prompt_or_instruction_ref":screening_ref()},"status":"completed_with_warnings","warnings":["The source-visible screening records model authorship; real-human text-unit review remains outstanding.","Heading roles and section boundaries retain their technical-candidate status.","Paragraph spans remain an overlay over unchanged Poppler block units and issue no successor identities.","The split screening covers the selected 42-block sample; remaining boundaries retain their prior review status.","Translation alignment, semantics, graph assessment, canon, publication and transfer retain their corresponding owner decision routes."],"receipt_refs":screen.keys().collect::<Vec<_>>(),"rights_basis_ref":plan["source_item"]["rights_ref"],"event_version":1,"supersedes_event_ref":null}),
     )
 }
+// Retain the exact source event only after its frozen digest and all reconstructed
+// bindings match. Current execution has its own builder identity; it cannot
+// replace the historical recipe or its recorded warning text.
+fn historical_provenance(
+    ctx: &ResearchExecution,
+    plan: &Value,
+    generated: &[Value],
+) -> Result<Vec<u8>> {
+    let manifest = std::path::Path::new(s(&plan["source_item"]["manifest_ref"]));
+    let curation_ref = manifest
+        .parent()
+        .ok_or("manifest parent")?
+        .join("edition-curation.v1.json");
+    let curation = load(ctx, curation_ref.to_str().ok_or("curation path")?)?;
+    let recipes: Vec<_> = a(&curation["recipes"])
+        .iter()
+        .filter(|recipe| recipe["stage"] == "pdf-structural-paragraph")
+        .collect();
+    ensure(recipes.len() == 1, "historical PDF curation selection")?;
+    let history = &recipes[0]["legacy_layout"];
+    let reference = out(plan, "provenance_ref")?;
+    ensure(
+        history["historical_provenance_ref"] == reference,
+        "historical provenance reference drift",
+    )?;
+    let raw = ctx.read(reference)?;
+    ensure(
+        sha(&raw) == s(&history["historical_provenance_sha256"]),
+        "historical provenance digest drift",
+    )?;
+    let text = std::str::from_utf8(&raw).map_err(|e| e.to_string())?;
+    let records: Vec<Value> = text
+        .lines()
+        .map(|line| serde_json::from_str(line).map_err(|e| e.to_string()))
+        .collect::<Result<_>>()?;
+    ensure(
+        records.len() == generated.len(),
+        "historical provenance membership drift",
+    )?;
+    for (historical, current) in records.iter().zip(generated) {
+        ensure(
+            historical["method"]["artifact_digest"] == history["historical_event_artifact_sha256"],
+            "historical builder binding drift",
+        )?;
+        let mut comparable = current.clone();
+        comparable["method"]["artifact_digest"] = historical["method"]["artifact_digest"].clone();
+        comparable["warnings"] = historical["warnings"].clone();
+        ensure(
+            comparable == *historical,
+            "historical provenance input/output binding drift",
+        )?;
+    }
+    Ok(raw)
+}
 pub(super) struct Artifacts {
     pub tracked: BTreeMap<String, Vec<u8>>,
     pub private: BTreeMap<String, Vec<u8>>,
@@ -125,10 +179,8 @@ pub(super) fn build(
     );
     let screen_event = screening_provenance(ctx, plan, screening, &tracked, &screen, &builder_sha)?;
     tracked.extend(screen);
-    tracked.insert(
-        out(plan, "provenance_ref")?.into(),
-        jsonl(ctx, &[event, screen_event])?,
-    );
+    let historical = historical_provenance(ctx, plan, &[event, screen_event])?;
+    tracked.insert(out(plan, "provenance_ref")?.into(), historical);
     let private = BTreeMap::from([
         (
             out(plan, "private_text_layer_ref")?.into(),

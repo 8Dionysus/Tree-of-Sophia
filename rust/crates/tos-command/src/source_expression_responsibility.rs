@@ -846,7 +846,6 @@ use super::work_expression::{
     selected_sides, software_current, work_dependencies_current,
 };
 use tos_validation::item_rules::{ItemLimits, ItemRefusal};
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
 fn item_error(reason: ItemRefusal) -> SourceCommandError {
     SourceCommandError::SchemaExecution {
@@ -911,7 +910,7 @@ fn current_catalog(
     owner: &ExpressionResponsibilityOwner,
     before: &BTreeMap<String, Vec<u8>>,
     cut: &CorpusCutReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl tos_validation::native_compound::CutCompoundSchemaExecutor,
     limits: ItemLimits,
     publication_token: Option<&str>,
     mut check_publication: impl FnMut() -> SourceCommandResult<()>,
@@ -1496,7 +1495,7 @@ pub fn prepare_isolated_expression_responsibility_from_proposal(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl tos_validation::native_compound::CutCompoundSchemaExecutor,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ExpressionResponsibilityPreparation> {
@@ -1694,7 +1693,7 @@ fn prepare_responsibility_application(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl tos_validation::native_compound::CutCompoundSchemaExecutor,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedExpressionResponsibilityApplication> {
@@ -1893,7 +1892,7 @@ pub fn execute_isolated_expression_responsibility_from_captures(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl tos_validation::native_compound::CutCompoundSchemaExecutor,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ExpressionResponsibilityPublication> {
@@ -1924,7 +1923,7 @@ pub fn replay_isolated_expression_responsibility_from_captures(
     current_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl tos_validation::native_compound::CutCompoundSchemaExecutor,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ExpressionResponsibilityPublication> {
@@ -2254,7 +2253,7 @@ fn recover_responsibility_selected(
     original_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl tos_validation::native_compound::CutCompoundSchemaExecutor,
     decision: ExpressionResponsibilityRecoveryDecision,
     explicit: bool,
     limits: ItemLimits,
@@ -2565,7 +2564,7 @@ pub fn recover_isolated_expression_responsibility_from_captures(
     original_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl tos_validation::native_compound::CutCompoundSchemaExecutor,
     decision: ExpressionResponsibilityRecoveryDecision,
     limits: ItemLimits,
     cancelled: &AtomicBool,

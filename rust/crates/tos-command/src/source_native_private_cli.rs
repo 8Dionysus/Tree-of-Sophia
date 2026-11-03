@@ -1,6 +1,6 @@
 //! Explicit private metadata invocation. The public cut is evidence only;
 //! the selected OwnerTextContext independently owns private byte routing.
-use super::{absolute, capped, digest, selected_schema, text};
+use super::{absolute, capped, digest, text};
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
 use crate::source_text_owner::{OwnerTextContext, read_absolute};
 use crate::source_text_private_store::PrivateOwnerStore;
@@ -13,7 +13,7 @@ use tos_source_store::{
     SoftwareComponentSelectionV1,
 };
 use tos_validation::source_cut::CutSchemaExecutor;
-use tos_validation::source_cut::CutWorkerSchemaExecutor;
+use tos_validation::source_cut::InProcessCutSchemaExecutor;
 
 // Python's implementation map hashes these bytes from source.ROOT. They are
 // software rules, distinct from owner-context grammar at the same source refs.
@@ -55,7 +55,7 @@ struct SelectedPrivateInvocation {
     owner: OwnerTextContext,
     context_config: JsonValue,
     context: cmd::CommandContext,
-    worker: CutWorkerSchemaExecutor,
+    worker: InProcessCutSchemaExecutor<()>,
 }
 
 pub(super) fn run(
@@ -346,7 +346,14 @@ fn select(
     {
         return Err(SourceCommandError::Denied("private grant context differs"));
     }
-    let mut worker = selected_schema(invocation, current, deadline, cancelled)?;
+    let mut worker = InProcessCutSchemaExecutor::from_cut(
+        current,
+        tos_validation::FormatProfile::LegacyPythonObserved20260923,
+        tos_validation::in_process::InputMode::SerdeNormalized,
+        deadline,
+        cancelled,
+    )
+    .map_err(|_| SourceCommandError::Denied("private metadata schema selection"))?;
     let (owner, context_config) =
         if let Some(profile_value) = invocation.get("native_text_read_profile") {
             if cmd::text(&config, "schema_version")? != profile::CONFIG

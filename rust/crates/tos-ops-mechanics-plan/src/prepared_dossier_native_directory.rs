@@ -8,7 +8,7 @@ use std::os::fd::{AsRawFd, IntoRawFd};
 use std::os::unix::ffi::OsStringExt;
 use std::os::unix::fs::MetadataExt;
 use std::path::{Component, Path};
-use tos_compiler::research_execution::ResearchExecution;
+use tos_source_store::execution::Execution as ResearchExecution;
 
 struct DirectoryStream(*mut libc::DIR);
 impl Drop for DirectoryStream {

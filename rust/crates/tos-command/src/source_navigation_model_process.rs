@@ -5,8 +5,8 @@
 //! cleanup; owner selection and final publication remain in the caller.
 
 use super::source_navigation_model_compile::{
-    CHILD_MAX_TOTAL_MS, SOURCE_NAVIGATION_PHASE_STAGES, SourceNavigationModelCompileRequestV2,
-    SourceNavigationModelCompileResultV1,
+    CHILD_MAX_TOTAL_MS, SOURCE_NAVIGATION_PHASE_STAGES, SourceNavigationModelCompileRequestV3,
+    SourceNavigationModelCompileResultV2,
 };
 use crate::source_command::{SourceCommandError, SourceCommandResult};
 use std::{
@@ -24,18 +24,17 @@ use std::{
 };
 use tos_foundation::{Digest256, Digest256Hasher};
 
-const REQUEST_SCHEMA: &str = "tos_source_navigation_model_compile_request_v2";
-const RESULT_SCHEMA: &str = "tos_source_navigation_model_compile_result_v1";
+const REQUEST_SCHEMA: &str = "tos_source_navigation_model_compile_request_v3";
+const RESULT_SCHEMA: &str = "tos_source_navigation_model_compile_result_v2";
 const CANDIDATE_LEAF: &str = "source-navigation-model.sqlite";
 const REQUEST_MAX_BYTES: usize = 8 * 1024 * 1024;
 const RESPONSE_MAX_BYTES: usize = 8 * 1024 * 1024;
 const STDERR_RETAIN_BYTES: usize = 16 * 1024;
 const EXECUTABLE_MAX_BYTES: u64 = 512 * 1024 * 1024;
-const WORKER_MAX_BYTES: u64 = 256 * 1024 * 1024;
+const PROCESSOR_MAX_BYTES: u64 = 256 * 1024 * 1024;
 const CHILD_MAX_SHUTDOWN_MS: u64 = 60_000;
 const POST_EXIT_DRAIN_MS: u64 = 250;
 const PIPE_READ_SLICE_BYTES: usize = 64 * 1024;
-const MASKED_FALLBACK_ROOTS: [&str; 3] = ["/var/tmp", "/usr/tmp", "/tmp"];
 const CHILD_REFUSAL_PREFIX: &str = "source-navigation model compile refused: ";
 const CHILD_REFUSAL_MAX_BYTES: usize = 4 * 1024;
 const PHASE_TRACE_TAG: &str = "tos_source_navigation_phase_v1";
@@ -113,9 +112,9 @@ pub(crate) fn launch_source_navigation_model_compile(
     launcher: &SourceNavigationModelLauncherV1,
     limits: SourceNavigationModelProcessLimits,
     remaining_budget_ms: u64,
-    request: &mut SourceNavigationModelCompileRequestV2,
+    request: &mut SourceNavigationModelCompileRequestV3,
     cancelled: &AtomicBool,
-) -> SourceCommandResult<SourceNavigationModelCompileResultV1> {
+) -> SourceCommandResult<SourceNavigationModelCompileResultV2> {
     // Establish the outer deadline before path checks or executable hashing.
     let started = monotonic_ns()?;
     let total_ms = remaining_budget_ms
@@ -471,7 +470,7 @@ pub(crate) fn launch_source_navigation_model_compile(
         )));
     }
     child_guard.complete = true;
-    let response: SourceNavigationModelCompileResultV1 = serde_json::from_slice(&pipes.output)
+    let response: SourceNavigationModelCompileResultV2 = serde_json::from_slice(&pipes.output)
         .map_err(|_| SourceCommandError::Invalid("source-navigation child response schema"))?;
     validate_result(&response, &request_digest, request, limits)?;
     verify_candidate_readback(request, &response, limits)?;
@@ -495,7 +494,7 @@ fn check_cancelled(cancelled: &AtomicBool) -> SourceCommandResult<()> {
 }
 
 fn verify_limit_binding(
-    request: &SourceNavigationModelCompileRequestV2,
+    request: &SourceNavigationModelCompileRequestV3,
     limits: SourceNavigationModelProcessLimits,
 ) -> SourceCommandResult<()> {
     let selected = request.model_limits;
@@ -517,7 +516,7 @@ fn verify_limit_binding(
     Ok(())
 }
 
-fn verify_inputs(request: &SourceNavigationModelCompileRequestV2) -> SourceCommandResult<File> {
+fn verify_inputs(request: &SourceNavigationModelCompileRequestV3) -> SourceCommandResult<File> {
     let root = normalized_absolute(&request.read_only_input_root)?;
     let cut = normalized_absolute(&request.source_cut_root)?;
     if cut == root || !cut.starts_with(&root) {
@@ -532,33 +531,16 @@ fn verify_inputs(request: &SourceNavigationModelCompileRequestV2) -> SourceComma
         .map_err(|_| SourceCommandError::Conflict("source-navigation selected cut root"))?;
     same_named_directory(&cut, &cut_fd)?;
 
-    let worker_path = normalized_absolute(&request.schema_worker.absolute_path)?;
     let processor_path = normalized_absolute(&request.normalization_processor.absolute_path)?;
-    let canonical_worker = fs::canonicalize(&worker_path)
-        .map_err(|_| SourceCommandError::Conflict("source-navigation selected schema worker"))?;
-    let worker_under_masked_fallback = MASKED_FALLBACK_ROOTS
-        .iter()
-        .map(Path::new)
-        .any(|fallback| canonical_worker.starts_with(fallback));
-    if canonical_worker != worker_path
-        || (!worker_path.starts_with(&root) && worker_under_masked_fallback)
-        || !processor_path.starts_with(&root)
-    {
+    if !processor_path.starts_with(&root) {
         return Err(SourceCommandError::Invalid(
-            "source-navigation selected worker or processor path",
+            "source-navigation selected processor path",
         ));
     }
-    let (worker_image, _) = pinned_executable(
-        &worker_path,
-        &request.schema_worker.sha256,
-        WORKER_MAX_BYTES,
-        "source-navigation selected schema worker",
-    )?;
-    drop(worker_image);
     verify_file_digest(
         &processor_path,
         &request.normalization_processor.sha256,
-        WORKER_MAX_BYTES,
+        PROCESSOR_MAX_BYTES,
         Some(request.normalization_processor.size_bytes),
         "source-navigation selected normalization processor",
     )?;
@@ -567,7 +549,7 @@ fn verify_inputs(request: &SourceNavigationModelCompileRequestV2) -> SourceComma
 
 fn verify_paths_and_staging(
     launcher: &SourceNavigationModelLauncherV1,
-    request: &SourceNavigationModelCompileRequestV2,
+    request: &SourceNavigationModelCompileRequestV3,
     input_root: &File,
 ) -> SourceCommandResult<()> {
     let input_path = normalized_absolute(&request.read_only_input_root)?;
@@ -851,9 +833,9 @@ fn hash_file(mut file: File, max_bytes: u64) -> SourceCommandResult<Digest256> {
 }
 
 fn validate_result(
-    result: &SourceNavigationModelCompileResultV1,
+    result: &SourceNavigationModelCompileResultV2,
     request_digest: &str,
-    request: &SourceNavigationModelCompileRequestV2,
+    request: &SourceNavigationModelCompileRequestV3,
     limits: SourceNavigationModelProcessLimits,
 ) -> SourceCommandResult<()> {
     let stage = &result.stage;
@@ -880,6 +862,9 @@ fn validate_result(
     if result.schema_version != RESULT_SCHEMA
         || result.raw_request_sha256 != request_digest
         || result.candidate_leaf != CANDIDATE_LEAF
+        || !result
+            .schema_execution
+            .matches_input_limit(request.model_limits.max_source_member_bytes)
         || stage.source_cut != expected_binding.source_cut
         || stage.membership_root != expected_binding.membership_root
         || stage.input_collections != stage.verified_inputs.len()
@@ -910,8 +895,8 @@ fn validate_result(
 }
 
 fn verify_candidate_readback(
-    request: &SourceNavigationModelCompileRequestV2,
-    result: &SourceNavigationModelCompileResultV1,
+    request: &SourceNavigationModelCompileRequestV3,
+    result: &SourceNavigationModelCompileResultV2,
     limits: SourceNavigationModelProcessLimits,
 ) -> SourceCommandResult<()> {
     let path = request.artifact_staging_root.join(CANDIDATE_LEAF);

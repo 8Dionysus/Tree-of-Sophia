@@ -176,6 +176,7 @@ fn add_candidate_local_claim_diagnostics_cost(
         };
     }
     add_u64!(completed_exchanges);
+    add_u64!(in_process_evaluations);
     add_u64!(issue_count);
     add_u64!(schema_resource_bytes);
     add_usize!(schema_resource_buffer_bytes);
@@ -999,6 +1000,27 @@ pub fn inspect_bibliography_from_cut<S: CutSchemaExecutor + CutSchemaReceiptRang
     cancelled: &AtomicBool,
     schemas: &mut S,
 ) -> Result<SourceCutBiblioReport, ItemRefusal> {
+    inspect_bibliography_on_cut(cut, records, limits, cancelled, schemas)
+}
+
+/// Inspect bibliography against the exact source cut using the in-process engine.
+pub fn inspect_bibliography_from_in_process_cut(
+    cut: &CorpusCutReader,
+    records: &SourceCutRecordReport,
+    limits: ItemLimits,
+    cancelled: &AtomicBool,
+    schemas: &mut crate::source_cut::InProcessCutSchemaExecutor<()>,
+) -> Result<SourceCutBiblioReport, ItemRefusal> {
+    inspect_bibliography_on_cut(cut, records, limits, cancelled, schemas)
+}
+
+fn inspect_bibliography_on_cut(
+    cut: &CorpusCutReader,
+    records: &SourceCutRecordReport,
+    limits: ItemLimits,
+    cancelled: &AtomicBool,
+    schemas: &mut impl crate::native_compound::NativeCompoundSchema,
+) -> Result<SourceCutBiblioReport, ItemRefusal> {
     check(limits.deadline, cancelled)?;
     if schemas.selected_source_revision() != Some(cut.current().revision()) {
         return Err(ItemRefusal::Source(
@@ -1574,7 +1596,7 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
     record_lookup: &dyn SourceFoundationDefaultRecordsLookup,
     _default_events: &dyn SourceFoundationDefaultEventLookup,
     stored: &mut dyn SourceFoundationBiblioStoredSink,
-    schemas: &mut crate::source_cut::CandidateCutWorkerSchemaExecutor<I>,
+    schemas: &mut impl crate::source_foundation_records::SourceFoundationCandidateSchemaBinding<I>,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> Result<SourceFoundationBiblioStoredReport<I>, ItemRefusal> {
@@ -1585,15 +1607,18 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
         .ok_or_else(|| {
             ItemRefusal::Source("Biblio requires candidate Records schema binding".into())
         })?;
-    let prepared = schemas.prepared_execution_binding();
+    let prepared = schemas.schema_execution_binding().ok_or_else(|| {
+        ItemRefusal::Source("Biblio candidate schema execution binding unavailable".into())
+    })?;
     if input.input_identity() != records.input_identity()
         || input.input_identity() != schemas.input_identity()
         || records.source_membership() != &coverage.membership()
-        || schema_identity.prepared_execution_binding() != prepared
+        || schema_identity.schema_execution_binding() != prepared
         || schema_identity.profile() != schemas.profile()
         || schema_identity.schema_set_digest() != schemas.schema_set_digest()
         || schema_identity.contract_selection_digest() != schemas.contract_selection_digest()
-        || schema_identity.worker_digest() != prepared.worker_sha256
+        || matches!(prepared, tos_foundation::SchemaExecutionBinding::InProcessV1(binding)
+            if binding.engine != crate::in_process::ENGINE_ID)
     {
         return Err(ItemRefusal::Source(
             "Biblio candidate input, Records report, and prepared schema binding differ".into(),
@@ -1824,7 +1849,7 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
                                         if native.input_identity() != input.input_identity()
                                             || native.current_membership()
                                                 != *records.source_membership()
-                                            || native.prepared_execution_binding() != prepared
+                                            || native.schema_execution_binding() != prepared
                                             || native.schema_set_sha256()
                                                 != schema_identity.schema_set_digest()
                                             || native.contract_selection_sha256()

@@ -349,9 +349,6 @@ pub struct InstalledSchemaWorker {
     sha256: Digest256,
 }
 impl InstalledSchemaWorker {
-    pub(crate) fn software(&self) -> Arc<SoftwareSite> {
-        Arc::clone(&self.site)
-    }
     pub fn path(&self) -> &Path {
         &self.path
     }
@@ -664,7 +661,7 @@ impl SoftwareSite {
             .and_then(JsonValue::as_array)
             .ok_or_else(|| unavailable("installed software member inventory absent"))
     }
-    fn check(&self) -> Result<(), AccessError> {
+    pub(crate) fn check(&self) -> Result<(), AccessError> {
         if identity(&self.manifest_file)? != self.manifest_identity
             || identity(&self.executable)? != self.executable_identity
             || identity(

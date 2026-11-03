@@ -46,7 +46,6 @@ use tos_foundation::{
     Digest256, JsonLimits, JsonMode, JsonValue, emit_value_preserved_json, parse_json,
 };
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
-use tos_validation::source_cut::CutWorkerSchemaExecutor;
 const META: usize = 1_048_576;
 const PROFILE: &str = "metadata-addition-publication-profile";
 
@@ -318,7 +317,7 @@ pub fn publish_committed_initial_metadata(
     expected: &JsonValue,
     catalog: &CatalogInputs,
     metadata_profile_review: Option<&ReviewedMetadataProfileTransition>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     vocabulary: &QueryVocabulary,
     descriptor: &[u8],
     execution: &NativeMetadataExecution,
@@ -376,7 +375,7 @@ pub(crate) fn publish_committed_initial_metadata_with_precommit(
     expected: &JsonValue,
     catalog: &CatalogInputs,
     metadata_profile_review: Option<&ReviewedMetadataProfileTransition>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     vocabulary: &QueryVocabulary,
     descriptor: &[u8],
     execution: &NativeMetadataExecution,

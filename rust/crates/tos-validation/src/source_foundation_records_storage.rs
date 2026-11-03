@@ -18,7 +18,7 @@ use serde_json::Value;
 use std::num::NonZeroUsize;
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
-use tos_foundation::Digest256;
+use tos_foundation::{Digest256, SchemaExecutionBinding};
 use tos_source_store::SourceMembershipV1;
 
 pub const NATIVE_ARTIFACT_RECORD_SCHEMA_URI: &str =
@@ -117,7 +117,72 @@ pub struct SourceFoundationRecordObservation {
 #[derive(Debug, Clone)]
 pub struct SourceFoundationRecordSchemaDiagnostic {
     pub ordinal: u64,
-    pub diagnostic: SourceCutSchemaDiagnostic,
+    pub diagnostic: SourceFoundationStoredSchemaDiagnostic,
+}
+
+/// The spool preserves the evidence generation that produced each record.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SourceFoundationStoredSchemaDiagnostic {
+    Worker(SourceCutSchemaDiagnostic),
+    InProcess(crate::source_cut::InProcessCutDiagnostic<Value>),
+}
+
+impl SourceFoundationStoredSchemaDiagnostic {
+    pub fn minimum_state_bytes(&self) -> Result<usize, ItemRefusal> {
+        match self {
+            Self::Worker(row) => Ok(row.accounted_state_bytes),
+            Self::InProcess(row) => Self::in_process_minimum_state_bytes(row),
+        }
+    }
+
+    pub fn in_process_minimum_state_bytes(
+        row: &crate::source_cut::InProcessCutDiagnostic<Value>,
+    ) -> Result<usize, ItemRefusal> {
+        use crate::executor::schema_diagnostics::{Issue, PathSegment};
+        use crate::source_cut::InProcessCutIdentity;
+        let identity = match &row.identity {
+            InProcessCutIdentity::Source(_) => 0,
+            InProcessCutIdentity::Candidate(value) => {
+                crate::record_biblio_cut::decoded_state(value)?
+            }
+        };
+        let mut size = std::mem::size_of::<Self>()
+            .checked_add(identity)
+            .and_then(|n| n.checked_add(row.path.capacity()))
+            .and_then(|n| n.checked_add(row.contract.capacity()))
+            .and_then(|n| n.checked_add(row.report.root_uri.capacity()))
+            .and_then(|n| {
+                n.checked_add(
+                    row.report
+                        .issues
+                        .capacity()
+                        .checked_mul(std::mem::size_of::<Issue>())?,
+                )
+            })
+            .ok_or(crate::item_budget_origin!())?;
+        for issue in &row.report.issues {
+            size = size
+                .checked_add(issue.schema_keyword.capacity())
+                .ok_or(crate::item_budget_origin!())?;
+            for path in [&issue.instance_path, &issue.schema_path] {
+                size = size
+                    .checked_add(
+                        path.capacity()
+                            .checked_mul(std::mem::size_of::<PathSegment>())
+                            .ok_or(crate::item_budget_origin!())?,
+                    )
+                    .ok_or(crate::item_budget_origin!())?;
+                for segment in path {
+                    if let PathSegment::Property(name) = segment {
+                        size = size
+                            .checked_add(name.capacity())
+                            .ok_or(crate::item_budget_origin!())?;
+                    }
+                }
+            }
+        }
+        Ok(size)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -453,6 +518,15 @@ pub trait SourceFoundationRecordsStore {
         cancelled: &AtomicBool,
     ) -> Result<(), ItemRefusal>;
 
+    /// Store in-process evidence alongside historical worker diagnostics.
+    fn record_in_process_schema_diagnostic(
+        &mut self,
+        ordinal: u64,
+        row: &crate::source_cut::InProcessCutDiagnostic<Value>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(), ItemRefusal>;
+
     /// Read one bounded sorted join page. The adapter binds cursors to the
     /// collection and uses the original operation deadline/cancellation token
     /// while charging every repeated read to the candidate's shared ledgers.
@@ -537,7 +611,7 @@ pub trait SourceFoundationRecordsStore {
         &self,
         path: &str,
         member_sha256_hex: &str,
-        member_size_bytes: u64,
+        member_size_bytes: Option<u64>,
         diagnostic_unit_sha256_hex: &str,
         diagnostic_report_sha256_hex: &str,
         exact_schema_set: bool,
@@ -822,7 +896,7 @@ impl<'a> SourceFoundationRecordsIndex<'a> {
         &self,
         path: &str,
         member_sha256_hex: &str,
-        member_size_bytes: u64,
+        member_size_bytes: Option<u64>,
         diagnostic_unit_sha256_hex: &str,
         diagnostic_report_sha256_hex: &str,
         exact_schema_set: bool,
@@ -1453,7 +1527,7 @@ fn source_foundation_stored_fact_minimum_state_bytes(
             record_observation_minimum_state_bytes(&row.observation)?
         }
         SourceFoundationRecordsStoredFact::RecordSchemaDiagnostic(row) => {
-            row.diagnostic.accounted_state_bytes
+            row.diagnostic.minimum_state_bytes()?
         }
     };
     size.checked_add(payload)
@@ -1538,10 +1612,10 @@ pub struct SourceFoundationRecordsStreamedItemSummary {
 /// Prepared, selected Item schema identity used by the candidate receiver.
 /// The ordered resource set itself remains owned by the candidate adapter;
 /// this projection carries its exact set and selection digests after each
-/// selected path, size, digest, and worker check has been verified.
+/// selected path, size, digest, and execution binding has been verified.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SourceFoundationCandidateSchemaIdentity {
-    prepared_execution: CutPreparedSchemaExecutionBinding,
+    prepared_execution: SchemaExecutionBinding,
     contract_selection_digest: Digest256,
     selected_resource_count: u64,
     selected_resource_bytes: u64,
@@ -1549,7 +1623,7 @@ pub struct SourceFoundationCandidateSchemaIdentity {
 
 impl SourceFoundationCandidateSchemaIdentity {
     pub(super) fn new(
-        prepared_execution: CutPreparedSchemaExecutionBinding,
+        prepared_execution: SchemaExecutionBinding,
         contract_selection_digest: Digest256,
         selected_resource_count: u64,
         selected_resource_bytes: u64,
@@ -1563,18 +1637,26 @@ impl SourceFoundationCandidateSchemaIdentity {
     }
 
     pub fn profile(&self) -> crate::FormatProfile {
-        self.prepared_execution.schema_profile
+        self.prepared_execution.schema_profile()
     }
 
     pub fn schema_set_digest(&self) -> Digest256 {
-        self.prepared_execution.schema_set_sha256
+        self.prepared_execution.schema_set_sha256()
     }
 
-    pub fn worker_digest(&self) -> Digest256 {
-        self.prepared_execution.worker_sha256
+    pub fn worker_digest(&self) -> Option<Digest256> {
+        self.prepared_execution_binding()
+            .map(|binding| binding.worker_sha256)
     }
 
-    pub fn prepared_execution_binding(&self) -> CutPreparedSchemaExecutionBinding {
+    pub fn prepared_execution_binding(&self) -> Option<CutPreparedSchemaExecutionBinding> {
+        match self.prepared_execution {
+            SchemaExecutionBinding::Worker(binding) => Some(binding),
+            SchemaExecutionBinding::InProcessV1(_) => None,
+        }
+    }
+
+    pub fn schema_execution_binding(&self) -> SchemaExecutionBinding {
         self.prepared_execution
     }
 
@@ -1588,6 +1670,31 @@ impl SourceFoundationCandidateSchemaIdentity {
 
     pub fn selected_resource_bytes(&self) -> u64 {
         self.selected_resource_bytes
+    }
+}
+
+#[cfg(test)]
+mod candidate_schema_identity_tests {
+    use super::*;
+    use tos_foundation::{FormatProfile, InProcessSchemaExecutionBinding};
+
+    #[test]
+    fn in_process_identity_preserves_schema_binding_without_worker_digest() {
+        let digest = Digest256::of_bytes(b"selected schemas");
+        let binding = SchemaExecutionBinding::InProcessV1(InProcessSchemaExecutionBinding {
+            schema_profile: FormatProfile::AssertedSourceCandidateV1,
+            schema_set_sha256: digest,
+            engine: crate::in_process::ENGINE_ID,
+            input_mode_sha256: Some(
+                crate::in_process::InputMode::PublishedStrict.identity_sha256(),
+            ),
+        });
+        let identity = SourceFoundationCandidateSchemaIdentity::new(binding, digest, 1, 42);
+        assert_eq!(identity.schema_execution_binding(), binding);
+        assert_eq!(identity.profile(), FormatProfile::AssertedSourceCandidateV1);
+        assert_eq!(identity.schema_set_digest(), digest);
+        assert_eq!(identity.prepared_execution_binding(), None);
+        assert_eq!(identity.worker_digest(), None);
     }
 }
 

@@ -12,8 +12,8 @@ use crate::record_biblio_cut::{
     inspect_records_from_cut, inspect_records_from_input_stored,
 };
 use crate::source_cut::{
-    CandidateCutSchemaDiagnostic, CutPayloadReader, CutPreparedSchemaExecutionBinding,
-    CutSchemaDiagnosticsCumulativeCost, CutSchemaExecutor, CutWorkerSchemaExecutor,
+    CandidateCutSchemaDiagnostic, CutPayloadReader, CutSchemaDiagnosticsCumulativeCost,
+    CutSchemaExecutor,
 };
 use crate::source_foundation_discovery::SourcePhysicalFacts;
 use crate::source_witness_foundation::SourceFileMembershipIndex;
@@ -43,8 +43,8 @@ pub use source_foundation_records_storage::{
     SourceFoundationRecordsCursorPage, SourceFoundationRecordsIndex, SourceFoundationRecordsLookup,
     SourceFoundationRecordsPageBudget, SourceFoundationRecordsStore,
     SourceFoundationRecordsStoredFact, SourceFoundationRecordsStreamedItemSummary,
-    SourceFoundationRecordsStreamedReport, SourceFoundationTypedIdRefFact,
-    SourceFoundationUriOwnerLookup,
+    SourceFoundationRecordsStreamedReport, SourceFoundationStoredSchemaDiagnostic,
+    SourceFoundationTypedIdRefFact, SourceFoundationUriOwnerLookup,
 };
 
 /// One exact resource selected into the candidate-bound Item schema closure.
@@ -63,7 +63,6 @@ pub struct SourceFoundationCandidateSchemaResource<'a> {
 /// and covers the complete selected closure.
 pub trait SourceFoundationCandidateSchemaBinding<I: Eq + Clone>: CutSchemaExecutor {
     fn input_identity(&self) -> &I;
-    fn prepared_execution_binding(&self) -> CutPreparedSchemaExecutionBinding;
     fn profile(&self) -> crate::FormatProfile;
     fn schema_set_digest(&self) -> Digest256;
     fn contract_selection_digest(&self) -> Digest256;
@@ -74,6 +73,19 @@ pub trait SourceFoundationCandidateSchemaBinding<I: Eq + Clone>: CutSchemaExecut
             SourceFoundationCandidateSchemaResource<'_>,
         ) -> Result<(), ItemRefusal>,
     ) -> Result<(), ItemRefusal>;
+
+    fn selected_resource_totals(&self) -> Result<(u64, u64), ItemRefusal> {
+        let mut count = 0u64;
+        let mut bytes = 0u64;
+        self.for_each_selected_resource(&mut |resource| {
+            count = count.checked_add(1).ok_or(crate::item_budget_origin!())?;
+            bytes = bytes
+                .checked_add(resource.size_bytes)
+                .ok_or(crate::item_budget_origin!())?;
+            Ok(())
+        })?;
+        Ok((count, bytes))
+    }
 
     /// Execute the unchanged schema selector, including any JSON-pointer
     /// fragment in `contract`. The default forwards the contract byte-for-byte
@@ -105,6 +117,19 @@ pub trait SourceFoundationCandidateSchemaBinding<I: Eq + Clone>: CutSchemaExecut
         ))
     }
 
+    /// Return evidence in the representation of the selected engine.
+    fn check_diagnostic(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<crate::source_cut::CandidateSchemaDiagnostic<I>, ItemRefusal> {
+        self.check_diagnostics_v2(path, raw, contract, deadline, cancelled)
+            .map(crate::source_cut::CandidateSchemaDiagnostic::Worker)
+    }
+
     /// Move the next complete invalid diagnostics report retained by a bool
     /// projection. Implementations without this protocol fail closed.
     fn take_schema_diagnostic_rejection(
@@ -113,6 +138,14 @@ pub trait SourceFoundationCandidateSchemaBinding<I: Eq + Clone>: CutSchemaExecut
         Err(ItemRefusal::Unsupported(
             "candidate schema diagnostics rejection drain unavailable".into(),
         ))
+    }
+
+    /// Move one retained non-valid observation in its producing representation.
+    fn take_diagnostic_rejection(
+        &mut self,
+    ) -> Result<Option<crate::source_cut::CandidateSchemaDiagnostic<I>>, ItemRefusal> {
+        self.take_schema_diagnostic_rejection()
+            .map(|row| row.map(crate::source_cut::CandidateSchemaDiagnostic::Worker))
     }
 
     /// Report the actual number of diagnostics-v2 executions observed by the
@@ -5019,11 +5052,11 @@ pub fn inspect_source_foundation_records_from_cut_rolling(
     require_local_payloads: bool,
     cancelled: &AtomicBool,
     record_executor: &mut BiblioRecordExecutor,
-    item_schemas: &mut CutWorkerSchemaExecutor,
+    item_schemas: &mut impl CutSchemaExecutor,
     physical_facts: &SourcePhysicalFacts,
     payloads: &mut impl CutPayloadReader,
 ) -> Result<SourceFoundationRecordsReport, ItemRefusal> {
-    if item_schemas.source_revision() != expected_revision {
+    if item_schemas.selected_source_revision() != Some(expected_revision) {
         return Err(ItemRefusal::Source(
             "source-foundation Item schema worker belongs to another cut".into(),
         ));
@@ -5143,15 +5176,17 @@ pub fn inspect_source_foundation_records_from_input_stored<'a, I: Eq + Clone>(
             "candidate Item schema binding has another source input identity".into(),
         ));
     }
-    let prepared = <_ as SourceFoundationCandidateSchemaBinding<I>>::prepared_execution_binding(
-        schema_binding,
-    );
-    if prepared.schema_profile != schema_binding.profile()
-        || prepared.schema_set_sha256 != schema_binding.schema_set_digest()
-        || prepared.schema_profile != record_executor.profile
+    let prepared = schema_binding.schema_execution_binding().ok_or_else(|| {
+        ItemRefusal::Source("candidate Item schema execution binding unavailable".into())
+    })?;
+    if prepared.schema_profile() != schema_binding.profile()
+        || prepared.schema_set_sha256() != schema_binding.schema_set_digest()
+        || prepared.schema_profile() != record_executor.profile
+        || matches!(prepared, tos_foundation::SchemaExecutionBinding::InProcessV1(binding)
+            if binding.engine != crate::in_process::ENGINE_ID || binding.input_mode_sha256.is_none())
     {
         return Err(ItemRefusal::Source(
-            "candidate Item schema worker binding differs from the prepared profile or set".into(),
+            "candidate Item schema binding differs from the prepared profile or set".into(),
         ));
     }
 
@@ -6144,7 +6179,7 @@ struct SchemaResourceCost {
 
 fn schema_resource_cost(
     cut: &CorpusCutReader,
-    item_schemas: &CutWorkerSchemaExecutor,
+    item_schemas: &impl CutSchemaExecutor,
 ) -> Result<SchemaResourceCost, ItemRefusal> {
     for path in REQUIRED_ITEM_SCHEMAS {
         let relative = RelativePath::parse(path)
@@ -6152,7 +6187,7 @@ fn schema_resource_cost(
         let member = cut.current().member(&relative).ok_or_else(|| {
             ItemRefusal::Source(format!("Item schema is absent from captured cut: {path}"))
         })?;
-        if item_schemas.contract_digest(path) != Some(member.sha256) {
+        if item_schemas.selected_contract_digest(path) != Some(member.sha256) {
             return Err(ItemRefusal::Source(format!(
                 "Item schema worker does not use captured bytes: {path}"
             )));
@@ -6169,7 +6204,7 @@ fn schema_resource_cost(
         records = records
             .checked_add(member.size_bytes)
             .ok_or(crate::item_budget_origin!())?;
-        if let Some(digest) = item_schemas.contract_digest(path) {
+        if let Some(digest) = item_schemas.selected_contract_digest(path) {
             if digest != member.sha256 {
                 return Err(ItemRefusal::Source(format!(
                     "Item schema worker resource differs from captured bytes: {path}"

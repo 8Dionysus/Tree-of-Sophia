@@ -1936,6 +1936,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "tos-research"
+version = "0.6.0"
+dependencies = [
+ "flate2",
+ "libc",
+ "quick-xml",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tos-command",
+ "tos-compiler",
+ "tos-fd-open",
+ "tos-foundation",
+ "tos-source-store",
+ "tos-validation",
+ "unicode-normalization",
+]
+
+[[package]]
 name = "tos-segment-store"
 version = "0.1.0"
 dependencies = [
@@ -1950,6 +1970,8 @@ name = "tos-source-store"
 version = "0.1.0"
 dependencies = [
  "flate2",
+ "fs2",
+ "libc",
  "rusqlite",
  "rustix",
  "serde_json",

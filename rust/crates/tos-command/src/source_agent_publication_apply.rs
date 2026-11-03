@@ -27,7 +27,7 @@ use tos_compiler::{
     },
 };
 use tos_foundation::{JsonLimits, JsonMode, JsonValue, emit_value_preserved_json, parse_json};
-use tos_validation::source_cut::CutWorkerSchemaExecutor;
+
 const META: usize = 1_048_576;
 fn view(value: &JsonValue) -> Result<Value> {
     let raw = emit_value_preserved_json(
@@ -108,15 +108,15 @@ impl Applied {
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(super) fn apply(
+pub(super) fn apply<W: crate::source_creation::CreationSchemaExecutor>(
     tx: &Transaction<'_>,
     progress: &ClaimPublicationProgress<'_>,
     observation: &CommittedRecordObservation<'_>,
     before_source: &PreparedSourceInputs,
     expected: &JsonValue,
     before: &CatalogInputs,
-    original_worker: &mut CutWorkerSchemaExecutor,
-    current_worker: &mut CutWorkerSchemaExecutor,
+    original_worker: &mut W,
+    current_worker: &mut W,
     bibliographic_limits: BibliographicLimits,
     mutation_limits: MutationLimits,
     candidate_limits: ClaimCandidateLimits,

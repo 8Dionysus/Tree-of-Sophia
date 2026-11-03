@@ -31,7 +31,7 @@ use tos_foundation::{Digest256, JsonValue, RelativePath};
 use tos_segment_store::SegmentStore;
 use tos_validation::record_biblio_cut::SourceCutInput;
 use tos_validation::record_biblio_cut::SourceCutInputWithIdentity;
-use tos_validation::source_cut::CandidateCutWorkerSchemaExecutor;
+use tos_validation::source_cut::InProcessCandidateSchemaExecutor;
 
 const CONTEXT_SCHEMA: &str = "ToS/contracts/owner-local-source-context.schema.json";
 const BATCH_SCHEMA: &str = "ToS/contracts/knowledge-assessment-batch.schema.json";
@@ -208,8 +208,7 @@ fn preflight_sign_owner(
         .map_err(|_| SourceCommandError::Invalid("Sign PG selected input budget"))?;
     let mut files = PgGrowthFiles { input: &input };
     let context_schema = files.read(CONTEXT_SCHEMA, MAX_SCHEMA_BYTES, deadline, cancelled)?;
-    let mut worker = assessment::selected_assessment_candidate_worker(
-        invocation,
+    let mut worker = assessment::selected_assessment_candidate_executor(
         &mut files,
         identity,
         &[CONTEXT_SCHEMA.to_owned()],
@@ -314,8 +313,8 @@ fn selected_schema_members(
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(
     BTreeMap<String, Vec<u8>>,
-    CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
-    CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    InProcessCandidateSchemaExecutor<PgRecordRevisionIdentity>,
+    InProcessCandidateSchemaExecutor<PgRecordRevisionIdentity>,
 )> {
     let identity = session.selection().identity();
     if identity != preflight.identity {
@@ -362,11 +361,11 @@ fn selected_schema_members(
         ));
     }
     let paths = schema_members.keys().cloned().collect::<Vec<_>>();
-    let guard_worker = assessment::selected_assessment_candidate_worker(
-        invocation, &mut files, identity, &paths, deadline, cancelled,
+    let guard_worker = assessment::selected_assessment_candidate_executor(
+        &mut files, identity, &paths, deadline, cancelled,
     )?;
-    let operation_worker = assessment::selected_assessment_candidate_worker(
-        invocation, &mut files, identity, &paths, deadline, cancelled,
+    let operation_worker = assessment::selected_assessment_candidate_executor(
+        &mut files, identity, &paths, deadline, cancelled,
     )?;
     drop(files);
     drop(input);
@@ -424,7 +423,7 @@ fn evaluate_sign_view(
     selected_context: &JsonValue,
     identity: PgRecordRevisionIdentity,
     schemas: &BTreeMap<String, Vec<u8>>,
-    worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    worker: &mut InProcessCandidateSchemaExecutor<PgRecordRevisionIdentity>,
     candidate: &str,
     histories: &BTreeMap<String, crate::source_assessment_journal::AssessmentHistory>,
     require_ready: bool,

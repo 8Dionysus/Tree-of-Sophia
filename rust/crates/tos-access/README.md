@@ -34,9 +34,9 @@ binding and disclosure admission remain explicit runtime choices.
 MCP discovery omits source-contract tools when their owner adapter is absent;
 a direct call to the declared operation returns an unavailable tool result.
 
-The maintained `tos-research` build uses `--no-default-features --features
-research-tools --bin tos-research`. Its receipt retains the existing exact
-`["research-tools"]` package feature set through the shared native role table.
+The `tos-research` package owns the research CLI. Its maintained software build
+uses `--no-default-features --features research-tools --bin tos-research`, and
+its receipt records the selected `research-tools` feature.
 
 The metadata-only lexical validation entry is
 `tos-research lexical-index validate-tracked --source-root ABS`. Use

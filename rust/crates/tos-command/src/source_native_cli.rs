@@ -1,5 +1,5 @@
 //! Explicit local invocation of fixed native source owner families. The selected
-//! cut, software capture and worker image are byte evidence, never a grant.
+//! cut, software capture and schema engine identify the selected inputs.
 
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
 use crate::source_serialization::observe_executable;
@@ -21,8 +21,7 @@ use tos_source_store::{
     CorpusReader, CutReadLimits, ReadLimits, SoftwareCaptureReader, SoftwareCaptureSelectionV1,
 };
 use tos_validation::FormatProfile;
-use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::{CutSchemaExecutor, InProcessCutSchemaExecutor};
 
 #[path = "source_native_agent_publication_cli.rs"]
 mod agent_publication;
@@ -38,6 +37,7 @@ mod edition;
 mod forms;
 #[path = "source_native_legacy_claim_cli.rs"]
 mod legacy_claim;
+pub(crate) use legacy_claim::engine::HistoricalSchemas;
 #[path = "source_native_metadata_publication_cli.rs"]
 mod metadata_publication;
 #[path = "source_native_object_link_cli.rs"]
@@ -69,7 +69,7 @@ pub(crate) fn pg_current_historical_claim_owner_contribution(
     ctx: &crate::source_command::CommandContext,
     file: &crate::source_command::SourceFile,
     source_profiles: tos_foundation::JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<tos_foundation::JsonValue> {
@@ -951,7 +951,14 @@ fn run_selected(
                     "private text invocation context differs",
                 ));
             }
-            let mut worker = selected_schema(&invocation, &cut, deadline, &cancelled)?;
+            let mut worker = tos_validation::source_cut::InProcessCutSchemaExecutor::from_cut(
+                &cut,
+                FormatProfile::LegacyPythonObserved20260923,
+                tos_validation::in_process::InputMode::SerdeNormalized,
+                deadline,
+                &cancelled,
+            )
+            .map_err(|_| SourceCommandError::Denied("native private text schema selection"))?;
             let mut grant = crate::source_native_text_read::PrivateTextReadSelection::load(
                 &owner_path,
                 &source_root,
@@ -969,6 +976,7 @@ fn run_selected(
                 deadline,
                 &cancelled,
             )?;
+            crate::source_sign::finish_worker(&mut worker, deadline, &cancelled)?;
             if read_absolute(&selected, uid, true, raw.len(), deadline, &cancelled)? != raw
                 || read_absolute(&owner_path, uid, true, hint_raw.len(), deadline, &cancelled)?
                     != hint_raw
@@ -1175,8 +1183,15 @@ fn run_selected(
             &cancelled,
         );
     }
-    let mut schema = selected_schema(&invocation, &cut, deadline, &cancelled)?;
     if item_invocation {
+        let mut schema = InProcessCutSchemaExecutor::from_cut(
+            &cut,
+            FormatProfile::LegacyPythonObserved20260923,
+            tos_validation::in_process::InputMode::SerdeNormalized,
+            deadline,
+            &cancelled,
+        )
+        .map_err(|_| SourceCommandError::Denied("native Item schema selection"))?;
         return run_item(
             &invocation,
             &request_raw,
@@ -1189,6 +1204,14 @@ fn run_selected(
             &cancelled,
         );
     }
+    let mut schema = tos_validation::source_cut::InProcessCutSchemaExecutor::from_cut(
+        &cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        tos_validation::in_process::InputMode::LegacyPythonObserved,
+        deadline,
+        &cancelled,
+    )
+    .map_err(|_| SourceCommandError::Denied("native Alignment schema selection"))?;
     let context = absolute(text(&invocation, "owner_context")?)?;
     let owner = absolute(text(&invocation, "owner_config")?)?;
     let result = match operation {
@@ -1360,7 +1383,7 @@ fn run_item(
     store: &CorpusReader,
     software: &SoftwareCaptureReader,
     components: &tos_source_store::SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut InProcessCutSchemaExecutor<()>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Value> {
@@ -1565,71 +1588,18 @@ fn run_item(
     }
     Ok(response)
 }
-
-fn selected_schema(
-    invocation: &Value,
+/// Select the legacy-compatible scalar engine on the exact immutable cut.
+fn selected_in_process_schema(
     cut: &tos_source_store::CorpusCutReader,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> SourceCommandResult<CutWorkerSchemaExecutor> {
-    selected_schema_with_profile(
-        invocation,
+) -> SourceCommandResult<InProcessCutSchemaExecutor<()>> {
+    InProcessCutSchemaExecutor::from_cut(
         cut,
-        "schema_worker",
         FormatProfile::LegacyPythonObserved20260923,
+        tos_validation::in_process::InputMode::SerdeNormalized,
         deadline,
         cancelled,
     )
-}
-
-fn selected_schema_with_profile(
-    invocation: &Value,
-    cut: &tos_source_store::CorpusCutReader,
-    worker_field: &str,
-    profile: FormatProfile,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> SourceCommandResult<CutWorkerSchemaExecutor> {
-    // Fixed family dispatch chooses these fields and profiles; request bytes
-    // never select a worker format or turn one family grant into another.
-    if !matches!(
-        (worker_field, profile),
-        ("schema_worker", FormatProfile::LegacyPythonObserved20260923)
-            | (
-                "assessment_schema_worker",
-                FormatProfile::AssertedSourceCandidateV1
-            )
-    ) {
-        return Err(SourceCommandError::Denied("native family worker profile"));
-    }
-    let budgets = &invocation["budgets"];
-    let worker = &invocation[worker_field];
-    exact(worker, &["absolute_path", "sha256"])?;
-    let mut worker_budget = ExecutorBudget::laboratory();
-    worker_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
-    worker_budget.cpu_seconds = capped(budgets, "worker_cpu_seconds", 3)?;
-    worker_budget.address_space_bytes =
-        capped(budgets, "worker_address_space_bytes", 1_073_741_824)?;
-    CutWorkerSchemaExecutor::from_cut(
-        cut,
-        profile,
-        ExactWorkerIdentity {
-            absolute_path: absolute(text(worker, "absolute_path")?)?,
-            sha256: digest(text(worker, "sha256")?)?,
-        },
-        worker_budget,
-        CutWorkerLimits {
-            max_receipts: usize::try_from(capped(budgets, "max_schema_receipts", 128)?)
-                .map_err(|_| SourceCommandError::Invalid("schema receipt budget"))?,
-            max_receipt_bytes: usize::try_from(capped(
-                budgets,
-                "max_schema_receipt_bytes",
-                262_144,
-            )?)
-            .map_err(|_| SourceCommandError::Invalid("schema receipt budget"))?,
-        },
-        deadline,
-        cancelled,
-    )
-    .map_err(|_| SourceCommandError::Denied("native schema worker"))
+    .map_err(|_| SourceCommandError::Denied("native schema selection"))
 }

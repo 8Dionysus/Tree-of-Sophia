@@ -22,9 +22,88 @@ use output::OutputOwner;
 pub type Result<T> = std::result::Result<T, String>;
 pub const V1: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1";
 pub const V2: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-structural-paragraph-v2";
-pub const PDF_SHA: &str = "57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69";
-pub const BBOX_SHA: &str = "c145e47a5655bc440c35bb36922d88a886e9da126c332a23a71beee569615383";
-pub const TEXT_SHA: &str = "9a3e85fe010ec0eb22379b04f8c03a7dfa7beff06286cc0ac35521d8ae66c787";
+#[derive(Debug, Clone, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SourceFixity {
+    pdf_sha256: String,
+    bbox_sha256: String,
+    text_sha256: String,
+}
+impl SourceFixity {
+    // Compatibility profile is removed when compiler research consumers migrate.
+    fn legacy() -> Self {
+        Self {
+            pdf_sha256: "57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69".into(),
+            bbox_sha256: "c145e47a5655bc440c35bb36922d88a886e9da126c332a23a71beee569615383".into(),
+            text_sha256: "9a3e85fe010ec0eb22379b04f8c03a7dfa7beff06286cc0ac35521d8ae66c787".into(),
+        }
+    }
+    fn selected(value: &Value) -> Result<Self> {
+        let selected: Self =
+            serde_json::from_value(value.clone()).map_err(|e| format!("source fixity: {e}"))?;
+        for digest in [
+            &selected.pdf_sha256,
+            &selected.bbox_sha256,
+            &selected.text_sha256,
+        ] {
+            if Digest256::from_hex(digest)
+                .map_err(|e| format!("source fixity: {e}"))?
+                .to_hex()
+                != *digest
+            {
+                return Err("source fixity requires lowercase SHA-256".into());
+            }
+        }
+        Ok(selected)
+    }
+    fn as_value(&self) -> Value {
+        json!({"pdf_sha256":self.pdf_sha256,"bbox_sha256":self.bbox_sha256,"private_text_layer_sha256":self.text_sha256})
+    }
+}
+#[derive(Debug, Clone, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ExtractionProfile {
+    tool: String,
+    version: String,
+    arguments: Vec<String>,
+    expected_bbox_bytes: usize,
+    expected_warning: String,
+    expected_warning_count: usize,
+}
+impl ExtractionProfile {
+    // Compatibility profile is removed when compiler research consumers migrate.
+    fn legacy() -> Self {
+        Self {
+            tool: "pdftotext".into(),
+            version: "26.01.0".into(),
+            arguments: vec!["-bbox-layout".into(), "SOURCE_PDF".into(), "-".into()],
+            expected_bbox_bytes: 12_306_305,
+            expected_warning: "Syntax Warning: Invalid Font Weight".into(),
+            expected_warning_count: 2601,
+        }
+    }
+    fn selected(value: &Value) -> Result<Self> {
+        let profile: Self = serde_json::from_value(value.clone())
+            .map_err(|e| format!("extraction profile: {e}"))?;
+        if profile.tool != "pdftotext"
+            || profile.arguments != ["-bbox-layout", "SOURCE_PDF", "-"]
+            || profile.version.is_empty()
+            || profile.expected_bbox_bytes == 0
+            || (profile.expected_warning_count != 0 && profile.expected_warning.is_empty())
+        {
+            return Err("unsupported PDF extraction profile".into());
+        }
+        profile.warning_bytes()?;
+        Ok(profile)
+    }
+    fn warning_bytes(&self) -> Result<usize> {
+        self.expected_warning
+            .len()
+            .checked_add(2)
+            .and_then(|n| n.checked_mul(self.expected_warning_count))
+            .ok_or_else(|| "extraction warning size overflow".into())
+    }
+}
 fn sha(raw: &[u8]) -> String {
     Digest256::of_bytes(raw).to_hex()
 }
@@ -382,6 +461,8 @@ pub struct Row {
 pub struct Model {
     deadline: Instant,
     source: SourceInput,
+    expected: ExpectedCensus,
+    fixity: SourceFixity,
     pub lines: Vec<Line>,
     pub rows: Vec<Row>,
     pub census: Vec<Value>,
@@ -533,6 +614,7 @@ fn observation(
     inventory: &[Value],
     citations: Option<&[Value]>,
     plan: &Value,
+    expected_text_sha256: &str,
     deadline: Instant,
 ) -> Result<Observation> {
     tick(deadline)?;
@@ -736,7 +818,7 @@ fn observation(
                 .join("\n"),
         );
     }
-    if sha(text.as_bytes()) != TEXT_SHA {
+    if sha(text.as_bytes()) != expected_text_sha256 {
         return fail("private text-layer fixity drift");
     }
     Ok(Observation {
@@ -745,21 +827,27 @@ fn observation(
         dimensions,
     })
 }
-fn poppler_bbox(deadline: Instant, pdf_file: &fs::File, plan: &Value) -> Result<Vec<u8>> {
+fn poppler_bbox(
+    deadline: Instant,
+    pdf_file: &fs::File,
+    plan: &Value,
+    expected_bbox_sha256: &str,
+    extraction: &ExtractionProfile,
+) -> Result<Vec<u8>> {
     tick(deadline)?;
     let pdf_carrier = format!("/proc/{}/fd/{}", std::process::id(), pdf_file.as_raw_fd());
     let policy = &plan["extraction_policy"];
-    if s(&policy["software_version"]) != "26.01.0"
-        || n(&policy["expected_bbox_bytes"]) != 12_306_305
-        || s(&policy["expected_bbox_sha256"]) != BBOX_SHA
-        || n(&policy["expected_warning_count"]) != 2601
-        || s(&policy["expected_warning"]) != "Syntax Warning: Invalid Font Weight"
+    if s(&policy["software_version"]) != extraction.version
+        || n(&policy["expected_bbox_bytes"]) != extraction.expected_bbox_bytes
+        || s(&policy["expected_bbox_sha256"]) != expected_bbox_sha256
+        || n(&policy["expected_warning_count"]) != extraction.expected_warning_count
+        || s(&policy["expected_warning"]) != extraction.expected_warning
     {
         return fail("frozen extraction policy drift");
     }
     use crate::owned_native_child::{CaptureLimits, capture};
     let version = capture(
-        Command::new("pdftotext").arg("-v"),
+        Command::new(&extraction.tool).arg("-v"),
         None,
         CaptureLimits {
             max_stdin_bytes: 0,
@@ -773,26 +861,20 @@ fn poppler_bbox(deadline: Instant, pdf_file: &fs::File, plan: &Value) -> Result<
     let ver = String::from_utf8(ver).map_err(|e| e.to_string())?;
     if !version.status.success()
         || ver.lines().next()
-            != Some(
-                format!(
-                    "pdftotext version {}",
-                    s(&plan["extraction_policy"]["software_version"])
-                )
-                .as_str(),
-            )
+            != Some(format!("{} version {}", extraction.tool, extraction.version).as_str())
     {
         return fail("pdftotext version drift");
     }
     let result = capture(
-        Command::new("pdftotext")
-            .arg("-bbox-layout")
+        Command::new(&extraction.tool)
+            .arg(&extraction.arguments[0])
             .arg(&pdf_carrier)
-            .arg("-"),
+            .arg(&extraction.arguments[2]),
         None,
         CaptureLimits {
             max_stdin_bytes: 0,
-            max_stdout_bytes: 12_306_305,
-            max_stderr_bytes: ("Syntax Warning: Invalid Font Weight".len() + 2) * 2601,
+            max_stdout_bytes: extraction.expected_bbox_bytes,
+            max_stderr_bytes: extraction.warning_bytes()?,
         },
         deadline,
     )?;
@@ -801,8 +883,8 @@ fn poppler_bbox(deadline: Instant, pdf_file: &fs::File, plan: &Value) -> Result<
     }
     let policy = &plan["extraction_policy"];
     if result.stdout.len() != n(&policy["expected_bbox_bytes"])
-        || sha(&result.stdout) != BBOX_SHA
-        || s(&policy["expected_bbox_sha256"]) != BBOX_SHA
+        || sha(&result.stdout) != expected_bbox_sha256
+        || s(&policy["expected_bbox_sha256"]) != expected_bbox_sha256
     {
         return fail("Poppler bbox fixity drift");
     }
@@ -818,7 +900,12 @@ fn poppler_bbox(deadline: Instant, pdf_file: &fs::File, plan: &Value) -> Result<
     tick(deadline)?;
     Ok(result.stdout)
 }
-fn load_source(deadline: Instant, source: &SourceInput) -> Result<(Vec<Block>, Vec<Value>)> {
+fn load_source(
+    deadline: Instant,
+    source: &SourceInput,
+    fixity: &SourceFixity,
+    extraction: &ExtractionProfile,
+) -> Result<(Vec<Block>, Vec<Value>)> {
     tick(deadline)?;
     let plan = load_until(deadline, source, &format!("{V1}/plan.v1.json"))?;
     if s(&plan["contract_ref"]) != "ToS/contracts/source-text-unit-packet-v1.schema.json"
@@ -853,7 +940,7 @@ fn load_source(deadline: Instant, source: &SourceInput) -> Result<(Vec<Block>, V
     // Poppler opens the retained input inode through the invoking process's
     // descriptor carrier. No reopened source pathname can redirect extraction.
 
-    if sha(&raw) != PDF_SHA || s(&src["file_sha256"]) != PDF_SHA {
+    if sha(&raw) != fixity.pdf_sha256 || s(&src["file_sha256"]) != fixity.pdf_sha256 {
         return fail("local PDF digest drift");
     }
     let inv = load_until(deadline, source, s(&src["resource_inventory_ref"]))?;
@@ -876,7 +963,7 @@ fn load_source(deadline: Instant, source: &SourceInput) -> Result<(Vec<Block>, V
     {
         return fail("resource inventory page identities drift");
     }
-    let bbox = poppler_bbox(deadline, &pdf_file, &plan)?;
+    let bbox = poppler_bbox(deadline, &pdf_file, &plan, &fixity.bbox_sha256, extraction)?;
     let blocks = observation(
         &bbox,
         pages,
@@ -886,6 +973,7 @@ fn load_source(deadline: Instant, source: &SourceInput) -> Result<(Vec<Block>, V
             &format!("{V1}/citation-spine.v1.jsonl"),
         )?),
         &plan,
+        &fixity.text_sha256,
         deadline,
     )?;
     Ok((
@@ -893,85 +981,582 @@ fn load_source(deadline: Instant, source: &SourceInput) -> Result<(Vec<Block>, V
         loadl_until(deadline, source, &reference("structure-census.v2.jsonl"))?,
     ))
 }
-fn page_header(r: &Row) -> bool {
-    if r.bbox[1] >= 36.
-        || ((r.bbox[0] + r.bbox[2]) / 2. - if r.panel == "left" { 198. } else { 594. }).abs() > 55.
+#[derive(Clone, Copy)]
+struct HeaderRule {
+    y_below: f64,
+    left_center_x: f64,
+    right_center_x: f64,
+    center_tolerance: f64,
+    max_characters: usize,
+    minimum_dashes: usize,
+    max_letters_for_short_mark: usize,
+    max_characters_for_short_mark: usize,
+}
+impl HeaderRule {
+    // Compatibility for existing compiler consumers. Remove after their research migration.
+    fn legacy() -> Self {
+        Self {
+            y_below: 36.,
+            left_center_x: 198.,
+            right_center_x: 594.,
+            center_tolerance: 55.,
+            max_characters: 18,
+            minimum_dashes: 2,
+            max_letters_for_short_mark: 3,
+            max_characters_for_short_mark: 5,
+        }
+    }
+    fn selected(value: &Value) -> Result<Self> {
+        let number = |key: &str| -> Result<usize> {
+            usize::try_from(
+                value[key]
+                    .as_u64()
+                    .ok_or_else(|| format!("header rule {key} must be a nonnegative integer"))?,
+            )
+            .map_err(|_| format!("header rule {key} is outside the native range"))
+        };
+        let coordinate = |key: &str| -> Result<f64> {
+            let n = value[key]
+                .as_u64()
+                .ok_or_else(|| format!("header rule {key} must be a nonnegative integer"))?;
+            if n > (1_u64 << 53) {
+                return Err(format!("header rule {key} cannot be represented exactly"));
+            }
+            Ok(n as f64)
+        };
+        Ok(Self {
+            y_below: coordinate("y_below")?,
+            left_center_x: coordinate("left_center_x")?,
+            right_center_x: coordinate("right_center_x")?,
+            center_tolerance: coordinate("center_tolerance")?,
+            max_characters: number("max_characters")?,
+            minimum_dashes: number("minimum_dashes")?,
+            max_letters_for_short_mark: number("max_letters_for_short_mark")?,
+            max_characters_for_short_mark: number("max_characters_for_short_mark")?,
+        })
+    }
+}
+fn page_header(r: &Row, rule: HeaderRule) -> bool {
+    if r.bbox[1] >= rule.y_below
+        || ((r.bbox[0] + r.bbox[2]) / 2.
+            - if r.panel == "left" {
+                rule.left_center_x
+            } else {
+                rule.right_center_x
+            })
+        .abs()
+            > rule.center_tolerance
     {
         return false;
     }
     let v = compact(&r.text);
-    v.chars().count() <= 18
+    v.chars().count() <= rule.max_characters
         && (v.chars().any(|c| c.is_ascii_digit())
-            || v.chars().filter(|c| matches!(c, '-' | '—' | '–')).count() >= 2
-            || (v.chars().filter(|c| letter(*c)).count() <= 3 && v.chars().count() <= 5))
+            || v.chars().filter(|c| matches!(c, '-' | '—' | '–')).count() >= rule.minimum_dashes
+            || (v.chars().filter(|c| letter(*c)).count() <= rule.max_letters_for_short_mark
+                && v.chars().count() <= rule.max_characters_for_short_mark))
 }
-fn page_footer(r: &Row) -> bool {
+#[derive(Clone)]
+struct FooterRule {
+    always_from_y: f64,
+    inspect_from_y: f64,
+    text_contains: Vec<String>,
+    allowed_symbols: String,
+    marginal_from_y: f64,
+    marginal_width_below: f64,
+    right_panel_x: (f64, f64),
+    left_panel_x: (f64, f64),
+    small_height_at_most: f64,
+    small_width_below: f64,
+    small_right_panel_x_above_any: [f64; 2],
+    small_left_panel_x_above_any: [f64; 2],
+}
+impl FooterRule {
+    // Compatibility profile is removed when compiler research consumers migrate.
+    fn legacy() -> Self {
+        Self {
+            always_from_y: 548.,
+            inspect_from_y: 526.,
+            text_contains: ["ницше", "нгппчс", "ихітчс", "яшине", "говорилъзаратустра"]
+                .into_iter()
+                .map(str::to_owned)
+                .collect(),
+            allowed_symbols: "*'\"/NnWwVvІI-.•".into(),
+            marginal_from_y: 538.,
+            marginal_width_below: 40.,
+            right_panel_x: (500., 620.),
+            left_panel_x: (150., 260.),
+            small_height_at_most: 10.1,
+            small_width_below: 180.,
+            small_right_panel_x_above_any: [680., 460.],
+            small_left_panel_x_above_any: [300., 150.],
+        }
+    }
+    fn selected(value: &Value) -> Result<Self> {
+        fn number(v: &Value, key: &str) -> Result<f64> {
+            v[key]
+                .as_f64()
+                .filter(|n| n.is_finite() && *n >= 0.)
+                .ok_or_else(|| format!("invalid footer rule {key}"))
+        }
+        fn pair(v: &Value, key: &str) -> Result<[f64; 2]> {
+            let values = v[key]
+                .as_array()
+                .ok_or_else(|| format!("footer rule {key} must be an array"))?;
+            if values.len() != 2 {
+                return Err(format!("footer rule {key} requires two values"));
+            }
+            let number = |v: &Value| {
+                v.as_f64()
+                    .filter(|n| n.is_finite() && *n >= 0.)
+                    .ok_or_else(|| format!("invalid footer rule {key}"))
+            };
+            Ok([number(&values[0])?, number(&values[1])?])
+        }
+        fn range(v: &Value, key: &str) -> Result<(f64, f64)> {
+            let lo = number(&v[key], "x_min")?;
+            let hi = number(&v[key], "x_max")?;
+            if lo > hi {
+                return Err(format!("reversed footer rule {key}"));
+            }
+            Ok((lo, hi))
+        }
+        let text_contains = value["text_contains"]
+            .as_array()
+            .ok_or("footer text patterns required")?
+            .iter()
+            .map(|v| {
+                v.as_str()
+                    .filter(|s| !s.is_empty())
+                    .map(str::to_owned)
+                    .ok_or_else(|| "invalid footer text pattern".to_string())
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let allowed_symbols = value["allowed_symbols"]
+            .as_str()
+            .ok_or("footer symbols required")?
+            .to_owned();
+        Ok(Self {
+            always_from_y: number(value, "always_from_y")?,
+            inspect_from_y: number(value, "inspect_from_y")?,
+            text_contains,
+            allowed_symbols,
+            marginal_from_y: number(value, "marginal_from_y")?,
+            marginal_width_below: number(value, "marginal_width_below")?,
+            right_panel_x: range(value, "right_panel_x")?,
+            left_panel_x: range(value, "left_panel_x")?,
+            small_height_at_most: number(value, "small_height_at_most")?,
+            small_width_below: number(value, "small_width_below")?,
+            small_right_panel_x_above_any: pair(value, "small_right_panel_x_above_any")?,
+            small_left_panel_x_above_any: pair(value, "small_left_panel_x_above_any")?,
+        })
+    }
+}
+fn page_footer(r: &Row, rule: &FooterRule) -> bool {
     let [x0, y0, x1, y1] = r.bbox;
     let v = compact(&r.text);
-    if y0 >= 548. {
+    if y0 >= rule.always_from_y {
         return true;
     }
-    if y0 < 526. {
+    if y0 < rule.inspect_from_y {
         return false;
     }
     let lower = v.to_lowercase();
-    if ["ницше", "нгппчс", "ихітчс", "яшине", "говорилъзаратустра"]
-        .iter()
-        .any(|w| lower.contains(w))
-    {
+    if rule.text_contains.iter().any(|w| lower.contains(w)) {
         return true;
     }
     if !v.is_empty()
         && v.chars()
-            .all(|c| c.is_ascii_digit() || "*'\"/NnWwVvІI-.•".contains(c))
+            .all(|c| c.is_ascii_digit() || rule.allowed_symbols.contains(c))
     {
         return true;
     }
-    if y0 >= 538.
-        && x1 - x0 < 40.
-        && if r.panel == "right" {
-            (500. ..=620.).contains(&x0)
-        } else {
-            (150. ..=260.).contains(&x0)
-        }
-    {
-        return true;
-    }
-    (y1 - y0) <= 10.1
-        && x1 - x0 < 180.
-        && (x0 > if r.panel == "right" { 680. } else { 300. }
-            || x0 > if r.panel == "right" { 460. } else { 150. })
-}
-fn region(page: usize, panel: &str) -> Option<String> {
-    if [
-        (1, "right"),
-        (2, "left"),
-        (2, "right"),
-        (3, "left"),
-        (3, "right"),
-        (4, "right"),
-        (5, "left"),
-    ]
-    .contains(&(page, panel))
-    {
-        Some("front_matter".into())
-    } else if [(151, "right"), (152, "left"), (152, "right"), (153, "left")]
-        .contains(&(page, panel))
-    {
-        Some("back_matter".into())
+    let (min_x, max_x) = if r.panel == "right" {
+        rule.right_panel_x
     } else {
-        None
+        rule.left_panel_x
+    };
+    if y0 >= rule.marginal_from_y
+        && x1 - x0 < rule.marginal_width_below
+        && (min_x..=max_x).contains(&x0)
+    {
+        return true;
+    }
+    let thresholds = if r.panel == "right" {
+        rule.small_right_panel_x_above_any
+    } else {
+        rule.small_left_panel_x_above_any
+    };
+    (y1 - y0) <= rule.small_height_at_most
+        && x1 - x0 < rule.small_width_below
+        && thresholds.iter().any(|threshold| x0 > *threshold)
+}
+#[derive(Clone, Copy)]
+struct ParagraphRule {
+    large_gap_at_least: f64,
+    indent_gap_at_least: f64,
+    indent_at_least: f64,
+    same_baseline_y_tolerance: f64,
+    context_change: f64,
+    role_change: f64,
+    large_gap: f64,
+    indent_and_gap: f64,
+    new_panel_indent: f64,
+    same_baseline_fragment: f64,
+    first_line_indent: f64,
+    continuation: f64,
+}
+impl ParagraphRule {
+    // Compatibility profile is removed when compiler research consumers migrate.
+    fn legacy() -> Self {
+        Self {
+            large_gap_at_least: 5.2,
+            indent_gap_at_least: 2.,
+            indent_at_least: 13.,
+            same_baseline_y_tolerance: 4.8,
+            context_change: 1.,
+            role_change: 1.,
+            large_gap: 0.97,
+            indent_and_gap: 0.95,
+            new_panel_indent: 0.94,
+            same_baseline_fragment: 0.99,
+            first_line_indent: 0.96,
+            continuation: 0.91,
+        }
+    }
+    fn selected(value: &Value) -> Result<Self> {
+        fn number(v: &Value, key: &str) -> Result<f64> {
+            v[key]
+                .as_f64()
+                .filter(|n| n.is_finite() && *n >= 0.)
+                .ok_or_else(|| format!("invalid paragraph rule {key}"))
+        }
+        fn confidence(v: &Value, key: &str) -> Result<f64> {
+            let value = number(v, key)?;
+            if value > 1. {
+                return Err(format!("invalid paragraph confidence {key}"));
+            }
+            Ok(value)
+        }
+        let c = &value["confidence"];
+        Ok(Self {
+            large_gap_at_least: number(value, "large_gap_at_least")?,
+            indent_gap_at_least: number(value, "indent_gap_at_least")?,
+            indent_at_least: number(value, "indent_at_least")?,
+            same_baseline_y_tolerance: number(value, "same_baseline_y_tolerance")?,
+            context_change: confidence(c, "context_change")?,
+            role_change: confidence(c, "role_change")?,
+            large_gap: confidence(c, "large_gap")?,
+            indent_and_gap: confidence(c, "indent_and_gap")?,
+            new_panel_indent: confidence(c, "new_panel_indent")?,
+            same_baseline_fragment: confidence(c, "same_baseline_fragment")?,
+            first_line_indent: confidence(c, "first_line_indent")?,
+            continuation: confidence(c, "continuation")?,
+        })
     }
 }
-fn precedence(v: &str) -> usize {
-    match v {
-        "terminal_marker" => 100,
-        "part_heading" => 95,
-        "reading_unit_heading" => 94,
-        "cycle_heading" => 93,
-        "numbered_subpart_marker" => 92,
-        "ornament" => 80,
-        _ => 0,
+#[derive(Clone, Copy, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RowGroupRule {
+    disjoint_x_tolerance: f64,
+    same_citation_center_delta_at_most: f64,
+    other_center_delta_at_most: f64,
+    disjoint_overlap_at_least: f64,
+    disjoint_center_delta_at_most: f64,
+    ornament_residue_distance_at_most: f64,
+}
+#[derive(Clone, Copy, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct MarginRule {
+    y_min: f64,
+    y_max: f64,
+    width_at_least: f64,
+    minimum_samples: usize,
+    own_quantile: f64,
+    neighbor_page_radius: usize,
+    neighbor_quantile: f64,
+    own_excess_at_most: f64,
+    fallback_left: f64,
+    fallback_right: f64,
+    probe_indent_at_least: f64,
+}
+#[derive(Clone, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct VerseRule {
+    maximum_same_panel_gap: f64,
+    minimum_run_rows: usize,
+    maximum_run_median_width: f64,
+    short_run_minimum_rows: usize,
+    short_run_maximum_rows: usize,
+    short_run_maximum_median_width: f64,
+    borderline_indent_min: f64,
+    borderline_indent_below: f64,
+    short_run_resolution: String,
+    borderline_resolution: String,
+}
+impl RowGroupRule {
+    // Remove the compatibility value when compiler research consumers migrate.
+    fn legacy() -> Self {
+        Self {
+            disjoint_x_tolerance: 1.,
+            same_citation_center_delta_at_most: 1.5,
+            other_center_delta_at_most: 4.8,
+            disjoint_overlap_at_least: 1.5,
+            disjoint_center_delta_at_most: 7.,
+            ornament_residue_distance_at_most: 8.,
+        }
+    }
+    fn selected(v: &Value) -> Result<Self> {
+        let rule: Self =
+            serde_json::from_value(v.clone()).map_err(|e| format!("row group profile: {e}"))?;
+        if [
+            rule.disjoint_x_tolerance,
+            rule.same_citation_center_delta_at_most,
+            rule.other_center_delta_at_most,
+            rule.disjoint_overlap_at_least,
+            rule.disjoint_center_delta_at_most,
+            rule.ornament_residue_distance_at_most,
+        ]
+        .iter()
+        .any(|n| !n.is_finite() || *n < 0.)
+        {
+            return Err("invalid row group profile".into());
+        }
+        Ok(rule)
+    }
+}
+impl MarginRule {
+    fn legacy() -> Self {
+        Self {
+            y_min: 34.,
+            y_max: 540.,
+            width_at_least: 175.,
+            minimum_samples: 3,
+            own_quantile: 0.08,
+            neighbor_page_radius: 3,
+            neighbor_quantile: 0.35,
+            own_excess_at_most: 12.,
+            fallback_left: 50.,
+            fallback_right: 430.,
+            probe_indent_at_least: 12.,
+        }
+    }
+    fn selected(v: &Value) -> Result<Self> {
+        let rule: Self =
+            serde_json::from_value(v.clone()).map_err(|e| format!("margin profile: {e}"))?;
+        if [
+            rule.y_min,
+            rule.y_max,
+            rule.width_at_least,
+            rule.own_quantile,
+            rule.neighbor_quantile,
+            rule.own_excess_at_most,
+            rule.fallback_left,
+            rule.fallback_right,
+            rule.probe_indent_at_least,
+        ]
+        .iter()
+        .any(|n| !n.is_finite() || *n < 0.)
+            || rule.y_min > rule.y_max
+            || rule.own_quantile > 1.
+            || rule.neighbor_quantile > 1.
+        {
+            return Err("invalid margin profile".into());
+        }
+        Ok(rule)
+    }
+}
+impl VerseRule {
+    fn legacy() -> Self {
+        Self {
+            maximum_same_panel_gap: 22.,
+            minimum_run_rows: 5,
+            maximum_run_median_width: 245.,
+            short_run_minimum_rows: 2,
+            short_run_maximum_rows: 4,
+            short_run_maximum_median_width: 225.,
+            borderline_indent_min: 8.,
+            borderline_indent_below: 17.,
+            short_run_resolution: "prose_by_conservative_five_row_verse_threshold".into(),
+            borderline_resolution: "new_paragraph_at_13_points_otherwise_continuation".into(),
+        }
+    }
+    fn selected(v: &Value) -> Result<Self> {
+        let rule: Self =
+            serde_json::from_value(v.clone()).map_err(|e| format!("verse profile: {e}"))?;
+        if [
+            rule.maximum_same_panel_gap,
+            rule.maximum_run_median_width,
+            rule.short_run_maximum_median_width,
+            rule.borderline_indent_min,
+            rule.borderline_indent_below,
+        ]
+        .iter()
+        .any(|n| !n.is_finite() || *n < 0.)
+            || rule.minimum_run_rows == 0
+            || rule.short_run_minimum_rows == 0
+            || rule.short_run_minimum_rows > rule.short_run_maximum_rows
+            || rule.borderline_indent_min >= rule.borderline_indent_below
+            || rule.short_run_resolution.is_empty()
+            || rule.borderline_resolution.is_empty()
+        {
+            return Err("invalid verse profile".into());
+        }
+        Ok(rule)
+    }
+}
+#[derive(Debug, Clone, Copy, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ExpectedCensus {
+    poppler_blocks: usize,
+    physical_lines: usize,
+    logical_rows: usize,
+    reading_units: usize,
+    numbered_subparts: usize,
+    boundary_conflicts: usize,
+    evaluated_adjacent_pairs: usize,
+    prose_paragraphs: usize,
+    continuous_verse_groups: usize,
+    verse_lines: usize,
+}
+impl ExpectedCensus {
+    // Remove this compatibility profile when compiler research consumers migrate.
+    fn legacy() -> Self {
+        Self {
+            poppler_blocks: 7225,
+            physical_lines: 13071,
+            logical_rows: 10686,
+            reading_units: 81,
+            numbered_subparts: 112,
+            boundary_conflicts: 49,
+            evaluated_adjacent_pairs: 13070,
+            prose_paragraphs: 3569,
+            continuous_verse_groups: 13,
+            verse_lines: 359,
+        }
+    }
+    fn selected(v: &Value) -> Result<Self> {
+        let expected: Self =
+            serde_json::from_value(v.clone()).map_err(|e| format!("expected census: {e}"))?;
+        if expected.physical_lines.checked_sub(1) != Some(expected.evaluated_adjacent_pairs) {
+            return Err("physical line and adjacent-pair census differ".into());
+        }
+        Ok(expected)
+    }
+}
+#[derive(Clone)]
+struct LayoutClassification {
+    header: HeaderRule,
+    footer: FooterRule,
+    paragraph: ParagraphRule,
+    row_group: RowGroupRule,
+    margin: MarginRule,
+    verse: VerseRule,
+    expected: ExpectedCensus,
+    fixity: SourceFixity,
+    extraction: ExtractionProfile,
+    regions: Vec<(usize, String, String)>,
+    precedence: BTreeMap<String, usize>,
+}
+impl LayoutClassification {
+    fn legacy() -> Self {
+        let mut regions = Vec::new();
+        for (page, panel) in [
+            (1, "right"),
+            (2, "left"),
+            (2, "right"),
+            (3, "left"),
+            (3, "right"),
+            (4, "right"),
+            (5, "left"),
+        ] {
+            regions.push((page, panel.into(), "front_matter".into()));
+        }
+        for (page, panel) in [(151, "right"), (152, "left"), (152, "right"), (153, "left")] {
+            regions.push((page, panel.into(), "back_matter".into()));
+        }
+        let precedence = [
+            ("terminal_marker", 100),
+            ("part_heading", 95),
+            ("reading_unit_heading", 94),
+            ("cycle_heading", 93),
+            ("numbered_subpart_marker", 92),
+            ("ornament", 80),
+        ]
+        .into_iter()
+        .map(|(name, n)| (name.into(), n))
+        .collect();
+        Self {
+            header: HeaderRule::legacy(),
+            footer: FooterRule::legacy(),
+            paragraph: ParagraphRule::legacy(),
+            row_group: RowGroupRule::legacy(),
+            margin: MarginRule::legacy(),
+            verse: VerseRule::legacy(),
+            expected: ExpectedCensus::legacy(),
+            fixity: SourceFixity::legacy(),
+            extraction: ExtractionProfile::legacy(),
+            regions,
+            precedence,
+        }
+    }
+    fn selected(value: &Value) -> Result<Self> {
+        let mut regions = Vec::new();
+        let mut keys = BTreeSet::new();
+        for entry in value["regions"].as_array().ok_or("regions required")? {
+            let page = usize::try_from(entry["page"].as_u64().ok_or("invalid region page")?)
+                .map_err(|_| "region page outside native range")?;
+            let panel = entry["panel"]
+                .as_str()
+                .filter(|v| *v == "left" || *v == "right")
+                .ok_or("invalid region panel")?;
+            let kind = entry["kind"]
+                .as_str()
+                .filter(|v| !v.is_empty())
+                .ok_or("invalid region kind")?;
+            if page == 0 || !keys.insert((page, panel.to_owned())) {
+                return Err("duplicate or invalid region".into());
+            }
+            regions.push((page, panel.into(), kind.into()));
+        }
+        let mut precedence = BTreeMap::new();
+        for entry in value["role_precedence"]
+            .as_array()
+            .ok_or("role precedence required")?
+        {
+            let role = entry["role"]
+                .as_str()
+                .filter(|v| !v.is_empty())
+                .ok_or("invalid role")?;
+            let priority =
+                usize::try_from(entry["priority"].as_u64().ok_or("invalid role priority")?)
+                    .map_err(|_| "priority outside native range")?;
+            if precedence.insert(role.into(), priority).is_some() {
+                return Err("duplicate role precedence".into());
+            }
+        }
+        Ok(Self {
+            header: HeaderRule::selected(&value["header"])?,
+            footer: FooterRule::selected(&value["footer"])?,
+            paragraph: ParagraphRule::selected(&value["paragraph"])?,
+            row_group: RowGroupRule::selected(&value["row_group"])?,
+            margin: MarginRule::selected(&value["margin"])?,
+            verse: VerseRule::selected(&value["verse"])?,
+            expected: ExpectedCensus::selected(&value["expected_census"])?,
+            fixity: SourceFixity::legacy(),
+            extraction: ExtractionProfile::legacy(),
+            regions,
+            precedence,
+        })
+    }
+    fn region(&self, page: usize, panel: &str) -> Option<String> {
+        self.regions
+            .iter()
+            .find(|(p, side, _)| *p == page && side == panel)
+            .map(|(_, _, kind)| kind.clone())
+    }
+    fn precedence(&self, role: &str) -> usize {
+        self.precedence.get(role).copied().unwrap_or(0)
     }
 }
 fn same_panel(a: &Row, b: &Row) -> bool {
@@ -980,38 +1565,43 @@ fn same_panel(a: &Row, b: &Row) -> bool {
 fn same_context(a: &Row, b: &Row) -> bool {
     a.reading == b.reading && a.subpart == b.subpart
 }
-fn paragraph_boundary(a: &Row, b: &Row) -> (bool, &'static str, f64) {
+fn paragraph_boundary(a: &Row, b: &Row, rule: ParagraphRule) -> (bool, &'static str, f64) {
     if !same_context(a, b) {
-        return (true, "structural_context_change", 1.);
+        return (true, "structural_context_change", rule.context_change);
     }
     if a.role.as_deref() != Some("prose") || b.role.as_deref() != Some("prose") {
-        return (true, "role_change", 1.);
+        return (true, "role_change", rule.role_change);
     }
     let same = same_panel(a, b);
     if same {
         let gap = b.bbox[1] - a.bbox[3];
-        if gap >= 5.2 {
-            return (true, "large_vertical_gap", 0.97);
+        if gap >= rule.large_gap_at_least {
+            return (true, "large_vertical_gap", rule.large_gap);
         }
-        if gap >= 2. && b.indent.unwrap_or(0.) >= 13. {
-            return (true, "indent_plus_vertical_gap", 0.95);
+        if gap >= rule.indent_gap_at_least && b.indent.unwrap_or(0.) >= rule.indent_at_least {
+            return (true, "indent_plus_vertical_gap", rule.indent_and_gap);
         }
-    } else if b.indent.unwrap_or(0.) >= 13. {
-        return (true, "new_panel_indented_start", 0.94);
+    } else if b.indent.unwrap_or(0.) >= rule.indent_at_least {
+        return (true, "new_panel_indented_start", rule.new_panel_indent);
     }
-    if b.indent.unwrap_or(0.) >= 13. {
-        if same && (b.bbox[1] - a.bbox[1]).abs() <= 4.8 {
-            return (false, "same_logical_baseline_fragment", 0.99);
+    if b.indent.unwrap_or(0.) >= rule.indent_at_least {
+        if same && (b.bbox[1] - a.bbox[1]).abs() <= rule.same_baseline_y_tolerance {
+            return (
+                false,
+                "same_logical_baseline_fragment",
+                rule.same_baseline_fragment,
+            );
         }
-        return (true, "first_line_indent", 0.96);
+        return (true, "first_line_indent", rule.first_line_indent);
     }
-    (false, "base_margin_continuation", 0.91)
+    (false, "base_margin_continuation", rule.continuation)
 }
 fn reconstruct_blocks(
     blocks: Vec<Block>,
     census: Vec<Value>,
     deadline: Instant,
     source: SourceInput,
+    layout: LayoutClassification,
 ) -> Result<Model> {
     tick(deadline)?;
     let mut lines = Vec::new();
@@ -1050,7 +1640,7 @@ fn reconstruct_blocks(
             .then(a.citation.cmp(&b.citation))
             .then(a.ordinal.cmp(&b.ordinal))
     });
-    if lines.len() != 13071
+    if lines.len() != layout.expected.physical_lines
         || lines
             .iter()
             .map(|l| &l.locator)
@@ -1120,10 +1710,15 @@ fn reconstruct_blocks(
         let b = bbox(current.iter().map(|i| lines[*i].bbox));
         let overlap = b[3].min(l.bbox[3]) - b[1].max(l.bbox[1]);
         let delta = ((b[1] + b[3] - l.bbox[1] - l.bbox[3]) / 2.).abs();
-        let disjoint = l.bbox[2] <= b[0] + 1. || l.bbox[0] >= b[2] - 1.;
+        let disjoint = l.bbox[2] <= b[0] + layout.row_group.disjoint_x_tolerance
+            || l.bbox[0] >= b[2] - layout.row_group.disjoint_x_tolerance;
         let same = current.iter().any(|i| lines[*i].citation == l.citation);
-        if (same && delta <= 1.5)
-            || (!same && (delta <= 4.8 || (overlap >= 1.5 && disjoint && delta <= 7.)))
+        if (same && delta <= layout.row_group.same_citation_center_delta_at_most)
+            || (!same
+                && (delta <= layout.row_group.other_center_delta_at_most
+                    || (overlap >= layout.row_group.disjoint_overlap_at_least
+                        && disjoint
+                        && delta <= layout.row_group.disjoint_center_delta_at_most)))
         {
             current.push(i);
         } else {
@@ -1166,23 +1761,23 @@ fn reconstruct_blocks(
         }
         rows.push(row);
     }
-    if rows.len() != 10686 {
+    if rows.len() != layout.expected.logical_rows {
         return fail("logical-row census drift");
     }
     for row in &mut rows {
         tick(deadline)?;
-        row.role = region(row.page, &row.panel);
+        row.role = layout.region(row.page, &row.panel);
         if row.role.is_none() {
             row.role = row
                 .lines
                 .iter()
                 .filter_map(|i| lines[*i].explicit.as_deref())
-                .max_by_key(|v| precedence(v))
+                .max_by_key(|v| layout.precedence(v))
                 .map(str::to_owned);
             if row.role.is_none() {
                 row.role = if ornament(&row.text) {
                     Some("ornament".into())
-                } else if page_header(row) || page_footer(row) {
+                } else if page_header(row, layout.header) || page_footer(row, &layout.footer) {
                     Some("page_furniture".into())
                 } else if residue(&row.text) {
                     Some("residue".into())
@@ -1205,7 +1800,7 @@ fn reconstruct_blocks(
                 rows[j].role.as_deref() == Some("ornament")
                     && same_panel(&rows[i], &rows[j])
                     && rows[j].bbox[1].max(rows[i].bbox[1]) - rows[j].bbox[3].min(rows[i].bbox[3])
-                        <= 8.
+                        <= layout.row_group.ornament_residue_distance_at_most
             })
         {
             rows[i].role = Some("ornament".into());
@@ -1281,7 +1876,9 @@ fn reconstruct_blocks(
             }
         }
     }
-    if readings.len() != 81 || all_subparts.len() != 112 {
+    if readings.len() != layout.expected.reading_units
+        || all_subparts.len() != layout.expected.numbered_subparts
+    {
         return fail("structure census drift");
     }
     let (mut reading, mut subpart) = (None, None);
@@ -1327,8 +1924,8 @@ fn reconstruct_blocks(
         tick(deadline)?;
         if row.role.is_none()
             && row.reading.is_some()
-            && (34. ..=540.).contains(&row.bbox[1])
-            && row.bbox[2] - row.bbox[0] >= 175.
+            && (layout.margin.y_min..=layout.margin.y_max).contains(&row.bbox[1])
+            && row.bbox[2] - row.bbox[0] >= layout.margin.width_at_least
         {
             candidates
                 .entry((row.page, row.panel.clone()))
@@ -1338,8 +1935,8 @@ fn reconstruct_blocks(
     }
     let raw: BTreeMap<_, _> = candidates
         .into_iter()
-        .filter(|(_, v)| v.len() >= 3)
-        .map(|(k, v)| (k, quantile(&v, 0.08)))
+        .filter(|(_, v)| v.len() >= layout.margin.minimum_samples)
+        .map(|(k, v)| (k, quantile(&v, layout.margin.own_quantile)))
         .collect();
     let mut margins = BTreeMap::new();
     for row in &rows {
@@ -1348,18 +1945,30 @@ fn reconstruct_blocks(
         if margins.contains_key(&k) {
             continue;
         }
-        let near: Vec<_> = ((row.page as isize - 3)..=(row.page as isize + 3))
-            .filter(|p| *p != row.page as isize && *p >= 0)
-            .filter_map(|p| raw.get(&(p as usize, row.panel.clone())).copied())
+        let near: Vec<_> = raw
+            .iter()
+            .filter(|((page, panel), _)| {
+                *page != row.page
+                    && panel == &row.panel
+                    && page.abs_diff(row.page) <= layout.margin.neighbor_page_radius
+            })
+            .map(|(_, value)| *value)
             .collect();
-        let reference = (!near.is_empty()).then(|| quantile(&near, 0.35));
+        let reference =
+            (!near.is_empty()).then(|| quantile(&near, layout.margin.neighbor_quantile));
         let own = raw.get(&k).copied();
-        let base =
-            if own.is_some() && (reference.is_none() || own.unwrap() <= reference.unwrap() + 12.) {
-                own.unwrap()
+        let base = if own.is_some()
+            && (reference.is_none()
+                || own.unwrap() <= reference.unwrap() + layout.margin.own_excess_at_most)
+        {
+            own.unwrap()
+        } else {
+            reference.unwrap_or(if row.panel == "left" {
+                layout.margin.fallback_left
             } else {
-                reference.unwrap_or(if row.panel == "left" { 50. } else { 430. })
-            };
+                layout.margin.fallback_right
+            })
+        };
         margins.insert(k, base);
     }
     for row in &mut rows {
@@ -1367,7 +1976,7 @@ fn reconstruct_blocks(
         if row.role.is_none() && row.reading.is_some() {
             row.base = Some(margins[&(row.page, row.panel.clone())]);
             row.indent = Some(row.bbox[0] - row.base.unwrap());
-            row.probe = row.indent.unwrap() >= 12.;
+            row.probe = row.indent.unwrap() >= layout.margin.probe_indent_at_least;
         }
     }
     let mut runs = Vec::<Vec<usize>>::new();
@@ -1401,7 +2010,8 @@ fn reconstruct_blocks(
             let mut j = i;
             while j + 1 < run.len() && rows[run[j + 1]].probe {
                 if same_panel(&rows[run[j]], &rows[run[j + 1]])
-                    && rows[run[j + 1]].bbox[1] - rows[run[j]].bbox[3] > 22.
+                    && rows[run[j + 1]].bbox[1] - rows[run[j]].bbox[3]
+                        > layout.verse.maximum_same_panel_gap
                 {
                     break;
                 }
@@ -1413,11 +2023,16 @@ fn reconstruct_blocks(
                     .map(|k| rows[run[k]].bbox[2] - rows[run[k]].bbox[0])
                     .collect::<Vec<_>>(),
             );
-            if len >= 5 && width <= 245. {
+            if len >= layout.verse.minimum_run_rows
+                && width <= layout.verse.maximum_run_median_width
+            {
                 marked[i..=j].fill(true);
-            } else if (2..=4).contains(&len) && width <= 225. {
+            } else if (layout.verse.short_run_minimum_rows..=layout.verse.short_run_maximum_rows)
+                .contains(&len)
+                && width <= layout.verse.short_run_maximum_median_width
+            {
                 let start = &rows[run[i]];
-                conflicts.push(json!({"conflict_kind":"short_persistent_inset_run","reading_ref":start.reading,"subpart_ref":start.subpart,"first_row_ref":start.reference,"last_row_ref":rows[run[j]].reference,"row_count":len,"median_width_points":round(width,3),"resolution":"prose_by_conservative_five_row_verse_threshold"}));
+                conflicts.push(json!({"conflict_kind":"short_persistent_inset_run","reading_ref":start.reading,"subpart_ref":start.subpart,"first_row_ref":start.reference,"last_row_ref":rows[run[j]].reference,"row_count":len,"median_width_points":round(width,3),"resolution":layout.verse.short_run_resolution}));
             }
             i = j + 1;
         }
@@ -1459,8 +2074,12 @@ fn reconstruct_blocks(
         if let Some(p) = prior {
             let p: &Row = &rows[p];
             let indent = row.indent.unwrap_or(0.);
-            if same_context(p, row) && !same_panel(p, row) && (8. ..17.).contains(&indent) {
-                conflicts.push(json!({"conflict_kind":"borderline_cross_panel_indent","reading_ref":row.reading,"subpart_ref":row.subpart,"previous_row_ref":p.reference,"current_row_ref":row.reference,"indent_delta_points":round(indent,3),"resolution":"new_paragraph_at_13_points_otherwise_continuation"}));
+            if same_context(p, row)
+                && !same_panel(p, row)
+                && (layout.verse.borderline_indent_min..layout.verse.borderline_indent_below)
+                    .contains(&indent)
+            {
+                conflicts.push(json!({"conflict_kind":"borderline_cross_panel_indent","reading_ref":row.reading,"subpart_ref":row.subpart,"previous_row_ref":p.reference,"current_row_ref":row.reference,"indent_delta_points":round(indent,3),"resolution":layout.verse.borderline_resolution}));
             }
         }
         prior = Some(i);
@@ -1479,7 +2098,7 @@ fn reconstruct_blocks(
             reasons.push(("content_run_start", 1.));
         } else {
             let (boundary, reason, confidence) =
-                paragraph_boundary(&rows[*current.last().unwrap()], row);
+                paragraph_boundary(&rows[*current.last().unwrap()], row, layout.paragraph);
             if boundary {
                 groups.push(std::mem::take(&mut current));
                 reasons.push((reason, confidence));
@@ -1525,7 +2144,8 @@ fn reconstruct_blocks(
         if !current.is_empty() {
             let prev = &rows[*current.last().unwrap()];
             if !same_context(row, prev)
-                || (same_panel(row, prev) && row.bbox[1] - prev.bbox[3] > 22.)
+                || (same_panel(row, prev)
+                    && row.bbox[1] - prev.bbox[3] > layout.verse.maximum_same_panel_gap)
             {
                 groups.push(std::mem::take(&mut current));
             }
@@ -1582,8 +2202,12 @@ fn reconstruct_blocks(
         verse_groups.len(),
         verse_lines.len(),
         conflicts.len(),
-    ) != (3569, 13, 359, 49)
-    {
+    ) != (
+        layout.expected.prose_paragraphs,
+        layout.expected.continuous_verse_groups,
+        layout.expected.verse_lines,
+        layout.expected.boundary_conflicts,
+    ) {
         return Err(format!(
             "independent reconstruction drift: prose={} groups={} verse={} conflicts={}",
             paragraphs.len(),
@@ -1596,6 +2220,8 @@ fn reconstruct_blocks(
     Ok(Model {
         deadline,
         source,
+        expected: layout.expected,
+        fixity: layout.fixity,
         lines,
         rows,
         census,
@@ -1621,15 +2247,42 @@ pub fn reconstruct_from_directory(
     directory: &fs::File,
     deadline: Instant,
 ) -> Result<Model> {
-    tick(deadline)?;
-    let source = SourceInput::from_directory(root, directory)?;
-    let (blocks, census) = load_source(deadline, &source)?;
-    reconstruct_blocks(blocks, census, deadline, source)
+    reconstruct_from_directory_with_layout(
+        root,
+        directory,
+        deadline,
+        LayoutClassification::legacy(),
+    )
 }
 
-fn fixity() -> Value {
-    json!({"pdf_sha256":PDF_SHA,"bbox_sha256":BBOX_SHA,"private_text_layer_sha256":TEXT_SHA})
+/// Reconstruct with the source-selected header classification profile.
+pub fn reconstruct_from_directory_with_recipe(
+    root: &Path,
+    directory: &fs::File,
+    deadline: Instant,
+    recipe: &Value,
+) -> Result<Model> {
+    let mut layout = LayoutClassification::selected(&recipe["layout_rules"])?;
+    layout.fixity = SourceFixity::selected(&recipe["fixity"])?;
+    layout.extraction = ExtractionProfile::selected(&recipe["extraction"])?;
+    reconstruct_from_directory_with_layout(root, directory, deadline, layout)
 }
+
+fn reconstruct_from_directory_with_layout(
+    root: &Path,
+    directory: &fs::File,
+    deadline: Instant,
+    layout: LayoutClassification,
+) -> Result<Model> {
+    tick(deadline)?;
+    let source = SourceInput::from_directory(root, directory)?;
+    let (blocks, census) = load_source(deadline, &source, &layout.fixity, &layout.extraction)?;
+    if blocks.len() != layout.expected.poppler_blocks {
+        return fail("selected Poppler block census drift");
+    }
+    reconstruct_blocks(blocks, census, deadline, source, layout)
+}
+
 fn issuance_bindings(m: &Model) -> Result<BTreeMap<String, Vec<String>>> {
     let deadline = m.deadline;
     tick(deadline)?;
@@ -1669,7 +2322,7 @@ pub fn load_identities(
     let deadline = m.deadline;
     tick(deadline)?;
     let value = load_until(deadline, source, &reference("identity-issuance.v2.json"))?;
-    if value["source_fixity"] != fixity() {
+    if value["source_fixity"] != m.fixity.as_value() {
         return fail("identity issuance source fixity drift");
     }
     let mut result = BTreeMap::new();
@@ -1935,10 +2588,10 @@ pub fn make_outputs(root: &Path, m: &Model) -> Result<BTreeMap<String, Vec<u8>>>
         .chain(m.verse_lines.iter())
         .filter_map(|r| r["subpart_ref"].as_str())
         .collect();
-    if content_subparts.len() != 112 {
+    if content_subparts.len() != m.expected.numbered_subparts {
         return fail("not all numbered subparts have technical content");
     }
-    let coverage = json!({"schema_version":"tos_antonovsky_1911_coverage_receipt_v2","source_fixity":fixity(),"source_poppler_block_count":7225,"expected_physical_line_count":13071,"assigned_physical_line_count":physical.len(),"duplicate_physical_line_count":0,"unresolved_physical_line_count":0,"logical_row_count":logical.len(),"reading_unit_count":81,"numbered_subpart_count":112,"numbered_subparts_with_content":content_subparts.len(),"prose_paragraph_count":paragraphs.len(),"continuous_verse_group_count":verse_groups.len(),"verse_line_count":verse_lines.len(),"technical_role_counts":roles,"coverage_status":"complete","source_text_included":false,"semantic_authority":false});
+    let coverage = json!({"schema_version":"tos_antonovsky_1911_coverage_receipt_v2","source_fixity":m.fixity.as_value(),"source_poppler_block_count":m.expected.poppler_blocks,"expected_physical_line_count":m.expected.physical_lines,"assigned_physical_line_count":physical.len(),"duplicate_physical_line_count":0,"unresolved_physical_line_count":0,"logical_row_count":logical.len(),"reading_unit_count":m.expected.reading_units,"numbered_subpart_count":m.expected.numbered_subparts,"numbered_subparts_with_content":content_subparts.len(),"prose_paragraph_count":paragraphs.len(),"continuous_verse_group_count":verse_groups.len(),"verse_line_count":verse_lines.len(),"technical_role_counts":roles,"coverage_status":"complete","source_text_included":false,"semantic_authority":false});
     let mut contradictions = Vec::new();
     for (number, key) in [
         (22, "part_3.reading_12.subpart_22"),
@@ -1947,7 +2600,7 @@ pub fn make_outputs(root: &Path, m: &Model) -> Result<BTreeMap<String, Vec<u8>>>
         contradictions.push(json!({"schema_version":"tos_antonovsky_1911_contradiction_v2","contradiction_ref":format!("ru-ant1911.visual-marker-{number}"),"kind":"raster_marker_absent_from_embedded_bbox_layer","technical_structure_key":key,"resolution":"source_visible_raster_context_event_materialized_without_inventing_physical_line","status":"resolved","source_text_included":false,"semantic_promotion":false}));
     }
     contradictions.push(json!({"schema_version":"tos_antonovsky_1911_contradiction_v2","contradiction_ref":"ru-ant1911.primary-challenger-boundaries","kind":"competing_technical_segmentation","evaluated_adjacent_pairs":comparison["evaluated_adjacent_pairs"],"disagreement_count":comparison["disagreement_count"],"resolution":comparison["resolution"],"status":"resolved","source_text_included":false,"semantic_promotion":false}));
-    let summary = json!({"schema_version":"tos_antonovsky_1911_structural_paragraph_summary_v2","status":"agent_verified_complete","physical_line_count":physical.len(),"logical_row_count":logical.len(),"part_count":4,"reading_unit_count":81,"numbered_subpart_count":112,"embedded_numbered_subpart_marker_count":110,"raster_only_numbered_subpart_marker_count":2,"prose_paragraph_count":paragraphs.len(),"continuous_verse_group_count":verse_groups.len(),"verse_line_count":verse_lines.len(),"prose_paragraph_counts_by_part":prose_by_part,"continuous_verse_group_counts_by_part":verse_by_part,"boundary_conflict_count":conflicts.len(),"unresolved_boundary_conflict_count":0,"challenger_boundary_disagreement_count":comparison["disagreement_count"],"unresolved_challenger_disagreement_count":0,"source_text_included":false,"semantic_authority":false});
+    let summary = json!({"schema_version":"tos_antonovsky_1911_structural_paragraph_summary_v2","status":"agent_verified_complete","physical_line_count":physical.len(),"logical_row_count":logical.len(),"part_count":4,"reading_unit_count":m.expected.reading_units,"numbered_subpart_count":m.expected.numbered_subparts,"embedded_numbered_subpart_marker_count":110,"raster_only_numbered_subpart_marker_count":2,"prose_paragraph_count":paragraphs.len(),"continuous_verse_group_count":verse_groups.len(),"verse_line_count":verse_lines.len(),"prose_paragraph_counts_by_part":prose_by_part,"continuous_verse_group_counts_by_part":verse_by_part,"boundary_conflict_count":conflicts.len(),"unresolved_boundary_conflict_count":0,"challenger_boundary_disagreement_count":comparison["disagreement_count"],"unresolved_challenger_disagreement_count":0,"source_text_included":false,"semantic_authority":false});
     let checks = [
         "exact_source_fixity",
         "physical_line_coverage_13071",
@@ -2258,7 +2911,7 @@ fn issue(root: &Path, m: &Model, writer: &OutputOwner) -> Result<Value> {
             .collect::<Result<Vec<_>>>()?;
         identities.insert(kind, json!(values));
     }
-    let payload = json!({"schema_version":"tos_antonovsky_1911_structural_paragraph_identity_issuance_v2","issuance_id":"tos.identity-issuance.zarathustra-antonovsky-1911-structural-paragraph-v2","issued_on":"2026-09-01","opaque_identity":true,"source_binding_is_not_identity":true,"source_fixity":fixity(),"identities":identities});
+    let payload = json!({"schema_version":"tos_antonovsky_1911_structural_paragraph_identity_issuance_v2","issuance_id":"tos.identity-issuance.zarathustra-antonovsky-1911-structural-paragraph-v2","issued_on":"2026-09-01","opaque_identity":true,"source_binding_is_not_identity":true,"source_fixity":m.fixity.as_value(),"identities":identities});
     writer.write(
         &ref_,
         &encode_until(deadline, &payload, true)?,
@@ -2312,7 +2965,7 @@ fn import(root: &Path, directory: &Path, m: &Model, writer: &OutputOwner) -> Res
             json!(sha(&read_until(deadline, directory, name)?)),
         );
     }
-    let payload = json!({"schema_version":"tos_antonovsky_1911_primary_challenger_input_v2","role":"complete_boundary_challenger_not_authority","source_text_included":false,"source_fixity":fixity(),"source_line_count":order.len(),"ordered_source_line_binding_sha256":sha(&encode_until(deadline, &json!(order),false)?),"challenger_unit_count":units.len(),"challenger_content_unit_count":units.iter().filter(|u|matches!(s(&u["technical_role"]),"prose_paragraph"|"verse_stanza")).count(),"owner_unit_ordinal_by_source_line":order.iter().map(|l|owner[l]).collect::<Vec<_>>(),"technical_role_by_unit_ordinal":roles,"input_artifact_sha256":digests,"resolution_policy":"independent_source_visible_pass_controls_final_technical_boundary"});
+    let payload = json!({"schema_version":"tos_antonovsky_1911_primary_challenger_input_v2","role":"complete_boundary_challenger_not_authority","source_text_included":false,"source_fixity":m.fixity.as_value(),"source_line_count":order.len(),"ordered_source_line_binding_sha256":sha(&encode_until(deadline, &json!(order),false)?),"challenger_unit_count":units.len(),"challenger_content_unit_count":units.iter().filter(|u|matches!(s(&u["technical_role"]),"prose_paragraph"|"verse_stanza")).count(),"owner_unit_ordinal_by_source_line":order.iter().map(|l|owner[l]).collect::<Vec<_>>(),"technical_role_by_unit_ordinal":roles,"input_artifact_sha256":digests,"resolution_policy":"independent_source_visible_pass_controls_final_technical_boundary"});
     writer.write(
         &ref_,
         &encode_until(deadline, &payload, true)?,
@@ -2440,28 +3093,28 @@ mod tests {
         let a = row([430., 100., 620., 110.], 0.);
         let mut b = row([443., 112., 620., 122.], 13.);
         assert_eq!(
-            paragraph_boundary(&a, &b),
+            paragraph_boundary(&a, &b, ParagraphRule::legacy()),
             (true, "indent_plus_vertical_gap", 0.95)
         );
         b.bbox[1] = 105.2;
         b.bbox[3] = 115.;
         assert_eq!(
-            paragraph_boundary(&a, &b),
+            paragraph_boundary(&a, &b, ParagraphRule::legacy()),
             (true, "first_line_indent", 0.96)
         );
         b.bbox[1] = 104.8;
         assert_eq!(
-            paragraph_boundary(&a, &b),
+            paragraph_boundary(&a, &b, ParagraphRule::legacy()),
             (false, "same_logical_baseline_fragment", 0.99)
         );
         b.page = 6;
         assert_eq!(
-            paragraph_boundary(&a, &b),
+            paragraph_boundary(&a, &b, ParagraphRule::legacy()),
             (true, "new_panel_indented_start", 0.94)
         );
         b.subpart = Some("part_1.reading_01.subpart_01".into());
         assert_eq!(
-            paragraph_boundary(&a, &b),
+            paragraph_boundary(&a, &b, ParagraphRule::legacy()),
             (true, "structural_context_change", 1.)
         );
     }
@@ -2476,9 +3129,91 @@ mod tests {
         let mut r = row([190., 20., 210., 30.], 0.);
         r.panel = "left".into();
         r.text = "— 3 —".into();
-        assert!(page_header(&r));
+        assert!(page_header(&r, HeaderRule::legacy()));
         r.bbox[1] = 36.;
-        assert!(!page_header(&r));
+        assert!(!page_header(&r, HeaderRule::legacy()));
+    }
+    #[test]
+    fn selected_header_profile_controls_geometry() {
+        let profile = json!({"y_below": 25, "left_center_x": 200, "right_center_x": 600, "center_tolerance": 4, "max_characters": 18, "minimum_dashes": 2, "max_letters_for_short_mark": 3, "max_characters_for_short_mark": 5});
+        let rule = HeaderRule::selected(&profile).unwrap();
+        let mut candidate = row([198., 20., 202., 30.], 0.);
+        candidate.panel = "left".into();
+        candidate.text = "— 3 —".into();
+        assert!(page_header(&candidate, rule));
+        candidate.bbox[1] = 25.;
+        assert!(!page_header(&candidate, rule));
+        assert!(HeaderRule::selected(&json!({"y_below": -1})).is_err());
+    }
+    #[test]
+    fn selected_layout_controls_footer_regions_and_roles() {
+        let mut profile = json!({
+            "header":{"y_below": 25,"left_center_x":200,"right_center_x":600,"center_tolerance":4,"max_characters":18,"minimum_dashes":2,"max_letters_for_short_mark":3,"max_characters_for_short_mark":5},
+            "footer":{"always_from_y": 550,"inspect_from_y":530,"text_contains":["special"],"allowed_symbols":"*", "marginal_from_y":540,"marginal_width_below":40,"right_panel_x":{"x_min":500,"x_max":620},"left_panel_x":{"x_min":150,"x_max":260},"small_height_at_most":10.1,"small_width_below":180,"small_right_panel_x_above_any":[680,460],"small_left_panel_x_above_any":[300,150]},
+            "paragraph":{"large_gap_at_least":5.2,"indent_gap_at_least":2,"indent_at_least":13,"same_baseline_y_tolerance":4.8,"confidence":{"context_change":1,"role_change":1,"large_gap":0.97,"indent_and_gap":0.95,"new_panel_indent":0.94,"same_baseline_fragment":0.99,"first_line_indent":0.96,"continuation":0.91}},
+            "row_group":{"disjoint_x_tolerance":1,"same_citation_center_delta_at_most":1.5,"other_center_delta_at_most":4.8,"disjoint_overlap_at_least":1.5,"disjoint_center_delta_at_most":7,"ornament_residue_distance_at_most":8},
+            "margin":{"y_min":34,"y_max":540,"width_at_least":175,"minimum_samples":3,"own_quantile":0.08,"neighbor_page_radius":3,"neighbor_quantile":0.35,"own_excess_at_most":12,"fallback_left":50,"fallback_right":430,"probe_indent_at_least":12},
+            "verse":{"maximum_same_panel_gap":22,"minimum_run_rows":5,"maximum_run_median_width":245,"short_run_minimum_rows":2,"short_run_maximum_rows":4,"short_run_maximum_median_width":225,"borderline_indent_min":8,"borderline_indent_below":17,"short_run_resolution":"prose_by_conservative_five_row_verse_threshold","borderline_resolution":"new_paragraph_at_13_points_otherwise_continuation"},
+            "expected_census":{"poppler_blocks":7225,"physical_lines":13071,"logical_rows":10686,"reading_units":81,"numbered_subparts":112,"boundary_conflicts":49,"evaluated_adjacent_pairs":13070,"prose_paragraphs":3569,"continuous_verse_groups":13,"verse_lines":359},
+            "regions":[{"page":2,"panel":"left","kind":"front_matter"}],
+            "role_precedence":[{"role":"selected_role","priority":7}]
+        });
+        let layout = LayoutClassification::selected(&profile).unwrap();
+        let mut candidate = row([100., 531., 300., 545.], 0.);
+        candidate.text = "special".into();
+        assert!(page_footer(&candidate, &layout.footer));
+        candidate.bbox[1] = 529.;
+        assert!(!page_footer(&candidate, &layout.footer));
+        assert_eq!(layout.region(2, "left").as_deref(), Some("front_matter"));
+        assert_eq!(layout.precedence("selected_role"), 7);
+        profile["margin"]["own_quantile"] = json!(1.1);
+        assert!(LayoutClassification::selected(&profile).is_err());
+        profile["margin"]["own_quantile"] = json!(0.08);
+        profile["expected_census"]["evaluated_adjacent_pairs"] = json!(0);
+        assert!(LayoutClassification::selected(&profile).is_err());
+        profile["expected_census"]["evaluated_adjacent_pairs"] = json!(13070);
+        let duplicate = profile["regions"][0].clone();
+        profile["regions"].as_array_mut().unwrap().push(duplicate);
+        assert!(LayoutClassification::selected(&profile).is_err());
+    }
+    #[test]
+    fn selected_paragraph_profile_controls_boundary_and_confidence() {
+        let value = json!({"large_gap_at_least":1, "indent_gap_at_least":2, "indent_at_least":13, "same_baseline_y_tolerance":4.8,
+            "confidence":{"context_change":1,"role_change":1,"large_gap":0.77,"indent_and_gap":0.95,"new_panel_indent":0.94,"same_baseline_fragment":0.99,"first_line_indent":0.96,"continuation":0.91}});
+        let rule = ParagraphRule::selected(&value).unwrap();
+        let a = row([430., 100., 620., 110.], 0.);
+        let b = row([430., 112., 620., 122.], 0.);
+        assert_eq!(
+            paragraph_boundary(&a, &b, rule),
+            (true, "large_vertical_gap", 0.77)
+        );
+        assert_eq!(
+            paragraph_boundary(&a, &b, ParagraphRule::legacy()),
+            (false, "base_margin_continuation", 0.91)
+        );
+        let mut invalid = value;
+        invalid["confidence"]["large_gap"] = json!(1.1);
+        assert!(ParagraphRule::selected(&invalid).is_err());
+    }
+    #[test]
+    fn selected_source_fixity_requires_canonical_digests() {
+        let mut value = json!({"pdf_sha256":"a".repeat(64), "bbox_sha256":"b".repeat(64), "text_sha256":"c".repeat(64)});
+        assert!(SourceFixity::selected(&value).is_ok());
+        value["pdf_sha256"] = json!("A".repeat(64));
+        assert!(SourceFixity::selected(&value).is_err());
+        value["pdf_sha256"] = json!("not-a-digest");
+        assert!(SourceFixity::selected(&value).is_err());
+    }
+    #[test]
+    fn selected_extraction_profile_rejects_unsupported_commands_and_overflow() {
+        let mut value = json!({"tool":"pdftotext", "version":"26.01.0", "arguments":["-bbox-layout","SOURCE_PDF","-"], "expected_bbox_bytes":12306305, "expected_warning":"warning", "expected_warning_count":3});
+        let profile = ExtractionProfile::selected(&value).unwrap();
+        assert_eq!(profile.warning_bytes().unwrap(), 27);
+        value["arguments"][0] = json!("-raw");
+        assert!(ExtractionProfile::selected(&value).is_err());
+        value["arguments"][0] = json!("-bbox-layout");
+        value["expected_warning_count"] = json!(usize::MAX);
+        assert!(ExtractionProfile::selected(&value).is_err());
     }
     #[test]
     fn private_key_and_false_flag_controls() {
@@ -2575,7 +3310,7 @@ mod tests {
             row.digest,
             "0627928ac02cab8159b250950b4a9b23088c9fe5886ebedf86634be3488da558"
         );
-        assert_eq!(private["source_fixity"], fixity());
+        assert_eq!(private["source_fixity"], SourceFixity::legacy().as_value());
         assert_eq!(a(&private["rows"]).len(), 10686);
     }
     #[test]
@@ -2693,7 +3428,7 @@ pub fn private_model(root: &Path, m: &Model) -> Result<Value> {
             _ => {}
         }
     }
-    let value = json!({"schema_version":"tos_antonovsky_1911_private_reconstruction_v2","source_fixity":fixity(),"source_text_included":true,"semantic_authority":false,"lines":m.lines.iter().map(line_value).collect::<Vec<_>>(),"rows":rows,"census":m.census,"readings":readings,"subparts":subparts,"paragraphs":m.paragraphs,"verse_groups":m.verse_groups,"verse_lines":m.verse_lines,"conflicts":m.conflicts,"identities":identities});
+    let value = json!({"schema_version":"tos_antonovsky_1911_private_reconstruction_v2","source_fixity":m.fixity.as_value(),"source_text_included":true,"semantic_authority":false,"lines":m.lines.iter().map(line_value).collect::<Vec<_>>(),"rows":rows,"census":m.census,"readings":readings,"subparts":subparts,"paragraphs":m.paragraphs,"verse_groups":m.verse_groups,"verse_lines":m.verse_lines,"conflicts":m.conflicts,"identities":identities});
     tick(deadline)?;
     Ok(value)
 }

@@ -19,8 +19,7 @@ use tos_compiler::source_witness_catalog::{
 use tos_foundation::{Digest256, Digest256Hasher, RelativePath};
 use tos_segment_store::SegmentStore;
 use tos_validation::SchemaResource;
-use tos_validation::executor::VerifiedWorkerImageHandle;
-use tos_validation::source_cut::CandidateCutWorkerSchemaExecutor;
+use tos_validation::source_cut::InProcessCandidateSchemaExecutor;
 
 use crate::PgRecordRevisionIdentity;
 
@@ -3351,27 +3350,16 @@ fn with_selected_schema_validator<T>(
             .to_owned();
         selected_resources.push((path.clone(), SchemaResource { uri, raw }));
     }
-    let image = VerifiedWorkerImageHandle::prepare(
-        selection.schema_worker.clone(),
-        selection.schema_budget,
-        deadline,
-        cancelled,
-    )
-    .map_err(|_| DurableError::Refused("selected navigation schema worker refused"))?;
-    let mut schemas = CandidateCutWorkerSchemaExecutor::from_selected_source_resources(
+    let mut schemas = InProcessCandidateSchemaExecutor::from_selected_source_resources(
         identity,
         selected_resources,
         selection.schema_profile,
-        &image,
-        selection.schema_budget,
-        selection.schema_limits,
+        tos_validation::in_process::InputMode::SerdeNormalized,
         deadline,
         cancelled,
     )
     .map_err(|_| DurableError::Refused("selected navigation schema set refused"))?;
-    let validator = SourceCatalogValidator::from_candidate_event_prepared(
-        &selection.schema_worker,
-        selection.schema_budget,
+    let validator = SourceCatalogValidator::from_in_process_candidate_event(
         cancelled,
         deadline,
         &identity,

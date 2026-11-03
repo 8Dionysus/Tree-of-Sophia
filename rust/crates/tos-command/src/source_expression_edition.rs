@@ -560,7 +560,6 @@ use super::work_expression::{
     selected_sides, software_current, work_dependencies_current,
 };
 use tos_validation::item_rules::{ItemLimits, ItemRefusal};
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
 fn item_error(reason: ItemRefusal) -> SourceCommandError {
     SourceCommandError::SchemaExecution {
@@ -643,7 +642,7 @@ fn current_catalog(
     owner: &ExpressionEditionOwner,
     before: &BTreeMap<String, Vec<u8>>,
     cut: &CorpusCutReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl tos_validation::native_compound::CutCompoundSchemaExecutor,
     limits: ItemLimits,
     publication_token: Option<&str>,
     mut check_publication: impl FnMut() -> SourceCommandResult<()>,
@@ -1239,7 +1238,7 @@ pub fn prepare_isolated_expression_edition_from_proposal(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl tos_validation::native_compound::CutCompoundSchemaExecutor,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ExpressionEditionPreparation> {
@@ -1438,7 +1437,7 @@ fn prepare_edition_application(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl tos_validation::native_compound::CutCompoundSchemaExecutor,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedExpressionEditionApplication> {
@@ -1635,7 +1634,7 @@ pub fn execute_isolated_expression_edition_from_captures(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl tos_validation::native_compound::CutCompoundSchemaExecutor,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ExpressionEditionPublication> {
@@ -1666,7 +1665,7 @@ pub fn replay_isolated_expression_edition_from_captures(
     current_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl tos_validation::native_compound::CutCompoundSchemaExecutor,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ExpressionEditionPublication> {
@@ -1975,7 +1974,7 @@ fn recover_edition_selected(
     original_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl tos_validation::native_compound::CutCompoundSchemaExecutor,
     decision: ExpressionEditionRecoveryDecision,
     explicit: bool,
     limits: ItemLimits,
@@ -2282,7 +2281,7 @@ pub fn recover_isolated_expression_edition_from_captures(
     original_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl tos_validation::native_compound::CutCompoundSchemaExecutor,
     decision: ExpressionEditionRecoveryDecision,
     limits: ItemLimits,
     cancelled: &AtomicBool,

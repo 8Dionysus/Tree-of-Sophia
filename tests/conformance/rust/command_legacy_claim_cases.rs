@@ -651,7 +651,7 @@ fn native_legacy_historical_claim_revision_forms_and_cold_lineage_match_oracle()
         },
         "software_components":components.members().map(|member| member.path.as_str()).collect::<Vec<_>>(),
         "schema_worker":{
-            "absolute_path":worker,
+            "absolute_path":temporary.path().join("absent-historical-claim-worker"),
             "sha256":super::command_text_cases::alignment_image_digest(&worker).to_prefixed(),
         },
         "budgets":{

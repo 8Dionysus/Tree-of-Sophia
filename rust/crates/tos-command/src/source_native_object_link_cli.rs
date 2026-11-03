@@ -1,6 +1,6 @@
 //! Maintained ObjectLink cross-process entry. The owner engine builds actual
 //! journal plans; the invocation only selects custody and protected authority.
-use super::{absolute, capped, digest, selected_schema, text};
+use super::{absolute, capped, digest, selected_in_process_schema, text};
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
 use crate::source_creation_store::{self as owner, CreationFilesystem};
 use serde_json::{Value, json};
@@ -142,7 +142,7 @@ pub(super) fn run(
             )
             .is_some();
     let selected = if replay { current } else { &original };
-    let mut worker = selected_schema(invocation, selected, deadline, cancelled)?;
+    let mut worker = selected_in_process_schema(selected, deadline, cancelled)?;
     if operation == "prepare-create" {
         let prepared = owner::prepare_isolated_object_link_from_proposal(
             &fs,

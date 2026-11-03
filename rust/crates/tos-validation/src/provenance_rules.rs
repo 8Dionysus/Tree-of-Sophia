@@ -30,7 +30,10 @@ pub fn lab_command_matches(builder: &Value, event: &Value, row: &Value, id: &str
             ]);
             command["argv"] == expected && row["captured_command"] == expected
         }
-        Some("rust/crates/tos-compiler/src/provenance_event_lab.rs") => {
+        Some(
+            "rust/crates/tos-compiler/src/provenance_event_lab.rs"
+            | "rust/crates/tos-research/src/provenance_event_lab.rs",
+        ) => {
             let operation = match id {
                 "A" => "identity-copy",
                 "B" => "unicode-nfc",

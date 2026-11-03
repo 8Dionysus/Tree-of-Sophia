@@ -230,6 +230,8 @@ fn region(plan: &Value, page: usize, panel: &str) -> Result<String> {
     Ok(s(&rows[0]["region_id"]).into())
 }
 fn prepare(ctx: &ResearchExecution, plan: &Value) -> Result<Document> {
+    let fixity = SourceFixity::legacy();
+    let extraction = ExtractionProfile::legacy();
     let src = &plan["source_item"];
     let manifest = load(ctx, s(&src["manifest_ref"]))?;
     ensure(
@@ -253,7 +255,7 @@ fn prepare(ctx: &ResearchExecution, plan: &Value) -> Result<Document> {
     let raw = ctx.read_file(&mut file, 64 * 1024 * 1024)?;
     let digest = sha(&raw);
     ensure(
-        digest == s(&src["file_sha256"]) && digest == PDF_SHA,
+        digest == s(&src["file_sha256"]) && digest == fixity.pdf_sha256,
         "PDF digest drift",
     )?;
     drop(raw);
@@ -279,8 +281,21 @@ fn prepare(ctx: &ResearchExecution, plan: &Value) -> Result<Document> {
                 .all(|(i, r)| s(&r["resource_id"]) == format!("pdf-page-{:04}", i + 1)),
         "inventory page identity drift",
     )?;
-    let bbox = poppler_bbox(ctx.deadline(), &file, plan)?;
-    let observed = observation(&bbox, &inventory, None, plan, ctx.deadline())?;
+    let bbox = poppler_bbox(
+        ctx.deadline(),
+        &file,
+        plan,
+        &fixity.bbox_sha256,
+        &extraction,
+    )?;
+    let observed = observation(
+        &bbox,
+        &inventory,
+        None,
+        plan,
+        &fixity.text_sha256,
+        ctx.deadline(),
+    )?;
     let blocks = observed.blocks;
     let mut doc = Document {
         starts: vec![0; blocks.len()],
@@ -401,7 +416,7 @@ fn prepare(ctx: &ResearchExecution, plan: &Value) -> Result<Document> {
         .chain(std::iter::once(doc.text.len()))
         .collect();
     ensure(
-        doc.offsets.len() == position + 1 && doc.text_sha == TEXT_SHA,
+        doc.offsets.len() == position + 1 && doc.text_sha == fixity.text_sha256,
         "text layer position/fixity drift",
     )?;
     ctx.check()?;
@@ -563,6 +578,56 @@ pub fn run(
             .map_err(|e| e.to_string())?;
     ctx.check()?;
     Ok(format!("antonovsky technical markup {}: pages={} panels={} blocks={} headings={} units={} screened_headings={} split_boundaries={}\n",if matches!(action,Action::Build {..}) {"built"}else{"parity passed"},n(&summary["pdf_page_count"]),n(&summary["observed_panel_count"]),n(&summary["layout_block_paragraph_candidate_count"]),n(&summary["heading_candidate_count"]),n(&summary["tracked_unit_count"]),n(&screen["heading_candidate_count"]),n(&screen["split_boundary_count"])).into_bytes())
+}
+
+/// Replay the retained text-free layout outputs to an isolated selected root.
+/// The local private layers remain at the selected source root.
+pub fn replay_selected(
+    ctx: &ResearchExecution,
+    target: Option<&ResearchExecution>,
+) -> Result<Value> {
+    let (plan, screening) = plans(ctx)?;
+    ensure(
+        sha(&recipe_bytes(ctx)?) == BUILDER_SHA,
+        "current v1 recipe binding drift",
+    )?;
+    let doc = prepare(ctx, &plan)?;
+    let ids = issuance(ctx, &plan, Some(&doc))?;
+    let artifacts = packet::build(ctx, &doc, &plan, &screening, &ids)?;
+    for (reference, expected) in artifacts.tracked.iter().chain(artifacts.private.iter()) {
+        let mut file = ctx.source_file(reference, 64 * 1024 * 1024)?;
+        ensure(
+            ctx.read_file(&mut file, 64 * 1024 * 1024)? == *expected,
+            "retained layout output drift",
+        )?;
+        if artifacts.private.contains_key(reference) {
+            use std::os::unix::fs::PermissionsExt;
+            ensure(
+                file.metadata()
+                    .map_err(|e| e.to_string())?
+                    .permissions()
+                    .mode()
+                    & 0o777
+                    == 0o600,
+                "private layout mode drift",
+            )?;
+        }
+    }
+    if let Some(target) = target {
+        for (reference, raw) in &artifacts.tracked {
+            target.write(reference, raw, 0o644, true)?;
+        }
+        for (reference, raw) in &artifacts.tracked {
+            ensure(
+                target.read(reference)? == *raw,
+                "isolated layout output drift",
+            )?;
+        }
+    }
+    ctx.check()?;
+    Ok(
+        json!({"status":"passed", "tracked_output_count":artifacts.tracked.len(), "private_layers_checked":artifacts.private.len()}),
+    )
 }
 
 #[cfg(test)]

@@ -7891,7 +7891,10 @@ mod tests {
                 let mut rows=statement.query([])?;let row=rows.next()?.unwrap();
                 let abi=layout.carrier_model_abi().unwrap();
                 let (a,b)=crate::knowledge_search_rank::decode_pair_owned(abi,row.get_ref(0)?,row.get_ref(1)?,32768,&state)?;
-                assert_eq!(a, r#"["node.0","und"]"#); assert_eq!(b,a);
+                let title = serde_json::json!({"text":"node.0", "language":"und"});
+                let title_values = title.as_object().unwrap().values().collect::<Vec<_>>();
+                assert_eq!(a, serde_json::to_string(&title_values).unwrap());
+                assert_eq!(b, a);
                 assert_eq!(matches!(row.get_ref(0)?,rusqlite::types::ValueRef::Blob(_)),layout==KnowledgePayloadLayout::CarrierOnceV4);
                 Ok(())
             }).unwrap();

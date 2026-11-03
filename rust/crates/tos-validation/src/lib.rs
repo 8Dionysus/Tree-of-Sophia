@@ -18,6 +18,7 @@ use tos_foundation::{
 };
 
 mod controlled_schema;
+pub mod edition_curation;
 pub use controlled_schema::{ControlledSchemaBackendProbe, SchemaProbeControl};
 
 #[cfg(feature = "native")]
@@ -48,6 +49,8 @@ pub mod relation_rules;
 pub mod retirement_rules;
 #[cfg(feature = "native")]
 pub mod rights_rules;
+#[cfg(feature = "native")]
+mod selected_legacy;
 pub mod semantic_registry_rules;
 pub mod source_copy;
 #[cfg(feature = "native")]
@@ -55,6 +58,8 @@ pub mod source_cut;
 pub mod source_forms;
 #[cfg(feature = "native")]
 pub mod source_shapes;
+#[cfg(feature = "native")]
+pub mod text_collation_rules;
 pub mod text_metadata_rules;
 pub mod text_rules;
 mod validation_codec;

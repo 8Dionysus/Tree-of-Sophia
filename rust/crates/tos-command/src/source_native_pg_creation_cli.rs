@@ -727,8 +727,7 @@ pub(super) fn run(
             },
         )
         .map_err(source_error)?;
-    let mut worker = super::revisions::selected_candidate_schema_from_context(
-        invocation,
+    let mut worker = super::revisions::selected_in_process_candidate_schema_from_context(
         &context.files,
         identity,
         deadline,

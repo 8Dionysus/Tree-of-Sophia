@@ -4607,6 +4607,11 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
             }
             // Existing PublicProfile BASE semantic_content grant suffices for
             // version2. The old body remains an exact retained owner version.
+            let retained_worker = invocation["schema_worker"].clone();
+            invocation["schema_worker"] = serde_json::json!({
+                "absolute_path": temporary.path().join("absent-revision-schema-worker"),
+                "sha256": Digest256::of_bytes(b"unavailable revision worker").to_prefixed(),
+            });
             invocation["source_revision"] = serde_json::json!(current_revision.0.to_prefixed());
             invocation["original_source_revision"] =
                 serde_json::json!(current_revision.0.to_prefixed());
@@ -4674,6 +4679,7 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
                 &serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"inspect-version","source":v1_ref}),
                 deadline,
             );
+            invocation["schema_worker"] = retained_worker;
             assert_eq!(old["result"]["record"], v1_record);
             let basename = Path::new(relative).file_name().unwrap().to_str().unwrap();
             let binding = &old["result"]["files"][basename];
@@ -5605,7 +5611,6 @@ process.stdout.write(output);"#;
                             configuration_path: &c01_owner_path,
                             public_root: isolated.path(),
                             cut: &w,
-                            image: &image,
                             software: &software,
                             components: &components,
                             source_revision: w_revision,
@@ -11373,6 +11378,10 @@ fn sign_promotion_native_entry_v3_assesses_prepares_commits_reads_and_replays() 
         serde_json::json!(fixture.occurrence_ids)
     );
     let authored = super::command_text_cases::authored_text_files(&public_root);
+    // The selected cut declares public fixture files with portable 0644 modes.
+    for path in authored.keys() {
+        fs::set_permissions(public_root.join(path), fs::Permissions::from_mode(0o644)).unwrap();
+    }
     let mut captured = authored.clone();
     let software_sources = [
         "rust/crates/tos-command/src/lib.rs",
@@ -11465,8 +11474,8 @@ fn sign_promotion_native_entry_v3_assesses_prepares_commits_reads_and_replays() 
             "capture_manifest_sha256":capture.selection.capture_manifest_sha256.to_prefixed()
         },
         "software_components":components.members().map(|member|member.path.as_str()).collect::<Vec<_>>(),
-        "schema_worker":{"absolute_path":images[2],"sha256":image_digests[2].to_prefixed()},
-        "assessment_schema_worker":{"absolute_path":images[2],"sha256":image_digests[2].to_prefixed()},
+        "schema_worker":{"absolute_path":"/nonexistent/hostguard-schema-worker","sha256":image_digests[2].to_prefixed()},
+        "assessment_schema_worker":{"absolute_path":"/nonexistent/hostguard-assessment-worker","sha256":image_digests[2].to_prefixed()},
         "budgets":{
             "max_revisions":4,"max_members":2048,"max_total_bytes":33554432,
             "max_member_bytes":8388608,"max_schema_receipts":128,

@@ -396,6 +396,41 @@ fn validate_projection(
         return Err(Error::Budget("native corpus schema batch limits"));
     }
     let cap = tos_validation::SchemaBackendProbe::MAX_INSTANCE_BYTES.min(l.originals.max_row_bytes);
+    if matches!(
+        schemas.schema_execution_binding(),
+        Some(tos_foundation::SchemaExecutionBinding::InProcessV1(_))
+    ) {
+        let mut units = 0u64;
+        let mut total_bytes = 0u64;
+        let mut selectors = BTreeSet::new();
+        visit_instances(value, cap, deadline, cancelled, |raw, path, contract| {
+            check(deadline, cancelled)?;
+            charge(work, raw.len(), l)?;
+            units = units
+                .checked_add(1)
+                .filter(|n| *n <= b.max_total_units)
+                .ok_or(Error::Budget("native corpus schema units"))?;
+            total_bytes = total_bytes
+                .checked_add(raw.len() as u64)
+                .filter(|n| *n <= b.max_total_raw_bytes)
+                .ok_or(Error::Budget("native corpus schema raw bytes"))?;
+            selectors.insert(contract.clone());
+            if selectors.len() > b.max_distinct_selectors {
+                return Err(Error::Budget("native corpus schema selectors"));
+            }
+            if !schemas
+                .check(&path, &raw, &contract, deadline, cancelled)
+                .map_err(|e| Error::Source(format!("native corpus schema:{e:?}")))?
+            {
+                return Err(Error::Invalid("native corpus complete schema outcomes"));
+            }
+            Ok(())
+        })?;
+        if units == 0 {
+            return Err(Error::Invalid("native corpus schema header absent"));
+        }
+        return Ok(units);
+    }
     let mut units = 0u64;
     let mut chunks = 0u64;
     let mut decoded = 0u64;

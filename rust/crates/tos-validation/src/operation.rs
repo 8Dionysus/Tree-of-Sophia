@@ -752,7 +752,12 @@ pub fn inspect_general_operation<S: CutSchemaExecutor + CutSchemaReceiptRange>(
         ));
     }
     let cut_envelope = schemas.operation_budget();
-    let record_envelope = record_executor.operation_budget();
+    let record_envelope =
+        record_executor
+            .operation_budget()
+            .ok_or(OperationRefusal::InvalidProposal(
+                "record worker envelope unavailable",
+            ))?;
     cut_envelope
         .validate()
         .map_err(|refusal| OperationRefusal::ExecutorRefusal {
@@ -797,7 +802,10 @@ pub fn inspect_general_operation<S: CutSchemaExecutor + CutSchemaReceiptRange>(
     }
     worker_matches(cut, schemas)?;
     let worker = CutSchemaReceiptRange::execution_binding(schemas);
-    if record_executor.worker.sha256 != worker.worker_sha256
+    if record_executor
+        .worker
+        .as_ref()
+        .is_none_or(|identity| identity.sha256 != worker.worker_sha256)
         || record_executor.profile != worker.schema_profile
     {
         return Err(OperationRefusal::InvalidProposal(

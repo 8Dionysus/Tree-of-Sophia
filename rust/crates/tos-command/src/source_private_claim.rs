@@ -19,7 +19,6 @@ use std::time::Instant;
 use tos_foundation::{Digest256, JsonLimits, JsonValue, RelativePath, emit_python_compact_json};
 use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::assessment::MAX_RECORD_BYTES;
-use tos_validation::source_cut::CandidateCutWorkerSchemaExecutor;
 
 pub(crate) const CONFIG_V1: &str = "tos_local_owner_claim_command_v1";
 pub(crate) const CONFIG_V2: &str = "tos_local_owner_claim_command_v2";
@@ -160,7 +159,7 @@ pub(crate) fn claim_identity_basenames_pg(
     ctx: &CommandContext,
     cut: &dyn PrivateSelectedSourceInput,
     selected: &impl RecordRead<Identity = PgRecordRevisionIdentity>,
-    worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    worker: &mut impl super::profile::CandidatePrivateSchema,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<BTreeSet<String>> {
@@ -5197,7 +5196,7 @@ pub(crate) fn resolve_assessment_claim_sources_pg(
     ctx: &CommandContext,
     cut: &dyn PrivateSelectedSourceInput,
     selected: &impl RecordRead<Identity = PgRecordRevisionIdentity>,
-    worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    worker: &mut impl super::profile::CandidatePrivateSchema,
     reader: &mut dyn SignNativeRead,
     deadline: Instant,
     cancelled: &AtomicBool,
