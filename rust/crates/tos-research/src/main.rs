@@ -10,6 +10,8 @@ mod jenseits_structure_command;
 mod legacy_pdf_layout;
 mod lexical_derivatives_command;
 mod lexical_index_command;
+mod lexical_recurrence;
+mod lexical_recurrence_support;
 mod morphology_result_command;
 mod nietzsche_transfer_routes_command;
 mod research_support;

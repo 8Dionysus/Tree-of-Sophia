@@ -170,12 +170,13 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
             );
         }
         if recurrence {
-            return lexical_derivatives::recurrence::run(
+            return crate::lexical_recurrence::run(
                 &ctx,
-                lexical_derivatives::recurrence::Options {
+                crate::lexical_recurrence::Options {
+                    history: None,
                     build,
                     output_root: &output,
-                    plan: plan.unwrap_or(lexical_derivatives::recurrence::PLAN),
+                    plan: plan.unwrap_or(crate::lexical_recurrence::PLAN),
                     generation,
                     event_at: at,
                 },

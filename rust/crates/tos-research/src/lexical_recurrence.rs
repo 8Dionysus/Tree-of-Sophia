@@ -1,5 +1,6 @@
 //! Exact rational recurrence over a fixity-selected hash-only lexical projection.
-use super::{
+use crate::lexical_recurrence_support as support;
+use crate::lexical_recurrence_support::{
     Held, META_CAP, PACKET_CAP, ResearchExecution, Result, canonical, ensure, generated_path,
     present, s, sha, valid_generation,
 };
@@ -8,7 +9,9 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     path::Path,
 };
-const BUILDER: &str = "rust/crates/tos-compiler/src/lexical_derivatives/recurrence.rs";
+use tos_foundation::checked_scaled_ratio_round_even as round_even;
+const BUILDER: &str = "rust/crates/tos-research/src/lexical_recurrence.rs";
+// Historical alias defaults retire with the compatibility command.
 pub const PLAN: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/recurrence-plan.v1.json";
 const RETAINED_PROJECTION_SHA: &str =
     "7b5ecdd8dc9f3911bbf25a29da1c820d836b26502a4e925e89baf39bde011edb";
@@ -22,15 +25,6 @@ fn array(v: &Value) -> Result<&Vec<Value>> {
 }
 fn add(a: u64, b: u64) -> Result<u64> {
     a.checked_add(b).ok_or("recurrence count overflow".into())
-}
-pub(super) fn round_even(numerator: u128, denominator: u128, scale: u64) -> Result<u64> {
-    ensure(denominator != 0, "zero recurrence denominator")?;
-    let n = numerator
-        .checked_mul(scale as u128)
-        .ok_or("recurrence scale overflow")?;
-    let (q, r) = (n / denominator, n % denominator);
-    let increment = r > denominator - r || (r == denominator - r && q % 2 == 1);
-    u64::try_from(q + u128::from(increment)).map_err(|_| "recurrence rounded value overflow".into())
 }
 fn sum_counts(rows: &[Value]) -> Result<u64> {
     rows.iter()
@@ -122,7 +116,13 @@ fn validate(schemas: &tos_validation::SchemaBackendProbe, name: &str, value: &Va
         &format!("{name} schema refused"),
     )
 }
+pub struct History<'a> {
+    pub projection_sha256: &'a str,
+    pub event_sha256: &'a str,
+    pub projection_id: &'a str,
+}
 pub struct Options<'a> {
+    pub history: Option<History<'a>>,
     pub build: bool,
     pub output_root: &'a Path,
     pub plan: &'a str,
@@ -134,7 +134,7 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
 }
 
 /// Replay a verified historical observation into an isolated selected output.
-/// Move this boundary with the recurrence producer to tos-research at cutover.
+/// Selected curation supplies the historical expectations for this replay.
 pub fn replay_selected(
     ctx: &ResearchExecution,
     options: Options<'_>,
@@ -178,7 +178,7 @@ fn run_selected(
         )?;
     }
     let mut held = Vec::new();
-    let schemas = super::schemas(
+    let schemas = support::schemas(
         ctx,
         &[
             "lexical-recurrence-plan",
@@ -188,11 +188,11 @@ fn run_selected(
         ],
         &mut held,
     )?;
-    let plan = super::read_json_bounded(ctx, options.plan, META_CAP, &mut held)?;
+    let plan = support::read_json_bounded(ctx, options.plan, META_CAP, &mut held)?;
     let plan_sha = held.last().unwrap().digest.clone();
     validate(&schemas, "lexical-recurrence-plan", &plan)?;
     let source_ref = s(&plan["source_projection"]["ref"])?;
-    let source = super::read_json_bounded(ctx, source_ref, PACKET_CAP as u64, &mut held)?;
+    let source = support::read_json_bounded(ctx, source_ref, PACKET_CAP as u64, &mut held)?;
     let source_sha = held.last().unwrap().digest.clone();
     ensure(
         source_sha == s(&plan["source_projection"]["sha256"])?,
@@ -292,7 +292,7 @@ fn run_selected(
     held.push(research);
     let builder = Held::open(ctx, BUILDER, META_CAP)?;
     ensure(
-        builder.digest == sha(include_bytes!("recurrence.rs")),
+        builder.digest == sha(include_bytes!("lexical_recurrence.rs")),
         "running recurrence generator source drift",
     )?;
     let builder_sha = builder.digest.clone();
@@ -320,15 +320,21 @@ fn run_selected(
     )?;
     let mut projection = json!({
         "$schema":"https://tree-of-sophia.local/ToS/contracts/lexical-recurrence-projection.schema.json","schema_version":"tos_lexical_recurrence_projection_v1","generated_or_authored":"generated_from_tracked_lexical_projection",
-        "projection_id":format!("lexical-recurrence-projection:zarathustra-dta-first-editions-parts-1-4-v1{suffix}"),"plan":{"ref":options.plan,"sha256":plan_sha},"source_projection":{"ref":source_ref,"sha256":source_sha,"schema_version":source["schema_version"]},"generator":{"ref":BUILDER,"sha256":builder_sha},"work_ref":plan["work_ref"],
+        "projection_id":format!("{}{suffix}",options.history.as_ref().map(|h| h.projection_id).unwrap_or("lexical-recurrence-projection:zarathustra-dta-first-editions-parts-1-4-v1")),"plan":{"ref":options.plan,"sha256":plan_sha},"source_projection":{"ref":source_ref,"sha256":source_sha,"schema_version":source["schema_version"]},"generator":{"ref":BUILDER,"sha256":builder_sha},"work_ref":plan["work_ref"],
         "segmentation_totals":{"part_count":4,"section_count":source["summary"]["section_count"],"page_count":source["summary"]["body_page_count"],"token_count":total,"parts":part_totals},"method_views":{"A":"absolute-frequency","B":"structural-range","C":"tupleized-part-size-aware-dispersion"},"summary":summary,"rows":rows,"content_exposure":plan["content_exposure"],
         "rights_and_visibility":{"source_payload_visibility":"local-only","tracked_projection_visibility":"local-only","future_site_route":"blocked","rights_review_required_before_public_route":true},"semantic_boundary":plan["semantic_boundary"],"provenance_event_ref":event_id,
         "authority_boundary":"This projection records deterministic hash-based exact-form recurrence observations from the selected lexical projection.",
     });
     if options.generation.is_none() {
-        let prior = super::read_json_bounded(ctx, base_output, PACKET_CAP as u64, &mut held)?;
+        let prior = support::read_json_bounded(ctx, base_output, PACKET_CAP as u64, &mut held)?;
         ensure(
-            options.plan == PLAN && held.last().unwrap().digest == RETAINED_PROJECTION_SHA,
+            (options.history.is_some() || options.plan == PLAN)
+                && held.last().unwrap().digest
+                    == options
+                        .history
+                        .as_ref()
+                        .map(|h| h.projection_sha256)
+                        .unwrap_or(RETAINED_PROJECTION_SHA),
             "unknown historical recurrence projection",
         )?;
         for key in ["generator", "authority_boundary"] {
@@ -353,9 +359,14 @@ fn run_selected(
         "receipt_refs":[output_ref,options.plan,research_ref],"rights_basis_ref":null,"event_version":1,"supersedes_event_ref":null,
     });
     if options.generation.is_none() {
-        let prior = super::read_json_bounded(ctx, base_event, META_CAP, &mut held)?;
+        let prior = support::read_json_bounded(ctx, base_event, META_CAP, &mut held)?;
         ensure(
-            held.last().unwrap().digest == RETAINED_EVENT_SHA,
+            held.last().unwrap().digest
+                == options
+                    .history
+                    .as_ref()
+                    .map(|h| h.event_sha256)
+                    .unwrap_or(RETAINED_EVENT_SHA),
             "unknown historical recurrence event",
         )?;
         event["agent_refs"] = prior["agent_refs"].clone();

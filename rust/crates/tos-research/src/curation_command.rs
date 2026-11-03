@@ -458,8 +458,15 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
             {
                 return Err("recurrence artifact roles differ".into());
             }
-            // Retain this compatibility producer until the recurrence stage moves into tos-research.
-            let options = tos_compiler::lexical_derivatives::recurrence::Options {
+            // Preserve the retained producer profile until the compatibility aliases retire.
+            let options = crate::lexical_recurrence::Options {
+                history: Some(crate::lexical_recurrence::History {
+                    projection_sha256: &expected["projection"].1,
+                    event_sha256: &expected["event"].1,
+                    projection_id: recipe["record_identities"][0]["base_id"]
+                        .as_str()
+                        .ok_or("recurrence projection identity required")?,
+                }),
                 build: false,
                 output_root: output,
                 plan: plan_ref,
@@ -467,11 +474,9 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
                 event_at: None,
             };
             let result = if let Some(target) = target.as_ref() {
-                tos_compiler::lexical_derivatives::recurrence::replay_selected(
-                    &ctx, options, target,
-                )?
+                crate::lexical_recurrence::replay_selected(&ctx, options, target)?
             } else {
-                tos_compiler::lexical_derivatives::recurrence::run(&ctx, options)?
+                crate::lexical_recurrence::run(&ctx, options)?
             };
             if result["projection_sha256"] != expected["projection"].1
                 || result["provenance_sha256"] != expected["event"].1
@@ -490,9 +495,13 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
             result["current_curation_sha256"] = serde_json::json!(digest(&owner.raw));
             result["current_execution_source_sha256"] =
                 serde_json::json!(digest(include_bytes!("curation_command.rs")));
-            result["current_compatibility_producer_sha256"] = serde_json::json!(digest(
-                include_bytes!("../../tos-compiler/src/lexical_derivatives/recurrence.rs")
-            ));
+            result["current_producer_sha256"] =
+                serde_json::json!(digest(include_bytes!("lexical_recurrence.rs")));
+            result["current_custody_sha256"] =
+                serde_json::json!(digest(include_bytes!("lexical_recurrence_support.rs")));
+            result["current_rational_sha256"] = serde_json::json!(digest(include_bytes!(
+                "../../tos-foundation/src/rational.rs"
+            )));
             writeln!(out, "{result}").map_err(|error| error.to_string())?;
             return Ok(());
         }
