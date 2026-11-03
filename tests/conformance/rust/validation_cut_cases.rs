@@ -2724,6 +2724,38 @@ fn actual_source_foundation_inventory_profile2_binds_exceptional_schema_results(
             panic!("selected inventory profile-2 batch incomplete: {reason:?}; {report:?}")
         }
     };
+    let in_process =
+        match tos_validation::source_foundation_schema::evaluate_in_process_foundation_checks(
+            &original_schemas,
+            &checks,
+            limits,
+            deadline,
+            &cancelled,
+        ) {
+            tos_validation::source_foundation_schema::InProcessFoundationOutcome::Complete(
+                report,
+            ) => report,
+            tos_validation::source_foundation_schema::InProcessFoundationOutcome::Incomplete {
+                reason,
+                ..
+            } => {
+                panic!("in-process mixed schema checks incomplete: {reason:?}")
+            }
+        };
+    assert!(in_process.is_complete());
+    assert_eq!(in_process.source_revision, original_revision);
+    assert_eq!(
+        in_process.schema_set_sha256,
+        original_report.schema_set_sha256
+    );
+    for (new, old) in in_process.checks.iter().zip(&original_report.checks) {
+        assert_eq!(new.location, old.location);
+        assert_eq!(new.contract, old.contract);
+        assert_eq!(new.diagnostic.status, old.diagnostic.status);
+        assert_eq!(new.diagnostic.failure, old.diagnostic.failure);
+        assert_eq!(new.diagnostic.issues, old.diagnostic.issues);
+        assert_eq!(new.issues, old.issues);
+    }
     assert!(original_report.is_complete());
     assert!(!original_report.is_valid());
     assert_eq!(original_report.source_revision, original_revision);
@@ -2878,6 +2910,28 @@ fn actual_source_foundation_inventory_profile2_binds_exceptional_schema_results(
         raw_instance: raw_nan_width.clone(),
     }])
     .unwrap();
+    match tos_validation::source_foundation_schema::evaluate_in_process_foundation_checks(
+        &derived_schemas,
+        &indeterminate_check,
+        limits,
+        deadline,
+        &cancelled,
+    ) {
+        tos_validation::source_foundation_schema::InProcessFoundationOutcome::Incomplete {
+            report,
+            reason,
+        } => {
+            assert_eq!(
+                reason,
+                SourceFoundationSchemaFailure::UnsupportedInputSemantics
+            );
+            assert!(!report.is_complete());
+            assert_eq!(report.source_revision, derived_revision);
+        }
+        tos_validation::source_foundation_schema::InProcessFoundationOutcome::Complete(_) => {
+            panic!("unsupported in-process schema closure was accepted")
+        }
+    }
     let (indeterminate_report, reason) = match evaluate_source_foundation_mixed_schema_checks(
         &derived_schemas,
         &worker,
