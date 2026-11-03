@@ -3129,20 +3129,19 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                                 }
                                 if let Some(diagnostic) = evaluated.first_invalid()
                                 {
-                                    let result = diagnostic.result();
-                                    let contract = Digest256::of_bytes(result.contract().as_bytes()).to_hex();
-                                    let reason = result.report().issues.first()
+                                    let contract = Digest256::of_bytes(diagnostic.contract().as_bytes()).to_hex();
+                                    let reason = diagnostic.issues().first()
                                         .map_or(0, |issue| issue.reason as u16);
                                     let diagnostic_site = format!(
                                         "{site}-s{:x}-r{reason:x}-c{}",
-                                        result.status() as u8, &contract[..12],
+                                        diagnostic.status() as u8, &contract[..12],
                                     );
                                     // The full source-path digest remains the cause, while
                                     // this bounded navigation prefix names the selected
                                     // contract and its owned structured reason code.
                                     if diagnostic_site.len() <= 40 {
                                         site = diagnostic_site;
-                                        cause = result.path();
+                                        cause = diagnostic.path();
                                     }
                                 }
                                 // Return the bounded set from this same evaluation, not
@@ -3154,7 +3153,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                                 };
                                 let summary = bounded_source_cause("receiver-source", &site, cause);
                                 let diagnostic_cap = MAX_SOURCE_CAUSE_BYTES.min(biblio_operation.output_bytes);
-                                let diagnostic_state = evaluated.cost.peak_additional_state_upper_bound_bytes
+                                let diagnostic_state = evaluated.cost.peak_assembly_state_upper_bound_bytes
                                     .checked_add(diagnostic_cap + 1024)
                                     .ok_or(tos_validation::item_budget_origin!())?;
                                 if diagnostic_state > diagnostic_state_cap
@@ -3207,7 +3206,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                                 });
                             }
                             let diagnostic_evidence_peak = common_evidence_state
-                                .checked_add(evaluated.cost.peak_additional_state_upper_bound_bytes)
+                                .checked_add(evaluated.cost.peak_assembly_state_upper_bound_bytes)
                                 .ok_or(tos_validation::item_budget_origin!())?;
                             let callback_evidence_state = rules_evidence_peak.max(diagnostic_evidence_peak);
                             if callback_evidence_state > callback_workspace_state {
