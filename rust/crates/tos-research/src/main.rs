@@ -7,6 +7,7 @@ mod dta_technical_markup_command;
 mod german_triangulation_command;
 mod jenseits_label_command;
 mod jenseits_structure_command;
+mod legacy_pdf_layout;
 mod lexical_derivatives_command;
 mod lexical_index_command;
 mod morphology_result_command;

@@ -456,6 +456,28 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
             writeln!(out, "{result}").map_err(|error| error.to_string())?;
             return Ok(());
         }
+        if matches!(action, "check" | "build") && stage == "pdf-structural-paragraph" {
+            if input_root.is_some() || output_root.is_some() {
+                return Err("retained PDF producer uses the selected source root".into());
+            }
+            let target = if action == "build" {
+                let path = Path::new(tracked_root.ok_or("build requires --tracked-output-root")?);
+                Some(select_empty_output(&ctx, path, &[&root])?)
+            } else {
+                None
+            };
+            let mut result = crate::legacy_pdf_layout::replay(&ctx, recipe, target.as_ref())?;
+            selected.verify_unchanged(&ctx)?;
+            for referenced in &refs {
+                referenced.verify_unchanged(&ctx)?;
+            }
+            result["stage"] = serde_json::json!(stage);
+            result["curation_ref"] = serde_json::json!(relative);
+            result["current_curation_sha256"] =
+                serde_json::json!(tos_foundation::Digest256::of_bytes(&owner.raw).to_hex());
+            writeln!(out, "{result}").map_err(|error| error.to_string())?;
+            return Ok(());
+        }
         if matches!(action, "check" | "build") && stage == "structural-source-routes" {
             if input_root.is_some() || output_root.is_some() {
                 return Err("structural source routes use selected source metadata only".into());
