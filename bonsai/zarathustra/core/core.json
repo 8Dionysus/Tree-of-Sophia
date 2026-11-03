@@ -93,6 +93,13 @@
    "reviewer": "Codex, on the owner’s request",
    "reads": "Name the chapters in reader-facing review reasons; source review text remains intact.",
    "corrections": "bonsai/review/zarathustra-graph/graph-words/assembly-inputs/review-chapter-names-2026-11-02.json"
+  },
+  {
+   "id": "language-review-english-additions-2026-11-03",
+   "date": "2026-11-03",
+   "reviewer": "Claude, on the owner’s request",
+   "reads": "English for the reader texts the core held only in Russian: the notes that lead to Nietzsche’s other works and the reasons beside the formulas. They follow the Tree’s English terms.",
+   "corrections": "bonsai/review/zarathustra-graph/graph-words/assembly-inputs/english-additions-2026-11-03.json"
   }
  ],
  "files": [
@@ -160,8 +167,8 @@
      "unmatched": 0
     },
     "en": {
-     "admitted": 749,
-     "applied": 749,
+     "admitted": 814,
+     "applied": 814,
      "unmatched": 0
     }
    },
@@ -267,6 +274,19 @@
      "en": {
       "admitted": 0,
       "applied": 0,
+      "unmatched": 0
+     }
+    },
+    {
+     "ledger": "english-additions-2026-11-03.json",
+     "ru": {
+      "admitted": 0,
+      "applied": 0,
+      "unmatched": 0
+     },
+     "en": {
+      "admitted": 65,
+      "applied": 65,
       "unmatched": 0
      }
     }

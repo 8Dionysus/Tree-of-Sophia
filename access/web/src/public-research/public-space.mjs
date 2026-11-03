@@ -13,6 +13,7 @@ import {isAuthoredTransition,ladderRung,nodeForm,partName,relationStyle,routeVoi
 import {antiquityTimeline,formatDating,formatYears,stepTimeline,trajectory,zarathustraTimeline} from './space-timeline.mjs';
 import {bonsaiFor,depthOf,lensPositions} from './bonsai.mjs';
 import {createTerms} from './term-view.mjs';
+import {citedPlaces} from './research-index.mjs';
 import {readChronology} from '../../../../bonsai/lib/chronology.mjs';
 import {readPlaces} from '../../../../bonsai/lib/places.mjs';
 import {clipLinesRight,planeOfPlaces} from './space-geography.mjs';
@@ -37,6 +38,7 @@ const translations={
   en:{space:'Research space',profiles:'Profiles',kickerZarathustra:'ZARATHUSTRA · PUBLIC EDITIONS',kickerAntiquity:'ANCIENT WORLDS · PUBLIC EDITIONS',search:'Search texts, concepts and questions…',lenses:'LENSES',tree:'The tree',read:'Read',library:'Library',routes:'Routes',grow:'Grow a branch',research:'My research',new:'New thought',connect:'Connect thoughts',compare:'Compare',fit:'Fit all',undo:'Undo',redo:'Redo',fullscreen:'Fullscreen',filter:'Relations',all:'All relations',sources:'Sources',readings:'Readings',question:'Research question',searchResults:'Results',emptySearch:'No matches.',select:'Select a star or line to open its reading and source.',selected:'Selected',kind:'Type',posture:'Status',demo:'Proposed reading for exploration · not canon',personal:'Personal hypothesis · saved in shared research',sourceExact:'The exact version and place are available in the public reader.',sourceWork:'Public work record; no exact passage is bound.',sourceMissing:'Full text for this reference is not supplied here.',openExact:'Open exact passage',openWork:'Open work',sourceRefs:'Source references',body:'Reading',questionLabel:'Question',connections:'Connections',related:'Open node',relation:'Relation type',edgeBody:'Why these thoughts are connected',readRoute:'Start reading',routeStart:'Research paths',routeNext:'Next step',routePrevious:'Previous step',step:'Step',noRoutes:'No routes are available for this profile yet.',growTitle:'Research branches',growIntro:'Add a prepared line to your space or begin your own.',createBranch:'Create your own thought',save:'Save',cancel:'Cancel',title:'Title',text:'Thought',newNode:'New thought',newEdge:'Connect two thoughts',chooseFirst:'Choose the first star, then the second.',chooseSecond:'Now choose the second star.',edgeLabel:'Briefly explain what connects these thoughts',chooseRelation:'Relation type',connected:'Connection added.',saved:'Saved in personal research and the graph.',saveError:'Could not save this thought in shared research.',comparePick:'Choose two stars to compare.',comparison:'Comparison',start:'Open',empty:'This space has no nodes yet.',countNodes:'nodes',countEdges:'relations',record:'Saved in this browser',close:'Close',linkOnly:'Bibliographic link only',resetRoute:'Close route',imagine:'A lens offers a way to read; it does not change the source tree.',unavailable:'The source could not be opened.',export:'Export space',import:'Import space',source:'Source',work:'Work',part:'Part',fragment:'Passage',chapter:'Chapter',concept:'Concept',interpretation:'Interpretation',question:'Question',note:'Note',dossier:'Dossier',figure:'Thinker',tradition:'Tradition',symbol:'Image'},
 };
 const tr=localeValue;
+const termWorks=record=>[...new Set([record?.workId,record?.source?.workId,...citedPlaces(record).map(cite=>cite.w)].filter(Boolean))].join(' ');
 // A title's middle dot stays at the end of its line, never at the start of the next.
 const keepDots=text=>String(text??'').replace(/ · /g,'\u00a0· ');
 const extraTranslations={
@@ -107,7 +109,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // The stand's bonsai: its chronology, places, and how each of its lenses reads.
   const bonsai=bonsaiFor(profile);
   // The stand's terms open on their origin wherever a card names them; opening one opens the book at its first place.
-  const terms=createTerms({module:bonsai?.terms??null,locale,open:cite=>{if(cite?.c)void fragments.showChapter(cite.c,cite).catch(()=>{});}});
+  const terms=createTerms({module:bonsai?.terms??null,locale,open:cite=>{if(cite?.c)void fragments.showChapter(cite.c,cite).catch(()=>{});else if(cite)shell.dispatchEvent(new CustomEvent('public-research-action',{bubbles:true,detail:{action:'read',cite}}));}});
   // The lens "Time" exists where the data dates or orders its material: Antiquity by the years its bonsai gives the writings, Zarathustra by the order of the book.
   const timeline=profile==='antiquity'?antiquityTimeline({routes,entries:library.space?.collection??[],chronology:bonsai?.chronology}):profile==='zarathustra'?zarathustraTimeline({materials:[...materials.values()],references:atlas.references??{},clusters:atlas.clusters??[],chronology:bonsai?.chronology}):null;
   // What a star's dating and place are about: the writing of its passage or work (Antiquity), of the text it first rests on (Zarathustra).
@@ -1108,6 +1110,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const inSavedGraph=state.nodes.some(item=>item.id===id),inView=graphState().nodes.some(item=>item.id===id);
     const material=matForNode(node),ownerHyp=(personalState?.hypotheses??[]).find(item=>item.id===node.workspaceHypothesisId||item.id===node.id||materializedHypotheses.get(item.id)===node.id);
     panelContent.replaceChildren();
+    if(profile==='antiquity')panelContent.dataset.termWorks=termWorks(material);
     const nodeTitle=label(node.ownerType==='personal-hypothesis'?node:material??node),part=partName(profile,material,locale(),{moveIds});panelContent.append(el('p','eyebrow',`${t('kind')} · ${part||kindName(material?.kind??node.kind)}`),el('h1','',keepDots(node.ownerType==='personal-hypothesis'&&nodeTitle.length>120?kindName(node.kind):nodeTitle)));
     // A move names its author, work and place right under its title.
     const witness=part&&!material?.route?sourceLine(material,{materials:previewMaterials,entryByLegacyId:collectionByLegacyId,locale:locale()}):'';if(witness)panelContent.append(el('p','ps-source-line',witness));
@@ -1176,13 +1179,26 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   function renderResearch(parent,id){
     const item=index?.get(id);if(!item)return false;
+    if(profile==='antiquity')parent.dataset.termWorks=termWorks(item.record);
     if(item.owner==='bonsai/core'&&coreView?.renderReference(parent,{kind:item.kind==='relation'?'relation':'node',id:item.id}))return true;
     parent.append(el('h2','',tr(item.title,locale())||item.id));
     if(item.kind==='passage')parent.append(fragments.fragment(item.record));
     else if(item.kind==='statement')fragments.render(parent,item.record);
     else if(item.record?.body)fragments.render(parent,item.record.body);
     else if(item.record?.reading?.reading)fragments.render(parent,item.record.reading.reading);
+    else if(item.kind==='fragment')appendSourcePassage(parent,item.id);
     appendResearchReferences(parent,item.id);return true;
+  }
+  // A place of a source shows the passage itself, in the original and in translation, as the reading grounded in it cites it,
+  // and leads on to that reading.
+  function appendSourcePassage(parent,id){
+    const reading=[...materials.values()].find(node=>node.sourceNodeId===id);
+    if(!reading)return;
+    if(reading.body?.cite?.length)fragments.render(parent,{cite:reading.body.cite});
+    const line=el('p','ps-source-reading',`${copyLocale(locale())==='en'?'The reading of this passage':'Прочтение этого места'}: `);
+    const open=button(tr(reading.title,locale())||reading.id,'text-button');
+    open.addEventListener('click',()=>shell.dispatchEvent(new CustomEvent('public-research-open',{bubbles:true,detail:{id:reading.id}})));
+    line.append(open);parent.append(line);
   }
   function appendResearchReferences(parent,id){
     const item=index?.get(id);if(!item)return;
@@ -1324,6 +1340,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     shell.dataset.columnOpen=String(columnOpen);shell.dataset.sheet=wide?'':columnOpen?(sheetFull?'full':'open'):'peek';shell.dataset.reading=String(columnOpen);
     panelTitle.textContent=columnCaption(mode);panelTitle.setAttribute('aria-expanded',String(columnOpen));
     panelClose.hidden=!wide&&!columnOpen;panelClose.setAttribute('aria-label',t(mode==='overview'&&!browsingRoutes?'collapseColumn':mode==='route'?'resetRoute':'close'));
+    delete panelContent.dataset.termWorks;
     renderRoutes();renderLensControls(mode);
     if(mode==='overview')renderWelcome();else if(mode==='route')renderStepNode();else if(mode==='node')renderNode(selected);else if(mode==='edge')renderEdge(selectedEdge);else if(mode==='measure')renderMeasure();
     // The scale of time shows the chosen move's author's life, so a new choice redraws its strip.

@@ -45,7 +45,7 @@ it('keeps proposed families, earlier readings and unassessed occurrences distinc
   const history=fold(rel,'История');history.toggle();expect(text(history)).toContain('Прежнее чтение');expect(text(history)).toContain('Прежний ответ');expect(text(history)).toContain('Прежнее основание');
   const node=new Element('div');view.node(node,'speaker',{reference:true});
   expect(text(node)).toContain('Роль в произведении');
-  const appearance=fold(node,'Предисловие Заратустры · Обращается к слушателям');appearance.toggle();expect(text(appearance)).toContain('Кандидат на фигуру произведения');expect(text(appearance)).toContain('I.01:u1–u1');
+  const appearance=fold(node,'Предисловие Заратустры · Обращается к слушателям');appearance.toggle();expect(text(appearance)).toContain('Здесь говорит');expect(text(appearance)).toContain('Говорящий · Речь');expect(text(appearance)).not.toContain('Кандидат');expect(text(appearance)).toContain('I.01:u1–u1');
   const uses=fold(node,'Смысловые употребления');uses.toggle();expect(text(uses)).toContain('не все употребления слова автоматически относятся к этому предмету');
   const unknown=fold(uses,'Места без рассмотренного значения · 1');unknown.toggle();expect(text(unknown)).toContain('I.01:u1–u1');expect(text(unknown)).not.toContain('К слушателям');
   const group=fold(uses,'Обращение');group.toggle();expect(text(group)).toContain('К слушателям');expect(text(group)).toContain('Прочтение Древа');

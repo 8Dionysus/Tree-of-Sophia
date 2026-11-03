@@ -284,7 +284,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       for(const language of showing){
         const text=place.texts[language];
         const narrowed=shownIn(language,language===work.original&&Number.isInteger(cite.s)?text.slice(cite.s,Number.isInteger(cite.e)?cite.e:text.length):text);
-        const quote=el('blockquote','ps-fragment-text');quote.lang=language==='zh-Hans'?'zh':language;
+        const quote=el('blockquote','ps-fragment-text');quote.lang=language==='zh-Hans'?'zh':language;quote.dataset.termWorks=cite.w;
         const {nodes}=clip(narrowed.split(/\n{2,}/).map(part=>el('p','ps-fragment-line',part.trim())).filter(node=>node.textContent));
         quote.append(...nodes);
         const witness=witnessOf(language);
@@ -315,8 +315,10 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
   // The corpus names a place in Russian ("Книга 6 · 509", "Глава 52", "Строки от 146"); a caption names it in
   // the reader's language. An edition's chunk number ("Unit 59") names no place and is left out.
   const PLACE_WORDS=[['Книга','refBook'],['Глава','refChapter'],['Раздел','refSection'],['Фрагмент','refFragment'],['Строки от','refLines']];
-  const placeName=reference=>{
-    if(!reference||/^Unit \d+$/.test(reference))return '';
+  const placeName=raw=>{
+    if(!raw||/^Unit \d+$/.test(raw))return '';
+    // A collected edition names a dialogue by its slug beside its title ("crito · Критон"); the reader sees the title.
+    const parts=raw.split(' · '),reference=parts.length>1?parts.filter(part=>!/^[a-z][a-z0-9-]*$/.test(part)).join(' · '):raw;
     if(resolveLocale(locale())==='ru')return reference;
     let value=reference.replace(/Предисловие Арриана/gu,words('refArrian'));
     for(const [word,key] of PLACE_WORDS)value=value.replace(new RegExp(`${word}\\s+([^\\s·]+)`,'gu'),(_,n)=>words(key).replace('{n}',n));
@@ -372,7 +374,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       for(const [language,value] of parts){
         if(!value.length)continue;
         const version=versionFor(language);
-        const quote=el('blockquote','ps-fragment-text');quote.lang=language==='grc'?'grc':language==='la'?'la':language;
+        const quote=el('blockquote','ps-fragment-text');quote.lang=language==='grc'?'grc':language==='la'?'la':language;quote.dataset.edition=version.versionId;quote.dataset.termWorks=cite.w;
         const {nodes}=clip(value.flatMap(item=>item.text.split(/\n{2,}/)).map(part=>el('p','ps-fragment-line',part.replace(/\s*\n\s*/g,' ').trim())).filter(node=>node.textContent));
         quote.append(...nodes);
         const references=[...new Set(value.map(item=>placeName(item.reference)).filter(Boolean))];

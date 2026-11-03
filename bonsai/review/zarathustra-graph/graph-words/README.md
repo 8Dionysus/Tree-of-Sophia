@@ -50,6 +50,9 @@ wording and name the chapters. The review-language ledger also supplies
 reader-facing wording for selected plain-string review reasons: its explicit
 `scalar_reasons` flag applies only exact matches. The original reviewer
 wording remains in the preserved assembly inputs.
+The English-additions ledger gives English to the reader texts the core held
+only in Russian (`{"add": {"ru": …, "en": …}}`), so an English page reads in
+English throughout.
 Each entry replaces a whole reader-text wording in the assembled core;
 paired Russian and English entries stay linked to their matching Russian text,
 while an English-only entry applies to every exact matching English reader
