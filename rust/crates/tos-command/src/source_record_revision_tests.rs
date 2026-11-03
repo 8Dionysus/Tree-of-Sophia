@@ -789,7 +789,7 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
             "software_capture":shared_software_scratch.path().join("software-capture"),"software_restored_root":shared_software_scratch.path().join("software-restored"),
             "software_selection":{"source_git_commit":selection.source_git_commit,"source_git_tree":selection.source_git_tree,"capture_manifest_sha256":selection.capture_manifest_sha256.to_prefixed()},
             "software_components":components.members().map(|m|m.path.as_str()).collect::<Vec<_>>(),
-            "schema_worker":{"absolute_path":worker_path,"sha256":image_guards[2].0.to_prefixed()},
+            "schema_worker":{"absolute_path":"/nonexistent/hostguard-schema-worker","sha256":image_guards[2].0.to_prefixed()},
             "budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":cmd::SELECTED_SOURCE_MAX_BYTES,"max_member_bytes":cmd::SELECTED_SOURCE_MAX_MEMBER_BYTES,
                 "max_schema_receipts":128,"max_schema_receipt_bytes":262144,"worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}});
         freeze_invocation(&invocation_path, &invocation);

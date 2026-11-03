@@ -1228,35 +1228,6 @@ fn value(value: &JsonValue) -> SourceCommandResult<Value> {
         .map_err(|_| SourceCommandError::Invalid("Record revision response JSON"))
 }
 
-// Only the filesystem record owner chooses this resource footprint. The full
-// context/cut remains unchanged. Shared PG/text/Claim callers continue to call
-// selected_schema_from_context directly with its original all-resource default.
-fn filesystem_profile_schema_from_context(
-    invocation: &Value,
-    ctx: &cmd::CommandContext,
-    family: crate::source_revisions::RevisionFamily,
-    source_revision: SourceRevision,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> SourceCommandResult<CutWorkerSchemaExecutor> {
-    let selected = if matches!(
-        family,
-        crate::source_revisions::RevisionFamily::PublicProfile
-            | crate::source_revisions::RevisionFamily::PublicProfileScope
-    ) {
-        crate::source_revisions::simple_profile_schema_files(ctx, deadline, cancelled)?
-    } else {
-        None
-    };
-    selected_schema_from_context(
-        invocation,
-        selected.as_deref().unwrap_or(&ctx.files),
-        source_revision,
-        deadline,
-        cancelled,
-    )
-}
-
 pub(super) fn run(
     invocation: &Value,
     request_raw: &[u8],
@@ -1363,74 +1334,40 @@ pub(super) fn run(
             cancelled,
         )?
     };
-    let result = if matches!(
+    let profile_files = if matches!(
         family,
-        crate::source_revisions::RevisionFamily::Historical
-            | crate::source_revisions::RevisionFamily::PublicProfile
+        crate::source_revisions::RevisionFamily::PublicProfile
             | crate::source_revisions::RevisionFamily::PublicProfileScope
-            | crate::source_revisions::RevisionFamily::CorpusFlat
     ) {
-        let profile_files = if matches!(
-            family,
-            crate::source_revisions::RevisionFamily::PublicProfile
-                | crate::source_revisions::RevisionFamily::PublicProfileScope
-        ) {
-            crate::source_revisions::simple_profile_schema_files(&ctx, deadline, cancelled)?
-        } else {
-            None
-        };
-        let resources =
-            selected_text_schema_resources(profile_files.as_deref().unwrap_or(&ctx.files))?;
-        let mut schemas =
-            tos_validation::source_cut::InProcessCutSchemaExecutor::from_cut_selected_resources(
-                selected,
-                resources,
-                FormatProfile::LegacyPythonObserved20260923,
-                tos_validation::in_process::InputMode::LegacyPythonObserved,
-                deadline,
-                cancelled,
-            )
-            .map_err(|_| SourceCommandError::Denied("record revision schema selection"))?;
-        let result = owner::revision_publication::run(
-            &filesystem,
-            &ctx,
-            selected,
-            original.as_ref(),
-            software,
-            components,
-            &mut schemas,
-            deadline,
-            cancelled,
-        );
-        if result.is_err() {
-            let _ = schemas.finish(deadline, cancelled);
-        }
-        result
+        crate::source_revisions::simple_profile_schema_files(&ctx, deadline, cancelled)?
     } else {
-        let mut worker = filesystem_profile_schema_from_context(
-            invocation,
-            &ctx,
-            family,
-            selected.current().revision(),
-            deadline,
-            cancelled,
-        )?;
-        let result = owner::revision_publication::run(
-            &filesystem,
-            &ctx,
-            selected,
-            original.as_ref(),
-            software,
-            components,
-            &mut worker,
-            deadline,
-            cancelled,
-        );
-        if result.is_err() {
-            let _ = worker.finish(deadline, cancelled);
-        }
-        result
+        None
     };
+    let resources = selected_text_schema_resources(profile_files.as_deref().unwrap_or(&ctx.files))?;
+    let mut schemas =
+        tos_validation::source_cut::InProcessCutSchemaExecutor::from_cut_selected_resources(
+            selected,
+            resources,
+            FormatProfile::LegacyPythonObserved20260923,
+            tos_validation::in_process::InputMode::LegacyPythonObserved,
+            deadline,
+            cancelled,
+        )
+        .map_err(|_| SourceCommandError::Denied("record revision schema selection"))?;
+    let result = owner::revision_publication::run(
+        &filesystem,
+        &ctx,
+        selected,
+        original.as_ref(),
+        software,
+        components,
+        &mut schemas,
+        deadline,
+        cancelled,
+    );
+    if result.is_err() {
+        let _ = schemas.finish(deadline, cancelled);
+    }
     result.and_then(|proposal| Ok(json!({
         "schema_version":"tos_local_native_source_result_v1",
         "authentication":"local-unix-account", "result":value(&proposal.response)?, "grants_admission":false
