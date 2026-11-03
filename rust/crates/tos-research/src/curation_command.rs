@@ -12,7 +12,7 @@ use tos_validation::{
 };
 
 const SCHEMA_PATH: &str = "ToS/contracts/edition-curation.v1.schema.json";
-const HELP: &str = "usage: tos-research build|check --curation PATH --stage STAGE [--source-root ABS] [--local-input-root ABS] [--local-output-root ABS] [OPTIONS]\n       tos-research validate --curation PATH [--stage STAGE] [--source-root ABS]\n\nThe selected source root defaults to the current directory. The curation, item, edition and referenced recipes are validated before a stage is selected. Historical command aliases remain available during stage migration.\n";
+const HELP: &str = "usage: tos-research build|check --curation PATH --stage STAGE [--source-root ABS] [--local-input-root ABS] [--local-output-root ABS] [--tracked-output-root ABS] [--scratch-bytes N] [OPTIONS]\n       tos-research validate --curation PATH [--stage STAGE] [--source-root ABS]\n\nThe selected source root defaults to the current directory. The curation, item, edition and referenced recipes are validated before a stage is selected. Historical command aliases remain available during stage migration.\n";
 
 struct Curation {
     reference: String,
@@ -139,8 +139,16 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
     if args.len() == 2 && matches!(args[1].as_str(), "--help" | "-h") {
         return write!(out, "{HELP}").map_err(|e| e.to_string());
     }
-    let (mut curation, mut stage, mut root, mut input_root, mut output_root, mut seconds) =
-        (None, None, None, None, None, None);
+    let (
+        mut curation,
+        mut stage,
+        mut root,
+        mut input_root,
+        mut output_root,
+        mut tracked_root,
+        mut scratch,
+        mut seconds,
+    ) = (None, None, None, None, None, None, None, None);
     let mut options = args.iter().skip(1);
     while let Some(option) = options.next() {
         let slot = match option.as_str() {
@@ -149,6 +157,8 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
             "--source-root" => &mut root,
             "--local-input-root" => &mut input_root,
             "--local-output-root" => &mut output_root,
+            "--tracked-output-root" => &mut tracked_root,
+            "--scratch-bytes" => &mut scratch,
             "--max-seconds" => &mut seconds,
             _ => return Err(format!("unknown curation option: {option}")),
         };
@@ -160,7 +170,12 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
         }
     }
     let curation = curation.ok_or("--curation is required")?;
-    if action == "validate" && (input_root.is_some() || output_root.is_some()) {
+    if action == "validate"
+        && (input_root.is_some()
+            || output_root.is_some()
+            || tracked_root.is_some()
+            || scratch.is_some())
+    {
         return Err("local input and output roots apply to check or build".into());
     }
     if action != "validate" && stage.is_none() {
@@ -177,7 +192,18 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
         .unwrap_or("180")
         .parse::<u64>()
         .map_err(|_| "invalid --max-seconds")?;
-    let ctx = Execution::new(&root, seconds)?;
+    if action != "build" && (tracked_root.is_some() || scratch.is_some()) {
+        return Err("tracked output root and scratch apply to build".into());
+    }
+    let ctx = if action == "build" {
+        let bytes = scratch
+            .ok_or("build requires --scratch-bytes")?
+            .parse::<u64>()
+            .map_err(|_| "invalid scratch bytes")?;
+        Execution::new_with_scratch(&root, seconds, bytes)?
+    } else {
+        Execution::new(&root, seconds)?
+    };
     let path = Path::new(curation);
     let relative = if path.is_absolute() {
         path.strip_prefix(&root)
@@ -246,7 +272,7 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
         };
         // The TEI implementation retains its historical plan-specific checks until its
         // record templates and rules are fully selected from curation.
-        if action == "check" && stage == "tei-technical-markup" {
+        if matches!(action, "check" | "build") && stage == "tei-technical-markup" {
             let plan_ref = recipe["plan_ref"]
                 .as_str()
                 .ok_or("TEI plan reference required")?;
@@ -311,6 +337,40 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
             if !input.is_absolute() || !output.is_absolute() {
                 return Err("local roots must be absolute".into());
             }
+            let tracked = if action == "build" {
+                let path = Path::new(tracked_root.ok_or("build requires --tracked-output-root")?);
+                if !path.is_absolute() {
+                    return Err("tracked output root must be absolute".into());
+                }
+                let selected = ctx.select_directory(path)?;
+                let tracked_canonical =
+                    std::fs::canonicalize(path).map_err(|error| error.to_string())?;
+                for other in [&root, input, output] {
+                    let other = std::fs::canonicalize(other).map_err(|error| error.to_string())?;
+                    if tracked_canonical.starts_with(&other)
+                        || other.starts_with(&tracked_canonical)
+                    {
+                        return Err(
+                            "tracked output root must be separate from all selected roots".into(),
+                        );
+                    }
+                }
+                use std::os::fd::AsRawFd;
+                if std::fs::read_dir(format!(
+                    "/proc/self/fd/{}",
+                    selected.root_directory().as_raw_fd()
+                ))
+                .map_err(|error| error.to_string())?
+                .next()
+                .is_some()
+                {
+                    return Err("tracked output root must be empty".into());
+                }
+                Some((path, selected))
+            } else {
+                None
+            };
+            let build = action == "build";
             let mut result = crate::dta_technical_markup::run(
                 &ctx,
                 crate::dta_technical_markup::Options {
@@ -318,16 +378,32 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
                     recipe,
                     input_root: Some(input),
                     output_root: Some(output),
-                    action: crate::dta_technical_markup::Action::Check,
+                    tracked_output: tracked.as_ref().map(|(_, selected)| selected),
+                    action: if build {
+                        crate::dta_technical_markup::Action::Build {
+                            issue_identities: false,
+                        }
+                    } else {
+                        crate::dta_technical_markup::Action::Check
+                    },
                     event_id: None,
                 },
             )?;
+            if build && result["tracked_output_count"].as_u64() != u64::try_from(frozen.len()).ok()
+            {
+                return Err("rebuilt TEI output membership count differs from curation".into());
+            }
             if ctx.read(plan_ref)? != plan {
                 return Err("selected TEI plan changed during verification".into());
             }
             for (reference, raw) in frozen {
                 if ctx.read(&reference)? != raw {
                     return Err("selected TEI output changed during verification".into());
+                }
+                if let Some((_, target)) = &tracked {
+                    if target.read(&reference)? != raw {
+                        return Err("rebuilt TEI output differs from selected source".into());
+                    }
                 }
             }
             selected.verify_unchanged(&ctx)?;
@@ -337,6 +413,9 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
             result["stage"] = serde_json::json!(stage);
             result["curation_ref"] = serde_json::json!(relative);
             result["implementation"] = serde_json::json!("retained-plan-specific-executor");
+            if build {
+                result["replay"] = serde_json::json!("historical-source-bound");
+            }
             writeln!(out, "{result}").map_err(|error| error.to_string())?;
             return Ok(());
         }

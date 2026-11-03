@@ -31,6 +31,7 @@ pub struct Options<'a> {
     pub recipe: &'a Value,
     pub input_root: Option<&'a Path>,
     pub output_root: Option<&'a Path>,
+    pub tracked_output: Option<&'a ResearchExecution>,
     pub action: Action,
     pub event_id: Option<&'a str>,
 }
@@ -1342,6 +1343,7 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
     };
     let input = ctx.select_directory(opts.input_root.ok_or("local input root required")?)?;
     let output = ctx.select_directory(opts.output_root.ok_or("local output root required")?)?;
+    let tracked_output = opts.tracked_output.unwrap_or(ctx);
     let (major_raw, major_doc) = load(ctx, s(&plan["structure_correspondence_ref"])?)?;
     ensure(
         major_doc["work_ref"] == plan["work_ref"],
@@ -1556,7 +1558,8 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
     let mut write_tracked = Vec::new();
     let mut write_private = Vec::new();
     for (r, raw) in &tracked {
-        let missing = crate::research_support::fresh_or_matching_limit(ctx, r, raw, CAP)?;
+        let missing =
+            crate::research_support::fresh_or_matching_limit(tracked_output, r, raw, CAP)?;
         ensure(build || !missing, "tracked output absent")?;
         if missing {
             write_tracked.push(r);
@@ -1585,7 +1588,7 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
             output.write(r, &private[r], 0o600, true)?;
         }
         for r in write_tracked {
-            ctx.write(r, &tracked[r], 0o644, true)?;
+            tracked_output.write(r, &tracked[r], 0o644, true)?;
         }
     }
     ctx.check()?;

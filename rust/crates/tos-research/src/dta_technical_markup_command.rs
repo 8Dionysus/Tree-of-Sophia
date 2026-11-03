@@ -112,6 +112,7 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
                 ),
                 input_root: input.as_deref(),
                 output_root: output.as_deref(),
+                tracked_output: None,
                 action,
                 event_id: event.as_deref(),
             },

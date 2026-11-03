@@ -139,3 +139,18 @@ fn curated_tei_check_requires_explicit_local_custody() {
     assert_eq!(output.status.code(), Some(2));
     assert!(String::from_utf8_lossy(&output.stderr).contains("--local-input-root is required"));
 }
+
+#[test]
+fn curated_tei_build_refuses_overlapping_output_root() {
+    let root =
+        std::fs::canonicalize(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.."))
+            .unwrap();
+    let root = root.to_str().unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_tos-research"))
+        .args(["build", "--source-root", root, "--local-input-root", root, "--local-output-root", root, "--tracked-output-root", root, "--scratch-bytes", "33554432", "--curation", "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/edition-curation.v1.json", "--stage", "tei-technical-markup"])
+        .output().unwrap();
+    assert_eq!(output.status.code(), Some(2));
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains("tracked output root must be separate")
+    );
+}
