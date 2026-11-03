@@ -14,13 +14,14 @@ use crate::source_cohort::revision::{
 use crate::source_command::{
     self as cmd, CommandContext, CommandPlan, SourceCommandError, SourceCommandResult,
 };
-use crate::source_revisions::{self as revisions, PgRecordRevisionCommandContext};
+use crate::source_revisions::{
+    self as revisions, PgRecordRevisionCommandContext, RecordSchemaWorker,
+};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue, RelativePath};
 use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
-use tos_validation::source_cut::CandidateCutWorkerSchemaExecutor;
 
 pub(crate) const ARTIFACT_RECORD_TYPE: &str = "artifact";
 const ARTIFACT_DEPENDENCY_PROFILE: &str = "tos_initial_artifact_dependency_commitment_v1";
@@ -225,12 +226,12 @@ pub(crate) fn prepare_pg_artifact_creation(
     observations: PgArtifactCreationObservations,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    worker: &mut impl RecordSchemaWorker<Identity = PgRecordRevisionIdentity>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedPgArtifactCreation> {
     if context.base_revision != identity.bootstrap_revision
-        || worker.input_identity() != &identity
+        || worker.input_identity() != Some(identity)
         || components.capture() != software.selection()
     {
         return Err(SourceCommandError::Conflict(
@@ -545,11 +546,11 @@ impl PreparedPgArtifactCreation {
     pub(crate) fn serialize(
         self,
         software: &SoftwareCaptureReader,
-        worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+        worker: &mut impl RecordSchemaWorker<Identity = PgRecordRevisionIdentity>,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<PgSerializedArtifactCreation> {
-        if worker.input_identity() != &self.identity {
+        if worker.input_identity() != Some(self.identity) {
             return Err(SourceCommandError::Conflict(
                 "PG Artifact schema worker identity changed",
             ));
