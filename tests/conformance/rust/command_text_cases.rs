@@ -1016,7 +1016,7 @@ fn native_owner_alignment_preserves_versions_competition_and_cold_replay() {
         native.is_absolute(),
         "native owner executable must be absolute"
     );
-    let worker_image = super::validation_cut_cases::selected_worker_path();
+    let worker_image = temporary.path().join("absent-schema-worker");
     let invocation_path = temporary.path().join("native-alignment-invocation.json");
     fs::write(&invocation_path, serde_json::to_vec(&serde_json::json!({
         "schema_version":"tos_local_native_owner_invocation_v1",
@@ -1033,7 +1033,7 @@ fn native_owner_alignment_preserves_versions_competition_and_cold_replay() {
         "software_components":components.members().map(|member| member.path.as_str()).collect::<Vec<_>>(),
         "schema_worker":{
             "absolute_path":worker_image,
-            "sha256":alignment_image_digest(&worker_image).to_prefixed(),
+            "sha256":Digest256::of_bytes(b"unavailable schema worker").to_prefixed(),
         },
         "budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":33554432,
             "max_member_bytes":8388608,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,

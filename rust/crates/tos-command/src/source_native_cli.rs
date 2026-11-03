@@ -1183,8 +1183,8 @@ fn run_selected(
             &cancelled,
         );
     }
-    let mut schema = selected_schema(&invocation, &cut, deadline, &cancelled)?;
     if item_invocation {
+        let mut schema = selected_schema(&invocation, &cut, deadline, &cancelled)?;
         return run_item(
             &invocation,
             &request_raw,
@@ -1197,6 +1197,14 @@ fn run_selected(
             &cancelled,
         );
     }
+    let mut schema = tos_validation::source_cut::InProcessCutSchemaExecutor::from_cut(
+        &cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        tos_validation::in_process::InputMode::LegacyPythonObserved,
+        deadline,
+        &cancelled,
+    )
+    .map_err(|_| SourceCommandError::Denied("native Alignment schema selection"))?;
     let context = absolute(text(&invocation, "owner_context")?)?;
     let owner = absolute(text(&invocation, "owner_config")?)?;
     let result = match operation {
