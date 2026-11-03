@@ -21,6 +21,7 @@ mod numbered_check;
 mod numbered_label_correspondence;
 mod numbered_matching;
 mod numbered_structure;
+mod paragraph_alignment;
 mod pdf_navigation;
 mod provenance_event_lab_command;
 mod research_builders_command;

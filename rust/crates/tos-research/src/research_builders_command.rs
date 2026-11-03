@@ -19,31 +19,31 @@ pub const HELP: &str = "usage: tos-research COMMAND --source-root ABSOLUTE_SOURC
 fn entry_identity(command: &str) -> (&'static str, &'static [u8]) {
     match command {
         "zarathustra-reading-workbench-v1" => (
-            "research_reading_workbench.rs",
+            "rust/crates/tos-compiler/src/research_reading_workbench.rs",
             include_bytes!("../../tos-compiler/src/research_reading_workbench.rs"),
         ),
         "zarathustra-parallel-lexical-candidates-v1" => (
-            "research_parallel_lexical.rs",
+            "rust/crates/tos-compiler/src/research_parallel_lexical.rs",
             include_bytes!("../../tos-compiler/src/research_parallel_lexical.rs"),
         ),
         "zarathustra-de-ru-paragraph-alignment-v1" => (
-            "research_paragraph_alignment.rs",
-            include_bytes!("../../tos-compiler/src/research_paragraph_alignment.rs"),
+            "rust/crates/tos-research/src/paragraph_alignment.rs",
+            include_bytes!("paragraph_alignment.rs"),
         ),
         "zarathustra-concept-workbench-v1" => (
-            "research_concept_workbench.rs",
+            "rust/crates/tos-compiler/src/research_concept_workbench.rs",
             include_bytes!("../../tos-compiler/src/research_concept_workbench.rs"),
         ),
         "zarathustra-eternal-return-review-preparation-v1" => (
-            "research_eternal_return.rs",
+            "rust/crates/tos-compiler/src/research_eternal_return.rs",
             include_bytes!("../../tos-compiler/src/research_eternal_return.rs"),
         ),
         "zarathustra-morphology-theme-candidates-v1" => (
-            "research_morphology_theme.rs",
+            "rust/crates/tos-compiler/src/research_morphology_theme.rs",
             include_bytes!("../../tos-compiler/src/research_morphology_theme.rs"),
         ),
         "zarathustra-eternal-return-concept-candidate-v1" => (
-            "research_eternal_return_concept.rs",
+            "rust/crates/tos-compiler/src/research_eternal_return_concept.rs",
             include_bytes!("../../tos-compiler/src/research_eternal_return_concept.rs"),
         ),
         _ => unreachable!("recognized research producer"),
@@ -126,7 +126,7 @@ pub fn run_if_requested(
                 tos_compiler::research_parallel_lexical::run_scoped(&root, &producer)
             }
             "zarathustra-de-ru-paragraph-alignment-v1" => {
-                tos_compiler::research_paragraph_alignment::run_scoped(&root, &producer)
+                crate::paragraph_alignment::run_scoped(&root, &producer)
             }
             "zarathustra-concept-workbench-v1" => {
                 tos_compiler::research_concept_workbench::run_scoped(&root, &producer)
@@ -157,7 +157,7 @@ pub fn run_if_requested(
                     serde_json::json!({
                         "schema_version": "tos_native_research_execution_v1",
                         "command": command,
-                        "kernel_entry_ref": format!("rust/crates/tos-compiler/src/{entry}"),
+                        "kernel_entry_ref": entry,
                         "kernel_entry_sha256": tos_foundation::Digest256::of_bytes(raw).to_hex(),
                         "output_provenance_posture": "frozen_v1_recipe_rendering",
                         "execution_budget": budget,

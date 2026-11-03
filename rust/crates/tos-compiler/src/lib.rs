@@ -838,8 +838,6 @@ pub mod research_execution;
 #[cfg(feature = "research")]
 pub mod research_morphology_theme;
 #[cfg(feature = "research")]
-pub mod research_paragraph_alignment;
-#[cfg(feature = "research")]
 pub mod research_parallel_lexical;
 #[cfg(feature = "research")]
 pub mod source_text_foundation;

@@ -26,7 +26,6 @@
 //! Rust unit tests cover null-side and outside-scope uncertainty, nested private
 //! text rejection, serialization, and Unicode offsets. Production census/parity
 //! verification belongs to the bounded owner data operation, not ordinary CI.
-use crate::research_execution::ResearchExecution;
 use serde_json::{Value, json};
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
@@ -36,6 +35,7 @@ use std::{
     path::Path,
 };
 use tos_foundation::Digest256;
+use tos_source_store::execution::Execution as ResearchExecution;
 type Result<T> = std::result::Result<T, String>;
 type Files = BTreeMap<String, Vec<u8>>;
 const WORK: &str = "tos.work.friedrich-nietzsche.also-sprach-zarathustra";
@@ -182,9 +182,8 @@ fn count(repo: &ResearchExecution, rows: &[Value], key: &str) -> Result<Value> {
     Ok(json!(m))
 }
 fn template(name: &str) -> Value {
-    let all: Value =
-        serde_json::from_str(include_str!("research_paragraph_alignment_templates.json"))
-            .expect("embedded templates");
+    let all: Value = serde_json::from_str(include_str!("paragraph_alignment_templates.json"))
+        .expect("embedded templates");
     all[name].clone()
 }
 #[derive(Clone)]
@@ -257,7 +256,7 @@ pub fn reconstruct_scoped(repo: &ResearchExecution) -> Result<Material> {
         de_packets.insert(part, packet);
     }
     repo.reserve_structural_reads()?;
-    let model = crate::antonovsky_structural::reconstruct_from_directory(
+    let model = tos_compiler::antonovsky_structural::reconstruct_from_directory(
         repo.root(),
         repo.root_directory(),
         repo.deadline(),
