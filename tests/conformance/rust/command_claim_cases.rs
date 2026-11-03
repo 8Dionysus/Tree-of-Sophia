@@ -2357,7 +2357,18 @@ fn rich_schema_inputs(
         .ok_or(ClaimReferenceError::InvalidInput)?;
     for (path, commitment) in closure {
         let path = path.as_str().ok_or(ClaimReferenceError::InvalidInput)?;
-        let raw = rich_selected(files, path, b)?;
+        let selected = rich_selected(files, path, b)?;
+        // The oracle binds its historical schema closure. The selected cut
+        // and schema worker continue to use the current source contracts.
+        let raw: &[u8] = match path {
+            "ToS/contracts/claim-packet.schema.json" => {
+                include_bytes!("fixtures/legacy-claim-schemas-v1/claim-packet.schema.json")
+            }
+            "ToS/contracts/source-claim-record.schema.json" => {
+                include_bytes!("fixtures/legacy-claim-schemas-v1/source-claim-record.schema.json")
+            }
+            _ => selected,
+        };
         let size = rich_number(rich_field(commitment, "bytes", b)?, b)?;
         if u64::try_from(raw.len()).map_err(|_| ClaimReferenceError::Limit)? != size
             || rich_hash(raw, b)? != rich_hex(rich_text(commitment, "sha256", b)?, b)?
