@@ -12,7 +12,7 @@ use tos_validation::{
 };
 
 const SCHEMA_PATH: &str = "ToS/contracts/edition-curation.v1.schema.json";
-const HELP: &str = "usage: tos-research build|check --curation PATH --stage STAGE [--source-root ABS] [--local-input-root ABS] [--local-output-root ABS] [--tracked-output-root ABS] [--scratch-bytes N] [OPTIONS]\n       tos-research validate --curation PATH [--stage STAGE] [--source-root ABS]\n\nThe selected source root defaults to the current directory. The curation, item, edition and referenced recipes are validated before a stage is selected. Historical command aliases remain available during stage migration.\n";
+const HELP: &str = "usage: tos-research build|check --curation PATH --stage STAGE [--source-root ABS] [--local-input-root ABS] [--boundary-root ABS] [--local-output-root ABS] [--tracked-output-root ABS] [--scratch-bytes N] [OPTIONS]\n       tos-research validate --curation PATH [--stage STAGE] [--source-root ABS]\n\nThe selected source root defaults to the current directory. The curation, item, edition and referenced recipes are validated before a stage is selected. Historical command aliases remain available during stage migration.\n";
 
 struct Curation {
     reference: String,
@@ -182,11 +182,12 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
         mut stage,
         mut root,
         mut input_root,
+        mut boundary_root,
         mut output_root,
         mut tracked_root,
         mut scratch,
         mut seconds,
-    ) = (None, None, None, None, None, None, None, None);
+    ) = (None, None, None, None, None, None, None, None, None);
     let mut options = args.iter().skip(1);
     while let Some(option) = options.next() {
         let slot = match option.as_str() {
@@ -194,6 +195,7 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
             "--stage" => &mut stage,
             "--source-root" => &mut root,
             "--local-input-root" => &mut input_root,
+            "--boundary-root" => &mut boundary_root,
             "--local-output-root" => &mut output_root,
             "--tracked-output-root" => &mut tracked_root,
             "--scratch-bytes" => &mut scratch,
@@ -210,6 +212,7 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
     let curation = curation.ok_or("--curation is required")?;
     if action == "validate"
         && (input_root.is_some()
+            || boundary_root.is_some()
             || output_root.is_some()
             || tracked_root.is_some()
             || scratch.is_some())
@@ -308,6 +311,145 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
         } else {
             (&selected, choices[0])
         };
+        if boundary_root.is_some() && stage != "sentence-alignment" {
+            return Err("boundary root applies to sentence alignment".into());
+        }
+        if matches!(action, "check" | "build") && stage == "sentence-alignment" {
+            if output_root.is_some() {
+                return Err("sentence alignment check uses retained outputs".into());
+            }
+            let plan_ref = recipe["plan_ref"]
+                .as_str()
+                .ok_or("sentence plan reference required")?;
+            let plan_raw = ctx.read(plan_ref)?;
+            edition_curation::validate_recipe_plan(
+                &owner.raw,
+                stage,
+                SelectedDocument {
+                    reference: plan_ref,
+                    raw: &plan_raw,
+                },
+                &schema,
+            )
+            .map_err(|e| format!("sentence plan binding: {e:?}"))?;
+            let plan: Value = serde_json::from_slice(&plan_raw).map_err(|e| e.to_string())?;
+            let items = recipe["source_item_refs"]
+                .as_array()
+                .ok_or("sentence items required")?;
+            if items.len() != 2
+                || items[0] != plan["source"]["item_ref"]
+                || items[1] != plan["target"]["item_ref"]
+            {
+                return Err("sentence plan items differ from curation".into());
+            }
+            let mut frozen = Vec::new();
+            let mut roles = BTreeSet::new();
+            for output in recipe["frozen_outputs"]
+                .as_array()
+                .ok_or("sentence outputs required")?
+            {
+                let role = output["role"]
+                    .as_str()
+                    .ok_or("sentence output role required")?;
+                let reference = output["repository_path"]
+                    .as_str()
+                    .ok_or("sentence output path required")?;
+                if !roles.insert(role) || plan["outputs"][role] != reference {
+                    return Err("sentence output selection differs from plan".into());
+                }
+                let raw = ctx.read(reference)?;
+                edition_curation::validate_frozen_output_fixity(
+                    &owner.raw,
+                    stage,
+                    role,
+                    SelectedDocument {
+                        reference,
+                        raw: &raw,
+                    },
+                    &schema,
+                )
+                .map_err(|e| format!("sentence frozen output: {e:?}"))?;
+                frozen.push((reference.to_owned(), raw));
+            }
+            let expected: BTreeSet<_> = [
+                "source_sentence_packet_ref",
+                "target_sentence_packet_ref",
+                "alignment_packet_ref",
+                "provenance_event_ref",
+            ]
+            .into_iter()
+            .collect();
+            if roles != expected {
+                return Err("sentence output membership differs from plan".into());
+            }
+            let input = Path::new(input_root.ok_or("--local-input-root is required")?);
+            let boundary = boundary_root.map(Path::new).unwrap_or(&root);
+            if !input.is_absolute() || !boundary.is_absolute() {
+                return Err("local roots must be absolute".into());
+            }
+            let target = if action == "build" {
+                let path = Path::new(tracked_root.ok_or("build requires --tracked-output-root")?);
+                Some(select_empty_output(&ctx, path, &[&root, input, boundary])?)
+            } else {
+                None
+            };
+            let argv = serde_json::json!(std::env::args().collect::<Vec<_>>());
+            let mut result = crate::sentence_alignment::run(
+                &ctx,
+                crate::sentence_alignment::Options {
+                    plan_ref,
+                    input_root: input,
+                    boundary_root: boundary,
+                    tracked_output: target.as_ref(),
+                    build: action == "build",
+                    event_id: None,
+                    argv: &argv,
+                    history: crate::sentence_alignment::History {
+                        builder: recipe["legacy_builder_ref"]
+                            .as_str()
+                            .ok_or("historical builder required")?,
+                        event: recipe["event_id"]
+                            .as_str()
+                            .ok_or("historical event required")?,
+                        builder_sha256: recipe["legacy_builder_sha256"]
+                            .as_str()
+                            .ok_or("historical builder digest required")?,
+                        derivation_prefix: recipe["derivation_prefix"]
+                            .as_str()
+                            .ok_or("derivation prefix required")?,
+                    },
+                },
+            )?;
+            for (reference, raw) in frozen {
+                if ctx.read(&reference)? != raw {
+                    return Err("selected sentence output changed during verification".into());
+                }
+                if let Some(target) = &target {
+                    if target.read(&reference)? != raw {
+                        return Err("rebuilt sentence output differs from selected source".into());
+                    }
+                }
+            }
+            selected.verify_unchanged(&ctx)?;
+            for referenced in &refs {
+                referenced.verify_unchanged(&ctx)?;
+            }
+            result["stage"] = serde_json::json!(stage);
+            result["curation_ref"] = serde_json::json!(relative);
+            result["current_curation_sha256"] =
+                serde_json::json!(tos_foundation::Digest256::of_bytes(&owner.raw).to_hex());
+            result["current_plan_sha256"] =
+                serde_json::json!(tos_foundation::Digest256::of_bytes(&plan_raw).to_hex());
+            result["current_execution_sources"] = serde_json::json!({
+                "sentence_alignment": tos_foundation::Digest256::of_bytes(include_bytes!("sentence_alignment.rs")).to_hex(),
+                "sentence_records": tos_foundation::Digest256::of_bytes(include_bytes!("sentence_alignment/records.rs")).to_hex(),
+            });
+            if action == "build" {
+                result["replay"] = serde_json::json!("historical-source-bound");
+            }
+            writeln!(out, "{result}").map_err(|error| error.to_string())?;
+            return Ok(());
+        }
         if matches!(action, "check" | "build") && stage == "structural-source-routes" {
             if input_root.is_some() || output_root.is_some() {
                 return Err("structural source routes use selected source metadata only".into());

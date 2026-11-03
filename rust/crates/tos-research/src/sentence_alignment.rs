@@ -12,16 +12,19 @@ pub struct Options<'a> {
     pub plan_ref: &'a str,
     pub input_root: &'a std::path::Path,
     pub boundary_root: &'a std::path::Path,
+    pub tracked_output: Option<&'a ResearchExecution>,
     pub build: bool,
     pub event_id: Option<&'a str>,
     pub argv: &'a Value,
+    pub history: History<'a>,
 }
-pub const PLAN: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-opening-sentence-alignment.plan.v1.json";
+pub struct History<'a> {
+    pub builder: &'a str,
+    pub event: &'a str,
+    pub builder_sha256: &'a str,
+    pub derivation_prefix: &'a str,
+}
 const BUILDER: &str = "rust/crates/tos-research/src/sentence_alignment.rs";
-const LEGACY_BUILDER: &str = "scripts/build_zarathustra_opening_sentence_alignment.py";
-const LEGACY_EVENT: &str =
-    "tos.event.alignment.za-i-vorrede-1.dta-1883-antonovsky-1911-opening-sentence.2026-08-12";
-const LEGACY_SHA: &str = "80d312d541718d5fc5e57caa5689202102ec527fe311e29f362c341e76f9d52d";
 const CAP: usize = 2 * 1024 * 1024;
 struct Side {
     text: String,
@@ -260,7 +263,7 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
             .event_id
             .ok_or("fresh build requires explicit --event-id")?;
         ensure(
-            id.starts_with("tos.event.") && id != LEGACY_EVENT && id.len() < 512,
+            id.starts_with("tos.event.") && id != opts.history.event && id.len() < 512,
             "new event identity",
         )?;
         id.into()
@@ -269,21 +272,21 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
         ensure(id == event_id, "selected event differs from retained event")?;
     }
     let historical = existing.as_ref().is_some_and(|(_, e)| {
-        e["method"]["software_components"][0]["artifact_ref"] == LEGACY_BUILDER
+        e["method"]["software_components"][0]["artifact_ref"] == opts.history.builder
     });
     if historical {
         ensure(
-            event_id == LEGACY_EVENT,
+            event_id == opts.history.event,
             "unsupported historical event identity",
         )?;
     }
     let legacy_wording = historical
         && existing.as_ref().unwrap().1["method"]["software_components"][0]["artifact_sha256"]
-            == LEGACY_SHA;
+            == opts.history.builder_sha256;
     let uv = std::char::UNICODE_VERSION;
     let unicode = format!("{}.{}.{}", uv.0, uv.1, uv.2);
     let (builder, unicode, created) = if historical {
-        (LEGACY_BUILDER, "16.0.0", s(&plan["created_at"])?)
+        (opts.history.builder, "16.0.0", s(&plan["created_at"])?)
     } else {
         (BUILDER, unicode.as_str(), at.as_str())
     };
@@ -435,7 +438,7 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
     let mut derivations = vec![];
     for output in &outputs {
         for name in ["source", "target"] {
-            derivations.push(json!({"derivation_id":format!("tos.derivation.za-i-vorrede-1.opening-sentence-alignment.{}",derivations.len()+1),"input_entity_ref":plan[name]["private_content_ref"],"output_entity_ref":output["entity_ref"],"relation":"aggregation_from","influence_asserted":true,"description":"The exact private layer contributes only its fixed selector and digest to this text-free proposal; no source text is disclosed."}));
+            derivations.push(json!({"derivation_id":format!("{}{}", opts.history.derivation_prefix, derivations.len()+1),"input_entity_ref":plan[name]["private_content_ref"],"output_entity_ref":output["entity_ref"],"relation":"aggregation_from","influence_asserted":true,"description":"The exact private layer contributes only its fixed selector and digest to this text-free proposal; no source text is disclosed."}));
         }
     }
     let event = if let Some((_, e)) = &existing {
@@ -519,7 +522,21 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
             writes.push((r, raw));
         }
     }
-    if opts.build {
+    if let Some(target) = opts.tracked_output {
+        ensure(
+            opts.build && writes.is_empty(),
+            "isolated replay requires retained matching outputs",
+        )?;
+        for (r, raw) in &records_map {
+            ensure(
+                fresh_or_matching(target, r, raw)?,
+                "isolated output must be fresh",
+            )?;
+        }
+        for (r, raw) in &records_map {
+            target.write(r, raw, 0o644, true)?;
+        }
+    } else if opts.build {
         for (r, raw) in writes {
             ctx.write(r, raw, 0o644, true)?;
         }
@@ -533,6 +550,10 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::source_text_foundation_command::{
+        ALIGNMENT_LEGACY_BUILDER as LEGACY_BUILDER, ALIGNMENT_LEGACY_EVENT as LEGACY_EVENT,
+        ALIGNMENT_PLAN as PLAN,
+    };
     fn fixture() -> Value {
         serde_json::from_str(include_str!("sentence_alignment/synthetic-parity.json")).unwrap()
     }
