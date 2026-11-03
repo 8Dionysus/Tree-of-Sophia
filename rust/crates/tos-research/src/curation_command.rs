@@ -405,6 +405,12 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
                     event_id: None,
                     argv: &argv,
                     history: crate::sentence_alignment::History {
+                        agent_ref: recipe["agent_ref"]
+                            .as_str()
+                            .ok_or("sentence agent required")?,
+                        plan_schema_version: recipe["plan_schema_version"]
+                            .as_str()
+                            .ok_or("sentence plan schema required")?,
                         builder: recipe["legacy_builder_ref"]
                             .as_str()
                             .ok_or("historical builder required")?,

@@ -1,5 +1,8 @@
 //! Native explicit-source adapters for exact text extraction and alignment proposals.
 use std::{io::Write, path::PathBuf};
+pub(crate) const ALIGNMENT_AGENT: &str =
+    "software:tos-zarathustra-opening-sentence-alignment-builder";
+const ALIGNMENT_PLAN_SCHEMA: &str = "tos_zarathustra_opening_sentence_alignment_plan_v1";
 pub(crate) const ALIGNMENT_PLAN: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-opening-sentence-alignment.plan.v1.json";
 pub(crate) const ALIGNMENT_LEGACY_BUILDER: &str =
     "scripts/build_zarathustra_opening_sentence_alignment.py";
@@ -123,6 +126,8 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
                     event_id: event.as_deref(),
                     argv: &argv,
                     history: crate::sentence_alignment::History {
+                        agent_ref: ALIGNMENT_AGENT,
+                        plan_schema_version: ALIGNMENT_PLAN_SCHEMA,
                         builder: ALIGNMENT_LEGACY_BUILDER,
                         event: ALIGNMENT_LEGACY_EVENT,
                         builder_sha256: ALIGNMENT_LEGACY_SHA,

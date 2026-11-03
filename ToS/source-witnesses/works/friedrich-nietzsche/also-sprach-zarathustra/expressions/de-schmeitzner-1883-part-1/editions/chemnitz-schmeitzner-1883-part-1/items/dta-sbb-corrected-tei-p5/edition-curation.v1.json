@@ -146,6 +146,8 @@
     },
     {
       "stage": "sentence-alignment",
+      "plan_schema_version": "tos_zarathustra_opening_sentence_alignment_plan_v1",
+      "agent_ref": "software:tos-zarathustra-opening-sentence-alignment-builder",
       "plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-opening-sentence-alignment.plan.v1.json",
       "source_item_refs": [
         "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",

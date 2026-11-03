@@ -19,6 +19,8 @@ pub struct Options<'a> {
     pub history: History<'a>,
 }
 pub struct History<'a> {
+    pub agent_ref: &'a str,
+    pub plan_schema_version: &'a str,
     pub builder: &'a str,
     pub event: &'a str,
     pub builder_sha256: &'a str,
@@ -191,7 +193,7 @@ fn validate_event(
 pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
     let (plan_raw, plan) = load(ctx, opts.plan_ref)?;
     ensure(
-        plan["schema_version"] == "tos_zarathustra_opening_sentence_alignment_plan_v1"
+        plan["schema_version"] == opts.history.plan_schema_version
             && plan["method"]["name"]
                 == "exact-first-full-stop-inclusive-ordinal-correspondence-proposal"
             && plan["method"]["version"] == "1"
@@ -295,6 +297,7 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
         let method = records::method(
             &plan,
             &plan[name]["language"],
+            opts.history.agent_ref,
             opts.plan_ref,
             builder,
             &event_id,
@@ -343,6 +346,7 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
     let target_ref = s(&plan["outputs"]["target_sentence_packet_ref"])?;
     let mut alignment = records::alignment_packet(
         &plan,
+        opts.history.agent_ref,
         opts.plan_ref,
         builder,
         &event_id,
@@ -456,6 +460,7 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
         let digest = selected.hash_file(&mut f, 256 * 1024 * 1024)?;
         records::provenance(records::Provenance {
             plan: &plan,
+            agent_ref: opts.history.agent_ref,
             plan_ref: opts.plan_ref,
             plan_digest: &sha(&plan_raw),
             event_id: &event_id,
@@ -590,6 +595,7 @@ mod tests {
             let method = records::method(
                 plan,
                 &plan[name]["language"],
+                crate::source_text_foundation_command::ALIGNMENT_AGENT,
                 PLAN,
                 LEGACY_BUILDER,
                 LEGACY_EVENT,
@@ -604,6 +610,7 @@ mod tests {
         }
         let alignment = records::alignment_packet(
             plan,
+            crate::source_text_foundation_command::ALIGNMENT_AGENT,
             PLAN,
             LEGACY_BUILDER,
             LEGACY_EVENT,

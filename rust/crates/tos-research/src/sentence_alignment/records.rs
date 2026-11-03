@@ -3,6 +3,7 @@ use super::*;
 pub(super) fn method(
     plan: &Value,
     language: &Value,
+    agent_ref: &str,
     plan_ref: &str,
     builder_ref: &str,
     event_id: &str,
@@ -11,7 +12,7 @@ pub(super) fn method(
 ) -> Value {
     json!({
     "maker_kind": "software",
-    "agent_ref": "software:tos-zarathustra-opening-sentence-alignment-builder",
+    "agent_ref": agent_ref,
     "method_name": "exact first-full-stop-inclusive sentence-boundary proposal",
     "method_version": plan["method"]["version"],
     "software_refs": [builder_ref],
@@ -252,6 +253,7 @@ pub(super) fn alignment_side(
 }
 pub(super) fn alignment_packet(
     plan: &Value,
+    agent_ref: &str,
     plan_ref: &str,
     builder_ref: &str,
     event_id: &str,
@@ -298,7 +300,7 @@ pub(super) fn alignment_packet(
     "status_reason": "The two exact spans are proposed as an ordinal structural correspondence only. Translation fidelity, wording, grammar, lexical equivalence, and semantic interpretation remain unreviewed.",
     "maker": {
     "maker_kind": "software",
-    "agent_ref": "software:tos-zarathustra-opening-sentence-alignment-builder",
+    "agent_ref": agent_ref,
     "made_at": made_at,
     "method": plan["method"]["name"],
     "provenance_event_ref": event_id,
@@ -369,6 +371,7 @@ pub(super) fn alignment_packet(
 }
 pub(super) struct Provenance<'a> {
     pub plan: &'a Value,
+    pub agent_ref: &'a str,
     pub plan_ref: &'a str,
     pub plan_digest: &'a str,
     pub event_id: &'a str,
@@ -385,6 +388,7 @@ pub(super) struct Provenance<'a> {
 pub(super) fn provenance(v: Provenance<'_>) -> Value {
     let Provenance {
         plan,
+        agent_ref,
         plan_ref,
         plan_digest,
         event_id,
@@ -430,7 +434,7 @@ pub(super) fn provenance(v: Provenance<'_>) -> Value {
     },
     "derivations": derivations,
     "responsibility": [{
-    "agent_ref": "software:tos-zarathustra-opening-sentence-alignment-builder",
+    "agent_ref": agent_ref,
     "agent_kind": "software",
     "role": "executor",
     "responsibility_posture": "performed",
