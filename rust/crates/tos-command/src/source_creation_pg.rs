@@ -15,13 +15,14 @@ use crate::source_cohort::{IndexRows, creation};
 use crate::source_command::{
     self as cmd, CommandContext, CommandPlan, SourceCommandError, SourceCommandResult,
 };
-use crate::source_revisions::{self as revisions, PgRecordRevisionCommandContext};
+use crate::source_revisions::{
+    self as revisions, PgRecordRevisionCommandContext, RecordSchemaWorker,
+};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, RelativePath};
 use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
-use tos_validation::source_cut::CandidateCutWorkerSchemaExecutor;
 
 const CORPUS_DEPENDENCY_PROFILE: &str = "tos_initial_corpus_dependency_commitment_v2";
 const AGENT_DEPENDENCY_PROFILE_COMPAT: &str = "tos_initial_agent_dependency_commitment_v2";
@@ -198,11 +199,11 @@ impl PreparedPgCorpusCreation {
     pub(crate) fn serialize(
         self,
         software: &SoftwareCaptureReader,
-        worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+        worker: &mut impl RecordSchemaWorker<Identity = PgRecordRevisionIdentity>,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<PgSerializedCorpusCreation> {
-        if worker.input_identity() != &self.identity {
+        if worker.input_identity() != Some(self.identity) {
             return Err(SourceCommandError::Conflict(
                 "PG creation schema worker identity changed",
             ));
@@ -299,12 +300,12 @@ pub(crate) fn prepare_pg_corpus_creation(
     observations: PgCorpusCreationObservations,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    worker: &mut impl RecordSchemaWorker<Identity = PgRecordRevisionIdentity>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedPgCorpusCreation> {
     if context.base_revision != identity.bootstrap_revision
-        || worker.input_identity() != &identity
+        || worker.input_identity() != Some(identity)
         || components.capture() != software.selection()
     {
         return Err(SourceCommandError::Conflict(

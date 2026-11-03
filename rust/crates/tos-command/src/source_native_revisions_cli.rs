@@ -1098,7 +1098,7 @@ fn selected_revision_schema_resources(
     Ok(resources)
 }
 
-fn selected_in_process_candidate_schema_from_context(
+pub(crate) fn selected_in_process_candidate_schema_from_context(
     files: &[cmd::SourceFile],
     identity: crate::source_revisions::PgRecordRevisionIdentity,
     deadline: Instant,
