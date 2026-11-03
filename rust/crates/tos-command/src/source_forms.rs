@@ -9,6 +9,7 @@ use tos_foundation::{Digest256, JsonValue, RelativePath, SourceRevision};
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::source_cut::{
     CutSchemaExecutor, CutWorkerSchemaExecutor, InProcessCandidateSchemaExecutor,
+    InProcessCutSchemaExecutor,
 };
 use tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding;
 
@@ -82,6 +83,30 @@ pub fn run_form_command_from_captures(
 ) -> Result<PreparedCommand> {
     ctx.check_from_selected_captures(source, software, components, deadline, cancelled)?;
     run_form_command(ctx, source, worker, deadline, cancelled)
+}
+
+pub(crate) fn run_form_command_from_in_process_captures(
+    ctx: &CommandContext,
+    source: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    schemas: &mut InProcessCutSchemaExecutor<()>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<PreparedCommand> {
+    ctx.check_from_selected_captures(source, software, components, deadline, cancelled)?;
+    if schemas.selected_source_revision() != Some(ctx.base_revision) {
+        return Err(Error::Conflict(
+            "schema executor and command source cut differ",
+        ));
+    }
+    run_form_command_with_source(
+        ctx,
+        FormCurrentSource::Cut(source),
+        schemas,
+        deadline,
+        cancelled,
+    )
 }
 
 /// Authenticate the exact caller-provided current member selection plus the
@@ -247,6 +272,40 @@ impl FormSchemas for CutWorkerSchemaExecutor {
                 )
             }
         }
+        .map_err(|_| Error::Unsupported("Claim local profile execution incomplete"))?;
+        if report.source_revision != source.revision() {
+            return Err(Error::Conflict(
+                "Claim local profile source binding differs",
+            ));
+        }
+        Ok(FormClaimReport {
+            source_input_sha256: report.source_input_sha256,
+            valid: report.issues.is_empty(),
+            dependency_digests: report.dependency_digests,
+            dependency_order: report.dependency_order,
+        })
+    }
+}
+
+impl FormSchemas for InProcessCutSchemaExecutor<()> {
+    fn validate_claim(
+        &mut self,
+        source: &FormCurrentSource<'_>,
+        raw: &[u8],
+        limits: tos_validation::item_rules::ItemLimits,
+        cancelled: &AtomicBool,
+    ) -> Result<FormClaimReport> {
+        let FormCurrentSource::Cut(cut) = source else {
+            return Err(Error::Conflict("source Claim requires selected cut"));
+        };
+        let report = tos_validation::record_rules::validate_source_claim_from_in_process_cut(
+            cut,
+            raw,
+            self,
+            limits,
+            cancelled,
+            tos_validation::FormatProfile::LegacyPythonObserved20260923,
+        )
         .map_err(|_| Error::Unsupported("Claim local profile execution incomplete"))?;
         if report.source_revision != source.revision() {
             return Err(Error::Conflict(

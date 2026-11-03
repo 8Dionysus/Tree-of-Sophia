@@ -1274,10 +1274,10 @@ fn retained_link_v1_forms_prepare_apply_and_cold_replay_through_native_owner() {
         std::env::var_os("TOS_NATIVE_OWNER_COMMAND_PATH").expect("OPS immutable native owner CLI"),
     );
     assert!(native.is_absolute());
-    let worker = super::validation_cut_cases::selected_worker_path();
     let native_digest = super::command_text_cases::alignment_image_digest(&native);
-    let worker_digest = super::command_text_cases::alignment_image_digest(&worker);
     let temporary = tempfile::tempdir().unwrap();
+    let worker = temporary.path().join("absent-schema-worker");
+    let worker_digest = tos_foundation::Digest256::of_bytes(b"unavailable schema worker");
     let isolated = IsolatedCreationRoot::create(temporary.path(), deadline, &cancelled).unwrap();
     let source_path =
         "ToS/source-witnesses/links/internet-archive/onfoursongsconta00good/landing/link.json";
