@@ -1,0 +1,46 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.gorgias.gorgias-ru-karpov1863-wikisource",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.gorgias.gorgias-ru-karpov1863-wikisource",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.5705248dae37fa5718f688e36eec012d76669777648f1f254cce8bf6caa63c80",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "gorgias-ru-karpov1863-wikisource.json",
+      "media_type": "application/json",
+      "byte_size": 911369,
+      "sha256": "5705248dae37fa5718f688e36eec012d76669777648f1f254cce8bf6caa63c80",
+      "fixity_verified_at": "2026-11-03T08:24:39+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.0e51c6e5c27f3f6b7e9171a06ee4e9589619fa8030fd590c9c55df2c7d4556bc",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 323390,
+      "sha256": "0e51c6e5c27f3f6b7e9171a06ee4e9589619fa8030fd590c9c55df2c7d4556bc",
+      "fixity_verified_at": "2026-11-03T08:24:39+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.7b8b6810db0034c46b5dc2852d234ab3a64b17da54d326d11510d26397fd1812",
+      "relative_path": "payload/wikisource-api.json",
+      "original_basename": "wikisource-api.json",
+      "media_type": "application/json",
+      "byte_size": 1378789,
+      "sha256": "7b8b6810db0034c46b5dc2852d234ab3a64b17da54d326d11510d26397fd1812",
+      "fixity_verified_at": "2026-11-03T08:24:39+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.gorgias-ru-karpov1863-wikisource.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plato/gorgias/expressions/retained-gorgias-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/gorgias/expressions/retained-gorgias-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/gorgias/expressions/retained-gorgias-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/gorgias/expressions/retained-gorgias-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plato/gorgias/expressions/retained-gorgias-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

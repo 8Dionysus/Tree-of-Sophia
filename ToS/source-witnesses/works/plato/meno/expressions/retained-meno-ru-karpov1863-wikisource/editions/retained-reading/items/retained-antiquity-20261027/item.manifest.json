@@ -1,0 +1,46 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.meno.meno-ru-karpov1863-wikisource",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.meno.meno-ru-karpov1863-wikisource",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.763d6b81f818c7f9043b6d9f2415cd64200f7e270f7c59ed92bf43f4b0a76934",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "meno-ru-karpov1863-wikisource.json",
+      "media_type": "application/json",
+      "byte_size": 345212,
+      "sha256": "763d6b81f818c7f9043b6d9f2415cd64200f7e270f7c59ed92bf43f4b0a76934",
+      "fixity_verified_at": "2026-11-03T08:24:39+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.f08b1afeccd4ba81a892cc463206f67f173cec35cffc41f28b8f3b507f1b0319",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 119163,
+      "sha256": "f08b1afeccd4ba81a892cc463206f67f173cec35cffc41f28b8f3b507f1b0319",
+      "fixity_verified_at": "2026-11-03T08:24:39+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.e9f1e28170fdc1749dcacc003a000efe0efaa8aad51fe8c7384bd4de6108d0a4",
+      "relative_path": "payload/wikisource-api.json",
+      "original_basename": "wikisource-api.json",
+      "media_type": "application/json",
+      "byte_size": 527552,
+      "sha256": "e9f1e28170fdc1749dcacc003a000efe0efaa8aad51fe8c7384bd4de6108d0a4",
+      "fixity_verified_at": "2026-11-03T08:24:39+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.meno-ru-karpov1863-wikisource.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plato/meno/expressions/retained-meno-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/meno/expressions/retained-meno-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/meno/expressions/retained-meno-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/meno/expressions/retained-meno-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plato/meno/expressions/retained-meno-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

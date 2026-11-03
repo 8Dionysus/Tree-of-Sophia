@@ -24,6 +24,10 @@ pub(crate) const TOOLCHAIN: &str = "1.98.1";
 pub(crate) const META: usize = 1024 * 1024;
 pub(crate) const IMAGE: u64 = 1024 * 1024 * 1024;
 pub(crate) const CARGO_BYTES: usize = 32 * 1024 * 1024;
+// Software archive members, as the default deployment profile admits them
+// (access/profiles/deployment-profile.default.v1.json): the browser assets
+// carry the public corpus, which grows with each published translation.
+const SOFTWARE_MEMBERS: usize = 4096;
 fn bad(s: &str) -> io::Error {
     io::Error::new(io::ErrorKind::InvalidData, s)
 }
@@ -810,7 +814,7 @@ fn walk(
         if m.is_dir() {
             walk(depth + 1, &p, only_json, out, b)?;
         } else if m.is_file() && (!only_json || p.extension().is_some_and(|e| e == "json")) {
-            if out.len() >= 1024 {
+            if out.len() >= SOFTWARE_MEMBERS {
                 return Err(bad("software member bound exceeded"));
             }
             out.push(p);
@@ -839,7 +843,7 @@ fn package_limits(root: &Path, images: &Path, b: &Budget<'_>) -> io::Result<Stri
                 .ok_or_else(|| bad("software member overflow"))?,
         )
         .and_then(|n| n.checked_add(5))
-        .is_none_or(|n| n > 1024)
+        .is_none_or(|n| n > SOFTWARE_MEMBERS)
     {
         return Err(bad("software input envelope exceeds member cap"));
     }
@@ -853,7 +857,7 @@ fn package_limits(root: &Path, images: &Path, b: &Budget<'_>) -> io::Result<Stri
     for schema in RUNTIME_TOS_SCHEMAS {
         files.push(root.join("ToS/contracts").join(schema));
     }
-    if files.len() + 2 > 1024 {
+    if files.len() + 2 > SOFTWARE_MEMBERS {
         return Err(bad("software input envelope exceeds member cap"));
     }
     let mut total = 1048576u64;
@@ -870,7 +874,7 @@ fn package_limits(root: &Path, images: &Path, b: &Budget<'_>) -> io::Result<Stri
         .checked_add(16777216)
         .ok_or_else(|| bad("archive bytes overflow"))?;
     b.check()?;
-    Ok(format!("{total} {archive} 1024 4194304\n"))
+    Ok(format!("{total} {archive} {SOFTWARE_MEMBERS} 4194304\n"))
 }
 /// Bounded CLI operations retain the existing executor and software archive
 /// receipt shapes; the Software stage adds only cross-job transport admission.
@@ -1172,10 +1176,14 @@ mod tests {
         fs::remove_file(&selected).unwrap();
         assert!(package_limits(&root, &images, &b).is_err());
         fs::write(&selected, b"{}").unwrap();
-        for i in 700..1006 {
-            fs::write(root.join(format!("access/web/dist/{i}.js")), b"web").unwrap();
+        // Past the member cap, in directories each within the directory bound.
+        for i in 700..SOFTWARE_MEMBERS {
+            let dir = root.join(format!("access/web/dist/part-{}", i / 500));
+            fs::create_dir_all(&dir).unwrap();
+            fs::write(dir.join(format!("{i}.js")), b"web").unwrap();
         }
-        assert!(package_limits(&root, &images, &b).is_err());
+        let refused = package_limits(&root, &images, &b).unwrap_err();
+        assert!(refused.to_string().contains("member"), "{refused}");
         fs::remove_dir_all(root).unwrap();
     }
     #[test]

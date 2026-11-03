@@ -1,0 +1,46 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.laches.laches-ru-karpov1863-wikisource",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.laches.laches-ru-karpov1863-wikisource",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.fcd97986922b35c2d9aedb7efb6a957b42cdc2463bfbe22452b853b38b9d9119",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "laches-ru-karpov1863-wikisource.json",
+      "media_type": "application/json",
+      "byte_size": 242870,
+      "sha256": "fcd97986922b35c2d9aedb7efb6a957b42cdc2463bfbe22452b853b38b9d9119",
+      "fixity_verified_at": "2026-11-03T08:25:01+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.1b48465ea0ec8009ea0d3e91479d8309227ba49a69f6a66456c11441f410ab09",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 85689,
+      "sha256": "1b48465ea0ec8009ea0d3e91479d8309227ba49a69f6a66456c11441f410ab09",
+      "fixity_verified_at": "2026-11-03T08:25:01+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.34b0ef60923408ce11087f24975dc264fb0fdcb17b8bacf2b225f6b69ea59715",
+      "relative_path": "payload/wikisource-api.json",
+      "original_basename": "wikisource-api.json",
+      "media_type": "application/json",
+      "byte_size": 361419,
+      "sha256": "34b0ef60923408ce11087f24975dc264fb0fdcb17b8bacf2b225f6b69ea59715",
+      "fixity_verified_at": "2026-11-03T08:25:01+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.laches-ru-karpov1863-wikisource.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plato/laches/expressions/retained-laches-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/laches/expressions/retained-laches-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/laches/expressions/retained-laches-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/laches/expressions/retained-laches-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plato/laches/expressions/retained-laches-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

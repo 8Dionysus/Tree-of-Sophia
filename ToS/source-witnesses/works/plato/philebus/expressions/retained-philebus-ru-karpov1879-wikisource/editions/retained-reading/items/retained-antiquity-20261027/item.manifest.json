@@ -1,0 +1,46 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.philebus.philebus-ru-karpov1879-wikisource",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.philebus.philebus-ru-karpov1879-wikisource",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.2a57df0a94311f4d9fda26bd154fed5f70c1d62dbc0094ddc77f97f05342e3b2",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "philebus-ru-karpov1879-wikisource.json",
+      "media_type": "application/json",
+      "byte_size": 680034,
+      "sha256": "2a57df0a94311f4d9fda26bd154fed5f70c1d62dbc0094ddc77f97f05342e3b2",
+      "fixity_verified_at": "2026-11-03T08:24:40+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.cdb323ce098c09976731cbbf0dc8bc63eedb09e9369d64c85173090b0f4de65b",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 223772,
+      "sha256": "cdb323ce098c09976731cbbf0dc8bc63eedb09e9369d64c85173090b0f4de65b",
+      "fixity_verified_at": "2026-11-03T08:24:40+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.bc44ce93039be74a0025b6c0a5121d4032e4fcf93a5b0c92e982e6f7c8c8d1f8",
+      "relative_path": "payload/wikisource-api.json",
+      "original_basename": "wikisource-api.json",
+      "media_type": "application/json",
+      "byte_size": 1336859,
+      "sha256": "bc44ce93039be74a0025b6c0a5121d4032e4fcf93a5b0c92e982e6f7c8c8d1f8",
+      "fixity_verified_at": "2026-11-03T08:24:40+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.philebus-ru-karpov1879-wikisource.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plato/philebus/expressions/retained-philebus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/philebus/expressions/retained-philebus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/philebus/expressions/retained-philebus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/philebus/expressions/retained-philebus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plato/philebus/expressions/retained-philebus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

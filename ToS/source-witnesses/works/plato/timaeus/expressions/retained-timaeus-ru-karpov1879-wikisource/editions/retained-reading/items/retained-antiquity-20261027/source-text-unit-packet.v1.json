@@ -1,0 +1,3363 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "packet_id": "tos.source-text-unit-packet.sid-8009776ece57470b83970e46784ccc57",
+  "packet_version": 1,
+  "supersedes_packet_ref": null,
+  "content_posture": "source_bound",
+  "source_scope": {
+    "work_ref": "tos.work.retained-antiquity.timaeus",
+    "expression_ref": "tos.expression.retained.antiquity.timaeus.timaeus-ru-karpov1879-wikisource",
+    "edition_ref": "tos.edition.retained.antiquity.timaeus.timaeus-ru-karpov1879-wikisource",
+    "item_ref": "tos.item.retained.antiquity.timaeus.timaeus-ru-karpov1879-wikisource",
+    "file_ref": "tos.file.sha256.299cf38fd998c5f61cfc0d5263f072fd5693461d42709dbe1487a34d6f8289e4",
+    "file_sha256": "299cf38fd998c5f61cfc0d5263f072fd5693461d42709dbe1487a34d6f8289e4"
+  },
+  "source_layer": {
+    "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+    "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+    "language": "ru",
+    "media_type": "text/plain; charset=utf-8",
+    "unicode_form": "source_preserved",
+    "position_unit": "unicode_code_point",
+    "interval": "half_open",
+    "immutable": true,
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "schemes": [
+    {
+      "scheme_id": "tos.text-unit-scheme.sid-b326e4e388f848798a975eb6def1c9f2",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "scheme_name": "Retained source section and bounded reading chunk",
+      "analysis_role": "source_structure",
+      "boundary_basis": "rule_based",
+      "unit_kinds": [
+        "section"
+      ],
+      "method": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "ru",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.timaeus-ru-karpov1879-wikisource.20261027",
+        "made_at": "2026-11-03T08:24:38+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "policies": {
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "punctuation": "included_in_neighbor",
+        "whitespace": "included_in_neighbor",
+        "line_break": "included_in_neighbor",
+        "hyphenation": "preserve_source",
+        "unreported_gaps_allowed": false,
+        "overlap": "forbid"
+      },
+      "authority_limit": {
+        "algorithmic_output_is_source_truth": false,
+        "algorithmic_output_is_linguistic_truth": false,
+        "model_subword_is_lexeme": false,
+        "unit_identity_is_semantic_identity": false,
+        "text_mutation_allowed": false
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.sid-7bc71b1b28734f7198524828fec08e79",
+      "ordinal": 1,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 171136,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "anchor_role": "scope",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a80ccad29f5046dea9df1e4ce644f820",
+      "ordinal": 2,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 1530,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "6cdaf174cb66ef84db262287547ca180ac4be0ea1e09ed3e0ed8e7ee431ed774",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-cba61a24fc8542ad9e44682e50fe188b",
+      "ordinal": 3,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 1530,
+        "end": 3633,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c6f094d5e028fc66c81a91a511b410058b32684b559f3ebb44247cf7f749f8f6",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a76b46be5db849dba631c429065f688e",
+      "ordinal": 4,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 3633,
+        "end": 5877,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "91bba4817a7d44331319efc444070ee407266832280876555c5856eeec96ef5a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-458505ad8688457ea2931c67c69d3a72",
+      "ordinal": 5,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 5877,
+        "end": 8081,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "55a7efcd23c940a40888709fac9473fabcaa07a5fc9387924b4c69e7b6b41acd",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-9f7e4c8f13974fee8606a79a6392f918",
+      "ordinal": 6,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 8081,
+        "end": 10560,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "52175c5a432cf86e68a901d566c113eeb2451e2bc5a5522f0e11815970345ad6",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-6d45c771956a4622a27dcc54924e4b42",
+      "ordinal": 7,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 10560,
+        "end": 12879,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "28b4679a57a26db7356128746bbba12c5b66b4e4e35ba8fd89c179e1ba4f8abd",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-fe52b986a6b4428aa572287e746ccdda",
+      "ordinal": 8,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 12879,
+        "end": 14984,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "4b8f6ad494937a615b563fee2ce6204f112a31c208aa6b4410bede5b40bd2a0c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-40d425aec7a842f49222edd06b31547a",
+      "ordinal": 9,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 14984,
+        "end": 17136,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "89fcc11f6b24707d281b06bf1d9ae716342e9b465c473e4153db9f54e5c949b6",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-73b6336bc14e407387385b9ff3a0678d",
+      "ordinal": 10,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 17136,
+        "end": 19187,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f0015fa6ae744514ae6c49c4e08b69cb2a6611a84eb39a57b956a4c15ac3b547",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d1fbd1c7542d40d2bcdcd8e30234b291",
+      "ordinal": 11,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 19187,
+        "end": 21635,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "6db0b46b0e9844b67c553737ad605c5398e867058eb1b28a34a127e2503d34a3",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-1cdcbd34f24c46d9a666c5ee76574558",
+      "ordinal": 12,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 21635,
+        "end": 23294,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a3847ac4333494984e3f2ab424b2df9060d914a960ab8d06a86082c214ead452",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b6c2818ba59e40649b505366ccbd106b",
+      "ordinal": 13,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 23294,
+        "end": 24725,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "4cc905bdb5fd72def46c0f77a1748ffab7618fb83c3a43aa058c5ea0dd72d00b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-4fdf744f34cf40d5851f76c9a3babc2d",
+      "ordinal": 14,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 24725,
+        "end": 27012,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "87a6fa453e4636eb5de8a9576ff944d5a450a2712aab28d53863f9827eaf8505",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-20bc750bf13f467baceb449daa4c07c6",
+      "ordinal": 15,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 27012,
+        "end": 28624,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "86c6a1c597151ebebc0b3a86f55403bcdff9a1b07f3f4c5060ff0ecb12b7b808",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-113727c7e15447889e52149c8b7d1ffd",
+      "ordinal": 16,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 28624,
+        "end": 29887,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7c61bc0f5e9c358c2bb5fed4c860392f20e3fe63637415182f3a1b23ac29855b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d42801e2cad4401e9651a44299d56dc4",
+      "ordinal": 17,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 29887,
+        "end": 31380,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "2b7dc4d5157289c24c15e0d359f907731ccb400b1872c37c3cbc449befab4fe6",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f04c67a93f05400bb9f5727c165efbec",
+      "ordinal": 18,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 31380,
+        "end": 33183,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1e25389542bc0ef3a400b6a11b9c338df84f20e59e7713d6fb28bad37e655ce8",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-66bed18c9edf49a2ad164522439d10a5",
+      "ordinal": 19,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 33183,
+        "end": 34633,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a6ea422b8c3021f300710ac361697d1eb734a101a10811f5a9336334fd74ae25",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-45cea09c88b1492e85f4ea3f8935c277",
+      "ordinal": 20,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 34633,
+        "end": 35578,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f49377acac1b9168aa17c46d5d90ac1ec2609edc61fd3fa42f11797185436e6e",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-034637679a6a4867b80c92688ee7e399",
+      "ordinal": 21,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 35578,
+        "end": 37708,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "5f232f617da3f150712bd1aa9e7414a98f919c3032efb9b4a766e9f7d46c1c33",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d27885943bf24940aa003b8708bfe0cc",
+      "ordinal": 22,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 37708,
+        "end": 39897,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "077b76430555e053460674e9cd1543df4eec478931579e58bc0610ba3b38b859",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-40bc16eaac2d4c9689228bde39b71eee",
+      "ordinal": 23,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 39897,
+        "end": 42194,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "43ba3d9b121a3c8e1445cf4a38c900739874a97cd01056ec04594ea387f48401",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-9a90e70fb7564cd6b307c0343d56b8f6",
+      "ordinal": 24,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 42194,
+        "end": 44488,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "3384c370f1c7830977e2f8a901cf2d897d5b6319f3d43a3eef6523d57d1c10fd",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a1cbe7d972eb43e7a60b8ca83ce741ec",
+      "ordinal": 25,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 44488,
+        "end": 47189,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "3799d4dc634d260d9386eb7650e5c36c50f61d719c3b63153f119b5ede0356f4",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-91f626c37f424d569f31aad883857722",
+      "ordinal": 26,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 47189,
+        "end": 49464,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c52d1637f2fb46e1a0f563c4169243c833afe757ac0823305aaadfdbb77bd1d7",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b154c9e30df84c90ad637e02d6803826",
+      "ordinal": 27,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 49464,
+        "end": 51705,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f59029db8153ae9bc8c459cf44b1e93785e4fb19156f6f78ec588ab8162b4e3a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-cb0b8cb0064142fea73c78ebbde4c78a",
+      "ordinal": 28,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 51705,
+        "end": 54132,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "2e0698d5916889dcb5860f57c9d2cf31c8217f57e53efae1f78182621891b879",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-5eeb9fd007f84f9fa99537170609e378",
+      "ordinal": 29,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 54132,
+        "end": 56466,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "95b52d1bffc3fb42a33dc4be853b76f123b033a23aa4d40fcf142ff389c3774f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-9c7b65aa782b46b383fda711588fa509",
+      "ordinal": 30,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 56466,
+        "end": 58632,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "806c871b0c2ce9b42b8536708da9d0d2d053a530dafef62b2ca987cd180fab44",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-0e9dbdea2cfc4d44b7c5761f819391ce",
+      "ordinal": 31,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 58632,
+        "end": 61074,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "80ff67c7082a457ac709f18a680395a005d7d181526465711904d7f16af6ab10",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2330724e8e954748985e3f4ac57d0029",
+      "ordinal": 32,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 61074,
+        "end": 63106,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "0c572c28feaf5bea8b34149c42c133a4f119c58c9b0f457e3bd5fddfb6030204",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d6e695ab03344ef7988b1c7b2a8e3616",
+      "ordinal": 33,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 63106,
+        "end": 65382,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "fc65b0e6925080fa5b77cab4b8f465c4a613b1075a81112db1293547fbb79197",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-657c0b5dae534b2d9618f0601eabfa48",
+      "ordinal": 34,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 65382,
+        "end": 67989,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "5455650b9b034eb8d399309ef06f3335d07a568f9f6c8da00e0404e62376c34d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-6af420dfbe7746b098491d0fe3f65a6e",
+      "ordinal": 35,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 67989,
+        "end": 70513,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "661f1f4ce58a1e772c7ce3082028120a8ec366af9452bb6dcb5988eb30319cea",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-7261f1bd0dd24dbcbb17341fe61c6981",
+      "ordinal": 36,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 70513,
+        "end": 72953,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "de244acbed0f8bb173ea7951f611a98867ac9ecca446e781e10243c282dda8c7",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-0f351ea256d544aabe3558212b0ab4c8",
+      "ordinal": 37,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 72953,
+        "end": 75332,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "40f868fe34899ee5ca57827fea99f92211ea3a50317544cc06f60efe27812e6d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-4b454699a425434095227db6bbea9d3f",
+      "ordinal": 38,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 75332,
+        "end": 77883,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "3884ef9108833f707fccd38eb1a48f8322fadea8202bec41cc4598bfca861a98",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-6db1dc77af38433a95b49f8214dfd1a3",
+      "ordinal": 39,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 77883,
+        "end": 80284,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "400e3acd984337d526e15e1f1a76dd24a29da8e56ecc6cc089eddf53f21da7a6",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d1a02fbbabe74fcb9b44ad7ceb748b5e",
+      "ordinal": 40,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 80284,
+        "end": 82805,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1c3d07af9383f1b79f0efb22a76e93753e55fb189da04d67943d241f59141ea7",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-40faffe3e945464db8de0466780b79f8",
+      "ordinal": 41,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 82805,
+        "end": 85275,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "5a6c392b4cf50af7a4903d533fa9c9de73ce598b49004bd1bb2fd7d8cc16466e",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-99bb050c9b924d2b92db83c280e9fba7",
+      "ordinal": 42,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 85275,
+        "end": 87637,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "2597e70db8a2ecdecb9c26f406c283bf5dd73acf956f8c632becf02cdc33fb8d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-088bfe786d4f445e8ae24aa4149dc688",
+      "ordinal": 43,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 87637,
+        "end": 90148,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "2b983f169a67a20285d640a8a420e5e25767f4efaccf209f2840d85ba65ae8c2",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-932a758158b4441a91c0a3f6f3d27736",
+      "ordinal": 44,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 90148,
+        "end": 92727,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "6b01259bc4c5f5ad0cf72a7632c9e4415dac614ed452c152dac8e489f4bcd7b5",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-4d2347e19857413d8761084aa98eaa62",
+      "ordinal": 45,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 92727,
+        "end": 95308,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1f877917b92277ad837dd6fc31f5ed92d4fa706f09bfb2f4971678e5ba9c24c9",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-20d1aa7cde104c19934f0e5e36ae50dd",
+      "ordinal": 46,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 95308,
+        "end": 97828,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c0042e9eb1926f02b58e4f0d3d010b626c63854356f2056d0d2d02eac5f90693",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-276647bc57d5475a9104d7175108e514",
+      "ordinal": 47,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 97828,
+        "end": 100436,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1aa3c262374bb80616043e2fbc59bbf5405bc531bc6cb06e8ec849e77fc67a75",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-633adb5a4c7b465e93f4a076d8e080f2",
+      "ordinal": 48,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 100436,
+        "end": 103229,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e6907ca40c1d4fddbf7fa4f6ff04bad022a4d864d2a98ea7cc18d3cc2b45e87e",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-4d23b127d0dd4056a530c8bd5b819b36",
+      "ordinal": 49,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 103229,
+        "end": 105618,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "809b0f05f33c0e10a701bf91d2f5a839659812ea15eb2e7e77c8420cc46e9855",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a9dbff21fa234117bf54cad63eadba1f",
+      "ordinal": 50,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 105618,
+        "end": 107783,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "8b7f23dbd1f0c1a46efb38e7ffac20ddb4423a51ea973cff5d8d166f58c9bea3",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-1fe3230b4097412ca6d662cdaf504833",
+      "ordinal": 51,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 107783,
+        "end": 110196,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "66fc9c7479fa177e0af0f073e923c87a37b6db7a064190f0274b7b71748a7fff",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-1959ef1d12514a6bb9ee98777322457d",
+      "ordinal": 52,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 110196,
+        "end": 112463,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b54aa9348b04e4ffa57332c503e306df192fee0dd87d97a1a1b690a35af03ee9",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f98156c5219a43d6bf4333af108d8e66",
+      "ordinal": 53,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 112463,
+        "end": 114795,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "32fd106e5a3507a83347e4bab70e0e2ddd5b700fb9004f164ed39e55171a518a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-1a5e259185c946deae28198850ac21ba",
+      "ordinal": 54,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 114795,
+        "end": 117047,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "53d628c64b73cd7bb8d19e25b227a74a2f9da98a69dd8b7b8a29aa697d88b7da",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-770600a5e21f4f89b346e77c01469652",
+      "ordinal": 55,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 117047,
+        "end": 119306,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7a060d831cbecc52a34c16c811eaf1a3c2e35c0876b553066a233c4087c93bf6",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-124957a16a894638907938e46448a180",
+      "ordinal": 56,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 119306,
+        "end": 121719,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "3464abdaa3a3d05351cc9998fd088fc459b4ebeb3ce0be0e10c9fe2eff9c4b8c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-76abe07955a54afc9300cce3c3f59196",
+      "ordinal": 57,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 121719,
+        "end": 124147,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "daa6b4689f93ce3368aeb5fb628e568a9b65400978bb24e263ebb985d4a039d6",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-54de87d7d41545168b0fac92de78095b",
+      "ordinal": 58,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 124147,
+        "end": 126411,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a1987f1c47103deb75bc18f05641237bc55f1dff561e12b0b59212994aa868af",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-4c22a79b88aa4e1297fbcb8b4937faf8",
+      "ordinal": 59,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 126411,
+        "end": 128692,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e53ab91098aa1081f1c86c65c8000770e374d08d93001378cf46aa7d1b77f2f4",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-57080c5822ba45f7866371bd74883fbb",
+      "ordinal": 60,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 128692,
+        "end": 131056,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "003eb7a73e3d4dc32449d50a09051c1fb8f9583c9734f51f28b0b0a7c417b30a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-334566bf50914056b1c0653a802bd234",
+      "ordinal": 61,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 131056,
+        "end": 133212,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "cfa7539d0cc79a6939f06fbe93414e5e23a5be4610a40f7d1ee7f11556e9fc07",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-1f7682f4739844eea3fee2769428b600",
+      "ordinal": 62,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 133212,
+        "end": 135643,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "21b8a39dbc55a89e20f607c392f9ea760a3c0f69f2931430519d56f88690cce6",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d1c1ae4e77be44ff9b239377c0038adb",
+      "ordinal": 63,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 135643,
+        "end": 137977,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "09d6e0b76b9174de702fe90dc73aab32a0e3a740cf9c628c47d4b48b7cb7c113",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-8c787b2c62884b258439896f21e610fb",
+      "ordinal": 64,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 137977,
+        "end": 140184,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "9300645202c8ed8b3587a8e61db241cf56e776d41b9a858f3535966923cb09dd",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-db6d5594e6c54b73a50a1259f7f14598",
+      "ordinal": 65,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 140184,
+        "end": 142561,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "6382d1f96bcbe97575e1ad58814830fab0189ee07d54b91a1d3fea7d960a6f5b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-9d5a0643962d4d6c8c8179c4737ffce9",
+      "ordinal": 66,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 142561,
+        "end": 144893,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "65119ee2fa4de8e093508bce22fcff094ba3bc5d4070f1400c359b99f911553f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ab695f1bb4ec46eb900b99102e32284d",
+      "ordinal": 67,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 144893,
+        "end": 147111,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a765c73ad59cad3202f80fa5eaeceee4884f465ed0e9c9308ce2bd009c7f7b61",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-99ee0d05496743dc95bccf746ce091c0",
+      "ordinal": 68,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 147111,
+        "end": 149506,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ebd9c5b551ef0b338e506c2642796e38049995a104ed4bcf2c972ab8eee99a97",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-88295c4578ca4f1bb7d1b6f6b48ffcb1",
+      "ordinal": 69,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 149506,
+        "end": 151756,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "52f01d1213f8dbc5287b28ea6b7d6dec117aa43a7a314533b33281d21898eccd",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-4839738e52ed495c9567c8a0877ae15e",
+      "ordinal": 70,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 151756,
+        "end": 154510,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "893ef7c68c2756f10ca04842deedbde2c70469b42f4bdbbb69bd32c5f8ae2715",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ded5f0bfe77c4b69abb7094f9928ef5b",
+      "ordinal": 71,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 154510,
+        "end": 156907,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "93d277573cfe274ec80f5263962798b9287e9dfc9c12b16b26d87c036afeda29",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2c4764c1e7b546a1823defa3c6060728",
+      "ordinal": 72,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 156907,
+        "end": 159457,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "5e8853ab0c5a88f0a9c81a159ee94802e500a734f8682dc696a316b6cd265537",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-0d38b446ef654caeb56fe37710d70bd7",
+      "ordinal": 73,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 159457,
+        "end": 162169,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "13a4d456dddf496762245cd9b79bd7473c6269bee589892ef5dfd8a3b6bd1684",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-7c3bfd72c6a4428c91ffce8700befa3e",
+      "ordinal": 74,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 162169,
+        "end": 164921,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "267f216026ec2cc0261790d88ee370727a22636f19234c458f31e4e3b80e19fa",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3b4db3a344d54a16a60aff462c49e9da",
+      "ordinal": 75,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 164921,
+        "end": 167379,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "2fa8d0ad0b62c2c9dc8b9546490dd5116044b14299b1e5768532732f25baf7f1",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d6fcab7071fb41e6a099481b56c6caed",
+      "ordinal": 76,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 167379,
+        "end": 169718,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "76ceaea643bef80460ea33e157cf4ec7d69bbab87f23650c297252d62dfff94f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3f35023b3f6f4b5bb08861c9a82448d0",
+      "ordinal": 77,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "selector": {
+        "type": "text_position",
+        "start": 169718,
+        "end": 171136,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c851ec02c405cd7136785768c7a86122f784e780278d5c37b42f13742347603b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959"
+      }
+    }
+  ],
+  "units": [
+    {
+      "unit_id": "tos.text-unit.sid-2525cde759524133b865a60671f0beb3",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a80ccad29f5046dea9df1e4ce644f820"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-7f89dd6e4b90468f8861a46baa80285c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-cba61a24fc8542ad9e44682e50fe188b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f345eaa1bdfd4547b8dd7ea1e502933a",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a76b46be5db849dba631c429065f688e"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-25e81f7ec3334ebb8ac5765881eddb52",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-458505ad8688457ea2931c67c69d3a72"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8fe3eb30a7c746b6ba57b2980dc4a9f8",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-9f7e4c8f13974fee8606a79a6392f918"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ffcb871fe9074d1faf28e42fee744eab",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-6d45c771956a4622a27dcc54924e4b42"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ed5a2ff0dece48818fbfc3bf0a8fa477",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-fe52b986a6b4428aa572287e746ccdda"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-883479a954034ae9a12951f924293982",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-40d425aec7a842f49222edd06b31547a"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-0633f16c0e244f9298ae356998202eb6",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-73b6336bc14e407387385b9ff3a0678d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ebc62ef2e7214f2c8181197e574f59b0",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d1fbd1c7542d40d2bcdcd8e30234b291"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-d17ae4452ba8445db44b9bf9084ada98",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-1cdcbd34f24c46d9a666c5ee76574558"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-90f33de662f54d7bbc0d42d9eca3cfd5",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b6c2818ba59e40649b505366ccbd106b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e5cd6aa418d8423aa47bea09508f95c4",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-4fdf744f34cf40d5851f76c9a3babc2d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-774dc866c8fe4a63b928adc5eaea3700",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-20bc750bf13f467baceb449daa4c07c6"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-efa35d9a9b014f5cb025bcdcb365cdbb",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-113727c7e15447889e52149c8b7d1ffd"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-96201404116649229135828e47c087b9",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d42801e2cad4401e9651a44299d56dc4"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-5bc0a170d4834c1598051a89afcaf46e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f04c67a93f05400bb9f5727c165efbec"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-90aee8ab773440a5b32e927af0f0f6e1",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-66bed18c9edf49a2ad164522439d10a5"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4e3eea11d93747f4bb350b05c41ad70e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-45cea09c88b1492e85f4ea3f8935c277"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e6bc35b73e674937a5706bf9540e99a9",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-034637679a6a4867b80c92688ee7e399"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-50e5b6b268e94e0d9079921893986fcb",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d27885943bf24940aa003b8708bfe0cc"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-06b188e9b14c425bb0f4bf54c9aebd5a",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-40bc16eaac2d4c9689228bde39b71eee"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-5b0554132bba49e7b178c53b4b339dca",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-9a90e70fb7564cd6b307c0343d56b8f6"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-3463a21821ca4ea893a6bd0eb63903f1",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a1cbe7d972eb43e7a60b8ca83ce741ec"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-d11224bd50a245cc81c508b2c11e2a3c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-91f626c37f424d569f31aad883857722"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-d4b4026d71424036971590ca04808b5d",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b154c9e30df84c90ad637e02d6803826"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-705bfba366644343a97f305bb2ef613b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-cb0b8cb0064142fea73c78ebbde4c78a"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8efe65c795ba44cfb82f11f2f825752a",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-5eeb9fd007f84f9fa99537170609e378"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-3e0e5caa09584ddba348914a4ec359d8",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-9c7b65aa782b46b383fda711588fa509"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-46bf96f2f99e4c0b93949768be511f28",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-0e9dbdea2cfc4d44b7c5761f819391ce"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-97d925b67de544c19f83afd15966eac7",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2330724e8e954748985e3f4ac57d0029"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-2d5ea0a35c264c82b0d85f76aa49ee24",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d6e695ab03344ef7988b1c7b2a8e3616"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-2df788803c314a63bf4429af2da26e52",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-657c0b5dae534b2d9618f0601eabfa48"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f8ad606646544c238e36c736eedf79b0",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-6af420dfbe7746b098491d0fe3f65a6e"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-63cff607433a4a89b69b59d90f947bcb",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-7261f1bd0dd24dbcbb17341fe61c6981"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-075c0d435e22444caafe652c530aeb58",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-0f351ea256d544aabe3558212b0ab4c8"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-52efcf383e5c4ba3a42b811f68e689c1",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-4b454699a425434095227db6bbea9d3f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1a3f264976d240418e50a81118746d22",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-6db1dc77af38433a95b49f8214dfd1a3"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-869f8144b65d46b39ce0e4ef3f4d8e09",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d1a02fbbabe74fcb9b44ad7ceb748b5e"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-2880a4085a1545598741512ea14d7fda",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-40faffe3e945464db8de0466780b79f8"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-bf34e4e0be8d45a5becbf1edd18f61bd",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-99bb050c9b924d2b92db83c280e9fba7"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-a3a099fe063345ae8091f12f7934eb02",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-088bfe786d4f445e8ae24aa4149dc688"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4d57b89cf81a41e2986873af7ef36d1a",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-932a758158b4441a91c0a3f6f3d27736"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-d22ba54b1ae847d9898519c4015a1b68",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-4d2347e19857413d8761084aa98eaa62"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-0f6d455e202f42fda37b1e808815bead",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-20d1aa7cde104c19934f0e5e36ae50dd"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-10fcbe2c3dec491c8adc36dff5af93e8",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-276647bc57d5475a9104d7175108e514"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-bc73925712e74576803867ce029830b6",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-633adb5a4c7b465e93f4a076d8e080f2"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-dd42ec179e79468696141cf6b7224c45",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-4d23b127d0dd4056a530c8bd5b819b36"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-bf3a494f0fdb4dd3ae88f29035191f24",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a9dbff21fa234117bf54cad63eadba1f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c2af3bc999fd4c648328216b64771d2a",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-1fe3230b4097412ca6d662cdaf504833"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8dffa0691e1248a49f377122ab1aeb32",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-1959ef1d12514a6bb9ee98777322457d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-9336626f19af488bb99a84a911be75f2",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f98156c5219a43d6bf4333af108d8e66"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-9e87f2ea69f641beae0ee50c682a795d",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-1a5e259185c946deae28198850ac21ba"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-fd83901ae5a5425ab8c2a2fa875e7328",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-770600a5e21f4f89b346e77c01469652"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-9aaaa44f82e544d181894b565464b656",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-124957a16a894638907938e46448a180"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e9fd445e14314665823a1e9043c2fa34",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-76abe07955a54afc9300cce3c3f59196"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-a4a3fa4910e3419e9ec74298cd2e1cd7",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-54de87d7d41545168b0fac92de78095b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f48cc1b2e4ae4c518039ddb5a54bc6fb",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-4c22a79b88aa4e1297fbcb8b4937faf8"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e1927901d0bf49edb23d9e3fbc1e7a48",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-57080c5822ba45f7866371bd74883fbb"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f606a15730f745e79e68037e913ef3d1",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-334566bf50914056b1c0653a802bd234"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-2d24329805ef42b1952ef927b72dc554",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-1f7682f4739844eea3fee2769428b600"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-59517147414547a68508f8dda739c18e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d1c1ae4e77be44ff9b239377c0038adb"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ae3cbd152b7c4c5c9552314a57fb11dc",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-8c787b2c62884b258439896f21e610fb"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-fa0ad4f9edc34d2aa72bcd26825c0e74",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-db6d5594e6c54b73a50a1259f7f14598"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-17da42769cca4d7f906c2b1efc7226f5",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-9d5a0643962d4d6c8c8179c4737ffce9"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-3492adf2fd614749b6584cf20b913962",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ab695f1bb4ec46eb900b99102e32284d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6b02705b54914ff6accd17b335870053",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-99ee0d05496743dc95bccf746ce091c0"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-77d3937158f44eba8abbd99d6df9f64a",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-88295c4578ca4f1bb7d1b6f6b48ffcb1"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-bc372d293abf4227a5583780a37aa606",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-4839738e52ed495c9567c8a0877ae15e"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b594fb1d76aa46d88d2d2215e55ed4ce",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ded5f0bfe77c4b69abb7094f9928ef5b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1a071a465b0a408c92f164f36f3b97ed",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2c4764c1e7b546a1823defa3c6060728"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-7a5425bfc8d84dc1b9be79548d2422cc",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-0d38b446ef654caeb56fe37710d70bd7"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ce90755b39e647d2a5e3df35b1e01882",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-7c3bfd72c6a4428c91ffce8700befa3e"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-088f0431ba3c417d98a28831b9812abc",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3b4db3a344d54a16a60aff462c49e9da"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c2c6cfff9aea4228b28ede3ae71c270e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d6fcab7071fb41e6a099481b56c6caed"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8a636bd0bee94b50bd54c3aad4eea945",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3f35023b3f6f4b5bb08861c9a82448d0"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    }
+  ],
+  "segmentations": [
+    {
+      "segmentation_id": "tos.text-segmentation.sid-14d721b2ba7c42eba25a7c0b34167755",
+      "segmentation_version": 1,
+      "supersedes_segmentation_ref": null,
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "scheme_ref": "tos.text-unit-scheme.sid-b326e4e388f848798a975eb6def1c9f2",
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-2525cde759524133b865a60671f0beb3",
+        "tos.text-unit.sid-7f89dd6e4b90468f8861a46baa80285c",
+        "tos.text-unit.sid-f345eaa1bdfd4547b8dd7ea1e502933a",
+        "tos.text-unit.sid-25e81f7ec3334ebb8ac5765881eddb52",
+        "tos.text-unit.sid-8fe3eb30a7c746b6ba57b2980dc4a9f8",
+        "tos.text-unit.sid-ffcb871fe9074d1faf28e42fee744eab",
+        "tos.text-unit.sid-ed5a2ff0dece48818fbfc3bf0a8fa477",
+        "tos.text-unit.sid-883479a954034ae9a12951f924293982",
+        "tos.text-unit.sid-0633f16c0e244f9298ae356998202eb6",
+        "tos.text-unit.sid-ebc62ef2e7214f2c8181197e574f59b0",
+        "tos.text-unit.sid-d17ae4452ba8445db44b9bf9084ada98",
+        "tos.text-unit.sid-90f33de662f54d7bbc0d42d9eca3cfd5",
+        "tos.text-unit.sid-e5cd6aa418d8423aa47bea09508f95c4",
+        "tos.text-unit.sid-774dc866c8fe4a63b928adc5eaea3700",
+        "tos.text-unit.sid-efa35d9a9b014f5cb025bcdcb365cdbb",
+        "tos.text-unit.sid-96201404116649229135828e47c087b9",
+        "tos.text-unit.sid-5bc0a170d4834c1598051a89afcaf46e",
+        "tos.text-unit.sid-90aee8ab773440a5b32e927af0f0f6e1",
+        "tos.text-unit.sid-4e3eea11d93747f4bb350b05c41ad70e",
+        "tos.text-unit.sid-e6bc35b73e674937a5706bf9540e99a9",
+        "tos.text-unit.sid-50e5b6b268e94e0d9079921893986fcb",
+        "tos.text-unit.sid-06b188e9b14c425bb0f4bf54c9aebd5a",
+        "tos.text-unit.sid-5b0554132bba49e7b178c53b4b339dca",
+        "tos.text-unit.sid-3463a21821ca4ea893a6bd0eb63903f1",
+        "tos.text-unit.sid-d11224bd50a245cc81c508b2c11e2a3c",
+        "tos.text-unit.sid-d4b4026d71424036971590ca04808b5d",
+        "tos.text-unit.sid-705bfba366644343a97f305bb2ef613b",
+        "tos.text-unit.sid-8efe65c795ba44cfb82f11f2f825752a",
+        "tos.text-unit.sid-3e0e5caa09584ddba348914a4ec359d8",
+        "tos.text-unit.sid-46bf96f2f99e4c0b93949768be511f28",
+        "tos.text-unit.sid-97d925b67de544c19f83afd15966eac7",
+        "tos.text-unit.sid-2d5ea0a35c264c82b0d85f76aa49ee24",
+        "tos.text-unit.sid-2df788803c314a63bf4429af2da26e52",
+        "tos.text-unit.sid-f8ad606646544c238e36c736eedf79b0",
+        "tos.text-unit.sid-63cff607433a4a89b69b59d90f947bcb",
+        "tos.text-unit.sid-075c0d435e22444caafe652c530aeb58",
+        "tos.text-unit.sid-52efcf383e5c4ba3a42b811f68e689c1",
+        "tos.text-unit.sid-1a3f264976d240418e50a81118746d22",
+        "tos.text-unit.sid-869f8144b65d46b39ce0e4ef3f4d8e09",
+        "tos.text-unit.sid-2880a4085a1545598741512ea14d7fda",
+        "tos.text-unit.sid-bf34e4e0be8d45a5becbf1edd18f61bd",
+        "tos.text-unit.sid-a3a099fe063345ae8091f12f7934eb02",
+        "tos.text-unit.sid-4d57b89cf81a41e2986873af7ef36d1a",
+        "tos.text-unit.sid-d22ba54b1ae847d9898519c4015a1b68",
+        "tos.text-unit.sid-0f6d455e202f42fda37b1e808815bead",
+        "tos.text-unit.sid-10fcbe2c3dec491c8adc36dff5af93e8",
+        "tos.text-unit.sid-bc73925712e74576803867ce029830b6",
+        "tos.text-unit.sid-dd42ec179e79468696141cf6b7224c45",
+        "tos.text-unit.sid-bf3a494f0fdb4dd3ae88f29035191f24",
+        "tos.text-unit.sid-c2af3bc999fd4c648328216b64771d2a",
+        "tos.text-unit.sid-8dffa0691e1248a49f377122ab1aeb32",
+        "tos.text-unit.sid-9336626f19af488bb99a84a911be75f2",
+        "tos.text-unit.sid-9e87f2ea69f641beae0ee50c682a795d",
+        "tos.text-unit.sid-fd83901ae5a5425ab8c2a2fa875e7328",
+        "tos.text-unit.sid-9aaaa44f82e544d181894b565464b656",
+        "tos.text-unit.sid-e9fd445e14314665823a1e9043c2fa34",
+        "tos.text-unit.sid-a4a3fa4910e3419e9ec74298cd2e1cd7",
+        "tos.text-unit.sid-f48cc1b2e4ae4c518039ddb5a54bc6fb",
+        "tos.text-unit.sid-e1927901d0bf49edb23d9e3fbc1e7a48",
+        "tos.text-unit.sid-f606a15730f745e79e68037e913ef3d1",
+        "tos.text-unit.sid-2d24329805ef42b1952ef927b72dc554",
+        "tos.text-unit.sid-59517147414547a68508f8dda739c18e",
+        "tos.text-unit.sid-ae3cbd152b7c4c5c9552314a57fb11dc",
+        "tos.text-unit.sid-fa0ad4f9edc34d2aa72bcd26825c0e74",
+        "tos.text-unit.sid-17da42769cca4d7f906c2b1efc7226f5",
+        "tos.text-unit.sid-3492adf2fd614749b6584cf20b913962",
+        "tos.text-unit.sid-6b02705b54914ff6accd17b335870053",
+        "tos.text-unit.sid-77d3937158f44eba8abbd99d6df9f64a",
+        "tos.text-unit.sid-bc372d293abf4227a5583780a37aa606",
+        "tos.text-unit.sid-b594fb1d76aa46d88d2d2215e55ed4ce",
+        "tos.text-unit.sid-1a071a465b0a408c92f164f36f3b97ed",
+        "tos.text-unit.sid-7a5425bfc8d84dc1b9be79548d2422cc",
+        "tos.text-unit.sid-ce90755b39e647d2a5e3df35b1e01882",
+        "tos.text-unit.sid-088f0431ba3c417d98a28831b9812abc",
+        "tos.text-unit.sid-c2c6cfff9aea4228b28ede3ae71c270e",
+        "tos.text-unit.sid-8a636bd0bee94b50bd54c3aad4eea945"
+      ],
+      "coverage": {
+        "scope_anchor_ref": "tos.anchor.sid-7bc71b1b28734f7198524828fec08e79",
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "unreported_gaps_allowed": false,
+        "overlap_requires_declaration": true,
+        "source_reconstruction_required": true
+      },
+      "status": "proposed",
+      "status_reason": "Deterministic display and navigation segmentation; no textual, linguistic or semantic acceptance.",
+      "maker": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "ru",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.timaeus-ru-karpov1879-wikisource.20261027",
+        "made_at": "2026-11-03T08:24:38+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "competing_segmentation_refs": [],
+      "review_refs": [],
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "source_text_authority": false,
+      "linguistic_authority": false,
+      "semantic_authority": false
+    }
+  ],
+  "reviews": [],
+  "projections": [],
+  "rights_and_visibility": {
+    "source_visibility": "public",
+    "packet_visibility": "public",
+    "effective_visibility": "public",
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json"
+    ],
+    "private_source_used": false,
+    "publication_authorized": true,
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins"
+  },
+  "authority_boundary": {
+    "tree_role": "orientation",
+    "graph_role": "relation",
+    "source_role": "authority",
+    "validators_prove_mechanics_not_truth": true,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "legacy_bulk_migration_authorized": false
+  }
+}

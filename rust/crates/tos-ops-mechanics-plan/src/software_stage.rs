@@ -17,7 +17,9 @@ use tos_foundation::Digest256Hasher;
 use tos_foundation::native_software_roles::COMMANDS;
 
 const SCHEMA: &str = "tos_software_ci_stage_manifest_v1";
-const MAX_STAGE_MEMBERS: usize = 1024;
+// The browser assets carry the public corpus, which grows with each translation
+// it publishes; the stage keeps room for it beside the native images.
+const MAX_STAGE_MEMBERS: usize = 4096;
 const MAX_STAGE_PAYLOAD_FILES: usize = MAX_STAGE_MEMBERS - 1;
 const MAX_STAGE_DIRECTORIES: usize = 1024;
 const MAX_STAGE_BYTES: u64 = 4 * 1024 * 1024 * 1024;

@@ -1,0 +1,46 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.cratylus.cratylus-ru-karpov1879-wikisource",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.cratylus.cratylus-ru-karpov1879-wikisource",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.b16f652ec9f8c2345352bf5d69f65a24f58d7fe1c10daf1a4f9dc7472a1eb646",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "cratylus-ru-karpov1879-wikisource.json",
+      "media_type": "application/json",
+      "byte_size": 630426,
+      "sha256": "b16f652ec9f8c2345352bf5d69f65a24f58d7fe1c10daf1a4f9dc7472a1eb646",
+      "fixity_verified_at": "2026-11-03T08:25:00+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.e443681dad96bab5a4d6357a9dd19095deafd0d22a481a4fb89267cd2248e12b",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 223623,
+      "sha256": "e443681dad96bab5a4d6357a9dd19095deafd0d22a481a4fb89267cd2248e12b",
+      "fixity_verified_at": "2026-11-03T08:25:00+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.ff51c3ae41d01d63d9c4b3088ff20251d8424511d032d4ece0e4f6ebd6d15c64",
+      "relative_path": "payload/wikisource-api.json",
+      "original_basename": "wikisource-api.json",
+      "media_type": "application/json",
+      "byte_size": 919950,
+      "sha256": "ff51c3ae41d01d63d9c4b3088ff20251d8424511d032d4ece0e4f6ebd6d15c64",
+      "fixity_verified_at": "2026-11-03T08:25:00+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.cratylus-ru-karpov1879-wikisource.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plato/cratylus/expressions/retained-cratylus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/cratylus/expressions/retained-cratylus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/cratylus/expressions/retained-cratylus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/cratylus/expressions/retained-cratylus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plato/cratylus/expressions/retained-cratylus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}
