@@ -60,6 +60,50 @@ impl SourceFixity {
         json!({"pdf_sha256":self.pdf_sha256,"bbox_sha256":self.bbox_sha256,"private_text_layer_sha256":self.text_sha256})
     }
 }
+#[derive(Debug, Clone, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ExtractionProfile {
+    tool: String,
+    version: String,
+    arguments: Vec<String>,
+    expected_bbox_bytes: usize,
+    expected_warning: String,
+    expected_warning_count: usize,
+}
+impl ExtractionProfile {
+    // Compatibility profile is removed when compiler research consumers migrate.
+    fn legacy() -> Self {
+        Self {
+            tool: "pdftotext".into(),
+            version: "26.01.0".into(),
+            arguments: vec!["-bbox-layout".into(), "SOURCE_PDF".into(), "-".into()],
+            expected_bbox_bytes: 12_306_305,
+            expected_warning: "Syntax Warning: Invalid Font Weight".into(),
+            expected_warning_count: 2601,
+        }
+    }
+    fn selected(value: &Value) -> Result<Self> {
+        let profile: Self = serde_json::from_value(value.clone())
+            .map_err(|e| format!("extraction profile: {e}"))?;
+        if profile.tool != "pdftotext"
+            || profile.arguments != ["-bbox-layout", "SOURCE_PDF", "-"]
+            || profile.version.is_empty()
+            || profile.expected_bbox_bytes == 0
+            || (profile.expected_warning_count != 0 && profile.expected_warning.is_empty())
+        {
+            return Err("unsupported PDF extraction profile".into());
+        }
+        profile.warning_bytes()?;
+        Ok(profile)
+    }
+    fn warning_bytes(&self) -> Result<usize> {
+        self.expected_warning
+            .len()
+            .checked_add(2)
+            .and_then(|n| n.checked_mul(self.expected_warning_count))
+            .ok_or_else(|| "extraction warning size overflow".into())
+    }
+}
 fn sha(raw: &[u8]) -> String {
     Digest256::of_bytes(raw).to_hex()
 }
@@ -788,21 +832,22 @@ fn poppler_bbox(
     pdf_file: &fs::File,
     plan: &Value,
     expected_bbox_sha256: &str,
+    extraction: &ExtractionProfile,
 ) -> Result<Vec<u8>> {
     tick(deadline)?;
     let pdf_carrier = format!("/proc/{}/fd/{}", std::process::id(), pdf_file.as_raw_fd());
     let policy = &plan["extraction_policy"];
-    if s(&policy["software_version"]) != "26.01.0"
-        || n(&policy["expected_bbox_bytes"]) != 12_306_305
+    if s(&policy["software_version"]) != extraction.version
+        || n(&policy["expected_bbox_bytes"]) != extraction.expected_bbox_bytes
         || s(&policy["expected_bbox_sha256"]) != expected_bbox_sha256
-        || n(&policy["expected_warning_count"]) != 2601
-        || s(&policy["expected_warning"]) != "Syntax Warning: Invalid Font Weight"
+        || n(&policy["expected_warning_count"]) != extraction.expected_warning_count
+        || s(&policy["expected_warning"]) != extraction.expected_warning
     {
         return fail("frozen extraction policy drift");
     }
     use crate::owned_native_child::{CaptureLimits, capture};
     let version = capture(
-        Command::new("pdftotext").arg("-v"),
+        Command::new(&extraction.tool).arg("-v"),
         None,
         CaptureLimits {
             max_stdin_bytes: 0,
@@ -816,26 +861,20 @@ fn poppler_bbox(
     let ver = String::from_utf8(ver).map_err(|e| e.to_string())?;
     if !version.status.success()
         || ver.lines().next()
-            != Some(
-                format!(
-                    "pdftotext version {}",
-                    s(&plan["extraction_policy"]["software_version"])
-                )
-                .as_str(),
-            )
+            != Some(format!("{} version {}", extraction.tool, extraction.version).as_str())
     {
         return fail("pdftotext version drift");
     }
     let result = capture(
-        Command::new("pdftotext")
-            .arg("-bbox-layout")
+        Command::new(&extraction.tool)
+            .arg(&extraction.arguments[0])
             .arg(&pdf_carrier)
-            .arg("-"),
+            .arg(&extraction.arguments[2]),
         None,
         CaptureLimits {
             max_stdin_bytes: 0,
-            max_stdout_bytes: 12_306_305,
-            max_stderr_bytes: ("Syntax Warning: Invalid Font Weight".len() + 2) * 2601,
+            max_stdout_bytes: extraction.expected_bbox_bytes,
+            max_stderr_bytes: extraction.warning_bytes()?,
         },
         deadline,
     )?;
@@ -865,6 +904,7 @@ fn load_source(
     deadline: Instant,
     source: &SourceInput,
     fixity: &SourceFixity,
+    extraction: &ExtractionProfile,
 ) -> Result<(Vec<Block>, Vec<Value>)> {
     tick(deadline)?;
     let plan = load_until(deadline, source, &format!("{V1}/plan.v1.json"))?;
@@ -923,7 +963,7 @@ fn load_source(
     {
         return fail("resource inventory page identities drift");
     }
-    let bbox = poppler_bbox(deadline, &pdf_file, &plan, &fixity.bbox_sha256)?;
+    let bbox = poppler_bbox(deadline, &pdf_file, &plan, &fixity.bbox_sha256, extraction)?;
     let blocks = observation(
         &bbox,
         pages,
@@ -1414,6 +1454,7 @@ struct LayoutClassification {
     verse: VerseRule,
     expected: ExpectedCensus,
     fixity: SourceFixity,
+    extraction: ExtractionProfile,
     regions: Vec<(usize, String, String)>,
     precedence: BTreeMap<String, usize>,
 }
@@ -1454,6 +1495,7 @@ impl LayoutClassification {
             verse: VerseRule::legacy(),
             expected: ExpectedCensus::legacy(),
             fixity: SourceFixity::legacy(),
+            extraction: ExtractionProfile::legacy(),
             regions,
             precedence,
         }
@@ -1502,6 +1544,7 @@ impl LayoutClassification {
             verse: VerseRule::selected(&value["verse"])?,
             expected: ExpectedCensus::selected(&value["expected_census"])?,
             fixity: SourceFixity::legacy(),
+            extraction: ExtractionProfile::legacy(),
             regions,
             precedence,
         })
@@ -2221,6 +2264,7 @@ pub fn reconstruct_from_directory_with_recipe(
 ) -> Result<Model> {
     let mut layout = LayoutClassification::selected(&recipe["layout_rules"])?;
     layout.fixity = SourceFixity::selected(&recipe["fixity"])?;
+    layout.extraction = ExtractionProfile::selected(&recipe["extraction"])?;
     reconstruct_from_directory_with_layout(root, directory, deadline, layout)
 }
 
@@ -2232,7 +2276,7 @@ fn reconstruct_from_directory_with_layout(
 ) -> Result<Model> {
     tick(deadline)?;
     let source = SourceInput::from_directory(root, directory)?;
-    let (blocks, census) = load_source(deadline, &source, &layout.fixity)?;
+    let (blocks, census) = load_source(deadline, &source, &layout.fixity, &layout.extraction)?;
     if blocks.len() != layout.expected.poppler_blocks {
         return fail("selected Poppler block census drift");
     }
@@ -3159,6 +3203,17 @@ mod tests {
         assert!(SourceFixity::selected(&value).is_err());
         value["pdf_sha256"] = json!("not-a-digest");
         assert!(SourceFixity::selected(&value).is_err());
+    }
+    #[test]
+    fn selected_extraction_profile_rejects_unsupported_commands_and_overflow() {
+        let mut value = json!({"tool":"pdftotext", "version":"26.01.0", "arguments":["-bbox-layout","SOURCE_PDF","-"], "expected_bbox_bytes":12306305, "expected_warning":"warning", "expected_warning_count":3});
+        let profile = ExtractionProfile::selected(&value).unwrap();
+        assert_eq!(profile.warning_bytes().unwrap(), 27);
+        value["arguments"][0] = json!("-raw");
+        assert!(ExtractionProfile::selected(&value).is_err());
+        value["arguments"][0] = json!("-bbox-layout");
+        value["expected_warning_count"] = json!(usize::MAX);
+        assert!(ExtractionProfile::selected(&value).is_err());
     }
     #[test]
     fn private_key_and_false_flag_controls() {

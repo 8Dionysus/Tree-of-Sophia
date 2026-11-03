@@ -231,6 +231,7 @@ fn region(plan: &Value, page: usize, panel: &str) -> Result<String> {
 }
 fn prepare(ctx: &ResearchExecution, plan: &Value) -> Result<Document> {
     let fixity = SourceFixity::legacy();
+    let extraction = ExtractionProfile::legacy();
     let src = &plan["source_item"];
     let manifest = load(ctx, s(&src["manifest_ref"]))?;
     ensure(
@@ -280,7 +281,13 @@ fn prepare(ctx: &ResearchExecution, plan: &Value) -> Result<Document> {
                 .all(|(i, r)| s(&r["resource_id"]) == format!("pdf-page-{:04}", i + 1)),
         "inventory page identity drift",
     )?;
-    let bbox = poppler_bbox(ctx.deadline(), &file, plan, &fixity.bbox_sha256)?;
+    let bbox = poppler_bbox(
+        ctx.deadline(),
+        &file,
+        plan,
+        &fixity.bbox_sha256,
+        &extraction,
+    )?;
     let observed = observation(
         &bbox,
         &inventory,
