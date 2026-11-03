@@ -1061,22 +1061,34 @@ fn part_orders(plan: &Value) -> Result<BTreeSet<u64>> {
     )?;
     Ok(orders)
 }
-fn current_plan(ctx: &ResearchExecution, reference: &str) -> Result<(Vec<u8>, Value)> {
+fn current_plan(
+    ctx: &ResearchExecution,
+    reference: &str,
+    recipe: &Value,
+) -> Result<(Vec<u8>, Value)> {
     let (raw, plan) = load(ctx, reference)?;
     ensure(
-        plan["schema_version"] == "tos_zarathustra_dta_technical_markup_plan_v1"
+        plan["schema_version"] == s(&recipe["plan_schema_version"])?
             && plan["contract_ref"] == SCHEMA
-            && plan["language"] == "de",
-        "unsupported DTA technical plan",
+            && plan["language"]
+                .as_str()
+                .is_some_and(|value| !value.is_empty()),
+        "unsupported selected technical plan",
     )?;
     ensure(
         plan["identity_policy"]["source_locator_is_binding_not_identity"] == true
             && plan["identity_policy"]["automatic_remint_on_locator_drift"] == false,
         "identity policy drift",
     )?;
+    let extraction = &plan["extraction_policy"];
     ensure(
-        plan["extraction_policy"]
-            == json!({"included_region":"TEI/text[1]/body[1] minus exact excluded resource subtrees or milestones","excluded_elements":["fw","note"],"choice_policy":"prefer-sic-then-orig-then-abbr-then-first","line_break_policy":"render-lb-as-one-U+000A-and-drop-one-XML-formatting-newline-from-its-tail","formatting_whitespace_policy":"drop-whitespace-only-node-content-containing-newline-carriage-return-or-tab; preserve-space-only-content","unicode_normalization":"none","source_text_mutation_authorized":false}),
+        extraction["included_region"]
+            == "TEI/text[1]/body[1] minus exact excluded resource subtrees or milestones"
+            && extraction["line_break_policy"]
+                == "render-lb-as-one-U+000A-and-drop-one-XML-formatting-newline-from-its-tail"
+            && extraction["formatting_whitespace_policy"]
+                == "drop-whitespace-only-node-content-containing-newline-carriage-return-or-tab; preserve-space-only-content"
+            && extraction["source_text_mutation_authorized"] == false,
         "unsupported extraction policy",
     )?;
     part_orders(&plan)?;
@@ -1366,7 +1378,7 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
     let citation_profile = CitationProfile::selected(ctx, opts.recipe)?;
     let citation_schema = frozen_schema(opts.recipe, "citation-spine")?;
     let summary_schema = frozen_schema(opts.recipe, "summary")?;
-    let (plan_raw, plan) = current_plan(ctx, opts.plan_ref)?;
+    let (plan_raw, plan) = current_plan(ctx, opts.plan_ref, opts.recipe)?;
     let profile = TextProfile::selected(opts.recipe, &plan)?;
     let retained = retained_event(ctx, &plan, &opts)?;
     let build = matches!(opts.action, Action::Build { .. });
@@ -1716,6 +1728,9 @@ mod tests {
         serde_json::from_str(include_str!("dta_technical_markup/synthetic-parity.json")).unwrap()
     }
     fn observed(ctx: &ResearchExecution, f: &Value) -> ObservedPart {
+        observed_with_recipe(ctx, f, &recipe())
+    }
+    fn observed_with_recipe(ctx: &ResearchExecution, f: &Value, selected: &Value) -> ObservedPart {
         let resources = array(&f["resources"])
             .unwrap()
             .iter()
@@ -1741,7 +1756,7 @@ mod tests {
             s(&f["xml"]).unwrap().as_bytes(),
             &resources,
             &major,
-            &TextProfile::selected(&recipe(), &f["plan"]).unwrap(),
+            &TextProfile::selected(selected, &f["plan"]).unwrap(),
         )
         .unwrap()
     }
@@ -1834,6 +1849,15 @@ mod tests {
         assert!(TextProfile::selected(&selected, &fixture["plan"]).is_ok());
         selected["tei_text_profile"]["choice_preference"] = json!(["orig", "sic", "abbr"]);
         assert!(TextProfile::selected(&selected, &fixture["plan"]).is_err());
+        let mut alternate = fixture;
+        selected["tei_text_profile"]["choice_preference"] = json!(["corr", "sic", "orig", "abbr"]);
+        alternate["plan"]["extraction_policy"]["choice_policy"] =
+            json!("prefer-corr-then-sic-then-orig-then-abbr-then-first");
+        let root = schema_root();
+        let ctx = ResearchExecution::new(root.path(), 60).unwrap();
+        let observed = observed_with_recipe(&ctx, &alternate, &selected);
+        assert!(observed.content.contains("new tail"));
+        assert!(!observed.content.contains("old tail"));
     }
     #[test]
     fn issuance_profile_rejects_duplicate_fields_and_invalid_digest_length() {
