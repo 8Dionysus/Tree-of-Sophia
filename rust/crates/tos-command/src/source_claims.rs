@@ -9711,7 +9711,9 @@ fn exact_metadata_version(
     cut: Option<&CorpusCutReader>,
     mut retained: Option<&mut RetainedProfileRead>,
     reference: &JsonValue,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_revisions::RecordSchemaWorker<
+        Identity = tos_foundation::SourceRevision,
+    >,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(JsonValue, String, JsonValue, JsonValue, &'static str)> {
@@ -10751,12 +10753,14 @@ pub(crate) fn ground_addressed_collection_membership(
     ctx: &CommandContext,
     cut: &CorpusCutReader,
     claim: &JsonValue,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_revisions::RecordSchemaWorker<
+        Identity = tos_foundation::SourceRevision,
+    >,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
     if ctx.base_revision != cut.current().revision()
-        || executor.source_revision() != ctx.base_revision
+        || executor.input_identity() != Some(ctx.base_revision)
     {
         return Err(SourceCommandError::Conflict(
             "addressed Collection grounding cut/worker",
@@ -10770,7 +10774,9 @@ fn ground_collection_membership(
     cut: Option<&CorpusCutReader>,
     mut retained: Option<&mut RetainedProfileRead>,
     claim: &JsonValue,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_revisions::RecordSchemaWorker<
+        Identity = tos_foundation::SourceRevision,
+    >,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {

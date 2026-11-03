@@ -8050,7 +8050,7 @@ impl ResolvedRecordVersion {
 pub(crate) fn resolve_record_version_evidence(
     ctx: &CommandContext,
     exact: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl RecordSchemaWorker<Identity = tos_foundation::SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ResolvedRecordVersion> {
@@ -8061,7 +8061,7 @@ pub(crate) fn resolve_record_version_evidence_from_cut(
     ctx: &CommandContext,
     cut: &CorpusCutReader,
     exact: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl RecordSchemaWorker<Identity = tos_foundation::SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ResolvedRecordVersion> {
