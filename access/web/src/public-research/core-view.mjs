@@ -49,6 +49,8 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
   const tr=value=>localeValue(value,locale());
   const t=key=>words[key]?.[Math.max(0,langs.indexOf(resolveLocale(locale())))]??key;
   const name=id=>tr(core.records[id]?.title)||(id==='narrator'?t('narrator'):id);
+  // A voice is named by its figure; a voice the core does not name speaks without a label.
+  const speakerName=id=>tr(core.records[id]?.title)||(id==='narrator'?t('narrator'):'');
   const status=(parent,value)=>{if(value)parent.append(el('small','ps-core-status',t(value)));};
   function form(parent,value,seen=null){
     if(!value||filler(value))return;
@@ -73,7 +75,7 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
   }
   function voice(parent,value){
     if(!value)return;
-    const parts=[name(value.speaker),value.mode&&t(value.mode),value.layer&&t(value.layer),value.via&&name(value.via)].filter(Boolean);
+    const parts=[speakerName(value.speaker),value.mode&&t(value.mode),value.layer&&t(value.layer),value.via&&speakerName(value.via)].filter(Boolean);
     parent.append(el('p','ps-core-voice',parts.join(' · ')));
   }
   function voiceDescriptor(parent,descriptor){
@@ -187,7 +189,7 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
   }
   function witnesses(parent,record){
     for(const item of record.appearances??[])fold(parent,`${chapterName(item.cite.c,locale())} · ${tr(item.line)}`,box=>{if(item.role)box.append(el('p','ps-core-voice',`${t('figureScope')}: ${t(item.role)}`));form(box,{...item.line,cite:[item.cite],status:item.status});appearanceVoices(box,item,record);});
-    for(const item of record.voice??[])fold(parent,`${chapterName(item.cite.c,locale())} · ${name(item.speaker)} · ${tr(item.line)}`,box=>{voice(box,item);form(box,{...item.line,cite:[item.cite],status:item.status});});
+    for(const item of record.voice??[])fold(parent,[chapterName(item.cite.c,locale()),speakerName(item.speaker),tr(item.line)].filter(Boolean).join(' · '),box=>{voice(box,item);form(box,{...item.line,cite:[item.cite],status:item.status});});
     for(const item of record.conception?.formulas??[])fold(parent,`${chapterName(item.cite.c,locale())} · ${tr(item.why)}`,box=>{formula(box,item);review(box,item,t('formulaReview'));});
     for(const item of record.questions??[])fold(parent,tr(item.question),box=>{form(box,item.answer);status(box,item.status);});
     const names=record.lexicon??record.names;
@@ -200,7 +202,7 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
       const load=async()=>{try{
         const data=await loader(),items=Array.isArray(data)?data:data.occurrences??[];box.replaceChildren();let offset=0;
         const more=button(t('more'),()=>page());
-        const page=()=>{more.remove();for(const item of items.slice(offset,offset+20))fold(box,`${chapterName(item.cite.c,locale())} · ${name(item.speaker)} · ${item.form??''}`,body=>{voice(body,item);form(body,{...item.line,cite:[item.cite]});});offset+=20;if(offset<items.length)box.append(more);};page();
+        const page=()=>{more.remove();for(const item of items.slice(offset,offset+20))fold(box,[chapterName(item.cite.c,locale()),speakerName(item.speaker),item.form].filter(Boolean).join(' · '),body=>{voice(body,item);form(body,{...item.line,cite:[item.cite]});});offset+=20;if(offset<items.length)box.append(more);};page();
       }catch{box.replaceChildren(button(t('unavailable'),load));}};void load();
     });
     if(record.cite)form(parent,{cite:[record.cite]});
@@ -263,12 +265,12 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
       for(const field of ['thesis','who','position','answer','grounds','consequences','deed','function'])section(body,field,field===lead?(essence[field]?.cite?{cite:essence[field].cite}:null):essence[field],seen);
       if(kind(record)==='argument')for(const field of ['premises','steps'])section(body,field,record[field]??essence[field],seen);
       if(kind(record)==='claim')for(const field of ['scope','conditions'])section(body,field,record[field]??essence[field],seen);
-      for(const counter of record.counter_voices??[])fold(body,`${t('counter')} · ${name(counter.speaker)}`,box=>{voice(box,counter.voice??{speaker:counter.speaker});form(box,{...counter.line,cite:[counter.cite],status:counter.status});section(box,'reply',counter.reply);});
+      for(const counter of record.counter_voices??[])fold(body,[t('counter'),speakerName(counter.speaker)].filter(Boolean).join(' · '),box=>{voice(box,counter.voice??{speaker:counter.speaker});form(box,{...counter.line,cite:[counter.cite],status:counter.status});section(box,'reply',counter.reply);});
       if(record.reading?.reading){
         for(const cite of record.reading.grounds??[])body.append(fragments.fragment(cite));
         section(body,'readingLimit',record.reading.limit);
         if(record.reading.related_existing&&core.records[record.reading.related_existing])body.append(button(`${t('relatedSubject')}: ${name(record.reading.related_existing)}`,()=>onNode?.(core.materialIds[record.reading.related_existing]),'connection-target'));
-        const review=record.reading.independent_review;if(review)fold(body,t('review'),box=>{status(box,review.verdict);if(review.reviewer)box.append(el('p','muted',review.reviewer));});
+        const review=record.reading.independent_review;if(review)fold(body,t('review'),box=>{status(box,review.verdict);});
       }
     }
     if(key==='development'){
