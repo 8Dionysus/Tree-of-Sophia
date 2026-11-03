@@ -11378,6 +11378,10 @@ fn sign_promotion_native_entry_v3_assesses_prepares_commits_reads_and_replays() 
         serde_json::json!(fixture.occurrence_ids)
     );
     let authored = super::command_text_cases::authored_text_files(&public_root);
+    // The selected cut declares public fixture files with portable 0644 modes.
+    for path in authored.keys() {
+        fs::set_permissions(public_root.join(path), fs::Permissions::from_mode(0o644)).unwrap();
+    }
     let mut captured = authored.clone();
     let software_sources = [
         "rust/crates/tos-command/src/lib.rs",
