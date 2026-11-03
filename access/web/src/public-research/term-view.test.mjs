@@ -67,3 +67,26 @@ it('first touch remains a preview when focus arrives before click',()=>{
   handlers.pointerdown(event);handlers.click(event);expect(open).toHaveBeenCalledOnce();
   terms.dispose();vi.unstubAllGlobals();
 });
+
+
+it('releases observers for removed roots while preserving connected or reattached roots',()=>{
+  const observers=[];
+  class Observer{
+    constructor(callback){this.callback=callback;this.disconnected=false;observers.push(this);}
+    observe(target){this.target=target;} disconnect(){this.disconnected=true;}
+  }
+  const body={append(){}};
+  const element=()=>({dataset:{},style:{},setAttribute(){},removeAttribute(){},addEventListener(){},remove(){},querySelectorAll(){return [];},isConnected:true});
+  const doc={body,documentElement:{lang:'ru'},createElement:element,createTreeWalker:()=>({nextNode:()=>false}),addEventListener(){},removeEventListener(){}};
+  vi.stubGlobal('document',doc);vi.stubGlobal('MutationObserver',Observer);vi.stubGlobal('NodeFilter',{SHOW_TEXT:4});vi.stubGlobal('addEventListener',()=>{});vi.stubGlobal('removeEventListener',()=>{});
+  const terms=createTerms({module:{terms:[{id:'x'}]}}),old=element(),live=element();
+  terms.mark(old);terms.mark(live);
+  const [removals,oldObserver,liveObserver]=observers;
+  old.isConnected=false;
+  removals.callback([{removedNodes:[{contains:root=>root===old}]}]);
+  expect(oldObserver.disconnected).toBe(true);expect(liveObserver.disconnected).toBe(false);
+  // Moving a root within the document must not stop future updates.
+  removals.callback([{removedNodes:[live]}]);expect(liveObserver.disconnected).toBe(false);
+  terms.dispose();expect(removals.disconnected).toBe(true);expect(liveObserver.disconnected).toBe(true);
+  vi.unstubAllGlobals();
+});

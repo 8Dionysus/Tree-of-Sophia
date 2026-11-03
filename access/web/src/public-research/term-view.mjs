@@ -69,6 +69,16 @@ export function createTerms({module,locale=()=> 'ru',open=()=>{}}={}){
   const languageOf=element=>{const lang=(element?.closest?.('[lang]')?.getAttribute('lang')||document.documentElement.lang||'ru').toLowerCase();return lang.startsWith('de')?'de':lang.startsWith('ru')?'ru':'en';};
 
   const observed=new Map();let marking=false;
+  // A root does not observe its own removal. Watch the stable document for removed
+  // subtrees and release only roots that have actually left the document.
+  const removals=typeof MutationObserver==='function'?new MutationObserver(records=>{
+    for(const record of records)for(const removed of record.removedNodes){
+      for(const [root,observer] of observed){
+        if(!root.isConnected&&(removed===root||removed.contains?.(root))){observer.disconnect();observed.delete(root);}
+      }
+    }
+  }):null;
+  removals?.observe(document.body,{childList:true,subtree:true});
   function mark(root){
     if(!root||marking)return;
     marking=true;
@@ -160,7 +170,7 @@ export function createTerms({module,locale=()=> 'ru',open=()=>{}}={}){
     mark,
     get size(){return byId.size;},
     dispose(){
-      for(const observer of observed.values())observer.disconnect();observed.clear();card.remove();
+      removals?.disconnect();for(const observer of observed.values())observer.disconnect();observed.clear();card.remove();
       document.removeEventListener('pointerover',over);document.removeEventListener('pointerout',out);document.removeEventListener('pointerdown',down,true);
       document.removeEventListener('click',click,true);document.removeEventListener('keydown',key,true);document.removeEventListener('focusin',focus);document.removeEventListener('focusout',blur);
       removeEventListener('scroll',scrolled,{capture:true});
