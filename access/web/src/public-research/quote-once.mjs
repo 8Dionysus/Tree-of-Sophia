@@ -36,7 +36,10 @@ export function keepQuotesOnce(root,{label=source=>`↑ ${source}`}={}){
         for(const quote of quotes)quote.hidden=true;
         for(const part of figure.querySelectorAll(':scope > figcaption, :scope > .ps-fragment-tools'))part.hidden=true;
         const back=document.createElement('button');back.type='button';back.className='text-button ps-fragment-repeat';back.textContent=label(source);
-        back.addEventListener('click',()=>lead?.scrollIntoView({behavior:'smooth',block:'center'}));
+        back.addEventListener('click',()=>{
+          for(let node=lead?.parentElement;node;node=node.parentElement)if(node.tagName==='DETAILS')node.open=true;
+          lead?.scrollIntoView({behavior:'smooth',block:'center'});
+        });
         figure.prepend(back);
       }
     }finally{observer?.takeRecords();working=false;}

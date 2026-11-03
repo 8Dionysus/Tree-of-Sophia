@@ -15,6 +15,7 @@ class Node{
   all(){return this.children.flatMap(child=>[child,...child.all()]);}
   querySelectorAll(selector){const direct=selector.includes(':scope >');return (direct?this.children:this.all()).filter(node=>node.matches(selector));}
   querySelector(selector){return this.querySelectorAll(selector)[0]??null;}
+  get parentElement(){return this.parent;}
   get isConnected(){return true;}
 }
 const figure=(lines,source)=>{const f=new Node('figure');f.className='ps-fragment';const q=new Node('blockquote');q.className='ps-fragment-text';q.attrs.lang='ru';q.append(...lines.map(line=>new Node('p',line)));const c=new Node('figcaption');const s=new Node('span',source);s.className='ps-fragment-source';c.append(s);f.append(q,c);return f;};
@@ -28,5 +29,15 @@ it('quotes every line once and leads a whole repeat back to the first quotation'
   expect(c.children[0].textContent).toBe('↑ Об избавлении — приведено выше');
   expect(c.children[1].hidden).toBe(true);
   expect(a.children[0].children.some(line=>line.classList.contains('is-quoted-above'))).toBe(false);
+  vi.unstubAllGlobals();
+});
+
+it('opens every collapsed ancestor before scrolling to the first quotation',()=>{
+  vi.stubGlobal('document',{createElement:tag=>new Node(tag)});
+  const root=new Node('article'),outer=new Node('details'),inner=new Node('details'),first=figure(['same'],'first'),later=figure(['same'],'later');
+  outer.open=false;inner.open=false;inner.append(first);outer.append(inner);root.append(outer,later);
+  first.scrollIntoView=vi.fn(()=>{expect(outer.open).toBe(true);expect(inner.open).toBe(true);});
+  keepQuotesOnce(root);later.children[0].listeners.click();
+  expect(first.scrollIntoView).toHaveBeenCalledOnce();
   vi.unstubAllGlobals();
 });

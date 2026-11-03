@@ -134,14 +134,15 @@ export function createTerms({module,locale=()=> 'ru',open=()=>{}}={}){
     if(now)done();else hideTimer=setTimeout(done,160);
   }
   const termOf=event=>event.target?.closest?.('.ps-term');
-  let touch=false;
+  let touch=false,touchPreview=null;
   const over=event=>{const span=termOf(event);if(!span||event.pointerType==='touch')return;clearTimeout(showTimer);showTimer=setTimeout(()=>show(span),220);};
   const out=event=>{if(termOf(event)&&!card.contains(event.relatedTarget))hide();};
-  const down=event=>{touch=event.pointerType==='touch';if(!card.hidden&&!card.contains(event.target)&&!termOf(event))hide(true);};
+  const down=event=>{touch=event.pointerType==='touch';touchPreview=touch&&!card.hidden?shownFor:null;if(!card.hidden&&!card.contains(event.target)&&!termOf(event))hide(true);};
   const click=event=>{
     const span=termOf(event);if(!span)return;event.preventDefault();event.stopPropagation();
     // A finger first sees the origin; the origin's button opens the book.
-    if(touch&&shownFor!==span){show(span);return;}
+    if(touch&&touchPreview!==span){touch=false;touchPreview=null;show(span);return;}
+    touch=false;touchPreview=null;
     const term=byId.get(span.dataset.term);hide(true);if(term?.first)open(term.first);
   };
   const key=event=>{
