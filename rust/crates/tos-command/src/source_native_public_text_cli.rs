@@ -1,7 +1,7 @@
 //! Explicit public project Text invocation. Authenticated cut/producer bytes
 //! select schemas and implementation; only the protected public grant routes
 //! construction. No owner-local context or assessment worker is manufactured.
-use super::{absolute, capped, digest, selected_schema, text};
+use super::{absolute, capped, digest, text};
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
 use crate::source_public_text_owner::PublicNativeTextSelection;
 use serde_json::{Value, json};
@@ -76,7 +76,14 @@ pub(super) fn run(
             "public Text preview requires current original cut",
         ));
     }
-    let mut worker = selected_schema(invocation, &original, deadline, cancelled)?;
+    let mut worker = tos_validation::source_cut::InProcessCutSchemaExecutor::from_cut(
+        &original,
+        tos_validation::FormatProfile::LegacyPythonObserved20260923,
+        tos_validation::in_process::InputMode::SerdeNormalized,
+        deadline,
+        cancelled,
+    )
+    .map_err(|_| SourceCommandError::Denied("public Text schema selection"))?;
     let mut schemas = BTreeMap::new();
     for name in [
         "ToS/contracts/public-native-text-create-owner.schema.json",

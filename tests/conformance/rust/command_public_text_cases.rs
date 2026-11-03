@@ -237,7 +237,7 @@ finally:
     let mut invocation = serde_json::json!({"schema_version":"tos_local_native_source_invocation_v1","owner_context":null,"assessment_schema_worker":null,"owner_config":owner,
         "native_executable":native,"native_executable_sha256":alignment_image_digest(&native).to_prefixed(),"corpus_store":store,"source_revision":original.0.to_prefixed(),"original_source_revision":original.0.to_prefixed(),
         "software_capture":capture.capture,"software_restored_root":capture.restored,"software_selection":{"source_git_commit":capture.selection.source_git_commit,"source_git_tree":capture.selection.source_git_tree,"capture_manifest_sha256":capture.selection.capture_manifest_sha256.to_prefixed()},
-        "software_components":components.members().map(|member|member.path.as_str()).collect::<Vec<_>>(),"schema_worker":{"absolute_path":worker,"sha256":alignment_image_digest(&worker).to_prefixed()},
+        "software_components":components.members().map(|member|member.path.as_str()).collect::<Vec<_>>(),"schema_worker":{"absolute_path":"/nonexistent/hostguard-schema-worker","sha256":alignment_image_digest(&worker).to_prefixed()},
         "budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":33554432,"max_member_bytes":8388608,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,"worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}});
     let write_profile = |value: &Value| {
         fs::write(&invocation_path, canonical_json(value)).unwrap();
