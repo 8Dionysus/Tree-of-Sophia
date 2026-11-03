@@ -710,6 +710,13 @@ if correction_reviews:
                 if ru_matches:
                     value['ru'] = ru_map[old_ru]
                     correction_review['used_ru'].add(old_ru)
+                # Older source reviews use a plain Russian string for their
+                # reason. Keep that shape and the original review input while
+                # allowing the same exact-text reader correction as for forms.
+                old_reason = value.get('reason')
+                if correction_review['review'].get('scalar_reasons') is True and isinstance(old_reason, str) and old_reason in ru_map:
+                    value['reason'] = ru_map[old_reason]
+                    correction_review['used_ru'].add(old_reason)
                 paired_applied = False
                 paired = paired_en_map.get(old_ru) if ru_matches else None
                 if paired and isinstance(old_en, str) and old_en == paired[0]:

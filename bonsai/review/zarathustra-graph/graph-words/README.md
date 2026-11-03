@@ -45,6 +45,11 @@ first, followed by
 [`term-corrections-2026-11-02.json`](assembly-inputs/term-corrections-2026-11-02.json)
 and [`owner-terms-2026-11-02.json`](assembly-inputs/owner-terms-2026-11-02.json),
 which applies the owner's English choices and aligns figure and concept titles.
+The later plain-language and chapter-name ledgers give the reader direct
+wording and name the chapters. The review-language ledger also supplies
+reader-facing wording for selected plain-string review reasons: its explicit
+`scalar_reasons` flag applies only exact matches. The original reviewer
+wording remains in the preserved assembly inputs.
 Each entry replaces a whole reader-text wording in the assembled core;
 paired Russian and English entries stay linked to their matching Russian text,
 while an English-only entry applies to every exact matching English reader

@@ -58,6 +58,41 @@
    "reviewer": "Codex, owner term and title alignment",
    "reads": "Align Tree reader wording and titles with the owner’s English terms and the registered Antonovsky Russian terms; retain witness readings separately.",
    "corrections": "bonsai/review/zarathustra-graph/graph-words/assembly-inputs/owner-terms-2026-11-02.json"
+  },
+  {
+   "id": "language-review-plain-language-2026-11-02",
+   "date": "2026-11-02",
+   "reviewer": "Codex, on the owner’s request",
+   "reads": "Reader-facing Tree text; retain the witnesses and the distinctions voiced in the book.",
+   "corrections": "bonsai/review/zarathustra-graph/graph-words/assembly-inputs/plain-language-2026-11-02.json"
+  },
+  {
+   "id": "language-review-chapter-names-2026-11-02",
+   "date": "2026-11-02",
+   "reviewer": "Codex, on the owner’s request",
+   "reads": "Name chapters in reader prose using the edition titles.",
+   "corrections": "bonsai/review/zarathustra-graph/graph-words/assembly-inputs/chapter-names-2026-11-02.json"
+  },
+  {
+   "id": "language-review-review-language-2026-11-02",
+   "date": "2026-11-02",
+   "reviewer": "Codex, on the owner’s request",
+   "reads": "Reader-facing summaries of the source review; the original review records remain intact.",
+   "corrections": "bonsai/review/zarathustra-graph/graph-words/assembly-inputs/review-language-2026-11-02.json"
+  },
+  {
+   "id": "language-review-plain-language-finish-2026-11-02",
+   "date": "2026-11-02",
+   "reviewer": "Codex, on the owner’s request",
+   "reads": "Direct reader wording for the remaining forms.",
+   "corrections": "bonsai/review/zarathustra-graph/graph-words/assembly-inputs/plain-language-finish-2026-11-02.json"
+  },
+  {
+   "id": "language-review-review-chapter-names-2026-11-02",
+   "date": "2026-11-02",
+   "reviewer": "Codex, on the owner’s request",
+   "reads": "Name the chapters in reader-facing review reasons; source review text remains intact.",
+   "corrections": "bonsai/review/zarathustra-graph/graph-words/assembly-inputs/review-chapter-names-2026-11-02.json"
   }
  ],
  "files": [
@@ -115,18 +150,18 @@
   "semantic_uses_unknown": 214,
   "place_relations": 7,
   "language_corrections": {
-   "admitted": 1636,
-   "applied": 1636,
+   "admitted": 2594,
+   "applied": 2594,
    "unmatched": 0,
    "by_language": {
     "ru": {
-     "admitted": 1636,
-     "applied": 1636,
+     "admitted": 2594,
+     "applied": 2594,
      "unmatched": 0
     },
     "en": {
-     "admitted": 640,
-     "applied": 640,
+     "admitted": 739,
+     "applied": 739,
      "unmatched": 0
     }
    },
@@ -167,6 +202,71 @@
      "en": {
       "admitted": 140,
       "applied": 140,
+      "unmatched": 0
+     }
+    },
+    {
+     "ledger": "plain-language-2026-11-02.json",
+     "ru": {
+      "admitted": 38,
+      "applied": 38,
+      "unmatched": 0
+     },
+     "en": {
+      "admitted": 86,
+      "applied": 86,
+      "unmatched": 0
+     }
+    },
+    {
+     "ledger": "chapter-names-2026-11-02.json",
+     "ru": {
+      "admitted": 75,
+      "applied": 75,
+      "unmatched": 0
+     },
+     "en": {
+      "admitted": 6,
+      "applied": 6,
+      "unmatched": 0
+     }
+    },
+    {
+     "ledger": "review-language-2026-11-02.json",
+     "ru": {
+      "admitted": 107,
+      "applied": 107,
+      "unmatched": 0
+     },
+     "en": {
+      "admitted": 0,
+      "applied": 0,
+      "unmatched": 0
+     }
+    },
+    {
+     "ledger": "plain-language-finish-2026-11-02.json",
+     "ru": {
+      "admitted": 4,
+      "applied": 4,
+      "unmatched": 0
+     },
+     "en": {
+      "admitted": 7,
+      "applied": 7,
+      "unmatched": 0
+     }
+    },
+    {
+     "ledger": "review-chapter-names-2026-11-02.json",
+     "ru": {
+      "admitted": 734,
+      "applied": 734,
+      "unmatched": 0
+     },
+     "en": {
+      "admitted": 0,
+      "applied": 0,
       "unmatched": 0
      }
     }

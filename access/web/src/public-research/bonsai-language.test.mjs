@@ -3,7 +3,8 @@ import {describe,expect,it} from 'vitest';
 
 // The reader texts of the Zarathustra core speak with the words of the Russian witness shown beside them (Antonovsky
 // 1913). These are the words and turns the language review of 2026-11-02 took out of them; a text written later that
-// brings one back fails here. A reviewer's note kept as a plain string is provenance and keeps its words.
+// brings one back fails here. Original reviews remain in the assembly inputs;
+// selected plain-string reasons have separate reader-facing corrections.
 const root=new URL('../../../../bonsai/zarathustra/core/',import.meta.url);
 const read=name=>JSON.parse(readFileSync(new URL(name,root),'utf8'));
 const terms=JSON.parse(readFileSync(new URL('../../../../bonsai/zarathustra/terms.json',import.meta.url),'utf8'));
@@ -51,6 +52,14 @@ describe('the language of the bonsai core',()=>{
   const texts=files.flatMap(name=>readerTexts(read(name)).map(({lang,text})=>({name,lang,text})));
   it('reads the Russian and English reader texts of every core file',()=>{
     for(const lang of ['ru','en'])expect(texts.filter(entry=>entry.lang===lang).length).toBeGreaterThan(8000);
+  });
+  it('keeps the reviewer source while showing the corrected reason',()=>{
+    const review=JSON.parse(readFileSync(new URL('../../../../bonsai/review/zarathustra-graph/graph-words/assembly-inputs/review-language-2026-11-02.json',import.meta.url),'utf8'));
+    const entry=review.corrections.find(item=>item.ru?.[0].includes('возвещает сверхчеловека в ней сам Заратустра'));
+    expect(entry).toBeTruthy();
+    expect(JSON.stringify(read('chains.json'))).toContain(entry.ru[1]);
+    const originals=readFileSync(new URL('../../../../bonsai/review/zarathustra-graph/graph-words/assembly-inputs/verify-concepts.json',import.meta.url),'utf8');
+    expect(originals).toContain(entry.ru[0]);
   });
   for(const [what,pattern] of outside)it(`holds no ${what}`,()=>{
     expect(texts.filter(({name,lang,text})=>reviewedFiles.has(name)&&lang==='ru'&&pattern.test(text)).map(({name,text})=>`${name}: ${text}`)).toEqual([]);
