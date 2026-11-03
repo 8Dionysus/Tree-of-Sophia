@@ -27,6 +27,8 @@ pub fn validate_recipe(ctx: &Execution, recipe: &Value) -> Result<Vec<u8>, Strin
         || extraction["expected_warning_count"] != policy["expected_warning_count"]
         || extraction["expected_warning"] != policy["expected_warning"]
         || policy["expected_bbox_sha256"] != recipe["fixity"]["bbox_sha256"]
+        || plan["expected_counts"]["layout_block_paragraph_candidates"]
+            != recipe["layout_rules"]["expected_census"]["poppler_blocks"]
     {
         return Err("selected PDF extraction differs from retained plan".into());
     }

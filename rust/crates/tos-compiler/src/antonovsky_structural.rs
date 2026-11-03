@@ -382,6 +382,7 @@ pub struct Row {
 pub struct Model {
     deadline: Instant,
     source: SourceInput,
+    expected: ExpectedCensus,
     pub lines: Vec<Line>,
     pub rows: Vec<Row>,
     pub census: Vec<Value>,
@@ -1317,6 +1318,45 @@ impl VerseRule {
         Ok(rule)
     }
 }
+#[derive(Debug, Clone, Copy, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ExpectedCensus {
+    poppler_blocks: usize,
+    physical_lines: usize,
+    logical_rows: usize,
+    reading_units: usize,
+    numbered_subparts: usize,
+    boundary_conflicts: usize,
+    evaluated_adjacent_pairs: usize,
+    prose_paragraphs: usize,
+    continuous_verse_groups: usize,
+    verse_lines: usize,
+}
+impl ExpectedCensus {
+    // Remove this compatibility profile when compiler research consumers migrate.
+    fn legacy() -> Self {
+        Self {
+            poppler_blocks: 7225,
+            physical_lines: 13071,
+            logical_rows: 10686,
+            reading_units: 81,
+            numbered_subparts: 112,
+            boundary_conflicts: 49,
+            evaluated_adjacent_pairs: 13070,
+            prose_paragraphs: 3569,
+            continuous_verse_groups: 13,
+            verse_lines: 359,
+        }
+    }
+    fn selected(v: &Value) -> Result<Self> {
+        let expected: Self =
+            serde_json::from_value(v.clone()).map_err(|e| format!("expected census: {e}"))?;
+        if expected.physical_lines.checked_sub(1) != Some(expected.evaluated_adjacent_pairs) {
+            return Err("physical line and adjacent-pair census differ".into());
+        }
+        Ok(expected)
+    }
+}
 #[derive(Clone)]
 struct LayoutClassification {
     header: HeaderRule,
@@ -1325,6 +1365,7 @@ struct LayoutClassification {
     row_group: RowGroupRule,
     margin: MarginRule,
     verse: VerseRule,
+    expected: ExpectedCensus,
     regions: Vec<(usize, String, String)>,
     precedence: BTreeMap<String, usize>,
 }
@@ -1363,6 +1404,7 @@ impl LayoutClassification {
             row_group: RowGroupRule::legacy(),
             margin: MarginRule::legacy(),
             verse: VerseRule::legacy(),
+            expected: ExpectedCensus::legacy(),
             regions,
             precedence,
         }
@@ -1409,6 +1451,7 @@ impl LayoutClassification {
             row_group: RowGroupRule::selected(&value["row_group"])?,
             margin: MarginRule::selected(&value["margin"])?,
             verse: VerseRule::selected(&value["verse"])?,
+            expected: ExpectedCensus::selected(&value["expected_census"])?,
             regions,
             precedence,
         })
@@ -1504,7 +1547,7 @@ fn reconstruct_blocks(
             .then(a.citation.cmp(&b.citation))
             .then(a.ordinal.cmp(&b.ordinal))
     });
-    if lines.len() != 13071
+    if lines.len() != layout.expected.physical_lines
         || lines
             .iter()
             .map(|l| &l.locator)
@@ -1625,7 +1668,7 @@ fn reconstruct_blocks(
         }
         rows.push(row);
     }
-    if rows.len() != 10686 {
+    if rows.len() != layout.expected.logical_rows {
         return fail("logical-row census drift");
     }
     for row in &mut rows {
@@ -1740,7 +1783,9 @@ fn reconstruct_blocks(
             }
         }
     }
-    if readings.len() != 81 || all_subparts.len() != 112 {
+    if readings.len() != layout.expected.reading_units
+        || all_subparts.len() != layout.expected.numbered_subparts
+    {
         return fail("structure census drift");
     }
     let (mut reading, mut subpart) = (None, None);
@@ -2064,8 +2109,12 @@ fn reconstruct_blocks(
         verse_groups.len(),
         verse_lines.len(),
         conflicts.len(),
-    ) != (3569, 13, 359, 49)
-    {
+    ) != (
+        layout.expected.prose_paragraphs,
+        layout.expected.continuous_verse_groups,
+        layout.expected.verse_lines,
+        layout.expected.boundary_conflicts,
+    ) {
         return Err(format!(
             "independent reconstruction drift: prose={} groups={} verse={} conflicts={}",
             paragraphs.len(),
@@ -2078,6 +2127,7 @@ fn reconstruct_blocks(
     Ok(Model {
         deadline,
         source,
+        expected: layout.expected,
         lines,
         rows,
         census,
@@ -2131,6 +2181,9 @@ fn reconstruct_from_directory_with_layout(
     tick(deadline)?;
     let source = SourceInput::from_directory(root, directory)?;
     let (blocks, census) = load_source(deadline, &source)?;
+    if blocks.len() != layout.expected.poppler_blocks {
+        return fail("selected Poppler block census drift");
+    }
     reconstruct_blocks(blocks, census, deadline, source, layout)
 }
 
@@ -2442,10 +2495,10 @@ pub fn make_outputs(root: &Path, m: &Model) -> Result<BTreeMap<String, Vec<u8>>>
         .chain(m.verse_lines.iter())
         .filter_map(|r| r["subpart_ref"].as_str())
         .collect();
-    if content_subparts.len() != 112 {
+    if content_subparts.len() != m.expected.numbered_subparts {
         return fail("not all numbered subparts have technical content");
     }
-    let coverage = json!({"schema_version":"tos_antonovsky_1911_coverage_receipt_v2","source_fixity":fixity(),"source_poppler_block_count":7225,"expected_physical_line_count":13071,"assigned_physical_line_count":physical.len(),"duplicate_physical_line_count":0,"unresolved_physical_line_count":0,"logical_row_count":logical.len(),"reading_unit_count":81,"numbered_subpart_count":112,"numbered_subparts_with_content":content_subparts.len(),"prose_paragraph_count":paragraphs.len(),"continuous_verse_group_count":verse_groups.len(),"verse_line_count":verse_lines.len(),"technical_role_counts":roles,"coverage_status":"complete","source_text_included":false,"semantic_authority":false});
+    let coverage = json!({"schema_version":"tos_antonovsky_1911_coverage_receipt_v2","source_fixity":fixity(),"source_poppler_block_count":m.expected.poppler_blocks,"expected_physical_line_count":m.expected.physical_lines,"assigned_physical_line_count":physical.len(),"duplicate_physical_line_count":0,"unresolved_physical_line_count":0,"logical_row_count":logical.len(),"reading_unit_count":m.expected.reading_units,"numbered_subpart_count":m.expected.numbered_subparts,"numbered_subparts_with_content":content_subparts.len(),"prose_paragraph_count":paragraphs.len(),"continuous_verse_group_count":verse_groups.len(),"verse_line_count":verse_lines.len(),"technical_role_counts":roles,"coverage_status":"complete","source_text_included":false,"semantic_authority":false});
     let mut contradictions = Vec::new();
     for (number, key) in [
         (22, "part_3.reading_12.subpart_22"),
@@ -2454,7 +2507,7 @@ pub fn make_outputs(root: &Path, m: &Model) -> Result<BTreeMap<String, Vec<u8>>>
         contradictions.push(json!({"schema_version":"tos_antonovsky_1911_contradiction_v2","contradiction_ref":format!("ru-ant1911.visual-marker-{number}"),"kind":"raster_marker_absent_from_embedded_bbox_layer","technical_structure_key":key,"resolution":"source_visible_raster_context_event_materialized_without_inventing_physical_line","status":"resolved","source_text_included":false,"semantic_promotion":false}));
     }
     contradictions.push(json!({"schema_version":"tos_antonovsky_1911_contradiction_v2","contradiction_ref":"ru-ant1911.primary-challenger-boundaries","kind":"competing_technical_segmentation","evaluated_adjacent_pairs":comparison["evaluated_adjacent_pairs"],"disagreement_count":comparison["disagreement_count"],"resolution":comparison["resolution"],"status":"resolved","source_text_included":false,"semantic_promotion":false}));
-    let summary = json!({"schema_version":"tos_antonovsky_1911_structural_paragraph_summary_v2","status":"agent_verified_complete","physical_line_count":physical.len(),"logical_row_count":logical.len(),"part_count":4,"reading_unit_count":81,"numbered_subpart_count":112,"embedded_numbered_subpart_marker_count":110,"raster_only_numbered_subpart_marker_count":2,"prose_paragraph_count":paragraphs.len(),"continuous_verse_group_count":verse_groups.len(),"verse_line_count":verse_lines.len(),"prose_paragraph_counts_by_part":prose_by_part,"continuous_verse_group_counts_by_part":verse_by_part,"boundary_conflict_count":conflicts.len(),"unresolved_boundary_conflict_count":0,"challenger_boundary_disagreement_count":comparison["disagreement_count"],"unresolved_challenger_disagreement_count":0,"source_text_included":false,"semantic_authority":false});
+    let summary = json!({"schema_version":"tos_antonovsky_1911_structural_paragraph_summary_v2","status":"agent_verified_complete","physical_line_count":physical.len(),"logical_row_count":logical.len(),"part_count":4,"reading_unit_count":m.expected.reading_units,"numbered_subpart_count":m.expected.numbered_subparts,"embedded_numbered_subpart_marker_count":110,"raster_only_numbered_subpart_marker_count":2,"prose_paragraph_count":paragraphs.len(),"continuous_verse_group_count":verse_groups.len(),"verse_line_count":verse_lines.len(),"prose_paragraph_counts_by_part":prose_by_part,"continuous_verse_group_counts_by_part":verse_by_part,"boundary_conflict_count":conflicts.len(),"unresolved_boundary_conflict_count":0,"challenger_boundary_disagreement_count":comparison["disagreement_count"],"unresolved_challenger_disagreement_count":0,"source_text_included":false,"semantic_authority":false});
     let checks = [
         "exact_source_fixity",
         "physical_line_coverage_13071",
@@ -3008,6 +3061,7 @@ mod tests {
             "row_group":{"disjoint_x_tolerance":1,"same_citation_center_delta_at_most":1.5,"other_center_delta_at_most":4.8,"disjoint_overlap_at_least":1.5,"disjoint_center_delta_at_most":7,"ornament_residue_distance_at_most":8},
             "margin":{"y_min":34,"y_max":540,"width_at_least":175,"minimum_samples":3,"own_quantile":0.08,"neighbor_page_radius":3,"neighbor_quantile":0.35,"own_excess_at_most":12,"fallback_left":50,"fallback_right":430,"probe_indent_at_least":12},
             "verse":{"maximum_same_panel_gap":22,"minimum_run_rows":5,"maximum_run_median_width":245,"short_run_minimum_rows":2,"short_run_maximum_rows":4,"short_run_maximum_median_width":225,"borderline_indent_min":8,"borderline_indent_below":17,"short_run_resolution":"prose_by_conservative_five_row_verse_threshold","borderline_resolution":"new_paragraph_at_13_points_otherwise_continuation"},
+            "expected_census":{"poppler_blocks":7225,"physical_lines":13071,"logical_rows":10686,"reading_units":81,"numbered_subparts":112,"boundary_conflicts":49,"evaluated_adjacent_pairs":13070,"prose_paragraphs":3569,"continuous_verse_groups":13,"verse_lines":359},
             "regions":[{"page":2,"panel":"left","kind":"front_matter"}],
             "role_precedence":[{"role":"selected_role","priority":7}]
         });
@@ -3022,6 +3076,9 @@ mod tests {
         profile["margin"]["own_quantile"] = json!(1.1);
         assert!(LayoutClassification::selected(&profile).is_err());
         profile["margin"]["own_quantile"] = json!(0.08);
+        profile["expected_census"]["evaluated_adjacent_pairs"] = json!(0);
+        assert!(LayoutClassification::selected(&profile).is_err());
+        profile["expected_census"]["evaluated_adjacent_pairs"] = json!(13070);
         let duplicate = profile["regions"][0].clone();
         profile["regions"].as_array_mut().unwrap().push(duplicate);
         assert!(LayoutClassification::selected(&profile).is_err());
