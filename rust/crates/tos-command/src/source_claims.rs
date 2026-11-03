@@ -780,7 +780,7 @@ fn profile(ctx: &CommandContext, predicate: &str) -> SourceCommandResult<(JsonVa
     ))
 }
 fn schema_check(
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut dyn CutSchemaExecutor,
     path: &str,
     value: &JsonValue,
     contract: &str,
@@ -824,7 +824,9 @@ where
 /// registry compiler and the same bounded worker schema checks as Claim.
 pub(crate) fn work_expression_source_descriptors(
     ctx: &CommandContext,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_revisions::RecordSchemaWorker<
+        Identity = tos_foundation::SourceRevision,
+    >,
     limits: tos_validation::item_rules::ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {

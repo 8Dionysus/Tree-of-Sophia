@@ -13,10 +13,11 @@ use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponent
 use tos_validation::PredicateRead;
 use tos_validation::item_rules::ItemLimits;
 use tos_validation::item_rules::ItemRefusal;
+use tos_validation::native_compound::CutCompoundSchemaExecutor;
 use tos_validation::record_biblio_cut::{
     SourceCutInput, SourceCutInputWithIdentity, SourceCutMemberMeta,
 };
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::CutSchemaExecutor;
 
 #[path = "source_work_expression_pg.rs"]
 mod pg;
@@ -930,7 +931,7 @@ impl CreationFilesystem {
         &self,
         ctx: &CommandContext,
         cut: &CorpusCutReader,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut impl CutCompoundSchemaExecutor,
         limits: ItemLimits,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<WorkParentHistoryProof> {
@@ -1571,7 +1572,7 @@ fn current_catalog_from_cut(
     owner: &WorkOwner,
     before: &BTreeMap<String, Vec<u8>>,
     cut: &CorpusCutReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl CutCompoundSchemaExecutor,
     limits: ItemLimits,
     publication_token: Option<&str>,
     check_publication: impl FnMut() -> SourceCommandResult<()>,
@@ -2868,7 +2869,7 @@ pub fn prepare_isolated_work_expression_from_proposal(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl CutCompoundSchemaExecutor,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<WorkExpressionPreparation> {
@@ -3087,7 +3088,7 @@ fn prepare_work_application(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl CutCompoundSchemaExecutor,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedWorkApplication> {
@@ -3284,7 +3285,7 @@ pub fn execute_isolated_work_expression_from_captures(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl CutCompoundSchemaExecutor,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<WorkExpressionPublication> {
@@ -3314,7 +3315,7 @@ pub fn replay_isolated_work_expression_from_captures(
     current_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl CutCompoundSchemaExecutor,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<WorkExpressionPublication> {
@@ -3491,7 +3492,7 @@ pub fn recover_isolated_work_expression_from_captures(
     original_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl CutCompoundSchemaExecutor,
     decision: WorkRecoveryDecision,
     limits: ItemLimits,
     cancelled: &AtomicBool,
@@ -3516,7 +3517,7 @@ pub fn resume_isolated_work_expression_from_captures(
     original_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl CutCompoundSchemaExecutor,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<WorkExpressionPublication> {
@@ -3540,7 +3541,7 @@ fn recover_work_expression(
     original_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl CutCompoundSchemaExecutor,
     decision: WorkRecoveryDecision,
     explicit_recovery: bool,
     limits: ItemLimits,
