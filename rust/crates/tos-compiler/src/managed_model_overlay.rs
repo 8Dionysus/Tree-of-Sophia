@@ -192,7 +192,8 @@ pub fn prepare_managed_overlay_base_v2<P: crate::ManagedProducerProof>(
         base: base.selection().clone(),
         base_provenance: proof.clone(),
         base_transport,
-        schema_worker_sha256: producer.schema_worker_sha256().to_owned(),
+        schema_worker_sha256: Some(producer.schema_worker_sha256().to_owned()),
+        schema_engine: None,
         schema_set_sha256: producer.schema_set_sha256().to_owned(),
         source,
         catalog_epoch: catalog.descriptor(65_536)?,
@@ -776,7 +777,7 @@ pub fn prepare_managed_overlay_initial_agent_v2(
             .worker
             .map(|worker| worker.sha256.to_hex())
             .as_deref()
-            != Some(previous.schema_worker_sha256.as_str())
+            != previous.schema_worker_sha256.as_deref()
     {
         return Err(Error::Invalid(
             "overlay initial Agent parent/software/source interval",
@@ -889,17 +890,11 @@ pub fn prepare_managed_overlay_initial_agent_v2(
     )?;
     let materialized = {
         let mut schemas = validator.schemas(schema_revision)?;
-        if schemas
-            .execution_binding_any()?
-            .schema_set_sha256()
-            .to_hex()
-            != previous.schema_set_sha256
-        {
-            return Err(Error::Invalid("overlay Agent exact schema closure"));
+        if !previous.matches_schema_execution(schemas.execution_binding_any()?) {
+            return Err(Error::Invalid("overlay Agent exact schema execution"));
         }
-        // V2 gives each member its actual contributing schema profile. The
-        // complete prior worker schema set remains the only allowed closure;
-        // an additional member cannot select new software or registry bytes.
+        // Each member retains its actual contributing schema profile and the
+        // exact prior execution identity and schema closure.
         for member in committed_changed_members {
             if Instant::now() >= deadline || cancelled.load(std::sync::atomic::Ordering::Relaxed) {
                 return Err(Error::Budget(
@@ -1130,6 +1125,7 @@ pub fn prepare_managed_overlay_initial_agent_v2(
         base_provenance: previous.base_provenance.clone(),
         base_transport: previous.base_transport.clone(),
         schema_worker_sha256: previous.schema_worker_sha256.clone(),
+        schema_engine: previous.schema_engine.clone(),
         schema_set_sha256: previous.schema_set_sha256.clone(),
         source,
         catalog_epoch: catalog.descriptor(65_536)?,
