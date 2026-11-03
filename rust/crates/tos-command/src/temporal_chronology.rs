@@ -403,6 +403,18 @@ pub fn bind_chronology_record_from_cut(
     Ok(result)
 }
 #[allow(clippy::too_many_arguments)]
+fn source_create_receipt_profile_matches(receipt: &JsonValue) -> SourceCommandResult<bool> {
+    match cmd::text(receipt, "schema_version")? {
+        "tos_local_source_create_receipt_v1" => {
+            Ok(receipt.object_get("request_digest_profile").is_none())
+        }
+        "tos_local_source_create_receipt_v2" => {
+            Ok(cmd::text(receipt, "request_digest_profile")? == tos_foundation::JCS_DIGEST_TAG)
+        }
+        _ => Ok(false),
+    }
+}
+
 fn bind_chronology_record_inner(
     record: &JsonValue,
     pinned: &CommandContext,
@@ -733,7 +745,7 @@ pub fn load_chronology_from_owner<'a>(
                 "Chronology actual creation receipt absent",
             ))?,
     )?;
-    if cmd::text(&receipt, "schema_version")? != "tos_local_source_create_receipt_v1"
+    if !source_create_receipt_profile_matches(&receipt)?
         || cmd::text(&receipt, "source_path")? != path
         || cmd::field(&receipt, "grants_admission")? != &JsonValue::Bool(false)
     {
@@ -775,8 +787,8 @@ pub fn load_chronology_from_owner<'a>(
                 "Chronology actual creation request absent",
             ))?,
     )?;
+    crate::source_creation::verify_creation_request_receipt(&request, &receipt)?;
     if cmd::text(&request, "operation")? != "source.create"
-        || cmd::text(&receipt, "request_digest")? != cmd::record_digest(&request)?.to_prefixed()
         || !cmd::same(
             &crate::source_forms::metadata_subject(cmd::field(&request, "record")?)?,
             cmd::field(&receipt, "source")?,

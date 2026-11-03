@@ -196,7 +196,9 @@ impl<'a> PrivateTextPackageCapabilityV1<'a> {
     ) -> DurableResult<Self> {
         let command_id = cmd::text(request, "command_id").map_err(DurableError::Source)?;
         let canonical_request = cmd::canonical(request).map_err(DurableError::Source)?;
-        if Digest256::of_bytes(&canonical_request) != prepared.request_digest()
+        if crate::source_text_private_store::jcs_request_digest(request)
+            .map_err(DurableError::Source)?
+            != prepared.request_digest()
             || cmd::canonical(&cmd::parse(raw_request).map_err(DurableError::Source)?)
                 .map_err(DurableError::Source)?
                 != canonical_request
@@ -243,6 +245,7 @@ impl<'a> PrivateTextPackageCapabilityV1<'a> {
             archives: Vec::new(),
             command_id: command_id.to_owned(),
             request_digest: prepared.request_digest(),
+            request_digest_profile: Some(tos_foundation::JCS_DIGEST_TAG.to_owned()),
             raw_request_digest: Digest256::of_bytes(raw_request),
             owner_configuration_digest,
             source_binding,

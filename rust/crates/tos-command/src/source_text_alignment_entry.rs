@@ -1709,7 +1709,7 @@ pub(crate) fn prepare_pg_alignment_package(
     };
     finish_creation_worker(worker, deadline, cancelled)?;
     prepared.verify_pg_current(software, components, deadline, cancelled)?;
-    let request_digest = Digest256::of_bytes(&cmd::canonical(request)?);
+    let request_digest = crate::source_text_private_store::jcs_request_digest(request)?;
     let owner_context_binding = prepared
         .context
         .private_owner_scope_binding(deadline, cancelled)?;
@@ -1769,12 +1769,18 @@ fn assemble_pg_alignment_package(
     let receipt = cmd::object(vec![
         (
             "schema_version",
-            cmd::string("tos_local_source_create_receipt_v1"),
+            cmd::string("tos_local_source_create_receipt_v2"),
         ),
         ("command_id", cmd::field(request, "command_id")?.clone()),
         (
             "request_digest",
-            cmd::string(&Digest256::of_bytes(&cmd::canonical(request)?).to_prefixed()),
+            cmd::string(
+                &crate::source_text_private_store::jcs_request_digest(request)?.to_prefixed(),
+            ),
+        ),
+        (
+            "request_digest_profile",
+            cmd::string(tos_foundation::JCS_DIGEST_TAG),
         ),
         (
             "principal_id",
@@ -1950,7 +1956,7 @@ fn verify_retained(
                 "native alignment receipt absent",
             ))?;
     let receipt = cmd::parse(receipt_raw)?;
-    cmd::exact_keys(
+    crate::source_text_private_store::exact_keys_with_request_profile(
         &receipt,
         &[
             "schema_version",
@@ -1969,13 +1975,14 @@ fn verify_retained(
     )?;
     let path = cmd::text(&prepared.grant.config, "source_path")?;
     let source_ref = cmd::reference(&prepared.body, "record_id", "record_version")?;
-    if cmd::text(&receipt, "schema_version")? != "tos_local_source_create_receipt_v1"
-        || !same(
-            cmd::field(&receipt, "command_id")?,
-            cmd::field(request, "command_id")?,
-        )?
-        || cmd::text(&receipt, "request_digest")?
-            != Digest256::of_bytes(&cmd::canonical(request)?).to_prefixed()
+    if !crate::source_text_private_store::request_receipt_profile_matches(
+        &receipt,
+        "tos_local_source_create_receipt_v1",
+        "tos_local_source_create_receipt_v2",
+    )? || !same(
+        cmd::field(&receipt, "command_id")?,
+        cmd::field(request, "command_id")?,
+    )? || !crate::source_text_private_store::verify_request_digest(request, &receipt)?
         || !same(
             cmd::field(&receipt, "principal_id")?,
             cmd::field(&prepared.grant.config, "principal_id")?,
@@ -2319,12 +2326,18 @@ pub fn execute_owner_alignment_from_captures(
     let receipt = cmd::object(vec![
         (
             "schema_version",
-            cmd::string("tos_local_source_create_receipt_v1"),
+            cmd::string("tos_local_source_create_receipt_v2"),
         ),
         ("command_id", cmd::field(request, "command_id")?.clone()),
         (
             "request_digest",
-            cmd::string(&Digest256::of_bytes(&cmd::canonical(request)?).to_prefixed()),
+            cmd::string(
+                &crate::source_text_private_store::jcs_request_digest(request)?.to_prefixed(),
+            ),
+        ),
+        (
+            "request_digest_profile",
+            cmd::string(tos_foundation::JCS_DIGEST_TAG),
         ),
         (
             "principal_id",

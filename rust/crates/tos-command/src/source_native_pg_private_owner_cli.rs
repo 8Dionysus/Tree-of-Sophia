@@ -703,6 +703,58 @@ fn private_dependency_targets(
     Ok(targets)
 }
 
+fn request_digest_profile(carrier: &JsonValue) -> SourceCommandResult<Option<String>> {
+    let direct = request_digest_profile_value(carrier.object_get("request_digest_profile"))?;
+    let nested = request_digest_profile_value(
+        carrier
+            .object_get("receipt")
+            .and_then(|receipt| receipt.object_get("request_digest_profile")),
+    )?;
+    if direct.is_some() && nested.is_some() && direct != nested {
+        return Err(SourceCommandError::Invalid(
+            "private owner request digest profile",
+        ));
+    }
+    Ok(direct.or(nested).map(str::to_owned))
+}
+
+fn request_digest_profile_value(
+    value: Option<&JsonValue>,
+) -> SourceCommandResult<Option<&'static str>> {
+    match value {
+        None => Ok(None),
+        Some(JsonValue::String(profile))
+            if profile.as_str() == Some(tos_foundation::JCS_DIGEST_TAG) =>
+        {
+            Ok(Some(tos_foundation::JCS_DIGEST_TAG))
+        }
+        _ => Err(SourceCommandError::Invalid(
+            "private owner request digest profile",
+        )),
+    }
+}
+
+fn request_digest_for_profile(
+    request: &JsonValue,
+    profile: Option<&str>,
+) -> SourceCommandResult<Digest256> {
+    match profile {
+        Some(tos_foundation::JCS_DIGEST_TAG) => tos_foundation::jcs_digest_v1(
+            request,
+            tos_foundation::JsonLimits {
+                max_bytes: 8_388_608,
+                ..tos_foundation::JsonLimits::default()
+            },
+        )
+        .map(|digest| digest.digest)
+        .map_err(|_| SourceCommandError::Invalid("private owner request digest input")),
+        None => Ok(Digest256::of_bytes(&cmd::canonical(request)?)),
+        _ => Err(SourceCommandError::Invalid(
+            "private owner request digest profile",
+        )),
+    }
+}
+
 fn source_binding(
     readset: &crate::source_cohort::revision::SourceRevisionReadSet,
     dependencies: &BTreeMap<String, Vec<u8>>,
@@ -1544,7 +1596,9 @@ pub(crate) fn run(
                 "private owner replay unexpectedly prepared a new package",
             ));
         }
-        let request_digest = Digest256::of_bytes(&cmd::canonical(&request)?);
+        let request_digest_profile = request_digest_profile(&prepared.response)?;
+        let request_digest =
+            request_digest_for_profile(&request, request_digest_profile.as_deref())?;
         let archive = prepared
             .archive
             .as_ref()
@@ -1565,6 +1619,7 @@ pub(crate) fn run(
             archives: archive,
             command_id: cmd::text(&request, "command_id")?.to_owned(),
             request_digest,
+            request_digest_profile,
             raw_request_digest: Digest256::of_bytes(&request_raw),
             owner_configuration_digest: Digest256::of_bytes(&grant_raw),
             source_binding: binding,
@@ -1608,13 +1663,17 @@ pub(crate) fn run(
         }));
     }
     let retained_replay = if prepared.replayed {
+        let request_digest_profile = request_digest_profile(&prepared.response)?;
+        let request_digest =
+            request_digest_for_profile(&request, request_digest_profile.as_deref())?;
         Some(
             db.read_private_owner_command_replay(
                 &scope,
                 &target_ref,
                 family,
                 cmd::text(&request, "command_id")?,
-                Digest256::of_bytes(&cmd::canonical(&request)?),
+                request_digest,
+                request_digest_profile.as_deref(),
                 Digest256::of_bytes(&request_raw),
                 Digest256::of_bytes(&grant_raw),
                 private_generation,
@@ -1825,4 +1884,35 @@ fn check_software_budget(
             .map_err(|_| SourceCommandError::Conflict("selected private owner software changed"))?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod request_digest_profile_tests {
+    use super::request_digest_profile;
+    use crate::source_command as cmd;
+    use tos_foundation::JCS_DIGEST_TAG;
+
+    #[test]
+    fn request_digest_profile_reads_nested_receipts_and_rejects_conflicts() {
+        let nested = cmd::object(vec![(
+            "receipt",
+            cmd::object(vec![(
+                "request_digest_profile",
+                cmd::string(JCS_DIGEST_TAG),
+            )]),
+        )]);
+        assert_eq!(
+            request_digest_profile(&nested).unwrap().as_deref(),
+            Some(JCS_DIGEST_TAG)
+        );
+
+        let conflicting = cmd::object(vec![
+            ("request_digest_profile", cmd::string(JCS_DIGEST_TAG)),
+            (
+                "receipt",
+                cmd::object(vec![("request_digest_profile", cmd::string("legacy"))]),
+            ),
+        ]);
+        assert!(request_digest_profile(&conflicting).is_err());
+    }
 }

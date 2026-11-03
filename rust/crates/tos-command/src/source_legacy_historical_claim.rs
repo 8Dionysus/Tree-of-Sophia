@@ -15,6 +15,42 @@ use tos_foundation::{Digest256, JsonString, JsonValue, RelativePath, SourceRevis
 use tos_source_store::CorpusCutReader;
 use tos_validation::source_cut::CutWorkerSchemaExecutor;
 
+fn exact_creation_receipt_keys(receipt: &JsonValue) -> SourceCommandResult<()> {
+    let mut keys = vec![
+        "schema_version",
+        "command_id",
+        "request_digest",
+        "principal_id",
+        "authority_ref",
+        "owner_configuration",
+        "recorded_at",
+        "source_path",
+        "source",
+        "dependencies",
+        "files",
+        "grants_admission",
+    ];
+    if receipt.object_get("request_digest_profile").is_some() {
+        keys.push("request_digest_profile");
+    }
+    cmd::exact_keys(receipt, &keys)
+}
+
+fn verify_historical_creation_request_receipt(
+    request: &JsonValue,
+    receipt: &JsonValue,
+) -> SourceCommandResult<()> {
+    if !matches!(
+        cmd::text(receipt, "schema_version")?,
+        "tos_local_historical_create_receipt_v1" | "tos_local_historical_create_receipt_v2"
+    ) {
+        return Err(SourceCommandError::Invalid(
+            "historical creation receipt version",
+        ));
+    }
+    crate::source_creation::verify_creation_request_receipt(request, receipt)
+}
+
 const STREAM: &str = "historical-claims.jsonl";
 const HISTORY: &str = "claim-revision-history.json";
 const REVISION_OWNER: &str = "tos_local_historical_claim_revision_owner_v1";
@@ -1373,23 +1409,8 @@ fn validate_capture(
             "expected_revision",
         ],
     )?;
-    cmd::exact_keys(
-        &receipt,
-        &[
-            "schema_version",
-            "command_id",
-            "request_digest",
-            "principal_id",
-            "authority_ref",
-            "owner_configuration",
-            "recorded_at",
-            "source_path",
-            "source",
-            "dependencies",
-            "files",
-            "grants_admission",
-        ],
-    )?;
+    exact_creation_receipt_keys(&receipt)?;
+    verify_historical_creation_request_receipt(&request, &receipt)?;
     if cmd::text(&request, "schema_version")? != "tos_local_source_command_v1"
         || !matches!(
             record_type,
@@ -1399,9 +1420,7 @@ fn validate_capture(
         || cmd::text(&request, "operation")? != "historical.create"
         || cmd::field(&request, "expected_source")? != &JsonValue::Null
         || cmd::field(&request, "expected_revision")? != &JsonValue::Null
-        || cmd::text(&receipt, "schema_version")? != "tos_local_historical_create_receipt_v1"
         || cmd::text(&receipt, "command_id")? != cmd::text(&request, "command_id")?
-        || cmd::text(&receipt, "request_digest")? != cmd::record_digest(&request)?.to_prefixed()
         || cmd::field(&receipt, "owner_configuration")?
             != cmd::field(&request, "expected_configuration")?
         || cmd::field(&receipt, "dependencies")? != cmd::field(&request, "expected_dependencies")?
@@ -1791,6 +1810,7 @@ fn verify_record_origin(
 ) -> SourceCommandResult<()> {
     let request = cmd::parse(current.get("source-create-request.json").ok_or(invalid())?)?;
     let receipt = cmd::parse(current.get("source-create-receipt.json").ok_or(invalid())?)?;
+    verify_historical_creation_request_receipt(&request, &receipt)?;
     let record = cmd::field(&request, "record")?.clone();
     let record_type = cmd::text(&record, "record_type")?;
     let record_id = cmd::text(&record, "record_id")?;
@@ -1806,7 +1826,6 @@ fn verify_record_origin(
             != cmd::text(&owner.config, "source_path")?
                 .rsplit_once('/')
                 .map(|pair| pair.0)
-        || cmd::text(&receipt, "schema_version")? != "tos_local_historical_create_receipt_v1"
         || !same(cmd::field(&receipt, "source")?, &original_subject)?
         || cmd::field(&receipt, "owner_configuration")?
             != cmd::field(&request, "expected_configuration")?
@@ -4679,23 +4698,8 @@ pub(crate) fn pg_current_owner_inventory_contribution(
             "expected_revision",
         ],
     )?;
-    cmd::exact_keys(
-        &receipt,
-        &[
-            "schema_version",
-            "command_id",
-            "request_digest",
-            "principal_id",
-            "authority_ref",
-            "owner_configuration",
-            "recorded_at",
-            "source_path",
-            "source",
-            "dependencies",
-            "files",
-            "grants_admission",
-        ],
-    )?;
+    exact_creation_receipt_keys(&receipt)?;
+    verify_historical_creation_request_receipt(&request, &receipt)?;
     let record = cmd::field(&request, "record")?;
     let record_type = cmd::text(record, "record_type")?;
     let record_id = cmd::text(record, "record_id")?;
@@ -4721,9 +4725,7 @@ pub(crate) fn pg_current_owner_inventory_contribution(
             "historical-event" | "historical-process" | "historical-state"
         )
         || !historical_record_id(record_id)
-        || cmd::text(&receipt, "schema_version")? != "tos_local_historical_create_receipt_v1"
         || cmd::text(&receipt, "command_id")? != cmd::text(&request, "command_id")?
-        || cmd::text(&receipt, "request_digest")? != cmd::record_digest(&request)?.to_prefixed()
         || cmd::field(&receipt, "owner_configuration")?
             != cmd::field(&request, "expected_configuration")?
         || cmd::field(&receipt, "dependencies")? != cmd::field(&request, "expected_dependencies")?

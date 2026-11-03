@@ -21,8 +21,8 @@ use std::sync::atomic::AtomicBool;
 use std::thread;
 use std::time::{Duration, Instant};
 use tos_foundation::{
-    CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonValue, canonical_bytes_v1,
-    canonical_count_v1, parse_json,
+    CanonicalProfile, Digest256, JCS_DIGEST_TAG, JsonLimits, JsonMode, JsonValue,
+    canonical_bytes_v1, canonical_count_v1, jcs_digest_v1, parse_json, verify_canonical_digest_v1,
 };
 
 #[path = "source_private_owner_store.rs"]
@@ -207,8 +207,86 @@ fn leaf(name: &str) -> bool {
             .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'-' | b'_'))
 }
 
-fn request_digest(request: &JsonValue) -> SourceCommandResult<String> {
-    Ok(Digest256::of_bytes(&cmd::canonical(request)?).to_prefixed())
+pub(crate) fn jcs_request_digest(request: &JsonValue) -> SourceCommandResult<Digest256> {
+    jcs_digest_v1(request, request_limits())
+        .map(|digest| digest.digest)
+        .map_err(|_| SourceCommandError::Invalid("native Text request digest input"))
+}
+
+pub(crate) fn request_digest_for_write(request: &JsonValue) -> SourceCommandResult<String> {
+    Ok(jcs_request_digest(request)?.to_prefixed())
+}
+
+fn request_limits() -> JsonLimits {
+    JsonLimits {
+        max_bytes: 8_388_608,
+        ..JsonLimits::default()
+    }
+}
+
+fn request_profile(value: &JsonValue) -> SourceCommandResult<Option<&str>> {
+    match value.object_get("request_digest_profile") {
+        None => Ok(None),
+        Some(JsonValue::String(profile)) if profile.as_str() == Some(JCS_DIGEST_TAG) => {
+            Ok(Some(JCS_DIGEST_TAG))
+        }
+        _ => Err(SourceCommandError::Invalid(
+            "native Text request digest profile",
+        )),
+    }
+}
+
+pub(crate) fn request_receipt_profile_matches(
+    carrier: &JsonValue,
+    legacy_schema: &str,
+    jcs_schema: &str,
+) -> SourceCommandResult<bool> {
+    let schema = cmd::text(carrier, "schema_version")?;
+    let profile = request_profile(carrier)?;
+    Ok(schema == legacy_schema && profile.is_none()
+        || schema == jcs_schema && profile == Some(JCS_DIGEST_TAG))
+}
+
+pub(crate) fn verify_request_digest(
+    request: &JsonValue,
+    carrier: &JsonValue,
+) -> SourceCommandResult<bool> {
+    let expected = Digest256::from_prefixed(cmd::text(carrier, "request_digest")?)
+        .map_err(|_| SourceCommandError::Invalid("native Text request digest"))?;
+    let profile = request_profile(carrier)?;
+    verify_canonical_digest_v1(
+        request,
+        profile,
+        CanonicalProfile::SourceCommandInputV1,
+        expected,
+        request_limits(),
+    )
+    .map_err(|_| SourceCommandError::Invalid("native Text request digest profile or input"))
+}
+
+pub(crate) fn exact_keys_with_request_profile(
+    value: &JsonValue,
+    required: &[&str],
+) -> SourceCommandResult<()> {
+    let members = value
+        .as_object()
+        .ok_or(SourceCommandError::Invalid("native Text receipt object"))?;
+    let has_profile = value.object_get("request_digest_profile").is_some();
+    let expected_len = required.len() + usize::from(has_profile);
+    if members.len() != expected_len
+        || members.iter().any(|(key, _)| {
+            let Some(key) = key.as_str() else { return true };
+            !required.contains(&key) && !(has_profile && key == "request_digest_profile")
+        })
+    {
+        return Err(SourceCommandError::Invalid("native Text receipt fields"));
+    }
+    if has_profile && request_profile(value)?.is_none() {
+        return Err(SourceCommandError::Invalid(
+            "native Text request digest profile",
+        ));
+    }
+    Ok(())
 }
 
 /// Exact maintained `tos_native_construction_stage_v1` plan. The package
@@ -276,10 +354,14 @@ fn encode_plan_bounded(
     let plan = cmd::object(vec![
         (
             "schema_version",
-            cmd::string("tos_native_construction_stage_v1"),
+            cmd::string("tos_native_construction_stage_v2"),
         ),
         ("target_ref", cmd::string(target_ref)),
-        ("request_digest", cmd::string(&request_digest(request)?)),
+        (
+            "request_digest",
+            cmd::string(&request_digest_for_write(request)?),
+        ),
+        ("request_digest_profile", cmd::string(JCS_DIGEST_TAG)),
         ("files", cmd::object(encoded)),
     ]);
     let mut raw = canonical_bytes_v1(&plan, CanonicalProfile::SourceCommandInputV1, limits)
@@ -321,13 +403,25 @@ fn decode_plan_bounded(
     )
     .map_err(|_| bad_plan())?
     .into_root();
-    cmd::exact_keys(
-        &plan,
-        &["schema_version", "target_ref", "request_digest", "files"],
-    )?;
-    if cmd::text(&plan, "schema_version")? != "tos_native_construction_stage_v1"
+    let schema = cmd::text(&plan, "schema_version")?;
+    if schema == "tos_native_construction_stage_v2" {
+        exact_keys_with_request_profile(
+            &plan,
+            &["schema_version", "target_ref", "request_digest", "files"],
+        )?;
+    } else {
+        cmd::exact_keys(
+            &plan,
+            &["schema_version", "target_ref", "request_digest", "files"],
+        )?;
+    }
+    if ![
+        "tos_native_construction_stage_v1",
+        "tos_native_construction_stage_v2",
+    ]
+    .contains(&schema)
         || cmd::text(&plan, "target_ref")? != target_ref
-        || cmd::text(&plan, "request_digest")? != request_digest(request)?
+        || !verify_request_digest(request, &plan)?
     {
         return Err(SourceCommandError::Conflict(
             "native private plan identity differs",
@@ -780,16 +874,28 @@ fn owned_recovery_request(
     )
     .map_err(|_| bad_plan())?
     .into_root();
-    cmd::exact_keys(
-        &plan,
-        &["schema_version", "target_ref", "request_digest", "files"],
-    )?;
+    let schema = cmd::text(&plan, "schema_version")?;
+    if schema == "tos_native_construction_stage_v2" {
+        exact_keys_with_request_profile(
+            &plan,
+            &["schema_version", "target_ref", "request_digest", "files"],
+        )?;
+    } else {
+        cmd::exact_keys(
+            &plan,
+            &["schema_version", "target_ref", "request_digest", "files"],
+        )?;
+    }
     let target_rel = target
         .strip_prefix(context.target_root())
         .map_err(|_| bad_plan())?
         .to_str()
         .ok_or(bad_plan())?;
-    if cmd::text(&plan, "schema_version")? != "tos_native_construction_stage_v1"
+    if ![
+        "tos_native_construction_stage_v1",
+        "tos_native_construction_stage_v2",
+    ]
+    .contains(&cmd::text(&plan, "schema_version")?)
         || cmd::text(&plan, "target_ref")? != target_rel
     {
         return Err(SourceCommandError::Conflict("native alignment plan target"));
@@ -821,7 +927,7 @@ fn owned_recovery_request(
         &request,
     )?;
     if cmd::text(&request, "command_id")? != command_id
-        || request_digest(&request)? != cmd::text(&plan, "request_digest")?
+        || !verify_request_digest(&request, &plan)?
         || files.get("source-create-request.json").map(Vec::as_slice)
             != Some(request_raw.as_slice())
     {
@@ -1290,4 +1396,58 @@ pub(crate) fn public_recovery_request(
     a: &AtomicBool,
 ) -> SourceCommandResult<Option<(JsonValue, BTreeMap<String, Vec<u8>>)>> {
     owned_recovery_request(c, t, id, d, a)
+}
+
+#[cfg(test)]
+mod request_digest_profile_tests {
+    use super::{exact_keys_with_request_profile, request_digest_for_write, verify_request_digest};
+    use crate::source_command as cmd;
+    use tos_foundation::{Digest256, JCS_DIGEST_TAG, JsonValue};
+
+    #[test]
+    fn request_receipt_dispatches_jcs_and_untagged_history() {
+        let request = cmd::parse(br#"{"command_id":"text-1","operation":"text.create"}"#).unwrap();
+        let mut jcs = cmd::object(vec![
+            ("schema_version", cmd::string("receipt")),
+            ("command_id", cmd::string("text-1")),
+            (
+                "request_digest",
+                cmd::string(&request_digest_for_write(&request).unwrap()),
+            ),
+            ("request_digest_profile", cmd::string(JCS_DIGEST_TAG)),
+        ]);
+        exact_keys_with_request_profile(&jcs, &["schema_version", "command_id", "request_digest"])
+            .unwrap();
+        assert!(verify_request_digest(&request, &jcs).unwrap());
+
+        let historical = cmd::object(vec![
+            ("schema_version", cmd::string("receipt")),
+            ("command_id", cmd::string("text-1")),
+            (
+                "request_digest",
+                cmd::string(&Digest256::of_bytes(&cmd::canonical(&request).unwrap()).to_prefixed()),
+            ),
+        ]);
+        exact_keys_with_request_profile(
+            &historical,
+            &["schema_version", "command_id", "request_digest"],
+        )
+        .unwrap();
+        assert!(verify_request_digest(&request, &historical).unwrap());
+
+        cmd::set(
+            &mut jcs,
+            "request_digest_profile",
+            cmd::string("other-profile"),
+        )
+        .unwrap();
+        assert!(verify_request_digest(&request, &jcs).is_err());
+        assert!(
+            exact_keys_with_request_profile(
+                &JsonValue::Null,
+                &["schema_version", "command_id", "request_digest"],
+            )
+            .is_err()
+        );
+    }
 }

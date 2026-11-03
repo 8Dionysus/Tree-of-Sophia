@@ -6,7 +6,10 @@ use crate::{source_claims as claims, source_forms as forms, source_revisions as 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
-use tos_foundation::{Digest256, JsonString, JsonValue, RelativePath};
+use tos_foundation::{
+    CanonicalProfile, Digest256, JCS_DIGEST_TAG, JsonLimits, JsonString, JsonValue, RelativePath,
+    jcs_digest_v1, verify_canonical_digest_v1,
+};
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
@@ -39,6 +42,61 @@ const CONTRACTS: &[&str] = &[
     ENTITIES,
     RELATIONS,
 ];
+fn creation_request_digest(value: &JsonValue) -> SourceCommandResult<Digest256> {
+    jcs_digest_v1(
+        value,
+        JsonLimits {
+            max_bytes: 8_388_608,
+            ..JsonLimits::default()
+        },
+    )
+    .map(|digest| digest.digest)
+    .map_err(|_| SourceCommandError::Invalid("creation request jcs1 digest input"))
+}
+
+pub(crate) fn verify_creation_request_receipt(
+    request: &JsonValue,
+    receipt: &JsonValue,
+) -> SourceCommandResult<()> {
+    let schema = cmd::text(receipt, "schema_version")?;
+    let tagged = match schema {
+        "tos_local_source_create_receipt_v1" | "tos_local_historical_create_receipt_v1" => false,
+        "tos_local_source_create_receipt_v2" | "tos_local_historical_create_receipt_v2" => true,
+        _ => return Err(SourceCommandError::Invalid("creation receipt version")),
+    };
+    let profile = match receipt.object_get("request_digest_profile") {
+        None if !tagged => None,
+        Some(JsonValue::String(value)) if tagged && value.as_str() == Some(JCS_DIGEST_TAG) => {
+            Some(JCS_DIGEST_TAG)
+        }
+        _ => {
+            return Err(SourceCommandError::Invalid(
+                "creation request digest profile",
+            ));
+        }
+    };
+    let expected = Digest256::from_prefixed(cmd::text(receipt, "request_digest")?)
+        .map_err(|_| SourceCommandError::Invalid("creation request digest"))?;
+    let limits = JsonLimits {
+        max_bytes: 8_388_608,
+        ..JsonLimits::default()
+    };
+    if !verify_canonical_digest_v1(
+        request,
+        profile,
+        CanonicalProfile::SourceCommandInputV1,
+        expected,
+        limits,
+    )
+    .map_err(|_| SourceCommandError::Invalid("creation request digest profile or input"))?
+    {
+        return Err(SourceCommandError::Conflict(
+            "creation request digest differs",
+        ));
+    }
+    Ok(())
+}
+
 const LINKS: &[&str] = &[
     "work_ref",
     "expression_claim_refs",
@@ -876,21 +934,90 @@ impl PreparedCreation {
         } else {
             crate::source_serialization::instant()?
         };
+        // HistoricalV1 packages previously omitted the request bytes. Retain
+        // them in new V2 packages so the tagged digest can be checked on a cold
+        // read. A retained V1 package keeps its original member set.
+        if self.family == CreationFamily::HistoricalV1 {
+            if let Some(original) = retained {
+                if let Some(raw) = original.get("source-create-request.json") {
+                    let retained_request = cmd::parse(raw)?;
+                    if retained_request != request {
+                        return Err(SourceCommandError::Conflict(
+                            "retained creation request differs",
+                        ));
+                    }
+                    self.files
+                        .insert("source-create-request.json".into(), raw.clone());
+                }
+            } else {
+                self.files.insert(
+                    "source-create-request.json".into(),
+                    self.context.request_raw.clone(),
+                );
+            }
+        }
         let refs = file_refs(&self.files);
-        let receipt = cmd::object(vec![
-            (
-                "schema_version",
-                cmd::string(if self.family.historical() {
-                    "tos_local_historical_create_receipt_v1"
-                } else {
-                    "tos_local_source_create_receipt_v1"
-                }),
-            ),
+        let (schema_version, request_digest, tagged) = if let Some(original) = retained {
+            let original_receipt_raw =
+                original
+                    .get("source-create-receipt.json")
+                    .ok_or(SourceCommandError::Conflict(
+                        "retained creation receipt absent",
+                    ))?;
+            let original_receipt = cmd::parse(original_receipt_raw)?;
+            let version = cmd::text(&original_receipt, "schema_version")?;
+            let expected_v1 = if self.family.historical() {
+                "tos_local_historical_create_receipt_v1"
+            } else {
+                "tos_local_source_create_receipt_v1"
+            };
+            let expected_v2 = if self.family.historical() {
+                "tos_local_historical_create_receipt_v2"
+            } else {
+                "tos_local_source_create_receipt_v2"
+            };
+            let tagged = match version {
+                value if value == expected_v1 => false,
+                value if value == expected_v2 => true,
+                _ => {
+                    return Err(SourceCommandError::Conflict(
+                        "retained creation receipt family/version differs",
+                    ));
+                }
+            };
+            if tagged {
+                let request_raw = original.get("source-create-request.json").ok_or(
+                    SourceCommandError::Conflict("tagged retained receipt lacks request preimage"),
+                )?;
+                let retained_request = cmd::parse(request_raw)?;
+                if retained_request != request {
+                    return Err(SourceCommandError::Conflict(
+                        "retained creation request differs",
+                    ));
+                }
+                verify_creation_request_receipt(&retained_request, &original_receipt)?;
+            } else {
+                verify_creation_request_receipt(&request, &original_receipt)?;
+            }
+            let request_digest = if tagged {
+                creation_request_digest(&request)?
+            } else {
+                Digest256::from_prefixed(cmd::text(&original_receipt, "request_digest")?)
+                    .map_err(|_| SourceCommandError::Invalid("retained request digest"))?
+            };
+            (version.to_owned(), request_digest, tagged)
+        } else {
+            let version = if self.family.historical() {
+                "tos_local_historical_create_receipt_v2"
+            } else {
+                "tos_local_source_create_receipt_v2"
+            };
+            (version.to_owned(), creation_request_digest(&request)?, true)
+        };
+        let mut receipt_fields = vec![
+            ("schema_version", cmd::string(&schema_version)),
             ("command_id", cmd::field(&request, "command_id")?.clone()),
-            (
-                "request_digest",
-                cmd::string(&cmd::record_digest(&request)?.to_prefixed()),
-            ),
+            ("request_digest", cmd::string(&request_digest.to_prefixed())),
             ("principal_id", cmd::field(&config, "principal_id")?.clone()),
             (
                 "authority_ref",
@@ -903,9 +1030,28 @@ impl PreparedCreation {
             ("dependencies", cmd::string(&self.dependencies)),
             ("files", refs),
             ("grants_admission", JsonValue::Bool(false)),
-        ]);
-        let mut raw = cmd::canonical(&receipt)?;
-        raw.push(b'\n');
+        ];
+        if tagged {
+            receipt_fields.push(("request_digest_profile", cmd::string(JCS_DIGEST_TAG)));
+        }
+        let receipt = cmd::object(receipt_fields);
+        let raw =
+            if let Some(original) = retained {
+                let original_receipt_raw = original.get("source-create-receipt.json").ok_or(
+                    SourceCommandError::Conflict("retained creation receipt absent"),
+                )?;
+                let original_receipt = cmd::parse(original_receipt_raw)?;
+                if original_receipt != receipt {
+                    return Err(SourceCommandError::Conflict(
+                        "retained creation receipt binding differs",
+                    ));
+                }
+                original_receipt_raw.clone()
+            } else {
+                let mut raw = cmd::canonical(&receipt)?;
+                raw.push(b'\n');
+                raw
+            };
         self.files.insert("source-create-receipt.json".into(), raw);
         if self.files.len() > 40
             || self.files.values().any(|raw| raw.len() > 8_388_608)

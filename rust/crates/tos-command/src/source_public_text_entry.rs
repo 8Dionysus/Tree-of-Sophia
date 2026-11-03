@@ -243,7 +243,11 @@ pub(crate) fn public_text_inventory_projection(
     if cmd::text(&layer, "schema_version")? != "tos_source_text_layer_v1"
         || cmd::text(&packet, "schema_version")? != "tos_source_text_unit_packet_v1"
         || cmd::text(&bindings, "schema_version")? != "tos_native_unit_bindings_v1"
-        || cmd::text(&receipt, "schema_version")? != "tos_local_source_create_receipt_v1"
+        || !crate::source_text_private_store::request_receipt_profile_matches(
+            &receipt,
+            "tos_local_source_create_receipt_v1",
+            "tos_local_source_create_receipt_v2",
+        )?
         || cmd::field(&receipt, "grants_admission")? != &JsonValue::Bool(false)
         || cmd::text(&receipt, "source_path")? != format!("{package_home}/source-text-unit.v1.json")
     {
@@ -570,7 +574,7 @@ pub(crate) fn verify_retained_package(
         ));
     }
     let receipt = cmd::parse(&files["source-create-receipt.json"])?;
-    cmd::exact_keys(
+    crate::source_text_private_store::exact_keys_with_request_profile(
         &receipt,
         &[
             "schema_version",
@@ -588,10 +592,12 @@ pub(crate) fn verify_retained_package(
         ],
     )?;
     check_request(selection, request, dependencies)?;
-    if cmd::text(&receipt, "schema_version")? != "tos_local_source_create_receipt_v1"
-        || cmd::field(&receipt, "command_id")? != cmd::field(request, "command_id")?
-        || cmd::text(&receipt, "request_digest")?
-            != Digest256::of_bytes(&cmd::canonical(request)?).to_prefixed()
+    if !crate::source_text_private_store::request_receipt_profile_matches(
+        &receipt,
+        "tos_local_source_create_receipt_v1",
+        "tos_local_source_create_receipt_v2",
+    )? || cmd::field(&receipt, "command_id")? != cmd::field(request, "command_id")?
+        || !crate::source_text_private_store::verify_request_digest(request, &receipt)?
         || cmd::field(&receipt, "principal_id")? != cmd::field(&selection.config, "principal_id")?
         || cmd::field(&receipt, "authority_ref")? != cmd::field(&selection.config, "authority_ref")?
         || cmd::text(&receipt, "owner_configuration")?
@@ -757,9 +763,10 @@ pub(crate) fn complete_package(
         cancelled,
     )?;
     let receipt = foundation(&json!({
-        "schema_version":"tos_local_source_create_receipt_v1",
+        "schema_version":"tos_local_source_create_receipt_v2",
         "command_id":value(cmd::field(request,"command_id")?)?,
-        "request_digest":Digest256::of_bytes(&cmd::canonical(request)?).to_prefixed(),
+        "request_digest":crate::source_text_private_store::jcs_request_digest(request)?.to_prefixed(),
+        "request_digest_profile":tos_foundation::JCS_DIGEST_TAG,
         "principal_id":config["principal_id"],
         "authority_ref":config["authority_ref"],
         "owner_configuration":selection.configuration_digest().to_prefixed(),
@@ -807,7 +814,7 @@ fn verify_retained(
         ));
     }
     let receipt = cmd::parse(&files["source-create-receipt.json"])?;
-    cmd::exact_keys(
+    crate::source_text_private_store::exact_keys_with_request_profile(
         &receipt,
         &[
             "schema_version",
@@ -839,10 +846,12 @@ fn verify_retained(
         cancelled,
     )?;
     check_request(selection, request, &prepared.dependencies)?;
-    if cmd::text(&receipt, "schema_version")? != "tos_local_source_create_receipt_v1"
-        || cmd::field(&receipt, "command_id")? != cmd::field(request, "command_id")?
-        || cmd::text(&receipt, "request_digest")?
-            != Digest256::of_bytes(&cmd::canonical(request)?).to_prefixed()
+    if !crate::source_text_private_store::request_receipt_profile_matches(
+        &receipt,
+        "tos_local_source_create_receipt_v1",
+        "tos_local_source_create_receipt_v2",
+    )? || cmd::field(&receipt, "command_id")? != cmd::field(request, "command_id")?
+        || !crate::source_text_private_store::verify_request_digest(request, &receipt)?
         || cmd::field(&receipt, "principal_id")? != cmd::field(&selection.config, "principal_id")?
         || cmd::field(&receipt, "authority_ref")? != cmd::field(&selection.config, "authority_ref")?
         || cmd::text(&receipt, "owner_configuration")?
