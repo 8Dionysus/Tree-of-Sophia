@@ -458,6 +458,91 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
             writeln!(out, "{result}").map_err(|error| error.to_string())?;
             return Ok(());
         }
+        if matches!(action, "check" | "build") && stage == "paragraph-alignment" {
+            if input_root.is_some() || output_root.is_some() {
+                return Err("paragraph alignment uses selected source custody".into());
+            }
+            let template_ref = recipe["historical_template_ref"]
+                .as_str()
+                .ok_or("paragraph template required")?;
+            let template = ctx.read(template_ref)?;
+            edition_curation::validate_recipe_template(
+                &owner.raw,
+                stage,
+                "historical-template",
+                SelectedDocument {
+                    reference: template_ref,
+                    raw: &template,
+                },
+                &schema,
+            )
+            .map_err(|e| format!("paragraph template binding: {e:?}"))?;
+            let manifest_ref = recipe["frozen_manifest"]["ref"]
+                .as_str()
+                .ok_or("paragraph manifest required")?;
+            let manifest = ctx.read(manifest_ref)?;
+            let selected_manifest = edition_curation::select_frozen_manifest(
+                &owner.raw,
+                stage,
+                SelectedDocument {
+                    reference: manifest_ref,
+                    raw: &manifest,
+                },
+                &schema,
+            )
+            .map_err(|e| format!("paragraph manifest binding: {e:?}"))?;
+            let members = selected_manifest["generated_outputs"]
+                .as_object()
+                .ok_or("paragraph manifest outputs required")?;
+            let mut expected = BTreeSet::new();
+            for reference in members.keys() {
+                let raw = ctx.read(reference)?;
+                edition_curation::validate_frozen_manifest_member(
+                    &owner.raw,
+                    stage,
+                    SelectedDocument {
+                        reference: manifest_ref,
+                        raw: &manifest,
+                    },
+                    SelectedDocument {
+                        reference,
+                        raw: &raw,
+                    },
+                    &schema,
+                )
+                .map_err(|e| format!("paragraph output binding: {e:?}"))?;
+                expected.insert(reference.clone());
+            }
+            if !expected.insert(manifest_ref.to_owned()) {
+                return Err("paragraph manifest aliases generated output".into());
+            }
+            let target = if action == "build" {
+                let path = Path::new(tracked_root.ok_or("build requires --tracked-output-root")?);
+                Some(select_empty_output(&ctx, path, &[&root])?)
+            } else {
+                None
+            };
+            let mut result = crate::paragraph_alignment::replay_selected(
+                &ctx,
+                recipe,
+                &expected,
+                target.as_ref(),
+            )?;
+            if ctx.read(template_ref)? != template || ctx.read(manifest_ref)? != manifest {
+                return Err("paragraph curation inputs changed during replay".into());
+            }
+            selected.verify_unchanged(&ctx)?;
+            for referenced in &refs {
+                referenced.verify_unchanged(&ctx)?;
+            }
+            result["stage"] = serde_json::json!(stage);
+            result["curation_ref"] = serde_json::json!(relative);
+            result["current_curation_sha256"] =
+                serde_json::json!(tos_foundation::Digest256::of_bytes(&owner.raw).to_hex());
+            result["current_execution_sources"] = serde_json::json!({"paragraph_alignment":tos_foundation::Digest256::of_bytes(include_bytes!("paragraph_alignment.rs")).to_hex(),"paragraph_template":tos_foundation::Digest256::of_bytes(include_bytes!("paragraph_alignment_templates.json")).to_hex()});
+            writeln!(out, "{result}").map_err(|error| error.to_string())?;
+            return Ok(());
+        }
         if matches!(action, "check" | "build") && stage == "pdf-technical-markup" {
             if input_root.is_some() || output_root.is_some() {
                 return Err("retained PDF layout uses the selected source root".into());

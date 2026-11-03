@@ -606,65 +606,150 @@ fn exclusion_census(repo: &ResearchExecution, rows: &[Value]) -> Result<()> {
     }
     Ok(())
 }
-fn cross_risk(p: &Value, a: &Value) -> Result<bool> {
-    Ok(flag(&a["verse_barrier_risk"])?
-        || ((arr(&p["source_paragraph_refs"])?.is_empty()
-            || arr(&p["target_paragraph_refs"])?.is_empty())
-            && p["part_order"] == 3
-            && p["reading_ordinal_within_part"] == 15))
+#[derive(Clone, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PostureRule {
+    condition: String,
+    status: String,
+    shape_mode: String,
+    fixed_shape: Option<String>,
+    reason: String,
 }
-fn posture<'a>(p: &'a Value, a: &Value) -> Result<(&'static str, &'a str, &'static str)> {
+#[derive(Clone, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CrossKindRisk {
+    part_order: u64,
+    reading_ordinal: u64,
+    trigger: String,
+}
+#[derive(Clone)]
+struct Policy {
+    rules: Vec<PostureRule>,
+    cross: Vec<CrossKindRisk>,
+    unstable_prefix: String,
+    unstable_confidence: String,
+}
+impl Policy {
+    // Compatibility profile for the historical command; remove with its alias.
+    fn legacy() -> Self {
+        let raw = json!({
+            "posture_rules":[
+                {"condition":"outside_reading","status":"deferred","shape_mode":"fixed","fixed_shape":"unresolved","reason":"source-only in bounded 81-reading technical scope; not evidence of translator omission"},
+                {"condition":"empty_side_cross_kind","status":"ambiguous","shape_mode":"proposal","reason":"cross-kind/out-of-paragraph-scope candidate; not evidence of translator omission"},
+                {"condition":"empty_side","status":"ambiguous","shape_mode":"proposal","reason":"structural-role mismatch; not evidence of translator omission"},
+                {"condition":"challenger_disagreement","status":"ambiguous","shape_mode":"proposal","reason":"independent mixed-content challenger disagrees; machine ambiguity preserved without resolution"},
+                {"condition":"verse_barrier","status":"ambiguous","shape_mode":"proposal","reason":"excluded verse boundary qualifies this paragraph grouping; machine ambiguity preserved"},
+                {"condition":"unstable","status":"ambiguous","shape_mode":"proposal","reason":"length-profile result is unstable or low-fit; source-and-target-visible review required"},
+                {"condition":"always","status":"proposed","shape_mode":"proposal","reason":"machine grouping agrees across compared technical profiles; proposal is not translation truth"}
+            ],
+            "cross_kind_risks":[{"part_order":3,"reading_ordinal":15,"trigger":"either_side_empty"}],
+            "unstable_resolution_prefix":"unresolved", "unstable_confidence":"low"
+        });
+        Self::selected(&raw).expect("compiled paragraph compatibility policy")
+    }
+    fn selected(recipe: &Value) -> Result<Self> {
+        let rules: Vec<PostureRule> = serde_json::from_value(recipe["posture_rules"].clone())
+            .map_err(|e| format!("paragraph posture rules: {e}"))?;
+        let cross: Vec<CrossKindRisk> = serde_json::from_value(recipe["cross_kind_risks"].clone())
+            .map_err(|e| format!("paragraph cross-kind rules: {e}"))?;
+        let expected = [
+            ("outside_reading", "deferred", "fixed"),
+            ("empty_side_cross_kind", "ambiguous", "proposal"),
+            ("empty_side", "ambiguous", "proposal"),
+            ("challenger_disagreement", "ambiguous", "proposal"),
+            ("verse_barrier", "ambiguous", "proposal"),
+            ("unstable", "ambiguous", "proposal"),
+            ("always", "proposed", "proposal"),
+        ];
+        ensure(
+            rules.len() == expected.len(),
+            "paragraph posture rule membership",
+        )?;
+        for (rule, (condition, status, shape_mode)) in rules.iter().zip(expected) {
+            ensure(
+                rule.condition == condition
+                    && rule.status == status
+                    && rule.shape_mode == shape_mode
+                    && !rule.reason.is_empty()
+                    && if shape_mode == "fixed" {
+                        rule.fixed_shape.as_deref() == Some("unresolved")
+                    } else {
+                        rule.fixed_shape.is_none()
+                    },
+                "paragraph posture rule order or authority drift",
+            )?;
+        }
+        let mut seen = BTreeSet::new();
+        for risk in &cross {
+            ensure(
+                risk.part_order > 0
+                    && risk.reading_ordinal > 0
+                    && risk.trigger == "either_side_empty"
+                    && seen.insert((risk.part_order, risk.reading_ordinal)),
+                "paragraph cross-kind rule drift",
+            )?;
+        }
+        let unstable_prefix = s(&recipe["unstable_resolution_prefix"])?.to_owned();
+        let unstable_confidence = s(&recipe["unstable_confidence"])?.to_owned();
+        Ok(Self {
+            rules,
+            cross,
+            unstable_prefix,
+            unstable_confidence,
+        })
+    }
+}
+fn cross_risk(p: &Value, a: &Value, policy: &Policy) -> Result<bool> {
+    let empty = || -> Result<bool> {
+        Ok(arr(&p["source_paragraph_refs"])?.is_empty()
+            || arr(&p["target_paragraph_refs"])?.is_empty())
+    };
+    Ok(flag(&a["verse_barrier_risk"])?
+        || (empty()?
+            && policy.cross.iter().any(|r| {
+                p["part_order"].as_u64() == Some(r.part_order)
+                    && p["reading_ordinal_within_part"].as_u64() == Some(r.reading_ordinal)
+            })))
+}
+fn posture<'a>(p: &'a Value, a: &Value, policy: &'a Policy) -> Result<(&'a str, &'a str, &'a str)> {
     let shape = s(&p["mapping_type"])?;
-    if p["reading_ordinal_within_part"].is_null() {
-        return Ok((
-            "deferred",
-            "unresolved",
-            "source-only in bounded 81-reading technical scope; not evidence of translator omission",
-        ));
-    }
-    if arr(&p["source_paragraph_refs"])?.is_empty() || arr(&p["target_paragraph_refs"])?.is_empty()
+    let empty = || -> Result<bool> {
+        Ok(arr(&p["source_paragraph_refs"])?.is_empty()
+            || arr(&p["target_paragraph_refs"])?.is_empty())
+    };
+    let selected = if p["reading_ordinal_within_part"].is_null() {
+        0
+    } else if empty()? && cross_risk(p, a, policy)? {
+        1
+    } else if empty()? {
+        2
+    } else if !flag(&a["same_paragraph_group"])? {
+        3
+    } else if flag(&a["verse_barrier_risk"])? {
+        4
+    } else if s(&p["resolution_status"])?.starts_with(&policy.unstable_prefix)
+        || p["confidence_band"] == policy.unstable_confidence
     {
-        return Ok((
-            "ambiguous",
-            shape,
-            if cross_risk(p, a)? {
-                "cross-kind/out-of-paragraph-scope candidate; not evidence of translator omission"
-            } else {
-                "structural-role mismatch; not evidence of translator omission"
-            },
-        ));
-    }
-    if !flag(&a["same_paragraph_group"])? {
-        return Ok((
-            "ambiguous",
-            shape,
-            "independent mixed-content challenger disagrees; machine ambiguity preserved without resolution",
-        ));
-    }
-    if flag(&a["verse_barrier_risk"])? {
-        return Ok((
-            "ambiguous",
-            shape,
-            "excluded verse boundary qualifies this paragraph grouping; machine ambiguity preserved",
-        ));
-    }
-    if s(&p["resolution_status"])?.starts_with("unresolved") || p["confidence_band"] == "low" {
-        return Ok((
-            "ambiguous",
-            shape,
-            "length-profile result is unstable or low-fit; source-and-target-visible review required",
-        ));
-    }
-    // The v1 recipe owns these exact generated bytes. Editorial changes need
-    // a successor recipe rather than silently changing retained packets.
+        5
+    } else {
+        6
+    };
+    let rule = &policy.rules[selected];
     Ok((
-        "proposed",
-        shape,
-        "machine grouping agrees across compared technical profiles; proposal is not translation truth",
+        &rule.status,
+        rule.fixed_shape.as_deref().unwrap_or(shape),
+        &rule.reason,
     ))
 }
 /// Full reconstruction, machine qualifications and deterministic artifact serialization.
 pub fn build_scoped(repo: &ResearchExecution, m: &Material) -> Result<(Files, Files)> {
+    build_with_policy(repo, m, &Policy::legacy())
+}
+fn build_with_policy(
+    repo: &ResearchExecution,
+    m: &Material,
+    policy: &Policy,
+) -> Result<(Files, Files)> {
     let ids = identities(repo, m)?;
     let audit = audit(repo, m)?;
     let (exclusions, risk_readings) = scope(repo)?;
@@ -684,8 +769,8 @@ pub fn build_scoped(repo: &ResearchExecution, m: &Material) -> Result<(Files, Fi
     for (p, a) in m.primary.iter().zip(audit.iter()) {
         repo.tick(1)?;
         let reference = s(&p["alignment_proposal_ref"])?;
-        let (status, shape, reason) = posture(p, a)?;
-        let cross = cross_risk(p, a)?;
+        let (status, shape, reason) = posture(p, a, policy)?;
+        let cross = cross_risk(p, a, policy)?;
         let sr = strings(&p["source_paragraph_refs"])?
             .iter()
             .map(|u| {
@@ -1163,6 +1248,65 @@ fn manifest_check(repo: &ResearchExecution, manifest: &Value) -> Result<()> {
     }
     Ok(())
 }
+// The compatibility gate covers recipe fields the legacy producer has not
+// yet consumed. Remove it after the remaining paragraph parameters migrate.
+const COMPATIBILITY_PROFILE_SHA256: &str =
+    "3e61feebfd1867557821ed60c4a953e40a8d05b0a3024fbcbb9ec5c9601a56d0";
+fn compatibility_policy(recipe: &Value) -> Result<Policy> {
+    let policy = Policy::selected(recipe)?;
+    let mut remaining = recipe.clone();
+    let object = remaining
+        .as_object_mut()
+        .ok_or("paragraph recipe object required")?;
+    for key in [
+        "posture_rules",
+        "cross_kind_risks",
+        "unstable_resolution_prefix",
+        "unstable_confidence",
+    ] {
+        object.remove(key);
+    }
+    remaining.sort_all_objects();
+    let raw = serde_json::to_vec(&remaining).map_err(|e| e.to_string())?;
+    ensure(
+        sha(&raw) == COMPATIBILITY_PROFILE_SHA256,
+        "paragraph recipe has unsupported compatibility parameters",
+    )?;
+    Ok(policy)
+}
+/// Replay the selected text-free outputs into an isolated directory.
+/// The four private layers stay in the selected source custody.
+pub fn replay_selected(
+    repo: &ResearchExecution,
+    recipe: &Value,
+    expected: &BTreeSet<String>,
+    target: Option<&ResearchExecution>,
+) -> Result<Value> {
+    let policy = compatibility_policy(recipe)?;
+    let material = reconstruct_scoped(repo)?;
+    let (public, private) = build_with_policy(repo, &material, &policy)?;
+    ensure(
+        public.keys().cloned().collect::<BTreeSet<_>>() == *expected,
+        "paragraph output membership differs from curation",
+    )?;
+    check_outputs(repo, &public, &private)?;
+    if let Some(target) = target {
+        for (reference, raw) in &public {
+            target.write(reference, raw, 0o644, true)?;
+        }
+        for (reference, raw) in &public {
+            ensure(
+                target.read(reference)? == *raw,
+                "isolated paragraph output drift",
+            )?;
+        }
+    }
+    repo.check()?;
+    Ok(
+        json!({"status":"passed", "tracked_output_count":public.len(), "private_outputs_checked":private.len(), "producer":"paragraph-alignment-compatibility-profile"}),
+    )
+}
+
 /// Validate tracked proposal metadata without reading private payload layers.
 pub fn validate_tracked_scoped(repo: &ResearchExecution) -> Result<Value> {
     manifest_check(repo, &load(repo, &output("manifest.v1.json"))?)?;
@@ -1540,15 +1684,31 @@ mod tests {
     fn null_side_keeps_machine_uncertainty() {
         let p = json!({"source_paragraph_refs":["s"],"target_paragraph_refs":[],"mapping_type":"source_omission","part_order":3,"reading_ordinal_within_part":15});
         let a = json!({"verse_barrier_risk":false,"same_paragraph_group":false});
-        let (status, shape, reason) = posture(&p, &a).unwrap();
+        let policy = Policy::legacy();
+        let (status, shape, reason) = posture(&p, &a, &policy).unwrap();
         assert_eq!((status, shape), ("ambiguous", "source_omission"));
         assert!(reason.contains("not evidence of translator omission"));
-        assert!(cross_risk(&p, &a).unwrap());
+        assert!(cross_risk(&p, &a, &Policy::legacy()).unwrap());
+    }
+    #[test]
+    fn selected_cross_kind_policy_controls_uncertain_posture() {
+        let p = json!({"source_paragraph_refs":["s"],"target_paragraph_refs":[],"mapping_type":"source_omission","part_order":3,"reading_ordinal_within_part":15});
+        let a = json!({"verse_barrier_risk":false,"same_paragraph_group":false});
+        let mut policy = Policy::legacy();
+        policy.cross.clear();
+        policy.rules[2].reason = "selected empty-side reason".into();
+        assert_eq!(
+            posture(&p, &a, &policy).unwrap(),
+            ("ambiguous", "source_omission", "selected empty-side reason")
+        );
     }
     #[test]
     fn outside_scope_is_first_class_deferred() {
         let p = json!({"mapping_type":"source_omission","reading_ordinal_within_part":null});
-        assert_eq!(posture(&p, &json!({})).unwrap().0, "deferred");
+        assert_eq!(
+            posture(&p, &json!({}), &Policy::legacy()).unwrap().0,
+            "deferred"
+        );
     }
     #[test]
     fn metadata_rejects_nested_text_and_inclusion_flags() {
@@ -1578,7 +1738,7 @@ mod tests {
     fn primary_only_risk_remains_ambiguous() {
         let p = json!({"source_paragraph_refs":["s"],"target_paragraph_refs":["t"],"mapping_type":"one_to_one","part_order":1,"reading_ordinal_within_part":1,"resolution_status":"unresolved_low_fit","confidence_band":"low"});
         let a = json!({"verse_barrier_risk":false,"same_paragraph_group":true});
-        assert_eq!(posture(&p, &a).unwrap().0, "ambiguous");
+        assert_eq!(posture(&p, &a, &Policy::legacy()).unwrap().0, "ambiguous");
     }
     #[test]
     fn import_rejects_private_text_before_writing() {
