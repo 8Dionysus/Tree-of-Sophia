@@ -22,9 +22,44 @@ use output::OutputOwner;
 pub type Result<T> = std::result::Result<T, String>;
 pub const V1: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1";
 pub const V2: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-structural-paragraph-v2";
-pub const PDF_SHA: &str = "57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69";
-pub const BBOX_SHA: &str = "c145e47a5655bc440c35bb36922d88a886e9da126c332a23a71beee569615383";
-pub const TEXT_SHA: &str = "9a3e85fe010ec0eb22379b04f8c03a7dfa7beff06286cc0ac35521d8ae66c787";
+#[derive(Debug, Clone, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SourceFixity {
+    pdf_sha256: String,
+    bbox_sha256: String,
+    text_sha256: String,
+}
+impl SourceFixity {
+    // Compatibility profile is removed when compiler research consumers migrate.
+    fn legacy() -> Self {
+        Self {
+            pdf_sha256: "57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69".into(),
+            bbox_sha256: "c145e47a5655bc440c35bb36922d88a886e9da126c332a23a71beee569615383".into(),
+            text_sha256: "9a3e85fe010ec0eb22379b04f8c03a7dfa7beff06286cc0ac35521d8ae66c787".into(),
+        }
+    }
+    fn selected(value: &Value) -> Result<Self> {
+        let selected: Self =
+            serde_json::from_value(value.clone()).map_err(|e| format!("source fixity: {e}"))?;
+        for digest in [
+            &selected.pdf_sha256,
+            &selected.bbox_sha256,
+            &selected.text_sha256,
+        ] {
+            if Digest256::from_hex(digest)
+                .map_err(|e| format!("source fixity: {e}"))?
+                .to_hex()
+                != *digest
+            {
+                return Err("source fixity requires lowercase SHA-256".into());
+            }
+        }
+        Ok(selected)
+    }
+    fn as_value(&self) -> Value {
+        json!({"pdf_sha256":self.pdf_sha256,"bbox_sha256":self.bbox_sha256,"private_text_layer_sha256":self.text_sha256})
+    }
+}
 fn sha(raw: &[u8]) -> String {
     Digest256::of_bytes(raw).to_hex()
 }
@@ -383,6 +418,7 @@ pub struct Model {
     deadline: Instant,
     source: SourceInput,
     expected: ExpectedCensus,
+    fixity: SourceFixity,
     pub lines: Vec<Line>,
     pub rows: Vec<Row>,
     pub census: Vec<Value>,
@@ -534,6 +570,7 @@ fn observation(
     inventory: &[Value],
     citations: Option<&[Value]>,
     plan: &Value,
+    expected_text_sha256: &str,
     deadline: Instant,
 ) -> Result<Observation> {
     tick(deadline)?;
@@ -737,7 +774,7 @@ fn observation(
                 .join("\n"),
         );
     }
-    if sha(text.as_bytes()) != TEXT_SHA {
+    if sha(text.as_bytes()) != expected_text_sha256 {
         return fail("private text-layer fixity drift");
     }
     Ok(Observation {
@@ -746,13 +783,18 @@ fn observation(
         dimensions,
     })
 }
-fn poppler_bbox(deadline: Instant, pdf_file: &fs::File, plan: &Value) -> Result<Vec<u8>> {
+fn poppler_bbox(
+    deadline: Instant,
+    pdf_file: &fs::File,
+    plan: &Value,
+    expected_bbox_sha256: &str,
+) -> Result<Vec<u8>> {
     tick(deadline)?;
     let pdf_carrier = format!("/proc/{}/fd/{}", std::process::id(), pdf_file.as_raw_fd());
     let policy = &plan["extraction_policy"];
     if s(&policy["software_version"]) != "26.01.0"
         || n(&policy["expected_bbox_bytes"]) != 12_306_305
-        || s(&policy["expected_bbox_sha256"]) != BBOX_SHA
+        || s(&policy["expected_bbox_sha256"]) != expected_bbox_sha256
         || n(&policy["expected_warning_count"]) != 2601
         || s(&policy["expected_warning"]) != "Syntax Warning: Invalid Font Weight"
     {
@@ -802,8 +844,8 @@ fn poppler_bbox(deadline: Instant, pdf_file: &fs::File, plan: &Value) -> Result<
     }
     let policy = &plan["extraction_policy"];
     if result.stdout.len() != n(&policy["expected_bbox_bytes"])
-        || sha(&result.stdout) != BBOX_SHA
-        || s(&policy["expected_bbox_sha256"]) != BBOX_SHA
+        || sha(&result.stdout) != expected_bbox_sha256
+        || s(&policy["expected_bbox_sha256"]) != expected_bbox_sha256
     {
         return fail("Poppler bbox fixity drift");
     }
@@ -819,7 +861,11 @@ fn poppler_bbox(deadline: Instant, pdf_file: &fs::File, plan: &Value) -> Result<
     tick(deadline)?;
     Ok(result.stdout)
 }
-fn load_source(deadline: Instant, source: &SourceInput) -> Result<(Vec<Block>, Vec<Value>)> {
+fn load_source(
+    deadline: Instant,
+    source: &SourceInput,
+    fixity: &SourceFixity,
+) -> Result<(Vec<Block>, Vec<Value>)> {
     tick(deadline)?;
     let plan = load_until(deadline, source, &format!("{V1}/plan.v1.json"))?;
     if s(&plan["contract_ref"]) != "ToS/contracts/source-text-unit-packet-v1.schema.json"
@@ -854,7 +900,7 @@ fn load_source(deadline: Instant, source: &SourceInput) -> Result<(Vec<Block>, V
     // Poppler opens the retained input inode through the invoking process's
     // descriptor carrier. No reopened source pathname can redirect extraction.
 
-    if sha(&raw) != PDF_SHA || s(&src["file_sha256"]) != PDF_SHA {
+    if sha(&raw) != fixity.pdf_sha256 || s(&src["file_sha256"]) != fixity.pdf_sha256 {
         return fail("local PDF digest drift");
     }
     let inv = load_until(deadline, source, s(&src["resource_inventory_ref"]))?;
@@ -877,7 +923,7 @@ fn load_source(deadline: Instant, source: &SourceInput) -> Result<(Vec<Block>, V
     {
         return fail("resource inventory page identities drift");
     }
-    let bbox = poppler_bbox(deadline, &pdf_file, &plan)?;
+    let bbox = poppler_bbox(deadline, &pdf_file, &plan, &fixity.bbox_sha256)?;
     let blocks = observation(
         &bbox,
         pages,
@@ -887,6 +933,7 @@ fn load_source(deadline: Instant, source: &SourceInput) -> Result<(Vec<Block>, V
             &format!("{V1}/citation-spine.v1.jsonl"),
         )?),
         &plan,
+        &fixity.text_sha256,
         deadline,
     )?;
     Ok((
@@ -1366,6 +1413,7 @@ struct LayoutClassification {
     margin: MarginRule,
     verse: VerseRule,
     expected: ExpectedCensus,
+    fixity: SourceFixity,
     regions: Vec<(usize, String, String)>,
     precedence: BTreeMap<String, usize>,
 }
@@ -1405,6 +1453,7 @@ impl LayoutClassification {
             margin: MarginRule::legacy(),
             verse: VerseRule::legacy(),
             expected: ExpectedCensus::legacy(),
+            fixity: SourceFixity::legacy(),
             regions,
             precedence,
         }
@@ -1452,6 +1501,7 @@ impl LayoutClassification {
             margin: MarginRule::selected(&value["margin"])?,
             verse: VerseRule::selected(&value["verse"])?,
             expected: ExpectedCensus::selected(&value["expected_census"])?,
+            fixity: SourceFixity::legacy(),
             regions,
             precedence,
         })
@@ -2128,6 +2178,7 @@ fn reconstruct_blocks(
         deadline,
         source,
         expected: layout.expected,
+        fixity: layout.fixity,
         lines,
         rows,
         census,
@@ -2168,7 +2219,8 @@ pub fn reconstruct_from_directory_with_recipe(
     deadline: Instant,
     recipe: &Value,
 ) -> Result<Model> {
-    let layout = LayoutClassification::selected(&recipe["layout_rules"])?;
+    let mut layout = LayoutClassification::selected(&recipe["layout_rules"])?;
+    layout.fixity = SourceFixity::selected(&recipe["fixity"])?;
     reconstruct_from_directory_with_layout(root, directory, deadline, layout)
 }
 
@@ -2180,16 +2232,13 @@ fn reconstruct_from_directory_with_layout(
 ) -> Result<Model> {
     tick(deadline)?;
     let source = SourceInput::from_directory(root, directory)?;
-    let (blocks, census) = load_source(deadline, &source)?;
+    let (blocks, census) = load_source(deadline, &source, &layout.fixity)?;
     if blocks.len() != layout.expected.poppler_blocks {
         return fail("selected Poppler block census drift");
     }
     reconstruct_blocks(blocks, census, deadline, source, layout)
 }
 
-fn fixity() -> Value {
-    json!({"pdf_sha256":PDF_SHA,"bbox_sha256":BBOX_SHA,"private_text_layer_sha256":TEXT_SHA})
-}
 fn issuance_bindings(m: &Model) -> Result<BTreeMap<String, Vec<String>>> {
     let deadline = m.deadline;
     tick(deadline)?;
@@ -2229,7 +2278,7 @@ pub fn load_identities(
     let deadline = m.deadline;
     tick(deadline)?;
     let value = load_until(deadline, source, &reference("identity-issuance.v2.json"))?;
-    if value["source_fixity"] != fixity() {
+    if value["source_fixity"] != m.fixity.as_value() {
         return fail("identity issuance source fixity drift");
     }
     let mut result = BTreeMap::new();
@@ -2498,7 +2547,7 @@ pub fn make_outputs(root: &Path, m: &Model) -> Result<BTreeMap<String, Vec<u8>>>
     if content_subparts.len() != m.expected.numbered_subparts {
         return fail("not all numbered subparts have technical content");
     }
-    let coverage = json!({"schema_version":"tos_antonovsky_1911_coverage_receipt_v2","source_fixity":fixity(),"source_poppler_block_count":m.expected.poppler_blocks,"expected_physical_line_count":m.expected.physical_lines,"assigned_physical_line_count":physical.len(),"duplicate_physical_line_count":0,"unresolved_physical_line_count":0,"logical_row_count":logical.len(),"reading_unit_count":m.expected.reading_units,"numbered_subpart_count":m.expected.numbered_subparts,"numbered_subparts_with_content":content_subparts.len(),"prose_paragraph_count":paragraphs.len(),"continuous_verse_group_count":verse_groups.len(),"verse_line_count":verse_lines.len(),"technical_role_counts":roles,"coverage_status":"complete","source_text_included":false,"semantic_authority":false});
+    let coverage = json!({"schema_version":"tos_antonovsky_1911_coverage_receipt_v2","source_fixity":m.fixity.as_value(),"source_poppler_block_count":m.expected.poppler_blocks,"expected_physical_line_count":m.expected.physical_lines,"assigned_physical_line_count":physical.len(),"duplicate_physical_line_count":0,"unresolved_physical_line_count":0,"logical_row_count":logical.len(),"reading_unit_count":m.expected.reading_units,"numbered_subpart_count":m.expected.numbered_subparts,"numbered_subparts_with_content":content_subparts.len(),"prose_paragraph_count":paragraphs.len(),"continuous_verse_group_count":verse_groups.len(),"verse_line_count":verse_lines.len(),"technical_role_counts":roles,"coverage_status":"complete","source_text_included":false,"semantic_authority":false});
     let mut contradictions = Vec::new();
     for (number, key) in [
         (22, "part_3.reading_12.subpart_22"),
@@ -2818,7 +2867,7 @@ fn issue(root: &Path, m: &Model, writer: &OutputOwner) -> Result<Value> {
             .collect::<Result<Vec<_>>>()?;
         identities.insert(kind, json!(values));
     }
-    let payload = json!({"schema_version":"tos_antonovsky_1911_structural_paragraph_identity_issuance_v2","issuance_id":"tos.identity-issuance.zarathustra-antonovsky-1911-structural-paragraph-v2","issued_on":"2026-09-01","opaque_identity":true,"source_binding_is_not_identity":true,"source_fixity":fixity(),"identities":identities});
+    let payload = json!({"schema_version":"tos_antonovsky_1911_structural_paragraph_identity_issuance_v2","issuance_id":"tos.identity-issuance.zarathustra-antonovsky-1911-structural-paragraph-v2","issued_on":"2026-09-01","opaque_identity":true,"source_binding_is_not_identity":true,"source_fixity":m.fixity.as_value(),"identities":identities});
     writer.write(
         &ref_,
         &encode_until(deadline, &payload, true)?,
@@ -2872,7 +2921,7 @@ fn import(root: &Path, directory: &Path, m: &Model, writer: &OutputOwner) -> Res
             json!(sha(&read_until(deadline, directory, name)?)),
         );
     }
-    let payload = json!({"schema_version":"tos_antonovsky_1911_primary_challenger_input_v2","role":"complete_boundary_challenger_not_authority","source_text_included":false,"source_fixity":fixity(),"source_line_count":order.len(),"ordered_source_line_binding_sha256":sha(&encode_until(deadline, &json!(order),false)?),"challenger_unit_count":units.len(),"challenger_content_unit_count":units.iter().filter(|u|matches!(s(&u["technical_role"]),"prose_paragraph"|"verse_stanza")).count(),"owner_unit_ordinal_by_source_line":order.iter().map(|l|owner[l]).collect::<Vec<_>>(),"technical_role_by_unit_ordinal":roles,"input_artifact_sha256":digests,"resolution_policy":"independent_source_visible_pass_controls_final_technical_boundary"});
+    let payload = json!({"schema_version":"tos_antonovsky_1911_primary_challenger_input_v2","role":"complete_boundary_challenger_not_authority","source_text_included":false,"source_fixity":m.fixity.as_value(),"source_line_count":order.len(),"ordered_source_line_binding_sha256":sha(&encode_until(deadline, &json!(order),false)?),"challenger_unit_count":units.len(),"challenger_content_unit_count":units.iter().filter(|u|matches!(s(&u["technical_role"]),"prose_paragraph"|"verse_stanza")).count(),"owner_unit_ordinal_by_source_line":order.iter().map(|l|owner[l]).collect::<Vec<_>>(),"technical_role_by_unit_ordinal":roles,"input_artifact_sha256":digests,"resolution_policy":"independent_source_visible_pass_controls_final_technical_boundary"});
     writer.write(
         &ref_,
         &encode_until(deadline, &payload, true)?,
@@ -3103,6 +3152,15 @@ mod tests {
         assert!(ParagraphRule::selected(&invalid).is_err());
     }
     #[test]
+    fn selected_source_fixity_requires_canonical_digests() {
+        let mut value = json!({"pdf_sha256":"a".repeat(64), "bbox_sha256":"b".repeat(64), "text_sha256":"c".repeat(64)});
+        assert!(SourceFixity::selected(&value).is_ok());
+        value["pdf_sha256"] = json!("A".repeat(64));
+        assert!(SourceFixity::selected(&value).is_err());
+        value["pdf_sha256"] = json!("not-a-digest");
+        assert!(SourceFixity::selected(&value).is_err());
+    }
+    #[test]
     fn private_key_and_false_flag_controls() {
         assert!(text_free(&json!({"rows":[{"text":"secret"}]})).is_err());
         assert!(text_free(&json!({"source_text_included":null})).is_err());
@@ -3197,7 +3255,7 @@ mod tests {
             row.digest,
             "0627928ac02cab8159b250950b4a9b23088c9fe5886ebedf86634be3488da558"
         );
-        assert_eq!(private["source_fixity"], fixity());
+        assert_eq!(private["source_fixity"], SourceFixity::legacy().as_value());
         assert_eq!(a(&private["rows"]).len(), 10686);
     }
     #[test]
@@ -3315,7 +3373,7 @@ pub fn private_model(root: &Path, m: &Model) -> Result<Value> {
             _ => {}
         }
     }
-    let value = json!({"schema_version":"tos_antonovsky_1911_private_reconstruction_v2","source_fixity":fixity(),"source_text_included":true,"semantic_authority":false,"lines":m.lines.iter().map(line_value).collect::<Vec<_>>(),"rows":rows,"census":m.census,"readings":readings,"subparts":subparts,"paragraphs":m.paragraphs,"verse_groups":m.verse_groups,"verse_lines":m.verse_lines,"conflicts":m.conflicts,"identities":identities});
+    let value = json!({"schema_version":"tos_antonovsky_1911_private_reconstruction_v2","source_fixity":m.fixity.as_value(),"source_text_included":true,"semantic_authority":false,"lines":m.lines.iter().map(line_value).collect::<Vec<_>>(),"rows":rows,"census":m.census,"readings":readings,"subparts":subparts,"paragraphs":m.paragraphs,"verse_groups":m.verse_groups,"verse_lines":m.verse_lines,"conflicts":m.conflicts,"identities":identities});
     tick(deadline)?;
     Ok(value)
 }

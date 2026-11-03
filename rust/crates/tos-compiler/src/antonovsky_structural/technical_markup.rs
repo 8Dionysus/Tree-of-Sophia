@@ -230,6 +230,7 @@ fn region(plan: &Value, page: usize, panel: &str) -> Result<String> {
     Ok(s(&rows[0]["region_id"]).into())
 }
 fn prepare(ctx: &ResearchExecution, plan: &Value) -> Result<Document> {
+    let fixity = SourceFixity::legacy();
     let src = &plan["source_item"];
     let manifest = load(ctx, s(&src["manifest_ref"]))?;
     ensure(
@@ -253,7 +254,7 @@ fn prepare(ctx: &ResearchExecution, plan: &Value) -> Result<Document> {
     let raw = ctx.read_file(&mut file, 64 * 1024 * 1024)?;
     let digest = sha(&raw);
     ensure(
-        digest == s(&src["file_sha256"]) && digest == PDF_SHA,
+        digest == s(&src["file_sha256"]) && digest == fixity.pdf_sha256,
         "PDF digest drift",
     )?;
     drop(raw);
@@ -279,8 +280,15 @@ fn prepare(ctx: &ResearchExecution, plan: &Value) -> Result<Document> {
                 .all(|(i, r)| s(&r["resource_id"]) == format!("pdf-page-{:04}", i + 1)),
         "inventory page identity drift",
     )?;
-    let bbox = poppler_bbox(ctx.deadline(), &file, plan)?;
-    let observed = observation(&bbox, &inventory, None, plan, ctx.deadline())?;
+    let bbox = poppler_bbox(ctx.deadline(), &file, plan, &fixity.bbox_sha256)?;
+    let observed = observation(
+        &bbox,
+        &inventory,
+        None,
+        plan,
+        &fixity.text_sha256,
+        ctx.deadline(),
+    )?;
     let blocks = observed.blocks;
     let mut doc = Document {
         starts: vec![0; blocks.len()],
@@ -401,7 +409,7 @@ fn prepare(ctx: &ResearchExecution, plan: &Value) -> Result<Document> {
         .chain(std::iter::once(doc.text.len()))
         .collect();
     ensure(
-        doc.offsets.len() == position + 1 && doc.text_sha == TEXT_SHA,
+        doc.offsets.len() == position + 1 && doc.text_sha == fixity.text_sha256,
         "text layer position/fixity drift",
     )?;
     ctx.check()?;

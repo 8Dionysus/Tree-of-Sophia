@@ -5,12 +5,7 @@ use tos_compiler::antonovsky_structural as legacy;
 use tos_source_store::execution::Execution;
 
 pub fn validate_recipe(ctx: &Execution, recipe: &Value) -> Result<Vec<u8>, String> {
-    if recipe["layout_plan_dir"] != legacy::V1
-        || recipe["structural_output_dir"] != legacy::V2
-        || recipe["fixity"]["pdf_sha256"] != legacy::PDF_SHA
-        || recipe["fixity"]["bbox_sha256"] != legacy::BBOX_SHA
-        || recipe["fixity"]["text_sha256"] != legacy::TEXT_SHA
-    {
+    if recipe["layout_plan_dir"] != legacy::V1 || recipe["structural_output_dir"] != legacy::V2 {
         return Err("selected PDF recipe is unsupported by the retained producer".into());
     }
     let plan_raw = ctx.read(&format!("{}/plan.v1.json", legacy::V1))?;
@@ -20,6 +15,16 @@ pub fn validate_recipe(ctx: &Execution, recipe: &Value) -> Result<Vec<u8>, Strin
     let plan: Value = serde_json::from_slice(&plan_raw).map_err(|e| e.to_string())?;
     let policy = &plan["extraction_policy"];
     let extraction = &recipe["extraction"];
+    let screening_ref = plan["technical_screening_plan_ref"]
+        .as_str()
+        .ok_or("PDF screening plan required")?;
+    let screening: Value =
+        serde_json::from_slice(&ctx.read(screening_ref)?).map_err(|e| e.to_string())?;
+    if recipe["fixity"]["pdf_sha256"] != plan["source_item"]["file_sha256"]
+        || recipe["fixity"]["text_sha256"] != screening["private_text_layer_sha256"]
+    {
+        return Err("selected PDF fixity differs from retained plans".into());
+    }
     if extraction["tool"] != "pdftotext"
         || extraction["arguments"] != json!(["-bbox-layout", "SOURCE_PDF", "-"])
         || extraction["version"] != policy["software_version"]
