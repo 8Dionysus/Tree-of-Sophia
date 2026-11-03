@@ -530,7 +530,7 @@ fn audit(repo: &ResearchExecution, m: &Material, scope: &ScopeCensus) -> Result<
 }
 fn scope(
     repo: &ResearchExecution,
-    census: &ScopeCensus,
+    policy: &Policy,
 ) -> Result<(Vec<Value>, BTreeSet<(usize, usize)>)> {
     let de = lines(repo, &at(DE, "citation-spine.v1.jsonl"))?;
     let mut ord = BTreeMap::new();
@@ -570,7 +570,7 @@ fn scope(
             .ok_or("missing verse reading")?;
         let part = n(&g["part_order"])?;
         risks.insert((part, reading));
-        out.push(json!({"schema_version":"tos_zarathustra_de_ru_alignment_scope_exclusion_v1","scope_exclusion_ref":format!("de-verse-group-{:03}",out.len()+1),"side":"source","part_order":part,"reading_ordinal_within_part":reading,"excluded_unit_kind":"verse_group","excluded_group_unit_ref":g["unit_id"],"ordered_excluded_verse_line_refs":de_lines.get(s(&g["unit_id"])?).cloned().unwrap_or_default(),"reason":"paragraph_packet_scope_excludes_source_attested_verse_group","used_as_structural_risk_qualification":true,"source_text_included":false,"semantic_equivalence_asserted":false}));
+        out.push(json!({"schema_version":"tos_zarathustra_de_ru_alignment_scope_exclusion_v1","scope_exclusion_ref":policy.reference("source_scope_exclusion",out.len())?,"side":"source","part_order":part,"reading_ordinal_within_part":reading,"excluded_unit_kind":"verse_group","excluded_group_unit_ref":g["unit_id"],"ordered_excluded_verse_line_refs":de_lines.get(s(&g["unit_id"])?).cloned().unwrap_or_default(),"reason":"paragraph_packet_scope_excludes_source_attested_verse_group","used_as_structural_risk_qualification":true,"source_text_included":false,"semantic_equivalence_asserted":false}));
     }
     let structure = lines(repo, &at(RU, "structure-spine.v2.jsonl"))?;
     let mut meta = BTreeMap::new();
@@ -602,9 +602,9 @@ fn scope(
             .get(s(&g["reading_unit_ref"])?)
             .ok_or("missing Russian verse reading")?;
         risks.insert((part, reading));
-        out.push(json!({"schema_version":"tos_zarathustra_de_ru_alignment_scope_exclusion_v1","scope_exclusion_ref":format!("ru-verse-group-{:03}",i+1),"side":"target","part_order":part,"reading_ordinal_within_part":reading,"excluded_unit_kind":"continuous_verse_group","excluded_group_unit_ref":g["verse_group_unit_id"],"ordered_excluded_verse_line_refs":ru_lines.get(s(&g["verse_group_unit_id"])?).cloned().unwrap_or_default(),"reason":"paragraph_packet_scope_excludes_source_visible_continuous_verse_group","used_as_structural_risk_qualification":true,"source_text_included":false,"semantic_equivalence_asserted":false}));
+        out.push(json!({"schema_version":"tos_zarathustra_de_ru_alignment_scope_exclusion_v1","scope_exclusion_ref":policy.reference("target_scope_exclusion",i)?,"side":"target","part_order":part,"reading_ordinal_within_part":reading,"excluded_unit_kind":"continuous_verse_group","excluded_group_unit_ref":g["verse_group_unit_id"],"ordered_excluded_verse_line_refs":ru_lines.get(s(&g["verse_group_unit_id"])?).cloned().unwrap_or_default(),"reason":"paragraph_packet_scope_excludes_source_visible_continuous_verse_group","used_as_structural_risk_qualification":true,"source_text_included":false,"semantic_equivalence_asserted":false}));
     }
-    exclusion_census(repo, &out, census)?;
+    exclusion_census(repo, &out, &policy.scope)?;
     Ok((out, risks))
 }
 fn exclusion_census(repo: &ResearchExecution, rows: &[Value], scope: &ScopeCensus) -> Result<()> {
@@ -655,6 +655,14 @@ struct ScopeCensus {
     target_paragraphs: usize,
     exclusions: Vec<ExclusionCensus>,
 }
+#[derive(Clone, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ReferenceFormat {
+    role: String,
+    prefix: String,
+    ordinal_width: usize,
+    ordinal_base: usize,
+}
 impl ScopeCensus {
     fn side(&self, side: &str) -> &ExclusionCensus {
         self.exclusions
@@ -670,6 +678,7 @@ struct Policy {
     unstable_prefix: String,
     unstable_confidence: String,
     scope: ScopeCensus,
+    references: Vec<ReferenceFormat>,
 }
 impl Policy {
     // Compatibility profile for the historical command; remove with its alias.
@@ -686,7 +695,8 @@ impl Policy {
             ],
             "cross_kind_risks":[{"part_order":3,"reading_ordinal":15,"trigger":"either_side_empty"}],
             "unstable_resolution_prefix":"unresolved", "unstable_confidence":"low",
-            "scope_census":{"primary_proposals":3423,"source_paragraphs":3447,"target_paragraphs":3569,"exclusions":[{"side":"source","groups":39,"lines":368},{"side":"target","groups":13,"lines":359}]}
+            "scope_census":{"primary_proposals":3423,"source_paragraphs":3447,"target_paragraphs":3569,"exclusions":[{"side":"source","groups":39,"lines":368},{"side":"target","groups":13,"lines":359}]},
+            "derived_reference_formats":[{"role":"source_scope_exclusion","prefix":"de-verse-group-","ordinal_width":3,"ordinal_base":1},{"role":"target_scope_exclusion","prefix":"ru-verse-group-","ordinal_width":3,"ordinal_base":1},{"role":"conflict","prefix":"alignment-conflict-","ordinal_width":4,"ordinal_base":1}]
         });
         Self::selected(&raw).expect("compiled paragraph compatibility policy")
     }
@@ -745,13 +755,49 @@ impl Policy {
                 && sides == BTreeSet::from(["source", "target"]),
             "paragraph scope census membership",
         )?;
+        let references: Vec<ReferenceFormat> =
+            serde_json::from_value(recipe["derived_reference_formats"].clone())
+                .map_err(|e| format!("paragraph reference formats: {e}"))?;
+        let roles: BTreeSet<_> = references.iter().map(|r| r.role.as_str()).collect();
+        ensure(
+            references.len() == 3
+                && roles
+                    == BTreeSet::from([
+                        "source_scope_exclusion",
+                        "target_scope_exclusion",
+                        "conflict",
+                    ])
+                && references.iter().all(|r| {
+                    !r.prefix.is_empty()
+                        && r.ordinal_width > 0
+                        && r.ordinal_width <= usize::MAX.to_string().len()
+                }),
+            "paragraph reference format membership",
+        )?;
         Ok(Self {
             rules,
             cross,
             unstable_prefix,
             unstable_confidence,
             scope,
+            references,
         })
+    }
+    fn reference(&self, role: &str, index: usize) -> Result<String> {
+        let format = self
+            .references
+            .iter()
+            .find(|r| r.role == role)
+            .ok_or("paragraph reference role missing")?;
+        let ordinal = index
+            .checked_add(format.ordinal_base)
+            .ok_or("paragraph reference ordinal overflow")?;
+        Ok(format!(
+            "{}{:0width$}",
+            format.prefix,
+            ordinal,
+            width = format.ordinal_width
+        ))
     }
 }
 fn cross_risk(p: &Value, a: &Value, policy: &Policy) -> Result<bool> {
@@ -807,7 +853,7 @@ fn build_with_policy(
 ) -> Result<(Files, Files)> {
     let ids = identities(repo, m)?;
     let audit = audit(repo, m, &policy.scope)?;
-    let (exclusions, risk_readings) = scope(repo, &policy.scope)?;
+    let (exclusions, risk_readings) = scope(repo, policy)?;
     let method_sha = sha(&bytes(repo, &output("primary-method-input.v1.json"))?);
     let mut target_anchors = BTreeMap::new();
     for layer in m.layers.values() {
@@ -886,7 +932,7 @@ fn build_with_policy(
             if p["confidence_band"] == "low" {
                 kinds.push("low_length_fit");
             }
-            conflicts.push(json!({"schema_version":"tos_zarathustra_de_ru_paragraph_alignment_conflict_v1","conflict_ref":format!("alignment-conflict-{:04}",conflicts.len()+1),"alignment_ref":aid,"primary_proposal_ref":reference,"part_order":p["part_order"],"reading_ordinal_within_part":p["reading_ordinal_within_part"],"conflict_kinds":kinds,"preserved_status":status,"reason":reason,"machine_resolution":"none","requires_source_and_target_visible_review":true,"source_text_included":false,"semantic_equivalence_asserted":false}));
+            conflicts.push(json!({"schema_version":"tos_zarathustra_de_ru_paragraph_alignment_conflict_v1","conflict_ref":policy.reference("conflict",conflicts.len())?,"alignment_ref":aid,"primary_proposal_ref":reference,"part_order":p["part_order"],"reading_ordinal_within_part":p["reading_ordinal_within_part"],"conflict_kinds":kinds,"preserved_status":status,"reason":reason,"machine_resolution":"none","requires_source_and_target_visible_review":true,"source_text_included":false,"semantic_equivalence_asserted":false}));
         }
     }
     let mut packets = BTreeMap::new();
@@ -1318,7 +1364,7 @@ fn manifest_check(repo: &ResearchExecution, manifest: &Value) -> Result<()> {
 // The compatibility gate covers recipe fields the legacy producer has not
 // yet consumed. Remove it after the remaining paragraph parameters migrate.
 const COMPATIBILITY_PROFILE_SHA256: &str =
-    "32fb55fe093216f8b97f35cab03ae6aae385f3ecb14b0440332509f6921b1dab";
+    "7ac87b46ab13936f4052d09c28d81a225e7c94148a807ccac65f929a0353e76a";
 fn compatibility_policy(recipe: &Value) -> Result<Policy> {
     let policy = Policy::selected(recipe)?;
     let mut remaining = recipe.clone();
@@ -1331,6 +1377,7 @@ fn compatibility_policy(recipe: &Value) -> Result<Policy> {
         "unstable_resolution_prefix",
         "unstable_confidence",
         "scope_census",
+        "derived_reference_formats",
     ] {
         object.remove(key);
     }
