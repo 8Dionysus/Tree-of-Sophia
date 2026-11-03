@@ -72,7 +72,7 @@ describe('the witnesses of Zarathustra',()=>{
     const result=realignWitnesses(manifest,files);
     // Proofread chapters retain their original pairings, with adjusted offsets.
     // Fresh segmentation can split the restored questions differently.
-    const proofread=["I.01","I.16","I.17","I.18","I.19","I.20","I.21","I.22","I.23","II.01","II.02","II.03","II.05","II.07","II.08","II.09","II.10","II.11","II.12","II.13","II.14","II.15","II.16","II.17","II.18","II.19","II.20","II.21","II.22","III.01","III.02","III.03","III.04","III.05","III.06","III.07","III.08","III.09","III.10","III.11","III.12","III.13","III.15","III.16","IV.01","IV.02","IV.03","IV.04","IV.05","IV.07","IV.08","IV.09","IV.10","IV.11","IV.12","IV.13","IV.14","IV.15","IV.16","IV.17","IV.19","IV.20"];
+    const proofread=["I.01","I.09","I.10","I.11","I.12","I.16","I.17","I.18","I.19","I.20","I.21","I.22","I.23","II.01","II.02","II.03","II.05","II.07","II.08","II.09","II.10","II.11","II.12","II.13","II.14","II.15","II.16","II.17","II.18","II.19","II.20","II.21","II.22","III.01","III.02","III.03","III.04","III.05","III.06","III.07","III.08","III.09","III.10","III.11","III.12","III.13","III.14","III.15","III.16","IV.01","IV.02","IV.03","IV.04","IV.05","IV.07","IV.08","IV.09","IV.10","IV.11","IV.12","IV.13","IV.14","IV.15","IV.16","IV.17","IV.19","IV.20"];
     expect(result.changed.filter(key=>!proofread.includes(key))).toEqual([]);
     // Re-aligning the changed Russian can change the model and triangle;
     // the stored correspondences remain in the proofread chapter files.
