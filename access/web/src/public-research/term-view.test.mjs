@@ -1,5 +1,6 @@
 import {describe,expect,it} from 'vitest';
-import {termForms,termMatcher} from './term-view.mjs';
+import {readFileSync} from 'node:fs';
+import {termForms,termMatcher,treeRendering} from './term-view.mjs';
 
 const module={terms:[
   {id:'ubermensch',original:{lemma:'Übermensch',forms:['Übermensch','Übermenschen']},renderings:{ru:{tos:{term:'сверхчеловек',forms:['сверхчеловек','сверхчеловека']},witness:{term:'сверхчеловек',forms:['сверхчеловеке']}},en:{tos:{term:'overman',forms:['overman']},witness:{term:'Superman',forms:['Superman']}}}},
@@ -7,6 +8,18 @@ const module={terms:[
 ]};
 
 describe('active terms',()=>{
+  it('shows the distinct Tree rendering even when its Russian word matches Antonovsky',()=>{
+    expect(treeRendering(module.terms[0],'ru')).toEqual({lang:'en',term:'overman'});
+    expect(treeRendering(module.terms[0],'en')).toEqual({lang:'en',term:'overman'});
+    expect(treeRendering(module.terms[1],'ru')).toBeNull();
+    const registry=JSON.parse(readFileSync(new URL('../../../../bonsai/zarathustra/terms.json',import.meta.url),'utf8'));
+    const overman=registry.terms.find(term=>term.id==='overman');
+    expect(overman.original.lemma).toBe('Übermensch');
+    expect(overman.renderings.ru.witness.term).toBe('сверхчеловек');
+    expect(overman.renderings.en.witness.term).toBe('Superman');
+    expect(treeRendering(overman,'ru')).toEqual({lang:'en',term:'overman'});
+    expect(overman.gloss.ru).toBeTruthy();
+  });
   it('read the Tree’s words and the shown translation’s words in a language, and the original’s in German',()=>{
     expect([...termForms(module,'ru').keys()]).toEqual(['сверхчеловек','сверхчеловека','сверхчеловеке','горные духи','горных духов']);
     expect([...termForms(module,'en').keys()]).toEqual(['overman','Superman','goblins']);

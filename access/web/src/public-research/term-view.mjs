@@ -28,6 +28,16 @@ export function termForms(module,language){
   return forms;
 }
 
+// If the Tree and the translation use the same word in the current language,
+// show a distinct Tree rendering in the other language when one exists.
+export function treeRendering(term,language){
+  for(const lang of [language,language==='ru'?'en':'ru']){
+    const own=term.renderings?.[lang]?.tos?.term,shown=term.renderings?.[lang]?.witness?.term;
+    if(own&&shown&&own.toLowerCase()!==shown.toLowerCase())return {lang,term:own};
+  }
+  return null;
+}
+
 // A form written with a capital (a German noun, Antonovsky's «Само», Common's "Superman") is read with
 // that capital, so the verb "werden" stays apart from das Werden and «самого» from «Самого»; a form
 // written in lower case is read in any case, so a sentence may begin with it.
@@ -98,8 +108,8 @@ export function createTerms({module,locale=()=> 'ru',open=()=>{}}={}){
       const witness=term.renderings?.[language]?.witness;if(!witness?.edition)continue;
       const line=make('p','ps-term-witness');const said=make('span','ps-term-word',witness.term);said.lang=language;line.append(said,make('span','ps-term-source',label(witness.edition)));rows.push(line);
     }
-    const own=term.renderings?.[ui]?.tos?.term,shown=term.renderings?.[ui]?.witness?.term;
-    if(own&&shown&&own.toLowerCase()!==shown.toLowerCase()){const line=make('p','ps-term-witness is-tree');const said=make('span','ps-term-word',own);said.lang=ui;line.append(said,make('span','ps-term-source',w.tree));rows.push(line);}
+    const own=treeRendering(term,ui);
+    if(own){const line=make('p','ps-term-witness is-tree');const said=make('span','ps-term-word',own.term);said.lang=own.lang;line.append(said,make('span','ps-term-source',w.tree));rows.push(line);}
     const gloss=localeValue(term.gloss,locale());if(gloss)rows.push(make('p','ps-term-gloss',gloss));
     if(term.first?.q){const first=make('p','ps-term-first');first.append(make('span','ps-term-eyebrow',w.first),Object.assign(make('q','',term.first.q),{lang:'de'}));rows.push(first);}
     const go=make('button','ps-term-open',w.open);go.type='button';go.addEventListener('click',()=>{hide(true);open(term.first);});rows.push(go);
