@@ -1486,8 +1486,8 @@ fn initial(
 pub(crate) fn initial_with_candidate_schema(
     ctx: &CommandContext,
     identity: crate::source_cohort::revision::PgRecordRevisionIdentity,
-    worker: &mut tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<
-        crate::source_cohort::revision::PgRecordRevisionIdentity,
+    worker: &mut impl revisions::RecordSchemaWorker<
+        Identity = crate::source_cohort::revision::PgRecordRevisionIdentity,
     >,
     config: &JsonValue,
     family: CreationFamily,

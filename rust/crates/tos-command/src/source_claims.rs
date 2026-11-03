@@ -4969,25 +4969,41 @@ pub(crate) struct SelectedIdentityClosure {
     pub anchors: JsonValue,
 }
 
-trait MaintainedInventorySchemaWorker: crate::source_revisions::RecordSchemaWorker {
+pub(crate) trait MaintainedInventorySchemaWorker:
+    crate::source_revisions::RecordSchemaWorker
+{
     fn native_identity_inventory(
         &mut self,
-        ctx: &CommandContext,
+        _ctx: &CommandContext,
         cut: Option<&CorpusCutReader>,
         complete_members: Option<&[SourceFile]>,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> SourceCommandResult<(BTreeMap<String, Vec<String>>, Option<String>, bool)>;
-
+        _deadline: Instant,
+        _cancelled: &AtomicBool,
+    ) -> SourceCommandResult<(BTreeMap<String, Vec<String>>, Option<String>, bool)> {
+        if cut.is_some() || complete_members.is_some() {
+            return Err(SourceCommandError::Unsupported(
+                "candidate selected Claim closure cannot claim a complete native identity snapshot",
+            ));
+        }
+        Ok((BTreeMap::new(), None, false))
+    }
     fn native_text_snapshot(
         &mut self,
-        ctx: &CommandContext,
-        cut: Option<&CorpusCutReader>,
+        _ctx: &CommandContext,
+        _cut: Option<&CorpusCutReader>,
         bindings: &[JsonValue],
-        record_inputs: &mut JsonValue,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> SourceCommandResult<Option<String>>;
+        _record_inputs: &mut JsonValue,
+        _deadline: Instant,
+        _cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Option<String>> {
+        if bindings.is_empty() {
+            Ok(None)
+        } else {
+            Err(SourceCommandError::Unsupported(
+                "candidate maintained native text binding snapshot adapter",
+            ))
+        }
+    }
 }
 
 impl MaintainedInventorySchemaWorker for CutWorkerSchemaExecutor {
@@ -5090,40 +5106,10 @@ impl MaintainedInventorySchemaWorker for CutWorkerSchemaExecutor {
     }
 }
 
-impl<I: Copy + Eq> MaintainedInventorySchemaWorker for CandidateCutWorkerSchemaExecutor<I> {
-    fn native_identity_inventory(
-        &mut self,
-        _ctx: &CommandContext,
-        cut: Option<&CorpusCutReader>,
-        complete_members: Option<&[SourceFile]>,
-        _deadline: Instant,
-        _cancelled: &AtomicBool,
-    ) -> SourceCommandResult<(BTreeMap<String, Vec<String>>, Option<String>, bool)> {
-        if cut.is_some() || complete_members.is_some() {
-            return Err(SourceCommandError::Unsupported(
-                "candidate selected Claim closure cannot claim a complete native identity snapshot",
-            ));
-        }
-        Ok((BTreeMap::new(), None, false))
-    }
-
-    fn native_text_snapshot(
-        &mut self,
-        _ctx: &CommandContext,
-        _cut: Option<&CorpusCutReader>,
-        bindings: &[JsonValue],
-        _record_inputs: &mut JsonValue,
-        _deadline: Instant,
-        _cancelled: &AtomicBool,
-    ) -> SourceCommandResult<Option<String>> {
-        if bindings.is_empty() {
-            Ok(None)
-        } else {
-            Err(SourceCommandError::Unsupported(
-                "candidate maintained native text binding snapshot adapter",
-            ))
-        }
-    }
+impl<I: Copy + Eq> MaintainedInventorySchemaWorker for CandidateCutWorkerSchemaExecutor<I> {}
+impl<I: Copy + Eq> MaintainedInventorySchemaWorker
+    for tos_validation::source_cut::InProcessCandidateSchemaExecutor<I>
+{
 }
 
 /// Run the existing maintained owner parsers over an explicit selected source
@@ -5174,14 +5160,14 @@ pub(crate) fn maintained_selected_identity_closure(
 pub(crate) fn maintained_selected_identity_closure_candidate(
     typed_ctx: &crate::source_revisions::PgRecordRevisionCommandContext,
     selected_authored_members: &[SourceFile],
-    executor: &mut CandidateCutWorkerSchemaExecutor<
-        crate::source_cohort::revision::PgRecordRevisionIdentity,
+    executor: &mut impl MaintainedInventorySchemaWorker<
+        Identity = crate::source_cohort::revision::PgRecordRevisionIdentity,
     >,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<SelectedIdentityClosure> {
     typed_ctx.check()?;
-    if *executor.input_identity() != typed_ctx.identity() {
+    if executor.input_identity() != Some(typed_ctx.identity()) {
         return Err(SourceCommandError::Conflict(
             "candidate Claim closure and schema worker identities differ",
         ));
