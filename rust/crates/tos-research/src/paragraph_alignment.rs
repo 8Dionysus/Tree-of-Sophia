@@ -205,9 +205,15 @@ pub struct Material {
 }
 /// Reconstruct exact private paragraph bytes using the native structural compiler.
 pub fn reconstruct_scoped(repo: &ResearchExecution) -> Result<Material> {
+    reconstruct_with_scope(repo, &Policy::legacy().scope)
+}
+fn reconstruct_with_scope(repo: &ResearchExecution, scope: &ScopeCensus) -> Result<Material> {
     let primary = lines(repo, &output("primary-proposals-input.v1.jsonl"))?;
     let challenger = lines(repo, &output("independent-challenger-input.v1.jsonl"))?;
-    ensure(primary.len() == 3423, "primary mapping census drift")?;
+    ensure(
+        primary.len() == scope.primary_proposals,
+        "primary mapping census drift",
+    )?;
     let de_plan = load(repo, &at(DE, "plan.v1.json"))?;
     let ru_plan = load(
         repo,
@@ -266,7 +272,7 @@ pub fn reconstruct_scoped(repo: &ResearchExecution) -> Result<Material> {
     repo.check()?;
     let tracked = lines(repo, &at(RU, "paragraph-spine.v2.jsonl"))?;
     ensure(
-        tracked.len() == 3569 && tracked.len() == model.paragraphs.len(),
+        tracked.len() == scope.target_paragraphs && tracked.len() == model.paragraphs.len(),
         "Russian paragraph census drift",
     )?;
     let row_text: BTreeMap<_, _> = model
@@ -337,10 +343,16 @@ pub fn reconstruct_scoped(repo: &ResearchExecution) -> Result<Material> {
         repo,
         &primary,
         "source_paragraph_refs",
-        3447,
+        scope.source_paragraphs,
         &source_anchors.keys().cloned().collect(),
     )?;
-    exact_coverage(repo, &primary, "target_paragraph_refs", 3569, &target_ids)?;
+    exact_coverage(
+        repo,
+        &primary,
+        "target_paragraph_refs",
+        scope.target_paragraphs,
+        &target_ids,
+    )?;
     repo.charge_structural(&model, &mut charged)?;
     Ok(Material {
         primary,
@@ -445,7 +457,7 @@ fn identities(
     }
     Ok(result)
 }
-fn audit(repo: &ResearchExecution, m: &Material) -> Result<Vec<Value>> {
+fn audit(repo: &ResearchExecution, m: &Material, scope: &ScopeCensus) -> Result<Vec<Value>> {
     let mut owner = BTreeMap::new();
     for (i, r) in m.challenger.iter().enumerate() {
         repo.tick(1)?;
@@ -510,10 +522,16 @@ fn audit(repo: &ResearchExecution, m: &Material) -> Result<Vec<Value>> {
         };
         out.push(json!({"schema_version":"tos_zarathustra_de_ru_independent_challenger_audit_v1","primary_proposal_ref":p["alignment_proposal_ref"],"part_order":p["part_order"],"reading_ordinal_within_part":p["reading_ordinal_within_part"],"challenger_alignment_refs":candidates.iter().map(|c|c["alignment_id"].clone()).collect::<Vec<_>>(),"comparison_posture":posture,"same_paragraph_group":agrees,"verse_barrier_risk":verse,"requires_source_and_target_visible_review":!agrees,"resolution":if !agrees&&!outside {"none_machine_disagreement_preserved"}else if outside{"not_applicable_outside_scope"}else{"agreement_is_not_acceptance"},"source_text_included":false,"target_text_included":false}));
     }
-    ensure(out.len() == 3423, "challenger audit census drift")?;
+    ensure(
+        out.len() == scope.primary_proposals,
+        "challenger audit census drift",
+    )?;
     Ok(out)
 }
-fn scope(repo: &ResearchExecution) -> Result<(Vec<Value>, BTreeSet<(usize, usize)>)> {
+fn scope(
+    repo: &ResearchExecution,
+    census: &ScopeCensus,
+) -> Result<(Vec<Value>, BTreeSet<(usize, usize)>)> {
     let de = lines(repo, &at(DE, "citation-spine.v1.jsonl"))?;
     let mut ord = BTreeMap::new();
     for part in 1..=4 {
@@ -586,13 +604,13 @@ fn scope(repo: &ResearchExecution) -> Result<(Vec<Value>, BTreeSet<(usize, usize
         risks.insert((part, reading));
         out.push(json!({"schema_version":"tos_zarathustra_de_ru_alignment_scope_exclusion_v1","scope_exclusion_ref":format!("ru-verse-group-{:03}",i+1),"side":"target","part_order":part,"reading_ordinal_within_part":reading,"excluded_unit_kind":"continuous_verse_group","excluded_group_unit_ref":g["verse_group_unit_id"],"ordered_excluded_verse_line_refs":ru_lines.get(s(&g["verse_group_unit_id"])?).cloned().unwrap_or_default(),"reason":"paragraph_packet_scope_excludes_source_visible_continuous_verse_group","used_as_structural_risk_qualification":true,"source_text_included":false,"semantic_equivalence_asserted":false}));
     }
-    exclusion_census(repo, &out)?;
+    exclusion_census(repo, &out, census)?;
     Ok((out, risks))
 }
-fn exclusion_census(repo: &ResearchExecution, rows: &[Value]) -> Result<()> {
-    for (side, groups, lines) in [("source", 39, 368), ("target", 13, 359)] {
+fn exclusion_census(repo: &ResearchExecution, rows: &[Value], scope: &ScopeCensus) -> Result<()> {
+    for expected in &scope.exclusions {
         repo.tick(1)?;
-        let r: Vec<_> = rows.iter().filter(|r| r["side"] == side).collect();
+        let r: Vec<_> = rows.iter().filter(|r| r["side"] == expected.side).collect();
         let total = r
             .iter()
             .map(|r| arr(&r["ordered_excluded_verse_line_refs"]).map(Vec::len))
@@ -600,7 +618,7 @@ fn exclusion_census(repo: &ResearchExecution, rows: &[Value]) -> Result<()> {
             .iter()
             .sum::<usize>();
         ensure(
-            r.len() == groups && total == lines,
+            r.len() == expected.groups && total == expected.lines,
             "verse scope-exclusion census drift",
         )?;
     }
@@ -622,12 +640,36 @@ struct CrossKindRisk {
     reading_ordinal: u64,
     trigger: String,
 }
+#[derive(Clone, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ExclusionCensus {
+    side: String,
+    groups: usize,
+    lines: usize,
+}
+#[derive(Clone, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ScopeCensus {
+    primary_proposals: usize,
+    source_paragraphs: usize,
+    target_paragraphs: usize,
+    exclusions: Vec<ExclusionCensus>,
+}
+impl ScopeCensus {
+    fn side(&self, side: &str) -> &ExclusionCensus {
+        self.exclusions
+            .iter()
+            .find(|e| e.side == side)
+            .expect("validated scope sides")
+    }
+}
 #[derive(Clone)]
 struct Policy {
     rules: Vec<PostureRule>,
     cross: Vec<CrossKindRisk>,
     unstable_prefix: String,
     unstable_confidence: String,
+    scope: ScopeCensus,
 }
 impl Policy {
     // Compatibility profile for the historical command; remove with its alias.
@@ -643,7 +685,8 @@ impl Policy {
                 {"condition":"always","status":"proposed","shape_mode":"proposal","reason":"machine grouping agrees across compared technical profiles; proposal is not translation truth"}
             ],
             "cross_kind_risks":[{"part_order":3,"reading_ordinal":15,"trigger":"either_side_empty"}],
-            "unstable_resolution_prefix":"unresolved", "unstable_confidence":"low"
+            "unstable_resolution_prefix":"unresolved", "unstable_confidence":"low",
+            "scope_census":{"primary_proposals":3423,"source_paragraphs":3447,"target_paragraphs":3569,"exclusions":[{"side":"source","groups":39,"lines":368},{"side":"target","groups":13,"lines":359}]}
         });
         Self::selected(&raw).expect("compiled paragraph compatibility policy")
     }
@@ -691,11 +734,23 @@ impl Policy {
         }
         let unstable_prefix = s(&recipe["unstable_resolution_prefix"])?.to_owned();
         let unstable_confidence = s(&recipe["unstable_confidence"])?.to_owned();
+        let scope: ScopeCensus = serde_json::from_value(recipe["scope_census"].clone())
+            .map_err(|e| format!("paragraph scope census: {e}"))?;
+        let sides: BTreeSet<_> = scope.exclusions.iter().map(|e| e.side.as_str()).collect();
+        ensure(
+            scope.primary_proposals > 0
+                && scope.source_paragraphs > 0
+                && scope.target_paragraphs > 0
+                && scope.exclusions.len() == 2
+                && sides == BTreeSet::from(["source", "target"]),
+            "paragraph scope census membership",
+        )?;
         Ok(Self {
             rules,
             cross,
             unstable_prefix,
             unstable_confidence,
+            scope,
         })
     }
 }
@@ -751,8 +806,8 @@ fn build_with_policy(
     policy: &Policy,
 ) -> Result<(Files, Files)> {
     let ids = identities(repo, m)?;
-    let audit = audit(repo, m)?;
-    let (exclusions, risk_readings) = scope(repo)?;
+    let audit = audit(repo, m, &policy.scope)?;
+    let (exclusions, risk_readings) = scope(repo, &policy.scope)?;
     let method_sha = sha(&bytes(repo, &output("primary-method-input.v1.json"))?);
     let mut target_anchors = BTreeMap::new();
     for layer in m.layers.values() {
@@ -964,14 +1019,14 @@ fn build_with_policy(
         repo,
         &spine,
         "source_paragraph_unit_refs",
-        3447,
+        policy.scope.source_paragraphs,
         &m.source_anchors.keys().cloned().collect(),
     )?;
     exact_coverage(
         repo,
         &spine,
         "target_paragraph_unit_refs",
-        3569,
+        policy.scope.target_paragraphs,
         &target_anchors.keys().cloned().collect(),
     )?;
     let mut diagnostics = Vec::new();
@@ -1005,10 +1060,10 @@ fn build_with_policy(
     for (key, value) in [
         ("reading_pair_count", 81),
         ("alignment_count", spine.len()),
-        ("source_paragraph_expected", 3447),
-        ("source_paragraph_covered", 3447),
-        ("target_paragraph_expected", 3569),
-        ("target_paragraph_covered", 3569),
+        ("source_paragraph_expected", policy.scope.source_paragraphs),
+        ("source_paragraph_covered", policy.scope.source_paragraphs),
+        ("target_paragraph_expected", policy.scope.target_paragraphs),
+        ("target_paragraph_covered", policy.scope.target_paragraphs),
         (
             "independent_challenger_disagreement_paragraph_unit_count",
             affected.len(),
@@ -1021,10 +1076,22 @@ fn build_with_policy(
         ("primary_only_machine_risk_count", primary_only),
         ("machine_risk_union_count", risk.len()),
         ("conflict_ledger_count", conflicts.len()),
-        ("source_verse_group_exclusion_count", 39),
-        ("source_verse_line_exclusion_count", 368),
-        ("target_verse_group_exclusion_count", 13),
-        ("target_verse_line_exclusion_count", 359),
+        (
+            "source_verse_group_exclusion_count",
+            policy.scope.side("source").groups,
+        ),
+        (
+            "source_verse_line_exclusion_count",
+            policy.scope.side("source").lines,
+        ),
+        (
+            "target_verse_group_exclusion_count",
+            policy.scope.side("target").groups,
+        ),
+        (
+            "target_verse_line_exclusion_count",
+            policy.scope.side("target").lines,
+        ),
     ] {
         coverage[key] = json!(value);
     }
@@ -1036,8 +1103,8 @@ fn build_with_policy(
     coverage["preserved_deferred_count"] = statuses["deferred"].clone();
     let mut summary = template("summary");
     summary["alignment_count"] = json!(spine.len());
-    summary["source_paragraph_count"] = json!(3447);
-    summary["target_paragraph_count"] = json!(3569);
+    summary["source_paragraph_count"] = json!(policy.scope.source_paragraphs);
+    summary["target_paragraph_count"] = json!(policy.scope.target_paragraphs);
     summary["status_counts"] = statuses;
     summary["independent_challenger_comparison"]["affected_paragraph_units"] =
         json!(affected.len());
@@ -1251,7 +1318,7 @@ fn manifest_check(repo: &ResearchExecution, manifest: &Value) -> Result<()> {
 // The compatibility gate covers recipe fields the legacy producer has not
 // yet consumed. Remove it after the remaining paragraph parameters migrate.
 const COMPATIBILITY_PROFILE_SHA256: &str =
-    "3e61feebfd1867557821ed60c4a953e40a8d05b0a3024fbcbb9ec5c9601a56d0";
+    "32fb55fe093216f8b97f35cab03ae6aae385f3ecb14b0440332509f6921b1dab";
 fn compatibility_policy(recipe: &Value) -> Result<Policy> {
     let policy = Policy::selected(recipe)?;
     let mut remaining = recipe.clone();
@@ -1263,6 +1330,7 @@ fn compatibility_policy(recipe: &Value) -> Result<Policy> {
         "cross_kind_risks",
         "unstable_resolution_prefix",
         "unstable_confidence",
+        "scope_census",
     ] {
         object.remove(key);
     }
@@ -1283,7 +1351,7 @@ pub fn replay_selected(
     target: Option<&ResearchExecution>,
 ) -> Result<Value> {
     let policy = compatibility_policy(recipe)?;
-    let material = reconstruct_scoped(repo)?;
+    let material = reconstruct_with_scope(repo, &policy.scope)?;
     let (public, private) = build_with_policy(repo, &material, &policy)?;
     ensure(
         public.keys().cloned().collect::<BTreeSet<_>>() == *expected,
@@ -1401,7 +1469,7 @@ pub fn validate_tracked_scoped(repo: &ResearchExecution) -> Result<Value> {
         diagnostics.len() == 81,
         "tracked reading diagnostic census drift",
     )?;
-    exclusion_census(repo, &exclusions)?;
+    exclusion_census(repo, &exclusions, &Policy::legacy().scope)?;
     ensure(
         coverage["accepted_alignment_count"] == 0 && verification["human_acceptance"] == false,
         "acceptance boundary drift",
