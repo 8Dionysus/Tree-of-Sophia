@@ -67,7 +67,7 @@ pub fn verify_canonical_digest_v1(
     limits: JsonLimits,
 ) -> Result<bool> {
     let bytes = match profile {
-        Some(JCS_DIGEST_TAG) => jcs_bytes_v1(value, limits)?,
+        Some(JCS_DIGEST_TAG) => return Ok(jcs_digest_v1(value, limits)?.digest == expected),
         None => canonical_bytes_v1(value, historical_profile, limits)?,
         Some(tag) if tag == historical_profile.as_str() => {
             canonical_bytes_v1(value, historical_profile, limits)?

@@ -38,6 +38,18 @@ fn tagged_jcs_record_round_trips_with_exact_number_strings() {
     );
     assert!(jcs_digest_v1(&value("9007199254740994"), JsonLimits::default()).is_err());
     assert!(jcs_digest_v1(&value("9007199254740992"), JsonLimits::default()).is_ok());
+    // An exactly representable binary64 integer can still exceed the ToS
+    // admission limit. Verification applies the same policy as writing.
+    assert!(
+        verify_canonical_digest_v1(
+            &value("9007199254740994"),
+            Some("jcs1"),
+            CanonicalProfile::SourceCommandInputV1,
+            Digest256::of_bytes(b"9007199254740994"),
+            JsonLimits::default(),
+        )
+        .is_err()
+    );
 }
 
 #[test]
