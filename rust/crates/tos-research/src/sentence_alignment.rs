@@ -1,19 +1,23 @@
 //! Exact private sentence selectors and a non-promoting source/target proposal.
-use crate::{
-    research_execution::ResearchExecution,
-    source_text_foundation::{
-        encode, ensure, fresh_or_matching, load, metadata, private_boundary, s, schema, sha,
-        utc_now,
-    },
+use crate::research_support::{
+    encode, ensure, fresh_or_matching, load, metadata, private_boundary, s, schema, sha, utc_now,
 };
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
-#[path = "opening_sentence_alignment/records.rs"]
+use tos_source_store::execution::Execution as ResearchExecution;
+#[path = "sentence_alignment/records.rs"]
 mod records;
 type Result<T> = std::result::Result<T, String>;
-pub use crate::source_text_foundation::Options;
+pub struct Options<'a> {
+    pub plan_ref: &'a str,
+    pub input_root: &'a std::path::Path,
+    pub boundary_root: &'a std::path::Path,
+    pub build: bool,
+    pub event_id: Option<&'a str>,
+    pub argv: &'a Value,
+}
 pub const PLAN: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-opening-sentence-alignment.plan.v1.json";
-const BUILDER: &str = "rust/crates/tos-compiler/src/opening_sentence_alignment.rs";
+const BUILDER: &str = "rust/crates/tos-research/src/sentence_alignment.rs";
 const LEGACY_BUILDER: &str = "scripts/build_zarathustra_opening_sentence_alignment.py";
 const LEGACY_EVENT: &str =
     "tos.event.alignment.za-i-vorrede-1.dta-1883-antonovsky-1911-opening-sentence.2026-08-12";
@@ -69,6 +73,7 @@ fn select_sentence(text: String, side: &Value) -> Result<Side> {
 fn read_side(
     ctx: &ResearchExecution,
     input: &ResearchExecution,
+    boundary: &ResearchExecution,
     name: &str,
     side: &Value,
     retained: &mut BTreeMap<String, Vec<u8>>,
@@ -109,7 +114,7 @@ fn read_side(
         "text layer identity/visibility drift",
     )?;
     let reference = s(&side["private_content_ref"])?;
-    private_boundary(ctx, reference)?;
+    private_boundary(boundary, reference)?;
     let mut file = input.source_file(reference, CAP as u64)?;
     let raw = input.read_file(&mut file, CAP as u64)?;
     select_sentence(String::from_utf8(raw).map_err(|e| e.to_string())?, side)
@@ -194,9 +199,24 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
         "unsupported alignment plan/method",
     )?;
     let input = ctx.select_directory(opts.input_root)?;
+    let boundary = ctx.select_directory(opts.boundary_root)?;
     let mut retained = BTreeMap::from([(opts.plan_ref.to_owned(), plan_raw.clone())]);
-    let source = read_side(ctx, &input, "source", &plan["source"], &mut retained)?;
-    let target = read_side(ctx, &input, "target", &plan["target"], &mut retained)?;
+    let source = read_side(
+        ctx,
+        &input,
+        &boundary,
+        "source",
+        &plan["source"],
+        &mut retained,
+    )?;
+    let target = read_side(
+        ctx,
+        &input,
+        &boundary,
+        "target",
+        &plan["target"],
+        &mut retained,
+    )?;
     let mut names = BTreeSet::new();
     for key in [
         "source_sentence_packet_ref",
@@ -437,7 +457,7 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
             plan_digest: &sha(&plan_raw),
             event_id: &event_id,
             builder_ref: BUILDER,
-            builder_digest: &sha(include_bytes!("opening_sentence_alignment.rs")),
+            builder_digest: &sha(include_bytes!("sentence_alignment.rs")),
             executable_digest: &digest,
             argv: opts.argv,
             argv_digest: &sha(&encode(opts.argv, false)?),
@@ -514,10 +534,7 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
 mod tests {
     use super::*;
     fn fixture() -> Value {
-        serde_json::from_str(include_str!(
-            "opening_sentence_alignment/synthetic-parity.json"
-        ))
-        .unwrap()
+        serde_json::from_str(include_str!("sentence_alignment/synthetic-parity.json")).unwrap()
     }
     #[test]
     fn exact_sentence_guard_counts_codepoints_and_preserves_whitespace() {

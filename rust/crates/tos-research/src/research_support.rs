@@ -198,3 +198,37 @@ pub fn unit_packet_schema(ctx: &ResearchExecution, p: &Value) -> Result<()> {
     }
     Ok(())
 }
+
+pub fn load(ctx: &ResearchExecution, r: &str) -> Result<(Vec<u8>, Value)> {
+    let mut f = ctx.source_file(r, CAP as u64)?;
+    let raw = ctx.read_file(&mut f, CAP as u64)?;
+    tos_foundation::parse_json(&raw, JsonMode::PublishedStrict, JsonLimits::default())
+        .map_err(|e| e.to_string())?;
+    let v = serde_json::from_slice(&raw).map_err(|e| e.to_string())?;
+    Ok((raw, v))
+}
+
+pub fn metadata(ctx: &ResearchExecution, kind: &str, reference: &str, value: &Value) -> Result<()> {
+    use tos_validation::text_metadata_rules::*;
+    let raw = encode(value, false)?;
+    let limits = TextMetadataLimits {
+        max_packet_bytes: 2 * 1024 * 1024,
+        max_state_bytes: 32 * CAP,
+        max_issues: 64,
+        deadline: ctx.deadline(),
+    };
+    let report = match kind {
+        "anchor" => {
+            inspect_source_anchor_v2_metadata(&raw, reference, limits, ctx.cancellation_flag())
+        }
+        "layer" => {
+            inspect_source_text_layer_metadata(&raw, reference, limits, ctx.cancellation_flag())
+        }
+        _ => inspect_source_text_unit_v1_metadata(&raw, reference, limits, ctx.cancellation_flag()),
+    }
+    .map_err(|e| format!("metadata: {e:?}"))?;
+    ensure(
+        report.state == TextMetadataState::CheckedMetadata && report.issues.is_empty(),
+        &format!("{kind} semantic checks: {:?}", report.issues),
+    )
+}
