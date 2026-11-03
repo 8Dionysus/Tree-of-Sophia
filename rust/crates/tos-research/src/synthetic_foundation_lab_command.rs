@@ -67,6 +67,7 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
         result["current_execution"] = serde_json::json!({
             "builder_ref": "rust/crates/tos-research/src/synthetic_foundation_labs.rs",
             "builder_sha256": crate::research_support::sha(include_bytes!("synthetic_foundation_labs.rs")),
+            "recipe_data_sha256": crate::research_support::sha(include_bytes!("synthetic_foundation_labs/recipes.v1.json")),
             "historical_recipe_ref": "rust/crates/tos-compiler/src/synthetic_foundation_labs.rs",
             "historical_recipe_sha256": crate::research_support::sha(include_bytes!("historical/synthetic_foundation_labs.rs.txt")),
         });
