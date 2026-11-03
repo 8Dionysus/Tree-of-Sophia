@@ -1,0 +1,5300 @@
+{
+  "schema": "tos.bonsai.terms.v1",
+  "work": "za",
+  "editions": {
+    "antonovsky-1913": {
+      "lang": "ru",
+      "label": {
+        "ru": "пер. Ю. М. Антоновского, 1913",
+        "en": "tr. Yu. M. Antonovsky, 1913"
+      }
+    },
+    "common-1909": {
+      "lang": "en",
+      "label": {
+        "ru": "пер. Т. Коммона, 1909",
+        "en": "tr. Thomas Common, 1909"
+      }
+    }
+  },
+  "terms": [
+    {
+      "id": "overman",
+      "original": {
+        "lang": "de",
+        "lemma": "Übermensch",
+        "forms": [
+          "Übermensch",
+          "Übermenschen"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.01",
+        "u": [
+          "tos.text-unit.sid-25202066f8da83c9b39df192727745af",
+          "tos.text-unit.sid-25202066f8da83c9b39df192727745af"
+        ],
+        "s": 20,
+        "e": 32,
+        "q": "Übermenschen"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "сверхчеловек",
+            "forms": [
+              "сверхчеловек",
+              "сверхчеловека",
+              "сверхчеловеку",
+              "сверхчеловеком",
+              "сверхчеловеке",
+              "сверхчеловеками",
+              "сверхчеловеки"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "сверхчеловек",
+            "forms": [
+              "сверхчеловек",
+              "сверхчеловека",
+              "сверхчеловеке",
+              "сверхчеловеками",
+              "сверхчеловеки",
+              "сверхчеловеку",
+              "сверхчеловеком"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "overman",
+            "forms": [
+              "overman",
+              "overmen",
+              "overman’s"
+            ],
+            "basis": "The core uses “overman” as a concise rendering of Übermensch; Common’s “Superman” stays on the origin."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "Superman",
+            "forms": [
+              "Superman",
+              "Superman’s",
+              "Supermen"
+            ]
+          },
+          "avoid": [
+            "superman"
+          ]
+        }
+      },
+      "gloss": {
+        "ru": "Сверхчеловек есть смысл земли.",
+        "en": "The overman is the meaning of the earth."
+      },
+      "concept": "overman"
+    },
+    {
+      "id": "recurrence",
+      "original": {
+        "lang": "de",
+        "lemma": "Wiederkunft",
+        "forms": [
+          "Wiederkunft",
+          "ewig wieder",
+          "ewige Wiederkunft"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "III.13",
+        "u": [
+          "tos.text-unit.sid-876a89578dd162d1c3de206ed35206a7",
+          "tos.text-unit.sid-876a89578dd162d1c3de206ed35206a7"
+        ],
+        "s": 68,
+        "e": 85,
+        "q": "ewige Wiederkunft"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "вечное возвращение",
+            "forms": [
+              "вечное возвращение",
+              "вечного возвращения",
+              "вечному возвращению",
+              "вечным возвращением",
+              "вечном возвращении"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "вечное возвращение",
+            "forms": [
+              "вечное возвращение",
+              "вечного возвращения",
+              "вечном возвращении"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "eternal recurrence",
+            "forms": [
+              "eternal recurrence"
+            ],
+            "basis": "The core uses “eternal recurrence” more often than “eternal return”; recurrence names Wiederkunft while Common’s wording stays on the origin."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "eternal return",
+            "forms": [
+              "eternal return"
+            ]
+          },
+          "avoid": [
+            "eternal return"
+          ]
+        }
+      },
+      "gloss": {
+        "ru": "Вечное возвращение возвращает всё к этой же жизни.",
+        "en": "Eternal recurrence returns all things to this same life."
+      },
+      "concept": "recurrence"
+    },
+    {
+      "id": "last-man",
+      "original": {
+        "lang": "de",
+        "lemma": "letzte Mensch",
+        "forms": [
+          "letzte Mensch",
+          "letzten Menschen"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.01",
+        "u": [
+          "tos.text-unit.sid-1486bc5c3572c5f0e5f34d8a14f62723",
+          "tos.text-unit.sid-1486bc5c3572c5f0e5f34d8a14f62723"
+        ],
+        "s": 65,
+        "e": 78,
+        "q": "letzte Mensch"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "последний человек",
+            "forms": [
+              "последний человек",
+              "последнего человека",
+              "последнем человеке"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "последний человек",
+            "forms": [
+              "последний человек",
+              "последнего человека",
+              "последнем человеке"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "last man",
+            "forms": [
+              "last man",
+              "last men"
+            ],
+            "basis": "The core uses “last man” for German “letzte Mensch”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "last man",
+            "forms": [
+              "last man",
+              "last men"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Последний человек моргает и говорит: «Мы изобрели счастье».",
+        "en": "The last man blinks and says, “We have discovered happiness.”"
+      }
+    },
+    {
+      "id": "great-noon",
+      "original": {
+        "lang": "de",
+        "lemma": "grosse Mittag",
+        "forms": [
+          "grosse Mittag",
+          "grossen Mittag",
+          "grosser Mittag"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.23",
+        "u": [
+          "tos.text-unit.sid-474041af8e46b8564e0b60045b07e736",
+          "tos.text-unit.sid-474041af8e46b8564e0b60045b07e736"
+        ],
+        "s": 137,
+        "e": 151,
+        "q": "grossen\nMittag"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "великий полдень",
+            "forms": [
+              "великий полдень",
+              "великого полдня",
+              "великому полдню",
+              "великим полднем",
+              "великом полдне"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "великий полдень",
+            "forms": [
+              "великий полдень"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "great noon",
+            "forms": [
+              "great noon"
+            ],
+            "basis": "The core uses “great noon” for German “grosse Mittag”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "great noontide",
+            "forms": [
+              "great noontide"
+            ]
+          },
+          "avoid": [
+            "great noontide"
+          ]
+        }
+      },
+      "gloss": {
+        "ru": "Великий полдень приходит, когда человек стоит между животным и сверхчеловеком.",
+        "en": "Great noon comes when the human being stands midway between animal and overman."
+      },
+      "concept": "great-noon"
+    },
+    {
+      "id": "will-to-power",
+      "original": {
+        "lang": "de",
+        "lemma": "Wille zur Macht",
+        "forms": [
+          "Wille zur Macht",
+          "Willen zur Macht",
+          "Willens zur Macht"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.16",
+        "u": [
+          "tos.text-unit.sid-4d132d438650d1e6138eca8bb7b4c512",
+          "tos.text-unit.sid-4d132d438650d1e6138eca8bb7b4c512"
+        ],
+        "s": 119,
+        "e": 136,
+        "q": "Willens zur Macht"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "воля к власти",
+            "forms": [
+              "воля к власти",
+              "воли к власти",
+              "воле к власти",
+              "волю к власти"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "воли его к власти",
+            "forms": [
+              "воли его к власти",
+              "воля к власти",
+              "волю к власти"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "will to power",
+            "forms": [
+              "will to power"
+            ],
+            "basis": "The core uses “will to power” for German “Wille zur Macht”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "Will to Power",
+            "forms": [
+              "Will to Power"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Воля к власти звучит во всём живом.",
+        "en": "Will to power is the voice of every living thing."
+      },
+      "concept": "will-to-power"
+    },
+    {
+      "id": "spirit-of-gravity",
+      "original": {
+        "lang": "de",
+        "lemma": "Geist der Schwere",
+        "forms": [
+          "Geist der Schwere",
+          "Geiste der Schwere"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.08",
+        "u": [
+          "tos.text-unit.sid-c515e160e9084b0952538c15223fc388",
+          "tos.text-unit.sid-c515e160e9084b0952538c15223fc388"
+        ],
+        "s": 93,
+        "e": 110,
+        "q": "Geist der\nSchwere"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "дух тяжести",
+            "forms": [
+              "дух тяжести",
+              "духа тяжести",
+              "духу тяжести",
+              "духом тяжести",
+              "духе тяжести"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "дух тяжести",
+            "forms": [
+              "дух тяжести",
+              "духа тяжести",
+              "духу тяжести",
+              "духом тяжести"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "spirit of gravity",
+            "forms": [
+              "spirit of gravity"
+            ],
+            "basis": "The core uses “spirit of gravity” for German “Geist der Schwere”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "spirit of gravity",
+            "forms": [
+              "spirit of gravity"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Дух тяжести убивают смехом.",
+        "en": "The spirit of gravity is slain by laughter."
+      },
+      "concept": "dwarf"
+    },
+    {
+      "id": "bestowing-virtue",
+      "original": {
+        "lang": "de",
+        "lemma": "schenkende Tugend",
+        "forms": [
+          "schenkende Tugend",
+          "schenkenden Tugend"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.23",
+        "u": [
+          "tos.text-unit.sid-8bfa6cb283fd04386a7c9d6b5e57aab1",
+          "tos.text-unit.sid-8bfa6cb283fd04386a7c9d6b5e57aab1"
+        ],
+        "s": 91,
+        "e": 108,
+        "q": "schenkende\nTugend"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "дарящая добродетель",
+            "forms": [
+              "дарящая добродетель",
+              "дарящей добродетели",
+              "дарящей добродетелью"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "дарящая добродетель",
+            "forms": [
+              "дарящая добродетель",
+              "дарящей добродетели"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "bestowing virtue",
+            "forms": [
+              "bestowing virtue"
+            ],
+            "basis": "The core uses “bestowing virtue” for German “schenkende Tugend”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "bestowing virtue",
+            "forms": [
+              "bestowing virtue"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Дарящая добродетель стремится дарить.",
+        "en": "The bestowing virtue strives to give."
+      },
+      "concept": "bestowing-virtue"
+    },
+    {
+      "id": "tightrope-walker",
+      "original": {
+        "lang": "de",
+        "lemma": "Seiltänzer",
+        "forms": [
+          "Seiltänzer"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.01",
+        "u": [
+          "tos.text-unit.sid-fec3c8ac52ba7999af2cdf7b1a7d394d",
+          "tos.text-unit.sid-fec3c8ac52ba7999af2cdf7b1a7d394d"
+        ],
+        "s": 171,
+        "e": 181,
+        "q": "Seiltänzer"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "канатный плясун",
+            "forms": [
+              "канатный плясун",
+              "канатного плясуна",
+              "канатному плясуну",
+              "канатным плясуном",
+              "канатном плясуне"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "плясун на канате",
+            "forms": [
+              "плясун на канате",
+              "канатный плясун",
+              "канатные плясуны",
+              "канатном плясуне"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "tightrope walker",
+            "forms": [
+              "tightrope walker"
+            ],
+            "basis": "The Tree uses “tightrope walker” for Seiltänzer; Common’s “rope-dancer” remains on the origin."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "rope-dancer",
+            "forms": [
+              "rope-dancer",
+              "rope-dancers"
+            ]
+          },
+          "avoid": [
+            "rope-dancer",
+            "rope-dancers"
+          ]
+        }
+      },
+      "gloss": {
+        "ru": "Канатный плясун идёт между башнями над площадью.",
+        "en": "The tightrope walker crosses between the towers above the market."
+      },
+      "concept": "tightrope-walker"
+    },
+    {
+      "id": "jester",
+      "original": {
+        "lang": "de",
+        "lemma": "Possenreisser",
+        "forms": [
+          "Possenreisser"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.01",
+        "u": [
+          "tos.text-unit.sid-009971711875b51cf58362f9a5322829",
+          "tos.text-unit.sid-009971711875b51cf58362f9a5322829"
+        ],
+        "s": 415,
+        "e": 428,
+        "q": "Possenreisser"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "паяц",
+            "forms": [
+              "паяц",
+              "паяца",
+              "паяцу"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "паяц",
+            "forms": [
+              "паяц"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "jester",
+            "forms": [
+              "jester"
+            ],
+            "basis": "The core reads the figure as a jester; Common’s “buffoon” stays on the origin."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "buffoon",
+            "forms": [
+              "buffoon"
+            ]
+          },
+          "avoid": [
+            "buffoon"
+          ]
+        }
+      },
+      "gloss": {
+        "ru": "Паяц преследует канатного плясуна и сбивает его с каната.",
+        "en": "The jester follows the tightrope walker and knocks him from the rope."
+      },
+      "concept": "jester"
+    },
+    {
+      "id": "creator",
+      "original": {
+        "lang": "de",
+        "lemma": "Schaffende",
+        "forms": [
+          "Schaffende",
+          "Schaffenden",
+          "Schaffender"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.01",
+        "u": [
+          "tos.text-unit.sid-71128c9fe75e39c69fc3e9fd2c114f6b",
+          "tos.text-unit.sid-71128c9fe75e39c69fc3e9fd2c114f6b"
+        ],
+        "s": 149,
+        "e": 159,
+        "q": "Schaffende"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "созидающий",
+            "forms": [
+              "созидающий",
+              "созидающего",
+              "созидающему",
+              "созидающим",
+              "созидающем"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "созидающий",
+            "forms": [
+              "созидающий",
+              "созидающего",
+              "созидающим",
+              "созидающем",
+              "созидающие",
+              "созидающих",
+              "созидающими"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "creator",
+            "forms": [
+              "creator",
+              "creators"
+            ],
+            "basis": "The core more often uses “creator” than “the creating one”; it directly names der Schaffende while Common’s word remains on the origin."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "creator",
+            "forms": [
+              "creator",
+              "creators"
+            ]
+          },
+          "avoid": [
+            "the creating one",
+            "creating one"
+          ]
+        }
+      },
+      "gloss": {
+        "ru": "Созидающий разбивает старые скрижали и пишет новые ценности.",
+        "en": "The creator breaks the old tables and writes new values."
+      },
+      "concept": "creation"
+    },
+    {
+      "id": "fellow-creators",
+      "original": {
+        "lang": "de",
+        "lemma": "Mitschaffenden",
+        "forms": [
+          "Mitschaffenden",
+          "Mitschaffende",
+          "Mitschaffender"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.01",
+        "u": [
+          "tos.text-unit.sid-24a622a8d1b20ac87257a1058a9bb503",
+          "tos.text-unit.sid-24a622a8d1b20ac87257a1058a9bb503"
+        ],
+        "s": 95,
+        "e": 109,
+        "q": "Mitschaffenden"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "созидающие вместе с ним",
+            "forms": [
+              "созидающие вместе с ним",
+              "созидающих вместе с ним",
+              "созидающих вместе с Заратустрой",
+              "созидающими вместе"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "созидающих так же, как он",
+            "forms": [
+              "созидающих так же, как он",
+              "созидающих вместе с ним",
+              "созидающим и празднующим вместе с Заратустрой"
+            ],
+            "note": "Antonovsky first renders Mitschaffenden as «созидающих так же, как он»; later aligned uses include «созидающих вместе с ним» and «созидающим и празднующим вместе с Заратустрой»."
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "fellow creators",
+            "forms": [
+              "fellow creators"
+            ],
+            "basis": "The Tree uses this English term by the owner’s choice; the Common 1909 witness reading is retained separately."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "fellow-creators",
+            "forms": [
+              "fellow-creators"
+            ]
+          },
+          "avoid": [
+            "fellow-creators"
+          ]
+        }
+      },
+      "gloss": {
+        "ru": "Созидающие вместе с ним пишут новые ценности на новых скрижалях.",
+        "en": "Fellow creators write new values on new tables."
+      },
+      "concept": "creation"
+    },
+    {
+      "id": "down-going",
+      "original": {
+        "lang": "de",
+        "lemma": "Untergang",
+        "forms": [
+          "Untergang",
+          "Untergange",
+          "untergehen"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.01",
+        "u": [
+          "tos.text-unit.sid-497b8b73e66daea4df60db1300f77372",
+          "tos.text-unit.sid-497b8b73e66daea4df60db1300f77372"
+        ],
+        "s": 22,
+        "e": 32,
+        "q": "untergehen"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "закат",
+            "forms": [
+              "закат",
+              "заката",
+              "закату"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "закатиться",
+            "forms": [
+              "закатиться",
+              "закат"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "going under",
+            "forms": [
+              "going under"
+            ],
+            "basis": "The Tree uses “going under” for Untergang: it is the core’s recurring wording and keeps the source image of descending into a passage. Common’s “go down” remains on the origin."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "go down",
+            "forms": [
+              "go down",
+              "down-going"
+            ]
+          },
+          "avoid": [
+            "go down",
+            "path to decline"
+          ]
+        }
+      },
+      "gloss": {
+        "ru": "Закат Заратустры ведёт его к людям, как закат солнца.",
+        "en": "Going under carries Zarathustra toward the people, as the sun goes under."
+      }
+    },
+    {
+      "id": "self-overcoming",
+      "original": {
+        "lang": "de",
+        "lemma": "sich selber überwinden",
+        "forms": [
+          "sich selber überwinden",
+          "Selbst-Überwältigung",
+          "Überwindung",
+          "sich immer wieder selber überwinden"
+        ],
+        "note": "The normalized lemma is retained although it does not occur as a contiguous phrase; the source has «sich immer wieder selber überwinden» and «Selbst-Überwältigung»."
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "II.07",
+        "u": [
+          "tos.text-unit.sid-2fe71aa335759d1dd54f192807b2d49a",
+          "tos.text-unit.sid-2fe71aa335759d1dd54f192807b2d49a"
+        ],
+        "s": 148,
+        "e": 183,
+        "q": "sich immer wieder selber überwinden"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "преодолевать самого себя",
+            "forms": [
+              "преодолевать самого себя",
+              "преодолевать себя",
+              "самопреодоление",
+              "преодоление"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "преодолевать самое себя",
+            "forms": [
+              "преодолевать самое себя",
+              "преодоление"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "self-overcoming",
+            "forms": [
+              "self-overcoming",
+              "overcome itself"
+            ],
+            "basis": "The core uses “self-overcoming” for German “sich selber überwinden”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "surpass itself",
+            "forms": [
+              "surpass itself"
+            ]
+          },
+          "avoid": [
+            "surpass itself"
+          ]
+        }
+      },
+      "gloss": {
+        "ru": "Жизнь должна снова и снова преодолевать самое себя.",
+        "en": "Life must again and again overcome itself."
+      },
+      "concept": "will-to-power"
+    },
+    {
+      "id": "higher-men",
+      "original": {
+        "lang": "de",
+        "lemma": "höhere Menschen",
+        "forms": [
+          "höhere Menschen",
+          "höheren Menschen",
+          "höherer Mensch"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "IV.02",
+        "u": [
+          "tos.text-unit.sid-26ec53cb3dcc7cd59e38fd92dbdd095c",
+          "tos.text-unit.sid-26ec53cb3dcc7cd59e38fd92dbdd095c"
+        ],
+        "s": 16,
+        "e": 32,
+        "q": "höheren Menschen"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "высшие люди",
+            "forms": [
+              "высшие люди",
+              "высших людей",
+              "высшим людям",
+              "высшими людьми"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "высшего человека",
+            "forms": [
+              "высшего человека",
+              "высшие люди",
+              "высших людей",
+              "высшими людьми"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "higher men",
+            "forms": [
+              "higher men",
+              "higher man"
+            ],
+            "basis": "The core uses “higher men” for German “höhere Menschen”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "higher man",
+            "forms": [
+              "higher man",
+              "higher men"
+            ]
+          },
+          "avoid": [
+            "higher human being"
+          ]
+        }
+      },
+      "gloss": {
+        "ru": "Заратустра принимает высших людей в пещере как гостей и наставляет их.",
+        "en": "Zarathustra welcomes the higher men as guests in his cave and teaches them."
+      },
+      "concept": "higher-men"
+    },
+    {
+      "id": "moment",
+      "original": {
+        "lang": "de",
+        "lemma": "Augenblick",
+        "forms": [
+          "Augenblick",
+          "Augenblicke",
+          "Augen-Blick"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.07",
+        "u": [
+          "tos.text-unit.sid-c899e3dec45bb493a6d5be4bcd3abab4",
+          "tos.text-unit.sid-c899e3dec45bb493a6d5be4bcd3abab4"
+        ],
+        "s": 48,
+        "e": 58,
+        "q": "Augenblick"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "мгновение",
+            "forms": [
+              "мгновение",
+              "мгновения",
+              "мгновению",
+              "мгновением",
+              "мгновении"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "высшим мгновением",
+            "forms": [
+              "высшим мгновением",
+              "мгновение",
+              "мгновения",
+              "мгновению",
+              "мгновением",
+              "мгновении"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "moment",
+            "forms": [
+              "moment",
+              "moments"
+            ],
+            "basis": "The core uses “moment” for German “Augenblick”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "supreme moment",
+            "forms": [
+              "supreme moment",
+              "moment",
+              "moments"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Мгновение становится высшим, когда человек судит себя.",
+        "en": "The moment becomes supreme when a human being judges himself."
+      },
+      "concept": "present"
+    },
+    {
+      "id": "gateway",
+      "original": {
+        "lang": "de",
+        "lemma": "Thorweg",
+        "forms": [
+          "Thorweg",
+          "Thorwege",
+          "Thorwegs"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "II.21",
+        "u": [
+          "tos.text-unit.sid-aa636adee14eb664f43275d2c2050dde",
+          "tos.text-unit.sid-aa636adee14eb664f43275d2c2050dde"
+        ],
+        "s": 13,
+        "e": 21,
+        "q": "Thorwege"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "ворота",
+            "forms": [
+              "ворота",
+              "ворот",
+              "воротам",
+              "воротами",
+              "воротах"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "проезжих ворот",
+            "forms": [
+              "проезжих ворот",
+              "ворота",
+              "ворот",
+              "воротах"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "gateway",
+            "forms": [
+              "gateway"
+            ],
+            "basis": "The core uses “gateway” for German “Thorweg”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "gateway",
+            "forms": [
+              "gateway"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "У ворот стоит имя «Мгновение».",
+        "en": "The gateway bears the name “Moment.”"
+      },
+      "concept": "gateway"
+    },
+    {
+      "id": "goblins",
+      "original": {
+        "lang": "de",
+        "lemma": "Kobold",
+        "forms": [
+          "Kobold",
+          "Kobolde"
+        ],
+        "note": "The normalized lemma «Kobold» is retained; the first source use is the inflected plural «Kobolde»."
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.08",
+        "u": [
+          "tos.text-unit.sid-6ff057cbfa5323c0c554f447ed37cf36",
+          "tos.text-unit.sid-6ff057cbfa5323c0c554f447ed37cf36"
+        ],
+        "s": 9,
+        "e": 16,
+        "q": "Kobolde"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "горные духи",
+            "forms": [
+              "горные духи",
+              "горных духов"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "горные духи",
+            "forms": [
+              "горные духи",
+              "горных духов"
+            ]
+          },
+          "avoid": [
+            "домовые",
+            "домового",
+            "домовым",
+            "домовыми",
+            "домовых"
+          ]
+        },
+        "en": {
+          "tos": {
+            "term": "goblins",
+            "forms": [
+              "goblins",
+              "goblin"
+            ],
+            "basis": "The Tree uses this English term by the owner’s choice; the Common 1909 witness reading is retained separately."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "goblins",
+            "forms": [
+              "goblins"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Мужество создаёт себе горных духов и хочет смеяться.",
+        "en": "Courage creates goblins for itself and wants to laugh."
+      }
+    },
+    {
+      "id": "backworlders",
+      "original": {
+        "lang": "de",
+        "lemma": "Hinterweltler",
+        "forms": [
+          "Hinterweltler",
+          "Hinterweltlern"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.04",
+        "u": [
+          "tos.text-unit.sid-469252378fba673299a2847b417b667b",
+          "tos.text-unit.sid-469252378fba673299a2847b417b667b"
+        ],
+        "s": 76,
+        "e": 90,
+        "q": "Hinterweltlern"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "мечтающий о другом мире",
+            "forms": [
+              "мечтающий о другом мире"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "мечтающим о другом мире",
+            "forms": [
+              "мечтающим о другом мире",
+              "мечтающие о другом мире",
+              "мечтающих о другом мире"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "afterworldly",
+            "forms": [
+              "afterworldly",
+              "the afterworldly"
+            ],
+            "basis": "The Tree uses this English term by the owner’s choice; the Common 1909 witness reading is retained separately."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "backworldsmen",
+            "forms": [
+              "backworldsmen"
+            ]
+          },
+          "avoid": [
+            "backworldsmen"
+          ]
+        }
+      },
+      "gloss": {
+        "ru": "Мечта о потустороннем мире уводит человека за пределы человека.",
+        "en": "The afterworldly cast their dreams beyond the human being."
+      }
+    },
+    {
+      "id": "despisers-of-body",
+      "original": {
+        "lang": "de",
+        "lemma": "Verächtern des Leibes",
+        "forms": [
+          "Verächter des Leibes",
+          "Verächtern des Leibes"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.05",
+        "u": [
+          "tos.text-unit.sid-7895d4dfdb8c6fa419f107eef11ba90c",
+          "tos.text-unit.sid-7895d4dfdb8c6fa419f107eef11ba90c"
+        ],
+        "s": 4,
+        "e": 25,
+        "q": "Verächtern des Leibes"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "презирающие тело",
+            "forms": [
+              "презирающие тело",
+              "презирающим тело",
+              "презирающих тело"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "презирающим тело",
+            "forms": [
+              "презирающим тело",
+              "презирающие тело"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "despisers of the body",
+            "forms": [
+              "despisers of the body"
+            ],
+            "basis": "“Despisers of the body” directly renders Verächter des Leibes; Common uses the same phrase at the origin."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "despisers of the body",
+            "forms": [
+              "despisers of the body"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Презирающие тело служат своему Само.",
+        "en": "Despisers of the body serve their Self."
+      }
+    },
+    {
+      "id": "tarantulas",
+      "original": {
+        "lang": "de",
+        "lemma": "Tarantel",
+        "forms": [
+          "Tarantel",
+          "Taranteln",
+          "Tarantel-Herzen"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "II.07",
+        "u": [
+          "tos.text-unit.sid-25b651f6ffe6f7b61686e31b8e344bf8",
+          "tos.text-unit.sid-25b651f6ffe6f7b61686e31b8e344bf8"
+        ],
+        "s": 19,
+        "e": 27,
+        "q": "Tarantel"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "тарантул",
+            "forms": [
+              "тарантул",
+              "тарантула",
+              "тарантулу",
+              "тарантулы",
+              "тарантулах",
+              "тарантулов",
+              "тарантулам",
+              "тарантульный",
+              "тарантульным"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "тарантула",
+            "forms": [
+              "тарантула",
+              "тарантул",
+              "тарантулы",
+              "тарантулов"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "tarantula",
+            "forms": [
+              "tarantula",
+              "tarantulas"
+            ],
+            "basis": "The core uses “tarantula” for German “Tarantel”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "tarantula",
+            "forms": [
+              "tarantula",
+              "tarantulas"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Тарантулы проповедуют равенство и плетут сеть.",
+        "en": "The tarantulas preach equality and weave their web."
+      },
+      "concept": "tarantulas"
+    },
+    {
+      "id": "pity",
+      "original": {
+        "lang": "de",
+        "lemma": "Mitleid",
+        "forms": [
+          "Mitleid",
+          "Mitleidens",
+          "Mitleiden"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.01",
+        "u": [
+          "tos.text-unit.sid-4ab9eaacf1db99383e7f286edcca1634",
+          "tos.text-unit.sid-4ab9eaacf1db99383e7f286edcca1634"
+        ],
+        "s": 46,
+        "e": 55,
+        "q": "Mitleiden"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "сострадание",
+            "forms": [
+              "сострадание",
+              "сострадания",
+              "состраданию",
+              "состраданием",
+              "сострадании"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "жалость",
+            "forms": [
+              "жалость",
+              "жалости",
+              "жалостью"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "pity",
+            "forms": [
+              "pity"
+            ],
+            "basis": "The core uses “pity” for Mitleid; this preserves Common’s first word and unifies the competing “compassion”."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "pity",
+            "forms": [
+              "pity",
+              "sympathy",
+              "fellow-suffering"
+            ]
+          },
+          "avoid": [
+            "compassion"
+          ]
+        }
+      },
+      "gloss": {
+        "ru": "Сострадание становится крестом для того, кто любит людей.",
+        "en": "Pity raises its cross for the one who loves humankind."
+      }
+    },
+    {
+      "id": "disgust",
+      "original": {
+        "lang": "de",
+        "lemma": "Ekel",
+        "forms": [
+          "Ekel",
+          "Ekels",
+          "ekelt",
+          "ekelte"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.01",
+        "u": [
+          "tos.text-unit.sid-6347ae67f8d6f32124ab9d0c9ccaf376",
+          "tos.text-unit.sid-6347ae67f8d6f32124ab9d0c9ccaf376"
+        ],
+        "s": 85,
+        "e": 89,
+        "q": "Ekel"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "отвращение",
+            "forms": [
+              "отвращение",
+              "отвращения",
+              "отвращению",
+              "отвращением",
+              "отвращении"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "отвращения",
+            "forms": [
+              "отвращения",
+              "отвращение",
+              "отвращением"
+            ]
+          },
+          "avoid": [
+            "тошнота",
+            "тошноты",
+            "тошноте",
+            "тошнотой"
+          ]
+        },
+        "en": {
+          "tos": {
+            "term": "nausea",
+            "forms": [
+              "nausea"
+            ],
+            "basis": "The Tree uses this English term by the owner’s choice; the Common 1909 witness reading is retained separately."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "loathing",
+            "forms": [
+              "loathing",
+              "disgust"
+            ]
+          },
+          "avoid": [
+            "loathing"
+          ]
+        }
+      },
+      "gloss": {
+        "ru": "Великое отвращение создаёт крылья и силы, чуящие родник.",
+        "en": "The great nausea creates wings and forces that sense the spring."
+      },
+      "concept": "nausea"
+    },
+    {
+      "id": "redemption",
+      "original": {
+        "lang": "de",
+        "lemma": "Erlösung",
+        "forms": [
+          "Erlösung"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.07",
+        "u": [
+          "tos.text-unit.sid-047fc5cc2b4c7ad94d07f01e2372cc12",
+          "tos.text-unit.sid-047fc5cc2b4c7ad94d07f01e2372cc12"
+        ],
+        "s": 15,
+        "e": 23,
+        "q": "Erlösung"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "избавление",
+            "forms": [
+              "избавление",
+              "избавления",
+              "избавлению",
+              "избавлением",
+              "избавлении"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "спасения",
+            "forms": [
+              "спасения"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "redemption",
+            "forms": [
+              "redemption"
+            ],
+            "basis": "The core chooses “redemption” for Erlösung; “salvation” and “deliverance” stay on the origin."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "salvation",
+            "forms": [
+              "salvation",
+              "redemption",
+              "deliverance",
+              "redeem"
+            ]
+          },
+          "avoid": [
+            "salvation",
+            "deliverance"
+          ]
+        }
+      },
+      "gloss": {
+        "ru": "Созидание есть великое избавление от страдания.",
+        "en": "Creation is the great redemption from suffering."
+      },
+      "concept": "creation"
+    },
+    {
+      "id": "it-was",
+      "original": {
+        "lang": "de",
+        "lemma": "Es war",
+        "forms": [
+          "Es war",
+          "alles „Es war“",
+          "„Es war“"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "II.20",
+        "u": [
+          "tos.text-unit.sid-5d7585f48e3c3ff7eef88bb204463cc3",
+          "tos.text-unit.sid-5d7585f48e3c3ff7eef88bb204463cc3"
+        ],
+        "s": 36,
+        "e": 44,
+        "q": "„Es war“"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "«было»",
+            "forms": [
+              "«было»",
+              "«Было»"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "«было»",
+            "forms": [
+              "«было»",
+              "«Было»"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "“it was”",
+            "forms": [
+              "“it was”"
+            ],
+            "basis": "The core uses “it was” for Es war, preserving the wording of the will’s question."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "“It was”",
+            "forms": [
+              "“It was”",
+              "“it was”",
+              "‘It was’",
+              "‘it was’"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Заратустра называет спасением превращение «было» в «так хотел я».",
+        "en": "Zarathustra calls turning “It was” into “Thus would I have it” redemption."
+      },
+      "concept": "counterfactual"
+    },
+    {
+      "id": "chance",
+      "original": {
+        "lang": "de",
+        "lemma": "Zufall",
+        "forms": [
+          "Zufall",
+          "Zufalle",
+          "Zufalls"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.17",
+        "u": [
+          "tos.text-unit.sid-f48512263377ab51fdd46c9397cb9c5d",
+          "tos.text-unit.sid-f48512263377ab51fdd46c9397cb9c5d"
+        ],
+        "s": 160,
+        "e": 167,
+        "q": "Zufalle"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "случай",
+            "forms": [
+              "случай",
+              "случая",
+              "случаю",
+              "случаем",
+              "случае"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "случая",
+            "forms": [
+              "случая",
+              "случай",
+              "случаю",
+              "случаем"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "chance",
+            "forms": [
+              "chance"
+            ],
+            "basis": "The core uses “chance” for German “Zufall”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "chance",
+            "forms": [
+              "chance"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Добро становится из зла, а цель — из случая.",
+        "en": "Good grows through evil, and purpose grows out of chance."
+      },
+      "concept": "fate"
+    },
+    {
+      "id": "camel",
+      "original": {
+        "lang": "de",
+        "lemma": "Kameel",
+        "forms": [
+          "Kameel",
+          "Kameele"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.02",
+        "u": [
+          "tos.text-unit.sid-32dbfb5bbf74851f8e864356790d227e",
+          "tos.text-unit.sid-32dbfb5bbf74851f8e864356790d227e"
+        ],
+        "s": 65,
+        "e": 72,
+        "q": "Kameele"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "верблюд",
+            "forms": [
+              "верблюд",
+              "верблюда"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "верблюдом",
+            "forms": [
+              "верблюдом",
+              "верблюд",
+              "верблюду"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "camel",
+            "forms": [
+              "camel"
+            ],
+            "basis": "The core uses “camel” for German “Kameel”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "camel",
+            "forms": [
+              "camel"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Дух становится верблюдом и несёт самое тяжёлое.",
+        "en": "The spirit becomes a camel and bears the heaviest things."
+      },
+      "concept": "child"
+    },
+    {
+      "id": "lion",
+      "original": {
+        "lang": "de",
+        "lemma": "Löwe",
+        "forms": [
+          "Löwe",
+          "Löwen"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.02",
+        "u": [
+          "tos.text-unit.sid-32dbfb5bbf74851f8e864356790d227e",
+          "tos.text-unit.sid-32dbfb5bbf74851f8e864356790d227e"
+        ],
+        "s": 87,
+        "e": 92,
+        "q": "Löwen"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "лев",
+            "forms": [
+              "лев",
+              "льва",
+              "льву",
+              "львом",
+              "льве",
+              "львы"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "львом",
+            "forms": [
+              "львом",
+              "лев",
+              "льва",
+              "львы"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "lion",
+            "forms": [
+              "lion",
+              "lions"
+            ],
+            "basis": "The core uses “lion” for German “Löwe”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "lion",
+            "forms": [
+              "lion",
+              "lions"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Лев отвоёвывает свободу для нового созидания.",
+        "en": "The lion wins freedom for new creation."
+      },
+      "concept": "lion"
+    },
+    {
+      "id": "child",
+      "original": {
+        "lang": "de",
+        "lemma": "Kind",
+        "forms": [
+          "Kind",
+          "Kinde",
+          "Kindes",
+          "Kinder"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.02",
+        "u": [
+          "tos.text-unit.sid-32dbfb5bbf74851f8e864356790d227e",
+          "tos.text-unit.sid-32dbfb5bbf74851f8e864356790d227e"
+        ],
+        "s": 113,
+        "e": 118,
+        "q": "Kinde"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "ребёнок",
+            "forms": [
+              "ребёнок",
+              "ребёнка",
+              "ребёнком",
+              "ребёнке",
+              "ребенок",
+              "ребенка",
+              "ребенком"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "ребенком",
+            "forms": [
+              "ребенком",
+              "ребенок",
+              "ребенка"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "child",
+            "forms": [
+              "child",
+              "children"
+            ],
+            "basis": "The core uses “child” for German “Kind”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "child",
+            "forms": [
+              "child",
+              "children"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Дитя есть невинность, забвение, новое начинание и святое слово утверждения.",
+        "en": "The child is innocence, forgetfulness, a new beginning and a sacred saying yes."
+      },
+      "concept": "child"
+    },
+    {
+      "id": "god-is-dead",
+      "original": {
+        "lang": "de",
+        "lemma": "Gott todt ist",
+        "forms": [
+          "Gott todt ist",
+          "Gott ist todt"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.01",
+        "u": [
+          "tos.text-unit.sid-6ba89f8b137427549ad0632cd8990f8e",
+          "tos.text-unit.sid-6ba89f8b137427549ad0632cd8990f8e"
+        ],
+        "s": 167,
+        "e": 180,
+        "q": "Gott todt ist"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "бог умер",
+            "forms": [
+              "бог умер"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "бог умер",
+            "forms": [
+              "бог умер"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "God is dead",
+            "forms": [
+              "God is dead"
+            ],
+            "basis": "The Tree renders “Gott ist todt” directly as “God is dead.”"
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "GOD IS DEAD",
+            "forms": [
+              "GOD IS DEAD"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "После встречи со святым Заратустра говорит о смерти Бога.",
+        "en": "After meeting the saint, Zarathustra speaks of God’s death."
+      },
+      "concept": "god"
+    },
+    {
+      "id": "preachers-of-death",
+      "original": {
+        "lang": "de",
+        "lemma": "Prediger des Todes",
+        "forms": [
+          "Prediger des Todes",
+          "Predigern des Todes"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.04",
+        "u": [
+          "tos.text-unit.sid-0d9fb48c5fb4bb1e015360f34b2b4341",
+          "tos.text-unit.sid-0d9fb48c5fb4bb1e015360f34b2b4341"
+        ],
+        "s": 110,
+        "e": 129,
+        "q": "Predigern des Todes"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "проповедники смерти",
+            "forms": [
+              "проповедники смерти"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "проповедникам смерти",
+            "forms": [
+              "проповедникам смерти",
+              "проповедники смерти",
+              "проповедников смерти"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "preachers of death",
+            "forms": [
+              "preachers of death"
+            ],
+            "basis": "The Tree uses this English term by the owner’s choice; the Common 1909 witness reading is retained separately."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "preachers of death",
+            "forms": [
+              "preachers of death"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Проповедники смерти учат, что жизнь есть страдание.",
+        "en": "Preachers of death make life weary and heavy."
+      }
+    },
+    {
+      "id": "market-flies",
+      "original": {
+        "lang": "de",
+        "lemma": "Fliegen des Marktes",
+        "forms": [
+          "giftige Fliegen",
+          "giftigen Fliegen",
+          "Fliegen des Marktes"
+        ],
+        "note": "«Fliegen des Marktes» is a chapter title; the first body use is «giftigen Fliegen»."
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.13",
+        "u": [
+          "tos.text-unit.sid-76dfdc8d88dd280738aa5569ce87fcb3",
+          "tos.text-unit.sid-76dfdc8d88dd280738aa5569ce87fcb3"
+        ],
+        "s": 60,
+        "e": 76,
+        "q": "giftigen Fliegen"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "ядовитые мухи",
+            "forms": [
+              "ядовитые мухи"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "ядовитыми мухами",
+            "forms": [
+              "ядовитыми мухами",
+              "ядовитых мух"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "flies of the market place",
+            "forms": [
+              "flies of the market place"
+            ],
+            "basis": "The Tree uses this English term by the owner’s choice; the Common 1909 witness reading is retained separately."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "poisonous flies",
+            "forms": [
+              "poisonous flies"
+            ]
+          },
+          "avoid": [
+            "poisonous flies"
+          ]
+        }
+      },
+      "gloss": {
+        "ru": "Заратустра советует другу бежать от ядовитых мух в уединение.",
+        "en": "Zarathustra urges his friend to flee the flies of the market place into solitude."
+      }
+    },
+    {
+      "id": "love-of-furthest",
+      "original": {
+        "lang": "de",
+        "lemma": "Fernsten-Liebe",
+        "forms": [
+          "Fernsten-Liebe"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.17",
+        "u": [
+          "tos.text-unit.sid-ab714bb0a27d7ff0ad553a9c341eb02e",
+          "tos.text-unit.sid-ab714bb0a27d7ff0ad553a9c341eb02e"
+        ],
+        "s": 73,
+        "e": 87,
+        "q": "Fernsten-Liebe"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "любовь к дальнему",
+            "forms": [
+              "любовь к дальнему"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "любовь к дальнему",
+            "forms": [
+              "любовь к дальнему"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "love of the farthest",
+            "forms": [
+              "love of the farthest"
+            ],
+            "basis": "The Tree uses this English term by the owner’s choice; the Common 1909 witness reading is retained separately."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "furthest love",
+            "forms": [
+              "furthest love"
+            ]
+          },
+          "avoid": [
+            "furthest love"
+          ]
+        }
+      },
+      "gloss": {
+        "ru": "Любовь к дальнему простирается за пределы любви к ближнему.",
+        "en": "The love of the farthest reaches beyond neighbour-love."
+      }
+    },
+    {
+      "id": "saying-yes",
+      "original": {
+        "lang": "de",
+        "lemma": "Ja-sagen",
+        "forms": [
+          "Ja-sagen"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.02",
+        "u": [
+          "tos.text-unit.sid-78b5795aca827182f53ba266a3271646",
+          "tos.text-unit.sid-78b5795aca827182f53ba266a3271646"
+        ],
+        "s": 129,
+        "e": 137,
+        "q": "Ja-sagen"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "слово утверждения",
+            "forms": [
+              "слово утверждения",
+              "словом утверждения"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "слово утверждения",
+            "forms": [
+              "слово утверждения"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "Yes-saying",
+            "forms": [
+              "Yes-saying"
+            ],
+            "basis": "The Tree uses this English term by the owner’s choice; the Common 1909 witness reading is retained separately."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "Yea",
+            "forms": [
+              "Yea"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Дитя есть первое движение и святое слово «да».",
+        "en": "The child is a first movement and a sacred Yes-saying."
+      }
+    },
+    {
+      "id": "life",
+      "original": {
+        "lang": "de",
+        "lemma": "Leben",
+        "forms": [
+          "Leben",
+          "Lebens"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.01",
+        "u": [
+          "tos.text-unit.sid-563ae876b39bbbf5dfacd401e2e56118",
+          "tos.text-unit.sid-563ae876b39bbbf5dfacd401e2e56118"
+        ],
+        "s": 14,
+        "e": 20,
+        "q": "Lebens"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "жизнь",
+            "forms": [
+              "жизнь",
+              "жизни",
+              "жизнью"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "жизнь",
+            "forms": [
+              "жизнь",
+              "жизни",
+              "жизнью"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "life",
+            "forms": [
+              "life",
+              "life’s"
+            ],
+            "basis": "The core uses “life” for German “Leben”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "life",
+            "forms": [
+              "life",
+              "life’s"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Заратустра осуждает презрение к жизни и называет тело великим разумом.",
+        "en": "Zarathustra condemns contempt for life and calls the body a great reason."
+      },
+      "concept": "life"
+    },
+    {
+      "id": "spirit",
+      "original": {
+        "lang": "de",
+        "lemma": "Geist",
+        "forms": [
+          "Geist",
+          "Geistes",
+          "Geiste"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.01",
+        "u": [
+          "tos.text-unit.sid-5614742e39f2ce0fb4a3cc9789837f46",
+          "tos.text-unit.sid-5614742e39f2ce0fb4a3cc9789837f46"
+        ],
+        "s": 138,
+        "e": 145,
+        "q": "Geistes"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "дух",
+            "forms": [
+              "дух",
+              "духа",
+              "духу",
+              "духом",
+              "духе"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "духом",
+            "forms": [
+              "духом",
+              "дух",
+              "духа",
+              "духу",
+              "духе"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "spirit",
+            "forms": [
+              "spirit"
+            ],
+            "basis": "The core uses “spirit” for German “Geist”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "spirit",
+            "forms": [
+              "spirit",
+              "spirits"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Дух становится верблюдом, львом и ребёнком.",
+        "en": "The spirit becomes camel, lion and child."
+      },
+      "concept": "becoming"
+    },
+    {
+      "id": "self",
+      "original": {
+        "lang": "de",
+        "lemma": "Selbst",
+        "forms": [
+          "Selbst",
+          "das Selbst"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.05",
+        "u": [
+          "tos.text-unit.sid-bf5fa2cce45a3477ac7526c5b54ee7c1",
+          "tos.text-unit.sid-bf5fa2cce45a3477ac7526c5b54ee7c1"
+        ],
+        "s": 78,
+        "e": 88,
+        "q": "Das Selbst"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "Само",
+            "forms": [
+              "Само",
+              "Самого",
+              "Самому",
+              "Самим",
+              "Самом"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "Само",
+            "forms": [
+              "Само",
+              "Самого",
+              "Самому"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "Self",
+            "forms": [
+              "Self"
+            ],
+            "basis": "The core uses “Self” for German “Selbst”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "Self",
+            "forms": [
+              "Self"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Само слышит, ищет, сравнивает, побеждает и создаёт.",
+        "en": "The Self listens, seeks, compares, conquers and creates."
+      }
+    },
+    {
+      "id": "virtue",
+      "original": {
+        "lang": "de",
+        "lemma": "Tugend",
+        "forms": [
+          "Tugend",
+          "Tugenden"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.01",
+        "u": [
+          "tos.text-unit.sid-8d9fcbeedef38695718bc5a8de65c6f2",
+          "tos.text-unit.sid-8d9fcbeedef38695718bc5a8de65c6f2"
+        ],
+        "s": 177,
+        "e": 183,
+        "q": "Tugend"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "добродетель",
+            "forms": [
+              "добродетель",
+              "добродетели",
+              "добродетелью",
+              "добродетелях"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "добродетель",
+            "forms": [
+              "добродетель",
+              "добродетели",
+              "добродетелью",
+              "добродетелях"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "virtue",
+            "forms": [
+              "virtue",
+              "virtues"
+            ],
+            "basis": "The core uses “virtue” for German “Tugend”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "virtue",
+            "forms": [
+              "virtue",
+              "virtues"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Добродетель становится отвратительной в час великого презрения.",
+        "en": "Virtue becomes loathsome in the hour of great contempt."
+      },
+      "concept": "bestowing-virtue"
+    },
+    {
+      "id": "wisdom",
+      "original": {
+        "lang": "de",
+        "lemma": "Weisheit",
+        "forms": [
+          "Weisheit"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.01",
+        "u": [
+          "tos.text-unit.sid-775c1304b982084134991ec1bc6c84bb",
+          "tos.text-unit.sid-775c1304b982084134991ec1bc6c84bb"
+        ],
+        "s": 22,
+        "e": 30,
+        "q": "Weisheit"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "мудрость",
+            "forms": [
+              "мудрость",
+              "мудрости",
+              "мудростью"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "мудростью",
+            "forms": [
+              "мудростью",
+              "мудрость",
+              "мудрости"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "wisdom",
+            "forms": [
+              "wisdom"
+            ],
+            "basis": "The core uses “wisdom” for German “Weisheit”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "wisdom",
+            "forms": [
+              "wisdom"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Мудрость Заратустры устаёт и хочет дарить.",
+        "en": "Zarathustra’s wisdom grows weary and longs to give."
+      },
+      "concept": "wisdom"
+    },
+    {
+      "id": "creation",
+      "original": {
+        "lang": "de",
+        "lemma": "Schaffen",
+        "forms": [
+          "Schaffen",
+          "Schaffens",
+          "Schätzen ist Schaffen"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.16",
+        "u": [
+          "tos.text-unit.sid-1831a36b44e5812d66331d24b772c944",
+          "tos.text-unit.sid-1831a36b44e5812d66331d24b772c944"
+        ],
+        "s": 13,
+        "e": 21,
+        "q": "Schaffen"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "созидание",
+            "forms": [
+              "созидание",
+              "созидания",
+              "созиданию",
+              "созиданием",
+              "созидании"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "создавать",
+            "forms": [
+              "создавать",
+              "созидания",
+              "созиданию",
+              "созиданием"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "creating",
+            "forms": [
+              "creating",
+              "creation"
+            ],
+            "basis": "The core uses “creating” for German “Schaffen”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "creating",
+            "forms": [
+              "creating"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Созидание освобождает от страдания.",
+        "en": "Creation redeems from suffering."
+      },
+      "concept": "creation"
+    },
+    {
+      "id": "values",
+      "original": {
+        "lang": "de",
+        "lemma": "Werthe",
+        "forms": [
+          "Werthe",
+          "Werthen"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.01",
+        "u": [
+          "tos.text-unit.sid-71128c9fe75e39c69fc3e9fd2c114f6b",
+          "tos.text-unit.sid-71128c9fe75e39c69fc3e9fd2c114f6b"
+        ],
+        "s": 93,
+        "e": 99,
+        "q": "Werthe"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "ценности",
+            "forms": [
+              "ценности",
+              "ценностей",
+              "ценностям",
+              "ценностями"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "ценностей",
+            "forms": [
+              "ценностей",
+              "ценности"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "values",
+            "forms": [
+              "values",
+              "value"
+            ],
+            "basis": "The core uses “values” for German “Werthe”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "values",
+            "forms": [
+              "values",
+              "value"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Созидающий пишет новые ценности на новых скрижалях.",
+        "en": "The creator writes new values on new tables."
+      },
+      "concept": "creation"
+    },
+    {
+      "id": "contempt",
+      "original": {
+        "lang": "de",
+        "lemma": "Verachtung",
+        "forms": [
+          "Verachtung"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.01",
+        "u": [
+          "tos.text-unit.sid-8dfa83faeaeb58b3e7292db7ee3511e9",
+          "tos.text-unit.sid-8dfa83faeaeb58b3e7292db7ee3511e9"
+        ],
+        "s": 71,
+        "e": 81,
+        "q": "Verachtung"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "презрение",
+            "forms": [
+              "презрение",
+              "презрения"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "презрением",
+            "forms": [
+              "презрением",
+              "презрение",
+              "презрения"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "contempt",
+            "forms": [
+              "contempt"
+            ],
+            "basis": "The core uses “contempt” for German “Verachtung”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "contempt",
+            "forms": [
+              "contempt"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Час великого презрения становится часом превращения.",
+        "en": "The hour of great contempt becomes an hour of transformation."
+      }
+    },
+    {
+      "id": "will",
+      "original": {
+        "lang": "de",
+        "lemma": "Wille",
+        "forms": [
+          "Wille",
+          "Willens",
+          "Willen"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.01",
+        "u": [
+          "tos.text-unit.sid-ed69e3c67d9d7ed5f4c8bcaa584c0356",
+          "tos.text-unit.sid-ed69e3c67d9d7ed5f4c8bcaa584c0356"
+        ],
+        "s": 43,
+        "e": 48,
+        "q": "Wille"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "воля",
+            "forms": [
+              "воля",
+              "воли",
+              "воле",
+              "волю",
+              "волей"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "воля",
+            "forms": [
+              "воля",
+              "воли",
+              "воле",
+              "волю",
+              "волей"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "will",
+            "forms": [
+              "will"
+            ],
+            "basis": "The core uses “will” for German “Wille”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "will",
+            "forms": [
+              "will"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Воля велит сверхчеловеку стать смыслом земли.",
+        "en": "The will commands the overman to be the meaning of the earth."
+      },
+      "concept": "will"
+    },
+    {
+      "id": "earth",
+      "original": {
+        "lang": "de",
+        "lemma": "Erde",
+        "forms": [
+          "Erde",
+          "Erden"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.01",
+        "u": [
+          "tos.text-unit.sid-ed69e3c67d9d7ed5f4c8bcaa584c0356",
+          "tos.text-unit.sid-ed69e3c67d9d7ed5f4c8bcaa584c0356"
+        ],
+        "s": 32,
+        "e": 36,
+        "q": "Erde"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "земля",
+            "forms": [
+              "земля",
+              "земли",
+              "земле",
+              "землю",
+              "землёй"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "земли",
+            "forms": [
+              "земли",
+              "земля",
+              "земле",
+              "землю",
+              "землею"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "earth",
+            "forms": [
+              "earth"
+            ],
+            "basis": "The core uses “earth” for German “Erde”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "earth",
+            "forms": [
+              "earth"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Сверхчеловек есть смысл земли.",
+        "en": "The overman is the meaning of the earth."
+      },
+      "concept": "life"
+    },
+    {
+      "id": "god",
+      "original": {
+        "lang": "de",
+        "lemma": "Gott",
+        "forms": [
+          "Gott",
+          "Gottes",
+          "Götter",
+          "Göttern",
+          "Gotte"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.01",
+        "u": [
+          "tos.text-unit.sid-fbcca07ace6d95db4eec8dd71a32172a",
+          "tos.text-unit.sid-fbcca07ace6d95db4eec8dd71a32172a"
+        ],
+        "s": 16,
+        "e": 20,
+        "q": "Gott"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "бог",
+            "forms": [
+              "бог",
+              "бога",
+              "богу",
+              "богом",
+              "боге",
+              "боги",
+              "богов",
+              "богам"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "бога",
+            "forms": [
+              "бога",
+              "бог",
+              "богу",
+              "богом",
+              "боге",
+              "боги",
+              "богов",
+              "богам"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "God",
+            "forms": [
+              "God",
+              "gods"
+            ],
+            "basis": "The core uses “God” for German “Gott”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "God",
+            "forms": [
+              "God",
+              "gods"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "После смерти бога земля открывается новому смыслу.",
+        "en": "After God’s death the earth opens to a new meaning."
+      },
+      "concept": "god"
+    },
+    {
+      "id": "last-pope",
+      "original": {
+        "lang": "de",
+        "lemma": "Papst",
+        "forms": [
+          "Papst",
+          "Papstes",
+          "letzte Papst"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "IV.06",
+        "u": [
+          "tos.text-unit.sid-ed11fdcafb225e596c07396d158731e4",
+          "tos.text-unit.sid-ed11fdcafb225e596c07396d158731e4"
+        ],
+        "s": 153,
+        "e": 165,
+        "q": "letzte Papst"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "папа",
+            "forms": [
+              "папа",
+              "папы",
+              "папе",
+              "папу",
+              "папой"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "папа",
+            "forms": [
+              "папа"
+            ],
+            "omitted": true,
+            "note": "Antonovsky omits the cited IV.06 passage; the listed forms come from later aligned uses of Papst, beginning in IV.11."
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "last pope",
+            "forms": [
+              "last pope",
+              "pope"
+            ],
+            "basis": "The core uses “last pope” for German “Papst”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "last pope",
+            "forms": [
+              "last pope",
+              "pope",
+              "old pope"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Последний папа несёт старую веру к её концу.",
+        "en": "The last pope carries the old faith to its end."
+      },
+      "concept": "last-pope"
+    },
+    {
+      "id": "soothsayer",
+      "original": {
+        "lang": "de",
+        "lemma": "Wahrsager",
+        "forms": [
+          "Wahrsager",
+          "Wahrsagern"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "II.19",
+        "u": [
+          "tos.text-unit.sid-81daa423bcd12ac1fa3534913289adaf",
+          "tos.text-unit.sid-81daa423bcd12ac1fa3534913289adaf"
+        ],
+        "s": 29,
+        "e": 38,
+        "q": "Wahrsager"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "прорицатель",
+            "forms": [
+              "прорицатель",
+              "прорицателя",
+              "прорицателю",
+              "прорицателем"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "прорицателя",
+            "forms": [
+              "прорицателя",
+              "прорицатель",
+              "прорицателем"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "soothsayer",
+            "forms": [
+              "soothsayer",
+              "soothsayers"
+            ],
+            "basis": "The core uses “soothsayer” for German “Wahrsager”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "soothsayer",
+            "forms": [
+              "soothsayer",
+              "soothsayers"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Прорицатель возвещает опустошение всего.",
+        "en": "The soothsayer announces that all is empty."
+      },
+      "concept": "soothsayer"
+    },
+    {
+      "id": "ugliest-man",
+      "original": {
+        "lang": "de",
+        "lemma": "hässlichste Mensch",
+        "forms": [
+          "hässlichste Mensch",
+          "hässlichsten Menschen",
+          "hässlichster Mensch"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "IV.07",
+        "u": [
+          "tos.text-unit.sid-faa48b9fea5d01e52a8ff61a14787cdb",
+          "tos.text-unit.sid-faa48b9fea5d01e52a8ff61a14787cdb"
+        ],
+        "s": 82,
+        "e": 101,
+        "q": "hässlichster Mensch"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "безобразный человек",
+            "forms": [
+              "безобразный человек",
+              "самого безобразного человека",
+              "безобразного человека"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "безобразного человека",
+            "forms": [
+              "безобразного человека",
+              "самого безобразного человека",
+              "безобразный человек"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "ugliest man",
+            "forms": [
+              "ugliest man"
+            ],
+            "basis": "The core uses “ugliest man” for German “hässlichste Mensch”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "ugliest man",
+            "forms": [
+              "ugliest man"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Безобразнейший человек скрывается от взгляда, который видит его.",
+        "en": "The ugliest man hides from the gaze that sees him."
+      },
+      "concept": "ugliest-man"
+    },
+    {
+      "id": "voluntary-beggar",
+      "original": {
+        "lang": "de",
+        "lemma": "freiwillige Bettler",
+        "forms": [
+          "freiwillige Bettler"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "IV.08",
+        "u": [
+          "tos.text-unit.sid-327ec5b18c7b130de3c424c2130b6d1b",
+          "tos.text-unit.sid-327ec5b18c7b130de3c424c2130b6d1b"
+        ],
+        "s": 38,
+        "e": 57,
+        "q": "freiwillige\nBettler"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "добровольный нищий",
+            "forms": [
+              "добровольный нищий",
+              "добровольного нищего",
+              "добровольному нищему"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "добровольный нищий",
+            "forms": [
+              "добровольный нищий"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "voluntary beggar",
+            "forms": [
+              "voluntary beggar"
+            ],
+            "basis": "The core uses “voluntary beggar” for German “freiwillige Bettler”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "voluntary beggar",
+            "forms": [
+              "voluntary beggar"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Добровольный нищий оставляет богатство и просит милостыню.",
+        "en": "The voluntary beggar leaves wealth and asks for alms."
+      },
+      "concept": "beggar"
+    },
+    {
+      "id": "shadow",
+      "original": {
+        "lang": "de",
+        "lemma": "Schatten",
+        "forms": [
+          "Schatten",
+          "Schattens"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "IV.09",
+        "u": [
+          "tos.text-unit.sid-cb424c408256ff4a9ae19664210bdb85",
+          "tos.text-unit.sid-cb424c408256ff4a9ae19664210bdb85"
+        ],
+        "s": 222,
+        "e": 230,
+        "q": "Schatten"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "тень",
+            "forms": [
+              "тень",
+              "тени",
+              "тенью"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "тень",
+            "forms": [
+              "тень",
+              "тени",
+              "тенью"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "shadow",
+            "forms": [
+              "shadow"
+            ],
+            "basis": "The core uses “shadow” for German “Schatten”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "shadow",
+            "forms": [
+              "shadow",
+              "shadows"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Тень следует за Заратустрой и ищет свой путь.",
+        "en": "The shadow follows Zarathustra and seeks its own way."
+      },
+      "concept": "shadow"
+    },
+    {
+      "id": "shepherd",
+      "original": {
+        "lang": "de",
+        "lemma": "Hirt",
+        "forms": [
+          "Hirt",
+          "Hirten"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "III.02",
+        "u": [
+          "tos.text-unit.sid-c9379c7d2c3ff474692d6edefdb7db0c",
+          "tos.text-unit.sid-c9379c7d2c3ff474692d6edefdb7db0c"
+        ],
+        "s": 66,
+        "e": 72,
+        "q": "Hirten"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "пастух",
+            "forms": [
+              "пастух",
+              "пастуха",
+              "пастуху",
+              "пастухом",
+              "пастухе"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "пастуха",
+            "forms": [
+              "пастуха",
+              "пастух",
+              "пастухом"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "shepherd",
+            "forms": [
+              "shepherd"
+            ],
+            "basis": "The core uses “shepherd” for German “Hirt”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "shepherd",
+            "forms": [
+              "shepherd",
+              "shepherds"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Пастух кусает чёрную змею и встаёт преображённым.",
+        "en": "The shepherd bites the black serpent and rises transfigured."
+      },
+      "concept": "shepherd"
+    },
+    {
+      "id": "ass",
+      "original": {
+        "lang": "de",
+        "lemma": "Esel",
+        "forms": [
+          "Esel",
+          "Esels",
+          "Eselinnen"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "IV.03",
+        "u": [
+          "tos.text-unit.sid-e33075cbab0442ef059581ba5c460c47",
+          "tos.text-unit.sid-e33075cbab0442ef059581ba5c460c47"
+        ],
+        "s": 290,
+        "e": 294,
+        "q": "Esel"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "осёл",
+            "forms": [
+              "осёл",
+              "осла",
+              "ослу",
+              "ослом",
+              "осле",
+              "осел"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "осла",
+            "forms": [
+              "осла",
+              "ослом",
+              "осле",
+              "осел"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "ass",
+            "forms": [
+              "ass",
+              "asses"
+            ],
+            "basis": "The core uses “ass” for German “Esel”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "ass",
+            "forms": [
+              "ass",
+              "asses"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Осёл сопровождает двух королей, а позже кричит «ИА» в пещере.",
+        "en": "The ass accompanies the two kings and later brays “I-A” in the cave."
+      },
+      "concept": "ass"
+    },
+    {
+      "id": "fire-dog",
+      "original": {
+        "lang": "de",
+        "lemma": "Feuerhund",
+        "forms": [
+          "Feuerhund",
+          "Feuerhunde"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "II.18",
+        "u": [
+          "tos.text-unit.sid-d22cd2b120195dc66a84954d24817bbf",
+          "tos.text-unit.sid-d22cd2b120195dc66a84954d24817bbf"
+        ],
+        "s": 65,
+        "e": 75,
+        "q": "Feuerhunde"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "огненный пёс",
+            "forms": [
+              "огненный пёс",
+              "огненного пса",
+              "огненному псу",
+              "огненным псом",
+              "огненном псе",
+              "огненный пес"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "огненным псом",
+            "forms": [
+              "огненным псом",
+              "огненном псе",
+              "огненный пес"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "fire-dog",
+            "forms": [
+              "fire-dog"
+            ],
+            "basis": "The core uses “fire-dog” for German “Feuerhund”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "fire-dog",
+            "forms": [
+              "fire-dog"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Огненный пёс говорит из чрева земли.",
+        "en": "The fire-dog speaks from the belly of the earth."
+      },
+      "concept": "fire-dog"
+    },
+    {
+      "id": "magician",
+      "original": {
+        "lang": "de",
+        "lemma": "Zauberer",
+        "forms": [
+          "Zauberer",
+          "Zauberers",
+          "Zauberern"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "IV.05",
+        "u": [
+          "tos.text-unit.sid-4fc2dbe5f19ac62504500e7817537a70",
+          "tos.text-unit.sid-4fc2dbe5f19ac62504500e7817537a70"
+        ],
+        "s": 52,
+        "e": 60,
+        "q": "Zauberer"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "чародей",
+            "forms": [
+              "чародей",
+              "чародея",
+              "чародею",
+              "чародеем",
+              "чародее"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "чародей",
+            "forms": [
+              "чародей",
+              "чародея",
+              "чародеем",
+              "чародее"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "magician",
+            "forms": [
+              "magician",
+              "magicians"
+            ],
+            "basis": "The core uses “magician” for German “Zauberer”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "magician",
+            "forms": [
+              "magician",
+              "magicians"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Чародей даёт голос тоске и скорби.",
+        "en": "The magician gives voice to longing and sorrow."
+      },
+      "concept": "magician"
+    },
+    {
+      "id": "pale-criminal",
+      "original": {
+        "lang": "de",
+        "lemma": "bleiche Verbrecher",
+        "forms": [
+          "bleiche Verbrecher",
+          "bleichen Verbrecher"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.07",
+        "u": [
+          "tos.text-unit.sid-6716371e49c58d2058766bf8abb2b1a4",
+          "tos.text-unit.sid-6716371e49c58d2058766bf8abb2b1a4"
+        ],
+        "s": 94,
+        "e": 112,
+        "q": "bleiche\nVerbrecher"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "бледный преступник",
+            "forms": [
+              "бледный преступник",
+              "бледного преступника"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "бледный преступник",
+            "forms": [
+              "бледный преступник"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "pale criminal",
+            "forms": [
+              "pale criminal"
+            ],
+            "basis": "The core uses “pale criminal” for German “bleiche Verbrecher”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "pale criminal",
+            "forms": [
+              "pale criminal"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Бледный преступник страдает от своего дела и видит его знак.",
+        "en": "The pale criminal suffers from his deed and sees its mark."
+      },
+      "concept": "pale-criminal"
+    },
+    {
+      "id": "hunchback",
+      "original": {
+        "lang": "de",
+        "lemma": "Bucklichter",
+        "forms": [
+          "Bucklichter",
+          "Bucklichten",
+          "Bucklichte"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "II.20",
+        "u": [
+          "tos.text-unit.sid-7c1ded9bb2862ae4e10daac0083b0c86",
+          "tos.text-unit.sid-7c1ded9bb2862ae4e10daac0083b0c86"
+        ],
+        "s": 104,
+        "e": 115,
+        "q": "Bucklichter"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "горбатый",
+            "forms": [
+              "горбатый",
+              "горбатого",
+              "горбатому"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "горбатый",
+            "forms": [
+              "горбатый",
+              "горбатого",
+              "горбатому"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "hunchback",
+            "forms": [
+              "hunchback",
+              "hunchbacks"
+            ],
+            "basis": "The core uses “hunchback” for German “Bucklichter”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "hunchback",
+            "forms": [
+              "hunchback",
+              "hunchbacks"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Горбатый просит Заратустру убедить калек на мосту, что тот может их исцелить.",
+        "en": "The hunchback asks Zarathustra to convince the cripples on the bridge that he can heal them."
+      },
+      "concept": "hunchback"
+    },
+    {
+      "id": "kings",
+      "original": {
+        "lang": "de",
+        "lemma": "König",
+        "forms": [
+          "König",
+          "Könige",
+          "Königen"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "IV.03",
+        "u": [
+          "tos.text-unit.sid-e33075cbab0442ef059581ba5c460c47",
+          "tos.text-unit.sid-e33075cbab0442ef059581ba5c460c47"
+        ],
+        "s": 176,
+        "e": 182,
+        "q": "Könige"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "король",
+            "forms": [
+              "король",
+              "короля",
+              "королю",
+              "короли",
+              "королей"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "короля",
+            "forms": [
+              "короля",
+              "король",
+              "королю",
+              "короли",
+              "королей"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "king",
+            "forms": [
+              "king",
+              "kings"
+            ],
+            "basis": "The core uses “king” for German “König”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "kings",
+            "forms": [
+              "kings",
+              "king"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Два короля оставляют свои царства и ищут высшего человека.",
+        "en": "The two kings leave their kingdoms and seek the higher man."
+      },
+      "concept": "kings"
+    },
+    {
+      "id": "youth",
+      "original": {
+        "lang": "de",
+        "lemma": "Jüngling",
+        "forms": [
+          "Jüngling",
+          "Jünglinge"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.09",
+        "u": [
+          "tos.text-unit.sid-4c21747dc67ca46118c659bc470e9cac",
+          "tos.text-unit.sid-4c21747dc67ca46118c659bc470e9cac"
+        ],
+        "s": 42,
+        "e": 50,
+        "q": "Jüngling"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "юноша",
+            "forms": [
+              "юноша",
+              "юноши",
+              "юноше",
+              "юношу",
+              "юношей"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "юноша",
+            "forms": [
+              "юноша",
+              "юноши",
+              "юношу"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "youth",
+            "forms": [
+              "youth"
+            ],
+            "basis": "The core uses “youth” for German “Jüngling”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "youth",
+            "forms": [
+              "youth"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Юноша горит тоской по высоте и свободе.",
+        "en": "The youth burns with longing for height and freedom."
+      },
+      "concept": "youth"
+    },
+    {
+      "id": "animals",
+      "original": {
+        "lang": "de",
+        "lemma": "Thier",
+        "forms": [
+          "Thier",
+          "Thiere",
+          "Thieren"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.01",
+        "u": [
+          "tos.text-unit.sid-8b2d9535bc5d6ae092b194865eaccb53",
+          "tos.text-unit.sid-8b2d9535bc5d6ae092b194865eaccb53"
+        ],
+        "s": 72,
+        "e": 79,
+        "q": "Thieren"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "зверь",
+            "forms": [
+              "зверь",
+              "зверя",
+              "зверю",
+              "зверям",
+              "зверями"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "зверям",
+            "forms": [
+              "зверям",
+              "зверь",
+              "зверя",
+              "зверю",
+              "зверями"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "animal",
+            "forms": [
+              "animal",
+              "animals"
+            ],
+            "basis": "The core uses “animal” for German “Thier”; this keeps that established English reading."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "animals",
+            "forms": [
+              "animals",
+              "animal"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Орёл и змей сопровождают Заратустру.",
+        "en": "Zarathustra is accompanied by his eagle and serpent."
+      },
+      "concept": "animals"
+    },
+    {
+      "id": "fate",
+      "original": {
+        "lang": "de",
+        "lemma": "Schicksal",
+        "forms": [
+          "Schicksal",
+          "Schicksale",
+          "Schicksals"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "II.02",
+        "u": [
+          "tos.text-unit.sid-689b101d0eb2f848e7aaeddf6afe12fc",
+          "tos.text-unit.sid-689b101d0eb2f848e7aaeddf6afe12fc"
+        ],
+        "s": 44,
+        "e": 53,
+        "q": "Schicksal"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "судьба",
+            "forms": [
+              "судьба",
+              "судьбы",
+              "судьбе",
+              "судьбу",
+              "судьбой"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "судьба",
+            "forms": [
+              "судьба",
+              "судьбы",
+              "судьбе",
+              "судьбу",
+              "судьбой"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "fate",
+            "forms": [
+              "fate"
+            ],
+            "basis": "The core uses “fate” for German “Schicksal”, preserving its word in the book."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "fate",
+            "forms": [
+              "fate"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Судьба становится тем, чего хочет воля.",
+        "en": "Fate becomes what the will wills."
+      },
+      "concept": "fate"
+    },
+    {
+      "id": "circle",
+      "original": {
+        "lang": "de",
+        "lemma": "Kreis",
+        "forms": [
+          "Kreis",
+          "Kreise",
+          "Kreisen"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "III.02",
+        "u": [
+          "tos.text-unit.sid-40ae6f1839d679c4a2bfd41534583aa6",
+          "tos.text-unit.sid-40ae6f1839d679c4a2bfd41534583aa6"
+        ],
+        "s": 101,
+        "e": 106,
+        "q": "Kreis"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "круг",
+            "forms": [
+              "круг",
+              "круга",
+              "кругу",
+              "кругом",
+              "круге",
+              "круги"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "круг",
+            "forms": [
+              "круг",
+              "круги"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "circle",
+            "forms": [
+              "circle",
+              "circles"
+            ],
+            "basis": "The core uses “circle” for German “Kreis”, preserving its word in the book."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "circle",
+            "forms": [
+              "circle",
+              "circles"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Круг замыкает путь возвращения.",
+        "en": "The circle closes the path of return."
+      },
+      "concept": "circle"
+    },
+    {
+      "id": "ring",
+      "original": {
+        "lang": "de",
+        "lemma": "Ring",
+        "forms": [
+          "Ring",
+          "Ringe",
+          "Ringes",
+          "Ringen"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.17",
+        "u": [
+          "tos.text-unit.sid-f48512263377ab51fdd46c9397cb9c5d",
+          "tos.text-unit.sid-f48512263377ab51fdd46c9397cb9c5d"
+        ],
+        "s": 68,
+        "e": 74,
+        "q": "Ringen"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "кольцо",
+            "forms": [
+              "кольцо",
+              "кольца",
+              "кольцу",
+              "кольцом",
+              "кольце"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "свертывается",
+            "forms": [
+              "свертывается",
+              "кольцо",
+              "кольца",
+              "кольцу"
+            ],
+            "note": "At the first place (I.17), Antonovsky renders the motion with «свертывается» and gives no separate noun for Ring; later aligned uses include «кольцо», «кольца» and «кольцу»."
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "ring",
+            "forms": [
+              "ring",
+              "rings"
+            ],
+            "basis": "The core uses “ring” for German “Ring”, preserving its word in the book."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "rings",
+            "forms": [
+              "rings",
+              "ring"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Кольца связывают вещи в одном возвращении.",
+        "en": "The rings bind things in one return."
+      },
+      "concept": "ring"
+    },
+    {
+      "id": "wheel",
+      "original": {
+        "lang": "de",
+        "lemma": "Rad",
+        "forms": [
+          "Rad"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.02",
+        "u": [
+          "tos.text-unit.sid-78b5795aca827182f53ba266a3271646",
+          "tos.text-unit.sid-78b5795aca827182f53ba266a3271646"
+        ],
+        "s": 90,
+        "e": 93,
+        "q": "Rad"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "колесо",
+            "forms": [
+              "колесо",
+              "колеса",
+              "колесу",
+              "колесом",
+              "колесе"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "колесо",
+            "forms": [
+              "колесо"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "wheel",
+            "forms": [
+              "wheel"
+            ],
+            "basis": "The core uses “wheel” for German “Rad”, preserving its word in the book."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "wheel",
+            "forms": [
+              "wheel"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Колесо катится из себя самого.",
+        "en": "The wheel rolls from itself."
+      },
+      "concept": "wheel"
+    },
+    {
+      "id": "courage",
+      "original": {
+        "lang": "de",
+        "lemma": "Muth",
+        "forms": [
+          "Muth",
+          "Muthe"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.08",
+        "u": [
+          "tos.text-unit.sid-6ff057cbfa5323c0c554f447ed37cf36",
+          "tos.text-unit.sid-6ff057cbfa5323c0c554f447ed37cf36"
+        ],
+        "s": 53,
+        "e": 57,
+        "q": "Muth"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "мужество",
+            "forms": [
+              "мужество",
+              "мужества",
+              "мужеству",
+              "мужеством"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "мужество",
+            "forms": [
+              "мужество",
+              "мужества",
+              "мужеством"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "courage",
+            "forms": [
+              "courage"
+            ],
+            "basis": "The core uses “courage” for German “Muth”, preserving its word in the book."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "courage",
+            "forms": [
+              "courage"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Мужество прогоняет призраков и хочет смеяться.",
+        "en": "Courage scares away ghosts and wants to laugh."
+      },
+      "concept": "courage"
+    },
+    {
+      "id": "dance",
+      "original": {
+        "lang": "de",
+        "lemma": "Tanz",
+        "forms": [
+          "Tanz",
+          "Tanze",
+          "Tänzen"
+        ],
+        "note": "I.01 «Tänzer» is a related person noun, not an occurrence of Tanz. The first noun use is II.10 «Tanze»; the cited translations read «танец» and “dancing”."
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "II.10",
+        "u": [
+          "tos.text-unit.sid-0f6c11a11a1d3e819814f92e86be76f1",
+          "tos.text-unit.sid-0f6c11a11a1d3e819814f92e86be76f1"
+        ],
+        "s": 286,
+        "e": 291,
+        "q": "Tanze"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "пляска",
+            "forms": [
+              "пляска",
+              "пляски",
+              "пляске",
+              "пляску",
+              "пляской",
+              "плясок",
+              "плясками"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "танец",
+            "forms": [
+              "танец",
+              "танцу",
+              "пляска",
+              "пляски",
+              "пляске",
+              "пляской"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "dance",
+            "forms": [
+              "dance",
+              "dances"
+            ],
+            "basis": "The core uses “dance” for German “Tanz”, preserving its word in the book."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "dancing",
+            "forms": [
+              "dancing",
+              "dance",
+              "dances"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Жизнь есть пляска и игра.",
+        "en": "Life is dance and play."
+      },
+      "concept": "dance"
+    },
+    {
+      "id": "laughter",
+      "original": {
+        "lang": "de",
+        "lemma": "Lachen",
+        "forms": [
+          "Lachen",
+          "Lachens",
+          "Gelächter"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.01",
+        "u": [
+          "tos.text-unit.sid-422a1876f8e691263180e983a5eb96d4",
+          "tos.text-unit.sid-422a1876f8e691263180e983a5eb96d4"
+        ],
+        "s": 20,
+        "e": 26,
+        "q": "Lachen"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "смех",
+            "forms": [
+              "смех",
+              "смеха",
+              "смеху",
+              "смехом",
+              "смехе"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "смехом",
+            "forms": [
+              "смехом",
+              "смех",
+              "смеха",
+              "смеху",
+              "смехе"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "laughter",
+            "forms": [
+              "laughter"
+            ],
+            "basis": "The core uses “laughter” for German “Lachen”, preserving its word in the book."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "laughing",
+            "forms": [
+              "laughing",
+              "laughter"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Смех убивает дух тяжести.",
+        "en": "Laughter kills the spirit of gravity."
+      },
+      "concept": "laughter"
+    },
+    {
+      "id": "memory",
+      "original": {
+        "lang": "de",
+        "lemma": "Gedächtniss",
+        "forms": [
+          "Gedächtniss"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "II.17",
+        "u": [
+          "tos.text-unit.sid-efb0ec8c759eb6bb5552aa6dac24dc1a",
+          "tos.text-unit.sid-efb0ec8c759eb6bb5552aa6dac24dc1a"
+        ],
+        "s": 35,
+        "e": 46,
+        "q": "Gedächtniss"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "память",
+            "forms": [
+              "память",
+              "памяти",
+              "памятью"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "память",
+            "forms": [
+              "память",
+              "памяти"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "memory",
+            "forms": [
+              "memory",
+              "memories"
+            ],
+            "basis": "The core uses “memory” for German “Gedächtniss”, preserving its word in the book."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "memory",
+            "forms": [
+              "memory"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Память хранит то, что жизнь вновь переживает.",
+        "en": "Memory keeps what life lives again."
+      },
+      "concept": "memory"
+    },
+    {
+      "id": "becoming",
+      "original": {
+        "lang": "de",
+        "lemma": "Werden",
+        "forms": [
+          "Werden",
+          "Werdens"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.17",
+        "u": [
+          "tos.text-unit.sid-f48512263377ab51fdd46c9397cb9c5d",
+          "tos.text-unit.sid-f48512263377ab51fdd46c9397cb9c5d"
+        ],
+        "s": 93,
+        "e": 99,
+        "q": "Werden"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "становление",
+            "forms": [
+              "становление",
+              "становления",
+              "становлению",
+              "становлением"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "становлению",
+            "forms": [
+              "становлению",
+              "становление",
+              "становления",
+              "становлением"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "becoming",
+            "forms": [
+              "becoming"
+            ],
+            "basis": "The core uses “becoming” for German “Werden”, preserving its word in the book."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "growth",
+            "forms": [
+              "growth",
+              "becoming"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Мир сворачивается как становление добра через зло и становление цели из случая.",
+        "en": "The world rolls together as becoming: good through evil, purpose out of chance."
+      },
+      "concept": "becoming"
+    },
+    {
+      "id": "bite",
+      "original": {
+        "lang": "de",
+        "lemma": "Biss",
+        "forms": [
+          "Biss",
+          "Bisse",
+          "Bissen"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "III.02",
+        "u": [
+          "tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193",
+          "tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193"
+        ],
+        "s": 67,
+        "e": 72,
+        "q": "Bisse"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "укус",
+            "forms": [
+              "укус",
+              "укуса",
+              "укусом",
+              "укусе"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "откусил",
+            "forms": [
+              "откусил"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "bite",
+            "forms": [
+              "bite",
+              "bites"
+            ],
+            "basis": "The core uses “bite” for German “Biss”, preserving its word in the book."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "bite",
+            "forms": [
+              "bite"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Укус разрывает оцепенение и возвращает пастуха к жизни.",
+        "en": "The bite breaks the spell and returns the shepherd to life."
+      },
+      "concept": "bite"
+    },
+    {
+      "id": "necessity",
+      "original": {
+        "lang": "de",
+        "lemma": "Nothwendigkeit",
+        "forms": [
+          "Nothwendigkeit"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.23",
+        "u": [
+          "tos.text-unit.sid-2c810b780dd774ba2430062b27733b27",
+          "tos.text-unit.sid-2c810b780dd774ba2430062b27733b27"
+        ],
+        "s": 70,
+        "e": 84,
+        "q": "Nothwendigkeit"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "необходимость",
+            "forms": [
+              "необходимость",
+              "необходимости",
+              "необходимостью"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "необходимостью",
+            "forms": [
+              "необходимостью",
+              "необходимость"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "necessity",
+            "forms": [
+              "necessity"
+            ],
+            "basis": "The core uses “necessity” for German “Nothwendigkeit”, preserving its word in the book."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "needful",
+            "forms": [
+              "needful"
+            ]
+          },
+          "avoid": [
+            "needful"
+          ]
+        }
+      },
+      "gloss": {
+        "ru": "Необходимость принадлежит ходу вещей.",
+        "en": "Necessity belongs to the course of things."
+      },
+      "concept": "necessity"
+    },
+    {
+      "id": "conscientious",
+      "original": {
+        "lang": "de",
+        "lemma": "Gewissenhafte",
+        "forms": [
+          "Gewissenhafte",
+          "Gewissenhaften"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "IV.04",
+        "u": [
+          "tos.text-unit.sid-d9cff324f83d18aa21833b1647bf935b",
+          "tos.text-unit.sid-d9cff324f83d18aa21833b1647bf935b"
+        ],
+        "s": 13,
+        "e": 26,
+        "q": "Gewissenhafte"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "совестливый духом",
+            "forms": [
+              "совестливый духом",
+              "совестливого духом"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "совестливый духом",
+            "forms": [
+              "совестливый духом",
+              "совестливого духом"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "the conscientious in spirit",
+            "forms": [
+              "the conscientious in spirit"
+            ],
+            "basis": "The Tree uses this English term by the owner’s choice; the Common 1909 witness reading is retained separately."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "spiritually conscientious one",
+            "forms": [
+              "spiritually conscientious one",
+              "conscientious",
+              "conscientious one"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Совестливый духом исследует пиявку.",
+        "en": "The conscientious in spirit investigates the leech."
+      },
+      "concept": "conscientious"
+    },
+    {
+      "id": "daughters",
+      "original": {
+        "lang": "de",
+        "lemma": "Töchtern der Wüste",
+        "forms": [
+          "Töchtern der Wüste"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "IV.16",
+        "u": [
+          "tos.text-unit.sid-4305bd2014bdb25ae6f537128a5f2f98",
+          "tos.text-unit.sid-4305bd2014bdb25ae6f537128a5f2f98"
+        ],
+        "s": 121,
+        "e": 139,
+        "q": "Töchtern der Wüste"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "дочери пустыни",
+            "forms": [
+              "дочери пустыни",
+              "дочерей пустыни"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "дочери пустыни",
+            "forms": [
+              "дочери пустыни",
+              "дочерей пустыни"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "daughters of the desert",
+            "forms": [
+              "daughters of the desert"
+            ],
+            "basis": "The core uses “daughters of the desert” for German “Töchtern der Wüste”, preserving its word in the book."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "daughters of the desert",
+            "forms": [
+              "daughters of the desert"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Дочери пустыни поют о танце и любви.",
+        "en": "The daughters of the desert sing of dance and love."
+      },
+      "concept": "daughters"
+    },
+    {
+      "id": "disciples",
+      "original": {
+        "lang": "de",
+        "lemma": "Jünger",
+        "forms": [
+          "Jünger",
+          "Jüngern"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.20",
+        "u": [
+          "tos.text-unit.sid-065288ce13c06ca544007a8ae88b452e",
+          "tos.text-unit.sid-065288ce13c06ca544007a8ae88b452e"
+        ],
+        "s": 36,
+        "e": 43,
+        "q": "Jüngern"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "ученики",
+            "forms": [
+              "ученик",
+              "ученики",
+              "учеников",
+              "ученикам",
+              "учениками"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "ученики",
+            "forms": [
+              "ученик",
+              "ученики",
+              "учеников",
+              "ученикам",
+              "учениками"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "disciples",
+            "forms": [
+              "disciples",
+              "disciple"
+            ],
+            "basis": "The core uses “disciples” for German “Jünger”, preserving its word in the book."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "disciples",
+            "forms": [
+              "disciples",
+              "disciple"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Ученики учатся дарящей добродетели.",
+        "en": "The disciples learn the bestowing virtue."
+      },
+      "concept": "disciples"
+    },
+    {
+      "id": "fool",
+      "original": {
+        "lang": "de",
+        "lemma": "Narr",
+        "forms": [
+          "Narr",
+          "Narren",
+          "Narren-Wort"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "III.07",
+        "u": [
+          "tos.text-unit.sid-0aab69eb01e395136fc6f5b1dc5788a8",
+          "tos.text-unit.sid-0aab69eb01e395136fc6f5b1dc5788a8"
+        ],
+        "s": 242,
+        "e": 258,
+        "q": "schäumender Narr"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "шут",
+            "forms": [
+              "шут",
+              "шута",
+              "шутом",
+              "шуту",
+              "шутовское"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "беснующийся шут",
+            "forms": [
+              "беснующийся шут",
+              "беснующегося шута",
+              "шут",
+              "шута",
+              "шутовское"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "fool",
+            "forms": [
+              "fool",
+              "fools",
+              "foaming fool"
+            ],
+            "basis": "The Tree names Zarathustra’s ape as a “fool”; Common’s “foaming fool” is shown at the origin."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "foaming fool",
+            "forms": [
+              "foaming fool",
+              "fool",
+              "fools"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Шут предостерегает Заратустру от города и презирает его жителей.",
+        "en": "The fool warns Zarathustra away from the town and scorns its people."
+      },
+      "concept": "fool"
+    },
+    {
+      "id": "old-woman",
+      "original": {
+        "lang": "de",
+        "lemma": "alte Weiblein",
+        "forms": [
+          "alte Weiblein",
+          "altes Weiblein",
+          "alten Weiblein"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.19",
+        "u": [
+          "tos.text-unit.sid-eee5839951a993354d895868fe0b4da3",
+          "tos.text-unit.sid-eee5839951a993354d895868fe0b4da3"
+        ],
+        "s": 91,
+        "e": 105,
+        "q": "altes Weiblein"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "старушка",
+            "forms": [
+              "старушка",
+              "старушки",
+              "старушке"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "старушка",
+            "forms": [
+              "старушка",
+              "старушки"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "old woman",
+            "forms": [
+              "old woman"
+            ],
+            "basis": "The core uses “old woman” for German “alte Weiblein”, preserving its word in the book."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "old woman",
+            "forms": [
+              "old woman",
+              "old women"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Старушка задаёт вопрос о женщине.",
+        "en": "The old woman asks a question about woman."
+      },
+      "concept": "old-woman"
+    },
+    {
+      "id": "people",
+      "original": {
+        "lang": "de",
+        "lemma": "Volk",
+        "forms": [
+          "Volk",
+          "Volke",
+          "Volkes",
+          "Völker"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.01",
+        "u": [
+          "tos.text-unit.sid-fec3c8ac52ba7999af2cdf7b1a7d394d",
+          "tos.text-unit.sid-fec3c8ac52ba7999af2cdf7b1a7d394d"
+        ],
+        "s": 90,
+        "e": 94,
+        "q": "Volk"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "народ",
+            "forms": [
+              "народ",
+              "народа",
+              "народу",
+              "народом",
+              "народы"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "народа",
+            "forms": [
+              "народа",
+              "народ",
+              "народу",
+              "народом",
+              "народы"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "people",
+            "forms": [
+              "people"
+            ],
+            "basis": "The core uses “people” for German “Volk”, preserving its word in the book."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "people",
+            "forms": [
+              "people"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Народ говорит своим языком добра и зла.",
+        "en": "A people speaks its own language of good and evil."
+      },
+      "concept": "people"
+    },
+    {
+      "id": "sailors",
+      "original": {
+        "lang": "de",
+        "lemma": "Schiffsleute",
+        "forms": [
+          "Schiffsleute",
+          "Schiffsleuten"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "II.18",
+        "u": [
+          "tos.text-unit.sid-e49d93e53abd1afa1d5e59c79aec7ff6",
+          "tos.text-unit.sid-e49d93e53abd1afa1d5e59c79aec7ff6"
+        ],
+        "s": 88,
+        "e": 100,
+        "q": "Schiffsleute"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "корабельщики",
+            "forms": [
+              "корабельщики",
+              "корабельщиков"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "корабельщиков",
+            "forms": [
+              "корабельщиков"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "sailors",
+            "forms": [
+              "sailors"
+            ],
+            "basis": "The core uses “sailors” for German “Schiffsleute”, preserving its word in the book."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "ship’s crew",
+            "forms": [
+              "ship’s crew",
+              "sailors"
+            ]
+          },
+          "avoid": [
+            "ship’s crew"
+          ]
+        }
+      },
+      "gloss": {
+        "ru": "Моряки рассказывают о встреченном ими человеке.",
+        "en": "The sailors tell of the man they met."
+      },
+      "concept": "sailors"
+    },
+    {
+      "id": "saint",
+      "original": {
+        "lang": "de",
+        "lemma": "Heilige",
+        "forms": [
+          "Heilige",
+          "Heiligen"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.01",
+        "u": [
+          "tos.text-unit.sid-795504514178e564b4aa9b94e674d998",
+          "tos.text-unit.sid-795504514178e564b4aa9b94e674d998"
+        ],
+        "s": 17,
+        "e": 24,
+        "q": "Heilige"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "святой",
+            "forms": [
+              "святой",
+              "святого",
+              "святому",
+              "святым",
+              "святом"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "святой",
+            "forms": [
+              "святой",
+              "старец"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "saint",
+            "forms": [
+              "saint"
+            ],
+            "basis": "The core uses “saint” for German “Heilige”, preserving its word in the book."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "saint",
+            "forms": [
+              "saint",
+              "saints"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Святой старец живёт один в лесу.",
+        "en": "The old saint lives alone in the forest."
+      },
+      "concept": "saint"
+    },
+    {
+      "id": "zarathustra",
+      "original": {
+        "lang": "de",
+        "lemma": "Zarathustra",
+        "forms": [
+          "Zarathustra",
+          "Zarathustras"
+        ]
+      },
+      "first": {
+        "w": "also-sprach-zarathustra",
+        "c": "I.01",
+        "u": [
+          "tos.text-unit.sid-5614742e39f2ce0fb4a3cc9789837f46",
+          "tos.text-unit.sid-5614742e39f2ce0fb4a3cc9789837f46"
+        ],
+        "s": 4,
+        "e": 15,
+        "q": "Zarathustra"
+      },
+      "renderings": {
+        "ru": {
+          "tos": {
+            "term": "Заратустра",
+            "forms": [
+              "Заратустра",
+              "Заратустры",
+              "Заратустре",
+              "Заратустру",
+              "Заратустрой"
+            ]
+          },
+          "witness": {
+            "edition": "antonovsky-1913",
+            "term": "Заратустра",
+            "forms": [
+              "Заратустра",
+              "Заратустры",
+              "Заратустре",
+              "Заратустру",
+              "Заратустрой"
+            ]
+          }
+        },
+        "en": {
+          "tos": {
+            "term": "Zarathustra",
+            "forms": [
+              "Zarathustra",
+              "Zarathustra’s"
+            ],
+            "basis": "The core uses “Zarathustra” for German “Zarathustra”, preserving its word in the book."
+          },
+          "witness": {
+            "edition": "common-1909",
+            "term": "Zarathustra",
+            "forms": [
+              "Zarathustra",
+              "Zarathustra’s"
+            ]
+          }
+        }
+      },
+      "gloss": {
+        "ru": "Заратустра покидает гору и идёт к людям.",
+        "en": "Zarathustra leaves the mountain and goes to the people."
+      },
+      "concept": "zarathustra"
+    }
+  ]
+}

@@ -18,6 +18,7 @@ import {corpusAlignmentIssues,externalPlacesIssues} from './fragments.mjs';
 import {objectsIssues,semanticRegistry} from './objects.mjs';
 import {coreIssues,loadCore} from './core.mjs';
 import {citeIssues,readChapter,witnessesIssues} from './witnesses.mjs';
+import {termsIssues} from './terms.mjs';
 
 export const MANIFEST_SCHEMA='tos.bonsai.v1';
 const json=path=>JSON.parse(readFileSync(path,'utf8'));
@@ -120,6 +121,8 @@ export function checkBonsai(root,id,{validator=treeContracts(root),relations,ide
   if(modules.places)problems.push(...placesIssues(modules.places,modules.chronology??null).map(issue=>`places: ${issue}`));
   const chapters=modules.witnesses?loadWitnessChapters(home,manifest):{};
   if(modules.witnesses)problems.push(...witnessesIssues(modules.witnesses,chapters).map(issue=>`witnesses: ${issue}`));
+  // The philological core: each term's first place and the translations' words there (bonsai/lib/terms.mjs).
+  if(modules.terms)problems.push(...termsIssues(modules.terms,chapters).map(issue=>`terms: ${issue}`));
   if(modules.fragments)problems.push(...externalPlacesIssues(modules.fragments).map(issue=>`fragments: ${issue}`));
   if(modules.alignment)problems.push(...corpusAlignmentIssues(modules.alignment).map(issue=>`alignment: ${issue}`));
   let registry=null;

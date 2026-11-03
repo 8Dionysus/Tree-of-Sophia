@@ -38,14 +38,26 @@ one use (term, unit and form), with its grounds and the word's history. The
 assembler attaches each to its use in `semantic-uses.json` and stops when one
 finds no use in the witness, so the corpus reader reads them from the core.
 
+[`assembly-inputs/corrections.json`](assembly-inputs/corrections.json) lists
+the language-review ledgers in application order, with the original
 [`language-corrections-2026-11-02.json`](assembly-inputs/language-corrections-2026-11-02.json)
-is the language review of the reader texts: each entry replaces one whole
-wording where it stands in the assembled core, with the reason in the words of
-Antonovsky 1913 or the first editions. The assembler applies it after the
-verdicts, so the makers' and reviewers' wordings stay in their inputs, and drops
-the generated filler of proposed nodes. `access/web/src/public-research/
-bonsai-language.test.mjs` keeps the words the review took out of the core from
-coming back.
+first, followed by
+[`term-corrections-2026-11-02.json`](assembly-inputs/term-corrections-2026-11-02.json)
+and [`owner-terms-2026-11-02.json`](assembly-inputs/owner-terms-2026-11-02.json),
+which applies the owner's English choices and aligns figure and concept titles.
+The later plain-language and chapter-name ledgers give the reader direct
+wording and name the chapters. The review-language ledger also supplies
+reader-facing wording for selected plain-string review reasons: its explicit
+`scalar_reasons` flag applies only exact matches. The original reviewer
+wording remains in the preserved assembly inputs.
+Each entry replaces a whole reader-text wording in the assembled core;
+paired Russian and English entries stay linked to their matching Russian text,
+while an English-only entry applies to every exact matching English reader
+text. The assembler applies these reviews after the verdicts, so the makers'
+and reviewers' wordings stay in their inputs, and drops the generated filler of
+proposed nodes. Counts in `core.json` retain the Russian totals and report each
+language and ledger separately. `access/web/src/public-research/
+bonsai-language.test.mjs` keeps reviewed-out words from coming back.
 
 
 ## Source-visible additions and stable addresses

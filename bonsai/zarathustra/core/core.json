@@ -37,12 +37,62 @@
   },
   {
    "id": "language-review-20261102",
+   "date": "2026-11-02",
+   "reviewer": "language review by GPT-6.1 Terra (xhigh), admitted by Claude on the operator's request; titles and names corrected by Claude (entries marked by)",
+   "reads": "Reader texts speak with the words of the Russian witness shown beside them (Antonovsky 1913) and of Common 1909 in English; editorial and data-model words leave reader texts; a negation stands only where the book negates.",
+   "corrections": "bonsai/review/zarathustra-graph/graph-words/assembly-inputs/language-corrections-2026-11-02.json",
    "model": "gpt-6.1-terra",
    "effort": "xhigh",
+   "admitted_by": "claude"
+  },
+  {
+   "id": "language-review-term-corrections-2026-11-02",
    "date": "2026-11-02",
-   "admitted_by": "claude",
-   "reads": "Reader texts speak with the words of the Russian witness shown beside them (Antonovsky 1913) and of Common 1909 in English; editorial and data-model words leave reader texts; a negation stands only where the book negates.",
-   "corrections": "bonsai/review/zarathustra-graph/graph-words/assembly-inputs/language-corrections-2026-11-02.json"
+   "reviewer": "Codex, term consistency review",
+   "reads": "Use the registered Tree words, keeping Antonovsky’s term in Russian and the Tree’s selected English term; retain each whole reader wording and its sense.",
+   "corrections": "bonsai/review/zarathustra-graph/graph-words/assembly-inputs/term-corrections-2026-11-02.json"
+  },
+  {
+   "id": "language-review-owner-terms-2026-11-02",
+   "date": "2026-11-02",
+   "reviewer": "Codex, owner term and title alignment",
+   "reads": "Align Tree reader wording and titles with the owner’s English terms and the registered Antonovsky Russian terms; retain witness readings separately.",
+   "corrections": "bonsai/review/zarathustra-graph/graph-words/assembly-inputs/owner-terms-2026-11-02.json"
+  },
+  {
+   "id": "language-review-plain-language-2026-11-02",
+   "date": "2026-11-02",
+   "reviewer": "Codex, on the owner’s request",
+   "reads": "Reader-facing Tree text; retain the witnesses and the distinctions voiced in the book.",
+   "corrections": "bonsai/review/zarathustra-graph/graph-words/assembly-inputs/plain-language-2026-11-02.json"
+  },
+  {
+   "id": "language-review-chapter-names-2026-11-02",
+   "date": "2026-11-02",
+   "reviewer": "Codex, on the owner’s request",
+   "reads": "Name chapters in reader prose using the edition titles.",
+   "corrections": "bonsai/review/zarathustra-graph/graph-words/assembly-inputs/chapter-names-2026-11-02.json"
+  },
+  {
+   "id": "language-review-review-language-2026-11-02",
+   "date": "2026-11-02",
+   "reviewer": "Codex, on the owner’s request",
+   "reads": "Reader-facing summaries of the source review; the original review records remain intact.",
+   "corrections": "bonsai/review/zarathustra-graph/graph-words/assembly-inputs/review-language-2026-11-02.json"
+  },
+  {
+   "id": "language-review-plain-language-finish-2026-11-02",
+   "date": "2026-11-02",
+   "reviewer": "Codex, on the owner’s request",
+   "reads": "Direct reader wording for the remaining forms.",
+   "corrections": "bonsai/review/zarathustra-graph/graph-words/assembly-inputs/plain-language-finish-2026-11-02.json"
+  },
+  {
+   "id": "language-review-review-chapter-names-2026-11-02",
+   "date": "2026-11-02",
+   "reviewer": "Codex, on the owner’s request",
+   "reads": "Name the chapters in reader-facing review reasons; source review text remains intact.",
+   "corrections": "bonsai/review/zarathustra-graph/graph-words/assembly-inputs/review-chapter-names-2026-11-02.json"
   }
  ],
  "files": [
@@ -100,9 +150,127 @@
   "semantic_uses_unknown": 214,
   "place_relations": 7,
   "language_corrections": {
-   "admitted": 1543,
-   "applied": 1543,
+   "admitted": 2604,
+   "applied": 2604,
    "unmatched": 0,
+   "by_language": {
+    "ru": {
+     "admitted": 2604,
+     "applied": 2604,
+     "unmatched": 0
+    },
+    "en": {
+     "admitted": 749,
+     "applied": 749,
+     "unmatched": 0
+    }
+   },
+   "ledgers": [
+    {
+     "ledger": "language-corrections-2026-11-02.json",
+     "ru": {
+      "admitted": 1543,
+      "applied": 1543,
+      "unmatched": 0
+     },
+     "en": {
+      "admitted": 404,
+      "applied": 404,
+      "unmatched": 0
+     }
+    },
+    {
+     "ledger": "term-corrections-2026-11-02.json",
+     "ru": {
+      "admitted": 86,
+      "applied": 86,
+      "unmatched": 0
+     },
+     "en": {
+      "admitted": 96,
+      "applied": 96,
+      "unmatched": 0
+     }
+    },
+    {
+     "ledger": "owner-terms-2026-11-02.json",
+     "ru": {
+      "admitted": 7,
+      "applied": 7,
+      "unmatched": 0
+     },
+     "en": {
+      "admitted": 140,
+      "applied": 140,
+      "unmatched": 0
+     }
+    },
+    {
+     "ledger": "plain-language-2026-11-02.json",
+     "ru": {
+      "admitted": 38,
+      "applied": 38,
+      "unmatched": 0
+     },
+     "en": {
+      "admitted": 86,
+      "applied": 86,
+      "unmatched": 0
+     }
+    },
+    {
+     "ledger": "chapter-names-2026-11-02.json",
+     "ru": {
+      "admitted": 75,
+      "applied": 75,
+      "unmatched": 0
+     },
+     "en": {
+      "admitted": 6,
+      "applied": 6,
+      "unmatched": 0
+     }
+    },
+    {
+     "ledger": "review-language-2026-11-02.json",
+     "ru": {
+      "admitted": 107,
+      "applied": 107,
+      "unmatched": 0
+     },
+     "en": {
+      "admitted": 0,
+      "applied": 0,
+      "unmatched": 0
+     }
+    },
+    {
+     "ledger": "plain-language-finish-2026-11-02.json",
+     "ru": {
+      "admitted": 14,
+      "applied": 14,
+      "unmatched": 0
+     },
+     "en": {
+      "admitted": 17,
+      "applied": 17,
+      "unmatched": 0
+     }
+    },
+    {
+     "ledger": "review-chapter-names-2026-11-02.json",
+     "ru": {
+      "admitted": 734,
+      "applied": 734,
+      "unmatched": 0
+     },
+     "en": {
+      "admitted": 0,
+      "applied": 0,
+      "unmatched": 0
+     }
+    }
+   ],
    "fillers_dropped": 189
   },
   "english_missing": 0

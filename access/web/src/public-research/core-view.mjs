@@ -1,9 +1,21 @@
-import {localeValue,resolveLocale} from './locale.mjs';
+import {keepQuotesOnce} from './quote-once.mjs';
+import {localeText,localeValue,resolveLocale} from './locale.mjs';
+import {chapterTitle} from './fragments.mjs';
+import witnessManifest from '../../../../bonsai/zarathustra/witnesses.json' with {type:'json'};
 import './kernel-cards.css';
+
+// A place of the book is named by its chapter, as the reader's edition titles it.
+const CHAPTERS=new Map((witnessManifest.chapters??[]).map(item=>[item.key,item]));
+function chapterName(key,locale){
+  const chapter=CHAPTERS.get(key),language=resolveLocale(locale);if(!chapter)return key;
+  if(language==='ru'||language==='de'||language==='en')return chapterTitle(chapter,language)||key;
+  const raw=chapter.titles?.en??'',translated=localeText(raw,language);
+  return translated!==raw?translated.replace(/^[IVXLC]+\.\s*/,'').replace(/\.$/,'').trim():chapterTitle(chapter,'en')||key;
+}
 
 const words={
   route:['Исследовательский маршрут','Research route','Ruta de investigación','Forschungsweg','研究路线'],states:['Состояния','States','Estados','Zustände','状态'],transitions:['Переходы','Transitions','Transiciones','Übergänge','过渡'],retiredTransitions:['Прежние переходы','Earlier transitions','Transiciones anteriores','Frühere Übergänge','先前过渡'],
-  'source-visible-stand-proposal':['Предложение стенда','Stand proposal','Propuesta del espacio','Vorschlag des Forschungsraums','研究空间提案'],
+  'source-visible-stand-proposal':['Прочтение Древа','The Tree’s reading','Lectura del Árbol','Lesart des Baumes','智慧之树的解读'],
   essence:['Суть','Essence','Esencia','Wesen','本质'],development:['Развитие','Development','Desarrollo','Entwicklung','发展'],dimensions:['Измерения','Dimensions','Dimensiones','Dimensionen','维度'],links:['Связи','Links','Vínculos','Verbindungen','联系'],witnesses:['Свидетельства','Witnesses','Testimonios','Zeugnisse','文本见证'],
   thesis:['Тезис','Thesis','Tesis','These','论点'],question:['Вопрос','Question','Pregunta','Frage','问题'],answer:['Ответ','Answer','Respuesta','Antwort','回答'],grounds:['Основания','Grounds','Fundamentos','Grundlagen','依据'],consequences:['Следствия','Consequences','Consecuencias','Folgen','后果'],function:['Роль в книге','Role in the book','Papel en el libro','Rolle im Buch','在书中的作用'],
   emergence:['Возникновение','Emergence','Aparición','Entstehung','出现'],movement:['Движение','Movement','Movimiento','Bewegung','演变'],transformation:['Преображение','Transformation','Transformación','Verwandlung','转变'],
@@ -11,13 +23,13 @@ const words={
   reconstruction:['Реконструкция','Reconstruction','Reconstrucción','Rekonstruktion','重构'],text:['По тексту','Textual grounding','Fundamento textual','Textgrundlage','文本依据'],rejected:['Отвергнуто','Rejected','Rechazado','Verworfen','已否决'],held:['Ожидает проверки','Awaiting review','Pendiente de revisión','Prüfung ausstehend','待审核'],confirmed:['Подтверждено','Confirmed','Confirmado','Bestätigt','已确认'],revise:['Исправлено по проверке','Revised after review','Corregido tras revisión','Nach Prüfung überarbeitet','审核后修订'],keep:['Формула сохранена','Formula retained','Fórmula conservada','Formel beibehalten','保留原句'],better:['Формула уточнена','Formula refined','Fórmula precisada','Formel präzisiert','原句已调整'],
   who:['Кто говорит и действует','Who speaks and acts','Quién habla y actúa','Wer spricht und handelt','谁在言说与行动'],position:['Позиция','Position','Posición','Position','立场'],deed:['Поступок','Deed','Acción','Tat','行动'],
   names:['Слова и имена','Words and names','Palabras y nombres','Wörter und Namen','词语与名称'],uses:['Употребления','Uses','Usos','Verwendungen','用法'],beyond:['Другие произведения: ориентиры для дальнейшего исследования','Other works: leads for further research','Otras obras: pistas para investigar','Andere Werke: Hinweise für weitere Forschung','其他作品：后续研究线索'],hypothesis:['Гипотеза','Hypothesis','Hipótesis','Hypothese','假设'],occurrences:['Места в книге','Places in the book','Pasajes del libro','Stellen im Buch','书中段落'],more:['Показать ещё','Show more','Mostrar más','Mehr anzeigen','显示更多'],empty:['Этот раздел ещё не разработан.','This section is not developed yet.','Esta sección aún no está desarrollada.','Dieser Abschnitt ist noch nicht ausgearbeitet.','此部分尚未展开。'],unavailable:['Не удалось загрузить. Повторить','Could not load. Retry','No se pudo cargar. Reintentar','Laden fehlgeschlagen. Erneut versuchen','无法加载。重试'],
-  sharedCitation:['Общее основание показано выше','Shared source shown above','Fuente común arriba','Gemeinsame Quelle oben','共同来源见上文'],scope:['Область','Scope','Ámbito','Geltungsbereich','范围'],conditions:['Условия','Conditions','Condiciones','Bedingungen','条件'],premises:['Посылки','Premises','Premisas','Prämissen','前提'],steps:['Шаги аргумента','Argument steps','Pasos del argumento','Argumentationsschritte','论证步骤'],
+  sharedCitation:['Это место книги приведено выше','This passage is quoted above','Este pasaje se cita más arriba','Diese Stelle ist oben zitiert','这段文字已在上文引用'],quotedAbove:['↑ {0} — приведено выше','↑ {0} — quoted above','↑ {0} — citado más arriba','↑ {0} — oben zitiert','↑ {0} — 已在上文引用'],scope:['Область','Scope','Ámbito','Geltungsbereich','范围'],conditions:['Условия','Conditions','Condiciones','Bedingungen','条件'],premises:['Посылки','Premises','Premisas','Prämissen','前提'],steps:['Шаги аргумента','Argument steps','Pasos del argumento','Argumentationsschritte','论证步骤'],
   read:['Читать','Read','Leer','Lesen','阅读'],compare:['Сопоставить','Compare','Comparar','Vergleichen','比较'],continue:['Продолжить исследование','Continue research','Continuar investigación','Forschung fortsetzen','继续研究'],history:['История','History','Historia','Geschichte','历史'],myWork:['Моя работа','My work','Mi trabajo','Meine Arbeit','我的研究'],workHelp:['Заметка, тезис или возражение к этому предмету','A note, thesis or objection about this subject','Una nota, tesis u objeción sobre este tema','Notiz, These oder Einwand zu diesem Gegenstand','有关此主题的笔记、论点或异议'],relation:['Отношение','Relation','Relación','Beziehung','关系'],figure:['Фигура','Figure','Figura','Figur','形象'],image:['Образ','Image','Imagen','Bild','意象'],interpretation:['Трактовка','Interpretation','Interpretación','Deutung','诠释'],argument:['Аргумент','Argument','Argumento','Argument','论证'],claim:['Утверждение','Claim','Afirmación','Behauptung','主张'],proposal:['Предложение','Proposal','Propuesta','Vorschlag','提议'],openRelation:['Открыть отношение','Open relation','Abrir relación','Beziehung öffnen','打开关系'],researchState:['Состояние исследования','Research status','Estado de la investigación','Forschungsstand','研究状态'],
   narrator:['Рассказчик','Narrator','Narrador','Erzähler','叙述者'],speech:['Речь','Speech','Discurso','Rede','言说'],song:['Песня','Song','Canción','Lied','歌'],quoted:['Цитата в речи','Quoted speech','Cita en el discurso','Zitat in der Rede','话语中的引述'],narration:['Повествование','Narration','Narración','Erzählung','叙述'],dream:['Сон','Dream','Sueño','Traum','梦'],thought:['Мысль','Thought','Pensamiento','Gedanke','思想'],reported:['Переданная речь','Reported speech','Discurso referido','Wiedergegebene Rede','转述'],primary:['Прямой голос','Direct voice','Voz directa','Direkte Stimme','直接声音'],embedded:['Вложенный голос','Embedded voice','Voz insertada','Eingebettete Stimme','嵌入的声音'],imagined:['Воображаемая речь','Imagined speech','Discurso imaginado','Vorgestellte Rede','想象中的言说'],
-  family:['Семейство связи','Relation family','Familia de relación','Beziehungsfamilie','关系类别'],familyStatus:['Предложение стенда','Stand proposal','Propuesta del sitio','Vorschlag des Standes','站点提议'],familyType:['Тип в реестре','Registry type','Tipo en el registro','Registertyp','登记类型'],unmapped:['Точный тип не установлен','Exact type not established','Tipo exacto no establecido','Genauer Typ nicht festgelegt','确切类型尚未确定'],previousFamily:['Предыдущее предложение семейства','Previous family proposal','Propuesta anterior de familia','Früherer Familienvorschlag','先前类别提议'],previousSense:['Прежняя формулировка','Previous wording','Formulación anterior','Frühere Formulierung','先前表述'],figureScope:['Роль в произведении','Role in the work','Papel en la obra','Rolle im Werk','作品中的角色'],voiceScope:['Голос в указанном отрывке','Voice in the indicated passage','Voz en el pasaje indicado','Stimme in der angegebenen Passage','所示段落中的声音'],narratorRole:['Роль рассказчика в произведении; личность не установлена','Narrator role in the work; identity not established','Papel de narrador; identidad no establecida','Erzählerrolle; Identität nicht festgestellt','叙述角色；身份未确定'],figureCandidate:['Кандидат на фигуру произведения','Candidate work figure','Figura candidata de la obra','Kandidat einer Werkfigur','作品人物候选'],unknownIdentity:['Личность говорящего не установлена','Speaker identity not established','Identidad del hablante no establecida','Identität des Sprechers nicht festgestellt','说话者身份未确定'],acts:['Действует','Acts','Actúa','Handelt','行动'],addressed:['Адресат','Addressee','Destinatario','Adressat','受话者'],speaks:['Говорит','Speaks','Habla','Spricht','言说'], 'spoken-of':['О ком говорят','Spoken of','Mencionado','Gegenstand der Rede','被提及'],
+  family:['Семейство связи','Relation family','Familia de relación','Beziehungsfamilie','关系类别'],familyStatus:['Прочтение Древа','The Tree’s reading','Lectura del Árbol','Lesart des Baumes','智慧之树的解读'],familyType:['Тип в реестре','Registry type','Tipo en el registro','Registertyp','登记类型'],unmapped:['Точный тип не установлен','Exact type not established','Tipo exacto no establecido','Genauer Typ nicht festgelegt','确切类型尚未确定'],previousFamily:['Предыдущее предложение семейства','Previous family proposal','Propuesta anterior de familia','Früherer Familienvorschlag','先前类别提议'],previousSense:['Прежняя формулировка','Previous wording','Formulación anterior','Frühere Formulierung','先前表述'],figureScope:['Роль в произведении','Role in the work','Papel en la obra','Rolle im Werk','作品中的角色'],voiceScope:['Голос в указанном отрывке','Voice in the indicated passage','Voz en el pasaje indicado','Stimme in der angegebenen Passage','所示段落中的声音'],narratorRole:['Роль рассказчика в произведении; личность не установлена','Narrator role in the work; identity not established','Papel de narrador; identidad no establecida','Erzählerrolle; Identität nicht festgestellt','叙述角色；身份未确定'],figureCandidate:['Кандидат на фигуру произведения','Candidate work figure','Figura candidata de la obra','Kandidat einer Werkfigur','作品人物候选'],unknownIdentity:['Личность говорящего не установлена','Speaker identity not established','Identidad del hablante no establecida','Identität des Sprechers nicht festgestellt','说话者身份未确定'],acts:['Действует','Acts','Actúa','Handelt','行动'],addressed:['Адресат','Addressee','Destinatario','Adressat','受话者'],speaks:['Говорит','Speaks','Habla','Spricht','言说'], 'spoken-of':['О ком говорят','Spoken of','Mencionado','Gegenstand der Rede','被提及'],
   semanticUses:['Смысловые употребления','Contextual uses','Usos contextuales','Kontextuelle Verwendungen','语境用法'],semanticScope:['Слова подобраны по совпадению словоформ или как ориентир для исследования. Группы относятся к указанным местам; не все употребления слова автоматически относятся к этому предмету.','Words are selected by matching forms or as research leads. Groups concern the cited passages; not every use of the word automatically concerns this subject.','Las palabras se seleccionan por formas coincidentes o como pistas; no todo uso concierne automáticamente a este tema.','Wörter werden über Wortformen oder als Forschungshinweise ausgewählt; nicht jede Verwendung betrifft automatisch diesen Gegenstand.','词语依据词形或研究线索选择；并非每次用法都自动属于此主题。'],unknownUses:['Места без рассмотренного значения','Places with unassessed meaning','Pasajes sin significado examinado','Stellen ohne geprüfte Bedeutung','含义尚未审查的段落'],via:['Через','Via','Por medio de','Über','经由'],
   formulaReview:['Как выбрана формула','How the formula was chosen','Cómo se eligió la fórmula','Wie die Formel gewählt wurde','原句如何选定'],madeBy:['Предложил','Proposed by','Propuesto por','Vorgeschlagen von','提出者'],checkedBy:['Проверил','Checked by','Revisado por','Geprüft von','审核者'],samePlace:['То же место книги','The same place in the book','El mismo lugar del libro','Dieselbe Stelle des Buches','书中同一处'],
-  proposalReading:['Результат рассмотрения','Reading result','Resultado de la lectura','Ergebnis der Lektüre','阅读结果'],readingLimit:['Границы прочтения','Limits of the reading','Límites de la lectura','Grenzen der Deutung','解读范围'],relatedSubject:['Связанный предмет','Related subject','Tema relacionado','Verwandter Gegenstand','相关主题'],method:['Исследовательский приём','Research method','Método de investigación','Untersuchungsmethode','研究方法'],methodEpisode:['От разбора к приёму','From reading to method','De la lectura al método','Von der Lektüre zur Methode','从阅读到方法'],previousTitle:['Прежнее название','Previous title','Título anterior','Früherer Titel','先前标题'],
+  proposalReading:['Прочтение','Reading','Lectura','Lesart','解读'],readingLimit:['Границы прочтения','Limits of the reading','Límites de la lectura','Grenzen der Deutung','解读范围'],relatedSubject:['Связанный предмет','Related subject','Tema relacionado','Verwandter Gegenstand','相关主题'],method:['Исследовательский приём','Research method','Método de investigación','Untersuchungsmethode','研究方法'],methodEpisode:['От разбора к приёму','From reading to method','De la lectura al método','Von der Lektüre zur Methode','从阅读到方法'],previousTitle:['Прежнее название','Previous title','Título anterior','Früherer Titel','先前标题'],
 };
 const langs=['ru','en','es','de','zh-Hans'];
 const el=(tag,cls='',text)=>{const node=document.createElement(tag);node.className=cls;if(text!==undefined)node.textContent=text;return node;};
@@ -37,6 +49,8 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
   const tr=value=>localeValue(value,locale());
   const t=key=>words[key]?.[Math.max(0,langs.indexOf(resolveLocale(locale())))]??key;
   const name=id=>tr(core.records[id]?.title)||(id==='narrator'?t('narrator'):id);
+  // A voice is named by its figure; a voice the core does not name speaks without a label.
+  const speakerName=id=>tr(core.records[id]?.title)||(id==='narrator'?t('narrator'):'');
   const status=(parent,value)=>{if(value)parent.append(el('small','ps-core-status',t(value)));};
   function form(parent,value,seen=null){
     if(!value||filler(value))return;
@@ -61,7 +75,7 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
   }
   function voice(parent,value){
     if(!value)return;
-    const parts=[name(value.speaker),value.mode&&t(value.mode),value.layer&&t(value.layer),value.via&&name(value.via)].filter(Boolean);
+    const parts=[speakerName(value.speaker),value.mode&&t(value.mode),value.layer&&t(value.layer),value.via&&speakerName(value.via)].filter(Boolean);
     parent.append(el('p','ps-core-voice',parts.join(' · ')));
   }
   function voiceDescriptor(parent,descriptor){
@@ -122,8 +136,7 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
     fold(parent,label,body=>{
       const a=record.assessment??{};status(body,a.verdict);
       if(a.reason)form(body,a.reason);
-      const hands=[record.maker&&`${t('madeBy')}: ${record.maker}`,a.reviewer&&`${t('checkedBy')}: ${a.reviewer}`].filter(Boolean);
-      if(hands.length)body.append(el('p','muted ps-core-hands',hands.join(' · ')));
+      // Who made and checked a record is kept in the data for its history; a reader sees what was found.
       if(a.counter_reading){section(body,'counter',a.counter_reading);for(const cite of a.counter_reading.grounds??[])body.append(fragments.fragment(cite));}
       if(proposed)fold(body,t('original'),box=>original(box,proposed,record.cite));
     });
@@ -175,9 +188,9 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
     });
   }
   function witnesses(parent,record){
-    for(const item of record.appearances??[])fold(parent,`${item.cite.c} · ${tr(item.line)}`,box=>{if(item.role)box.append(el('p','ps-core-voice',`${t('figureScope')}: ${t(item.role)}`));form(box,{...item.line,cite:[item.cite],status:item.status});appearanceVoices(box,item,record);});
-    for(const item of record.voice??[])fold(parent,`${item.cite.c} · ${name(item.speaker)} · ${tr(item.line)}`,box=>{voice(box,item);form(box,{...item.line,cite:[item.cite],status:item.status});});
-    for(const item of record.conception?.formulas??[])fold(parent,`${item.cite.c} · ${tr(item.why)}`,box=>{formula(box,item);review(box,item,t('formulaReview'));});
+    for(const item of record.appearances??[])fold(parent,`${chapterName(item.cite.c,locale())} · ${tr(item.line)}`,box=>{if(item.role)box.append(el('p','ps-core-voice',`${t('figureScope')}: ${t(item.role)}`));form(box,{...item.line,cite:[item.cite],status:item.status});appearanceVoices(box,item,record);});
+    for(const item of record.voice??[])fold(parent,[chapterName(item.cite.c,locale()),speakerName(item.speaker),tr(item.line)].filter(Boolean).join(' · '),box=>{voice(box,item);form(box,{...item.line,cite:[item.cite],status:item.status});});
+    for(const item of record.conception?.formulas??[])fold(parent,`${chapterName(item.cite.c,locale())} · ${tr(item.why)}`,box=>{formula(box,item);review(box,item,t('formulaReview'));});
     for(const item of record.questions??[])fold(parent,tr(item.question),box=>{form(box,item.answer);status(box,item.status);});
     const names=record.lexicon??record.names;
     if(names)fold(parent,t('names'),box=>{for(const [language,items]of Object.entries(names)){if(!['de','ru','en'].includes(language)||!Array.isArray(items))continue;box.append(el('h3','minor-title',language.toUpperCase()));box.append(el('p','',items.filter(item=>typeof item?.form==='string').map(item=>`${item.form} (${item.count})`).join(' · ')));}});
@@ -189,7 +202,7 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
       const load=async()=>{try{
         const data=await loader(),items=Array.isArray(data)?data:data.occurrences??[];box.replaceChildren();let offset=0;
         const more=button(t('more'),()=>page());
-        const page=()=>{more.remove();for(const item of items.slice(offset,offset+20))fold(box,`${item.cite.c} · ${name(item.speaker)} · ${item.form??''}`,body=>{voice(body,item);form(body,{...item.line,cite:[item.cite]});});offset+=20;if(offset<items.length)box.append(more);};page();
+        const page=()=>{more.remove();for(const item of items.slice(offset,offset+20))fold(box,[chapterName(item.cite.c,locale()),speakerName(item.speaker),item.form].filter(Boolean).join(' · '),body=>{voice(body,item);form(body,{...item.line,cite:[item.cite]});});offset+=20;if(offset<items.length)box.append(more);};page();
       }catch{box.replaceChildren(button(t('unavailable'),load));}};void load();
     });
     if(record.cite)form(parent,{cite:[record.cite]});
@@ -252,12 +265,12 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
       for(const field of ['thesis','who','position','answer','grounds','consequences','deed','function'])section(body,field,field===lead?(essence[field]?.cite?{cite:essence[field].cite}:null):essence[field],seen);
       if(kind(record)==='argument')for(const field of ['premises','steps'])section(body,field,record[field]??essence[field],seen);
       if(kind(record)==='claim')for(const field of ['scope','conditions'])section(body,field,record[field]??essence[field],seen);
-      for(const counter of record.counter_voices??[])fold(body,`${t('counter')} · ${name(counter.speaker)}`,box=>{voice(box,counter.voice??{speaker:counter.speaker});form(box,{...counter.line,cite:[counter.cite],status:counter.status});section(box,'reply',counter.reply);});
+      for(const counter of record.counter_voices??[])fold(body,[t('counter'),speakerName(counter.speaker)].filter(Boolean).join(' · '),box=>{voice(box,counter.voice??{speaker:counter.speaker});form(box,{...counter.line,cite:[counter.cite],status:counter.status});section(box,'reply',counter.reply);});
       if(record.reading?.reading){
         for(const cite of record.reading.grounds??[])body.append(fragments.fragment(cite));
         section(body,'readingLimit',record.reading.limit);
         if(record.reading.related_existing&&core.records[record.reading.related_existing])body.append(button(`${t('relatedSubject')}: ${name(record.reading.related_existing)}`,()=>onNode?.(core.materialIds[record.reading.related_existing]),'connection-target'));
-        const review=record.reading.independent_review;if(review)fold(body,t('review'),box=>{status(box,review.verdict);if(review.reviewer)box.append(el('p','muted',review.reviewer));});
+        const review=record.reading.independent_review;if(review)fold(body,t('review'),box=>{status(box,review.verdict);});
       }
     }
     if(key==='development'){
@@ -268,7 +281,7 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
       }
     }
     if(key==='dimensions')for(const item of record.dimensions??[]){const box=el('section','ps-core-section');box.append(el('h3','minor-title',tr(item.name)));form(box,item);body.append(box);}
-    if(key==='links')for(const item of core.links.filter(link=>link.from===id||link.to===id).sort((a,b)=>(a.order??0)-(b.order??0))){
+    if(key==='links')for(const item of core.links.filter(link=>(link.from===id||link.to===id)&&link.admission!=='rejected').sort((a,b)=>(a.order??0)-(b.order??0))){
       const other=item.from===id?item.to:item.from;
       fold(body,`${item.from===id?'→':'←'} ${tr(item.verb)} · ${name(other)}${item.admission==='rejected'?` · ${t('rejected')}`:''}`,box=>{
         if(onRelation)box.append(button(t('openRelation'),()=>onRelation(item.id),'ps-kernel-action'));
@@ -276,8 +289,9 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
       });
     }
     if(key==='witnesses')witnesses(body,record);
-    if(!body.childElementCount)body.append(el('p','muted',t('empty')));
   }
+  // A part of the card speaks only when it has something to say: an empty part is left out, its tab and its heading too.
+  const filledKeys=(keys,record,id,lead)=>keys.filter(key=>{if(key==='essence')return true;const probe=el('div');sections(probe,key,record,id,lead);return probe.childElementCount>0;});
   function node(parent,id,{reference=false}={}){
     const record=core.records[id];if(!record)return false;
     const essence=record.conception??record.essence??{},root=el('article',reference?'ps-core-card ps-kernel-reference':'ps-core-card');root.dataset.coreId=id;parent.append(root);
@@ -293,7 +307,8 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
     actions(root,record,'node',reference?null:()=>showLinks?.());
     formula(root,essence.formula??essence.formulas?.[0],tr(short));
     if(reference){
-      for(const key of keys){const part=el('section','ps-kernel-reference-section');part.append(el('h3','ps-kernel-section-title',t(key)));const content=el('div');sections(content,key,record,id,lead);part.append(content);root.append(part);}
+      for(const key of keys){const content=el('div');sections(content,key,record,id,lead);if(!content.childElementCount)continue;const part=el('section','ps-kernel-reference-section');part.append(el('h3','ps-kernel-section-title',t(key)),content);root.append(part);}
+      keepQuotesOnce(root,{label:source=>t('quotedAbove').replace('{0}',`«${source.split(' · ')[0]}»`)});
     }else{
       const tabs=el('div','ps-core-tabs'),body=el('section','ps-core-pane'),instance=++serial;tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label',name(id));body.setAttribute('role','tabpanel');
       const draw=key=>{
@@ -302,10 +317,11 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
         body.setAttribute('aria-labelledby',`core-tab-${instance}-${key}`);body.id=`core-pane-${instance}-${key}`;
         sections(body,key,record,id,lead);
       };
-      showLinks=()=>draw('links');
-      for(const key of keys){const tab=button(t(key),()=>draw(key));tab.dataset.tab=key;tab.id=`core-tab-${instance}-${key}`;tab.setAttribute('role','tab');tab.setAttribute('aria-controls',`core-pane-${instance}-${key}`);tabs.append(tab);}
-      tabs.addEventListener('keydown',event=>{const index=[...tabs.children].indexOf(document.activeElement);if(index<0)return;const next=event.key==='ArrowRight'?(index+1)%keys.length:event.key==='ArrowLeft'?(index+keys.length-1)%keys.length:event.key==='Home'?0:event.key==='End'?keys.length-1:null;if(next===null)return;event.preventDefault();event.stopPropagation();draw(keys[next]);tabs.children[next].focus();});
-      root.append(tabs,body);draw(record.chainId?'witnesses':'essence');
+      const shown=filledKeys(keys,record,id,lead);
+      showLinks=()=>draw(shown.includes('links')?'links':'essence');
+      for(const key of shown){const tab=button(t(key),()=>draw(key));tab.dataset.tab=key;tab.id=`core-tab-${instance}-${key}`;tab.setAttribute('role','tab');tab.setAttribute('aria-controls',`core-pane-${instance}-${key}`);tabs.append(tab);}
+      tabs.addEventListener('keydown',event=>{const index=[...tabs.children].indexOf(document.activeElement);if(index<0)return;const next=event.key==='ArrowRight'?(index+1)%shown.length:event.key==='ArrowLeft'?(index+shown.length-1)%shown.length:event.key==='Home'?0:event.key==='End'?shown.length-1:null;if(next===null)return;event.preventDefault();event.stopPropagation();draw(shown[next]);tabs.children[next].focus();});
+      root.append(tabs,body);draw(record.chainId&&shown.includes('witnesses')?'witnesses':'essence');
     }
     history(root,record);personal(root,record,'node');return true;
   }

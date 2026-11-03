@@ -51,11 +51,14 @@ const BONSAI={
   zarathustra:Object.freeze({manifest:zarathustraManifest}),
 };
 const loading=new Map();
+// A stand's philological core (bonsai/<stand>/terms.json) comes with it where the stand keeps one.
+const TERMS=import.meta.glob('../../../../bonsai/*/terms.json',{import:'default'});
+const termsOf=profile=>TERMS[`../../../../bonsai/${profile}/terms.json`]?.()??Promise.resolve(null);
 
 /** Load a stand's bonsai modules once; later calls share the same load. */
 export function loadBonsai(profile){
   if(!LOADERS[profile])return Promise.resolve(null);
-  if(!loading.has(profile))loading.set(profile,LOADERS[profile]().then(modules=>(BONSAI[profile]=Object.freeze({...BONSAI[profile],...modules}))).catch(error=>{loading.delete(profile);throw error;}));
+  if(!loading.has(profile))loading.set(profile,Promise.all([LOADERS[profile](),termsOf(profile)]).then(([modules,terms])=>(BONSAI[profile]=Object.freeze({...BONSAI[profile],...modules,terms}))).catch(error=>{loading.delete(profile);throw error;}));
   return loading.get(profile);
 }
 

@@ -727,3 +727,24 @@
 #tree .tree-cluster[data-variant=facet][data-tone=heading]{border:0;background:none;box-shadow:none;padding:0;cursor:default}
 #tree .tree-cluster[data-variant=facet][data-tone=heading] .cluster-title{font:600 9.5px/1 var(--ps-sans);letter-spacing:.12em;text-transform:uppercase;color:#8ea2ba}
 #tree .tree-cluster[data-variant=facet][data-tone=heading] .cluster-title::before{content:none}
+
+/* ── active terms: a word of the stand's philological core opens on its origin ── */
+.ps-term{border-bottom:1px dotted #c9ad73a6;color:inherit;cursor:pointer;text-decoration:none;transition:border-color .15s,color .15s}
+.ps-term:hover,.ps-term[aria-expanded=true]{border-bottom-color:#e4cb8b;border-bottom-style:solid;color:#f3e6c6}
+.ps-term:focus-visible{outline:2px solid #e4cb8b;outline-offset:2px;border-radius:2px}
+.ps-term-card{position:fixed;z-index:60;left:0;top:0;box-sizing:border-box;display:grid;gap:8px;max-width:calc(100vw - 16px);padding:12px 14px 12px;border:1px solid #c9ad7352;border-radius:8px;background:linear-gradient(170deg,#0b1729f7,#070f1bfa);backdrop-filter:blur(16px);box-shadow:0 16px 44px #000c;color:#d6dfeb;font:13px/1.45 system-ui,-apple-system,'Segoe UI',sans-serif;animation:ps-term-in .14s ease-out}
+.ps-term-card[hidden]{display:none}
+.ps-term-card p{margin:0}
+.ps-term-eyebrow{display:block;margin-bottom:2px;color:#8ea2ba;font:600 9.5px/1.4 system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase}
+.ps-term-lemma{color:#f3e6c6;font:italic 400 20px/1.25 Sophia,Georgia,'Times New Roman',serif}
+.ps-term-witness{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-top:6px;border-top:1px solid #8296b22b}
+.ps-term-word{color:#eef0f3;font:400 15px/1.3 Sophia,Georgia,'Times New Roman',serif}
+.ps-term-witness.is-tree .ps-term-word{color:#e3cf9e}
+.ps-term-source{flex:none;color:#93a5b9;font-size:11.5px;text-align:right}
+.ps-term-gloss{color:#c3cfdb;font:14px/1.5 Sophia,Georgia,'Times New Roman',serif}
+.ps-term-first q{color:#b9c6d5;font:italic 13.5px/1.45 Sophia,Georgia,'Times New Roman',serif}
+.ps-term-open{justify-self:start;min-height:32px;margin-top:2px;padding:0 12px;border:1px solid #c9ad7370;border-radius:5px;background:#d0b77b1c;color:#f0dfb8;font:600 12px/1 system-ui,sans-serif;cursor:pointer}
+.ps-term-open:hover{background:#d0b77b33}
+.ps-term-open:focus-visible{outline:2px solid #e4cb8b;outline-offset:2px}
+@keyframes ps-term-in{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.ps-term-card{animation:none}.ps-term{transition:none}}
