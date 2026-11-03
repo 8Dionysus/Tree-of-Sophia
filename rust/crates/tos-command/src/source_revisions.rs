@@ -1214,7 +1214,7 @@ pub(crate) fn validate_readonly_schema(
     refs: &[String],
     root: &str,
     instance: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl RecordSchemaWorker<Identity = tos_foundation::SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
@@ -6073,7 +6073,7 @@ pub(crate) fn schema(
 /// record-owner `source_path`; callers still bind this path to the exact
 /// selected source member while reusing the same worker and read identity.
 pub(crate) fn schema_for_source_path(
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl RecordSchemaWorker<Identity = tos_foundation::SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
     ctx: &impl RecordRead<Identity = tos_foundation::SourceRevision>,
@@ -7837,7 +7837,7 @@ fn public_profile_candidate_with_native_content<I: Copy + Eq>(
 pub fn resolve_record_version(
     ctx: &CommandContext,
     exact: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(JsonValue, String)> {
@@ -8147,7 +8147,7 @@ pub fn resolve_record_version_readonly(
     owner_path: &str,
     limits: ItemLimits,
     exact: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ResolvedRecordVersion> {

@@ -1249,7 +1249,7 @@ fn current_claim_materializations(
 /// The successful output has no production writer or authority lease.
 pub fn run_claim_command(
     ctx: &CommandContext,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCommand> {
@@ -1265,7 +1265,7 @@ pub fn run_claim_command_from_captures(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCommand> {
@@ -1293,7 +1293,7 @@ pub(crate) fn run_claim_command_from_pg_complete_cut(
     cut: &crate::source_cohort::claims::PgCompleteClaimCut,
     catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
     whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCommand> {
@@ -1369,7 +1369,7 @@ pub fn prepare_isolated_claim_creation_from_captures(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCommand> {
@@ -1595,7 +1595,7 @@ fn serialize_claim_creation_from_captures(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
     whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
     deadline: Instant,
@@ -1623,7 +1623,7 @@ fn restore_claim_creation_from_captures(
     original_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     retained: &BTreeMap<String, Vec<u8>>,
     catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
     whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
@@ -1649,7 +1649,7 @@ fn claim_creation_from_captures(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     retained: Option<&BTreeMap<String, Vec<u8>>>,
     catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
     whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
@@ -1701,7 +1701,7 @@ pub(crate) fn claim_creation_from_pg_complete_cut(
     cut: &crate::source_cohort::claims::PgCompleteClaimCut,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
     whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
     deadline: Instant,
@@ -1795,7 +1795,7 @@ fn serialize_claim_creation_preview(
     preview: PreparedCommand,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     retained: Option<&BTreeMap<String, Vec<u8>>>,
     catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
     whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
@@ -2004,7 +2004,7 @@ fn check_claim_capture(
     home: &RelativePath,
     files: &BTreeMap<String, Vec<u8>>,
     allowed_procedures: &[&str],
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
@@ -2076,15 +2076,17 @@ fn check_claim_capture(
 /// retained bytes and the original selected cut; it never reuses an in-memory
 /// event as a write grant. The schema child is finalized before filesystem
 /// locking or publication on both paths.
-pub fn execute_isolated_claim_creation_from_captures(
+pub fn execute_isolated_claim_creation_from_captures<
+    W: crate::source_creation::CreationSchemaExecutor,
+>(
     filesystem: &crate::source_creation_store::CreationFilesystem,
     ctx: &CommandContext,
     original_cut: &CorpusCutReader,
     current_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
-    mut current_worker: Option<&mut CutWorkerSchemaExecutor>,
+    worker: &mut W,
+    mut current_worker: Option<&mut W>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(
@@ -2175,7 +2177,7 @@ pub fn execute_isolated_claim_creation_from_captures(
                     .ok_or(SourceCommandError::Unsupported(
                         "reference Claim replay requires selected current schema worker",
                     ))?;
-            if current_worker.source_revision() != current_context.base_revision {
+            if current_worker.selected_source_revision() != Some(current_context.base_revision) {
                 return Err(SourceCommandError::Conflict(
                     "reference Claim replay worker cut differs",
                 ));
@@ -2311,7 +2313,7 @@ fn checked_isolated_claim_revision(
     current_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<CheckedClaimRevision> {
@@ -2450,7 +2452,7 @@ pub fn prepare_isolated_claim_revision_from_captures(
     current_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCommand> {
@@ -2482,7 +2484,7 @@ pub fn execute_isolated_claim_revision_from_captures(
     current_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(
@@ -2548,7 +2550,7 @@ fn reference_replay_snapshot(
     cut: &CorpusCutReader,
     config: &JsonValue,
     request: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
     whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
     deadline: Instant,
@@ -2912,7 +2914,7 @@ fn run_claim_command_inner(
     selected_package: Option<&BTreeMap<String, Vec<u8>>>,
     whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
     serialize_creation: bool,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCommand> {
@@ -2940,7 +2942,7 @@ fn run_claim_command_inner_with_members(
     whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
     serialize_creation: bool,
     complete_members: Option<&[SourceFile]>,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCommand> {
@@ -2962,7 +2964,7 @@ fn run_claim_command_inner_with_members(
         ));
     }
     let (config, p, handler, create, version) = config(ctx)?;
-    if executor.source_revision() != ctx.base_revision {
+    if executor.selected_source_revision() != Some(ctx.base_revision) {
         return Err(SourceCommandError::Conflict(
             "Claim schema worker cut differs from command base",
         ));
@@ -5307,7 +5309,7 @@ fn retained_value_bytes(value: &JsonValue) -> SourceCommandResult<usize> {
 impl RetainedProfileRead {
     fn new(
         ctx: &CommandContext,
-        executor: &mut CutWorkerSchemaExecutor,
+        executor: &mut impl crate::source_creation::CreationSchemaExecutor,
         deadline: Instant,
         cancelled: &AtomicBool,
         catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
@@ -5326,7 +5328,7 @@ impl RetainedProfileRead {
 
     fn new_with_complete_members(
         ctx: &CommandContext,
-        executor: &mut CutWorkerSchemaExecutor,
+        executor: &mut impl crate::source_creation::CreationSchemaExecutor,
         deadline: Instant,
         cancelled: &AtomicBool,
         catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
@@ -5665,7 +5667,7 @@ impl RetainedProfileRead {
 }
 pub(crate) fn maintained_inventory(
     ctx: &CommandContext,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<MaintainedInventory> {
@@ -5787,7 +5789,7 @@ pub(crate) fn maintained_inventory_from_members(
 pub(crate) fn maintained_global_claim_inventory_from_members(
     ctx: &CommandContext,
     complete_authored_members: &[SourceFile],
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<MaintainedInventory> {
@@ -5875,7 +5877,7 @@ pub(crate) struct AgentInventoryMembers<'a> {
 pub(crate) fn agent_inventory_members<'a>(
     ctx: &'a CommandContext,
     inventory: &'a MaintainedInventory,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<AgentInventoryMembers<'a>> {
@@ -5895,7 +5897,7 @@ pub(crate) fn agent_inventory_members<'a>(
 /// and schema inputs needed by the owner.
 pub(crate) fn agent_inventory_members_without_evidence<'a>(
     ctx: &'a CommandContext,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<AgentInventoryMembers<'a>> {
@@ -5914,7 +5916,7 @@ fn agent_inventory_members_from_evidence<'a>(
     ctx: &'a CommandContext,
     events: &'a JsonValue,
     anchors: &'a JsonValue,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<AgentInventoryMembers<'a>> {
@@ -5972,7 +5974,7 @@ pub(crate) fn agent_inventory_contribution(
     file: &SourceFile,
     inventory: &MaintainedInventory,
     grouped: &AgentInventoryMembers<'_>,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -6162,7 +6164,7 @@ pub(crate) fn prepare_agent_inventory_assessment_profile(
     source_revision: tos_foundation::SourceRevision,
     effective_uid: u64,
     schema_source_path: &str,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<AgentInventoryAssessmentProfile> {
@@ -6452,7 +6454,7 @@ pub(crate) fn render_agent_inventory_member(
     events: impl IntoIterator<Item = SourceCommandResult<AgentInventoryEvidenceRow>>,
     anchors: impl IntoIterator<Item = SourceCommandResult<AgentInventoryEvidenceRow>>,
     mut contains_member: impl FnMut(&str) -> SourceCommandResult<bool>,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     limits: tos_validation::item_rules::ItemLimits,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -7661,7 +7663,7 @@ fn maintained_grounding(
     allow_existing: bool,
     prepared_inventory: Option<RetainedGroundingInput>,
     retained_profile_bindings: &BTreeMap<String, (&'static str, JsonValue)>,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ClaimGrounding> {
@@ -8330,7 +8332,7 @@ pub(crate) fn maintained_evidence(
 pub(crate) fn validate_initial_identity_publication_claim(
     ctx: &CommandContext,
     claim: &JsonValue,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<String> {
@@ -8377,7 +8379,7 @@ fn validate_ground(
     config: &JsonValue,
     claim: &JsonValue,
     version: u8,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Option<(&'static str, JsonValue)>> {
@@ -9948,7 +9950,7 @@ fn validate_identity_ground(
     config: &JsonValue,
     claim: &JsonValue,
     reader: &str,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -10579,7 +10581,7 @@ impl PublicExactClaimRead {
         filesystem: &CreationFilesystem,
         ctx: &CommandContext,
         cut: &CorpusCutReader,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut impl crate::source_creation::CreationSchemaExecutor,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Self> {
