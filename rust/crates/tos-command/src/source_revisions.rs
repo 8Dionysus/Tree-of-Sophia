@@ -14,8 +14,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 use tos_foundation::{
-    CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, JsonString, JsonValue, RelativePath,
-    canonical_count_v1, python_strip_unicode16_v1,
+    CanonicalProfile, Digest256, Digest256Hasher, JCS_DIGEST_TAG, JsonLimits, JsonString,
+    JsonValue, RelativePath, canonical_count_v1, jcs_digest_v1, python_strip_unicode16_v1,
+    verify_canonical_digest_v1,
 };
 use tos_source_store::{
     CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1, SourceMembershipV1,
@@ -31,6 +32,48 @@ use tos_validation::source_cut::CandidateCutWorkerSchemaExecutor;
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
 pub(crate) const HISTORY: &str = "source-revision-history.json";
+
+fn request_digest_profiled(request: &JsonValue) -> SourceCommandResult<Digest256> {
+    jcs_digest_v1(
+        request,
+        JsonLimits {
+            max_bytes: 8_388_608,
+            ..JsonLimits::default()
+        },
+    )
+    .map(|digest| digest.digest)
+    .map_err(|_| SourceCommandError::Invalid("source revision request digest input"))
+}
+
+fn verify_request_digest(receipt: &JsonValue, request: &JsonValue) -> SourceCommandResult<bool> {
+    let profile = match receipt.object_get("request_digest_profile") {
+        None => None,
+        Some(value) => {
+            let value = value.as_str().ok_or(SourceCommandError::Invalid(
+                "source revision request digest profile",
+            ))?;
+            if value != JCS_DIGEST_TAG {
+                return Err(SourceCommandError::Invalid(
+                    "source revision request digest profile",
+                ));
+            }
+            Some(value)
+        }
+    };
+    let digest = Digest256::from_prefixed(cmd::text(receipt, "request_digest")?)
+        .map_err(|_| SourceCommandError::Invalid("source revision request digest"))?;
+    verify_canonical_digest_v1(
+        request,
+        profile,
+        CanonicalProfile::SourceCommandInputV1,
+        digest,
+        JsonLimits {
+            max_bytes: 8_388_608,
+            ..JsonLimits::default()
+        },
+    )
+    .map_err(|_| SourceCommandError::Invalid("source revision request digest profile or input"))
+}
 const PROTOCOL: &str = "tos_selected_source_metadata_v1";
 const REGISTRY: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
 const CORPUS_SCHEMA: &str = "ToS/contracts/corpus-record.schema.json";
@@ -2003,6 +2046,9 @@ pub(crate) fn history(files: &Package, record: &JsonValue) -> SourceCommandResul
             "grants_admission",
             "request",
         ];
+        if receipt.object_get("request_digest_profile").is_some() {
+            keys.push("request_digest_profile");
+        }
         if selected {
             keys.push("publication");
         }
@@ -2034,7 +2080,7 @@ pub(crate) fn history(files: &Package, record: &JsonValue) -> SourceCommandResul
         changed.sort();
         let changed = JsonValue::Array(changed.iter().map(|s| cmd::string(s)).collect());
         if !commands.insert(cmd::text(receipt, "command_id")?)
-            || cmd::text(receipt, "request_digest")? != cmd::record_digest(request)?.to_prefixed()
+            || !verify_request_digest(receipt, request)?
             || cmd::field(receipt, "command_id")? != cmd::field(request, "command_id")?
             || !cmd::same(
                 cmd::field(receipt, "previous_source")?,
@@ -3025,8 +3071,9 @@ fn receipt(
         ("command_id", cmd::field(request, "command_id")?.clone()),
         (
             "request_digest",
-            cmd::string(&cmd::record_digest(request)?.to_prefixed()),
+            cmd::string(&request_digest_profiled(request)?.to_prefixed()),
         ),
+        ("request_digest_profile", cmd::string(JCS_DIGEST_TAG)),
         ("principal_id", cmd::field(config, "principal_id")?.clone()),
         (
             "authority_ref",
@@ -5163,9 +5210,7 @@ where
     }
     for receipt in cmd::array(&inspection.history, "receipts")? {
         if cmd::field(receipt, "command_id")? == cmd::field(&request_value, "command_id")? {
-            if cmd::text(receipt, "request_digest")?
-                != cmd::record_digest(&request_value)?.to_prefixed()
-            {
+            if !verify_request_digest(receipt, &request_value)? {
                 return Err(SourceCommandError::Conflict(
                     "command identity reused for another request",
                 ));
@@ -8253,7 +8298,7 @@ where
                     .map_err(|_| SourceCommandError::Invalid("Collection transition conversion"))?;
                 account_conversion(receipt_wire.len())?;
                 let receipt = cmd::parse(&receipt_wire)?;
-                cmd::object(
+                let mut transition = cmd::object(
                     [
                         "command_id",
                         "recorded_at",
@@ -8264,7 +8309,11 @@ where
                     .iter()
                     .map(|key| Ok((*key, cmd::field(&receipt, key)?.clone())))
                     .collect::<SourceCommandResult<Vec<_>>>()?,
-                )
+                );
+                if let Some(profile) = receipt.object_get("request_digest_profile") {
+                    cmd::set(&mut transition, "request_digest_profile", profile.clone())?;
+                }
+                transition
             }
             None => JsonValue::Null,
         };
@@ -8504,7 +8553,7 @@ where
                 "package_revision",
                 cmd::field(receipt, "previous_revision")?.clone(),
             )?;
-            let transition = cmd::object(
+            let mut transition = cmd::object(
                 [
                     "command_id",
                     "recorded_at",
@@ -8516,6 +8565,9 @@ where
                 .map(|key| Ok((*key, cmd::field(receipt, key)?.clone())))
                 .collect::<SourceCommandResult<Vec<_>>>()?,
             );
+            if let Some(profile) = receipt.object_get("request_digest_profile") {
+                cmd::set(&mut transition, "request_digest_profile", profile.clone())?;
+            }
             let selected_archive_bytes = archived
                 .values()
                 .try_fold(0u64, |sum, raw| sum.checked_add(raw.len() as u64))
@@ -9413,5 +9465,48 @@ mod retained_typed_history_prefix_tests {
                 "typed verifier must confirm the retained predecessor prefix: {source_path}"
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod revision_digest_profile_tests {
+    use super::{JCS_DIGEST_TAG, request_digest_profiled, verify_request_digest};
+    use crate::source_command as cmd;
+    use tos_foundation::Digest256;
+
+    #[test]
+    fn revision_request_digest_writes_jcs_and_replays_legacy_with_profile_fence() {
+        let request = cmd::parse(
+            br#"{"operation":"record.revise","command_id":"revision-profile-test","n":1.0}"#,
+        )
+        .unwrap();
+        let jcs = request_digest_profiled(&request).unwrap();
+        let tagged = cmd::object(vec![
+            ("request_digest", cmd::string(&jcs.to_prefixed())),
+            ("request_digest_profile", cmd::string(JCS_DIGEST_TAG)),
+        ]);
+        assert!(verify_request_digest(&tagged, &request).unwrap());
+
+        let old_digest = cmd::record_digest(&request).unwrap();
+        assert_ne!(jcs, old_digest);
+        let legacy = cmd::object(vec![(
+            "request_digest",
+            cmd::string(&old_digest.to_prefixed()),
+        )]);
+        assert!(verify_request_digest(&legacy, &request).unwrap());
+
+        let wrong = cmd::object(vec![
+            ("request_digest", cmd::string(&jcs.to_prefixed())),
+            ("request_digest_profile", cmd::string("source-record-v1")),
+        ]);
+        assert!(verify_request_digest(&wrong, &request).is_err());
+        let mismatched = cmd::object(vec![
+            (
+                "request_digest",
+                cmd::string(&Digest256::of_bytes(b"other").to_prefixed()),
+            ),
+            ("request_digest_profile", cmd::string(JCS_DIGEST_TAG)),
+        ]);
+        assert_eq!(verify_request_digest(&mismatched, &request).unwrap(), false);
     }
 }
