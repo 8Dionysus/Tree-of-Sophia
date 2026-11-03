@@ -1,5 +1,5 @@
 //! Explicit ExpressionEdition owner dispatch under the common protected invocation.
-use super::{absolute, capped, digest, selected_schema, text};
+use super::{absolute, capped, digest, selected_in_process_schema, text};
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
 use crate::source_creation_store::{
     self as owner, CreationFilesystem, ExpressionEditionRecoveryDecision,
@@ -109,7 +109,7 @@ pub(super) fn run(
     } else {
         current
     };
-    let mut worker = selected_schema(invocation, selected, deadline, cancelled)?;
+    let mut worker = selected_in_process_schema(selected, deadline, cancelled)?;
     components
         .members()
         .try_fold(0u64, |sum, member| sum.checked_add(member.size_bytes))
