@@ -941,7 +941,7 @@ impl PreparedCreation {
             if let Some(original) = retained {
                 if let Some(raw) = original.get("source-create-request.json") {
                     let retained_request = cmd::parse(raw)?;
-                    if retained_request != request {
+                    if !cmd::same(&retained_request, &request)? {
                         return Err(SourceCommandError::Conflict(
                             "retained creation request differs",
                         ));
@@ -990,7 +990,7 @@ impl PreparedCreation {
                     SourceCommandError::Conflict("tagged retained receipt lacks request preimage"),
                 )?;
                 let retained_request = cmd::parse(request_raw)?;
-                if retained_request != request {
+                if !cmd::same(&retained_request, &request)? {
                     return Err(SourceCommandError::Conflict(
                         "retained creation request differs",
                     ));
@@ -1041,7 +1041,7 @@ impl PreparedCreation {
                     SourceCommandError::Conflict("retained creation receipt absent"),
                 )?;
                 let original_receipt = cmd::parse(original_receipt_raw)?;
-                if original_receipt != receipt {
+                if !cmd::same(&original_receipt, &receipt)? {
                     return Err(SourceCommandError::Conflict(
                         "retained creation receipt binding differs",
                     ));
