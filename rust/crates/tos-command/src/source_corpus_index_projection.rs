@@ -1,6 +1,6 @@
 //! Compose the maintained Rust ToS corpus families for the standalone native
 //! corpus-index owner. This module owns no invocation, capture, or publication
-//! policy; the caller supplies the exact selected cut, software image, worker,
+//! policy; the caller supplies the exact selected cut, software image,
 //! sealed binding, and private quota-backed stage.
 
 use std::collections::BTreeMap;
@@ -29,8 +29,7 @@ use tos_compiler::{
 };
 use tos_foundation::{Digest256, Digest256Hasher, RelativePath, SourceRevision};
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SourceMembershipV1};
-use tos_validation::executor::{BatchStreamBudget, ExactWorkerIdentity, ExecutorBudget};
-use tos_validation::source_cut::CutWorkerLimits;
+use tos_validation::executor::BatchStreamBudget;
 
 const VOCABULARY_PATH: &str = "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json";
 const ENTITY_TYPES_PATH: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
@@ -353,8 +352,6 @@ pub(crate) struct CorpusIndexProjectionLimits {
     pub repository: RepositorySourceLimits,
     pub canon: CanonSourceLimits,
     pub stage: StageLimits,
-    pub schema_worker: ExecutorBudget,
-    pub schema_worker_limits: CutWorkerLimits,
     pub schema_work: BatchStreamBudget,
     pub originals: tos_compiler::NavigationOriginalLimits,
     pub max_canon_input_bytes: u64,
@@ -704,7 +701,6 @@ pub(crate) fn project(
     software: &SoftwareCaptureReader,
     binding: &SourceBinding,
     root: RepositoryRootInput<'_>,
-    worker: ExactWorkerIdentity,
     limits: CorpusIndexProjectionLimits,
     isolation: &dyn StageIsolation,
     stage_root: &Path,
@@ -778,21 +774,9 @@ pub(crate) fn project(
             "native corpus schema preparation deadline",
         ));
     }
-    let worker_budget = ExecutorBudget {
-        execution_wall: remaining,
-        ..limits.schema_worker
-    };
     let mut schema_work = limits.schema_work;
     schema_work.total_execution_wall = remaining;
-    let validator = SourceCatalogValidator::from_cut(
-        cut,
-        &worker,
-        worker_budget,
-        limits.schema_worker_limits,
-        schema_work,
-        deadline,
-        cancelled,
-    )?;
+    let validator = SourceCatalogValidator::from_in_process_cut(cut, deadline, cancelled)?;
     let catalog_candidate = render_source_bibliographic_plan(
         &catalog_plan,
         cut,

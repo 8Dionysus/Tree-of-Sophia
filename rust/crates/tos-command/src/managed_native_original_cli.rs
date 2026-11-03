@@ -44,7 +44,6 @@ use tos_source_store::{CorpusCutReader, SoftwareComponentSelectionV1};
 use tos_validation::executor::{
     BatchBudget, BatchStreamBudget, ExactWorkerIdentity, ExecutorBudget,
 };
-use tos_validation::source_cut::CutWorkerLimits;
 
 const REQUEST_SCHEMA: &str = "tos_native_managed_original_produce_request_v2";
 const CORPUS_BUILD_REQUEST_SCHEMA: &str = "tos_native_corpus_build_request_v1";
@@ -2593,17 +2592,9 @@ fn source_runtime_plan(
         max_output_bytes: output_cap,
         deadline,
     };
-    let worker_budget = ExecutorBudget {
-        execution_wall: deadline.saturating_duration_since(Instant::now()),
-        cleanup_grace: Duration::from_millis(200),
-        cpu_seconds: source.worker_cpu_seconds,
-        address_space_bytes: source.worker_address_space_bytes,
-    };
-    let worker_limits = CutWorkerLimits {
-        max_receipts: source.max_schema_receipts,
-        max_receipt_bytes: source.max_schema_receipt_bytes,
-    };
-    let batch_wall = worker_budget.execution_wall.min(Duration::from_secs(3600));
+    let batch_wall = deadline
+        .saturating_duration_since(Instant::now())
+        .min(Duration::from_secs(3600));
     if batch_wall.is_zero() {
         return Err(Refusal("native source projection deadline exhausted").into());
     }
@@ -2693,8 +2684,6 @@ fn source_runtime_plan(
             max_seek_rows: row_count.min(1024) as usize,
             max_seek_bytes: output_cap.min(64 * 1024 * 1024),
         },
-        schema_worker: worker_budget,
-        schema_worker_limits: worker_limits,
         schema_work,
         originals: tos_compiler::NavigationOriginalLimits {
             max_rows: row_count.min(original_ceiling.max_rows),
@@ -2947,7 +2936,6 @@ fn project_source_runtime<'a>(
         identity_id,
     };
     let projection_limits = plan.projection;
-    let worker_image = inputs.worker.clone();
     let recheck = || -> tos_compiler::Result<()> {
         if cancelled.load(std::sync::atomic::Ordering::Relaxed)
             || Instant::now() >= deadline
@@ -2973,7 +2961,6 @@ fn project_source_runtime<'a>(
         software,
         &binding,
         root_input,
-        worker_image,
         projection_limits,
         isolation,
         isolation.root(),
@@ -3822,7 +3809,6 @@ pub(crate) fn with_direct_repository_projection<T>(
                         &software,
                         &binding,
                         root_input,
-                        worker.clone(),
                         projection_limits,
                         &isolation,
                         stage_root,
