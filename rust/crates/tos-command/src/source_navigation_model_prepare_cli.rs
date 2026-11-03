@@ -29,9 +29,8 @@ use crate::{
     source_creation_store::active,
 };
 use tos_validation::{
-    FormatProfile,
-    executor::{ExactWorkerIdentity, ExecutorBudget},
-    source_cut::{CutWorkerLimits, CutWorkerSchemaExecutor},
+    FormatProfile, executor::ExactWorkerIdentity, in_process::InputMode,
+    source_cut::InProcessCutSchemaExecutor,
 };
 
 const HOST_FINALIZATION_RESERVE_MS: u64 = 60_000;
@@ -1200,32 +1199,18 @@ fn prepare_initial(
             "source-navigation producer worker differs",
         ));
     }
-    // Recheck the same source schemas and exact worker using the selected
-    // navigation profile. The retained bootstrap invocation has independent
-    // budgets; the generic short-command profile cannot validate this operation.
+    // Recheck the exact source-cut schema closure before and after compilation.
     let recheck_schema = || {
-        CutWorkerSchemaExecutor::from_cut(
+        InProcessCutSchemaExecutor::from_cut(
             original_cut,
             FormatProfile::LegacyPythonObserved20260923,
-            schema_worker_identity.clone(),
-            ExecutorBudget {
-                execution_wall: Duration::from_millis(schema_wall_ms),
-                cleanup_grace: Duration::from_millis(
-                    schema_cleanup_ms.min(ExecutorBudget::MAX_SCALAR_CLEANUP_GRACE_MILLIS),
-                ),
-                cpu_seconds: schema_cpu_seconds,
-                address_space_bytes: schema_address_space,
-            },
-            CutWorkerLimits {
-                max_receipts: schema_max_receipts as usize,
-                max_receipt_bytes: schema_max_receipt_bytes as usize,
-            },
+            InputMode::SerdeNormalized,
             deadline,
             cancelled,
         )
         .map_err(|error| {
             SourceCommandError::DeniedWithReason(format!(
-                "selected initial schema worker verification failed: {error:?}"
+                "selected initial schema preparation failed: {error:?}"
             ))
         })
     };
