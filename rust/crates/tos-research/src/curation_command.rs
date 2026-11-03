@@ -134,7 +134,11 @@ fn select_curation(
     })
 }
 
-fn references(value: &Value, current: &str) -> Result<BTreeSet<String>, String> {
+fn references(
+    value: &Value,
+    current: &str,
+    stage: Option<&str>,
+) -> Result<BTreeSet<String>, String> {
     let mut refs = BTreeSet::new();
     for recipe in value["recipes"]
         .as_array()
@@ -145,6 +149,16 @@ fn references(value: &Value, current: &str) -> Result<BTreeSet<String>, String> 
                 recipe["curation_ref"]
                     .as_str()
                     .ok_or("curation reference required")?
+                    .to_owned(),
+            );
+        }
+        if recipe["stage"] == "paragraph-alignment"
+            && stage.is_none_or(|selected| selected == "paragraph-alignment")
+        {
+            refs.insert(
+                recipe["target_curation_ref"]
+                    .as_str()
+                    .ok_or("paragraph target curation required")?
                     .to_owned(),
             );
         }
@@ -170,6 +184,39 @@ fn references(value: &Value, current: &str) -> Result<BTreeSet<String>, String> 
     }
     refs.remove(current);
     Ok(refs)
+}
+
+#[cfg(test)]
+mod reference_tests {
+    use super::*;
+
+    #[test]
+    fn paragraph_target_reference_is_selected_only_for_its_stage_or_full_validation() {
+        let value = serde_json::json!({"recipes":[{"stage":"paragraph-alignment","target_curation_ref":"target/edition-curation.v1.json"}]});
+        let expected = BTreeSet::from(["target/edition-curation.v1.json".to_owned()]);
+        assert_eq!(
+            references(&value, "current/edition-curation.v1.json", None).unwrap(),
+            expected
+        );
+        assert_eq!(
+            references(
+                &value,
+                "current/edition-curation.v1.json",
+                Some("paragraph-alignment")
+            )
+            .unwrap(),
+            expected
+        );
+        assert!(
+            references(
+                &value,
+                "current/edition-curation.v1.json",
+                Some("tei-technical-markup")
+            )
+            .unwrap()
+            .is_empty()
+        );
+    }
 }
 
 fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
@@ -263,18 +310,19 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
     )
     .map_err(|e| format!("curation schema: {e:?}"))?;
     let selected = select_curation(&ctx, relative, &schema)?;
-    let refs = references(&selected.value, relative)?
+    let refs = references(&selected.value, relative, stage)?
         .into_iter()
         .map(|reference| select_curation(&ctx, &reference, &schema))
         .collect::<Result<Vec<_>, _>>()?;
     let bindings = refs.iter().map(Curation::selected).collect::<Vec<_>>();
     let chosen = selected.selected();
-    edition_curation::validate_bindings(
+    edition_curation::validate_bindings_for_stage(
         chosen.curation,
         chosen.manifest,
         chosen.edition,
         &bindings,
         &schema,
+        stage,
     )
     .map_err(|e| format!("curation binding: {e:?}"))?;
     if let Some(stage) = stage {
@@ -573,6 +621,41 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
             if input_root.is_some() || output_root.is_some() {
                 return Err("paragraph alignment uses selected source custody".into());
             }
+            let target_ref = recipe["target_curation_ref"]
+                .as_str()
+                .ok_or("paragraph target curation required")?;
+            let target_curation = refs
+                .iter()
+                .find(|r| r.reference == target_ref)
+                .ok_or("paragraph target curation missing")?;
+            let structures: Vec<_> = target_curation.value["recipes"]
+                .as_array()
+                .ok_or("target recipes required")?
+                .iter()
+                .filter(|r| r["stage"] == "pdf-structural-paragraph")
+                .collect();
+            if structures.len() != 1 {
+                return Err("target structural recipe must be unique".into());
+            }
+            let structure = structures[0];
+            let target_plan_ref = format!(
+                "{}/plan.v1.json",
+                structure["layout_plan_dir"]
+                    .as_str()
+                    .ok_or("target layout plan directory required")?
+            );
+            let target_plan = ctx.read(&target_plan_ref)?;
+            let target_plan_sha = tos_foundation::Digest256::of_bytes(&target_plan).to_hex();
+            let target_plan_value: Value =
+                serde_json::from_slice(&target_plan).map_err(|e| e.to_string())?;
+            if structure["layout_plan_sha256"] != target_plan_sha
+                || target_plan_value["source_item"]["item_ref"]
+                    != target_curation.value["owner_item_ref"]
+                || target_plan_value["source_item"]["edition_ref"]
+                    != target_curation.value["edition_ref"]
+            {
+                return Err("paragraph target structural plan binding differs".into());
+            }
             let template_ref = recipe["historical_template_ref"]
                 .as_str()
                 .ok_or("paragraph template required")?;
@@ -636,10 +719,14 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
             let mut result = crate::paragraph_alignment::replay_selected(
                 &ctx,
                 recipe,
+                &target_plan_ref,
                 &expected,
                 target.as_ref(),
             )?;
-            if ctx.read(template_ref)? != template || ctx.read(manifest_ref)? != manifest {
+            if ctx.read(template_ref)? != template
+                || ctx.read(manifest_ref)? != manifest
+                || ctx.read(&target_plan_ref)? != target_plan
+            {
                 return Err("paragraph curation inputs changed during replay".into());
             }
             selected.verify_unchanged(&ctx)?;
@@ -650,6 +737,10 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
             result["curation_ref"] = serde_json::json!(relative);
             result["current_curation_sha256"] =
                 serde_json::json!(tos_foundation::Digest256::of_bytes(&owner.raw).to_hex());
+            result["target_curation_sha256"] = serde_json::json!(
+                tos_foundation::Digest256::of_bytes(&target_curation.raw).to_hex()
+            );
+            result["target_plan_sha256"] = serde_json::json!(target_plan_sha);
             result["current_execution_sources"] = serde_json::json!({"paragraph_alignment":tos_foundation::Digest256::of_bytes(include_bytes!("paragraph_alignment.rs")).to_hex(),"paragraph_template":tos_foundation::Digest256::of_bytes(include_bytes!("paragraph_alignment_templates.json")).to_hex()});
             writeln!(out, "{result}").map_err(|error| error.to_string())?;
             return Ok(());

@@ -220,13 +220,7 @@ fn reconstruct_with_policy(repo: &ResearchExecution, policy: &Policy) -> Result<
         "primary mapping census drift",
     )?;
     let de_plan = load(repo, &policy.paths.at(&policy.paths.source, "plan.v1.json"))?;
-    let ru_plan = load(
-        repo,
-        &policy.paths.at(
-            "technical-markup/antonovsky-1911-pdf-layout-v1",
-            "plan.v1.json",
-        ),
-    )?;
+    let ru_plan = load(repo, &policy.paths.target_plan)?;
     let mut de_packets = BTreeMap::new();
     let mut de_units = BTreeMap::new();
     let mut source_anchors = BTreeMap::new();
@@ -725,6 +719,7 @@ struct Paths {
     route: String,
     private: String,
     contract: String,
+    target_plan: String,
 }
 impl Paths {
     fn at(&self, route: &str, name: &str) -> String {
@@ -786,9 +781,13 @@ impl Policy {
             "work_path":BASE,"source_markup":DE,"target_markup":RU,"route":ROUTE,"private_root":PRIVATE,"contract_ref":SCHEMA,
             "output_schema_versions":{"audit":"tos_zarathustra_de_ru_independent_challenger_audit_v1","exclusion":"tos_zarathustra_de_ru_alignment_scope_exclusion_v1","spine":"tos_zarathustra_de_ru_paragraph_alignment_spine_v1","conflict":"tos_zarathustra_de_ru_paragraph_alignment_conflict_v1","reading_diagnostic":"tos_zarathustra_de_ru_paragraph_alignment_reading_diagnostic_v1"}
         });
-        Self::selected(&raw).expect("compiled paragraph compatibility policy")
+        Self::selected(
+            &raw,
+            &format!("{}/plan.v1.json", tos_compiler::antonovsky_structural::V1),
+        )
+        .expect("compiled paragraph compatibility policy")
     }
-    fn selected(recipe: &Value) -> Result<Self> {
+    fn selected(recipe: &Value, target_plan: &str) -> Result<Self> {
         let rules: Vec<PostureRule> = serde_json::from_value(recipe["posture_rules"].clone())
             .map_err(|e| format!("paragraph posture rules: {e}"))?;
         let cross: Vec<CrossKindRisk> = serde_json::from_value(recipe["cross_kind_risks"].clone())
@@ -902,6 +901,7 @@ impl Policy {
             route: s(&recipe["route"])?.to_owned(),
             private: s(&recipe["private_root"])?.to_owned(),
             contract: s(&recipe["contract_ref"])?.to_owned(),
+            target_plan: target_plan.to_owned(),
         };
         for path in [
             &paths.base,
@@ -910,6 +910,7 @@ impl Policy {
             &paths.route,
             &paths.private,
             &paths.contract,
+            &paths.target_plan,
         ] {
             relative(path)?;
         }
@@ -1420,10 +1421,7 @@ fn build_with_policy(
         policy.paths.output("identity-issuance.v1.json"),
         policy.paths.contract.clone(),
         policy.paths.at(&policy.paths.source, "plan.v1.json"),
-        policy.paths.at(
-            "technical-markup/antonovsky-1911-pdf-layout-v1",
-            "plan.v1.json",
-        ),
+        policy.paths.target_plan.clone(),
     ] {
         let raw = bytes(repo, &reference)?;
         static_inputs.insert(reference, json!({"sha256":sha(&raw),"byte_size":raw.len()}));
@@ -1570,8 +1568,13 @@ fn manifest_check(repo: &ResearchExecution, manifest: &Value) -> Result<()> {
 // yet consumed. Remove it after the remaining paragraph parameters migrate.
 const COMPATIBILITY_PROFILE_SHA256: &str =
     "ccd838d0d092fb3b2ed045a1112a78785df936aa7b86a18e9a7a4ca8590d33e7";
-fn compatibility_policy(recipe: &Value) -> Result<Policy> {
-    let policy = Policy::selected(recipe)?;
+fn compatibility_policy(recipe: &Value, target_plan: &str) -> Result<Policy> {
+    // Remove this compatibility guard when the target structural producer moves.
+    ensure(
+        target_plan == format!("{}/plan.v1.json", tos_compiler::antonovsky_structural::V1),
+        "unsupported target structural producer",
+    )?;
+    let policy = Policy::selected(recipe, target_plan)?;
     let mut remaining = recipe.clone();
     let object = remaining
         .as_object_mut()
@@ -1591,6 +1594,7 @@ fn compatibility_policy(recipe: &Value) -> Result<Policy> {
         "private_root",
         "contract_ref",
         "output_schema_versions",
+        "target_curation_ref",
     ] {
         object.remove(key);
     }
@@ -1607,10 +1611,11 @@ fn compatibility_policy(recipe: &Value) -> Result<Policy> {
 pub fn replay_selected(
     repo: &ResearchExecution,
     recipe: &Value,
+    target_plan: &str,
     expected: &BTreeSet<String>,
     target: Option<&ResearchExecution>,
 ) -> Result<Value> {
-    let policy = compatibility_policy(recipe)?;
+    let policy = compatibility_policy(recipe, target_plan)?;
     let material = reconstruct_with_policy(repo, &policy)?;
     let (public, private) = build_with_policy(repo, &material, &policy)?;
     ensure(

@@ -1143,6 +1143,18 @@ pub fn validate_bindings(
     references: &[SelectedCuration<'_>],
     schema: &SchemaBackendProbe,
 ) -> Result<(), EditionCurationError> {
+    validate_bindings_for_stage(current, manifest, edition, references, schema, None)
+}
+
+/// Validate the selected stage and its referenced curations within the same cut.
+pub fn validate_bindings_for_stage(
+    current: SelectedDocument<'_>,
+    manifest: SelectedDocument<'_>,
+    edition: SelectedDocument<'_>,
+    references: &[SelectedCuration<'_>],
+    schema: &SchemaBackendProbe,
+    stage: Option<&str>,
+) -> Result<(), EditionCurationError> {
     fn path(value: &str) -> Result<(), EditionCurationError> {
         tos_foundation::RelativePath::parse(value)
             .map(|_| ())
@@ -1225,6 +1237,39 @@ pub fn validate_bindings(
         .as_array()
         .ok_or(EditionCurationError::InvalidSchema)?
     {
+        if recipe["stage"] == "paragraph-alignment" {
+            if stage.is_some_and(|selected| selected != "paragraph-alignment") {
+                continue;
+            }
+            let reference = recipe["target_curation_ref"]
+                .as_str()
+                .ok_or(EditionCurationError::InvalidSchema)?;
+            path(reference)?;
+            let target = chosen
+                .get(reference)
+                .ok_or(EditionCurationError::MissingReference)?;
+            let target_owner = target["owner_item_ref"]
+                .as_str()
+                .ok_or(EditionCurationError::InvalidSchema)?;
+            let selected_items = recipe["source_item_refs"]
+                .as_array()
+                .ok_or(EditionCurationError::InvalidSchema)?;
+            let structure = selected_recipe(target, "pdf-structural-paragraph")?;
+            let work_path = recipe["work_path"]
+                .as_str()
+                .ok_or(EditionCurationError::InvalidSchema)?;
+            let target_markup = recipe["target_markup"]
+                .as_str()
+                .ok_or(EditionCurationError::InvalidSchema)?;
+            if !selected_items
+                .iter()
+                .any(|item| item.as_str() == Some(target_owner))
+                || structure["structural_output_dir"] != format!("{work_path}/{target_markup}")
+            {
+                return Err(EditionCurationError::BindingMismatch);
+            }
+            continue;
+        }
         if recipe["stage"] == "source-passages" {
             let locators = recipe["locators"]
                 .as_array()

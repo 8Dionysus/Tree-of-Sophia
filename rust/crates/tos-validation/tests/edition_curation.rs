@@ -7,10 +7,11 @@ use tos_validation::{
         EditionCurationError, SCHEMA_URI, SelectedCuration, SelectedDocument,
         select_frozen_coverage_field, select_frozen_manifest, select_historical_field,
         select_historical_receipt_field, select_recipe_input_digest, select_retained_digest,
-        validate, validate_bindings, validate_default_request, validate_frozen_manifest_member,
-        validate_frozen_output_fixity, validate_numbered_source_map, validate_recipe_plan,
-        validate_recipe_template, validate_retained_artifact, validate_review_sources,
-        validate_selected_historical_receipt, validate_source_index_plans,
+        validate, validate_bindings, validate_bindings_for_stage, validate_default_request,
+        validate_frozen_manifest_member, validate_frozen_output_fixity,
+        validate_numbered_source_map, validate_recipe_plan, validate_recipe_template,
+        validate_retained_artifact, validate_review_sources, validate_selected_historical_receipt,
+        validate_source_index_plans,
     },
 };
 
@@ -2502,6 +2503,9 @@ fn authored_edition_curations_bind_to_their_selected_items() {
             if recipe["stage"] == "recipe-reference" {
                 target_refs.insert(recipe["curation_ref"].as_str().unwrap());
             }
+            if recipe["stage"] == "paragraph-alignment" {
+                target_refs.insert(recipe["target_curation_ref"].as_str().unwrap());
+            }
             if recipe["stage"] == "source-passages" {
                 for target in recipe["marker_curation_refs"].as_array().unwrap() {
                     let target = target.as_str().unwrap();
@@ -2568,5 +2572,51 @@ fn authored_edition_curations_bind_to_their_selected_items() {
             &schema,
         );
         assert_eq!(result, Ok(()), "curation {reference}");
+        if value["recipes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|r| r["stage"] == "paragraph-alignment")
+        {
+            assert_eq!(
+                validate_bindings(
+                    SelectedDocument {
+                        reference,
+                        raw: &raw
+                    },
+                    SelectedDocument {
+                        reference: &manifest_ref,
+                        raw: &manifest_raw
+                    },
+                    SelectedDocument {
+                        reference: &edition_ref,
+                        raw: &edition_raw
+                    },
+                    &[],
+                    &schema,
+                ),
+                Err(EditionCurationError::MissingReference),
+            );
+            assert_eq!(
+                validate_bindings_for_stage(
+                    SelectedDocument {
+                        reference,
+                        raw: &raw
+                    },
+                    SelectedDocument {
+                        reference: &manifest_ref,
+                        raw: &manifest_raw
+                    },
+                    SelectedDocument {
+                        reference: &edition_ref,
+                        raw: &edition_raw
+                    },
+                    &[],
+                    &schema,
+                    Some("tei-technical-markup"),
+                ),
+                Ok(()),
+            );
+        }
     }
 }
