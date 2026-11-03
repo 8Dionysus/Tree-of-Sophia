@@ -1597,9 +1597,46 @@ pub fn verify_collection_version_from_cut(
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> Result<CollectionVersionObservation, ItemRefusal> {
+    verify_collection_version_on_cut(
+        cut,
+        schemas,
+        collection_source_path,
+        exact,
+        limits,
+        cancelled,
+    )
+}
+
+/// Resolve a Collection version against an in-process selected source cut.
+pub fn verify_collection_version_from_in_process_cut(
+    cut: &CorpusCutReader,
+    schemas: &mut InProcessCutSchemaExecutor<()>,
+    collection_source_path: &str,
+    exact: &Value,
+    limits: ItemLimits,
+    cancelled: &AtomicBool,
+) -> Result<CollectionVersionObservation, ItemRefusal> {
+    verify_collection_version_on_cut(
+        cut,
+        schemas,
+        collection_source_path,
+        exact,
+        limits,
+        cancelled,
+    )
+}
+
+fn verify_collection_version_on_cut(
+    cut: &CorpusCutReader,
+    schemas: &mut impl NativeCompoundSchema,
+    collection_source_path: &str,
+    exact: &Value,
+    limits: ItemLimits,
+    cancelled: &AtomicBool,
+) -> Result<CollectionVersionObservation, ItemRefusal> {
     check(limits.deadline, cancelled)?;
     keys(exact, &["id", "version", "digest"])?;
-    if schemas.source_revision() != cut.current().revision()
+    if NativeCompoundSchema::source_revision(schemas) != Some(cut.current().revision())
         || !collection_source_path.starts_with("ToS/source-witnesses/collections/")
         || !collection_source_path.ends_with("/collection.json")
         || !typed_id(text(exact, "id")?, "collection")

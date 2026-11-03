@@ -7954,6 +7954,52 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
     let mut budget = ExecutorBudget::laboratory();
     budget.execution_wall = deadline.saturating_duration_since(Instant::now());
     assert!(!budget.execution_wall.is_zero());
+    let mut parity_worker = super::command_form_cases::schemas_for_profile_with_image(
+        &cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        &worker_image,
+        budget,
+        deadline,
+        &cancellation,
+    );
+    let mut parity_in_process = tos_validation::source_cut::InProcessCutSchemaExecutor::from_cut(
+        &cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        tos_validation::in_process::InputMode::SerdeNormalized,
+        deadline,
+        &cancellation,
+    )
+    .unwrap();
+    let collection_limits = tos_validation::item_rules::ItemLimits {
+        max_member_bytes: 8_388_608,
+        max_total_bytes: 33_554_432,
+        max_state_bytes: 33_554_432,
+        max_issues: 256,
+        deadline,
+    };
+    let exact = &preview_request["claims"][0]["object"]["collection_version"];
+    let previous = tos_validation::native_compound::verify_collection_version_from_cut(
+        &cut,
+        &mut parity_worker,
+        &collection_path,
+        exact,
+        collection_limits,
+        &cancellation,
+    )
+    .unwrap();
+    let current = tos_validation::native_compound::verify_collection_version_from_in_process_cut(
+        &cut,
+        &mut parity_in_process,
+        &collection_path,
+        exact,
+        collection_limits,
+        &cancellation,
+    )
+    .unwrap();
+    assert_eq!(current.record_raw, previous.record_raw);
+    assert_eq!(current.current_ref, previous.current_ref);
+    assert_eq!(current.version_status, previous.version_status);
+    assert_eq!(current.transaction_id, previous.transaction_id);
     let mut worker = super::command_form_cases::schemas_for_profile_with_image(
         &cut,
         FormatProfile::LegacyPythonObserved20260923,

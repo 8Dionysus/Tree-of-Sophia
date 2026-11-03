@@ -21,7 +21,7 @@ use tos_source_store::{
     CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1, SourceMembershipV1,
 };
 use tos_validation::PredicateRead;
-use tos_validation::item_rules::ItemLimits;
+use tos_validation::item_rules::{ItemLimits, ItemRefusal};
 use tos_validation::native_compound::{
     CandidateNativeRecordHistoryReadObservation, NativeRecordHistoryReadObservation,
     NativeTransportState,
@@ -1629,8 +1629,17 @@ pub(crate) trait RecordSchemaWorker: CutSchemaExecutor {
 
     fn input_identity(&self) -> Option<Self::Identity>;
     fn contract_digest(&self, contract: &str) -> Option<Digest256>;
-    fn collection_cut_worker(&mut self) -> Option<&mut CutWorkerSchemaExecutor> {
-        None
+    fn verify_collection_version(
+        &mut self,
+        _cut: &CorpusCutReader,
+        _location: &str,
+        _exact: &serde_json::Value,
+        _limits: ItemLimits,
+        _cancelled: &AtomicBool,
+    ) -> Result<tos_validation::native_compound::CollectionVersionObservation, ItemRefusal> {
+        Err(ItemRefusal::Unsupported(
+            "Collection version requires selected source cut".into(),
+        ))
     }
     fn source_revision(&self) -> Option<tos_foundation::SourceRevision> {
         None
@@ -1681,8 +1690,17 @@ impl RecordSchemaWorker for CutWorkerSchemaExecutor {
         CutWorkerSchemaExecutor::contract_digest(self, contract)
     }
 
-    fn collection_cut_worker(&mut self) -> Option<&mut CutWorkerSchemaExecutor> {
-        Some(self)
+    fn verify_collection_version(
+        &mut self,
+        cut: &CorpusCutReader,
+        location: &str,
+        exact: &serde_json::Value,
+        limits: ItemLimits,
+        cancelled: &AtomicBool,
+    ) -> Result<tos_validation::native_compound::CollectionVersionObservation, ItemRefusal> {
+        tos_validation::native_compound::verify_collection_version_from_cut(
+            cut, self, location, exact, limits, cancelled,
+        )
     }
 
     fn source_revision(&self) -> Option<tos_foundation::SourceRevision> {
@@ -1781,6 +1799,19 @@ impl RecordSchemaWorker for InProcessCutSchemaExecutor<()> {
 
     fn source_revision(&self) -> Option<tos_foundation::SourceRevision> {
         self.selected_source_revision()
+    }
+
+    fn verify_collection_version(
+        &mut self,
+        cut: &CorpusCutReader,
+        location: &str,
+        exact: &serde_json::Value,
+        limits: ItemLimits,
+        cancelled: &AtomicBool,
+    ) -> Result<tos_validation::native_compound::CollectionVersionObservation, ItemRefusal> {
+        tos_validation::native_compound::verify_collection_version_from_in_process_cut(
+            cut, self, location, exact, limits, cancelled,
+        )
     }
 
     fn public_profile(
@@ -8059,7 +8090,7 @@ pub(crate) fn resolve_record_version_evidence_at_from_cut(
     owner_path: &str,
     collection_limits: ItemLimits,
     exact: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl RecordSchemaWorker<Identity = tos_foundation::SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ResolvedRecordVersion> {
@@ -8325,25 +8356,13 @@ where
             max_issues: 256,
             deadline,
         });
-        let collection_worker =
-            worker
-                .collection_cut_worker()
-                .ok_or(SourceCommandError::Unsupported(
-                    "Collection version requires immutable-cut schema worker",
-                ))?;
-        let observed = tos_validation::native_compound::verify_collection_version_from_cut(
-            cut,
-            collection_worker,
-            location,
-            &exact_serde,
-            limits,
-            cancelled,
-        )
-        .map_err(|reason| SourceCommandError::SchemaExecution {
-            path: location.to_owned(),
-            root: "selected Collection historical version".to_owned(),
-            reason,
-        })?;
+        let observed = worker
+            .verify_collection_version(cut, location, &exact_serde, limits, cancelled)
+            .map_err(|reason| SourceCommandError::SchemaExecution {
+                path: location.to_owned(),
+                root: "selected Collection historical version".to_owned(),
+                reason,
+            })?;
         if observed.source_path != location {
             return Err(SourceCommandError::Conflict(
                 "Collection version verifier selected another owner",

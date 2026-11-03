@@ -18,7 +18,7 @@ use tos_compiler::{
 use tos_foundation::{
     JsonLimits, JsonMode, JsonValue, RelativePath, emit_value_preserved_json, parse_json,
 };
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::CutSchemaExecutor;
 const CATALOG: &str = "ToS/contracts/source-catalog-projection-v2.schema.json";
 pub(super) struct Assembled {
     pub id: String,
@@ -69,7 +69,7 @@ fn read(
 }
 #[track_caller]
 fn check(
-    w: &mut CutWorkerSchemaExecutor,
+    w: &mut dyn CutSchemaExecutor,
     reference: &str,
     raw: &[u8],
     contract: &str,
@@ -169,11 +169,11 @@ fn put(
 pub(super) fn assemble(
     o: &CommittedMetadataCreationObservation<'_>,
     roots: &mut Roots,
-    w: &mut CutWorkerSchemaExecutor,
+    w: &mut impl crate::source_creation::CreationSchemaExecutor,
     l: BibliographicLimits,
     c: &AtomicBool,
 ) -> Result<Assembled> {
-    if w.source_revision() != o.cut().current().revision()
+    if w.selected_source_revision() != Some(o.cut().current().revision())
         || o.context().base_revision != o.cut().current().revision()
     {
         return Err(Error::Invalid("Metadata actual current cut worker"));
