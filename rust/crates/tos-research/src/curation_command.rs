@@ -364,6 +364,128 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
         if boundary_root.is_some() && stage != "sentence-alignment" {
             return Err("boundary root applies to sentence alignment".into());
         }
+        if action == "check" && stage == "lexical-recurrence" {
+            if input_root.is_some() {
+                return Err("lexical recurrence reads the selected source cut".into());
+            }
+            let output =
+                Path::new(output_root.ok_or("lexical recurrence requires --local-output-root")?);
+            if !output.is_absolute() {
+                return Err("lexical recurrence output root must be absolute".into());
+            }
+            let plan_ref = recipe["plan_ref"]
+                .as_str()
+                .ok_or("recurrence plan required")?;
+            let plan_raw = ctx.read(plan_ref)?;
+            let digest = |raw: &[u8]| tos_foundation::Digest256::of_bytes(raw).to_hex();
+            if recipe["plan_sha256"] != digest(&plan_raw) {
+                return Err("recurrence plan fixity differs".into());
+            }
+            let plan: Value = serde_json::from_slice(&plan_raw).map_err(|e| e.to_string())?;
+            let source_ref = plan["source_projection"]["ref"]
+                .as_str()
+                .ok_or("recurrence source reference required")?;
+            let source_raw = ctx.read(source_ref)?;
+            if plan["source_projection"]["sha256"] != digest(&source_raw) {
+                return Err("recurrence source fixity differs".into());
+            }
+            let source: Value = serde_json::from_slice(&source_raw).map_err(|e| e.to_string())?;
+            let source_items = source["source_items"]
+                .as_array()
+                .ok_or("recurrence source items required")?
+                .iter()
+                .map(|item| {
+                    item["item_ref"]
+                        .as_str()
+                        .ok_or("recurrence source item required")
+                })
+                .collect::<Result<BTreeSet<_>, _>>()?;
+            let selected_items = recipe["source_item_refs"]
+                .as_array()
+                .ok_or("recurrence selected items required")?
+                .iter()
+                .map(|item| item.as_str().ok_or("recurrence selected item required"))
+                .collect::<Result<BTreeSet<_>, _>>()?;
+            if source_items != selected_items {
+                return Err("recurrence selected source items differ".into());
+            }
+            let mut expected = BTreeMap::new();
+            for artifact in recipe["retained_artifacts"]
+                .as_array()
+                .ok_or("recurrence artifacts required")?
+            {
+                let role = artifact["role"]
+                    .as_str()
+                    .ok_or("recurrence artifact role required")?;
+                let pointer = artifact["plan_pointer"]
+                    .as_str()
+                    .ok_or("recurrence artifact pointer required")?;
+                let reference = plan
+                    .pointer(pointer)
+                    .and_then(Value::as_str)
+                    .ok_or("recurrence plan output missing")?;
+                let raw = ctx.read(reference)?;
+                if artifact["sha256"] != digest(&raw)
+                    || expected
+                        .insert(role, (reference.to_owned(), digest(&raw)))
+                        .is_some()
+                {
+                    return Err("recurrence artifact fixity or role differs".into());
+                }
+                if role == "projection" {
+                    let projection: Value =
+                        serde_json::from_slice(&raw).map_err(|e| e.to_string())?;
+                    let identities = recipe["record_identities"]
+                        .as_array()
+                        .ok_or("recurrence identities required")?;
+                    if identities.len() != 1
+                        || identities[0]["role"] != "projection"
+                        || identities[0]["generation_policy"] != "native-generation"
+                        || projection["projection_id"] != identities[0]["base_id"]
+                    {
+                        return Err("recurrence projection identity differs".into());
+                    }
+                }
+            }
+            if expected.keys().copied().collect::<BTreeSet<_>>()
+                != BTreeSet::from(["event", "projection"])
+            {
+                return Err("recurrence artifact roles differ".into());
+            }
+            // Retain this compatibility producer until the recurrence stage moves into tos-research.
+            let result = tos_compiler::lexical_derivatives::recurrence::run(
+                &ctx,
+                tos_compiler::lexical_derivatives::recurrence::Options {
+                    build: false,
+                    output_root: output,
+                    plan: plan_ref,
+                    generation: None,
+                    event_at: None,
+                },
+            )?;
+            if result["projection_sha256"] != expected["projection"].1
+                || result["provenance_sha256"] != expected["event"].1
+                || ctx.read(plan_ref)? != plan_raw
+                || ctx.read(source_ref)? != source_raw
+            {
+                return Err("recurrence selected sources or results changed".into());
+            }
+            selected.verify_unchanged(&ctx)?;
+            for referenced in &refs {
+                referenced.verify_unchanged(&ctx)?;
+            }
+            let mut result = result;
+            result["stage"] = serde_json::json!(stage);
+            result["curation_ref"] = serde_json::json!(relative);
+            result["current_curation_sha256"] = serde_json::json!(digest(&owner.raw));
+            result["current_execution_source_sha256"] =
+                serde_json::json!(digest(include_bytes!("curation_command.rs")));
+            result["current_compatibility_producer_sha256"] = serde_json::json!(digest(
+                include_bytes!("../../tos-compiler/src/lexical_derivatives/recurrence.rs")
+            ));
+            writeln!(out, "{result}").map_err(|error| error.to_string())?;
+            return Ok(());
+        }
         if matches!(action, "check" | "build") && stage == "hierarchical-source-structure" {
             if output_root.is_some() {
                 return Err(
