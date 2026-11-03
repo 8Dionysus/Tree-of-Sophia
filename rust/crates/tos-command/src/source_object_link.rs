@@ -11,7 +11,6 @@ use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponent
 use tos_validation::{
     PredicateRead,
     item_rules::{ItemLimits, ItemRefusal},
-    source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor},
 };
 const CONFIG: &str = "tos_local_object_link_create_owner_v1";
 const REQUEST: &str = "tos_local_object_link_command_v1";
@@ -333,7 +332,7 @@ fn context(
     ctx: &CommandContext,
     owner: &Owner,
     cut: &CorpusCutReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl tos_validation::native_compound::CutCompoundSchemaExecutor,
     token: Option<&str>,
     limits: ItemLimits,
     cancelled: &AtomicBool,
@@ -492,10 +491,9 @@ fn context(
     }
     let mut claim_raw = cmd::canonical(claim)?;
     claim_raw.push(b'\n');
-    let report = tos_validation::record_rules::validate_source_claim_from_cut(
-        cut, &claim_raw, worker, limits, cancelled,
-    )
-    .map_err(error)?;
+    let report = worker
+        .validate_public_claim(cut, &claim_raw, limits, cancelled)
+        .map_err(error)?;
     if !report.issues.is_empty() {
         return Err(SourceCommandError::Invalid(
             "ObjectLink local claim profile",
@@ -611,7 +609,7 @@ fn compose(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl tos_validation::native_compound::CutCompoundSchemaExecutor,
     dependencies: JsonValue,
     limits: ItemLimits,
     cancelled: &AtomicBool,
@@ -768,7 +766,7 @@ pub fn prepare_isolated_object_link_from_proposal(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl tos_validation::native_compound::CutCompoundSchemaExecutor,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ObjectLinkPreparation> {
@@ -850,7 +848,7 @@ pub fn execute_isolated_object_link_from_captures(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl tos_validation::native_compound::CutCompoundSchemaExecutor,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ObjectLinkPublication> {
@@ -1032,7 +1030,7 @@ fn exact_retained(
     ctx: &CommandContext,
     owner: &Owner,
     cut: &CorpusCutReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl tos_validation::native_compound::CutCompoundSchemaExecutor,
     plan: &work_transaction::WorkPlan,
     limits: ItemLimits,
     cancelled: &AtomicBool,
@@ -1089,7 +1087,7 @@ pub fn recover_isolated_object_link_from_captures(
     original_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl tos_validation::native_compound::CutCompoundSchemaExecutor,
     decision: ObjectLinkRecoveryDecision,
     limits: ItemLimits,
     cancelled: &AtomicBool,
@@ -1288,7 +1286,7 @@ pub fn replay_isolated_object_link_from_captures(
     current_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl tos_validation::native_compound::CutCompoundSchemaExecutor,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ObjectLinkPublication> {
