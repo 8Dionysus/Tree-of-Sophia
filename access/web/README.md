@@ -1,9 +1,7 @@
 # Tree of Sophia web client
 
-The web client is a source-read-only presentation of the selected Access
-backend. It does not author ToS meaning, assess claims, change rights or review,
-or write to canon. Browser-local notes, hypotheses and proposals remain
-explicitly provisional; export is their only handoff.
+The web client presents the selected Access backend read-only. Browser-local
+notes, hypotheses and proposals are provisional; export is their sole handoff.
 
 ## Presentation contract
 
@@ -20,26 +18,22 @@ order. Recognized fields receive interface labels, unknown fields remain
 available as additional information and in the exact context disclosure, and
 missing required context stays visible as a gap. IDs, hashes, paths, execution
 traces and routine transport state are kept out of ordinary reading panels.
-These presentation checks do not establish the correctness of an owner's
-semantic assessment or rights decision. The
-[human-form delivery contract](../contracts/human-form-delivery.md) owns exact
+The [human-form delivery contract](../contracts/human-form-delivery.md) owns exact
 selection, revision and context requirements.
 
 ## Observatory and research space
 
-The published `/` and `/zarathustra/` entries open the Zarathustra research
-space; `/antiquity/` opens the Antiquity space. Both reuse the constructor's
-Rust graph model, live sky, lenses, typed relations, comparisons and personal
-branches alongside the shared public corpus reader and research workspace.
-Prepared readings remain proposals. A bibliographic pointer becomes an exact
-reading action only when it binds to a unit in the selected public version.
-Unavailable works retain their metadata without substituting private text.
-The interface and prepared paths support Russian, English, Spanish, German and
-Simplified Chinese (`ru`, `en`, `es`, `de`, `zh-Hans`). The language control is
-available in the space and the reader; URLs and the local preference retain the
-choice across profiles. Source passages
-keep their edition language. Plain entry and profile switching open the space;
-an explicit reading hash opens its exact passage.
+The published `/` and `/zarathustra/` entries open Zarathustra; `/antiquity/`
+opens Antiquity. Both share the constructor's Rust graph, sky, lenses, typed
+relations, comparisons and personal branches, plus the public corpus reader and
+research workspace. Prepared readings are proposals. A bibliographic pointer
+opens an exact reading when it binds to a unit in the selected public version;
+unavailable works retain metadata without private-text substitution. The
+interface and prepared paths support `ru`, `en`, `es`, `de` and `zh-Hans`.
+Language controls in the space and reader
+preserve the choice in URLs and local preference; passages retain their edition
+language. Entry and profile switching open the space; an explicit reading hash
+opens its exact passage.
 
 The shared Library also exposes the retained research collection: all fifteen
 Antiquity branches, author and era browsing, work maps, close-reading prompts,
@@ -55,77 +49,62 @@ same reading actions. Extending the Antiquity graph copies its explicitly
 compatible predecessor through the current Rust validator and retains the
 original namespace; browsing a route does not fill the personal graph.
 
-The space follows the tree's own rule: tree for orientation, graph for
-relation, source for authority. The left rail holds lenses and research actions;
-a path line above the map names where the reader stands (space › branch or
-route › move or step › chosen star) and each level climbs back up; the reading
-column on the right holds the space's overview with its branches, an open branch
-read top to bottom, or the chosen star or link. On a narrow screen the column is
-a sheet over a tool bar. Map controls sit at the map's corner; the camera never
-turns or refits on a selection and pans only to bring a hidden star into view.
+The left rail holds lenses and research actions. A path above the map shows
+space › branch or route › move or step › chosen star and lets the reader ascend.
+The right column shows the space overview, an open branch top to bottom, or the
+chosen star or link; on narrow screens it becomes a sheet over a toolbar. Map
+controls sit at the corner. Selection keeps camera orientation and scale; the
+camera pans only to reveal a hidden star.
 
-Both spaces name what their data already says, without adding relations or
-sources ([`space-legibility.mjs`](src/public-research/space-legibility.mjs)).
-A link's kind is a word, a line pattern and a weight, not a hue alone; the
-legend lists the kinds, filters by them and says what a star's form means: a
-disc for a source or its context, a ring for an authored proposal, a broken
-ring for a personal record. The panel places each star on the ladder of
-interpretation (source, reading, comparison) and says on what footing a link
-stands; star positions group material and measure nothing, except in the
-measuring lenses below. Antiquity restores its four authored transitions (continuation,
-qualification, contrast, analogy) and walks branches by moves, each named by
-author, work and place. Zarathustra
-walks routes by steps; a step names the places of its own grounds, since its
-node is a concept or thinker shared by other routes. A route that walks an
-atlas link against its direction states the link as authored. Search finds
-branches, routes and steps by their own names before their prose.
+Both spaces use their existing relations and sources
+([`space-legibility.mjs`](src/public-research/space-legibility.mjs)). Link kind
+uses a word, line pattern and weight; the legend filters kinds and identifies
+the disc for source or context, ring for authored proposal and broken ring for
+personal record. The panel places stars on the source, reading and comparison
+ladder and states each link's footing. Positions group material except in the
+measuring lenses. Antiquity's transitions are continuation, qualification,
+contrast and analogy; each branch move names its author, work and place.
+Zarathustra route steps name their grounds because nodes may belong to multiple
+routes. Reverse traversal states atlas links as authored. Search finds branch,
+route and step names before prose.
 
-Each stand reads its own bonsai — the mini-Tree under [`bonsai/`](../../bonsai/README.md)
-that keeps its chronology, places and lens settings in the Tree's shapes —
-through [`bonsai.mjs`](src/public-research/bonsai.mjs). The rail sets the lenses
-that measure apart from those that group: Time, Space and Proximity place a star
-only by a value its bonsai states, with that value's source.
+Each stand reads its own [`bonsai/`](../../bonsai/README.md) chronology, places
+and lens settings through [`bonsai.mjs`](src/public-research/bonsai.mjs). The
+rail separates grouping from Time, Space and Proximity: these measuring lenses
+place stars by sourced values in the bonsai.
 
-Time ([`space-timeline.mjs`](src/public-research/space-timeline.mjs)) is a scale
-of years in Antiquity. A move stands within the span its bonsai dates the
-writing of its passage or work — a date, an interval, a phase of a life, or the
-author's life or years of activity where no source dates it closer — each a
-Tree `historicalDate` with its source and footing. Moves sharing one span in a
-branch spread over it in step order; each branch is a row whose name opens it;
-an era's bracket spans its authors' lives. A concept chosen above the panel is
-traced through the stars that carry it in the order of the scale; a star off
-the scale carries it without joining the line. In Zarathustra the horizontal is the
-order of the book's chapters: a star stands at the first chapter it rests on,
-each part names the years it was written, and stars grounded only in other texts
-stand outside the scale.
+Time ([`space-timeline.mjs`](src/public-research/space-timeline.mjs)) scales
+Antiquity by years. A move uses its passage or work's `historicalDate`, source
+and footing:
+a date, interval, life phase, or the author's life or years of activity when
+the source gives no closer date. Moves sharing a span spread in step order;
+each branch is an openable row and each era bracket spans its authors' lives.
+The chosen concept traces its stars in scale order; off-scale stars retain the
+concept without joining the line. Zarathustra instead orders chapters: a star
+uses the first chapter it rests on, each part names its writing years, and stars
+grounded only in other texts stay off-scale.
 
-Space ([`space-geography.mjs`](src/public-research/space-geography.mjs)) is a map:
-a star stands where its bonsai says its text was written, or where its author
-lived in the dated span, at the gazetteer's representative point (Pleiades,
-Wikidata), over Natural Earth coastlines; stars at one place gather round it,
-and a star whose place the sources leave open stands apart past the map's edge.
+Space ([`space-geography.mjs`](src/public-research/space-geography.mjs)) maps
+the bonsai's writing place or the author's home during the dated span, using
+Pleiades or Wikidata representative points over Natural Earth coastlines.
+Stars gather around shared places; a star with unknown place stays beyond the
+map edge.
 Proximity ([`space-proximity.mjs`](src/public-research/space-proximity.mjs))
-measures from the chosen star by one criterion the bonsai names — shared
-concepts or grounds, steps along links, years, chapters or kilometres — in
-rings that carry the scale; the direction groups by branch or circle, and the
-centre lists its nearest stars.
+measures from the chosen star by a bonsai criterion: shared concepts or grounds,
+link steps, years, chapters or kilometres. Rings carry the scale, direction
+groups by branch or circle, and the centre lists the nearest stars.
 
-On the lenses that group, the map is a space read in depth
-([`space-depth.mjs`](src/public-research/space-depth.mjs)) by the steps its
-bonsai declares: a source lies deepest, a reading before it, a comparison of
-readings before that, a personal record nearest. A drag turns the space and a
-turn let go while moving coasts to rest; any press stops it. Shift, the right
-button or two fingers move it, from the sky or from a star; the wheel or a pinch
-zooms, a pinch about the point between the fingers. Fingers on a panel belong
-to the panel. A quick drag from a star turns the space too, while a star held
-still is picked up and moves within its plane; depth is a view, so the graph
-keeps the star's own depth. Arrows turn the space while the map has focus or
-was pressed last, and otherwise scroll as usual (with Shift while a branch or
-route is open, whose steps the arrows walk); the globe among the map tools shows
-the turn, turns the space under a drag and, pressed, brings it back to rest.
-While it turns, the planes of the steps appear, named; at rest the space keeps
-only its stars, a little turned so that its depth shows. Time, Space and
-Proximity stay flat.
+The grouping lenses show depth ([`space-depth.mjs`](src/public-research/space-depth.mjs)):
+source, reading, comparison and personal record from deepest to nearest. A drag
+turns the space, coasts on release and stops on any press. Shift, right-button
+or two-finger drag pans from the sky or a star; wheel or pinch zooms around the
+pinch midpoint. Panel touches belong to the panel. A quick star drag turns the
+space; holding a star still picks it up for movement in its plane. The graph
+retains its own depth.
+Arrows turn the focused or last-pressed map and otherwise scroll; Shift with an
+open branch or route walks its steps. The globe shows and controls the turn,
+and a press resets it. Named depth planes appear during rotation; at rest stars
+retain a slight turn. Time, Space and Proximity stay flat.
 
 Nothing on the stand explains itself in standing text. One hint
 ([`space-hints.mjs`](src/public-research/space-hints.mjs)) answers a pointer
@@ -230,7 +209,9 @@ workspace export/import has a separate explicit replace flow; see the
 
 The public adapter's [locale helper](src/public-research/locale.mjs) selects
 authored display forms and messages from its per-language catalogs and the
-stand-owned [Bonsai catalogs](../../bonsai/locales/). The existing bilingual
+stand-owned Bonsai catalogs for [Spanish](../../bonsai/locales/es.json),
+[German](../../bonsai/locales/de.json) and
+[Simplified Chinese](../../bonsai/locales/zh-Hans.json). The existing bilingual
 library is constructed and fingerprinted before display translation; choosing
 a language preserves graph namespaces, material IDs, edition revisions and
 exact source addresses. Plain source strings and personal text remain literal.
@@ -298,6 +279,4 @@ require a CDN, inline script, iframe or relaxed CSP.
 | Native/browser API and authority | [Access guide](../README.md), [contracts](../contracts/README.md) |
 
 The `software_browser` validation lane covers the shipped entry and selected
-browser persistence behavior. It does not prove physical gesture feel,
-cross-device account sync, whole-corpus performance, semantic acceptance, or
-production deployment.
+browser persistence behavior.

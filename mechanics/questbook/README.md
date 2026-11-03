@@ -26,15 +26,53 @@ Each part owns one obligation operation route.
 
 | Part | Function | Stronger owner route |
 | --- | --- | --- |
-| [Obligation Boundary](parts/obligation-boundary/README.md) | keep ToS obligations operational without replacing source interpretation | `ToS/` source-home authority |
-| [Dispatch Contracts](parts/dispatch-contracts/README.md) | schema and example surfaces for public quest catalog and dispatch | root `quests/` and `QUESTBOOK.md` |
+| [Obligation Boundary](#obligation-boundary) | keep ToS obligations operational without replacing source interpretation | `ToS/` source-home authority |
+| [Dispatch Contracts](#dispatch-contracts) | schema and example surfaces for public quest catalog and dispatch | root `quests/` and `QUESTBOOK.md` |
 
 The [local card](AGENTS.md) owns editing; [validation](../VALIDATION.md) owns checks.
 Source or semantic questions return to [the source owner](../../ToS/AGENTS.md).
 
 ### Direct contracts
 
-- `obligation-boundary`: [QUESTBOOK_TOS_INTEGRATION](parts/obligation-boundary/docs/QUESTBOOK_TOS_INTEGRATION.md)
+- `obligation-boundary`: [integration boundary](#integration-boundary)
+
+### Obligation Boundary
+
+`mechanics/questbook/parts/obligation-boundary/` takes obligation pressure,
+source-first boundaries and quest route needs to produce obligation doctrine.
+Review the obligation and source records manually. Reading progress belongs to
+the selected ToS branch; tracked obligations follow root `QUESTBOOK.md` and
+`quests/`. Progress remains a reflection, with no score, rank, gameplay or
+canon authority.
+
+#### Integration boundary
+
+`QUESTBOOK.md` records operational obligations in the source-first knowledge
+architecture. Interpretation, authored knowledge and source meaning stay in
+their ToS homes. Use quests for source, identifier and node-template hardening;
+intake-to-tree follow-through; public compatibility and source-first contracts;
+and bounded, derived, review-gated requests to `aoa-kag`. Interpretation,
+nodes, lineages, authored prose and private reading notes retain their source
+homes. A philosophical ambition needs a bounded architectural seam for a quest.
+
+Useful anchors are `CHARTER.md`, `BOUNDARIES.md`,
+`ToS/doctrine/KNOWLEDGE_MODEL.md`, `ToS/doctrine/NODE_CONTRACT.md`,
+`mechanics/distillation/README.md`,
+`ToS/doctrine/COUNTERPART_POLICY.md`, `ToS/doctrine/IDENTIFIER_DISCIPLINE.md`
+and node templates under `docs/*_NODE_TEMPLATE.md`. Identifier, boundary,
+growth-law, source-intake, compatibility and derived-export obligations can
+use quests. Dispatch examples retain their compatibility role; live routing
+follows its own owner.
+
+### Dispatch Contracts
+
+`mechanics/questbook/parts/dispatch-contracts/` keeps quest and dispatch
+schemas and examples public and checkable. Review the obligation and source
+records manually, then follow root `quests/` and `QUESTBOOK.md`. The native
+Questbook compatibility assertions consume the retained `schemas/` and
+`examples/`. Core validation accepts the register without the demonstration
+set; retained projections must match their registered legacy records exactly.
+Dispatch activation follows its owning route; the examples are demonstration data.
 
 ## History
 
@@ -60,41 +98,8 @@ entries for known local and unenumerated external readers. Their contents are
 owned here; they are not required components of a new mechanic.
 
 ## Growth conditions
-Questbook is active as public obligation routing only. It keeps obligations
-visible without turning philosophy into a task list.
 
-### Current Contour
-
-- Keep obligation boundary and dispatch contracts distinct.
-- Keep root `quests/` as public quest source records while
-  `mechanics/questbook/` owns the repeatable obligation posture.
-- Keep interpretation, source, branch, and canon pressure routed back to ToS
-  owner surfaces.
-- Keep graph-review and atlas-growth obligations public only when they are
-  durable follow-through, not private working residue.
-
-### Next Work
-
-- Add narrower parts only if quest lifecycle, closure, or public examples
-  become distinct repeated operations.
-- Keep interpretation pressure routed to `ToS/`, not to Questbook.
-
-### When Time Comes
-
-Time has come when: public obligations repeatedly need lifecycle, closure, or
-example handling that dispatch contracts should not own.
-
-Move: add a narrower part or route the recurring shape to root `quests/`.
-
-Guardrail: a quest may preserve follow-through; it may not become
-philosophical authority.
-
-### Out Of Scope
-
-- Philosophical truth as backlog.
-- Live task execution or runtime scheduling.
-- Hidden delegation.
-- Memory truth, proof verdicts, or ToS canon mutation.
+Add a part or route work to root `quests/` when lifecycle, closure, or example handling recurs. Keep graph-review and atlas-growth obligations public when they represent durable follow-through.
 
 ## Obligation membership and compatibility
 

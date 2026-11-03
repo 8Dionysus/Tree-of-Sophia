@@ -8,23 +8,16 @@ Questbook keeps public obligations and dispatch contracts checkable while
 authored interpretation, knowledge, and source meaning continue to route
 through the ToS source home.
 
-## Operating Card
-
-| Field | Route |
-| --- | --- |
-| input | public obligation pressure, quest dispatch contract, integration note, or quest surface drift |
-| output | obligation boundary check, dispatch contract, compact public route, or owner handoff |
-| owner | `mechanics/questbook/AGENTS.md`, root `QUESTBOOK.md`, `README.md#operations`, `README.md#history`, and active part routes |
-| next route | root `QUESTBOOK.md`, root `quests/`, active part README, then source/canon owner for philosophical meaning |
-| validation | questbook surface validator, mechanics topology, nested route-card check |
+Obligation pressure, dispatch contracts, integration notes and surface drift
+lead to boundary checks, dispatch contracts, public routes or owner handoffs.
+Use the [operation map](README.md#operations),
+[history](README.md#history), root `QUESTBOOK.md` and root `quests/`, then the
+source or canon owner for philosophical meaning.
 
 ## Boundary Routes
 
 - Root `QUESTBOOK.md` owns the obligation register, owners and return conditions.
 - Root `quests/` retains original record evidence for the named native compatibility consumer; no fixed task count is required.
-- This package owns obligation and dispatch compatibility only.
-- Source, node, relation, lineage, context, synthesis, canon, and philosophy
-  branch authority route through their ToS owners.
 
 ## Validation
 

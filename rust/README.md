@@ -6,27 +6,22 @@ This workspace owns the Rust build and installation boundary for Tree of Sophia.
 codecs and physical source custody. Admission and publication remain in
 `tos-command`. The read-only `tos-reader` depends on storage directly, so its
 build does not include command, compiler, query, validation or mechanics crates.
-The independent
-`tos-conformance` package consumes their public APIs and tiny synthetic
-fixtures. The `tos-reader` binary is a trusted-local, read-only adapter for an
-exact retained revision and source ID. It stages and verifies selected bytes
-before writing them to stdout. It grants no public access or current-use right.
+The independent `tos-conformance` package consumes public APIs and synthetic
+fixtures. `tos-reader` is a trusted-local, read-only adapter for an exact retained
+revision and source ID; it stages and verifies selected bytes before stdout.
 `tos-segment-store` is a separate Linux local byte-custody candidate with
 bounded immutable segments, crash-recoverable pin journals and receipt-bound
-selected reads. Its independent conformance target checks exact synthetic
-segment bytes. A custody receipt grants neither source admission nor rights.
+selected reads. Its independent conformance target checks exact synthetic bytes.
 
 `tos-query` defaults to shared query rules, with only `tos-foundation` and
 `regex` as direct dependencies. Native model opening, SQLite adapters and the
 compiler-backed query implementations require its explicit `native-models`
-feature. Access, command and conformance consumers select that feature;
-`tos-web-rules` uses the shared rules without it on native hosts as well as WASM.
-Native disclosure leases still require `Send` in both configurations.
-Run selected-model integration tests with `cargo test -p tos-query --features
-test-fixture`. That profile explicitly enables the compiler fixtures and gzip
-reader needed by those tests. Default query tests exercise the portable rules
-without building the compiler or storage stack. Native model tests are declared
-with `required-features` in Cargo; the full validation lanes select `test-fixture`.
+feature. Access, command and conformance select it; `tos-web-rules` uses shared
+rules without it on native hosts and WASM. Native disclosure leases require
+`Send` in both configurations. Run selected-model integration tests with
+`cargo test -p tos-query --features test-fixture`; this enables compiler fixtures
+and the gzip reader. Default tests cover portable rules without the compiler or
+storage stack, and Cargo declares the native tests' `required-features`.
 
 `tos-query::source_text_search` owns the portable `tos_source_text_search_v1`
 ranking, Unicode-16 query normalization, cursor binding and response budget over
@@ -46,18 +41,8 @@ candidate, trace, and outcome interfaces, `SchemaResource`, `FormatProfile`,
 `layer_family_rules`, `provenance_rules`, `relation_rules`,
 `semantic_registry_rules`, `source_copy`, `source_forms`,
 `text_metadata_rules`, and `text_rules`. `assessment`, source-cut composition,
-the schema-worker process boundary, and rules that
-consume `tos-source-store` remain native-only. The WASM check establishes
-compilation feasibility for the portable validation/backend surface; it does
-not establish native-adapter availability, source admission, rule completeness,
-or validation execution inside a WASM runtime.
-
-OPS owns the root workspace, lockfile, toolchain, CI selection and package
-route. FND owns `tos-foundation`; STO owns `tos-source-store`; ASS owns
-conformance vectors and runner. Other owners add crates through an
-OPS-reviewed workspace and lockfile update. This workspace contains only
-synthetic test bytes, no production corpus data, and imports no sibling
-repository.
+the schema-worker process boundary, and rules that consume `tos-source-store`
+remain native-only. Crate additions follow the workspace and lockfile owner.
 
 `tos-source-store` defaults to exact format, custody and read operations.
 Its explicit `capture` feature enables Git capture, import, archive restore and
@@ -97,12 +82,7 @@ or additional custody protocol operation is selected.
 Run the named `rust_workspace` lane from
 [`docs/validation/validation_lanes.json`](../docs/validation/validation_lanes.json)
 when the pinned toolchain, rustfmt and WASM target are available. Set
-`CARGO_TARGET_DIR` to an owner-approved build-cache path outside the
-checkout. Passing this lane proves only the checked Rust contracts, the portable
-validation-backend WASM compilation, native reader installation,
-and installed mechanics executor lifecycle parity against tiny synthetic
-inputs. It does not prove a released public adapter, browser/Worker bundle
-integration or production-scale runtime.
+`CARGO_TARGET_DIR` to an owner-approved build-cache path outside the checkout.
 
 The executor defaults to 300 seconds per command and 3,600 seconds per lane.
 Rust CI selects a three-hour aggregate budget with
@@ -110,37 +90,24 @@ Rust CI selects a three-hour aggregate budget with
 The validation manifest owns the separate command limits and test groups.
 The executor caps each command by the remaining lane time.
 
-The full local route remains `--run rust_workspace` with no group selector. CI
-may fan it out with `--run rust_workspace --rust-group conformance|workspace|cold-install`.
-Every selection runs the six-step common `prepare` prefix before its group:
-formatting, both WASM target checks, and exact schema-worker, owner CLI and
-Access builds. The three jobs build their own products and do not share
-artifacts or authority. Only the `conformance` group then prepares the Cargo
-JSON-selected test images needed by its consumers. The manifest owns the
-ordered group labels, argv and command limits;
-`--sequence rust_workspace --rust-group <group>` prints the selected commands
-for review. Add `--cargo-timings` to a run when Cargo timing reports are useful.
-Growth exclusions and assertion counts always derive from the complete lane,
-including isolated tests assigned to another group; only the selected commands
-execute. A changed selection or incomplete Growth partition fails closed.
+The full route is `--run rust_workspace`. CI may select
+`--run rust_workspace --rust-group conformance|workspace|cold-install`; every
+group runs the common `prepare` prefix: formatting, both WASM checks and exact
+schema-worker, owner CLI and Access builds. Each job builds its own products; only `conformance` prepares
+its Cargo JSON-selected test images. The manifest owns ordered commands and
+limits. Review them with `--sequence rust_workspace --rust-group <group>` and
+add `--cargo-timings` for Cargo reports. Growth exclusions and assertion counts
+derive from the complete lane, including isolated tests in other groups; an
+incomplete partition fails closed.
 
-The initial conformance preparation excludes the Access package's test harnesses
-with `--exclude tos-access`; the exact Access CLI is still built first and its
-dependencies remain available to conformance. Explicit `tos-query/test-fixture`
-retains the original workspace feature union contributed by Access's development
-dependencies, so the next conformance command can reuse the prepared image.
-The workspace test run retains Access's default features plus
-research/load-readiness coverage and explicitly excludes `tos-conformance`.
-It receives only the exact Access path and digest fixed after its successful
-current-lane default build, rechecked before execution; it does not acquire a
-Conformance case digest from inherited environment values. Actual Conformance
-and Growth execution still require the current Cargo JSON-selected test images.
-The default release-actions fixture runs separately as the first `cold-install`
-step, with its unchanged exact invocation and no research/load feature union.
-The ungrouped full route preserves the original commands, relative order and
-budgets. A locked dependency fetch runs immediately before the
-offline mechanics install; that input preparation does not compile conformance
-images or allow the install verifier to access the network.
+Conformance preparation uses `--exclude tos-access` and
+`tos-query/test-fixture`; the exact Access CLI is built first. Workspace tests
+include Access's default, research and load-readiness features, exclude
+`tos-conformance`, and recheck the current-lane Access path and digest. Inherited
+environment values cannot supply the conformance case digest. The release-actions
+fixture runs separately at the start of `cold-install`. A locked dependency fetch
+precedes the offline mechanics install; its verifier stays offline. The manifest
+retains the full route's order, product selection and budgets.
 
 `tos-validation-lanes --run rust_workspace --growth-jobs N` supports one to four
 source-derived Growth classes concurrently, each in its own supervisor process.
@@ -193,4 +160,4 @@ The installed `tos-ops-mechanics-plan --repo-root /absolute/Tree-of-Sophia
 --tree-node-validate` checks canonical node schemas, exact numeric input,
 identity uniqueness and shared language-witness spines. Its cross-field rules
 are shared with the canon compiler. The selected schema remains source-owned;
-structural success does not grant canon admission.
+canon admission follows its source review.

@@ -52,8 +52,8 @@ here in `validation_lanes.json`.
 
 - Source-home checks route to `ToS/source_home.manifest.json`, the nearest
   `ToS/**/AGENTS.md`, and `ToS/VALIDATION.md` after the source branch is known.
-- Mechanics checks route to `mechanics/topology.json`, the package-local
-  `PARTS.md` maps, and the active part route.
+- Mechanics checks route to `mechanics/topology.json` and the package README's
+  operation map.
 - Mechanics-local contract tests route to the owning mechanic lane before
   broader repo tests.
 - Generated parity checks route from source surface to builder to generated

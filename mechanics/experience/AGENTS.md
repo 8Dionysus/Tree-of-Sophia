@@ -7,24 +7,17 @@ This card applies to `mechanics/experience/` and every nested Experience path.
 Experience keeps adoption, governance, installation, service, pattern,
 candidate, and write-guard boundary packets reviewable and owner-routed.
 
-## Operating Card
-
-| Field | Route |
-| --- | --- |
-| input | boundary dossier, adoption pressure, governance precedent, installation note, service posture, pattern review, or write-guard packet |
-| output | reviewed boundary contract, public example, schema, or owner handoff |
-| owner | `mechanics/experience/AGENTS.md`, `README.md#operations`, `README.md#history`, and active part routes |
-| next route | active part README, package-local tests, then stronger runtime/governance/service owner when activation pressure appears |
-| validation | `experience_contracts` lane, mechanics topology, nested route-card check |
+Boundary dossiers, adoption pressure, governance precedents, installation
+notes, service posture, pattern reviews and write-guard packets produce
+reviewed contracts, public examples, schemas or handoffs. Use the package
+[operation map](README.md#operations) and local tests, then the runtime,
+governance or service owner when activation pressure appears.
 
 ## Boundary Routes
 
-- ToS owns authored philosophical meaning and canon.
-- Experience here owns boundary operation payload only.
-- Former `ToS/` paths route through `README.md#history` to immutable Git
-  history.
-- Runtime, office, service, governance, proof, memory, SDK, and canon authority
-  route to stronger owners before ToS widens.
+Former `ToS/` paths route through [history](README.md#history) to immutable Git
+history. Runtime, office, service, governance, proof, memory, SDK and canon
+authority route to their owners before ToS widens.
 
 ## Validation
 

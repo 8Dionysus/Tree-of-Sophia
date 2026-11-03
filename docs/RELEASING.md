@@ -24,13 +24,10 @@ owner surfaces.
 
    If `CARGO_TARGET_DIR` is set, use its absolute `debug` directory instead.
    Run `tos-software-ci plan --repo-root /absolute/checkout --base BASE_REF`
-   for source selection and changed-document checks, or `tos-software-ci gate`
+   for source selection, or `tos-software-ci gate`
    with the exact `CI_NEEDS` job results. CI authenticates and invokes the
-   same-run native executor directly. Native source-history tests cover
-   selection, Unicode links, failure propagation and required-job outcomes.
-   Workflow topology assertions separately cover the source-bound software
-   producer, its fixture and package consumers, and final candidate admission.
-   Documentation-only work needs the selected documentation checks. For the
+   same-run native executor directly. Review documentation and its local links.
+   For the
    software suite, install locked browser dependencies with
    `npm ci --prefix access/web` and run `tos-release-check --repo-root "$PWD"`.
    The suite checks contracts, builds browser assets and runs program fixtures.
@@ -112,39 +109,24 @@ owner surfaces.
    JSON and web closure without a Python runtime or corpus. Preserve the
    previous prefix and its matching verifier for rollback. This new verifier
    intentionally refuses older mixed Python/native archives.
-   CI uses this native route with the eighteen native command roles for its
-   software candidate. The `software_prepare` job produces exact-source native products,
-   their receipts, the E2E fixture executable and browser assets once. The
-   `software` fixture job and `software_package` job consume those staged inputs
-   from the same source checkout after verifying and binding the stage manifest.
-   The full fixture matrix runs the canonical native Cargo tests in three
-   independent package cohorts: Access (including the separate default
-   release-actions fixture), Query, and Command/source (including the separate
-   process-cold Work37 fixture). Each runner verifies the same source-bound
-   stage and retains a private test Cargo target and fs-verity fixture volume.
-   Browser npm and
-   Playwright installation belongs to the package/browser job.
-   That job uses the official HTTPS Ubuntu archive for the runner mirror route;
-   APT signature and package verification stay enabled.
-   `software_prepare` builds receipts for the exact feature sets in the shared
-   native command descriptor. The package job derives byte limits from the
-   actual nineteen executables, web assets and bounded software inputs; it does not reuse an
-   access-only byte cap. The job builds the same native archive and sidecar
-   twice and compares their bytes before verify/install, retaining the legacy
-   builder's determinism assertion on the maintained artifact. Assembly uses
-   fixed DEFLATE level 3: compressed bytes can differ from earlier builders,
-   while repeat builds must still match exactly and retain all member, digest,
-   custody and byte-budget checks. Installed browser scenarios run in a bounded
-   pair of isolated hosts/browsers; the six Vite cases remain serial, and every
-   scenario keeps its original actions, assertions and timeout.
-   `software_package`
-   uploads the archive and sidecar as a provisional candidate with their digests.
-   The required gate waits for `software_prepare`, `software` and
-   `software_package` to succeed, verifies both candidate digests against the
-   downloaded artifact, then uploads the qualified software artifact under the
-   source SHA. A provisional artifact alone does not qualify a release. There is
-   no Python wheel reference package in the release candidate path. Historical
-   Python oracle tools remain optional comparison tools outside the native prefix.
+   CI prepares eighteen native command roles, receipts, E2E fixture and browser
+   assets once, with the native descriptor's exact feature sets. `software` and
+   `software_package` verify and bind that exact-source stage manifest.
+   Full fixture cohorts cover Access (including default release actions), Query
+   and Command/source (including process-cold Work37), with private Cargo targets
+   and fs-verity volumes. The package job installs npm and Playwright dependencies
+   using the signed HTTPS Ubuntu archive and derives limits from nineteen actual
+   executables, web assets and bounded inputs.
+
+   The package job builds and compares the archive and sidecar twice before
+   verify/install. DEFLATE level 3 may differ from older builders; repeated bytes,
+   member digests, custody and budgets must match. Installed browser scenarios
+   run in at most two isolated hosts/browsers; six Vite cases run serially, with
+   all actions, assertions and timeouts retained. The gate
+   requires `software_prepare`, `software` and `software_package`, verifies the
+   provisional archive and sidecar digests, and uploads the qualified artifact
+   under the source SHA. The candidate uses the native prefix without a Python
+   wheel; historical Python oracles remain optional comparison tools.
    Public reading pages also have an independent static-only Cloudflare route.
    From `access/deploy/cloudflare-worker`, build them with
    `npm run build:public-research` and inspect the upload with
@@ -178,7 +160,7 @@ after verifying the merged PR, one unambiguous successful workflow/required gate
 at its latest attempt,
 the gate's actual pinned checkout commit and its PR parents, and equality of
 that tested tree with the landed tree. The native selector checks the tree
-again. Changed-document and selected documentation-owner checks still run.
+again. Selected documentation-owner checks still run.
 Missing, ambiguous or inaccessible evidence uses normal main selection.
 Read-only API failure cannot accept an unverified prior result.
 
@@ -192,17 +174,16 @@ records the tested-tree and package-provenance boundary.
 
 ### Checks selected for a change
 
-The workflow always checks changed Markdown for conflict markers and newly
-introduced relative file links (not remote URLs or fragment anchors). It then
-selects the union of the following software checks. Deletes and both sides of
-renames participate. Empty changes, unknown paths and selection-policy changes
-use the full suite; a missing or failed selector fails the required gate.
+Review changed Markdown for conflict markers and resolving relative links.
+The selector chooses the union of the checks below, including deletes and both
+sides of renames. Empty changes, unknown paths and selection-policy changes use
+the full suite; a missing or failed selector fails the required gate.
 
 | Changed paths | Selected checks |
 | --- | --- |
-| Human Markdown at root or a known guide home in the [selector](../rust/crates/tos-ops-mechanics-plan/src/software_ci.rs); Rust guides outside `src/` and `tests/`; test README/validation guides | Changed-document checks; fixture directories retain their consumer route |
+| Human Markdown at root or a known guide home in the [selector](../rust/crates/tos-ops-mechanics-plan/src/software_ci.rs); Rust guides outside `src/` and `tests/`; test README/validation guides | Manual document review; fixture directories retain their consumer route |
 | `AGENTS.md` in those homes | The plan job checks the 800-word limit |
-| `ToS/` Markdown, `QUESTBOOK.md`, `quests/` Markdown or Questbook's `QUESTBOOK_TOS_INTEGRATION.md` | Complete Rust consumer lane and installs |
+| `ToS/` Markdown, `QUESTBOOK.md`, `quests/` Markdown or `mechanics/questbook/README.md` | Complete Rust consumer lane and installs |
 | `access/web/` or `access/e2e/` code/configuration, or a stand's data under `bonsai/` | Source-bound software preparation, fixture tests, browser build/unit/types/behavior (including each bonsai's check against the Tree's contracts), and isolated package install |
 | `access/src/` or `access/tests/` | Source-bound software preparation, package/browser checks, reader/API fixture tests, and Worker cross-adapter tests |
 | `access/deploy/cloudflare-worker/` code/configuration | Worker type and behavior tests, including cross-adapter fixtures |
@@ -280,36 +261,25 @@ runs after a cache hit or miss. Software tests use a separate target directory
 from production images so test features cannot replace packaged executables.
 Cache availability does not select checks or qualify a software candidate.
 
-The full Software Access child additionally uses sccache 0.18.0, downloaded
-from its upstream release and verified against a pinned size and SHA-256 before
-execution. It caches eligible compiler outputs by compiler, arguments and
-tracked inputs; it does not restore a test target or reuse test results.
-Canonical Cargo commands, default/test feature contexts, linking, test processes,
-budgets and stage verification still run. Access disables incremental compilation
-on its fresh CI target so workspace libraries are cacheable; debug assertions
-and overflow checks retain their existing profile settings. Client-side compilation keeps rustc
-under the native lane's descendant custody. Other fixture children, production
-preparation and the offline cold-install lane do not use this wrapper.
-Each runner uses a local compiler cache capped at 512 MiB. The existing pinned
-GitHub cache action restores/saves that directory as one archive, avoiding the
-direct sccache GHA backend's [per-object request bursts and dropped writes](https://github.com/mozilla/sccache/issues/2821).
-The archive key separates platform/tool/compiler and source tree; a compatible
-prefix can restore older entries, whose compiler/input hashes still control reuse.
-The server starts after restoration and stops before archiving. PRs restore the
-default-branch cache without publishing snapshots; main and manual full runs may
-save a new tree's snapshot. A main push that reuses source CI does not fill this cache: use the existing
-manual full workflow on main to seed it and measure a subsequent warm run.
-Tool setup/restore/save are optional; unavailable tools leave Cargo on rustc,
-and server I/O failure falls back to the compiler. Cache statistics are non-authoritative job
-diagnostics. Cache hits depend on retained entries and compatible inputs, so
-cold and warm timings must be reported separately. Current Access proc-macro
-dependencies were checked for direct filesystem input reads; introducing such
-a macro requires an input-tracking review before trusting its cached output.
-The metadata-only merged-PR cleanup workflow deletes only that PR's
-`tos-cargo-lib-*` and `tos-access-sccache-*` caches. It checks out no PR code and
-leaves source-validation artifacts, default-branch caches and release candidates
-in their own retention routes. Closed PR caches cannot serve main; removing them
-prevents them from evicting useful default-branch compiler entries.
+The full Software Access child may use sccache 0.18.0 after upstream size and
+SHA-256 verification. Its local cache is capped at 512 MiB and archived by the
+pinned GitHub cache action; keys bind platform, compiler, arguments, inputs and
+source tree. The server starts after restore and stops before archiving. PRs
+restore the default-branch cache without publishing; main and manual full runs
+may save snapshots. A main push that reuses source CI needs a manual full run
+to seed the cache. Tool or cache failure falls back to rustc. Test targets and
+results are never restored. Cargo commands,
+feature contexts, linking, tests, budgets and stage verification still run;
+the Access target disables incremental compilation while retaining its debug
+and overflow settings and native process custody. Other fixture children,
+production preparation and offline cold-install use their own routes.
+
+Report cold and warm timings separately. Review filesystem input tracking when
+adding an Access proc macro. The metadata-only merged-PR cleanup removes that
+PR's `tos-cargo-lib-*` and `tos-access-sccache-*` caches; source-validation
+artifacts, default-branch caches and release candidates retain their own routes.
+The archive avoids the direct backend's
+[per-object request bursts](https://github.com/mozilla/sccache/issues/2821).
 
 A combined change takes all needed checks. Human Markdown is identified before
 its surrounding implementation directory. Other Markdown under a `fixture`, `fixtures`
@@ -354,9 +324,8 @@ software check or Rust lane fails. The cgroup `cpu.stat` snapshots bracket the
 measured validation work but can include work charged to the runner cgroup
 outside it. `memory.peak` is recorded before and after
 without resetting the job cgroup, so its high-watermark may include setup that
-ran earlier in that job and is not a lane-only maximum. These artifacts help
-explain cost and limits; they do not prove validation, product identity or
-release authority.
+ran earlier in that job and is not a lane-only maximum. These artifacts explain
+cost and limits; validation, product identity and release use their own evidence.
 
 PR and `main` checks use the same rules. `workflow_dispatch` explicitly runs the
 full release suite, as does the local `tos-release-check --repo-root "$PWD"` command

@@ -7,9 +7,7 @@ creates or opens its explicitly selected database and owns the
 tables, which are never migrated or reused. Each `ProcessingRun` records its
 inputs, completed tasks, exact dependency edges, and durable pure outputs.
 Publication of that run's dependency snapshot uses compare-and-swap against
-the active baseline. A failed or superseded run does not replace the active
-snapshot. The cache is optional and does not change source, review, rights,
-canon, or publication authorities.
+the active baseline. A failed or superseded run preserves the active snapshot.
 
 Rust `processing_dependency_closure` and `processing_input_changes` provide
 bounded reads. The caller opens the exact cache file read-only and owns a live
@@ -36,9 +34,8 @@ let impact = tos_compiler::processing_cache::processing_dependency_closure(
 tx.rollback()?;
 ```
 
-The caller owns the read transaction and its lifetime. The result names the
-run, changed identities, reachable task/input identities with output digests,
-and reverse dependency edges. Multiple paths do not duplicate a reachable
+The result names the run, changed identities, reachable task/input identities
+with output digests, and reverse dependency edges. Multiple paths do not duplicate a reachable
 node. Unrelated inputs are not read or reported as removed. A retained
 historical run remains historical even if a newer publication exists.
 Duplicate changed seeds are rejected, matching the former bounded reader
@@ -113,9 +110,7 @@ source identities absent from the retained run need that owner's explicit
 before/after mapping. An absent join remains explicit input data, not a guessed
 empty source impact set. A baseline DAG cannot discover new membership.
 
-`ProcessingRun::finish()` completes the graph the producer recorded. Source
-change detection, dependency completion, normalization, validation and
-publication remain separate obligations.
+`ProcessingRun::finish()` completes the graph the producer recorded.
 
 The maintained `build_native_addressed_knowledge_snapshot_from_capture` route
 validates a complete source transition and rebuilds the snapshot. Source-owner

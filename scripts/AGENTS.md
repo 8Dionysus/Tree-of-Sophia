@@ -5,9 +5,8 @@ helpers under `scripts/`.
 
 ## Role
 
-Scripts carry a bounded operation for a named source owner. Builders produce
-owned companions; validators check declared mechanics. They do not acquire
-source, semantic, rights, canon, runtime or downstream acceptance authority.
+Scripts carry bounded operations for named source owners. Builders produce
+companions; validators check declared mechanics.
 
 ## Read before editing
 
@@ -21,11 +20,9 @@ lives in `docs/validation/validation_lanes.json`. Decision records follow `docs/
   failure. A validator must not become a hidden source of policy.
 - Keep private or payload-bearing data in its selected owner-controlled storage.
   Public outputs retain their source bindings and permitted visibility.
-- Source semantics return to the exact `ToS/` branch; repeatable operation law
-  returns to `mechanics/`; external integrations remain consumer-owned.
 - `rust/crates/tos-ops-mechanics-plan/src/release_check_main.rs` is the native
-  release executor. Its manifest sequence, not an inventory entry, determines
-  which commands run. Update navigation when the actual route changes.
+  release executor; its manifest sequence determines command order. Update
+  navigation when the route changes.
 
 ## Validation
 

@@ -1,9 +1,8 @@
 # ToS source-return export
 
-Tree of Sophia builds a bounded source-return export from an explicitly selected
-immutable corpus revision. The artifact preserves source bytes, membership,
-hashes and source-return identities. The `aoa-kag` owner imports the artifact,
-builds indexes and checks consumer compatibility.
+Build a source-return export from an explicitly selected immutable corpus
+revision. It preserves source bytes, membership, hashes and source-return
+identities; `aoa-kag` imports it, builds indexes and checks compatibility.
 
 ```sh
 tos-kag-release export-build --repo-root /path/to/tos-software \

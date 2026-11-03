@@ -1,52 +1,24 @@
 # Growth Structure
 
-This route applies ToS growth doctrine through explicit choices about nodes,
-branches, depth and relations, grounded in the source material being developed.
+[Package operation](../../../README.md#op-doc-growth-structure)
 
-## Core rule
+<a id="core-rule"></a>
+[Core rule](../../../README.md#op-doc-growth-structure-core-rule)
 
-Growth counts when structure becomes clearer.
+<a id="three-main-growth-moves"></a>
+[Three main growth moves](../../../README.md#op-doc-growth-structure-three-main-growth-moves)
 
-Healthy growth strengthens source anchoring and makes the tree easier to
-traverse. Assess added files, fragments and notes by those effects.
+<a id="deepen-an-existing-node"></a>
+[Deepen an existing node](../../../README.md#op-doc-growth-structure-deepen-an-existing-node)
 
-## Three main growth moves
+<a id="create-a-new-node"></a>
+[Create a new node](../../../README.md#op-doc-growth-structure-create-a-new-node)
 
-### Deepen an existing node
+<a id="form-a-branch"></a>
+[Form a branch](../../../README.md#op-doc-growth-structure-form-a-branch)
 
-Deepen a node when:
+<a id="structural-signs-of-bad-growth"></a>
+[Structural signs of bad growth](../../../README.md#op-doc-growth-structure-structural-signs-of-bad-growth)
 
-- the same source route remains central
-- the existing node can carry the added extraction, context, or interpretation cleanly
-- the new material clarifies the current authored surface while keeping it readable
-
-### Create a new node
-
-Create a new node when:
-
-- a distinct source, concept, or context needs its own authored home
-- keeping the material in the current node would blur lineage or interpretation layers
-- the new material deserves its own stable source anchor
-
-### Form a branch
-
-Form a branch when:
-
-- multiple nodes now justify a durable lineage or thematic path
-- readers need a stable traversal route rather than scattered cross-links
-- the structure is becoming important enough that naming the branch improves orientation
-
-## Structural signs of bad growth
-
-Pause when growth starts to look like:
-
-- node explosion with weak lineage
-- branch explosion with no clear rooted path
-- repeated summaries that differ only cosmetically
-- quantity metrics replacing structural judgment
-
-## Working question
-
-Before adding a new artifact, ask:
-
-Should this deepen a node, become a node, form a branch, or stay out until the structure is clearer?
+<a id="working-question"></a>
+[Working question](../../../README.md#op-doc-growth-structure-working-question)

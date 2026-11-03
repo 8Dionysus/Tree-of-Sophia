@@ -36,7 +36,6 @@ New complete native snapshots select
 are retained once in `knowledge_source_carriers`; normalized rows reference
 those logical bytes where their codec permits exact reconstruction. Identity,
 ordering and current rights remain properties of each row and its source.
-Sharing byte storage does not share authority.
 
 Source packets and normalized payloads use bounded physical frames from
 `knowledge_byte_codec.rs`. V4 retains immutable SHA-256-addressed dictionaries
@@ -153,7 +152,7 @@ The selected legacy sibling declares finite `schema.max_visits`,
 existing Foundation legacy parser and conversion before allocations, preserving
 the historical raw legacy profile and its 300,000-visit ceiling. Selected parser,
 conversion, schema/request/image terms and separate runtime headroom must fit the
-child address-space declaration; this logical check does not prove process RSS.
+child address-space declaration; process RSS requires separate measurement.
 
 `build` requires a fresh private candidate root and writes the plan-declared
 relative projection and SQLite paths below that root, plus
@@ -186,7 +185,7 @@ index construction; it must be page-aligned, at least `max_database_bytes`, and
 within the same supported one-GiB ceiling. `max_database_bytes` remains the
 post-`VACUUM` candidate and validator ceiling. The caller must separately admit
 the working file, `VACUUM` temporary space, and all other live outputs and memory;
-these two file ceilings do not grant that whole-operation budget.
+the whole-operation budget is admitted separately from these file ceilings.
 `schema.max_preparation_bytes` admits the metadata-derived schema/parser/image
 preparation upper bound before constructing the worker; `max_state_bytes`
 separately admits diagnostics controller state. These are finite computational refusal boundaries; the host launcher separately admits

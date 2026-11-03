@@ -55,6 +55,22 @@ Invoke the installed `tos-access prepare` command directly. The native producer
 binds its own normalization processor and configuration; it does not claim
 identity with the retired Python implementation.
 
+## Prepared catalog and maintenance ownership
+
+The retired Python APIs are `tos_access.catalog_index`, `catalog_semantics`,
+`prepared_semantics`, `prepared_publication`, `prepared_catalog`,
+`semantic_index`, the joined caller-transaction maintenance API, and the
+prepared search, compact-lens and membership-index writers. The Rust compiler
+owns [catalog materialization](../rust/crates/tos-compiler/src/prepared_catalog_index.rs),
+[catalog semantics](../rust/crates/tos-compiler/src/prepared_catalog_semantics.rs)
+and [maintenance](../rust/crates/tos-compiler/src/prepared_maintenance.rs);
+[`tos-query::knowledge_catalog`](../rust/crates/tos-query/src/knowledge_catalog.rs)
+reads the selected catalog. `tos prepare --attach-maintenance` adds catalog and
+semantic indexes within the private publication flow. Native readers check the
+declared profile and binding of compatible snapshots, which retain their
+original bindings under the
+[selected-snapshot contract](contracts/native-selected-snapshot-profile.v1.md).
+
 ## Optional maintenance attachment
 
 `--attach-maintenance` explicitly adds the existing exact catalog and auxiliary

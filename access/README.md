@@ -2,14 +2,9 @@
 
 `access/` is ToS's standalone, source-read-only delivery product: native CLI,
 HTTP and MCP, the browser application, and WebMCP. Rust owns runtime query and
-transport behavior. The optional imported Python SDK is a thin caller of the
-installed native product; it does not ship a second query engine or a Python
-runtime fallback.
-
-Authored meaning, source admission, rights, review and canon remain with their
-ToS owners. Access reads explicitly selected published data and returns
-`source_ref` routes. It does not write corpus state or turn a projection,
-capability packet, or successful validator into semantic acceptance.
+transport behavior. The optional imported Python SDK calls the installed native
+product. Access reads explicitly selected published data and returns `source_ref`
+routes.
 
 ## Choose a route
 
@@ -43,8 +38,8 @@ schemas. No command searches a parent directory or neighboring checkout for
 another dataset. `--release-root` selects an already admitted managed release;
 it does not install software or build data.
 
-`doctor` and `verify` inspect the selected source-backed profile. They do not
-compile data, start a server, grant source rights, or prove semantic acceptance.
+`doctor` and `verify` inspect the selected source-backed profile. Compilation
+and serving use separate commands.
 Prepared-reader flags belong to the explicit prepared route below and are
 refused by source-backed diagnostics. The installed product is the native
 software archive and its `bin/tos` entrypoint; there is no maintained Python
@@ -106,8 +101,7 @@ Selection is explicit. Source-backed readers use `--root` or an admitted
 `--release-root`; an offline prepared knowledge reader requires both a prepared
 SQLite path and an owner-selected binding. A reader never creates a missing
 product, infers a binding from database contents, or falls back to a different
-dataset after a selected product fails. Prepared knowledge is a bounded
-projection, not source, rights, review, or publication authority.
+dataset after a selected product fails.
 
 Projection search retains its declared engine-specific behavior: legacy and
 indexed modes keep their own pagination and filters, while compressed search is
@@ -177,17 +171,14 @@ Knowledge packets preserve stable ToS IDs, source-native identity, provenance,
 source references, authority posture, and the recorded wording available in
 the selected projection. Deterministic display synthesis is labeled as
 synthesis; it is not authored ToS meaning. Missing translations are not
-invented, and identifier fallbacks do not become source titles. A normalized
-packet or successful transport check cannot assess truth, translation, rights,
-review, or canon.
+invented, and identifier fallbacks do not become source titles.
 
 For the exact normalized packet shape, vocabulary, and language fallback rules,
 use [`knowledge-graph.v1.schema.json`](contracts/knowledge-graph.v1.schema.json),
 the [contract index](contracts/README.md), and the ToS-owned semantic registry
 under [`ToS/doctrine/semantic-interchange/`](../ToS/doctrine/semantic-interchange/).
 The browser's full-material context reader verifies the declared digest and
-field coverage before presentation; this proves transport binding, not the
-quality of the owner's assessment. See the
+field coverage before presentation. See the
 [human-form delivery contract](contracts/human-form-delivery.md) for the
 separate rendering boundary.
 
@@ -239,8 +230,7 @@ This is a separate, private source-owner product. Use the protected
 `tos_local_source_navigation_owner_v1` selection and keep
 `TOS_SOURCE_PG_URL` in the private process environment. The owner selection
 binds the selected CMD domain, source proof, consumer/profile, finite model and
-event limits, and policy receipt. Neither a prepared model nor its receipt
-grants source rights, QRY disclosure, publication admission or canon.
+event limits, and policy receipt.
 The current PostgreSQL anchor is `tos_knowledge_managed_navigation_v2`; it
 retains authenticated Navigation Original carriers and source proof, while
 PostgreSQL owns the published graph. It does not contain offline compressed
@@ -382,8 +372,7 @@ If native child release is not proved within the original cleanup clock, the
 CLI exits 125 without success or adoption and retains frames and failure
 evidence for owner-directed cleanup. The selected outer service owns residual
 cleanup; process death closes this CLI's owned read transactions. A library
-caller retains its separate borrowed-custody contract. This is not a public
-publication or authorization broker.
+caller retains its separate borrowed-custody contract.
 
 ## Browser application and WebMCP
 
@@ -398,9 +387,8 @@ Feature-specific behavior and development commands are in the
 In supported browsers, WebMCP exposes page view/search/selection actions and
 the currently available research tools to an agent on the same page. The site
 does not embed a model or require an API key. It remains usable when
-`document.modelContext` is absent; WebMCP support is experimental and does not
-confer ToS authority or guarantee availability. The optional native `tos mcp`
-server is an off-page route, not a prerequisite for browser use.
+`document.modelContext` is absent; WebMCP support is experimental. The optional
+native `tos mcp` server is an off-page route, not a prerequisite for browser use.
 
 ## Cloudflare delivery
 
@@ -423,7 +411,6 @@ npm ci --prefix access/web
 npm run build --prefix access/web
 ```
 
-Those commands build frontend assets only. They do not compile or admit corpus
-data, create a Cloudflare publication, install software, or establish runtime
-acceptance. Rust build profiles and the native validation entrypoint are
+Those commands build frontend assets. Rust build profiles and the native
+validation entrypoint are
 documented in the [Rust access guide](../rust/crates/tos-access/README.md).

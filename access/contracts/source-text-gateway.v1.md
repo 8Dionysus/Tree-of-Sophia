@@ -28,8 +28,7 @@ the source owner must map the Access application's audience and its Allow
 policy to the principal set admitted for the selected native private
 source-text delivery scope. Keep one native PostgreSQL consumer selected for
 that scope. The audience is an application identifier; its Access policy
-defines admitted callers. This mapping does not grant source rights, consent,
-canon, or public publication.
+defines admitted callers.
 The configured native origin must be separately protected by Cloudflare Access
 using that service-token pair and must bind its own PostgreSQL selection through
 `TOS_SOURCE_TEXT_SEARCH_SELECTION` and `TOS_SOURCE_PG_URL`.

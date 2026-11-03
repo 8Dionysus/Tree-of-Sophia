@@ -19,9 +19,8 @@ needs a real local operation and owner split; an additional part needs repeated
 work that justifies it. The package README owns growth conditions and history.
 
 Historical paths and receipts return through `README.md#history` to an exact
-revision in Git and original path. Retained `PARTS.md`, `PROVENANCE.md` and
-`ROADMAP.md` are compatibility carriers, not required components of a new
-mechanic. Current receipts remain with the active owning part.
+revision in Git and original path. The decision-linked Questbook `PARTS.md`
+retains its path. Current receipts remain with the active owning part.
 
 Runtime activation, proof, memory, SDK, federation and KAG substrate decisions
 return to their actual owners. A mechanic cannot silently grant canon authority.

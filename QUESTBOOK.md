@@ -109,7 +109,7 @@ established by this package. Unknown external readers are not excluded: the old
 paths remain readable. A named consumer and its compatibility review are required
 before extending these exports or removing their entrypoints.
 
-The [integration boundary](mechanics/questbook/parts/obligation-boundary/docs/QUESTBOOK_TOS_INTEGRATION.md)
+The [integration boundary](mechanics/questbook/README.md#integration-boundary)
 keeps philosophical meaning with ToS. Membership is not dispatch, activation,
 rights admission or canon authority. New obligations need an actual owner and
 return condition, not a demonstration quartet.
