@@ -45,8 +45,6 @@ const RU: &str = "technical-markup/antonovsky-1911-structural-paragraph-v2";
 const ROUTE: &str = "alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1";
 const PRIVATE: &str = "gold-sets/foundation-pilot-v1/local-content/translation-alignment-v1";
 const SCHEMA: &str = "ToS/contracts/translation-alignment-packet-v1.schema.json";
-const LABELS: [&str; 4] = ["I", "II", "III", "IV"];
-const READINGS: [usize; 4] = [23, 22, 16, 20];
 fn at(route: &str, name: &str) -> String {
     format!("{BASE}/{route}/{name}")
 }
@@ -205,9 +203,10 @@ pub struct Material {
 }
 /// Reconstruct exact private paragraph bytes using the native structural compiler.
 pub fn reconstruct_scoped(repo: &ResearchExecution) -> Result<Material> {
-    reconstruct_with_scope(repo, &Policy::legacy().scope)
+    reconstruct_with_policy(repo, &Policy::legacy())
 }
-fn reconstruct_with_scope(repo: &ResearchExecution, scope: &ScopeCensus) -> Result<Material> {
+fn reconstruct_with_policy(repo: &ResearchExecution, policy: &Policy) -> Result<Material> {
+    let scope = &policy.scope;
     let primary = lines(repo, &output("primary-proposals-input.v1.jsonl"))?;
     let challenger = lines(repo, &output("independent-challenger-input.v1.jsonl"))?;
     ensure(
@@ -225,7 +224,7 @@ fn reconstruct_with_scope(repo: &ResearchExecution, scope: &ScopeCensus) -> Resu
     let mut de_packets = BTreeMap::new();
     let mut de_units = BTreeMap::new();
     let mut source_anchors = BTreeMap::new();
-    for part in 1..=4 {
+    for part in 1..=policy.parts.len() {
         repo.tick(1)?;
         let packet = load(
             repo,
@@ -303,7 +302,7 @@ fn reconstruct_with_scope(repo: &ResearchExecution, scope: &ScopeCensus) -> Resu
     }
     let mut layers = BTreeMap::new();
     let mut target_ids = BTreeSet::new();
-    for part in 1..=4 {
+    for part in 1..=policy.parts.len() {
         repo.tick(1)?;
         let rows = by_part.remove(&part).ok_or("missing Russian part")?;
         let mut text = String::new();
@@ -534,7 +533,7 @@ fn scope(
 ) -> Result<(Vec<Value>, BTreeSet<(usize, usize)>)> {
     let de = lines(repo, &at(DE, "citation-spine.v1.jsonl"))?;
     let mut ord = BTreeMap::new();
-    for part in 1..=4 {
+    for part in 1..=policy.parts.len() {
         repo.tick(1)?;
         let rows: Vec<_> = de
             .iter()
@@ -543,7 +542,7 @@ fn scope(
             })
             .collect();
         ensure(
-            rows.len() == READINGS[part - 1],
+            rows.len() == policy.parts[part - 1].expected_readings,
             "German reading-unit census drift",
         )?;
         for (i, r) in rows.iter().enumerate() {
@@ -663,6 +662,12 @@ struct ReferenceFormat {
     ordinal_width: usize,
     ordinal_base: usize,
 }
+#[derive(Clone, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Part {
+    label: String,
+    expected_readings: usize,
+}
 impl ScopeCensus {
     fn side(&self, side: &str) -> &ExclusionCensus {
         self.exclusions
@@ -679,6 +684,7 @@ struct Policy {
     unstable_confidence: String,
     scope: ScopeCensus,
     references: Vec<ReferenceFormat>,
+    parts: Vec<Part>,
 }
 impl Policy {
     // Compatibility profile for the historical command; remove with its alias.
@@ -696,7 +702,8 @@ impl Policy {
             "cross_kind_risks":[{"part_order":3,"reading_ordinal":15,"trigger":"either_side_empty"}],
             "unstable_resolution_prefix":"unresolved", "unstable_confidence":"low",
             "scope_census":{"primary_proposals":3423,"source_paragraphs":3447,"target_paragraphs":3569,"exclusions":[{"side":"source","groups":39,"lines":368},{"side":"target","groups":13,"lines":359}]},
-            "derived_reference_formats":[{"role":"source_scope_exclusion","prefix":"de-verse-group-","ordinal_width":3,"ordinal_base":1},{"role":"target_scope_exclusion","prefix":"ru-verse-group-","ordinal_width":3,"ordinal_base":1},{"role":"conflict","prefix":"alignment-conflict-","ordinal_width":4,"ordinal_base":1}]
+            "derived_reference_formats":[{"role":"source_scope_exclusion","prefix":"de-verse-group-","ordinal_width":3,"ordinal_base":1},{"role":"target_scope_exclusion","prefix":"ru-verse-group-","ordinal_width":3,"ordinal_base":1},{"role":"conflict","prefix":"alignment-conflict-","ordinal_width":4,"ordinal_base":1}],
+            "parts":[{"label":"I","expected_readings":23},{"label":"II","expected_readings":22},{"label":"III","expected_readings":16},{"label":"IV","expected_readings":20}]
         });
         Self::selected(&raw).expect("compiled paragraph compatibility policy")
     }
@@ -774,6 +781,22 @@ impl Policy {
                 }),
             "paragraph reference format membership",
         )?;
+        let parts: Vec<Part> = serde_json::from_value(recipe["parts"].clone())
+            .map_err(|e| format!("paragraph parts: {e}"))?;
+        let labels: BTreeSet<_> = parts.iter().map(|p| p.label.as_str()).collect();
+        // The retained structural producer currently supplies exactly four parts.
+        ensure(
+            parts.len() == 4
+                && labels.len() == parts.len()
+                && parts
+                    .iter()
+                    .all(|p| !p.label.is_empty() && p.expected_readings > 0)
+                && parts
+                    .iter()
+                    .try_fold(0usize, |n, p| n.checked_add(p.expected_readings))
+                    .is_some(),
+            "paragraph part membership",
+        )?;
         Ok(Self {
             rules,
             cross,
@@ -781,6 +804,7 @@ impl Policy {
             unstable_confidence,
             scope,
             references,
+            parts,
         })
     }
     fn reference(&self, role: &str, index: usize) -> Result<String> {
@@ -936,7 +960,7 @@ fn build_with_policy(
         }
     }
     let mut packets = BTreeMap::new();
-    for part in 1..=4 {
+    for part in 1..=policy.parts.len() {
         repo.tick(1)?;
         let cfg = arr(&m.de_plan["source_items"])?
             .iter()
@@ -1037,7 +1061,12 @@ fn build_with_policy(
     for r in &spine {
         repo.tick(1)?;
         if disagreement.contains(s(&r["primary_proposal_ref"])?) {
-            by_part[n(&r["part_order"])? - 1] += 1;
+            let part = n(&r["part_order"])?;
+            let count = part
+                .checked_sub(1)
+                .and_then(|i| by_part.get_mut(i))
+                .ok_or("alignment part outside selected scope")?;
+            *count += 1;
             affected.extend(strings(&r["source_paragraph_unit_refs"])?);
             affected.extend(strings(&r["target_paragraph_unit_refs"])?);
         }
@@ -1076,9 +1105,10 @@ fn build_with_policy(
         &target_anchors.keys().cloned().collect(),
     )?;
     let mut diagnostics = Vec::new();
-    for part in 1..=4 {
+    let reading_total: usize = policy.parts.iter().map(|p| p.expected_readings).sum();
+    for part in 1..=policy.parts.len() {
         repo.tick(1)?;
-        for reading in 1..=READINGS[part - 1] {
+        for reading in 1..=policy.parts[part - 1].expected_readings {
             repo.tick(1)?;
             let rows: Vec<Value> = spine
                 .iter()
@@ -1097,14 +1127,23 @@ fn build_with_policy(
                 .collect::<Result<Vec<_>>>()?
                 .iter()
                 .sum::<usize>();
-            diagnostics.push(json!({"schema_version":"tos_zarathustra_de_ru_paragraph_alignment_reading_diagnostic_v1","part_order":part,"part_label":LABELS[part-1],"reading_ordinal_within_part":reading,"mapping_count":rows.len(),"source_paragraph_count":source_count,"target_paragraph_count":target_count,"status_counts":count(repo, &rows,"status")?,"correspondence_shape_counts":count(repo, &rows,"correspondence_shape")?,"independent_challenger_disagreement_count":rows.iter().filter(|r|r["independent_challenger_same_paragraph_group"]==false).count(),"verse_scope_exclusion_present":risk_readings.contains(&(part,reading)),"verse_barrier_risk_mapping_count":rows.iter().filter(|r|r["cross_kind_or_verse_scope_risk"]==true).count(),"order_posture":"monotonic_machine_proposal_within_reading","source_text_included":false,"semantic_equivalence_asserted":false}));
+            diagnostics.push(json!({"schema_version":"tos_zarathustra_de_ru_paragraph_alignment_reading_diagnostic_v1","part_order":part,"part_label":policy.parts[part-1].label,"reading_ordinal_within_part":reading,"mapping_count":rows.len(),"source_paragraph_count":source_count,"target_paragraph_count":target_count,"status_counts":count(repo, &rows,"status")?,"correspondence_shape_counts":count(repo, &rows,"correspondence_shape")?,"independent_challenger_disagreement_count":rows.iter().filter(|r|r["independent_challenger_same_paragraph_group"]==false).count(),"verse_scope_exclusion_present":risk_readings.contains(&(part,reading)),"verse_barrier_risk_mapping_count":rows.iter().filter(|r|r["cross_kind_or_verse_scope_risk"]==true).count(),"order_posture":"monotonic_machine_proposal_within_reading","source_text_included":false,"semantic_equivalence_asserted":false}));
         }
     }
-    ensure(diagnostics.len() == 81, "reading diagnostic census drift")?;
-    let part_counts = json!({"I":by_part[0],"II":by_part[1],"III":by_part[2],"IV":by_part[3]});
+    ensure(
+        diagnostics.len() == reading_total,
+        "reading diagnostic census drift",
+    )?;
+    let part_counts: Value = policy
+        .parts
+        .iter()
+        .zip(by_part)
+        .map(|(p, n)| (p.label.clone(), json!(n)))
+        .collect::<serde_json::Map<_, _>>()
+        .into();
     let mut coverage = template("coverage");
     for (key, value) in [
-        ("reading_pair_count", 81),
+        ("reading_pair_count", reading_total),
         ("alignment_count", spine.len()),
         ("source_paragraph_expected", policy.scope.source_paragraphs),
         ("source_paragraph_covered", policy.scope.source_paragraphs),
@@ -1141,7 +1180,13 @@ fn build_with_policy(
     ] {
         coverage[key] = json!(value);
     }
-    coverage["reading_pairs_by_part"] = json!({"I":23,"II":22,"III":16,"IV":20});
+    coverage["reading_pairs_by_part"] = Value::Object(
+        policy
+            .parts
+            .iter()
+            .map(|p| (p.label.clone(), json!(p.expected_readings)))
+            .collect(),
+    );
     coverage["status_counts"] = statuses.clone();
     coverage["correspondence_shape_counts"] = shapes;
     coverage["independent_challenger_disagreement_by_part"] = part_counts.clone();
@@ -1364,7 +1409,7 @@ fn manifest_check(repo: &ResearchExecution, manifest: &Value) -> Result<()> {
 // The compatibility gate covers recipe fields the legacy producer has not
 // yet consumed. Remove it after the remaining paragraph parameters migrate.
 const COMPATIBILITY_PROFILE_SHA256: &str =
-    "7ac87b46ab13936f4052d09c28d81a225e7c94148a807ccac65f929a0353e76a";
+    "8b743100adaae83f02a3d36e5e0627d40f3d68de6572fd3772694102fc350804";
 fn compatibility_policy(recipe: &Value) -> Result<Policy> {
     let policy = Policy::selected(recipe)?;
     let mut remaining = recipe.clone();
@@ -1378,6 +1423,7 @@ fn compatibility_policy(recipe: &Value) -> Result<Policy> {
         "unstable_confidence",
         "scope_census",
         "derived_reference_formats",
+        "parts",
     ] {
         object.remove(key);
     }
@@ -1398,7 +1444,7 @@ pub fn replay_selected(
     target: Option<&ResearchExecution>,
 ) -> Result<Value> {
     let policy = compatibility_policy(recipe)?;
-    let material = reconstruct_with_scope(repo, &policy.scope)?;
+    let material = reconstruct_with_policy(repo, &policy)?;
     let (public, private) = build_with_policy(repo, &material, &policy)?;
     ensure(
         public.keys().cloned().collect::<BTreeSet<_>>() == *expected,
