@@ -328,10 +328,7 @@ fn reconstruct_with_policy(repo: &ResearchExecution, policy: &Policy) -> Result<
         layers.insert(
             part,
             Layer {
-                reference: at(
-                    PRIVATE,
-                    &format!("antonovsky-1911-part-{part}-paragraphs.v1.txt"),
-                ),
+                reference: at(PRIVATE, &policy.target_layer.filename(part)),
                 digest: sha(&payload),
                 payload,
                 records,
@@ -668,6 +665,17 @@ struct Part {
     label: String,
     expected_readings: usize,
 }
+#[derive(Clone, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct TargetLayerFilename {
+    prefix: String,
+    suffix: String,
+}
+impl TargetLayerFilename {
+    fn filename(&self, part: usize) -> String {
+        format!("{}{part}{}", self.prefix, self.suffix)
+    }
+}
 impl ScopeCensus {
     fn side(&self, side: &str) -> &ExclusionCensus {
         self.exclusions
@@ -685,6 +693,8 @@ struct Policy {
     scope: ScopeCensus,
     references: Vec<ReferenceFormat>,
     parts: Vec<Part>,
+    work_ref: String,
+    target_layer: TargetLayerFilename,
 }
 impl Policy {
     // Compatibility profile for the historical command; remove with its alias.
@@ -703,7 +713,8 @@ impl Policy {
             "unstable_resolution_prefix":"unresolved", "unstable_confidence":"low",
             "scope_census":{"primary_proposals":3423,"source_paragraphs":3447,"target_paragraphs":3569,"exclusions":[{"side":"source","groups":39,"lines":368},{"side":"target","groups":13,"lines":359}]},
             "derived_reference_formats":[{"role":"source_scope_exclusion","prefix":"de-verse-group-","ordinal_width":3,"ordinal_base":1},{"role":"target_scope_exclusion","prefix":"ru-verse-group-","ordinal_width":3,"ordinal_base":1},{"role":"conflict","prefix":"alignment-conflict-","ordinal_width":4,"ordinal_base":1}],
-            "parts":[{"label":"I","expected_readings":23},{"label":"II","expected_readings":22},{"label":"III","expected_readings":16},{"label":"IV","expected_readings":20}]
+            "parts":[{"label":"I","expected_readings":23},{"label":"II","expected_readings":22},{"label":"III","expected_readings":16},{"label":"IV","expected_readings":20}],
+            "work_ref":WORK,"target_layer_filename":{"prefix":"antonovsky-1911-part-","suffix":"-paragraphs.v1.txt"}
         });
         Self::selected(&raw).expect("compiled paragraph compatibility policy")
     }
@@ -797,6 +808,23 @@ impl Policy {
                     .is_some(),
             "paragraph part membership",
         )?;
+        let work_ref = s(&recipe["work_ref"])?.to_owned();
+        let target_layer: TargetLayerFilename =
+            serde_json::from_value(recipe["target_layer_filename"].clone())
+                .map_err(|e| format!("paragraph target layer filename: {e}"))?;
+        ensure(
+            !work_ref.is_empty()
+                && !target_layer.prefix.is_empty()
+                && !target_layer.suffix.is_empty(),
+            "paragraph target layer or work reference missing",
+        )?;
+        for part in 1..=parts.len() {
+            let name = target_layer.filename(part);
+            ensure(
+                relative(&name)?.components().count() == 1,
+                "paragraph target layer filename must be a single component",
+            )?;
+        }
         Ok(Self {
             rules,
             cross,
@@ -805,6 +833,8 @@ impl Policy {
             scope,
             references,
             parts,
+            work_ref,
+            target_layer,
         })
     }
     fn reference(&self, role: &str, index: usize) -> Result<String> {
@@ -973,7 +1003,7 @@ fn build_with_policy(
         packet["alignments"] = json!(alignments.get(&part).cloned().unwrap_or_default());
         for (side, config) in [("source_side", cfg), ("target_side", ru)] {
             repo.tick(1)?;
-            packet[side]["work_ref"] = json!(WORK);
+            packet[side]["work_ref"] = json!(policy.work_ref);
             for key in [
                 "expression_ref",
                 "edition_ref",
@@ -1409,7 +1439,7 @@ fn manifest_check(repo: &ResearchExecution, manifest: &Value) -> Result<()> {
 // The compatibility gate covers recipe fields the legacy producer has not
 // yet consumed. Remove it after the remaining paragraph parameters migrate.
 const COMPATIBILITY_PROFILE_SHA256: &str =
-    "8b743100adaae83f02a3d36e5e0627d40f3d68de6572fd3772694102fc350804";
+    "fa2987f522587c9378a4e0b3939a65a6c074bbfb8539d093534553bdb1995d52";
 fn compatibility_policy(recipe: &Value) -> Result<Policy> {
     let policy = Policy::selected(recipe)?;
     let mut remaining = recipe.clone();
@@ -1424,6 +1454,8 @@ fn compatibility_policy(recipe: &Value) -> Result<Policy> {
         "scope_census",
         "derived_reference_formats",
         "parts",
+        "work_ref",
+        "target_layer_filename",
     ] {
         object.remove(key);
     }
