@@ -6,26 +6,8 @@ use std::os::unix::fs::PermissionsExt;
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 use tos_command::source_creation_store::IsolatedCreationRoot;
-const FACTORY: &str = r#"
-import json,sys,tempfile
-from pathlib import Path
-repository,root,unused=map(Path,sys.argv[1:])
-sys.path[:0]=[str(repository/'mechanics/growth-cycle/tests'),str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts')]
-import test_source_edition_commands as fixture
-class SelectedRoot:
-    def __init__(self,*a,**kw): self.name=str(root)
-    def cleanup(self): pass
-original=tempfile.TemporaryDirectory;tempfile.TemporaryDirectory=SelectedRoot
-try:
-    case=fixture.NativeEditionTests(methodName='runTest');case.setUp()
-finally: tempfile.TemporaryDirectory=original
-case.owner.chmod(0o600)
-implementations=sorted(fixture.edition.IMPLEMENTATIONS)
-for ref in implementations:
-    p=root/ref;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes((repository/ref).read_bytes());p.chmod(0o644)
-note=case.expression_path.with_name('unrelated-note.txt');note.write_bytes(b'unchanged unrelated note\n')
-print(json.dumps({'config':case.config,'proposal':case.proposal(),'origin_claim':case.origin_request['claim'],'implementations':implementations,'owner':str(case.owner),'edition_ref':case.expression_ref,'work_ref':case.config['work_source_path'],'origin_ref':case.expression_path.with_name('source-claims.jsonl').relative_to(root).as_posix()},ensure_ascii=False))
-"#;
+const FACTORY_SCRIPT_SHA256: &str =
+    "442fcb52ead16cb4abc439765fc6d6756907c6465317cb328afcc0a75e4b11dc";
 
 fn cli(
     repository: &Path,
@@ -135,7 +117,7 @@ fn native_edition_cli_preserves_topology_cold_replay_and_retained_recovery() {
             &[("source-root", isolated.path())],
             &native_owner_paths,
         );
-        super::assert_native_python_fixture(&captured, FACTORY, &native_owner_paths);
+        super::assert_native_python_fixture(&captured, FACTORY_SCRIPT_SHA256, &native_owner_paths);
         let fixture = captured.packets.get("factory").unwrap();
         let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
         assert!(fs::metadata(&owner).unwrap().len() <= 4096);
