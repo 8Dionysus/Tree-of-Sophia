@@ -50,7 +50,8 @@ const USAGE: &str = concat!(
 );
 const NAVIGATION_OWNER_SCHEMA: &str = "tos_local_source_navigation_owner_v1";
 const NAVIGATION_SELECTION_SCHEMA: &str = "tos_local_pg_source_navigation_selection_v1";
-const NAVIGATION_PRODUCER_SCHEMA: &str = "tos_local_pg_source_navigation_producer_v1";
+const NAVIGATION_PRODUCER_SCHEMA_V1: &str = "tos_local_pg_source_navigation_producer_v1";
+const NAVIGATION_PRODUCER_SCHEMA_V2: &str = "tos_local_pg_source_navigation_producer_v2";
 static STOP: AtomicBool = AtomicBool::new(false);
 
 #[derive(Clone)]
@@ -1241,20 +1242,13 @@ fn projection_selection_binding(
             .get("producer")
             .and_then(Value::as_object)
             .ok_or("navigation projection producer selection absent")?;
-        if producer.get("schema_version").and_then(Value::as_str)
-            != Some(NAVIGATION_PRODUCER_SCHEMA)
-            || producer
-                .get("max_events")
-                .and_then(Value::as_u64)
-                .is_none_or(|max_events| !(1..=256).contains(&max_events))
-            || producer
-                .get("schema_worker_path")
-                .and_then(Value::as_str)
-                .is_none_or(|path| path.is_empty() || !Path::new(path).is_absolute())
-            || producer
-                .get("schema_worker_sha256")
-                .and_then(Value::as_str)
-                .is_none_or(|digest| !valid_sha(digest))
+        if !matches!(
+            producer.get("schema_version").and_then(Value::as_str),
+            Some(NAVIGATION_PRODUCER_SCHEMA_V1 | NAVIGATION_PRODUCER_SCHEMA_V2)
+        ) || producer
+            .get("max_events")
+            .and_then(Value::as_u64)
+            .is_none_or(|max_events| !(1..=256).contains(&max_events))
         {
             return Err(
                 "navigation projection producer selection is incomplete or unbounded".into(),
@@ -1390,27 +1384,6 @@ fn validate_navigation_stage_paths(value: &Value, baseline: &Path) -> Result<(),
             ));
         }
     }
-    if let Some(worker_path) = value
-        .pointer("/source_navigation/producer/schema_worker_path")
-        .and_then(Value::as_str)
-    {
-        let worker = Path::new(worker_path);
-        if !worker.is_absolute() {
-            return Err("navigation schema worker path must be absolute".into());
-        }
-        let canonical = worker
-            .canonicalize()
-            .map_err(|e| format!("navigation schema worker identity: {e}"))?;
-        if canonical.starts_with(baseline) {
-            let metadata = fs::symlink_metadata(worker)
-                .map_err(|e| format!("navigation schema worker metadata: {e}"))?;
-            if metadata.file_type().is_symlink() || !metadata.is_file() {
-                return Err(
-                    "staged navigation schema worker must be a regular non-symlink file".into(),
-                );
-            }
-        }
-    }
     Ok(())
 }
 
@@ -1426,51 +1399,12 @@ fn rebase_navigation_owner_paths(value: &mut Value, from: &Path, to: &Path) -> R
     ] {
         required_stage_path(value, pointer, from, to)?;
     }
-    if value
-        .pointer("/source_navigation/producer/schema_worker_path")
-        .is_some()
-    {
-        let worker_path = value["source_navigation"]["producer"]["schema_worker_path"]
-            .as_str()
-            .ok_or("navigation schema worker path is invalid")?;
-        let worker = Path::new(worker_path);
-        if !worker.is_absolute() {
-            return Err("navigation schema worker path must be absolute".into());
-        }
-        let canonical = worker
-            .canonicalize()
-            .map_err(|e| format!("navigation schema worker identity: {e}"))?;
-        if let Ok(relative) = canonical.strip_prefix(from) {
-            let metadata = fs::symlink_metadata(worker)
-                .map_err(|e| format!("navigation schema worker metadata: {e}"))?;
-            if metadata.file_type().is_symlink() || !metadata.is_file() {
-                return Err(
-                    "staged navigation schema worker must be a regular non-symlink file".into(),
-                );
-            }
-            let staged = to.join(relative);
-            let staged_metadata = fs::symlink_metadata(&staged)
-                .map_err(|e| format!("staged navigation schema worker metadata: {e}"))?;
-            if !staged_metadata.is_file()
-                || staged_metadata.file_type().is_symlink()
-                || !staged.starts_with(to)
-            {
-                return Err("staged navigation schema worker is unavailable".into());
-            }
-            value["source_navigation"]["producer"]["schema_worker_path"] = json!(
-                staged
-                    .to_str()
-                    .ok_or("staged schema worker path is not UTF-8")?
-            );
-        }
-    }
     let mut original_non_paths = original;
     let mut rebased_non_paths = value.clone();
     for pointer in [
         "/source_root",
         "/source_navigation/store_root",
         "/source_navigation/model_path",
-        "/source_navigation/producer/schema_worker_path",
     ] {
         if let Some(path) = original_non_paths.pointer_mut(pointer) {
             *path = Value::Null;

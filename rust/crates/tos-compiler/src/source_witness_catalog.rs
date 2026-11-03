@@ -1108,14 +1108,13 @@ impl<'a> SourceCatalogValidator<'a> {
 
     /// Bind an event-local candidate directly to its selected in-process schemas.
     pub fn from_in_process_candidate_event<I: CandidateEventSourceIdentityV1 + 'static>(
-        budget: ExecutorBudget,
         cancelled: &'a AtomicBool,
         deadline: Instant,
         identity: &I,
         schemas: &'a mut dyn SourceFoundationCandidateSchemaBinding<I>,
     ) -> Result<Self> {
         Self::from_in_process_candidate_inner(
-            Some(budget),
+            None,
             cancelled,
             deadline,
             identity,
@@ -3504,7 +3503,6 @@ mod in_process_event_schema_tests {
         )
         .unwrap();
         let validator = SourceCatalogValidator::from_in_process_candidate_event(
-            ExecutorBudget::laboratory(),
             &cancelled,
             deadline,
             &identity,

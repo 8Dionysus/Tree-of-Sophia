@@ -3360,7 +3360,6 @@ fn with_selected_schema_validator<T>(
     )
     .map_err(|_| DurableError::Refused("selected navigation schema set refused"))?;
     let validator = SourceCatalogValidator::from_in_process_candidate_event(
-        selection.schema_budget,
         cancelled,
         deadline,
         &identity,

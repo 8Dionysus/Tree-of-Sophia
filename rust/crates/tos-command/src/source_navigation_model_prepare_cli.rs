@@ -676,27 +676,38 @@ fn validate_selection_input(value: &Value) -> SourceCommandResult<()> {
         ));
     }
     let producer = &value["producer"];
-    exact_keys(
-        producer,
-        &[
-            "schema_version",
-            "event_path",
-            "requested_paths",
-            "schema_paths",
-            "schema_worker_path",
-            "schema_worker_sha256",
-            "schema_execution_wall_ms",
-            "schema_cleanup_grace_ms",
-            "schema_cpu_seconds",
-            "schema_address_space_bytes",
-            "schema_max_receipts",
-            "schema_max_receipt_bytes",
-            "max_events",
-            "event_limits",
-            "aggregate_limits",
-        ],
+    let producer_fields = [
+        "schema_version",
+        "event_path",
+        "requested_paths",
+        "schema_paths",
+        "max_events",
+        "event_limits",
+        "aggregate_limits",
+    ];
+    let historical_worker_fields = [
+        "schema_worker_path",
+        "schema_worker_sha256",
+        "schema_execution_wall_ms",
+        "schema_cleanup_grace_ms",
+        "schema_cpu_seconds",
+        "schema_address_space_bytes",
+        "schema_max_receipts",
+        "schema_max_receipt_bytes",
+    ];
+    let producer_object = producer.as_object().ok_or(SourceCommandError::Invalid(
         "source-navigation producer fields",
-    )?;
+    ))?;
+    if producer_fields
+        .iter()
+        .any(|field| !producer_object.contains_key(*field))
+        || producer_object.keys().any(|key| {
+            !producer_fields.contains(&key.as_str())
+                && !historical_worker_fields.contains(&key.as_str())
+        })
+    {
+        return invalid("source-navigation producer fields");
+    }
     exact_keys(
         &producer["event_limits"],
         &[
@@ -722,7 +733,13 @@ fn validate_selection_input(value: &Value) -> SourceCommandResult<()> {
         ],
         "source-navigation producer aggregate limits",
     )?;
-    if producer["schema_version"] != "tos_local_pg_source_navigation_producer_v1" {
+    if !matches!(
+        producer["schema_version"].as_str(),
+        Some(
+            "tos_local_pg_source_navigation_producer_v1"
+                | "tos_local_pg_source_navigation_producer_v2"
+        )
+    ) {
         return Err(SourceCommandError::Denied(
             "source-navigation producer profile",
         ));
@@ -1124,19 +1141,6 @@ fn prepare_initial(
         ));
     }
     let host_export_parent = super::absolute(&owner.host_export_stage_parent)?;
-    let invocation_worker = &invocation["schema_worker"];
-    let producer_worker = &owner.source_navigation["producer"];
-    if super::absolute(super::text(invocation_worker, "absolute_path")?)?
-        != super::absolute(super::text(producer_worker, "schema_worker_path")?)?
-        || Digest256::from_prefixed(super::text(invocation_worker, "sha256")?)
-            .map_err(|_| SourceCommandError::Invalid("native schema worker identity"))?
-            != Digest256::from_hex(super::text(producer_worker, "schema_worker_sha256")?)
-                .map_err(|_| SourceCommandError::Invalid("navigation schema worker identity"))?
-    {
-        return Err(SourceCommandError::Denied(
-            "initial and navigation schema worker identities differ",
-        ));
-    }
     let store =
         SegmentStore::open_existing(&selection.store_root, selection.store_limits.into_limits())
             .map_err(|_| SourceCommandError::Conflict("selected source-navigation store"))?;
@@ -1160,17 +1164,6 @@ fn prepare_initial(
     let event_rows = selected_positive(event_limits, "max_current_rows", 65_536)?;
     let event_row_bytes = selected_positive(event_limits, "max_row_bytes", 8 * 1024 * 1024)?;
     let event_total_bytes = selected_positive(event_limits, "max_total_bytes", 512 * 1024 * 1024)?;
-    let _schema_wall_ms = selected_positive(producer, "schema_execution_wall_ms", 300_000)?;
-    let _schema_cleanup_ms = selected_positive(producer, "schema_cleanup_grace_ms", 60_000)?;
-    let _schema_cpu_seconds = selected_positive(producer, "schema_cpu_seconds", 60)?;
-    let _schema_address_space = selected_positive(
-        producer,
-        "schema_address_space_bytes",
-        8 * 1024 * 1024 * 1024,
-    )?;
-    let _schema_max_receipts = selected_positive(producer, "schema_max_receipts", 100_000)?;
-    let _schema_max_receipt_bytes =
-        selected_positive(producer, "schema_max_receipt_bytes", 64 * 1024 * 1024)?;
     let max_total_rows = selected_positive(aggregate_limits, "max_total_rows", u64::MAX - 1)?;
     let max_total_encoded_bytes =
         selected_positive(aggregate_limits, "max_total_encoded_bytes", u64::MAX - 1)?;
@@ -1934,6 +1927,37 @@ impl PreparationSelection {
 #[cfg(test)]
 mod initial_envelope_tests {
     use super::*;
+
+    #[test]
+    fn model_preparation_accepts_both_navigation_producer_versions() {
+        let mut selection = json!({
+            "schema_version": SELECTION_SCHEMA, "domain": "domain",
+            "source_contract_sha256": "digest", "rule_version": 1, "rights_version": 1,
+            "job_id": "job", "job_fence": 1, "consumer_id": "consumer",
+            "profile_id": tos_query::SOURCE_NAVIGATION_SELECTION_PROFILE, "profile_version": 1,
+            "store_root": "/store", "store_limits": {}, "tree_limits": {},
+            "process_limits": {}, "cold_limits": {},
+            "producer": {
+                "schema_version": "tos_local_pg_source_navigation_producer_v2",
+                "event_path": "ToS/event.json", "requested_paths": ["ToS/event.json"],
+                "schema_paths": ["ToS/contracts/event.schema.json"], "max_events": 1,
+                "event_limits": {"max_dependencies": 1, "max_cohort_rows": 1,
+                    "max_current_cohorts": 1, "max_current_rows": 1, "max_adjacency_rows": 1,
+                    "max_adjacency_bytes": 1, "max_row_bytes": 1, "max_total_bytes": 1,
+                    "statement_timeout_ms": 1000},
+                "aggregate_limits": {"max_total_rows": 1, "max_total_encoded_bytes": 1,
+                    "max_total_dependency_bytes": 1, "max_total_work_units": 1}
+            }
+        });
+        assert!(validate_selection_input(&selection).is_ok());
+        selection["producer"]["schema_version"] =
+            json!("tos_local_pg_source_navigation_producer_v1");
+        selection["producer"]["schema_worker_path"] = json!("/historical/worker");
+        selection["producer"]["schema_worker_sha256"] = json!("historical");
+        assert!(validate_selection_input(&selection).is_ok());
+        selection["producer"]["unexpected"] = json!(true);
+        assert!(validate_selection_input(&selection).is_err());
+    }
 
     #[test]
     fn bootstrap_contract_initial_invocation_uses_explicit_owner_bounds() {
