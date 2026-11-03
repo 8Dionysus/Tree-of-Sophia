@@ -7,7 +7,8 @@ const files=readdirSync(root).filter(name=>name.endsWith('.json')&&name!=='align
 const outside=[
   ['a padding turn built on not only or not merely',/не только.{0,100}но и|not only.{0,100}but (?:also )?|не просто|not merely/i],
   ['a contrast expressed through non-identity',/не тождествен/i],
-  ['a padding turn using rather than',/\brather than\b/i],
+  ['a padding turn using rather than',/\brather than\b/i, new Set(['collection.json:branches[14].nodes[5].reading.en'])],
+  ['empty descriptions of a reading or comparison',/Это предложение для проверки|Это отправная точка сравнения|Это нравственный совет правителю|This is a proposal to test|This is the starting point for comparison|This is moral advice to a ruler/i],
   ['padding about a completed result',/готов(?:ое|ым) опровержени|завершённый итог|ready-made refutation|completed result/i],
   ['a contrast with a universal theory or template',/а не единую теорию искусства|а не шаблон для всех сюжетов|not one theory of art|not a template for every plot/i],
   ['a contrast with an exhaustive answer',/а не исчерпывающий ответ|not an exhaustive answer/i],
@@ -30,7 +31,48 @@ function readerTexts(value,path='',found=[]){
 describe('the language of the Antiquity stand',()=>{
   const texts=files.flatMap(name=>readerTexts(JSON.parse(readFileSync(new URL(name,root),'utf8'))).map(row=>({name,...row})));
   it('reads both languages throughout the stand modules',()=>{expect(texts.length).toBeGreaterThan(14000);});
-  for(const [what,pattern] of outside)it(`holds no ${what}`,()=>{
-    expect(texts.filter(({text})=>pattern.test(text)).map(({name,path,text})=>`${name}:${path}: ${text}`)).toEqual([]);
+  it('retains the question about inquiry testing opinions and the grammatical preposition',()=>{
+    const text=(path)=>texts.find(row=>row.name==='collection.json'&&row.path===path)?.text;
+    expect(text('passages[8].readingSteps[0].question.ru')).toBe('Что делает такую беседу самостоятельным исследованием, которое проверяет мнения?');
+    expect(text('passages[8].readingSteps[0].question.en')).toBe('What makes such a conversation an independent inquiry that tests opinions?');
+    expect(text('entities[58].workMap.stages[4].title.ru')).toBe('Связать приёмы со знанием слушателя');
+  });
+  it('keeps the shared branch reading and route in agreement',()=>{
+    const collection=JSON.parse(readFileSync(new URL('collection.json',root),'utf8'));
+    const first=JSON.parse(readFileSync(new URL('first-branches.json',root),'utf8'));
+    for(const branch of first.branches){
+      const expanded=collection.branches.find(item=>item.id===branch.id);
+      for(const field of ['rootTitle','summary','question'])for(const lang of ['ru','en'])
+        expect(branch[field]?.[lang],`${branch.id} ${field}.${lang}`).toBe(expanded[field]?.[lang]);
+      for(const [index,node] of branch.nodes.entries()){
+        for(const field of ['title','reading','question'])for(const lang of ['ru','en'])
+          expect(node[field]?.[lang],`${branch.id} node ${index} ${field}.${lang}`).toBe(expanded.nodes[index][field]?.[lang]);
+      }
+      for(const [index,edge] of branch.edges.entries()){
+        for(const field of ['label','body'])for(const lang of ['ru','en'])
+          expect(edge[field]?.[lang],`${branch.id} edge ${index} ${field}.${lang}`).toBe(expanded.edges[index][field]?.[lang]);
+      }
+    }
+  });
+  it('states Aristotle’s distinction and retains the contrast in Plato’s Ion',()=>{
+    const text=(path)=>texts.find(row=>row.name==='collection.json'&&row.path===path)?.text;
+    expect(text('branches[11].edges[0].body.en')).toBe('In the Politics, Aristotle distinguishes forms of rule by the number of rulers and whether they serve the common good.');
+    expect(text('branches[14].nodes[5].reading.en')).toBe('In Plato’s Ion, Socrates attributes poetic creation to divine inspiration rather than skill.');
+  });
+  it('uses one word for a sense while distinguishing general from Stoic assent',()=>{
+    const text=(path)=>texts.find(row=>row.name==='collection.json'&&row.path===path)?.text;
+    expect(text('passages[153].readingSteps[1].question.en')).toBe("Is one's own nature enough to call an action free?");
+    expect(text('terms[31].body.en')).toBe('Assent; in Stoic philosophy, assent to an impression.');
+    expect(text('terms[25].body.ru')).toContain('рассудительность в ведении дел');
+    expect(text('branches[0].nodes[6].question.en')).toBe('Is true opinion with an account enough, or must the account disclose the cause?');
+  });
+  it('asks directly about knowledge, action and explanation',()=>{
+    const text=(path)=>texts.find(row=>row.name==='collection.json'&&row.path===path)?.text;
+    expect(text('entities[82].question.ru')).toBe('Когда убеждение становится знанием?');
+    expect(text('passages[28].readingSteps[0].question.ru')).toBe('Что такое объяснение говорит о конкретной вещи?');
+    expect(text('passages[85].readingSteps[0].question.ru')).toBe('Что нужно человеку для успешного действия?');
+  });
+  for(const [what,pattern,exceptions=new Set()] of outside)it(`holds no ${what}`,()=>{
+    expect(texts.filter(({name,path,text})=>pattern.test(text)&&!exceptions.has(`${name}:${path}`)).map(({name,path,text})=>`${name}:${path}: ${text}`)).toEqual([]);
   });
 });

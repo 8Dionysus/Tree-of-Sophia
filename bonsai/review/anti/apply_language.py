@@ -59,8 +59,11 @@ def parse_path(path):
     if not re.fullmatch(r'bonsai/antiquity/[\w-]+\.json', filename):
         raise ValueError(f'Outside Antiquity modules: {filename}')
     parts = []
-    for part in route.split('.'):
-        match = re.fullmatch(r'([^\[\]]+)((?:\[\d+\])*)', part)
+    # A backslash escapes a literal dot in a JSON object key. Unescaped
+    # dots continue to separate fields, preserving the existing ledger format.
+    for part in re.split(r'(?<!\\)\.', route):
+        part = part.replace(r'\.', '.')
+        match = re.fullmatch(r'([^\[\]\\]+)((?:\[\d+\])*)', part)
         if not match:
             raise ValueError(f'Invalid path: {path}')
         parts.append(match.group(1))
