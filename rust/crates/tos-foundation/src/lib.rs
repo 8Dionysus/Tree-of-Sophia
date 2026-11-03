@@ -2,6 +2,7 @@
 //!
 //! No type here grants source authority, rights, review, canon or admission.
 
+mod canonical_digest;
 mod capability;
 mod coordinates;
 pub mod deployment_profile;
@@ -23,6 +24,9 @@ pub mod temporal;
 mod unicode;
 pub use unicode::predicates16 as unicode_predicates16;
 
+pub use canonical_digest::{
+    CanonicalDigestV1, JCS_DIGEST_TAG, jcs_digest_v1, verify_canonical_digest_v1,
+};
 pub use capability::{FoundationCapabilities, capabilities};
 pub use coordinates::{ByteSpan, CodePointSpan};
 pub use digest::{Digest256, Digest256Hasher};
