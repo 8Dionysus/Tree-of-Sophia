@@ -2189,6 +2189,55 @@ mod tests {
         ResearchExecution::new_with_scratch(Path::new("/"), 180, 16 * 1024 * 1024).unwrap()
     }
     #[test]
+    fn selected_coverage_requires_consistent_unique_census() {
+        let root = tempfile::tempdir().unwrap();
+        let mut policy = Policy::legacy();
+        policy.paths.base = "work".into();
+        policy.paths.route = "route".into();
+        policy.parts.truncate(1);
+        policy.parts[0].expected_readings = 2;
+        policy.scope.primary_proposals = 3;
+        let output = root.path().join("work/route");
+        fs::create_dir_all(&output).unwrap();
+        let coverage = json!({"same":2,"different":1,"affected":2,"by_part":{"I":1},"primary":1,"overlap":0,"only":1,"risk":2,"conflicts":2,"deferred":1,"readings":2,"readings_by_part":{"I":2}});
+        fs::write(
+            output.join("coverage.json"),
+            serde_json::to_vec(&coverage).unwrap(),
+        )
+        .unwrap();
+        let roles = [
+            ("same-group", "same"),
+            ("disagreement", "different"),
+            ("affected-units", "affected"),
+            ("disagreement-by-part", "by_part"),
+            ("primary-profile", "primary"),
+            ("overlap", "overlap"),
+            ("primary-only", "only"),
+            ("risk-union", "risk"),
+            ("conflicts", "conflicts"),
+            ("deferred", "deferred"),
+            ("reading-pairs", "readings"),
+            ("reading-pairs-by-part", "readings_by_part"),
+        ];
+        let fields = roles
+            .iter()
+            .map(|(role, key)| json!({"role":role,"json_pointer":format!("/{key}")}))
+            .collect::<Vec<_>>();
+        let mut recipe =
+            json!({"retained_coverage":{"filename":"coverage.json","coverage_fields":fields}});
+        let ctx = ResearchExecution::new_with_scratch(root.path(), 180, 16 * 1024 * 1024).unwrap();
+        assert_eq!(
+            CoverageExpectations::selected(&ctx, &recipe, &policy)
+                .unwrap()
+                .same,
+            2
+        );
+        recipe["retained_coverage"]["coverage_fields"][0]["json_pointer"] = json!("/different");
+        assert!(CoverageExpectations::selected(&ctx, &recipe, &policy).is_err());
+        recipe["retained_coverage"]["coverage_fields"][0]["role"] = json!("disagreement");
+        assert!(CoverageExpectations::selected(&ctx, &recipe, &policy).is_err());
+    }
+    #[test]
     fn null_side_keeps_machine_uncertainty() {
         let p = json!({"source_paragraph_refs":["s"],"target_paragraph_refs":[],"mapping_type":"source_omission","part_order":3,"reading_ordinal_within_part":15});
         let a = json!({"verse_barrier_risk":false,"same_paragraph_group":false});
