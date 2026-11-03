@@ -22,7 +22,7 @@ spec = importlib.util.spec_from_file_location('retained', ROOT / 'access/public-
 retained = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(retained)
 LICENSE = 'https://creativecommons.org/licenses/by-sa/4.0/'
-RIGHTS = ['https://nb.nlr.ru/opac-detail.pl?biblionumber=13685402',
+RIGHTS = ['https://search.rsl.ru/ru/record/01003507492',
           'https://ru.wikisource.org/wiki/Сочинения_Платона_(Платон;_Карпов)',
           'https://ru.wikisource.org/wiki/Викитека:Авторские_права', LICENSE,
           'https://www.copyright.gov/circs/circ22.pdf',
@@ -104,6 +104,11 @@ def prepare(work, capture, selection):
                'coverageLimit':limit, 'proofreadingStatus':str(counts), 'coverageStatus':'complete-source-transclusion', 'pinnedPageRevisions':pages}
     book = {'id':work, 'author':'plato', 'title':WORKS[work]}
     files, details = retained.output_for(book, version, data)
+    for ref, note in (
+        (f"{details['item_dir_ref'].split('/editions/')[0]}/expression.json", 'A separately captured Wikisource translation; no equivalence to another local edition or review is claimed.'),
+        (f"{details['item_dir_ref'].split('/items/')[0]}/edition.json", 'A captured Wikisource rendering and its bounded public reading derivative; the exact parse API response is retained with the item.'),
+    ):
+        record = json.loads(files[ref]); record['notes'] = note; files[ref] = retained.json_bytes(record)
     item = details['item_dir_ref']; api_ref = f'{item}/payload/wikisource-api.json'; api_sha = retained.sha(raw)
     files[api_ref] = raw
     manifest = json.loads(files[f'{item}/item.manifest.json'])
