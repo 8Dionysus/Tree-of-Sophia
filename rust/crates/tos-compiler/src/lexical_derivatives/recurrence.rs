@@ -130,6 +130,35 @@ pub struct Options<'a> {
     pub event_at: Option<&'a str>,
 }
 pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
+    run_selected(ctx, options, None)
+}
+
+/// Replay a verified historical observation into an isolated selected output.
+/// Move this boundary with the recurrence producer to tos-research at cutover.
+pub fn replay_selected(
+    ctx: &ResearchExecution,
+    options: Options<'_>,
+    target: &ResearchExecution,
+) -> Result<Value> {
+    ensure(
+        !options.build && options.generation.is_none() && options.event_at.is_none(),
+        "historical recurrence replay requires the retained check",
+    )?;
+    ensure(
+        !target.root().starts_with(ctx.root())
+            && !ctx.root().starts_with(target.root())
+            && !target.root().starts_with(options.output_root)
+            && !options.output_root.starts_with(target.root()),
+        "recurrence replay target must be separate from selected sources and baseline",
+    )?;
+    run_selected(ctx, options, Some(target))
+}
+
+fn run_selected(
+    ctx: &ResearchExecution,
+    options: Options<'_>,
+    replay: Option<&ResearchExecution>,
+) -> Result<Value> {
     ensure(
         !options.build || options.generation.is_some(),
         "build requires a new generation",
@@ -355,9 +384,18 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
             "recurrence output missing",
         )?;
     }
+    if let Some(target) = replay {
+        target.write(&output_ref, &projection_bytes, 0o644, true)?;
+        target.write(&event_ref, &event_bytes, 0o644, true)?;
+        ensure(
+            target.read(&output_ref)? == projection_bytes
+                && target.read(&event_ref)? == event_bytes,
+            "isolated recurrence replay differs",
+        )?;
+    }
     ctx.check()?;
     Ok(
-        json!({"status":if options.build {"materialized"} else {"verified"},"projection_ref":output_ref,"projection_sha256":sha(&projection_bytes),"provenance_ref":event_ref,"provenance_sha256":sha(&event_bytes),"summary":summary,"budget":ctx.budget_report()}),
+        json!({"status":if replay.is_some() {"replayed"} else if options.build {"materialized"} else {"verified"},"projection_ref":output_ref,"projection_sha256":sha(&projection_bytes),"provenance_ref":event_ref,"provenance_sha256":sha(&event_bytes),"summary":summary,"budget":ctx.budget_report()}),
     )
 }
 #[cfg(test)]

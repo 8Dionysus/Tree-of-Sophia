@@ -364,7 +364,7 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
         if boundary_root.is_some() && stage != "sentence-alignment" {
             return Err("boundary root applies to sentence alignment".into());
         }
-        if action == "check" && stage == "lexical-recurrence" {
+        if matches!(action, "check" | "build") && stage == "lexical-recurrence" {
             if input_root.is_some() {
                 return Err("lexical recurrence reads the selected source cut".into());
             }
@@ -373,6 +373,12 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
             if !output.is_absolute() {
                 return Err("lexical recurrence output root must be absolute".into());
             }
+            let target = if action == "build" {
+                let path = Path::new(tracked_root.ok_or("build requires --tracked-output-root")?);
+                Some(select_empty_output(&ctx, path, &[&root, output])?)
+            } else {
+                None
+            };
             let plan_ref = recipe["plan_ref"]
                 .as_str()
                 .ok_or("recurrence plan required")?;
@@ -453,16 +459,20 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
                 return Err("recurrence artifact roles differ".into());
             }
             // Retain this compatibility producer until the recurrence stage moves into tos-research.
-            let result = tos_compiler::lexical_derivatives::recurrence::run(
-                &ctx,
-                tos_compiler::lexical_derivatives::recurrence::Options {
-                    build: false,
-                    output_root: output,
-                    plan: plan_ref,
-                    generation: None,
-                    event_at: None,
-                },
-            )?;
+            let options = tos_compiler::lexical_derivatives::recurrence::Options {
+                build: false,
+                output_root: output,
+                plan: plan_ref,
+                generation: None,
+                event_at: None,
+            };
+            let result = if let Some(target) = target.as_ref() {
+                tos_compiler::lexical_derivatives::recurrence::replay_selected(
+                    &ctx, options, target,
+                )?
+            } else {
+                tos_compiler::lexical_derivatives::recurrence::run(&ctx, options)?
+            };
             if result["projection_sha256"] != expected["projection"].1
                 || result["provenance_sha256"] != expected["event"].1
                 || ctx.read(plan_ref)? != plan_raw
