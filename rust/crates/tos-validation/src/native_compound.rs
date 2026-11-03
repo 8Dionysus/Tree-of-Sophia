@@ -6722,9 +6722,14 @@ pub fn finish_selected_compound_bytes<I: Copy + Eq>(
     core: WorkExpressionCore<'_>,
     environment_raw: &[u8],
     event_raw: &[u8],
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
+    schemas: &mut impl SourceFoundationCandidateSchemaBinding<I>,
 ) -> Result<WorkExpressionBytes, ItemRefusal> {
-    finish_prepared_compound_bytes(core, environment_raw, event_raw, schemas, true)
+    let identity = *schemas.input_identity();
+    let mut selected = CandidateCompoundSchemas::new(schemas, identity)?;
+    let result =
+        finish_prepared_compound_bytes(core, environment_raw, event_raw, &mut selected, true);
+    selected.guard()?;
+    result
 }
 
 /// Finish one selected Expression/Edition package through its typed owner
@@ -6860,7 +6865,7 @@ pub fn prepare_work_expression_bytes<'a>(
 fn prepare_selected_compound_bytes<'a, I: Copy + Eq>(
     kind: CompoundKind,
     input: &'a dyn SourceCutInputWithIdentity<I>,
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
+    schemas: &mut impl SourceFoundationCandidateSchemaBinding<I>,
     scope: &Value,
     request_raw: &[u8],
     owned_before: &BTreeMap<String, Vec<u8>>,
@@ -6878,24 +6883,27 @@ fn prepare_selected_compound_bytes<'a, I: Copy + Eq>(
     crate::retirement_rules::observed_instant_order(recorded_at, recorded_at)
         .map_err(|_| bad("selected compound recorded aware instant"))?;
     let reader = NativeCompoundReader::new_from_input(input.source_input(), limits, cancelled)?;
-    prepare_native_with_reader(
+    let mut selected = CandidateCompoundSchemas::new(schemas, *input.input_identity())?;
+    let result = prepare_native_with_reader(
         kind,
         None,
         reader,
-        schemas,
+        &mut selected,
         scope,
         Cow::Borrowed(request_raw),
         owned_before,
         recorded_at,
         None,
         authorize,
-    )
+    );
+    selected.guard()?;
+    result
 }
 
 fn prepare_selected_compound_preview_bytes<'a, I: Copy + Eq>(
     kind: CompoundKind,
     input: &'a dyn SourceCutInputWithIdentity<I>,
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
+    schemas: &mut impl SourceFoundationCandidateSchemaBinding<I>,
     scope: &Value,
     proposed_claim_raw: &[u8],
     owned_before: &BTreeMap<String, Vec<u8>>,
@@ -6929,29 +6937,27 @@ fn prepare_selected_compound_preview_bytes<'a, I: Copy + Eq>(
     let encoded_state = std::mem::size_of::<Vec<u8>>() + expected.len();
     drop(expected);
     reader.release_temporary(encoded_state);
-    let grammar = preparation_grammar_from_selected_input(
-        kind,
-        &mut reader,
-        input,
-        schemas,
-        proposed_claim_raw,
-    )?;
-    if grammar.binding != schemas.native_schema_binding() {
+    let mut selected = CandidateCompoundSchemas::new(schemas, *input.input_identity())?;
+    let grammar =
+        preparation_grammar_from_cut(kind, &mut reader, &mut selected, proposed_claim_raw)?;
+    if grammar.binding != selected.native_schema_binding() {
         return Err(bad("selected compound preview schema binding changed"));
     }
     let (request_raw, authority) = build_request_and_authorization(&grammar.digests)?;
-    prepare_native_with_reader(
+    let result = prepare_native_with_reader(
         kind,
         None,
         reader,
-        schemas,
+        &mut selected,
         scope,
         Cow::Owned(request_raw),
         owned_before,
         recorded_at,
         Some((proposed_claim_raw, grammar)),
         |_| Ok(authority),
-    )
+    );
+    selected.guard()?;
+    result
 }
 
 /// Prepare one maintained Work/Expression package from an exact selected
@@ -6959,7 +6965,7 @@ fn prepare_selected_compound_preview_bytes<'a, I: Copy + Eq>(
 /// report. PG readset validation remains the writer owner's responsibility.
 pub fn prepare_selected_work_expression_bytes<'a, I: Copy + Eq>(
     input: &'a dyn SourceCutInputWithIdentity<I>,
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
+    schemas: &mut impl SourceFoundationCandidateSchemaBinding<I>,
     scope: &Value,
     request_raw: &[u8],
     owned_before: &BTreeMap<String, Vec<u8>>,
@@ -6986,7 +6992,7 @@ pub fn prepare_selected_work_expression_bytes<'a, I: Copy + Eq>(
 /// source epoch. The returned core does not publish or admit the proposal.
 pub fn prepare_selected_work_expression_preview_bytes<'a, I: Copy + Eq>(
     input: &'a dyn SourceCutInputWithIdentity<I>,
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
+    schemas: &mut impl SourceFoundationCandidateSchemaBinding<I>,
     scope: &Value,
     proposed_claim_raw: &[u8],
     owned_before: &BTreeMap<String, Vec<u8>>,

@@ -957,14 +957,14 @@ fn run_pg_work_expression_preview(
                         &software_files,
                     )
                     .map_err(DurableError::Source)?;
-                let mut worker = super::revisions::selected_candidate_schema_from_context(
-                    invocation,
-                    &context.files,
-                    identity,
-                    deadline,
-                    cancelled,
-                )
-                .map_err(DurableError::Source)?;
+                let mut worker =
+                    super::revisions::selected_in_process_candidate_schema_from_context(
+                        &context.files,
+                        identity,
+                        deadline,
+                        cancelled,
+                    )
+                    .map_err(DurableError::Source)?;
                 let preview = crate::source_creation_store::preview_pg_work_expression(
                     owner_fs,
                     &context,
@@ -1228,8 +1228,7 @@ pub(crate) fn prepare_pg_work_expression_growth<'a>(
         effective_uid,
         &software_files,
     )?;
-    let mut worker = super::revisions::selected_candidate_schema_from_context(
-        invocation,
+    let mut worker = super::revisions::selected_in_process_candidate_schema_from_context(
         &context.files,
         identity,
         deadline,

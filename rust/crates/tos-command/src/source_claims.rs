@@ -866,12 +866,15 @@ pub(crate) fn work_expression_source_descriptors(
 pub(crate) fn work_expression_source_descriptors_candidate<I: Copy + Eq>(
     ctx: &CommandContext,
     input: &dyn SourceCutInputWithIdentity<I>,
-    worker: &mut tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut (
+             impl crate::source_revisions::RecordSchemaWorker<Identity = I>
+             + tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding<I>
+         ),
     limits: tos_validation::item_rules::ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
     let input_identity = *input.input_identity();
-    if worker.input_identity() != &input_identity {
+    if tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding::input_identity(worker) != &input_identity {
         return Err(SourceCommandError::Conflict(
             "candidate schema worker and selected Work source input differ",
         ));

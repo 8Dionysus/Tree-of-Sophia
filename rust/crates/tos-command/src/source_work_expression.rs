@@ -1611,7 +1611,10 @@ fn current_catalog_from_selected_input<I: Copy + Eq>(
     owner: &WorkOwner,
     before: &BTreeMap<String, Vec<u8>>,
     input: &dyn SourceCutInputWithIdentity<I>,
-    worker: &mut tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut (
+             impl crate::source_revisions::RecordSchemaWorker<Identity = I>
+             + tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding<I>
+         ),
     limits: ItemLimits,
     publication_token: Option<&str>,
     check_publication: impl FnMut() -> SourceCommandResult<()>,
