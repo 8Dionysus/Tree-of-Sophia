@@ -61,6 +61,12 @@ fn witness(value: &Value, reference: &str, digest: &str) -> Result<Out> {
         ("numbered_unit_map_sha256", q(digest)),
     ]))
 }
+struct Unpaired<'a> {
+    side: &'a str,
+    key: &'a str,
+    reason: &'a str,
+    target_materialized: bool,
+}
 struct Recipe<'a> {
     work: &'a str,
     source_item: &'a str,
@@ -82,6 +88,10 @@ struct Recipe<'a> {
     target_only: Vec<&'a str>,
     map_version: u64,
     event_version: u64,
+    unpaired: Vec<Unpaired<'a>>,
+    historical_boundary: &'a str,
+    event_warnings: Vec<&'a str>,
+    historical_warnings: Vec<&'a str>,
 }
 fn selected_locator<'a>(recipe: &'a Value, role: &str) -> Result<&'a str> {
     let mut rows = recipe["locators"]
@@ -95,9 +105,16 @@ fn selected_locator<'a>(recipe: &'a Value, role: &str) -> Result<&'a str> {
     tos_foundation::RelativePath::parse(path).map_err(|error| error.to_string())?;
     Ok(path)
 }
+fn selected_values<'a>(recipe: &'a Value, field: &str) -> Result<Vec<&'a str>> {
+    recipe[field]
+        .as_array()
+        .ok_or("selected string list required")?
+        .iter()
+        .map(s)
+        .collect()
+}
 fn selected_keys<'a>(recipe: &'a Value, field: &str) -> Result<Vec<&'a str>> {
-    let values = recipe[field].as_array().ok_or("label key list required")?;
-    let keys = values.iter().map(s).collect::<Result<Vec<_>>>()?;
+    let keys = selected_values(recipe, field)?;
     ensure(
         keys.iter().copied().collect::<BTreeSet<_>>().len() == keys.len(),
         "duplicate selected label key",
@@ -132,6 +149,27 @@ impl<'a> Recipe<'a> {
             target_only: selected_keys(value, "target_only_keys")?,
             map_version: count("map_version")?,
             event_version: count("event_version")?,
+            unpaired: value["unpaired_units"]
+                .as_array()
+                .ok_or("unpaired units required")?
+                .iter()
+                .map(|row| {
+                    Ok(Unpaired {
+                        side: s(&row["side"])?,
+                        key: s(&row["unit_key"])?,
+                        reason: s(&row["reason"])?,
+                        target_materialized: row["target_unit_materialized"]
+                            .as_bool()
+                            .ok_or("unpaired materialization required")?,
+                    })
+                })
+                .collect::<Result<Vec<_>>>()?,
+            historical_boundary: s(&value["historical_metadata"]["authority_boundary"])?,
+            event_warnings: selected_values(&value["historical_metadata"], "event_warnings")?,
+            historical_warnings: selected_values(
+                &value["historical_metadata"],
+                "historical_event_warnings",
+            )?,
         };
         ensure(
             selected
@@ -144,9 +182,24 @@ impl<'a> Recipe<'a> {
                     == Some(selected.shared_count),
             "label count profile differs",
         )?;
+        let mut actual = BTreeSet::new();
+        for entry in &selected.unpaired {
+            ensure(
+                matches!(entry.side, "source" | "target") && actual.insert((entry.side, entry.key)),
+                "invalid or duplicate unpaired unit",
+            )?;
+        }
+        let expected = selected
+            .source_only
+            .iter()
+            .map(|key| ("source", *key))
+            .chain(selected.target_only.iter().map(|key| ("target", *key)))
+            .collect::<BTreeSet<_>>();
         ensure(
-            selected.source_only.len() == 1 && selected.target_only.is_empty(),
-            "historical unpaired-unit representation required",
+            actual == expected
+                && selected.event_warnings.len() > 1
+                && !selected.historical_warnings.is_empty(),
+            "unpaired units or retained warning profile differs",
         )?;
         Ok(selected)
     }
@@ -330,13 +383,10 @@ pub fn run(
         set(&mut map, "supersedes_map_ref", q(recipe.map_id))?;
     }
     if fresh.is_none() {
-        // Frozen v3 wording predates the current producer's prose update.
         set(
             &mut map,
             "authority_boundary",
-            q(
-                "mechanical pairing of identical structural number-label keys already materialized independently in two exact witness maps; no text comparison, exact passage boundary, source-to-target passage alignment, translation correspondence, equivalence or quality, semantics, rights clearance, or canon authority",
-            ),
+            q(recipe.historical_boundary),
         )?;
     }
     let map_raw = render(&map, true)?;
@@ -383,14 +433,17 @@ pub fn run(
         set(&mut event, "supersedes_event_ref", Out::Null)?;
     }
     if fresh.is_none() {
-        if let Out::Array(warnings) = field(&mut event, "warnings")? {
-            warnings[2] = q(
-                "Shared numbering does not establish exact passage alignment, translation correspondence, equivalence, quality, or semantics.",
-            );
-            warnings[4] = q(
-                "The superseding event refreshes the source rights-basis digest after a layered assessment; it does not rerun payload or text comparison and does not establish rights clearance.",
-            );
-        }
+        set(
+            &mut event,
+            "warnings",
+            Out::Array(
+                recipe
+                    .historical_warnings
+                    .iter()
+                    .map(|warning| q(*warning))
+                    .collect(),
+            ),
+        )?;
     }
     let event_raw = render(&event, false)?;
     schema(
@@ -519,17 +572,25 @@ fn map_output(
         ("pairings", Out::Array(pairings)),
         (
             "unpaired_units",
-            Out::Array(vec![o(vec![
-                ("side", q("source")),
-                ("unit_key", q(recipe.source_only[0])),
-                (
-                    "reason",
-                    q("target_witness_has_corresponding_prose_without_repeated_number_label"),
-                ),
-                ("target_unit_materialized", Out::Bool(false)),
-                ("translation_alignment_claimed", Out::Bool(false)),
-                ("status", q("proposed")),
-            ])]),
+            Out::Array(
+                recipe
+                    .unpaired
+                    .iter()
+                    .map(|entry| {
+                        o(vec![
+                            ("side", q(entry.side)),
+                            ("unit_key", q(entry.key)),
+                            ("reason", q(entry.reason)),
+                            (
+                                "target_unit_materialized",
+                                Out::Bool(entry.target_materialized),
+                            ),
+                            ("translation_alignment_claimed", Out::Bool(false)),
+                            ("status", q("proposed")),
+                        ])
+                    })
+                    .collect(),
+            ),
         ),
         (
             "summary",
@@ -671,23 +732,13 @@ fn event_output(
         ("status", q("completed_with_warnings")),
         (
             "warnings",
-            Out::Array(vec![
-                q(
-                    "The 298 pairs assert only that the same structural number-label key is independently materialized in both witness maps.",
-                ),
-                q(
-                    "No source or target text was read, compared, transcribed, or accepted by this pairing route.",
-                ),
-                q(
-                    "Shared numbering supports structural navigation. Exact passage alignment, translation correspondence, equivalence, quality and semantics require their own source-visible assessment.",
-                ),
-                q(
-                    "Source-only 237a remains unpaired because the target does not materialize a repeated 237/237a label.",
-                ),
-                q(
-                    "The superseding event refreshes the source rights-basis digest after a layered assessment. Payload and text comparison retain their earlier execution evidence; rights clearance follows its own owner decision.",
-                ),
-            ]),
+            Out::Array(
+                recipe
+                    .event_warnings
+                    .iter()
+                    .map(|warning| q(*warning))
+                    .collect(),
+            ),
         ),
         ("receipt_refs", Out::Array(vec![q(map_ref)])),
         ("rights_basis_ref", Out::Null),
@@ -697,42 +748,5 @@ fn event_output(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn intersection_preserves_target_order_and_refuses_duplicate_or_materialized_237a() {
-        let curation: Value = serde_json::from_str(include_str!("../../../../ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/edition-curation.v1.json")).unwrap();
-        let selected = curation["recipes"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .find(|v| v["stage"] == "numbered-label-correspondence")
-            .unwrap();
-        let recipe = Recipe::selected(selected).unwrap();
-        let rows=(1..=298).map(|i|json!({"unit_key":i.to_string(),"anchor_ref":format!("tos.anchor.test.unit-{i}"),"pdf_page":i})).collect::<Vec<_>>();
-        let mut source = json!({"work_ref":"tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese","unit_starts":rows});
-        let mut target = source.clone();
-        source["unit_starts"]
-            .as_array_mut()
-            .unwrap()
-            .push(json!({"unit_key":"237a","anchor_ref":"tos.anchor.test.extra","pdf_page":237}));
-        target["unit_starts"].as_array_mut().unwrap().reverse();
-        let pairs = pairings(&source, &target, &recipe).unwrap();
-        let value = serde_json::to_value(Out::Array(pairs)).unwrap();
-        assert_eq!(value[0]["unit_key"], "298");
-        assert_eq!(value[297]["unit_key"], "1");
-        assert_eq!(value[0]["translation_alignment_claimed"], false);
-        assert!(
-            !value
-                .as_array()
-                .unwrap()
-                .iter()
-                .any(|r| r["unit_key"] == "237a")
-        );
-        let first = target["unit_starts"][0].clone();
-        target["unit_starts"][1] = first;
-        assert!(pairings(&source, &target, &recipe).is_err());
-        target["unit_starts"][1] = source["unit_starts"][298].clone();
-        assert!(pairings(&source, &target, &recipe).is_err());
-    }
-}
+#[path = "../tests/support/numbered_label_tests.rs"]
+mod tests;

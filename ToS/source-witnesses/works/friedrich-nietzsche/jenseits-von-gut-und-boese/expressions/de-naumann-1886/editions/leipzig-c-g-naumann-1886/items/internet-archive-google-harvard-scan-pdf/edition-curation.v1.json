@@ -787,6 +787,26 @@
         "237a"
       ],
       "target_only_keys": [],
+      "unpaired_units": [
+        {"side": "source", "unit_key": "237a", "reason": "target_witness_has_corresponding_prose_without_repeated_number_label", "target_unit_materialized": false}
+      ],
+      "historical_metadata": {
+        "authority_boundary": "mechanical pairing of identical structural number-label keys already materialized independently in two exact witness maps; no text comparison, exact passage boundary, source-to-target passage alignment, translation correspondence, equivalence or quality, semantics, rights clearance, or canon authority",
+        "event_warnings": [
+          "The 298 pairs assert only that the same structural number-label key is independently materialized in both witness maps.",
+          "No source or target text was read, compared, transcribed, or accepted by this pairing route.",
+          "Shared numbering supports structural navigation. Exact passage alignment, translation correspondence, equivalence, quality and semantics require their own source-visible assessment.",
+          "Source-only 237a remains unpaired because the target does not materialize a repeated 237/237a label.",
+          "The superseding event refreshes the source rights-basis digest after a layered assessment. Payload and text comparison retain their earlier execution evidence; rights clearance follows its own owner decision."
+        ],
+        "historical_event_warnings": [
+          "The 298 pairs assert only that the same structural number-label key is independently materialized in both witness maps.",
+          "No source or target text was read, compared, transcribed, or accepted by this pairing route.",
+          "Shared numbering does not establish exact passage alignment, translation correspondence, equivalence, quality, or semantics.",
+          "Source-only 237a remains unpaired because the target does not materialize a repeated 237/237a label.",
+          "The superseding event refreshes the source rights-basis digest after a layered assessment; it does not rerun payload or text comparison and does not establish rights clearance."
+        ]
+      },
       "map_version": 3,
       "event_version": 2,
       "frozen_outputs": [
