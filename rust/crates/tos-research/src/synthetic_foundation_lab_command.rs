@@ -63,7 +63,14 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
             }
             tos_compiler::research_execution::ResearchExecution::new(&root, seconds)?
         };
-        tos_compiler::synthetic_foundation_labs::run(&ctx, &kind, build)
+        let mut result = crate::synthetic_foundation_labs::run(&ctx, &kind, build)?;
+        result["current_execution"] = serde_json::json!({
+            "builder_ref": "rust/crates/tos-research/src/synthetic_foundation_labs.rs",
+            "builder_sha256": crate::research_support::sha(include_bytes!("synthetic_foundation_labs.rs")),
+            "historical_recipe_ref": "rust/crates/tos-compiler/src/synthetic_foundation_labs.rs",
+            "historical_recipe_sha256": crate::research_support::sha(include_bytes!("historical/synthetic_foundation_labs.rs.txt")),
+        });
+        Ok(result)
     })();
     Some(match result {
         Ok(v) => {

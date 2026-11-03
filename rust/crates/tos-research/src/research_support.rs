@@ -20,6 +20,13 @@ pub fn s(value: &Value) -> Result<&str> {
         .filter(|value| !value.is_empty())
         .ok_or("required nonempty string".into())
 }
+pub fn read_optional(ctx: &Execution, reference: &str) -> Result<Option<Vec<u8>>> {
+    match std::fs::symlink_metadata(ctx.root().join(reference)) {
+        Ok(_) => Ok(Some(ctx.read(reference)?)),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(e.to_string()),
+    }
+}
 pub fn private_boundary(ctx: &Execution, reference: &str) -> Result<()> {
     use std::os::fd::AsRawFd;
     ensure(

@@ -66,7 +66,7 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
                     .map_err(|_| "invalid scratch bytes")?,
             )?
         };
-        use tos_compiler::provenance_event_lab;
+        use crate::provenance_event_lab;
         Ok(match mode {
             "--prepare" => (
                 provenance_event_lab::prepare(&ctx, env!("CARGO_PKG_VERSION"))?,
