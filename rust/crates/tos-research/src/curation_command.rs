@@ -286,6 +286,8 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
             .filter(|recipe| {
                 recipe["stage"] == stage
                     || (recipe["stage"] == "recipe-reference" && recipe["recipe_stage"] == stage)
+                    || (recipe["stage"] == "pdf-structural-paragraph"
+                        && recipe["legacy_layout"]["stage"] == stage)
             })
             .collect::<Vec<_>>();
         if choices.len() != 1 {
@@ -453,6 +455,82 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
             if action == "build" {
                 result["replay"] = serde_json::json!("historical-source-bound");
             }
+            writeln!(out, "{result}").map_err(|error| error.to_string())?;
+            return Ok(());
+        }
+        if matches!(action, "check" | "build") && stage == "pdf-technical-markup" {
+            if input_root.is_some() || output_root.is_some() {
+                return Err("retained PDF layout uses the selected source root".into());
+            }
+            let plan_raw = crate::legacy_pdf_layout::validate_recipe(&ctx, recipe)?;
+            let plan: Value = serde_json::from_slice(&plan_raw).map_err(|e| e.to_string())?;
+            let history = &recipe["legacy_layout"];
+            let maintained_ref = history["maintained_recipe_ref"]
+                .as_str()
+                .ok_or("retained recipe required")?;
+            let maintained = ctx.read(maintained_ref)?;
+            if tos_foundation::Digest256::of_bytes(&maintained).to_hex()
+                != history["maintained_recipe_sha256"]
+            {
+                return Err("retained PDF builder digest differs from curation".into());
+            }
+            let mut frozen = std::collections::BTreeMap::new();
+            for entry in history["frozen_outputs"]
+                .as_array()
+                .ok_or("PDF layout outputs required")?
+            {
+                let role = entry["role"]
+                    .as_str()
+                    .ok_or("PDF layout output role required")?;
+                let reference = entry["repository_path"]
+                    .as_str()
+                    .ok_or("PDF layout output reference required")?;
+                if plan["outputs"][role] != reference {
+                    return Err("PDF layout output differs from plan".into());
+                }
+                let raw = ctx.read(reference)?;
+                if tos_foundation::Digest256::of_bytes(&raw).to_hex() != entry["expected_sha256"]
+                    || frozen.insert(reference.to_owned(), raw).is_some()
+                {
+                    return Err("PDF layout output digest or membership drift".into());
+                }
+            }
+            let target = if action == "build" {
+                let path = Path::new(tracked_root.ok_or("build requires --tracked-output-root")?);
+                Some(select_empty_output(&ctx, path, &[&root])?)
+            } else {
+                None
+            };
+            let mut result =
+                tos_compiler::antonovsky_structural::technical_markup::replay_selected(
+                    &ctx,
+                    target.as_ref(),
+                )?;
+            if result["tracked_output_count"].as_u64() != u64::try_from(frozen.len()).ok() {
+                return Err("PDF layout output count differs from curation".into());
+            }
+            for (reference, raw) in frozen {
+                if ctx.read(&reference)? != raw {
+                    return Err("selected PDF layout output changed during replay".into());
+                }
+                if let Some(target) = &target {
+                    if target.read(&reference)? != raw {
+                        return Err("rebuilt PDF layout output differs from source".into());
+                    }
+                }
+            }
+            if ctx.read(maintained_ref)? != maintained {
+                return Err("retained PDF builder changed during replay".into());
+            }
+            selected.verify_unchanged(&ctx)?;
+            for referenced in &refs {
+                referenced.verify_unchanged(&ctx)?;
+            }
+            result["stage"] = serde_json::json!(stage);
+            result["producer"] = serde_json::json!("retained-compiler-pdf-layout");
+            result["curation_ref"] = serde_json::json!(relative);
+            result["current_curation_sha256"] =
+                serde_json::json!(tos_foundation::Digest256::of_bytes(&owner.raw).to_hex());
             writeln!(out, "{result}").map_err(|error| error.to_string())?;
             return Ok(());
         }

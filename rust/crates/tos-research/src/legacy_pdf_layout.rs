@@ -4,11 +4,7 @@ use std::collections::BTreeMap;
 use tos_compiler::antonovsky_structural as legacy;
 use tos_source_store::execution::Execution;
 
-pub fn replay(
-    ctx: &Execution,
-    recipe: &Value,
-    target: Option<&Execution>,
-) -> Result<Value, String> {
+pub fn validate_recipe(ctx: &Execution, recipe: &Value) -> Result<Vec<u8>, String> {
     if recipe["layout_plan_dir"] != legacy::V1
         || recipe["structural_output_dir"] != legacy::V2
         || recipe["fixity"]["pdf_sha256"] != legacy::PDF_SHA
@@ -34,6 +30,15 @@ pub fn replay(
     {
         return Err("selected PDF extraction differs from retained plan".into());
     }
+    Ok(plan_raw)
+}
+
+pub fn replay(
+    ctx: &Execution,
+    recipe: &Value,
+    target: Option<&Execution>,
+) -> Result<Value, String> {
+    let plan_raw = validate_recipe(ctx, recipe)?;
     let mut expected = BTreeMap::new();
     for entry in recipe["outputs"].as_array().ok_or("PDF outputs required")? {
         let filename = entry["filename"].as_str().ok_or("PDF filename required")?;

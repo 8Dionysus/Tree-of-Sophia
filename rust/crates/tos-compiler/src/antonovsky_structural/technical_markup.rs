@@ -565,6 +565,56 @@ pub fn run(
     Ok(format!("antonovsky technical markup {}: pages={} panels={} blocks={} headings={} units={} screened_headings={} split_boundaries={}\n",if matches!(action,Action::Build {..}) {"built"}else{"parity passed"},n(&summary["pdf_page_count"]),n(&summary["observed_panel_count"]),n(&summary["layout_block_paragraph_candidate_count"]),n(&summary["heading_candidate_count"]),n(&summary["tracked_unit_count"]),n(&screen["heading_candidate_count"]),n(&screen["split_boundary_count"])).into_bytes())
 }
 
+/// Replay the retained text-free layout outputs to an isolated selected root.
+/// The local private layers remain at the selected source root.
+pub fn replay_selected(
+    ctx: &ResearchExecution,
+    target: Option<&ResearchExecution>,
+) -> Result<Value> {
+    let (plan, screening) = plans(ctx)?;
+    ensure(
+        sha(&recipe_bytes(ctx)?) == BUILDER_SHA,
+        "current v1 recipe binding drift",
+    )?;
+    let doc = prepare(ctx, &plan)?;
+    let ids = issuance(ctx, &plan, Some(&doc))?;
+    let artifacts = packet::build(ctx, &doc, &plan, &screening, &ids)?;
+    for (reference, expected) in artifacts.tracked.iter().chain(artifacts.private.iter()) {
+        let mut file = ctx.source_file(reference, 64 * 1024 * 1024)?;
+        ensure(
+            ctx.read_file(&mut file, 64 * 1024 * 1024)? == *expected,
+            "retained layout output drift",
+        )?;
+        if artifacts.private.contains_key(reference) {
+            use std::os::unix::fs::PermissionsExt;
+            ensure(
+                file.metadata()
+                    .map_err(|e| e.to_string())?
+                    .permissions()
+                    .mode()
+                    & 0o777
+                    == 0o600,
+                "private layout mode drift",
+            )?;
+        }
+    }
+    if let Some(target) = target {
+        for (reference, raw) in &artifacts.tracked {
+            target.write(reference, raw, 0o644, true)?;
+        }
+        for (reference, raw) in &artifacts.tracked {
+            ensure(
+                target.read(reference)? == *raw,
+                "isolated layout output drift",
+            )?;
+        }
+    }
+    ctx.check()?;
+    Ok(
+        json!({"status":"passed", "tracked_output_count":artifacts.tracked.len(), "private_layers_checked":artifacts.private.len()}),
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
