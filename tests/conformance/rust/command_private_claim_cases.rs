@@ -46,6 +46,17 @@ fn request_digest(value: &Value) -> String {
     .to_prefixed()
 }
 
+fn jcs_request_digest(value: &Value) -> String {
+    Digest256::of_bytes(
+        &tos_foundation::jcs_raw_bytes_v1(
+            &serde_json::to_vec(value).unwrap(),
+            JsonLimits::default(),
+        )
+        .unwrap(),
+    )
+    .to_prefixed()
+}
+
 // A test-owned reference for the configuration binding, built solely from the
 // selected fixture inputs before describe. Native context validation remains
 // the authority; this model checks the complete digest domain independently.
@@ -244,6 +255,7 @@ fn stable_form_payload(value: &Value) -> Value {
                     for receipt in history {
                         if let Some(receipt) = receipt.as_object_mut() {
                             receipt.remove("request_digest");
+                            receipt.remove("request_digest_profile");
                             receipt.remove("recorded_at");
                             receipt.remove("previous_revision");
                         }
@@ -801,6 +813,14 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
     let owner = PathBuf::from(selected["owner"].as_str().unwrap());
     let context = PathBuf::from(selected["context"].as_str().unwrap());
     assert!(owner.is_absolute() && context.is_absolute());
+    // The legacy Python fixture retains its old contract. Exercise the new
+    // receipt using the current selected schema in this disposable source cut.
+    let form_set_schema = "ToS/contracts/human-form-set.schema.json";
+    fs::write(
+        public.join(form_set_schema),
+        fs::read(repository.join(form_set_schema)).unwrap(),
+    )
+    .unwrap();
 
     let (authored_count, authored_bytes) = authored_preflight(&public, deadline);
     let mut authored = super::command_text_cases::authored_text_files(&public);
@@ -1069,9 +1089,10 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
     let oracle_formed = &selected["formed"];
     assert_eq!(formed["publication_authorized"], false);
     assert_eq!(formed["grants_admission"], false);
+    assert_eq!(formed["receipt"]["request_digest_profile"], "jcs1");
     assert_eq!(
         formed["receipt"]["request_digest"],
-        request_digest(&form_request)
+        jcs_request_digest(&form_request)
     );
     assert_eq!(formed["receipt"]["command_id"], form_request["command_id"]);
     assert_eq!(formed["receipt"]["source"], form_preview["source"]);
@@ -1086,10 +1107,16 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
         oracle_formed["materializations"]
     );
     assert_ne!(formed["revision"], oracle_formed["revision"]);
-    let formed_forms: Value = serde_json::from_slice(
-        &fs::read(home.join(selected["form_file"].as_str().unwrap())).unwrap(),
-    )
-    .unwrap();
+    let form_path = home.join(selected["form_file"].as_str().unwrap());
+    let formed_forms: Value = serde_json::from_slice(&fs::read(&form_path).unwrap()).unwrap();
+    assert_eq!(
+        formed_forms["growth_history"][0]["request_digest_profile"],
+        "jcs1"
+    );
+    assert_eq!(
+        formed_forms["growth_history"][0]["request_digest"],
+        jcs_request_digest(&form_request)
+    );
     let mut expected_formed_forms = selected["formed_forms"].clone();
     assert_eq!(
         expected_formed_forms["growth_history"]
@@ -1108,11 +1135,26 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
         stable_form_payload(&formed_forms),
         stable_form_payload(&expected_formed_forms)
     );
-    let after_form = private_snapshot(&private, deadline);
-    let form_replay = call(&form_request, &mut native_calls);
-    assert_eq!(form_replay["replayed"], true);
-    assert_eq!(form_replay["receipt"], formed["receipt"]);
-    same_file_set(&after_form, &private_snapshot(&private, deadline));
+    let after_jcs_form = private_snapshot(&private, deadline);
+    let jcs_replay = call(&form_request, &mut native_calls);
+    assert_eq!(jcs_replay["replayed"], true);
+    assert_eq!(jcs_replay["receipt"], formed["receipt"]);
+    same_file_set(&after_jcs_form, &private_snapshot(&private, deadline));
+
+    let mut legacy_forms = formed_forms.clone();
+    let legacy_receipt = legacy_forms["growth_history"][0].as_object_mut().unwrap();
+    legacy_receipt.remove("request_digest_profile");
+    legacy_receipt.insert(
+        "request_digest".into(),
+        Value::String(request_digest(&form_request)),
+    );
+    let legacy_receipt = legacy_forms["growth_history"][0].clone();
+    fs::write(&form_path, serde_json::to_vec(&legacy_forms).unwrap()).unwrap();
+    let after_legacy_form = private_snapshot(&private, deadline);
+    let legacy_replay = call(&form_request, &mut native_calls);
+    assert_eq!(legacy_replay["replayed"], true);
+    assert_eq!(legacy_replay["receipt"], legacy_receipt);
+    same_file_set(&after_legacy_form, &private_snapshot(&private, deadline));
 
     let revision_preview = call(
         &request("prepare-revise", selected["proposal"].clone()),
@@ -1255,7 +1297,7 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
     let after_cold_form_replay = private_snapshot(&private, deadline);
     let form_replay_after_revision = call(&form_request, &mut native_calls);
     assert_eq!(form_replay_after_revision["replayed"], true);
-    assert_eq!(form_replay_after_revision["receipt"], formed["receipt"]);
+    assert_eq!(form_replay_after_revision["receipt"], legacy_receipt);
     same_file_set(
         &after_cold_form_replay,
         &private_snapshot(&private, deadline),
