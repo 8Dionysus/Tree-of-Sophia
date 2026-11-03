@@ -156,7 +156,11 @@ fn retained_sign_source_seed(repository: &Path, root: &Path) -> Value {
     // Select the current schema in this disposable materialization before
     // building its authored cut; the archived fixture remains unchanged.
     let form_set_schema = "ToS/contracts/human-form-set.schema.json";
-    fs::copy(repository.join(form_set_schema), root.join(form_set_schema)).unwrap();
+    fs::write(
+        root.join(form_set_schema),
+        fs::read(repository.join(form_set_schema)).unwrap(),
+    )
+    .unwrap();
     let mut authored = serde_json::Map::new();
     let mut modes = serde_json::Map::new();
     for name in files.iter().filter(|name| name.starts_with("ToS/")) {
@@ -11366,9 +11370,9 @@ fn sign_promotion_native_entry_v3_assesses_prepares_commits_reads_and_replays() 
     .unwrap();
     let public_root = fixture.public_root.clone();
     let form_set_schema = "ToS/contracts/human-form-set.schema.json";
-    fs::copy(
-        repository.join(form_set_schema),
+    fs::write(
         public_root.join(form_set_schema),
+        fs::read(repository.join(form_set_schema)).unwrap(),
     )
     .unwrap();
     let content_path = public_root.join(
