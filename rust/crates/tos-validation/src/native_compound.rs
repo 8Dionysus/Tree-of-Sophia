@@ -6770,9 +6770,14 @@ pub fn finish_selected_collection_membership_bytes<I: Copy + Eq>(
     core: CollectionMembershipCore<'_>,
     environment_raw: &[u8],
     event_raw: &[u8],
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
+    schemas: &mut impl SourceFoundationCandidateSchemaBinding<I>,
 ) -> Result<CollectionMembershipBytes, ItemRefusal> {
-    finish_prepared_compound_bytes(core.inner, environment_raw, event_raw, schemas, true)
+    let identity = *schemas.input_identity();
+    let mut selected = CandidateCompoundSchemas::new(schemas, identity)?;
+    let result =
+        finish_prepared_compound_bytes(core.inner, environment_raw, event_raw, &mut selected, true);
+    selected.guard()?;
+    result
 }
 
 fn finish_prepared_compound_bytes(
@@ -7147,7 +7152,7 @@ pub fn prepare_selected_expression_responsibility_preview_bytes<'a, I: Copy + Eq
 /// selected source input, preserving the existing compound owner serializer.
 pub fn prepare_selected_collection_membership_bytes<'a, I: Copy + Eq>(
     input: &'a dyn SourceCutInputWithIdentity<I>,
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
+    schemas: &mut impl SourceFoundationCandidateSchemaBinding<I>,
     scope: &Value,
     request_raw: &[u8],
     owned_before: &BTreeMap<String, Vec<u8>>,
@@ -7175,7 +7180,7 @@ pub fn prepare_selected_collection_membership_bytes<'a, I: Copy + Eq>(
 /// selected source epoch. The returned core does not publish or admit it.
 pub fn prepare_selected_collection_membership_preview_bytes<'a, I: Copy + Eq>(
     input: &'a dyn SourceCutInputWithIdentity<I>,
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
+    schemas: &mut impl SourceFoundationCandidateSchemaBinding<I>,
     scope: &Value,
     proposed_claim_raw: &[u8],
     owned_before: &BTreeMap<String, Vec<u8>>,
