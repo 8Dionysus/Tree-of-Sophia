@@ -54,6 +54,23 @@ describe('the language of the Antiquity stand',()=>{
       }
     }
   });
+  it('keeps source passages distinct from the stand’s interpretive readings in every locale',()=>{
+    const collection=JSON.parse(readFileSync(new URL('collection.json',root),'utf8'));
+    const nodes=collection.branches.find(branch=>branch.id==='branch-power').nodes;
+    const office=nodes.find(node=>node.id==='athens-daily-office').reading;
+    const leon=nodes.find(node=>node.id==='apology-leon').reading;
+    const sculpture=collection.passages.find(passage=>passage.id==='plotinus-sculpture').body;
+    expect(office.en).toBe('The term limit and ban on serving twice limit the concentration of this office in one person’s hands.');
+    expect(leon.en).toBe('This case raises the question of personal responsibility for an injustice carried out on orders.');
+    expect(sculpture.en).toBe('The image connects care of oneself with gradual work directed toward virtue.');
+    for(const reading of [office,leon,sculpture]){
+      expect(reading.cite.length).toBeGreaterThan(0);
+      for(const lang of ['de','es','zh-Hans']){
+        const locale=JSON.parse(readFileSync(new URL(`../../../../bonsai/locales/${lang}.json`,import.meta.url),'utf8'));
+        expect(locale[reading.en],`${lang}: ${reading.en}`).toBeTruthy();
+      }
+    }
+  });
   it('states Aristotle’s distinction and retains the contrast in Plato’s Ion',()=>{
     const text=(path)=>texts.find(row=>row.name==='collection.json'&&row.path===path)?.text;
     expect(text('branches[11].edges[0].body.en')).toBe('In the Politics, Aristotle distinguishes kinds of rule by their character, not merely by the number of those ruled.');
