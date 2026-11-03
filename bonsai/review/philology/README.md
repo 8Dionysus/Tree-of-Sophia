@@ -46,6 +46,17 @@ a term with the Tree's word; the reader opens a term on its origin.
   that language (Antonovsky 1913 for Russian, Common 1909 for English), with the
   forms it takes in that translation. The check finds one of them in the
   translation's counterpart of the first place.
+  A stand with several editions may instead give an array of witness objects,
+  each naming its edition, term and forms. In Antiquity these words are tied to
+  the edition of the quoted passage; the Tree's own forms remain available in
+  its authored text. The edition labels are recorded once in `editions`.
+- Antiquity cites a place directly by work and corpus unit range (or an external
+  fragment locator), without a chapter key. Its original can be Greek or Latin;
+  Greek matching ignores accents and breathings while retaining the spelling of
+  the displayed witness. The first place is one of the collection's cited uses.
+  For an especially ambiguous Tree word, `contextWorks` limits its activation
+  in a work-specific article or quotation to the works evidenced by its uses;
+  the original-language forms remain readable in any work.
 - `renderings.<lang>.tos`: the word the Tree reads, with every form its texts
   use. Russian reads Antonovsky's word: the stand's Russian texts speak with the
   words of the Russian witness shown beside them. English reads the Tree's own

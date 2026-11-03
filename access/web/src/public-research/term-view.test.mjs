@@ -1,6 +1,6 @@
 import {describe,expect,it,vi} from 'vitest';
 import {readFileSync} from 'node:fs';
-import {createTerms,termForms,termMatcher,treeRendering} from './term-view.mjs';
+import {createTerms,termContextAllows,termForms,termMatcher,treeRendering} from './term-view.mjs';
 
 const module={terms:[
   {id:'ubermensch',original:{lemma:'Übermensch',forms:['Übermensch','Übermenschen']},renderings:{ru:{tos:{term:'сверхчеловек',forms:['сверхчеловек','сверхчеловека']},witness:{term:'сверхчеловек',forms:['сверхчеловеке']}},en:{tos:{term:'overman',forms:['overman']},witness:{term:'Superman',forms:['Superman']}}}},
@@ -36,6 +36,37 @@ describe('active terms',()=>{
     expect(termMatcher(termForms(terms,'ru')).find('превзойти его самого; служит своему Самому, Самого.').map(item=>item.text)).toEqual(['Самого']);
     expect(termMatcher(new Map())).toBeNull();
   });
+  it('matches Greek accents and breathings while preserving the spelling in the text',()=>{
+    const term={id:'logos',original:{lang:'grc',forms:['λόγος']}};
+    const matcher=termMatcher(termForms({terms:[term]},'grc'),{greek:true});
+    expect(matcher.find('ὁ λόγος, λο\u0301γος, διαλόγος').map(item=>item.text)).toEqual(['λόγος','λο\u0301γος']);
+  });
+  it('includes the forms of each translation edition',()=>{
+    const term={id:'appearance',renderings:{en:{tos:{forms:['impression']},witness:[{forms:['appearance']},{forms:['semblance']}]}}};
+    expect([...termForms({terms:[term]},'en').keys()]).toEqual(['impression','appearance','semblance']);
+  });
+  it('limits Antiquity witness words to their edition and lets that edition resolve collisions',()=>{
+    const module={work:'antiquity',terms:[
+      {id:'officium',renderings:{en:{tos:{forms:['duty']}}}},
+      {id:'kathekon',renderings:{en:{tos:{forms:['appropriate action']},witness:[{edition:'epictetus',forms:['duty']}]}}},
+    ]};
+    expect(termForms(module,'en').get('duty').id).toBe('officium');
+    expect(termForms(module,'en',{edition:'epictetus'}).get('duty').id).toBe('kathekon');
+    expect(termForms(module,'en',{edition:'another'}).get('duty').id).toBe('officium');
+  });
+  it('keeps the English noun will and the mean apart from ordinary verbs',()=>{
+    const module={work:'antiquity'},allows=(s,word)=>termContextAllows(module,'en',s,{text:word,index:s.indexOf(word)});
+    expect(allows('We will return to the text.','will')).toBe(false);
+    expect(allows('Each person’s will gives movement its start.','will')).toBe(true);
+    expect(allows('What does this mean?','mean')).toBe(false);
+    expect(allows('Virtue observes the mean.','mean')).toBe(true);
+  });
+  it('uses the cited work to distinguish an ordinary word from an evidenced term',()=>{
+    const module={work:'antiquity'},match={text:'роль',index:0,term:{id:'persona',contextWorks:['de-officiis']}};
+    expect(termContextAllows(module,'ru','роль гражданина',match,['politics'])).toBe(false);
+    expect(termContextAllows(module,'ru','роль человека',match,['de-officiis'])).toBe(true);
+    expect(termContextAllows(module,'la','persona',match,['politics'])).toBe(true);
+  });
 });
 
 it('marks quoted it-was forms without matching ordinary past-tense words',()=>{
@@ -65,6 +96,30 @@ it('first touch remains a preview when focus arrives before click',()=>{
   handlers.pointerdown(event);handlers.focusin(event);handlers.click(event);
   expect(open).not.toHaveBeenCalled();expect(body.children[0].hidden).toBe(false);
   handlers.pointerdown(event);handlers.click(event);expect(open).toHaveBeenCalledOnce();
+  terms.dispose();vi.unstubAllGlobals();
+});
+
+it('shows the original, edition words and gloss before opening an Antiquity place',()=>{
+  const handlers={};
+  class Element{
+    constructor(tag){this.tagName=tag.toUpperCase();this.dataset={};this.style={};this.attrs={};this.children=[];this.listeners={};this.hidden=false;}
+    setAttribute(k,v){this.attrs[k]=v;} removeAttribute(k){delete this.attrs[k];}
+    append(...nodes){for(const node of nodes){node.parentElement=this;this.children.push(node);}}
+    replaceChildren(...nodes){this.children=[];this.append(...nodes);}
+    addEventListener(type,fn){this.listeners[type]=fn;} remove(){} contains(node){return this===node||this.children.includes(node);}
+    closest(selector){return selector==='.ps-term'&&this.dataset.term?this:null;}
+    getBoundingClientRect(){return {left:0,width:20,top:20,bottom:40};}
+  }
+  const body=new Element('body');
+  vi.stubGlobal('document',{body,documentElement:{lang:'en'},createElement:tag=>new Element(tag),addEventListener:(type,fn)=>{handlers[type]=fn;},removeEventListener(){}});
+  vi.stubGlobal('innerWidth',800);vi.stubGlobal('innerHeight',600);vi.stubGlobal('addEventListener',()=>{});vi.stubGlobal('removeEventListener',()=>{});
+  const first={w:'discourses',u:['first','first'],s:0,e:30},open=vi.fn();
+  const terms=createTerms({locale:()=> 'en',open,module:{work:'antiquity',editions:{long:{label:{en:'Long'}},higginson:{label:{en:'Higginson'}}},terms:[{id:'phantasia',original:{lang:'grc',lemma:'φαντασία'},first,renderings:{en:{tos:{term:'impression'},witness:[{edition:'long',term:'appearance'},{edition:'higginson',term:'semblance'}]}},gloss:{en:'An impression meets judgment.'}}]}});
+  const span=new Element('span');span.dataset.term='phantasia';handlers.focusin({target:span});
+  const card=body.children[0],text=node=>[node.textContent??'',...node.children.map(text)].join(' ');
+  expect(card.dataset.stand).toBe('antiquity');
+  expect(text(card)).toContain('φαντασία');expect(text(card)).toContain('appearance');expect(text(card)).toContain('semblance');expect(text(card)).toContain('An impression meets judgment.');
+  card.children.at(-1).listeners.click();expect(open).toHaveBeenCalledWith(first);
   terms.dispose();vi.unstubAllGlobals();
 });
 

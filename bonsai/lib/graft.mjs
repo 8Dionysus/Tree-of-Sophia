@@ -19,6 +19,7 @@ import {objectsIssues,semanticRegistry} from './objects.mjs';
 import {coreIssues,loadCore} from './core.mjs';
 import {citeIssues,readChapter,witnessesIssues} from './witnesses.mjs';
 import {termsIssues} from './terms.mjs';
+import {corpusReader} from './corpus-align.mjs';
 
 export const MANIFEST_SCHEMA='tos.bonsai.v1';
 const json=path=>JSON.parse(readFileSync(path,'utf8'));
@@ -110,6 +111,34 @@ export function placeChecker(chapters,fragments){
   };
 }
 
+/** Read the exact original span shown by a stand for a corpus or external place. */
+export function termPlaceReader(root,alignment,fragments){
+  let read;
+  return (cite,language)=>{
+    if(!cite?.w)return {error:'no work'};
+    let units;
+    if(cite.loc){
+      const work=fragments?.works?.[cite.w],value=fragments?.places?.[cite.w]?.[cite.loc]?.texts?.[language];
+      if(work?.original!==language||typeof value!=='string')return {error:`no original ${cite.w} ${cite.loc}`};
+      units=[value];
+    }else{
+      const work=alignment?.works?.[cite.w];
+      if(work?.original?.language!==language||!Array.isArray(cite.u)||cite.u.length!==2)return {error:`no original units for ${cite.w}`};
+      try{
+        read??=corpusReader(join(root,'access/web/public/public-corpus'));
+        const version=read(work.documentId)?.versions.find(item=>item.id===work.original.versionId);
+        const first=version?.units.findIndex(unit=>unit.id===cite.u[0])??-1,last=version?.units.findIndex(unit=>unit.id===cite.u[1])??-1;
+        if(first<0||last<first)return {error:`unknown or unordered units for ${cite.w}`};
+        units=version.units.slice(first,last+1).map(unit=>unit.text);
+      }catch(error){return {error:`corpus ${cite.w}: ${error.message}`};}
+    }
+    const start=cite.s??0,end=cite.e??Array.from(units.at(-1)).length;
+    if(!Number.isInteger(start)||!Number.isInteger(end)||start<0||end<0||start>=Array.from(units[0]).length||end>Array.from(units.at(-1)).length||(units.length===1&&start>=end))return {error:`invalid offsets for ${cite.w}`};
+    const firstChars=Array.from(units[0]),lastChars=Array.from(units.at(-1));
+    return {text:units.map((unit,index)=>Array.from(unit).slice(index===0?start:0,index===units.length-1?end:undefined).join('')).join(' '),before:firstChars[start-1]??' ',after:lastChars[end]??' '};
+  };
+}
+
 /** Problems that make a bonsai or its export unfit for the Tree, and what has moved since the graft. */
 export function checkBonsai(root,id,{validator=treeContracts(root),relations,identities=treeIdentities(root)}={}){
   const {home,manifest,modules}=loadBonsai(root,id),problems=[],drift=[];
@@ -122,7 +151,10 @@ export function checkBonsai(root,id,{validator=treeContracts(root),relations,ide
   const chapters=modules.witnesses?loadWitnessChapters(home,manifest):{};
   if(modules.witnesses)problems.push(...witnessesIssues(modules.witnesses,chapters).map(issue=>`witnesses: ${issue}`));
   // The philological core: each term's first place and the translations' words there (bonsai/lib/terms.mjs).
-  if(modules.terms)problems.push(...termsIssues(modules.terms,chapters).map(issue=>`terms: ${issue}`));
+  if(modules.terms){
+    const options=!modules.witnesses&&modules.alignment?{pivot:['grc','la'],place:termPlaceReader(root,modules.alignment,modules.fragments)}:{};
+    problems.push(...termsIssues(modules.terms,chapters,options).map(issue=>`terms: ${issue}`));
+  }
   if(modules.fragments)problems.push(...externalPlacesIssues(modules.fragments).map(issue=>`fragments: ${issue}`));
   if(modules.alignment)problems.push(...corpusAlignmentIssues(modules.alignment).map(issue=>`alignment: ${issue}`));
   let registry=null;
