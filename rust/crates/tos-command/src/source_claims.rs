@@ -5675,7 +5675,7 @@ pub(crate) fn maintained_inventory(
 pub(crate) fn maintained_inventory_from_cut(
     ctx: &CommandContext,
     cut: &CorpusCutReader,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl MaintainedInventorySchemaWorker<Identity = tos_foundation::SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<MaintainedInventory> {
@@ -5705,7 +5705,7 @@ pub(crate) fn maintained_inventory_from_cut(
 pub(crate) fn maintained_agent_inventory_from_managed(
     ctx: &CommandContext,
     capture_member_inputs: bool,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl MaintainedInventorySchemaWorker<Identity = tos_foundation::SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<MaintainedInventory> {
@@ -6758,7 +6758,7 @@ fn maintained_inventory_inner(
     ctx: &CommandContext,
     cut: Option<&CorpusCutReader>,
     capture_member_inputs: bool,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl MaintainedInventorySchemaWorker<Identity = tos_foundation::SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
     whole_call: Option<&Rc<RefCell<ClaimCallBudget>>>,

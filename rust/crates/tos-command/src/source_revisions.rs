@@ -6024,7 +6024,7 @@ pub(crate) fn archive_path(config: &JsonValue, revision: &str) -> SourceCommandR
 }
 
 pub(crate) fn schema(
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl RecordSchemaWorker<Identity = tos_foundation::SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
     ctx: &impl RecordRead<Identity = tos_foundation::SourceRevision>,
