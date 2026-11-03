@@ -54,8 +54,12 @@ pub fn replay(
         }
     }
     ctx.reserve_structural_reads()?;
-    let model =
-        legacy::reconstruct_from_directory(ctx.root(), ctx.root_directory(), ctx.deadline())?;
+    let model = legacy::reconstruct_from_directory_with_recipe(
+        ctx.root(),
+        ctx.root_directory(),
+        ctx.deadline(),
+        recipe,
+    )?;
     let mut charged = 0;
     ctx.charge_structural(&model, &mut charged)?;
     let artifacts = legacy::make_outputs(ctx.root(), &model)?;

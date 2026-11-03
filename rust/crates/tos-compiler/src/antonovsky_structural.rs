@@ -893,85 +893,308 @@ fn load_source(deadline: Instant, source: &SourceInput) -> Result<(Vec<Block>, V
         loadl_until(deadline, source, &reference("structure-census.v2.jsonl"))?,
     ))
 }
-fn page_header(r: &Row) -> bool {
-    if r.bbox[1] >= 36.
-        || ((r.bbox[0] + r.bbox[2]) / 2. - if r.panel == "left" { 198. } else { 594. }).abs() > 55.
+#[derive(Clone, Copy)]
+struct HeaderRule {
+    y_below: f64,
+    left_center_x: f64,
+    right_center_x: f64,
+    center_tolerance: f64,
+    max_characters: usize,
+    minimum_dashes: usize,
+    max_letters_for_short_mark: usize,
+    max_characters_for_short_mark: usize,
+}
+impl HeaderRule {
+    // Compatibility for existing compiler consumers. Remove after their research migration.
+    fn legacy() -> Self {
+        Self {
+            y_below: 36.,
+            left_center_x: 198.,
+            right_center_x: 594.,
+            center_tolerance: 55.,
+            max_characters: 18,
+            minimum_dashes: 2,
+            max_letters_for_short_mark: 3,
+            max_characters_for_short_mark: 5,
+        }
+    }
+    fn selected(value: &Value) -> Result<Self> {
+        let number = |key: &str| -> Result<usize> {
+            usize::try_from(
+                value[key]
+                    .as_u64()
+                    .ok_or_else(|| format!("header rule {key} must be a nonnegative integer"))?,
+            )
+            .map_err(|_| format!("header rule {key} is outside the native range"))
+        };
+        let coordinate = |key: &str| -> Result<f64> {
+            let n = value[key]
+                .as_u64()
+                .ok_or_else(|| format!("header rule {key} must be a nonnegative integer"))?;
+            if n > (1_u64 << 53) {
+                return Err(format!("header rule {key} cannot be represented exactly"));
+            }
+            Ok(n as f64)
+        };
+        Ok(Self {
+            y_below: coordinate("y_below")?,
+            left_center_x: coordinate("left_center_x")?,
+            right_center_x: coordinate("right_center_x")?,
+            center_tolerance: coordinate("center_tolerance")?,
+            max_characters: number("max_characters")?,
+            minimum_dashes: number("minimum_dashes")?,
+            max_letters_for_short_mark: number("max_letters_for_short_mark")?,
+            max_characters_for_short_mark: number("max_characters_for_short_mark")?,
+        })
+    }
+}
+fn page_header(r: &Row, rule: HeaderRule) -> bool {
+    if r.bbox[1] >= rule.y_below
+        || ((r.bbox[0] + r.bbox[2]) / 2.
+            - if r.panel == "left" {
+                rule.left_center_x
+            } else {
+                rule.right_center_x
+            })
+        .abs()
+            > rule.center_tolerance
     {
         return false;
     }
     let v = compact(&r.text);
-    v.chars().count() <= 18
+    v.chars().count() <= rule.max_characters
         && (v.chars().any(|c| c.is_ascii_digit())
-            || v.chars().filter(|c| matches!(c, '-' | '—' | '–')).count() >= 2
-            || (v.chars().filter(|c| letter(*c)).count() <= 3 && v.chars().count() <= 5))
+            || v.chars().filter(|c| matches!(c, '-' | '—' | '–')).count() >= rule.minimum_dashes
+            || (v.chars().filter(|c| letter(*c)).count() <= rule.max_letters_for_short_mark
+                && v.chars().count() <= rule.max_characters_for_short_mark))
 }
-fn page_footer(r: &Row) -> bool {
+#[derive(Clone)]
+struct FooterRule {
+    always_from_y: f64,
+    inspect_from_y: f64,
+    text_contains: Vec<String>,
+    allowed_symbols: String,
+    marginal_from_y: f64,
+    marginal_width_below: f64,
+    right_panel_x: (f64, f64),
+    left_panel_x: (f64, f64),
+    small_height_at_most: f64,
+    small_width_below: f64,
+    small_right_panel_x_above_any: [f64; 2],
+    small_left_panel_x_above_any: [f64; 2],
+}
+impl FooterRule {
+    // Compatibility profile is removed when compiler research consumers migrate.
+    fn legacy() -> Self {
+        Self {
+            always_from_y: 548.,
+            inspect_from_y: 526.,
+            text_contains: ["ницше", "нгппчс", "ихітчс", "яшине", "говорилъзаратустра"]
+                .into_iter()
+                .map(str::to_owned)
+                .collect(),
+            allowed_symbols: "*'\"/NnWwVvІI-.•".into(),
+            marginal_from_y: 538.,
+            marginal_width_below: 40.,
+            right_panel_x: (500., 620.),
+            left_panel_x: (150., 260.),
+            small_height_at_most: 10.1,
+            small_width_below: 180.,
+            small_right_panel_x_above_any: [680., 460.],
+            small_left_panel_x_above_any: [300., 150.],
+        }
+    }
+    fn selected(value: &Value) -> Result<Self> {
+        fn number(v: &Value, key: &str) -> Result<f64> {
+            v[key]
+                .as_f64()
+                .filter(|n| n.is_finite() && *n >= 0.)
+                .ok_or_else(|| format!("invalid footer rule {key}"))
+        }
+        fn pair(v: &Value, key: &str) -> Result<[f64; 2]> {
+            let values = v[key]
+                .as_array()
+                .ok_or_else(|| format!("footer rule {key} must be an array"))?;
+            if values.len() != 2 {
+                return Err(format!("footer rule {key} requires two values"));
+            }
+            let number = |v: &Value| {
+                v.as_f64()
+                    .filter(|n| n.is_finite() && *n >= 0.)
+                    .ok_or_else(|| format!("invalid footer rule {key}"))
+            };
+            Ok([number(&values[0])?, number(&values[1])?])
+        }
+        fn range(v: &Value, key: &str) -> Result<(f64, f64)> {
+            let lo = number(&v[key], "x_min")?;
+            let hi = number(&v[key], "x_max")?;
+            if lo > hi {
+                return Err(format!("reversed footer rule {key}"));
+            }
+            Ok((lo, hi))
+        }
+        let text_contains = value["text_contains"]
+            .as_array()
+            .ok_or("footer text patterns required")?
+            .iter()
+            .map(|v| {
+                v.as_str()
+                    .filter(|s| !s.is_empty())
+                    .map(str::to_owned)
+                    .ok_or_else(|| "invalid footer text pattern".to_string())
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let allowed_symbols = value["allowed_symbols"]
+            .as_str()
+            .ok_or("footer symbols required")?
+            .to_owned();
+        Ok(Self {
+            always_from_y: number(value, "always_from_y")?,
+            inspect_from_y: number(value, "inspect_from_y")?,
+            text_contains,
+            allowed_symbols,
+            marginal_from_y: number(value, "marginal_from_y")?,
+            marginal_width_below: number(value, "marginal_width_below")?,
+            right_panel_x: range(value, "right_panel_x")?,
+            left_panel_x: range(value, "left_panel_x")?,
+            small_height_at_most: number(value, "small_height_at_most")?,
+            small_width_below: number(value, "small_width_below")?,
+            small_right_panel_x_above_any: pair(value, "small_right_panel_x_above_any")?,
+            small_left_panel_x_above_any: pair(value, "small_left_panel_x_above_any")?,
+        })
+    }
+}
+fn page_footer(r: &Row, rule: &FooterRule) -> bool {
     let [x0, y0, x1, y1] = r.bbox;
     let v = compact(&r.text);
-    if y0 >= 548. {
+    if y0 >= rule.always_from_y {
         return true;
     }
-    if y0 < 526. {
+    if y0 < rule.inspect_from_y {
         return false;
     }
     let lower = v.to_lowercase();
-    if ["ницше", "нгппчс", "ихітчс", "яшине", "говорилъзаратустра"]
-        .iter()
-        .any(|w| lower.contains(w))
-    {
+    if rule.text_contains.iter().any(|w| lower.contains(w)) {
         return true;
     }
     if !v.is_empty()
         && v.chars()
-            .all(|c| c.is_ascii_digit() || "*'\"/NnWwVvІI-.•".contains(c))
+            .all(|c| c.is_ascii_digit() || rule.allowed_symbols.contains(c))
     {
         return true;
     }
-    if y0 >= 538.
-        && x1 - x0 < 40.
-        && if r.panel == "right" {
-            (500. ..=620.).contains(&x0)
-        } else {
-            (150. ..=260.).contains(&x0)
-        }
-    {
-        return true;
-    }
-    (y1 - y0) <= 10.1
-        && x1 - x0 < 180.
-        && (x0 > if r.panel == "right" { 680. } else { 300. }
-            || x0 > if r.panel == "right" { 460. } else { 150. })
-}
-fn region(page: usize, panel: &str) -> Option<String> {
-    if [
-        (1, "right"),
-        (2, "left"),
-        (2, "right"),
-        (3, "left"),
-        (3, "right"),
-        (4, "right"),
-        (5, "left"),
-    ]
-    .contains(&(page, panel))
-    {
-        Some("front_matter".into())
-    } else if [(151, "right"), (152, "left"), (152, "right"), (153, "left")]
-        .contains(&(page, panel))
-    {
-        Some("back_matter".into())
+    let (min_x, max_x) = if r.panel == "right" {
+        rule.right_panel_x
     } else {
-        None
+        rule.left_panel_x
+    };
+    if y0 >= rule.marginal_from_y
+        && x1 - x0 < rule.marginal_width_below
+        && (min_x..=max_x).contains(&x0)
+    {
+        return true;
     }
+    let thresholds = if r.panel == "right" {
+        rule.small_right_panel_x_above_any
+    } else {
+        rule.small_left_panel_x_above_any
+    };
+    (y1 - y0) <= rule.small_height_at_most
+        && x1 - x0 < rule.small_width_below
+        && thresholds.iter().any(|threshold| x0 > *threshold)
 }
-fn precedence(v: &str) -> usize {
-    match v {
-        "terminal_marker" => 100,
-        "part_heading" => 95,
-        "reading_unit_heading" => 94,
-        "cycle_heading" => 93,
-        "numbered_subpart_marker" => 92,
-        "ornament" => 80,
-        _ => 0,
+#[derive(Clone)]
+struct LayoutClassification {
+    header: HeaderRule,
+    footer: FooterRule,
+    regions: Vec<(usize, String, String)>,
+    precedence: BTreeMap<String, usize>,
+}
+impl LayoutClassification {
+    fn legacy() -> Self {
+        let mut regions = Vec::new();
+        for (page, panel) in [
+            (1, "right"),
+            (2, "left"),
+            (2, "right"),
+            (3, "left"),
+            (3, "right"),
+            (4, "right"),
+            (5, "left"),
+        ] {
+            regions.push((page, panel.into(), "front_matter".into()));
+        }
+        for (page, panel) in [(151, "right"), (152, "left"), (152, "right"), (153, "left")] {
+            regions.push((page, panel.into(), "back_matter".into()));
+        }
+        let precedence = [
+            ("terminal_marker", 100),
+            ("part_heading", 95),
+            ("reading_unit_heading", 94),
+            ("cycle_heading", 93),
+            ("numbered_subpart_marker", 92),
+            ("ornament", 80),
+        ]
+        .into_iter()
+        .map(|(name, n)| (name.into(), n))
+        .collect();
+        Self {
+            header: HeaderRule::legacy(),
+            footer: FooterRule::legacy(),
+            regions,
+            precedence,
+        }
+    }
+    fn selected(value: &Value) -> Result<Self> {
+        let mut regions = Vec::new();
+        let mut keys = BTreeSet::new();
+        for entry in value["regions"].as_array().ok_or("regions required")? {
+            let page = usize::try_from(entry["page"].as_u64().ok_or("invalid region page")?)
+                .map_err(|_| "region page outside native range")?;
+            let panel = entry["panel"]
+                .as_str()
+                .filter(|v| *v == "left" || *v == "right")
+                .ok_or("invalid region panel")?;
+            let kind = entry["kind"]
+                .as_str()
+                .filter(|v| !v.is_empty())
+                .ok_or("invalid region kind")?;
+            if page == 0 || !keys.insert((page, panel.to_owned())) {
+                return Err("duplicate or invalid region".into());
+            }
+            regions.push((page, panel.into(), kind.into()));
+        }
+        let mut precedence = BTreeMap::new();
+        for entry in value["role_precedence"]
+            .as_array()
+            .ok_or("role precedence required")?
+        {
+            let role = entry["role"]
+                .as_str()
+                .filter(|v| !v.is_empty())
+                .ok_or("invalid role")?;
+            let priority =
+                usize::try_from(entry["priority"].as_u64().ok_or("invalid role priority")?)
+                    .map_err(|_| "priority outside native range")?;
+            if precedence.insert(role.into(), priority).is_some() {
+                return Err("duplicate role precedence".into());
+            }
+        }
+        Ok(Self {
+            header: HeaderRule::selected(&value["header"])?,
+            footer: FooterRule::selected(&value["footer"])?,
+            regions,
+            precedence,
+        })
+    }
+    fn region(&self, page: usize, panel: &str) -> Option<String> {
+        self.regions
+            .iter()
+            .find(|(p, side, _)| *p == page && side == panel)
+            .map(|(_, _, kind)| kind.clone())
+    }
+    fn precedence(&self, role: &str) -> usize {
+        self.precedence.get(role).copied().unwrap_or(0)
     }
 }
 fn same_panel(a: &Row, b: &Row) -> bool {
@@ -1012,6 +1235,7 @@ fn reconstruct_blocks(
     census: Vec<Value>,
     deadline: Instant,
     source: SourceInput,
+    layout: LayoutClassification,
 ) -> Result<Model> {
     tick(deadline)?;
     let mut lines = Vec::new();
@@ -1171,18 +1395,18 @@ fn reconstruct_blocks(
     }
     for row in &mut rows {
         tick(deadline)?;
-        row.role = region(row.page, &row.panel);
+        row.role = layout.region(row.page, &row.panel);
         if row.role.is_none() {
             row.role = row
                 .lines
                 .iter()
                 .filter_map(|i| lines[*i].explicit.as_deref())
-                .max_by_key(|v| precedence(v))
+                .max_by_key(|v| layout.precedence(v))
                 .map(str::to_owned);
             if row.role.is_none() {
                 row.role = if ornament(&row.text) {
                     Some("ornament".into())
-                } else if page_header(row) || page_footer(row) {
+                } else if page_header(row, layout.header) || page_footer(row, &layout.footer) {
                     Some("page_furniture".into())
                 } else if residue(&row.text) {
                     Some("residue".into())
@@ -1621,10 +1845,35 @@ pub fn reconstruct_from_directory(
     directory: &fs::File,
     deadline: Instant,
 ) -> Result<Model> {
+    reconstruct_from_directory_with_layout(
+        root,
+        directory,
+        deadline,
+        LayoutClassification::legacy(),
+    )
+}
+
+/// Reconstruct with the source-selected header classification profile.
+pub fn reconstruct_from_directory_with_recipe(
+    root: &Path,
+    directory: &fs::File,
+    deadline: Instant,
+    recipe: &Value,
+) -> Result<Model> {
+    let layout = LayoutClassification::selected(&recipe["layout_rules"])?;
+    reconstruct_from_directory_with_layout(root, directory, deadline, layout)
+}
+
+fn reconstruct_from_directory_with_layout(
+    root: &Path,
+    directory: &fs::File,
+    deadline: Instant,
+    layout: LayoutClassification,
+) -> Result<Model> {
     tick(deadline)?;
     let source = SourceInput::from_directory(root, directory)?;
     let (blocks, census) = load_source(deadline, &source)?;
-    reconstruct_blocks(blocks, census, deadline, source)
+    reconstruct_blocks(blocks, census, deadline, source, layout)
 }
 
 fn fixity() -> Value {
@@ -2476,9 +2725,41 @@ mod tests {
         let mut r = row([190., 20., 210., 30.], 0.);
         r.panel = "left".into();
         r.text = "— 3 —".into();
-        assert!(page_header(&r));
+        assert!(page_header(&r, HeaderRule::legacy()));
         r.bbox[1] = 36.;
-        assert!(!page_header(&r));
+        assert!(!page_header(&r, HeaderRule::legacy()));
+    }
+    #[test]
+    fn selected_header_profile_controls_geometry() {
+        let profile = json!({"y_below": 25, "left_center_x": 200, "right_center_x": 600, "center_tolerance": 4, "max_characters": 18, "minimum_dashes": 2, "max_letters_for_short_mark": 3, "max_characters_for_short_mark": 5});
+        let rule = HeaderRule::selected(&profile).unwrap();
+        let mut candidate = row([198., 20., 202., 30.], 0.);
+        candidate.panel = "left".into();
+        candidate.text = "— 3 —".into();
+        assert!(page_header(&candidate, rule));
+        candidate.bbox[1] = 25.;
+        assert!(!page_header(&candidate, rule));
+        assert!(HeaderRule::selected(&json!({"y_below": -1})).is_err());
+    }
+    #[test]
+    fn selected_layout_controls_footer_regions_and_roles() {
+        let mut profile = json!({
+            "header":{"y_below": 25,"left_center_x":200,"right_center_x":600,"center_tolerance":4,"max_characters":18,"minimum_dashes":2,"max_letters_for_short_mark":3,"max_characters_for_short_mark":5},
+            "footer":{"always_from_y": 550,"inspect_from_y":530,"text_contains":["special"],"allowed_symbols":"*", "marginal_from_y":540,"marginal_width_below":40,"right_panel_x":{"x_min":500,"x_max":620},"left_panel_x":{"x_min":150,"x_max":260},"small_height_at_most":10.1,"small_width_below":180,"small_right_panel_x_above_any":[680,460],"small_left_panel_x_above_any":[300,150]},
+            "regions":[{"page":2,"panel":"left","kind":"front_matter"}],
+            "role_precedence":[{"role":"selected_role","priority":7}]
+        });
+        let layout = LayoutClassification::selected(&profile).unwrap();
+        let mut candidate = row([100., 531., 300., 545.], 0.);
+        candidate.text = "special".into();
+        assert!(page_footer(&candidate, &layout.footer));
+        candidate.bbox[1] = 529.;
+        assert!(!page_footer(&candidate, &layout.footer));
+        assert_eq!(layout.region(2, "left").as_deref(), Some("front_matter"));
+        assert_eq!(layout.precedence("selected_role"), 7);
+        let duplicate = profile["regions"][0].clone();
+        profile["regions"].as_array_mut().unwrap().push(duplicate);
+        assert!(LayoutClassification::selected(&profile).is_err());
     }
     #[test]
     fn private_key_and_false_flag_controls() {
