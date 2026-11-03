@@ -107,6 +107,8 @@
         "scheme_name": "DTA TEI non-semantic technical source structure v1",
         "segmentation_status_reason": "The hierarchy reproduces only selected TEI body element boundaries; the separately declared auxiliary Part-IV container subtree is outside the work-level source layer.",
         "event_method_name": "exact-dta-tei-non-semantic-technical-structure",
+        "source_role_prefix": "local-fixity-bound-dta-part-",
+        "source_role_suffix": "-tei",
         "event_warnings": [
           "TEI source markup is observed but not accepted as a final editorial hierarchy.",
           "The sequential German layers remain ignored local-only mode-0600 files.",

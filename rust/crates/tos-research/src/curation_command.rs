@@ -371,20 +371,20 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
                 None
             };
             let build = action == "build";
-            let mut result = crate::dta_technical_markup::run(
+            let mut result = crate::tei_technical_markup::run(
                 &ctx,
-                crate::dta_technical_markup::Options {
+                crate::tei_technical_markup::Options {
                     plan_ref,
                     recipe,
                     input_root: Some(input),
                     output_root: Some(output),
                     tracked_output: tracked.as_ref().map(|(_, selected)| selected),
                     action: if build {
-                        crate::dta_technical_markup::Action::Build {
+                        crate::tei_technical_markup::Action::Build {
                             issue_identities: false,
                         }
                     } else {
-                        crate::dta_technical_markup::Action::Check
+                        crate::tei_technical_markup::Action::Check
                     },
                     event_id: None,
                 },

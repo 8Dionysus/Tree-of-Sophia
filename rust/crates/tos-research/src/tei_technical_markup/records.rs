@@ -1,4 +1,4 @@
-//! Text-free records for exact DTA TEI technical structure.
+//! Text-free records for exact TEI technical structure.
 use super::*;
 pub(super) fn method(
     plan_ref: &str,

@@ -3,7 +3,6 @@ mod antonovsky_collation_command;
 mod authored_canon_bridge_command;
 mod bounded_translation_input_command;
 mod curation_command;
-mod dta_technical_markup;
 mod dta_technical_markup_command;
 mod german_triangulation_command;
 mod jenseits_label_command;
@@ -13,6 +12,7 @@ mod lexical_index_command;
 mod morphology_result_command;
 mod nietzsche_transfer_routes_command;
 mod research_support;
+mod tei_technical_markup;
 // Source-passage migration consolidates this parser with its former compiler owner.
 #[allow(dead_code)]
 mod navigation_xml;

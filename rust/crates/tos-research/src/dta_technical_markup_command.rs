@@ -1,5 +1,5 @@
 //! Explicit native DTA technical structure entry; no implicit source discovery.
-use crate::dta_technical_markup::{self, Action, Options};
+use crate::tei_technical_markup::{self, Action, Options};
 use std::{io::Write, path::PathBuf};
 use tos_source_store::execution::Execution as ResearchExecution;
 const HELP: &str = "tos-research dta-technical-markup --source-root ABS --build|--check|--validate-tracked [--local-input-root ABS --local-output-root ABS] [--plan REPO_PATH] [--event-id ID] [--issue-identities] [--max-seconds 1..600] [--scratch-bytes RESERVED_BYTES]\n\nObserved TEI structure, exact private text layers and stable opaque identities.\nBuild/check require explicit local input and output roots. Tracked validation reads no private payload. Fresh native output requires a new event ID and fresh plan-selected paths; existing differing outputs are preserved. Build needs an admitted scratch quota. This route grants no textual, linguistic, translation or publication admission.\n";
@@ -101,7 +101,7 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
             .iter()
             .find(|recipe| recipe["stage"] == "tei-technical-markup")
             .ok_or("TEI recipe required")?;
-        dta_technical_markup::run(
+        tei_technical_markup::run(
             &ctx,
             Options {
                 recipe,
