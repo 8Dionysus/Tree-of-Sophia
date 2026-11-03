@@ -5009,105 +5009,114 @@ pub(crate) trait MaintainedInventorySchemaWorker:
     }
 }
 
-impl MaintainedInventorySchemaWorker for CutWorkerSchemaExecutor {
-    fn native_identity_inventory(
-        &mut self,
-        ctx: &CommandContext,
-        cut: Option<&CorpusCutReader>,
-        complete_members: Option<&[SourceFile]>,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> SourceCommandResult<(BTreeMap<String, Vec<String>>, Option<String>, bool)> {
-        if let Some(cut) = cut {
-            let (identities, snapshot, schema_used) =
-                crate::source_revisions::native_identity_inventory_from_cut(
-                    ctx, cut, self, deadline, cancelled,
-                )?;
-            Ok((identities, Some(snapshot), schema_used))
-        } else if let Some(members) = complete_members {
-            let (identities, snapshot, schema_used) =
-                crate::source_revisions::native_identity_inventory_from_members(
-                    ctx, members, self, deadline, cancelled,
-                )?;
-            Ok((identities, Some(snapshot), schema_used))
-        } else {
-            Ok((BTreeMap::new(), None, false))
-        }
-    }
+// Inline the remaining implementation when the legacy worker is retired.
+macro_rules! impl_complete_cut_inventory_schema {
+    ($executor:ty) => {
+        impl MaintainedInventorySchemaWorker for $executor {
+            fn native_identity_inventory(
+                &mut self,
+                ctx: &CommandContext,
+                cut: Option<&CorpusCutReader>,
+                complete_members: Option<&[SourceFile]>,
+                deadline: Instant,
+                cancelled: &AtomicBool,
+            ) -> SourceCommandResult<(BTreeMap<String, Vec<String>>, Option<String>, bool)> {
+                if let Some(cut) = cut {
+                    let (identities, snapshot, schema_used) =
+                        crate::source_revisions::native_identity_inventory_from_cut(
+                            ctx, cut, self, deadline, cancelled,
+                        )?;
+                    Ok((identities, Some(snapshot), schema_used))
+                } else if let Some(members) = complete_members {
+                    let (identities, snapshot, schema_used) =
+                        crate::source_revisions::native_identity_inventory_from_members(
+                            ctx, members, self, deadline, cancelled,
+                        )?;
+                    Ok((identities, Some(snapshot), schema_used))
+                } else {
+                    Ok((BTreeMap::new(), None, false))
+                }
+            }
 
-    fn native_text_snapshot(
-        &mut self,
-        ctx: &CommandContext,
-        cut: Option<&CorpusCutReader>,
-        bindings: &[JsonValue],
-        record_inputs: &mut JsonValue,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> SourceCommandResult<Option<String>> {
-        if bindings.is_empty() {
-            return Ok(None);
-        }
-        let cut = cut.ok_or(SourceCommandError::Unsupported(
-            "maintained native text binding snapshot adapter",
-        ))?;
-        let mut reader = ProfileMetadataReader {
-            source: ProfileMetadataSource::Cut { ctx, cut },
-            observed: BTreeMap::new(),
-            observed_bytes: 0,
-        };
-        let resolved = crate::source_sign_native::resolve_bindings(
-            &mut reader,
-            self,
-            bindings,
-            NativeReadScope::MetadataOnly,
-            deadline,
-            cancelled,
-        )?;
-        if resolved.summaries.len() != bindings.len() {
-            return Err(SourceCommandError::Conflict(
-                "native profile resolver summary count",
-            ));
-        }
-        for summary in &resolved.summaries {
-            if summary.object_get("public_content_declared") != Some(&JsonValue::Bool(true)) {
-                return Err(SourceCommandError::Denied(
-                    "profile native text binding has no declared public content",
-                ));
+            fn native_text_snapshot(
+                &mut self,
+                ctx: &CommandContext,
+                cut: Option<&CorpusCutReader>,
+                bindings: &[JsonValue],
+                record_inputs: &mut JsonValue,
+                deadline: Instant,
+                cancelled: &AtomicBool,
+            ) -> SourceCommandResult<Option<String>> {
+                if bindings.is_empty() {
+                    return Ok(None);
+                }
+                let cut = cut.ok_or(SourceCommandError::Unsupported(
+                    "maintained native text binding snapshot adapter",
+                ))?;
+                let mut reader = ProfileMetadataReader {
+                    source: ProfileMetadataSource::Cut { ctx, cut },
+                    observed: BTreeMap::new(),
+                    observed_bytes: 0,
+                };
+                let resolved = crate::source_sign_native::resolve_bindings(
+                    &mut reader,
+                    self,
+                    bindings,
+                    NativeReadScope::MetadataOnly,
+                    deadline,
+                    cancelled,
+                )?;
+                if resolved.summaries.len() != bindings.len() {
+                    return Err(SourceCommandError::Conflict(
+                        "native profile resolver summary count",
+                    ));
+                }
+                for summary in &resolved.summaries {
+                    if summary.object_get("public_content_declared") != Some(&JsonValue::Bool(true))
+                    {
+                        return Err(SourceCommandError::Denied(
+                            "profile native text binding has no declared public content",
+                        ));
+                    }
+                }
+                for input in &resolved.inputs {
+                    if input.kind == NativeReadKind::Content
+                        || reader
+                            .observed
+                            .get(&input.reference)
+                            .map(|(digest, _)| *digest)
+                            != Some(input.raw_sha256)
+                    {
+                        return Err(SourceCommandError::Conflict(
+                            "native profile exported read closure differs",
+                        ));
+                    }
+                }
+                for (name, digest) in resolved.schema_digests {
+                    if Digest256::of_bytes(selected(ctx, &name)?) != digest {
+                        return Err(SourceCommandError::Conflict(
+                            "native profile schema input differs from selected source",
+                        ));
+                    }
+                    let value = string(&digest.to_hex());
+                    if record_inputs
+                        .object_get(&name)
+                        .is_some_and(|prior| prior != &value)
+                    {
+                        return Err(SourceCommandError::Conflict(
+                            "native profile schema digest conflict",
+                        ));
+                    }
+                    set(record_inputs, &name, value)?;
+                }
+                Ok(Some(resolved.input_snapshot))
             }
         }
-        for input in &resolved.inputs {
-            if input.kind == NativeReadKind::Content
-                || reader
-                    .observed
-                    .get(&input.reference)
-                    .map(|(digest, _)| *digest)
-                    != Some(input.raw_sha256)
-            {
-                return Err(SourceCommandError::Conflict(
-                    "native profile exported read closure differs",
-                ));
-            }
-        }
-        for (name, digest) in resolved.schema_digests {
-            if Digest256::of_bytes(selected(ctx, &name)?) != digest {
-                return Err(SourceCommandError::Conflict(
-                    "native profile schema input differs from selected source",
-                ));
-            }
-            let value = string(&digest.to_hex());
-            if record_inputs
-                .object_get(&name)
-                .is_some_and(|prior| prior != &value)
-            {
-                return Err(SourceCommandError::Conflict(
-                    "native profile schema digest conflict",
-                ));
-            }
-            set(record_inputs, &name, value)?;
-        }
-        Ok(Some(resolved.input_snapshot))
-    }
+    };
 }
+
+impl_complete_cut_inventory_schema!(CutWorkerSchemaExecutor);
+impl_complete_cut_inventory_schema!(tos_validation::source_cut::InProcessCutSchemaExecutor<()>);
 
 impl<I: Copy + Eq> MaintainedInventorySchemaWorker for CandidateCutWorkerSchemaExecutor<I> {}
 impl<I: Copy + Eq> MaintainedInventorySchemaWorker
@@ -5122,7 +5131,7 @@ impl<I: Copy + Eq> MaintainedInventorySchemaWorker
 pub(crate) fn maintained_selected_identity_closure(
     ctx: &CommandContext,
     selected_authored_members: &[SourceFile],
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl MaintainedInventorySchemaWorker<Identity = tos_foundation::SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<SelectedIdentityClosure> {
@@ -5726,7 +5735,7 @@ pub(crate) fn maintained_inventory_from_members(
     ctx: &CommandContext,
     complete_authored_members: &[SourceFile],
     capture_member_inputs: bool,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl MaintainedInventorySchemaWorker<Identity = tos_foundation::SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<MaintainedInventory> {
@@ -6770,7 +6779,7 @@ fn maintained_inventory_inner_with_members(
     ctx: &CommandContext,
     cut: Option<&CorpusCutReader>,
     capture_member_inputs: bool,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl MaintainedInventorySchemaWorker<Identity = tos_foundation::SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
     whole_call: Option<&Rc<RefCell<ClaimCallBudget>>>,

@@ -6391,7 +6391,7 @@ fn native_identity_inventory(
 pub(crate) fn native_identity_inventory_from_cut(
     ctx: &CommandContext,
     cut: &CorpusCutReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl RecordSchemaWorker<Identity = tos_foundation::SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(BTreeMap<String, Vec<String>>, String, bool)> {
@@ -6406,7 +6406,7 @@ pub(crate) fn native_identity_inventory_from_cut(
 pub(crate) fn native_identity_inventory_from_members(
     ctx: &CommandContext,
     complete_members: &[SourceFile],
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl RecordSchemaWorker<Identity = tos_foundation::SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(BTreeMap<String, Vec<String>>, String, bool)> {

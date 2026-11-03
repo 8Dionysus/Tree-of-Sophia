@@ -186,52 +186,63 @@ pub(crate) trait HistoricalSchemas {
     ) -> SourceCommandResult<source_claims::SelectedIdentityClosure>;
 }
 
-impl HistoricalSchemas for CutWorkerSchemaExecutor {
-    fn matches_revision(&self, revision: SourceRevision) -> bool {
-        self.source_revision() == revision
-    }
-    fn check_historical_schema(
-        &mut self,
-        source_path: &str,
-        ctx: &CommandContext,
-        instance: &JsonValue,
-        root: &str,
-        refs: &[&str],
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> SourceCommandResult<()> {
-        schema(
-            source_path,
-            ctx,
-            self,
-            instance,
-            root,
-            refs,
-            deadline,
-            cancelled,
-        )
-    }
-    fn complete_inventory(
-        &mut self,
-        ctx: &CommandContext,
-        members: &[SourceFile],
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> SourceCommandResult<source_claims::MaintainedInventory> {
-        source_claims::maintained_inventory_from_members(
-            ctx, members, false, self, deadline, cancelled,
-        )
-    }
-    fn selected_closure(
-        &mut self,
-        ctx: &CommandContext,
-        members: &[SourceFile],
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> SourceCommandResult<source_claims::SelectedIdentityClosure> {
-        source_claims::maintained_selected_identity_closure(ctx, members, self, deadline, cancelled)
-    }
+// Inline the remaining implementation when the legacy worker is retired.
+macro_rules! impl_cut_historical_schemas {
+    ($executor:ty) => {
+        impl HistoricalSchemas for $executor {
+            fn matches_revision(&self, revision: SourceRevision) -> bool {
+                tos_validation::source_cut::CutSchemaExecutor::selected_source_revision(self)
+                    == Some(revision)
+            }
+            fn check_historical_schema(
+                &mut self,
+                source_path: &str,
+                ctx: &CommandContext,
+                instance: &JsonValue,
+                root: &str,
+                refs: &[&str],
+                deadline: Instant,
+                cancelled: &AtomicBool,
+            ) -> SourceCommandResult<()> {
+                schema(
+                    source_path,
+                    ctx,
+                    self,
+                    instance,
+                    root,
+                    refs,
+                    deadline,
+                    cancelled,
+                )
+            }
+            fn complete_inventory(
+                &mut self,
+                ctx: &CommandContext,
+                members: &[SourceFile],
+                deadline: Instant,
+                cancelled: &AtomicBool,
+            ) -> SourceCommandResult<source_claims::MaintainedInventory> {
+                source_claims::maintained_inventory_from_members(
+                    ctx, members, false, self, deadline, cancelled,
+                )
+            }
+            fn selected_closure(
+                &mut self,
+                ctx: &CommandContext,
+                members: &[SourceFile],
+                deadline: Instant,
+                cancelled: &AtomicBool,
+            ) -> SourceCommandResult<source_claims::SelectedIdentityClosure> {
+                source_claims::maintained_selected_identity_closure(
+                    ctx, members, self, deadline, cancelled,
+                )
+            }
+        }
+    };
 }
+
+impl_cut_historical_schemas!(CutWorkerSchemaExecutor);
+impl_cut_historical_schemas!(tos_validation::source_cut::InProcessCutSchemaExecutor<()>);
 
 struct PgHistoricalRead<'a> {
     context: &'a CommandContext,
