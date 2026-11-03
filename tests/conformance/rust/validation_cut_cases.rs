@@ -3164,4 +3164,73 @@ fn in_process_source_claim_preserves_cut_and_local_profile_diagnostics() {
             );
         }
     }
+
+    let legacy = FormatProfile::LegacyPythonObserved20260923;
+    let mut legacy_worker = super::command_form_cases::schemas_for_profile_with_image(
+        &cut,
+        legacy,
+        &image,
+        ExecutorBudget::laboratory(),
+        deadline,
+        &cancelled,
+    );
+    let selected = files
+        .iter()
+        .map(|(path, raw)| (path.as_str(), raw.as_slice()))
+        .collect::<Vec<_>>();
+    let resources = files
+        .iter()
+        .filter(|(path, _)| path.starts_with("ToS/contracts/") && path.ends_with(".schema.json"))
+        .map(|(path, raw)| {
+            let document: Value = serde_json::from_slice(raw).unwrap();
+            (
+                path.clone(),
+                tos_validation::SchemaResource {
+                    uri: document["$id"].as_str().unwrap().to_owned(),
+                    raw: raw.clone(),
+                },
+            )
+        })
+        .collect();
+    let mut candidate = tos_validation::source_cut::InProcessCandidateSchemaExecutor::from_selected_source_resources(
+        42u64, resources, legacy, InputMode::LegacyPythonObserved, deadline, &cancelled,
+    )
+    .unwrap();
+    assert!(
+        tos_validation::record_rules::validate_source_claim_from_selected_members(
+            43,
+            claim,
+            &selected,
+            &mut candidate,
+            limits,
+            &cancelled,
+        )
+        .is_err()
+    );
+    for raw in [claim, invalid.as_slice()] {
+        let previous = tos_validation::record_rules::validate_source_claim_from_members(
+            revision,
+            raw,
+            &selected,
+            &mut legacy_worker,
+            limits,
+            &cancelled,
+        )
+        .unwrap();
+        let current = tos_validation::record_rules::validate_source_claim_from_selected_members(
+            42,
+            raw,
+            &selected,
+            &mut candidate,
+            limits,
+            &cancelled,
+        )
+        .unwrap();
+        assert_eq!(current.input_identity, 42);
+        assert_eq!(current.source_input_sha256, previous.source_input_sha256);
+        assert_eq!(current.decoded_input_sha256, previous.decoded_input_sha256);
+        assert_eq!(current.dependency_digests, previous.dependency_digests);
+        assert_eq!(current.dependency_order, previous.dependency_order);
+        assert_eq!(current.issues, previous.issues);
+    }
 }

@@ -2,15 +2,18 @@
 //! Schemas and full source admission are supplied by the existing VAL owner;
 //! these functions neither consult fixtures nor mutate canonical source files.
 use crate::source_command::{self, SourceCommandError as Error, SourceCommandResult as Result, *};
-use std::collections::{BTreeSet, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue, RelativePath, SourceRevision};
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::{
+    CutSchemaExecutor, CutWorkerSchemaExecutor, InProcessCandidateSchemaExecutor,
+};
+use tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding;
 
 fn schema_check(
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     path: &str,
     raw: &[u8],
     contract: &str,
@@ -85,19 +88,23 @@ pub fn run_form_command_from_captures(
 /// separately selected software capture, then run the same maintained form
 /// proposal engine used by the corpus-cut route. The caller owns readset
 /// completeness for the selected source and schema dependencies.
-pub fn run_form_command_from_pg_members(
+pub fn run_form_command_from_pg_members<I: Copy + Eq>(
     ctx: &CommandContext,
     source_revision: SourceRevision,
     authored_members: &[SourceFile],
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    identity: &I,
+    worker: &mut InProcessCandidateSchemaExecutor<I>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<PreparedCommand> {
     ctx.check()?;
     if source_revision != ctx.base_revision || components.capture() != software.selection() {
         return Err(Error::Conflict("selected form source carriers differ"));
+    }
+    if worker.input_identity() != identity || worker.schema_execution_binding().is_none() {
+        return Err(Error::Conflict("selected form schema identity differs"));
     }
     let selected_authored = ctx
         .files
@@ -113,6 +120,16 @@ pub fn run_form_command_from_pg_members(
         return Err(Error::Conflict(
             "HumanForms context differs from selected authored members",
         ));
+    }
+    for member in authored_members.iter().filter(|member| {
+        member.path.as_str().starts_with("ToS/contracts/")
+            && member.path.as_str().ends_with(".schema.json")
+    }) {
+        if worker.selected_contract_digest(member.path.as_str())
+            != Some(Digest256::of_bytes(&member.raw))
+        {
+            return Err(Error::Conflict("selected form schema bytes differ"));
+        }
     }
     ctx.check_selected_software_inputs(software, components, deadline, cancelled)?;
     run_form_command_with_source(
@@ -139,6 +156,11 @@ pub fn run_form_command(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<PreparedCommand> {
+    if worker.selected_source_revision() != Some(ctx.base_revision) {
+        return Err(Error::Conflict(
+            "schema executor and command source cut differ",
+        ));
+    }
     run_form_command_with_source(
         ctx,
         FormCurrentSource::Cut(cut),
@@ -184,15 +206,105 @@ impl FormCurrentSource<'_> {
     }
 }
 
+struct FormClaimReport {
+    source_input_sha256: Digest256,
+    dependency_digests: BTreeMap<String, Digest256>,
+    dependency_order: Vec<String>,
+    valid: bool,
+}
+
+trait FormSchemas: CutSchemaExecutor {
+    fn validate_claim(
+        &mut self,
+        source: &FormCurrentSource<'_>,
+        raw: &[u8],
+        limits: tos_validation::item_rules::ItemLimits,
+        cancelled: &AtomicBool,
+    ) -> Result<FormClaimReport>;
+}
+
+impl FormSchemas for CutWorkerSchemaExecutor {
+    fn validate_claim(
+        &mut self,
+        source: &FormCurrentSource<'_>,
+        raw: &[u8],
+        limits: tos_validation::item_rules::ItemLimits,
+        cancelled: &AtomicBool,
+    ) -> Result<FormClaimReport> {
+        let report = match source {
+            FormCurrentSource::Cut(cut) => {
+                tos_validation::record_rules::validate_source_claim_from_cut(
+                    cut, raw, self, limits, cancelled,
+                )
+            }
+            FormCurrentSource::Members { revision, members } => {
+                let selected = members
+                    .iter()
+                    .map(|member| (member.path.as_str(), member.raw.as_slice()))
+                    .collect::<Vec<_>>();
+                tos_validation::record_rules::validate_source_claim_from_members(
+                    *revision, raw, &selected, self, limits, cancelled,
+                )
+            }
+        }
+        .map_err(|_| Error::Unsupported("Claim local profile execution incomplete"))?;
+        if report.source_revision != source.revision() {
+            return Err(Error::Conflict(
+                "Claim local profile source binding differs",
+            ));
+        }
+        Ok(FormClaimReport {
+            source_input_sha256: report.source_input_sha256,
+            valid: report.issues.is_empty(),
+            dependency_digests: report.dependency_digests,
+            dependency_order: report.dependency_order,
+        })
+    }
+}
+
+impl<I: Copy + Eq> FormSchemas for InProcessCandidateSchemaExecutor<I> {
+    fn validate_claim(
+        &mut self,
+        source: &FormCurrentSource<'_>,
+        raw: &[u8],
+        limits: tos_validation::item_rules::ItemLimits,
+        cancelled: &AtomicBool,
+    ) -> Result<FormClaimReport> {
+        let FormCurrentSource::Members { members, .. } = source else {
+            return Err(Error::Conflict("candidate Claim requires selected members"));
+        };
+        let identity = *SourceFoundationCandidateSchemaBinding::input_identity(self);
+        let selected = members
+            .iter()
+            .map(|member| (member.path.as_str(), member.raw.as_slice()))
+            .collect::<Vec<_>>();
+        let report = tos_validation::record_rules::validate_source_claim_from_selected_members(
+            identity, raw, &selected, self, limits, cancelled,
+        )
+        .map_err(|_| Error::Unsupported("Claim local profile execution incomplete"))?;
+        if report.input_identity != identity {
+            return Err(Error::Conflict(
+                "Claim local profile candidate binding differs",
+            ));
+        }
+        Ok(FormClaimReport {
+            source_input_sha256: report.source_input_sha256,
+            valid: report.issues.is_empty(),
+            dependency_digests: report.dependency_digests,
+            dependency_order: report.dependency_order,
+        })
+    }
+}
+
 fn run_form_command_with_source(
     ctx: &CommandContext,
     cut: FormCurrentSource<'_>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl FormSchemas,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<PreparedCommand> {
     ctx.check()?;
-    if worker.source_revision() != ctx.base_revision || cut.revision() != ctx.base_revision {
+    if cut.revision() != ctx.base_revision {
         return Err(Error::Conflict(
             "schema worker and command source cut differ",
         ));
@@ -393,29 +505,11 @@ fn run_form_command_with_source(
             max_issues: 128,
             deadline,
         };
-        let report = match &cut {
-            FormCurrentSource::Cut(cut) => {
-                tos_validation::record_rules::validate_source_claim_from_cut(
-                    cut, &raw, worker, limits, cancelled,
-                )
-            }
-            FormCurrentSource::Members { revision, members } => {
-                let members = members
-                    .iter()
-                    .map(|member| (member.path.as_str(), member.raw.as_slice()))
-                    .collect::<Vec<_>>();
-                tos_validation::record_rules::validate_source_claim_from_members(
-                    *revision, &raw, &members, worker, limits, cancelled,
-                )
-            }
-        }
-        .map_err(|_| Error::Unsupported("Claim local profile execution incomplete"))?;
-        if report.source_revision != ctx.base_revision
-            || report.source_input_sha256 != Digest256::of_bytes(&raw)
-        {
+        let report = worker.validate_claim(&cut, &raw, limits, cancelled)?;
+        if report.source_input_sha256 != Digest256::of_bytes(&raw) {
             return Err(Error::Conflict("Claim local profile input binding differs"));
         }
-        if !report.issues.is_empty() {
+        if !report.valid {
             return Err(Error::Invalid(
                 "Claim violates selected local source profile",
             ));

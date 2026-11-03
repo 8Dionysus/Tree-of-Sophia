@@ -1894,20 +1894,23 @@ pub(super) fn run(
                     context
                         .check_selected_software_inputs(&software, &components, deadline, cancelled)
                         .map_err(DurableError::Source)?;
-                    let mut worker = super::revisions::selected_schema_from_context(
-                        invocation,
-                        &context.files,
-                        context.base_revision,
-                        deadline,
-                        cancelled,
-                    )
-                    .map_err(DurableError::Source)?;
+                    let schema_identity =
+                        PgRecordRevisionIdentity::from_selection(session.selection());
+                    let mut worker =
+                        super::revisions::selected_in_process_candidate_schema_from_context(
+                            &context.files,
+                            schema_identity,
+                            deadline,
+                            cancelled,
+                        )
+                        .map_err(DurableError::Source)?;
                     let proposal = source_forms::run_form_command_from_pg_members(
                         &context,
                         context.base_revision,
                         &authored_members,
                         &software,
                         &components,
+                        &schema_identity,
                         &mut worker,
                         deadline,
                         cancelled,

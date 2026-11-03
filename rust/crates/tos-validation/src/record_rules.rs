@@ -3664,6 +3664,61 @@ fn validate_candidate_claim_input_core<I: Copy + Eq>(
             "local Claim candidate input identity differs".into(),
         ));
     }
+    let source = CandidateLocalClaimSource(input.source_input());
+    validate_candidate_claim_source(
+        *input.input_identity(),
+        &source,
+        selected_claim_raw,
+        worker,
+        limits,
+        cancelled,
+        scope,
+        expected_profile,
+        retained_header_state_bytes,
+    )
+}
+
+/// Validate a selected candidate's exact local member set without asserting a source cut.
+pub fn validate_source_claim_from_selected_members<I: Copy + Eq>(
+    identity: I,
+    selected_claim_raw: &[u8],
+    members: &[(&str, &[u8])],
+    worker: &mut impl crate::source_foundation_records::SourceFoundationCandidateSchemaBinding<I>,
+    limits: crate::item_rules::ItemLimits,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> Result<CandidateSourceClaimInputLocalReport<I>, crate::item_rules::ItemRefusal> {
+    if worker.input_identity() != &identity {
+        return Err(crate::item_rules::ItemRefusal::Source(
+            "local Claim candidate input identity differs".into(),
+        ));
+    }
+    validate_candidate_claim_source(
+        identity,
+        &SelectedMembersLocalClaimSource(members),
+        selected_claim_raw,
+        worker,
+        limits,
+        cancelled,
+        LocalClaimValidationScope::PublicForm,
+        FormatProfile::LegacyPythonObserved20260923,
+        std::mem::size_of::<CandidateSourceClaimInputLocalReport<I>>(),
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn validate_candidate_claim_source<I: Copy + Eq>(
+    identity: I,
+    source: &dyn LocalClaimCurrentSource,
+    selected_claim_raw: &[u8],
+    worker: &mut impl crate::source_foundation_records::SourceFoundationCandidateSchemaBinding<I>,
+    limits: crate::item_rules::ItemLimits,
+    cancelled: &std::sync::atomic::AtomicBool,
+    scope: LocalClaimValidationScope,
+    expected_profile: FormatProfile,
+    retained_header_state_bytes: usize,
+) -> Result<CandidateSourceClaimInputLocalReport<I>, crate::item_rules::ItemRefusal> {
+    use crate::item_rules::ItemRefusal;
+    local_claim_checkpoint(limits, cancelled)?;
     let profile = worker.profile();
     let schema_set_sha256 = worker.schema_set_digest();
     let contract_selection_sha256 = worker.contract_selection_digest();
@@ -3734,16 +3789,15 @@ fn validate_candidate_claim_input_core<I: Copy + Eq>(
     drop(decoded);
     let mut schema_worker = CandidateLocalClaimSchemaWorker {
         worker,
-        input_identity: *input.input_identity(),
+        input_identity: identity,
         schema_set_sha256,
         contract_selection_sha256,
         prepared_execution: prepared,
         cost: CandidateLocalClaimDiagnosticsCost::default(),
     };
-    let source = CandidateLocalClaimSource(input.source_input());
     let mut bytes = selected_claim_raw.len() as u64;
     validate_source_claim_local_core(
-        &source,
+        source,
         &claim,
         selected_claim_raw,
         scope,
@@ -3758,7 +3812,7 @@ fn validate_candidate_claim_input_core<I: Copy + Eq>(
     let diagnostics_cost = std::mem::take(&mut schema_worker.cost);
     drop(schema_worker);
     Ok(CandidateSourceClaimInputLocalReport {
-        input_identity: *input.input_identity(),
+        input_identity: identity,
         source_input_sha256: report.source_input_sha256,
         decoded_input_sha256: report.decoded_input_sha256,
         prepared_execution_binding: prepared,
