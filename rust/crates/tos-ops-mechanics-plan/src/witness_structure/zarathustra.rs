@@ -233,11 +233,19 @@ pub(super) fn validate(c: &mut Context<'_>) -> io::Result<()> {
     let anchor_set = c
         .load_map(ANCHOR_SET_PATH, ANCHOR_SET_SCHEMA_PATH)?
         .unwrap_or(Value::Null);
-    let anchors = c.anchors(ANCHOR_RECORDS_PATH)?;
+    let anchor_records_ref = anchor_set["anchor_records"]["ref"]
+        .as_str()
+        .unwrap_or(ANCHOR_RECORDS_PATH);
+    let anchors = c.anchors(anchor_records_ref)?;
     let by_id: Index<'_> = anchors
         .iter()
         .filter_map(|a| a["anchor_id"].as_str().map(|id| (id, a)))
         .collect();
+    c.require(
+        by_id.len() == anchors.len(),
+        anchor_records_ref,
+        "anchor identities must be present and unique",
+    )?;
     if !anchor_set.is_null() {
         let digest = c.digest(path)?;
         c.require(
@@ -245,10 +253,10 @@ pub(super) fn validate(c: &mut Context<'_>) -> io::Result<()> {
             ANCHOR_SET_PATH,
             "correspondence_map ref or digest drifted",
         )?;
-        if c.source.is_file(ANCHOR_RECORDS_PATH)? {
-            let digest = c.digest(ANCHOR_RECORDS_PATH)?;
+        if c.source.is_file(anchor_records_ref)? {
+            let digest = c.digest(anchor_records_ref)?;
             c.require(
-                anchor_set["anchor_records"] == json!({"ref":ANCHOR_RECORDS_PATH,"sha256":digest}),
+                anchor_set["anchor_records"] == json!({"ref":anchor_records_ref,"sha256":digest}),
                 ANCHOR_SET_PATH,
                 "anchor_records ref or digest drifted",
             )?;
@@ -262,14 +270,14 @@ pub(super) fn validate(c: &mut Context<'_>) -> io::Result<()> {
         }
     }
     for (i, a) in anchors.iter().enumerate() {
-        let loc = format!("{ANCHOR_RECORDS_PATH}:{}", i + 1);
+        let loc = format!("{anchor_records_ref}:{}", i + 1);
         c.require(
             a["status"] == "proposed",
             &loc,
             "structural anchor must remain proposed",
         )?;
         c.require(
-            a["provenance_event_ref"] == ANCHOR_EVENT_ID,
+            a["provenance_event_ref"] == anchor_set["provenance_event_ref"],
             &loc,
             "anchor provenance event drifted",
         )?;
@@ -294,10 +302,9 @@ pub(super) fn validate(c: &mut Context<'_>) -> io::Result<()> {
         for f in ["part_label", "sequence"] {
             c.require(b[f] == v[f], &loc, format!("{f} differs from map"))?;
         }
-        for (role, id_role, locator, digest, selectors, method) in [
+        for (role, locator, digest, selectors, method) in [
             (
                 "source_tei",
-                "dta",
                 &v["source"],
                 &get(&parts, &v["part_label"])["file_sha256"],
                 json!([{"type":"structural","path":[v["source"]["tei_path"]],"scheme":"tei-xpath-like-inventory-v1"}]),
@@ -305,7 +312,6 @@ pub(super) fn validate(c: &mut Context<'_>) -> io::Result<()> {
             ),
             (
                 "target_epub",
-                "naumann-1893-epub",
                 &v["target_epub"],
                 &epub["file_sha256"],
                 json!([{"type":"container_member","member_path":v["target_epub"]["member_path"],"member_sha256":v["target_epub"]["member_sha256"]}]),
@@ -313,17 +319,18 @@ pub(super) fn validate(c: &mut Context<'_>) -> io::Result<()> {
             ),
             (
                 "target_pdf",
-                "naumann-1893-pdf",
                 &v["target_pdf"],
                 &pdf["file_sha256"],
                 json!([whole_page(&v["target_pdf"]["page_index"])]),
                 "resource-inventory whole-page PDF locator",
             ),
         ] {
-            let aid = format!(
-                "tos.anchor.zarathustra-structure.{id_role}-{}",
-                id.strip_prefix("structure-").unwrap_or(id)
-            );
+            let aid = text(&b[role]["anchor_ref"]).to_owned();
+            c.require(
+                !aid.is_empty(),
+                &loc,
+                format!("{role} anchor identity is required"),
+            )?;
             expected_order.push(aid.clone());
             c.require(b[role]==json!({"anchor_ref":aid,"item_ref":locator["item_ref"],"file_ref":locator["file_ref"],"resource_id":locator["resource_id"]}),&loc,format!("{role} binding differs from correspondence"))?;
             let a = get(&by_id, &json!(aid));
@@ -331,7 +338,7 @@ pub(super) fn validate(c: &mut Context<'_>) -> io::Result<()> {
                 c.issue(&loc, format!("{role} anchor is unresolved: {aid}"))?;
                 continue;
             }
-            let expected = json!({"item_id":locator["item_ref"],"file_id":locator["file_ref"],"file_sha256":digest,"selectors":selectors,"selector_method":{"maker_type":"software","method":method,"version":"1","configuration_ref":format!("{path}#{id}")},"status":"proposed","provenance_event_ref":ANCHOR_EVENT_ID,"anchor_version":1,"supersedes_anchor_ref":null,"review_ref":null,"passage_id":null});
+            let expected = json!({"item_id":locator["item_ref"],"file_id":locator["file_ref"],"file_sha256":digest,"selectors":selectors,"selector_method":{"maker_type":"software","method":method,"version":"1","configuration_ref":format!("{path}#{id}")},"status":"proposed","provenance_event_ref":anchor_set["provenance_event_ref"],"anchor_version":1,"supersedes_anchor_ref":null,"review_ref":null,"passage_id":null});
             c.fields(a, &expected, &loc, |f| {
                 format!("{role} anchor {f} differs from source map")
             })?;
@@ -349,12 +356,17 @@ pub(super) fn validate(c: &mut Context<'_>) -> io::Result<()> {
                 .filter(|a| a["anchor_id"].is_string())
                 .map(|a| &a["anchor_id"]),
         ) == json!(expected_order),
-        ANCHOR_RECORDS_PATH,
+        anchor_records_ref,
         "anchor record order differs from correspondence role order",
     )?;
     c.require(
+        expected_order.iter().collect::<BTreeSet<_>>().len() == expected_order.len(),
+        anchor_records_ref,
+        "anchor identities cannot be reused across bindings",
+    )?;
+    c.require(
         keys(&by_id) == expected_order.iter().cloned().collect(),
-        ANCHOR_RECORDS_PATH,
+        anchor_records_ref,
         "anchor records do not close over the expected stable ID set",
     )?;
     if !anchor_set.is_null() {
@@ -397,7 +409,7 @@ pub(super) fn validate(c: &mut Context<'_>) -> io::Result<()> {
         prov,
         "anchor provenance_event_ref does not resolve exactly once",
     )? {
-        if c.source.is_file(ANCHOR_SET_PATH)? && c.source.is_file(ANCHOR_RECORDS_PATH)? {
+        if c.source.is_file(ANCHOR_SET_PATH)? && c.source.is_file(anchor_records_ref)? {
             let digest = c.digest(path)?;
             c.require(
                 tuple_set(&event["inputs"], &["ref", "sha256"])
@@ -407,10 +419,7 @@ pub(super) fn validate(c: &mut Context<'_>) -> io::Result<()> {
             )?;
             let expected = BTreeSet::from([
                 c.bound_output(ANCHOR_SET_PATH, "tracked_proposed_structure_anchor_set")?,
-                c.bound_output(
-                    ANCHOR_RECORDS_PATH,
-                    "tracked_proposed_source_anchor_records",
-                )?,
+                c.bound_output(anchor_records_ref, "tracked_proposed_source_anchor_records")?,
             ]);
             c.require(
                 tuple_set(&event["outputs"], &["ref", "role", "sha256"]) == expected,
