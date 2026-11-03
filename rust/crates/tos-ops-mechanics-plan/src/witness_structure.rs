@@ -390,14 +390,14 @@ impl<'a> Context<'a> {
     }
 }
 
+mod correspondence;
 mod labels;
 mod numbered;
 mod parallel;
-mod zarathustra;
 
 pub fn run_validation(root: &Path, cancel: &AtomicI32) -> io::Result<Vec<Issue>> {
     let mut c = Context::new(root, cancel)?;
-    zarathustra::validate(&mut c)?;
+    correspondence::validate(&mut c)?;
     parallel::validate(&mut c)?;
     numbered::validate(&mut c, false)?;
     numbered::validate(&mut c, true)?;
