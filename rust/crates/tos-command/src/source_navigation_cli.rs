@@ -17,10 +17,6 @@ use tos_query::{
     AbortProbe, Budget, DisclosableSourceDescend, QueryError, SourceDescendRequest, source_descend,
 };
 use tos_segment_store::{AuthenticatedTreeLimitsV1, SegmentLimits, SegmentStore};
-use tos_validation::{
-    executor::{ExactWorkerIdentity, ExecutorBudget},
-    source_cut::CutWorkerLimits,
-};
 
 use crate::{
     DurableNavigationEventLimits, DurableProjectionProfile,
@@ -451,34 +447,7 @@ fn navigation_producer_owner_selection(
         store_root,
         event_path: &producer.event_path,
         schema_paths: &producer.schema_paths,
-        schema_worker: ExactWorkerIdentity {
-            absolute_path: crate::source_text_owner::normalized_absolute(
-                &producer.schema_worker_path,
-            )
-            .map_err(|_| {
-                SourceNavigationSelectionError::Invalid("source navigation schema worker path")
-            })?,
-            sha256: Digest256::from_hex(&producer.schema_worker_sha256).map_err(|_| {
-                SourceNavigationSelectionError::Invalid("source navigation schema worker digest")
-            })?,
-        },
         schema_profile: tos_validation::FormatProfile::LegacyPythonObserved20260923,
-        schema_budget: ExecutorBudget {
-            execution_wall: std::time::Duration::from_millis(producer.schema_execution_wall_ms),
-            // As in initial model preparation, the outer allowance cannot
-            // enlarge the schema executor's hard child cleanup ceiling.
-            cleanup_grace: std::time::Duration::from_millis(
-                producer
-                    .schema_cleanup_grace_ms
-                    .min(ExecutorBudget::MAX_SCALAR_CLEANUP_GRACE_MILLIS),
-            ),
-            cpu_seconds: producer.schema_cpu_seconds,
-            address_space_bytes: producer.schema_address_space_bytes,
-        },
-        schema_limits: CutWorkerLimits {
-            max_receipts: producer.schema_max_receipts,
-            max_receipt_bytes: producer.schema_max_receipt_bytes,
-        },
         max_events: producer.max_events,
         event_limits: producer.event_limits.into_limits(),
         max_total_rows: aggregate.max_total_rows,
@@ -491,8 +460,10 @@ fn navigation_producer_owner_selection(
 fn validate_producer_selection(
     producer: &NavigationProducerSelection,
 ) -> Result<(), SourceNavigationSelectionError> {
-    if producer.schema_version != "tos_local_pg_source_navigation_producer_v1"
-        || !(1..=256).contains(&producer.max_events)
+    if !matches!(
+        producer.schema_version.as_str(),
+        "tos_local_pg_source_navigation_producer_v1" | "tos_local_pg_source_navigation_producer_v2"
+    ) || !(1..=256).contains(&producer.max_events)
         || producer.event_path.is_empty()
         || !tos_foundation::RelativePath::parse(&producer.event_path)
             .is_ok_and(|path| path.as_str() == producer.event_path)
@@ -532,21 +503,6 @@ fn validate_producer_selection(
             .schema_paths
             .windows(2)
             .all(|pair| pair[0] < pair[1])
-        || producer.schema_worker_path.is_empty()
-        || !Path::new(&producer.schema_worker_path).is_absolute()
-        || Digest256::from_hex(&producer.schema_worker_sha256).is_err()
-        || producer.schema_execution_wall_ms == 0
-        || producer.schema_execution_wall_ms > 300_000
-        || producer.schema_cleanup_grace_ms == 0
-        || producer.schema_cleanup_grace_ms > 60_000
-        || producer.schema_cpu_seconds == 0
-        || producer.schema_cpu_seconds > ExecutorBudget::MAX_SCALAR_CPU_SECONDS
-        || producer.schema_address_space_bytes == 0
-        || producer.schema_address_space_bytes == u64::MAX
-        || producer.schema_max_receipts == 0
-        || producer.schema_max_receipts > 100_000
-        || producer.schema_max_receipt_bytes == 0
-        || producer.schema_max_receipt_bytes > 64 * 1024 * 1024
     {
         return Err(SourceNavigationSelectionError::Invalid(
             "source navigation producer resource limits",
@@ -636,14 +592,22 @@ struct NavigationProducerSelection {
     event_path: String,
     requested_paths: Vec<String>,
     schema_paths: Vec<String>,
-    schema_worker_path: String,
-    schema_worker_sha256: String,
-    schema_execution_wall_ms: u64,
-    schema_cleanup_grace_ms: u64,
-    schema_cpu_seconds: u64,
-    schema_address_space_bytes: u64,
-    schema_max_receipts: usize,
-    schema_max_receipt_bytes: usize,
+    #[serde(default, rename = "schema_worker_path")]
+    _schema_worker_path: Option<serde_json::Value>,
+    #[serde(default, rename = "schema_worker_sha256")]
+    _schema_worker_sha256: Option<serde_json::Value>,
+    #[serde(default, rename = "schema_execution_wall_ms")]
+    _schema_execution_wall_ms: Option<serde_json::Value>,
+    #[serde(default, rename = "schema_cleanup_grace_ms")]
+    _schema_cleanup_grace_ms: Option<serde_json::Value>,
+    #[serde(default, rename = "schema_cpu_seconds")]
+    _schema_cpu_seconds: Option<serde_json::Value>,
+    #[serde(default, rename = "schema_address_space_bytes")]
+    _schema_address_space_bytes: Option<serde_json::Value>,
+    #[serde(default, rename = "schema_max_receipts")]
+    _schema_max_receipts: Option<serde_json::Value>,
+    #[serde(default, rename = "schema_max_receipt_bytes")]
+    _schema_max_receipt_bytes: Option<serde_json::Value>,
     max_events: usize,
     event_limits: NavigationProducerEventLimits,
     aggregate_limits: NavigationProducerAggregateLimits,
@@ -729,10 +693,7 @@ pub(crate) struct NavigationProducerOwnerSelection<'a> {
     pub store_root: PathBuf,
     pub event_path: &'a str,
     pub schema_paths: &'a [String],
-    pub schema_worker: ExactWorkerIdentity,
     pub schema_profile: tos_validation::FormatProfile,
-    pub schema_budget: ExecutorBudget,
-    pub schema_limits: CutWorkerLimits,
     pub max_events: usize,
     pub event_limits: DurableNavigationEventLimits,
     pub max_total_rows: u64,
@@ -957,4 +918,35 @@ pub fn with_selected_source_navigation<T, E>(
             SelectedSourceNavigationRead::NotReady
         }
     })
+}
+
+#[cfg(test)]
+mod producer_schema_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn navigation_producer_accepts_in_process_and_historical_settings() {
+        let mut value = json!({
+            "schema_version": "tos_local_pg_source_navigation_producer_v2",
+            "event_path": "ToS/event.json", "requested_paths": ["ToS/event.json"],
+            "schema_paths": ["ToS/contracts/event.schema.json"], "max_events": 1,
+            "event_limits": {"max_dependencies": 1, "max_cohort_rows": 1,
+                "max_current_cohorts": 1, "max_current_rows": 1, "max_adjacency_rows": 1,
+                "max_adjacency_bytes": 1, "max_row_bytes": 1, "max_total_bytes": 1,
+                "statement_timeout_ms": 1000},
+            "aggregate_limits": {"max_total_rows": 1, "max_total_encoded_bytes": 1,
+                "max_total_dependency_bytes": 1, "max_total_work_units": 1}
+        });
+        let parsed: NavigationProducerSelection = serde_json::from_value(value.clone()).unwrap();
+        assert!(validate_producer_selection(&parsed).is_ok());
+        value["schema_version"] = json!("tos_local_pg_source_navigation_producer_v1");
+        value["schema_worker_path"] = json!("/historical/worker");
+        value["schema_worker_sha256"] = json!("historical");
+        let parsed: NavigationProducerSelection = serde_json::from_value(value.clone()).unwrap();
+        assert!(validate_producer_selection(&parsed).is_ok());
+        value["schema_paths"] = json!(["ToS/contracts/../escape.schema.json"]);
+        let parsed: NavigationProducerSelection = serde_json::from_value(value).unwrap();
+        assert!(validate_producer_selection(&parsed).is_err());
+    }
 }

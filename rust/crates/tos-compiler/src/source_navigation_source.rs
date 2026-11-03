@@ -302,7 +302,7 @@ fn project_source_navigation_with_epoch(
 ) -> Result<NavigationSourceProjection> {
     let result = (|| {
         l.validate()?;
-        if receipt.worker_sha256 != validator.worker.sha256.to_hex() {
+        if !validator.matches_catalog_execution(receipt)? {
             return Err(Error::Invalid("navigation exact catalog worker identity"));
         }
         let versions = match epoch {
@@ -342,7 +342,7 @@ fn project_navigation_kernel<B: catalog::CatalogInputBinding>(
 ) -> Result<NavigationSourceProjection> {
     let result = (|| {
         l.validate()?;
-        if receipt.worker_sha256 != validator.worker.sha256.to_hex() {
+        if !validator.matches_catalog_execution(receipt)? {
             return Err(Error::Invalid("navigation exact catalog worker identity"));
         }
         let contracts = versions.contracts();
@@ -1113,8 +1113,9 @@ fn inspect_annotation_owner(
 ) -> Result<tos_validation::layer_family_rules::LayerFamilyReport> {
     use tos_validation::layer_family_cut::{CutLayerFamilySource, UnavailableLayerPayloads};
     use tos_validation::layer_family_rules::LayerFamilyRules;
+    use tos_validation::source_cut::CutSchemaExecutor;
     let mut schemas = validator.schemas(source.expected_revision)?;
-    if schemas.source_revision() != source.expected_revision
+    if schemas.selected_source_revision() != Some(source.expected_revision)
         || source.cut.current().revision() != source.expected_revision
     {
         return Err(Error::Invalid("navigation annotation source revision"));

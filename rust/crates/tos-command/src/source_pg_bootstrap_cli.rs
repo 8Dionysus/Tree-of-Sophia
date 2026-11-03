@@ -835,7 +835,7 @@ pub(super) fn run(
         cancelled,
     )?;
 
-    let mut worker = super::selected_schema(invocation, &cut, deadline, cancelled)?;
+    let mut worker = super::selected_in_process_schema(&cut, deadline, cancelled)?;
     let mut db = DurablePgCoordinator::from_configured_client(
         crate::source_projection_cli::connect_selected_source_pg16()
             .map_err(|_| SourceCommandError::Conflict("selected PostgreSQL unavailable"))?,

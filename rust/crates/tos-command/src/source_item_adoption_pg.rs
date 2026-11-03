@@ -1538,11 +1538,11 @@ pub(crate) fn verify_current_topology<I: Copy + Eq>(
     closure: &mut PgItemCurrentClosure,
     history: &serde_json::Value,
     input: &dyn SourceCutInputWithIdentity<I>,
-    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut impl crate::source_revisions::CandidateRecordSchemaWorker<I>,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
-    if input.input_identity() != worker.input_identity() {
+    if input.input_identity() != tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding::input_identity(worker) {
         return Err(SourceCommandError::Conflict(
             "PG Item topology schema input identity differs",
         ));
@@ -1711,7 +1711,6 @@ pub(crate) fn verify_current_topology<I: Copy + Eq>(
 }
 use tos_validation::native_compound::{EditionItemBytes, EditionItemGrammarObservation};
 use tos_validation::record_biblio_cut::SourceCutInputWithIdentity;
-use tos_validation::source_cut::CandidateCutWorkerSchemaExecutor;
 
 /// Reuse the maintained Item grammar and explicit bibliographic append laws
 /// with the same exact selected-input seam used by the native compound owner.
@@ -1721,7 +1720,7 @@ pub(crate) fn unavailable_grammar<I: Copy + Eq>(
     owner: &super::ItemOwner,
     before: &BTreeMap<String, Vec<u8>>,
     input: &dyn SourceCutInputWithIdentity<I>,
-    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut impl crate::source_revisions::CandidateRecordSchemaWorker<I>,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<EditionItemGrammarObservation> {
@@ -2016,7 +2015,7 @@ pub(crate) fn prepare_pg_item_adoption(
     >,
     software: &tos_source_store::SoftwareCaptureReader,
     components: &tos_source_store::SoftwareComponentSelectionV1,
-    worker: &mut CandidateCutWorkerSchemaExecutor<
+    worker: &mut impl crate::source_revisions::CandidateRecordSchemaWorker<
         crate::source_cohort::revision::PgRecordRevisionIdentity,
     >,
     limits: ItemLimits,

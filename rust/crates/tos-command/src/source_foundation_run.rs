@@ -22,11 +22,13 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 use tos_ops_mechanics_plan::source_reading::RouteSources;
 use tos_source_store::ReadLimits;
-use tos_validation::biblio_rules::{SourceCutBiblioReport, inspect_bibliography_from_cut};
+use tos_validation::biblio_rules::{
+    SourceCutBiblioReport, inspect_bibliography_from_in_process_cut,
+};
 use tos_validation::executor::{ExactWorkerIdentity, VerifiedWorkerImageHandle};
 use tos_validation::native_compound::NativeRecordHistoryReadObservation;
 use tos_validation::record_biblio_cut::BiblioRecordExecutor;
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::{CutSchemaExecutor, InProcessCutSchemaExecutor};
 use tos_validation::source_foundation_default_rules::{
     SourceFoundationDefaultRulesLimits,
     inspect_source_foundation_default_rules_with_invalid_artifact_proofs,
@@ -141,7 +143,7 @@ pub(crate) fn prepare_records(
     captured: &FoundationCapturedCut,
     payloads: &mut FoundationPayloadSources<'_>,
     record_executor: &mut BiblioRecordExecutor,
-    item_schemas: &mut CutWorkerSchemaExecutor,
+    item_schemas: &mut impl CutSchemaExecutor,
     physical: &SourcePhysicalFacts,
     require_local_payloads: bool,
     limits: SourceFoundationRecordsLimits,
@@ -606,7 +608,7 @@ pub(crate) fn evaluate_default<'cancel>(
     sources: &mut RouteSources,
     payloads: &mut FoundationPayloadSources<'_>,
     record_executor: &mut BiblioRecordExecutor,
-    item_schemas: &mut CutWorkerSchemaExecutor,
+    item_schemas: &mut InProcessCutSchemaExecutor<()>,
     layer_schemas: &mut dyn CutSchemaExecutor,
     physical: &SourcePhysicalFacts,
     histories: &BTreeMap<String, NativeRecordHistoryReadObservation>,
@@ -755,7 +757,7 @@ pub(crate) fn evaluate_default<'cancel>(
                 ));
             }
         }
-        let report = inspect_bibliography_from_cut(
+        let report = inspect_bibliography_from_in_process_cut(
             captured.cut(),
             record_report,
             bibliography_limits,

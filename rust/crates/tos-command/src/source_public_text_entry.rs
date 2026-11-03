@@ -134,7 +134,7 @@ use crate::source_text_private_store::{
 };
 use std::path::Path;
 use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
-use tos_validation::source_cut::CutWorkerSchemaExecutor;
+use tos_validation::source_cut::CutSchemaExecutor;
 
 pub(crate) const PG_FAMILY_TAG: &str = "tos-pg-public-native-text-v1:native-text.create";
 
@@ -388,7 +388,7 @@ fn prepare(
     selection: &PublicNativeTextSelection,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     exclude: Option<&Path>,
     retained_inventory: Option<Digest256>,
     runtime_observation: &ExecutableObservation,
@@ -560,7 +560,7 @@ pub(crate) fn verify_retained_package(
     dependencies: &str,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(JsonValue, JsonValue)> {
@@ -698,7 +698,7 @@ pub(crate) fn complete_package(
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
     runtime_observation: &ExecutableObservation,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PublicTextPackage> {
@@ -795,7 +795,7 @@ fn verify_retained(
     files: &BTreeMap<String, Vec<u8>>,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     exclude: Option<&Path>,
     runtime_observation: &ExecutableObservation,
     deadline: Instant,
@@ -944,7 +944,7 @@ pub(crate) fn run(
     request: &JsonValue,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     runtime_observation: &ExecutableObservation,
     deadline: Instant,
     cancelled: &AtomicBool,

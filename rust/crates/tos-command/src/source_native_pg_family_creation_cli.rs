@@ -157,9 +157,7 @@ fn select_creation_private_text(
     request: &JsonValue,
     context: &cmd::CommandContext,
     selection: &super::SourceSelection,
-    worker: &mut tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<
-        crate::source_cohort::revision::PgRecordRevisionIdentity,
-    >,
+    worker: &mut dyn tos_validation::source_cut::CutSchemaExecutor,
     uid: u32,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -396,13 +394,13 @@ fn select_recovered_creation_private_text(
         ));
     }
 
-    let mut worker = crate::source_native_cli::revisions::selected_candidate_schema_from_context(
-        invocation,
-        &context.files,
-        identity,
-        deadline,
-        cancelled,
-    )?;
+    let mut worker =
+        crate::source_native_cli::revisions::selected_in_process_candidate_schema_from_context(
+            &context.files,
+            identity,
+            deadline,
+            cancelled,
+        )?;
     let private_text = select_creation_private_text(
         invocation,
         request,
@@ -1047,13 +1045,13 @@ pub(crate) fn run(
         .identity_closure
         .verify_readset(&readset)
         .map_err(super::source_error)?;
-    let mut worker = crate::source_native_cli::revisions::selected_candidate_schema_from_context(
-        invocation,
-        &context.files,
-        identity,
-        deadline,
-        cancelled,
-    )?;
+    let mut worker =
+        crate::source_native_cli::revisions::selected_in_process_candidate_schema_from_context(
+            &context.files,
+            identity,
+            deadline,
+            cancelled,
+        )?;
     let private_text = if family == CreationFamily::PublicProfile {
         select_creation_private_text(
             invocation,

@@ -39,17 +39,20 @@ use tos_foundation::{
 };
 use tos_ops_mechanics_plan::source_reading::{RouteResolvedTarget, RouteSources};
 use tos_source_store::{MetadataPublicationEpoch, ReadLimits};
-use tos_validation::executor::{
-    BatchStreamBudget, ExactWorkerIdentity, ExecutorBudget, VerifiedWorkerImageHandle,
-};
+use tos_validation::executor::{ExactWorkerIdentity, VerifiedWorkerImageHandle};
 use tos_validation::source_cut::{
-    CutSchemaDiagnostic, CutSchemaDiagnosticsLimits, CutWorkerLimits,
-    cut_schema_resource_preparation_state_upper_bound,
+    CutSchemaEvidence, cut_schema_resource_preparation_state_upper_bound,
 };
 
 const MANIFEST: &str = "ToS/source-witnesses/catalog/catalog.manifest.json";
 const CATALOG_ROOT: &str = "ToS/source-witnesses/catalog";
 pub(crate) type Issue = (String, String);
+
+fn complete_candidate_rejection<I>(
+    diagnostic: Option<tos_validation::source_cut::CandidateSchemaDiagnostic<I>>,
+) -> Option<tos_validation::source_cut::CandidateSchemaDiagnostic<I>> {
+    diagnostic.filter(|diagnostic| diagnostic.is_invalid())
+}
 
 struct CapturedStageOwner<'a, 'r> {
     capture: &'a FoundationCapturedCut,
@@ -1363,6 +1366,23 @@ impl SourceCatalogProfileObserver for SpoolingCatalogProfileObserver<'_, '_> {
     }
 }
 
+pub(crate) enum FoundationCatalogSchemaCost {
+    Worker(tos_validation::source_cut::CutSchemaDiagnosticsCumulativeCost),
+    InProcess,
+}
+
+fn catalog_schema_cost(
+    validator: &SourceCatalogValidator<'_>,
+) -> Result<FoundationCatalogSchemaCost> {
+    if validator.worker.is_some() {
+        validator
+            .diagnostics_v2_cumulative_cost()
+            .map(FoundationCatalogSchemaCost::Worker)
+    } else {
+        Ok(FoundationCatalogSchemaCost::InProcess)
+    }
+}
+
 pub(crate) struct FoundationCatalogResult<B = ColdAuthoredBinding> {
     pub(crate) observed_plan_work_bytes: u64,
     pub(crate) profiles: FoundationCatalogProfiles,
@@ -1374,11 +1394,10 @@ pub(crate) struct FoundationCatalogResult<B = ColdAuthoredBinding> {
     pub(crate) generated_read_bytes: usize,
     pub(crate) generated_inputs: GeneratedCatalogObservation,
     pub(crate) source_recheck_read_bytes: usize,
-    pub(crate) schema_execution_cost:
-        tos_validation::source_cut::CutSchemaDiagnosticsCumulativeCost,
+    pub(crate) schema_execution_cost: FoundationCatalogSchemaCost,
 }
 
-pub(crate) enum FoundationCatalogOutcome<B = ColdAuthoredBinding, D = CutSchemaDiagnostic> {
+pub(crate) enum FoundationCatalogOutcome<B = ColdAuthoredBinding, D = CutSchemaEvidence> {
     Complete(FoundationCatalogResult<B>),
     /// Complete authenticated schema rejection; the failed compiler phase
     /// produced no receipt. Independent default owner checks still continue.
@@ -1391,7 +1410,7 @@ pub(crate) enum FoundationCatalogOutcome<B = ColdAuthoredBinding, D = CutSchemaD
         generated_read_bytes: usize,
         generated_inputs: Option<GeneratedCatalogObservation>,
         source_recheck_read_bytes: usize,
-        schema_execution_cost: tos_validation::source_cut::CutSchemaDiagnosticsCumulativeCost,
+        schema_execution_cost: FoundationCatalogSchemaCost,
     },
 }
 
@@ -1400,7 +1419,7 @@ struct CatalogCandidateArtifact<'a> {
     fresh_sources: RouteSources,
 }
 
-struct CatalogKernelOutput<'a, B = ColdAuthoredBinding, D = CutSchemaDiagnostic> {
+struct CatalogKernelOutput<'a, B = ColdAuthoredBinding, D = CutSchemaEvidence> {
     outcome: FoundationCatalogOutcome<B, D>,
     candidate: Option<CatalogCandidateArtifact<'a>>,
 }
@@ -1411,7 +1430,7 @@ struct CatalogKernelOutput<'a, B = ColdAuthoredBinding, D = CutSchemaDiagnostic>
 pub(crate) struct FoundationCatalogCandidateOutcome<
     'a,
     B = ColdAuthoredBinding,
-    D = CutSchemaDiagnostic,
+    D = CutSchemaEvidence,
 > {
     pub(crate) outcome: FoundationCatalogOutcome<B, D>,
     pub(crate) candidate: Option<FreshCatalogCandidate<'a>>,
@@ -1430,11 +1449,7 @@ fn compare_kernel<'candidate>(
     source_limits: SourceCatalogInputLimits,
     read_limits: ReadLimits,
     limits: BibliographicLimits,
-    image: &VerifiedWorkerImageHandle,
-    executor: ExecutorBudget,
-    worker_limits: CutWorkerLimits,
-    operation: BatchStreamBudget,
-    diagnostics_limits: CutSchemaDiagnosticsLimits,
+    schema_deadline: Instant,
     build_bibliographic: bool,
     max_version_files: usize,
     max_version_bytes: usize,
@@ -1442,7 +1457,6 @@ fn compare_kernel<'candidate>(
     max_generated_files: usize,
     max_generated_state_bytes: usize,
     max_source_recheck_read_bytes: usize,
-    quota: &tos_validation::executor::SharedSchemaWorkerQuota,
     candidate_root: Option<(
         &'candidate IsolatedCreationRoot,
         DisposableCatalogTreeLimits,
@@ -1511,22 +1525,15 @@ fn compare_kernel<'candidate>(
         limits.deadline,
         limits.catalog.max_file_bytes,
     )?;
-    let validator = SourceCatalogValidator::from_cut_with_image_diagnostics_v2(
+    let max_instance_bytes = usize::try_from(read_limits.max_selected_object_bytes)
+        .map_err(|_| Error::Budget("catalog selected instance byte range"))?
+        .min(tos_validation::executor::BatchBudget::MAX_RAW_BYTES);
+    let validator = SourceCatalogValidator::from_in_process_cut_diagnostics(
         capture.cut(),
-        image,
-        executor,
-        worker_limits,
-        operation,
-        diagnostics_limits,
-        limits.deadline,
+        max_instance_bytes,
+        limits.deadline.min(schema_deadline),
         cancelled,
     )?;
-    validator.set_diagnostics_v2_legacy_raw_instance_limit(
-        usize::try_from(read_limits.max_selected_object_bytes)
-            .map_err(|_| Error::Budget("catalog selected instance byte range"))?
-            .min(tos_validation::executor::BatchBudget::MAX_RAW_BYTES),
-    )?;
-    validator.set_shared_schema_worker_quota(quota.clone())?;
     compare_prepared_kernel(
         stage,
         &validator,
@@ -1593,7 +1600,11 @@ fn compare_kernel<'candidate>(
         || owner.recheck_sealed_cut(&owner.receipt),
         || owner.source_recheck_read_bytes.get(),
         |stage| stage.finish_cold().map(|_| ()),
-        || validator.take_schema_diagnostic_rejection(),
+        || {
+            validator
+                .take_schema_diagnostic_rejection()
+                .map(|row| row.filter(|report| report.is_invalid()))
+        },
         &std::cell::Cell::new(0),
     )
 }
@@ -1786,7 +1797,7 @@ fn compare_prepared_kernel<'candidate, 'stage, 'rows, B, D>(
         validator.finish()?;
         // Observation remains provisional until the original terminal fences succeed.
         observe(&mut stage, &catalog, limits.catalog)?;
-        let schema_execution_cost = validator.diagnostics_v2_cumulative_cost()?;
+        let schema_execution_cost = catalog_schema_cost(validator)?;
         recheck()?;
         let mut selected_generated = generated_inputs
             .take()
@@ -1834,7 +1845,7 @@ fn compare_prepared_kernel<'candidate, 'stage, 'rows, B, D>(
             // Retrieval exposes only complete, fully bound Invalid reports;
             // cleanup/currentness failure still refuses the whole evaluation.
             validator.finish()?;
-            let schema_execution_cost = validator.diagnostics_v2_cumulative_cost()?;
+            let schema_execution_cost = catalog_schema_cost(validator)?;
             recheck()?;
             if let Some(selected) = generated_inputs.as_mut() {
                 if let Some(candidate) = candidate_output.as_mut() {
@@ -1900,11 +1911,7 @@ pub(crate) fn compare_with_owned_catalogue_observation(
     source_limits: SourceCatalogInputLimits,
     read_limits: ReadLimits,
     limits: BibliographicLimits,
-    image: &VerifiedWorkerImageHandle,
-    executor: ExecutorBudget,
-    worker_limits: CutWorkerLimits,
-    operation: BatchStreamBudget,
-    diagnostics_limits: CutSchemaDiagnosticsLimits,
+    schema_deadline: Instant,
     build_bibliographic: bool,
     max_version_files: usize,
     max_version_bytes: usize,
@@ -1912,7 +1919,6 @@ pub(crate) fn compare_with_owned_catalogue_observation(
     max_generated_files: usize,
     max_generated_state_bytes: usize,
     max_source_recheck_read_bytes: usize,
-    quota: &tos_validation::executor::SharedSchemaWorkerQuota,
     cancelled: &AtomicBool,
     observe: impl FnOnce(
         &mut KnowledgeStage<'_>,
@@ -1929,11 +1935,7 @@ pub(crate) fn compare_with_owned_catalogue_observation(
         source_limits,
         read_limits,
         limits,
-        image,
-        executor,
-        worker_limits,
-        operation,
-        diagnostics_limits,
+        schema_deadline,
         build_bibliographic,
         max_version_files,
         max_version_bytes,
@@ -1941,7 +1943,6 @@ pub(crate) fn compare_with_owned_catalogue_observation(
         max_generated_files,
         max_generated_state_bytes,
         max_source_recheck_read_bytes,
-        quota,
         None,
         None,
         cancelled,
@@ -1964,11 +1965,7 @@ pub(crate) fn compare_candidate<'candidate, 'rows>(
     source_limits: SourceCatalogInputLimits,
     read_limits: ReadLimits,
     limits: BibliographicLimits,
-    image: &VerifiedWorkerImageHandle,
-    executor: ExecutorBudget,
-    worker_limits: CutWorkerLimits,
-    operation: BatchStreamBudget,
-    diagnostics_limits: CutSchemaDiagnosticsLimits,
+    schema_deadline: Instant,
     build_bibliographic: bool,
     max_version_files: usize,
     max_version_bytes: usize,
@@ -1976,7 +1973,6 @@ pub(crate) fn compare_candidate<'candidate, 'rows>(
     max_generated_files: usize,
     max_generated_state_bytes: usize,
     max_source_recheck_read_bytes: usize,
-    quota: &tos_validation::executor::SharedSchemaWorkerQuota,
     isolated: &'candidate IsolatedCreationRoot,
     tree_limits: DisposableCatalogTreeLimits,
     index_rows: Option<&'rows mut dyn FreshIndexRowsWriter>,
@@ -1996,11 +1992,7 @@ pub(crate) fn compare_candidate<'candidate, 'rows>(
         source_limits,
         read_limits,
         limits,
-        image,
-        executor,
-        worker_limits,
-        operation,
-        diagnostics_limits,
+        schema_deadline,
         build_bibliographic,
         max_version_files,
         max_version_bytes,
@@ -2008,7 +2000,6 @@ pub(crate) fn compare_candidate<'candidate, 'rows>(
         max_generated_files,
         max_generated_state_bytes,
         max_source_recheck_read_bytes,
-        quota,
         Some((isolated, tree_limits)),
         index_rows,
         cancelled,
@@ -2114,7 +2105,7 @@ pub(crate) fn compare_spooled_candidate<'candidate>(
     FoundationCatalogCandidateOutcome<
         'candidate,
         CandidateValidationBinding<CandidateFence>,
-        tos_validation::source_cut::CandidateCutSchemaDiagnostic<CandidateFence>,
+        tos_validation::source_cut::CandidateSchemaDiagnostic<CandidateFence>,
     >,
 > {
     // Admit retained plan plus minimal working space before the planner can
@@ -2267,7 +2258,11 @@ pub(crate) fn compare_spooled_candidate<'candidate>(
             drop(stage);
             Ok(())
         },
-        || validator.take_candidate_schema_diagnostic_rejection::<CandidateFence>(),
+        || {
+            Ok(complete_candidate_rejection(
+                validator.take_candidate_diagnostic_rejection::<CandidateFence>()?,
+            ))
+        },
         external_reads,
     )?;
     if let (FoundationCatalogOutcome::Complete(result), Some(candidate)) =
@@ -2288,4 +2283,46 @@ pub(crate) fn compare_spooled_candidate<'candidate>(
         candidate,
         fresh_sources,
     })
+}
+
+#[cfg(test)]
+mod candidate_diagnostic_tests {
+    use super::*;
+    use std::time::Duration;
+    use tos_validation::source_cut::{CutSchemaExecutor, InProcessCandidateSchemaExecutor};
+    use tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding;
+    use tos_validation::{FormatProfile, SchemaResource, in_process::InputMode};
+
+    #[test]
+    fn only_complete_invalid_candidate_diagnostics_become_catalog_rejections() {
+        let path = "ToS/contracts/example.schema.json";
+        let cancelled = AtomicBool::new(false);
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let mut schemas = InProcessCandidateSchemaExecutor::from_selected_source_resources(
+            7u64,
+            vec![(path.into(), SchemaResource {
+                uri: "https://example.test/catalog".into(),
+                raw: br#"{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://example.test/catalog","type":"integer"}"#.to_vec(),
+            })],
+            FormatProfile::AssertedSourceCandidateV1,
+            InputMode::PublishedStrict,
+            deadline,
+            &cancelled,
+        ).unwrap();
+        assert!(
+            !schemas
+                .check("invalid.json", b"{}", path, deadline, &cancelled)
+                .unwrap()
+        );
+        let invalid = schemas.take_diagnostic_rejection().unwrap();
+        assert!(complete_candidate_rejection(invalid).is_some());
+        assert!(
+            schemas
+                .check("malformed.json", b"{", path, deadline, &cancelled)
+                .is_err()
+        );
+        let rejected_input = schemas.take_diagnostic_rejection().unwrap();
+        assert!(rejected_input.is_some());
+        assert!(complete_candidate_rejection(rejected_input).is_none());
+    }
 }

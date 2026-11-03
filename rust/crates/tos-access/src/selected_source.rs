@@ -8,13 +8,13 @@ use std::{
     time::{Duration, Instant},
 };
 use tos_command::source_read_owner::{
-    ExactWorkerIdentity, SelectedSourceReadOwner, SourceReadOperation, SourceReadPacket,
+    SelectedSourceReadOwner, SourceReadOperation, SourceReadPacket,
 };
 use tos_query::AbortProbe;
 
 pub(crate) struct Selection {
     owner: SelectedSourceReadOwner,
-    worker: Arc<crate::site::InstalledSchemaWorker>,
+    site: Arc<crate::site::SoftwareSite>,
     timeout: Duration,
 }
 fn unavailable() -> AccessError {
@@ -53,11 +53,8 @@ impl Selection {
         revision: &str,
         profile: AccessProfile,
     ) -> Result<Self, AccessError> {
-        // Software admission hashes the selected executable and schema worker.
-        // Its absolute startup budget is separate from each request's retained
-        // processing probe. Neither site nor worker stores this
-        // admission probe; subsequent requests and final flush use fresh request
-        // probes without inheriting an expired server-construction deadline.
+        // Software admission hashes the selected executable. Its startup
+        // budget is separate from the retained processing probe of each request.
         let probe = profile
             .with_query_timeout(Duration::from_secs(30))
             .deadline_probe();
@@ -93,23 +90,18 @@ impl Selection {
         }
         crate::knowledge::check_abort(&probe)?;
         let site = crate::site::SoftwareSite::installed_source(Arc::clone(&probe))?;
-        let worker = Arc::new(site.source_schema_worker(512 * 1024 * 1024, Arc::clone(&probe))?);
-        let identity = ExactWorkerIdentity {
-            absolute_path: worker.path().to_owned(),
-            sha256: worker.sha256(),
-        };
-        let owner = SelectedSourceReadOwner::open(root, raw, revision, identity, local)
-            .map_err(owner_error)?;
-        worker.verify()?;
+        let owner =
+            SelectedSourceReadOwner::open(root, raw, revision, local).map_err(owner_error)?;
+        site.check()?;
         crate::knowledge::check_abort(&probe)?;
         Ok(Self {
             owner,
-            worker,
+            site,
             timeout,
         })
     }
     pub(crate) fn software(&self) -> Arc<crate::site::SoftwareSite> {
-        self.worker.software()
+        Arc::clone(&self.site)
     }
     pub fn source_inputs_sha256(&self) -> &str {
         self.owner.source_inputs_sha256()
@@ -147,7 +139,7 @@ impl Selection {
         if let Some(fence) = prepared.as_mut() {
             fence.recheck()?;
         }
-        self.worker.verify()?;
+        self.site.check()?;
         let op = match request.operation {
             Operation::Capabilities => SourceReadOperation::Capabilities,
             Operation::Contract => SourceReadOperation::Contract,
@@ -164,7 +156,7 @@ impl Selection {
         let mut fence = Fence {
             packet,
             prepared,
-            worker: Arc::clone(&self.worker),
+            site: Arc::clone(&self.site),
             deadline,
             cancelled,
             probe,
@@ -179,7 +171,7 @@ impl Selection {
 struct Fence {
     packet: SourceReadPacket,
     prepared: Option<Box<dyn DisclosureFence>>,
-    worker: Arc<crate::site::InstalledSchemaWorker>,
+    site: Arc<crate::site::SoftwareSite>,
     deadline: Instant,
     cancelled: Arc<AtomicBool>,
     probe: Arc<dyn AbortProbe>,
@@ -190,7 +182,7 @@ impl DisclosureFence for Fence {
         if let Some(fence) = self.prepared.as_mut() {
             fence.recheck()?;
         }
-        self.worker.verify()?;
+        self.site.check()?;
         self.packet
             .verify_current(self.deadline, &self.cancelled)
             .map_err(owner_error)?;

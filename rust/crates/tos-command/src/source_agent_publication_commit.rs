@@ -23,7 +23,6 @@ use tos_compiler::{
 };
 use tos_foundation::{JsonLimits, JsonValue, emit_value_preserved_json};
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 const META: usize = 1_048_576;
 fn encoded(value: &JsonValue) -> Result<Vec<u8>> {
     emit_value_preserved_json(
@@ -40,7 +39,7 @@ fn encoded(value: &JsonValue) -> Result<Vec<u8>> {
 /// Errors before commit roll back the entire DB transaction; immutable COW
 /// candidates remain unselected and belong to ordinary owner recovery.
 #[allow(clippy::too_many_arguments)]
-pub fn publish_committed_agent_correction(
+pub fn publish_committed_agent_correction<W: crate::source_creation::CreationSchemaExecutor>(
     db: &Connection,
     owner_configuration: &Path,
     context: &CommandContext,
@@ -51,8 +50,8 @@ pub fn publish_committed_agent_correction(
     before_source: &PreparedSourceInputs,
     expected_binding: &JsonValue,
     catalog: &CatalogInputs,
-    original_worker: &mut CutWorkerSchemaExecutor,
-    current_worker: &mut CutWorkerSchemaExecutor,
+    original_worker: &mut W,
+    current_worker: &mut W,
     vocabulary: &QueryVocabulary,
     descriptor: &[u8],
     operation: ClaimPublicationLimits,
@@ -89,7 +88,9 @@ pub fn publish_committed_agent_correction(
 
 /// Same guarded publication with a transport-owned final database fence.
 #[allow(clippy::too_many_arguments)]
-pub fn publish_committed_agent_correction_with_precommit(
+pub fn publish_committed_agent_correction_with_precommit<
+    W: crate::source_creation::CreationSchemaExecutor,
+>(
     db: &Connection,
     owner_configuration: &Path,
     context: &CommandContext,
@@ -100,8 +101,8 @@ pub fn publish_committed_agent_correction_with_precommit(
     before_source: &PreparedSourceInputs,
     expected_binding: &JsonValue,
     catalog: &CatalogInputs,
-    original_worker: &mut CutWorkerSchemaExecutor,
-    current_worker: &mut CutWorkerSchemaExecutor,
+    original_worker: &mut W,
+    current_worker: &mut W,
     vocabulary: &QueryVocabulary,
     descriptor: &[u8],
     operation: ClaimPublicationLimits,

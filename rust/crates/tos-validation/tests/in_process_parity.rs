@@ -22,6 +22,204 @@ fn resources() -> Vec<SchemaResource> {
 }
 
 #[test]
+fn selected_finite_input_retains_its_distinct_byte_limit() {
+    let mut engine =
+        InProcessSchemaEngine::new(resources(), FormatProfile::AssertedSourceCandidateV1).unwrap();
+    let mut raw = br#"{"value":3}"#.to_vec();
+    raw.resize(SchemaBackendProbe::MAX_INSTANCE_BYTES + 1, b' ');
+    let cancelled = AtomicBool::new(false);
+    let deadline = Instant::now() + Duration::from_secs(30);
+    let validate = |engine: &mut InProcessSchemaEngine, input_mode| {
+        engine
+            .validate(
+                Unit {
+                    root_uri: ROOT,
+                    raw: &raw,
+                    input_mode,
+                },
+                Caps::CURRENT,
+                deadline,
+                &cancelled,
+            )
+            .unwrap()
+    };
+    let ordinary = validate(&mut engine, InputMode::PublishedStrict);
+    assert_eq!(
+        (ordinary.status, ordinary.failure),
+        (Status::InputRejected, Failure::InputBudget)
+    );
+    let selected = validate(&mut engine, InputMode::PublishedStrictSelected);
+    assert_eq!(selected.status, Status::Valid);
+    assert_eq!(
+        selected,
+        tos_validation::in_process::Report::from_evidence_json(
+            &selected.to_evidence_json().unwrap()
+        )
+        .unwrap()
+    );
+}
+
+#[test]
+fn scalar_serde_normalization_matches_the_existing_cut_worker() {
+    use std::collections::BTreeMap;
+    use tos_foundation::SourceRevision;
+    use tos_validation::executor::ExecutorBudget;
+    use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor};
+    let path = PathBuf::from(env!("CARGO_BIN_EXE_tos-schema-worker"));
+    let worker = ExactWorkerIdentity {
+        sha256: Digest256::of_bytes(&std::fs::read(&path).unwrap()),
+        absolute_path: path,
+    };
+    let schemas = resources();
+    let contract = "ToS/contracts/test.schema.json";
+    let contracts = BTreeMap::from([(
+        contract.into(),
+        (ROOT.into(), Digest256::of_bytes(&schemas[0].raw)),
+    )]);
+    let cancelled = AtomicBool::new(false);
+    let deadline = Instant::now() + Duration::from_secs(30);
+    let mut old = CutWorkerSchemaExecutor::from_selected_resources(
+        SourceRevision(Digest256::of_bytes(b"test")),
+        contracts,
+        schemas.clone(),
+        FormatProfile::LegacyPythonObserved20260923,
+        worker,
+        ExecutorBudget::laboratory(),
+        CutWorkerLimits {
+            max_receipts: 4,
+            max_receipt_bytes: 8192,
+        },
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    let mut engine =
+        InProcessSchemaEngine::new(schemas, FormatProfile::LegacyPythonObserved20260923).unwrap();
+    for raw in [
+        br#"{"value":1,"value":3}"#.as_slice(),
+        br#"{"value":1,"value":0}"#,
+        br#"{"value":3}"#,
+    ] {
+        let expected = old
+            .check("record.json", raw, contract, deadline, &cancelled)
+            .unwrap();
+        let actual = engine
+            .validate(
+                Unit {
+                    root_uri: ROOT,
+                    raw,
+                    input_mode: InputMode::SerdeNormalized,
+                },
+                Caps::CURRENT,
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        assert_eq!(actual.status == Status::Valid, expected);
+        assert_eq!(
+            tos_validation::in_process::Report::from_evidence_json(
+                &actual.to_evidence_json().unwrap()
+            )
+            .unwrap(),
+            actual
+        );
+    }
+    let strict = engine
+        .validate(
+            Unit {
+                root_uri: ROOT,
+                raw: br#"{"value":1,"value":3}"#,
+                input_mode: InputMode::PublishedStrict,
+            },
+            Caps::CURRENT,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    assert_eq!(strict.status, Status::InputRejected);
+    old.finish(deadline, &cancelled).unwrap();
+}
+
+#[test]
+fn selected_legacy_limits_match_the_worker() {
+    use std::collections::BTreeMap;
+    use tos_foundation::SourceRevision;
+    use tos_validation::executor::{ExecutorBudget, LegacySelectedDiagnosticsLimits};
+    use tos_validation::source_cut::{
+        CutSchemaDiagnosticsLimits, CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor,
+    };
+    let path = PathBuf::from(env!("CARGO_BIN_EXE_tos-schema-worker"));
+    let worker = ExactWorkerIdentity {
+        sha256: Digest256::of_bytes(&std::fs::read(&path).unwrap()),
+        absolute_path: path,
+    };
+    let schemas = resources();
+    let contract = "ToS/contracts/test.schema.json";
+    let contracts = BTreeMap::from([(
+        contract.into(),
+        (ROOT.into(), Digest256::of_bytes(&schemas[0].raw)),
+    )]);
+    let cancelled = AtomicBool::new(false);
+    let deadline = Instant::now() + Duration::from_secs(60);
+    let limits = LegacySelectedDiagnosticsLimits {
+        max_instance_bytes: 2 * 1024 * 1024,
+        max_visits: 300_000,
+        parser_state_bytes: 32 * 1024 * 1024,
+        conversion_state_bytes: 32 * 1024 * 1024,
+    };
+    let mut old = CutWorkerSchemaExecutor::from_selected_resources(
+        SourceRevision(Digest256::of_bytes(b"test")),
+        contracts,
+        schemas.clone(),
+        FormatProfile::LegacyPythonObserved20260923,
+        worker,
+        ExecutorBudget::laboratory(),
+        CutWorkerLimits {
+            max_receipts: 4,
+            max_receipt_bytes: 8192,
+        },
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    old.enable_diagnostics_v2(CutSchemaDiagnosticsLimits {
+        max_total_issues: 16,
+        max_total_report_bytes: 8192,
+        max_total_state_bytes: 64 * 1024 * 1024,
+    })
+    .unwrap();
+    old.set_diagnostics_v2_legacy_selected_limits(limits)
+        .unwrap();
+    let mut raw = br#"{"value":1,"value":3}"#.to_vec();
+    raw.resize(SchemaBackendProbe::MAX_INSTANCE_BYTES + 1, b' ');
+    let expected = old
+        .check_diagnostics_v2_legacy_selected("record.json", &raw, contract, deadline, &cancelled)
+        .unwrap();
+    let mut engine =
+        InProcessSchemaEngine::new(schemas, FormatProfile::LegacyPythonObserved20260923).unwrap();
+    let actual = engine
+        .validate(
+            Unit {
+                root_uri: ROOT,
+                raw: &raw,
+                input_mode: InputMode::LegacyPythonObservedSelected(limits),
+            },
+            Caps::CURRENT,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    assert!(expected.is_valid());
+    assert_eq!(actual.status, Status::Valid);
+    assert_eq!(
+        tos_validation::in_process::Report::from_evidence_json(&actual.to_evidence_json().unwrap())
+            .unwrap(),
+        actual
+    );
+    old.finish(deadline, &cancelled).unwrap();
+}
+
+#[test]
 fn finite_worker_and_in_process_diagnostics_match() {
     let path = PathBuf::from(env!("CARGO_BIN_EXE_tos-schema-worker"));
     let worker = ExactWorkerIdentity {
@@ -270,45 +468,51 @@ fn legacy_exceptional_values_match_worker_diagnostics() {
     ] {
         let expected =
             worker.check_diagnostics_v2("record.json", raw, contract, deadline, &cancelled);
-        let actual = engine
-            .validate(
-                Unit {
-                    root_uri: &root,
-                    raw,
-                    input_mode: InputMode::LegacyPythonObserved,
-                },
-                Caps::CURRENT,
-                deadline,
-                &cancelled,
-            )
-            .unwrap();
-        if expected.is_err() {
+        for input_mode in [
+            InputMode::LegacyPythonObserved,
+            InputMode::LegacyPythonObservedBounded {
+                max_instance_bytes: 2 * 1024 * 1024,
+            },
+        ] {
+            let actual = engine
+                .validate(
+                    Unit {
+                        root_uri: &root,
+                        raw,
+                        input_mode,
+                    },
+                    Caps::CURRENT,
+                    deadline,
+                    &cancelled,
+                )
+                .unwrap();
+            if expected.is_err() {
+                assert_eq!(
+                    (actual.status, actual.failure),
+                    (Status::Indeterminate, Failure::UnsupportedInputSemantics)
+                );
+                continue;
+            }
+            let r = expected.as_ref().unwrap().report();
             assert_eq!(
-                (actual.status, actual.failure),
-                (Status::Indeterminate, Failure::UnsupportedInputSemantics)
+                (
+                    actual.status,
+                    actual.failure,
+                    actual.total_issue_count,
+                    actual.truncated,
+                    actual.issues
+                ),
+                (
+                    r.status,
+                    r.failure,
+                    r.total_issue_count,
+                    r.truncated,
+                    r.issues.clone()
+                ),
+                "{}",
+                String::from_utf8_lossy(raw)
             );
-            continue;
         }
-        let expected = expected.unwrap();
-        let r = expected.report();
-        assert_eq!(
-            (
-                actual.status,
-                actual.failure,
-                actual.total_issue_count,
-                actual.truncated,
-                actual.issues
-            ),
-            (
-                r.status,
-                r.failure,
-                r.total_issue_count,
-                r.truncated,
-                r.issues.clone()
-            ),
-            "{}",
-            String::from_utf8_lossy(raw)
-        );
     }
 }
 
@@ -360,24 +564,18 @@ fn cut_adapter_binds_source_and_candidate_separately() {
     let digest = Digest256::of_bytes(&schema[0].raw);
     let contracts = BTreeMap::from([("contract".into(), (ROOT.into(), digest))]);
     let revision = SourceRevision(Digest256::of_bytes(b"source revision"));
-    let mut cut = InProcessCutSchemaExecutor::<String>::new(
-        InProcessCutIdentity::Source(revision),
-        contracts.clone(),
-        schema.clone(),
-        FormatProfile::AssertedSourceCandidateV1,
-        InputMode::PublishedStrict,
-    )
-    .unwrap();
+    assert!(
+        InProcessCutSchemaExecutor::<String>::new(
+            InProcessCutIdentity::Source(revision),
+            contracts.clone(),
+            schema.clone(),
+            FormatProfile::AssertedSourceCandidateV1,
+            InputMode::PublishedStrict,
+        )
+        .is_err()
+    );
     let cancelled = AtomicBool::new(false);
     let deadline = Instant::now() + Duration::from_secs(30);
-    assert_eq!(cut.selected_source_revision(), Some(revision));
-    assert!(
-        matches!(cut.schema_execution_binding(), Some(tos_foundation::SchemaExecutionBinding::InProcessV1(binding)) if binding.engine == tos_validation::in_process::ENGINE_ID)
-    );
-    assert!(
-        cut.check("row", br#"{"value":3}"#, "contract", deadline, &cancelled)
-            .unwrap()
-    );
     let mut candidate = InProcessCutSchemaExecutor::new(
         InProcessCutIdentity::Candidate("candidate".to_owned()),
         contracts,
@@ -387,6 +585,14 @@ fn cut_adapter_binds_source_and_candidate_separately() {
     )
     .unwrap();
     assert_eq!(candidate.selected_source_revision(), None);
+    assert!(
+        matches!(candidate.schema_execution_binding(), Some(tos_foundation::SchemaExecutionBinding::InProcessV1(binding)) if binding.engine == tos_validation::in_process::ENGINE_ID)
+    );
+    assert!(
+        candidate
+            .check("row", br#"{"value":3}"#, "contract", deadline, &cancelled)
+            .unwrap()
+    );
     let evidence = candidate
         .diagnostic_for(
             "row",
@@ -402,11 +608,69 @@ fn cut_adapter_binds_source_and_candidate_separately() {
         InProcessCutIdentity::Candidate("candidate".to_owned())
     );
     assert_eq!(evidence.report.status, Status::Invalid);
+    assert_eq!(evidence.input_size_bytes, Some(1));
+    assert_eq!(evidence.before_issue, None);
     let encoded = evidence.to_evidence_json().unwrap();
     assert_eq!(
         tos_validation::source_cut::InProcessCutDiagnostic::<String>::from_evidence_json(&encoded)
             .unwrap(),
         evidence
+    );
+    let mut historical = evidence.clone();
+    historical.input_size_bytes = None;
+    let old_bytes = historical.to_evidence_json().unwrap();
+    assert_eq!(
+        tos_validation::source_cut::InProcessCutDiagnostic::<String>::from_evidence_json(
+            &old_bytes
+        )
+        .unwrap(),
+        historical
+    );
+    let mut positioned = evidence.clone();
+    positioned.before_issue = Some(7);
+    let positioned_bytes = positioned.to_evidence_json().unwrap();
+    assert_eq!(
+        tos_validation::source_cut::InProcessCutDiagnostic::<String>::from_evidence_json(
+            &positioned_bytes
+        )
+        .unwrap(),
+        positioned
+    );
+    let mut uri_selector = positioned.clone();
+    uri_selector.selector_kind = tos_validation::source_cut::InProcessSelectorKind::SchemaUri;
+    uri_selector.contract = uri_selector.report.root_uri.clone();
+    let uri_bytes = uri_selector.to_evidence_json().unwrap();
+    assert_eq!(
+        tos_validation::source_cut::InProcessCutDiagnostic::<String>::from_evidence_json(
+            &uri_bytes
+        )
+        .unwrap(),
+        uri_selector
+    );
+    uri_selector.contract = "https://example.test/other".into();
+    assert!(uri_selector.to_evidence_json().is_err());
+    let mut invalid: serde_json::Value = serde_json::from_slice(&encoded).unwrap();
+    invalid["version"] = serde_json::json!(1);
+    assert!(
+        tos_validation::source_cut::InProcessCutDiagnostic::<String>::from_evidence_json(
+            &serde_json::to_vec(&invalid).unwrap()
+        )
+        .is_err()
+    );
+    invalid["version"] = serde_json::json!(2);
+    invalid.as_object_mut().unwrap().remove("input_size_bytes");
+    assert!(
+        tos_validation::source_cut::InProcessCutDiagnostic::<String>::from_evidence_json(
+            &serde_json::to_vec(&invalid).unwrap()
+        )
+        .is_err()
+    );
+    invalid["version"] = serde_json::json!(3);
+    assert!(
+        tos_validation::source_cut::InProcessCutDiagnostic::<String>::from_evidence_json(
+            &serde_json::to_vec(&invalid).unwrap()
+        )
+        .is_err()
     );
 }
 

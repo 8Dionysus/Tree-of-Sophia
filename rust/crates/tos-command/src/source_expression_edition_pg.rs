@@ -20,7 +20,6 @@ use tos_foundation::{Digest256, JsonValue};
 use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::item_rules::{ItemLimits, ItemRefusal};
 use tos_validation::record_biblio_cut::{SourceCutInput, SourceCutInputWithIdentity};
-use tos_validation::source_cut::{CandidateCutWorkerSchemaExecutor, CutSchemaExecutor};
 
 const CONTRACTS: &[&str] = &[
     "ToS/doctrine/semantic-interchange/entity-types.v1.json",
@@ -54,7 +53,7 @@ pub(crate) fn prepare_pg_expression_edition<'a, I: Copy + Eq>(
     catalog: &SelectedSourceWitnessCatalog,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut impl crate::source_revisions::CandidateRecordSchemaWorker<I>,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PgExpressionEditionOwnerPackage<'a>> {
@@ -377,7 +376,7 @@ pub(crate) fn prepare_pg_expression_edition_preview<I: Copy + Eq>(
     catalog: &SelectedSourceWitnessCatalog,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut impl crate::source_revisions::CandidateRecordSchemaWorker<I>,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<super::ExpressionEditionPreparation> {
@@ -561,7 +560,7 @@ pub(crate) fn current_result_fields_from_selected_pg<I: Copy + Eq>(
     catalog: &SelectedSourceWitnessCatalog,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut impl crate::source_revisions::CandidateRecordSchemaWorker<I>,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -852,7 +851,7 @@ fn current_catalog_from_selected_input<I: Copy + Eq>(
     before: &BTreeMap<String, Vec<u8>>,
     input: &dyn SourceCutInputWithIdentity<I>,
     selected: &SelectedSourceWitnessCatalog,
-    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut impl crate::source_revisions::CandidateRecordSchemaWorker<I>,
     limits: ItemLimits,
     check_publication: impl FnMut() -> SourceCommandResult<()>,
     cancelled: &AtomicBool,
@@ -1349,7 +1348,7 @@ fn add_dependency(
 fn expression_edition_source_profiles<I: Copy + Eq>(
     context: &CommandContext,
     input: &dyn SourceCutInputWithIdentity<I>,
-    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut impl crate::source_revisions::CandidateRecordSchemaWorker<I>,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {

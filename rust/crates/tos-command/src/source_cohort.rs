@@ -36,7 +36,7 @@ use tos_source_store::{
     SourceMembershipV1,
 };
 use tos_validation::item_rules::ItemRefusal;
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::CutSchemaExecutor;
 
 /// The source-file carrier used by the bounded PG revision owner. It is
 /// separate from ORIGINAL/CREATION so a later authored revision cannot be
@@ -1243,7 +1243,7 @@ fn active(deadline: Instant, cancelled: &AtomicBool) -> DurableResult<()> {
     }
 }
 fn finish_worker(
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> DurableResult<()> {
@@ -1465,7 +1465,7 @@ pub(super) fn check_writer_profile(
 
 fn index_rows(
     ctx: &CommandContext,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> DurableResult<IndexRows> {
@@ -1634,7 +1634,7 @@ fn verify_manifest_indexes(cut: &CorpusCutReader, rows: &IndexRows) -> DurableRe
 
 fn inventory_projections(
     ctx: &CommandContext,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> DurableResult<ProjectionRows> {
@@ -1643,7 +1643,7 @@ fn inventory_projections(
 fn inventory_projections_for(
     ctx: &CommandContext,
     paths: Option<&BTreeSet<&str>>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> DurableResult<ProjectionRows> {
@@ -2837,7 +2837,7 @@ pub(super) fn item_claim_current_inventory_contribution(
 
 fn optional_agent_projections(
     ctx: &CommandContext,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> DurableResult<Option<ProjectionRows>> {
@@ -3764,7 +3764,7 @@ fn claim_form_projection_path(subject: &str) -> bool {
 
 fn creation_projections(
     package: CreationPackage<'_>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> DurableResult<ProjectionRows> {
@@ -3814,7 +3814,7 @@ fn scoped_context(package: CreationPackage<'_>) -> CommandContext {
 }
 fn creation_indexes(
     package: CreationPackage<'_>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> DurableResult<IndexRows> {
@@ -7539,7 +7539,7 @@ impl DurablePgCoordinator {
         context: &CommandContext,
         software: &SoftwareCaptureReader,
         components: &SoftwareComponentSelectionV1,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut impl crate::source_creation::CreationSchemaExecutor,
         contract: Digest256,
         rule_version: u64,
         rights_version: u64,
@@ -7585,7 +7585,7 @@ impl DurablePgCoordinator {
         context: &CommandContext,
         software: &SoftwareCaptureReader,
         components: &SoftwareComponentSelectionV1,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut impl crate::source_creation::CreationSchemaExecutor,
         contract: Digest256,
         rule_version: u64,
         rights_version: u64,
@@ -8065,7 +8065,7 @@ impl DurablePgCoordinator {
         context: &CommandContext,
         software: &SoftwareCaptureReader,
         components: &SoftwareComponentSelectionV1,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut impl crate::source_creation::CreationSchemaExecutor,
         contract: Digest256,
         job_id: &str,
         job_fence: u64,
@@ -8507,7 +8507,7 @@ impl DurablePgCoordinator {
         cohort: &ManagedSourceCohort,
         prepare_id: &[u8],
         package: &SerializedCreation,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut impl crate::source_creation::CreationSchemaExecutor,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> DurableResult<SourceCreationAttempt> {
@@ -8534,7 +8534,7 @@ impl DurablePgCoordinator {
         generation: &crate::source_current_cut::ManagedCurrentSourceGeneration,
         prepare_id: &[u8],
         package: &ManagedSerializedCreation,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut impl crate::source_creation::CreationSchemaExecutor,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> DurableResult<SourceCreationAttempt> {
@@ -9954,7 +9954,7 @@ impl DurablePgCoordinator {
         schema_cut: &CorpusCutReader,
         software: &SoftwareCaptureReader,
         components: &SoftwareComponentSelectionV1,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut impl crate::source_creation::CreationSchemaExecutor,
         contract: Digest256,
         rule_version: u64,
         rights_version: u64,
@@ -10386,7 +10386,7 @@ impl DurablePgCoordinator {
         cohort: &ManagedSourceCohort,
         prepare_id: &[u8],
         package: &ManagedSerializedCreation,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut impl crate::source_creation::CreationSchemaExecutor,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> DurableResult<SourceCreationAttempt> {
@@ -10412,7 +10412,7 @@ impl DurablePgCoordinator {
         cohort: &ManagedSourceCohort,
         prepare_id: &[u8],
         package: &SerializedCreation,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut impl crate::source_creation::CreationSchemaExecutor,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> DurableResult<SourceCreationAttempt> {
@@ -10435,7 +10435,7 @@ impl DurablePgCoordinator {
         prepare_id: &[u8],
         package: CreationPackage<'_>,
         basis: SourceRegistrationBasis<'_>,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut impl crate::source_creation::CreationSchemaExecutor,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> DurableResult<SourceCreationAttempt> {
@@ -10975,7 +10975,7 @@ impl DurablePgCoordinator {
         context: &CommandContext,
         software: &SoftwareCaptureReader,
         components: &SoftwareComponentSelectionV1,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut impl crate::source_creation::CreationSchemaExecutor,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> DurableResult<ReopenedSourceCohort> {
@@ -11009,7 +11009,7 @@ impl DurablePgCoordinator {
         context: &CommandContext,
         software: &SoftwareCaptureReader,
         components: &SoftwareComponentSelectionV1,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut impl crate::source_creation::CreationSchemaExecutor,
         owner_check: &dyn Fn() -> DurableResult<()>,
         deadline: Instant,
         cancelled: &AtomicBool,
@@ -11045,7 +11045,7 @@ impl DurablePgCoordinator {
         context: &CommandContext,
         software: &SoftwareCaptureReader,
         components: &SoftwareComponentSelectionV1,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut impl crate::source_creation::CreationSchemaExecutor,
         workspace: &super::PrivateGenerationWorkspace,
         profile: super::StreamedGenerationProfile,
         deadline: Instant,
@@ -11086,7 +11086,7 @@ impl DurablePgCoordinator {
         context: &CommandContext,
         software: &SoftwareCaptureReader,
         components: &SoftwareComponentSelectionV1,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut impl crate::source_creation::CreationSchemaExecutor,
         streamed: Option<(
             &super::PrivateGenerationWorkspace,
             super::StreamedGenerationProfile,
@@ -11129,7 +11129,7 @@ impl DurablePgCoordinator {
         context: &CommandContext,
         software: &SoftwareCaptureReader,
         components: &SoftwareComponentSelectionV1,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut impl crate::source_creation::CreationSchemaExecutor,
         streamed: Option<(
             &super::PrivateGenerationWorkspace,
             super::StreamedGenerationProfile,
@@ -13307,7 +13307,7 @@ fn decode_managed_original(
     schema_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &CutWorkerSchemaExecutor,
+    worker: &impl crate::source_creation::CreationSchemaExecutor,
 ) -> DurableResult<(RetainedManagedOriginal, Vec<(RelativePath, Digest256, u64)>)> {
     let basis = retained_tuple(
         value
@@ -13376,7 +13376,7 @@ fn decode_managed_original(
     )?;
     let revision = SourceRevision(parse_hex(retained_text(&ctx[0])?.into())?);
     if schema_cut.current().revision() != revision
-        || worker.source_revision() != revision
+        || worker.selected_source_revision() != Some(revision)
         || software.selection() != components.capture()
         || value.get("software") != Some(&software_value(components))
     {

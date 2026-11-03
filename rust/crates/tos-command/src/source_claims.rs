@@ -780,7 +780,7 @@ fn profile(ctx: &CommandContext, predicate: &str) -> SourceCommandResult<(JsonVa
     ))
 }
 fn schema_check(
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut dyn CutSchemaExecutor,
     path: &str,
     value: &JsonValue,
     contract: &str,
@@ -824,7 +824,9 @@ where
 /// registry compiler and the same bounded worker schema checks as Claim.
 pub(crate) fn work_expression_source_descriptors(
     ctx: &CommandContext,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_revisions::RecordSchemaWorker<
+        Identity = tos_foundation::SourceRevision,
+    >,
     limits: tos_validation::item_rules::ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -866,12 +868,15 @@ pub(crate) fn work_expression_source_descriptors(
 pub(crate) fn work_expression_source_descriptors_candidate<I: Copy + Eq>(
     ctx: &CommandContext,
     input: &dyn SourceCutInputWithIdentity<I>,
-    worker: &mut tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut (
+             impl crate::source_revisions::RecordSchemaWorker<Identity = I>
+             + tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding<I>
+         ),
     limits: tos_validation::item_rules::ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
     let input_identity = *input.input_identity();
-    if worker.input_identity() != &input_identity {
+    if tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding::input_identity(worker) != &input_identity {
         return Err(SourceCommandError::Conflict(
             "candidate schema worker and selected Work source input differ",
         ));
@@ -1244,7 +1249,7 @@ fn current_claim_materializations(
 /// The successful output has no production writer or authority lease.
 pub fn run_claim_command(
     ctx: &CommandContext,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCommand> {
@@ -1260,7 +1265,7 @@ pub fn run_claim_command_from_captures(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCommand> {
@@ -1288,7 +1293,7 @@ pub(crate) fn run_claim_command_from_pg_complete_cut(
     cut: &crate::source_cohort::claims::PgCompleteClaimCut,
     catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
     whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCommand> {
@@ -1364,7 +1369,7 @@ pub fn prepare_isolated_claim_creation_from_captures(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCommand> {
@@ -1590,7 +1595,7 @@ fn serialize_claim_creation_from_captures(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
     whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
     deadline: Instant,
@@ -1618,7 +1623,7 @@ fn restore_claim_creation_from_captures(
     original_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     retained: &BTreeMap<String, Vec<u8>>,
     catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
     whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
@@ -1644,7 +1649,7 @@ fn claim_creation_from_captures(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     retained: Option<&BTreeMap<String, Vec<u8>>>,
     catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
     whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
@@ -1696,7 +1701,7 @@ pub(crate) fn claim_creation_from_pg_complete_cut(
     cut: &crate::source_cohort::claims::PgCompleteClaimCut,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
     whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
     deadline: Instant,
@@ -1790,7 +1795,7 @@ fn serialize_claim_creation_preview(
     preview: PreparedCommand,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     retained: Option<&BTreeMap<String, Vec<u8>>>,
     catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
     whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
@@ -1999,7 +2004,7 @@ fn check_claim_capture(
     home: &RelativePath,
     files: &BTreeMap<String, Vec<u8>>,
     allowed_procedures: &[&str],
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
@@ -2071,15 +2076,17 @@ fn check_claim_capture(
 /// retained bytes and the original selected cut; it never reuses an in-memory
 /// event as a write grant. The schema child is finalized before filesystem
 /// locking or publication on both paths.
-pub fn execute_isolated_claim_creation_from_captures(
+pub fn execute_isolated_claim_creation_from_captures<
+    W: crate::source_creation::CreationSchemaExecutor,
+>(
     filesystem: &crate::source_creation_store::CreationFilesystem,
     ctx: &CommandContext,
     original_cut: &CorpusCutReader,
     current_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
-    mut current_worker: Option<&mut CutWorkerSchemaExecutor>,
+    worker: &mut W,
+    mut current_worker: Option<&mut W>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(
@@ -2170,7 +2177,7 @@ pub fn execute_isolated_claim_creation_from_captures(
                     .ok_or(SourceCommandError::Unsupported(
                         "reference Claim replay requires selected current schema worker",
                     ))?;
-            if current_worker.source_revision() != current_context.base_revision {
+            if current_worker.selected_source_revision() != Some(current_context.base_revision) {
                 return Err(SourceCommandError::Conflict(
                     "reference Claim replay worker cut differs",
                 ));
@@ -2306,7 +2313,7 @@ fn checked_isolated_claim_revision(
     current_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<CheckedClaimRevision> {
@@ -2445,7 +2452,7 @@ pub fn prepare_isolated_claim_revision_from_captures(
     current_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCommand> {
@@ -2477,7 +2484,7 @@ pub fn execute_isolated_claim_revision_from_captures(
     current_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(
@@ -2543,7 +2550,7 @@ fn reference_replay_snapshot(
     cut: &CorpusCutReader,
     config: &JsonValue,
     request: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
     whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
     deadline: Instant,
@@ -2907,7 +2914,7 @@ fn run_claim_command_inner(
     selected_package: Option<&BTreeMap<String, Vec<u8>>>,
     whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
     serialize_creation: bool,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCommand> {
@@ -2935,7 +2942,7 @@ fn run_claim_command_inner_with_members(
     whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
     serialize_creation: bool,
     complete_members: Option<&[SourceFile]>,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCommand> {
@@ -2957,7 +2964,7 @@ fn run_claim_command_inner_with_members(
         ));
     }
     let (config, p, handler, create, version) = config(ctx)?;
-    if executor.source_revision() != ctx.base_revision {
+    if executor.selected_source_revision() != Some(ctx.base_revision) {
         return Err(SourceCommandError::Conflict(
             "Claim schema worker cut differs from command base",
         ));
@@ -4969,128 +4976,9 @@ pub(crate) struct SelectedIdentityClosure {
     pub anchors: JsonValue,
 }
 
-trait MaintainedInventorySchemaWorker: crate::source_revisions::RecordSchemaWorker {
-    fn native_identity_inventory(
-        &mut self,
-        ctx: &CommandContext,
-        cut: Option<&CorpusCutReader>,
-        complete_members: Option<&[SourceFile]>,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> SourceCommandResult<(BTreeMap<String, Vec<String>>, Option<String>, bool)>;
-
-    fn native_text_snapshot(
-        &mut self,
-        ctx: &CommandContext,
-        cut: Option<&CorpusCutReader>,
-        bindings: &[JsonValue],
-        record_inputs: &mut JsonValue,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> SourceCommandResult<Option<String>>;
-}
-
-impl MaintainedInventorySchemaWorker for CutWorkerSchemaExecutor {
-    fn native_identity_inventory(
-        &mut self,
-        ctx: &CommandContext,
-        cut: Option<&CorpusCutReader>,
-        complete_members: Option<&[SourceFile]>,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> SourceCommandResult<(BTreeMap<String, Vec<String>>, Option<String>, bool)> {
-        if let Some(cut) = cut {
-            let (identities, snapshot, schema_used) =
-                crate::source_revisions::native_identity_inventory_from_cut(
-                    ctx, cut, self, deadline, cancelled,
-                )?;
-            Ok((identities, Some(snapshot), schema_used))
-        } else if let Some(members) = complete_members {
-            let (identities, snapshot, schema_used) =
-                crate::source_revisions::native_identity_inventory_from_members(
-                    ctx, members, self, deadline, cancelled,
-                )?;
-            Ok((identities, Some(snapshot), schema_used))
-        } else {
-            Ok((BTreeMap::new(), None, false))
-        }
-    }
-
-    fn native_text_snapshot(
-        &mut self,
-        ctx: &CommandContext,
-        cut: Option<&CorpusCutReader>,
-        bindings: &[JsonValue],
-        record_inputs: &mut JsonValue,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> SourceCommandResult<Option<String>> {
-        if bindings.is_empty() {
-            return Ok(None);
-        }
-        let cut = cut.ok_or(SourceCommandError::Unsupported(
-            "maintained native text binding snapshot adapter",
-        ))?;
-        let mut reader = ProfileMetadataReader {
-            source: ProfileMetadataSource::Cut { ctx, cut },
-            observed: BTreeMap::new(),
-            observed_bytes: 0,
-        };
-        let resolved = crate::source_sign_native::resolve_bindings(
-            &mut reader,
-            self,
-            bindings,
-            NativeReadScope::MetadataOnly,
-            deadline,
-            cancelled,
-        )?;
-        if resolved.summaries.len() != bindings.len() {
-            return Err(SourceCommandError::Conflict(
-                "native profile resolver summary count",
-            ));
-        }
-        for summary in &resolved.summaries {
-            if summary.object_get("public_content_declared") != Some(&JsonValue::Bool(true)) {
-                return Err(SourceCommandError::Denied(
-                    "profile native text binding has no declared public content",
-                ));
-            }
-        }
-        for input in &resolved.inputs {
-            if input.kind == NativeReadKind::Content
-                || reader
-                    .observed
-                    .get(&input.reference)
-                    .map(|(digest, _)| *digest)
-                    != Some(input.raw_sha256)
-            {
-                return Err(SourceCommandError::Conflict(
-                    "native profile exported read closure differs",
-                ));
-            }
-        }
-        for (name, digest) in resolved.schema_digests {
-            if Digest256::of_bytes(selected(ctx, &name)?) != digest {
-                return Err(SourceCommandError::Conflict(
-                    "native profile schema input differs from selected source",
-                ));
-            }
-            let value = string(&digest.to_hex());
-            if record_inputs
-                .object_get(&name)
-                .is_some_and(|prior| prior != &value)
-            {
-                return Err(SourceCommandError::Conflict(
-                    "native profile schema digest conflict",
-                ));
-            }
-            set(record_inputs, &name, value)?;
-        }
-        Ok(Some(resolved.input_snapshot))
-    }
-}
-
-impl<I: Copy + Eq> MaintainedInventorySchemaWorker for CandidateCutWorkerSchemaExecutor<I> {
+pub(crate) trait MaintainedInventorySchemaWorker:
+    crate::source_revisions::RecordSchemaWorker
+{
     fn native_identity_inventory(
         &mut self,
         _ctx: &CommandContext,
@@ -5106,7 +4994,6 @@ impl<I: Copy + Eq> MaintainedInventorySchemaWorker for CandidateCutWorkerSchemaE
         }
         Ok((BTreeMap::new(), None, false))
     }
-
     fn native_text_snapshot(
         &mut self,
         _ctx: &CommandContext,
@@ -5126,6 +5013,121 @@ impl<I: Copy + Eq> MaintainedInventorySchemaWorker for CandidateCutWorkerSchemaE
     }
 }
 
+// Inline the remaining implementation when the legacy worker is retired.
+macro_rules! impl_complete_cut_inventory_schema {
+    ($executor:ty) => {
+        impl MaintainedInventorySchemaWorker for $executor {
+            fn native_identity_inventory(
+                &mut self,
+                ctx: &CommandContext,
+                cut: Option<&CorpusCutReader>,
+                complete_members: Option<&[SourceFile]>,
+                deadline: Instant,
+                cancelled: &AtomicBool,
+            ) -> SourceCommandResult<(BTreeMap<String, Vec<String>>, Option<String>, bool)> {
+                if let Some(cut) = cut {
+                    let (identities, snapshot, schema_used) =
+                        crate::source_revisions::native_identity_inventory_from_cut(
+                            ctx, cut, self, deadline, cancelled,
+                        )?;
+                    Ok((identities, Some(snapshot), schema_used))
+                } else if let Some(members) = complete_members {
+                    let (identities, snapshot, schema_used) =
+                        crate::source_revisions::native_identity_inventory_from_members(
+                            ctx, members, self, deadline, cancelled,
+                        )?;
+                    Ok((identities, Some(snapshot), schema_used))
+                } else {
+                    Ok((BTreeMap::new(), None, false))
+                }
+            }
+
+            fn native_text_snapshot(
+                &mut self,
+                ctx: &CommandContext,
+                cut: Option<&CorpusCutReader>,
+                bindings: &[JsonValue],
+                record_inputs: &mut JsonValue,
+                deadline: Instant,
+                cancelled: &AtomicBool,
+            ) -> SourceCommandResult<Option<String>> {
+                if bindings.is_empty() {
+                    return Ok(None);
+                }
+                let cut = cut.ok_or(SourceCommandError::Unsupported(
+                    "maintained native text binding snapshot adapter",
+                ))?;
+                let mut reader = ProfileMetadataReader {
+                    source: ProfileMetadataSource::Cut { ctx, cut },
+                    observed: BTreeMap::new(),
+                    observed_bytes: 0,
+                };
+                let resolved = crate::source_sign_native::resolve_bindings(
+                    &mut reader,
+                    self,
+                    bindings,
+                    NativeReadScope::MetadataOnly,
+                    deadline,
+                    cancelled,
+                )?;
+                if resolved.summaries.len() != bindings.len() {
+                    return Err(SourceCommandError::Conflict(
+                        "native profile resolver summary count",
+                    ));
+                }
+                for summary in &resolved.summaries {
+                    if summary.object_get("public_content_declared") != Some(&JsonValue::Bool(true))
+                    {
+                        return Err(SourceCommandError::Denied(
+                            "profile native text binding has no declared public content",
+                        ));
+                    }
+                }
+                for input in &resolved.inputs {
+                    if input.kind == NativeReadKind::Content
+                        || reader
+                            .observed
+                            .get(&input.reference)
+                            .map(|(digest, _)| *digest)
+                            != Some(input.raw_sha256)
+                    {
+                        return Err(SourceCommandError::Conflict(
+                            "native profile exported read closure differs",
+                        ));
+                    }
+                }
+                for (name, digest) in resolved.schema_digests {
+                    if Digest256::of_bytes(selected(ctx, &name)?) != digest {
+                        return Err(SourceCommandError::Conflict(
+                            "native profile schema input differs from selected source",
+                        ));
+                    }
+                    let value = string(&digest.to_hex());
+                    if record_inputs
+                        .object_get(&name)
+                        .is_some_and(|prior| prior != &value)
+                    {
+                        return Err(SourceCommandError::Conflict(
+                            "native profile schema digest conflict",
+                        ));
+                    }
+                    set(record_inputs, &name, value)?;
+                }
+                Ok(Some(resolved.input_snapshot))
+            }
+        }
+    };
+}
+
+impl_complete_cut_inventory_schema!(CutWorkerSchemaExecutor);
+impl_complete_cut_inventory_schema!(tos_validation::source_cut::InProcessCutSchemaExecutor<()>);
+
+impl<I: Copy + Eq> MaintainedInventorySchemaWorker for CandidateCutWorkerSchemaExecutor<I> {}
+impl<I: Copy + Eq> MaintainedInventorySchemaWorker
+    for tos_validation::source_cut::InProcessCandidateSchemaExecutor<I>
+{
+}
+
 /// Run the existing maintained owner parsers over an explicit selected source
 /// closure. Global absence and collision proofs must come from the caller's
 /// owner index or authenticated predicate reads; no complete-inventory claim
@@ -5133,7 +5135,7 @@ impl<I: Copy + Eq> MaintainedInventorySchemaWorker for CandidateCutWorkerSchemaE
 pub(crate) fn maintained_selected_identity_closure(
     ctx: &CommandContext,
     selected_authored_members: &[SourceFile],
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl MaintainedInventorySchemaWorker<Identity = tos_foundation::SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<SelectedIdentityClosure> {
@@ -5174,14 +5176,14 @@ pub(crate) fn maintained_selected_identity_closure(
 pub(crate) fn maintained_selected_identity_closure_candidate(
     typed_ctx: &crate::source_revisions::PgRecordRevisionCommandContext,
     selected_authored_members: &[SourceFile],
-    executor: &mut CandidateCutWorkerSchemaExecutor<
-        crate::source_cohort::revision::PgRecordRevisionIdentity,
+    executor: &mut impl MaintainedInventorySchemaWorker<
+        Identity = crate::source_cohort::revision::PgRecordRevisionIdentity,
     >,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<SelectedIdentityClosure> {
     typed_ctx.check()?;
-    if *executor.input_identity() != typed_ctx.identity() {
+    if executor.input_identity() != Some(typed_ctx.identity()) {
         return Err(SourceCommandError::Conflict(
             "candidate Claim closure and schema worker identities differ",
         ));
@@ -5307,7 +5309,7 @@ fn retained_value_bytes(value: &JsonValue) -> SourceCommandResult<usize> {
 impl RetainedProfileRead {
     fn new(
         ctx: &CommandContext,
-        executor: &mut CutWorkerSchemaExecutor,
+        executor: &mut impl crate::source_creation::CreationSchemaExecutor,
         deadline: Instant,
         cancelled: &AtomicBool,
         catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
@@ -5326,7 +5328,7 @@ impl RetainedProfileRead {
 
     fn new_with_complete_members(
         ctx: &CommandContext,
-        executor: &mut CutWorkerSchemaExecutor,
+        executor: &mut impl crate::source_creation::CreationSchemaExecutor,
         deadline: Instant,
         cancelled: &AtomicBool,
         catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
@@ -5665,7 +5667,7 @@ impl RetainedProfileRead {
 }
 pub(crate) fn maintained_inventory(
     ctx: &CommandContext,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<MaintainedInventory> {
@@ -5677,7 +5679,7 @@ pub(crate) fn maintained_inventory(
 pub(crate) fn maintained_inventory_from_cut(
     ctx: &CommandContext,
     cut: &CorpusCutReader,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl MaintainedInventorySchemaWorker<Identity = tos_foundation::SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<MaintainedInventory> {
@@ -5707,7 +5709,7 @@ pub(crate) fn maintained_inventory_from_cut(
 pub(crate) fn maintained_agent_inventory_from_managed(
     ctx: &CommandContext,
     capture_member_inputs: bool,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl MaintainedInventorySchemaWorker<Identity = tos_foundation::SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<MaintainedInventory> {
@@ -5737,7 +5739,7 @@ pub(crate) fn maintained_inventory_from_members(
     ctx: &CommandContext,
     complete_authored_members: &[SourceFile],
     capture_member_inputs: bool,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl MaintainedInventorySchemaWorker<Identity = tos_foundation::SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<MaintainedInventory> {
@@ -5787,7 +5789,7 @@ pub(crate) fn maintained_inventory_from_members(
 pub(crate) fn maintained_global_claim_inventory_from_members(
     ctx: &CommandContext,
     complete_authored_members: &[SourceFile],
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<MaintainedInventory> {
@@ -5875,7 +5877,7 @@ pub(crate) struct AgentInventoryMembers<'a> {
 pub(crate) fn agent_inventory_members<'a>(
     ctx: &'a CommandContext,
     inventory: &'a MaintainedInventory,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<AgentInventoryMembers<'a>> {
@@ -5895,7 +5897,7 @@ pub(crate) fn agent_inventory_members<'a>(
 /// and schema inputs needed by the owner.
 pub(crate) fn agent_inventory_members_without_evidence<'a>(
     ctx: &'a CommandContext,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<AgentInventoryMembers<'a>> {
@@ -5914,7 +5916,7 @@ fn agent_inventory_members_from_evidence<'a>(
     ctx: &'a CommandContext,
     events: &'a JsonValue,
     anchors: &'a JsonValue,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<AgentInventoryMembers<'a>> {
@@ -5972,7 +5974,7 @@ pub(crate) fn agent_inventory_contribution(
     file: &SourceFile,
     inventory: &MaintainedInventory,
     grouped: &AgentInventoryMembers<'_>,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -6162,7 +6164,7 @@ pub(crate) fn prepare_agent_inventory_assessment_profile(
     source_revision: tos_foundation::SourceRevision,
     effective_uid: u64,
     schema_source_path: &str,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<AgentInventoryAssessmentProfile> {
@@ -6452,7 +6454,7 @@ pub(crate) fn render_agent_inventory_member(
     events: impl IntoIterator<Item = SourceCommandResult<AgentInventoryEvidenceRow>>,
     anchors: impl IntoIterator<Item = SourceCommandResult<AgentInventoryEvidenceRow>>,
     mut contains_member: impl FnMut(&str) -> SourceCommandResult<bool>,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     limits: tos_validation::item_rules::ItemLimits,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -6760,7 +6762,7 @@ fn maintained_inventory_inner(
     ctx: &CommandContext,
     cut: Option<&CorpusCutReader>,
     capture_member_inputs: bool,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl MaintainedInventorySchemaWorker<Identity = tos_foundation::SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
     whole_call: Option<&Rc<RefCell<ClaimCallBudget>>>,
@@ -6781,7 +6783,7 @@ fn maintained_inventory_inner_with_members(
     ctx: &CommandContext,
     cut: Option<&CorpusCutReader>,
     capture_member_inputs: bool,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl MaintainedInventorySchemaWorker<Identity = tos_foundation::SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
     whole_call: Option<&Rc<RefCell<ClaimCallBudget>>>,
@@ -7661,7 +7663,7 @@ fn maintained_grounding(
     allow_existing: bool,
     prepared_inventory: Option<RetainedGroundingInput>,
     retained_profile_bindings: &BTreeMap<String, (&'static str, JsonValue)>,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ClaimGrounding> {
@@ -8330,7 +8332,7 @@ pub(crate) fn maintained_evidence(
 pub(crate) fn validate_initial_identity_publication_claim(
     ctx: &CommandContext,
     claim: &JsonValue,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<String> {
@@ -8377,7 +8379,7 @@ fn validate_ground(
     config: &JsonValue,
     claim: &JsonValue,
     version: u8,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Option<(&'static str, JsonValue)>> {
@@ -9713,7 +9715,9 @@ fn exact_metadata_version(
     cut: Option<&CorpusCutReader>,
     mut retained: Option<&mut RetainedProfileRead>,
     reference: &JsonValue,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_revisions::RecordSchemaWorker<
+        Identity = tos_foundation::SourceRevision,
+    >,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(JsonValue, String, JsonValue, JsonValue, &'static str)> {
@@ -9946,7 +9950,7 @@ fn validate_identity_ground(
     config: &JsonValue,
     claim: &JsonValue,
     reader: &str,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -10577,7 +10581,7 @@ impl PublicExactClaimRead {
         filesystem: &CreationFilesystem,
         ctx: &CommandContext,
         cut: &CorpusCutReader,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut impl crate::source_creation::CreationSchemaExecutor,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Self> {
@@ -10753,12 +10757,14 @@ pub(crate) fn ground_addressed_collection_membership(
     ctx: &CommandContext,
     cut: &CorpusCutReader,
     claim: &JsonValue,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_revisions::RecordSchemaWorker<
+        Identity = tos_foundation::SourceRevision,
+    >,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
     if ctx.base_revision != cut.current().revision()
-        || executor.source_revision() != ctx.base_revision
+        || executor.input_identity() != Some(ctx.base_revision)
     {
         return Err(SourceCommandError::Conflict(
             "addressed Collection grounding cut/worker",
@@ -10772,7 +10778,9 @@ fn ground_collection_membership(
     cut: Option<&CorpusCutReader>,
     mut retained: Option<&mut RetainedProfileRead>,
     claim: &JsonValue,
-    executor: &mut CutWorkerSchemaExecutor,
+    executor: &mut impl crate::source_revisions::RecordSchemaWorker<
+        Identity = tos_foundation::SourceRevision,
+    >,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {

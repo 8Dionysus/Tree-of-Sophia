@@ -21,9 +21,9 @@ use std::io::Read;
 use std::path::Path;
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
-use tos_foundation::{Digest256, JsonValue, RelativePath, SourceRevision};
+use tos_foundation::{Digest256, JsonValue, RelativePath};
 use tos_segment_store::SegmentStore;
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::CutSchemaExecutor;
 
 const INVOCATION_SCHEMA: &str = "tos_local_pg_private_alignment_invocation_v1";
 const OWNER_SCHEMA: &str = "tos_local_native_alignment_owner_v1";
@@ -709,7 +709,7 @@ fn final_grant_current(
     grant_path: &Path,
     original: &OwnerTextAlignmentSelection,
     original_configuration: &str,
-    worker: &CutWorkerSchemaExecutor,
+    worker: &dyn CutSchemaExecutor,
     owner_context_binding: Digest256,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -880,7 +880,7 @@ pub(crate) fn run(
         crate::source_projection_cli::connect_selected_source_pg16()
             .map_err(|_| SourceCommandError::Conflict("selected Alignment PostgreSQL"))?,
     );
-    let ((first_epoch, schema_members), _) = source_db
+    let ((first_epoch, schema_identity, schema_members), _) = source_db
         .with_source_revision_session(
             &store,
             &selection.domain,
@@ -897,7 +897,10 @@ pub(crate) fn run(
                 }
                 let schemas = selected_contracts(session, deadline, cancelled)
                     .map_err(DurableError::Source)?;
-                Ok((selected_epoch, schemas))
+                let identity = crate::source_revisions::PgRecordRevisionIdentity::from_selection(
+                    session.selection(),
+                );
+                Ok((selected_epoch, identity, schemas))
             },
         )
         .map_err(pg::source_error)?;
@@ -909,10 +912,9 @@ pub(crate) fn run(
         "PostgreSQL Alignment schema budget",
     )?;
     let worker_sources = source_files(&schema_members)?;
-    let mut worker = super::revisions::selected_schema_from_context(
-        invocation,
+    let mut worker = super::revisions::selected_in_process_candidate_schema_from_context(
         &worker_sources,
-        SourceRevision(first_epoch.source_revision),
+        schema_identity,
         deadline,
         cancelled,
     )?;

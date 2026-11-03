@@ -24,10 +24,7 @@ use crate::FormatProfile;
 use crate::executor::BatchBudget;
 use crate::item_rules::ItemRefusal;
 use crate::retirement_rules::observed_instant_order;
-use crate::source_cut::{
-    CandidateCutWorkerSchemaExecutor, CutPreparedSchemaExecutionBinding, CutSchemaCheck,
-    CutSchemaExecutor, CutWorkerSchemaExecutor,
-};
+use crate::source_cut::{CutPreparedSchemaExecutionBinding, CutSchemaCheck, CutSchemaExecutor};
 
 pub const MAX_ASSESSMENTS: usize = 1024;
 pub const MAX_RECORD_BYTES: usize = 1_048_576;
@@ -144,9 +141,17 @@ pub enum AssessmentSchemaBindingV1 {
         source_revision: SourceRevision,
         worker: CutPreparedSchemaExecutionBinding,
     },
+    SourceCutInProcessV1 {
+        source_revision: SourceRevision,
+        engine: tos_foundation::InProcessSchemaExecutionBinding,
+    },
     SelectedInput {
         source_identity: Digest256,
         worker: CutPreparedSchemaExecutionBinding,
+    },
+    SelectedInputInProcessV1 {
+        source_identity: Digest256,
+        engine: tos_foundation::InProcessSchemaExecutionBinding,
     },
 }
 
@@ -843,7 +848,7 @@ struct Engine {
 /// must preserve this input binding and reevaluate while holding its fences.
 pub fn evaluate_current_assessment(
     input: &AssessmentReadInput,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut impl CutSchemaExecutor,
     limits: AssessmentLimits,
     cancelled: &AtomicBool,
 ) -> Result<AssessmentMechanicsReport> {
@@ -857,18 +862,27 @@ pub fn evaluate_current_assessment(
             "assessment source/schema cut revision differs from selected current source",
         );
     }
-    let worker = CutSchemaExecutor::prepared_execution_binding(schemas)
-        .ok_or_else(|| unsupported("assessment schema worker binding is unavailable"))?;
-    evaluate_current_assessment_inner(
-        input,
-        schemas,
-        AssessmentSchemaBindingV1::SourceCut {
-            source_revision,
-            worker,
-        },
-        limits,
-        cancelled,
-    )
+    let binding = schemas
+        .schema_execution_binding()
+        .ok_or_else(|| unsupported("assessment schema binding is unavailable"))?;
+    let schema_binding = match binding {
+        tos_foundation::SchemaExecutionBinding::Worker(worker) => {
+            AssessmentSchemaBindingV1::SourceCut {
+                source_revision,
+                worker,
+            }
+        }
+        tos_foundation::SchemaExecutionBinding::InProcessV1(engine)
+            if engine.engine == crate::in_process::ENGINE_ID =>
+        {
+            AssessmentSchemaBindingV1::SourceCutInProcessV1 {
+                source_revision,
+                engine,
+            }
+        }
+        _ => return Err(unsupported("assessment schema engine is unavailable")),
+    };
+    evaluate_current_assessment_inner(input, schemas, schema_binding, limits, cancelled)
 }
 
 /// Evaluate the maintained assessment rules against an exact selected-input
@@ -878,7 +892,7 @@ pub fn evaluate_current_assessment_selected<I: Copy + Eq>(
     input: &AssessmentReadInput,
     input_identity: &I,
     input_identity_digest: Digest256,
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
+    schemas: &mut impl crate::source_foundation_records::SourceFoundationCandidateSchemaBinding<I>,
     limits: AssessmentLimits,
     cancelled: &AtomicBool,
 ) -> Result<AssessmentMechanicsReport> {
@@ -888,18 +902,31 @@ pub fn evaluate_current_assessment_selected<I: Copy + Eq>(
     {
         return invalid("assessment candidate source identity differs from selected worker");
     }
-    let worker = CutSchemaExecutor::prepared_execution_binding(schemas)
-        .ok_or_else(|| unsupported("assessment candidate worker binding is unavailable"))?;
-    evaluate_current_assessment_inner(
-        input,
-        schemas,
-        AssessmentSchemaBindingV1::SelectedInput {
-            source_identity: input_identity_digest,
-            worker,
-        },
-        limits,
-        cancelled,
-    )
+    let binding = schemas
+        .schema_execution_binding()
+        .ok_or_else(|| unsupported("assessment candidate schema binding is unavailable"))?;
+    let schema_binding = match binding {
+        tos_foundation::SchemaExecutionBinding::Worker(worker) => {
+            AssessmentSchemaBindingV1::SelectedInput {
+                source_identity: input_identity_digest,
+                worker,
+            }
+        }
+        tos_foundation::SchemaExecutionBinding::InProcessV1(engine)
+            if engine.engine == crate::in_process::ENGINE_ID =>
+        {
+            AssessmentSchemaBindingV1::SelectedInputInProcessV1 {
+                source_identity: input_identity_digest,
+                engine,
+            }
+        }
+        _ => {
+            return Err(unsupported(
+                "assessment candidate schema engine is unavailable",
+            ));
+        }
+    };
+    evaluate_current_assessment_inner(input, schemas, schema_binding, limits, cancelled)
 }
 
 fn evaluate_current_assessment_inner<S: CutSchemaExecutor>(

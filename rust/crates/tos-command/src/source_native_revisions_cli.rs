@@ -12,10 +12,9 @@ use tos_source_store::{
     CorpusCutReader, CorpusReader, CutReadLimits, SoftwareCaptureReader,
     SoftwareComponentSelectionV1,
 };
-use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget, VerifiedWorkerImageHandle};
+use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
 use tos_validation::source_cut::{
-    CandidateCutWorkerSchemaExecutor, CutSchemaDiagnosticsLimits, CutSchemaExecutor,
-    CutWorkerLimits, CutWorkerSchemaExecutor,
+    CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor, InProcessCandidateSchemaExecutor,
 };
 use tos_validation::{FormatProfile, SchemaResource};
 
@@ -978,7 +977,7 @@ pub(crate) fn prepare_pg_record_revision(
 }
 
 pub(crate) fn prepare_pg_record_revision_with_work(
-    invocation: &Value,
+    _invocation: &Value,
     context: cmd::CommandContext,
     identity: crate::source_revisions::PgRecordRevisionIdentity,
     work_revision: Option<crate::source_pg_work_revision::Observation>,
@@ -1025,8 +1024,7 @@ pub(crate) fn prepare_pg_record_revision_with_work(
             "PG selected record read observation differs from owner",
         ));
     }
-    let mut worker = selected_candidate_schema_from_context(
-        invocation,
+    let mut worker = selected_in_process_candidate_schema_from_context(
         &context.files,
         identity,
         deadline,
@@ -1073,36 +1071,9 @@ pub(crate) fn prepare_pg_record_revision_with_work(
     }
 }
 
-pub(crate) fn selected_candidate_schema_from_context(
-    invocation: &Value,
+fn selected_revision_schema_resources(
     files: &[cmd::SourceFile],
-    identity: crate::source_revisions::PgRecordRevisionIdentity,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> SourceCommandResult<
-    CandidateCutWorkerSchemaExecutor<crate::source_revisions::PgRecordRevisionIdentity>,
-> {
-    let worker = &invocation["schema_worker"];
-    exact(worker, &["absolute_path", "sha256"])?;
-    let budgets = &invocation["budgets"];
-    let mut worker_budget = ExecutorBudget::laboratory();
-    worker_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
-    worker_budget.cpu_seconds = capped(budgets, "worker_cpu_seconds", 3)?;
-    worker_budget.address_space_bytes =
-        capped(budgets, "worker_address_space_bytes", 1_073_741_824)?;
-    let worker_identity = ExactWorkerIdentity {
-        absolute_path: absolute(text(worker, "absolute_path")?)?,
-        sha256: digest(text(worker, "sha256")?)?,
-    };
-    let worker_image =
-        VerifiedWorkerImageHandle::prepare(worker_identity, worker_budget, deadline, cancelled)
-            .map_err(|_| SourceCommandError::Denied("native schema worker image"))?;
-    let limits = CutWorkerLimits {
-        max_receipts: usize::try_from(capped(budgets, "max_schema_receipts", 128)?)
-            .map_err(|_| SourceCommandError::Invalid("schema receipt budget"))?,
-        max_receipt_bytes: usize::try_from(capped(budgets, "max_schema_receipt_bytes", 262_144)?)
-            .map_err(|_| SourceCommandError::Invalid("schema receipt budget"))?,
-    };
+) -> SourceCommandResult<Vec<(String, SchemaResource)>> {
     let mut resources = Vec::new();
     for file in files.iter().filter(|file| {
         file.path.as_str().starts_with("ToS/contracts/")
@@ -1123,29 +1094,84 @@ pub(crate) fn selected_candidate_schema_from_context(
             },
         ));
     }
-    let mut executor = CandidateCutWorkerSchemaExecutor::from_selected_source_resources(
+    Ok(resources)
+}
+
+pub(crate) fn selected_in_process_candidate_schema_from_context(
+    files: &[cmd::SourceFile],
+    identity: crate::source_revisions::PgRecordRevisionIdentity,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<
+    InProcessCandidateSchemaExecutor<crate::source_revisions::PgRecordRevisionIdentity>,
+> {
+    InProcessCandidateSchemaExecutor::from_selected_source_resources(
         identity,
-        resources,
+        selected_revision_schema_resources(files)?,
         FormatProfile::LegacyPythonObserved20260923,
-        &worker_image,
-        worker_budget,
-        limits,
+        tos_validation::in_process::InputMode::LegacyPythonObserved,
         deadline,
         cancelled,
     )
-    .map_err(|_| SourceCommandError::Denied("native candidate schema worker"))?;
-    // Selected compound Claim validation consumes candidate-bound diagnostics.
-    // Select that protocol before any scalar check starts the shared operation;
-    // bool checks and Claim diagnostics then retain one exact worker binding.
-    executor
-        .enable_diagnostics_v2(CutSchemaDiagnosticsLimits {
-            max_total_issues: limits.max_receipts,
-            max_total_report_bytes: limits.max_receipt_bytes,
-            max_total_state_bytes: usize::try_from(super::number(budgets, "max_total_bytes")?)
-                .map_err(|_| SourceCommandError::Invalid("candidate schema state budget"))?,
-        })
-        .map_err(|_| SourceCommandError::Denied("native candidate schema diagnostics budget"))?;
-    Ok(executor)
+    .map_err(|_| SourceCommandError::Denied("native candidate schema executor"))
+}
+
+/// Select the exact local contract resources used by the native Text callers.
+pub(crate) fn selected_text_schema_resources(
+    files: &[cmd::SourceFile],
+) -> SourceCommandResult<Vec<(String, SchemaResource)>> {
+    let mut selected = Vec::new();
+    let mut paths = BTreeSet::new();
+    for file in files.iter().filter(|file| {
+        file.path.as_str().starts_with("ToS/contracts/")
+            && file.path.as_str().ends_with(".schema.json")
+    }) {
+        if selected.len() >= 128 || file.raw.len() > 4 * 1024 * 1024 {
+            return Err(SourceCommandError::Invalid(
+                "record revision selected schema budget",
+            ));
+        }
+        let parsed = cmd::parse(&file.raw)?;
+        let uri = cmd::text(&parsed, "$id")?.to_owned();
+        if uri != format!("https://tree-of-sophia.local/{}", file.path.as_str())
+            && uri != format!("https://treeofsophia.local/{}", file.path.as_str())
+        {
+            return Err(SourceCommandError::Invalid(
+                "record revision schema identity",
+            ));
+        }
+        let path = file.path.as_str().to_owned();
+        if !paths.insert(path.clone()) {
+            return Err(SourceCommandError::Invalid(
+                "duplicate selected schema resource",
+            ));
+        }
+        selected.push((
+            path,
+            SchemaResource {
+                uri,
+                raw: file.raw.clone(),
+            },
+        ));
+    }
+    Ok(selected)
+}
+
+pub(crate) fn selected_pg_text_schemas<I: Copy + Eq>(
+    files: &[cmd::SourceFile],
+    epoch_identity: I,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<tos_validation::source_cut::InProcessCandidateSchemaExecutor<I>> {
+    tos_validation::source_cut::InProcessCandidateSchemaExecutor::from_selected_source_resources(
+        epoch_identity,
+        selected_text_schema_resources(files)?,
+        tos_validation::FormatProfile::LegacyPythonObserved20260923,
+        tos_validation::in_process::InputMode::SerdeNormalized,
+        deadline,
+        cancelled,
+    )
+    .map_err(|_| SourceCommandError::Denied("PostgreSQL Text schema selection"))
 }
 
 pub(crate) fn selected_schema_from_context(
@@ -1165,37 +1191,12 @@ pub(crate) fn selected_schema_from_context(
         capped(budgets, "worker_address_space_bytes", 1_073_741_824)?;
     let mut contracts = BTreeMap::new();
     let mut resources = Vec::new();
-    for file in files.iter().filter(|file| {
-        file.path.as_str().starts_with("ToS/contracts/")
-            && file.path.as_str().ends_with(".schema.json")
-    }) {
-        if resources.len() >= 128 || file.raw.len() > 4 * 1024 * 1024 {
-            return Err(SourceCommandError::Invalid(
-                "record revision selected schema budget",
-            ));
-        }
-        let parsed = cmd::parse(&file.raw)?;
-        let uri = cmd::text(&parsed, "$id")?.to_owned();
-        if uri != format!("https://tree-of-sophia.local/{}", file.path.as_str())
-            && uri != format!("https://treeofsophia.local/{}", file.path.as_str())
-        {
-            return Err(SourceCommandError::Invalid(
-                "record revision schema identity",
-            ));
-        }
-        let path = file.path.as_str().to_owned();
-        if contracts
-            .insert(path, (uri.clone(), Digest256::of_bytes(&file.raw)))
-            .is_some()
-        {
-            return Err(SourceCommandError::Invalid(
-                "duplicate selected schema resource",
-            ));
-        }
-        resources.push(SchemaResource {
-            uri,
-            raw: file.raw.clone(),
-        });
+    for (path, resource) in selected_text_schema_resources(files)? {
+        contracts.insert(
+            path,
+            (resource.uri.clone(), Digest256::of_bytes(&resource.raw)),
+        );
+        resources.push(resource);
     }
     CutWorkerSchemaExecutor::from_selected_resources(
         source_revision,
@@ -1225,35 +1226,6 @@ pub(crate) fn selected_schema_from_context(
 fn value(value: &JsonValue) -> SourceCommandResult<Value> {
     serde_json::from_slice(&cmd::canonical(value)?)
         .map_err(|_| SourceCommandError::Invalid("Record revision response JSON"))
-}
-
-// Only the filesystem record owner chooses this resource footprint. The full
-// context/cut remains unchanged. Shared PG/text/Claim callers continue to call
-// selected_schema_from_context directly with its original all-resource default.
-fn filesystem_profile_schema_from_context(
-    invocation: &Value,
-    ctx: &cmd::CommandContext,
-    family: crate::source_revisions::RevisionFamily,
-    source_revision: SourceRevision,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> SourceCommandResult<CutWorkerSchemaExecutor> {
-    let selected = if matches!(
-        family,
-        crate::source_revisions::RevisionFamily::PublicProfile
-            | crate::source_revisions::RevisionFamily::PublicProfileScope
-    ) {
-        crate::source_revisions::simple_profile_schema_files(ctx, deadline, cancelled)?
-    } else {
-        None
-    };
-    selected_schema_from_context(
-        invocation,
-        selected.as_deref().unwrap_or(&ctx.files),
-        source_revision,
-        deadline,
-        cancelled,
-    )
 }
 
 pub(super) fn run(
@@ -1362,14 +1334,26 @@ pub(super) fn run(
             cancelled,
         )?
     };
-    let mut worker = filesystem_profile_schema_from_context(
-        invocation,
-        &ctx,
+    let profile_files = if matches!(
         family,
-        selected.current().revision(),
-        deadline,
-        cancelled,
-    )?;
+        crate::source_revisions::RevisionFamily::PublicProfile
+            | crate::source_revisions::RevisionFamily::PublicProfileScope
+    ) {
+        crate::source_revisions::simple_profile_schema_files(&ctx, deadline, cancelled)?
+    } else {
+        None
+    };
+    let resources = selected_text_schema_resources(profile_files.as_deref().unwrap_or(&ctx.files))?;
+    let mut schemas =
+        tos_validation::source_cut::InProcessCutSchemaExecutor::from_cut_selected_resources(
+            selected,
+            resources,
+            FormatProfile::LegacyPythonObserved20260923,
+            tos_validation::in_process::InputMode::LegacyPythonObserved,
+            deadline,
+            cancelled,
+        )
+        .map_err(|_| SourceCommandError::Denied("record revision schema selection"))?;
     let result = owner::revision_publication::run(
         &filesystem,
         &ctx,
@@ -1377,16 +1361,74 @@ pub(super) fn run(
         original.as_ref(),
         software,
         components,
-        &mut worker,
+        &mut schemas,
         deadline,
         cancelled,
     );
-    match result {
-        Ok(proposal) => Ok(json!({"schema_version":"tos_local_native_source_result_v1",
-            "authentication":"local-unix-account", "result":value(&proposal.response)?, "grants_admission":false})),
-        Err(error) => {
-            let _ = worker.finish(deadline, cancelled);
-            Err(error)
-        }
+    if result.is_err() {
+        let _ = schemas.finish(deadline, cancelled);
+    }
+    result.and_then(|proposal| Ok(json!({
+        "schema_version":"tos_local_native_source_result_v1",
+        "authentication":"local-unix-account", "result":value(&proposal.response)?, "grants_admission":false
+    })))
+}
+
+#[cfg(test)]
+mod in_process_revision_schema_tests {
+    use super::*;
+    use std::time::Duration;
+    use tos_validation::executor::schema_diagnostics::{Caps, Status};
+    use tos_validation::in_process::InputMode;
+    use tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding;
+
+    #[test]
+    fn selected_pg_revision_keeps_legacy_schema_input_semantics() {
+        let digest = Digest256::of_bytes(b"revision-identity");
+        let identity = crate::source_revisions::PgRecordRevisionIdentity {
+            domain_digest: digest,
+            store_id: [8; 16],
+            bootstrap_revision: SourceRevision(digest),
+            bootstrap_membership: tos_source_store::SourceMembershipV1 { count: 1, digest },
+            cohort_digest: digest,
+            cohort_epoch: 1,
+            cohort_definition: digest,
+            cohort_generation: 2,
+            job_id_digest: digest,
+            job_fence: 3,
+            epoch: 4,
+            source_generation: 5,
+            head_seq: 6,
+            audit_generation: 7,
+            rights_version: 8,
+            rule_version: 9,
+            contract: digest,
+        };
+        let path = "ToS/contracts/revision-test.schema.json";
+        let raw = br#"{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://example.test/revision","type":"number"}"#.to_vec();
+        let files = vec![cmd::SourceFile {
+            path: tos_foundation::RelativePath::parse(path).unwrap(),
+            raw,
+        }];
+        let cancelled = AtomicBool::new(false);
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let mut schemas = selected_in_process_candidate_schema_from_context(
+            &files, identity, deadline, &cancelled,
+        )
+        .unwrap();
+        assert_eq!(*schemas.input_identity(), identity);
+        let report = schemas
+            .diagnostic_for(
+                "record.json",
+                path,
+                b"NaN",
+                Caps::CURRENT,
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        assert_eq!(report.report.input_mode, InputMode::LegacyPythonObserved);
+        assert_eq!(report.report.status, Status::Valid);
+        assert_eq!(report.report.input_sha256, Digest256::of_bytes(b"NaN"));
     }
 }

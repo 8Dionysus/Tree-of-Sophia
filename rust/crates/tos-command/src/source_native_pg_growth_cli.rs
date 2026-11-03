@@ -450,7 +450,6 @@ pub(super) fn run(
                 prepare_pg_expression_edition_growth(
                     fs,
                     session,
-                    invocation,
                     &owner_raw,
                     &owner_config,
                     &request_raw,
@@ -516,7 +515,6 @@ pub(super) fn run(
                 prepare_pg_expression_responsibility_growth(
                     fs,
                     session,
-                    invocation,
                     &owner_raw,
                     &owner_config,
                     &request_raw,
@@ -582,7 +580,6 @@ pub(super) fn run(
                 prepare_pg_collection_membership_growth(
                     fs,
                     session,
-                    invocation,
                     &owner_raw,
                     &owner_config,
                     &request_raw,
@@ -734,7 +731,6 @@ pub(super) fn run(
                 let prepared = prepare_pg_work_expression_growth(
                     &owner_fs,
                     session,
-                    invocation,
                     &owner_raw,
                     &owner_config,
                     &request_raw,
@@ -957,14 +953,14 @@ fn run_pg_work_expression_preview(
                         &software_files,
                     )
                     .map_err(DurableError::Source)?;
-                let mut worker = super::revisions::selected_candidate_schema_from_context(
-                    invocation,
-                    &context.files,
-                    identity,
-                    deadline,
-                    cancelled,
-                )
-                .map_err(DurableError::Source)?;
+                let mut worker =
+                    super::revisions::selected_in_process_candidate_schema_from_context(
+                        &context.files,
+                        identity,
+                        deadline,
+                        cancelled,
+                    )
+                    .map_err(DurableError::Source)?;
                 let preview = crate::source_creation_store::preview_pg_work_expression(
                     owner_fs,
                     &context,
@@ -1194,7 +1190,6 @@ pub(crate) struct PreparedPgWorkExpressionGrowth<'a> {
 pub(crate) fn prepare_pg_work_expression_growth<'a>(
     fs: &'a CreationFilesystem,
     session: &mut SourceRevisionReadSession<'_>,
-    invocation: &serde_json::Value,
     configuration_raw: &[u8],
     configuration: &JsonValue,
     request_raw: &[u8],
@@ -1228,8 +1223,7 @@ pub(crate) fn prepare_pg_work_expression_growth<'a>(
         effective_uid,
         &software_files,
     )?;
-    let mut worker = super::revisions::selected_candidate_schema_from_context(
-        invocation,
+    let mut worker = super::revisions::selected_in_process_candidate_schema_from_context(
         &context.files,
         identity,
         deadline,
@@ -1645,7 +1639,6 @@ fn run_pg_growth_family_preview(
                     operation,
                     owner_fs,
                     session,
-                    invocation,
                     owner_raw,
                     owner_config,
                     request_raw,
@@ -1726,7 +1719,6 @@ fn prepare_pg_growth_family_preview(
     operation: &str,
     fs: &CreationFilesystem,
     session: &mut SourceRevisionReadSession<'_>,
-    invocation: &Value,
     configuration_raw: &[u8],
     configuration: &JsonValue,
     request_raw: &[u8],
@@ -1761,8 +1753,7 @@ fn prepare_pg_growth_family_preview(
         effective_uid,
         &software_files,
     )?;
-    let mut worker = super::revisions::selected_candidate_schema_from_context(
-        invocation,
+    let mut worker = super::revisions::selected_in_process_candidate_schema_from_context(
         &context.files,
         identity,
         deadline,
@@ -2226,7 +2217,6 @@ const EXPRESSION_GROWTH_CONTRACTS: &[&str] = &[
 pub(crate) fn prepare_pg_expression_edition_growth<'a>(
     fs: &'a CreationFilesystem,
     session: &mut SourceRevisionReadSession<'_>,
-    invocation: &Value,
     configuration_raw: &[u8],
     configuration: &JsonValue,
     request_raw: &[u8],
@@ -2261,8 +2251,7 @@ pub(crate) fn prepare_pg_expression_edition_growth<'a>(
         effective_uid,
         &software_files,
     )?;
-    let mut worker = super::revisions::selected_candidate_schema_from_context(
-        invocation,
+    let mut worker = super::revisions::selected_in_process_candidate_schema_from_context(
         &context.files,
         identity,
         deadline,
@@ -2300,7 +2289,6 @@ pub(crate) fn prepare_pg_expression_edition_growth<'a>(
 pub(crate) fn prepare_pg_expression_responsibility_growth<'a>(
     fs: &'a CreationFilesystem,
     session: &mut SourceRevisionReadSession<'_>,
-    invocation: &Value,
     configuration_raw: &[u8],
     configuration: &JsonValue,
     request_raw: &[u8],
@@ -2335,8 +2323,7 @@ pub(crate) fn prepare_pg_expression_responsibility_growth<'a>(
         effective_uid,
         &software_files,
     )?;
-    let mut worker = super::revisions::selected_candidate_schema_from_context(
-        invocation,
+    let mut worker = super::revisions::selected_in_process_candidate_schema_from_context(
         &context.files,
         identity,
         deadline,
@@ -2374,7 +2361,6 @@ pub(crate) fn prepare_pg_expression_responsibility_growth<'a>(
 pub(crate) fn prepare_pg_collection_membership_growth<'a>(
     fs: &'a CreationFilesystem,
     session: &mut SourceRevisionReadSession<'_>,
-    invocation: &Value,
     configuration_raw: &[u8],
     configuration: &JsonValue,
     request_raw: &[u8],
@@ -2409,8 +2395,7 @@ pub(crate) fn prepare_pg_collection_membership_growth<'a>(
         effective_uid,
         &software_files,
     )?;
-    let mut worker = super::revisions::selected_candidate_schema_from_context(
-        invocation,
+    let mut worker = super::revisions::selected_in_process_candidate_schema_from_context(
         &context.files,
         identity,
         deadline,
@@ -2667,7 +2652,6 @@ pub(crate) fn observe_growth_semantic_indexes(
 fn prepare_pg_object_link_growth<'a>(
     fs: &'a CreationFilesystem,
     session: &mut SourceRevisionReadSession<'_>,
-    invocation: &Value,
     configuration_raw: &[u8],
     request_raw: &[u8],
     publication_token: Option<&str>,
@@ -2695,8 +2679,7 @@ fn prepare_pg_object_link_growth<'a>(
         effective_uid,
         &software_files,
     )?;
-    let mut worker = super::revisions::selected_candidate_schema_from_context(
-        invocation,
+    let mut worker = super::revisions::selected_in_process_candidate_schema_from_context(
         &context.files,
         identity,
         deadline,
@@ -2902,7 +2885,6 @@ fn run_pg_object_link(
                 let prepared = prepare_pg_object_link_growth(
                     owner_fs,
                     session,
-                    invocation,
                     owner_raw,
                     request_raw,
                     cmd::field(request, "expected_publication")
@@ -3113,8 +3095,7 @@ fn run_pg_object_link_preview(
                     )
                     .map_err(DurableError::Source)?
                 } else {
-                    let mut worker = super::revisions::selected_candidate_schema_from_context(
-                        invocation,
+                    let mut worker = super::revisions::selected_in_process_candidate_schema_from_context(
                         &context.files,
                         identity,
                         deadline,

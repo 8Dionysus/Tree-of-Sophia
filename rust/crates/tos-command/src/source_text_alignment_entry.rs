@@ -30,7 +30,7 @@ use tos_foundation::{Digest256, JsonValue, RelativePath};
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::item_rules::ItemLimits;
 use tos_validation::layer_family_rules::inspect_supplied_translation_alignment;
-use tos_validation::source_cut::CutWorkerSchemaExecutor;
+use tos_validation::source_cut::CutSchemaExecutor;
 
 const CONTEXT_SCHEMA: &str = "ToS/contracts/owner-local-source-context.schema.json";
 const RECORD_SCHEMA: &str = "ToS/contracts/native-translation-alignment-record-v1.schema.json";
@@ -231,7 +231,7 @@ fn truth(value: &JsonValue) -> SourceCommandResult<bool> {
 
 pub(crate) fn selected_contracts(
     context: &OwnerTextContext,
-    worker: &CutWorkerSchemaExecutor,
+    worker: &dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<BTreeMap<String, Digest256>> {
@@ -239,7 +239,7 @@ pub(crate) fn selected_contracts(
     for name in [RECORD_SCHEMA, LEGACY_SCHEMA, BINDING_SCHEMA, EVENT_SCHEMA] {
         let raw = context.read(name, MAX_CONTRACT, deadline, cancelled)?;
         let digest = Digest256::of_bytes(&raw);
-        if worker.contract_digest(name) != Some(digest) {
+        if worker.selected_contract_digest(name) != Some(digest) {
             return Err(SourceCommandError::Conflict(
                 "native alignment selected contract changed",
             ));
@@ -252,7 +252,7 @@ pub(crate) fn selected_contracts(
 pub(crate) fn selected_configuration(
     context: &OwnerTextContext,
     grant: &OwnerTextAlignmentSelection,
-    worker: &CutWorkerSchemaExecutor,
+    worker: &dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<String> {
@@ -661,7 +661,7 @@ fn validate_record_law(
     source: &JsonValue,
     target: &JsonValue,
     rights: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     reference: &str,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -790,7 +790,7 @@ fn validate_record_law(
 
 struct History<'a> {
     context: &'a OwnerTextContext,
-    worker: &'a mut CutWorkerSchemaExecutor,
+    worker: &'a mut dyn CutSchemaExecutor,
     source: &'a JsonValue,
     target: &'a JsonValue,
     rights: &'a JsonValue,
@@ -1248,7 +1248,7 @@ fn prepare(
     request: &JsonValue,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     exclude: Option<&Path>,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -1647,7 +1647,7 @@ pub(crate) fn prepare_pg_alignment_preview(
     target_exists: bool,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<NativeAlignmentPreview> {
@@ -1679,7 +1679,7 @@ pub(crate) fn prepare_pg_alignment_package(
     retained: Option<&BTreeMap<String, Vec<u8>>>,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedNativeAlignmentPackage> {
@@ -1730,7 +1730,7 @@ fn assemble_pg_alignment_package(
     request: &JsonValue,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -1829,7 +1829,7 @@ pub fn prepare_owner_alignment_from_captures(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<NativeAlignmentPreview> {
@@ -1925,7 +1925,7 @@ fn verify_retained(
     prepared: &PreparedAlignment,
     request: &JsonValue,
     files: &BTreeMap<String, Vec<u8>>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -2199,7 +2199,7 @@ pub fn execute_owner_alignment_from_captures(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<NativeAlignmentResult> {
@@ -2388,7 +2388,7 @@ fn selected_owner(
     context_path: &Path,
     grant_path: &Path,
     cut: &CorpusCutReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(OwnerTextContext, OwnerTextAlignmentSelection)> {
@@ -2426,7 +2426,7 @@ pub(crate) fn selected_owner_cli_profile(
     context_path: &Path,
     grant_path: &Path,
     cut: &CorpusCutReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<NativeAlignmentCliProfile> {
@@ -2465,7 +2465,7 @@ pub(crate) fn selected_owner_cli_profile(
 pub(crate) fn describe_owner_alignment_selected(
     context: OwnerTextContext,
     grant: OwnerTextAlignmentSelection,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<NativeAlignmentDescription> {
@@ -2499,7 +2499,7 @@ pub(crate) fn describe_owner_alignment_selected(
 fn selected_inspection_record(
     context: &OwnerTextContext,
     grant: &OwnerTextAlignmentSelection,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(JsonValue, JsonValue)> {
@@ -2615,7 +2615,7 @@ fn selected_inspection_record_pg(
     context: &OwnerTextContext,
     grant: &OwnerTextAlignmentSelection,
     current_files: Option<&BTreeMap<String, Vec<u8>>>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(JsonValue, JsonValue)> {
@@ -2723,7 +2723,7 @@ pub(crate) fn inspect_owner_alignment_selected(
     context: OwnerTextContext,
     grant: OwnerTextAlignmentSelection,
     exact_version: Option<&JsonValue>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<NativeAlignmentInspection> {
@@ -2748,7 +2748,7 @@ pub(crate) fn inspect_pg_owner_alignment_selected(
     grant: OwnerTextAlignmentSelection,
     current_files: Option<&BTreeMap<String, Vec<u8>>>,
     exact_version: Option<&JsonValue>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<NativeAlignmentInspection> {
@@ -2778,7 +2778,7 @@ fn inspect_owner_alignment_record(
     mut context: OwnerTextContext,
     grant: OwnerTextAlignmentSelection,
     exact_version: Option<&JsonValue>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     publication: crate::source_creation_store::work_transaction::PublicationSnapshot,
     current_ref: JsonValue,
     body: JsonValue,
@@ -2928,7 +2928,7 @@ pub(crate) fn inspect_owner_alignment_recovery_selected(
     grant: OwnerTextAlignmentSelection,
     target_ref: &str,
     command_id: &str,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut dyn CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<NativeAlignmentRecovery> {

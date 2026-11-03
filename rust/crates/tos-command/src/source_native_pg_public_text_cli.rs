@@ -33,7 +33,7 @@ use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue, RelativePath, SourceRevision};
 use tos_segment_store::SegmentStore;
 use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
-use tos_validation::source_cut::CutWorkerSchemaExecutor;
+use tos_validation::source_cut::InProcessCandidateSchemaExecutor;
 
 const MAX_SCHEMA_FILES: usize = 128;
 const MAX_SCHEMA_BYTES: usize = 16_777_216;
@@ -350,7 +350,7 @@ struct SemanticPackage {
     home: String,
     docs: BTreeMap<RelativePath, (SoftwareComponentSelectionV1, Vec<u8>)>,
     schemas: BTreeMap<String, Vec<u8>>,
-    worker: CutWorkerSchemaExecutor,
+    worker: InProcessCandidateSchemaExecutor<PgRecordRevisionIdentity>,
 }
 
 pub(crate) struct PreparedPgPublicText {
@@ -738,7 +738,6 @@ fn semantic_package(
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<SemanticPackage> {
     let schemas = schemas(session, true, deadline, cancelled)?;
-    let source_revision = session.selection().cohort.initial_revision();
     let schema_files = schemas
         .iter()
         .map(|(path, raw)| {
@@ -756,10 +755,9 @@ fn semantic_package(
             "public Text implementation budget",
         ));
     }
-    let mut worker = super::revisions::selected_schema_from_context(
-        invocation,
+    let mut worker = super::revisions::selected_pg_text_schemas(
         &schema_files,
-        source_revision,
+        PgRecordRevisionIdentity::from_selection(session.selection()),
         deadline,
         cancelled,
     )?;
@@ -1076,11 +1074,10 @@ fn selection_from_session(
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(
     PublicNativeTextSelection,
-    CutWorkerSchemaExecutor,
+    InProcessCandidateSchemaExecutor<PgRecordRevisionIdentity>,
     BTreeMap<String, Vec<u8>>,
 )> {
     let schemas = schemas(session, include_construction, deadline, cancelled)?;
-    let revision = session.selection().cohort.initial_revision();
     let schema_files = schemas
         .iter()
         .map(|(path, raw)| {
@@ -1091,10 +1088,9 @@ fn selection_from_session(
             })
         })
         .collect::<SourceCommandResult<Vec<_>>>()?;
-    let mut worker = super::revisions::selected_schema_from_context(
-        invocation,
+    let mut worker = super::revisions::selected_pg_text_schemas(
         &schema_files,
-        revision,
+        PgRecordRevisionIdentity::from_selection(session.selection()),
         deadline,
         cancelled,
     )?;

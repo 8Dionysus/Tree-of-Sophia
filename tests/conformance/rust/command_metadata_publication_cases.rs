@@ -872,6 +872,7 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
     );
     private_json(&descriptor_path, &packet["descriptor"]);
     invocation["schema_version"] = json!("tos_local_native_metadata_publication_invocation_v1");
+    invocation["schema_worker"] = json!({"absolute_path":"/nonexistent/hostguard-schema-worker","sha256":w_sha.to_prefixed()});
     invocation["corpus_store"] = json!(current_store);
     invocation["source_revision"] = json!(current_revision.0.to_prefixed());
     invocation["prepared_database"] = json!(db_path);

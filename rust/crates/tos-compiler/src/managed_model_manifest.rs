@@ -10,8 +10,11 @@ use tos_segment_store::{
     AuditedStoreRoot, AuthenticatedTreeDescriptorV2, AuthenticatedTreeWorkV1, SegmentStore,
 };
 
+// This object kind identifies the existing authenticated envelope family;
+// the payload schema identifies the execution-evidence version.
 const KIND: &[u8] = b"tos.cmp.managed-model-manifest.v2";
 const SCHEMA: &str = "tos_managed_model_manifest_v2";
+const IN_PROCESS_SCHEMA: &str = "tos_managed_model_manifest_v3";
 
 const BASE_CHUNK_KIND: &[u8] = b"tos.cmp.managed-model-base-chunk.v2";
 const BASE_CHUNK_BYTES: usize = 1_048_576;
@@ -195,8 +198,121 @@ impl ManagedManifestLimitsV2 {
     }
 }
 
-/// Separate versioned delta: never reinterpret V1 parent-model SHA/size as a
-/// manifest identity. Genuine source commit evidence is supplied by CMD.
+/// Identity of the in-process schema engine used for a managed model.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ManagedSchemaEngineV1 {
+    pub engine: String,
+    pub schema_profile: String,
+    pub input_mode_sha256: String,
+}
+
+fn validate_schema_execution(
+    schema: &str,
+    worker_sha256: Option<&str>,
+    engine: Option<&ManagedSchemaEngineV1>,
+    schema_set_sha256: &str,
+) -> Result<()> {
+    Digest256::from_hex(schema_set_sha256)
+        .map_err(|_| Error::Invalid("managed manifest schema identity"))?;
+    match (schema, worker_sha256, engine) {
+        (SCHEMA, Some(worker), None) => {
+            Digest256::from_hex(worker)
+                .map_err(|_| Error::Invalid("managed manifest worker identity"))?;
+        }
+        (IN_PROCESS_SCHEMA, None, Some(engine))
+            if engine.engine == tos_foundation::IN_PROCESS_SCHEMA_ENGINE_ID
+                && matches!(
+                    engine.schema_profile.as_str(),
+                    "tos.schema.format.legacy-python-observed-20260923"
+                        | "tos.schema.format.asserted-source-candidate-v1"
+                ) =>
+        {
+            Digest256::from_hex(&engine.input_mode_sha256)
+                .map_err(|_| Error::Invalid("managed manifest input mode identity"))?;
+        }
+        _ => return Err(Error::Invalid("managed manifest schema execution identity")),
+    }
+    Ok(())
+}
+
+fn schema_execution_matches(
+    schema: &str,
+    worker_sha256: Option<&str>,
+    engine: Option<&ManagedSchemaEngineV1>,
+    schema_set_sha256: &str,
+    binding: tos_foundation::SchemaExecutionBinding,
+) -> bool {
+    if validate_schema_execution(schema, worker_sha256, engine, schema_set_sha256).is_err()
+        || binding.schema_set_sha256().to_hex() != schema_set_sha256
+    {
+        return false;
+    }
+    match (binding, worker_sha256, engine) {
+        (tos_foundation::SchemaExecutionBinding::Worker(binding), Some(worker), None) => {
+            binding.worker_sha256.to_hex() == worker
+        }
+        (tos_foundation::SchemaExecutionBinding::InProcessV1(binding), None, Some(engine)) => {
+            binding.engine == engine.engine
+                && binding.schema_profile.id() == engine.schema_profile
+                && binding
+                    .input_mode_sha256
+                    .map(|digest| digest.to_hex())
+                    .as_deref()
+                    == Some(engine.input_mode_sha256.as_str())
+        }
+        _ => false,
+    }
+}
+
+pub(crate) fn schema_execution_fields(
+    binding: tos_foundation::SchemaExecutionBinding,
+) -> Result<(
+    String,
+    Option<String>,
+    Option<ManagedSchemaEngineV1>,
+    String,
+)> {
+    let schema_set = binding.schema_set_sha256().to_hex();
+    let (schema, worker, engine) = match binding {
+        tos_foundation::SchemaExecutionBinding::Worker(binding) => (
+            SCHEMA.to_owned(),
+            Some(binding.worker_sha256.to_hex()),
+            None,
+        ),
+        tos_foundation::SchemaExecutionBinding::InProcessV1(binding) => (
+            IN_PROCESS_SCHEMA.to_owned(),
+            None,
+            Some(ManagedSchemaEngineV1 {
+                engine: binding.engine.to_owned(),
+                schema_profile: binding.schema_profile.id().to_owned(),
+                input_mode_sha256: binding
+                    .input_mode_sha256
+                    .ok_or(Error::Invalid("managed schema input mode absent"))?
+                    .to_hex(),
+            }),
+        ),
+    };
+    validate_schema_execution(&schema, worker.as_deref(), engine.as_ref(), &schema_set)?;
+    Ok((schema, worker, engine, schema_set))
+}
+
+pub(crate) fn schema_executions_match(
+    previous: tos_foundation::SchemaExecutionBinding,
+    current: tos_foundation::SchemaExecutionBinding,
+) -> bool {
+    schema_execution_fields(previous).is_ok_and(|(schema, worker, engine, schema_set)| {
+        schema_execution_matches(
+            &schema,
+            worker.as_deref(),
+            engine.as_ref(),
+            &schema_set,
+            current,
+        )
+    })
+}
+
+/// Separate versioned delta retaining the parent manifest identity and source evidence.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ManagedManifestDeltaV2 {
@@ -325,7 +441,10 @@ pub struct ManagedManifestV2 {
     pub(crate) base: KnowledgeSelectedExpectation,
     pub(crate) base_provenance: ManagedSourceProofV2,
     pub(crate) base_transport: ManagedBaseTransportV2,
-    pub(crate) schema_worker_sha256: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) schema_worker_sha256: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) schema_engine: Option<ManagedSchemaEngineV1>,
     pub(crate) schema_set_sha256: String,
     pub(crate) source: ManagedOverlaySourceBindingV2,
     pub(crate) catalog_epoch: Vec<u8>,
@@ -339,6 +458,19 @@ pub struct ManagedManifestV2 {
     pub(crate) retained_logical_bound_bytes: u64,
 }
 impl ManagedManifestV2 {
+    pub(crate) fn matches_schema_execution(
+        &self,
+        binding: tos_foundation::SchemaExecutionBinding,
+    ) -> bool {
+        schema_execution_matches(
+            &self.schema,
+            self.schema_worker_sha256.as_deref(),
+            self.schema_engine.as_ref(),
+            &self.schema_set_sha256,
+            binding,
+        )
+    }
+
     pub fn source_binding_digest(&self) -> Result<Digest256> {
         self.source.digest()
     }
@@ -399,7 +531,9 @@ impl ManagedManifestV2 {
                 1_048_576,
             )?
             || parent.base_provenance != self.base_provenance
+            || parent.schema != self.schema
             || parent.schema_worker_sha256 != self.schema_worker_sha256
+            || parent.schema_engine != self.schema_engine
             || parent.schema_set_sha256 != self.schema_set_sha256
             || self.retained_logical_bound_bytes < parent.retained_logical_bound_bytes
         {
@@ -452,8 +586,7 @@ impl ManagedManifestV2 {
         limits.validate()?;
         self.source.validate()?;
         self.base_provenance.validate()?;
-        if self.schema != SCHEMA
-            || self.base.model_size_bytes == 0
+        if self.base.model_size_bytes == 0
             || self.catalog_epoch.is_empty()
             || self.catalog_epoch.len() > 65_536
             || self.navigation_tree.is_empty()
@@ -487,10 +620,12 @@ impl ManagedManifestV2 {
                 "managed manifest immutable base/source context",
             ));
         }
-        for digest in [&self.schema_worker_sha256, &self.schema_set_sha256] {
-            Digest256::from_hex(digest)
-                .map_err(|_| Error::Invalid("managed manifest software identity"))?;
-        }
+        validate_schema_execution(
+            &self.schema,
+            self.schema_worker_sha256.as_deref(),
+            self.schema_engine.as_ref(),
+            &self.schema_set_sha256,
+        )?;
         self.base_transport
             .validate(&self.base, limits.max_retained_logical_bound_bytes)?;
         Digest256::from_hex(&self.base.model_sha256)
@@ -879,4 +1014,69 @@ fn read_cold_manifest_once(
     let manifest = std::sync::Arc::new(manifest);
     admitted.insert(digest.to_hex(), manifest.clone());
     Ok(manifest)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn managed_manifest_schema_identity_accepts_history_and_in_process() {
+        let schema_set = Digest256::of_bytes(b"selected schemas").to_hex();
+        let worker = Digest256::of_bytes(b"historical worker").to_hex();
+        let engine = ManagedSchemaEngineV1 {
+            engine: tos_foundation::IN_PROCESS_SCHEMA_ENGINE_ID.to_owned(),
+            schema_profile: "tos.schema.format.legacy-python-observed-20260923".to_owned(),
+            input_mode_sha256: Digest256::of_bytes(b"selected input mode").to_hex(),
+        };
+        assert!(validate_schema_execution(SCHEMA, Some(&worker), None, &schema_set).is_ok());
+        assert!(
+            validate_schema_execution(IN_PROCESS_SCHEMA, None, Some(&engine), &schema_set).is_ok()
+        );
+        assert!(validate_schema_execution(SCHEMA, None, Some(&engine), &schema_set).is_err());
+        assert!(
+            validate_schema_execution(IN_PROCESS_SCHEMA, Some(&worker), Some(&engine), &schema_set)
+                .is_err()
+        );
+        let mut invalid = engine.clone();
+        invalid.input_mode_sha256 = "not-a-digest".into();
+        assert!(
+            validate_schema_execution(IN_PROCESS_SCHEMA, None, Some(&invalid), &schema_set)
+                .is_err()
+        );
+        let decoded: ManagedSchemaEngineV1 =
+            serde_json::from_slice(&serde_json::to_vec(&engine).unwrap()).unwrap();
+        assert_eq!(decoded, engine);
+        let binding = tos_foundation::SchemaExecutionBinding::InProcessV1(
+            tos_foundation::InProcessSchemaExecutionBinding {
+                schema_profile: tos_foundation::FormatProfile::LegacyPythonObserved20260923,
+                schema_set_sha256: Digest256::from_hex(&schema_set).unwrap(),
+                engine: tos_foundation::IN_PROCESS_SCHEMA_ENGINE_ID,
+                input_mode_sha256: Some(Digest256::from_hex(&engine.input_mode_sha256).unwrap()),
+            },
+        );
+        assert!(schema_execution_matches(
+            IN_PROCESS_SCHEMA,
+            None,
+            Some(&engine),
+            &schema_set,
+            binding
+        ));
+        let (schema, worker_field, recorded_engine, recorded_set) =
+            schema_execution_fields(binding).unwrap();
+        assert_eq!(schema, IN_PROCESS_SCHEMA);
+        assert!(worker_field.is_none());
+        assert_eq!(recorded_engine.as_ref(), Some(&engine));
+        assert_eq!(recorded_set, schema_set);
+        assert!(schema_executions_match(binding, binding));
+        let mut changed_mode = engine.clone();
+        changed_mode.input_mode_sha256 = Digest256::of_bytes(b"other mode").to_hex();
+        assert!(!schema_execution_matches(
+            IN_PROCESS_SCHEMA,
+            None,
+            Some(&changed_mode),
+            &schema_set,
+            binding
+        ));
+    }
 }

@@ -120,5 +120,5 @@ pub use owned_state::{OwnedState, checked_state_add};
 mod schema_profile;
 pub use schema_profile::{
     CutPreparedSchemaExecutionBinding, CutPreparedSchemaProtocol, FormatProfile,
-    InProcessSchemaExecutionBinding, SchemaExecutionBinding,
+    IN_PROCESS_SCHEMA_ENGINE_ID, InProcessSchemaExecutionBinding, SchemaExecutionBinding,
 };

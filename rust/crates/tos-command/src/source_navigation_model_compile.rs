@@ -28,20 +28,16 @@ use tos_foundation::{Digest256, RelativePath, SourceRevision};
 use tos_source_store::{
     CorpusCutReader, CorpusReader, CutReadLimits, ReadLimits, SourceMembershipV1,
 };
-use tos_validation::{
-    executor::{BatchBudget, BatchStreamBudget, ExactWorkerIdentity, ExecutorBudget},
-    source_cut::{CutSchemaDiagnosticsLimits, CutWorkerLimits},
-};
 
 use crate::source_command::{SourceCommandError, SourceCommandResult};
 
-const REQUEST_SCHEMA: &str = "tos_source_navigation_model_compile_request_v2";
+const REQUEST_SCHEMA: &str = "tos_source_navigation_model_compile_request_v3";
 pub(crate) const MAX_SOURCE_HISTORY_REVISIONS: usize = 4;
 // The host budget also covers assessment, selected export and publication.
 // The isolated compiler keeps its own smaller execution ceiling.
 pub(crate) const INITIAL_MAX_TOTAL_MS: u64 = 900_000;
 pub(crate) const CHILD_MAX_TOTAL_MS: u64 = 600_000;
-const RESULT_SCHEMA: &str = "tos_source_navigation_model_compile_result_v1";
+const RESULT_SCHEMA: &str = "tos_source_navigation_model_compile_result_v2";
 const REQUEST_MAX_BYTES: usize = 8 * 1024 * 1024;
 const RESPONSE_MAX_BYTES: usize = 8 * 1024 * 1024;
 const MODEL_CANDIDATE_LEAF: &str = "source-navigation-model.sqlite";
@@ -103,7 +99,7 @@ impl Drop for CompilePhaseGuard<'_> {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-pub(crate) struct SourceNavigationModelCompileRequestV2 {
+pub(crate) struct SourceNavigationModelCompileRequestV3 {
     pub schema_version: String,
     pub read_only_input_root: PathBuf,
     pub source_cut_root: PathBuf,
@@ -121,7 +117,6 @@ pub(crate) struct SourceNavigationModelCompileRequestV2 {
     pub membership_sha256: String,
     pub source_binding: SourceBinding,
     pub source_proof_v2: ManagedSourceProofV2,
-    pub schema_worker: SourceNavigationCompileWorkerV1,
     pub normalization_processor: SourceNavigationCompileProcessorV1,
     /// Exact separately admitted persistent scratch store, never the final owner path.
     pub artifact_staging_root: PathBuf,
@@ -250,13 +245,6 @@ impl SourceNavigationCompileCutLimitsV1 {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-pub(crate) struct SourceNavigationCompileWorkerV1 {
-    pub absolute_path: PathBuf,
-    pub sha256: String,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
 pub(crate) struct SourceNavigationCompileProcessorV1 {
     pub absolute_path: PathBuf,
     pub sha256: String,
@@ -284,12 +272,6 @@ pub(crate) struct SourceNavigationCompileModelLimitsV1 {
 #[serde(deny_unknown_fields)]
 pub(crate) struct SourceNavigationCompileProducerLimitsV1 {
     pub max_events: u64,
-    pub schema_execution_wall_ms: u64,
-    pub schema_cleanup_grace_ms: u64,
-    pub schema_cpu_seconds: u64,
-    pub schema_address_space_bytes: u64,
-    pub schema_max_receipts: u64,
-    pub schema_max_receipt_bytes: u64,
     pub event_limits: SourceNavigationCompileEventLimitsV1,
     pub aggregate_limits: SourceNavigationCompileAggregateLimitsV1,
 }
@@ -312,9 +294,59 @@ pub(crate) struct SourceNavigationCompileAggregateLimitsV1 {
     pub max_total_work_units: u64,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct SourceNavigationSchemaExecutionV1 {
+    engine: String,
+    schema_profile: String,
+    schema_set_sha256: String,
+    input_mode_sha256: String,
+}
+
+impl SourceNavigationSchemaExecutionV1 {
+    fn from_binding(binding: tos_foundation::SchemaExecutionBinding) -> SourceCommandResult<Self> {
+        let tos_foundation::SchemaExecutionBinding::InProcessV1(binding) = binding else {
+            return Err(SourceCommandError::Conflict(
+                "in-process schema execution required",
+            ));
+        };
+        Ok(Self {
+            engine: binding.engine.to_owned(),
+            schema_profile: binding.schema_profile.id().to_owned(),
+            schema_set_sha256: binding.schema_set_sha256.to_hex(),
+            input_mode_sha256: binding
+                .input_mode_sha256
+                .ok_or(SourceCommandError::Conflict("schema input mode absent"))?
+                .to_hex(),
+        })
+    }
+
+    pub(crate) fn matches_input_limit(&self, max_source_member_bytes: u64) -> bool {
+        let Some(max_instance_bytes) = source_schema_instance_limit(max_source_member_bytes) else {
+            return false;
+        };
+        self.engine == tos_foundation::IN_PROCESS_SCHEMA_ENGINE_ID
+            && self.schema_profile
+                == tos_foundation::FormatProfile::LegacyPythonObserved20260923.id()
+            && Digest256::from_hex(&self.schema_set_sha256).is_ok()
+            && self.input_mode_sha256
+                == (tos_validation::in_process::InputMode::LegacyPythonObservedBounded {
+                    max_instance_bytes,
+                })
+                .identity_sha256()
+                .to_hex()
+    }
+}
+
+pub(crate) fn source_schema_instance_limit(max_source_member_bytes: u64) -> Option<usize> {
+    usize::try_from(max_source_member_bytes.min(16 * 1024 * 1024))
+        .ok()
+        .filter(|limit| *limit > 0)
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-pub(crate) struct SourceNavigationModelCompileResultV1 {
+pub(crate) struct SourceNavigationModelCompileResultV2 {
     pub schema_version: String,
     /// Hash of the exact bounded stdin request, independently checked by the launcher.
     pub raw_request_sha256: String,
@@ -322,6 +354,7 @@ pub(crate) struct SourceNavigationModelCompileResultV1 {
     pub stage: StageReceipt,
     pub expectation: KnowledgeSelectedExpectation,
     pub navigation_original: NavigationOriginalReceipt,
+    pub schema_execution: SourceNavigationSchemaExecutionV1,
     pub artifact_fs_verity: NativeFsVerityMeasurement,
     pub catalog_work: SourceNavigationCatalogWorkV1,
 }
@@ -667,7 +700,7 @@ pub(crate) fn run_stdin() -> SourceCommandResult<()> {
     }
     let document = crate::source_command::parse(&raw)?;
     let canonical = crate::source_command::canonical(&document)?;
-    let request: SourceNavigationModelCompileRequestV2 = serde_json::from_slice(&canonical)
+    let request: SourceNavigationModelCompileRequestV3 = serde_json::from_slice(&canonical)
         .map_err(|_| SourceCommandError::Invalid("source-navigation compile request schema"))?;
     if request.schema_version != REQUEST_SCHEMA {
         return Err(SourceCommandError::Invalid(
@@ -693,9 +726,9 @@ pub(crate) fn run_stdin() -> SourceCommandResult<()> {
 /// Compile from the immutable, selected export and return a candidate plus
 /// producer-issued receipts. Final-owner publication belongs to the parent.
 pub(crate) fn compile(
-    request: &SourceNavigationModelCompileRequestV2,
+    request: &SourceNavigationModelCompileRequestV3,
     raw_request_sha256: &str,
-) -> SourceCommandResult<SourceNavigationModelCompileResultV1> {
+) -> SourceCommandResult<SourceNavigationModelCompileResultV2> {
     let phase_trace = CompilePhaseTrace::new();
     if request.schema_version != REQUEST_SCHEMA {
         return Err(SourceCommandError::Invalid(
@@ -919,24 +952,6 @@ pub(crate) fn compile(
 
     drop(input_cut_phase);
 
-    let worker_path = &request.schema_worker.absolute_path;
-    if !worker_path.is_absolute()
-        || worker_path.components().any(|component| {
-            matches!(
-                component,
-                std::path::Component::CurDir | std::path::Component::ParentDir
-            )
-        })
-    {
-        return Err(SourceCommandError::Invalid(
-            "source-navigation schema worker path",
-        ));
-    }
-    let schema_worker_identity = ExactWorkerIdentity {
-        absolute_path: worker_path.clone(),
-        sha256: Digest256::from_hex(&request.schema_worker.sha256)
-            .map_err(|_| SourceCommandError::Invalid("source-navigation schema worker digest"))?,
-    };
     let producer = request.producer_limits;
     let event_limits = producer.event_limits;
     let aggregate = producer.aggregate_limits;
@@ -957,34 +972,6 @@ pub(crate) fn compile(
         512 * 1024 * 1024,
         "producer total byte cap",
     )?;
-    let schema_wall_ms = bounded_positive(
-        producer.schema_execution_wall_ms,
-        300_000,
-        "schema execution cap",
-    )?;
-    let schema_cleanup_ms = bounded_positive(
-        producer.schema_cleanup_grace_ms,
-        60_000,
-        "schema cleanup cap",
-    )?;
-    let schema_cpu_seconds = bounded_positive(producer.schema_cpu_seconds, 60, "schema CPU cap")?;
-    let schema_address_space = bounded_positive(
-        producer.schema_address_space_bytes,
-        8 * 1024 * 1024 * 1024,
-        "schema address cap",
-    )?;
-    let _event_schema_max_receipts = usize::try_from(bounded_positive(
-        producer.schema_max_receipts,
-        100_000,
-        "schema receipt count cap",
-    )?)
-    .map_err(|_| SourceCommandError::Invalid("schema receipt count cap"))?;
-    let _event_schema_max_receipt_bytes = usize::try_from(bounded_positive(
-        producer.schema_max_receipt_bytes,
-        64 * 1024 * 1024,
-        "schema receipt byte cap",
-    )?)
-    .map_err(|_| SourceCommandError::Invalid("schema receipt byte cap"))?;
     let _max_total_rows =
         bounded_positive(aggregate.max_total_rows, u64::MAX - 1, "aggregate row cap")?;
     let _max_total_encoded_bytes = bounded_positive(
@@ -1041,8 +1028,9 @@ pub(crate) fn compile(
         .stage
         .validate()
         .map_err(|_| SourceCommandError::Invalid("narrowed source-navigation stage limits"))?;
-    let source_file_bytes = usize::try_from(model.max_source_member_bytes.min(16 * 1024 * 1024))
-        .map_err(|_| SourceCommandError::Invalid("selected source member byte cap"))?;
+    let source_file_bytes = source_schema_instance_limit(model.max_source_member_bytes).ok_or(
+        SourceCommandError::Invalid("selected source member byte cap"),
+    )?;
     let source_row_bytes = source_file_bytes.min(1024 * 1024).max(1);
     let initial_rows = request
         .cold_limits
@@ -1103,103 +1091,14 @@ pub(crate) fn compile(
     let catalog_input_receipt = catalog_plan.input_receipt();
     let planning_elapsed_ms = elapsed_ms(plan_start);
     let schema_phase = phase_trace.phase("schema_validation");
-    let schema_operation_wall = deadline.saturating_duration_since(Instant::now());
-    let schema_duration = schema_operation_wall.min(Duration::from_millis(schema_wall_ms));
-    if schema_duration.is_zero() {
-        return Err(SourceCommandError::Unsupported(
-            "source-navigation schema deadline exhausted",
-        ));
-    }
-    let schema_budget = ExecutorBudget {
-        execution_wall: schema_duration,
-        cleanup_grace: Duration::from_millis(
-            schema_cleanup_ms.min(ExecutorBudget::MAX_SCALAR_CLEANUP_GRACE_MILLIS),
-        ),
-        cpu_seconds: schema_cpu_seconds,
-        address_space_bytes: schema_address_space,
-    };
-    // Initial preparation validates a complete selected catalogue. The
-    // producer's per-event receipt/window caps describe later incremental
-    // advances and cannot bound this different operation. Keep the initial
-    // schema work within the selected cold row and model plan caps. Schema
-    // per-unit execution limits remain separate from aggregate initial work.
-    let initial_units = initial_rows
-        .checked_add(model.max_source_members)
-        .ok_or(SourceCommandError::Invalid("initial schema unit overflow"))?;
-    let initial_receipts = usize::try_from(initial_units)
-        .map_err(|_| SourceCommandError::Invalid("initial schema receipt cap"))?;
-    let initial_receipt_bytes = model.max_plan_bytes.min(
-        usize::try_from(model.max_plan_work_bytes)
-            .map_err(|_| SourceCommandError::Invalid("initial schema receipt byte cap"))?,
-    );
-    let schema_limits = CutWorkerLimits {
-        max_receipts: initial_receipts,
-        max_receipt_bytes: initial_receipt_bytes,
-    };
-    let batch_wall = schema_duration.min(Duration::from_secs(3_600));
-    let batch_units = initial_receipts.min(BatchBudget::MAX_UNITS).max(1);
-    let batch_raw_bytes = usize::try_from(
-        model
-            .max_plan_work_bytes
-            .min(BatchBudget::MAX_RAW_BYTES as u64),
-    )
-    .map_err(|_| SourceCommandError::Invalid("source-navigation schema input cap"))?
-    .max(1);
-    let schema_work = BatchStreamBudget {
-        batch: tos_validation::executor::BatchBudget {
-            total_execution_wall: batch_wall,
-            startup_wall: batch_wall.min(Duration::from_secs(1)),
-            per_unit_wall: batch_wall,
-            cleanup_grace: Duration::from_millis(
-                schema_cleanup_ms.min(ExecutorBudget::MAX_SCALAR_CLEANUP_GRACE_MILLIS),
-            ),
-            cpu_seconds: schema_cpu_seconds,
-            address_space_bytes: schema_address_space,
-            max_units: batch_units,
-            max_total_raw_bytes: batch_raw_bytes,
-        },
-        max_chunks: initial_units,
-        max_total_units: initial_units,
-        max_total_raw_bytes: model.max_plan_work_bytes,
-        total_execution_wall: schema_operation_wall,
-        operation_cpu_seconds: u64::try_from(schema_operation_wall.as_millis())
-            .map_err(|_| SourceCommandError::Invalid("initial schema CPU cap"))?
-            .div_ceil(1_000),
-        operation_address_space_bytes: schema_address_space,
-        max_total_wire_bytes: model.max_plan_work_bytes,
-        max_distinct_selectors: usize::try_from(model.max_source_members)
-            .map_err(|_| SourceCommandError::Invalid("initial schema selector cap"))?,
-    };
-    schema_work.validate().map_err(|_| {
-        SourceCommandError::Invalid("selected source-navigation schema work budget")
-    })?;
-    // Whole selected source packets use the existing bounded diagnostics-v2
-    // input lane. The scalar probe's one-MiB ceiling describes ordinary rows.
-    let diagnostics = CutSchemaDiagnosticsLimits::from_operation_ceilings(
-        CutSchemaDiagnosticsLimits {
-            max_total_issues: 8192,
-            max_total_report_bytes: initial_receipt_bytes,
-            max_total_state_bytes: usize::try_from(model.max_plan_work_bytes)
-                .map_err(|_| SourceCommandError::Invalid("initial schema state cap"))?,
-        },
-        initial_receipts,
-        schema_work,
-    )
-    .map_err(|_| SourceCommandError::Invalid("initial schema diagnostics limits"))?;
-    let validator = SourceCatalogValidator::from_cut_diagnostics_v2(
+    // The selected source member limit also bounds schema instance bytes.
+    let validator = SourceCatalogValidator::from_in_process_cut_diagnostics(
         &cut,
-        &schema_worker_identity,
-        schema_budget,
-        schema_limits,
-        schema_work,
-        diagnostics,
+        source_file_bytes,
         deadline,
         &cancelled,
     )
     .map_err(|error| compiler_failure("schema-preparation", error))?;
-    validator
-        .set_diagnostics_v2_legacy_raw_instance_limit(source_file_bytes)
-        .map_err(|error| compiler_failure("schema-source-packet-limit", error))?;
 
     drop(schema_phase);
 
@@ -1459,6 +1358,8 @@ pub(crate) fn compile(
 
     let candidate_finalization_phase = phase_trace.phase("candidate_finalization");
     let navigation_original = completed.navigation_original().clone();
+    let schema_execution =
+        SourceNavigationSchemaExecutionV1::from_binding(completed.schema_execution_binding())?;
     drop(completed);
     remove_stage_file(
         &isolated,
@@ -1485,13 +1386,14 @@ pub(crate) fn compile(
         rendering_elapsed_ms,
         model_elapsed_ms,
     };
-    let result = SourceNavigationModelCompileResultV1 {
+    let result = SourceNavigationModelCompileResultV2 {
         schema_version: RESULT_SCHEMA.into(),
         raw_request_sha256: request_digest.to_hex(),
         candidate_leaf: MODEL_CANDIDATE_LEAF.into(),
         stage,
         expectation,
         navigation_original,
+        schema_execution,
         artifact_fs_verity,
         catalog_work,
     };
@@ -1548,6 +1450,36 @@ fn validate_model_limits(limits: SourceNavigationCompileModelLimitsV1) -> Source
 #[cfg(test)]
 mod history_limit_tests {
     use super::*;
+
+    #[test]
+    fn compile_schema_evidence_binds_actual_in_process_input_limit() {
+        let max_instance_bytes = 2 * 1024 * 1024;
+        let mode = tos_validation::in_process::InputMode::LegacyPythonObservedBounded {
+            max_instance_bytes,
+        };
+        let binding = tos_foundation::SchemaExecutionBinding::InProcessV1(
+            tos_foundation::InProcessSchemaExecutionBinding {
+                engine: tos_foundation::IN_PROCESS_SCHEMA_ENGINE_ID,
+                schema_profile: tos_foundation::FormatProfile::LegacyPythonObserved20260923,
+                schema_set_sha256: Digest256::of_bytes(b"selected schemas"),
+                input_mode_sha256: Some(mode.identity_sha256()),
+            },
+        );
+        let evidence = SourceNavigationSchemaExecutionV1::from_binding(binding).unwrap();
+        assert!(evidence.matches_input_limit(max_instance_bytes as u64));
+        assert!(!evidence.matches_input_limit(max_instance_bytes as u64 + 1));
+        assert_eq!(source_schema_instance_limit(0), None);
+        assert_eq!(
+            source_schema_instance_limit(32 * 1024 * 1024),
+            Some(16 * 1024 * 1024)
+        );
+        let decoded: SourceNavigationSchemaExecutionV1 =
+            serde_json::from_slice(&serde_json::to_vec(&evidence).unwrap()).unwrap();
+        assert_eq!(decoded, evidence);
+        let mut invalid = evidence;
+        invalid.schema_set_sha256 = "invalid".into();
+        assert!(!invalid.matches_input_limit(max_instance_bytes as u64));
+    }
 
     #[test]
     fn bootstrap_contract_initial_export_history_is_not_a_command_batch() {

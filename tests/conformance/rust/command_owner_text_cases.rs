@@ -1325,8 +1325,6 @@ fn native_private_assessment_v4_append_replay_and_revocation_preserve_native_byt
         &context,
         selected_units.root(),
         &setup_cut,
-        &images[2],
-        before_images[2].4,
         deadline,
         &cancelled,
     )
@@ -1862,8 +1860,6 @@ fn rebind_journal_fixture(
         &context,
         units.root(),
         &cut,
-        worker,
-        worker_digest,
         deadline,
         cancelled,
     )

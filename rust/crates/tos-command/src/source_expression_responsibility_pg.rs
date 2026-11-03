@@ -17,7 +17,6 @@ use tos_validation::item_rules::{ItemLimits, ItemRefusal};
 use tos_validation::record_biblio_cut::{
     SourceCutInput, SourceCutInputWithIdentity, SourceCutMemberMeta,
 };
-use tos_validation::source_cut::CandidateCutWorkerSchemaExecutor;
 
 const CONTRACTS: &[&str] = &[
     "ToS/doctrine/semantic-interchange/entity-types.v1.json",
@@ -57,7 +56,7 @@ pub(crate) fn prepare_pg_expression_responsibility<'a, I: Copy + Eq>(
     selected_catalog: &SelectedSourceWitnessCatalog,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut impl crate::source_revisions::CandidateRecordSchemaWorker<I>,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PgExpressionResponsibilityOwnerPackage<'a>> {
@@ -392,7 +391,7 @@ pub(crate) fn prepare_pg_expression_responsibility_preview<I: Copy + Eq>(
     selected_catalog: &SelectedSourceWitnessCatalog,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut impl crate::source_revisions::CandidateRecordSchemaWorker<I>,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ExpressionResponsibilityPreparation> {
@@ -606,7 +605,7 @@ pub(crate) fn current_result_fields_from_selected_pg<I: Copy + Eq>(
     catalog: &SelectedSourceWitnessCatalog,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut impl crate::source_revisions::CandidateRecordSchemaWorker<I>,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -1075,7 +1074,7 @@ fn current_catalog_from_selected_input<I: Copy + Eq>(
     before: &BTreeMap<String, Vec<u8>>,
     input: &dyn SourceCutInputWithIdentity<I>,
     selected: &SelectedSourceWitnessCatalog,
-    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut impl crate::source_revisions::CandidateRecordSchemaWorker<I>,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<SelectedResponsibilityCatalog> {

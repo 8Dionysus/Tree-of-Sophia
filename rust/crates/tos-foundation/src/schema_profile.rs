@@ -1,6 +1,8 @@
 //! Stable schema-execution identities shared by storage and validation.
 use crate::Digest256;
 
+pub const IN_PROCESS_SCHEMA_ENGINE_ID: &str = "tos_schema_engine_in_process_v1";
+
 /// The observed legacy profile is evidence for migration comparison only.
 /// A normative profile is selected by the source owner, not by installed
 /// optional format packages on the host.
@@ -44,6 +46,8 @@ pub struct InProcessSchemaExecutionBinding {
     pub schema_profile: FormatProfile,
     pub schema_set_sha256: Digest256,
     pub engine: &'static str,
+    /// Absent only when reading an older binding that did not record input mode.
+    pub input_mode_sha256: Option<Digest256>,
 }
 
 /// Versioned execution identity for adapters migrating from worker execution.
@@ -51,4 +55,32 @@ pub struct InProcessSchemaExecutionBinding {
 pub enum SchemaExecutionBinding {
     Worker(CutPreparedSchemaExecutionBinding),
     InProcessV1(InProcessSchemaExecutionBinding),
+}
+
+impl From<CutPreparedSchemaExecutionBinding> for SchemaExecutionBinding {
+    fn from(binding: CutPreparedSchemaExecutionBinding) -> Self {
+        Self::Worker(binding)
+    }
+}
+
+impl From<InProcessSchemaExecutionBinding> for SchemaExecutionBinding {
+    fn from(binding: InProcessSchemaExecutionBinding) -> Self {
+        Self::InProcessV1(binding)
+    }
+}
+
+impl SchemaExecutionBinding {
+    pub fn schema_profile(self) -> FormatProfile {
+        match self {
+            Self::Worker(binding) => binding.schema_profile,
+            Self::InProcessV1(binding) => binding.schema_profile,
+        }
+    }
+
+    pub fn schema_set_sha256(self) -> Digest256 {
+        match self {
+            Self::Worker(binding) => binding.schema_set_sha256,
+            Self::InProcessV1(binding) => binding.schema_set_sha256,
+        }
+    }
 }

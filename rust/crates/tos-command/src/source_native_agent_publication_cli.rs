@@ -1,7 +1,7 @@
 //! Fixed protected Record-to-prepared Agent transport. Requests select no paths
 //! or grants; the existing source kernel owns authentication and the transaction.
 use super::prepared_transport::{DatabaseFence, active, bounded_limits, companion, failure, typed};
-use super::{absolute, capped, digest, exact, selected_schema, text};
+use super::{absolute, capped, digest, exact, text};
 use crate::source_agent_publication::{
     NativeAgentExecution, bootstrap_reviewed_agent_execution_profile_transaction,
     publish_committed_agent_correction_with_precommit,
@@ -422,8 +422,18 @@ pub(super) fn run(
             json!({"schema_version":"tos_local_native_agent_publication_result_v1","result":receipt,"grants_admission":false}),
         );
     }
-    let mut original_worker = selected_schema(invocation, &original, deadline, cancelled)?;
-    let mut current_worker = selected_schema(invocation, current, deadline, cancelled)?;
+    let schemas = |cut: &CorpusCutReader| {
+        tos_validation::source_cut::InProcessCutSchemaExecutor::from_cut(
+            cut,
+            tos_validation::FormatProfile::LegacyPythonObserved20260923,
+            tos_validation::in_process::InputMode::SerdeNormalized,
+            deadline,
+            cancelled,
+        )
+        .map_err(|_| SourceCommandError::Denied("Agent publication schema selection"))
+    };
+    let mut original_worker = schemas(&original)?;
+    let mut current_worker = schemas(current)?;
     let result = publish_committed_agent_correction_with_precommit(
         &db,
         &owner_path,

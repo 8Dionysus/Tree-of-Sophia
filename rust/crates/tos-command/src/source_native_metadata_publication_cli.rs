@@ -1,7 +1,7 @@
 //! Fixed protected initial-Metadata-to-prepared transport. Requests select no paths
 //! or grants; the existing source kernel owns authentication and the transaction.
 use super::prepared_transport::{DatabaseFence, active, bounded_limits, companion, typed};
-use super::{absolute, capped, digest, exact, selected_schema, text};
+use super::{absolute, capped, digest, exact, text};
 use crate::source_agent_publication::bootstrap_reviewed_agent_execution_profile_transaction;
 use crate::source_claim_publication::{
     ClaimPublicationLimits, ClaimPublicationProgress, ReviewedClaimProfileTransition,
@@ -466,7 +466,17 @@ pub(super) fn run(
         deadline,
         cancelled,
     )?;
-    let mut original_worker = selected_schema(invocation, &original, deadline, cancelled)?;
+    let schemas = |cut: &CorpusCutReader| {
+        tos_validation::source_cut::InProcessCutSchemaExecutor::from_cut(
+            cut,
+            tos_validation::FormatProfile::LegacyPythonObserved20260923,
+            tos_validation::in_process::InputMode::SerdeNormalized,
+            deadline,
+            cancelled,
+        )
+        .map_err(|_| SourceCommandError::Denied("Metadata schema selection"))
+    };
+    let mut original_worker = schemas(&original)?;
     let prepared = crate::source_creation::prepare_source_creation_from_captures(
         &original_context,
         &original,
@@ -494,7 +504,7 @@ pub(super) fn run(
         deadline,
         cancelled,
     )?;
-    let mut current_worker = selected_schema(invocation, current, deadline, cancelled)?;
+    let mut current_worker = schemas(current)?;
     let receipt = publish_committed_initial_metadata_with_precommit(
         &db,
         &owner_path,

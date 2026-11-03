@@ -1752,6 +1752,8 @@ pub(super) fn publish_agent_load_fixture(
     let file_sha = |path: &Path| Digest256::of_bytes(&fs::read(path).unwrap()).to_prefixed();
     let mut agent_invocation = invocation.clone();
     agent_invocation["schema_version"] = json!("tos_local_native_agent_publication_invocation_v1");
+    agent_invocation["schema_worker"]["absolute_path"] =
+        json!("/nonexistent/hostguard-schema-worker");
     agent_invocation["prepared_database"] = json!(db_path);
     agent_invocation["expected_binding_path"] = json!(binding_companion);
     agent_invocation["source_inputs_path"] = json!(source_companion);

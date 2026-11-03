@@ -1,7 +1,7 @@
 //! Explicit protected TextUnit/TextLayer callers of the existing whole engines.
 //! Original cut identity remains explicit evidence; current validation and the
 //! engines' retained-package replay govern every publication and retry.
-use super::{absolute, capped, digest, selected_schema, text};
+use super::{absolute, capped, digest, text};
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
 use crate::source_text_layer_derived_entry as derived;
 use crate::source_text_layer_entry as initial;
@@ -88,7 +88,14 @@ pub(super) fn run(
     }
     let request = cmd::parse(request_raw)?;
     let operation = cmd::text(&request, "operation")?;
-    let mut worker = selected_schema(invocation, current, deadline, cancelled)?;
+    let mut worker = tos_validation::source_cut::InProcessCutSchemaExecutor::from_cut(
+        current,
+        tos_validation::FormatProfile::LegacyPythonObserved20260923,
+        tos_validation::in_process::InputMode::SerdeNormalized,
+        deadline,
+        cancelled,
+    )
+    .map_err(|_| SourceCommandError::Denied("Text schema selection"))?;
     let schema_path = RelativePath::parse("ToS/contracts/owner-local-source-context.schema.json")
         .map_err(|_| SourceCommandError::Invalid("Text context schema path"))?;
     let schema = current

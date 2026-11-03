@@ -20,7 +20,6 @@ use tos_foundation::{Digest256, JsonValue};
 use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::item_rules::ItemLimits;
 use tos_validation::record_biblio_cut::{SourceCutInput, SourceCutInputWithIdentity};
-use tos_validation::source_cut::{CandidateCutWorkerSchemaExecutor, CutSchemaExecutor};
 
 const WORK_CONTRACTS: &[&str] = &[
     "ToS/doctrine/semantic-interchange/entity-types.v1.json",
@@ -61,7 +60,10 @@ pub(crate) fn preview_pg_work_expression<'a, I: Copy + Eq>(
     input: &dyn SourceCutInputWithIdentity<I>,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut (
+             impl crate::source_revisions::RecordSchemaWorker<Identity = I>
+             + tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding<I>
+         ),
     operation: &str,
     limits: ItemLimits,
     cancelled: &AtomicBool,
@@ -466,7 +468,10 @@ pub(crate) fn prepare_pg_work_expression<'a, I: Copy + Eq>(
     input: &dyn SourceCutInputWithIdentity<I>,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut (
+             impl crate::source_revisions::RecordSchemaWorker<Identity = I>
+             + tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding<I>
+         ),
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PgWorkExpressionOwnerPackage<'a>> {

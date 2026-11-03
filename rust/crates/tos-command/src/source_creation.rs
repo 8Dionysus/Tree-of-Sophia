@@ -8,7 +8,22 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonString, JsonValue, RelativePath};
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::{
+    CutSchemaExecutor, CutWorkerSchemaExecutor, InProcessCutSchemaExecutor,
+};
+
+/// Source-compatible bridge for the two cut-bound schema executors. Remove
+/// this bridge and use the in-process executor when the worker is retired.
+#[allow(private_bounds)]
+pub trait CreationSchemaExecutor:
+    claims::MaintainedInventorySchemaWorker<Identity = tos_foundation::SourceRevision>
+    + crate::source_sign::SignSourceSchemas
+    + crate::source_native_cli::HistoricalSchemas
+{
+}
+
+impl CreationSchemaExecutor for CutWorkerSchemaExecutor {}
+impl CreationSchemaExecutor for InProcessCutSchemaExecutor<()> {}
 
 const ENTITIES: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
 const RELATIONS: &str = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
@@ -561,7 +576,7 @@ impl ManagedPreparedCreation {
         self,
         software: &SoftwareCaptureReader,
         components: &SoftwareComponentSelectionV1,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut impl CreationSchemaExecutor,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<ManagedSerializedCreation> {
@@ -682,7 +697,7 @@ impl PreparedCreation {
         self,
         software: &SoftwareCaptureReader,
         components: &SoftwareComponentSelectionV1,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut impl CreationSchemaExecutor,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<SerializedCreation> {
@@ -703,7 +718,7 @@ impl PreparedCreation {
         self,
         software: &SoftwareCaptureReader,
         components: &SoftwareComponentSelectionV1,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut impl CreationSchemaExecutor,
         retained: &BTreeMap<String, Vec<u8>>,
         deadline: Instant,
         cancelled: &AtomicBool,
@@ -728,7 +743,7 @@ impl PreparedCreation {
         self,
         software: &SoftwareCaptureReader,
         components: &SoftwareComponentSelectionV1,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut impl CreationSchemaExecutor,
         deadline: Instant,
         cancelled: &AtomicBool,
         retained: Option<&BTreeMap<String, Vec<u8>>>,
@@ -1387,7 +1402,7 @@ fn initial_identity(config: &JsonValue, record: &JsonValue) -> SourceCommandResu
 fn initial(
     ctx: &CommandContext,
     cut: &CorpusCutReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl CreationSchemaExecutor,
     config: &JsonValue,
     family: CreationFamily,
     record: &JsonValue,
@@ -1486,8 +1501,8 @@ fn initial(
 pub(crate) fn initial_with_candidate_schema(
     ctx: &CommandContext,
     identity: crate::source_cohort::revision::PgRecordRevisionIdentity,
-    worker: &mut tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<
-        crate::source_cohort::revision::PgRecordRevisionIdentity,
+    worker: &mut impl revisions::RecordSchemaWorker<
+        Identity = crate::source_cohort::revision::PgRecordRevisionIdentity,
     >,
     config: &JsonValue,
     family: CreationFamily,
@@ -1620,7 +1635,7 @@ fn historical_claims(
     record: &JsonValue,
     rows: &[JsonValue],
     inventory: &claims::MaintainedInventory,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
     evidence: &mut Vec<JsonValue>,
@@ -1884,7 +1899,7 @@ pub(crate) fn initial_information_from_captures(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl CreationSchemaExecutor,
     target_exists: bool,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -1952,7 +1967,7 @@ pub fn prepare_source_creation_from_captures(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCreation> {
@@ -1966,12 +1981,12 @@ pub fn prepare_managed_agent_creation(
     schema_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ManagedPreparedCreation> {
     if schema_cut.current().revision() != input.context.base_revision
-        || worker.source_revision() != input.context.base_revision
+        || worker.selected_source_revision() != Some(input.context.base_revision)
         || components != &input.components
         || software.selection() != input.components.capture()
     {
@@ -2002,8 +2017,8 @@ pub fn describe_sign_promotion_from_captures(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    local_worker: &mut CutWorkerSchemaExecutor,
-    assessment_worker: &mut CutWorkerSchemaExecutor,
+    local_worker: &mut impl CreationSchemaExecutor,
+    assessment_worker: &mut impl CutSchemaExecutor,
     limits: tos_validation::assessment::AssessmentLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -2033,8 +2048,8 @@ pub fn prepare_sign_promotion_from_captures(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    local_worker: &mut CutWorkerSchemaExecutor,
-    assessment_worker: &mut CutWorkerSchemaExecutor,
+    local_worker: &mut impl CreationSchemaExecutor,
+    assessment_worker: &mut impl CutSchemaExecutor,
     limits: tos_validation::assessment::AssessmentLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCreation> {
@@ -2155,7 +2170,7 @@ fn prepare_creation(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
     promotion: Option<&JsonValue>,
@@ -2677,7 +2692,7 @@ pub(crate) fn reprepare_managed_agent_creation(
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
     original_files: BTreeMap<String, Vec<u8>>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ManagedSerializedCreation> {

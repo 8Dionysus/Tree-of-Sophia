@@ -14,7 +14,7 @@ use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue, RelativePath};
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::CutSchemaExecutor;
 const CONTROL: &str = "ToS/source-witnesses/.metadata-publication.json";
 
 #[cfg(test)]
@@ -255,7 +255,7 @@ pub(crate) fn run(
     original: Option<&CorpusCutReader>,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl revision::RecordSchemaWorker<Identity = tos_foundation::SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCommand> {
@@ -520,7 +520,7 @@ pub(crate) fn run(
         .selected()
         .then(|| revision::read_record_revision_publication(ctx, &id_refs))
         .transpose()?;
-    let mut proposal = revision::prepare_record_revision_from_captures(
+    let mut proposal = revision::prepare_record_revision_from_captures_with(
         ctx,
         publication.as_ref(),
         cut,

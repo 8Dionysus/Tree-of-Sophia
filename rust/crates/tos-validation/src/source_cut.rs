@@ -925,6 +925,122 @@ pub struct CutWorkerSchemaExecutor {
     protocol_started: bool,
 }
 
+struct SelectedCandidateSchemaResources {
+    resources: Vec<SchemaResource>,
+    source_resources: Vec<SelectedSchemaResource>,
+    contracts: BTreeMap<String, (String, Digest256)>,
+    schema_set_sha256: Digest256,
+    contract_selection_sha256: Digest256,
+    schema_bytes: usize,
+    catalog_entry_schema_present: bool,
+    catalog_claim_entry_schema_present: bool,
+}
+
+fn select_candidate_schema_resources(
+    mut selected: Vec<(String, SchemaResource)>,
+    profile: FormatProfile,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<SelectedCandidateSchemaResources, ItemRefusal> {
+    check(deadline, cancelled)?;
+    if !matches!(
+        profile,
+        FormatProfile::LegacyPythonObserved20260923 | FormatProfile::AssertedSourceCandidateV1
+    ) || selected.is_empty()
+        || selected.len() > SchemaBackendProbe::MAX_RESOURCES
+    {
+        return Err(ItemRefusal::Source(
+            "selected candidate schema resource bounds".into(),
+        ));
+    }
+    selected.sort_by(|left, right| left.0.cmp(&right.0));
+    let mut resources = Vec::with_capacity(selected.len());
+    let mut source_resources = Vec::with_capacity(selected.len());
+    let mut contracts = BTreeMap::new();
+    let mut schema_bytes = 0usize;
+    let mut catalog_entry_schema_present = false;
+    let mut catalog_claim_entry_schema_present = false;
+    for (path, resource) in selected {
+        check(deadline, cancelled)?;
+        if path.len() > crate::source_foundation_schema::MAX_LOCATION_BYTES
+            || !path.starts_with("ToS/contracts/")
+            || !path.ends_with(".schema.json")
+            || RelativePath::parse(&path).is_err()
+            || resource.raw.is_empty()
+            || resource.raw.len() > SchemaBackendProbe::MAX_RESOURCE_BYTES
+        {
+            return Err(ItemRefusal::Source(
+                "selected candidate schema resource identity or bounds".into(),
+            ));
+        }
+        let value = published_value(&resource.raw, SchemaBackendProbe::MAX_RESOURCE_BYTES)
+            .map_err(|_| ItemRefusal::Unsupported("selected candidate schema JSON".into()))?;
+        // The authenticated source bytes own $id. Maintained schemas also
+        // use /contracts/ and public GitHub identities; a filesystem path
+        // does not manufacture or replace their declared resource URI.
+        if source_foundation_schema_resource_uri(&value) != Some(resource.uri.as_str()) {
+            return Err(ItemRefusal::Source(
+                "selected candidate schema URI differs from its source bytes".into(),
+            ));
+        }
+        schema_bytes = schema_bytes
+            .checked_add(resource.raw.len())
+            .filter(|total| *total <= SchemaBackendProbe::MAX_TOTAL_BYTES)
+            .ok_or(crate::item_budget_origin!())?;
+        let digest = Digest256::of_bytes(&resource.raw);
+        if contracts
+            .insert(path.clone(), (resource.uri.clone(), digest))
+            .is_some()
+        {
+            return Err(ItemRefusal::Source(
+                "duplicate selected candidate schema path".into(),
+            ));
+        }
+        if path == "ToS/contracts/source-witness-catalog.schema.json" {
+            let definitions = value.get("$defs").and_then(serde_json::Value::as_object);
+            catalog_entry_schema_present = definitions
+                .and_then(|definitions| definitions.get("entry"))
+                .is_some_and(serde_json::Value::is_object);
+            catalog_claim_entry_schema_present = definitions
+                .and_then(|definitions| definitions.get("claim_entry"))
+                .is_some_and(serde_json::Value::is_object);
+        }
+        source_resources.push(SelectedSchemaResource {
+            path,
+            size_bytes: resource.raw.len() as u64,
+            sha256: digest,
+        });
+        resources.push(resource);
+    }
+    let schema_set_sha256 = schema_resource_set_digest(&resources)
+        .ok_or_else(|| ItemRefusal::Source("selected candidate schema closure".into()))?;
+    let contract_selection_sha256 = contract_selection_digest(&contracts);
+    let source_resource_metadata_state_bytes =
+        crate::source_foundation_schema::selected_source_resource_metadata_state(
+            &source_resources,
+            source_resources.capacity(),
+        )
+        .ok_or(crate::item_budget_origin!())?;
+    let source_resource_metadata_limit =
+        CandidateSourceFoundationSchemaSet::<()>::source_resource_metadata_state_upper_bound(
+            source_resources.len(),
+        )
+        .ok_or(crate::item_budget_origin!())?;
+    if source_resource_metadata_state_bytes > source_resource_metadata_limit {
+        return Err(crate::item_budget_origin!());
+    }
+    Ok(SelectedCandidateSchemaResources {
+        resources,
+        source_resources,
+        contracts,
+        schema_set_sha256,
+        contract_selection_sha256,
+        schema_bytes,
+        catalog_entry_schema_present,
+        catalog_claim_entry_schema_present,
+    })
+}
+
 /// Candidate-fenced wrapper around the same prepared schema executor used by
 /// immutable cuts. The input identity and selected source census stay typed;
 /// the inner worker has no SourceRevision and owns the same image, protocol,
@@ -1007,7 +1123,7 @@ impl<I: Copy + Eq> CandidateCutWorkerSchemaExecutor<I> {
 
     fn from_selected_source_resources_with_profile(
         input_identity: I,
-        mut selected: Vec<(String, SchemaResource)>,
+        selected: Vec<(String, SchemaResource)>,
         profile: FormatProfile,
         image: &VerifiedWorkerImageHandle,
         budget: ExecutorBudget,
@@ -1015,93 +1131,16 @@ impl<I: Copy + Eq> CandidateCutWorkerSchemaExecutor<I> {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<Self, ItemRefusal> {
-        check(deadline, cancelled)?;
-        if !matches!(
-            profile,
-            FormatProfile::LegacyPythonObserved20260923 | FormatProfile::AssertedSourceCandidateV1
-        ) || selected.is_empty()
-            || selected.len() > SchemaBackendProbe::MAX_RESOURCES
-        {
-            return Err(ItemRefusal::Source(
-                "selected candidate schema resource bounds".into(),
-            ));
-        }
-        selected.sort_by(|left, right| left.0.cmp(&right.0));
-        let mut resources = Vec::with_capacity(selected.len());
-        let mut source_resources = Vec::with_capacity(selected.len());
-        let mut contracts = BTreeMap::new();
-        let mut schema_bytes = 0usize;
-        let mut catalog_entry_schema_present = false;
-        let mut catalog_claim_entry_schema_present = false;
-        for (path, resource) in selected {
-            check(deadline, cancelled)?;
-            if path.len() > crate::source_foundation_schema::MAX_LOCATION_BYTES
-                || !path.starts_with("ToS/contracts/")
-                || !path.ends_with(".schema.json")
-                || RelativePath::parse(&path).is_err()
-                || resource.raw.is_empty()
-                || resource.raw.len() > SchemaBackendProbe::MAX_RESOURCE_BYTES
-            {
-                return Err(ItemRefusal::Source(
-                    "selected candidate schema resource identity or bounds".into(),
-                ));
-            }
-            let value = published_value(&resource.raw, SchemaBackendProbe::MAX_RESOURCE_BYTES)
-                .map_err(|_| ItemRefusal::Unsupported("selected candidate schema JSON".into()))?;
-            // The authenticated source bytes own $id. Maintained schemas also
-            // use /contracts/ and public GitHub identities; a filesystem path
-            // does not manufacture or replace their declared resource URI.
-            if source_foundation_schema_resource_uri(&value) != Some(resource.uri.as_str()) {
-                return Err(ItemRefusal::Source(
-                    "selected candidate schema URI differs from its source bytes".into(),
-                ));
-            }
-            schema_bytes = schema_bytes
-                .checked_add(resource.raw.len())
-                .filter(|total| *total <= SchemaBackendProbe::MAX_TOTAL_BYTES)
-                .ok_or(crate::item_budget_origin!())?;
-            let digest = Digest256::of_bytes(&resource.raw);
-            if contracts
-                .insert(path.clone(), (resource.uri.clone(), digest))
-                .is_some()
-            {
-                return Err(ItemRefusal::Source(
-                    "duplicate selected candidate schema path".into(),
-                ));
-            }
-            if path == "ToS/contracts/source-witness-catalog.schema.json" {
-                let definitions = value.get("$defs").and_then(serde_json::Value::as_object);
-                catalog_entry_schema_present = definitions
-                    .and_then(|definitions| definitions.get("entry"))
-                    .is_some_and(serde_json::Value::is_object);
-                catalog_claim_entry_schema_present = definitions
-                    .and_then(|definitions| definitions.get("claim_entry"))
-                    .is_some_and(serde_json::Value::is_object);
-            }
-            source_resources.push(SelectedSchemaResource {
-                path,
-                size_bytes: resource.raw.len() as u64,
-                sha256: digest,
-            });
-            resources.push(resource);
-        }
-        let schema_set_sha256 = schema_resource_set_digest(&resources)
-            .ok_or_else(|| ItemRefusal::Source("selected candidate schema closure".into()))?;
-        let contract_selection_sha256 = contract_selection_digest(&contracts);
-        let source_resource_metadata_state_bytes =
-            crate::source_foundation_schema::selected_source_resource_metadata_state(
-                &source_resources,
-                source_resources.capacity(),
-            )
-            .ok_or(crate::item_budget_origin!())?;
-        let source_resource_metadata_limit =
-            CandidateSourceFoundationSchemaSet::<I>::source_resource_metadata_state_upper_bound(
-                source_resources.len(),
-            )
-            .ok_or(crate::item_budget_origin!())?;
-        if source_resource_metadata_state_bytes > source_resource_metadata_limit {
-            return Err(crate::item_budget_origin!());
-        }
+        let SelectedCandidateSchemaResources {
+            resources,
+            source_resources,
+            contracts,
+            schema_set_sha256,
+            contract_selection_sha256,
+            schema_bytes,
+            catalog_entry_schema_present,
+            catalog_claim_entry_schema_present,
+        } = select_candidate_schema_resources(selected, profile, deadline, cancelled)?;
         let mut limits_hash = Digest256Hasher::new();
         limits_hash.update(b"tos-selected-candidate-schema-limits-v1\0");
         for value in [
@@ -1624,10 +1663,6 @@ impl<I: Copy + Eq> crate::source_foundation_records::SourceFoundationCandidateSc
         CandidateCutWorkerSchemaExecutor::input_identity(self)
     }
 
-    fn prepared_execution_binding(&self) -> CutPreparedSchemaExecutionBinding {
-        CandidateCutWorkerSchemaExecutor::prepared_execution_binding(self)
-    }
-
     fn profile(&self) -> FormatProfile {
         CandidateCutWorkerSchemaExecutor::profile(self)
     }
@@ -1642,6 +1677,14 @@ impl<I: Copy + Eq> crate::source_foundation_records::SourceFoundationCandidateSc
 
     fn contract_digest(&self, contract: &str) -> Option<Digest256> {
         CandidateCutWorkerSchemaExecutor::contract_digest(self, contract)
+    }
+
+    fn selected_resource_totals(&self) -> Result<(u64, u64), ItemRefusal> {
+        Ok((
+            u64::try_from(self.source_resource_count())
+                .map_err(|_| crate::item_budget_origin!())?,
+            u64::try_from(self.schema_bytes()).map_err(|_| crate::item_budget_origin!())?,
+        ))
     }
 
     fn for_each_selected_resource(
@@ -1750,53 +1793,7 @@ impl CutWorkerSchemaExecutor {
             return Err(crate::item_budget_origin!());
         }
         let revision = cut.current().revision();
-        let mut resources = Vec::new();
-        let mut contracts = BTreeMap::new();
-        let mut total_bytes = 0usize;
-        // Derive schema membership from the exact anchored manifest and read
-        // only those selected bytes. A narrow retirement must not scan an
-        // unrelated surviving raw source while compiling its schema closure.
-        for metadata in cut.current().members() {
-            check(deadline, cancelled)?;
-            let path = metadata.path.as_str();
-            if !path.starts_with("ToS/contracts/") || !path.ends_with(".schema.json") {
-                continue;
-            }
-            let member = cut
-                .read_member(
-                    revision,
-                    &metadata.path,
-                    SchemaBackendProbe::MAX_RESOURCE_BYTES as u64,
-                    deadline,
-                    cancelled,
-                )
-                .map_err(store_error)?;
-            total_bytes = total_bytes
-                .checked_add(member.raw.len())
-                .filter(|n| *n <= SchemaBackendProbe::MAX_TOTAL_BYTES)
-                .ok_or(crate::item_budget_origin!())?;
-            if resources.len() >= SchemaBackendProbe::MAX_RESOURCES
-                || member.raw.len() > SchemaBackendProbe::MAX_RESOURCE_BYTES
-            {
-                return Err(crate::item_budget_origin!());
-            }
-            let value = published_value(&member.raw, SchemaBackendProbe::MAX_RESOURCE_BYTES)
-                .map_err(|error| {
-                    ItemRefusal::Unsupported(format!("schema resource {path}: {error:?}"))
-                })?;
-            let uri = value["$id"]
-                .as_str()
-                .ok_or_else(|| ItemRefusal::Unsupported("schema resource ID".into()))?
-                .to_owned();
-            contracts.insert(
-                path.to_owned(),
-                (uri.clone(), Digest256::of_bytes(&member.raw)),
-            );
-            resources.push(SchemaResource {
-                uri,
-                raw: member.raw,
-            });
-        }
+        let (contracts, resources) = selected_cut_schema_resources(cut, deadline, cancelled)?;
         Self::prepare_selected_resources(
             Some(revision),
             contracts,
@@ -1837,54 +1834,8 @@ impl CutWorkerSchemaExecutor {
         {
             return Err(crate::item_budget_origin!());
         }
-        let mut resources = Vec::new();
-        let mut contracts = BTreeMap::new();
-        let mut total_bytes = 0usize;
-        // Derive schema membership from the exact anchored manifest and read
-        // only those selected bytes. A narrow retirement must not scan an
-        // unrelated surviving raw source while compiling its schema closure.
-        let revision =
-            for_each_streamed_current_member(cut, deadline, cancelled, |revision, metadata| {
-                let path = metadata.path.as_str();
-                if !path.starts_with("ToS/contracts/") || !path.ends_with(".schema.json") {
-                    return Ok(());
-                }
-                let member = cut
-                    .read_member(
-                        revision,
-                        &metadata.path,
-                        SchemaBackendProbe::MAX_RESOURCE_BYTES as u64,
-                        deadline,
-                        cancelled,
-                    )
-                    .map_err(store_error)?;
-                total_bytes = total_bytes
-                    .checked_add(member.raw.len())
-                    .filter(|n| *n <= SchemaBackendProbe::MAX_TOTAL_BYTES)
-                    .ok_or(crate::item_budget_origin!())?;
-                if resources.len() >= SchemaBackendProbe::MAX_RESOURCES
-                    || member.raw.len() > SchemaBackendProbe::MAX_RESOURCE_BYTES
-                {
-                    return Err(crate::item_budget_origin!());
-                }
-                let value = published_value(&member.raw, SchemaBackendProbe::MAX_RESOURCE_BYTES)
-                    .map_err(|error| {
-                        ItemRefusal::Unsupported(format!("schema resource {path}: {error:?}"))
-                    })?;
-                let uri = value["$id"]
-                    .as_str()
-                    .ok_or_else(|| ItemRefusal::Unsupported("schema resource ID".into()))?
-                    .to_owned();
-                contracts.insert(
-                    path.to_owned(),
-                    (uri.clone(), Digest256::of_bytes(&member.raw)),
-                );
-                resources.push(SchemaResource {
-                    uri,
-                    raw: member.raw,
-                });
-                Ok(())
-            })?;
+        let (revision, contracts, resources) =
+            selected_streamed_cut_schema_resources(cut, deadline, cancelled)?;
         Self::prepare_selected_resources(
             Some(revision),
             contracts,
@@ -3645,7 +3596,6 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         self.finished = true;
         Ok(())
     }
-
     fn check_batch(
         &mut self,
         checks: &[CutSchemaCheck],
@@ -4974,11 +4924,138 @@ pub fn cut_schema_preparation_state_upper_bound(
         .ok_or(crate::item_budget_origin!())
 }
 
+fn selected_cut_schema_resources(
+    cut: &CorpusCutReader,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<(BTreeMap<String, (String, Digest256)>, Vec<SchemaResource>), ItemRefusal> {
+    let revision = cut.current().revision();
+    let mut resources = Vec::new();
+    let mut contracts = BTreeMap::new();
+    let mut total_bytes = 0usize;
+    // Derive schema membership from the exact anchored manifest and read
+    // only those selected bytes. A narrow retirement must not scan an
+    // unrelated surviving raw source while compiling its schema closure.
+    for metadata in cut.current().members() {
+        check(deadline, cancelled)?;
+        let path = metadata.path.as_str();
+        if !path.starts_with("ToS/contracts/") || !path.ends_with(".schema.json") {
+            continue;
+        }
+        let member = cut
+            .read_member(
+                revision,
+                &metadata.path,
+                SchemaBackendProbe::MAX_RESOURCE_BYTES as u64,
+                deadline,
+                cancelled,
+            )
+            .map_err(store_error)?;
+        total_bytes = total_bytes
+            .checked_add(member.raw.len())
+            .filter(|n| *n <= SchemaBackendProbe::MAX_TOTAL_BYTES)
+            .ok_or(crate::item_budget_origin!())?;
+        if resources.len() >= SchemaBackendProbe::MAX_RESOURCES
+            || member.raw.len() > SchemaBackendProbe::MAX_RESOURCE_BYTES
+        {
+            return Err(crate::item_budget_origin!());
+        }
+        let value = published_value(&member.raw, SchemaBackendProbe::MAX_RESOURCE_BYTES).map_err(
+            |error| ItemRefusal::Unsupported(format!("schema resource {path}: {error:?}")),
+        )?;
+        let uri = value["$id"]
+            .as_str()
+            .ok_or_else(|| ItemRefusal::Unsupported("schema resource ID".into()))?
+            .to_owned();
+        contracts.insert(
+            path.to_owned(),
+            (uri.clone(), Digest256::of_bytes(&member.raw)),
+        );
+        resources.push(SchemaResource {
+            uri,
+            raw: member.raw,
+        });
+    }
+    Ok((contracts, resources))
+}
+
+fn selected_streamed_cut_schema_resources(
+    cut: &StreamedCorpusCutReaderV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<
+    (
+        SourceRevision,
+        BTreeMap<String, (String, Digest256)>,
+        Vec<SchemaResource>,
+    ),
+    ItemRefusal,
+> {
+    let mut resources = Vec::new();
+    let mut contracts = BTreeMap::new();
+    let mut total_bytes = 0usize;
+    // Derive schema membership from the exact anchored manifest and read
+    // only those selected bytes. A narrow retirement must not scan an
+    // unrelated surviving raw source while compiling its schema closure.
+    let revision =
+        for_each_streamed_current_member(cut, deadline, cancelled, |revision, metadata| {
+            let path = metadata.path.as_str();
+            if !path.starts_with("ToS/contracts/") || !path.ends_with(".schema.json") {
+                return Ok(());
+            }
+            let member = cut
+                .read_member(
+                    revision,
+                    &metadata.path,
+                    SchemaBackendProbe::MAX_RESOURCE_BYTES as u64,
+                    deadline,
+                    cancelled,
+                )
+                .map_err(store_error)?;
+            total_bytes = total_bytes
+                .checked_add(member.raw.len())
+                .filter(|n| *n <= SchemaBackendProbe::MAX_TOTAL_BYTES)
+                .ok_or(crate::item_budget_origin!())?;
+            if resources.len() >= SchemaBackendProbe::MAX_RESOURCES
+                || member.raw.len() > SchemaBackendProbe::MAX_RESOURCE_BYTES
+            {
+                return Err(crate::item_budget_origin!());
+            }
+            let value = published_value(&member.raw, SchemaBackendProbe::MAX_RESOURCE_BYTES)
+                .map_err(|error| {
+                    ItemRefusal::Unsupported(format!("schema resource {path}: {error:?}"))
+                })?;
+            let uri = value["$id"]
+                .as_str()
+                .ok_or_else(|| ItemRefusal::Unsupported("schema resource ID".into()))?
+                .to_owned();
+            contracts.insert(
+                path.to_owned(),
+                (uri.clone(), Digest256::of_bytes(&member.raw)),
+            );
+            resources.push(SchemaResource {
+                uri,
+                raw: member.raw,
+            });
+            Ok(())
+        })?;
+    Ok((revision, contracts, resources))
+}
+
 /// A source revision and a candidate fence remain distinct execution identities.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InProcessCutIdentity<I> {
     Source(SourceRevision),
     Candidate(I),
+}
+
+/// The selected contract is represented by its source path or schema URI.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum InProcessSelectorKind {
+    #[default]
+    ContractPath,
+    SchemaUri,
 }
 
 /// A report retains the exact source or candidate fence and contract selection.
@@ -4987,7 +5064,211 @@ pub struct InProcessCutDiagnostic<I> {
     pub identity: InProcessCutIdentity<I>,
     pub path: String,
     pub contract: String,
+    pub selector_kind: InProcessSelectorKind,
+    /// Exact raw input length, absent in version 1 historical evidence.
+    pub input_size_bytes: Option<u64>,
+    /// Number of owner issues emitted before this record evaluation.
+    pub before_issue: Option<u64>,
     pub report: crate::in_process::Report,
+}
+
+/// Source-cut evidence retains the representation of the executing engine.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CutSchemaEvidence {
+    Worker(CutSchemaDiagnostic),
+    InProcess(InProcessCutDiagnostic<()>),
+}
+
+impl From<CutSchemaDiagnostic> for CutSchemaEvidence {
+    fn from(diagnostic: CutSchemaDiagnostic) -> Self {
+        Self::Worker(diagnostic)
+    }
+}
+
+impl CutSchemaEvidence {
+    pub fn source_revision(&self) -> Option<SourceRevision> {
+        match self {
+            Self::Worker(row) => Some(row.source_revision()),
+            Self::InProcess(row) => match &row.identity {
+                InProcessCutIdentity::Source(revision) => Some(*revision),
+                InProcessCutIdentity::Candidate(()) => None,
+            },
+        }
+    }
+    pub fn path(&self) -> &str {
+        match self {
+            Self::Worker(row) => row.path(),
+            Self::InProcess(row) => &row.path,
+        }
+    }
+    pub fn issues(&self) -> &[schema_diagnostics::Issue] {
+        match self {
+            Self::Worker(row) => &row.report().issues,
+            Self::InProcess(row) => &row.report.issues,
+        }
+    }
+    pub fn is_invalid(&self) -> bool {
+        match self {
+            Self::Worker(row) => row.is_invalid(),
+            Self::InProcess(row) => {
+                self.source_revision().is_some()
+                    && row.report.is_well_formed()
+                    && row.report.status == schema_diagnostics::Status::Invalid
+                    && !row.report.truncated
+                    && row.report.failure == schema_diagnostics::Failure::None
+                    && u64::try_from(row.report.issues.len()).ok()
+                        == Some(row.report.total_issue_count)
+            }
+        }
+    }
+}
+
+/// Candidate evidence with the producing engine's own representation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CandidateSchemaDiagnostic<I> {
+    Worker(CandidateCutSchemaDiagnostic<I>),
+    InProcess(InProcessCandidateSchemaDiagnostic<I>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InProcessCandidateSchemaDiagnostic<I> {
+    input_identity: I,
+    contract_selection_sha256: Digest256,
+    binding: tos_foundation::InProcessSchemaExecutionBinding,
+    diagnostic: InProcessCutDiagnostic<I>,
+}
+
+impl<I> InProcessCandidateSchemaDiagnostic<I> {
+    pub fn diagnostic(&self) -> &InProcessCutDiagnostic<I> {
+        &self.diagnostic
+    }
+}
+
+impl<I> CandidateSchemaDiagnostic<I> {
+    pub fn input_identity(&self) -> &I {
+        match self {
+            Self::Worker(row) => row.input_identity(),
+            Self::InProcess(row) => &row.input_identity,
+        }
+    }
+    pub fn contract_selection_sha256(&self) -> Digest256 {
+        match self {
+            Self::Worker(row) => row.contract_selection_sha256(),
+            Self::InProcess(row) => row.contract_selection_sha256,
+        }
+    }
+    pub fn execution_binding(&self) -> tos_foundation::SchemaExecutionBinding {
+        match self {
+            Self::Worker(row) => {
+                tos_foundation::SchemaExecutionBinding::Worker(row.prepared_execution_binding())
+            }
+            Self::InProcess(row) => {
+                tos_foundation::SchemaExecutionBinding::InProcessV1(row.binding)
+            }
+        }
+    }
+    pub fn path(&self) -> &str {
+        match self {
+            Self::Worker(row) => row.path(),
+            Self::InProcess(row) => &row.diagnostic.path,
+        }
+    }
+    pub fn contract(&self) -> &str {
+        match self {
+            Self::Worker(row) => row.contract(),
+            Self::InProcess(row) => &row.diagnostic.contract,
+        }
+    }
+    pub fn input_sha256(&self) -> Digest256 {
+        match self {
+            Self::Worker(row) => row.source_raw_sha256(),
+            Self::InProcess(row) => row.diagnostic.report.input_sha256,
+        }
+    }
+    pub fn status(&self) -> schema_diagnostics::Status {
+        match self {
+            Self::Worker(row) => row.status(),
+            Self::InProcess(row) => row.diagnostic.report.status,
+        }
+    }
+    pub fn issues(&self) -> &[schema_diagnostics::Issue] {
+        match self {
+            Self::Worker(row) => &row.report().issues,
+            Self::InProcess(row) => &row.diagnostic.report.issues,
+        }
+    }
+    pub fn failure(&self) -> schema_diagnostics::Failure {
+        match self {
+            Self::Worker(row) => row.report().failure,
+            Self::InProcess(row) => row.diagnostic.report.failure,
+        }
+    }
+
+    /// Retained diagnostic storage, including dynamically allocated paths and issues.
+    pub fn retained_state_bytes(&self) -> Option<usize> {
+        match self {
+            Self::Worker(row) => row.accounted_state_bytes().checked_add(
+                std::mem::size_of::<Self>()
+                    .saturating_sub(std::mem::size_of::<CandidateCutSchemaDiagnostic<I>>()),
+            ),
+            Self::InProcess(row) => {
+                fn path_state(path: &Vec<schema_diagnostics::PathSegment>) -> Option<usize> {
+                    path.iter().try_fold(
+                        path.capacity()
+                            .checked_mul(std::mem::size_of::<schema_diagnostics::PathSegment>())?,
+                        |used, segment| match segment {
+                            schema_diagnostics::PathSegment::Property(value) => {
+                                used.checked_add(value.capacity())
+                            }
+                            schema_diagnostics::PathSegment::Index(_) => Some(used),
+                        },
+                    )
+                }
+                let diagnostic = &row.diagnostic;
+                let report = &diagnostic.report;
+                let mut used = std::mem::size_of::<Self>()
+                    .checked_add(diagnostic.path.capacity())?
+                    .checked_add(diagnostic.contract.capacity())?
+                    .checked_add(report.root_uri.capacity())?
+                    .checked_add(
+                        report
+                            .issues
+                            .capacity()
+                            .checked_mul(std::mem::size_of::<schema_diagnostics::Issue>())?,
+                    )?;
+                for issue in &report.issues {
+                    used = used
+                        .checked_add(issue.schema_keyword.capacity())?
+                        .checked_add(path_state(&issue.instance_path)?)?
+                        .checked_add(path_state(&issue.schema_path)?)?;
+                }
+                Some(used)
+            }
+        }
+    }
+
+    pub fn is_valid(&self) -> bool {
+        match self {
+            Self::Worker(row) => row.is_valid(),
+            Self::InProcess(row) => {
+                row.diagnostic.report.is_well_formed()
+                    && row.diagnostic.report.status == schema_diagnostics::Status::Valid
+            }
+        }
+    }
+    pub fn is_invalid(&self) -> bool {
+        match self {
+            Self::Worker(row) => row.is_invalid(),
+            Self::InProcess(row) => {
+                row.diagnostic.report.is_well_formed()
+                    && row.diagnostic.report.status == schema_diagnostics::Status::Invalid
+                    && !row.diagnostic.report.truncated
+                    && row.diagnostic.report.failure == schema_diagnostics::Failure::None
+                    && u64::try_from(row.diagnostic.report.issues.len()).ok()
+                        == Some(row.diagnostic.report.total_issue_count)
+            }
+        }
+    }
 }
 
 /// Selected contract names and their exact resource digests are bound at preparation.
@@ -4997,10 +5278,140 @@ pub struct InProcessCutSchemaExecutor<I> {
     engine: crate::in_process::InProcessSchemaEngine,
     profile: FormatProfile,
     input_mode: crate::in_process::InputMode,
+    pending_source_rejection: Option<InProcessCutDiagnostic<()>>,
+    finished: bool,
+    failed: bool,
+}
+
+impl InProcessCutSchemaExecutor<()> {
+    /// Prepare an explicitly selected schema subset bound to an exact source cut.
+    pub fn from_cut_selected_resources(
+        cut: &CorpusCutReader,
+        selected: Vec<(String, SchemaResource)>,
+        profile: FormatProfile,
+        input_mode: crate::in_process::InputMode,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Self, ItemRefusal> {
+        let selected = select_candidate_schema_resources(selected, profile, deadline, cancelled)?;
+        for resource in &selected.source_resources {
+            check(deadline, cancelled)?;
+            let path = RelativePath::parse(&resource.path)
+                .map_err(|_| ItemRefusal::Source("selected schema path differs".into()))?;
+            let member = cut.current().member(&path).ok_or_else(|| {
+                ItemRefusal::Source("selected schema is outside source cut".into())
+            })?;
+            if member.sha256 != resource.sha256 || member.size_bytes != resource.size_bytes {
+                return Err(ItemRefusal::Source(
+                    "selected schema bytes differ from source cut".into(),
+                ));
+            }
+        }
+        let executor = Self::new_selected(
+            InProcessCutIdentity::Source(cut.current().revision()),
+            selected.contracts,
+            selected.resources,
+            profile,
+            input_mode,
+        )
+        .map_err(|error| ItemRefusal::Unsupported(format!("schema preparation: {error:?}")))?;
+        if executor.binding().schema_set_sha256 != selected.schema_set_sha256 {
+            return Err(ItemRefusal::Source("selected schema set differs".into()));
+        }
+        check(deadline, cancelled)?;
+        Ok(executor)
+    }
+
+    /// Prepare from the selected schemas of an authenticated streamed source cut.
+    pub fn from_streamed_cut(
+        cut: &StreamedCorpusCutReaderV1,
+        profile: FormatProfile,
+        input_mode: crate::in_process::InputMode,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Self, ItemRefusal> {
+        check(deadline, cancelled)?;
+        let (revision, contracts, resources) =
+            selected_streamed_cut_schema_resources(cut, deadline, cancelled)?;
+        if resources.is_empty() {
+            return Err(crate::item_budget_origin!());
+        }
+        let executor = Self::new_selected(
+            InProcessCutIdentity::Source(revision),
+            contracts,
+            resources,
+            profile,
+            input_mode,
+        )
+        .map_err(|error| ItemRefusal::Unsupported(format!("schema preparation: {error:?}")))?;
+        check(deadline, cancelled)?;
+        Ok(executor)
+    }
+
+    /// Prepare from the exact schemas in an immutable source cut.
+    pub fn from_cut(
+        cut: &CorpusCutReader,
+        profile: FormatProfile,
+        input_mode: crate::in_process::InputMode,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Self, ItemRefusal> {
+        check(deadline, cancelled)?;
+        let revision = cut.current().revision();
+        let (contracts, resources) = selected_cut_schema_resources(cut, deadline, cancelled)?;
+        if resources.is_empty() {
+            return Err(crate::item_budget_origin!());
+        }
+        check(deadline, cancelled)?;
+        let executor = Self::new_selected(
+            InProcessCutIdentity::Source(revision),
+            contracts,
+            resources,
+            profile,
+            input_mode,
+        )
+        .map_err(|error| ItemRefusal::Unsupported(format!("schema preparation: {error:?}")))?;
+        check(deadline, cancelled)?;
+        Ok(executor)
+    }
 }
 
 impl<I> InProcessCutSchemaExecutor<I> {
+    /// Select the bounded Python-compatible input for one selected legacy
+    /// packet. Callers do this on a fresh executor, before its first check.
+    pub fn select_legacy_selected_input(
+        &mut self,
+        limits: crate::executor::LegacySelectedDiagnosticsLimits,
+    ) -> Result<(), ItemRefusal> {
+        if self.finished
+            || self.failed
+            || self.pending_source_rejection.is_some()
+            || self.profile != FormatProfile::LegacyPythonObserved20260923
+            || self.input_mode != crate::in_process::InputMode::SerdeNormalized
+            || limits.validate().is_err()
+        {
+            return Err(crate::item_budget_origin!());
+        }
+        self.input_mode = crate::in_process::InputMode::LegacyPythonObservedSelected(limits);
+        Ok(())
+    }
+
     pub fn new(
+        identity: InProcessCutIdentity<I>,
+        contracts: BTreeMap<String, (String, Digest256)>,
+        resources: Vec<SchemaResource>,
+        profile: FormatProfile,
+        input_mode: crate::in_process::InputMode,
+    ) -> Result<Self, crate::SchemaProbeError> {
+        if matches!(identity, InProcessCutIdentity::Source(_)) {
+            return Err(crate::SchemaProbeError::Backend(
+                "source revision requires an exact source cut".into(),
+            ));
+        }
+        Self::new_selected(identity, contracts, resources, profile, input_mode)
+    }
+
+    fn new_selected(
         identity: InProcessCutIdentity<I>,
         contracts: BTreeMap<String, (String, Digest256)>,
         resources: Vec<SchemaResource>,
@@ -5021,6 +5432,9 @@ impl<I> InProcessCutSchemaExecutor<I> {
             engine,
             profile,
             input_mode,
+            pending_source_rejection: None,
+            finished: false,
+            failed: false,
         })
     }
 
@@ -5033,7 +5447,13 @@ impl<I> InProcessCutSchemaExecutor<I> {
             schema_profile: self.profile,
             schema_set_sha256: self.engine.schema_set_digest(),
             engine: crate::in_process::ENGINE_ID,
+            input_mode_sha256: Some(self.input_mode.identity_sha256()),
         }
+    }
+
+    /// Move the first rejected source-cut observation from this operation.
+    pub fn take_source_diagnostic_rejection(&mut self) -> Option<InProcessCutDiagnostic<()>> {
+        self.pending_source_rejection.take()
     }
 
     pub fn diagnostic_for(
@@ -5053,11 +5473,38 @@ impl<I> InProcessCutSchemaExecutor<I> {
             identity: self.identity.clone(),
             path: path.to_owned(),
             contract: contract.to_owned(),
+            selector_kind: InProcessSelectorKind::ContractPath,
+            input_size_bytes: Some(
+                u64::try_from(raw.len()).map_err(|_| crate::item_budget_origin!())?,
+            ),
+            before_issue: None,
             report,
         })
     }
 
     pub fn diagnostic(
+        &mut self,
+        contract: &str,
+        raw: &[u8],
+        caps: schema_diagnostics::Caps,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<crate::in_process::Report, ItemRefusal> {
+        if self.finished || self.failed {
+            return Err(ItemRefusal::Unsupported(
+                "schema operation is not active".into(),
+            ));
+        }
+        let result = self.diagnostic_inner(contract, raw, caps, deadline, cancelled);
+        if !matches!(result.as_ref(), Ok(report) if matches!(report.status,
+            schema_diagnostics::Status::Valid | schema_diagnostics::Status::Invalid))
+        {
+            self.failed = true;
+        }
+        result
+    }
+
+    fn diagnostic_inner(
         &mut self,
         contract: &str,
         raw: &[u8],
@@ -5127,9 +5574,77 @@ impl<I> CutSchemaExecutor for InProcessCutSchemaExecutor<I> {
         let base = contract.split_once('#').map_or(contract, |(base, _)| base);
         self.contracts.get(base).map(|(_, digest)| *digest)
     }
+    fn finish(&mut self, deadline: Instant, cancelled: &AtomicBool) -> Result<(), ItemRefusal> {
+        if self.finished || self.failed {
+            return Err(ItemRefusal::Unsupported(
+                "schema operation is not active".into(),
+            ));
+        }
+        if let Err(error) = check(deadline, cancelled) {
+            self.failed = true;
+            return Err(error);
+        }
+        self.finished = true;
+        Ok(())
+    }
+    fn check_batch(
+        &mut self,
+        checks: &[CutSchemaCheck],
+        budget: BatchBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Vec<bool>, ItemRefusal> {
+        if self.finished || self.failed {
+            return Err(ItemRefusal::Unsupported(
+                "schema operation is not active".into(),
+            ));
+        }
+        let result = (|| {
+            if checks.is_empty()
+                || budget.max_units == 0
+                || budget.max_units > BatchBudget::MAX_UNITS
+                || checks.len() > budget.max_units
+                || budget.max_total_raw_bytes == 0
+                || budget.max_total_raw_bytes > BatchBudget::MAX_RAW_BYTES
+                || budget.total_execution_wall.is_zero()
+                || budget.per_unit_wall.is_zero()
+                || checks
+                    .iter()
+                    .try_fold(0usize, |total, item| total.checked_add(item.raw.len()))
+                    .is_none_or(|total| total > budget.max_total_raw_bytes)
+            {
+                return Err(crate::item_budget_origin!());
+            }
+            let batch_deadline = Instant::now()
+                .checked_add(budget.total_execution_wall)
+                .ok_or(crate::item_budget_origin!())?
+                .min(deadline);
+            let mut verdicts = Vec::with_capacity(checks.len());
+            for item in checks {
+                let unit_deadline = Instant::now()
+                    .checked_add(budget.per_unit_wall)
+                    .ok_or(crate::item_budget_origin!())?
+                    .min(batch_deadline);
+                verdicts.push(self.check(
+                    &item.path,
+                    &item.raw,
+                    &item.contract,
+                    unit_deadline,
+                    cancelled,
+                )?);
+            }
+            check(batch_deadline, cancelled)?;
+            Ok(verdicts)
+        })();
+        if result.is_err() {
+            self.failed = true;
+        }
+        result
+    }
+
     fn check(
         &mut self,
-        _path: &str,
+        path: &str,
         raw: &[u8],
         contract: &str,
         deadline: Instant,
@@ -5142,19 +5657,790 @@ impl<I> CutSchemaExecutor for InProcessCutSchemaExecutor<I> {
             deadline,
             cancelled,
         )?;
-        match report.status {
+        let status = report.status;
+        let failure = report.failure;
+        if status != schema_diagnostics::Status::Valid && self.pending_source_rejection.is_none() {
+            if let InProcessCutIdentity::Source(revision) = self.identity {
+                self.pending_source_rejection = Some(InProcessCutDiagnostic {
+                    identity: InProcessCutIdentity::Source(revision),
+                    path: path.to_owned(),
+                    contract: contract.to_owned(),
+                    selector_kind: InProcessSelectorKind::ContractPath,
+                    input_size_bytes: Some(
+                        u64::try_from(raw.len()).map_err(|_| crate::item_budget_origin!())?,
+                    ),
+                    before_issue: None,
+                    report,
+                });
+            }
+        }
+        match status {
             schema_diagnostics::Status::Valid => Ok(true),
             schema_diagnostics::Status::Invalid => Ok(false),
             schema_diagnostics::Status::InputRejected
-                if report.failure == schema_diagnostics::Failure::InputBudget =>
+                if failure == schema_diagnostics::Failure::InputBudget =>
             {
                 Err(ItemRefusal::Budget)
             }
             _ => Err(ItemRefusal::Unsupported(format!(
                 "schema diagnostic {:?}: {:?}",
-                report.status, report.failure
+                status, failure
             ))),
         }
+    }
+}
+
+/// Candidate-fenced schema binding prepared from the owner's complete selection.
+pub struct InProcessCandidateSchemaExecutor<I> {
+    input_identity: I,
+    selected: Vec<SelectedSchemaResource>,
+    schema_bytes: usize,
+    contract_selection_digest: Digest256,
+    selected_limits_sha256: Option<Digest256>,
+    completed_checks: Option<usize>,
+    inner: InProcessCutSchemaExecutor<I>,
+    pending_rejections: std::collections::VecDeque<CandidateSchemaDiagnostic<I>>,
+    finished: bool,
+}
+
+impl<I: Copy + Eq> InProcessCandidateSchemaExecutor<I> {
+    /// Logical completed validations for this candidate operation.
+    pub fn completed_checks(&self) -> Option<usize> {
+        self.completed_checks
+    }
+    pub fn selected_schema_limits_sha256(&self) -> Option<Digest256> {
+        self.selected_limits_sha256
+    }
+    pub fn schema_bytes(&self) -> usize {
+        self.schema_bytes
+    }
+    pub fn source_resource_count(&self) -> usize {
+        self.selected.len()
+    }
+    pub fn is_finished(&self) -> bool {
+        self.finished
+    }
+
+    /// Resolve the supplied schema bytes through the unique selected resource digest.
+    pub fn check_diagnostic_for_schema_raw(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        schema_raw: &[u8],
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<CandidateSchemaDiagnostic<I>, ItemRefusal> {
+        if schema_raw.is_empty() || schema_raw.len() > SchemaBackendProbe::MAX_RESOURCE_BYTES {
+            return Err(crate::item_budget_origin!());
+        }
+        let digest = Digest256::of_bytes(schema_raw);
+        let mut selected = self.selected.iter().filter(|resource| {
+            resource.size_bytes == schema_raw.len() as u64
+                && resource.sha256 == digest
+                && self.inner.selected_contract_digest(&resource.path) == Some(digest)
+        });
+        let contract = selected
+            .next()
+            .ok_or_else(|| {
+                ItemRefusal::Unsupported(
+                    "source schema bytes are not in the selected closure".into(),
+                )
+            })?
+            .path
+            .clone();
+        if selected.next().is_some() {
+            return Err(ItemRefusal::Unsupported(
+                "source schema bytes select multiple contracts".into(),
+            ));
+        }
+        crate::source_foundation_records::SourceFoundationCandidateSchemaBinding::check_diagnostic(
+            self, path, raw, &contract, deadline, cancelled,
+        )
+    }
+
+    pub fn source_resource_metadata_state_bytes(&self) -> Option<usize> {
+        crate::source_foundation_schema::selected_source_resource_metadata_state(
+            &self.selected,
+            self.selected.capacity(),
+        )
+    }
+
+    /// Prepare an explicitly selected, candidate-fenced schema closure.
+    pub fn from_selected_source_resources(
+        input_identity: I,
+        selected: Vec<(String, SchemaResource)>,
+        profile: FormatProfile,
+        input_mode: crate::in_process::InputMode,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Self, ItemRefusal> {
+        let selected = select_candidate_schema_resources(selected, profile, deadline, cancelled)?;
+        let inner = InProcessCutSchemaExecutor::new(
+            InProcessCutIdentity::Candidate(input_identity),
+            selected.contracts,
+            selected.resources,
+            profile,
+            input_mode,
+        )
+        .map_err(|error| ItemRefusal::Unsupported(format!("schema preparation: {error:?}")))?;
+        if inner.binding().schema_set_sha256 != selected.schema_set_sha256 {
+            return Err(ItemRefusal::Source(
+                "candidate prepared schema set differs".into(),
+            ));
+        }
+        check(deadline, cancelled)?;
+        Ok(Self {
+            input_identity,
+            selected: selected.source_resources,
+            schema_bytes: selected.schema_bytes,
+            contract_selection_digest: selected.contract_selection_sha256,
+            selected_limits_sha256: None,
+            completed_checks: Some(0),
+            inner,
+            pending_rejections: std::collections::VecDeque::new(),
+            finished: false,
+        })
+    }
+
+    pub fn from_schema_set(
+        schema_set: CandidateSourceFoundationSchemaSet<I>,
+        input_mode: crate::in_process::InputMode,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Self, ItemRefusal> {
+        check(deadline, cancelled)?;
+        if schema_set.resources.is_empty()
+            || schema_set.resources.len() != schema_set.source_resources.len()
+            || schema_set.resources.len() != schema_set.contracts.len()
+            || schema_resource_set_digest(&schema_set.resources)
+                != Some(schema_set.schema_set_sha256)
+            || contract_selection_digest(&schema_set.contracts)
+                != schema_set.contract_selection_sha256
+        {
+            return Err(ItemRefusal::Source(
+                "candidate schema selection differs".into(),
+            ));
+        }
+        let mut previous: Option<&str> = None;
+        let mut selected_bytes = 0usize;
+        for (metadata, resource) in schema_set
+            .source_resources
+            .iter()
+            .zip(&schema_set.resources)
+        {
+            check(deadline, cancelled)?;
+            if previous.is_some_and(|path| path >= metadata.path.as_str())
+                || metadata.size_bytes != resource.raw.len() as u64
+                || metadata.sha256 != Digest256::of_bytes(&resource.raw)
+                || !schema_set
+                    .contracts
+                    .get(&metadata.path)
+                    .is_some_and(|(uri, digest)| uri == &resource.uri && *digest == metadata.sha256)
+            {
+                return Err(ItemRefusal::Source(
+                    "candidate schema resource differs".into(),
+                ));
+            }
+            selected_bytes = selected_bytes
+                .checked_add(resource.raw.len())
+                .ok_or(crate::item_budget_origin!())?;
+            previous = Some(&metadata.path);
+        }
+        if selected_bytes != schema_set.schema_bytes {
+            return Err(ItemRefusal::Source(
+                "candidate schema byte total differs".into(),
+            ));
+        }
+        let input_identity = schema_set.input_identity;
+        let inner = InProcessCutSchemaExecutor::new(
+            InProcessCutIdentity::Candidate(input_identity),
+            schema_set.contracts,
+            schema_set.resources,
+            schema_set.profile,
+            input_mode,
+        )
+        .map_err(|error| ItemRefusal::Unsupported(format!("schema preparation: {error:?}")))?;
+        check(deadline, cancelled)?;
+        Ok(Self {
+            input_identity,
+            selected: schema_set.source_resources,
+            schema_bytes: schema_set.schema_bytes,
+            contract_selection_digest: schema_set.contract_selection_sha256,
+            selected_limits_sha256: Some(schema_set.limits_sha256),
+            completed_checks: Some(0),
+            inner,
+            pending_rejections: std::collections::VecDeque::new(),
+            finished: false,
+        })
+    }
+
+    pub fn diagnostic_for(
+        &mut self,
+        path: &str,
+        contract: &str,
+        raw: &[u8],
+        caps: schema_diagnostics::Caps,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<InProcessCutDiagnostic<I>, ItemRefusal> {
+        if self.finished {
+            return Err(ItemRefusal::Unsupported(
+                "candidate schema operation finalized".into(),
+            ));
+        }
+        let next = self
+            .completed_checks
+            .and_then(|count| count.checked_add(1))
+            .ok_or(crate::item_budget_origin!())?;
+        match self
+            .inner
+            .diagnostic_for(path, contract, raw, caps, deadline, cancelled)
+        {
+            Ok(result) => {
+                self.completed_checks = Some(next);
+                Ok(result)
+            }
+            Err(error) => {
+                self.completed_checks = None;
+                Err(error)
+            }
+        }
+    }
+}
+
+impl<I: Copy + Eq> CutSchemaExecutor for InProcessCandidateSchemaExecutor<I> {
+    fn schema_profile(&self) -> Option<FormatProfile> {
+        self.inner.schema_profile()
+    }
+    fn schema_execution_binding(&self) -> Option<tos_foundation::SchemaExecutionBinding> {
+        self.inner.schema_execution_binding()
+    }
+    fn selected_contract_digest(&self, contract: &str) -> Option<Digest256> {
+        self.inner.selected_contract_digest(contract)
+    }
+    fn check(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, ItemRefusal> {
+        if self.finished {
+            return Err(ItemRefusal::Unsupported(
+                "candidate schema operation finalized".into(),
+            ));
+        }
+        let diagnostic =
+            <Self as crate::source_foundation_records::SourceFoundationCandidateSchemaBinding<
+                I,
+            >>::check_diagnostic(self, path, raw, contract, deadline, cancelled)?;
+        if diagnostic.is_valid() {
+            return Ok(true);
+        }
+        let status = diagnostic.status();
+        let complete_invalid = diagnostic.is_invalid();
+        let failure = match &diagnostic {
+            CandidateSchemaDiagnostic::InProcess(row) => row.diagnostic.report.failure,
+            CandidateSchemaDiagnostic::Worker(_) => {
+                return Err(ItemRefusal::Source(
+                    "in-process candidate returned worker evidence".into(),
+                ));
+            }
+        };
+        self.pending_rejections.push_back(diagnostic);
+        match status {
+            schema_diagnostics::Status::Invalid if complete_invalid => Ok(false),
+            schema_diagnostics::Status::InputRejected
+                if failure == schema_diagnostics::Failure::InputBudget =>
+            {
+                Err(ItemRefusal::Budget)
+            }
+            _ => {
+                self.inner.failed = true;
+                Err(ItemRefusal::Unsupported(format!(
+                    "schema diagnostic {status:?}: {failure:?}"
+                )))
+            }
+        }
+    }
+    fn finish(&mut self, deadline: Instant, cancelled: &AtomicBool) -> Result<(), ItemRefusal> {
+        if self.finished {
+            return Err(ItemRefusal::Unsupported(
+                "candidate schema operation finalized".into(),
+            ));
+        }
+        self.inner.finish(deadline, cancelled)?;
+        self.finished = true;
+        Ok(())
+    }
+    fn check_batch(
+        &mut self,
+        checks: &[CutSchemaCheck],
+        budget: BatchBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Vec<bool>, ItemRefusal> {
+        let next = self
+            .completed_checks
+            .and_then(|count| count.checked_add(checks.len()))
+            .ok_or(crate::item_budget_origin!())?;
+        match self.inner.check_batch(checks, budget, deadline, cancelled) {
+            Ok(result) => {
+                self.completed_checks = Some(next);
+                Ok(result)
+            }
+            Err(error) => {
+                self.completed_checks = None;
+                Err(error)
+            }
+        }
+    }
+}
+
+impl<I: Copy + Eq> crate::source_foundation_records::SourceFoundationCandidateSchemaBinding<I>
+    for InProcessCandidateSchemaExecutor<I>
+{
+    fn check_diagnostic(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<CandidateSchemaDiagnostic<I>, ItemRefusal> {
+        let diagnostic = self.diagnostic_for(
+            path,
+            contract,
+            raw,
+            schema_diagnostics::Caps::CURRENT,
+            deadline,
+            cancelled,
+        )?;
+        Ok(CandidateSchemaDiagnostic::InProcess(
+            InProcessCandidateSchemaDiagnostic {
+                input_identity: self.input_identity,
+                contract_selection_sha256: self.contract_selection_digest,
+                binding: self.inner.binding(),
+                diagnostic,
+            },
+        ))
+    }
+    fn take_diagnostic_rejection(
+        &mut self,
+    ) -> Result<Option<CandidateSchemaDiagnostic<I>>, ItemRefusal> {
+        Ok(self.pending_rejections.pop_front())
+    }
+    fn input_identity(&self) -> &I {
+        &self.input_identity
+    }
+    fn profile(&self) -> FormatProfile {
+        self.inner.profile
+    }
+    fn schema_set_digest(&self) -> Digest256 {
+        self.inner.binding().schema_set_sha256
+    }
+    fn contract_selection_digest(&self) -> Digest256 {
+        self.contract_selection_digest
+    }
+    fn contract_digest(&self, contract: &str) -> Option<Digest256> {
+        self.inner.selected_contract_digest(contract)
+    }
+    fn selected_resource_totals(&self) -> Result<(u64, u64), ItemRefusal> {
+        Ok((
+            u64::try_from(self.selected.len()).map_err(|_| crate::item_budget_origin!())?,
+            u64::try_from(self.schema_bytes).map_err(|_| crate::item_budget_origin!())?,
+        ))
+    }
+    fn for_each_selected_resource(
+        &self,
+        visit: &mut dyn FnMut(
+            crate::source_foundation_records::SourceFoundationCandidateSchemaResource<'_>,
+        ) -> Result<(), ItemRefusal>,
+    ) -> Result<(), ItemRefusal> {
+        for resource in &self.selected {
+            visit(
+                crate::source_foundation_records::SourceFoundationCandidateSchemaResource {
+                    path: &resource.path,
+                    size_bytes: resource.size_bytes,
+                    sha256: resource.sha256,
+                },
+            )?;
+        }
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod in_process_candidate_binding_tests {
+    use super::*;
+    use crate::source_foundation_records::SourceFoundationCandidateSchemaBinding;
+    use std::time::Duration;
+
+    pub(crate) fn selected_set() -> CandidateSourceFoundationSchemaSet<u64> {
+        let path = "ToS/contracts/example.schema.json".to_owned();
+        let uri = "https://example.test/schema".to_owned();
+        let raw = br#"{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://example.test/schema","type":"integer"}"#.to_vec();
+        let digest = Digest256::of_bytes(&raw);
+        let contracts = BTreeMap::from([(path.clone(), (uri.clone(), digest))]);
+        let resources = vec![SchemaResource {
+            uri,
+            raw: raw.clone(),
+        }];
+        CandidateSourceFoundationSchemaSet {
+            input_identity: 42,
+            profile: FormatProfile::AssertedSourceCandidateV1,
+            schema_set_sha256: schema_resource_set_digest(&resources).unwrap(),
+            contract_selection_sha256: contract_selection_digest(&contracts),
+            source_resources: vec![SelectedSchemaResource {
+                path,
+                size_bytes: raw.len() as u64,
+                sha256: digest,
+            }],
+            contracts,
+            resources,
+            limits_sha256: digest,
+            schema_bytes: raw.len(),
+            catalog_entry_schema_present: false,
+            catalog_claim_entry_schema_present: false,
+        }
+    }
+
+    #[test]
+    fn source_cut_retains_first_rejected_schema_evidence() {
+        let set = selected_set();
+        let revision = SourceRevision(Digest256::of_bytes(b"selected source"));
+        let mut executor = InProcessCutSchemaExecutor::new_selected(
+            InProcessCutIdentity::<()>::Source(revision),
+            set.contracts,
+            set.resources,
+            set.profile,
+            crate::in_process::InputMode::PublishedStrict,
+        )
+        .unwrap();
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let contract = "ToS/contracts/example.schema.json";
+        assert!(
+            !executor
+                .check("first.json", b"{}", contract, deadline, &cancelled)
+                .unwrap()
+        );
+        assert!(
+            !executor
+                .check("second.json", b"[]", contract, deadline, &cancelled)
+                .unwrap()
+        );
+        let diagnostic = executor.take_source_diagnostic_rejection().unwrap();
+        assert_eq!(diagnostic.identity, InProcessCutIdentity::Source(revision));
+        assert_eq!(diagnostic.path, "first.json");
+        assert_eq!(diagnostic.contract, contract);
+        assert_eq!(diagnostic.report.input_sha256, Digest256::of_bytes(b"{}"));
+        assert!(CutSchemaEvidence::InProcess(diagnostic).is_invalid());
+        assert!(executor.take_source_diagnostic_rejection().is_none());
+    }
+
+    #[test]
+    fn selected_resources_prepare_candidate_without_worker_identity() {
+        let set = selected_set();
+        let selected: Vec<_> = set
+            .source_resources
+            .iter()
+            .zip(&set.resources)
+            .map(|(metadata, resource)| (metadata.path.clone(), resource.clone()))
+            .collect();
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let mut wrong_uri = selected.clone();
+        wrong_uri[0].1.uri = "https://example.test/other".into();
+        assert!(
+            InProcessCandidateSchemaExecutor::from_selected_source_resources(
+                42,
+                wrong_uri,
+                set.profile,
+                crate::in_process::InputMode::PublishedStrict,
+                deadline,
+                &cancelled
+            )
+            .is_err()
+        );
+        assert!(
+            InProcessCandidateSchemaExecutor::from_selected_source_resources(
+                42,
+                vec![selected[0].clone(), selected[0].clone()],
+                set.profile,
+                crate::in_process::InputMode::PublishedStrict,
+                deadline,
+                &cancelled
+            )
+            .is_err()
+        );
+        let mut executor = InProcessCandidateSchemaExecutor::from_selected_source_resources(
+            42,
+            selected,
+            set.profile,
+            crate::in_process::InputMode::PublishedStrict,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        assert_eq!(executor.schema_set_digest(), set.schema_set_sha256);
+        assert_eq!(
+            executor.contract_selection_digest(),
+            set.contract_selection_sha256
+        );
+        assert_eq!(
+            executor.selected_resource_totals().unwrap(),
+            (1, set.schema_bytes as u64)
+        );
+        assert!(
+            executor
+                .check(
+                    "record.json",
+                    b"3",
+                    "ToS/contracts/example.schema.json",
+                    deadline,
+                    &cancelled
+                )
+                .unwrap()
+        );
+        executor.finish(deadline, &cancelled).unwrap();
+    }
+
+    #[test]
+    fn candidate_binding_retains_exact_selection_and_refuses_changed_metadata() {
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let mut invalid = selected_set();
+        invalid.source_resources[0].size_bytes += 1;
+        assert!(
+            InProcessCandidateSchemaExecutor::from_schema_set(
+                invalid,
+                crate::in_process::InputMode::PublishedStrict,
+                deadline,
+                &cancelled
+            )
+            .is_err()
+        );
+        let mut invalid_total = selected_set();
+        invalid_total.schema_bytes += 1;
+        assert!(
+            InProcessCandidateSchemaExecutor::from_schema_set(
+                invalid_total,
+                crate::in_process::InputMode::PublishedStrict,
+                deadline,
+                &cancelled
+            )
+            .is_err()
+        );
+        let expected = selected_set();
+        let selected_raw = expected.resources[0].raw.clone();
+        let expected_set = expected.schema_set_sha256;
+        let expected_selection = expected.contract_selection_sha256;
+        let expected_bytes = expected.schema_bytes as u64;
+        let mut executor = InProcessCandidateSchemaExecutor::from_schema_set(
+            expected,
+            crate::in_process::InputMode::PublishedStrict,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        assert_eq!(*executor.input_identity(), 42);
+        assert_eq!(executor.schema_set_digest(), expected_set);
+        assert_eq!(executor.contract_selection_digest(), expected_selection);
+        assert_eq!(
+            executor.selected_resource_totals().unwrap(),
+            (1, expected_bytes)
+        );
+        let mut count = 0;
+        executor
+            .for_each_selected_resource(&mut |row| {
+                assert_eq!(row.path, "ToS/contracts/example.schema.json");
+                count += 1;
+                Ok(())
+            })
+            .unwrap();
+        assert_eq!(count, 1);
+        let row = executor
+            .check_diagnostic(
+                "record.json",
+                b"3",
+                "ToS/contracts/example.schema.json",
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        assert_eq!(*row.input_identity(), 42);
+        assert_eq!(row.contract_selection_sha256(), expected_selection);
+        assert_eq!(row.execution_binding().schema_set_sha256(), expected_set);
+        assert_eq!(row.input_sha256(), Digest256::of_bytes(b"3"));
+        assert!(row.is_valid());
+        assert!(matches!(&row, CandidateSchemaDiagnostic::InProcess(row)
+            if row.diagnostic().identity == InProcessCutIdentity::Candidate(42)));
+        assert!(
+            !executor
+                .check(
+                    "record.json",
+                    br#""wrong""#,
+                    "ToS/contracts/example.schema.json",
+                    deadline,
+                    &cancelled
+                )
+                .unwrap()
+        );
+        let rejected = executor.take_diagnostic_rejection().unwrap().unwrap();
+        assert!(rejected.is_invalid());
+        assert_eq!(rejected.path(), "record.json");
+        assert_eq!(rejected.input_sha256(), Digest256::of_bytes(br#""wrong""#));
+        assert!(!rejected.issues().is_empty());
+        assert_eq!(rejected.failure(), schema_diagnostics::Failure::None);
+        assert!(
+            rejected
+                .retained_state_bytes()
+                .is_some_and(|bytes| bytes >= std::mem::size_of_val(&rejected))
+        );
+        let selected = executor
+            .check_diagnostic_for_schema_raw(
+                "record.json",
+                b"3",
+                &selected_raw,
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        assert!(selected.is_valid());
+        assert_eq!(selected.contract(), "ToS/contracts/example.schema.json");
+        assert!(
+            executor
+                .check_diagnostic_for_schema_raw("record.json", b"3", b"{}", deadline, &cancelled)
+                .is_err()
+        );
+        assert_eq!(executor.completed_checks(), Some(3));
+        assert!(executor.take_diagnostic_rejection().unwrap().is_none());
+        executor.finish(deadline, &cancelled).unwrap();
+        assert!(
+            executor
+                .check(
+                    "record.json",
+                    b"3",
+                    "ToS/contracts/example.schema.json",
+                    deadline,
+                    &cancelled
+                )
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn incomplete_candidate_evaluation_cannot_finish() {
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let mut executor = InProcessCandidateSchemaExecutor::from_schema_set(
+            selected_set(),
+            crate::in_process::InputMode::PublishedStrict,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        let report = executor
+            .diagnostic_for(
+                "record.json",
+                "ToS/contracts/example.schema.json",
+                b"{",
+                schema_diagnostics::Caps::CURRENT,
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        assert_eq!(
+            report.report.status,
+            schema_diagnostics::Status::InputRejected
+        );
+        assert!(executor.finish(deadline, &cancelled).is_err());
+        assert!(
+            executor
+                .check(
+                    "record.json",
+                    b"3",
+                    "ToS/contracts/example.schema.json",
+                    deadline,
+                    &cancelled
+                )
+                .is_err()
+        );
+        let mut projected = InProcessCandidateSchemaExecutor::from_schema_set(
+            selected_set(),
+            crate::in_process::InputMode::PublishedStrict,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        assert!(
+            projected
+                .check(
+                    "record.json",
+                    b"{",
+                    "ToS/contracts/example.schema.json",
+                    deadline,
+                    &cancelled
+                )
+                .is_err()
+        );
+        let rejected = projected.take_diagnostic_rejection().unwrap().unwrap();
+        assert_eq!(rejected.status(), schema_diagnostics::Status::InputRejected);
+        assert_eq!(rejected.input_sha256(), Digest256::of_bytes(b"{"));
+        assert!(projected.finish(deadline, &cancelled).is_err());
+    }
+
+    #[test]
+    fn candidate_batch_preserves_order_and_refuses_partial_results() {
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let make_executor = || {
+            InProcessCandidateSchemaExecutor::from_schema_set(
+                selected_set(),
+                crate::in_process::InputMode::PublishedStrict,
+                deadline,
+                &cancelled,
+            )
+            .unwrap()
+        };
+        let item = |raw: &[u8]| CutSchemaCheck {
+            path: "record.json".into(),
+            contract: "ToS/contracts/example.schema.json".into(),
+            raw: raw.to_vec(),
+        };
+        let mut executor = make_executor();
+        assert_eq!(
+            executor
+                .check_batch(
+                    &[item(b"3"), item(br#""wrong""#), item(b"5")],
+                    BatchBudget::laboratory(),
+                    deadline,
+                    &cancelled
+                )
+                .unwrap(),
+            [true, false, true]
+        );
+        assert_eq!(executor.completed_checks(), Some(3));
+        assert_eq!(
+            executor.selected_schema_limits_sha256(),
+            Some(selected_set().limits_sha256)
+        );
+        executor.finish(deadline, &cancelled).unwrap();
+        let mut incomplete = make_executor();
+        assert!(
+            incomplete
+                .check_batch(
+                    &[item(b"3"), item(b"{")],
+                    BatchBudget::laboratory(),
+                    deadline,
+                    &cancelled
+                )
+                .is_err()
+        );
+        assert_eq!(incomplete.completed_checks(), None);
+        assert!(incomplete.finish(deadline, &cancelled).is_err());
     }
 }
 
@@ -5172,12 +6458,29 @@ struct InProcessCutEvidence<I> {
     identity: InProcessIdentityEvidence<I>,
     path: String,
     contract: String,
+    #[serde(default, skip_serializing_if = "selector_is_contract_path")]
+    selector_kind: InProcessSelectorKind,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    input_size_bytes: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    before_issue: Option<u64>,
     report: serde_json::Value,
+}
+
+fn selector_is_contract_path(kind: &InProcessSelectorKind) -> bool {
+    *kind == InProcessSelectorKind::ContractPath
 }
 
 impl<I: Clone + serde::Serialize + serde::de::DeserializeOwned> InProcessCutDiagnostic<I> {
     /// Encode the selected-input fence alongside the engine-specific report.
     pub fn to_evidence_json(&self) -> Result<Vec<u8>, serde_json::Error> {
+        if self.selector_kind == InProcessSelectorKind::SchemaUri
+            && self.contract != self.report.root_uri
+        {
+            return Err(<serde_json::Error as serde::ser::Error>::custom(
+                "schema URI selector differs from report root",
+            ));
+        }
         let identity = match &self.identity {
             InProcessCutIdentity::Source(revision) => {
                 InProcessIdentityEvidence::Source(revision.0.to_hex())
@@ -5188,10 +6491,21 @@ impl<I: Clone + serde::Serialize + serde::de::DeserializeOwned> InProcessCutDiag
         };
         let report = serde_json::from_slice(&self.report.to_evidence_json()?)?;
         serde_json::to_vec(&InProcessCutEvidence {
-            version: 1,
+            version: if self.selector_kind == InProcessSelectorKind::SchemaUri {
+                4
+            } else if self.before_issue.is_some() {
+                3
+            } else if self.input_size_bytes.is_some() {
+                2
+            } else {
+                1
+            },
             identity,
             path: self.path.clone(),
             contract: self.contract.clone(),
+            selector_kind: self.selector_kind,
+            input_size_bytes: self.input_size_bytes,
+            before_issue: self.before_issue,
             report,
         })
     }
@@ -5202,8 +6516,18 @@ impl<I: Clone + serde::Serialize + serde::de::DeserializeOwned> InProcessCutDiag
             .map_err(|_| "invalid cut evidence JSON")?;
         let evidence: InProcessCutEvidence<I> =
             serde_json::from_value(value).map_err(|_| "invalid cut evidence JSON")?;
-        if evidence.version != 1
-            || evidence.path.is_empty()
+        if !matches!(
+            (
+                evidence.version,
+                evidence.input_size_bytes,
+                evidence.before_issue,
+                evidence.selector_kind
+            ),
+            (1, None, None, InProcessSelectorKind::ContractPath)
+                | (2, Some(_), None, InProcessSelectorKind::ContractPath)
+                | (3, _, Some(_), InProcessSelectorKind::ContractPath)
+                | (4, _, _, InProcessSelectorKind::SchemaUri)
+        ) || evidence.path.is_empty()
             || evidence.contract.is_empty()
             || evidence.path.len() > 4096
             || evidence.contract.len() > 4096
@@ -5222,10 +6546,18 @@ impl<I: Clone + serde::Serialize + serde::de::DeserializeOwned> InProcessCutDiag
         };
         let raw_report = serde_json::to_vec(&evidence.report).map_err(|_| "invalid report")?;
         let report = crate::in_process::Report::from_evidence_json(&raw_report)?;
+        if evidence.selector_kind == InProcessSelectorKind::SchemaUri
+            && evidence.contract != report.root_uri
+        {
+            return Err("schema URI selector differs from report root");
+        }
         Ok(Self {
             identity,
             path: evidence.path,
             contract: evidence.contract,
+            selector_kind: evidence.selector_kind,
+            input_size_bytes: evidence.input_size_bytes,
+            before_issue: evidence.before_issue,
             report,
         })
     }

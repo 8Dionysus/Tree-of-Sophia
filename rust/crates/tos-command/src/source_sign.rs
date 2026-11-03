@@ -6,6 +6,7 @@ use crate::source_command::{
     SourceFile,
 };
 use crate::source_creation_store::{active, inode, protected_configuration_parents, raw};
+use crate::source_revisions::RecordSchemaWorker;
 use crate::source_sign_native::{
     NativeReadKind, NativeReadScope, SignNativeRead, resolve_assessment, resolve_binding,
 };
@@ -15,15 +16,17 @@ use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
-use tos_foundation::{Digest256, JsonValue, RelativePath};
+use tos_foundation::{Digest256, JsonValue, RelativePath, SourceRevision};
 use tos_source_store::CorpusCutReader;
 use tos_validation::assessment::{
     AssessmentLimits, AssessmentReadInput, AssessmentRecordInput, AssessmentRefusal,
     AssessmentSourceRoute, evaluate_current_assessment,
 };
 use tos_validation::source_cut::{
-    CandidateCutWorkerSchemaExecutor, CutSchemaExecutor, CutWorkerSchemaExecutor,
+    CutSchemaExecutor, CutWorkerSchemaExecutor, InProcessCandidateSchemaExecutor,
+    InProcessCutSchemaExecutor,
 };
+use tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding;
 
 const CONTROL: &str = "ToS/source-witnesses/.metadata-publication.json";
 const ENTITIES: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
@@ -32,10 +35,8 @@ const RELATIONS: &str = "ToS/doctrine/semantic-interchange/relation-types.v1.jso
 #[path = "source_sign_pg.rs"]
 pub(crate) mod pg;
 
-pub(crate) fn require_assessment_profile(worker: &CutWorkerSchemaExecutor) -> Result<()> {
-    if worker.execution_binding().schema_profile
-        != tos_validation::FormatProfile::AssertedSourceCandidateV1
-    {
+pub(crate) fn require_assessment_profile(worker: &impl CutSchemaExecutor) -> Result<()> {
+    if worker.schema_profile() != Some(tos_validation::FormatProfile::AssertedSourceCandidateV1) {
         return Err(Error::Unsupported(
             "Sign assessment requires asserted source grammar formats",
         ));
@@ -47,7 +48,7 @@ pub(crate) fn require_assessment_profile(worker: &CutWorkerSchemaExecutor) -> Re
 /// `SourceRevision`. Keep the maintained asserted profile check while leaving
 /// corpus completeness and source identity to their selected owner proofs.
 pub(crate) fn require_assessment_candidate_profile<I: Copy + Eq>(
-    worker: &CandidateCutWorkerSchemaExecutor<I>,
+    worker: &impl SourceFoundationCandidateSchemaBinding<I>,
 ) -> Result<()> {
     if worker.profile() != tos_validation::FormatProfile::AssertedSourceCandidateV1 {
         return Err(Error::Unsupported(
@@ -60,17 +61,14 @@ pub(crate) fn require_assessment_candidate_profile<I: Copy + Eq>(
 /// Load the exact owner-selected schema closure through the active readset and
 /// bind it to the caller's opaque candidate identity. Callers must derive
 /// `schema_paths` from their validated source profile; this helper proves only
-/// the bounded schema bytes and worker binding, not source membership.
-pub(crate) fn candidate_schema_worker_from_readset<I: Copy + Eq>(
+/// the bounded schema bytes and candidate binding.
+pub(crate) fn candidate_schema_executor_from_readset<I: Copy + Eq>(
     readset: &mut impl crate::source_revisions::ReadonlyRecordFiles,
     input_identity: I,
     schema_paths: &[String],
-    image: &tos_validation::executor::VerifiedWorkerImageHandle,
-    budget: tos_validation::executor::ExecutorBudget,
-    limits: tos_validation::source_cut::CutWorkerLimits,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> Result<CandidateCutWorkerSchemaExecutor<I>> {
+) -> Result<InProcessCandidateSchemaExecutor<I>> {
     let paths = schema_paths.iter().cloned().collect::<BTreeSet<_>>();
     if paths.len() != schema_paths.len()
         || paths.is_empty()
@@ -101,16 +99,15 @@ pub(crate) fn candidate_schema_worker_from_readset<I: Copy + Eq>(
         let uri = cmd::text(&value, "$id")?.to_owned();
         selected.push((path, tos_validation::SchemaResource { uri, raw }));
     }
-    CandidateCutWorkerSchemaExecutor::from_asserted_source_candidate_resources(
+    InProcessCandidateSchemaExecutor::from_selected_source_resources(
         input_identity,
         selected,
-        image,
-        budget,
-        limits,
+        tos_validation::FormatProfile::AssertedSourceCandidateV1,
+        tos_validation::in_process::InputMode::SerdeNormalized,
         deadline,
         cancelled,
     )
-    .map_err(|_| Error::Unsupported("Sign asserted candidate schema worker"))
+    .map_err(|_| Error::Unsupported("Sign asserted candidate schema executor"))
 }
 
 pub(crate) fn finish_worker(
@@ -505,9 +502,78 @@ fn decoded(value: &serde_json::Value) -> Result<JsonValue> {
     )
 }
 
+pub(crate) struct SignLocalClaimReport {
+    source_revision: SourceRevision,
+    source_input_sha256: Digest256,
+    dependency_digests: BTreeMap<String, Digest256>,
+    issues: Vec<tos_validation::relation_rules::RelationIssue>,
+}
+
+pub(crate) trait SignSourceSchemas: RecordSchemaWorker<Identity = SourceRevision> {
+    fn validate_local_claim(
+        &mut self,
+        cut: &CorpusCutReader,
+        raw: &[u8],
+        profile: tos_validation::FormatProfile,
+        limits: tos_validation::item_rules::ItemLimits,
+        cancelled: &AtomicBool,
+    ) -> std::result::Result<SignLocalClaimReport, tos_validation::item_rules::ItemRefusal>;
+}
+
+impl SignSourceSchemas for CutWorkerSchemaExecutor {
+    fn validate_local_claim(
+        &mut self,
+        cut: &CorpusCutReader,
+        raw: &[u8],
+        profile: tos_validation::FormatProfile,
+        limits: tos_validation::item_rules::ItemLimits,
+        cancelled: &AtomicBool,
+    ) -> std::result::Result<SignLocalClaimReport, tos_validation::item_rules::ItemRefusal> {
+        let report = match profile {
+            tos_validation::FormatProfile::LegacyPythonObserved20260923 => {
+                tos_validation::record_rules::validate_source_claim_from_cut(
+                    cut, raw, self, limits, cancelled,
+                )
+            }
+            tos_validation::FormatProfile::AssertedSourceCandidateV1 => {
+                tos_validation::record_rules::validate_source_claim_from_asserted_cut(
+                    cut, raw, self, limits, cancelled,
+                )
+            }
+        }?;
+        Ok(SignLocalClaimReport {
+            source_revision: report.source_revision,
+            source_input_sha256: report.source_input_sha256,
+            dependency_digests: report.dependency_digests,
+            issues: report.issues,
+        })
+    }
+}
+
+impl SignSourceSchemas for InProcessCutSchemaExecutor<()> {
+    fn validate_local_claim(
+        &mut self,
+        cut: &CorpusCutReader,
+        raw: &[u8],
+        profile: tos_validation::FormatProfile,
+        limits: tos_validation::item_rules::ItemLimits,
+        cancelled: &AtomicBool,
+    ) -> std::result::Result<SignLocalClaimReport, tos_validation::item_rules::ItemRefusal> {
+        let report = tos_validation::record_rules::validate_source_claim_from_in_process_cut(
+            cut, raw, self, limits, cancelled, profile,
+        )?;
+        Ok(SignLocalClaimReport {
+            source_revision: report.source_revision,
+            source_input_sha256: report.source_input_sha256,
+            dependency_digests: report.dependency_digests,
+            issues: report.issues,
+        })
+    }
+}
+
 fn schema(
     reader: &mut SignSourceReader<'_>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl SignSourceSchemas,
     name: &str,
     value: &JsonValue,
     deadline: Instant,
@@ -515,7 +581,7 @@ fn schema(
 ) -> Result<()> {
     reader.source_dependencies.insert(name.to_owned());
     let raw = reader.source(name, 1_048_576, deadline, cancelled)?;
-    if worker.source_revision() != reader.cut.current().revision()
+    if worker.source_revision() != Some(reader.cut.current().revision())
         || worker.contract_digest(name) != Some(Digest256::of_bytes(&raw))
     {
         return Err(Error::Conflict("Sign selected schema worker binding"));
@@ -540,13 +606,13 @@ fn schema(
 }
 fn local_claim(
     reader: &mut SignSourceReader<'_>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl SignSourceSchemas,
     claim: &JsonValue,
     expected_profile: tos_validation::FormatProfile,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<()> {
-    if worker.execution_binding().schema_profile != expected_profile {
+    if worker.schema_profile() != Some(expected_profile) {
         return Err(Error::Unsupported(
             "Sign selected Claim worker profile differs",
         ));
@@ -559,23 +625,13 @@ fn local_claim(
         max_issues: 128,
         deadline,
     };
-    let report = match expected_profile {
-        tos_validation::FormatProfile::LegacyPythonObserved20260923 => {
-            tos_validation::record_rules::validate_source_claim_from_cut(
-                reader.cut, &raw, worker, limits, cancelled,
-            )
-        }
-        tos_validation::FormatProfile::AssertedSourceCandidateV1 => {
-            tos_validation::record_rules::validate_source_claim_from_asserted_cut(
-                reader.cut, &raw, worker, limits, cancelled,
-            )
-        }
-    }
-    .map_err(|reason| Error::SchemaExecution {
-        path: "Sign selected Claim".to_owned(),
-        root: "local Claim profile".to_owned(),
-        reason,
-    })?;
+    let report = worker
+        .validate_local_claim(reader.cut, &raw, expected_profile, limits, cancelled)
+        .map_err(|reason| Error::SchemaExecution {
+            path: "Sign selected Claim".to_owned(),
+            root: "local Claim profile".to_owned(),
+            reason,
+        })?;
     if report.source_revision != reader.cut.current().revision()
         || report.source_input_sha256 != Digest256::of_bytes(&raw)
         || report.dependency_digests.len() > 128
@@ -596,7 +652,7 @@ fn local_claim(
 // promoting those mechanical reads into the legacy semantic source snapshot.
 fn generic_family_schema(
     reader: &mut SignSourceReader<'_>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl SignSourceSchemas,
     name: &str,
     value: &JsonValue,
     deadline: Instant,
@@ -637,14 +693,14 @@ fn source_envelopes(
     reader: &mut SignSourceReader<'_>,
     base: &CommandContext,
     config: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl SignSourceSchemas,
     deadline: Instant,
     cancelled: &AtomicBool,
     route: SourceEnvelopeRoute,
 ) -> Result<Vec<JsonValue>> {
     let claim_profile = route.claim_profile();
     let generic_schema_dependencies = route.generic_schema_dependencies();
-    if route.claim_profile() != worker.execution_binding().schema_profile {
+    if Some(route.claim_profile()) != worker.schema_profile() {
         return Err(Error::Unsupported(
             "Sign selected source worker profile differs",
         ));
@@ -938,7 +994,7 @@ impl OwnerAssessmentPublicSources<'_> {
     pub(crate) fn validate_form_set(
         &mut self,
         path: &str,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut impl SignSourceSchemas,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> crate::source_command::SourceCommandResult<()> {
@@ -968,12 +1024,12 @@ pub(crate) fn select_owner_assessment_public_sources<'a>(
     cut: &'a CorpusCutReader,
     base: &CommandContext,
     config: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl SignSourceSchemas,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> crate::source_command::SourceCommandResult<OwnerAssessmentPublicSources<'a>> {
     if cut.current().revision() != base.base_revision
-        || worker.source_revision() != base.base_revision
+        || worker.source_revision() != Some(base.base_revision)
     {
         return Err(Error::Conflict(
             "private assessment public source cut differs from its selected context",
@@ -1175,7 +1231,7 @@ pub(crate) fn select_owner_assessment_public_sources<'a>(
 fn validate_source_profile(
     reader: &mut SignSourceReader<'_>,
     base: &CommandContext,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl SignSourceSchemas,
     name: &str,
     body: &JsonValue,
     deadline: Instant,
@@ -1319,7 +1375,7 @@ fn claim_ground_refs(
     reader: &mut SignSourceReader<'_>,
     rows: &[JsonValue],
     config: &JsonValue,
-    _worker: &mut CutWorkerSchemaExecutor,
+    _worker: &mut impl SignSourceSchemas,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<BTreeMap<String, Vec<JsonValue>>> {
@@ -1595,7 +1651,7 @@ struct NativeSelection {
 fn native_envelopes(
     reader: &mut SignSourceReader<'_>,
     config: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl SignSourceSchemas,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<NativeSelection> {
@@ -1839,7 +1895,7 @@ impl<'a> SignPromotionRead<'a> {
     pub(crate) fn prepare_sources(
         &mut self,
         base: &CommandContext,
-        local_worker: &mut CutWorkerSchemaExecutor,
+        local_worker: &mut impl SignSourceSchemas,
         limits: AssessmentLimits,
         cancelled: &AtomicBool,
     ) -> Result<()> {
@@ -1874,8 +1930,8 @@ impl<'a> SignPromotionRead<'a> {
     pub(crate) fn current_basis(
         &mut self,
         base: &CommandContext,
-        local_worker: &mut CutWorkerSchemaExecutor,
-        assessment_worker: &mut CutWorkerSchemaExecutor,
+        local_worker: &mut impl SignSourceSchemas,
+        assessment_worker: &mut impl CutSchemaExecutor,
         limits: AssessmentLimits,
         cancelled: &AtomicBool,
     ) -> Result<JsonValue> {
@@ -1894,8 +1950,8 @@ impl<'a> SignPromotionRead<'a> {
     pub(crate) fn describe_promotion(
         &mut self,
         base: &CommandContext,
-        local_worker: &mut CutWorkerSchemaExecutor,
-        assessment_worker: &mut CutWorkerSchemaExecutor,
+        local_worker: &mut impl SignSourceSchemas,
+        assessment_worker: &mut impl CutSchemaExecutor,
         limits: AssessmentLimits,
         cancelled: &AtomicBool,
     ) -> Result<JsonValue> {
@@ -1943,8 +1999,8 @@ impl<'a> SignPromotionRead<'a> {
     pub(crate) fn with_current_basis<T>(
         &mut self,
         base: &CommandContext,
-        local_worker: &mut CutWorkerSchemaExecutor,
-        assessment_worker: &mut CutWorkerSchemaExecutor,
+        local_worker: &mut impl SignSourceSchemas,
+        assessment_worker: &mut impl CutSchemaExecutor,
         limits: AssessmentLimits,
         cancelled: &AtomicBool,
         sign_publication: impl FnOnce(&JsonValue, &mut dyn FnMut() -> Result<()>) -> Result<T>,
@@ -2077,7 +2133,7 @@ fn assemble_sign_sources(
     owner: &ProtectedAssessmentJournal,
     promotion: &JsonValue,
     base: &CommandContext,
-    local_worker: &mut CutWorkerSchemaExecutor,
+    local_worker: &mut impl SignSourceSchemas,
     limits: AssessmentLimits,
     cancelled: &AtomicBool,
 ) -> Result<SignSourceAssembly> {
@@ -2257,7 +2313,7 @@ fn current_basis(
     promotion: &JsonValue,
     assembly: &SignSourceAssembly,
     history: &crate::source_assessment_journal::AssessmentHistory,
-    assessment_worker: &mut CutWorkerSchemaExecutor,
+    assessment_worker: &mut impl CutSchemaExecutor,
     limits: AssessmentLimits,
     cancelled: &AtomicBool,
 ) -> Result<JsonValue> {
@@ -2283,7 +2339,7 @@ fn current_promotion(
     promotion: &JsonValue,
     assembly: &SignSourceAssembly,
     history: &crate::source_assessment_journal::AssessmentHistory,
-    assessment_worker: &mut CutWorkerSchemaExecutor,
+    assessment_worker: &mut impl CutSchemaExecutor,
     limits: AssessmentLimits,
     cancelled: &AtomicBool,
     require_ready: bool,
@@ -2427,7 +2483,7 @@ pub(crate) fn select_owner_assessment_public_sources_with_return_limit<'a>(
     cut: &'a CorpusCutReader,
     base: &CommandContext,
     config: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl SignSourceSchemas,
     adapter: &mut crate::temporal_research_crosswalk::C01AdapterPayer<'_>,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -2599,5 +2655,89 @@ impl OwnerAssessmentPublicSources<'_> {
         json_map!(identity_snapshots);
         json_map!(form_sets);
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod in_process_candidate_tests {
+    use super::*;
+    use crate::source_revisions::ReadonlyRecordFiles;
+    use std::time::Duration;
+    use tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding;
+
+    struct SchemaReadset;
+    impl ReadonlyRecordFiles for SchemaReadset {
+        fn read(
+            &mut self,
+            path: &str,
+            max_bytes: usize,
+            _: Instant,
+            _: &AtomicBool,
+        ) -> Result<Vec<u8>> {
+            let schema = br#"{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://example.test/sign.schema.json","type":"integer"}"#;
+            if path != "ToS/contracts/sign.schema.json" || schema.len() > max_bytes {
+                return Err(Error::Invalid("unexpected schema read"));
+            }
+            Ok(schema.to_vec())
+        }
+        fn list_directory(
+            &mut self,
+            _: &str,
+            _: Instant,
+            _: &AtomicBool,
+        ) -> Result<Vec<(String, bool)>> {
+            Err(Error::Invalid("unexpected directory read"))
+        }
+    }
+
+    #[test]
+    fn selected_sign_schemas_execute_without_worker_and_preserve_candidate_identity() {
+        let deadline = Instant::now() + Duration::from_secs(10);
+        let cancelled = AtomicBool::new(false);
+        let path = "ToS/contracts/sign.schema.json".to_owned();
+        let mut schemas = candidate_schema_executor_from_readset(
+            &mut SchemaReadset,
+            41u64,
+            &[path.clone()],
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        assert_eq!(
+            *SourceFoundationCandidateSchemaBinding::input_identity(&schemas),
+            41
+        );
+        require_assessment_candidate_profile(&schemas).unwrap();
+        let contract = "ToS/contracts/sign.schema.json";
+        assert!(
+            schemas
+                .check("sign.json", b"12", contract, deadline, &cancelled)
+                .unwrap()
+        );
+        assert!(
+            !schemas
+                .check("sign.json", br#""invalid""#, contract, deadline, &cancelled)
+                .unwrap()
+        );
+        assert!(
+            candidate_schema_executor_from_readset(
+                &mut SchemaReadset,
+                41u64,
+                &[path.clone(), path],
+                deadline,
+                &cancelled
+            )
+            .is_err()
+        );
+        assert!(
+            candidate_schema_executor_from_readset(
+                &mut SchemaReadset,
+                41u64,
+                &["ToS/contracts/../other.schema.json".into()],
+                deadline,
+                &cancelled
+            )
+            .is_err()
+        );
     }
 }

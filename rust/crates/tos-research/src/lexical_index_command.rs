@@ -97,8 +97,6 @@ fn run(args: &[String], stdout: &mut dyn Write) -> Result<(), String> {
             "--candidate-root",
             "--projection",
             "--local-output-root",
-            "--schema-worker",
-            "--schema-worker-sha256",
             "--limits",
             "--event-time",
         ]
@@ -131,45 +129,6 @@ fn run(args: &[String], stdout: &mut dyn Write) -> Result<(), String> {
         )
         .map_err(|e| e.to_string())?,
     );
-    let worker = path(&options, "--schema-worker")?;
-    let worker_sha = Digest256::from_hex(
-        options
-            .get("--schema-worker-sha256")
-            .ok_or("missing worker digest")?,
-    )
-    .map_err(|e| e.to_string())?;
-    // Snapshot lookup indexes retain several path/identity/dependency maps.
-    // Each JSON input byte bounds a slot; 512 bytes/byte conservatively covers
-    // the pinned BTree node slots, cloned keys/strings and Vec capacities.
-    // No lexical DOM has been built yet. This is logical live setup, not RSS.
-    let setup_state_bytes = l
-        .max_manifest_bytes
-        .checked_mul(l.max_revisions)
-        .and_then(|n| n.checked_mul(512))
-        .and_then(|n| n.checked_add(65536 * 4))
-        .and_then(|n| n.checked_add(root.as_os_str().as_encoded_bytes().len().checked_mul(16)?))
-        .and_then(|n| {
-            n.checked_add(
-                software
-                    .as_os_str()
-                    .as_encoded_bytes()
-                    .len()
-                    .checked_mul(16)?,
-            )
-        })
-        .and_then(|n| {
-            n.checked_add(
-                worker
-                    .as_os_str()
-                    .as_encoded_bytes()
-                    .len()
-                    .checked_mul(16)?,
-            )
-        })
-        .ok_or("lexical setup state overflow")?;
-    if setup_state_bytes > l.schema.max_preparation_bytes {
-        return Err("lexical cut setup exceeds preparation declaration".into());
-    }
     let reader = CorpusReader::open_existing(
         &root,
         ReadLimits {
@@ -199,15 +158,7 @@ fn run(args: &[String], stdout: &mut dyn Write) -> Result<(), String> {
             &cancelled,
         )
         .map_err(|e| e.to_string())?;
-    let mut schema = LexicalSchemaExecutor::new(
-        &cut,
-        &worker,
-        worker_sha,
-        l.schema,
-        setup_state_bytes,
-        deadline,
-        &cancelled,
-    )?;
+    let mut schema = LexicalSchemaExecutor::new(&cut, l.schema, deadline, &cancelled)?;
     let mut capture = LexicalCapture::from_cut(&software, &cut, l.lexical, deadline, &cancelled)?;
     if options.contains_key("--derived-input-root") {
         capture.set_derived_root(&path(&options, "--derived-input-root")?)?;
@@ -394,7 +345,7 @@ pub fn run_if_requested(
         return None;
     }
     if args.len() == 2 && matches!(args[1].as_str(), "--help" | "-h") {
-        return Some(if writeln!(stdout, "tos-research lexical-index validate-tracked --source-root ABS [--derived-input-root ABS] [--local-output-root ABS] [--max-seconds 1..600]\nRead-only lexical, usage-context and morphology source closure; optional local SQLite fixity. Missing inputs refuse; no corpus discovery or source admission.\nOther actions: build, validate, validate-legacy with explicit source cut, schema worker and limits.").is_ok() { 0 } else { 2 });
+        return Some(if writeln!(stdout, "tos-research lexical-index validate-tracked --source-root ABS [--derived-input-root ABS] [--local-output-root ABS] [--max-seconds 1..600]\nRead-only lexical, usage-context and morphology source closure; optional local SQLite fixity. Missing inputs refuse; no corpus discovery or source admission.\nOther actions: build, validate, validate-legacy with an explicit source cut and limits.").is_ok() { 0 } else { 2 });
     }
     Some(match run(args, stdout) {
         Ok(()) => 0,

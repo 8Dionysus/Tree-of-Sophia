@@ -804,7 +804,6 @@ use super::work_expression::{
     selected_sides, software_current, work_dependencies_current,
 };
 use tos_validation::item_rules::{ItemLimits, ItemRefusal};
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
 fn item_error(reason: ItemRefusal) -> SourceCommandError {
     SourceCommandError::SchemaExecution {
@@ -858,7 +857,7 @@ fn current_catalog(
     owner: &CollectionOwner,
     before: &BTreeMap<String, Vec<u8>>,
     cut: &CorpusCutReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl tos_validation::native_compound::CutCompoundSchemaExecutor,
     limits: ItemLimits,
     publication_token: Option<&str>,
     mut check_publication: impl FnMut() -> SourceCommandResult<()>,
@@ -1428,7 +1427,7 @@ pub fn prepare_isolated_collection_membership_from_proposal(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl tos_validation::native_compound::CutCompoundSchemaExecutor,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<CollectionMembershipPreparation> {
@@ -1623,7 +1622,7 @@ fn prepare_collection_application(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl tos_validation::native_compound::CutCompoundSchemaExecutor,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCollectionApplication> {
@@ -1818,7 +1817,7 @@ pub fn execute_isolated_collection_membership_from_captures(
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl tos_validation::native_compound::CutCompoundSchemaExecutor,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<CollectionMembershipPublication> {
@@ -1849,7 +1848,7 @@ pub fn replay_isolated_collection_membership_from_captures(
     current_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl tos_validation::native_compound::CutCompoundSchemaExecutor,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<CollectionMembershipPublication> {
@@ -2176,7 +2175,7 @@ fn recover_collection_selected(
     original_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl tos_validation::native_compound::CutCompoundSchemaExecutor,
     decision: CollectionRecoveryDecision,
     explicit: bool,
     limits: ItemLimits,
@@ -2483,7 +2482,7 @@ pub fn recover_isolated_collection_membership_from_captures(
     original_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl tos_validation::native_compound::CutCompoundSchemaExecutor,
     decision: CollectionRecoveryDecision,
     limits: ItemLimits,
     cancelled: &AtomicBool,
