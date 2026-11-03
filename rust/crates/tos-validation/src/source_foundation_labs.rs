@@ -2,6 +2,7 @@
 //! Historical laboratories and dossier audits are available with the `research` feature.
 
 pub use crate::source_foundation_schema::SourceFoundationSchemaCheck;
+pub use crate::text_collation_rules::witness_text_collation_semantic_messages;
 use serde_json::Value;
 use tos_foundation::RelativePath;
 
