@@ -1,0 +1,315 @@
+{
+  "schema_version": "tos_r2_manifest_v1",
+  "group": "historical repository snapshots and license notices",
+  "inventory_commit": "3574eb128b89d9d43d4e67c80fd493de3b0dcea5",
+  "key_template": "sha256/<sha256>",
+  "distribution": "Distribute each snapshot with the notices referenced by license_notice and additional_license_notices.",
+  "entries": [
+    {
+      "path": ".agents/agent-surface.current.json",
+      "sha256": "6f11afae7258153b0f90387da031568e96f5c65f8183b1a2d884b398d8eb0b33",
+      "bytes": 6988,
+      "bucket": "tos-public-layers",
+      "rights_posture": "authorized",
+      "rights_refs": [
+        "LICENSE"
+      ],
+      "license_notice": {
+        "path": "LICENSE",
+        "sha256": "0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a",
+        "bytes": 10775,
+        "bucket": "tos-public-layers",
+        "key": "sha256/0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a"
+      },
+      "source_commit": "3574eb128b89d9d43d4e67c80fd493de3b0dcea5"
+    },
+    {
+      "path": ".agents/agents-route.current.json",
+      "sha256": "7ff830d6b8d06c88a1faaf70730a1b58bab600734e281f56874a863f2d768d02",
+      "bytes": 88529,
+      "bucket": "tos-public-layers",
+      "rights_posture": "authorized",
+      "rights_refs": [
+        "LICENSE"
+      ],
+      "license_notice": {
+        "path": "LICENSE",
+        "sha256": "0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a",
+        "bytes": 10775,
+        "bucket": "tos-public-layers",
+        "key": "sha256/0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a"
+      },
+      "source_commit": "3574eb128b89d9d43d4e67c80fd493de3b0dcea5"
+    },
+    {
+      "path": "docs/validation/documentation-family.current.json",
+      "sha256": "65f82eb44cd0c4667cb76339d5988b778e44a8bef26f40b289a4112eb29077fb",
+      "bytes": 2202569,
+      "bucket": "tos-public-layers",
+      "rights_posture": "authorized",
+      "rights_refs": [
+        "LICENSE"
+      ],
+      "license_notice": {
+        "path": "LICENSE",
+        "sha256": "0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a",
+        "bytes": 10775,
+        "bucket": "tos-public-layers",
+        "key": "sha256/0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a"
+      },
+      "source_commit": "3574eb128b89d9d43d4e67c80fd493de3b0dcea5"
+    },
+    {
+      "path": "ToS/source-witnesses/discovery/candidates/queue.current.json",
+      "sha256": "72b857be0361ea72d12051210863bd5d12eae708c4a11d5ecc72486d1d7f5285",
+      "bytes": 99319,
+      "bucket": "tos-public-layers",
+      "rights_posture": "authorized",
+      "rights_refs": [
+        "LICENSE"
+      ],
+      "license_notice": {
+        "path": "LICENSE",
+        "sha256": "0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a",
+        "bytes": 10775,
+        "bucket": "tos-public-layers",
+        "key": "sha256/0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a"
+      },
+      "source_commit": "3574eb128b89d9d43d4e67c80fd493de3b0dcea5"
+    },
+    {
+      "path": "mechanics/agon/parts/threshold-registry/generated/tos_agon_threshold_intake_registry.min.json",
+      "sha256": "a1080fe43e140921a9653218e7930e4a674c108b26de63f4e215ba4b945db69d",
+      "bytes": 8310,
+      "bucket": "tos-public-layers",
+      "rights_posture": "authorized",
+      "rights_refs": [
+        "LICENSE"
+      ],
+      "license_notice": {
+        "path": "LICENSE",
+        "sha256": "0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a",
+        "bytes": 10775,
+        "bucket": "tos-public-layers",
+        "key": "sha256/0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a"
+      },
+      "source_commit": "3574eb128b89d9d43d4e67c80fd493de3b0dcea5"
+    },
+    {
+      "path": "docs/decisions/indexes/README.md",
+      "sha256": "cc20f1bf7cece6dc9896de93a773f1a9385b5f5f38d2df4e66c3c7951c926565",
+      "bytes": 492,
+      "bucket": "tos-public-layers",
+      "rights_posture": "authorized",
+      "rights_refs": [
+        "LICENSE"
+      ],
+      "license_notice": {
+        "path": "LICENSE",
+        "sha256": "0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a",
+        "bytes": 10775,
+        "bucket": "tos-public-layers",
+        "key": "sha256/0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a"
+      },
+      "source_commit": "3574eb128b89d9d43d4e67c80fd493de3b0dcea5"
+    },
+    {
+      "path": "docs/decisions/indexes/by-date.md",
+      "sha256": "e04df171c794df93647c9d10c4fea03493a79e10775ecf906c62b945b37e6cd9",
+      "bytes": 14197,
+      "bucket": "tos-public-layers",
+      "rights_posture": "authorized",
+      "rights_refs": [
+        "LICENSE"
+      ],
+      "license_notice": {
+        "path": "LICENSE",
+        "sha256": "0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a",
+        "bytes": 10775,
+        "bucket": "tos-public-layers",
+        "key": "sha256/0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a"
+      },
+      "source_commit": "3574eb128b89d9d43d4e67c80fd493de3b0dcea5"
+    },
+    {
+      "path": "docs/decisions/indexes/by-guard.md",
+      "sha256": "3761fa579994b448ea3ae272610b99fe2e325bf21a4d287225c7475a1043f327",
+      "bytes": 62737,
+      "bucket": "tos-public-layers",
+      "rights_posture": "authorized",
+      "rights_refs": [
+        "LICENSE"
+      ],
+      "license_notice": {
+        "path": "LICENSE",
+        "sha256": "0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a",
+        "bytes": 10775,
+        "bucket": "tos-public-layers",
+        "key": "sha256/0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a"
+      },
+      "source_commit": "3574eb128b89d9d43d4e67c80fd493de3b0dcea5"
+    },
+    {
+      "path": "docs/decisions/indexes/by-number.md",
+      "sha256": "1c5b71a268b8e8737f0e4d683ad6d8927e3047fc0e0d46b9cf2d29f62e777be7",
+      "bytes": 36012,
+      "bucket": "tos-public-layers",
+      "rights_posture": "authorized",
+      "rights_refs": [
+        "LICENSE"
+      ],
+      "license_notice": {
+        "path": "LICENSE",
+        "sha256": "0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a",
+        "bytes": 10775,
+        "bucket": "tos-public-layers",
+        "key": "sha256/0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a"
+      },
+      "source_commit": "3574eb128b89d9d43d4e67c80fd493de3b0dcea5"
+    },
+    {
+      "path": "docs/decisions/indexes/by-surface.md",
+      "sha256": "8e05a08183ad3dda381e49b82bc71ef1c928ea34a57323e28e2709904001cfdb",
+      "bytes": 55433,
+      "bucket": "tos-public-layers",
+      "rights_posture": "authorized",
+      "rights_refs": [
+        "LICENSE"
+      ],
+      "license_notice": {
+        "path": "LICENSE",
+        "sha256": "0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a",
+        "bytes": 10775,
+        "bucket": "tos-public-layers",
+        "key": "sha256/0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a"
+      },
+      "source_commit": "3574eb128b89d9d43d4e67c80fd493de3b0dcea5"
+    },
+    {
+      "path": "docs/decisions/indexes/by-tos-layer.md",
+      "sha256": "300516757aecb1c3372b3194a6fd6788a507535d81205440ae2ee3f5b3bade3b",
+      "bytes": 58946,
+      "bucket": "tos-public-layers",
+      "rights_posture": "authorized",
+      "rights_refs": [
+        "LICENSE"
+      ],
+      "license_notice": {
+        "path": "LICENSE",
+        "sha256": "0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a",
+        "bytes": 10775,
+        "bucket": "tos-public-layers",
+        "key": "sha256/0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a"
+      },
+      "source_commit": "3574eb128b89d9d43d4e67c80fd493de3b0dcea5"
+    },
+    {
+      "path": "docs/decisions/indexes/by-tree-class.md",
+      "sha256": "ffee582e0b0749020512b61757e17b5e63909795abb9a07736c9cb680928d8cb",
+      "bytes": 48085,
+      "bucket": "tos-public-layers",
+      "rights_posture": "authorized",
+      "rights_refs": [
+        "LICENSE"
+      ],
+      "license_notice": {
+        "path": "LICENSE",
+        "sha256": "0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a",
+        "bytes": 10775,
+        "bucket": "tos-public-layers",
+        "key": "sha256/0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a"
+      },
+      "source_commit": "3574eb128b89d9d43d4e67c80fd493de3b0dcea5"
+    },
+    {
+      "path": "docs/decisions/indexes/index_contract.yaml",
+      "sha256": "2cc02ab5077b5de2f31808be47773e15da469521036a6a4ff8b526f351e560ee",
+      "bytes": 1180,
+      "bucket": "tos-public-layers",
+      "rights_posture": "authorized",
+      "rights_refs": [
+        "LICENSE"
+      ],
+      "license_notice": {
+        "path": "LICENSE",
+        "sha256": "0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a",
+        "bytes": 10775,
+        "bucket": "tos-public-layers",
+        "key": "sha256/0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a"
+      },
+      "source_commit": "3574eb128b89d9d43d4e67c80fd493de3b0dcea5"
+    },
+    {
+      "path": "access/shared/native-unicode.generated.ts",
+      "sha256": "8aa0f34b6547782d343066a7b4ec7611cb6b7a53df6e06943f1191f314d57791",
+      "bytes": 81612,
+      "bucket": "tos-public-layers",
+      "rights_posture": "authorized_with_conditions",
+      "rights_refs": [
+        "access/shared/UNICODE-LICENSE.txt",
+        "LICENSE"
+      ],
+      "license_notice": {
+        "path": "access/shared/UNICODE-LICENSE.txt",
+        "sha256": "e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96",
+        "bytes": 1995,
+        "bucket": "tos-public-layers",
+        "key": "sha256/e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96"
+      },
+      "source_commit": "3574eb128b89d9d43d4e67c80fd493de3b0dcea5",
+      "additional_license_notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a",
+          "bytes": 10775,
+          "bucket": "tos-public-layers",
+          "key": "sha256/0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a"
+        }
+      ]
+    },
+    {
+      "path": "rust/crates/tos-foundation/src/unicode_generated.rs",
+      "sha256": "d8cb909255c05f4c8f68729d461f9c81cc86841f041198c9e35a3fda6f60c6fa",
+      "bytes": 70695,
+      "bucket": "tos-public-layers",
+      "rights_posture": "authorized_with_conditions",
+      "rights_refs": [
+        "access/shared/UNICODE-LICENSE.txt",
+        "LICENSE"
+      ],
+      "license_notice": {
+        "path": "access/shared/UNICODE-LICENSE.txt",
+        "sha256": "e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96",
+        "bytes": 1995,
+        "bucket": "tos-public-layers",
+        "key": "sha256/e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96"
+      },
+      "source_commit": "3574eb128b89d9d43d4e67c80fd493de3b0dcea5",
+      "additional_license_notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a",
+          "bytes": 10775,
+          "bucket": "tos-public-layers",
+          "key": "sha256/0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a"
+        }
+      ]
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a",
+      "bytes": 10775,
+      "bucket": "tos-public-layers",
+      "rights_posture": "authorized",
+      "role": "license_notice"
+    },
+    {
+      "path": "access/shared/UNICODE-LICENSE.txt",
+      "sha256": "e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96",
+      "bytes": 1995,
+      "bucket": "tos-public-layers",
+      "rights_posture": "authorized_with_conditions",
+      "role": "license_notice"
+    }
+  ]
+}
