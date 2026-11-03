@@ -17,6 +17,7 @@ mod tei_technical_markup;
 #[allow(dead_code)]
 mod navigation_xml;
 mod numbered_check;
+mod numbered_label_correspondence;
 mod numbered_matching;
 mod numbered_structure;
 mod pdf_navigation;

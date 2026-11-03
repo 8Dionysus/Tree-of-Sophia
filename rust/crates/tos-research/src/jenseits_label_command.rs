@@ -60,7 +60,7 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
         let fresh = match (directory, map_id, event_id, at) {
             (None, None, None, None) => None,
             (Some(directory), Some(map_id), Some(event_id), Some(event_at)) => {
-                Some(tos_compiler::jenseits_label_correspondence::Selection {
+                Some(crate::numbered_label_correspondence::Selection {
                     directory,
                     map_id,
                     event_id,
@@ -70,7 +70,7 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
             _ => return Err("supply all four output-selection options".into()),
         };
         let ctx = if build {
-            tos_compiler::research_execution::ResearchExecution::new_with_scratch(
+            tos_source_store::execution::Execution::new_with_scratch(
                 &root,
                 seconds,
                 scratch
@@ -82,9 +82,9 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
             if scratch.is_some() {
                 return Err("check does not reserve writes".into());
             }
-            tos_compiler::research_execution::ResearchExecution::new(&root, seconds)?
+            tos_source_store::execution::Execution::new(&root, seconds)?
         };
-        tos_compiler::jenseits_label_correspondence::run(&ctx, build, fresh)
+        crate::numbered_label_correspondence::run(&ctx, build, fresh)
     })();
     Some(match result {
         Ok(v) => {

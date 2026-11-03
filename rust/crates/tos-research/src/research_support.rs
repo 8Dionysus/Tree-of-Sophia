@@ -118,6 +118,10 @@ pub fn schema(ctx: &ResearchExecution, reference: &str, value: &Value) -> Result
     ctx.check()
 }
 
+pub fn fresh_or_matching(ctx: &ResearchExecution, reference: &str, bytes: &[u8]) -> Result<bool> {
+    fresh_or_matching_limit(ctx, reference, bytes, CAP)
+}
+
 pub fn fresh_or_matching_limit(
     ctx: &ResearchExecution,
     reference: &str,

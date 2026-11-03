@@ -905,8 +905,6 @@ pub mod provenance_event_lab;
 
 #[cfg(feature = "source-tools")]
 pub mod constructor_library;
-#[cfg(feature = "research")]
-pub mod jenseits_label_correspondence;
 
 #[cfg(feature = "research")]
 pub mod nietzsche_transfer_source_routes;

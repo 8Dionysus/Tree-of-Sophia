@@ -1,12 +1,10 @@
 //! Text-free intersection of two independently materialized numbered-label maps.
 //! Historical checks reconstruct exact receipts without claiming their execution.
-use crate::{
-    constructor_library::Out,
-    research_execution::ResearchExecution,
-    source_text_foundation::{ensure, fresh_or_matching, s, schema, sha},
-};
+use crate::research_support::{ensure, fresh_or_matching, s, schema, sha};
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
+use tos_compiler::constructor_library::Out;
+use tos_source_store::execution::Execution as ResearchExecution;
 type Result<T> = std::result::Result<T, String>;
 const CAP: u64 = 2 * 1024 * 1024;
 fn q(v: impl Into<String>) -> Out {
@@ -238,7 +236,7 @@ pub fn run(ctx: &ResearchExecution, build: bool, fresh: Option<Selection<'_>>) -
         set(
             method,
             "artifact_digest",
-            q(sha(include_bytes!("jenseits_label_correspondence.rs"))),
+            q(sha(include_bytes!("numbered_label_correspondence.rs"))),
         )?;
         set(method, "runtime", q("Tree of Sophia native Rust"))?;
         set(
@@ -320,7 +318,7 @@ pub fn run(ctx: &ResearchExecution, build: bool, fresh: Option<Selection<'_>>) -
     }
     Ok(
         json!({"status":"PASS","mode":if build{"build"}else{"check"},"pairings":298,"source_only_unit_keys":["237a"],
-        "changed_files":changed,"native_kernel_sha256":sha(include_bytes!("jenseits_label_correspondence.rs")),
+        "changed_files":changed,"native_kernel_sha256":sha(include_bytes!("numbered_label_correspondence.rs")),
         "historical_bytes_reconstructed":fresh.is_none(),"historical_execution_claimed":false,
         "outputs":outputs.iter().map(|(r,b)|json!({"ref":r,"bytes":b.len(),"sha256":sha(b)})).collect::<Vec<_>>(),
         "local_payloads_read":false,"translation_alignment_claimed":false,"execution_budget":ctx.budget_report()}),
