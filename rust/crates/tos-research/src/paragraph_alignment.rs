@@ -207,16 +207,22 @@ pub fn reconstruct_scoped(repo: &ResearchExecution) -> Result<Material> {
 }
 fn reconstruct_with_policy(repo: &ResearchExecution, policy: &Policy) -> Result<Material> {
     let scope = &policy.scope;
-    let primary = lines(repo, &output("primary-proposals-input.v1.jsonl"))?;
-    let challenger = lines(repo, &output("independent-challenger-input.v1.jsonl"))?;
+    let primary = lines(
+        repo,
+        &policy.paths.output("primary-proposals-input.v1.jsonl"),
+    )?;
+    let challenger = lines(
+        repo,
+        &policy.paths.output("independent-challenger-input.v1.jsonl"),
+    )?;
     ensure(
         primary.len() == scope.primary_proposals,
         "primary mapping census drift",
     )?;
-    let de_plan = load(repo, &at(DE, "plan.v1.json"))?;
+    let de_plan = load(repo, &policy.paths.at(&policy.paths.source, "plan.v1.json"))?;
     let ru_plan = load(
         repo,
-        &at(
+        &policy.paths.at(
             "technical-markup/antonovsky-1911-pdf-layout-v1",
             "plan.v1.json",
         ),
@@ -228,7 +234,10 @@ fn reconstruct_with_policy(repo: &ResearchExecution, policy: &Policy) -> Result<
         repo.tick(1)?;
         let packet = load(
             repo,
-            &at(DE, &format!("part-{part}.source-text-unit.v1.json")),
+            &policy.paths.at(
+                &policy.paths.source,
+                &format!("part-{part}.source-text-unit.v1.json"),
+            ),
         )?;
         let reference = s(&packet["source_layer"]["text_layer_ref"])?;
         let raw = bytes(repo, reference)?;
@@ -269,7 +278,12 @@ fn reconstruct_with_policy(repo: &ResearchExecution, policy: &Policy) -> Result<
     let mut charged = 0;
     repo.charge_structural(&model, &mut charged)?;
     repo.check()?;
-    let tracked = lines(repo, &at(RU, "paragraph-spine.v2.jsonl"))?;
+    let tracked = lines(
+        repo,
+        &policy
+            .paths
+            .at(&policy.paths.target, "paragraph-spine.v2.jsonl"),
+    )?;
     ensure(
         tracked.len() == scope.target_paragraphs && tracked.len() == model.paragraphs.len(),
         "Russian paragraph census drift",
@@ -328,7 +342,9 @@ fn reconstruct_with_policy(repo: &ResearchExecution, policy: &Policy) -> Result<
         layers.insert(
             part,
             Layer {
-                reference: at(PRIVATE, &policy.target_layer.filename(part)),
+                reference: policy
+                    .paths
+                    .at(&policy.paths.private, &policy.target_layer.filename(part)),
                 digest: sha(&payload),
                 payload,
                 records,
@@ -428,8 +444,9 @@ fn bindings(repo: &ResearchExecution, m: &Material) -> Result<BTreeMap<String, V
 fn identities(
     repo: &ResearchExecution,
     m: &Material,
+    policy: &Policy,
 ) -> Result<BTreeMap<String, BTreeMap<String, String>>> {
-    let issuance = load(repo, &output("identity-issuance.v1.json"))?;
+    let issuance = load(repo, &policy.paths.output("identity-issuance.v1.json"))?;
     let mut all = BTreeSet::new();
     let mut result = BTreeMap::new();
     for (kind, expected) in bindings(repo, m)? {
@@ -528,7 +545,12 @@ fn scope(
     repo: &ResearchExecution,
     policy: &Policy,
 ) -> Result<(Vec<Value>, BTreeSet<(usize, usize)>)> {
-    let de = lines(repo, &at(DE, "citation-spine.v1.jsonl"))?;
+    let de = lines(
+        repo,
+        &policy
+            .paths
+            .at(&policy.paths.source, "citation-spine.v1.jsonl"),
+    )?;
     let mut ord = BTreeMap::new();
     for part in 1..=policy.parts.len() {
         repo.tick(1)?;
@@ -568,7 +590,12 @@ fn scope(
         risks.insert((part, reading));
         out.push(json!({"schema_version":"tos_zarathustra_de_ru_alignment_scope_exclusion_v1","scope_exclusion_ref":policy.reference("source_scope_exclusion",out.len())?,"side":"source","part_order":part,"reading_ordinal_within_part":reading,"excluded_unit_kind":"verse_group","excluded_group_unit_ref":g["unit_id"],"ordered_excluded_verse_line_refs":de_lines.get(s(&g["unit_id"])?).cloned().unwrap_or_default(),"reason":"paragraph_packet_scope_excludes_source_attested_verse_group","used_as_structural_risk_qualification":true,"source_text_included":false,"semantic_equivalence_asserted":false}));
     }
-    let structure = lines(repo, &at(RU, "structure-spine.v2.jsonl"))?;
+    let structure = lines(
+        repo,
+        &policy
+            .paths
+            .at(&policy.paths.target, "structure-spine.v2.jsonl"),
+    )?;
     let mut meta = BTreeMap::new();
     for r in structure {
         repo.tick(1)?;
@@ -583,16 +610,26 @@ fn scope(
         }
     }
     let mut ru_lines = BTreeMap::<String, Vec<Value>>::new();
-    for r in lines(repo, &at(RU, "verse-line-spine.v2.jsonl"))? {
+    for r in lines(
+        repo,
+        &policy
+            .paths
+            .at(&policy.paths.target, "verse-line-spine.v2.jsonl"),
+    )? {
         repo.tick(1)?;
         ru_lines
             .entry(s(&r["verse_group_unit_ref"])?.into())
             .or_default()
             .push(r["verse_line_unit_id"].clone());
     }
-    for (i, g) in lines(repo, &at(RU, "verse-group-spine.v2.jsonl"))?
-        .iter()
-        .enumerate()
+    for (i, g) in lines(
+        repo,
+        &policy
+            .paths
+            .at(&policy.paths.target, "verse-group-spine.v2.jsonl"),
+    )?
+    .iter()
+    .enumerate()
     {
         let (part, reading) = *meta
             .get(s(&g["reading_unit_ref"])?)
@@ -671,6 +708,26 @@ struct TargetLayerFilename {
     prefix: String,
     suffix: String,
 }
+#[derive(Clone)]
+struct Paths {
+    base: String,
+    source: String,
+    target: String,
+    route: String,
+    private: String,
+    contract: String,
+}
+impl Paths {
+    fn at(&self, route: &str, name: &str) -> String {
+        format!("{}/{route}/{name}", self.base)
+    }
+    fn output(&self, name: &str) -> String {
+        self.at(&self.route, name)
+    }
+    fn packet(&self, part: usize) -> String {
+        self.output(&format!("part-{part}.translation-alignment-packet.v1.json"))
+    }
+}
 impl TargetLayerFilename {
     fn filename(&self, part: usize) -> String {
         format!("{}{part}{}", self.prefix, self.suffix)
@@ -695,6 +752,7 @@ struct Policy {
     parts: Vec<Part>,
     work_ref: String,
     target_layer: TargetLayerFilename,
+    paths: Paths,
 }
 impl Policy {
     // Compatibility profile for the historical command; remove with its alias.
@@ -714,7 +772,8 @@ impl Policy {
             "scope_census":{"primary_proposals":3423,"source_paragraphs":3447,"target_paragraphs":3569,"exclusions":[{"side":"source","groups":39,"lines":368},{"side":"target","groups":13,"lines":359}]},
             "derived_reference_formats":[{"role":"source_scope_exclusion","prefix":"de-verse-group-","ordinal_width":3,"ordinal_base":1},{"role":"target_scope_exclusion","prefix":"ru-verse-group-","ordinal_width":3,"ordinal_base":1},{"role":"conflict","prefix":"alignment-conflict-","ordinal_width":4,"ordinal_base":1}],
             "parts":[{"label":"I","expected_readings":23},{"label":"II","expected_readings":22},{"label":"III","expected_readings":16},{"label":"IV","expected_readings":20}],
-            "work_ref":WORK,"target_layer_filename":{"prefix":"antonovsky-1911-part-","suffix":"-paragraphs.v1.txt"}
+            "work_ref":WORK,"target_layer_filename":{"prefix":"antonovsky-1911-part-","suffix":"-paragraphs.v1.txt"},
+            "work_path":BASE,"source_markup":DE,"target_markup":RU,"route":ROUTE,"private_root":PRIVATE,"contract_ref":SCHEMA
         });
         Self::selected(&raw).expect("compiled paragraph compatibility policy")
     }
@@ -825,6 +884,29 @@ impl Policy {
                 "paragraph target layer filename must be a single component",
             )?;
         }
+        let paths = Paths {
+            base: s(&recipe["work_path"])?.to_owned(),
+            source: s(&recipe["source_markup"])?.to_owned(),
+            target: s(&recipe["target_markup"])?.to_owned(),
+            route: s(&recipe["route"])?.to_owned(),
+            private: s(&recipe["private_root"])?.to_owned(),
+            contract: s(&recipe["contract_ref"])?.to_owned(),
+        };
+        for path in [
+            &paths.base,
+            &paths.source,
+            &paths.target,
+            &paths.route,
+            &paths.private,
+            &paths.contract,
+        ] {
+            relative(path)?;
+        }
+        ensure(
+            recipe["frozen_manifest"].is_null()
+                || paths.output("manifest.v1.json") == s(&recipe["frozen_manifest"]["ref"])?,
+            "paragraph manifest outside selected output route",
+        )?;
         Ok(Self {
             rules,
             cross,
@@ -835,6 +917,7 @@ impl Policy {
             parts,
             work_ref,
             target_layer,
+            paths,
         })
     }
     fn reference(&self, role: &str, index: usize) -> Result<String> {
@@ -905,17 +988,20 @@ fn build_with_policy(
     m: &Material,
     policy: &Policy,
 ) -> Result<(Files, Files)> {
-    let ids = identities(repo, m)?;
+    let ids = identities(repo, m, policy)?;
     let audit = audit(repo, m, &policy.scope)?;
     let (exclusions, risk_readings) = scope(repo, policy)?;
-    let method_sha = sha(&bytes(repo, &output("primary-method-input.v1.json"))?);
+    let method_sha = sha(&bytes(
+        repo,
+        &policy.paths.output("primary-method-input.v1.json"),
+    )?);
     let mut target_anchors = BTreeMap::new();
     for layer in m.layers.values() {
         repo.tick(1)?;
         for r in &layer.records {
             repo.tick(1)?;
             let unit = s(&r["unit_id"])?;
-            target_anchors.insert(unit.to_owned(),json!({"anchor_ref":ids["target_anchors"][unit],"ordinal":r["ordinal"],"text_layer_ref":layer.reference,"text_layer_sha256":layer.digest,"selector":{"type":"text_position","start":r["start"],"end":r["end"],"position_unit":"unicode_code_point","interval":"half_open"},"exact_sha256":r["exact_sha256"],"source_return":{"required":true,"locator_ref":format!("{}#unit={unit}",at(RU,"paragraph-spine.v2.jsonl"))}}));
+            target_anchors.insert(unit.to_owned(),json!({"anchor_ref":ids["target_anchors"][unit],"ordinal":r["ordinal"],"text_layer_ref":layer.reference,"text_layer_sha256":layer.digest,"selector":{"type":"text_position","start":r["start"],"end":r["end"],"position_unit":"unicode_code_point","interval":"half_open"},"exact_sha256":r["exact_sha256"],"source_return":{"required":true,"locator_ref":format!("{}#unit={unit}",policy.paths.at(&policy.paths.target,"paragraph-spine.v2.jsonl"))}}));
         }
     }
     let mut spine = Vec::new();
@@ -966,7 +1052,7 @@ fn build_with_policy(
         al["status"] = json!(status);
         al["status_reason"] = json!(reason);
         al["maker"]["configuration_sha256"] = json!(method_sha);
-        al["evidence"] = json!([{"evidence_ref":format!("{}#{reference}",output("independent-challenger-audit.v1.jsonl")),"role":if status=="proposed"{"method_input"}else{"qualification"},"source_anchor_refs":sr,"target_anchor_refs":tr,"description":reason}]);
+        al["evidence"] = json!([{"evidence_ref":format!("{}#{reference}",policy.paths.output("independent-challenger-audit.v1.jsonl")),"role":if status=="proposed"{"method_input"}else{"qualification"},"source_anchor_refs":sr,"target_anchor_refs":tr,"description":reason}]);
         alignments.entry(n(&p["part_order"])?).or_default().push(al);
         spine.push(json!({"schema_version":"tos_zarathustra_de_ru_paragraph_alignment_spine_v1","primary_proposal_ref":reference,"alignment_id":aid,"claim_id":cid,"part_order":p["part_order"],"reading_ordinal_within_part":p["reading_ordinal_within_part"],"technical_subpart_ordinal":p["technical_subpart_ordinal"],"correspondence_shape":shape,"ordered_source_anchor_refs":sr,"ordered_target_anchor_refs":tr,"source_paragraph_unit_refs":p["source_paragraph_refs"],"target_paragraph_unit_refs":p["target_paragraph_refs"],"status":status,"status_reason":reason,"primary_profile_disagreement":!flag(&p["primary_challenger_same_group"])?,"independent_challenger_same_paragraph_group":a["same_paragraph_group"],"independent_challenger_refs":a["challenger_alignment_refs"],"verse_barrier_risk":a["verse_barrier_risk"],"cross_kind_or_verse_scope_risk":cross,"human_acceptance":false,"source_text_included":false,"semantic_equivalence_asserted":false,"canon_effect":false}));
         if status != "proposed" {
@@ -998,7 +1084,10 @@ fn build_with_policy(
             .ok_or("missing German source config")?;
         let ru = &m.ru_plan["source_item"];
         let mut packet = template("packet");
-        packet["$schema"] = json!(format!("https://tree-of-sophia.local/{SCHEMA}"));
+        packet["$schema"] = json!(format!(
+            "https://tree-of-sophia.local/{}",
+            policy.paths.contract
+        ));
         packet["packet_id"] = json!(ids["packets"][&format!("part-{part}")]);
         packet["alignments"] = json!(alignments.get(&part).cloned().unwrap_or_default());
         for (side, config) in [("source_side", cfg), ("target_side", ru)] {
@@ -1019,7 +1108,10 @@ fn build_with_policy(
         packet["source_side"]["text_layer_ref"] = source["source_layer"]["text_layer_ref"].clone();
         packet["source_side"]["text_layer_sha256"] =
             source["source_layer"]["text_layer_sha256"].clone();
-        let packet_path = at(DE, &format!("part-{part}.source-text-unit.v1.json"));
+        let packet_path = policy.paths.at(
+            &policy.paths.source,
+            &format!("part-{part}.source-text-unit.v1.json"),
+        );
         packet["source_side"]["segmentation"]["artifact_ref"] = json!(packet_path);
         packet["source_side"]["segmentation"]["sha256"] = json!(sha(&bytes(repo, &packet_path)?));
         let mut anchors = Vec::new();
@@ -1044,7 +1136,9 @@ fn build_with_policy(
         let layer = &m.layers[&part];
         packet["target_side"]["text_layer_ref"] = json!(layer.reference);
         packet["target_side"]["text_layer_sha256"] = json!(layer.digest);
-        let paragraph_ref = at(RU, "paragraph-spine.v2.jsonl");
+        let paragraph_ref = policy
+            .paths
+            .at(&policy.paths.target, "paragraph-spine.v2.jsonl");
         packet["target_side"]["segmentation"]["artifact_ref"] = json!(paragraph_ref);
         packet["target_side"]["segmentation"]["sha256"] = json!(sha(&bytes(repo, &paragraph_ref)?));
         packet["target_side"]["anchors"] = json!(
@@ -1056,8 +1150,8 @@ fn build_with_policy(
         );
         packet["rights_and_visibility"]["rights_record_refs"] =
             json!([cfg["rights_ref"], ru["rights_ref"]]);
-        validate_packet(repo, &packet)?;
-        packets.insert(packet_ref(part), pretty(repo, &packet)?);
+        validate_packet(repo, &packet, &policy.paths.contract)?;
+        packets.insert(policy.paths.packet(part), pretty(repo, &packet)?);
     }
     let same = audit
         .iter()
@@ -1239,22 +1333,26 @@ fn build_with_policy(
         (
             "primary-import",
             "primary_machine_proposal_import",
-            output("primary-input-receipt.v1.json"),
+            policy.paths.output("primary-input-receipt.v1.json"),
         ),
         (
             "challenger-import",
             "independent_mixed_content_challenger_import",
-            output("independent-challenger-input-receipt.v1.json"),
+            policy
+                .paths
+                .output("independent-challenger-input-receipt.v1.json"),
         ),
         (
             "target-layer",
             "private_russian_paragraph_layer_derivation",
-            at(RU, "paragraph-spine.v2.jsonl"),
+            policy
+                .paths
+                .at(&policy.paths.target, "paragraph-spine.v2.jsonl"),
         ),
         (
             "build",
             "translation_alignment_packet_proposal_materialization",
-            SCHEMA.into(),
+            policy.paths.contract.clone(),
         ),
     ] {
         provenance.push(json!({"event_id":format!("tos.event.zarathustra-de-ru-paragraph-alignment-v1.{name}"),"event_kind":kind,"input_ref":reference,"schema_version":"tos_zarathustra_de_ru_paragraph_alignment_provenance_v1","event_date":"2026-09-01","ended_at":"2026-09-01T21:00:00-06:00","method_output_posture":"proposal_not_truth","human_review":false,"source_text_included":false,"semantic_equivalence_asserted":false,"canon_effect":false}));
@@ -1272,7 +1370,7 @@ fn build_with_policy(
             repo.tick(1)?;
             text_free(repo, r)?;
         }
-        public.insert(output(name), jsonl(repo, &rows)?);
+        public.insert(policy.paths.output(name), jsonl(repo, &rows)?);
     }
     for (name, value) in [
         ("coverage-receipt.v1.json", coverage),
@@ -1280,20 +1378,22 @@ fn build_with_policy(
         ("summary.v1.json", summary),
     ] {
         text_free(repo, &value)?;
-        public.insert(output(name), pretty(repo, &value)?);
+        public.insert(policy.paths.output(name), pretty(repo, &value)?);
     }
     let mut static_inputs = serde_json::Map::new();
     for reference in [
-        output("primary-proposals-input.v1.jsonl"),
-        output("primary-diagnostics-input.v1.jsonl"),
-        output("primary-method-input.v1.json"),
-        output("primary-input-receipt.v1.json"),
-        output("independent-challenger-input.v1.jsonl"),
-        output("independent-challenger-input-receipt.v1.json"),
-        output("identity-issuance.v1.json"),
-        SCHEMA.into(),
-        at(DE, "plan.v1.json"),
-        at(
+        policy.paths.output("primary-proposals-input.v1.jsonl"),
+        policy.paths.output("primary-diagnostics-input.v1.jsonl"),
+        policy.paths.output("primary-method-input.v1.json"),
+        policy.paths.output("primary-input-receipt.v1.json"),
+        policy.paths.output("independent-challenger-input.v1.jsonl"),
+        policy
+            .paths
+            .output("independent-challenger-input-receipt.v1.json"),
+        policy.paths.output("identity-issuance.v1.json"),
+        policy.paths.contract.clone(),
+        policy.paths.at(&policy.paths.source, "plan.v1.json"),
+        policy.paths.at(
             "technical-markup/antonovsky-1911-pdf-layout-v1",
             "plan.v1.json",
         ),
@@ -1324,16 +1424,19 @@ fn build_with_policy(
     manifest["static_inputs"] = Value::Object(static_inputs);
     manifest["generated_outputs"] = json!(generated);
     manifest["private_outputs"] = json!(private_receipts);
-    public.insert(output("manifest.v1.json"), pretty(repo, &manifest)?);
+    public.insert(
+        policy.paths.output("manifest.v1.json"),
+        pretty(repo, &manifest)?,
+    );
     Ok((public, private))
 }
-fn validate_packet(repo: &ResearchExecution, p: &Value) -> Result<()> {
+fn validate_packet(repo: &ResearchExecution, p: &Value, contract: &str) -> Result<()> {
     use tos_validation::{FormatProfile, SchemaBackendProbe, SchemaResource};
-    let uri = format!("https://tree-of-sophia.local/{SCHEMA}");
+    let uri = format!("https://tree-of-sophia.local/{contract}");
     let probe = SchemaBackendProbe::new(
         [SchemaResource {
             uri: uri.clone(),
-            raw: bytes(repo, SCHEMA)?,
+            raw: bytes(repo, contract)?,
         }],
         FormatProfile::LegacyPythonObserved20260923,
     )
@@ -1439,7 +1542,7 @@ fn manifest_check(repo: &ResearchExecution, manifest: &Value) -> Result<()> {
 // The compatibility gate covers recipe fields the legacy producer has not
 // yet consumed. Remove it after the remaining paragraph parameters migrate.
 const COMPATIBILITY_PROFILE_SHA256: &str =
-    "fa2987f522587c9378a4e0b3939a65a6c074bbfb8539d093534553bdb1995d52";
+    "ccd838d0d092fb3b2ed045a1112a78785df936aa7b86a18e9a7a4ca8590d33e7";
 fn compatibility_policy(recipe: &Value) -> Result<Policy> {
     let policy = Policy::selected(recipe)?;
     let mut remaining = recipe.clone();
@@ -1456,6 +1559,10 @@ fn compatibility_policy(recipe: &Value) -> Result<Policy> {
         "parts",
         "work_ref",
         "target_layer_filename",
+        "source_markup",
+        "route",
+        "private_root",
+        "contract_ref",
     ] {
         object.remove(key);
     }
@@ -1508,7 +1615,7 @@ pub fn validate_tracked_scoped(repo: &ResearchExecution) -> Result<Value> {
     for part in 1..=4 {
         repo.tick(1)?;
         let p = load(repo, &packet_ref(part))?;
-        validate_packet(repo, &p)?;
+        validate_packet(repo, &p, SCHEMA)?;
         for a in arr(&p["alignments"])? {
             repo.tick(1)?;
             ensure(
