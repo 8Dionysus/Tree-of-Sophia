@@ -12,10 +12,9 @@ use tos_source_store::{
     CorpusCutReader, CorpusReader, CutReadLimits, SoftwareCaptureReader,
     SoftwareComponentSelectionV1,
 };
-use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget, VerifiedWorkerImageHandle};
+use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
 use tos_validation::source_cut::{
-    CandidateCutWorkerSchemaExecutor, CutSchemaDiagnosticsLimits, CutSchemaExecutor,
-    CutWorkerLimits, CutWorkerSchemaExecutor, InProcessCandidateSchemaExecutor,
+    CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor, InProcessCandidateSchemaExecutor,
 };
 use tos_validation::{FormatProfile, SchemaResource};
 
@@ -1115,62 +1114,6 @@ pub(crate) fn selected_in_process_candidate_schema_from_context(
         cancelled,
     )
     .map_err(|_| SourceCommandError::Denied("native candidate schema executor"))
-}
-
-pub(crate) fn selected_candidate_schema_from_context(
-    invocation: &Value,
-    files: &[cmd::SourceFile],
-    identity: crate::source_revisions::PgRecordRevisionIdentity,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> SourceCommandResult<
-    CandidateCutWorkerSchemaExecutor<crate::source_revisions::PgRecordRevisionIdentity>,
-> {
-    let worker = &invocation["schema_worker"];
-    exact(worker, &["absolute_path", "sha256"])?;
-    let budgets = &invocation["budgets"];
-    let mut worker_budget = ExecutorBudget::laboratory();
-    worker_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
-    worker_budget.cpu_seconds = capped(budgets, "worker_cpu_seconds", 3)?;
-    worker_budget.address_space_bytes =
-        capped(budgets, "worker_address_space_bytes", 1_073_741_824)?;
-    let worker_identity = ExactWorkerIdentity {
-        absolute_path: absolute(text(worker, "absolute_path")?)?,
-        sha256: digest(text(worker, "sha256")?)?,
-    };
-    let worker_image =
-        VerifiedWorkerImageHandle::prepare(worker_identity, worker_budget, deadline, cancelled)
-            .map_err(|_| SourceCommandError::Denied("native schema worker image"))?;
-    let limits = CutWorkerLimits {
-        max_receipts: usize::try_from(capped(budgets, "max_schema_receipts", 128)?)
-            .map_err(|_| SourceCommandError::Invalid("schema receipt budget"))?,
-        max_receipt_bytes: usize::try_from(capped(budgets, "max_schema_receipt_bytes", 262_144)?)
-            .map_err(|_| SourceCommandError::Invalid("schema receipt budget"))?,
-    };
-    let resources = selected_revision_schema_resources(files)?;
-    let mut executor = CandidateCutWorkerSchemaExecutor::from_selected_source_resources(
-        identity,
-        resources,
-        FormatProfile::LegacyPythonObserved20260923,
-        &worker_image,
-        worker_budget,
-        limits,
-        deadline,
-        cancelled,
-    )
-    .map_err(|_| SourceCommandError::Denied("native candidate schema worker"))?;
-    // Selected compound Claim validation consumes candidate-bound diagnostics.
-    // Select that protocol before any scalar check starts the shared operation;
-    // bool checks and Claim diagnostics then retain one exact worker binding.
-    executor
-        .enable_diagnostics_v2(CutSchemaDiagnosticsLimits {
-            max_total_issues: limits.max_receipts,
-            max_total_report_bytes: limits.max_receipt_bytes,
-            max_total_state_bytes: usize::try_from(super::number(budgets, "max_total_bytes")?)
-                .map_err(|_| SourceCommandError::Invalid("candidate schema state budget"))?,
-        })
-        .map_err(|_| SourceCommandError::Denied("native candidate schema diagnostics budget"))?;
-    Ok(executor)
 }
 
 /// Select the exact local contract resources used by the native Text callers.
