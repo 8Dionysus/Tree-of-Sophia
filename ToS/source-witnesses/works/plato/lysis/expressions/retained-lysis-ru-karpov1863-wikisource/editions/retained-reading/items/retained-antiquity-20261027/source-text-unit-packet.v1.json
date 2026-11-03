@@ -1,0 +1,1053 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "packet_id": "tos.source-text-unit-packet.sid-c8a14782c8c742dfbaabe5b152f1af67",
+  "packet_version": 1,
+  "supersedes_packet_ref": null,
+  "content_posture": "source_bound",
+  "source_scope": {
+    "work_ref": "tos.work.retained-antiquity.lysis",
+    "expression_ref": "tos.expression.retained.antiquity.lysis.lysis-ru-karpov1863-wikisource",
+    "edition_ref": "tos.edition.retained.antiquity.lysis.lysis-ru-karpov1863-wikisource",
+    "item_ref": "tos.item.retained.antiquity.lysis.lysis-ru-karpov1863-wikisource",
+    "file_ref": "tos.file.sha256.afe6bb252f4c4747654232e528c230a98c18bc84bbfea280334df1d074ec2aad",
+    "file_sha256": "afe6bb252f4c4747654232e528c230a98c18bc84bbfea280334df1d074ec2aad"
+  },
+  "source_layer": {
+    "text_layer_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+    "text_layer_sha256": "5ec8d590a7a5704fe545f0e89c92409e322480986332968937a3ae0cab6d7213",
+    "language": "ru",
+    "media_type": "text/plain; charset=utf-8",
+    "unicode_form": "source_preserved",
+    "position_unit": "unicode_code_point",
+    "interval": "half_open",
+    "immutable": true,
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "schemes": [
+    {
+      "scheme_id": "tos.text-unit-scheme.sid-8065b79d0ce54100ad897645a6451db5",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "scheme_name": "Retained source section and bounded reading chunk",
+      "analysis_role": "source_structure",
+      "boundary_basis": "rule_based",
+      "unit_kinds": [
+        "section"
+      ],
+      "method": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "ru",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.lysis-ru-karpov1863-wikisource.20261027",
+        "made_at": "2026-11-03T08:25:01+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "policies": {
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "punctuation": "included_in_neighbor",
+        "whitespace": "included_in_neighbor",
+        "line_break": "included_in_neighbor",
+        "hyphenation": "preserve_source",
+        "unreported_gaps_allowed": false,
+        "overlap": "forbid"
+      },
+      "authority_limit": {
+        "algorithmic_output_is_source_truth": false,
+        "algorithmic_output_is_linguistic_truth": false,
+        "model_subword_is_lexeme": false,
+        "unit_identity_is_semantic_identity": false,
+        "text_mutation_allowed": false
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.sid-14caa5735b6348af8745c971f34ad342",
+      "ordinal": 1,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5ec8d590a7a5704fe545f0e89c92409e322480986332968937a3ae0cab6d7213",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 44031,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "5ec8d590a7a5704fe545f0e89c92409e322480986332968937a3ae0cab6d7213",
+      "anchor_role": "scope",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9B%D0%B8%D0%B7%D0%B8%D1%81_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=5072025"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-4a8aaa73e7d946cc989acd6fce846048",
+      "ordinal": 2,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5ec8d590a7a5704fe545f0e89c92409e322480986332968937a3ae0cab6d7213",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 692,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d2f4acc14b7eb48f70c0753411a73995591fb45d03abd71e8f317ce7a295959a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9B%D0%B8%D0%B7%D0%B8%D1%81_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=5072025"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ae5d02cd4de14a498dcc3823a35c6856",
+      "ordinal": 3,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5ec8d590a7a5704fe545f0e89c92409e322480986332968937a3ae0cab6d7213",
+      "selector": {
+        "type": "text_position",
+        "start": 692,
+        "end": 2815,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1c5ce19a3b419d8aff8dc607eca66a8a786b8e0e96f2f9b88378d486c39508dd",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9B%D0%B8%D0%B7%D0%B8%D1%81_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=5072025"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-81fde1b90f9f44f680482a148b6ed27c",
+      "ordinal": 4,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5ec8d590a7a5704fe545f0e89c92409e322480986332968937a3ae0cab6d7213",
+      "selector": {
+        "type": "text_position",
+        "start": 2815,
+        "end": 4877,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "534d0de9591807867b7ac78e61fb3889f022ed51c8fdb0ea0601afaa5a2462d6",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9B%D0%B8%D0%B7%D0%B8%D1%81_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=5072025"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-63e837a826b943f19b2559245e2ba9a3",
+      "ordinal": 5,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5ec8d590a7a5704fe545f0e89c92409e322480986332968937a3ae0cab6d7213",
+      "selector": {
+        "type": "text_position",
+        "start": 4877,
+        "end": 7187,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "92a13241800f620f56326ebb1ca6a4fb04ecb2cef2212044e3ced30f4ac802f9",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9B%D0%B8%D0%B7%D0%B8%D1%81_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=5072025"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-09dd866b0f1a4d1da4482aba04e53ee2",
+      "ordinal": 6,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5ec8d590a7a5704fe545f0e89c92409e322480986332968937a3ae0cab6d7213",
+      "selector": {
+        "type": "text_position",
+        "start": 7187,
+        "end": 9399,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "3a69ab4bf8afb7f8eb96aadadb7f96f335e15dc85c4b3bfe0b178e746d13b776",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9B%D0%B8%D0%B7%D0%B8%D1%81_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=5072025"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-9286c8e8dca845e380d1e4788f41c90b",
+      "ordinal": 7,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5ec8d590a7a5704fe545f0e89c92409e322480986332968937a3ae0cab6d7213",
+      "selector": {
+        "type": "text_position",
+        "start": 9399,
+        "end": 11672,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "0c5b75f3974024eadf819144a56f743c241a81e277d5431e9ba7a468c5c86ee1",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9B%D0%B8%D0%B7%D0%B8%D1%81_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=5072025"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-9f59d496cd6f4aecb2e2d2b2489cea41",
+      "ordinal": 8,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5ec8d590a7a5704fe545f0e89c92409e322480986332968937a3ae0cab6d7213",
+      "selector": {
+        "type": "text_position",
+        "start": 11672,
+        "end": 13930,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d9fde60605092c24e1d7f80acaa71e458918d0f0f73ca4aaa54114cc6815ad09",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9B%D0%B8%D0%B7%D0%B8%D1%81_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=5072025"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ef415303eb14421faf0df702dcb70859",
+      "ordinal": 9,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5ec8d590a7a5704fe545f0e89c92409e322480986332968937a3ae0cab6d7213",
+      "selector": {
+        "type": "text_position",
+        "start": 13930,
+        "end": 16317,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "8e87eb41a2bbf3dbd1e101ac7a66504026fde41397485d02e9656e7972803c1f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9B%D0%B8%D0%B7%D0%B8%D1%81_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=5072025"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-6a8019167c314ef19c8aaa47e7f3ae81",
+      "ordinal": 10,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5ec8d590a7a5704fe545f0e89c92409e322480986332968937a3ae0cab6d7213",
+      "selector": {
+        "type": "text_position",
+        "start": 16317,
+        "end": 18424,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ce5265ca9771b37c808a7e112ce17839360947f4918e5a95a8e2cb6614d81965",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9B%D0%B8%D0%B7%D0%B8%D1%81_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=5072025"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-822fc147dec44f3295dd92fe54793689",
+      "ordinal": 11,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5ec8d590a7a5704fe545f0e89c92409e322480986332968937a3ae0cab6d7213",
+      "selector": {
+        "type": "text_position",
+        "start": 18424,
+        "end": 20742,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "0893c0a893ef35acfcc615ab16510d8a6385d4efa9e410d44dac35fe203ad784",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9B%D0%B8%D0%B7%D0%B8%D1%81_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=5072025"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-8d003a3ccad74b019dcb0e2bc966909c",
+      "ordinal": 12,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5ec8d590a7a5704fe545f0e89c92409e322480986332968937a3ae0cab6d7213",
+      "selector": {
+        "type": "text_position",
+        "start": 20742,
+        "end": 22944,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f12a329b899e7688fc0a79f9dc29d8df2e2cdb9abaf4821716ab6fba079f4359",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9B%D0%B8%D0%B7%D0%B8%D1%81_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=5072025"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-fcc7daacd84243a19a9849faed2cf21d",
+      "ordinal": 13,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5ec8d590a7a5704fe545f0e89c92409e322480986332968937a3ae0cab6d7213",
+      "selector": {
+        "type": "text_position",
+        "start": 22944,
+        "end": 25020,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "5b498024fc7faf5ee5591e2af4081704150e13700932e9543030d882cfd50082",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9B%D0%B8%D0%B7%D0%B8%D1%81_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=5072025"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f72cf46cdfa6466baf8fde1e66e9acd5",
+      "ordinal": 14,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5ec8d590a7a5704fe545f0e89c92409e322480986332968937a3ae0cab6d7213",
+      "selector": {
+        "type": "text_position",
+        "start": 25020,
+        "end": 27278,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "3a2fb1c356150117fd498e7e08f5a3d37c5fadf94c1e95a563b99de3d3c39a12",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9B%D0%B8%D0%B7%D0%B8%D1%81_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=5072025"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ecef511e65174c4d9761721d89c9856c",
+      "ordinal": 15,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5ec8d590a7a5704fe545f0e89c92409e322480986332968937a3ae0cab6d7213",
+      "selector": {
+        "type": "text_position",
+        "start": 27278,
+        "end": 29724,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "0a5c1e973eda3b24c04c40002a54f18bf89a9cfebc4cfc30e95f72356fb05ec6",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9B%D0%B8%D0%B7%D0%B8%D1%81_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=5072025"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-96709247a543437daa499317603503df",
+      "ordinal": 16,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5ec8d590a7a5704fe545f0e89c92409e322480986332968937a3ae0cab6d7213",
+      "selector": {
+        "type": "text_position",
+        "start": 29724,
+        "end": 32050,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "2fd97bfdceca51debb0380e6278809b0daf449bf8fb85a3aae5eccef097e54ad",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9B%D0%B8%D0%B7%D0%B8%D1%81_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=5072025"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-1894eda644784aadacc55aa18b39e61c",
+      "ordinal": 17,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5ec8d590a7a5704fe545f0e89c92409e322480986332968937a3ae0cab6d7213",
+      "selector": {
+        "type": "text_position",
+        "start": 32050,
+        "end": 34295,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "66854e4dd0d93a7ca86a294425a5b3f1e44b7823fff765038465e6adf2cd7e1a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9B%D0%B8%D0%B7%D0%B8%D1%81_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=5072025"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-11bcfb4ce6a946d4a300dcfe466faa76",
+      "ordinal": 18,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5ec8d590a7a5704fe545f0e89c92409e322480986332968937a3ae0cab6d7213",
+      "selector": {
+        "type": "text_position",
+        "start": 34295,
+        "end": 36558,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a00eaa6b9fe1436d38ed681bd1671c1f446557cab122c025e4df71188d1df9ff",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9B%D0%B8%D0%B7%D0%B8%D1%81_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=5072025"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-bd48538f9d1f4c2183704618b4ab0562",
+      "ordinal": 19,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5ec8d590a7a5704fe545f0e89c92409e322480986332968937a3ae0cab6d7213",
+      "selector": {
+        "type": "text_position",
+        "start": 36558,
+        "end": 38779,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d88324cb210db576076644bf51fa7224f94280c684407a3bc4e55aae2868b00f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9B%D0%B8%D0%B7%D0%B8%D1%81_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=5072025"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f333a8678da94f88979d82b22625c6df",
+      "ordinal": 20,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5ec8d590a7a5704fe545f0e89c92409e322480986332968937a3ae0cab6d7213",
+      "selector": {
+        "type": "text_position",
+        "start": 38779,
+        "end": 41036,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "197d73943727b095ccda429dc4a2805154242da78b83a4264d8ec884ef4843fc",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9B%D0%B8%D0%B7%D0%B8%D1%81_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=5072025"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-81d41f1388b741b69a1ebc9f6da2eb42",
+      "ordinal": 21,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5ec8d590a7a5704fe545f0e89c92409e322480986332968937a3ae0cab6d7213",
+      "selector": {
+        "type": "text_position",
+        "start": 41036,
+        "end": 43202,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f9cec2e62c93dcf54d807aeb716e61ac584dcb5f98ecffb906e039ad735a54e8",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9B%D0%B8%D0%B7%D0%B8%D1%81_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=5072025"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-78c2381b31d54065b99d89c3366ceaea",
+      "ordinal": 22,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5ec8d590a7a5704fe545f0e89c92409e322480986332968937a3ae0cab6d7213",
+      "selector": {
+        "type": "text_position",
+        "start": 43202,
+        "end": 44031,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "5ca7727c32e502a7c8745d057d5c3e8b9950d4e2de133e08a05c507658b7fdfa",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9B%D0%B8%D0%B7%D0%B8%D1%81_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=5072025"
+      }
+    }
+  ],
+  "units": [
+    {
+      "unit_id": "tos.text-unit.sid-85a7be14eaa14423a5192af3e70b2eab",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-4a8aaa73e7d946cc989acd6fce846048"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-058b7165e7db4218b76f2ccbdb0abfea",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ae5d02cd4de14a498dcc3823a35c6856"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-bc252b44a0414e5c806c7280af9cd610",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-81fde1b90f9f44f680482a148b6ed27c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-38613788eb8c4e70acc695604dbb8043",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-63e837a826b943f19b2559245e2ba9a3"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-174b0eb1bbab43899a77944c27c61b10",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-09dd866b0f1a4d1da4482aba04e53ee2"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-62c5553987ec4a38a35041996bb9798b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-9286c8e8dca845e380d1e4788f41c90b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4dabbaa2503049f8a4dd081c9e7788dc",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-9f59d496cd6f4aecb2e2d2b2489cea41"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-58306bb266b741798604fd94bb3650a5",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ef415303eb14421faf0df702dcb70859"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1caccf547d9249d2ab9213ff16fbd049",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-6a8019167c314ef19c8aaa47e7f3ae81"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b3565ac36bee4567b45bec6011b10892",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-822fc147dec44f3295dd92fe54793689"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-3cf8397db1e449ca81eb9cbc51c6c684",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-8d003a3ccad74b019dcb0e2bc966909c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-d19ec342c79e464f943c0b0108bbc16e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-fcc7daacd84243a19a9849faed2cf21d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-a33bbe3138824c9a91bca791ab3c551b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f72cf46cdfa6466baf8fde1e66e9acd5"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-38e90d72524f415196394f2c7c84c346",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ecef511e65174c4d9761721d89c9856c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-a4d8fe9b98a44e7b8c28b5e793723da1",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-96709247a543437daa499317603503df"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ab35e03bfac449288af74d70124ae93a",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-1894eda644784aadacc55aa18b39e61c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-dc979eaf880f4dd2b8fd10958c6e2fb9",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-11bcfb4ce6a946d4a300dcfe466faa76"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8ed6716a05db4287a1cbc293a1533966",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-bd48538f9d1f4c2183704618b4ab0562"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b65d4ef1a45c49d18e3a5ef42593dd69",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f333a8678da94f88979d82b22625c6df"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-9077fb8510984e60b204af8a3633878c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-81d41f1388b741b69a1ebc9f6da2eb42"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-19dffdddf6bc44cdb1f7c45ab38d3642",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-78c2381b31d54065b99d89c3366ceaea"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    }
+  ],
+  "segmentations": [
+    {
+      "segmentation_id": "tos.text-segmentation.sid-3f2d1a192059453a8dab2ce52b25c567",
+      "segmentation_version": 1,
+      "supersedes_segmentation_ref": null,
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "scheme_ref": "tos.text-unit-scheme.sid-8065b79d0ce54100ad897645a6451db5",
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-85a7be14eaa14423a5192af3e70b2eab",
+        "tos.text-unit.sid-058b7165e7db4218b76f2ccbdb0abfea",
+        "tos.text-unit.sid-bc252b44a0414e5c806c7280af9cd610",
+        "tos.text-unit.sid-38613788eb8c4e70acc695604dbb8043",
+        "tos.text-unit.sid-174b0eb1bbab43899a77944c27c61b10",
+        "tos.text-unit.sid-62c5553987ec4a38a35041996bb9798b",
+        "tos.text-unit.sid-4dabbaa2503049f8a4dd081c9e7788dc",
+        "tos.text-unit.sid-58306bb266b741798604fd94bb3650a5",
+        "tos.text-unit.sid-1caccf547d9249d2ab9213ff16fbd049",
+        "tos.text-unit.sid-b3565ac36bee4567b45bec6011b10892",
+        "tos.text-unit.sid-3cf8397db1e449ca81eb9cbc51c6c684",
+        "tos.text-unit.sid-d19ec342c79e464f943c0b0108bbc16e",
+        "tos.text-unit.sid-a33bbe3138824c9a91bca791ab3c551b",
+        "tos.text-unit.sid-38e90d72524f415196394f2c7c84c346",
+        "tos.text-unit.sid-a4d8fe9b98a44e7b8c28b5e793723da1",
+        "tos.text-unit.sid-ab35e03bfac449288af74d70124ae93a",
+        "tos.text-unit.sid-dc979eaf880f4dd2b8fd10958c6e2fb9",
+        "tos.text-unit.sid-8ed6716a05db4287a1cbc293a1533966",
+        "tos.text-unit.sid-b65d4ef1a45c49d18e3a5ef42593dd69",
+        "tos.text-unit.sid-9077fb8510984e60b204af8a3633878c",
+        "tos.text-unit.sid-19dffdddf6bc44cdb1f7c45ab38d3642"
+      ],
+      "coverage": {
+        "scope_anchor_ref": "tos.anchor.sid-14caa5735b6348af8745c971f34ad342",
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "unreported_gaps_allowed": false,
+        "overlap_requires_declaration": true,
+        "source_reconstruction_required": true
+      },
+      "status": "proposed",
+      "status_reason": "Deterministic display and navigation segmentation; no textual, linguistic or semantic acceptance.",
+      "maker": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "ru",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.lysis-ru-karpov1863-wikisource.20261027",
+        "made_at": "2026-11-03T08:25:01+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "competing_segmentation_refs": [],
+      "review_refs": [],
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "source_text_authority": false,
+      "linguistic_authority": false,
+      "semantic_authority": false
+    }
+  ],
+  "reviews": [],
+  "projections": [],
+  "rights_and_visibility": {
+    "source_visibility": "public",
+    "packet_visibility": "public",
+    "effective_visibility": "public",
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json"
+    ],
+    "private_source_used": false,
+    "publication_authorized": true,
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins"
+  },
+  "authority_boundary": {
+    "tree_role": "orientation",
+    "graph_role": "relation",
+    "source_role": "authority",
+    "validators_prove_mechanics_not_truth": true,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "legacy_bulk_migration_authorized": false
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.lysis.lysis-ru-karpov1863-wikisource",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.lysis.lysis-ru-karpov1863-wikisource",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.afe6bb252f4c4747654232e528c230a98c18bc84bbfea280334df1d074ec2aad",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "lysis-ru-karpov1863-wikisource.json",
+      "media_type": "application/json",
+      "byte_size": 218076,
+      "sha256": "afe6bb252f4c4747654232e528c230a98c18bc84bbfea280334df1d074ec2aad",
+      "fixity_verified_at": "2026-11-03T08:25:01+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.5ec8d590a7a5704fe545f0e89c92409e322480986332968937a3ae0cab6d7213",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 79193,
+      "sha256": "5ec8d590a7a5704fe545f0e89c92409e322480986332968937a3ae0cab6d7213",
+      "fixity_verified_at": "2026-11-03T08:25:01+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.9cd39498be48e374e001e382857e4f73e78c56c53bc7f1e86ecf4e74f4cd61d9",
+      "relative_path": "payload/wikisource-api.json",
+      "original_basename": "wikisource-api.json",
+      "media_type": "application/json",
+      "byte_size": 333696,
+      "sha256": "9cd39498be48e374e001e382857e4f73e78c56c53bc7f1e86ecf4e74f4cd61d9",
+      "fixity_verified_at": "2026-11-03T08:25:01+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.lysis-ru-karpov1863-wikisource.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

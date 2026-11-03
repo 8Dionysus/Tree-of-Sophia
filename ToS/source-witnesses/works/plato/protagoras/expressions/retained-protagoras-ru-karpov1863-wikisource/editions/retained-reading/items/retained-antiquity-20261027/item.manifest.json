@@ -1,0 +1,46 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.protagoras.protagoras-ru-karpov1863-wikisource",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.protagoras.protagoras-ru-karpov1863-wikisource",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.0dd4f1c7e5ffd7093d197a72930cec6d58a4035d271204e0cd7b82490e94cd36",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "protagoras-ru-karpov1863-wikisource.json",
+      "media_type": "application/json",
+      "byte_size": 565882,
+      "sha256": "0dd4f1c7e5ffd7093d197a72930cec6d58a4035d271204e0cd7b82490e94cd36",
+      "fixity_verified_at": "2026-11-03T08:24:38+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.ee95cb8e7197fb915f73b9569934a4e8d08dd40f5e7af05d7b6d3a5e3f317ed5",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 199069,
+      "sha256": "ee95cb8e7197fb915f73b9569934a4e8d08dd40f5e7af05d7b6d3a5e3f317ed5",
+      "fixity_verified_at": "2026-11-03T08:24:38+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.77ae34bc2973e75698b314bf62917b7a4305a633db3b8f8f2edc204ad1d1ccbc",
+      "relative_path": "payload/wikisource-api.json",
+      "original_basename": "wikisource-api.json",
+      "media_type": "application/json",
+      "byte_size": 982038,
+      "sha256": "77ae34bc2973e75698b314bf62917b7a4305a633db3b8f8f2edc204ad1d1ccbc",
+      "fixity_verified_at": "2026-11-03T08:24:38+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.protagoras-ru-karpov1863-wikisource.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plato/protagoras/expressions/retained-protagoras-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/protagoras/expressions/retained-protagoras-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/protagoras/expressions/retained-protagoras-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/protagoras/expressions/retained-protagoras-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plato/protagoras/expressions/retained-protagoras-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}
