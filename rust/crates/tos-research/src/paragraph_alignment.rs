@@ -746,6 +746,136 @@ impl ScopeCensus {
     }
 }
 #[derive(Clone)]
+struct CoverageExpectations {
+    same: usize,
+    disagreement: usize,
+    affected: usize,
+    by_part: Vec<usize>,
+    primary_profile: usize,
+    overlap: usize,
+    primary_only: usize,
+    risk_union: usize,
+    conflicts: usize,
+    deferred: usize,
+    readings: usize,
+    readings_by_part: Vec<usize>,
+}
+impl CoverageExpectations {
+    // The historical alias remains available until cutover.
+    fn legacy() -> Self {
+        Self {
+            same: 3311,
+            disagreement: 112,
+            affected: 263,
+            by_part: vec![2, 8, 53, 49],
+            primary_profile: 20,
+            overlap: 12,
+            primary_only: 8,
+            risk_union: 120,
+            conflicts: 120,
+            deferred: 9,
+            readings: 81,
+            readings_by_part: vec![23, 22, 16, 20],
+        }
+    }
+    fn selected(repo: &ResearchExecution, recipe: &Value, policy: &Policy) -> Result<Self> {
+        let spec = &recipe["retained_coverage"];
+        let filename = s(&spec["filename"])?;
+        ensure(
+            relative(filename)?.components().count() == 1,
+            "coverage filename must be a single component",
+        )?;
+        let coverage = load(repo, &policy.paths.output(filename))?;
+        let mut pointers = BTreeMap::new();
+        for field in arr(&spec["coverage_fields"])? {
+            let role = s(&field["role"])?;
+            let pointer = s(&field["json_pointer"])?;
+            ensure(
+                pointer.starts_with('/') && pointers.insert(role, pointer).is_none(),
+                "coverage roles must be unique JSON pointers",
+            )?;
+        }
+        let expected = [
+            "same-group",
+            "disagreement",
+            "affected-units",
+            "disagreement-by-part",
+            "primary-profile",
+            "overlap",
+            "primary-only",
+            "risk-union",
+            "conflicts",
+            "deferred",
+            "reading-pairs",
+            "reading-pairs-by-part",
+        ];
+        ensure(
+            pointers.len() == expected.len()
+                && expected.iter().all(|role| pointers.contains_key(role)),
+            "coverage roles differ",
+        )?;
+        let value = |role: &str| -> Result<&Value> {
+            coverage
+                .pointer(pointers[role])
+                .ok_or_else(|| format!("coverage value missing: {role}"))
+        };
+        let by_parts = |role: &str| -> Result<Vec<usize>> {
+            let values = value(role)?
+                .as_object()
+                .ok_or("coverage part counts required")?;
+            ensure(
+                values.len() == policy.parts.len(),
+                "coverage part membership differs",
+            )?;
+            policy
+                .parts
+                .iter()
+                .map(|part| n(values.get(&part.label).ok_or("coverage part missing")?))
+                .collect()
+        };
+        let selected = Self {
+            same: n(value("same-group")?)?,
+            disagreement: n(value("disagreement")?)?,
+            affected: n(value("affected-units")?)?,
+            by_part: by_parts("disagreement-by-part")?,
+            primary_profile: n(value("primary-profile")?)?,
+            overlap: n(value("overlap")?)?,
+            primary_only: n(value("primary-only")?)?,
+            risk_union: n(value("risk-union")?)?,
+            conflicts: n(value("conflicts")?)?,
+            deferred: n(value("deferred")?)?,
+            readings: n(value("reading-pairs")?)?,
+            readings_by_part: by_parts("reading-pairs-by-part")?,
+        };
+        ensure(
+            selected.same.checked_add(selected.disagreement)
+                == Some(policy.scope.primary_proposals)
+                && selected
+                    .by_part
+                    .iter()
+                    .try_fold(0usize, |sum, n| sum.checked_add(*n))
+                    == Some(selected.disagreement)
+                && selected.readings_by_part
+                    == policy
+                        .parts
+                        .iter()
+                        .map(|part| part.expected_readings)
+                        .collect::<Vec<_>>()
+                && selected
+                    .readings_by_part
+                    .iter()
+                    .try_fold(0usize, |sum, n| sum.checked_add(*n))
+                    == Some(selected.readings)
+                && selected.disagreement.checked_add(selected.primary_only)
+                    == Some(selected.risk_union)
+                && selected.conflicts == selected.risk_union
+                && selected.overlap <= selected.primary_profile,
+            "coverage census is inconsistent",
+        )?;
+        Ok(selected)
+    }
+}
+#[derive(Clone)]
 struct Policy {
     rules: Vec<PostureRule>,
     cross: Vec<CrossKindRisk>,
@@ -762,6 +892,7 @@ struct Policy {
     event_ended_at: String,
     event_prefix: String,
     event_schema: String,
+    coverage: CoverageExpectations,
 }
 impl Policy {
     // Compatibility profile for the historical command; remove with its alias.
@@ -965,6 +1096,7 @@ impl Policy {
             event_ended_at,
             event_prefix,
             event_schema,
+            coverage: CoverageExpectations::legacy(),
         })
     }
     fn reference(&self, role: &str, index: usize) -> Result<String> {
@@ -1205,7 +1337,7 @@ fn build_with_policy(
         .filter(|r| r["same_paragraph_group"] == true)
         .count();
     ensure(
-        same == 3311 && audit.len() - same == 112,
+        same == policy.coverage.same && audit.len() - same == policy.coverage.disagreement,
         "independent comparison denominator drift",
     )?;
     let statuses = count(repo, &spine, "status")?;
@@ -1250,15 +1382,19 @@ fn build_with_policy(
         )?;
     }
     ensure(
-        affected.len() == 263 && by_part == [2, 8, 53, 49],
+        affected.len() == policy.coverage.affected && by_part.as_slice() == policy.coverage.by_part,
         "independent affected-unit/part drift",
     )?;
     ensure(
-        profile.len() == 20 && overlap == 12 && primary_only == 8,
+        profile.len() == policy.coverage.primary_profile
+            && overlap == policy.coverage.overlap
+            && primary_only == policy.coverage.primary_only
+            && risk.len() == policy.coverage.risk_union,
         "primary-profile risk union drift",
     )?;
     ensure(
-        statuses["deferred"] == 9 && conflicts.len() == risk.len(),
+        statuses["deferred"] == policy.coverage.deferred
+            && conflicts.len() == policy.coverage.conflicts,
         "final status/conflict census drift",
     )?;
     exact_coverage(
@@ -1586,14 +1722,19 @@ fn manifest_check(repo: &ResearchExecution, manifest: &Value) -> Result<()> {
 // The compatibility gate covers recipe fields the legacy producer has not
 // yet consumed. Remove it after the remaining paragraph parameters migrate.
 const COMPATIBILITY_PROFILE_SHA256: &str =
-    "5b1a66eb08b5d8281098726ed36e1fe50703fa2e496c4c330f03632a18467015";
-fn compatibility_policy(recipe: &Value, target_plan: &str) -> Result<Policy> {
+    "ab0fcb1941548712f01dd54583eecf42ebe07b706c3df53160bf23a7bf50e548";
+fn compatibility_policy(
+    repo: &ResearchExecution,
+    recipe: &Value,
+    target_plan: &str,
+) -> Result<Policy> {
     // Remove this compatibility guard when the target structural producer moves.
     ensure(
         target_plan == format!("{}/plan.v1.json", tos_compiler::antonovsky_structural::V1),
         "unsupported target structural producer",
     )?;
-    let policy = Policy::selected(recipe, target_plan)?;
+    let mut policy = Policy::selected(recipe, target_plan)?;
+    policy.coverage = CoverageExpectations::selected(repo, recipe, &policy)?;
     let mut remaining = recipe.clone();
     let object = remaining
         .as_object_mut()
@@ -1618,6 +1759,7 @@ fn compatibility_policy(recipe: &Value, target_plan: &str) -> Result<Policy> {
         "historical_ended_at",
         "historical_event_prefix",
         "historical_event_schema",
+        "retained_coverage",
     ] {
         object.remove(key);
     }
@@ -1638,7 +1780,17 @@ pub fn replay_selected(
     expected: &BTreeSet<String>,
     target: Option<&ResearchExecution>,
 ) -> Result<Value> {
-    let policy = compatibility_policy(recipe, target_plan)?;
+    let coverage_ref = format!(
+        "{}/{}/{}",
+        s(&recipe["work_path"])?,
+        s(&recipe["route"])?,
+        s(&recipe["retained_coverage"]["filename"])?,
+    );
+    ensure(
+        expected.contains(&coverage_ref),
+        "selected coverage receipt is absent from the frozen manifest",
+    )?;
+    let policy = compatibility_policy(repo, recipe, target_plan)?;
     let material = reconstruct_with_policy(repo, &policy)?;
     let (public, private) = build_with_policy(repo, &material, &policy)?;
     ensure(
