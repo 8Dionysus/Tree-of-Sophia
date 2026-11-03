@@ -468,6 +468,40 @@ mod tests {
             Some(&1)
         );
         assert!(parse_value("{\"a\":1,\"a\":2}").is_err());
+        for (field, file, pointer, expected) in [
+            (
+                "revision",
+                "tests/conformance/rust/corpus-v1/store/revisions/a/snapshot.json",
+                "/revision",
+                "tos_corpus_snapshot_canonical_v1",
+            ),
+            (
+                "request_digest",
+                "source-create-receipt.json",
+                "/request_digest",
+                "tos_source_command_input_v1",
+            ),
+            (
+                "digest",
+                "claim-revision-history.json",
+                "/receipts/*/previous_source/digest",
+                "tos_source_command_input_v1",
+            ),
+            (
+                "sha256",
+                "navigation.json",
+                "/navigation_descriptor/claim/sha256",
+                "tos_source_record_digest_v1",
+            ),
+        ] {
+            let matching: Vec<_> = c
+                .rules
+                .iter()
+                .filter(|rule| rule.matches(field, file, pointer))
+                .collect();
+            assert_eq!(matching.len(), 1, "{file} {pointer}");
+            assert_eq!(matching[0].old_profile.as_deref(), Some(expected));
+        }
         assert!(!is_digest(&"g".repeat(64)));
         assert!(is_digest(&format!("sha256:{h}")));
     }

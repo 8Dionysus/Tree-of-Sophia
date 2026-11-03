@@ -280,6 +280,362 @@
       "class": "canonical-json",
       "old_profile": "tos_source_command_input_v1",
       "producer_context": "tos-command source_revisions.rs hashes configuration or dependency bindings with source_command::record_digest"
+    },
+    {
+      "field": "request_digest",
+      "file_suffix": "source-create-receipt.json",
+      "pointer_contains": "/request_digest",
+      "old_profile": "tos_source_command_input_v1",
+      "class": "canonical-json",
+      "producer_context": "tos-command source_creation.rs computes the request, configuration or dependency snapshot with source_command::record_digest"
+    },
+    {
+      "field": "owner_configuration",
+      "file_suffix": "source-create-receipt.json",
+      "pointer_contains": "/owner_configuration",
+      "old_profile": "tos_source_command_input_v1",
+      "class": "canonical-json",
+      "producer_context": "tos-command source_creation.rs computes the request, configuration or dependency snapshot with source_command::record_digest"
+    },
+    {
+      "field": "dependencies",
+      "file_suffix": "source-create-receipt.json",
+      "pointer_contains": "/dependencies",
+      "old_profile": "tos_source_command_input_v1",
+      "class": "canonical-json",
+      "producer_context": "tos-command source_creation.rs computes the request, configuration or dependency snapshot with source_command::record_digest"
+    },
+    {
+      "field": "expected_configuration",
+      "file_suffix": "source-create-request.json",
+      "pointer_contains": "/expected_configuration",
+      "old_profile": "tos_source_command_input_v1",
+      "class": "canonical-json",
+      "producer_context": "tos-command source_creation.rs verifies this request binding against the canonical configuration or dependency snapshot digest"
+    },
+    {
+      "field": "expected_dependencies",
+      "file_suffix": "source-create-request.json",
+      "pointer_contains": "/expected_dependencies",
+      "old_profile": "tos_source_command_input_v1",
+      "class": "canonical-json",
+      "producer_context": "tos-command source_creation.rs verifies this request binding against the canonical configuration or dependency snapshot digest"
+    },
+    {
+      "field": "canonical_record_sha256",
+      "file_suffix": "source-create-request.json",
+      "pointer_contains": "/expected_inputs/objects/",
+      "old_profile": "tos_source_command_input_v1",
+      "class": "canonical-json",
+      "producer_context": "tos-command source_claims.rs carries the canonical record digest in expected object inputs"
+    },
+    {
+      "field": "canonical_record_sha256",
+      "file_suffix": "claim-revision-history.json",
+      "pointer_contains": "/expected_inputs/objects/",
+      "old_profile": "tos_source_command_input_v1",
+      "class": "canonical-json",
+      "producer_context": "tos-command source_claims.rs carries the canonical record digest in expected object inputs"
+    },
+    {
+      "field": "digest",
+      "file_suffix": "source-create-receipt.json",
+      "pointer_contains": "/source/digest",
+      "old_profile": "tos_source_command_input_v1",
+      "class": "canonical-json",
+      "producer_context": "tos-validation source_copy_kernel::metadata_subject hashes the source record to construct its versioned reference, carried by source_creation.rs in the receipt"
+    },
+    {
+      "field": "digest",
+      "file_suffix": "claim-revision-history.json",
+      "pointer_contains": "/receipts/*/previous_source/",
+      "old_profile": "tos_source_command_input_v1",
+      "class": "canonical-json",
+      "producer_context": "tos-command source_claims.rs records references built by source_copy_kernel::metadata_subject or form_reference, which hash canonical records"
+    },
+    {
+      "field": "digest",
+      "file_suffix": "claim-revision-history.json",
+      "pointer_contains": "/receipts/*/source/",
+      "old_profile": "tos_source_command_input_v1",
+      "class": "canonical-json",
+      "producer_context": "tos-command source_claims.rs records references built by source_copy_kernel::metadata_subject or form_reference, which hash canonical records"
+    },
+    {
+      "field": "digest",
+      "file_suffix": "claim-revision-history.json",
+      "pointer_contains": "/receipts/*/forms/",
+      "old_profile": "tos_source_command_input_v1",
+      "class": "canonical-json",
+      "producer_context": "tos-command source_claims.rs records references built by source_copy_kernel::metadata_subject or form_reference, which hash canonical records"
+    },
+    {
+      "field": "digest",
+      "file_suffix": "source-create-receipt.json",
+      "pointer_contains": "/claims/*/digest",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "tos-command source_claims::claim_creation_receipt maps each supplied claim through metadata_subject, which hashes its canonical record"
+    },
+    {
+      "field": "request_digest",
+      "file_suffix": "claim-revision-history.json",
+      "pointer_contains": "/receipts/*/request_digest",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "tos-command source_claims.rs hashes the claim request, owner configuration, dependency grounding or previous package file references with record_digest"
+    },
+    {
+      "field": "owner_configuration",
+      "file_suffix": "claim-revision-history.json",
+      "pointer_contains": "/receipts/*/owner_configuration",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "tos-command source_claims.rs hashes the claim request, owner configuration, dependency grounding or previous package file references with record_digest"
+    },
+    {
+      "field": "dependencies",
+      "file_suffix": "claim-revision-history.json",
+      "pointer_contains": "/receipts/*/dependencies",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "tos-command source_claims.rs hashes the claim request, owner configuration, dependency grounding or previous package file references with record_digest"
+    },
+    {
+      "field": "previous_revision",
+      "file_suffix": "claim-revision-history.json",
+      "pointer_contains": "/receipts/*/previous_revision",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "tos-command source_claims.rs hashes the claim request, owner configuration, dependency grounding or previous package file references with record_digest"
+    },
+    {
+      "field": "expected_revision",
+      "file_suffix": "claim-revision-history.json",
+      "pointer_contains": "/receipts/*/request/expected_revision",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "tos-command source_claims.rs hashes the claim request, owner configuration, dependency grounding or previous package file references with record_digest"
+    },
+    {
+      "field": "expected_dependencies",
+      "file_suffix": "claim-revision-history.json",
+      "pointer_contains": "/receipts/*/request/expected_dependencies",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "tos-command source_claims.rs hashes the claim request, owner configuration, dependency grounding or previous package file references with record_digest"
+    },
+    {
+      "field": "expected_configuration",
+      "file_suffix": "claim-revision-history.json",
+      "pointer_contains": "/receipts/*/request/expected_configuration",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "tos-command source_claims.rs hashes the claim request, owner configuration, dependency grounding or previous package file references with record_digest"
+    },
+    {
+      "field": "digest",
+      "file_suffix": "claim-revision-history.json",
+      "pointer_contains": "/receipts/*/request/expected_source/digest",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "tos-command source_claims.rs validates expected_source against metadata_subject of the canonical claim record"
+    },
+    {
+      "field": "digest",
+      "file_suffix": "source-create-request.json",
+      "pointer_contains": "/expected_source/digest",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "tos-command source_claims.rs validates typed source, collection and membership version references against canonical source records"
+    },
+    {
+      "field": "digest",
+      "file_suffix": "source-create-request.json",
+      "pointer_contains": "/object/membership_versions/",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "tos-command source_claims.rs validates typed source, collection and membership version references against canonical source records"
+    },
+    {
+      "field": "digest",
+      "file_suffix": "source-create-request.json",
+      "pointer_contains": "/object/collection_version/digest",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "tos-command source_claims.rs validates typed source, collection and membership version references against canonical source records"
+    },
+    {
+      "field": "digest",
+      "file_suffix": "source-create-request.json",
+      "pointer_contains": "/memberships/*/ref/digest",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "tos-command source_claims.rs validates typed collection and membership version references against canonical source records"
+    },
+    {
+      "field": "digest",
+      "file_suffix": "source-create-request.json",
+      "pointer_contains": "/memberships/*/provenance/catalog/current_record_ref/digest",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "tos-command source_claims.rs validates typed collection and membership version references against canonical source records"
+    },
+    {
+      "field": "digest",
+      "file_suffix": "source-create-request.json",
+      "pointer_contains": "/collection/ref/digest",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "tos-command source_claims.rs validates typed collection and membership version references against canonical source records"
+    },
+    {
+      "field": "digest",
+      "file_suffix": "source-create-request.json",
+      "pointer_contains": "/collection/provenance/catalog/current_record_ref/digest",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "tos-command source_claims.rs validates typed collection and membership version references against canonical source records"
+    },
+    {
+      "field": "digest",
+      "file_suffix": "source-create-request.json",
+      "pointer_contains": "/collection/provenance/history/retained_baseline_ref/digest",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "tos-command source_claims.rs validates typed collection and membership version references against canonical source records"
+    },
+    {
+      "field": "digest",
+      "file_suffix": "source-create-request.json",
+      "pointer_contains": "/value/membership_versions/",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "tos-command source_claims.rs validates typed collection and membership version references against canonical source records"
+    },
+    {
+      "field": "digest",
+      "file_suffix": "source-create-request.json",
+      "pointer_contains": "/value/collection_version/digest",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "tos-command source_claims.rs validates typed collection and membership version references against canonical source records"
+    },
+    {
+      "field": "digest",
+      "file_suffix": "source-create-receipt.json",
+      "pointer_contains": "/memberships/*/ref/digest",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "tos-command source_claims.rs carries exact collection and membership version references in the source bindings receipt"
+    },
+    {
+      "field": "digest",
+      "file_suffix": "source-create-receipt.json",
+      "pointer_contains": "/memberships/*/provenance/catalog/current_record_ref/digest",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "tos-command source_claims.rs carries exact collection and membership version references in the source bindings receipt"
+    },
+    {
+      "field": "digest",
+      "file_suffix": "source-create-receipt.json",
+      "pointer_contains": "/collection/ref/digest",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "tos-command source_claims.rs carries exact collection and membership version references in the source bindings receipt"
+    },
+    {
+      "field": "digest",
+      "file_suffix": "source-create-receipt.json",
+      "pointer_contains": "/collection/provenance/catalog/current_record_ref/digest",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "tos-command source_claims.rs carries exact collection and membership version references in the source bindings receipt"
+    },
+    {
+      "field": "digest",
+      "file_suffix": "source-create-receipt.json",
+      "pointer_contains": "/collection/provenance/history/retained_baseline_ref/digest",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "tos-command source_claims.rs carries exact collection and membership version references in the source bindings receipt"
+    },
+    {
+      "field": "digest",
+      "file_suffix": "source-create-receipt.json",
+      "pointer_contains": "/value/membership_versions/",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "tos-command source_claims.rs carries exact collection and membership version references in the source bindings receipt"
+    },
+    {
+      "field": "digest",
+      "file_suffix": "source-create-receipt.json",
+      "pointer_contains": "/value/collection_version/digest",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "tos-command source_claims.rs carries exact collection and membership version references in the source bindings receipt"
+    },
+    {
+      "field": "revision",
+      "file_contains": "tests/conformance/rust/corpus-v1/store/revisions/",
+      "file_suffix": "/snapshot.json",
+      "pointer_contains": "/revision",
+      "class": "canonical-json",
+      "old_profile": "tos_corpus_snapshot_canonical_v1",
+      "producer_context": "CorpusSnapshotV1 hashes the snapshot body without revision, including the terminal LF; base_revision refers to a preceding snapshot."
+    },
+    {
+      "field": "base_revision",
+      "file_contains": "tests/conformance/rust/corpus-v1/store/revisions/",
+      "file_suffix": "/snapshot.json",
+      "pointer_contains": "/base_revision",
+      "class": "canonical-json",
+      "old_profile": "tos_corpus_snapshot_canonical_v1",
+      "producer_context": "CorpusSnapshotV1 hashes the snapshot body without revision, including the terminal LF; base_revision refers to a preceding snapshot."
+    },
+    {
+      "field": "sha256",
+      "pointer_contains": "/navigation_descriptor/claim/sha256",
+      "class": "canonical-json",
+      "old_profile": "tos_source_record_digest_v1",
+      "producer_context": "tos-compiler source_bibliographic_render::navigation_descriptor hashes the corresponding source record, relation, template, or endpoint using the SourceRecordDigestV1 canonical encoder; derived graph and display carriers copy the descriptor."
+    },
+    {
+      "field": "sha256",
+      "pointer_contains": "/navigation_descriptor/template/sha256",
+      "class": "canonical-json",
+      "old_profile": "tos_source_record_digest_v1",
+      "producer_context": "tos-compiler source_bibliographic_render::navigation_descriptor hashes the corresponding source record, relation, template, or endpoint using the SourceRecordDigestV1 canonical encoder; derived graph and display carriers copy the descriptor."
+    },
+    {
+      "field": "sha256",
+      "pointer_contains": "/navigation_descriptor/predicate/sha256",
+      "class": "canonical-json",
+      "old_profile": "tos_source_record_digest_v1",
+      "producer_context": "tos-compiler source_bibliographic_render::navigation_descriptor hashes the corresponding source record, relation, template, or endpoint using the SourceRecordDigestV1 canonical encoder; derived graph and display carriers copy the descriptor."
+    },
+    {
+      "field": "sha256",
+      "pointer_contains": "/navigation_descriptor/subject/sha256",
+      "class": "canonical-json",
+      "old_profile": "tos_source_record_digest_v1",
+      "producer_context": "tos-compiler source_bibliographic_render::navigation_descriptor hashes the corresponding source record, relation, template, or endpoint using the SourceRecordDigestV1 canonical encoder; derived graph and display carriers copy the descriptor."
+    },
+    {
+      "field": "sha256",
+      "pointer_contains": "/navigation_descriptor/object/sha256",
+      "class": "canonical-json",
+      "old_profile": "tos_source_record_digest_v1",
+      "producer_context": "tos-compiler source_bibliographic_render::navigation_descriptor hashes the corresponding source record, relation, template, or endpoint using the SourceRecordDigestV1 canonical encoder; derived graph and display carriers copy the descriptor."
+    },
+    {
+      "field": "mapping_sha256",
+      "pointer_contains": "/navigation_descriptor/predicate/mapping_sha256",
+      "class": "canonical-json",
+      "old_profile": "tos_source_record_digest_v1",
+      "producer_context": "tos-compiler source_bibliographic_render hashes the selected predicate mapping using SourceRecordDigestV1."
     }
   ],
   "unresolved": [
