@@ -265,6 +265,53 @@ fn schema_execution_matches(
     }
 }
 
+pub(crate) fn schema_execution_fields(
+    binding: tos_foundation::SchemaExecutionBinding,
+) -> Result<(
+    String,
+    Option<String>,
+    Option<ManagedSchemaEngineV1>,
+    String,
+)> {
+    let schema_set = binding.schema_set_sha256().to_hex();
+    let (schema, worker, engine) = match binding {
+        tos_foundation::SchemaExecutionBinding::Worker(binding) => (
+            SCHEMA.to_owned(),
+            Some(binding.worker_sha256.to_hex()),
+            None,
+        ),
+        tos_foundation::SchemaExecutionBinding::InProcessV1(binding) => (
+            IN_PROCESS_SCHEMA.to_owned(),
+            None,
+            Some(ManagedSchemaEngineV1 {
+                engine: binding.engine.to_owned(),
+                schema_profile: binding.schema_profile.id().to_owned(),
+                input_mode_sha256: binding
+                    .input_mode_sha256
+                    .ok_or(Error::Invalid("managed schema input mode absent"))?
+                    .to_hex(),
+            }),
+        ),
+    };
+    validate_schema_execution(&schema, worker.as_deref(), engine.as_ref(), &schema_set)?;
+    Ok((schema, worker, engine, schema_set))
+}
+
+pub(crate) fn schema_executions_match(
+    previous: tos_foundation::SchemaExecutionBinding,
+    current: tos_foundation::SchemaExecutionBinding,
+) -> bool {
+    schema_execution_fields(previous).is_ok_and(|(schema, worker, engine, schema_set)| {
+        schema_execution_matches(
+            &schema,
+            worker.as_deref(),
+            engine.as_ref(),
+            &schema_set,
+            current,
+        )
+    })
+}
+
 /// Separate versioned delta retaining the parent manifest identity and source evidence.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -1015,6 +1062,13 @@ mod tests {
             &schema_set,
             binding
         ));
+        let (schema, worker_field, recorded_engine, recorded_set) =
+            schema_execution_fields(binding).unwrap();
+        assert_eq!(schema, IN_PROCESS_SCHEMA);
+        assert!(worker_field.is_none());
+        assert_eq!(recorded_engine.as_ref(), Some(&engine));
+        assert_eq!(recorded_set, schema_set);
+        assert!(schema_executions_match(binding, binding));
         let mut changed_mode = engine.clone();
         changed_mode.input_mode_sha256 = Digest256::of_bytes(b"other mode").to_hex();
         assert!(!schema_execution_matches(

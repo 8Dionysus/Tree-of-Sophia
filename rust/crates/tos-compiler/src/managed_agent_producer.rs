@@ -51,7 +51,7 @@ pub struct CompletedManagedAgentProducer<P: ManagedProducerProof = ManagedSource
     export_revision: SourceRevision,
     export_membership: SourceMembershipV1,
     source_catalog_root: String,
-    schema_worker_sha256: String,
+    schema_execution: tos_foundation::SchemaExecutionBinding,
     schema_set_sha256: String,
     successor_catalogue_input: Option<(String, u64)>,
     created_record_input: Option<(String, String, u64)>,
@@ -87,8 +87,8 @@ impl<P: ManagedProducerProof> CompletedManagedAgentProducer<P> {
     pub fn source_catalog_root_sha256(&self) -> &str {
         &self.source_catalog_root
     }
-    pub fn schema_worker_sha256(&self) -> &str {
-        &self.schema_worker_sha256
+    pub fn schema_execution_binding(&self) -> tos_foundation::SchemaExecutionBinding {
+        self.schema_execution
     }
     pub fn schema_set_sha256(&self) -> &str {
         &self.schema_set_sha256
@@ -174,11 +174,9 @@ pub fn prepare_managed_agent_selected_model<P: ManagedProducerProof>(
         "ToS/doctrine/semantic-interchange/relation-types.v1.json",
         relation_raw,
     )?;
-    let schema_set_sha256 = validator
+    let schema_execution = validator
         .schemas(export_revision)?
-        .execution_binding_any()?
-        .schema_set_sha256()
-        .to_hex();
+        .execution_binding_any()?;
     // Complete the genuine catalog/Versions/navigation schema operation before
     // issuing a successful independently sealed selected outcome.
     validator.finish()?;
@@ -187,14 +185,7 @@ pub fn prepare_managed_agent_selected_model<P: ManagedProducerProof>(
         &projection.catalog_root_sha256,
         export_revision,
         export_membership,
-        validator
-            .worker
-            .ok_or(Error::Invalid(
-                "managed producer requires worker schema identity",
-            ))?
-            .sha256
-            .to_hex(),
-        schema_set_sha256,
+        schema_execution,
         proof,
         candidate,
         binding,
@@ -224,8 +215,7 @@ fn build_selected<P: ManagedProducerProof>(
     source_catalog_root: &str,
     export_revision: SourceRevision,
     export_membership: SourceMembershipV1,
-    schema_worker_sha256: String,
-    schema_set_sha256: String,
+    schema_execution: tos_foundation::SchemaExecutionBinding,
     proof: P,
     candidate: &Path,
     binding: SourceBinding,
@@ -540,8 +530,8 @@ fn build_selected<P: ManagedProducerProof>(
         export_revision,
         export_membership,
         source_catalog_root: source_catalog_root.to_owned(),
-        schema_worker_sha256,
-        schema_set_sha256,
+        schema_execution,
+        schema_set_sha256: schema_execution.schema_set_sha256().to_hex(),
         successor_catalogue_input,
         created_record_input,
         created_forms_input,
@@ -662,6 +652,16 @@ mod original_anchor_tests {
             max_total_bytes: 16 * 1024 * 1024,
         };
         let header_proof = proof.clone();
+        let schema_execution = tos_foundation::SchemaExecutionBinding::InProcessV1(
+            tos_foundation::InProcessSchemaExecutionBinding {
+                schema_profile: tos_foundation::FormatProfile::LegacyPythonObserved20260923,
+                schema_set_sha256: Digest256::from_hex(&hash).unwrap(),
+                engine: tos_foundation::IN_PROCESS_SCHEMA_ENGINE_ID,
+                input_mode_sha256: Some(
+                    tos_validation::in_process::InputMode::SerdeNormalized.identity_sha256(),
+                ),
+            },
+        );
         let completed = build_selected(
             &projection,
             &hash,
@@ -670,8 +670,7 @@ mod original_anchor_tests {
                 count: 1,
                 digest: Digest256::from_hex(&hash).unwrap(),
             },
-            hash.clone(),
-            hash.clone(),
+            schema_execution,
             proof,
             &path,
             binding,
@@ -703,6 +702,7 @@ mod original_anchor_tests {
             },
         )
         .unwrap();
+        assert_eq!(completed.schema_execution_binding(), schema_execution);
         assert_eq!(
             completed.expectation().model_abi,
             tos_foundation::KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V2
@@ -1268,25 +1268,20 @@ pub fn prepare_managed_agent_selected_successor<P: ManagedProducerProof>(
         || Digest256::of_bytes(entity_raw).to_hex() != old.expectation.entity_registry_sha256
         || Digest256::of_bytes(relation_raw).to_hex() != old.expectation.relation_registry_sha256
         || Digest256::of_bytes(descriptor_raw).to_hex() != old.expectation.descriptor_sha256
-        || validator
-            .worker
-            .map(|worker| worker.sha256.to_hex())
-            .as_deref()
-            != Some(old.schema_worker_sha256.as_str())
     {
         return Err(Error::Invalid(
             "managed successor immutable parent/software/current chain",
         ));
     }
     let schemas = validator.schemas(schema_revision)?;
-    let schema_set_sha256 = schemas
-        .execution_binding_any()?
-        .schema_set_sha256()
-        .to_hex();
+    let schema_execution = schemas.execution_binding_any()?;
     drop(schemas);
-    if schema_set_sha256 != old.schema_set_sha256 {
+    if !crate::managed_model_manifest::schema_executions_match(
+        old.schema_execution,
+        schema_execution,
+    ) {
         return Err(Error::ManagedSourceUnsupported(
-            "managed successor schema closure changed; FullOnly required",
+            "managed successor schema execution changed; FullOnly required",
         ));
     }
     let vocabulary = QueryVocabulary::parse(descriptor_raw, supported_profiles)?;
@@ -1886,14 +1881,7 @@ pub fn prepare_managed_agent_selected_successor<P: ManagedProducerProof>(
         &old.source_catalog_root,
         old.export_revision,
         old.export_membership,
-        validator
-            .worker
-            .ok_or(Error::Invalid(
-                "managed producer requires worker schema identity",
-            ))?
-            .sha256
-            .to_hex(),
-        schema_set_sha256,
+        schema_execution,
         proof,
         candidate,
         binding,

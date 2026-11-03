@@ -187,14 +187,18 @@ pub fn prepare_managed_overlay_base_v2<P: crate::ManagedProducerProof>(
         .and_then(|n| n.checked_add(catalog.retained_node_logical_bound()))
         .and_then(|n| n.checked_add(manifest_limits.max_manifest_bytes as u64))
         .ok_or(Error::Budget("overlay cold retained logical byte bound"))?;
+    let (schema, schema_worker_sha256, schema_engine, schema_set_sha256) =
+        crate::managed_model_manifest::schema_execution_fields(
+            producer.schema_execution_binding(),
+        )?;
     let manifest = ManagedManifestV2 {
-        schema: "tos_managed_model_manifest_v2".into(),
+        schema,
         base: base.selection().clone(),
         base_provenance: proof.clone(),
         base_transport,
-        schema_worker_sha256: Some(producer.schema_worker_sha256().to_owned()),
-        schema_engine: None,
-        schema_set_sha256: producer.schema_set_sha256().to_owned(),
+        schema_worker_sha256,
+        schema_engine,
+        schema_set_sha256,
         source,
         catalog_epoch: catalog.descriptor(65_536)?,
         navigation_tree: navigation
