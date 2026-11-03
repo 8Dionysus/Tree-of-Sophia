@@ -832,9 +832,10 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
     );
     assert_eq!(created["publication_authorized"], false);
     assert_eq!(created["grants_admission"], false);
+    assert_eq!(created["receipt"]["request_digest_profile"], "jcs1");
     assert_eq!(
         created["receipt"]["request_digest"],
-        request_digest(&creation_request)
+        jcs_request_digest(&creation_request)
     );
     assert_eq!(created["receipt"]["command_id"], creation["command_id"]);
     assert_eq!(
@@ -1073,9 +1074,10 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
     assert_eq!(revised["source"]["version"], 2);
     assert_eq!(revised["publication_authorized"], false);
     assert_eq!(revised["grants_admission"], false);
+    assert_eq!(revised["receipt"]["request_digest_profile"], "jcs1");
     assert_eq!(
         revised["receipt"]["request_digest"],
-        request_digest(&revision_request)
+        jcs_request_digest(&revision_request)
     );
     assert_eq!(revised["receipt"]["command_id"], revision["command_id"]);
     assert_eq!(

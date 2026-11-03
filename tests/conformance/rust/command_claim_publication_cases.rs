@@ -431,12 +431,15 @@ fn load_frozen_claim_fixture(workspace: &Path) -> PathBuf {
     let mut request: Value = serde_json::from_slice(&fs::read(&request_path).unwrap()).unwrap();
     request["expected_configuration"] = json!(configuration_digest.to_prefixed());
     let request_raw = canonical_lf(&request);
-    let request_digest = Digest256::of_bytes(&source_command_canonical_bytes(&request));
+    let request_digest = Digest256::of_bytes(
+        &tos_foundation::jcs_bytes_v1(&typed(&request), JsonLimits::default()).unwrap(),
+    );
     fs::write(&request_path, &request_raw).unwrap();
 
     let mut receipt: Value = serde_json::from_slice(&fs::read(&receipt_path).unwrap()).unwrap();
     receipt["owner_configuration"] = json!(configuration_digest.to_prefixed());
     receipt["request_digest"] = json!(request_digest.to_prefixed());
+    receipt["request_digest_profile"] = json!("jcs1");
     receipt["files"]["source-create-request.json"] = json!({
         "bytes": request_raw.len(),
         "sha256": Digest256::of_bytes(&request_raw).to_prefixed()

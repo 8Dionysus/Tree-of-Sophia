@@ -510,6 +510,25 @@ fn native_private_profile_lifecycle(use_http: bool) {
     }
     let frozen = fs::read(home.join("source-create-receipt.json")).unwrap();
     let receipt: Value = serde_json::from_slice(&frozen).unwrap();
+    assert_eq!(receipt["request_digest_profile"], "jcs1");
+    let creation_bytes = serde_json::to_vec(&creation).unwrap();
+    let limits = tos_foundation::JsonLimits {
+        max_bytes: 8_388_608,
+        ..tos_foundation::JsonLimits::default()
+    };
+    let creation_doc = tos_foundation::parse_json(
+        &creation_bytes,
+        tos_foundation::JsonMode::PublishedStrict,
+        limits,
+    )
+    .unwrap();
+    assert_eq!(
+        receipt["request_digest"],
+        tos_foundation::jcs_digest_v1(creation_doc.root(), limits)
+            .unwrap()
+            .digest
+            .to_prefixed()
+    );
     assert_eq!(receipt["dependencies"], preview["expected_dependencies"]);
     assert_eq!(
         fs::read(home.join("source-create-owner-configuration.json")).unwrap(),
@@ -537,6 +556,28 @@ fn native_private_profile_lifecycle(use_http: bool) {
         revision[target] = prepared[source].clone();
     }
     let revised = call(&revision);
+    let revision_history: Value =
+        serde_json::from_slice(&fs::read(home.join("source-revision-history.json")).unwrap())
+            .unwrap();
+    let revision_receipt = revision_history["receipts"]
+        .as_array()
+        .unwrap()
+        .last()
+        .unwrap();
+    assert_eq!(revision_receipt["request_digest_profile"], "jcs1");
+    let revision_doc = tos_foundation::parse_json(
+        &serde_json::to_vec(&revision).unwrap(),
+        tos_foundation::JsonMode::PublishedStrict,
+        limits,
+    )
+    .unwrap();
+    assert_eq!(
+        revision_receipt["request_digest"],
+        tos_foundation::jcs_digest_v1(revision_doc.root(), limits)
+            .unwrap()
+            .digest
+            .to_prefixed()
+    );
     assert_ne!(revised["source"], created["source"]);
     let archived = call(
         &serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"inspect-version","source":created["source"]}),
