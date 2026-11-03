@@ -397,6 +397,8 @@
           "probe_indent_at_least": 12
         },
         "verse": {
+          "short_run_resolution": "prose_by_conservative_five_row_verse_threshold",
+          "borderline_resolution": "new_paragraph_at_13_points_otherwise_continuation",
           "maximum_same_panel_gap": 22,
           "minimum_run_rows": 5,
           "maximum_run_median_width": 245,

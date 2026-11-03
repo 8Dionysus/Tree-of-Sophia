@@ -1167,11 +1167,164 @@ impl ParagraphRule {
         })
     }
 }
+#[derive(Clone, Copy, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RowGroupRule {
+    disjoint_x_tolerance: f64,
+    same_citation_center_delta_at_most: f64,
+    other_center_delta_at_most: f64,
+    disjoint_overlap_at_least: f64,
+    disjoint_center_delta_at_most: f64,
+    ornament_residue_distance_at_most: f64,
+}
+#[derive(Clone, Copy, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct MarginRule {
+    y_min: f64,
+    y_max: f64,
+    width_at_least: f64,
+    minimum_samples: usize,
+    own_quantile: f64,
+    neighbor_page_radius: usize,
+    neighbor_quantile: f64,
+    own_excess_at_most: f64,
+    fallback_left: f64,
+    fallback_right: f64,
+    probe_indent_at_least: f64,
+}
+#[derive(Clone, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct VerseRule {
+    maximum_same_panel_gap: f64,
+    minimum_run_rows: usize,
+    maximum_run_median_width: f64,
+    short_run_minimum_rows: usize,
+    short_run_maximum_rows: usize,
+    short_run_maximum_median_width: f64,
+    borderline_indent_min: f64,
+    borderline_indent_below: f64,
+    short_run_resolution: String,
+    borderline_resolution: String,
+}
+impl RowGroupRule {
+    // Remove the compatibility value when compiler research consumers migrate.
+    fn legacy() -> Self {
+        Self {
+            disjoint_x_tolerance: 1.,
+            same_citation_center_delta_at_most: 1.5,
+            other_center_delta_at_most: 4.8,
+            disjoint_overlap_at_least: 1.5,
+            disjoint_center_delta_at_most: 7.,
+            ornament_residue_distance_at_most: 8.,
+        }
+    }
+    fn selected(v: &Value) -> Result<Self> {
+        let rule: Self =
+            serde_json::from_value(v.clone()).map_err(|e| format!("row group profile: {e}"))?;
+        if [
+            rule.disjoint_x_tolerance,
+            rule.same_citation_center_delta_at_most,
+            rule.other_center_delta_at_most,
+            rule.disjoint_overlap_at_least,
+            rule.disjoint_center_delta_at_most,
+            rule.ornament_residue_distance_at_most,
+        ]
+        .iter()
+        .any(|n| !n.is_finite() || *n < 0.)
+        {
+            return Err("invalid row group profile".into());
+        }
+        Ok(rule)
+    }
+}
+impl MarginRule {
+    fn legacy() -> Self {
+        Self {
+            y_min: 34.,
+            y_max: 540.,
+            width_at_least: 175.,
+            minimum_samples: 3,
+            own_quantile: 0.08,
+            neighbor_page_radius: 3,
+            neighbor_quantile: 0.35,
+            own_excess_at_most: 12.,
+            fallback_left: 50.,
+            fallback_right: 430.,
+            probe_indent_at_least: 12.,
+        }
+    }
+    fn selected(v: &Value) -> Result<Self> {
+        let rule: Self =
+            serde_json::from_value(v.clone()).map_err(|e| format!("margin profile: {e}"))?;
+        if [
+            rule.y_min,
+            rule.y_max,
+            rule.width_at_least,
+            rule.own_quantile,
+            rule.neighbor_quantile,
+            rule.own_excess_at_most,
+            rule.fallback_left,
+            rule.fallback_right,
+            rule.probe_indent_at_least,
+        ]
+        .iter()
+        .any(|n| !n.is_finite() || *n < 0.)
+            || rule.y_min > rule.y_max
+            || rule.own_quantile > 1.
+            || rule.neighbor_quantile > 1.
+        {
+            return Err("invalid margin profile".into());
+        }
+        Ok(rule)
+    }
+}
+impl VerseRule {
+    fn legacy() -> Self {
+        Self {
+            maximum_same_panel_gap: 22.,
+            minimum_run_rows: 5,
+            maximum_run_median_width: 245.,
+            short_run_minimum_rows: 2,
+            short_run_maximum_rows: 4,
+            short_run_maximum_median_width: 225.,
+            borderline_indent_min: 8.,
+            borderline_indent_below: 17.,
+            short_run_resolution: "prose_by_conservative_five_row_verse_threshold".into(),
+            borderline_resolution: "new_paragraph_at_13_points_otherwise_continuation".into(),
+        }
+    }
+    fn selected(v: &Value) -> Result<Self> {
+        let rule: Self =
+            serde_json::from_value(v.clone()).map_err(|e| format!("verse profile: {e}"))?;
+        if [
+            rule.maximum_same_panel_gap,
+            rule.maximum_run_median_width,
+            rule.short_run_maximum_median_width,
+            rule.borderline_indent_min,
+            rule.borderline_indent_below,
+        ]
+        .iter()
+        .any(|n| !n.is_finite() || *n < 0.)
+            || rule.minimum_run_rows == 0
+            || rule.short_run_minimum_rows == 0
+            || rule.short_run_minimum_rows > rule.short_run_maximum_rows
+            || rule.borderline_indent_min >= rule.borderline_indent_below
+            || rule.short_run_resolution.is_empty()
+            || rule.borderline_resolution.is_empty()
+        {
+            return Err("invalid verse profile".into());
+        }
+        Ok(rule)
+    }
+}
 #[derive(Clone)]
 struct LayoutClassification {
     header: HeaderRule,
     footer: FooterRule,
     paragraph: ParagraphRule,
+    row_group: RowGroupRule,
+    margin: MarginRule,
+    verse: VerseRule,
     regions: Vec<(usize, String, String)>,
     precedence: BTreeMap<String, usize>,
 }
@@ -1207,6 +1360,9 @@ impl LayoutClassification {
             header: HeaderRule::legacy(),
             footer: FooterRule::legacy(),
             paragraph: ParagraphRule::legacy(),
+            row_group: RowGroupRule::legacy(),
+            margin: MarginRule::legacy(),
+            verse: VerseRule::legacy(),
             regions,
             precedence,
         }
@@ -1250,6 +1406,9 @@ impl LayoutClassification {
             header: HeaderRule::selected(&value["header"])?,
             footer: FooterRule::selected(&value["footer"])?,
             paragraph: ParagraphRule::selected(&value["paragraph"])?,
+            row_group: RowGroupRule::selected(&value["row_group"])?,
+            margin: MarginRule::selected(&value["margin"])?,
+            verse: VerseRule::selected(&value["verse"])?,
             regions,
             precedence,
         })
@@ -1415,10 +1574,15 @@ fn reconstruct_blocks(
         let b = bbox(current.iter().map(|i| lines[*i].bbox));
         let overlap = b[3].min(l.bbox[3]) - b[1].max(l.bbox[1]);
         let delta = ((b[1] + b[3] - l.bbox[1] - l.bbox[3]) / 2.).abs();
-        let disjoint = l.bbox[2] <= b[0] + 1. || l.bbox[0] >= b[2] - 1.;
+        let disjoint = l.bbox[2] <= b[0] + layout.row_group.disjoint_x_tolerance
+            || l.bbox[0] >= b[2] - layout.row_group.disjoint_x_tolerance;
         let same = current.iter().any(|i| lines[*i].citation == l.citation);
-        if (same && delta <= 1.5)
-            || (!same && (delta <= 4.8 || (overlap >= 1.5 && disjoint && delta <= 7.)))
+        if (same && delta <= layout.row_group.same_citation_center_delta_at_most)
+            || (!same
+                && (delta <= layout.row_group.other_center_delta_at_most
+                    || (overlap >= layout.row_group.disjoint_overlap_at_least
+                        && disjoint
+                        && delta <= layout.row_group.disjoint_center_delta_at_most)))
         {
             current.push(i);
         } else {
@@ -1500,7 +1664,7 @@ fn reconstruct_blocks(
                 rows[j].role.as_deref() == Some("ornament")
                     && same_panel(&rows[i], &rows[j])
                     && rows[j].bbox[1].max(rows[i].bbox[1]) - rows[j].bbox[3].min(rows[i].bbox[3])
-                        <= 8.
+                        <= layout.row_group.ornament_residue_distance_at_most
             })
         {
             rows[i].role = Some("ornament".into());
@@ -1622,8 +1786,8 @@ fn reconstruct_blocks(
         tick(deadline)?;
         if row.role.is_none()
             && row.reading.is_some()
-            && (34. ..=540.).contains(&row.bbox[1])
-            && row.bbox[2] - row.bbox[0] >= 175.
+            && (layout.margin.y_min..=layout.margin.y_max).contains(&row.bbox[1])
+            && row.bbox[2] - row.bbox[0] >= layout.margin.width_at_least
         {
             candidates
                 .entry((row.page, row.panel.clone()))
@@ -1633,8 +1797,8 @@ fn reconstruct_blocks(
     }
     let raw: BTreeMap<_, _> = candidates
         .into_iter()
-        .filter(|(_, v)| v.len() >= 3)
-        .map(|(k, v)| (k, quantile(&v, 0.08)))
+        .filter(|(_, v)| v.len() >= layout.margin.minimum_samples)
+        .map(|(k, v)| (k, quantile(&v, layout.margin.own_quantile)))
         .collect();
     let mut margins = BTreeMap::new();
     for row in &rows {
@@ -1643,18 +1807,30 @@ fn reconstruct_blocks(
         if margins.contains_key(&k) {
             continue;
         }
-        let near: Vec<_> = ((row.page as isize - 3)..=(row.page as isize + 3))
-            .filter(|p| *p != row.page as isize && *p >= 0)
-            .filter_map(|p| raw.get(&(p as usize, row.panel.clone())).copied())
+        let near: Vec<_> = raw
+            .iter()
+            .filter(|((page, panel), _)| {
+                *page != row.page
+                    && panel == &row.panel
+                    && page.abs_diff(row.page) <= layout.margin.neighbor_page_radius
+            })
+            .map(|(_, value)| *value)
             .collect();
-        let reference = (!near.is_empty()).then(|| quantile(&near, 0.35));
+        let reference =
+            (!near.is_empty()).then(|| quantile(&near, layout.margin.neighbor_quantile));
         let own = raw.get(&k).copied();
-        let base =
-            if own.is_some() && (reference.is_none() || own.unwrap() <= reference.unwrap() + 12.) {
-                own.unwrap()
+        let base = if own.is_some()
+            && (reference.is_none()
+                || own.unwrap() <= reference.unwrap() + layout.margin.own_excess_at_most)
+        {
+            own.unwrap()
+        } else {
+            reference.unwrap_or(if row.panel == "left" {
+                layout.margin.fallback_left
             } else {
-                reference.unwrap_or(if row.panel == "left" { 50. } else { 430. })
-            };
+                layout.margin.fallback_right
+            })
+        };
         margins.insert(k, base);
     }
     for row in &mut rows {
@@ -1662,7 +1838,7 @@ fn reconstruct_blocks(
         if row.role.is_none() && row.reading.is_some() {
             row.base = Some(margins[&(row.page, row.panel.clone())]);
             row.indent = Some(row.bbox[0] - row.base.unwrap());
-            row.probe = row.indent.unwrap() >= 12.;
+            row.probe = row.indent.unwrap() >= layout.margin.probe_indent_at_least;
         }
     }
     let mut runs = Vec::<Vec<usize>>::new();
@@ -1696,7 +1872,8 @@ fn reconstruct_blocks(
             let mut j = i;
             while j + 1 < run.len() && rows[run[j + 1]].probe {
                 if same_panel(&rows[run[j]], &rows[run[j + 1]])
-                    && rows[run[j + 1]].bbox[1] - rows[run[j]].bbox[3] > 22.
+                    && rows[run[j + 1]].bbox[1] - rows[run[j]].bbox[3]
+                        > layout.verse.maximum_same_panel_gap
                 {
                     break;
                 }
@@ -1708,11 +1885,16 @@ fn reconstruct_blocks(
                     .map(|k| rows[run[k]].bbox[2] - rows[run[k]].bbox[0])
                     .collect::<Vec<_>>(),
             );
-            if len >= 5 && width <= 245. {
+            if len >= layout.verse.minimum_run_rows
+                && width <= layout.verse.maximum_run_median_width
+            {
                 marked[i..=j].fill(true);
-            } else if (2..=4).contains(&len) && width <= 225. {
+            } else if (layout.verse.short_run_minimum_rows..=layout.verse.short_run_maximum_rows)
+                .contains(&len)
+                && width <= layout.verse.short_run_maximum_median_width
+            {
                 let start = &rows[run[i]];
-                conflicts.push(json!({"conflict_kind":"short_persistent_inset_run","reading_ref":start.reading,"subpart_ref":start.subpart,"first_row_ref":start.reference,"last_row_ref":rows[run[j]].reference,"row_count":len,"median_width_points":round(width,3),"resolution":"prose_by_conservative_five_row_verse_threshold"}));
+                conflicts.push(json!({"conflict_kind":"short_persistent_inset_run","reading_ref":start.reading,"subpart_ref":start.subpart,"first_row_ref":start.reference,"last_row_ref":rows[run[j]].reference,"row_count":len,"median_width_points":round(width,3),"resolution":layout.verse.short_run_resolution}));
             }
             i = j + 1;
         }
@@ -1754,8 +1936,12 @@ fn reconstruct_blocks(
         if let Some(p) = prior {
             let p: &Row = &rows[p];
             let indent = row.indent.unwrap_or(0.);
-            if same_context(p, row) && !same_panel(p, row) && (8. ..17.).contains(&indent) {
-                conflicts.push(json!({"conflict_kind":"borderline_cross_panel_indent","reading_ref":row.reading,"subpart_ref":row.subpart,"previous_row_ref":p.reference,"current_row_ref":row.reference,"indent_delta_points":round(indent,3),"resolution":"new_paragraph_at_13_points_otherwise_continuation"}));
+            if same_context(p, row)
+                && !same_panel(p, row)
+                && (layout.verse.borderline_indent_min..layout.verse.borderline_indent_below)
+                    .contains(&indent)
+            {
+                conflicts.push(json!({"conflict_kind":"borderline_cross_panel_indent","reading_ref":row.reading,"subpart_ref":row.subpart,"previous_row_ref":p.reference,"current_row_ref":row.reference,"indent_delta_points":round(indent,3),"resolution":layout.verse.borderline_resolution}));
             }
         }
         prior = Some(i);
@@ -1820,7 +2006,8 @@ fn reconstruct_blocks(
         if !current.is_empty() {
             let prev = &rows[*current.last().unwrap()];
             if !same_context(row, prev)
-                || (same_panel(row, prev) && row.bbox[1] - prev.bbox[3] > 22.)
+                || (same_panel(row, prev)
+                    && row.bbox[1] - prev.bbox[3] > layout.verse.maximum_same_panel_gap)
             {
                 groups.push(std::mem::take(&mut current));
             }
@@ -2818,6 +3005,9 @@ mod tests {
             "header":{"y_below": 25,"left_center_x":200,"right_center_x":600,"center_tolerance":4,"max_characters":18,"minimum_dashes":2,"max_letters_for_short_mark":3,"max_characters_for_short_mark":5},
             "footer":{"always_from_y": 550,"inspect_from_y":530,"text_contains":["special"],"allowed_symbols":"*", "marginal_from_y":540,"marginal_width_below":40,"right_panel_x":{"x_min":500,"x_max":620},"left_panel_x":{"x_min":150,"x_max":260},"small_height_at_most":10.1,"small_width_below":180,"small_right_panel_x_above_any":[680,460],"small_left_panel_x_above_any":[300,150]},
             "paragraph":{"large_gap_at_least":5.2,"indent_gap_at_least":2,"indent_at_least":13,"same_baseline_y_tolerance":4.8,"confidence":{"context_change":1,"role_change":1,"large_gap":0.97,"indent_and_gap":0.95,"new_panel_indent":0.94,"same_baseline_fragment":0.99,"first_line_indent":0.96,"continuation":0.91}},
+            "row_group":{"disjoint_x_tolerance":1,"same_citation_center_delta_at_most":1.5,"other_center_delta_at_most":4.8,"disjoint_overlap_at_least":1.5,"disjoint_center_delta_at_most":7,"ornament_residue_distance_at_most":8},
+            "margin":{"y_min":34,"y_max":540,"width_at_least":175,"minimum_samples":3,"own_quantile":0.08,"neighbor_page_radius":3,"neighbor_quantile":0.35,"own_excess_at_most":12,"fallback_left":50,"fallback_right":430,"probe_indent_at_least":12},
+            "verse":{"maximum_same_panel_gap":22,"minimum_run_rows":5,"maximum_run_median_width":245,"short_run_minimum_rows":2,"short_run_maximum_rows":4,"short_run_maximum_median_width":225,"borderline_indent_min":8,"borderline_indent_below":17,"short_run_resolution":"prose_by_conservative_five_row_verse_threshold","borderline_resolution":"new_paragraph_at_13_points_otherwise_continuation"},
             "regions":[{"page":2,"panel":"left","kind":"front_matter"}],
             "role_precedence":[{"role":"selected_role","priority":7}]
         });
@@ -2829,6 +3019,9 @@ mod tests {
         assert!(!page_footer(&candidate, &layout.footer));
         assert_eq!(layout.region(2, "left").as_deref(), Some("front_matter"));
         assert_eq!(layout.precedence("selected_role"), 7);
+        profile["margin"]["own_quantile"] = json!(1.1);
+        assert!(LayoutClassification::selected(&profile).is_err());
+        profile["margin"]["own_quantile"] = json!(0.08);
         let duplicate = profile["regions"][0].clone();
         profile["regions"].as_array_mut().unwrap().push(duplicate);
         assert!(LayoutClassification::selected(&profile).is_err());
