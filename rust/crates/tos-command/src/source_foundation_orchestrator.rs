@@ -34,7 +34,7 @@ use tos_validation::executor::{
     SharedSchemaWorkerQuota, VerifiedWorkerImageHandle,
 };
 use tos_validation::item_rules::ItemRefusal;
-use tos_validation::record_biblio_cut::{BiblioRecordExecutor, BiblioSchemaDiagnosticsLimits};
+use tos_validation::record_biblio_cut::BiblioRecordExecutor;
 use tos_validation::source_cut::{
     CutSchemaDiagnosticsLimits, CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor,
     cut_schema_resource_preparation_state_upper_bound,
@@ -3912,11 +3912,10 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
                 );
             }
         };
-    // Record and Item each retain both a worker identity and a prepared
-    // schema image identity. Their FDs refer to the shared memfd; only these
-    // bounded path buffers are additional source-derived state.
+    // Item retains a worker identity and a prepared schema image identity.
+    // Their FDs refer to the shared memfd.
     let records_identity_copy_state =
-        match worker_identity_path_clone_bytes(&execution_limits.worker, 4) {
+        match worker_identity_path_clone_bytes(&execution_limits.worker, 2) {
             Ok(bytes) => bytes,
             Err(error) => {
                 return fail_window(execution_limits, remaining_budget, current_ticket, error);
@@ -4116,13 +4115,11 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
         max_receipts: max_checks,
         max_receipt_bytes: operation.state_bytes.min(1024 * 1024),
     };
-    let mut record_executor = match BiblioRecordExecutor::new_with_image(
-        &worker_image,
-        executor_budget,
+    let mut record_executor = match BiblioRecordExecutor::new_in_process_cut(
+        captured.cut(),
         FormatProfile::LegacyPythonObserved20260923,
+        tos_validation::in_process::InputMode::PublishedStrict,
         max_checks,
-        deadline,
-        cancelled,
     ) {
         Ok(executor) => executor,
         Err(error) => {
@@ -4134,25 +4131,6 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             );
         }
     };
-    if record_executor
-        .enable_diagnostics_v2(BiblioSchemaDiagnosticsLimits {
-            max_total_issues: operation.issue_count,
-            max_total_report_bytes: bounded_usize(operation.worker_wire_bytes)?,
-            max_total_state_bytes: operation.state_bytes,
-        })
-        .is_err()
-        || record_executor
-            .set_shared_schema_worker_quota(worker_quota.clone())
-            .is_err()
-        || record_executor.set_operation_budget(record_stream).is_err()
-    {
-        return fail_window(
-            execution_limits,
-            remaining_budget,
-            current_ticket,
-            incomplete("record schema worker limits refused"),
-        );
-    }
     // The prepared closure's temporary DOMs are admitted before constructor allocation.
     // This workspace expires at constructor return; retained controller state
     // continues through its existing phase/H accounting, without a refund.
