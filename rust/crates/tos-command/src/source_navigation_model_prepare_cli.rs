@@ -29,8 +29,7 @@ use crate::{
     source_creation_store::active,
 };
 use tos_validation::{
-    FormatProfile, executor::ExactWorkerIdentity, in_process::InputMode,
-    source_cut::InProcessCutSchemaExecutor,
+    FormatProfile, in_process::InputMode, source_cut::InProcessCutSchemaExecutor,
 };
 
 const HOST_FINALIZATION_RESERVE_MS: u64 = 60_000;
@@ -435,7 +434,7 @@ fn remove_staged_normalization_input(
 
 const OWNER_SCHEMA: &str = "tos_local_source_navigation_model_prepare_owner_v1";
 const REQUEST_SCHEMA: &str = "tos_local_source_navigation_model_prepare_request_v1";
-const RESULT_SCHEMA: &str = "tos_local_source_navigation_model_prepare_result_v1";
+const RESULT_SCHEMA: &str = "tos_local_source_navigation_model_prepare_result_v2";
 const SELECTION_SCHEMA: &str = "tos_local_pg_source_navigation_selection_v1";
 const FINAL_OWNER_SCHEMA: &str = "tos_local_source_navigation_owner_v1";
 const MAX_OWNER_BYTES: usize = 1_048_576;
@@ -1161,16 +1160,16 @@ fn prepare_initial(
     let event_rows = selected_positive(event_limits, "max_current_rows", 65_536)?;
     let event_row_bytes = selected_positive(event_limits, "max_row_bytes", 8 * 1024 * 1024)?;
     let event_total_bytes = selected_positive(event_limits, "max_total_bytes", 512 * 1024 * 1024)?;
-    let schema_wall_ms = selected_positive(producer, "schema_execution_wall_ms", 300_000)?;
-    let schema_cleanup_ms = selected_positive(producer, "schema_cleanup_grace_ms", 60_000)?;
-    let schema_cpu_seconds = selected_positive(producer, "schema_cpu_seconds", 60)?;
-    let schema_address_space = selected_positive(
+    let _schema_wall_ms = selected_positive(producer, "schema_execution_wall_ms", 300_000)?;
+    let _schema_cleanup_ms = selected_positive(producer, "schema_cleanup_grace_ms", 60_000)?;
+    let _schema_cpu_seconds = selected_positive(producer, "schema_cpu_seconds", 60)?;
+    let _schema_address_space = selected_positive(
         producer,
         "schema_address_space_bytes",
         8 * 1024 * 1024 * 1024,
     )?;
-    let schema_max_receipts = selected_positive(producer, "schema_max_receipts", 100_000)?;
-    let schema_max_receipt_bytes =
+    let _schema_max_receipts = selected_positive(producer, "schema_max_receipts", 100_000)?;
+    let _schema_max_receipt_bytes =
         selected_positive(producer, "schema_max_receipt_bytes", 64 * 1024 * 1024)?;
     let max_total_rows = selected_positive(aggregate_limits, "max_total_rows", u64::MAX - 1)?;
     let max_total_encoded_bytes =
@@ -1179,32 +1178,19 @@ fn prepare_initial(
         selected_positive(aggregate_limits, "max_total_dependency_bytes", u64::MAX - 1)?;
     let max_total_work_units =
         selected_positive(aggregate_limits, "max_total_work_units", u64::MAX - 1)?;
-    let schema_worker_identity = ExactWorkerIdentity {
-        absolute_path: super::absolute(super::text(
-            &invocation["schema_worker"],
-            "absolute_path",
-        )?)?,
-        sha256: Digest256::from_prefixed(super::text(&invocation["schema_worker"], "sha256")?)
-            .map_err(|_| SourceCommandError::Invalid("source-navigation schema worker digest"))?,
-    };
-    let selected_worker_path = super::absolute(super::text(producer, "schema_worker_path")?)?;
-    let selected_worker_digest =
-        Digest256::from_hex(super::text(producer, "schema_worker_sha256")?).map_err(|_| {
-            SourceCommandError::Invalid("selected source-navigation schema worker digest")
-        })?;
-    if schema_worker_identity.absolute_path != selected_worker_path
-        || schema_worker_identity.sha256 != selected_worker_digest
-    {
-        return Err(SourceCommandError::Denied(
-            "source-navigation producer worker differs",
-        ));
-    }
+    let schema_instance_limit =
+        super::source_navigation_model_compile::source_schema_instance_limit(
+            owner.model_limits.max_source_member_bytes,
+        )
+        .ok_or(SourceCommandError::Invalid("selected schema input limit"))?;
     // Recheck the exact source-cut schema closure before and after compilation.
     let recheck_schema = || {
         InProcessCutSchemaExecutor::from_cut(
             original_cut,
             FormatProfile::LegacyPythonObserved20260923,
-            InputMode::SerdeNormalized,
+            InputMode::LegacyPythonObservedBounded {
+                max_instance_bytes: schema_instance_limit,
+            },
             deadline,
             cancelled,
         )
@@ -1460,8 +1446,8 @@ fn prepare_initial(
             ));
         }
     };
-    let mut compile_request = super::source_navigation_model_compile::SourceNavigationModelCompileRequestV2 {
-        schema_version: "tos_source_navigation_model_compile_request_v2".into(),
+    let mut compile_request = super::source_navigation_model_compile::SourceNavigationModelCompileRequestV3 {
+        schema_version: "tos_source_navigation_model_compile_request_v3".into(),
         read_only_input_root: isolated.path().to_path_buf(),
         source_cut_root: isolated.path().join(".managed-source-cut"),
         bootstrap_source_revision: bootstrap_source_revision.0.to_hex(),
@@ -1474,10 +1460,6 @@ fn prepare_initial(
         membership_sha256: membership.digest.to_hex(),
         source_binding: source_binding.clone(),
         source_proof_v2: proof.clone(),
-        schema_worker: super::source_navigation_model_compile::SourceNavigationCompileWorkerV1 {
-            absolute_path: selected_worker_path,
-            sha256: selected_worker_digest.to_hex(),
-        },
         normalization_processor: super::source_navigation_model_compile::SourceNavigationCompileProcessorV1 {
             absolute_path: normalization_input_path,
             sha256: normalization_member.sha256.to_hex(),
@@ -1503,12 +1485,6 @@ fn prepare_initial(
         },
         producer_limits: super::source_navigation_model_compile::SourceNavigationCompileProducerLimitsV1 {
             max_events,
-            schema_execution_wall_ms: schema_wall_ms,
-            schema_cleanup_grace_ms: schema_cleanup_ms,
-            schema_cpu_seconds,
-            schema_address_space_bytes: schema_address_space,
-            schema_max_receipts,
-            schema_max_receipt_bytes,
             event_limits: super::source_navigation_model_compile::SourceNavigationCompileEventLimitsV1 {
                 max_dependencies: event_dependencies,
                 max_current_rows: event_rows,
@@ -1677,7 +1653,7 @@ fn prepare_initial(
                     return Err(crate::DurableError::Conflict("native executable changed before publication"));
                 }
                 let selected_schema = recheck_schema()
-                    .map_err(|_| crate::DurableError::Conflict("selected schema worker changed before publication"))?;
+                    .map_err(|_| crate::DurableError::Conflict("selected schema closure changed before publication"))?;
                 drop(selected_schema);
                 let normalization_now = original_software.read_selected_component(
                     original_components, &normalization_relative, 8 * 1024 * 1024, deadline, cancelled,
@@ -1816,6 +1792,7 @@ fn prepare_initial(
                 "status": if model_reused && owner_reused { "retained_pair_recovered" } else { "prepared_and_published" },
                 "model_reused": model_reused,
                 "final_owner_reused": owner_reused,
+                "schema_execution": completed.schema_execution,
                 "source": {"revision": revision.0.to_hex(), "membership_sha256": membership.digest.to_hex(), "members": membership.count, "bytes": current_source_bytes},
                 "catalog_plan": {
                     "selected_members": completed.catalog_work.planned_selected_members,
