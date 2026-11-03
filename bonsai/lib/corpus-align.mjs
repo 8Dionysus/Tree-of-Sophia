@@ -31,6 +31,8 @@ const VARIANCE=6.8;
 const NOTES=/(^|\n)〔\d+〕/u;
 /** Where a unit's text ends and its edition's notes begin, in code points (the whole length when it has none). */
 export function textEnd(text){const at=text.search(NOTES);return at<0?chars(text).length:chars(text.slice(0,at)).length;}
+const continues=text=>/^[\s«“"(—–-]*\p{Ll}/u.test(text);
+const unfinished=text=>!/[.!?…»”"\])]+\s*$/u.test(text);
 // A version whose notes run into its sentences shows a word glued to the capital of the next ("artsA less well attested").
 const GLUED=/[a-z][A-Z][a-z]{2,} [a-z]+/g;
 /** How often a version's notes run into its text: glued words per 100,000 characters. */
@@ -125,7 +127,20 @@ export function alignVersion(original,translation,cited){
       const before=groups.filter(group=>last(group)<index).sort((a,b)=>last(b)-last(a))[0]??groups[0];
       if(before){before.targets.push(whole(unit));used.add(unit.id);}
     });
-    for(const group of groups)group.targets.sort((a,b)=>position.get(a.id)-position.get(b.id));
+    for(const group of groups){
+      group.targets.sort((a,b)=>position.get(a.id)-position.get(b.id));
+      // A source's printed reference can fall inside a sentence, and the two
+      // editions need not place it at the same word. When the translation
+      // starts mid-sentence, offer the end of its preceding unit to this run
+      // as well. Keep offsets in the original units: no source text moves.
+      const first=group.targets[0],index=position.get(first?.id),previous=translation.units[index-1];
+      const firstText=textOf.get(first?.id)??'',priorText=previous?.text??'';
+      if(previous&&first.s===0&&!group.targets.some(target=>target.id===previous.id)
+        &&continues(firstText)&&unfinished(priorText)){
+        const tail=sentencesOf([{index:0,raw:chars(priorText).slice(0,textEnd(priorText)).join('')}],translation.language);
+        if(tail.length)group.targets.unshift({id:previous.id,s:tail[Math.max(0,tail.length-2)].id[1],e:textEnd(priorText)});
+      }
+    }
   }else groups=[{units:original.units,targets:translation.units.map(whole),whole:true}];
   // Every run: the sentences of its units of the original against those of its counterparts, an edition's notes left out.
   const runs=groups.map(group=>{
@@ -145,7 +160,19 @@ export function alignVersion(original,translation,cited){
     words+=result.words;uncovered+=result.uncovered;
     for(const group of aligned)shapes[group.shape]=(shapes[group.shape]??0)+1;
     // Each cited unit takes the sentences its own sentences were joined with, unit by unit of the translation.
-    for(const [s,t] of result.pairs){
+    for(const [s,targets] of result.pairs){
+      const t=[...targets];
+      // If a selected sentence crosses a reference, retain its continuation
+      // in the following unit even when the aligner paired only its first half.
+      for(const [j,,end] of targets){
+        const current=run.targets[j],next=run.targets[j+1];
+        if(!next||position.get(next.id)!==position.get(current.id)+1||next.s!==0)continue;
+        const currentText=textOf.get(current.id),nextText=textOf.get(next.id);
+        if(current.e!==textEnd(currentText)||chars(currentText).slice(current.s+end,current.e).join('').trim()
+          ||!unfinished(currentText)||!continues(nextText))continue;
+        const sentence=sentencesOf([{index:j+1,raw:chars(nextText).slice(0,textEnd(nextText)).join('')}],translation.language)[0];
+        if(sentence&&!t.some(([k,a,b])=>k===j+1&&a<=sentence.id[1]&&b>=sentence.id[2]))t.push(sentence.id);
+      }
       for(const index of new Set(s.map(([unit])=>unit))){
         const unit=run.units[index].id;if(!cited.has(unit))continue;
         const entry=entries[unit]??={u:[],pairs:[]};

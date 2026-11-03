@@ -1,7 +1,7 @@
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {describe,expect,it} from 'vitest';
-import {alignCorpus,citedUnits,corpusReader,formatAlignment,textEnd} from '../../../../bonsai/lib/corpus-align.mjs';
+import {alignCorpus,alignVersion,citedUnits,corpusReader,formatAlignment,textEnd} from '../../../../bonsai/lib/corpus-align.mjs';
 import {corpusAlignmentIssues} from '../../../../bonsai/lib/fragments.mjs';
 import * as atlasContent from '../../constructor/atlas-content.mjs';
 import * as atlasRoutes from '../../constructor/atlas-routes.mjs';
@@ -29,6 +29,25 @@ describe('the corpus alignment of the stands',()=>{
   it('keeps the edition notes out of the text a unit is paired by',()=>{
     expect(textEnd('Text.\n〔1〕 A note.')).toBe(5);
     expect(textEnd('Text without notes.')).toBe(19);
+  });
+  it('can align a sentence across a translation reference inside a sentence',()=>{
+    const original={language:'grc',units:[
+      {id:'g1',reference:'189',text:'Τί λέγεις;'},
+      {id:'g2',reference:'190',text:'λόγον ὃν αὐτὴ πρὸς αὑτὴν ἡ ψυχὴ διεξέρχεται περὶ ὧν ἂν σκοπῇ. ἄλλο τι;'},
+    ]};
+    const translation={language:'ru',units:[
+      {id:'r1',reference:'189',text:'Что ты говоришь? Беседу, которую душа ведет сама с собою, когда что-нибудь рассматривает. Вот как она размышляя разговаривает, сама себя '},
+      {id:'r2',reference:'190',text:'спрашивает и отвечает. Дальше идёт разговор.'},
+    ]};
+    const entry=alignVersion(original,translation,new Set(['g2'])).entries.g2;
+    const first=entry.pairs.find(([source])=>source.some(([start,end])=>start===0&&end>0));
+    const text=first[1].map(([i,start,end])=>Array.from(translation.units.find(unit=>unit.id===entry.u[i]).text).slice(start,end).join('')).join(' ');
+    expect(entry.u).toContain('r1');
+    expect(text).toContain('Беседу, которую душа ведет сама с собою');
+    expect(text).toContain('спрашивает и отвечает.');
+    translation.units[0].text='Предыдущая мысль завершена.';
+    translation.units[1].text='Новая мысль начинается здесь.';
+    expect(alignVersion(original,translation,new Set(['g2'])).entries.g2.u).not.toContain('r1');
   });
   it('is, for Zarathustra, what the mechanism gives from the stand\'s own citations',()=>{
     const content=zarathustraContent();
