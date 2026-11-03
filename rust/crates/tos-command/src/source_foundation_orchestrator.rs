@@ -4479,41 +4479,7 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             return fail_window(execution_limits, remaining_budget, default_ticket, error);
         }
     };
-    let default_diagnostic_limits = CutSchemaDiagnosticsLimits {
-        max_total_issues: default_operation.issue_count.max(1),
-        max_total_report_bytes: bounded_usize(default_operation.worker_wire_bytes)?.max(1),
-        max_total_state_bytes: default_operation.state_bytes.max(1),
-    };
-    let executor_budget = match ticket_worker_budget(
-        &default_ticket,
-        deadline,
-        budgets.worker_address_space_bytes,
-    ) {
-        Ok(budget) => budget,
-        Err(error) => {
-            return fail_window(execution_limits, remaining_budget, default_ticket, error);
-        }
-    };
-    let layer_shape = cut_worker_shape(default_operation, max_checks);
-    let layer_stream =
-        match execution_limits.cut_worker_stream_budget(default_operation, layer_shape) {
-            Ok(stream) => stream,
-            Err(error) => {
-                return fail_window(
-                    execution_limits,
-                    remaining_budget,
-                    default_ticket,
-                    FoundationOrchestratorError::Command(error),
-                );
-            }
-        };
-    let layer_worker_limits = CutWorkerLimits {
-        max_receipts: max_checks,
-        max_receipt_bytes: default_operation.state_bytes.min(1024 * 1024),
-    };
-    // The prepared closure's temporary DOMs are admitted before constructor allocation.
-    // This workspace expires at constructor return; retained controller state
-    // continues through its existing phase/H accounting, without a refund.
+    // Check the existing selected-schema preparation allowance before allocation.
     if schema_preparation_state > default_operation.state_bytes {
         return fail_window(
             execution_limits,
@@ -4522,16 +4488,13 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             incomplete("layer schema preparation exceeds remaining state"),
         );
     }
-    let selected_worker = CutWorkerSchemaExecutor::from_cut_with_image(
+    let mut layer_schemas = match tos_validation::source_cut::InProcessCutSchemaExecutor::from_cut(
         captured.cut(),
         FormatProfile::LegacyPythonObserved20260923,
-        &worker_image,
-        executor_budget,
-        layer_worker_limits,
+        tos_validation::in_process::InputMode::LegacyPythonObserved,
         deadline,
         cancelled,
-    );
-    let mut layer_schemas = match selected_worker {
+    ) {
         Ok(executor) => executor,
         Err(error) => {
             return fail_window(
@@ -4542,21 +4505,6 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             );
         }
     };
-    if layer_schemas
-        .enable_diagnostics_v2(default_diagnostic_limits)
-        .is_err()
-        || layer_schemas
-            .set_shared_schema_worker_quota(worker_quota.clone())
-            .is_err()
-        || layer_schemas.set_operation_budget(layer_stream).is_err()
-    {
-        return fail_window(
-            execution_limits,
-            remaining_budget,
-            default_ticket,
-            incomplete("default layer schema worker limits refused"),
-        );
-    }
     let default_schema_usage_before = match worker_quota.usage() {
         Ok(usage) => usage,
         Err(_) => {

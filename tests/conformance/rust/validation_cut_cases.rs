@@ -38,6 +38,7 @@ pub(super) struct FixtureReferenceBudget {
     pub(super) max_members: usize,
     pub(super) max_member_bytes: usize,
 }
+
 impl FixtureReferenceBudget {
     pub(super) fn new(max_members: usize, bytes: usize, max_member_bytes: usize) -> Self {
         Self {
@@ -2307,6 +2308,68 @@ fn actual_cut_schema_batch_binds_ordered_units_and_refuses_partial_receipts() {
             .is_err()
     );
     assert_eq!(schemas.receipts().len(), accepted);
+}
+
+#[test]
+fn foundation_layer_in_process_matches_legacy_cut_schema_verdicts() {
+    use tos_validation::in_process::InputMode;
+    use tos_validation::source_cut::{
+        CutSchemaDiagnosticsLimits, CutSchemaExecutor, InProcessCutSchemaExecutor,
+    };
+
+    const CONTRACT: &str = "ToS/contracts/foundation-layer-fixture.schema.json";
+    let files = BTreeMap::from([(
+        CONTRACT.to_owned(),
+        br#"{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://tree-of-sophia.local/foundation-layer-fixture.schema.json","type":"number"}"#.to_vec(),
+    )]);
+    let temporary = tempfile::tempdir().unwrap();
+    let revision = write_cut_store(&files, temporary.path());
+    let cancelled = AtomicBool::new(false);
+    let deadline = Instant::now() + Duration::from_secs(120);
+    let cut = super::command_form_cases::open_cut(temporary.path(), revision, deadline, &cancelled);
+    let image =
+        super::command_form_cases::schema_image(ExecutorBudget::laboratory(), deadline, &cancelled);
+    let mut old = super::command_form_cases::schemas_for_profile_with_image(
+        &cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        &image,
+        ExecutorBudget::laboratory(),
+        deadline,
+        &cancelled,
+    );
+    old.enable_diagnostics_v2(CutSchemaDiagnosticsLimits {
+        max_total_issues: 512,
+        max_total_report_bytes: 262_144,
+        max_total_state_bytes: 1_048_576,
+    })
+    .unwrap();
+    let mut new = InProcessCutSchemaExecutor::from_cut(
+        &cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        InputMode::LegacyPythonObserved,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    assert_eq!(new.selected_source_revision(), Some(revision));
+    for (raw, expected) in [
+        (&b"1"[..], true),
+        (&b"\"text\""[..], false),
+        (&b"NaN"[..], true),
+    ] {
+        let previous = old
+            .check("layer.json", raw, CONTRACT, deadline, &cancelled)
+            .unwrap();
+        let current = new
+            .check("layer.json", raw, CONTRACT, deadline, &cancelled)
+            .unwrap();
+        assert_eq!((previous, current), (expected, expected));
+        if !previous {
+            assert!(old.take_schema_diagnostic_rejection().is_some());
+        }
+    }
+    old.finish(deadline, &cancelled).unwrap();
+    new.finish(deadline, &cancelled).unwrap();
 }
 
 #[test]
