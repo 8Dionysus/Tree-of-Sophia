@@ -1,4 +1,10 @@
 use super::*;
+
+fn page_range(value: &Value) -> Option<(i64, i64)> {
+    let first = value["first"].as_i64()?;
+    let last = value["last"].as_i64()?;
+    (first <= last).then_some((first, last))
+}
 pub(super) fn validate(c: &mut Context<'_>) -> io::Result<()> {
     let path = MAP_PATH;
     let Some(p) = c.load_map(path, SCHEMA_PATH)? else {
@@ -6,17 +12,26 @@ pub(super) fn validate(c: &mut Context<'_>) -> io::Result<()> {
     };
     let parts = index(&p["source_parts"], "part_label");
     let routes = index(&p["part_routes"], "part_label");
-    let roman = strs(&["I", "II", "III", "IV"]);
+    let labels = keys(&parts);
     c.require(
-        keys(&parts) == roman,
+        !labels.is_empty() && parts.len() == arr(&p["source_parts"]).len(),
         path,
-        "source_parts must cover I, II, III, and IV exactly",
+        "source part labels must be unique and nonempty",
     )?;
     c.require(
-        keys(&routes) == roman,
+        keys(&routes) == labels && routes.len() == arr(&p["part_routes"]).len(),
         path,
-        "part_routes must cover I, II, III, and IV exactly",
+        "part routes must cover the selected source parts exactly",
     )?;
+    for label in &labels {
+        c.require(
+            routes
+                .get(label.as_str())
+                .is_some_and(|route| route["source_item_ref"] == parts[label.as_str()]["item_ref"]),
+            path,
+            format!("part {label} route witness differs from selected source"),
+        )?;
+    }
     let epub = &p["target_witnesses"]["epub"];
     let pdf = &p["target_witnesses"]["pdf"];
     let mut witnesses: Vec<&Value> = parts.values().copied().collect();
@@ -41,10 +56,13 @@ pub(super) fn validate(c: &mut Context<'_>) -> io::Result<()> {
         .filter_map(|r| page_member(&r["locator"]["member_path"]))
         .collect();
     epages.sort();
+    let relation = &p["scan_resource_relation"];
+    let epub_range = page_range(&relation["epub_member_page_range"]);
+    let pdf_range = page_range(&relation["pdf_page_index_range"]);
     c.require(
-        epages == (0..529).collect::<Vec<_>>(),
+        epub_range.is_some_and(|(first, last)| epages.iter().copied().eq(first..=last)),
         path,
-        "target EPUB page-member enumeration is not 0..528",
+        "target EPUB page-member enumeration differs from the declared range",
     )?;
     let mut ppages: Vec<_> = pdf_res
         .values()
@@ -53,9 +71,18 @@ pub(super) fn validate(c: &mut Context<'_>) -> io::Result<()> {
         .collect();
     ppages.sort();
     c.require(
-        ppages == (1..530).collect::<Vec<_>>(),
+        pdf_range.is_some_and(|(first, last)| ppages.iter().copied().eq(first..=last)),
         path,
-        "target PDF page enumeration is not 1..529",
+        "target PDF page enumeration differs from the declared range",
+    )?;
+    let offset = epub_range.zip(pdf_range).and_then(|((ef, el), (pf, pl))| {
+        let start = pf.checked_sub(ef)?;
+        (pl.checked_sub(el)? == start).then_some(start)
+    });
+    c.require(
+        offset == Some(1),
+        path,
+        "scan page ranges differ from the selected one-based relation",
     )?;
     let mut ids = BTreeSet::new();
     let mut source_keys = BTreeSet::new();
@@ -160,7 +187,9 @@ pub(super) fn validate(c: &mut Context<'_>) -> io::Result<()> {
         }
         if let Some(n) = page {
             c.require(
-                tp["page_index"] == n + 1,
+                offset
+                    .and_then(|delta| n.checked_add(delta))
+                    .is_some_and(|page| tp["page_index"] == page),
                 &loc,
                 "EPUB-to-PDF page formula drifted",
             )?;
@@ -186,7 +215,7 @@ pub(super) fn validate(c: &mut Context<'_>) -> io::Result<()> {
         }
     }
     let mut part_counts = BTreeMap::new();
-    for part in ["I", "II", "III", "IV"] {
+    for part in &labels {
         let seq = sequences.get(part).cloned().unwrap_or_default();
         part_counts.insert(part, seq.len());
         c.require(
