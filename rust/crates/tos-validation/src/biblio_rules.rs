@@ -1000,6 +1000,27 @@ pub fn inspect_bibliography_from_cut<S: CutSchemaExecutor + CutSchemaReceiptRang
     cancelled: &AtomicBool,
     schemas: &mut S,
 ) -> Result<SourceCutBiblioReport, ItemRefusal> {
+    inspect_bibliography_on_cut(cut, records, limits, cancelled, schemas)
+}
+
+/// Inspect bibliography against the exact source cut using the in-process engine.
+pub fn inspect_bibliography_from_in_process_cut(
+    cut: &CorpusCutReader,
+    records: &SourceCutRecordReport,
+    limits: ItemLimits,
+    cancelled: &AtomicBool,
+    schemas: &mut crate::source_cut::InProcessCutSchemaExecutor<()>,
+) -> Result<SourceCutBiblioReport, ItemRefusal> {
+    inspect_bibliography_on_cut(cut, records, limits, cancelled, schemas)
+}
+
+fn inspect_bibliography_on_cut(
+    cut: &CorpusCutReader,
+    records: &SourceCutRecordReport,
+    limits: ItemLimits,
+    cancelled: &AtomicBool,
+    schemas: &mut impl crate::native_compound::NativeCompoundSchema,
+) -> Result<SourceCutBiblioReport, ItemRefusal> {
     check(limits.deadline, cancelled)?;
     if schemas.selected_source_revision() != Some(cut.current().revision()) {
         return Err(ItemRefusal::Source(

@@ -5,7 +5,6 @@
 use super::foundation_artifact_replay::{CandidateArtifactSchemaExecutor, prepare_artifact_replay};
 use super::foundation_bootstrap::{FoundationBootstrapError, FoundationBootstrapView};
 use super::foundation_catalog::{self, EvaluatedPersistedCatalog, FoundationCatalogOutcome};
-use super::foundation_execution_limits::FoundationCutWorkerShape;
 use super::foundation_execution_limits::{
     FoundationBudgetTicket, FoundationCharge, FoundationExecutionLimits,
     FoundationPhaseReservation, FoundationPhaseUse, FoundationRemainingBudget,
@@ -36,7 +35,7 @@ use tos_validation::executor::{
 use tos_validation::item_rules::ItemRefusal;
 use tos_validation::record_biblio_cut::BiblioRecordExecutor;
 use tos_validation::source_cut::{
-    CutSchemaDiagnosticsLimits, CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor,
+    CutSchemaExecutor, InProcessCutSchemaExecutor,
     cut_schema_resource_preparation_state_upper_bound,
 };
 use tos_validation::source_foundation_discovery::SourcePhysicalFacts;
@@ -1000,29 +999,6 @@ fn schema_limits_for_ticket(
             batch,
         )
         .map_err(|_| incomplete("source-foundation schema reservation refused"))
-}
-
-fn cut_worker_shape(
-    operation: FoundationPhaseReservation,
-    max_checks: usize,
-) -> FoundationCutWorkerShape {
-    let batch = BatchBudget::laboratory();
-    let units = u64::try_from(max_checks.max(1)).unwrap_or(u64::MAX - 1);
-    let units = units.min(operation.worker_wire_bytes).min(u64::MAX - 1);
-    FoundationCutWorkerShape {
-        batch,
-        // Record and cut diagnostics submit one unit per physical frame.
-        // The batch capacity is an upper bound, not guaranteed occupancy.
-        // Keep the finite unit envelope while admitting its scalar transport.
-        max_chunks: units.max(1),
-        max_total_units: units.max(1),
-        max_total_raw_bytes: operation
-            .source_read_bytes
-            .min(operation.worker_wire_bytes)
-            .max(1),
-        aggregate_wire_upper_bound_bytes: operation.worker_wire_bytes,
-        max_distinct_selectors: max_checks.max(1).min(1024),
-    }
 }
 
 fn schema_state_upper_bound(
@@ -3912,15 +3888,6 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
                 );
             }
         };
-    // Item retains a worker identity and a prepared schema image identity.
-    // Their FDs refer to the shared memfd.
-    let records_identity_copy_state =
-        match worker_identity_path_clone_bytes(&execution_limits.worker, 2) {
-            Ok(bytes) => bytes,
-            Err(error) => {
-                return fail_window(execution_limits, remaining_budget, current_ticket, error);
-            }
-        };
     let image_peak_state = match usize::try_from(MAX_WORKER_IMAGE_BYTES)
         .ok()
         .and_then(|bytes| bytes.checked_add(image_workspace))
@@ -3938,10 +3905,7 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
         }
     };
     let image_operation = current_ticket.operation_limits();
-    let image_peak_with_paths = match image_peak_state
-        .checked_add(current_paths_state)
-        .and_then(|bytes| bytes.checked_add(records_identity_copy_state))
-    {
+    let image_peak_with_paths = match image_peak_state.checked_add(current_paths_state) {
         Some(bytes) => bytes,
         None => {
             return fail_window(
@@ -4012,9 +3976,7 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             );
         }
     };
-    let current_live_use = match checked_add_usize(worker_image_state, current_paths_state)
-        .and_then(|bytes| checked_add_usize(bytes, records_identity_copy_state))
-    {
+    let current_live_use = match checked_add_usize(worker_image_state, current_paths_state) {
         Ok(state) => phase_amounts(phase_use(worker_image_read, 0, state, 0, 0, 0, 0)),
         Err(error) => Err(error),
     };
@@ -4099,22 +4061,6 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
                 );
             }
         };
-    let worker_shape = cut_worker_shape(operation, max_checks);
-    let record_stream = match execution_limits.cut_worker_stream_budget(operation, worker_shape) {
-        Ok(stream) => stream,
-        Err(error) => {
-            return fail_window(
-                execution_limits,
-                remaining_budget,
-                current_ticket,
-                FoundationOrchestratorError::Command(error),
-            );
-        }
-    };
-    let worker_limits = CutWorkerLimits {
-        max_receipts: max_checks,
-        max_receipt_bytes: operation.state_bytes.min(1024 * 1024),
-    };
     let mut record_executor = match BiblioRecordExecutor::new_in_process_cut(
         captured.cut(),
         FormatProfile::LegacyPythonObserved20260923,
@@ -4142,16 +4088,13 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             incomplete("Item schema preparation exceeds remaining state"),
         );
     }
-    let selected_worker = CutWorkerSchemaExecutor::from_cut_with_image(
+    let mut item_schemas = match InProcessCutSchemaExecutor::from_cut(
         captured.cut(),
         FormatProfile::LegacyPythonObserved20260923,
-        &worker_image,
-        executor_budget,
-        worker_limits,
+        tos_validation::in_process::InputMode::LegacyPythonObserved,
         deadline,
         cancelled,
-    );
-    let mut item_schemas = match selected_worker {
+    ) {
         Ok(executor) => executor,
         Err(error) => {
             return fail_window(
@@ -4162,24 +4105,6 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             );
         }
     };
-    let item_diag = CutSchemaDiagnosticsLimits {
-        max_total_issues: operation.issue_count,
-        max_total_report_bytes: bounded_usize(operation.worker_wire_bytes)?,
-        max_total_state_bytes: operation.state_bytes,
-    };
-    if item_schemas.enable_diagnostics_v2(item_diag).is_err()
-        || item_schemas
-            .set_shared_schema_worker_quota(worker_quota.clone())
-            .is_err()
-        || item_schemas.set_operation_budget(record_stream).is_err()
-    {
-        return fail_window(
-            execution_limits,
-            remaining_budget,
-            current_ticket,
-            incomplete("Item schema worker limits refused"),
-        );
-    }
     let records = match foundation_run::prepare_records(
         captured,
         &mut payloads,
@@ -4260,7 +4185,6 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
     };
     let records_retained = match checked_add_usize(records_state, current_paths_state)
         .and_then(|bytes| checked_add_usize(bytes, worker_image_state))
-        .and_then(|bytes| checked_add_usize(bytes, records_identity_copy_state))
     {
         Ok(bytes) => bytes,
         Err(error) => {

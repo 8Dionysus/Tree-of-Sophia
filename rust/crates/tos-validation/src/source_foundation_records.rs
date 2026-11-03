@@ -13,7 +13,7 @@ use crate::record_biblio_cut::{
 };
 use crate::source_cut::{
     CandidateCutSchemaDiagnostic, CutPayloadReader, CutSchemaDiagnosticsCumulativeCost,
-    CutSchemaExecutor, CutWorkerSchemaExecutor,
+    CutSchemaExecutor,
 };
 use crate::source_foundation_discovery::SourcePhysicalFacts;
 use crate::source_witness_foundation::SourceFileMembershipIndex;
@@ -5052,11 +5052,11 @@ pub fn inspect_source_foundation_records_from_cut_rolling(
     require_local_payloads: bool,
     cancelled: &AtomicBool,
     record_executor: &mut BiblioRecordExecutor,
-    item_schemas: &mut CutWorkerSchemaExecutor,
+    item_schemas: &mut impl CutSchemaExecutor,
     physical_facts: &SourcePhysicalFacts,
     payloads: &mut impl CutPayloadReader,
 ) -> Result<SourceFoundationRecordsReport, ItemRefusal> {
-    if item_schemas.source_revision() != expected_revision {
+    if item_schemas.selected_source_revision() != Some(expected_revision) {
         return Err(ItemRefusal::Source(
             "source-foundation Item schema worker belongs to another cut".into(),
         ));
@@ -6179,7 +6179,7 @@ struct SchemaResourceCost {
 
 fn schema_resource_cost(
     cut: &CorpusCutReader,
-    item_schemas: &CutWorkerSchemaExecutor,
+    item_schemas: &impl CutSchemaExecutor,
 ) -> Result<SchemaResourceCost, ItemRefusal> {
     for path in REQUIRED_ITEM_SCHEMAS {
         let relative = RelativePath::parse(path)
@@ -6187,7 +6187,7 @@ fn schema_resource_cost(
         let member = cut.current().member(&relative).ok_or_else(|| {
             ItemRefusal::Source(format!("Item schema is absent from captured cut: {path}"))
         })?;
-        if item_schemas.contract_digest(path) != Some(member.sha256) {
+        if item_schemas.selected_contract_digest(path) != Some(member.sha256) {
             return Err(ItemRefusal::Source(format!(
                 "Item schema worker does not use captured bytes: {path}"
             )));
@@ -6204,7 +6204,7 @@ fn schema_resource_cost(
         records = records
             .checked_add(member.size_bytes)
             .ok_or(crate::item_budget_origin!())?;
-        if let Some(digest) = item_schemas.contract_digest(path) {
+        if let Some(digest) = item_schemas.selected_contract_digest(path) {
             if digest != member.sha256 {
                 return Err(ItemRefusal::Source(format!(
                     "Item schema worker resource differs from captured bytes: {path}"

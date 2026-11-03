@@ -10,7 +10,7 @@ use super::foundation_entry::{
 use crate::source_command::{SourceCommandError, SourceFile};
 use crate::source_revisions::{
     self, ArtifactCorrectionReplayObservation, CandidateRecordSchemaWorker, ReadonlyRecordFiles,
-    RecordVersionReadInput,
+    RecordSchemaWorker, RecordVersionReadInput,
 };
 use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -28,7 +28,7 @@ use tos_validation::native_compound::{
 };
 use tos_validation::record_biblio_cut::SourceCutRecordReport;
 use tos_validation::record_biblio_cut::{SourceCutInputCoverage, SourceCutInputWithIdentity};
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::CutSchemaExecutor;
 use tos_validation::source_foundation_discovery::{
     ArtifactCorrectionReplayEvidence, ArtifactCorrectionReplayMap,
     CandidateArtifactCorrectionReplayEvidence, CandidateArtifactEvidence,
@@ -1719,7 +1719,7 @@ fn replay_one(
     history: &NativeRecordHistoryReadObservation,
     source_root: &str,
     effective_uid: u64,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl RecordSchemaWorker<Identity = SourceRevision>,
     transport: &mut CapturedReadonlyRecordFiles<'_, '_>,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -1776,7 +1776,7 @@ pub(crate) fn prepare_artifact_replay<'cut>(
     physical: &SourcePhysicalFacts,
     source_root: &Path,
     effective_uid: u64,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl RecordSchemaWorker<Identity = SourceRevision>,
     history_limits: ItemLimits,
     readonly_limits: CapturedReadonlyRecordLimits,
     cancelled: &AtomicBool,
@@ -1798,7 +1798,7 @@ pub(crate) fn prepare_artifact_replay<'cut>(
                 )
             },
         )?;
-    if worker.source_revision() != revision
+    if worker.input_identity() != Some(revision)
         || !source_root.is_absolute()
         || source_root.to_str().is_none()
     {

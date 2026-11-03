@@ -4091,7 +4091,7 @@ pub(crate) fn replay_artifact_corrections_from_cut(
     source_root: &str,
     cut: &CorpusCutReader,
     native_history: &NativeRecordHistoryReadObservation,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl RecordSchemaWorker<Identity = tos_foundation::SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ArtifactCorrectionReplayObservation> {
@@ -4102,7 +4102,7 @@ pub(crate) fn replay_artifact_corrections_from_cut(
         ));
     }
     if cut.current().revision() != input.source_revision
-        || worker.source_revision() != input.source_revision
+        || worker.input_identity() != Some(input.source_revision)
         || native_history.source_revision() != input.source_revision
     {
         return Err(SourceCommandError::Conflict(

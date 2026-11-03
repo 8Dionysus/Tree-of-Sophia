@@ -1800,6 +1800,38 @@ fn actual_native_object_link_binds_committed_origin_and_corrected_lineage() {
         .unwrap();
         schemas.finish(deadline, &cancelled).unwrap();
         drop(schemas);
+        let mut in_process = tos_validation::source_cut::InProcessCutSchemaExecutor::from_cut(
+            &cut,
+            FormatProfile::LegacyPythonObserved20260923,
+            tos_validation::in_process::InputMode::LegacyPythonObserved,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        let in_process_report =
+            tos_validation::biblio_rules::inspect_bibliography_from_in_process_cut(
+                &cut,
+                &current,
+                limits,
+                &cancelled,
+                &mut in_process,
+            )
+            .unwrap();
+        in_process.finish(deadline, &cancelled).unwrap();
+        assert_eq!(in_process_report.source_revision, report.source_revision);
+        assert_eq!(in_process_report.shadow, report.shadow);
+        assert_eq!(
+            in_process_report
+                .native_compounds
+                .iter()
+                .map(|row| (&row.claim_path, &row.transaction_id, row.transport))
+                .collect::<Vec<_>>(),
+            report
+                .native_compounds
+                .iter()
+                .map(|row| (&row.claim_path, &row.transaction_id, row.transport))
+                .collect::<Vec<_>>()
+        );
         assert!(
             report
                 .native_compounds
