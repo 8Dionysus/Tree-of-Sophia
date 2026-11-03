@@ -7148,7 +7148,8 @@ fn new_classification_claim_stringifies_unsafe_extensions_and_cold_replays() {
         "record_id":subject_ref,
         "preferred_label":"Synthetic work for Claim creation conformance",
         "identity_status":"provisional", "source_refs":[evidence],
-        "external_identifiers":[], "same_as_posture":"no_equivalence_claim",
+        "external_identifiers":[], "expression_claim_refs":[],
+        "same_as_posture":"no_equivalence_claim",
         "record_version":1
     });
     files.insert(
@@ -7422,7 +7423,12 @@ fn new_classification_claim_stringifies_unsafe_extensions_and_cold_replays() {
     assert!(replayed.replayed);
     assert_eq!(restored.command().changes.len(), 0);
     assert_eq!(restored.files(), &original_files);
-    assert_eq!(replay_result, result);
+    let mut replay_response: Value = serde_json::from_slice(&source_bytes(&replay_result)).unwrap();
+    let first_response: Value = serde_json::from_slice(&source_bytes(&result)).unwrap();
+    assert_eq!(replay_response["replayed"], Value::Bool(true));
+    assert_eq!(first_response["replayed"], Value::Bool(false));
+    replay_response["replayed"] = Value::Bool(false);
+    assert_eq!(replay_response, first_response);
     assert_eq!(fs::read(&historical_source).unwrap(), historical_bytes);
 }
 
