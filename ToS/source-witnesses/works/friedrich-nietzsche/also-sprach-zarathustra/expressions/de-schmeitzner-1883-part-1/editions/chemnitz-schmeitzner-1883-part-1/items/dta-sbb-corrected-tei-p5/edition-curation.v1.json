@@ -99,6 +99,21 @@
           "expected_sha256": "d857eb6c714f56a2659a81eedbdac1c9170810f0a45ec5e5d965ef654a449724"
         }
       ],
+      "record_profile": {
+        "agent_ref": "software:tos-zarathustra-technical-markup-builder",
+        "method_name": "exact DTA TEI source-structure observation",
+        "method_version": "1",
+        "unit_status_reason": "The unit records a boundary explicitly present in the exact selected DTA TEI representation. German text acceptance, editorial hierarchy, linguistic analysis, translation and semantics retain their corresponding assessment routes.",
+        "scheme_name": "DTA TEI non-semantic technical source structure v1",
+        "segmentation_status_reason": "The hierarchy reproduces only selected TEI body element boundaries; the separately declared auxiliary Part-IV container subtree is outside the work-level source layer.",
+        "event_method_name": "exact-dta-tei-non-semantic-technical-structure",
+        "event_warnings": [
+          "TEI source markup is observed but not accepted as a final editorial hierarchy.",
+          "The sequential German layers remain ignored local-only mode-0600 files.",
+          "The Part-IV auxiliary sequence is excluded only from this work-level projection and remains intact in its source container.",
+          "This event records German technical markup. Russian structure, translation, linguistic and semantic assessment, graph, canon, rights and publication follow their corresponding owner routes."
+        ]
+      },
       "citation_profile": {
         "root_prefix": "Za-DE-",
         "separator": ".",

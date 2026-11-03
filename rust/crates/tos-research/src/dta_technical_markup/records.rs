@@ -6,12 +6,13 @@ pub(super) fn method(
     event_id: &str,
     made_at: &str,
     language: &str,
+    profile: &Value,
 ) -> Value {
     json!({
     "maker_kind": "software",
-    "agent_ref": "software:tos-zarathustra-technical-markup-builder",
-    "method_name": "exact DTA TEI source-structure observation",
-    "method_version": "1",
+    "agent_ref": profile["agent_ref"],
+    "method_name": profile["method_name"],
+    "method_version": profile["method_version"],
     "software_refs": [builder],
     "model_ref": null,
     "configuration_ref": plan_ref,
@@ -59,6 +60,7 @@ pub(super) fn unit(
     observation: &Unit,
     parent_refs: &Value,
     child_refs: &Value,
+    profile: &Value,
 ) -> Value {
     json!({
     "unit_id": identity["unit_id"],
@@ -76,7 +78,7 @@ pub(super) fn unit(
     "value": 1.0,
     "meaning": "maker-declared-boundary-confidence-not-truth-probability"
     },
-    "status_reason": "The unit records a boundary explicitly present in the exact selected DTA TEI representation. German text acceptance, editorial hierarchy, linguistic analysis, translation and semantics retain their corresponding assessment routes.",
+    "status_reason": profile["unit_status_reason"],
     "source_text_mutated": false,
     "semantic_promotion": false
     })
@@ -92,6 +94,7 @@ pub(super) fn packet(
     units: &[Value],
     citation_ref: &str,
     citation_digest: &str,
+    profile: &Value,
 ) -> Value {
     let ordered_unit_refs = units
         .iter()
@@ -129,7 +132,7 @@ pub(super) fn packet(
     "scheme_version": 1,
     "supersedes_scheme_ref": null,
     "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
-    "scheme_name": "DTA TEI non-semantic technical source structure v1",
+    "scheme_name": profile["scheme_name"],
     "analysis_role": "source_structure",
     "boundary_basis": "source_markup",
     "unit_kinds": ["document", "section", "paragraph", "verse_group", "verse_line", "milestone", "other"],
@@ -169,7 +172,7 @@ pub(super) fn packet(
     "source_reconstruction_required": true
     },
     "status": "observed_source_structure",
-    "status_reason": "The hierarchy reproduces only selected TEI body element boundaries; the separately declared auxiliary Part-IV container subtree is outside the work-level source layer.",
+    "status_reason": profile["segmentation_status_reason"],
     "maker": method,
     "competing_segmentation_refs": [],
     "review_refs": [],
@@ -227,6 +230,7 @@ pub(super) fn event(
     outputs: &[Value],
     output_refs: &[String],
     rights_ref: &Value,
+    profile: &Value,
 ) -> Value {
     json!({
     "schema_version": "tos_provenance_event_v1",
@@ -234,12 +238,12 @@ pub(super) fn event(
     "event_type": "segmentation",
     "started_at": made_at,
     "ended_at": made_at,
-    "agent_refs": ["software:tos-zarathustra-technical-markup-builder", "model:codex"],
+    "agent_refs": [profile["agent_ref"], "model:codex"],
     "inputs": inputs,
     "outputs": outputs,
     "method": {
     "maker_type": "software",
-    "name": "exact-dta-tei-non-semantic-technical-structure",
+    "name": profile["event_method_name"],
     "version": "1",
     "artifact_digest": builder_digest,
     "runtime": null,
@@ -256,7 +260,7 @@ pub(super) fn event(
     "prompt_or_instruction_ref": plan_ref
     },
     "status": "completed_with_warnings",
-    "warnings": ["TEI source markup is observed but not accepted as a final editorial hierarchy.", "The sequential German layers remain ignored local-only mode-0600 files.", "The Part-IV auxiliary sequence is excluded only from this work-level projection and remains intact in its source container.", "This event records German technical markup. Russian structure, translation, linguistic and semantic assessment, graph, canon, rights and publication follow their corresponding owner routes."],
+    "warnings": profile["event_warnings"],
     "receipt_refs": output_refs,
     "rights_basis_ref": rights_ref,
     "event_version": 1,

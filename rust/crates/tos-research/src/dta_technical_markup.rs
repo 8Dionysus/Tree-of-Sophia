@@ -559,6 +559,24 @@ fn load_part(
         profile,
     )
 }
+fn validate_record_profile(recipe: &Value) -> Result<()> {
+    let profile = &recipe["record_profile"];
+    for field in [
+        "agent_ref",
+        "method_name",
+        "method_version",
+        "unit_status_reason",
+        "scheme_name",
+        "segmentation_status_reason",
+        "event_method_name",
+    ] {
+        s(&profile[field])?;
+    }
+    for warning in array(&profile["event_warnings"])? {
+        s(warning)?;
+    }
+    Ok(())
+}
 fn validate_legacy_recipe(recipe: &Value) -> Result<()> {
     for field in [
         "plan_ref",
@@ -899,7 +917,13 @@ fn packet(
             .iter()
             .map(|&c| ids.1[&(order, part.units[c].locator.clone())]["unit_id"].clone())
             .collect::<Vec<_>>();
-        let mut value = records::unit(id, u, &json!(parents), &json!(children));
+        let mut value = records::unit(
+            id,
+            u,
+            &json!(parents),
+            &json!(children),
+            &recipe["record_profile"],
+        );
         if historical {
             value["status_reason"] = recipe["legacy_unit_reason"].clone();
         }
@@ -916,6 +940,7 @@ fn packet(
         &units,
         citation_ref,
         citation_digest,
+        &recipe["record_profile"],
     );
     validate_packet(ctx, &result, Some((&part.content, &part.positions)))?;
     Ok(result)
@@ -1375,6 +1400,7 @@ fn tracked(ctx: &ResearchExecution, plan: &Value, plan_ref: &str, event: &Value)
 pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
     validate_identity_recipe(opts.recipe)?;
     validate_legacy_recipe(opts.recipe)?;
+    validate_record_profile(opts.recipe)?;
     let citation_profile = CitationProfile::selected(ctx, opts.recipe)?;
     let citation_schema = frozen_schema(opts.recipe, "citation-spine")?;
     let summary_schema = frozen_schema(opts.recipe, "summary")?;
@@ -1526,6 +1552,7 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
         &event_id,
         &made_at,
         s(&plan["language"])?,
+        &opts.recipe["record_profile"],
     );
     for p in &parts {
         let n = number(&p.config["part_order"])?;
@@ -1579,8 +1606,9 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
             &outputs,
             &refs,
             &parts[0].config["rights_ref"],
+            &opts.recipe["record_profile"],
         );
-        event["agent_refs"] = json!(["software:tos-zarathustra-technical-markup-builder"]);
+        event["agent_refs"] = json!([opts.recipe["record_profile"]["agent_ref"]]);
         event["method"]["runtime"] = json!(concat!(
             "Tree-of-Sophia native/Rust ",
             env!("CARGO_PKG_VERSION")
@@ -1806,6 +1834,7 @@ mod tests {
             s(&recipe()["legacy_event_id"]).unwrap(),
             s(&f["plan"]["created_at"]).unwrap(),
             s(&f["plan"]["language"]).unwrap(),
+            &recipe()["record_profile"],
         );
         let packet = packet(
             &ctx,
@@ -1831,6 +1860,13 @@ mod tests {
         let exact = &parts[0].content
             [parts[0].positions[paragraph.start]..parts[0].positions[paragraph.end]];
         assert_eq!(exact, "A😀\nB old tail.");
+    }
+    #[test]
+    fn record_profile_requires_selected_scheme() {
+        let mut selected = recipe();
+        assert!(validate_record_profile(&selected).is_ok());
+        selected["record_profile"]["scheme_name"] = Value::Null;
+        assert!(validate_record_profile(&selected).is_err());
     }
     #[test]
     fn part_selection_uses_plan_and_refuses_gaps_and_duplicates() {
@@ -1924,6 +1960,7 @@ mod tests {
             "tos.event.native.test",
             s(&f["plan"]["created_at"]).unwrap(),
             s(&f["plan"]["language"]).unwrap(),
+            &recipe()["record_profile"],
         );
         let p = packet(
             &ctx,
