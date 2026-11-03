@@ -1699,6 +1699,40 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
         &cancelled,
         &mut reference,
     );
+    let binary = PathBuf::from(std::env::var_os("TOS_NATIVE_OWNER_COMMAND_PATH").unwrap());
+    let capture = &seed._software_capture;
+    let invocation = serde_json::json!({
+        "schema_version":"tos_local_native_source_invocation_v1",
+        "owner_config":seed.unit_owner,"owner_context":seed.owner_context,"assessment_schema_worker":null,
+        "native_executable":binary,"native_executable_sha256":alignment_image_digest(&binary).to_prefixed(),
+        "corpus_store":temporary.path().join("source-cut"),"source_revision":seed.cut.current().revision().0.to_prefixed(),
+        "original_source_revision":seed.cut.current().revision().0.to_prefixed(),
+        "software_capture":capture.capture,"software_restored_root":capture.restored,
+        "software_selection":{"source_git_commit":capture.selection.source_git_commit,"source_git_tree":capture.selection.source_git_tree,"capture_manifest_sha256":capture.selection.capture_manifest_sha256.to_prefixed()},
+        "software_components":seed.components.members().map(|m|m.path.as_str()).collect::<Vec<_>>(),
+        "schema_worker":{"absolute_path":"/nonexistent/hostguard-schema-worker","sha256":Digest256::of_bytes(b"unavailable worker").to_prefixed()},
+        "budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":33554432,"max_member_bytes":8388608,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,"worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}
+    });
+    let invocation_path = temporary
+        .path()
+        .join("native-text-describe-invocation.json");
+    fs::write(&invocation_path, serde_json::to_vec(&invocation).unwrap()).unwrap();
+    fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
+    let (status, output, errors) = native_owner_cli_observation(
+        &repository,
+        &seed.unit_owner,
+        &invocation_path,
+        &serde_json::json!({"operation":"describe"}),
+        deadline,
+    );
+    assert!(status.success(), "{}", String::from_utf8_lossy(&errors));
+    let described: Value = serde_json::from_slice(&output).unwrap();
+    assert!(
+        described["result"]["command_operations"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::json!("describe"))
+    );
     private_read_lifecycle(&repository, temporary.path(), &seed, deadline, &cancelled);
     assert!(seed.fixture_capture.packets.contains_key("factory"));
     assert!(seed.initial_layer_owner.is_file());
