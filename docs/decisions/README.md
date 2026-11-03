@@ -2346,3 +2346,4 @@ Start from [TEMPLATE.md](TEMPLATE.md) and the [local card](AGENTS.md). Use a sta
 
 - [TOS-D-0074 — Measured Mechanisms and Plain Governance](TOS-D-0074-measured-mechanisms-and-plain-governance.md), 2026-11-02, accepted by explicit operator instruction.
 - [TOS-D-0075 — JCS Canonical Bytes](TOS-D-0075-jcs-canonical-bytes.md), 2026-11-02, accepted by explicit operator instruction.
+- [TOS-D-0076 — Forward-Only Canonical Profile](TOS-D-0076-forward-only-canonical-profile.md), 2026-11-02, accepted by explicit operator instruction; implementation pending.
