@@ -173,3 +173,23 @@ fn curated_numbered_labels_replay_selected_maps() {
     assert_eq!(receipt["pairings"], 298);
     assert_eq!(receipt["outputs"].as_array().unwrap().len(), 2);
 }
+
+#[test]
+fn curated_structural_routes_replay_selected_witnesses() {
+    let root =
+        std::fs::canonicalize(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.."))
+            .unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_tos-research"))
+        .args(["check", "--source-root", root.to_str().unwrap(), "--curation", "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/edition-curation.v1.json", "--stage", "structural-source-routes"])
+        .output().unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let receipt: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(receipt["status"], "PASS");
+    assert_eq!(receipt["works"], 2);
+    assert_eq!(receipt["pairings"], 140);
+    assert_eq!(receipt["outputs"].as_array().unwrap().len(), 8);
+}

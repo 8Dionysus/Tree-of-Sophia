@@ -245,6 +245,12 @@ fn build_one<'a>(
     let (source, source_digest) = load(ctx, c.source, held)?;
     let (target, target_digest) = load(ctx, c.target, held)?;
     let (crosswalk, crosswalk_digest) = load(ctx, c.crosswalk, held)?;
+    ensure(
+        source_digest == c.source_sha256
+            && target_digest == c.target_sha256
+            && crosswalk_digest == c.crosswalk_sha256,
+        "selected structural input fixity differs",
+    )?;
     let work = format!("{}{}", profile.work_prefix, c.slug);
     ensure(
         s(&source["work_ref"])? == work
@@ -283,6 +289,10 @@ fn build_one<'a>(
         rights_inputs.push(input(reference, &format!("{role}-rights-basis"), &digest));
     }
     let (_, target_rights_digest) = load(ctx, profile.target_rights, held)?;
+    ensure(
+        target_rights_digest == profile.target_rights_sha256,
+        "selected target rights fixity differs",
+    )?;
     rights.push(o(vec![
         ("role", q("target")),
         ("ref", q(profile.target_rights)),
@@ -686,6 +696,7 @@ pub fn run(
     selected: &Value,
     build: bool,
     generation: Option<Generation<'_>>,
+    output: Option<&ResearchExecution>,
 ) -> Result<Value> {
     let configs = selected_configs(selected)?;
     let profile = Profile::selected(selected)?;
@@ -695,7 +706,7 @@ pub fn run(
             .ok_or("structural count overflow")
     })?;
     ensure(
-        !build || generation.is_some(),
+        !build || generation.is_some() || output.is_some(),
         "build requires a new generation and event timestamp",
     )?;
     if let Some(g) = &generation {
@@ -729,10 +740,11 @@ pub fn run(
             "selected input path changed during structural generation",
         )?;
     }
+    let target = output.unwrap_or(ctx);
     let mut writes = Vec::new();
     for (reference, raw, _) in &outputs {
         if build {
-            writes.push(fresh_or_matching(ctx, reference, raw)?);
+            writes.push(fresh_or_matching(target, reference, raw)?);
         } else {
             let mut file = ctx.source_file(reference, CAP)?;
             let retained = ctx.read_file(&mut file, CAP)?;
@@ -750,7 +762,7 @@ pub fn run(
     if build {
         for ((reference, raw, _), write) in outputs.iter().zip(writes) {
             if write {
-                ctx.write(reference, raw, 0o644, true)?;
+                target.write(reference, raw, 0o644, true)?;
                 changed += 1;
             }
         }
@@ -765,6 +777,7 @@ struct Profile<'a> {
     correspondence_contract: &'a str,
     route_contract: &'a str,
     target_rights: &'a str,
+    target_rights_sha256: &'a str,
     correspondence_uri: &'a str,
     route_uri: &'a str,
     historical_authority: &'a str,
@@ -817,6 +830,7 @@ impl<'a> Profile<'a> {
             correspondence_contract: s(&value["correspondence_contract_ref"])?,
             route_contract: s(&value["route_contract_ref"])?,
             target_rights: s(&value["target_rights_ref"])?,
+            target_rights_sha256: digest_value(&value["target_rights_sha256"])?,
             correspondence_uri: s(&value["correspondence_schema_uri"])?,
             route_uri: s(&value["route_schema_uri"])?,
             historical_authority: s(&value["historical_authority"])?,
@@ -851,6 +865,17 @@ impl<'a> Profile<'a> {
         ] {
             tos_foundation::RelativePath::parse(path).map_err(|error| error.to_string())?;
         }
+        ensure(
+            BTreeSet::from([
+                selected.pair_file,
+                selected.pair_provenance_file,
+                selected.route_file,
+                selected.route_provenance_file,
+            ])
+            .len()
+                == 4,
+            "structural output filenames must be unique",
+        )?;
         for filename in [
             selected.pair_file,
             selected.pair_provenance_file,
@@ -886,7 +911,21 @@ struct Config<'a> {
     source: &'a str,
     target: &'a str,
     crosswalk: &'a str,
+    source_sha256: &'a str,
+    target_sha256: &'a str,
+    crosswalk_sha256: &'a str,
     expected: usize,
+}
+fn digest_value(value: &Value) -> Result<&str> {
+    let digest = s(value)?;
+    ensure(
+        digest.len() == 64
+            && digest
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)),
+        "invalid structural input digest",
+    )?;
+    Ok(digest)
 }
 fn selected_configs(selected: &Value) -> Result<Vec<Config<'_>>> {
     let rows = selected["configurations"]
@@ -931,6 +970,9 @@ fn selected_configs(selected: &Value) -> Result<Vec<Config<'_>>> {
             source,
             target,
             crosswalk,
+            source_sha256: digest_value(&row["source_sha256"])?,
+            target_sha256: digest_value(&row["target_sha256"])?,
+            crosswalk_sha256: digest_value(&row["crosswalk_sha256"])?,
             expected,
         });
     }
@@ -1093,8 +1135,14 @@ pub fn validate_tracked(ctx: &ResearchExecution, selected: &Value) -> Result<Val
     let mut total_candidates = 0;
     for config in &configs {
         let (source, source_sha) = load(ctx, config.source, &mut held)?;
-        let (target, _) = load(ctx, config.target, &mut held)?;
-        let (crosswalk, _) = load(ctx, config.crosswalk, &mut held)?;
+        let (target, target_sha) = load(ctx, config.target, &mut held)?;
+        let (crosswalk, crosswalk_sha) = load(ctx, config.crosswalk, &mut held)?;
+        ensure(
+            source_sha == config.source_sha256
+                && target_sha == config.target_sha256
+                && crosswalk_sha == config.crosswalk_sha256,
+            "selected structural input fixity differs",
+        )?;
         schema(
             ctx,
             "ToS/contracts/hierarchical-source-numbered-unit-page-map.schema.json",
@@ -1209,7 +1257,7 @@ pub fn validate_tracked(ctx: &ResearchExecution, selected: &Value) -> Result<Val
     )?;
     // Reconstructing every pair, route and event also checks their schemas,
     // current digests, target order and false authority fields byte for byte.
-    let reconstructed = run(ctx, selected, false, None)?;
+    let reconstructed = run(ctx, selected, false, None, None)?;
     recheck(ctx, held)?;
     Ok(
         json!({"status":"PASS","mode":"validate-tracked","source_maps":configs.len(),"pairings":expected_total,"candidate_pages":total_candidates,"source_routes":total_routes,"changed_files":0,"local_payloads_read":false,"source_text_accepted":false,"translation_alignment_claimed":false,"outputs":reconstructed["outputs"],"execution_budget":ctx.budget_report()}),

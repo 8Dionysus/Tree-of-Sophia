@@ -956,6 +956,7 @@
       "correspondence_contract_ref": "ToS/contracts/hierarchical-numbered-unit-label-correspondence.schema.json",
       "route_contract_ref": "ToS/contracts/transfer-candidate-source-structural-route.schema.json",
       "target_rights_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json",
+      "target_rights_sha256": "4d7d4c69118416796f847be97d83cc04a9a30213fda9710d5412918c8f8bdbb7",
       "correspondence_schema_uri": "https://tree-of-sophia.local/ToS/contracts/hierarchical-numbered-unit-label-correspondence.schema.json",
       "route_schema_uri": "https://tree-of-sophia.local/ToS/contracts/transfer-candidate-source-structural-route.schema.json",
       "historical_authority": "mechanical pairing and routing of identical series-qualified structural number-label keys already materialized independently in exact source and target witness maps; it reads no witness text and establishes neither exact passage boundaries nor passage or translation alignment, accepted German or Russian, eligibility, gold, semantics, rights, or canon authority",
@@ -986,6 +987,9 @@
           "source": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/structure/hierarchical-numbered-unit-page-map.json",
           "target": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-page-map.json",
           "crosswalk": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/transfer-candidate-page-crosswalk.v1.json",
+          "source_sha256": "2f90121d2948a88e89bfd29713327bb79ab55a666f1f73697feebae3f08ad208",
+          "target_sha256": "f7012f8538be5c1962eb8e7f9a38b41785e8e9d8af4dd834349115227e66d5b4",
+          "crosswalk_sha256": "cbf9c84364da6bf4ce220afae7627f16b64e73e71f06156aaf3c14671be5a4a9",
           "expected": 78
         },
         {
@@ -994,6 +998,9 @@
           "source": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/structure/hierarchical-numbered-unit-page-map.json",
           "target": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-page-map.json",
           "crosswalk": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/transfer-candidate-page-crosswalk.v1.json",
+          "source_sha256": "341e57c160fcf1cce01d0e9ab191964753717fea62745fbe077e8a5159a3c0d3",
+          "target_sha256": "a07b84f2c668b248a44dde791077238a993df0eb8e18d03cf3f9470aecf6d38c",
+          "crosswalk_sha256": "dc5fc271d5298df05b77a2f02df68af80358e8878fef1a008c6914c2cde09abc",
           "expected": 62
         }
       ],

@@ -308,6 +308,75 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
         } else {
             (&selected, choices[0])
         };
+        if matches!(action, "check" | "build") && stage == "structural-source-routes" {
+            if input_root.is_some() || output_root.is_some() {
+                return Err("structural source routes use selected source metadata only".into());
+            }
+            let mut frozen = Vec::new();
+            for output in recipe["frozen_outputs"]
+                .as_array()
+                .ok_or("structural frozen outputs required")?
+            {
+                let role = output["role"]
+                    .as_str()
+                    .ok_or("structural output role required")?;
+                let reference = output["repository_path"]
+                    .as_str()
+                    .ok_or("structural output path required")?;
+                let raw = ctx.read(reference)?;
+                edition_curation::validate_frozen_output_fixity(
+                    &owner.raw,
+                    stage,
+                    role,
+                    SelectedDocument {
+                        reference,
+                        raw: &raw,
+                    },
+                    &schema,
+                )
+                .map_err(|e| format!("structural frozen output: {e:?}"))?;
+                frozen.push((reference.to_owned(), raw));
+            }
+            let target = if action == "build" {
+                let path = Path::new(tracked_root.ok_or("build requires --tracked-output-root")?);
+                Some(select_empty_output(&ctx, path, &[&root])?)
+            } else {
+                None
+            };
+            let mut result = crate::structural_source_routes::run(
+                &ctx,
+                recipe,
+                action == "build",
+                None,
+                target.as_ref(),
+            )?;
+            if result["outputs"].as_array().map(Vec::len) != Some(frozen.len()) {
+                return Err("rebuilt structural output membership differs from curation".into());
+            }
+            for (reference, raw) in frozen {
+                if ctx.read(&reference)? != raw {
+                    return Err("selected structural output changed during verification".into());
+                }
+                if let Some(target) = &target {
+                    if target.read(&reference)? != raw {
+                        return Err("rebuilt structural output differs from selected source".into());
+                    }
+                }
+            }
+            selected.verify_unchanged(&ctx)?;
+            for referenced in &refs {
+                referenced.verify_unchanged(&ctx)?;
+            }
+            result["stage"] = serde_json::json!(stage);
+            result["curation_ref"] = serde_json::json!(relative);
+            result["current_curation_sha256"] =
+                serde_json::json!(tos_foundation::Digest256::of_bytes(&owner.raw).to_hex());
+            if action == "build" {
+                result["replay"] = serde_json::json!("historical-source-bound");
+            }
+            writeln!(out, "{result}").map_err(|error| error.to_string())?;
+            return Ok(());
+        }
         if matches!(action, "check" | "build") && stage == "numbered-label-correspondence" {
             if input_root.is_some() || output_root.is_some() {
                 return Err("numbered labels use selected source metadata only".into());

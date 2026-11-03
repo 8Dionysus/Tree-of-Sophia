@@ -85,7 +85,7 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
             }
             crate::structural_source_routes::validate_tracked(&ctx, recipe)
         } else {
-            crate::structural_source_routes::run(&ctx, recipe, build, generation)
+            crate::structural_source_routes::run(&ctx, recipe, build, generation, None)
         }
     })();
     Some(match result {
