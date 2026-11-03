@@ -21,8 +21,9 @@ use tos_source_store::{
     CorpusReader, CutReadLimits, ReadLimits, SoftwareCaptureReader, SoftwareCaptureSelectionV1,
 };
 use tos_validation::FormatProfile;
+use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
 use tos_validation::source_cut::{
-    CutSchemaExecutor, CutWorkerSchemaExecutor, InProcessCutSchemaExecutor,
+    CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor, InProcessCutSchemaExecutor,
 };
 
 #[path = "source_native_agent_publication_cli.rs"]
@@ -39,6 +40,7 @@ mod edition;
 mod forms;
 #[path = "source_native_legacy_claim_cli.rs"]
 mod legacy_claim;
+pub(crate) use legacy_claim::engine::HistoricalSchemas;
 #[path = "source_native_metadata_publication_cli.rs"]
 mod metadata_publication;
 #[path = "source_native_object_link_cli.rs"]
@@ -70,7 +72,7 @@ pub(crate) fn pg_current_historical_claim_owner_contribution(
     ctx: &crate::source_command::CommandContext,
     file: &crate::source_command::SourceFile,
     source_profiles: tos_foundation::JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<tos_foundation::JsonValue> {
@@ -1603,4 +1605,72 @@ fn selected_in_process_schema(
         cancelled,
     )
     .map_err(|_| SourceCommandError::Denied("native schema selection"))
+}
+
+fn selected_schema(
+    invocation: &Value,
+    cut: &tos_source_store::CorpusCutReader,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<CutWorkerSchemaExecutor> {
+    selected_schema_with_profile(
+        invocation,
+        cut,
+        "schema_worker",
+        FormatProfile::LegacyPythonObserved20260923,
+        deadline,
+        cancelled,
+    )
+}
+
+fn selected_schema_with_profile(
+    invocation: &Value,
+    cut: &tos_source_store::CorpusCutReader,
+    worker_field: &str,
+    profile: FormatProfile,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<CutWorkerSchemaExecutor> {
+    // Fixed family dispatch chooses these fields and profiles; request bytes
+    // never select a worker format or turn one family grant into another.
+    if !matches!(
+        (worker_field, profile),
+        ("schema_worker", FormatProfile::LegacyPythonObserved20260923)
+            | (
+                "assessment_schema_worker",
+                FormatProfile::AssertedSourceCandidateV1
+            )
+    ) {
+        return Err(SourceCommandError::Denied("native family worker profile"));
+    }
+    let budgets = &invocation["budgets"];
+    let worker = &invocation[worker_field];
+    exact(worker, &["absolute_path", "sha256"])?;
+    let mut worker_budget = ExecutorBudget::laboratory();
+    worker_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
+    worker_budget.cpu_seconds = capped(budgets, "worker_cpu_seconds", 3)?;
+    worker_budget.address_space_bytes =
+        capped(budgets, "worker_address_space_bytes", 1_073_741_824)?;
+    CutWorkerSchemaExecutor::from_cut(
+        cut,
+        profile,
+        ExactWorkerIdentity {
+            absolute_path: absolute(text(worker, "absolute_path")?)?,
+            sha256: digest(text(worker, "sha256")?)?,
+        },
+        worker_budget,
+        CutWorkerLimits {
+            max_receipts: usize::try_from(capped(budgets, "max_schema_receipts", 128)?)
+                .map_err(|_| SourceCommandError::Invalid("schema receipt budget"))?,
+            max_receipt_bytes: usize::try_from(capped(
+                budgets,
+                "max_schema_receipt_bytes",
+                262_144,
+            )?)
+            .map_err(|_| SourceCommandError::Invalid("schema receipt budget"))?,
+        },
+        deadline,
+        cancelled,
+    )
+    .map_err(|_| SourceCommandError::Denied("native schema worker"))
 }

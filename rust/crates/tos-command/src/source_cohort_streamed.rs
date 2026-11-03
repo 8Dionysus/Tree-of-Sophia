@@ -1281,7 +1281,7 @@ fn render_current_claim_projection(
     context: &CommandContext,
     source_profiles: &tos_foundation::JsonValue,
     file: &SourceFile,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     limits: tos_validation::item_rules::ItemLimits,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -1490,7 +1490,7 @@ fn render_current_mixed_projections(
     epoch: &mut StreamedSourceReadEpoch<'_, '_>,
     profile: &crate::source_claims::AgentInventoryAssessmentProfile,
     first: CompleteMixedIdentityPassV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     limits: tos_validation::item_rules::ItemLimits,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -2836,7 +2836,7 @@ fn assess_held_current_source(
     max_member_bytes: u64,
     index_work: &mut SourceAssessmentWork,
     body_work: &mut StreamedColdSourceWorkV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     effective_uid: u64,
     schema_source_path: &str,
     item_limits: tos_validation::item_rules::ItemLimits,
@@ -3027,7 +3027,7 @@ fn assess_held_current_source(
             definition(),
         )?;
     }
-    // A successful semantic pass cannot outlive a failed validator child.
+    // Complete schema execution before publishing the semantic pass.
     finish_worker(worker, deadline, cancelled)?;
     let inventory = build_assessed_inventory(
         store,
@@ -3159,7 +3159,7 @@ impl DurablePgCoordinator {
         context: &CommandContext,
         software: &SoftwareCaptureReader,
         components: &SoftwareComponentSelectionV1,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut impl crate::source_creation::CreationSchemaExecutor,
         schema_source_path: &str,
         workspace: &super::PrivateGenerationWorkspace,
         generation_profile: super::StreamedGenerationProfile,
@@ -3207,7 +3207,7 @@ impl DurablePgCoordinator {
         context: &CommandContext,
         software: &SoftwareCaptureReader,
         components: &SoftwareComponentSelectionV1,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut impl crate::source_creation::CreationSchemaExecutor,
         schema_source_path: &str,
         workspace: &super::PrivateGenerationWorkspace,
         generation_profile: super::StreamedGenerationProfile,
@@ -3253,7 +3253,7 @@ impl DurablePgCoordinator {
         context: &CommandContext,
         software: &SoftwareCaptureReader,
         components: &SoftwareComponentSelectionV1,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut impl crate::source_creation::CreationSchemaExecutor,
         schema_source_path: &str,
         workspace: &PrivateGenerationWorkspace,
         generation_profile: StreamedGenerationProfile,
@@ -3306,7 +3306,7 @@ impl DurablePgCoordinator {
         context: &CommandContext,
         software: &SoftwareCaptureReader,
         components: &SoftwareComponentSelectionV1,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut impl crate::source_creation::CreationSchemaExecutor,
         schema_source_path: &str,
         workspace: &super::PrivateGenerationWorkspace,
         generation_profile: super::StreamedGenerationProfile,

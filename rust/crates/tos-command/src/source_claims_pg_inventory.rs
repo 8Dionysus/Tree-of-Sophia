@@ -151,7 +151,7 @@ pub(crate) fn historical_claim_owner_contribution(
     ctx: &CommandContext,
     file: &SourceFile,
     grouped: &AgentInventoryMembers<'_>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -169,7 +169,7 @@ pub(crate) fn historical_claim_owner_contribution_from_profile(
     ctx: &CommandContext,
     file: &SourceFile,
     profile: &AgentInventoryAssessmentProfile,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -427,7 +427,7 @@ fn creation_receipt_check(
 fn claim_owner_projection(
     ctx: &CommandContext,
     file: &SourceFile,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -694,7 +694,7 @@ fn claim_owner_projection(
 pub(crate) fn claim_owner_contribution(
     ctx: &CommandContext,
     file: &SourceFile,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -705,7 +705,7 @@ pub(crate) fn claim_inventory_contribution(
     ctx: &CommandContext,
     file: &SourceFile,
     grouped: &AgentInventoryMembers<'_>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -734,7 +734,7 @@ pub(crate) fn claim_form_stream_path(location: &str) -> Option<String> {
 pub(crate) fn claim_form_inventory_contribution(
     file: &SourceFile,
     grouped: &AgentInventoryMembers<'_>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -821,7 +821,7 @@ pub(crate) fn historical_claim_inventory_contribution(
     file: &SourceFile,
     grouped: &AgentInventoryMembers<'_>,
     owner: Option<&JsonValue>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -857,7 +857,7 @@ pub(crate) fn claim_form_contribution_with_validated_profile(
     ctx: &CommandContext,
     file: &SourceFile,
     profile: &AgentInventoryAssessmentProfile,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -933,7 +933,7 @@ pub(crate) fn claim_form_contribution_with_validated_profile(
 pub(crate) fn revision_owner_contributions(
     context: &CommandContext,
     proposal: &PreparedCommand,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<BTreeMap<String, JsonValue>> {

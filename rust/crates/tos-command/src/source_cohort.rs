@@ -1243,7 +1243,7 @@ fn active(deadline: Instant, cancelled: &AtomicBool) -> DurableResult<()> {
     }
 }
 fn finish_worker(
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl CutSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> DurableResult<()> {

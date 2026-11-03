@@ -18,6 +18,7 @@ use tos_validation::source_cut::{
 pub trait CreationSchemaExecutor:
     claims::MaintainedInventorySchemaWorker<Identity = tos_foundation::SourceRevision>
     + crate::source_sign::SignSourceSchemas
+    + crate::source_native_cli::HistoricalSchemas
 {
 }
 

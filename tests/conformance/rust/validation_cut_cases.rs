@@ -3434,46 +3434,38 @@ fn in_process_source_claim_preserves_cut_and_local_profile_diagnostics() {
             &cancelled,
         )
         .unwrap();
-    let mut streamed_schemas = InProcessCutSchemaExecutor::from_streamed_cut(
-        &streamed,
-        legacy,
-        InputMode::LegacyPythonObserved,
-        deadline,
-        &cancelled,
-    )
-    .unwrap();
-    let mut resident_schemas = InProcessCutSchemaExecutor::from_cut(
-        &cut,
-        legacy,
-        InputMode::LegacyPythonObserved,
-        deadline,
-        &cancelled,
-    )
-    .unwrap();
-    assert_eq!(streamed_schemas.binding(), resident_schemas.binding());
-    assert_eq!(
-        streamed_schemas.identity(),
-        &InProcessCutIdentity::Source(revision)
-    );
-    let contract = "ToS/contracts/corpus-record.schema.json";
-    assert_eq!(
-        tos_validation::source_cut::CutSchemaExecutor::check(
-            &mut streamed_schemas,
-            "record.json",
-            b"{}",
-            contract,
-            deadline,
-            &cancelled,
+    for mode in [InputMode::LegacyPythonObserved, InputMode::SerdeNormalized] {
+        let mut streamed_schemas = InProcessCutSchemaExecutor::from_streamed_cut(
+            &streamed, legacy, mode, deadline, &cancelled,
         )
-        .unwrap(),
-        tos_validation::source_cut::CutSchemaExecutor::check(
-            &mut resident_schemas,
-            "record.json",
-            b"{}",
-            contract,
-            deadline,
-            &cancelled,
-        )
-        .unwrap()
-    );
+        .unwrap();
+        let mut resident_schemas =
+            InProcessCutSchemaExecutor::from_cut(&cut, legacy, mode, deadline, &cancelled).unwrap();
+        assert_eq!(streamed_schemas.binding(), resident_schemas.binding());
+        assert_eq!(
+            streamed_schemas.identity(),
+            &InProcessCutIdentity::Source(revision)
+        );
+        let contract = "ToS/contracts/corpus-record.schema.json";
+        assert_eq!(
+            tos_validation::source_cut::CutSchemaExecutor::check(
+                &mut streamed_schemas,
+                "record.json",
+                b"{}",
+                contract,
+                deadline,
+                &cancelled,
+            )
+            .unwrap(),
+            tos_validation::source_cut::CutSchemaExecutor::check(
+                &mut resident_schemas,
+                "record.json",
+                b"{}",
+                contract,
+                deadline,
+                &cancelled,
+            )
+            .unwrap()
+        );
+    }
 }

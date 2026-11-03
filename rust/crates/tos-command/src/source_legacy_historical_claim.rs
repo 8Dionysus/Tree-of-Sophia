@@ -4870,7 +4870,7 @@ pub(crate) fn pg_current_owner_inventory_contribution(
     ctx: &CommandContext,
     file: &SourceFile,
     source_profiles: JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl HistoricalSchemas,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {

@@ -82,7 +82,7 @@ impl DurablePgCoordinator {
         context: &CommandContext,
         software: &SoftwareCaptureReader,
         components: &SoftwareComponentSelectionV1,
-        worker: &mut CutWorkerSchemaExecutor,
+        worker: &mut impl crate::source_creation::CreationSchemaExecutor,
         contract: Digest256,
         job_mode: BootstrapJobMode,
         max_rows: u64,
