@@ -1363,33 +1363,78 @@ pub(super) fn run(
             cancelled,
         )?
     };
-    let mut worker = filesystem_profile_schema_from_context(
-        invocation,
-        &ctx,
+    let result = if matches!(
         family,
-        selected.current().revision(),
-        deadline,
-        cancelled,
-    )?;
-    let result = owner::revision_publication::run(
-        &filesystem,
-        &ctx,
-        selected,
-        original.as_ref(),
-        software,
-        components,
-        &mut worker,
-        deadline,
-        cancelled,
-    );
-    match result {
-        Ok(proposal) => Ok(json!({"schema_version":"tos_local_native_source_result_v1",
-            "authentication":"local-unix-account", "result":value(&proposal.response)?, "grants_admission":false})),
-        Err(error) => {
-            let _ = worker.finish(deadline, cancelled);
-            Err(error)
+        crate::source_revisions::RevisionFamily::Historical
+            | crate::source_revisions::RevisionFamily::PublicProfile
+            | crate::source_revisions::RevisionFamily::PublicProfileScope
+            | crate::source_revisions::RevisionFamily::CorpusFlat
+    ) {
+        let profile_files = if matches!(
+            family,
+            crate::source_revisions::RevisionFamily::PublicProfile
+                | crate::source_revisions::RevisionFamily::PublicProfileScope
+        ) {
+            crate::source_revisions::simple_profile_schema_files(&ctx, deadline, cancelled)?
+        } else {
+            None
+        };
+        let resources =
+            selected_text_schema_resources(profile_files.as_deref().unwrap_or(&ctx.files))?;
+        let mut schemas =
+            tos_validation::source_cut::InProcessCutSchemaExecutor::from_cut_selected_resources(
+                selected,
+                resources,
+                FormatProfile::LegacyPythonObserved20260923,
+                tos_validation::in_process::InputMode::LegacyPythonObserved,
+                deadline,
+                cancelled,
+            )
+            .map_err(|_| SourceCommandError::Denied("record revision schema selection"))?;
+        let result = owner::revision_publication::run(
+            &filesystem,
+            &ctx,
+            selected,
+            original.as_ref(),
+            software,
+            components,
+            &mut schemas,
+            deadline,
+            cancelled,
+        );
+        if result.is_err() {
+            let _ = schemas.finish(deadline, cancelled);
         }
-    }
+        result
+    } else {
+        let mut worker = filesystem_profile_schema_from_context(
+            invocation,
+            &ctx,
+            family,
+            selected.current().revision(),
+            deadline,
+            cancelled,
+        )?;
+        let result = owner::revision_publication::run(
+            &filesystem,
+            &ctx,
+            selected,
+            original.as_ref(),
+            software,
+            components,
+            &mut worker,
+            deadline,
+            cancelled,
+        );
+        if result.is_err() {
+            let _ = worker.finish(deadline, cancelled);
+        }
+        result
+    };
+    result.and_then(|proposal| Ok(json!({
+        "schema_version":"tos_local_native_source_result_v1",
+        "authentication":"local-unix-account", "result":value(&proposal.response)?, "grants_admission":false
+    })))
 }
 
 #[cfg(test)]

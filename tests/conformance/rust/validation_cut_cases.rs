@@ -3178,7 +3178,7 @@ fn in_process_source_claim_preserves_cut_and_local_profile_diagnostics() {
         .iter()
         .map(|(path, raw)| (path.as_str(), raw.as_slice()))
         .collect::<Vec<_>>();
-    let resources = files
+    let resources: Vec<_> = files
         .iter()
         .filter(|(path, _)| path.starts_with("ToS/contracts/") && path.ends_with(".schema.json"))
         .map(|(path, raw)| {
@@ -3193,9 +3193,35 @@ fn in_process_source_claim_preserves_cut_and_local_profile_diagnostics() {
         })
         .collect();
     let mut candidate = tos_validation::source_cut::InProcessCandidateSchemaExecutor::from_selected_source_resources(
-        42u64, resources, legacy, InputMode::LegacyPythonObserved, deadline, &cancelled,
+        42u64, resources.clone(), legacy, InputMode::LegacyPythonObserved, deadline, &cancelled,
     )
     .unwrap();
+    let selected_schemas = InProcessCutSchemaExecutor::from_cut_selected_resources(
+        &cut,
+        resources.clone(),
+        legacy,
+        InputMode::LegacyPythonObserved,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    assert_eq!(
+        selected_schemas.identity(),
+        &InProcessCutIdentity::Source(revision)
+    );
+    let mut changed_resources = resources;
+    changed_resources[0].1.raw.push(b' ');
+    assert!(
+        InProcessCutSchemaExecutor::from_cut_selected_resources(
+            &cut,
+            changed_resources,
+            legacy,
+            InputMode::LegacyPythonObserved,
+            deadline,
+            &cancelled,
+        )
+        .is_err()
+    );
     assert!(
         tos_validation::record_rules::validate_source_claim_from_selected_members(
             43,

@@ -4607,6 +4607,11 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
             }
             // Existing PublicProfile BASE semantic_content grant suffices for
             // version2. The old body remains an exact retained owner version.
+            let retained_worker = invocation["schema_worker"].clone();
+            invocation["schema_worker"] = serde_json::json!({
+                "absolute_path": temporary.path().join("absent-revision-schema-worker"),
+                "sha256": Digest256::of_bytes(b"unavailable revision worker").to_prefixed(),
+            });
             invocation["source_revision"] = serde_json::json!(current_revision.0.to_prefixed());
             invocation["original_source_revision"] =
                 serde_json::json!(current_revision.0.to_prefixed());
@@ -4674,6 +4679,7 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
                 &serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"inspect-version","source":v1_ref}),
                 deadline,
             );
+            invocation["schema_worker"] = retained_worker;
             assert_eq!(old["result"]["record"], v1_record);
             let basename = Path::new(relative).file_name().unwrap().to_str().unwrap();
             let binding = &old["result"]["files"][basename];

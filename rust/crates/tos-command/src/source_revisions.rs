@@ -4966,6 +4966,28 @@ pub fn prepare_record_revision_from_captures(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCommand> {
+    prepare_record_revision_from_captures_with(
+        ctx,
+        publication,
+        cut,
+        software,
+        components,
+        worker,
+        deadline,
+        cancelled,
+    )
+}
+
+pub(crate) fn prepare_record_revision_from_captures_with(
+    ctx: &CommandContext,
+    publication: Option<&RevisionPublication>,
+    cut: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut impl RecordSchemaWorker<Identity = tos_foundation::SourceRevision>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<PreparedCommand> {
     ctx.check_from_selected_captures(cut, software, components, deadline, cancelled)?;
     prepare_record_revision_inner(ctx, publication, Some(cut), worker, deadline, cancelled)
 }
@@ -4974,11 +4996,11 @@ pub(crate) fn prepare_record_revision_inner(
     ctx: &CommandContext,
     publication: Option<&RevisionPublication>,
     cut: Option<&CorpusCutReader>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl RecordSchemaWorker<Identity = tos_foundation::SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCommand> {
-    if worker.source_revision() != ctx.base_revision {
+    if worker.input_identity() != Some(ctx.base_revision) {
         return Err(SourceCommandError::Conflict(
             "schema worker and source command cut differ",
         ));

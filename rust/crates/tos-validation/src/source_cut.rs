@@ -5284,6 +5284,44 @@ pub struct InProcessCutSchemaExecutor<I> {
 }
 
 impl InProcessCutSchemaExecutor<()> {
+    /// Prepare an explicitly selected schema subset bound to an exact source cut.
+    pub fn from_cut_selected_resources(
+        cut: &CorpusCutReader,
+        selected: Vec<(String, SchemaResource)>,
+        profile: FormatProfile,
+        input_mode: crate::in_process::InputMode,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Self, ItemRefusal> {
+        let selected = select_candidate_schema_resources(selected, profile, deadline, cancelled)?;
+        for resource in &selected.source_resources {
+            check(deadline, cancelled)?;
+            let path = RelativePath::parse(&resource.path)
+                .map_err(|_| ItemRefusal::Source("selected schema path differs".into()))?;
+            let member = cut.current().member(&path).ok_or_else(|| {
+                ItemRefusal::Source("selected schema is outside source cut".into())
+            })?;
+            if member.sha256 != resource.sha256 || member.size_bytes != resource.size_bytes {
+                return Err(ItemRefusal::Source(
+                    "selected schema bytes differ from source cut".into(),
+                ));
+            }
+        }
+        let executor = Self::new_selected(
+            InProcessCutIdentity::Source(cut.current().revision()),
+            selected.contracts,
+            selected.resources,
+            profile,
+            input_mode,
+        )
+        .map_err(|error| ItemRefusal::Unsupported(format!("schema preparation: {error:?}")))?;
+        if executor.binding().schema_set_sha256 != selected.schema_set_sha256 {
+            return Err(ItemRefusal::Source("selected schema set differs".into()));
+        }
+        check(deadline, cancelled)?;
+        Ok(executor)
+    }
+
     /// Prepare from the selected schemas of an authenticated streamed source cut.
     pub fn from_streamed_cut(
         cut: &StreamedCorpusCutReaderV1,
