@@ -88,6 +88,7 @@ struct Recipe<'a> {
     target_only: Vec<&'a str>,
     map_version: u64,
     event_version: u64,
+    input_fixity: BTreeMap<&'a str, &'a str>,
     unpaired: Vec<Unpaired<'a>>,
     historical_boundary: &'a str,
     event_warnings: Vec<&'a str>,
@@ -128,6 +129,26 @@ impl<'a> Recipe<'a> {
                 .as_u64()
                 .ok_or_else(|| format!("{field} required"))
         };
+        let mut input_fixity = BTreeMap::new();
+        for row in value["input_fixity"]
+            .as_array()
+            .ok_or("label input fixity required")?
+        {
+            let role = s(&row["role"])?;
+            let hash = s(&row["sha256"])?;
+            ensure(
+                matches!(
+                    role,
+                    "source_map" | "target_map" | "source_rights" | "target_rights"
+                ) && hash.len() == 64
+                    && hash
+                        .bytes()
+                        .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+                    && input_fixity.insert(role, hash).is_none(),
+                "invalid label input fixity",
+            )?;
+        }
+        ensure(input_fixity.len() == 4, "label input fixity coverage")?;
         let selected = Self {
             work: s(&value["work_ref"])?,
             source_item: s(&value["source_item_ref"])?,
@@ -149,6 +170,7 @@ impl<'a> Recipe<'a> {
             target_only: selected_keys(value, "target_only_keys")?,
             map_version: count("map_version")?,
             event_version: count("event_version")?,
+            input_fixity,
             unpaired: value["unpaired_units"]
                 .as_array()
                 .ok_or("unpaired units required")?
@@ -288,26 +310,32 @@ pub fn run(
     selected: &Value,
     build: bool,
     fresh: Option<Selection<'_>>,
+    output: Option<&ResearchExecution>,
 ) -> Result<Value> {
     let recipe = Recipe::selected(selected)?;
     ensure(
-        !build || fresh.is_some(),
+        !build || fresh.is_some() || output.is_some(),
         "build requires a new map, event, timestamp and output directory",
     )?;
     let mut held = Vec::new();
     let mut values = Vec::new();
     let mut hashes = Vec::new();
-    for reference in [
-        recipe.source_map,
-        recipe.target_map,
-        recipe.source_rights,
-        recipe.target_rights,
+    for (role, reference) in [
+        ("source_map", recipe.source_map),
+        ("target_map", recipe.target_map),
+        ("source_rights", recipe.source_rights),
+        ("target_rights", recipe.target_rights),
     ] {
         let mut file = ctx.source_file(reference, CAP)?;
         let raw = ctx.read_file(&mut file, CAP)?;
         let value: Value = serde_json::from_slice(&raw).map_err(|e| e.to_string())?;
         ensure(value.is_object(), "input JSON object required")?;
-        hashes.push(sha(&raw));
+        let digest = sha(&raw);
+        ensure(
+            recipe.input_fixity.get(role).copied() == Some(digest.as_str()),
+            "selected label input fixity differs",
+        )?;
+        hashes.push(digest);
         values.push(value);
         held.push((reference, file));
     }
@@ -468,10 +496,11 @@ pub fn run(
         )?;
     }
     let outputs = [(map_ref, map_raw), (provenance_ref, event_raw)];
+    let target = output.unwrap_or(ctx);
     let mut writes = Vec::new();
     for (reference, raw) in &outputs {
         if build {
-            writes.push(fresh_or_matching(ctx, reference, raw)?);
+            writes.push(fresh_or_matching(target, reference, raw)?);
         } else {
             let mut file = ctx.source_file(reference, CAP)?;
             let retained = ctx.read_file(&mut file, CAP)?;
@@ -489,7 +518,7 @@ pub fn run(
     if build {
         for ((reference, raw), write) in outputs.iter().zip(writes) {
             if write {
-                ctx.write(reference, raw, 0o644, true)?;
+                target.write(reference, raw, 0o644, true)?;
                 changed += 1;
             }
         }

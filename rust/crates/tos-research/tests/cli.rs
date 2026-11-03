@@ -154,3 +154,22 @@ fn curated_tei_build_refuses_overlapping_output_root() {
         String::from_utf8_lossy(&output.stderr).contains("tracked output root must be separate")
     );
 }
+
+#[test]
+fn curated_numbered_labels_replay_selected_maps() {
+    let root =
+        std::fs::canonicalize(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.."))
+            .unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_tos-research"))
+        .args(["check", "--source-root", root.to_str().unwrap(), "--curation", "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/edition-curation.v1.json", "--stage", "numbered-label-correspondence"])
+        .output().unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let receipt: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(receipt["status"], "PASS");
+    assert_eq!(receipt["pairings"], 298);
+    assert_eq!(receipt["outputs"].as_array().unwrap().len(), 2);
+}

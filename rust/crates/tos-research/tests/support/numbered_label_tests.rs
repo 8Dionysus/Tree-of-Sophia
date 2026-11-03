@@ -1,4 +1,3 @@
-
 use super::*;
 #[test]
 fn intersection_preserves_target_order_and_refuses_duplicate_or_materialized_237a() {
@@ -67,4 +66,23 @@ fn selected_recipe_supports_unpaired_keys_on_both_sides() {
     assert_eq!(value[0]["unit_key"], "2");
     selected["unpaired_units"][1]["unit_key"] = json!("2");
     assert!(Recipe::selected(&selected).is_err());
+}
+
+#[test]
+fn selected_input_fixity_rejects_a_mismatched_map() {
+    let root =
+        std::fs::canonicalize(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.."))
+            .unwrap();
+    let curation: Value = serde_json::from_str(include_str!("../../../../../ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/edition-curation.v1.json")).unwrap();
+    let mut selected = curation["recipes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|v| v["stage"] == "numbered-label-correspondence")
+        .unwrap()
+        .clone();
+    selected["input_fixity"][0]["sha256"] = json!("0".repeat(64));
+    let ctx = ResearchExecution::new(&root, 60).unwrap();
+    let error = run(&ctx, &selected, false, None, None).unwrap_err();
+    assert!(error.contains("selected label input fixity differs"));
 }

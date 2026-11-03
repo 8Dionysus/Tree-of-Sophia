@@ -93,7 +93,7 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
             .iter()
             .find(|row| row["stage"] == "numbered-label-correspondence")
             .ok_or("label recipe required")?;
-        crate::numbered_label_correspondence::run(&ctx, recipe, build, fresh)
+        crate::numbered_label_correspondence::run(&ctx, recipe, build, fresh, None)
     })();
     Some(match result {
         Ok(v) => {

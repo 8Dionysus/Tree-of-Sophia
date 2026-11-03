@@ -54,6 +54,44 @@ impl Curation {
     }
 }
 
+fn select_empty_output(
+    ctx: &Execution,
+    path: &Path,
+    others: &[&Path],
+) -> Result<Execution, String> {
+    use std::os::{fd::AsRawFd, unix::fs::MetadataExt};
+    if !path.is_absolute() {
+        return Err("tracked output root must be absolute".into());
+    }
+    let selected = ctx.select_directory(path)?;
+    let canonical = std::fs::canonicalize(path).map_err(|error| error.to_string())?;
+    let resolved = std::fs::metadata(&canonical).map_err(|error| error.to_string())?;
+    let held = selected
+        .root_directory()
+        .metadata()
+        .map_err(|error| error.to_string())?;
+    if resolved.dev() != held.dev() || resolved.ino() != held.ino() {
+        return Err("tracked output root changed during selection".into());
+    }
+    for other in others {
+        let other = std::fs::canonicalize(other).map_err(|error| error.to_string())?;
+        if canonical.starts_with(&other) || other.starts_with(&canonical) {
+            return Err("tracked output root must be separate from all selected roots".into());
+        }
+    }
+    if std::fs::read_dir(format!(
+        "/proc/self/fd/{}",
+        selected.root_directory().as_raw_fd()
+    ))
+    .map_err(|error| error.to_string())?
+    .next()
+    .is_some()
+    {
+        return Err("tracked output root must be empty".into());
+    }
+    Ok(selected)
+}
+
 fn select_curation(
     ctx: &Execution,
     reference: &str,
@@ -270,6 +308,75 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
         } else {
             (&selected, choices[0])
         };
+        if matches!(action, "check" | "build") && stage == "numbered-label-correspondence" {
+            if input_root.is_some() || output_root.is_some() {
+                return Err("numbered labels use selected source metadata only".into());
+            }
+            let mut frozen = Vec::new();
+            for output in recipe["frozen_outputs"]
+                .as_array()
+                .ok_or("label frozen outputs required")?
+            {
+                let role = output["role"]
+                    .as_str()
+                    .ok_or("label output role required")?;
+                let reference = output["repository_path"]
+                    .as_str()
+                    .ok_or("label output path required")?;
+                let raw = ctx.read(reference)?;
+                edition_curation::validate_frozen_output_fixity(
+                    &owner.raw,
+                    stage,
+                    role,
+                    SelectedDocument {
+                        reference,
+                        raw: &raw,
+                    },
+                    &schema,
+                )
+                .map_err(|e| format!("label frozen output: {e:?}"))?;
+                frozen.push((reference.to_owned(), raw));
+            }
+            let target = if action == "build" {
+                let path = Path::new(tracked_root.ok_or("build requires --tracked-output-root")?);
+                Some(select_empty_output(&ctx, path, &[&root])?)
+            } else {
+                None
+            };
+            let mut result = crate::numbered_label_correspondence::run(
+                &ctx,
+                recipe,
+                action == "build",
+                None,
+                target.as_ref(),
+            )?;
+            if result["outputs"].as_array().map(Vec::len) != Some(frozen.len()) {
+                return Err("rebuilt label output membership differs from curation".into());
+            }
+            for (reference, raw) in frozen {
+                if ctx.read(&reference)? != raw {
+                    return Err("selected label output changed during verification".into());
+                }
+                if let Some(target) = &target {
+                    if target.read(&reference)? != raw {
+                        return Err("rebuilt label output differs from selected source".into());
+                    }
+                }
+            }
+            selected.verify_unchanged(&ctx)?;
+            for referenced in &refs {
+                referenced.verify_unchanged(&ctx)?;
+            }
+            result["stage"] = serde_json::json!(stage);
+            result["curation_ref"] = serde_json::json!(relative);
+            result["current_curation_sha256"] =
+                serde_json::json!(tos_foundation::Digest256::of_bytes(&owner.raw).to_hex());
+            if action == "build" {
+                result["replay"] = serde_json::json!("historical-source-bound");
+            }
+            writeln!(out, "{result}").map_err(|error| error.to_string())?;
+            return Ok(());
+        }
         // The TEI implementation retains its historical plan-specific checks until its
         // record templates and rules are fully selected from curation.
         if matches!(action, "check" | "build") && stage == "tei-technical-markup" {
@@ -339,33 +446,7 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
             }
             let tracked = if action == "build" {
                 let path = Path::new(tracked_root.ok_or("build requires --tracked-output-root")?);
-                if !path.is_absolute() {
-                    return Err("tracked output root must be absolute".into());
-                }
-                let selected = ctx.select_directory(path)?;
-                let tracked_canonical =
-                    std::fs::canonicalize(path).map_err(|error| error.to_string())?;
-                for other in [&root, input, output] {
-                    let other = std::fs::canonicalize(other).map_err(|error| error.to_string())?;
-                    if tracked_canonical.starts_with(&other)
-                        || other.starts_with(&tracked_canonical)
-                    {
-                        return Err(
-                            "tracked output root must be separate from all selected roots".into(),
-                        );
-                    }
-                }
-                use std::os::fd::AsRawFd;
-                if std::fs::read_dir(format!(
-                    "/proc/self/fd/{}",
-                    selected.root_directory().as_raw_fd()
-                ))
-                .map_err(|error| error.to_string())?
-                .next()
-                .is_some()
-                {
-                    return Err("tracked output root must be empty".into());
-                }
+                let selected = select_empty_output(&ctx, path, &[&root, input, output])?;
                 Some((path, selected))
             } else {
                 None
