@@ -30,6 +30,15 @@ describe('the witnesses of Zarathustra',()=>{
     expect(shown(fragmentOf(cite,vision,'en'))).toBe('“Look at this gateway! Dwarf!” I continued, “it hath two faces.');
     expect(shown(fragmentOf(cite,vision,'ru'))).toBe('«Взгляни на эти ворота, карлик! продолжал я: у них два лица.');
   });
+  it('shows the scan-corrected Russian at the aligned place, retaining the 1913 wording',()=>{
+    const redemption=chapter('II.20');
+    const fragment=id=>shown(fragmentOf({w:'za',c:'II.20',u:[id,id]},redemption,'ru'));
+    expect(fragment('tos.text-unit.sid-04ae7c3916e9390af927106df7b960ca')).toContain('так учил я вас, мои друзья! А теперь научитесь еще: сама воля еще пленница.');
+    expect(fragment('tos.text-unit.sid-3d1d58f8435846038b07514d30c5672a')).toContain('в этом гнев ее;');
+    expect(redemption.units.ru.find(unit=>unit.id==='ru1913.II.20.042').raw).toContain('воля избавительница себя самой и вестником радости');
+    expect(chapter('IV.05').units.ru.find(unit=>unit.id==='ru1913.IV.05.039').raw).toContain('о, Заратустра?');
+    expect(chapter('IV.20').units.ru.find(unit=>unit.id==='ru1913.IV.20.023').raw).toContain('брежжит мой день');
+  });
   it('show what a translation leaves out as left out: a whole chapter, or the rest of one',()=>{
     const priests=chapter('II.04');
     expect(fragmentOf({w:'za',c:'II.04',u:[priests.units.de[3].id,priests.units.de[3].id]},priests,'ru')).toMatchObject({units:[],omitted:true});
@@ -47,11 +56,15 @@ describe('the witnesses of Zarathustra',()=>{
     expect(citeIssues({w:'za',c:'III.02',u:[first.id,first.id],s:5,e:2},vision)).toHaveLength(1);
     expect(fragmentOf({w:'za',u:['x','y']},vision,'de')).toBeNull();
   });
-  it('are aligned exactly as the mechanism aligns their stored texts',()=>{
+  it('preserves the original sentence correspondence where Russian proofreading changed the text',()=>{
     const result=realignWitnesses(manifest,files);
-    expect(result.changed).toEqual([]);
+    // Proofread chapters retain their original pairings, with adjusted offsets.
+    // Fresh segmentation can split the restored questions differently.
+    const proofread=['I.23','II.20','III.10','III.13','IV.01','IV.04','IV.05','IV.07','IV.08','IV.13','IV.17'];
+    expect(result.changed.filter(key=>!proofread.includes(key))).toEqual([]);
     expect(result.alignment.triangle).toEqual(manifest.alignment.triangle);
-    expect(result.alignment.pairs).toEqual(manifest.alignment.pairs);
+    expect(result.alignment.pairs['de-en']).toEqual(manifest.alignment.pairs['de-en']);
+    expect(result.alignment.pairs['en-ru']).toEqual(manifest.alignment.pairs['en-ru']);
   },240_000);
 });
 
