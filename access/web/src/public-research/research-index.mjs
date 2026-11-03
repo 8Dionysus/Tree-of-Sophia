@@ -35,7 +35,11 @@ export function citedPlaces(value){
 const pathValue=(record,path)=>path==='$'?record:path.split('.').reduce((value,key)=>value?.[key],record);
 const text=value=>typeof value==='string'?value:typeof value?.ru==='string'?value.ru:typeof value?.en==='string'?value.en:'';
 
-export function createResearchIndex(library,{revision=library.space?.researchRevision??library.fingerprint}={}){
+/**
+ * `placeTitle(cite)` names a cited place for readers ({ru, en}): the chapter or the work and its locator.
+ * Without it a place is named by its work, chapter and locator; unit identifiers stay in the record.
+ */
+export function createResearchIndex(library,{revision=library.space?.researchRevision??library.fingerprint,placeTitle=null}={}){
   const core=library.space?.core,items=new Map(),aliases=new Map(),incoming=new Map(),oldCitationTargets=new Map();
   const add=item=>{if(!item?.id||items.has(item.id))return;items.set(item.id,{revision,...item});for(const alias of item.aliases??[])if(alias&&!aliases.has(alias))aliases.set(alias,item.id);};
   for(const material of library.nodes??[])add({id:material.id,kind:material.kind,title:material.title,record:material,materialId:material.id,owner:'library',dependencies:[],aliases:[`material:${material.id}`]});
@@ -67,8 +71,8 @@ export function createResearchIndex(library,{revision=library.space?.researchRev
     for(const cite of citedPlaces(item.record)){
       const id=citationId(cite),old=oldCitationId(cite),units=hasUnits(cite),locator=units?cite.u.join(' – '):cite.loc??`${cite.s}–${cite.e}`;
       if(old){if(!oldCitationTargets.has(old))oldCitationTargets.set(old,new Set());oldCitationTargets.get(old).add(id);}
-      const place=[cite.w,cite.c,locator].filter(Boolean).join(' · ');
-      const title=units?{ru:place,en:place}:{ru:`Библиографическая ссылка без точного TextUnit: ${place}`,en:`Bibliographic pointer without an exact TextUnit: ${place}`};
+      const place=[cite.w,cite.c,units?null:locator].filter(Boolean).join(' · ');
+      const title=placeTitle?.(cite)??{ru:place,en:place};
       add({id,kind:units?'passage':'bibliographic-pointer',title,record:cite,citations:[],owner:units?'bonsai/witnesses':'bonsai/bibliography',resolution:units?'source-reference':'unresolved-bibliographic',dependencies:[]});
       const stored=items.get(id);
       if(stored?.citations&&!stored.citations.some(existing=>canonicalJSON(existing)===canonicalJSON(cite)))stored.citations.push(cite);

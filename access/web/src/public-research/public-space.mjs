@@ -1184,7 +1184,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const own=el('a','source-link',copyLocale(locale())==='en'?'Copyable link to this item':'Точная ссылка на этот предмет');
     const url=new URL(location.href);url.searchParams.set('item',item.id);url.searchParams.set('revision',index.revision);own.href=url.href;fold.append(own);
     const rows=[...item.dependencies.map(reference=>index.get(typeof reference==='string'?reference:reference.id)),...index.references(id)].filter(Boolean);
-    for(const entry of [...new Map(rows.map(row=>[row.id,row])).values()].slice(0,40)){const target=button(tr(entry.title,locale())||entry.id,'connection-target');target.addEventListener('click',()=>shell.dispatchEvent(new CustomEvent('public-research-open',{bubbles:true,detail:{id:entry.id}})));fold.append(target);}
+    // One line per name: several places of one work read as that work once.
+    const named=new Map();for(const row of rows){const name=tr(row.title,locale());if(name&&!named.has(name))named.set(name,row);}
+    for(const [name,entry] of [...named].slice(0,40)){const target=button(name,'connection-target');target.addEventListener('click',()=>shell.dispatchEvent(new CustomEvent('public-research-open',{bubbles:true,detail:{id:entry.id}})));fold.append(target);}
     parent.append(fold);
   }
   function findEdge(id){const drawn=graphState().edges.find(edge=>edge.id===id);if(drawn)return drawn;const item=index?.get(id);return item?.kind==='relation'?{id,from:graphIdForMaterial(core?.materialIds?.[item.record.from]??item.record.from),to:graphIdForMaterial(core?.materialIds?.[item.record.to]??item.record.to),kind:'relates',label:item.record.verb,coreRecord:item.record}:null;}
