@@ -412,6 +412,33 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
             }
             result["stage"] = serde_json::json!(stage);
             result["curation_ref"] = serde_json::json!(relative);
+            let sources = [
+                (
+                    "rust/crates/tos-research/src/curation_command.rs",
+                    include_bytes!("curation_command.rs").as_slice(),
+                ),
+                (
+                    "rust/crates/tos-research/src/tei_technical_markup.rs",
+                    include_bytes!("tei_technical_markup.rs").as_slice(),
+                ),
+                (
+                    "rust/crates/tos-research/src/tei_technical_markup/records.rs",
+                    include_bytes!("tei_technical_markup/records.rs").as_slice(),
+                ),
+                (
+                    "rust/crates/tos-research/src/navigation_xml.rs",
+                    include_bytes!("navigation_xml.rs").as_slice(),
+                ),
+                (
+                    "rust/crates/tos-research/src/research_support.rs",
+                    include_bytes!("research_support.rs").as_slice(),
+                ),
+            ];
+            result["current_execution"] = serde_json::json!({
+                "embedded_source_digests": sources.iter().map(|(reference, bytes)| serde_json::json!({"ref":reference,"sha256":tos_foundation::Digest256::of_bytes(bytes).to_hex()})).collect::<Vec<_>>(),
+                "curation": {"ref": owner.reference, "sha256": tos_foundation::Digest256::of_bytes(&owner.raw).to_hex()},
+                "plan": {"ref": plan_ref, "sha256": tos_foundation::Digest256::of_bytes(&plan).to_hex()},
+            });
             result["implementation"] = serde_json::json!("retained-plan-specific-executor");
             if build {
                 result["replay"] = serde_json::json!("historical-source-bound");
