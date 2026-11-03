@@ -217,48 +217,7 @@ fn selected_capture(
 }
 
 fn fixture(root: &Path) -> Value {
-    let script = r#"
-import json,sys,stat,resource
-resource.setrlimit(resource.RLIMIT_CPU,(20,20))
-resource.setrlimit(resource.RLIMIT_AS,(1073741824,1073741824))
-from pathlib import Path
-repo,root=map(Path,sys.argv[1:])
-sys.path[:0]=[str(repo/'mechanics/growth-cycle/tests'),str(repo/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repo/'scripts'),str(repo/'tests')]
-import test_source_owner_profile_commands as maintained
-import source_commands as commands
-class ExistingRoot:
-    def __init__(self,*args,**kwargs): self.name=str(root)
-    def cleanup(self): pass
-original=maintained.tempfile.TemporaryDirectory
-maintained.tempfile.TemporaryDirectory=ExistingRoot
-try:
-    case=maintained.OwnerLocalProfileCommandTests(methodName='runTest')
-    case.setUp()
-finally:
-    maintained.tempfile.TemporaryDirectory=original
-request={'schema_version':'tos_local_source_command_v1','operation':'prepare-create','record':case.record,'forms':case.forms}
-prepared=commands.run_legacy_oracle_command(case.owner,request)
-creation={**request,'operation':'source.create','command_id':'synthetic-native-private-profile-create',
-    'expected_configuration':prepared['owner_configuration'],'expected_source':None,'expected_revision':None,
-    'expected_dependencies':prepared['expected_dependencies']}
-created=commands.run_legacy_oracle_command(case.owner,creation)
-saved=case.files()
-# Restore only the exact just-created disposable fixture package. Oracle and
-# native commands then receive the same selected owner, roots and source bytes.
-for name,raw in saved.items():
-    p=case.path.parent/name
-    if not p.is_file() or p.is_symlink() or p.read_bytes()!=raw: raise RuntimeError('oracle fixture changed')
-    p.unlink()
-case.path.parent.rmdir()
-for p in case.public.joinpath('ToS').rglob('*'):
-    if p.is_symlink(): raise RuntimeError('synthetic fixture symlink')
-    if p.is_file() and p.relative_to(case.public).as_posix()!='ToS/source-witnesses/.historical-create.writer.lock':
-        p.chmod(0o755 if stat.S_IMODE(p.stat().st_mode)&0o111 else 0o644)
-print(json.dumps({'public':str(case.public),'private':str(case.store),'owner':str(case.owner),
-    'context':str(case.context_path),'source_ref':case.source_ref,'record':case.record,'forms':case.forms,
-    'config':case.config,'preview':prepared,'created_source':created['source'],
-    'oracle_files':{name:raw.hex() for name,raw in saved.items()}},ensure_ascii=False,allow_nan=False))
-"#;
+    let factory_script_sha256 = "a2acde3c2d64007364716b412e1ccc1524d0f669d8c564abc92c777d258a8910";
     let native_owner_paths = [
         "rust/crates/tos-command/src/source_private_profile.rs",
         "rust/crates/tos-command/src/source_private_owner_store.rs",
@@ -270,7 +229,7 @@ print(json.dumps({'public':str(case.public),'private':str(case.store),'owner':st
         &[("source-root", root)],
         &native_owner_paths,
     );
-    super::assert_native_python_fixture(&captured, script, &native_owner_paths);
+    super::assert_native_python_fixture(&captured, factory_script_sha256, &native_owner_paths);
     captured.packets.get("factory").unwrap().clone()
 }
 
@@ -369,6 +328,12 @@ fn native_private_profile_lifecycle(use_http: bool) {
     let public = PathBuf::from(selected["public"].as_str().unwrap());
     let private = PathBuf::from(selected["private"].as_str().unwrap());
     let owner = PathBuf::from(selected["owner"].as_str().unwrap());
+    let form_set_schema = "ToS/contracts/human-form-set.schema.json";
+    fs::write(
+        public.join(form_set_schema),
+        fs::read(repository.join(form_set_schema)).unwrap(),
+    )
+    .unwrap();
     let (authored_count, authored_bytes) = authored_preflight(&public, deadline);
     let mut authored = authored_text_files(&public);
     authored.remove("ToS/source-witnesses/.historical-create.writer.lock");
@@ -587,8 +552,72 @@ fn native_private_profile_lifecycle(use_http: bool) {
         "expected_dependencies":prepared_form["expected_dependencies"],"changes":[prepared_form["prepared_change"]]});
     let applied = call(&apply);
     assert_eq!(applied["publication_authorized"], false);
+    let formset_file = selected["oracle_files"]
+        .as_object()
+        .unwrap()
+        .keys()
+        .find(|name| name.ends_with("human-forms.json"))
+        .expect("private Profile form-set file");
+    let formset_path = home.join(formset_file);
+    let formset: Value = serde_json::from_slice(&fs::read(&formset_path).unwrap()).unwrap();
+    let form_receipt = formset["growth_history"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|receipt| receipt["command_id"] == apply["command_id"])
+        .expect("private Profile form growth receipt");
+    let limits = tos_foundation::JsonLimits {
+        max_bytes: 8_388_608,
+        ..tos_foundation::JsonLimits::default()
+    };
+    let request = tos_foundation::parse_json(
+        &serde_json::to_vec(&apply).unwrap(),
+        tos_foundation::JsonMode::PublishedStrict,
+        limits,
+    )
+    .unwrap();
+    let jcs = tos_foundation::jcs_digest_v1(request.root(), limits).unwrap();
+    assert_eq!(form_receipt["request_digest_profile"], jcs.profile);
+    assert_eq!(form_receipt["request_digest"], jcs.digest.to_prefixed());
     let replay = call(&apply);
     assert_eq!(replay["replayed"], true);
+    if !use_http {
+        let historical = tos_foundation::canonical_bytes_v1(
+            request.root(),
+            tos_foundation::CanonicalProfile::SourceCommandInputV1,
+            limits,
+        )
+        .unwrap();
+        let mut legacy_set: Value =
+            serde_json::from_slice(&fs::read(&formset_path).unwrap()).unwrap();
+        let legacy_receipt = legacy_set["growth_history"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|receipt| receipt["command_id"] == apply["command_id"])
+            .expect("private Profile form receipt to convert to historical fixture");
+        let legacy_receipt = legacy_receipt.as_object_mut().unwrap();
+        legacy_receipt.remove("request_digest_profile");
+        legacy_receipt.insert(
+            "request_digest".to_owned(),
+            Value::String(Digest256::of_bytes(&historical).to_prefixed()),
+        );
+        let legacy_set = tos_foundation::parse_json(
+            &serde_json::to_vec(&legacy_set).unwrap(),
+            tos_foundation::JsonMode::PublishedStrict,
+            limits,
+        )
+        .unwrap();
+        let legacy_bytes = tos_foundation::emit_json_profile(
+            legacy_set.root(),
+            tos_foundation::JsonEmissionProfile::SourceFormSetPublishedV1,
+            limits,
+        )
+        .unwrap()
+        .bytes;
+        fs::write(&formset_path, legacy_bytes).unwrap();
+        assert_eq!(call(&apply)["replayed"], true);
+    }
     let described = call(
         &serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"describe"}),
     );
