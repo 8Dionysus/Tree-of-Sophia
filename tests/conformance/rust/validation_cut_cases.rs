@@ -3483,7 +3483,17 @@ fn in_process_source_claim_preserves_cut_and_local_profile_diagnostics() {
                 max_manifest_row_bytes: 1_048_576,
                 sqlite_cache_bytes: 1024 * 1024,
             },
-            tempfile::tempfile_in(temp.path()).unwrap(),
+            {
+                // The streamed reader takes a fresh unnamed owner-private inode.
+                use std::os::unix::fs::OpenOptionsExt;
+                fs::OpenOptions::new()
+                    .read(true)
+                    .write(true)
+                    .mode(0o600)
+                    .custom_flags((1 << 22) | (1 << 16)) // O_TMPFILE
+                    .open(temp.path())
+                    .unwrap()
+            },
             deadline,
             &cancelled,
         )
