@@ -1,0 +1,46 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.symposium.symposium-ru-karpov1863-wikisource",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.symposium.symposium-ru-karpov1863-wikisource",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.d2b245c0a7530a8b3c0dfbc4492149410a6ee652b3ba1644bbbfb88f53f18c27",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "symposium-ru-karpov1863-wikisource.json",
+      "media_type": "application/json",
+      "byte_size": 571680,
+      "sha256": "d2b245c0a7530a8b3c0dfbc4492149410a6ee652b3ba1644bbbfb88f53f18c27",
+      "fixity_verified_at": "2026-11-03T08:24:37+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.121f1ef559187e746425d2db1658c2bd84c426637461db4d600df637ad2350d6",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 201056,
+      "sha256": "121f1ef559187e746425d2db1658c2bd84c426637461db4d600df637ad2350d6",
+      "fixity_verified_at": "2026-11-03T08:24:37+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.1e33615435354fca6ef4021fc572bcb10cb73b1d6ddc1a40a35e51993c07054e",
+      "relative_path": "payload/wikisource-api.json",
+      "original_basename": "wikisource-api.json",
+      "media_type": "application/json",
+      "byte_size": 1000347,
+      "sha256": "1e33615435354fca6ef4021fc572bcb10cb73b1d6ddc1a40a35e51993c07054e",
+      "fixity_verified_at": "2026-11-03T08:24:37+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.symposium-ru-karpov1863-wikisource.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plato/symposium/expressions/retained-symposium-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/symposium/expressions/retained-symposium-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/symposium/expressions/retained-symposium-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/symposium/expressions/retained-symposium-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plato/symposium/expressions/retained-symposium-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

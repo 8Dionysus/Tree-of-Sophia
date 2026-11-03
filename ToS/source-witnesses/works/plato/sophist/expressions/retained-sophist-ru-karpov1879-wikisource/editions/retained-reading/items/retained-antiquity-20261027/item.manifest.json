@@ -1,0 +1,46 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.sophist.sophist-ru-karpov1879-wikisource",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.sophist.sophist-ru-karpov1879-wikisource",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.a578754e4eb564ccc31f91f895187b15e0248b347db64f76e5d3d1714c0a190e",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "sophist-ru-karpov1879-wikisource.json",
+      "media_type": "application/json",
+      "byte_size": 613543,
+      "sha256": "a578754e4eb564ccc31f91f895187b15e0248b347db64f76e5d3d1714c0a190e",
+      "fixity_verified_at": "2026-11-03T08:24:38+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.6685a5614ad1228382db9b1177ce9dc9074d175bed61cd1b6b0f71c9ca04ef50",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 210911,
+      "sha256": "6685a5614ad1228382db9b1177ce9dc9074d175bed61cd1b6b0f71c9ca04ef50",
+      "fixity_verified_at": "2026-11-03T08:24:38+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.2ad289b96388e1fb9fd3a8b14bf7164434f7fdc1f6af98206d7994366a334602",
+      "relative_path": "payload/wikisource-api.json",
+      "original_basename": "wikisource-api.json",
+      "media_type": "application/json",
+      "byte_size": 985262,
+      "sha256": "2ad289b96388e1fb9fd3a8b14bf7164434f7fdc1f6af98206d7994366a334602",
+      "fixity_verified_at": "2026-11-03T08:24:38+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.sophist-ru-karpov1879-wikisource.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plato/sophist/expressions/retained-sophist-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/sophist/expressions/retained-sophist-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/sophist/expressions/retained-sophist-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/sophist/expressions/retained-sophist-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plato/sophist/expressions/retained-sophist-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

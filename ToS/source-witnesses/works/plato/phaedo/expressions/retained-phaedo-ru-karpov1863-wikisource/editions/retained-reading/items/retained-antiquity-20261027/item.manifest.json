@@ -1,0 +1,46 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.phaedo.phaedo-ru-karpov1863-wikisource",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.phaedo.phaedo-ru-karpov1863-wikisource",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.76d2b0d32827aef5661a66f62a77a2acc897f27bb360e23b2433c4a07e7b7cb6",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "phaedo-ru-karpov1863-wikisource.json",
+      "media_type": "application/json",
+      "byte_size": 679657,
+      "sha256": "76d2b0d32827aef5661a66f62a77a2acc897f27bb360e23b2433c4a07e7b7cb6",
+      "fixity_verified_at": "2026-11-03T08:24:37+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.3821f50eda7a59c49ebfad25ab9d0f9fdafeff2d4e60b6acbaa393b79f759179",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 252695,
+      "sha256": "3821f50eda7a59c49ebfad25ab9d0f9fdafeff2d4e60b6acbaa393b79f759179",
+      "fixity_verified_at": "2026-11-03T08:24:37+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.fe80e86aa99049ba234b52a6f16d40b04b1b0c6934ee9c3a274cd2326c4f59d2",
+      "relative_path": "payload/wikisource-api.json",
+      "original_basename": "wikisource-api.json",
+      "media_type": "application/json",
+      "byte_size": 990086,
+      "sha256": "fe80e86aa99049ba234b52a6f16d40b04b1b0c6934ee9c3a274cd2326c4f59d2",
+      "fixity_verified_at": "2026-11-03T08:24:37+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.phaedo-ru-karpov1863-wikisource.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

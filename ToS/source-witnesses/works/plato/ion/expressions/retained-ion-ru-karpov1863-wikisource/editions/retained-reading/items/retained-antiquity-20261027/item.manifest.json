@@ -1,0 +1,46 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.ion.ion-ru-karpov1863-wikisource",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.ion.ion-ru-karpov1863-wikisource",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.ac9500b1d981a47f4b74450b6b610cd0e6686b9e43e69dc50aecf3de113d143f",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "ion-ru-karpov1863-wikisource.json",
+      "media_type": "application/json",
+      "byte_size": 138940,
+      "sha256": "ac9500b1d981a47f4b74450b6b610cd0e6686b9e43e69dc50aecf3de113d143f",
+      "fixity_verified_at": "2026-11-03T08:25:00+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.529c24dbeabeca9c6fc11ca1a233af1f47e38809e698fd05027a3767385e284a",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 46033,
+      "sha256": "529c24dbeabeca9c6fc11ca1a233af1f47e38809e698fd05027a3767385e284a",
+      "fixity_verified_at": "2026-11-03T08:25:00+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.ea5e0134a77689c561f7296f2baa263d344db03af511ae0dcdd353f45162428d",
+      "relative_path": "payload/wikisource-api.json",
+      "original_basename": "wikisource-api.json",
+      "media_type": "application/json",
+      "byte_size": 230639,
+      "sha256": "ea5e0134a77689c561f7296f2baa263d344db03af511ae0dcdd353f45162428d",
+      "fixity_verified_at": "2026-11-03T08:25:00+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.ion-ru-karpov1863-wikisource.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plato/ion/expressions/retained-ion-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/ion/expressions/retained-ion-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/ion/expressions/retained-ion-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/ion/expressions/retained-ion-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plato/ion/expressions/retained-ion-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

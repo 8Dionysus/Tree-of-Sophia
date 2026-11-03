@@ -1,0 +1,46 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.euthyphro.euthyphro-ru-karpov1863-wikisource",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.euthyphro.euthyphro-ru-karpov1863-wikisource",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.110d3bec279129678632c4289173b730267571c9a75e0022ce06bdf46b4e0fe6",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "euthyphro-ru-karpov1863-wikisource.json",
+      "media_type": "application/json",
+      "byte_size": 172976,
+      "sha256": "110d3bec279129678632c4289173b730267571c9a75e0022ce06bdf46b4e0fe6",
+      "fixity_verified_at": "2026-11-03T08:25:01+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.f67fe72d724390d219fb67e5310450e30670ade5e9aa33ce305a3e1a7196a89e",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 58534,
+      "sha256": "f67fe72d724390d219fb67e5310450e30670ade5e9aa33ce305a3e1a7196a89e",
+      "fixity_verified_at": "2026-11-03T08:25:01+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.832c7ba219776a048f2258e7f06aaf8829da900f331f78ecf43584b2caab4bdd",
+      "relative_path": "payload/wikisource-api.json",
+      "original_basename": "wikisource-api.json",
+      "media_type": "application/json",
+      "byte_size": 306155,
+      "sha256": "832c7ba219776a048f2258e7f06aaf8829da900f331f78ecf43584b2caab4bdd",
+      "fixity_verified_at": "2026-11-03T08:25:01+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.euthyphro-ru-karpov1863-wikisource.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plato/euthyphro/expressions/retained-euthyphro-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/euthyphro/expressions/retained-euthyphro-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/euthyphro/expressions/retained-euthyphro-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/euthyphro/expressions/retained-euthyphro-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plato/euthyphro/expressions/retained-euthyphro-ru-karpov1863-wikisource/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

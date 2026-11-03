@@ -1,0 +1,46 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.theaetetus.theaetetus-ru-karpov1879-wikisource",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.theaetetus.theaetetus-ru-karpov1879-wikisource",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.33c937eb15ee9cb634023c7c2c5ed72af02f59c5ab532c5db6d4e5c8f6cead6c",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "theaetetus-ru-karpov1879-wikisource.json",
+      "media_type": "application/json",
+      "byte_size": 804652,
+      "sha256": "33c937eb15ee9cb634023c7c2c5ed72af02f59c5ab532c5db6d4e5c8f6cead6c",
+      "fixity_verified_at": "2026-11-03T08:24:38+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.f23c9b024326f5b216c8712e80e940e57807856c35924f6cb96ebbfd8975bf2d",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 285856,
+      "sha256": "f23c9b024326f5b216c8712e80e940e57807856c35924f6cb96ebbfd8975bf2d",
+      "fixity_verified_at": "2026-11-03T08:24:38+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.f26cae1f18934fd686daddade286e5870fcd0cecc34571490ccb414b885de28d",
+      "relative_path": "payload/wikisource-api.json",
+      "original_basename": "wikisource-api.json",
+      "media_type": "application/json",
+      "byte_size": 1240075,
+      "sha256": "f26cae1f18934fd686daddade286e5870fcd0cecc34571490ccb414b885de28d",
+      "fixity_verified_at": "2026-11-03T08:24:38+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.theaetetus-ru-karpov1879-wikisource.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plato/theaetetus/expressions/retained-theaetetus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/theaetetus/expressions/retained-theaetetus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/theaetetus/expressions/retained-theaetetus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/theaetetus/expressions/retained-theaetetus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plato/theaetetus/expressions/retained-theaetetus-ru-karpov1879-wikisource/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}
