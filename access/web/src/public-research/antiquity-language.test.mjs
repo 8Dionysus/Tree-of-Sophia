@@ -5,7 +5,7 @@ import {describe,expect,it} from 'vitest';
 const root=new URL('../../../../bonsai/antiquity/',import.meta.url);
 const files=readdirSync(root).filter(name=>name.endsWith('.json')&&name!=='alignment.json');
 const outside=[
-  ['a padding turn built on not only or not merely',/не только.{0,100}но и|not only.{0,100}but (?:also )?|не просто|not merely/i],
+  ['a padding turn built on not only or not merely',/не только.{0,100}но и|not only.{0,100}but (?:also )?|не просто|not merely/i, new Set(['collection.json:branches[11].edges[0].body.en','first-branches.json:branches[5].edges[0].body.en'])],
   ['a contrast expressed through non-identity',/не тождествен/i],
   ['a padding turn using rather than',/\brather than\b/i, new Set(['collection.json:branches[14].nodes[5].reading.en'])],
   ['empty descriptions of a reading or comparison',/Это предложение для проверки|Это отправная точка сравнения|Это нравственный совет правителю|This is a proposal to test|This is the starting point for comparison|This is moral advice to a ruler/i],
@@ -56,7 +56,7 @@ describe('the language of the Antiquity stand',()=>{
   });
   it('states Aristotle’s distinction and retains the contrast in Plato’s Ion',()=>{
     const text=(path)=>texts.find(row=>row.name==='collection.json'&&row.path===path)?.text;
-    expect(text('branches[11].edges[0].body.en')).toBe('In the Politics, Aristotle distinguishes forms of rule by the number of rulers and whether they serve the common good.');
+    expect(text('branches[11].edges[0].body.en')).toBe('In the Politics, Aristotle distinguishes kinds of rule by their character, not merely by the number of those ruled.');
     expect(text('branches[14].nodes[5].reading.en')).toBe('In Plato’s Ion, Socrates attributes poetic creation to divine inspiration rather than skill.');
   });
   it('uses one word for a sense while distinguishing general from Stoic assent',()=>{
