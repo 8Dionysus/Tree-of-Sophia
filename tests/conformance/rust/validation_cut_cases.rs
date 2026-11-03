@@ -3233,4 +3233,68 @@ fn in_process_source_claim_preserves_cut_and_local_profile_diagnostics() {
         assert_eq!(current.dependency_order, previous.dependency_order);
         assert_eq!(current.issues, previous.issues);
     }
+
+    let streamed = reader
+        .open_source_cut_streamed(
+            revision,
+            tos_source_store::StreamedCutReadLimitsV1 {
+                cut: CutReadLimits {
+                    max_revisions: 2,
+                    max_members: 2048,
+                    max_total_bytes: 64_000_000,
+                    max_member_bytes: 2_097_152,
+                },
+                manifest_json: JsonLimits::default(),
+                max_manifest_entries: 2048,
+                max_index_bytes: 16 * 1024 * 1024,
+                max_manifest_row_bytes: 1_048_576,
+                sqlite_cache_bytes: 1024 * 1024,
+            },
+            tempfile::tempfile_in(temp.path()).unwrap(),
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    let mut streamed_schemas = InProcessCutSchemaExecutor::from_streamed_cut(
+        &streamed,
+        legacy,
+        InputMode::LegacyPythonObserved,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    let mut resident_schemas = InProcessCutSchemaExecutor::from_cut(
+        &cut,
+        legacy,
+        InputMode::LegacyPythonObserved,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    assert_eq!(streamed_schemas.binding(), resident_schemas.binding());
+    assert_eq!(
+        streamed_schemas.identity(),
+        &InProcessCutIdentity::Source(revision)
+    );
+    let contract = "ToS/contracts/corpus-record.schema.json";
+    assert_eq!(
+        tos_validation::source_cut::CutSchemaExecutor::check(
+            &mut streamed_schemas,
+            "record.json",
+            b"{}",
+            contract,
+            deadline,
+            &cancelled,
+        )
+        .unwrap(),
+        tos_validation::source_cut::CutSchemaExecutor::check(
+            &mut resident_schemas,
+            "record.json",
+            b"{}",
+            contract,
+            deadline,
+            &cancelled,
+        )
+        .unwrap()
+    );
 }
