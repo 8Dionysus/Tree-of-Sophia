@@ -1114,6 +1114,34 @@ impl<'a> SourceCatalogValidator<'a> {
         identity: &I,
         schemas: &'a mut dyn SourceFoundationCandidateSchemaBinding<I>,
     ) -> Result<Self> {
+        Self::from_in_process_candidate_inner(
+            Some(budget),
+            cancelled,
+            deadline,
+            identity,
+            schemas,
+            Some(identity.event_source_revision()),
+        )
+    }
+
+    /// Borrow schemas bound to the caller's exact candidate identity.
+    pub fn from_in_process_candidate_prepared<I: Copy + Eq + 'static>(
+        cancelled: &'a AtomicBool,
+        deadline: Instant,
+        identity: &I,
+        schemas: &'a mut dyn SourceFoundationCandidateSchemaBinding<I>,
+    ) -> Result<Self> {
+        Self::from_in_process_candidate_inner(None, cancelled, deadline, identity, schemas, None)
+    }
+
+    fn from_in_process_candidate_inner<I: Copy + Eq + 'static>(
+        budget: Option<ExecutorBudget>,
+        cancelled: &'a AtomicBool,
+        deadline: Instant,
+        identity: &I,
+        schemas: &'a mut dyn SourceFoundationCandidateSchemaBinding<I>,
+        event_source_revision: Option<Digest256>,
+    ) -> Result<Self> {
         let prepared = schemas
             .schema_execution_binding()
             .ok_or(Error::Invalid("catalog candidate prepared binding"))?;
@@ -1141,13 +1169,13 @@ impl<'a> SourceCatalogValidator<'a> {
             .map_err(|error| Error::Source(format!("catalog candidate guard:{error:?}")))?;
         Ok(Self {
             worker: None,
-            budget: Some(budget),
+            budget,
             cancelled,
             schemas: RefCell::new(CatalogSchemas::Candidate(Box::new(borrowed))),
             worker_pin: None,
-            budget_pin: Some(budget),
+            budget_pin: budget,
             deadline,
-            event_source_revision: Some(identity.event_source_revision()),
+            event_source_revision,
         })
     }
 
@@ -3395,6 +3423,61 @@ mod in_process_event_schema_tests {
         fn event_source_revision(&self) -> Digest256 {
             Digest256::of_bytes(&self.0.to_be_bytes())
         }
+    }
+
+    #[test]
+    fn candidate_catalog_keeps_input_fence_and_engine_evidence() {
+        let cancelled = AtomicBool::new(false);
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let identity = 17u64;
+        let path = "ToS/contracts/example.schema.json";
+        let uri = "https://example.test/candidate-catalog";
+        let raw = br#"{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://example.test/candidate-catalog","type":"integer"}"#.to_vec();
+        let mut schemas = InProcessCandidateSchemaExecutor::from_selected_source_resources(
+            identity,
+            vec![(
+                path.into(),
+                tos_validation::SchemaResource {
+                    uri: uri.into(),
+                    raw,
+                },
+            )],
+            FormatProfile::LegacyPythonObserved20260923,
+            InputMode::SerdeNormalized,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        let validator = SourceCatalogValidator::from_in_process_candidate_prepared(
+            &cancelled,
+            deadline,
+            &identity,
+            &mut schemas,
+        )
+        .unwrap();
+        validator
+            .verify_candidate_schema_binding(&identity)
+            .unwrap();
+        assert!(validator.verify_candidate_schema_binding(&18u64).is_err());
+        assert!(validator.selected_source_revision().is_err());
+        assert!(
+            !validator
+                .schemas
+                .borrow_mut()
+                .check("candidate.json", b"null", path, deadline, &cancelled)
+                .unwrap()
+        );
+        let diagnostic = validator
+            .take_candidate_diagnostic_rejection::<u64>()
+            .unwrap()
+            .unwrap();
+        assert_eq!(diagnostic.input_identity(), &identity);
+        assert!(matches!(
+            diagnostic,
+            CandidateSchemaDiagnostic::InProcess(_)
+        ));
+        assert!(diagnostic.is_invalid());
+        validator.finish().unwrap();
     }
 
     #[test]
