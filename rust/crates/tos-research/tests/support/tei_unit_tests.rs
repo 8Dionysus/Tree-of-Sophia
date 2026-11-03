@@ -1,4 +1,3 @@
-
 use super::*;
 #[test]
 fn retained_parallel_readiness_keeps_witnesses_and_authority_separate() {

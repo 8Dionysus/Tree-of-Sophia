@@ -376,6 +376,7 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
                 crate::tei_technical_markup::Options {
                     plan_ref,
                     recipe,
+                    executor_label: "tos-research tei-technical-markup",
                     input_root: Some(input),
                     output_root: Some(output),
                     tracked_output: tracked.as_ref().map(|(_, selected)| selected),

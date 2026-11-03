@@ -105,6 +105,7 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
             &ctx,
             Options {
                 recipe,
+                executor_label: "tos dta-technical-markup",
                 plan_ref: plan.as_deref().unwrap_or(
                     recipe["plan_ref"]
                         .as_str()

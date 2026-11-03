@@ -29,6 +29,7 @@ pub enum Action {
 pub struct Options<'a> {
     pub plan_ref: &'a str,
     pub recipe: &'a Value,
+    pub executor_label: &'a str,
     pub input_root: Option<&'a Path>,
     pub output_root: Option<&'a Path>,
     pub tracked_output: Option<&'a ResearchExecution>,
@@ -1721,7 +1722,7 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
     }
     ctx.check()?;
     Ok(
-        json!({"status":"passed","mode":if build{"build"}else{"check"},"native_executor":"tos dta-technical-markup","event_id":event_id,"historical_provenance_preserved":historical,"summary":summary,"tracked_output_count":tracked.len(),"private_layer_count":private.len(),"publication_authorized":false,"canon_effect":false}),
+        json!({"status":"passed","mode":if build{"build"}else{"check"},"native_executor":opts.executor_label,"event_id":event_id,"historical_provenance_preserved":historical,"summary":summary,"tracked_output_count":tracked.len(),"private_layer_count":private.len(),"publication_authorized":false,"canon_effect":false}),
     )
 }
 #[cfg(test)]
