@@ -1,6 +1,6 @@
 {
   "schema_version": "tos_digest_field_classes_v1",
-  "scope": "Rules identify only the producer contexts stated below. Unmatched 64-hex fields remain unclassified and block the inventory. A class is not proof of any particular value's input bytes.",
+  "scope": "Field-family patterns identify historical producer profiles and exact-byte classes. Unlisted or conflicting contexts remain unclassified.",
   "rules": [
     {
       "field": "token",
@@ -15,7 +15,7 @@
       "file_suffix": ".human-forms.json",
       "class": "canonical-json",
       "old_profile": "tos_source_command_input_v1",
-      "producer_context": "human-form record and revision references; validate each revision source before migration; the assessment owner uses the byte-identical tos_source_record_digest_v1 profile, and historical producer attribution requires verification"
+      "producer_context": "human-form record and revision references; the assessment owner uses the byte-identical tos_source_record_digest_v1 profile, and exact historical producer attribution requires source evidence"
     },
     {
       "field": "digest",
@@ -74,7 +74,7 @@
       "file_contains": "source-claims",
       "pointer_contains": "/provenance/",
       "class": "other",
-      "producer_context": "source claim contexts can hash canonical payloads; resolve exact producer before migration"
+      "producer_context": "source claim evidence uses different producers for file, identity and canonical payload bindings"
     },
     {
       "field": "exact_sha256",
@@ -645,40 +645,5 @@
       "old_profile": "tos_source_record_digest_v1",
       "producer_context": "tos-compiler source_bibliographic_render hashes the selected predicate mapping using SourceRecordDigestV1."
     }
-  ],
-  "unresolved": [
-    "All other contexts, including source_sha256 outside the specified receipt bindings, record_sha256 outside text-layer bindings, payload_sha256, enclosing transaction identities, raw file and line hashes, dynamic map keys and external stores require producer-specific classification.",
-    "PostgreSQL, immutable runtime stores, archived verifiers, D1 and compressed artifacts are outside the tracked JSON/JSONL scan.",
-    "The tracked census still has unclassified field families and dynamic map keys. Their producer and input bytes require individual tracing; inventory output records their occurrence groups.",
-    "The generic sha256 field appears in file custody, content fingerprints, payload bindings and other contexts. Split each location by producer and exact input before classification.",
-    "text_layer_sha256 outside the classified anchor contexts requires tracing of the producing text-layer binding.",
-    "source_sha256 and revision in other contexts require their producing command or external artifact to distinguish canonical inputs from exact bytes.",
-    "Dynamic field names outside classified source_contracts require their owning maps and producer inputs."
-  ],
-  "producer_and_consumer_inventory": {
-    "legacy_profile_owners": {
-      "tos_corpus_snapshot_canonical_v1": "tos-foundation Json canonical profile; tos-source-store manifest and publication; snapshot canonical bytes include LF",
-      "tos_source_record_digest_v1": "tos-foundation Json canonical profile; tos-command source_command::record_digest, source forms, claims and journals; tos-validation assessment references; no LF",
-      "tos_source_command_input_v1": "tos-foundation Json canonical profile; tos-command source_command request and configuration inputs; no LF"
-    },
-    "direct_and_indirect_consumers_to_trace": [
-      "rust/crates/tos-access",
-      "rust/crates/tos-command",
-      "rust/crates/tos-compiler",
-      "rust/crates/tos-foundation",
-      "rust/crates/tos-ops-mechanics-plan",
-      "rust/crates/tos-query",
-      "rust/crates/tos-source-store",
-      "rust/crates/tos-validation",
-      "rust/crates/tos-web-rules",
-      "access/deploy/cloudflare-worker/src/human-forms.ts",
-      "access/shared/human-form-selection-codec.ts",
-      "access/web/src/observatory/readable-context.mjs"
-    ],
-    "independent_serialization": [
-      "emit_python_compact_json is an insertion-ordered wire emitter, not a canonical digest profile",
-      "access/web/src/research-workspace.ts uses separate local FNV proposal identities"
-    ],
-    "status": "Owner-level navigation only; individual direct calls, wrappers, all producers, consumer bindings, and external stores still require reconciliation before migration."
-  }
+  ]
 }
