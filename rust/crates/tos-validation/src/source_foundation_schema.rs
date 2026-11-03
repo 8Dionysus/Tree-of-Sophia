@@ -14,6 +14,7 @@ use crate::executor::{
     SchemaDiagnosticsCheckpoint, SchemaDiagnosticsOutcome, SharedSchemaWorkerQuota,
     VerifiedWorkerImageHandle, schema_diagnostics,
 };
+use crate::item_rules::ItemRefusal;
 use crate::record_biblio_cut::SourceCutInputWithIdentity;
 use crate::{FormatProfile, SchemaBackendProbe, SchemaResource};
 use serde_json::Value;
@@ -409,6 +410,34 @@ impl SourceFoundationSchemaSet {
     pub fn contract_digest(&self, contract: &str) -> Option<Digest256> {
         let base = contract.split_once('#').map_or(contract, |(base, _)| base);
         self.contracts.get(base).map(|(_, digest)| *digest)
+    }
+
+    /// Resolve exact schema bytes to their unique authenticated source path.
+    pub fn selected_contract_for_schema_raw(&self, raw: &[u8]) -> Result<&str, ItemRefusal> {
+        if raw.is_empty() || raw.len() > SchemaBackendProbe::MAX_RESOURCE_BYTES {
+            return Err(crate::item_budget_origin!());
+        }
+        let digest = Digest256::of_bytes(raw);
+        let mut selected = None;
+        for (path, (uri, selected_digest)) in &self.contracts {
+            if *selected_digest != digest
+                || !self
+                    .resources
+                    .iter()
+                    .any(|resource| resource.uri == *uri && resource.raw == raw)
+            {
+                continue;
+            }
+            if selected.is_some() {
+                return Err(ItemRefusal::Unsupported(
+                    "source schema bytes select multiple contracts".into(),
+                ));
+            }
+            selected = Some(path.as_str());
+        }
+        selected.ok_or_else(|| {
+            ItemRefusal::Unsupported("source schema bytes are not in the selected closure".into())
+        })
     }
 
     /// True when the selected catalog schema contains `$defs.entry` as an

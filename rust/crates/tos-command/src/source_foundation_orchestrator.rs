@@ -4565,6 +4565,9 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             );
         }
     };
+    drop(record_executor);
+    drop(item_schemas);
+    drop(layer_schemas);
     let default_schema_usage_after = match worker_quota.usage() {
         Ok(usage) => usage,
         Err(_) => {
@@ -5197,183 +5200,78 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
                     incomplete("candidate schema instance cap is zero"),
                 );
             }
-            let mut callback_shape = cut_worker_shape(callback_free, check_count);
-            callback_shape.max_total_raw_bytes = callback_shape
-                .max_total_raw_bytes
-                .min(max_schema_instance as u64)
-                .max(1);
-            callback_shape.aggregate_wire_upper_bound_bytes = callback_free.worker_wire_bytes;
-            let callback_stream =
-                match execution_limits.cut_worker_stream_budget(callback_free, callback_shape) {
-                    Ok(stream) => stream,
+            let mut callback_schema =
+                match tos_validation::source_cut::InProcessCutSchemaExecutor::from_cut(
+                    captured.cut(),
+                    FormatProfile::LegacyPythonObserved20260923,
+                    tos_validation::in_process::InputMode::LegacyPythonObservedBounded {
+                        max_instance_bytes: max_schema_instance,
+                    },
+                    deadline,
+                    cancelled,
+                ) {
+                    Ok(executor) => executor,
                     Err(error) => {
                         return fail_window(
                             execution_limits,
                             remaining_budget,
                             catalog_ticket,
-                            FoundationOrchestratorError::Command(error),
+                            owner(error),
                         );
                     }
                 };
-            let callback_worker_budget = match ticket_worker_budget(
-                &catalog_ticket,
-                deadline,
-                budgets.worker_address_space_bytes,
-            ) {
-                Ok(budget) => budget,
-                Err(error) => {
-                    return fail_window(execution_limits, remaining_budget, catalog_ticket, error);
-                }
-            };
-            // The callback's CutWorkerSchemaExecutor retains its own worker
-            // identity and a native prepared-image identity. Its worker
-            // duplicates the sealed FD but does not copy the executable.
-            let callback_identity_copy_state =
-                match worker_identity_path_clone_bytes(worker_image.identity(), 2) {
-                    Ok(bytes) => bytes,
-                    Err(error) => {
-                        return fail_window(
-                            execution_limits,
-                            remaining_budget,
-                            catalog_ticket,
-                            error,
-                        );
-                    }
-                };
-            let callback_limits = CutWorkerLimits {
-                max_receipts: check_count,
-                max_receipt_bytes: catalog_limits.max_output_row_bytes,
-            };
-            // The prepared closure's temporary DOMs are admitted before constructor allocation.
-            // This workspace expires at constructor return; retained controller state
-            // continues through its existing phase/H accounting, without a refund.
-            let callback_preparation_state =
-                match schema_preparation_state.checked_add(callback_identity_copy_state) {
-                    Some(bytes) => bytes,
-                    None => {
-                        return fail_window(
-                            execution_limits,
-                            remaining_budget,
-                            catalog_ticket,
-                            incomplete("admission callback schema preparation state overflow"),
-                        );
-                    }
-                };
-            if callback_preparation_state > callback_free.state_bytes {
-                return fail_window(
-                    execution_limits,
-                    remaining_budget,
-                    catalog_ticket,
-                    incomplete("admission callback schema preparation exceeds remaining state"),
-                );
-            }
-            let selected_worker = CutWorkerSchemaExecutor::from_cut_with_image(
-                captured.cut(),
-                FormatProfile::LegacyPythonObserved20260923,
-                &worker_image,
-                callback_worker_budget,
-                callback_limits,
-                deadline,
-                cancelled,
-            );
-            let mut callback_schema = match selected_worker {
-                Ok(executor) => executor,
-                Err(error) => {
-                    return fail_window(
-                        execution_limits,
-                        remaining_budget,
-                        catalog_ticket,
-                        owner(error),
-                    );
-                }
-            };
-            let callback_report_bytes =
-                usize::try_from(callback_free.worker_wire_bytes.min(usize::MAX as u64 - 1))
-                    .unwrap_or(usize::MAX - 1);
-            if callback_schema
-                .enable_diagnostics_v2(CutSchemaDiagnosticsLimits {
-                    max_total_issues: callback_free.issue_count.max(1),
-                    max_total_report_bytes: callback_report_bytes.max(1),
-                    max_total_state_bytes: callback_free.state_bytes.max(1),
-                })
-                .is_err()
-                || callback_schema
-                    .set_diagnostics_v2_legacy_raw_instance_limit(max_schema_instance)
-                    .is_err()
-                || callback_schema
-                    .set_shared_schema_worker_quota(worker_quota.clone())
-                    .is_err()
-                || callback_schema
-                    .set_operation_budget(callback_stream)
-                    .is_err()
+            if callback_schema.selected_source_revision() != Some(schema_set.source_revision())
+                || callback_schema.binding().schema_set_sha256 != schema_set.schema_set_sha256()
+                || callback_schema.binding().schema_profile != schema_set.profile()
             {
                 return fail_window(
                     execution_limits,
                     remaining_budget,
                     catalog_ticket,
-                    incomplete("candidate schema callback worker setup refused"),
+                    incomplete("candidate callback schema closure differs from selected cut"),
                 );
             }
-            let controller_state = match callback_schema
-                .diagnostics_v2_controller_state_upper_bound(max_schema_instance, 4096)
-            {
-                Ok(state) => state,
-                Err(error) => {
-                    return fail_window(
-                        execution_limits,
-                        remaining_budget,
-                        catalog_ticket,
-                        owner(error),
-                    );
-                }
-            };
-            let callback_available_state = match callback_free
-                .state_bytes
-                .checked_sub(controller_state)
-                .and_then(|state| state.checked_sub(callback_identity_copy_state))
-            {
-                Some(state) => state,
-                None => {
-                    return fail_window(
-                        execution_limits,
-                        remaining_budget,
-                        catalog_ticket,
-                        incomplete("candidate schema and worker state exceed remaining budget"),
-                    );
-                }
-            };
-            if callback_schema
-                .set_diagnostics_v2_controller_state_cap(controller_state)
-                .is_err()
-            {
-                return fail_window(
-                    execution_limits,
-                    remaining_budget,
-                    catalog_ticket,
-                    incomplete("candidate schema controller cap refused"),
-                );
-            }
-            let mut schema_check = |path: &str,
-                                    raw: &[u8],
-                                    schema_raw: &[u8]|
-             -> io::Result<Option<String>> {
-                let diagnostic = callback_schema
-                    .check_diagnostics_v2_for_schema_raw(path, raw, schema_raw, deadline, cancelled)
-                    .map_err(|_| io::Error::other("selected candidate schema check refused"))?;
-                if diagnostic.is_valid() {
-                    Ok(None)
-                } else if diagnostic.is_invalid() {
-                    Ok(Some("selected candidate schema is invalid".to_owned()))
-                } else {
-                    Err(io::Error::other(
-                        "selected candidate schema report incomplete",
-                    ))
-                }
-            };
-            let callback_reservation = FoundationPhaseReservation {
-                state_bytes: callback_available_state,
-                ..callback_free
-            };
+            let mut completed_schema_checks = 0usize;
+            let mut schema_check =
+                |path: &str, raw: &[u8], schema_raw: &[u8]| -> io::Result<Option<String>> {
+                    if cancelled.load(Ordering::Acquire) || Instant::now() >= deadline {
+                        return Err(io::Error::other(
+                            "candidate schema check cancelled or expired",
+                        ));
+                    }
+                    if completed_schema_checks >= check_count {
+                        return Err(io::Error::other("candidate schema check count exceeded"));
+                    }
+                    let contract = schema_set
+                        .selected_contract_for_schema_raw(schema_raw)
+                        .map_err(|_| {
+                            io::Error::other("candidate schema is outside selected closure")
+                        })?;
+                    let diagnostic = callback_schema
+                        .diagnostic_for(
+                            path,
+                            contract,
+                            raw,
+                            tos_validation::executor::schema_diagnostics::Caps::CURRENT,
+                            deadline,
+                            cancelled,
+                        )
+                        .map_err(|_| io::Error::other("selected candidate schema check refused"))?;
+                    use tos_validation::executor::schema_diagnostics::Status;
+                    match diagnostic.report.status {
+                        Status::Valid | Status::Invalid => {
+                            completed_schema_checks += 1;
+                            Ok((diagnostic.report.status == Status::Invalid)
+                                .then(|| "selected candidate schema is invalid".to_owned()))
+                        }
+                        _ => Err(io::Error::other(
+                            "selected candidate schema report incomplete",
+                        )),
+                    }
+                };
+            // The callback accounts its logical work; process-level observation
+            // owns the in-process engine's memory and CPU measurements.
+            let callback_reservation = callback_free;
             let callback = receiver;
             let (index, callback_usage) =
                 match callback(rows, &mut schema_check, callback_reservation) {
@@ -5396,7 +5294,7 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
                     execution_limits,
                     remaining_budget,
                     catalog_ticket,
-                    incomplete("candidate callback duplicated shared schema-worker accounting"),
+                    incomplete("candidate callback reported unexpected worker work"),
                 );
             }
             if callback_schema.finish(deadline, cancelled).is_err() {
@@ -5432,7 +5330,7 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
                 };
             catalog_cpu = catalog_cpu_after_callback;
             catalog_wire = catalog_wire_after_callback;
-            let mut callback_amounts = match phase_amounts(callback_usage) {
+            let callback_amounts = match phase_amounts(callback_usage) {
                 Ok(amounts) => amounts,
                 Err(error) => {
                     return fail_window(execution_limits, remaining_budget, catalog_ticket, error);
@@ -5452,32 +5350,6 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
                     incomplete("candidate callback exceeded its live reservation"),
                 );
             }
-            callback_amounts.state_bytes =
-                match callback_amounts.state_bytes.checked_add(controller_state) {
-                    Some(state) => state,
-                    None => {
-                        return fail_window(
-                            execution_limits,
-                            remaining_budget,
-                            catalog_ticket,
-                            incomplete("candidate schema controller state overflow"),
-                        );
-                    }
-                };
-            callback_amounts.state_bytes = match callback_amounts
-                .state_bytes
-                .checked_add(callback_identity_copy_state)
-            {
-                Some(state) => state,
-                None => {
-                    return fail_window(
-                        execution_limits,
-                        remaining_budget,
-                        catalog_ticket,
-                        incomplete("candidate worker identity state overflow"),
-                    );
-                }
-            };
             candidate_result = Some(callback_amounts);
             admission_index = Some(index);
         }

@@ -2537,6 +2537,64 @@ fn actual_source_foundation_inventory_profile2_binds_exceptional_schema_results(
             Some(Digest256::of_bytes(raw)),
         );
     }
+    let selected_raw = &contracts[NEW_DECLARATION];
+    assert_eq!(
+        original_schemas
+            .selected_contract_for_schema_raw(selected_raw)
+            .unwrap(),
+        NEW_DECLARATION
+    );
+    let mut changed_raw = selected_raw.clone();
+    changed_raw.push(b' ');
+    assert!(
+        original_schemas
+            .selected_contract_for_schema_raw(&changed_raw)
+            .is_err()
+    );
+    assert!(
+        original_schemas
+            .selected_contract_for_schema_raw(b"")
+            .is_err()
+    );
+    let exact_cut = super::command_form_cases::open_cut(
+        &original_store,
+        original_revision,
+        deadline,
+        &cancelled,
+    );
+    let mut callback = tos_validation::source_cut::InProcessCutSchemaExecutor::from_cut(
+        &exact_cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        tos_validation::in_process::InputMode::LegacyPythonObservedBounded {
+            max_instance_bytes: 1_048_576,
+        },
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    assert_eq!(
+        callback.binding().schema_set_sha256,
+        original_schemas.schema_set_sha256()
+    );
+    for (raw, status) in [(&b"{}"[..], Status::Valid), (&b"1"[..], Status::Invalid)] {
+        let diagnostic = callback
+            .diagnostic_for(
+                "candidate.json",
+                original_schemas
+                    .selected_contract_for_schema_raw(selected_raw)
+                    .unwrap(),
+                raw,
+                tos_validation::executor::schema_diagnostics::Caps::CURRENT,
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        assert_eq!(diagnostic.report.status, status);
+        assert_eq!(
+            diagnostic.identity,
+            tos_validation::source_cut::InProcessCutIdentity::Source(original_revision)
+        );
+    }
 
     let inventory_schema: Value = serde_json::from_slice(&contracts[INVENTORY_SCHEMA]).unwrap();
     let inventory_uri = inventory_schema["$id"].as_str().unwrap();
