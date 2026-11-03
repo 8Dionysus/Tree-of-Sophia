@@ -8083,6 +8083,20 @@ pub fn resolve_record_version_readonly(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ResolvedRecordVersion> {
+    resolve_record_version_readonly_with(
+        input, owner_path, limits, exact, worker, deadline, cancelled,
+    )
+}
+
+pub(crate) fn resolve_record_version_readonly_with(
+    input: &RecordVersionReadInput<'_>,
+    owner_path: &str,
+    limits: ItemLimits,
+    exact: &JsonValue,
+    worker: &mut impl RecordSchemaWorker<Identity = tos_foundation::SourceRevision>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<ResolvedRecordVersion> {
     input.check()?;
     if input.schema_source_path != owner_path {
         return Err(SourceCommandError::Conflict(

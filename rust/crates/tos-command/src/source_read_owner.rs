@@ -19,8 +19,8 @@ use tos_foundation::{Digest256, JsonLimits, JsonMode, JsonValue, SourceRevision}
 pub use tos_validation::executor::ExactWorkerIdentity;
 use tos_validation::{
     FormatProfile, SchemaResource,
-    executor::ExecutorBudget,
-    source_cut::{CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor},
+    in_process::InputMode,
+    source_cut::{CutSchemaExecutor, InProcessCandidateSchemaExecutor},
 };
 #[derive(Clone, Copy)]
 pub enum SourceReadOperation {
@@ -34,9 +34,79 @@ pub struct SelectedSourceReadOwner {
     inputs: Arc<[u8]>,
     revision: String,
     inputs_sha256: String,
-    worker: ExactWorkerIdentity,
     local: Option<PathBuf>,
     slots: Arc<AtomicUsize>,
+}
+// The filesystem selection carries a revision label and selected schema bytes.
+// It remains a candidate identity; each metadata read compares contract bytes.
+struct SelectedReadSchemas {
+    revision: SourceRevision,
+    inner: InProcessCandidateSchemaExecutor<SourceRevision>,
+}
+impl CutSchemaExecutor for SelectedReadSchemas {
+    fn schema_profile(&self) -> Option<FormatProfile> {
+        self.inner.schema_profile()
+    }
+    fn schema_execution_binding(&self) -> Option<tos_foundation::SchemaExecutionBinding> {
+        self.inner.schema_execution_binding()
+    }
+    fn selected_contract_digest(&self, contract: &str) -> Option<Digest256> {
+        self.inner.selected_contract_digest(contract)
+    }
+    fn check(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> std::result::Result<bool, tos_validation::item_rules::ItemRefusal> {
+        use tos_validation::executor::schema_diagnostics::{Caps, Failure, Status};
+        let report = self
+            .inner
+            .diagnostic_for(path, contract, raw, Caps::CURRENT, deadline, cancelled)?
+            .report;
+        match report.status {
+            Status::Valid => Ok(true),
+            Status::Invalid => Ok(false),
+            Status::InputRejected if report.failure == Failure::InputBudget => {
+                Err(tos_validation::item_rules::ItemRefusal::Budget)
+            }
+            _ => Err(tos_validation::item_rules::ItemRefusal::Unsupported(
+                format!(
+                    "schema diagnostic {:?}: {:?}",
+                    report.status, report.failure
+                ),
+            )),
+        }
+    }
+    fn finish(
+        &mut self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> std::result::Result<(), tos_validation::item_rules::ItemRefusal> {
+        self.inner.finish(deadline, cancelled)
+    }
+}
+impl crate::source_revisions::RecordSchemaWorker for SelectedReadSchemas {
+    type Identity = SourceRevision;
+    fn input_identity(&self) -> Option<SourceRevision> {
+        Some(self.revision)
+    }
+    fn contract_digest(&self, contract: &str) -> Option<Digest256> {
+        self.selected_contract_digest(contract)
+    }
+    fn public_profile(
+        &mut self,
+        cut: Option<&tos_source_store::CorpusCutReader>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        ctx: &impl crate::source_revisions::RecordRead<Identity = SourceRevision>,
+        config: &JsonValue,
+        record: &JsonValue,
+    ) -> Result<(JsonValue, Vec<String>, Option<String>, Option<String>)> {
+        crate::source_revisions::public_profile(cut, self, deadline, cancelled, ctx, config, record)
+    }
 }
 struct Slot(Arc<AtomicUsize>);
 fn reserve_source_read_slot(slots: &Arc<AtomicUsize>) -> Result<Slot> {
@@ -127,7 +197,6 @@ impl SelectedSourceReadOwner {
             inputs: Arc::from(inputs_raw),
             revision: expected_revision.to_owned(),
             inputs_sha256: input.digest().to_owned(),
-            worker,
             local: local_selection.map(Path::to_owned),
             slots: Arc::new(AtomicUsize::new(0)),
         })
@@ -549,8 +618,7 @@ impl SelectedSourceReadOwner {
         fs: &mut SourceReadFilesystem,
         deadline: Instant,
         cancelled: &AtomicBool,
-    ) -> Result<CutWorkerSchemaExecutor> {
-        let mut contracts = BTreeMap::new();
+    ) -> Result<SelectedReadSchemas> {
         let mut resources = Vec::new();
         let mut total = 0usize;
         for (name, directory) in fs.list_directory("ToS/contracts", deadline, cancelled)? {
@@ -568,27 +636,16 @@ impl SelectedSourceReadOwner {
                 .ok_or(Error::Unsupported("source schema byte budget"))?;
             let value = bytes::parse(&raw, 1_048_576).map_err(project)?;
             let uri = wire::text(&value, "$id")?.to_owned();
-            contracts.insert(path, (uri.clone(), Digest256::of_bytes(&raw)));
-            resources.push(SchemaResource { uri, raw });
+            resources.push((path, SchemaResource { uri, raw }));
         }
         let revision = SourceRevision(
             Digest256::from_hex(&self.revision).map_err(|_| Error::Invalid("source revision"))?,
         );
-        let mut budget = ExecutorBudget::laboratory();
-        budget.execution_wall = budget
-            .execution_wall
-            .min(deadline.saturating_duration_since(Instant::now()));
-        CutWorkerSchemaExecutor::from_selected_resources(
+        let inner = InProcessCandidateSchemaExecutor::from_selected_source_resources(
             revision,
-            contracts,
             resources,
             FormatProfile::LegacyPythonObserved20260923,
-            self.worker.clone(),
-            budget,
-            CutWorkerLimits {
-                max_receipts: 128,
-                max_receipt_bytes: 2_097_152,
-            },
+            InputMode::SerdeNormalized,
             deadline,
             cancelled,
         )
@@ -596,7 +653,8 @@ impl SelectedSourceReadOwner {
             path: "source.read".into(),
             root: "selected-schema".into(),
             reason,
-        })
+        })?;
+        Ok(SelectedReadSchemas { revision, inner })
     }
     fn read_target(
         &self,
@@ -607,7 +665,7 @@ impl SelectedSourceReadOwner {
         roots: &mut Roots,
         deadline: Instant,
         cancelled: &AtomicBool,
-    ) -> Result<(Value, Value, Value, Option<CutWorkerSchemaExecutor>)> {
+    ) -> Result<(Value, Value, Value, Option<SelectedReadSchemas>)> {
         let context = crate::source_read_layers::LayerContext {
             source_root: &self.root,
             full_revision: full,
@@ -666,7 +724,7 @@ impl SelectedSourceReadOwner {
                     max_issues: 128,
                     deadline,
                 };
-                let result = crate::source_revisions::resolve_record_version_readonly(
+                let result = crate::source_revisions::resolve_record_version_readonly_with(
                     &input,
                     path,
                     limits,
@@ -853,6 +911,56 @@ pub fn software_packet(operation: SourceReadOperation) -> Result<Vec<u8>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn selected_read_schema_retains_candidate_scope_and_contract_digest() {
+        use crate::source_revisions::RecordSchemaWorker;
+        use std::time::Duration;
+        let path = "ToS/contracts/selected-read.schema.json";
+        let uri = format!("https://tree-of-sophia.local/{path}");
+        let raw = format!(r#"{{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"{uri}","type":"integer"}}"#).into_bytes();
+        let revision = SourceRevision(Digest256::of_bytes(b"selected-vector-revision"));
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let inner = InProcessCandidateSchemaExecutor::from_selected_source_resources(
+            revision,
+            vec![(
+                path.into(),
+                SchemaResource {
+                    uri,
+                    raw: raw.clone(),
+                },
+            )],
+            FormatProfile::LegacyPythonObserved20260923,
+            InputMode::SerdeNormalized,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        let mut schema = SelectedReadSchemas { revision, inner };
+        assert_eq!(schema.input_identity(), Some(revision));
+        assert_eq!(RecordSchemaWorker::source_revision(&schema), None);
+        assert!(!schema.resource_closure_bound_to_identity());
+        assert!(matches!(
+            schema.schema_execution_binding(),
+            Some(tos_foundation::SchemaExecutionBinding::InProcessV1(_))
+        ));
+        assert_eq!(
+            schema.contract_digest(path),
+            Some(Digest256::of_bytes(&raw))
+        );
+        assert!(
+            schema
+                .check("record.json", b"1", path, deadline, &cancelled)
+                .unwrap()
+        );
+        assert!(
+            !schema
+                .check("record.json", b"null", path, deadline, &cancelled)
+                .unwrap()
+        );
+        schema.finish(deadline, &cancelled).unwrap();
+    }
 
     #[test]
     fn selected_owner_caps_parallel_requests_and_releases_slots_after_drop() {
