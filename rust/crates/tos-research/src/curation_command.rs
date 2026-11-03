@@ -364,6 +364,175 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
         if boundary_root.is_some() && stage != "sentence-alignment" {
             return Err("boundary root applies to sentence alignment".into());
         }
+        if matches!(action, "check" | "build") && stage == "lexical-usage-context" {
+            let input = Path::new(input_root.ok_or("usage context requires --local-input-root")?);
+            let output =
+                Path::new(output_root.ok_or("usage context requires --local-output-root")?);
+            if !input.is_absolute() || !output.is_absolute() {
+                return Err("usage roots must be absolute".into());
+            }
+            let targets = if action == "build" {
+                let tracked =
+                    Path::new(tracked_root.ok_or("build requires --tracked-output-root")?);
+                let private = select_empty_output(&ctx, output, &[&root, input, tracked])?;
+                let tracked = select_empty_output(&ctx, tracked, &[&root, input, output])?;
+                Some((private, tracked))
+            } else {
+                None
+            };
+            let digest = |raw: &[u8]| tos_foundation::Digest256::of_bytes(raw).to_hex();
+            let plan_ref = recipe["plan_ref"].as_str().ok_or("usage plan required")?;
+            let plan_raw = ctx.read(plan_ref)?;
+            if recipe["plan_sha256"] != digest(&plan_raw) {
+                return Err("usage plan fixity differs".into());
+            }
+            let plan: Value = serde_json::from_slice(&plan_raw).map_err(|e| e.to_string())?;
+            let row_schema_ref = plan["local_bundle"]["schema_ref"]
+                .as_str()
+                .ok_or("usage row schema reference required")?;
+            let row_schema_raw = ctx.read(row_schema_ref)?;
+            let row_schema: Value =
+                serde_json::from_slice(&row_schema_raw).map_err(|e| e.to_string())?;
+            if row_schema["required"] != recipe["row_fields"]
+                || row_schema["properties"]["question_id"]["const"] != recipe["question_id"]
+                || row_schema["properties"]["schema_version"]["const"]
+                    != plan["local_bundle"]["schema_version"]
+            {
+                return Err("usage row schema binding differs".into());
+            }
+            let source_ref = plan["source_lexical_index"]["tracked_projection_ref"]
+                .as_str()
+                .ok_or("usage projection reference required")?;
+            let source_raw = ctx.read(source_ref)?;
+            if plan["source_lexical_index"]["tracked_projection_sha256"] != digest(&source_raw) {
+                return Err("usage projection fixity differs".into());
+            }
+            let source: Value = serde_json::from_slice(&source_raw).map_err(|e| e.to_string())?;
+            let source_items = source["source_items"]
+                .as_array()
+                .ok_or("usage source items required")?
+                .iter()
+                .map(|x| x["item_ref"].as_str().ok_or("usage source item required"))
+                .collect::<Result<BTreeSet<_>, _>>()?;
+            let selected_items = recipe["source_item_refs"]
+                .as_array()
+                .ok_or("usage selected items required")?
+                .iter()
+                .map(|x| x.as_str().ok_or("usage selected item required"))
+                .collect::<Result<BTreeSet<_>, _>>()?;
+            if source_items != selected_items
+                || recipe["row_fields"] != plan["local_bundle"]["required_fields"]
+            {
+                return Err("usage source items or row fields differ".into());
+            }
+            let mut expected = BTreeMap::new();
+            let mut retained = BTreeMap::new();
+            for artifact in recipe["retained_artifacts"]
+                .as_array()
+                .ok_or("usage artifacts required")?
+            {
+                let role = artifact["role"]
+                    .as_str()
+                    .ok_or("usage artifact role required")?;
+                let pointer = artifact["plan_pointer"]
+                    .as_str()
+                    .ok_or("usage artifact pointer required")?;
+                let reference = plan
+                    .pointer(pointer)
+                    .and_then(Value::as_str)
+                    .ok_or("usage plan output missing")?;
+                let raw = ctx.read(reference)?;
+                if artifact["sha256"] != digest(&raw)
+                    || expected
+                        .insert(role, (reference.to_owned(), digest(&raw)))
+                        .is_some()
+                {
+                    return Err("usage artifact fixity or role differs".into());
+                }
+                retained.insert(
+                    role,
+                    serde_json::from_slice::<Value>(&raw).map_err(|e| e.to_string())?,
+                );
+            }
+            if expected.keys().copied().collect::<BTreeSet<_>>()
+                != BTreeSet::from(["event", "receipt"])
+            {
+                return Err("usage artifact roles differ".into());
+            }
+            let identities = recipe["record_identities"]
+                .as_array()
+                .ok_or("usage identity required")?;
+            if identities.len() != 1
+                || identities[0]["role"] != "receipt"
+                || identities[0]["generation_policy"] != "native-generation"
+                || retained["receipt"]["receipt_id"] != identities[0]["base_id"]
+                || retained["receipt"]["local_bundle"]["required_fields"] != recipe["row_fields"]
+                || retained["event"]["started_at"] != recipe["historical_event_at"]
+                || retained["event"]["ended_at"] != recipe["historical_event_at"]
+            {
+                return Err("usage historical identity or profile differs".into());
+            }
+            let history = crate::lexical_usage_context::History {
+                receipt_sha256: &expected["receipt"].1,
+                event_sha256: &expected["event"].1,
+                receipt_id: identities[0]["base_id"]
+                    .as_str()
+                    .ok_or("usage receipt identity required")?,
+                event_at: recipe["historical_event_at"]
+                    .as_str()
+                    .ok_or("usage event time required")?,
+                row_fields: recipe["row_fields"]
+                    .as_array()
+                    .ok_or("usage row fields required")?,
+                question_id: recipe["question_id"]
+                    .as_str()
+                    .ok_or("usage question identity required")?,
+            };
+            let options = crate::lexical_usage_context::Options {
+                history: Some(history),
+                build: false,
+                input_root: input,
+                output_root: if action == "build" { &root } else { output },
+                plan: plan_ref,
+                generation: None,
+                event_at: None,
+                receipt: None,
+                provenance: None,
+            };
+            let result = if let Some((private, tracked)) = targets.as_ref() {
+                crate::lexical_usage_context::replay_selected(&ctx, options, private, tracked)?
+            } else {
+                crate::lexical_usage_context::run(&ctx, options)?
+            };
+            if result["receipt_sha256"] != expected["receipt"].1
+                || result["provenance_sha256"] != expected["event"].1
+                || result["packet_sha256"] != retained["receipt"]["local_bundle"]["sha256"]
+                || ctx.read(plan_ref)? != plan_raw
+                || ctx.read(source_ref)? != source_raw
+                || ctx.read(row_schema_ref)? != row_schema_raw
+            {
+                return Err("usage selected sources or results changed".into());
+            }
+            selected.verify_unchanged(&ctx)?;
+            for referenced in &refs {
+                referenced.verify_unchanged(&ctx)?;
+            }
+            let mut result = result;
+            result["stage"] = serde_json::json!(stage);
+            result["curation_ref"] = serde_json::json!(relative);
+            result["current_curation_sha256"] = serde_json::json!(digest(&owner.raw));
+            result["current_execution_source_sha256"] =
+                serde_json::json!(digest(include_bytes!("curation_command.rs")));
+            result["current_producer_sha256"] =
+                serde_json::json!(digest(include_bytes!("lexical_usage_context.rs")));
+            result["current_custody_sha256"] =
+                serde_json::json!(digest(include_bytes!("lexical_recurrence_support.rs")));
+            result["current_common_support_sha256"] =
+                serde_json::json!(digest(include_bytes!("research_support.rs")));
+            result["current_sqlite_version"] = serde_json::json!(rusqlite::version());
+            writeln!(out, "{result}").map_err(|error| error.to_string())?;
+            return Ok(());
+        }
         if matches!(action, "check" | "build") && stage == "lexical-recurrence" {
             if input_root.is_some() {
                 return Err("lexical recurrence reads the selected source cut".into());
@@ -499,6 +668,8 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
                 serde_json::json!(digest(include_bytes!("lexical_recurrence.rs")));
             result["current_custody_sha256"] =
                 serde_json::json!(digest(include_bytes!("lexical_recurrence_support.rs")));
+            result["current_common_support_sha256"] =
+                serde_json::json!(digest(include_bytes!("research_support.rs")));
             result["current_rational_sha256"] = serde_json::json!(digest(include_bytes!(
                 "../../tos-foundation/src/rational.rs"
             )));

@@ -12,6 +12,7 @@ mod lexical_derivatives_command;
 mod lexical_index_command;
 mod lexical_recurrence;
 mod lexical_recurrence_support;
+mod lexical_usage_context;
 mod morphology_result_command;
 mod nietzsche_transfer_routes_command;
 mod research_support;

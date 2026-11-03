@@ -11,8 +11,8 @@ pub(crate) const META_CAP: u64 = 4 * 1024 * 1024;
 pub(crate) const PACKET_CAP: usize = 64 * 1024 * 1024;
 pub(crate) struct Held {
     reference: String,
-    file: File,
-    metadata: std::fs::Metadata,
+    pub(crate) file: File,
+    pub(crate) metadata: std::fs::Metadata,
     pub(crate) digest: String,
 }
 impl Held {
@@ -118,4 +118,34 @@ pub(crate) fn present(
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
         Err(e) => Err(e.to_string()),
     }
+}
+
+pub(crate) fn digest_bound(
+    ctx: &ResearchExecution,
+    reference: &str,
+    digest: &str,
+    held: &mut Vec<Held>,
+) -> Result<()> {
+    let source = Held::open(ctx, reference, PACKET_CAP as u64)?;
+    ensure(
+        source.digest == digest,
+        &format!("source digest drift: {reference}"),
+    )?;
+    held.push(source);
+    Ok(())
+}
+pub(crate) fn validate(
+    schemas: &tos_validation::SchemaBackendProbe,
+    name: &str,
+    value: &Value,
+) -> Result<()> {
+    ensure(
+        schemas
+            .is_valid_raw(
+                &format!("https://tree-of-sophia.local/ToS/contracts/{name}.schema.json"),
+                &canonical(value.clone())?,
+            )
+            .map_err(|e| format!("schema validation: {e:?}"))?,
+        &format!("{name} schema refused"),
+    )
 }

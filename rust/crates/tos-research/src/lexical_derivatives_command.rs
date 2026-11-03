@@ -183,13 +183,14 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
             );
         }
         if usage {
-            return lexical_derivatives::usage_context::run(
+            return crate::lexical_usage_context::run(
                 &ctx,
-                lexical_derivatives::usage_context::Options {
+                crate::lexical_usage_context::Options {
+                    history: None,
                     build,
                     input_root: &input,
                     output_root: &output,
-                    plan: plan.unwrap_or(lexical_derivatives::usage_context::PLAN),
+                    plan: plan.unwrap_or(crate::lexical_usage_context::PLAN),
                     generation,
                     event_at: at,
                     receipt,

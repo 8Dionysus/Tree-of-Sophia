@@ -1,5 +1,6 @@
 //! Complete page-bounded KWIC for the frozen exact-form method control.
-use super::{
+use crate::lexical_recurrence_support as support;
+use crate::lexical_recurrence_support::{
     Held, META_CAP, PACKET_CAP, ResearchExecution, Result, canonical, digest_bound, ensure,
     generated_path, present, read_json_bounded, s, sha, valid_generation,
 };
@@ -8,7 +9,8 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     path::Path,
 };
-const BUILDER: &str = "rust/crates/tos-compiler/src/lexical_derivatives/usage_context.rs";
+const BUILDER: &str = "rust/crates/tos-research/src/lexical_usage_context.rs";
+// Historical alias defaults retire with the compatibility command.
 pub const PLAN: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/usage-context-plan.v1.json";
 const RETAINED_RECEIPT_SHA: &str =
     "2c0b0cb5cd36bee49a12f9c6c6452383e121b000fa556e99b73bbb9082a76a19";
@@ -53,7 +55,7 @@ fn add(a: u64, b: u64) -> Result<u64> {
         .ok_or("usage-context count overflow".into())
 }
 fn validate(schemas: &tos_validation::SchemaBackendProbe, name: &str, value: &Value) -> Result<()> {
-    super::validate(schemas, name, value)
+    support::validate(schemas, name, value)
 }
 #[derive(Default)]
 struct Part {
@@ -68,6 +70,7 @@ fn rows(
     plan: &Value,
     database_sha: &str,
     schemas: &tos_validation::SchemaBackendProbe,
+    question_id: &str,
 ) -> Result<(Vec<u8>, Value)> {
     let db = ctx.open_sqlite_readonly_for_ordered_scan(file)?;
     ensure(
@@ -216,7 +219,7 @@ fn rows(
             "duplicate usage context identity",
         )?;
         let (l, r) = (left.len() as u64, right.len() as u64);
-        let value = json!({"schema_version":"tos_lexical_usage_context_row_v1","context_id":context_id,"question_id":"zarathustra-work-identity-control-context-v1","form_key":row_key,"exact_form_sha256":target_sha,"occurrence_id":occurrence,"item_ref":item,"part_order":part,"source_file_sha256":source_file,"token_ordinal":ordinal,"page_resource_id":page,"section_resource_id":section,"text_node_path":text_path,"start_offset":start,"end_offset":finish,"editorial_status":editorial_status,"target_exact_form":target,"left_exact_tokens":left,"right_exact_tokens":right,"left_token_count":l,"right_token_count":r,"requested_window_each_side":window,"page_start_clipped":l<window,"page_end_clipped":r<window,"source_database_sha256":database_sha,"authority":"unreviewed-source-visible-method-control"});
+        let value = json!({"schema_version":s(&plan["local_bundle"]["schema_version"])?,"context_id":context_id,"question_id":question_id,"form_key":row_key,"exact_form_sha256":target_sha,"occurrence_id":occurrence,"item_ref":item,"part_order":part,"source_file_sha256":source_file,"token_ordinal":ordinal,"page_resource_id":page,"section_resource_id":section,"text_node_path":text_path,"start_offset":start,"end_offset":finish,"editorial_status":editorial_status,"target_exact_form":target,"left_exact_tokens":left,"right_exact_tokens":right,"left_token_count":l,"right_token_count":r,"requested_window_each_side":window,"page_start_clipped":l<window,"page_end_clipped":r<window,"source_database_sha256":database_sha,"authority":"unreviewed-source-visible-method-control"});
         validate(schemas, "lexical-usage-context-row", &value)?;
         let raw = canonical(value)?;
         ensure(
@@ -290,7 +293,16 @@ fn rows(
         json!({"summary":summary,"parts":part_values,"identity_closure":{"unique_context_id_count":context_ids.len(),"unique_occurrence_id_count":occurrence_ids.len(),"target_digest_match_count":count,"page_selector_resolution_count":count,"section_selector_resolution_count":count-unsectioned,"source_file_digest_resolution_count":count,"complete_occurrence_census":true}}),
     ))
 }
+pub struct History<'a> {
+    pub receipt_sha256: &'a str,
+    pub event_sha256: &'a str,
+    pub receipt_id: &'a str,
+    pub event_at: &'a str,
+    pub row_fields: &'a [Value],
+    pub question_id: &'a str,
+}
 pub struct Options<'a> {
+    pub history: Option<History<'a>>,
     pub build: bool,
     pub input_root: &'a Path,
     pub output_root: &'a Path,
@@ -301,6 +313,44 @@ pub struct Options<'a> {
     pub provenance: Option<&'a str>,
 }
 pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
+    run_selected(ctx, options, None)
+}
+
+/// Replay historical private and text-free outputs into separate directories.
+pub fn replay_selected(
+    ctx: &ResearchExecution,
+    options: Options<'_>,
+    private_target: &ResearchExecution,
+    tracked_target: &ResearchExecution,
+) -> Result<Value> {
+    ensure(
+        !options.build
+            && options.generation.is_none()
+            && options.event_at.is_none()
+            && options.receipt.is_none()
+            && options.provenance.is_none(),
+        "historical usage replay requires the retained profile",
+    )?;
+    for target in [private_target, tracked_target] {
+        for root in [ctx.root(), options.input_root, options.output_root] {
+            ensure(
+                !target.root().starts_with(root) && !root.starts_with(target.root()),
+                "usage replay targets must be separate from sources and baseline",
+            )?;
+        }
+    }
+    ensure(
+        !private_target.root().starts_with(tracked_target.root())
+            && !tracked_target.root().starts_with(private_target.root()),
+        "usage private and tracked outputs must be separate",
+    )?;
+    run_selected(ctx, options, Some((private_target, tracked_target)))
+}
+fn run_selected(
+    ctx: &ResearchExecution,
+    options: Options<'_>,
+    replay: Option<(&ResearchExecution, &ResearchExecution)>,
+) -> Result<Value> {
     ensure(
         !options.build || options.generation.is_some(),
         "build requires a new generation",
@@ -326,7 +376,7 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
         )?;
     }
     let mut held = Vec::new();
-    let schemas = super::schemas(
+    let schemas = support::schemas(
         ctx,
         &[
             "lexical-usage-context-plan",
@@ -339,6 +389,25 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
     let plan = read_json_bounded(ctx, options.plan, META_CAP, &mut held)?;
     let plan_sha = held.last().unwrap().digest.clone();
     validate(&schemas, "lexical-usage-context-plan", &plan)?;
+    let row_fields = if let Some(history) = options.history.as_ref() {
+        ensure(
+            history
+                .row_fields
+                .iter()
+                .filter_map(Value::as_str)
+                .eq(ROW_FIELDS)
+                && history.row_fields.len() == ROW_FIELDS.len(),
+            "unsupported usage row field profile",
+        )?;
+        Value::Array(history.row_fields.to_vec())
+    } else {
+        json!(ROW_FIELDS)
+    };
+    let receipt_id = options
+        .history
+        .as_ref()
+        .map(|h| h.receipt_id)
+        .unwrap_or("lexical-usage-context-receipt:zarathustra-work-identity-control-v1");
     let source = &plan["source_lexical_index"];
     let control = &plan["recurrence_control"];
     for (obj, r, h) in [
@@ -391,13 +460,25 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
             && database.metadata.len() == u(&source["local_database_bytes"])?,
         "usage database fixity drift",
     )?;
-    let (packet, aggregate) = rows(&input, &database.file, &plan, &database.digest, &schemas)?;
+    let question_id = options
+        .history
+        .as_ref()
+        .map(|h| h.question_id)
+        .unwrap_or("zarathustra-work-identity-control-context-v1");
+    let (packet, aggregate) = rows(
+        &input,
+        &database.file,
+        &plan,
+        &database.digest,
+        &schemas,
+        question_id,
+    )?;
     let research = Held::open(ctx, s(&plan["research_ref"])?, META_CAP)?;
     let research_sha = research.digest.clone();
     held.push(research);
     let builder = Held::open(ctx, BUILDER, META_CAP)?;
     ensure(
-        builder.digest == sha(include_bytes!("usage_context.rs")),
+        builder.digest == sha(include_bytes!("lexical_usage_context.rs")),
         "running usage generator source drift",
     )?;
     let builder_sha = builder.digest.clone();
@@ -431,14 +512,20 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
         "usage output paths must differ",
     )?;
     let policy = &plan["context_policy"];
-    let mut receipt = json!({"$schema":"https://tree-of-sophia.local/ToS/contracts/lexical-usage-context-receipt.schema.json","schema_version":"tos_lexical_usage_context_receipt_v1","generated_or_authored":"generated_from_local_lexical_projection","receipt_id":format!("lexical-usage-context-receipt:zarathustra-work-identity-control-v1{suffix}"),"plan":{"ref":options.plan,"sha256":plan_sha},"generator":{"ref":BUILDER,"sha256":builder_sha},"source_database":{"relative_path":source["local_database_relative_path"],"sha256":database.digest,"bytes":database.metadata.len(),"quick_check":"ok"},
+    let mut receipt = json!({"$schema":"https://tree-of-sophia.local/ToS/contracts/lexical-usage-context-receipt.schema.json","schema_version":"tos_lexical_usage_context_receipt_v1","generated_or_authored":"generated_from_local_lexical_projection","receipt_id":format!("{receipt_id}{suffix}"),"plan":{"ref":options.plan,"sha256":plan_sha},"generator":{"ref":BUILDER,"sha256":builder_sha},"source_database":{"relative_path":source["local_database_relative_path"],"sha256":database.digest,"bytes":database.metadata.len(),"quick_check":"ok"},
         "source_projections":{"index_plan":{"ref":source["index_plan_ref"],"sha256":source["index_plan_sha256"]},"lexical_projection":{"ref":source["tracked_projection_ref"],"sha256":source["tracked_projection_sha256"]},"recurrence_plan":{"ref":control["plan_ref"],"sha256":control["plan_sha256"]},"recurrence_projection":{"ref":control["projection_ref"],"sha256":control["projection_sha256"]}},
-        "recurrence_control":{"form_key":control["form_key"],"exact_form_sha256":control["exact_form_sha256"],"selection_basis":control["selection_basis"],"observed_tuple":control["expected_tuple"]},"local_bundle":{"relative_path":packet_ref,"format":local["format"],"schema_ref":local["schema_ref"],"schema_version":local["schema_version"],"sha256":sha(&packet),"bytes":packet.len(),"mode":local["mode"],"row_count":aggregate["summary"]["row_count"],"required_fields":ROW_FIELDS},
+        "recurrence_control":{"form_key":control["form_key"],"exact_form_sha256":control["exact_form_sha256"],"selection_basis":control["selection_basis"],"observed_tuple":control["expected_tuple"]},"local_bundle":{"relative_path":packet_ref,"format":local["format"],"schema_ref":local["schema_ref"],"schema_version":local["schema_version"],"sha256":sha(&packet),"bytes":packet.len(),"mode":local["mode"],"row_count":aggregate["summary"]["row_count"],"required_fields":row_fields},
         "context_policy":{"policy_id":policy["policy_id"],"window_tokens_each_side":policy["window_tokens_each_side"],"boundary":policy["boundary"],"sampling":policy["sampling"],"row_order":policy["row_order"],"sentence_boundary_claimed":policy["sentence_boundary_claimed"]},"summary":aggregate["summary"],"parts":aggregate["parts"],"identity_closure":aggregate["identity_closure"],"content_exposure":plan["content_exposure"],"rights_and_visibility":plan["rights_and_visibility"],"semantic_boundary":plan["semantic_boundary"],"provenance_event_ref":event_id,"authority_boundary":"This bundle materializes complete private exact-form usage context for one preselected method control and records the associated source-withholding receipt."});
     if options.generation.is_none() {
         let prior = read_json_bounded(ctx, s(&plan["tracked_receipt_ref"])?, META_CAP, &mut held)?;
         ensure(
-            options.plan == PLAN && held.last().unwrap().digest == RETAINED_RECEIPT_SHA,
+            (options.history.is_some() || options.plan == PLAN)
+                && held.last().unwrap().digest
+                    == options
+                        .history
+                        .as_ref()
+                        .map(|h| h.receipt_sha256)
+                        .unwrap_or(RETAINED_RECEIPT_SHA),
             "unknown retained usage receipt",
         )?;
         for k in ["generator", "authority_boundary"] {
@@ -448,7 +535,10 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
     }
     validate(&schemas, "lexical-usage-context-receipt", &receipt)?;
     let receipt_bytes = canonical(receipt)?;
-    let timestamp = options.event_at.unwrap_or("2026-08-02T14:50:00Z");
+    let timestamp = options
+        .event_at
+        .or_else(|| options.history.as_ref().map(|h| h.event_at))
+        .unwrap_or("2026-08-02T14:50:00Z");
     let mut event = json!({"schema_version":"tos_provenance_event_v1","event_id":event_id,"event_type":"export","started_at":timestamp,"ended_at":timestamp,"agent_refs":["software:tos-native-rust",format!("software:sqlite-{}",rusqlite::version())],
         "inputs":[{"ref":options.plan,"role":"frozen-question-scoped-usage-context-plan","sha256":plan_sha},{"ref":source["local_database_relative_path"],"role":"private-fixity-bound-source-bearing-lexical-database","sha256":database.digest},{"ref":source["tracked_projection_ref"],"role":"tracked-hash-count-and-resource-lexical-projection","sha256":source["tracked_projection_sha256"]},{"ref":control["projection_ref"],"role":"tracked-hash-only-recurrence-control-projection","sha256":control["projection_sha256"]},{"ref":plan["research_ref"],"role":"ordered-usage-context-method-research","sha256":research_sha}],
         "outputs":[{"ref":packet_ref,"role":"private-source-bearing-complete-usage-context-bundle","sha256":sha(&packet)},{"ref":receipt_ref,"role":"tracked-source-withholding-usage-context-receipt","sha256":sha(&receipt_bytes)}],
@@ -457,7 +547,12 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
     if options.generation.is_none() {
         let prior = read_json_bounded(ctx, s(&plan["provenance_ref"])?, META_CAP, &mut held)?;
         ensure(
-            held.last().unwrap().digest == RETAINED_EVENT_SHA,
+            held.last().unwrap().digest
+                == options
+                    .history
+                    .as_ref()
+                    .map(|h| h.event_sha256)
+                    .unwrap_or(RETAINED_EVENT_SHA),
             "unknown retained usage provenance",
         )?;
         for k in ["agent_refs", "warnings"] {
@@ -474,34 +569,46 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
     for h in &mut held {
         h.verify(ctx)?;
     }
-    let output = ctx.select_output_directory(options.output_root, options.build)?;
-    let packet_present = present(&output, &packet_ref, &packet, 0o600)?;
-    let (receipt_present, event_present) = if options.generation.is_some() {
-        (
-            present(&output, &receipt_ref, &receipt_bytes, 0o644)?,
-            present(&output, &event_ref, &event_bytes, 0o644)?,
-        )
-    } else {
-        (true, true)
-    };
-    if options.build {
-        if !packet_present {
-            output.write(&packet_ref, &packet, 0o600, true)?;
-        }
-        if !receipt_present {
-            output.write(&receipt_ref, &receipt_bytes, 0o644, true)?;
-        }
-        if !event_present {
-            output.write(&event_ref, &event_bytes, 0o644, true)?;
-        }
-    } else {
+    if let Some((private_target, tracked_target)) = replay {
+        private_target.write(&packet_ref, &packet, 0o600, true)?;
+        tracked_target.write(&receipt_ref, &receipt_bytes, 0o644, true)?;
+        tracked_target.write(&event_ref, &event_bytes, 0o644, true)?;
         ensure(
-            packet_present && receipt_present && event_present,
-            "usage output missing",
+            private_target.read(&packet_ref)? == packet
+                && tracked_target.read(&receipt_ref)? == receipt_bytes
+                && tracked_target.read(&event_ref)? == event_bytes,
+            "isolated usage replay differs",
         )?;
+    } else {
+        let output = ctx.select_output_directory(options.output_root, options.build)?;
+        let packet_present = present(&output, &packet_ref, &packet, 0o600)?;
+        let (receipt_present, event_present) = if options.generation.is_some() {
+            (
+                present(&output, &receipt_ref, &receipt_bytes, 0o644)?,
+                present(&output, &event_ref, &event_bytes, 0o644)?,
+            )
+        } else {
+            (true, true)
+        };
+        if options.build {
+            if !packet_present {
+                output.write(&packet_ref, &packet, 0o600, true)?;
+            }
+            if !receipt_present {
+                output.write(&receipt_ref, &receipt_bytes, 0o644, true)?;
+            }
+            if !event_present {
+                output.write(&event_ref, &event_bytes, 0o644, true)?;
+            }
+        } else {
+            ensure(
+                packet_present && receipt_present && event_present,
+                "usage output missing",
+            )?;
+        }
     }
     ctx.check()?;
     Ok(
-        json!({"status":if options.build{"materialized"}else{"verified"},"packet_ref":packet_ref,"packet_sha256":sha(&packet),"packet_bytes":packet.len(),"receipt_ref":receipt_ref,"receipt_sha256":sha(&receipt_bytes),"provenance_ref":event_ref,"provenance_sha256":sha(&event_bytes),"summary":aggregate["summary"],"identity_closure":aggregate["identity_closure"],"budget":ctx.budget_report()}),
+        json!({"status":if replay.is_some(){"replayed"}else if options.build{"materialized"}else{"verified"},"packet_ref":packet_ref,"packet_sha256":sha(&packet),"packet_bytes":packet.len(),"receipt_ref":receipt_ref,"receipt_sha256":sha(&receipt_bytes),"provenance_ref":event_ref,"provenance_sha256":sha(&event_bytes),"summary":aggregate["summary"],"identity_closure":aggregate["identity_closure"],"budget":ctx.budget_report()}),
     )
 }
