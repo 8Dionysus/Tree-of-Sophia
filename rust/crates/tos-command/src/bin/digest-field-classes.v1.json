@@ -3,6 +3,14 @@
   "scope": "Rules identify only the producer contexts stated below. Unmatched 64-hex fields remain unclassified and block the inventory. A class is not proof of any particular value's input bytes.",
   "rules": [
     {
+      "field": "token",
+      "file_suffix": ".metadata-publication.json",
+      "pointer_contains": "/token",
+      "class": "canonical-json",
+      "old_profile": "tos_source_command_input_v1",
+      "producer_context": "tos-source-store publication.rs verifies the publication state without its token using SourceCommandInputV1; tos-command source_work_transaction.rs produces the token"
+    },
+    {
       "field": "digest",
       "file_suffix": ".human-forms.json",
       "class": "canonical-json",
@@ -57,9 +65,9 @@
     },
     {
       "field": "source_sha256",
-      "pointer_contains": "/source_bindings/evidence/",
+      "pointer_contains": "/source_bindings/evidence/ToS~1",
       "class": "raw-bytes",
-      "producer_context": "source claim receipt evidence file binding"
+      "producer_context": "tos-command source_claims::maintained_evidence hashes exact file bytes for repository-path evidence; identity and other evidence use separate rules"
     },
     {
       "field": "source_sha256",

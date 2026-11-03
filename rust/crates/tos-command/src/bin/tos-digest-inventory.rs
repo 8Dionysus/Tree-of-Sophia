@@ -468,7 +468,18 @@ mod tests {
             Some(&1)
         );
         assert!(parse_value("{\"a\":1,\"a\":2}").is_err());
+        assert!(!c.rules.iter().any(|rule| rule.matches(
+            "source_sha256",
+            "claim.json",
+            "/source_bindings/evidence/tos.work.example/source_sha256"
+        )));
         for (field, file, pointer, expected) in [
+            (
+                "token",
+                "ToS/source-witnesses/.metadata-publication.json",
+                "/token",
+                "tos_source_command_input_v1",
+            ),
             (
                 "revision",
                 "tests/conformance/rust/corpus-v1/store/revisions/a/snapshot.json",
