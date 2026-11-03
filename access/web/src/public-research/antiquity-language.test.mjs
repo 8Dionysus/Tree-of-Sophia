@@ -65,6 +65,7 @@ describe('the language of the Antiquity stand',()=>{
     expect(text('terms[31].body.en')).toBe('Assent; in Stoic philosophy, assent to an impression.');
     expect(text('terms[25].body.ru')).toContain('рассудительность в ведении дел');
     expect(text('branches[0].nodes[6].question.en')).toBe('Is true opinion with an account enough, or must the account disclose the cause?');
+    expect(text('branches[0].nodes[7].question.en')).toBe('What grounds would let us accept an account if it too requires examination?');
   });
   it('asks directly about knowledge, action and explanation',()=>{
     const text=(path)=>texts.find(row=>row.name==='collection.json'&&row.path===path)?.text;
