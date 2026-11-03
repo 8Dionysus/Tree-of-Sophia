@@ -13,6 +13,7 @@ mod identity;
 mod jcs;
 mod json;
 mod knowledge_model_abi;
+mod legacy_profiles;
 mod logical_ref;
 pub mod native_software_roles;
 mod operation_binding;
@@ -64,6 +65,7 @@ pub use knowledge_model_abi::{
     KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V2_CARRIER_ONCE_V4, KNOWLEDGE_MODEL_ABI_V6_POSTINGS_V1,
     KNOWLEDGE_POSTINGS_MODEL_ABIS, is_managed_knowledge_model_abi, is_managed_navigation_model_abi,
 };
+pub use legacy_profiles::verify_raw_fragment as verify_legacy_raw_fragment_v1;
 pub use logical_ref::LogicalRecordRefV1;
 pub use operation_binding::{
     BindingError, CheckedOperationBinding, CompositionLink, DependencyComparison, ExecutionStatus,

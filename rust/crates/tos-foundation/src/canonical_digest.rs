@@ -2,7 +2,7 @@
 
 use crate::{
     CanonicalProfile, Digest256, FoundationError, FoundationErrorCode, JsonLimits, JsonValue,
-    Result, canonical_bytes_v1, jcs_bytes_v1,
+    Result, jcs_bytes_v1, legacy_profiles,
 };
 
 /// The wire tag for RFC 8785 canonical JSON with the ToS admission policy.
@@ -66,18 +66,15 @@ pub fn verify_canonical_digest_v1(
     expected: Digest256,
     limits: JsonLimits,
 ) -> Result<bool> {
-    let bytes = match profile {
-        Some(JCS_DIGEST_TAG) => return Ok(jcs_digest_v1(value, limits)?.digest == expected),
-        None => canonical_bytes_v1(value, historical_profile, limits)?,
+    match profile {
+        Some(JCS_DIGEST_TAG) => Ok(jcs_digest_v1(value, limits)?.digest == expected),
+        None => legacy_profiles::verify(value, historical_profile, expected, limits),
         Some(tag) if tag == historical_profile.as_str() => {
-            canonical_bytes_v1(value, historical_profile, limits)?
+            legacy_profiles::verify(value, historical_profile, expected, limits)
         }
-        Some(_) => {
-            return Err(FoundationError::new(
-                FoundationErrorCode::UnsupportedFormat,
-                "unknown canonical digest profile tag",
-            ));
-        }
-    };
-    Ok(Digest256::of_bytes(&bytes) == expected)
+        Some(_) => Err(FoundationError::new(
+            FoundationErrorCode::UnsupportedFormat,
+            "unknown canonical digest profile tag",
+        )),
+    }
 }
