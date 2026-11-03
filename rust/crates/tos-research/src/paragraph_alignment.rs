@@ -1817,13 +1817,14 @@ pub fn replay_selected(
 
 /// Validate tracked proposal metadata without reading private payload layers.
 pub fn validate_tracked_scoped(repo: &ResearchExecution) -> Result<Value> {
-    manifest_check(repo, &load(repo, &output("manifest.v1.json"))?)?;
+    let policy = Policy::legacy();
+    manifest_check(repo, &load(repo, &policy.paths.output("manifest.v1.json"))?)?;
     let mut alignment_ids = BTreeSet::new();
     let mut claim_ids = BTreeSet::new();
-    for part in 1..=4 {
+    for part in 1..=policy.parts.len() {
         repo.tick(1)?;
-        let p = load(repo, &packet_ref(part))?;
-        validate_packet(repo, &p, SCHEMA)?;
+        let p = load(repo, &policy.paths.packet(part))?;
+        validate_packet(repo, &p, &policy.paths.contract)?;
         for a in arr(&p["alignments"])? {
             repo.tick(1)?;
             ensure(
@@ -1836,13 +1837,19 @@ pub fn validate_tracked_scoped(repo: &ResearchExecution) -> Result<Value> {
             )?;
         }
     }
-    let spine = lines(repo, &output("alignment-spine.v1.jsonl"))?;
-    let audit = lines(repo, &output("independent-challenger-audit.v1.jsonl"))?;
-    let conflicts = lines(repo, &output("conflict-ledger.v1.jsonl"))?;
-    let exclusions = lines(repo, &output("scope-exclusions.v1.jsonl"))?;
-    let diagnostics = lines(repo, &output("per-reading-diagnostics.v1.jsonl"))?;
-    let coverage = load(repo, &output("coverage-receipt.v1.json"))?;
-    let verification = load(repo, &output("agent-verification.v1.json"))?;
+    let spine = lines(repo, &policy.paths.output("alignment-spine.v1.jsonl"))?;
+    let audit = lines(
+        repo,
+        &policy.paths.output("independent-challenger-audit.v1.jsonl"),
+    )?;
+    let conflicts = lines(repo, &policy.paths.output("conflict-ledger.v1.jsonl"))?;
+    let exclusions = lines(repo, &policy.paths.output("scope-exclusions.v1.jsonl"))?;
+    let diagnostics = lines(
+        repo,
+        &policy.paths.output("per-reading-diagnostics.v1.jsonl"),
+    )?;
+    let coverage = load(repo, &policy.paths.output("coverage-receipt.v1.json"))?;
+    let verification = load(repo, &policy.paths.output("agent-verification.v1.json"))?;
     for rows in [&spine, &audit, &conflicts, &exclusions, &diagnostics] {
         repo.tick(1)?;
         for r in rows {
@@ -1853,7 +1860,7 @@ pub fn validate_tracked_scoped(repo: &ResearchExecution) -> Result<Value> {
     text_free(repo, &coverage)?;
     text_free(repo, &verification)?;
     ensure(
-        spine.len() == 3423 && audit.len() == spine.len(),
+        spine.len() == policy.scope.primary_proposals && audit.len() == spine.len(),
         "alignment/audit census drift",
     )?;
     let statuses = count(repo, &spine, "status")?;
@@ -1866,7 +1873,7 @@ pub fn validate_tracked_scoped(repo: &ResearchExecution) -> Result<Value> {
         .filter(|r| r["same_paragraph_group"] == true)
         .count();
     ensure(
-        same == 3311 && audit.len() - same == 112,
+        same == policy.coverage.same && audit.len() - same == policy.coverage.disagreement,
         "tracked independent comparison denominator drift",
     )?;
     let mut risk = BTreeSet::new();
@@ -1892,8 +1899,8 @@ pub fn validate_tracked_scoped(repo: &ResearchExecution) -> Result<Value> {
         "conflict ambiguity was not preserved",
     )?;
     for (key, total) in [
-        ("source_paragraph_unit_refs", 3447),
-        ("target_paragraph_unit_refs", 3569),
+        ("source_paragraph_unit_refs", policy.scope.source_paragraphs),
+        ("target_paragraph_unit_refs", policy.scope.target_paragraphs),
     ] {
         let mut all = Vec::new();
         for r in &spine {
@@ -1906,16 +1913,16 @@ pub fn validate_tracked_scoped(repo: &ResearchExecution) -> Result<Value> {
         )?;
     }
     ensure(
-        diagnostics.len() == 81,
+        diagnostics.len() == policy.coverage.readings,
         "tracked reading diagnostic census drift",
     )?;
-    exclusion_census(repo, &exclusions, &Policy::legacy().scope)?;
+    exclusion_census(repo, &exclusions, &policy.scope)?;
     ensure(
         coverage["accepted_alignment_count"] == 0 && verification["human_acceptance"] == false,
         "acceptance boundary drift",
     )?;
     Ok(
-        json!({"status":"pass","packets":4,"reading_pairs":81,"alignments":spine.len(),"source_paragraphs":3447,"target_paragraphs":3569,"proposed":statuses["proposed"],"ambiguous":statuses["ambiguous"],"deferred":statuses["deferred"],"accepted":0,"machine_risk_union":risk.len(),"independent_agree":3311,"independent_disagree":112}),
+        json!({"status":"pass","packets":policy.parts.len(),"reading_pairs":policy.coverage.readings,"alignments":spine.len(),"source_paragraphs":policy.scope.source_paragraphs,"target_paragraphs":policy.scope.target_paragraphs,"proposed":statuses["proposed"],"ambiguous":statuses["ambiguous"],"deferred":statuses["deferred"],"accepted":0,"machine_risk_union":risk.len(),"independent_agree":policy.coverage.same,"independent_disagree":policy.coverage.disagreement}),
     )
 }
 fn write_file(
