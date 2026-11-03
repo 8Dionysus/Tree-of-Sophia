@@ -1,17 +1,8 @@
 //! Source-foundation report contracts shared with ordinary selected-source validation.
 //! Historical laboratories and dossier audits are available with the `research` feature.
 
+pub use crate::source_foundation_schema::SourceFoundationSchemaRequest;
 use serde_json::Value;
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct SourceFoundationSchemaRequest {
-    /// Insert the complete schema diagnostics immediately before this many
-    /// already-produced owner issues.
-    pub before_issue: usize,
-    pub location: String,
-    pub contract: String,
-    pub document: Value,
-}
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct SourceFoundationGoldsetsReport {

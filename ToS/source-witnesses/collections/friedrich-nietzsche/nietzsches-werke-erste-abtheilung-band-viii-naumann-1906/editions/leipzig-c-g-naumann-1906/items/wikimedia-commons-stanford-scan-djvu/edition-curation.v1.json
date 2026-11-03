@@ -1,0 +1,17 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/edition-curation.v1.schema.json",
+  "schema_version": "tos_edition_curation_v1",
+  "curation_id": "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu.edition-curation.v1",
+  "version": 1,
+  "status": "historical-constants",
+  "owner_item_ref": "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu",
+  "edition_ref": "tos.edition.friedrich-nietzsche.nietzsches-werke-band-8.leipzig-c-g-naumann-1906",
+  "manifest": "item.manifest.json",
+  "recipes": [
+    {
+      "stage": "recipe-reference",
+      "curation_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/edition-curation.v1.json",
+      "recipe_stage": "structural-source-routes"
+    }
+  ]
+}

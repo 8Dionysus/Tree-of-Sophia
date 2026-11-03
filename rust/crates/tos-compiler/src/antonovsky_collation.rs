@@ -948,7 +948,7 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
             metadata(ctx, kind, r, &value)?;
         } else {
             ensure(
-                tos_validation::source_foundation_labs::witness_text_collation_semantic_messages(
+                tos_validation::text_collation_rules::witness_text_collation_semantic_messages(
                     &value,
                 )
                 .map_err(|e| format!("collation semantics: {e:?}"))?
@@ -1093,7 +1093,7 @@ mod tests {
     }
     #[test]
     fn collation_semantics_keep_unreviewed_proposals_and_private_sources_closed() {
-        use tos_validation::source_foundation_labs::witness_text_collation_semantic_messages as inspect;
+        use tos_validation::text_collation_rules::witness_text_collation_semantic_messages as inspect;
         let plan: Value =
             serde_json::from_str(include_str!("antonovsky_collation/historical-plan.json"))
                 .unwrap();

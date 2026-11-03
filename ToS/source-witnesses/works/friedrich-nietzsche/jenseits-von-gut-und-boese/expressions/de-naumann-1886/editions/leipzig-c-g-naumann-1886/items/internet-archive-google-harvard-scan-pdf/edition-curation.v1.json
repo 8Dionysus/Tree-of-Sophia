@@ -1,0 +1,865 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/edition-curation.v1.schema.json",
+  "schema_version": "tos_edition_curation_v1",
+  "curation_id": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf.edition-curation.v1",
+  "version": 1,
+  "status": "historical-constants",
+  "owner_item_ref": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf",
+  "edition_ref": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.leipzig-c-g-naumann-1886",
+  "manifest": "item.manifest.json",
+  "recipes": [
+    {
+      "stage": "numbered-structure",
+      "work_ref": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+      "expression_ref": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886",
+      "edition_ref": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.leipzig-c-g-naumann-1886",
+      "map_id": "tos.numbered-unit-page-map.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886",
+      "event_id": "tos.event.numbered-unit-page-map.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.2026-07-29",
+      "locators": [
+        {
+          "role": "item_dir",
+          "item_root": true
+        },
+        {
+          "role": "manifest_path",
+          "item_relative_path": "item.manifest.json"
+        },
+        {
+          "role": "inventory_path",
+          "item_relative_path": "resource-inventory.json"
+        },
+        {
+          "role": "output_dir",
+          "item_relative_path": "structure"
+        },
+        {
+          "role": "provenance_path",
+          "item_relative_path": "structure/provenance.jsonl"
+        },
+        {
+          "role": "rights_ref",
+          "item_relative_path": "rights.json"
+        }
+      ],
+      "page_overrides": [
+        {
+          "key": "15",
+          "page": 27
+        },
+        {
+          "key": "18",
+          "page": 30
+        },
+        {
+          "key": "23",
+          "page": 37
+        },
+        {
+          "key": "24",
+          "page": 42
+        },
+        {
+          "key": "30",
+          "page": 50
+        },
+        {
+          "key": "32",
+          "page": 52
+        },
+        {
+          "key": "108",
+          "page": 98
+        },
+        {
+          "key": "110",
+          "page": 98
+        },
+        {
+          "key": "131",
+          "page": 101
+        },
+        {
+          "key": "151",
+          "page": 103
+        },
+        {
+          "key": "199",
+          "page": 125
+        },
+        {
+          "key": "202",
+          "page": 131
+        },
+        {
+          "key": "227",
+          "page": 176
+        },
+        {
+          "key": "233",
+          "page": 187
+        },
+        {
+          "key": "234",
+          "page": 187
+        },
+        {
+          "key": "245",
+          "page": 205
+        },
+        {
+          "key": "247",
+          "page": 208
+        },
+        {
+          "key": "251",
+          "page": 211
+        },
+        {
+          "key": "253",
+          "page": 216
+        },
+        {
+          "key": "254",
+          "page": 217
+        },
+        {
+          "key": "258",
+          "page": 228
+        },
+        {
+          "key": "262",
+          "page": 238
+        },
+        {
+          "key": "270",
+          "page": 250
+        },
+        {
+          "key": "276",
+          "page": 254
+        },
+        {
+          "key": "277",
+          "page": 254
+        },
+        {
+          "key": "291",
+          "page": 261
+        },
+        {
+          "key": "296",
+          "page": 266
+        }
+      ],
+      "gap_review_keys": [
+        "15",
+        "18",
+        "23",
+        "24",
+        "30",
+        "32",
+        "108",
+        "110",
+        "131",
+        "151",
+        "160",
+        "188",
+        "202",
+        "227",
+        "233",
+        "234",
+        "245",
+        "251",
+        "254",
+        "276",
+        "277",
+        "291"
+      ],
+      "ocr_disambiguation_keys": [
+        "195",
+        "199",
+        "224",
+        "247",
+        "253",
+        "258",
+        "262",
+        "270",
+        "283",
+        "296"
+      ],
+      "ocr_substitutions": [
+        {
+          "digit": "0",
+          "allowed_characters": "0aoöü"
+        },
+        {
+          "digit": "1",
+          "allowed_characters": "1ilt»"
+        },
+        {
+          "digit": "2",
+          "allowed_characters": "2z"
+        },
+        {
+          "digit": "3",
+          "allowed_characters": "3"
+        },
+        {
+          "digit": "4",
+          "allowed_characters": "4"
+        },
+        {
+          "digit": "5",
+          "allowed_characters": "5s"
+        },
+        {
+          "digit": "6",
+          "allowed_characters": "6"
+        },
+        {
+          "digit": "7",
+          "allowed_characters": "7"
+        },
+        {
+          "digit": "8",
+          "allowed_characters": "8sö"
+        },
+        {
+          "digit": "9",
+          "allowed_characters": "9gq"
+        }
+      ],
+      "ocr_allowed_characters": " *,-./0123456789:;AGILOQSTZ\\^agiloqstz~«»ÖÜöü–—•",
+      "identity": {
+        "anchor_prefix": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-",
+        "anchor_suffix": ".pdf-start-page",
+        "passage_prefix": "tos.passage.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-",
+        "passage_suffix": "",
+        "native_generation_separator": ".native-",
+        "structural_scheme": "jgb-numbered-unit-start-v1",
+        "structural_path_prefix": [
+          "work:jenseits-von-gut-und-boese",
+          "expression:de-naumann-1886"
+        ]
+      },
+      "repeated_number_review_keys": [
+        "237a"
+      ],
+      "basis_rule_order": [
+        "repeated-number-review",
+        "gap-review",
+        "ocr-disambiguation",
+        "default"
+      ],
+      "default_basis": "ocr_order_candidate",
+      "page_order": "nondecreasing",
+      "frozen_outputs": [
+        {
+          "role": "map",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/structure/numbered-unit-page-map.json",
+          "schema_version": "tos_numbered_unit_page_map_v1",
+          "expected_sha256": "fb7c15005968bb5795388714ab2b725593f5f29f31cb29c71cece77f751b2b90"
+        },
+        {
+          "role": "anchors",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/structure/numbered-unit-anchors.jsonl",
+          "schema_version": "tos_source_anchor_v1",
+          "expected_sha256": "8824a470974159323078d6099fda62b68d578719955f11c4494b2408a93f1005"
+        },
+        {
+          "role": "provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/structure/provenance.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "09d3facf8fe4a405fc607246febbcf710e7d49b068755796eb0d27484a68e71c"
+        }
+      ],
+      "unit_sequence": {
+        "first_number": 1,
+        "last_number": 296,
+        "repeat_after": [
+          65,
+          73,
+          237
+        ],
+        "repeat_suffix": "a",
+        "expected_count": 299
+      },
+      "candidate_profile": {
+        "kind": "abbyy",
+        "source_page_count": 274,
+        "first_page": 10,
+        "last_page": 266,
+        "minimum_top": 400,
+        "maximum_top": 3500,
+        "minimum_characters": 1,
+        "maximum_characters": 14,
+        "digit_aliases": "IiLl",
+        "extra_compact_characters": "»",
+        "substitution_cost": 0.22,
+        "skipped_key_cost": 0.92,
+        "skipped_candidate_cost": 0.04,
+        "maximum_match_cost": 1.55,
+        "alignment": "weighted-ordered",
+        "bounds": "closed",
+        "visit_order": "row-major",
+        "transition_order": [
+          "skip_key",
+          "skip_candidate",
+          "match"
+        ],
+        "replace_on_equal": false
+      },
+      "payload_roles": [
+        {
+          "role": "pdf",
+          "media_type": "application/pdf",
+          "inventory_profile": "pdf_pages_v1"
+        },
+        {
+          "role": "djvu",
+          "media_type": "application/vnd.djvu+xml",
+          "inventory_profile": "djvu_xml_pages_v1"
+        },
+        {
+          "role": "abbyy",
+          "media_type": "application/gzip",
+          "inventory_profile": "abbyy_xml_pages_v1",
+          "relative_path_suffix": ".abbyy.xml.gz"
+        }
+      ],
+      "required_ocr_keys": [],
+      "ocr_evidence": [],
+      "source_map_required_keys": []
+    },
+    {
+      "stage": "source-passage-marker-returns",
+      "marker_returns": [
+        {
+          "key": [
+            "jenseits",
+            52,
+            "32"
+          ],
+          "image_object_number": 252,
+          "image_object_generation": 0,
+          "image_width_pixels": 2500,
+          "image_height_pixels": 3900,
+          "pixel_bbox": [
+            1168,
+            2485,
+            77,
+            47
+          ],
+          "record_order": 39,
+          "line_bbox": [
+            54.96,
+            311.874983,
+            249.60096,
+            317.82565
+          ]
+        }
+      ]
+    },
+    {
+      "stage": "source-passages",
+      "locators": [
+        {
+          "role": "research_root",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1"
+        },
+        {
+          "role": "target_candidates",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-passage-candidates.v1.json"
+        },
+        {
+          "role": "candidates",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-source-passage-candidates.v1.json"
+        },
+        {
+          "role": "anchors",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-source-passage-anchors.v1.jsonl"
+        },
+        {
+          "role": "provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-provenance.jsonl"
+        },
+        {
+          "role": "private_content",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-source-passages/v1"
+        },
+        {
+          "role": "candidate_schema",
+          "repository_path": "ToS/contracts/transfer-source-passage-candidate-set.schema.json"
+        },
+        {
+          "role": "anchor_schema",
+          "repository_path": "ToS/contracts/source-anchor.schema.json"
+        },
+        {
+          "role": "first_source_item",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf"
+        },
+        {
+          "role": "first_source_map",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/structure/numbered-unit-page-map.json"
+        },
+        {
+          "role": "second_source_item",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf"
+        },
+        {
+          "role": "second_source_map",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/structure/hierarchical-numbered-unit-page-map.json"
+        },
+        {
+          "role": "third_source_address_item",
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu"
+        },
+        {
+          "role": "third_source_navigation_item",
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml"
+        },
+        {
+          "role": "third_source_map",
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/structure/hierarchical-numbered-unit-page-map.json"
+        }
+      ],
+      "marker_curation_refs": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/edition-curation.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/edition-curation.v1.json",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/edition-curation.v1.json"
+      ],
+      "inputs": [
+        {
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-passage-candidates.v1.json",
+          "role": "tracked-target-passage-candidate-frame"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/structure/numbered-unit-page-map.json",
+          "role": "tracked-Jenseits-source-numbered-unit-map"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/structure/hierarchical-numbered-unit-page-map.json",
+          "role": "tracked-Genealogie-source-numbered-unit-map"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/structure/hierarchical-numbered-unit-page-map.json",
+          "role": "tracked-Antichrist-source-numbered-unit-map"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/item.manifest.json",
+          "role": "Jenseits-source-item-manifest"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/resource-inventory.json",
+          "role": "Jenseits-source-inventory"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/rights.json",
+          "role": "Jenseits-source-rights"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/forensic-report.md",
+          "role": "Jenseits-baseline-forensic-report"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/item.manifest.json",
+          "role": "Genealogie-source-item-manifest"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/resource-inventory.json",
+          "role": "Genealogie-source-inventory"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/rights.json",
+          "role": "Genealogie-source-rights"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/forensic-report.md",
+          "role": "Genealogie-baseline-forensic-report"
+        },
+        {
+          "repository_path": "ToS/research-packets/foundation-laboratory-2026-07/TRANSFER_SOURCE_BOUNDARY_FORENSIC_RETURN.md",
+          "role": "bounded-model-visible-PDF-marker-return"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/item.manifest.json",
+          "role": "Antichrist-address-item-manifest"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/resource-inventory.json",
+          "role": "Antichrist-address-inventory"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/rights.json",
+          "role": "Antichrist-address-rights"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/item.manifest.json",
+          "role": "Antichrist-navigation-item-manifest"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/resource-inventory.json",
+          "role": "Antichrist-navigation-inventory"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/rights.json",
+          "role": "Antichrist-navigation-rights"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/forensic-report.md",
+          "role": "Antichrist-JP2-marker-review"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/source-metadata-snapshot.jp2-scandata.2026-08-08.json",
+          "role": "Antichrist-JP2-scandata-provider-snapshot"
+        },
+        {
+          "repository_path": "ToS/contracts/transfer-source-passage-candidate-set.schema.json",
+          "role": "source-passage-candidate-set-contract"
+        },
+        {
+          "repository_path": "ToS/contracts/source-anchor.schema.json",
+          "role": "source-anchor-contract"
+        }
+      ],
+      "extraction_tool": {
+        "name": "pdftotext",
+        "version": "26.01.0"
+      },
+      "event_id": "tos.event.segmentation.golden-kernel-transfer-source-passages-v1.2026-08-08",
+      "set_id": "tos.transfer-candidate-set.golden-kernel-transfer-source-passages-v1",
+      "schema_ref": "https://tree-of-sophia.local/ToS/contracts/transfer-source-passage-candidate-set.schema.json",
+      "legacy_event_sha256": "fff2ce883dbe9db7148e5b0ab873a9e6d5a38445f7ed1f029a165f766dd54119",
+      "legacy_builder_sha256": "f7fc1d941ea8a6fb7331c7a2ac9b85af7902fe3aa600d129450e7bc2cb4d6898",
+      "generated_set_prefix": "tos.transfer-candidate-set.golden-kernel-transfer-source-passages-",
+      "frozen_outputs": [
+        {
+          "role": "candidates",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-source-passage-candidates.v1.json",
+          "schema_version": "tos_transfer_source_passage_candidate_set_v1",
+          "expected_sha256": "38866bad5230ed820bbb08f5a93cb224ecfc008c5be50de02e2afc64f6697a3d"
+        },
+        {
+          "role": "anchors",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-source-passage-anchors.v1.jsonl",
+          "schema_version": "tos_source_anchor_v1",
+          "expected_sha256": "52668ad7972926bf16d3712a6940e545f5eeb16e5ea2b8d7924c323673175c09"
+        },
+        {
+          "role": "provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-provenance.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "f66f1f6cf5224e5bc3849b168318af581fab9813eb595c8521c38e509c238b3e"
+        }
+      ],
+      "work_routes": [
+        {
+          "work_ref": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+          "legacy_slug": "jenseits",
+          "source_map_role": "first_source_map",
+          "page_field": "pdf_page",
+          "default_layer": "abbyy-xml-paragraph",
+          "overrides": [
+            {
+              "qualified_unit_key": "32",
+              "layer": "pdf-visible-marker-plus-poppler-pdf-bbox-line"
+            },
+            {
+              "qualified_unit_key": "201",
+              "layer": "poppler-pdf-bbox-line"
+            },
+            {
+              "qualified_unit_key": "202",
+              "layer": "djvu-xml-line"
+            }
+          ],
+          "address_witness": {
+            "item_role": "first_source_item",
+            "media_type": "application/pdf"
+          },
+          "address_page_delta": 0,
+          "default_content_witness": {
+            "item_role": "first_source_item",
+            "media_type": "application/pdf",
+            "navigation_relation": "same-fixity-bound-file-page-index"
+          },
+          "layer_content_witnesses": [
+            {
+              "layer": "abbyy-xml-paragraph",
+              "item_role": "first_source_item",
+              "media_type": "application/gzip",
+              "navigation_relation": "same-fixity-bound-Item-navigation-layer"
+            },
+            {
+              "layer": "djvu-xml-line",
+              "item_role": "first_source_item",
+              "media_type": "application/vnd.djvu+xml",
+              "navigation_relation": "same-fixity-bound-Item-navigation-layer"
+            }
+          ],
+          "marker_curation_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/edition-curation.v1.json",
+          "boundary_evidence_profile": {
+            "kind": "pdf-page-image",
+            "relation": "same-PDF-page-image-mask-to-first-following-poppler-bbox-order"
+          },
+          "xml_navigation": {
+            "inventory_item_role": "first_source_item",
+            "inventory_profile": "djvu_xml_pages_v1",
+            "body_y_minimum": 350
+          }
+        },
+        {
+          "work_ref": "tos.work.friedrich-nietzsche.zur-genealogie-der-moral",
+          "legacy_slug": "genealogie",
+          "source_map_role": "second_source_map",
+          "page_field": "navigation_page",
+          "default_layer": "poppler-pdf-bbox-line",
+          "overrides": [
+            {
+              "qualified_unit_key": "essay-1:10",
+              "layer": "pdf-visible-marker-plus-poppler-pdf-bbox-line"
+            }
+          ],
+          "address_witness": {
+            "item_role": "second_source_item",
+            "media_type": "application/pdf"
+          },
+          "address_page_delta": 0,
+          "default_content_witness": {
+            "item_role": "second_source_item",
+            "media_type": "application/pdf",
+            "navigation_relation": "same-fixity-bound-file-page-index"
+          },
+          "layer_content_witnesses": [],
+          "marker_curation_ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/edition-curation.v1.json",
+          "boundary_evidence_profile": {
+            "kind": "pdf-page-image",
+            "relation": "same-PDF-page-image-mask-to-first-following-poppler-bbox-order"
+          }
+        },
+        {
+          "work_ref": "tos.work.friedrich-nietzsche.der-antichrist",
+          "legacy_slug": "antichrist",
+          "source_map_role": "third_source_map",
+          "page_field": "navigation_page",
+          "default_layer": "djvu-xml-line",
+          "overrides": [
+            {
+              "qualified_unit_key": "main:8",
+              "layer": "jp2-visible-marker-plus-djvu-xml-line"
+            },
+            {
+              "qualified_unit_key": "main:9",
+              "layer": "jp2-visible-marker-plus-djvu-xml-line"
+            },
+            {
+              "qualified_unit_key": "main:43",
+              "layer": "jp2-visible-marker-plus-djvu-xml-line"
+            },
+            {
+              "qualified_unit_key": "main:44",
+              "layer": "jp2-visible-marker-plus-djvu-xml-line"
+            }
+          ],
+          "address_witness": {
+            "item_role": "third_source_address_item",
+            "media_type": "image/vnd.djvu"
+          },
+          "address_page_delta": -2,
+          "default_content_witness": {
+            "item_role": "third_source_navigation_item",
+            "media_type": "application/vnd.djvu+xml",
+            "navigation_relation": "bounded-source-visible-two-page-offset-only-no-textual-identity"
+          },
+          "layer_content_witnesses": [],
+          "marker_curation_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/edition-curation.v1.json",
+          "boundary_evidence_profile": {
+            "kind": "jp2-scandata",
+            "relation": "same-Item-scandata-leaf-to-jp2-member-and-djvu-xml-object-order",
+            "image_witness": {
+              "item_role": "third_source_navigation_item",
+              "media_type": "application/zip"
+            },
+            "scandata_witness": {
+              "item_role": "third_source_navigation_item",
+              "media_type": "application/xml"
+            }
+          },
+          "xml_navigation": {
+            "inventory_item_role": "third_source_navigation_item",
+            "inventory_profile": "djvu_xml_pages_v1",
+            "body_y_minimum": 950
+          }
+        }
+      ],
+      "passage_id_substitutions": [
+        {
+          "from": "tos.anchor.",
+          "to": "tos.passage."
+        },
+        {
+          "from": ".pdf-start-page",
+          "to": ""
+        },
+        {
+          "from": ".source-start-page",
+          "to": ""
+        }
+      ],
+      "marker_profile": {
+        "normalization_curation_ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/edition-curation.v1.json",
+        "normalization_stage": "hierarchical-source-structure",
+        "character_filter": "unicode-alphanumeric",
+        "case_mapping": "unicode-lowercase",
+        "abbyy_extra_character": "»",
+        "pdf_body_y_minimum": 50,
+        "pdf_body_y_maximum_exclusive": 540,
+        "abbyy_body_y_minimum": 400,
+        "abbyy_body_y_maximum_exclusive": 3500,
+        "djvu_bottom_margin": 300,
+        "pdf_marker_x_minimum": 0.3,
+        "pdf_marker_x_maximum": 0.7,
+        "djvu_marker_x_minimum": 0.32,
+        "djvu_marker_x_maximum": 0.68,
+        "x_bounds": "closed",
+        "coordinate_decimal_places": 8,
+        "basis": {
+          "abbyy_exact": "exact-expected-label-in-abbyy-paragraph-layer",
+          "abbyy_override": "source-visible-label-over-abbyy-ocr-token",
+          "pdf_exact": "exact-normalized-label-in-poppler-pdf-bbox-layer",
+          "djvu_exact": "exact-normalized-label-in-djvu-xml-word-layer",
+          "pdf_visual": "model-visible-pdf-image-mask-number-marker-plus-first-following-poppler-pdf-bbox-line",
+          "djvu_visual": "model-visible-jp2-number-marker-plus-first-following-djvu-xml-line"
+        },
+        "abbyy_overrides": [
+          {
+            "work_ref": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+            "unit_key": "188",
+            "ocr_token": "i8s"
+          }
+        ]
+      },
+      "structural_selector_scheme": "transfer-source-layer-exact-numbered-unit-v1"
+    },
+    {
+      "stage": "numbered-label-correspondence",
+      "work_ref": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+      "source_item_ref": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf",
+      "target_item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+      "locators": [
+        {
+          "role": "source_map",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/structure/numbered-unit-page-map.json"
+        },
+        {
+          "role": "target_map",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/numbered-unit-page-map.json"
+        },
+        {
+          "role": "source_rights",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/rights.json"
+        },
+        {
+          "role": "target_rights",
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json"
+        },
+        {
+          "role": "output",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996/numbered-unit-label-correspondence.json"
+        },
+        {
+          "role": "provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996/provenance.numbered-unit-label-correspondence.jsonl"
+        },
+        {
+          "role": "output_directory",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996"
+        }
+      ],
+      "map_id": "tos.parallel-numbered-unit-label-map.friedrich-nietzsche.jenseits-von-gut-und-boese.naumann-1886-to-polilov-mysl-1996",
+      "event_id": "tos.event.parallel-numbered-unit-label-map.friedrich-nietzsche.jenseits-von-gut-und-boese.layered-rights-refresh.2026-08-02",
+      "prior_event_id": "tos.event.parallel-numbered-unit-label-map.friedrich-nietzsche.jenseits-von-gut-und-boese.rights-refresh.2026-08-01",
+      "expected_source_count": 299,
+      "expected_target_count": 298,
+      "expected_shared_count": 298,
+      "source_only_keys": [
+        "237a"
+      ],
+      "target_only_keys": [],
+      "input_fixity": [
+        {"role": "source_map", "sha256": "fb7c15005968bb5795388714ab2b725593f5f29f31cb29c71cece77f751b2b90"},
+        {"role": "target_map", "sha256": "e2621e08e49bc7f96a8c6dd6c45d32f90fdf3a9e280644e0adbefd5d2c7e09f6"},
+        {"role": "source_rights", "sha256": "474d865fd4cb5bf49e0697477cf7003515bce23a3c6fcece5b780d1796860365"},
+        {"role": "target_rights", "sha256": "4d7d4c69118416796f847be97d83cc04a9a30213fda9710d5412918c8f8bdbb7"}
+      ],
+      "unpaired_units": [
+        {"side": "source", "unit_key": "237a", "reason": "target_witness_has_corresponding_prose_without_repeated_number_label", "target_unit_materialized": false}
+      ],
+      "historical_metadata": {
+        "authority_boundary": "mechanical pairing of identical structural number-label keys already materialized independently in two exact witness maps; no text comparison, exact passage boundary, source-to-target passage alignment, translation correspondence, equivalence or quality, semantics, rights clearance, or canon authority",
+        "event_warnings": [
+          "The 298 pairs assert only that the same structural number-label key is independently materialized in both witness maps.",
+          "No source or target text was read, compared, transcribed, or accepted by this pairing route.",
+          "Shared numbering supports structural navigation. Exact passage alignment, translation correspondence, equivalence, quality and semantics require their own source-visible assessment.",
+          "Source-only 237a remains unpaired because the target does not materialize a repeated 237/237a label.",
+          "The superseding event refreshes the source rights-basis digest after a layered assessment. Payload and text comparison retain their earlier execution evidence; rights clearance follows its own owner decision."
+        ],
+        "historical_event_warnings": [
+          "The 298 pairs assert only that the same structural number-label key is independently materialized in both witness maps.",
+          "No source or target text was read, compared, transcribed, or accepted by this pairing route.",
+          "Shared numbering does not establish exact passage alignment, translation correspondence, equivalence, quality, or semantics.",
+          "Source-only 237a remains unpaired because the target does not materialize a repeated 237/237a label.",
+          "The superseding event refreshes the source rights-basis digest after a layered assessment; it does not rerun payload or text comparison and does not establish rights clearance."
+        ]
+      },
+      "map_version": 3,
+      "event_version": 2,
+      "frozen_outputs": [
+        {
+          "role": "output",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996/numbered-unit-label-correspondence.json",
+          "schema_version": "tos_parallel_numbered_unit_label_map_v1",
+          "expected_sha256": "808cd27324c772ced28d6e9d9857d30592c2fd59285abb6d83584b9929203264"
+        },
+        {
+          "role": "provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996/provenance.numbered-unit-label-correspondence.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "e1116dadb51951283450734e4f284287ea534f90b65ad3d4cb159237b517e857"
+        }
+      ]
+    },
+    {
+      "stage": "source-review-receipt",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf"
+      ],
+      "base_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1",
+      "private_bundle_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-source-visible-review/v1/jenseits-187/review-bundle.json",
+      "private_schema_ref": "ToS/contracts/private-transfer-source-visible-review-bundle.schema.json",
+      "receipt_schema_ref": "ToS/contracts/transfer-source-visible-review-receipt.schema.json",
+      "historical_builder_ref": "scripts/record_golden_kernel_transfer_source_visible_review.py",
+      "historical_builder_sha256": "ac20b7dce1259aa3ce6d6efaf356dafa010c9fd7af392caf1c47d58b0a2f6679",
+      "historical_bundle_sha256": "4db81ebd5c819da431faca7a5a02b5c4a58e7c8a69e26b2b2cd5cac517da4a2b",
+      "generated_receipt_prefix": "tos.transfer-source-visible-review.jenseits-187.",
+      "historical_templates": [
+        {
+          "role": "legacy-output-template",
+          "ref": "rust/crates/tos-compiler/src/transfer_source_visible/templates.json",
+          "sha256": "a58ffe373a868c788eff44c94483d2e6c7b5deeb32a577c57279de17e749368b"
+        }
+      ],
+      "receipt_filename_prefix": "transfer-source-visible-review.jenseits-187.",
+      "historical_generation": "v1",
+      "frozen_outputs": [
+        {
+          "role": "receipt",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-source-visible-review.jenseits-187.v1.json",
+          "schema_version": "tos_transfer_source_visible_review_receipt_v1",
+          "expected_sha256": "e088a30d2717938322349c62eb90087c11a66621c02faa978ba5ced5b75d13f1"
+        }
+      ]
+    }
+  ]
+}

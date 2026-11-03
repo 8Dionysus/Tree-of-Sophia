@@ -828,10 +828,6 @@ mod zarathustra_lexical_morphology_validate;
 mod zarathustra_lexical_usage_validate;
 
 #[cfg(feature = "research")]
-pub mod dta_technical_markup;
-#[cfg(feature = "research")]
-pub mod opening_sentence_alignment;
-#[cfg(feature = "research")]
 pub mod research_concept_workbench;
 #[cfg(feature = "research")]
 pub mod research_eternal_return;
@@ -841,8 +837,6 @@ pub mod research_eternal_return_concept;
 pub mod research_execution;
 #[cfg(feature = "research")]
 pub mod research_morphology_theme;
-#[cfg(feature = "research")]
-pub mod research_paragraph_alignment;
 #[cfg(feature = "research")]
 pub mod research_parallel_lexical;
 #[cfg(feature = "research")]
@@ -897,21 +891,10 @@ pub mod bounded_translation_input;
 pub mod antonovsky_collation;
 
 #[cfg(feature = "research")]
-pub mod synthetic_foundation_labs;
-
-#[cfg(feature = "research")]
 pub mod authored_canon_bridge;
-
-#[cfg(feature = "research")]
-pub mod provenance_event_lab;
 
 #[cfg(feature = "source-tools")]
 pub mod constructor_library;
-#[cfg(feature = "research")]
-pub mod jenseits_label_correspondence;
-
-#[cfg(feature = "research")]
-pub mod nietzsche_transfer_source_routes;
 
 #[cfg(feature = "research")]
 pub mod jenseits_numbered_structure;

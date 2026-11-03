@@ -2346,3 +2346,27 @@ impl Engine {
         )
     }
 }
+
+fn assessment_refusal_to_item(error: AssessmentRefusal) -> ItemRefusal {
+    match error {
+        AssessmentRefusal::Budget => ItemRefusal::Budget,
+        AssessmentRefusal::Cancelled => {
+            ItemRefusal::Source("assessment predicate cancelled".into())
+        }
+        AssessmentRefusal::Deadline => ItemRefusal::Deadline,
+        AssessmentRefusal::Schema(error) => error,
+        AssessmentRefusal::InvalidInput(_) => {
+            ItemRefusal::Source("invalid assessment predicate input".into())
+        }
+        AssessmentRefusal::Unsupported(_) => {
+            ItemRefusal::Unsupported("assessment predicate".into())
+        }
+    }
+}
+
+pub(crate) fn owner_values_equal(
+    left: &Value,
+    right: &Value,
+) -> std::result::Result<bool, ItemRefusal> {
+    py_equal(left, right).map_err(assessment_refusal_to_item)
+}

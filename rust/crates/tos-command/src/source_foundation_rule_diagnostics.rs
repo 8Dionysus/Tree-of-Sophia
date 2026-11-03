@@ -28,10 +28,7 @@ use tos_validation::source_foundation_default_rules::{
 use tos_validation::source_foundation_discovery::{
     DiscoverySchemaRequestStore, Issue as DiscoveryIssue, SchemaRequest as DiscoverySchemaRequest,
 };
-use tos_validation::source_foundation_goldsets::SourceFoundationSchemaRequest as GoldsetSchemaRequest;
-use tos_validation::source_foundation_labs::{
-    SourceFoundationLab, SourceFoundationLabResult, SourceFoundationSchemaCheck,
-};
+use tos_validation::source_foundation_labs::{SourceFoundationLab, SourceFoundationLabResult};
 use tos_validation::source_foundation_records::{
     SourceFoundationRecordsCollection, SourceFoundationRecordsOwnerIssue,
     SourceFoundationRecordsPageBudget, SourceFoundationRecordsSchemaCheck,
@@ -39,9 +36,10 @@ use tos_validation::source_foundation_records::{
 };
 use tos_validation::source_foundation_schema::{
     SourceFoundationLegacySchemaInput, SourceFoundationMixedSchemaInput,
-    SourceFoundationSchemaCheckReport, SourceFoundationSchemaFailure, SourceFoundationSchemaInput,
-    SourceFoundationSchemaIssue, SourceFoundationSchemaLimits, SourceFoundationSchemaOutcome,
-    SourceFoundationSchemaReport, SourceFoundationSchemaSet,
+    SourceFoundationSchemaCheck, SourceFoundationSchemaCheckReport, SourceFoundationSchemaFailure,
+    SourceFoundationSchemaInput, SourceFoundationSchemaIssue, SourceFoundationSchemaLimits,
+    SourceFoundationSchemaOutcome, SourceFoundationSchemaReport,
+    SourceFoundationSchemaRequest as GoldsetSchemaRequest, SourceFoundationSchemaSet,
     evaluate_source_foundation_mixed_schema_checks,
     evaluate_source_foundation_mixed_schema_checks_with_shared_quota,
     evaluate_source_foundation_mixed_schema_checks_with_shared_quota_and_image,
@@ -4029,9 +4027,11 @@ fn lab_clone_state(lab: &SourceFoundationLabResult) -> Option<usize> {
             lab.unimplemented.len().checked_mul(size_of::<String>())?,
             |n, text| n.checked_add(text_storage(text)?),
         )?)?
-        .checked_add(lab.schema_checks.len().checked_mul(size_of::<
-            tos_validation::source_foundation_labs::SourceFoundationSchemaCheck,
-        >())?)?;
+        .checked_add(
+            lab.schema_checks
+                .len()
+                .checked_mul(size_of::<SourceFoundationSchemaCheck>())?,
+        )?;
     for check in &lab.schema_checks {
         for text in [
             Some(check.location.as_str()),

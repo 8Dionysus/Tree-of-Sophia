@@ -467,6 +467,7 @@ fn software_stage_cli_authenticates_then_binds_synthetic_products() {
     };
     for package in [
         "tos-access",
+        "tos-research",
         "tos-command",
         "tos-validation",
         "tos-compiler",

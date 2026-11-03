@@ -16,7 +16,6 @@ use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use tos_compiler::PhilosophySourceReadProfile;
-use tos_compiler::research_execution::ResearchExecution;
 use tos_compiler::source_philosophy_atlas::{self, AtlasLimits};
 use tos_compiler::source_philosophy_graph::{self, GraphLimits};
 use tos_compiler::source_philosophy_multilingual::{self, Multilingual, MultilingualLimits};
@@ -26,6 +25,7 @@ use tos_compiler::{Error as CompilerError, Result as CompilerResult};
 use tos_foundation::{
     CanonicalProfile, Digest256, JsonLimits, JsonMode, canonical_bytes_v1, parse_json,
 };
+use tos_source_store::execution::Execution as ResearchExecution;
 
 const SOURCE_FILE_BYTES: u64 = 256 * 1024 * 1024;
 const JSON_SCHEMA_BYTES: usize = 16 * 1024 * 1024;

@@ -315,7 +315,7 @@ fn reconstruct(
         tokens.len() == 4 && token_total == total && total > 0,
         "source recurrence token closure",
     )?;
-    let tuple = json!({"occurrence_count":count,"part_range":parts.len(),"section_range":sections.len(),"page_range":pages.len(),"part_dp_millionths":super::recurrence::round_even(divergence,2*total as u128*count as u128,1_000_000)?,"maximum_part_share_millionths":super::recurrence::round_even(parts.values().map(|v|v.count).max().unwrap_or(0)as u128,count as u128,1_000_000)?,"source_editorial_occurrence_count":editorial,"unsectioned_occurrence_count":unsectioned});
+    let tuple = json!({"occurrence_count":count,"part_range":parts.len(),"section_range":sections.len(),"page_range":pages.len(),"part_dp_millionths":tos_foundation::checked_scaled_ratio_round_even(divergence,2*total as u128*count as u128,1_000_000)?,"maximum_part_share_millionths":tos_foundation::checked_scaled_ratio_round_even(parts.values().map(|v|v.count).max().unwrap_or(0)as u128,count as u128,1_000_000)?,"source_editorial_occurrence_count":editorial,"unsectioned_occurrence_count":unsectioned});
     ensure(
         tuple == plan["expected_tracked_recurrence_tuple"],
         "independent raw-witness tuple drift",

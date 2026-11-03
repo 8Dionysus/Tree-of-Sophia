@@ -87,7 +87,7 @@ builder by the manifest's original logical path and exact retained digest even
 after the active Python builder has been retired. It reads that archive as
 opaque bytes and never executes it. Current contract validation and the exact
 historical contract binding remain separate checks. Fresh execution belongs to
-`rust/crates/tos-compiler/src/provenance_event_lab.rs`.
+`rust/crates/tos-research/src/provenance_event_lab.rs`.
 
 The retired source-witness, corpus-index, catalog, admission and bibliographic
 query Python entrypoints are retained at their exact source SHA-256 paths below

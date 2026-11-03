@@ -25,6 +25,48 @@ use std::time::{Duration, Instant};
 use tos_foundation::{Digest256, Digest256Hasher, RelativePath, SourceRevision};
 use tos_source_store::CorpusCutReader;
 
+/// A scheduled exact schema diagnostic. In a lab result, `before_issue` is its
+/// local direct-issue ordinal so the caller can interleave diagnostic-v2
+/// findings without a speculative boolean schema verdict or a second parse.
+/// The aggregate report carries separate copies with aggregate ordinals.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourceFoundationSchemaCheck {
+    pub before_issue: usize,
+    pub location: String,
+    pub contract: String,
+    /// Already decoded once by the source adapter. The executor normalizes
+    /// this owner-local DTO into its bounded diagnostic unit.
+    pub instance: Value,
+    /// Optional local report-control identity for a schema-only negative.
+    pub negative_control: Option<String>,
+    /// Expected schema validity for reports that assert the result.
+    pub expected_valid: Option<bool>,
+    /// Expected combined rejection result for a maintained negative control.
+    pub expected_rejected: Option<bool>,
+    /// Direct semantic rejection result for controls whose owner contract
+    /// rejects on schema OR semantic findings.
+    pub semantic_rejected: Option<bool>,
+    /// JSON pointer in the route report that receives the resolved verdict.
+    pub report_slot: Option<String>,
+    /// JSON pointer for maintained rejection prose, merged with exact schema
+    /// diagnostics before the caller sorts and deduplicates that field.
+    pub rejection_reasons_slot: Option<String>,
+    /// Fixed maintained document-label prefix for bridge schema issues.
+    pub schema_message_prefix: Option<String>,
+    /// Exact owner message emitted only if the frozen result expectation fails.
+    pub mismatch_message: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct SourceFoundationSchemaRequest {
+    /// Insert the complete schema diagnostics immediately before this many
+    /// already-produced owner issues.
+    pub before_issue: usize,
+    pub location: String,
+    pub contract: String,
+    pub document: Value,
+}
+
 const CONTRACT_PREFIX: &str = "ToS/contracts/";
 const CONTRACT_SUFFIX: &str = ".schema.json";
 const SOURCE_FOUNDATION_CATALOG_PATH: &str = "ToS/contracts/source-witness-catalog.schema.json";
