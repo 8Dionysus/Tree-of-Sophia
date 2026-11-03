@@ -1194,7 +1194,7 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
         oracle_revision_preview["prepared_materializations"]
     );
     assert_eq!(revision_preview["source"], created["sources"][0]);
-    assert_eq!(revision_preview["revision"], formed["revision"]);
+    assert_eq!(revision_preview["revision"], legacy_replay["revision"]);
     let mut revision = selected["revision"].clone();
     revision["expected_configuration"] = revision_preview["owner_configuration"].clone();
     revision["expected_source"] = revision_preview["source"].clone();
