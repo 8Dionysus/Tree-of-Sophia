@@ -84,7 +84,16 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
             }
             tos_source_store::execution::Execution::new(&root, seconds)?
         };
-        crate::numbered_label_correspondence::run(&ctx, build, fresh)
+        let curation_ref = "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/edition-curation.v1.json";
+        let curation: serde_json::Value =
+            serde_json::from_slice(&ctx.read(curation_ref)?).map_err(|error| error.to_string())?;
+        let recipe = curation["recipes"]
+            .as_array()
+            .ok_or("curation recipes required")?
+            .iter()
+            .find(|row| row["stage"] == "numbered-label-correspondence")
+            .ok_or("label recipe required")?;
+        crate::numbered_label_correspondence::run(&ctx, recipe, build, fresh)
     })();
     Some(match result {
         Ok(v) => {

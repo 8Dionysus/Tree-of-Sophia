@@ -61,11 +61,104 @@ fn witness(value: &Value, reference: &str, digest: &str) -> Result<Out> {
         ("numbered_unit_map_sha256", q(digest)),
     ]))
 }
-fn units(value: &Value) -> Result<(Vec<&str>, BTreeMap<&str, &Value>)> {
+struct Recipe<'a> {
+    work: &'a str,
+    source_item: &'a str,
+    target_item: &'a str,
+    source_map: &'a str,
+    target_map: &'a str,
+    source_rights: &'a str,
+    target_rights: &'a str,
+    output: &'a str,
+    provenance: &'a str,
+    directory: &'a str,
+    map_id: &'a str,
+    event_id: &'a str,
+    prior_event_id: &'a str,
+    source_count: u64,
+    target_count: u64,
+    shared_count: u64,
+    source_only: Vec<&'a str>,
+    target_only: Vec<&'a str>,
+    map_version: u64,
+    event_version: u64,
+}
+fn selected_locator<'a>(recipe: &'a Value, role: &str) -> Result<&'a str> {
+    let mut rows = recipe["locators"]
+        .as_array()
+        .ok_or("label locators required")?
+        .iter()
+        .filter(|row| row["role"] == role);
+    let row = rows.next().ok_or("label locator missing")?;
+    ensure(rows.next().is_none(), "duplicate label locator")?;
+    let path = s(&row["repository_path"])?;
+    tos_foundation::RelativePath::parse(path).map_err(|error| error.to_string())?;
+    Ok(path)
+}
+fn selected_keys<'a>(recipe: &'a Value, field: &str) -> Result<Vec<&'a str>> {
+    let values = recipe[field].as_array().ok_or("label key list required")?;
+    let keys = values.iter().map(s).collect::<Result<Vec<_>>>()?;
+    ensure(
+        keys.iter().copied().collect::<BTreeSet<_>>().len() == keys.len(),
+        "duplicate selected label key",
+    )?;
+    Ok(keys)
+}
+impl<'a> Recipe<'a> {
+    fn selected(value: &'a Value) -> Result<Self> {
+        let count = |field: &str| {
+            value[field]
+                .as_u64()
+                .ok_or_else(|| format!("{field} required"))
+        };
+        let selected = Self {
+            work: s(&value["work_ref"])?,
+            source_item: s(&value["source_item_ref"])?,
+            target_item: s(&value["target_item_ref"])?,
+            source_map: selected_locator(value, "source_map")?,
+            target_map: selected_locator(value, "target_map")?,
+            source_rights: selected_locator(value, "source_rights")?,
+            target_rights: selected_locator(value, "target_rights")?,
+            output: selected_locator(value, "output")?,
+            provenance: selected_locator(value, "provenance")?,
+            directory: selected_locator(value, "output_directory")?,
+            map_id: s(&value["map_id"])?,
+            event_id: s(&value["event_id"])?,
+            prior_event_id: s(&value["prior_event_id"])?,
+            source_count: count("expected_source_count")?,
+            target_count: count("expected_target_count")?,
+            shared_count: count("expected_shared_count")?,
+            source_only: selected_keys(value, "source_only_keys")?,
+            target_only: selected_keys(value, "target_only_keys")?,
+            map_version: count("map_version")?,
+            event_version: count("event_version")?,
+        };
+        ensure(
+            selected
+                .source_count
+                .checked_sub(selected.source_only.len() as u64)
+                == Some(selected.shared_count)
+                && selected
+                    .target_count
+                    .checked_sub(selected.target_only.len() as u64)
+                    == Some(selected.shared_count),
+            "label count profile differs",
+        )?;
+        ensure(
+            selected.source_only.len() == 1 && selected.target_only.is_empty(),
+            "historical unpaired-unit representation required",
+        )?;
+        Ok(selected)
+    }
+}
+fn units(value: &Value, expected: u64) -> Result<(Vec<&str>, BTreeMap<&str, &Value>)> {
     let rows = value["unit_starts"]
         .as_array()
         .ok_or("unit starts absent")?;
-    ensure(rows.len() <= 299, "numbered-label count bound")?;
+    ensure(
+        u64::try_from(rows.len()).ok() == Some(expected),
+        "numbered-label count differs",
+    )?;
     let mut order = Vec::new();
     let mut map = BTreeMap::new();
     for row in rows {
@@ -84,28 +177,34 @@ fn units(value: &Value) -> Result<(Vec<&str>, BTreeMap<&str, &Value>)> {
     }
     Ok((order, map))
 }
-fn pairings(source: &Value, target: &Value) -> Result<Vec<Out>> {
+fn pairings(source: &Value, target: &Value, recipe: &Recipe<'_>) -> Result<Vec<Out>> {
     ensure(
         s(&source["work_ref"])? == s(&target["work_ref"])?
-            && s(&source["work_ref"])? == "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+            && s(&source["work_ref"])? == recipe.work,
         "source and target work refs differ from selected work",
     )?;
-    let (_, src) = units(source)?;
-    let (order, dst) = units(target)?;
+    let (_, src) = units(source, recipe.source_count)?;
+    let (order, dst) = units(target, recipe.target_count)?;
     let source_only = src
         .keys()
         .copied()
         .filter(|k| !dst.contains_key(k))
         .collect::<BTreeSet<_>>();
     ensure(
-        src.len() == 299
-            && dst.len() == 298
-            && source_only == BTreeSet::from(["237a"])
-            && dst.keys().all(|k| src.contains_key(k)),
+        source_only == recipe.source_only.iter().copied().collect()
+            && dst
+                .keys()
+                .copied()
+                .filter(|key| !src.contains_key(key))
+                .collect::<BTreeSet<_>>()
+                == recipe.target_only.iter().copied().collect()
+            && dst.keys().filter(|key| src.contains_key(**key)).count() as u64
+                == recipe.shared_count,
         "numbered-unit intersection drifted",
     )?;
     order
         .iter()
+        .filter(|key| src.contains_key(**key))
         .enumerate()
         .map(|(i, key)| {
             let left = src[key];
@@ -131,7 +230,13 @@ pub struct Selection<'a> {
     pub event_id: &'a str,
     pub event_at: &'a str,
 }
-pub fn run(ctx: &ResearchExecution, build: bool, fresh: Option<Selection<'_>>) -> Result<Value> {
+pub fn run(
+    ctx: &ResearchExecution,
+    selected: &Value,
+    build: bool,
+    fresh: Option<Selection<'_>>,
+) -> Result<Value> {
+    let recipe = Recipe::selected(selected)?;
     ensure(
         !build || fresh.is_some(),
         "build requires a new map, event, timestamp and output directory",
@@ -139,7 +244,12 @@ pub fn run(ctx: &ResearchExecution, build: bool, fresh: Option<Selection<'_>>) -
     let mut held = Vec::new();
     let mut values = Vec::new();
     let mut hashes = Vec::new();
-    for reference in [SOURCE_MAP, TARGET_MAP, SOURCE_RIGHTS, TARGET_RIGHTS] {
+    for reference in [
+        recipe.source_map,
+        recipe.target_map,
+        recipe.source_rights,
+        recipe.target_rights,
+    ] {
         let mut file = ctx.source_file(reference, CAP)?;
         let raw = ctx.read_file(&mut file, CAP)?;
         let value: Value = serde_json::from_slice(&raw).map_err(|e| e.to_string())?;
@@ -149,16 +259,20 @@ pub fn run(ctx: &ResearchExecution, build: bool, fresh: Option<Selection<'_>>) -
         held.push((reference, file));
     }
     let digests: [String; 4] = hashes.try_into().map_err(|_| "input count")?;
-    let pairs = pairings(&values[0], &values[1])?;
+    ensure(
+        values[0]["item_ref"] == recipe.source_item && values[1]["item_ref"] == recipe.target_item,
+        "numbered label item identity differs",
+    )?;
+    let pairs = pairings(&values[0], &values[1], &recipe)?;
     // The frozen event records its actual timestamp, which may differ from
     // the former command's default. Read its declaration without recreating
     // or asserting that historical execution.
     let historical_at = if fresh.is_none() {
-        let mut file = ctx.source_file(PROVENANCE_PATH, CAP)?;
+        let mut file = ctx.source_file(recipe.provenance, CAP)?;
         let event: Value =
             serde_json::from_slice(&ctx.read_file(&mut file, CAP)?).map_err(|e| e.to_string())?;
         ensure(
-            s(&event["event_id"])? == EVENT_ID,
+            s(&event["event_id"])? == recipe.event_id,
             "historical event identity differs",
         )?;
         s(&event["started_at"])?.to_owned()
@@ -167,16 +281,16 @@ pub fn run(ctx: &ResearchExecution, build: bool, fresh: Option<Selection<'_>>) -
     };
     let (map_ref, provenance_ref, map_id, event_id, event_at) = if let Some(selected) = &fresh {
         ensure(
-            selected.directory.starts_with(ALIGNMENT_DIR)
-                && selected.directory.len() > ALIGNMENT_DIR.len() + 1
-                && selected.directory.as_bytes()[ALIGNMENT_DIR.len()] == b'/'
+            selected.directory.starts_with(recipe.directory)
+                && selected.directory.len() > recipe.directory.len() + 1
+                && selected.directory.as_bytes()[recipe.directory.len()] == b'/'
                 && std::path::Path::new(selected.directory)
                     .components()
                     .all(|c| matches!(c, std::path::Component::Normal(_))),
             "select a new source-owned alignment subdirectory",
         )?;
         ensure(
-            selected.map_id != MAP_ID && selected.event_id != EVENT_ID,
+            selected.map_id != recipe.map_id && selected.event_id != recipe.event_id,
             "preserve historical map/event identity",
         )?;
         (
@@ -194,10 +308,10 @@ pub fn run(ctx: &ResearchExecution, build: bool, fresh: Option<Selection<'_>>) -
         )
     } else {
         (
-            MAP_PATH.into(),
-            PROVENANCE_PATH.into(),
-            MAP_ID,
-            EVENT_ID,
+            recipe.output.into(),
+            recipe.provenance.into(),
+            recipe.map_id,
+            recipe.event_id,
             historical_at.as_str(),
         )
     };
@@ -209,10 +323,11 @@ pub fn run(ctx: &ResearchExecution, build: bool, fresh: Option<Selection<'_>>) -
         map_id,
         event_id,
         &provenance_ref,
+        &recipe,
     )?;
     if fresh.is_some() {
         set(&mut map, "map_version", n(1))?;
-        set(&mut map, "supersedes_map_ref", q(MAP_ID))?;
+        set(&mut map, "supersedes_map_ref", q(recipe.map_id))?;
     }
     if fresh.is_none() {
         // Frozen v3 wording predates the current producer's prose update.
@@ -225,7 +340,14 @@ pub fn run(ctx: &ResearchExecution, build: bool, fresh: Option<Selection<'_>>) -
         )?;
     }
     let map_raw = render(&map, true)?;
-    let mut event = event_output(&digests, &map_ref, &sha(&map_raw), event_id, event_at)?;
+    let mut event = event_output(
+        &digests,
+        &map_ref,
+        &sha(&map_raw),
+        event_id,
+        event_at,
+        &recipe,
+    )?;
     if fresh.is_some() {
         set(
             &mut event,
@@ -244,8 +366,11 @@ pub fn run(ctx: &ResearchExecution, build: bool, fresh: Option<Selection<'_>>) -
             "configuration",
             o(vec![
                 ("pairing_key", q("unit_key")),
-                ("expected_pairing_count", n(298)),
-                ("source_only_unit_keys", Out::Array(vec![q("237a")])),
+                ("expected_pairing_count", n(recipe.shared_count)),
+                (
+                    "source_only_unit_keys",
+                    Out::Array(recipe.source_only.iter().map(|key| q(*key)).collect()),
+                ),
                 ("local_payloads_read", Out::Bool(false)),
                 ("source_to_target_text_compared", Out::Bool(false)),
                 ("translation_alignment_inferred", Out::Bool(false)),
@@ -317,7 +442,7 @@ pub fn run(ctx: &ResearchExecution, build: bool, fresh: Option<Selection<'_>>) -
         }
     }
     Ok(
-        json!({"status":"PASS","mode":if build{"build"}else{"check"},"pairings":298,"source_only_unit_keys":["237a"],
+        json!({"status":"PASS","mode":if build{"build"}else{"check"},"pairings":recipe.shared_count,"source_only_unit_keys":recipe.source_only,
         "changed_files":changed,"native_kernel_sha256":sha(include_bytes!("numbered_label_correspondence.rs")),
         "historical_bytes_reconstructed":fresh.is_none(),"historical_execution_claimed":false,
         "outputs":outputs.iter().map(|(r,b)|json!({"ref":r,"bytes":b.len(),"sha256":sha(b)})).collect::<Vec<_>>(),
@@ -325,15 +450,6 @@ pub fn run(ctx: &ResearchExecution, build: bool, fresh: Option<Selection<'_>>) -
     )
 }
 
-const SOURCE_MAP: &str = "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/structure/numbered-unit-page-map.json";
-const TARGET_MAP: &str = "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/numbered-unit-page-map.json";
-const SOURCE_RIGHTS: &str = "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/rights.json";
-const TARGET_RIGHTS: &str = "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json";
-const MAP_PATH: &str = "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996/numbered-unit-label-correspondence.json";
-const PROVENANCE_PATH: &str = "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996/provenance.numbered-unit-label-correspondence.jsonl";
-const MAP_ID: &str = "tos.parallel-numbered-unit-label-map.friedrich-nietzsche.jenseits-von-gut-und-boese.naumann-1886-to-polilov-mysl-1996";
-const EVENT_ID: &str = "tos.event.parallel-numbered-unit-label-map.friedrich-nietzsche.jenseits-von-gut-und-boese.layered-rights-refresh.2026-08-02";
-const ALIGNMENT_DIR: &str = "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996";
 fn map_output(
     source: &Value,
     target: &Value,
@@ -342,6 +458,7 @@ fn map_output(
     map_id: &str,
     event_id: &str,
     provenance_ref: &str,
+    recipe: &Recipe<'_>,
 ) -> Result<Out> {
     Ok(o(vec![
         (
@@ -356,29 +473,25 @@ fn map_output(
         ),
         ("map_id", q(map_id)),
         ("work_ref", q(s(&source["work_ref"])?)),
-        ("source_witness", witness(source, SOURCE_MAP, &digests[0])?),
-        ("target_witness", witness(target, TARGET_MAP, &digests[1])?),
+        (
+            "source_witness",
+            witness(source, recipe.source_map, &digests[0])?,
+        ),
+        (
+            "target_witness",
+            witness(target, recipe.target_map, &digests[1])?,
+        ),
         (
             "rights_basis",
             Out::Array(vec![
                 o(vec![
                     ("role", q("source")),
-                    (
-                        "ref",
-                        q(
-                            "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/rights.json",
-                        ),
-                    ),
+                    ("ref", q(recipe.source_rights)),
                     ("sha256", q(&digests[2])),
                 ]),
                 o(vec![
                     ("role", q("target")),
-                    (
-                        "ref",
-                        q(
-                            "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json",
-                        ),
-                    ),
+                    ("ref", q(recipe.target_rights)),
                     ("sha256", q(&digests[3])),
                 ]),
             ]),
@@ -408,7 +521,7 @@ fn map_output(
             "unpaired_units",
             Out::Array(vec![o(vec![
                 ("side", q("source")),
-                ("unit_key", q("237a")),
+                ("unit_key", q(recipe.source_only[0])),
                 (
                     "reason",
                     q("target_witness_has_corresponding_prose_without_repeated_number_label"),
@@ -421,12 +534,18 @@ fn map_output(
         (
             "summary",
             o(vec![
-                ("source_numbered_unit_count", n(299)),
-                ("target_numbered_unit_count", n(298)),
-                ("shared_materialized_label_count", n(298)),
-                ("pairing_count", n(298)),
-                ("source_only_unit_keys", Out::Array(vec![q("237a")])),
-                ("target_only_unit_keys", Out::Array(vec![])),
+                ("source_numbered_unit_count", n(recipe.source_count)),
+                ("target_numbered_unit_count", n(recipe.target_count)),
+                ("shared_materialized_label_count", n(recipe.shared_count)),
+                ("pairing_count", n(recipe.shared_count)),
+                (
+                    "source_only_unit_keys",
+                    Out::Array(recipe.source_only.iter().map(|key| q(*key)).collect()),
+                ),
+                (
+                    "target_only_unit_keys",
+                    Out::Array(recipe.target_only.iter().map(|key| q(*key)).collect()),
+                ),
                 ("all_pairing_statuses", Out::Array(vec![q("proposed")])),
                 ("human_review_performed", Out::Bool(false)),
                 ("translation_alignment_claimed", Out::Bool(false)),
@@ -434,7 +553,7 @@ fn map_output(
         ),
         ("provenance_ref", q(provenance_ref)),
         ("provenance_event_ref", q(event_id)),
-        ("map_version", n(3)),
+        ("map_version", n(recipe.map_version)),
         ("supersedes_map_ref", Out::Null),
         (
             "authority_boundary",
@@ -468,6 +587,7 @@ fn event_output(
     map_digest: &str,
     event_id: &str,
     event_at: &str,
+    recipe: &Recipe<'_>,
 ) -> Result<Out> {
     Ok(o(vec![
         ("schema_version", q("tos_provenance_event_v1")),
@@ -483,42 +603,22 @@ fn event_output(
             "inputs",
             Out::Array(vec![
                 o(vec![
-                    (
-                        "ref",
-                        q(
-                            "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/structure/numbered-unit-page-map.json",
-                        ),
-                    ),
+                    ("ref", q(recipe.source_map)),
                     ("role", q("tracked-source-numbered-label-map")),
                     ("sha256", q(&digests[0])),
                 ]),
                 o(vec![
-                    (
-                        "ref",
-                        q(
-                            "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/numbered-unit-page-map.json",
-                        ),
-                    ),
+                    ("ref", q(recipe.target_map)),
                     ("role", q("tracked-target-numbered-label-map")),
                     ("sha256", q(&digests[1])),
                 ]),
                 o(vec![
-                    (
-                        "ref",
-                        q(
-                            "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/rights.json",
-                        ),
-                    ),
+                    ("ref", q(recipe.source_rights)),
                     ("role", q("source-rights-basis")),
                     ("sha256", q(&digests[2])),
                 ]),
                 o(vec![
-                    (
-                        "ref",
-                        q(
-                            "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json",
-                        ),
-                    ),
+                    ("ref", q(recipe.target_rights)),
                     ("role", q("target-rights-basis")),
                     ("sha256", q(&digests[3])),
                 ]),
@@ -548,8 +648,11 @@ fn event_output(
                     "configuration",
                     o(vec![
                         ("pairing_key", q("unit_key")),
-                        ("expected_pairing_count", n(298)),
-                        ("source_only_unit_keys", Out::Array(vec![q("237a")])),
+                        ("expected_pairing_count", n(recipe.shared_count)),
+                        (
+                            "source_only_unit_keys",
+                            Out::Array(recipe.source_only.iter().map(|key| q(*key)).collect()),
+                        ),
                         ("local_payloads_read", Out::Bool(false)),
                         ("source_to_target_text_compared", Out::Bool(false)),
                         ("translation_alignment_inferred", Out::Bool(false)),
@@ -588,13 +691,8 @@ fn event_output(
         ),
         ("receipt_refs", Out::Array(vec![q(map_ref)])),
         ("rights_basis_ref", Out::Null),
-        ("event_version", n(2)),
-        (
-            "supersedes_event_ref",
-            q(
-                "tos.event.parallel-numbered-unit-label-map.friedrich-nietzsche.jenseits-von-gut-und-boese.rights-refresh.2026-08-01",
-            ),
-        ),
+        ("event_version", n(recipe.event_version)),
+        ("supersedes_event_ref", q(recipe.prior_event_id)),
     ]))
 }
 
@@ -603,6 +701,14 @@ mod tests {
     use super::*;
     #[test]
     fn intersection_preserves_target_order_and_refuses_duplicate_or_materialized_237a() {
+        let curation: Value = serde_json::from_str(include_str!("../../../../ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/edition-curation.v1.json")).unwrap();
+        let selected = curation["recipes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|v| v["stage"] == "numbered-label-correspondence")
+            .unwrap();
+        let recipe = Recipe::selected(selected).unwrap();
         let rows=(1..=298).map(|i|json!({"unit_key":i.to_string(),"anchor_ref":format!("tos.anchor.test.unit-{i}"),"pdf_page":i})).collect::<Vec<_>>();
         let mut source = json!({"work_ref":"tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese","unit_starts":rows});
         let mut target = source.clone();
@@ -611,7 +717,7 @@ mod tests {
             .unwrap()
             .push(json!({"unit_key":"237a","anchor_ref":"tos.anchor.test.extra","pdf_page":237}));
         target["unit_starts"].as_array_mut().unwrap().reverse();
-        let pairs = pairings(&source, &target).unwrap();
+        let pairs = pairings(&source, &target, &recipe).unwrap();
         let value = serde_json::to_value(Out::Array(pairs)).unwrap();
         assert_eq!(value[0]["unit_key"], "298");
         assert_eq!(value[297]["unit_key"], "1");
@@ -625,8 +731,8 @@ mod tests {
         );
         let first = target["unit_starts"][0].clone();
         target["unit_starts"][1] = first;
-        assert!(pairings(&source, &target).is_err());
+        assert!(pairings(&source, &target, &recipe).is_err());
         target["unit_starts"][1] = source["unit_starts"][298].clone();
-        assert!(pairings(&source, &target).is_err());
+        assert!(pairings(&source, &target, &recipe).is_err());
     }
 }
