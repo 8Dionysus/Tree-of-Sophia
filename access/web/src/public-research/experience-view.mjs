@@ -15,13 +15,24 @@ const make=(tag,cls='',text)=>{const element=document.createElement(tag);if(cls)
 const action=(text,run,cls='experience-button')=>{const element=make('button',cls,text);element.type='button';element.addEventListener('click',run);return element;};
 const clone=value=>JSON.parse(JSON.stringify(value));
 
+// A long claim is named by its first sentences, ending where a sentence ends; a single long sentence ends on a whole word.
+export function claimLine(text,limit=220){
+  if(text.length<=limit)return text;
+  let end=0;for(const match of text.matchAll(/[.!?…»”)]+(?=\s)/gu)){const at=match.index+match[0].length;if(at>limit)break;end=at;}
+  if(end>=40)return text.slice(0,end);
+  const space=text.lastIndexOf(' ',limit-1);
+  return `${text.slice(0,space>40?space:limit-1).replace(/[\s,;:—–-]+$/u,'')}…`;
+}
+
 /** Shared selection and history; the spatial view remains mounted in every mode. */
-export function mountResearchExperience({root,header,profile,locale=()=> 'ru',index,space,api,notebook,onCognitive=()=>{}}={}){
+export function mountResearchExperience({root,header,profile,locale=()=> 'ru',index,space,api,notebook,learning=true,onCognitive=()=>{}}={}){
   if(!root||!header||!index||!space)throw new TypeError('Research experience requires root, header, index and space');
   const key=`tos.public-research.experience.v1.${profile}`;
   const t=key=>{const pair=labels[key];if(!pair)return key;return resolveLocale(locale())==='ru'?pair[0]:localeText(pair[1],locale());};
   const title=item=>localeValue(item?.title,locale())||item?.id||'';
-  const validMode=value=>modes.includes(value)?value:'original';
+  // A stand opens the learning mode once it has a sky of its own to learn in.
+  const standModes=learning?modes:modes.filter(mode=>mode!=='cognitive');
+  const validMode=value=>standModes.includes(value)?value:'original';
   const url=new URL(location.href),urlId=url.searchParams.get('item'),urlRevision=url.searchParams.get('revision');
   let state={mode:validMode(url.searchParams.get('experience')),id:urlId||null,revision:urlRevision||index.revision,stack:[],cursor:-1,pins:[],question:api?.getQuestion?.()??''};
   let edits=0;
@@ -40,7 +51,7 @@ export function mountResearchExperience({root,header,profile,locale=()=> 'ru',in
   const body=make('div','experience-body'),comparison=make('section','experience-comparison'),history=make('details','experience-history'),historyTitle=make('summary'),historyBody=make('div');history.append(historyTitle,historyBody);
   const cognitiveRoot=make('section','experience-cognitive'),operationDetails=make('details','experience-operations'),operationTitle=make('summary'),operationRoot=make('div');operationDetails.append(operationTitle,operationRoot);
   pane.append(question,message,recover,searchWrap,body,comparison,history,cognitiveRoot,operationDetails);root.append(pane);
-  const modeButtons=new Map();for(const mode of modes){const btn=action('',()=>{setModes(false);setMode(mode);});btn.dataset.mode=mode;modeGroup.append(btn);modeButtons.set(mode,btn);}
+  const modeButtons=new Map();for(const mode of standModes){const btn=action('',()=>{setModes(false);setMode(mode);});btn.dataset.mode=mode;modeGroup.append(btn);modeButtons.set(mode,btn);}
   const back=action('',()=>navigate(-1),'experience-button rb-step'),forward=action('',()=>navigate(1),'experience-button rb-step'),pin=action('',()=>togglePin()),copy=action('',()=>void copyLink()),calculation=action('',()=>{opsVisible=!opsVisible;operationDetails.open=opsVisible;render();});menu.append(pin,copy,calculation);tools.append(back,forward,menu);
   let menuOpen=false,modesOpen=false,copiedTimer=0;
   function setMenu(open){menuOpen=open;header.dataset.menu=open?'open':'';more.setAttribute('aria-expanded',String(open));}
@@ -151,7 +162,7 @@ export function mountResearchExperience({root,header,profile,locale=()=> 'ru',in
   }
   // A claim is named by its own words, anything else by its title and kind; the ids stay in the address, not in the reading.
   function refLabel(item){
-    if(item.kind==='statement'){const text=localeValue(item.record,locale());if(typeof text==='string'&&text.trim())return text.length>160?`${text.slice(0,159).trimEnd()}…`:text;}
+    if(item.kind==='statement'){const text=localeValue(item.record,locale());if(typeof text==='string'&&text.trim())return claimLine(text.trim());}
     return `${title(item)} · ${kindName(item)}`;
   }
   // The contents of a long article stand beside it (under the bar on a narrow screen) and mark the part being read.

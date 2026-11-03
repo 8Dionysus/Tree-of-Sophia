@@ -1,7 +1,7 @@
 import {afterEach,expect,test,vi} from 'vitest';
 vi.mock('./research-history.mjs',()=>({loadResearchVersion:vi.fn(async revision=>({status:'version-unavailable',revision}))}));
 vi.mock('./operation-view.mjs',()=>({mountResearchOperations:vi.fn(()=>({destroy(){},refreshLocale(){}}))}));
-import {mountResearchExperience} from './experience-view.mjs';
+import {claimLine,mountResearchExperience} from './experience-view.mjs';
 import {mountResearchOperations} from './operation-view.mjs';
 
 class Element{
@@ -79,4 +79,27 @@ test('moving through history keeps the scroll position each entry had',async()=>
   back.listeners.click();
   expect(window.scrollTo).toHaveBeenLastCalledWith(0,100);expect(view.getState().stack.map(entry=>entry.scroll)).toEqual([100,500]);
   view.destroy();
+});
+
+test('a stand without a sky of its own offers no learning mode, and an address that asks for it opens the space',async()=>{
+  const window={history:{replaceState:vi.fn(),pushState:vi.fn(),state:null},addEventListener(){},removeEventListener(){},scrollTo(){},scrollY:0};
+  vi.stubGlobal('document',{createElement:tag=>new Element(tag)});vi.stubGlobal('window',window);vi.stubGlobal('location',{href:'http://localhost/?experience=cognitive'});vi.stubGlobal('requestAnimationFrame',fn=>fn());
+  const index={revision:'current',items:new Map(),get:()=>null,resolveId:id=>id,search:()=>[],references:()=>[]},root=new Element('root'),space={root:new Element('space'),renderResearch:vi.fn(),selection:()=>null,fragments:{}};root.append(space.root);
+  const notebook={getPreference:vi.fn(async()=>undefined),setPreference:vi.fn(async()=>{})},header=new Element('header');
+  const view=mountResearchExperience({root,header,profile:'test',locale:()=> 'en',index,space,notebook,learning:false,api:{getQuestion:()=>''}});
+  const modes=[];const walk=node=>{if(node?.tag==='button'&&node.dataset?.mode)modes.push(node.dataset.mode);for(const child of node?.children??[])walk(child);};walk(header);
+  expect(modes).toEqual(['original','reference']);
+  expect(view.getState().mode).toBe('original');
+  view.setMode('cognitive');expect(view.getState().mode).toBe('original');
+  view.setMode('reference');expect(view.getState().mode).toBe('reference');view.destroy();
+});
+
+test('a long claim is named by whole sentences, a single long sentence by whole words',()=>{
+  const short='Литания истолковывает I-A как вечное «да».';
+  expect(claimLine(short)).toBe(short);
+  const two=`${'Первое предложение говорит о литании и о вечном «да» осла, которое славят высшие люди. '.repeat(2)}Третье предложение продолжает мысль о празднике и о согласии на жизнь.`;
+  expect(claimLine(two)).toMatch(/осла, которое славят высшие люди\.$/u);
+  const one='Заратустра встречает его без унижающей милостыни и даёт убежище после общего праздника и говорит что один день примирил его с землёй и дорогой к новому утру и вечному возвращению всего что было и будет снова и снова под тем же небом';
+  const line=claimLine(one);
+  expect(line.endsWith('…')).toBe(true);expect(one.startsWith(line.slice(0,-1))).toBe(true);expect(one[line.length-1]).toBe(' ');
 });
