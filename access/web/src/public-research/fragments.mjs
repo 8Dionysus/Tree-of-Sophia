@@ -93,7 +93,7 @@ function clip(nodes){
  * Fragments of one stand. `t` gives the stand's words, `openAddress` opens a
  * place in the corpus reader, `hint` marks an element with a hint.
  */
-export function createFragments({profile='zarathustra',locale,t,provider=null,openAddress=null,hint=null,onError=null,host=()=>document.body}={}){
+export function createFragments({profile='zarathustra',locale,t,provider=null,openAddress=null,hint=null,onError=null,host=()=>document.body,decorate=null}={}){
   const chapters=new Map();
   let manifest=null,places=null;
   const chapter=key=>{
@@ -206,6 +206,8 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       grid.append(line);
     });
     view.body.replaceChildren(grid);
+    // The book's own words open on their origin, as they do in the cards.
+    decorate?.(grid);
     // The editions themselves, in the reader of the corpus, where a place of this chapter stands there too.
     view.foot.replaceChildren();
     const firstRow=first?data.rows[[...grid.children].indexOf(first)]:data.rows[0];

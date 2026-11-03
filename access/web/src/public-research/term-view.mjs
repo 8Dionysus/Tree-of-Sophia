@@ -63,14 +63,15 @@ export function createTerms({module,locale=()=> 'ru',open=()=>{}}={}){
     if(!root||marking)return;
     marking=true;
     try{
-      const seen=new Set([...root.querySelectorAll('.ps-term')].map(node=>node.dataset.term));
+      // Once per term in each language of the root: a parallel reading opens the word in the original and in its translation.
+      const seen=new Set([...root.querySelectorAll('.ps-term')].map(node=>`${languageOf(node)}:${node.dataset.term}`));
       const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:node=>node.nodeValue.trim().length<3||node.parentElement?.closest(SKIP)?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});
       const queue=[];while(walker.nextNode())queue.push(walker.currentNode);
       while(queue.length){
-        const node=queue.shift(),matcher=matcherFor(languageOf(node.parentElement));if(!matcher)continue;
-        const found=matcher.find(node.nodeValue).find(item=>!seen.has(item.term.id));
+        const node=queue.shift(),language=languageOf(node.parentElement),matcher=matcherFor(language);if(!matcher)continue;
+        const found=matcher.find(node.nodeValue).find(item=>!seen.has(`${language}:${item.term.id}`));
         if(!found)continue;
-        seen.add(found.term.id);
+        seen.add(`${language}:${found.term.id}`);
         const start=found.index,end=start+found.text.length,rest=node.splitText(start).splitText(end-start);
         const word=node.nextSibling,span=make('span','ps-term');
         span.dataset.term=found.term.id;span.tabIndex=0;span.setAttribute('role','button');span.setAttribute('aria-haspopup','dialog');
@@ -113,6 +114,8 @@ export function createTerms({module,locale=()=> 'ru',open=()=>{}}={}){
   function show(span){
     clearTimeout(hideTimer);const term=byId.get(span.dataset.term);if(!term)return;
     if(shownFor!==span){shownFor?.removeAttribute('aria-expanded');paint(term);}
+    // A modal reading sits in the top layer; the card joins it there so it shows above the book.
+    const layer=span.closest('dialog[open]')??document.body;if(card.parentElement!==layer)layer.append(card);
     shownFor=span;span.setAttribute('aria-expanded','true');span.setAttribute('aria-controls',card.id);card.hidden=false;place(span);
   }
   function hide(now=false){

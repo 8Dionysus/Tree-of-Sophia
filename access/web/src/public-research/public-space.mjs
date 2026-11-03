@@ -75,7 +75,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const quote=text=>{const language=resolveLocale(locale);return language==='de'?`„${text}“`:['ru','es'].includes(language)?`«${text}»`:`“${text}”`;};
   const openPublicAddress=address=>api.open(Object.fromEntries(Object.entries(address).filter(([key])=>['documentId','versionId','unitId','revision','reference'].includes(key))));
   // The work's own text in place of a retelling: cited places, opened in the whole work.
-  const fragments=createFragments({profile,locale,t:key=>t(key),provider:api.provider,openAddress:openPublicAddress,hint:(element,text)=>setHint(element,text),onError:()=>notify(t('unavailable')),host:()=>shell});
+  const fragments=createFragments({profile,locale,t:key=>t(key),provider:api.provider,openAddress:openPublicAddress,hint:(element,text)=>setHint(element,text),onError:()=>notify(t('unavailable')),host:()=>shell,decorate:node=>terms.mark(node)});
   const materials=materialMap(library),atlas=library.atlas??{},routes=library.space?.routes??atlas.routes??[];
   const core=library.space?.core,coreView=core?createCoreView({core,locale,fragments,onNode:id=>previewMaterial(id),onRelation:id=>selectEdge(drawnRelation(id)),onAction:detail=>shell.dispatchEvent(new CustomEvent('public-research-action',{bubbles:true,detail})),onRoute:id=>{const item=routeItems().find(item=>item.id===id);if(item)startRoute(item);}}):null;
   const collectionMaterials=new Map((library.space?.collection??[]).map(item=>[item.materialId??item.id,{...item,id:item.materialId??item.id,kind:({author:'figure',school:'tradition'})[item.kind]??item.kind}]));
