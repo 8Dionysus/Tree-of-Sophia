@@ -1895,7 +1895,7 @@ impl<'a> SignPromotionRead<'a> {
     pub(crate) fn prepare_sources(
         &mut self,
         base: &CommandContext,
-        local_worker: &mut CutWorkerSchemaExecutor,
+        local_worker: &mut impl SignSourceSchemas,
         limits: AssessmentLimits,
         cancelled: &AtomicBool,
     ) -> Result<()> {
@@ -1930,7 +1930,7 @@ impl<'a> SignPromotionRead<'a> {
     pub(crate) fn current_basis(
         &mut self,
         base: &CommandContext,
-        local_worker: &mut CutWorkerSchemaExecutor,
+        local_worker: &mut impl SignSourceSchemas,
         assessment_worker: &mut CutWorkerSchemaExecutor,
         limits: AssessmentLimits,
         cancelled: &AtomicBool,
@@ -1950,7 +1950,7 @@ impl<'a> SignPromotionRead<'a> {
     pub(crate) fn describe_promotion(
         &mut self,
         base: &CommandContext,
-        local_worker: &mut CutWorkerSchemaExecutor,
+        local_worker: &mut impl SignSourceSchemas,
         assessment_worker: &mut CutWorkerSchemaExecutor,
         limits: AssessmentLimits,
         cancelled: &AtomicBool,
@@ -1999,7 +1999,7 @@ impl<'a> SignPromotionRead<'a> {
     pub(crate) fn with_current_basis<T>(
         &mut self,
         base: &CommandContext,
-        local_worker: &mut CutWorkerSchemaExecutor,
+        local_worker: &mut impl SignSourceSchemas,
         assessment_worker: &mut CutWorkerSchemaExecutor,
         limits: AssessmentLimits,
         cancelled: &AtomicBool,
@@ -2133,7 +2133,7 @@ fn assemble_sign_sources(
     owner: &ProtectedAssessmentJournal,
     promotion: &JsonValue,
     base: &CommandContext,
-    local_worker: &mut CutWorkerSchemaExecutor,
+    local_worker: &mut impl SignSourceSchemas,
     limits: AssessmentLimits,
     cancelled: &AtomicBool,
 ) -> Result<SignSourceAssembly> {

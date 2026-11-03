@@ -91,7 +91,14 @@ pub(super) fn run(
     authored.append(&mut context.files);
     context.files = authored;
     filesystem.current_context(&context, deadline, cancelled)?;
-    let mut worker = selected_schema(invocation, &original, deadline, cancelled)?;
+    let mut worker = tos_validation::source_cut::InProcessCutSchemaExecutor::from_cut(
+        &original,
+        tos_validation::FormatProfile::LegacyPythonObserved20260923,
+        tos_validation::in_process::InputMode::SerdeNormalized,
+        deadline,
+        cancelled,
+    )
+    .map_err(|_| SourceCommandError::Denied("creation schema selection"))?;
     let mut batch = tos_validation::executor::BatchBudget::laboratory();
     batch.total_execution_wall = deadline.saturating_duration_since(Instant::now());
     batch.cpu_seconds = capped(budgets, "worker_cpu_seconds", 3)?;
