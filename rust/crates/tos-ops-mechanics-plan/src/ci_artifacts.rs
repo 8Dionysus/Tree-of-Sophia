@@ -1176,10 +1176,14 @@ mod tests {
         fs::remove_file(&selected).unwrap();
         assert!(package_limits(&root, &images, &b).is_err());
         fs::write(&selected, b"{}").unwrap();
-        for i in 700..1006 {
-            fs::write(root.join(format!("access/web/dist/{i}.js")), b"web").unwrap();
+        // Past the member cap, in directories each within the directory bound.
+        for i in 700..SOFTWARE_MEMBERS {
+            let dir = root.join(format!("access/web/dist/part-{}", i / 500));
+            fs::create_dir_all(&dir).unwrap();
+            fs::write(dir.join(format!("{i}.js")), b"web").unwrap();
         }
-        assert!(package_limits(&root, &images, &b).is_err());
+        let refused = package_limits(&root, &images, &b).unwrap_err();
+        assert!(refused.to_string().contains("member"), "{refused}");
         fs::remove_dir_all(root).unwrap();
     }
     #[test]
