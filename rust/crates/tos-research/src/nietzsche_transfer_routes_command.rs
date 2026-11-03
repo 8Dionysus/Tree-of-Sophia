@@ -51,12 +51,12 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
         let generation = match (generation, at) {
             (None, None) => None,
             (Some(name), Some(event_at)) => {
-                Some(tos_compiler::nietzsche_transfer_source_routes::Generation { name, event_at })
+                Some(crate::structural_source_routes::Generation { name, event_at })
             }
             _ => return Err("supply both generation and event timestamp".into()),
         };
         let ctx = if build {
-            tos_compiler::research_execution::ResearchExecution::new_with_scratch(
+            tos_source_store::execution::Execution::new_with_scratch(
                 &root,
                 seconds,
                 scratch
@@ -68,15 +68,24 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
             if scratch.is_some() {
                 return Err("check does not reserve writes".into());
             }
-            tos_compiler::research_execution::ResearchExecution::new(&root, seconds)?
+            tos_source_store::execution::Execution::new(&root, seconds)?
         };
+        let curation_ref = "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/edition-curation.v1.json";
+        let curation: serde_json::Value =
+            serde_json::from_slice(&ctx.read(curation_ref)?).map_err(|error| error.to_string())?;
+        let recipe = curation["recipes"]
+            .as_array()
+            .ok_or("curation recipes required")?
+            .iter()
+            .find(|row| row["stage"] == "structural-source-routes")
+            .ok_or("structural routes recipe required")?;
         if action == "--validate-tracked" {
             if generation.is_some() {
                 return Err("validate-tracked selects retained canonical routes".into());
             }
-            tos_compiler::nietzsche_transfer_source_routes::validate_tracked(&ctx)
+            crate::structural_source_routes::validate_tracked(&ctx, recipe)
         } else {
-            tos_compiler::nietzsche_transfer_source_routes::run(&ctx, build, generation)
+            crate::structural_source_routes::run(&ctx, recipe, build, generation)
         }
     })();
     Some(match result {

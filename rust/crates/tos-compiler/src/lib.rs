@@ -907,9 +907,6 @@ pub mod provenance_event_lab;
 pub mod constructor_library;
 
 #[cfg(feature = "research")]
-pub mod nietzsche_transfer_source_routes;
-
-#[cfg(feature = "research")]
 pub mod jenseits_numbered_structure;
 
 #[cfg(feature = "research")]

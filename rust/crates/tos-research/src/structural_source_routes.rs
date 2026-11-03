@@ -1,15 +1,13 @@
 //! Text-free series-qualified label intersections and candidate source routes.
 //! Historical exact checks preserve the original event and producer declaration.
-use crate::{
-    constructor_library::Out,
-    research_execution::ResearchExecution,
-    source_text_foundation::{ensure, fresh_or_matching, s, schema, sha},
-};
+use crate::research_support::{ensure, fresh_or_matching, s, schema, sha};
 use serde_json::{Value, json};
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs::File,
 };
+use tos_compiler::constructor_library::Out;
+use tos_source_store::execution::Execution as ResearchExecution;
 type Result<T> = std::result::Result<T, String>;
 fn q(v: impl Into<String>) -> Out {
     Out::String(v.into())
@@ -191,7 +189,7 @@ fn event(
                 (
                     "artifact_digest",
                     if native {
-                        q(sha(include_bytes!("nietzsche_transfer_source_routes.rs")))
+                        q(sha(include_bytes!("structural_source_routes.rs")))
                     } else {
                         Out::Null
                     },
@@ -239,7 +237,7 @@ fn event_at(
 }
 fn build_one(
     ctx: &ResearchExecution,
-    c: &Config,
+    c: &Config<'_>,
     generation: &Option<Generation<'_>>,
     held: &mut Vec<Held>,
 ) -> Result<Vec<(String, Vec<u8>, &'static str)>> {
@@ -697,9 +695,16 @@ fn build_one(
 }
 pub fn run(
     ctx: &ResearchExecution,
+    selected: &Value,
     build: bool,
     generation: Option<Generation<'_>>,
 ) -> Result<Value> {
+    let configs = selected_configs(selected)?;
+    let expected_total = configs.iter().try_fold(0usize, |total, config| {
+        total
+            .checked_add(config.expected)
+            .ok_or("structural count overflow")
+    })?;
     ensure(
         !build || generation.is_some(),
         "build requires a new generation and event timestamp",
@@ -716,7 +721,7 @@ pub fn run(
     }
     let mut held = Vec::new();
     let mut outputs = Vec::new();
-    for c in CONFIGS {
+    for c in &configs {
         ctx.tick(1)?;
         outputs.extend(build_one(ctx, c, &generation, &mut held)?);
     }
@@ -762,7 +767,7 @@ pub fn run(
         }
     }
     Ok(
-        json!({"status":"PASS","mode":if build{"build"}else{"check"},"works":2,"pairings":140,"changed_files":changed,"native_kernel_sha256":sha(include_bytes!("nietzsche_transfer_source_routes.rs")),"historical_bytes_reconstructed":generation.is_none(),"historical_execution_claimed":false,"local_payloads_read":false,"translation_alignment_claimed":false,"outputs":outputs.iter().map(|(r,b,_)|json!({"ref":r,"bytes":b.len(),"sha256":sha(b)})).collect::<Vec<_>>(),"execution_budget":ctx.budget_report()}),
+        json!({"status":"PASS","mode":if build{"build"}else{"check"},"works":configs.len(),"pairings":expected_total,"changed_files":changed,"native_kernel_sha256":sha(include_bytes!("structural_source_routes.rs")),"historical_bytes_reconstructed":generation.is_none(),"historical_execution_claimed":false,"local_payloads_read":false,"translation_alignment_claimed":false,"outputs":outputs.iter().map(|(r,b,_)|json!({"ref":r,"bytes":b.len(),"sha256":sha(b)})).collect::<Vec<_>>(),"execution_budget":ctx.budget_report()}),
     )
 }
 
@@ -792,32 +797,66 @@ const DOES_NOT_ESTABLISH: &[&str] = &[
     "rights_clearance",
     "canon_promotion",
 ];
-struct Config {
-    slug: &'static str,
-    pair_slug: &'static str,
-    source: &'static str,
-    target: &'static str,
-    crosswalk: &'static str,
+struct Config<'a> {
+    slug: &'a str,
+    pair_slug: &'a str,
+    source: &'a str,
+    target: &'a str,
+    crosswalk: &'a str,
     expected: usize,
 }
-const CONFIGS: &[Config] = &[
-    Config {
-        slug: "zur-genealogie-der-moral",
-        pair_slug: "naumann-1892-second-svasyan-mysl-1996",
-        source: "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/structure/hierarchical-numbered-unit-page-map.json",
-        target: "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-page-map.json",
-        crosswalk: "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/transfer-candidate-page-crosswalk.v1.json",
-        expected: 78,
-    },
-    Config {
-        slug: "der-antichrist",
-        pair_slug: "naumann-1906-flerova-mysl-1996",
-        source: "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/structure/hierarchical-numbered-unit-page-map.json",
-        target: "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-page-map.json",
-        crosswalk: "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/transfer-candidate-page-crosswalk.v1.json",
-        expected: 62,
-    },
-];
+fn selected_configs(selected: &Value) -> Result<Vec<Config<'_>>> {
+    let rows = selected["configurations"]
+        .as_array()
+        .ok_or("structural route configurations required")?;
+    let mut slugs = BTreeSet::new();
+    let mut result = Vec::new();
+    for row in rows {
+        let slug = s(&row["slug"])?;
+        let pair_slug = s(&row["pair_slug"])?;
+        for component in [slug, pair_slug] {
+            tos_foundation::RelativePath::parse(component).map_err(|error| error.to_string())?;
+            ensure(
+                std::path::Path::new(component).components().count() == 1,
+                "structural identity component must be a single path component",
+            )?;
+        }
+        ensure(
+            slugs.insert((slug, pair_slug)),
+            "duplicate structural route configuration",
+        )?;
+        let source = s(&row["source"])?;
+        let target = s(&row["target"])?;
+        let crosswalk = s(&row["crosswalk"])?;
+        ensure(
+            BTreeSet::from([source, target, crosswalk]).len() == 3,
+            "structural route inputs must be distinct",
+        )?;
+        for reference in [source, target, crosswalk] {
+            tos_foundation::RelativePath::parse(reference).map_err(|error| error.to_string())?;
+        }
+        let expected = usize::try_from(
+            row["expected"]
+                .as_u64()
+                .ok_or("expected structural count required")?,
+        )
+        .map_err(|_| "structural count overflow")?;
+        ensure(expected > 0, "structural count must be positive")?;
+        result.push(Config {
+            slug,
+            pair_slug,
+            source,
+            target,
+            crosswalk,
+            expected,
+        });
+    }
+    ensure(
+        !result.is_empty(),
+        "structural route configuration required",
+    )?;
+    Ok(result)
+}
 
 fn recheck(ctx: &ResearchExecution, held: Vec<Held>) -> Result<()> {
     for mut input in held {
@@ -958,11 +997,17 @@ fn ordered_units(value: &Value, page: &str, expected: usize) -> Result<Vec<Strin
 }
 /// Source-map inventories, anchors, provenance and all retained pair/route outputs.
 /// This is the full former validator scope; no payload or authority admission.
-pub fn validate_tracked(ctx: &ResearchExecution) -> Result<Value> {
+pub fn validate_tracked(ctx: &ResearchExecution, selected: &Value) -> Result<Value> {
+    let configs = selected_configs(selected)?;
+    let expected_total = configs.iter().try_fold(0usize, |total, config| {
+        total
+            .checked_add(config.expected)
+            .ok_or("structural count overflow")
+    })?;
     let mut held = Vec::new();
     let mut total_routes = 0;
     let mut total_candidates = 0;
-    for config in CONFIGS {
+    for config in &configs {
         let (source, source_sha) = load(ctx, config.source, &mut held)?;
         let (target, _) = load(ctx, config.target, &mut held)?;
         let (crosswalk, _) = load(ctx, config.crosswalk, &mut held)?;
@@ -1076,9 +1121,13 @@ pub fn validate_tracked(ctx: &ResearchExecution) -> Result<Value> {
     )?;
     // Reconstructing every pair, route and event also checks their schemas,
     // current digests, target order and false authority fields byte for byte.
-    let reconstructed = run(ctx, false, None)?;
+    let reconstructed = run(ctx, selected, false, None)?;
     recheck(ctx, held)?;
     Ok(
-        json!({"status":"PASS","mode":"validate-tracked","source_maps":2,"pairings":140,"candidate_pages":total_candidates,"source_routes":total_routes,"changed_files":0,"local_payloads_read":false,"source_text_accepted":false,"translation_alignment_claimed":false,"outputs":reconstructed["outputs"],"execution_budget":ctx.budget_report()}),
+        json!({"status":"PASS","mode":"validate-tracked","source_maps":configs.len(),"pairings":expected_total,"candidate_pages":total_candidates,"source_routes":total_routes,"changed_files":0,"local_payloads_read":false,"source_text_accepted":false,"translation_alignment_claimed":false,"outputs":reconstructed["outputs"],"execution_budget":ctx.budget_report()}),
     )
 }
+
+#[cfg(test)]
+#[path = "../tests/support/structural_source_routes_tests.rs"]
+mod tests;

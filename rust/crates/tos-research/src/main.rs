@@ -25,6 +25,7 @@ mod provenance_event_lab_command;
 mod research_builders_command;
 mod source_text_foundation_command;
 mod structural_paragraph_command;
+mod structural_source_routes;
 mod synthetic_foundation_lab_command;
 mod technical_markup_command;
 mod transfer_candidates_command;
