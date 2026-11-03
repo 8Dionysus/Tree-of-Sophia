@@ -65,6 +65,12 @@ const sourceKey=binding=>binding?[binding.documentId,binding.versionId,binding.u
 const copyPosition=value=>Array.isArray(value)&&value.length===3&&value.every(Number.isFinite)?value:null;
 function downloadGraph(packet,name){const blob=new Blob([packet],{type:'application/json'}),url=URL.createObjectURL(blob),anchor=document.createElement('a');anchor.href=url;anchor.download=name;anchor.hidden=true;document.body.append(anchor);anchor.click();anchor.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 
+// The host contains both the map and the shared header, including search and language controls.
+export function toggleResearchFullscreen(host,doc=document){
+  if(doc.fullscreenElement)return doc.exitFullscreen().catch(()=>{});
+  return host.requestFullscreen?.().catch(()=>{});
+}
+
 /** A public adapter over the existing constructor scene and its Rust graph owner. */
 export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',library,bindings=new Map(),documentBindings=new Map(),groundTargets=()=>[],routeGroundTargets=()=>null,graphPredecessors=[],api,workspace,shelf,question,saveState,status,personalOwnerRoot,agentOwnerRoot,journeys=[],index=null}={}){
   if(!host||!library||!api)throw new TypeError('The public space needs a host, library, and reader API.');
@@ -1624,7 +1630,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function renderPersonalPanel(){
     if(personal.hidden)return;personalContent.querySelector('.ps-personal-summary')?.remove();const summary=el('p','ps-personal-summary',(copyLocale(locale())==='en')?localeText("Personal thoughts: {0} · proposals: {1}",locale,[personalState?.hypotheses?.length??0,personalState?.proposals?.length??0]):`Личных мыслей: ${personalState?.hypotheses?.length??0} · предложений: ${personalState?.proposals?.length??0}`);personalContent.prepend(summary);
   }
-  function toggleFullscreen(){if(document.fullscreenElement)return document.exitFullscreen().catch(()=>{});return shell.requestFullscreen?.().catch(()=>{});}
+  function toggleFullscreen(){return toggleResearchFullscreen(host);}
   function keyboard(event){
     if(dialog.open||event.target.closest('input,textarea,select,[contenteditable="true"],.ps-personal'))return;
     const key=event.key.toLowerCase();if((event.ctrlKey||event.metaKey)&&key==='z'){event.preventDefault();event.shiftKey?model.redo():model.undo();checkGraphPersistence();}
