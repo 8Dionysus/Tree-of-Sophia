@@ -515,7 +515,6 @@ pub(super) fn run(
                 prepare_pg_expression_responsibility_growth(
                     fs,
                     session,
-                    invocation,
                     &owner_raw,
                     &owner_config,
                     &request_raw,
@@ -2294,7 +2293,6 @@ pub(crate) fn prepare_pg_expression_edition_growth<'a>(
 pub(crate) fn prepare_pg_expression_responsibility_growth<'a>(
     fs: &'a CreationFilesystem,
     session: &mut SourceRevisionReadSession<'_>,
-    invocation: &Value,
     configuration_raw: &[u8],
     configuration: &JsonValue,
     request_raw: &[u8],
@@ -2329,8 +2327,7 @@ pub(crate) fn prepare_pg_expression_responsibility_growth<'a>(
         effective_uid,
         &software_files,
     )?;
-    let mut worker = super::revisions::selected_candidate_schema_from_context(
-        invocation,
+    let mut worker = super::revisions::selected_in_process_candidate_schema_from_context(
         &context.files,
         identity,
         deadline,
