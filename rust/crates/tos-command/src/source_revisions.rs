@@ -1658,6 +1658,18 @@ pub(crate) trait RecordSchemaWorker: CutSchemaExecutor {
     }
 }
 
+/// Candidate schemas that retain both the typed record identity and selection fence.
+pub(crate) trait CandidateRecordSchemaWorker<I: Copy + Eq>:
+    RecordSchemaWorker<Identity = I>
+    + tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding<I>
+{
+}
+impl<I: Copy + Eq, T> CandidateRecordSchemaWorker<I> for T where
+    T: RecordSchemaWorker<Identity = I>
+        + tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding<I>
+{
+}
+
 impl RecordSchemaWorker for CutWorkerSchemaExecutor {
     type Identity = tos_foundation::SourceRevision;
 

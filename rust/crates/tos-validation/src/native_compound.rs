@@ -6738,9 +6738,14 @@ pub fn finish_selected_expression_edition_bytes<I: Copy + Eq>(
     core: ExpressionEditionCore<'_>,
     environment_raw: &[u8],
     event_raw: &[u8],
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
+    schemas: &mut impl SourceFoundationCandidateSchemaBinding<I>,
 ) -> Result<ExpressionEditionBytes, ItemRefusal> {
-    finish_prepared_compound_bytes(core.inner, environment_raw, event_raw, schemas, true)
+    let identity = *schemas.input_identity();
+    let mut selected = CandidateCompoundSchemas::new(schemas, identity)?;
+    let result =
+        finish_prepared_compound_bytes(core.inner, environment_raw, event_raw, &mut selected, true);
+    selected.guard()?;
+    result
 }
 
 /// Finish one selected Expression responsibility package through its typed
@@ -7021,7 +7026,7 @@ pub fn prepare_selected_work_expression_preview_bytes<'a, I: Copy + Eq>(
 /// source input, preserving the existing compound owner serializer.
 pub fn prepare_selected_expression_edition_bytes<'a, I: Copy + Eq>(
     input: &'a dyn SourceCutInputWithIdentity<I>,
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
+    schemas: &mut impl SourceFoundationCandidateSchemaBinding<I>,
     scope: &Value,
     request_raw: &[u8],
     owned_before: &BTreeMap<String, Vec<u8>>,
@@ -7049,7 +7054,7 @@ pub fn prepare_selected_expression_edition_bytes<'a, I: Copy + Eq>(
 /// source epoch. The returned core does not publish or admit the proposal.
 pub fn prepare_selected_expression_edition_preview_bytes<'a, I: Copy + Eq>(
     input: &'a dyn SourceCutInputWithIdentity<I>,
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
+    schemas: &mut impl SourceFoundationCandidateSchemaBinding<I>,
     scope: &Value,
     proposed_claim_raw: &[u8],
     owned_before: &BTreeMap<String, Vec<u8>>,
