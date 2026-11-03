@@ -1809,14 +1809,16 @@ pub(super) fn run(
                     context
                         .check_selected_software_inputs(&software, &components, deadline, cancelled)
                         .map_err(DurableError::Source)?;
-                    let mut worker = super::revisions::selected_schema_from_context(
-                        invocation,
-                        &context.files,
-                        context.base_revision,
-                        deadline,
-                        cancelled,
-                    )
-                    .map_err(DurableError::Source)?;
+                    let schema_identity =
+                        PgRecordRevisionIdentity::from_selection(session.selection());
+                    let mut worker =
+                        super::revisions::selected_in_process_candidate_schema_from_context(
+                            &context.files,
+                            schema_identity,
+                            deadline,
+                            cancelled,
+                        )
+                        .map_err(DurableError::Source)?;
                     let home = source_path
                         .as_str()
                         .strip_suffix("/historical-claims.jsonl")
@@ -1831,6 +1833,7 @@ pub(super) fn run(
                         &identity_index,
                         &current,
                         &mut archives,
+                        schema_identity,
                         &mut worker,
                         deadline,
                         cancelled,

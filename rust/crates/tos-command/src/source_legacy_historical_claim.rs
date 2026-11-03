@@ -157,6 +157,236 @@ trait HistoricalCurrentSource {
     ) -> SourceCommandResult<Vec<u8>>;
 }
 
+/// Schema execution and selected identity evidence for historical Claims.
+pub(crate) trait HistoricalSchemas {
+    fn matches_revision(&self, revision: SourceRevision) -> bool;
+    fn check_historical_schema(
+        &mut self,
+        source_path: &str,
+        ctx: &CommandContext,
+        instance: &JsonValue,
+        root: &str,
+        refs: &[&str],
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()>;
+    fn complete_inventory(
+        &mut self,
+        ctx: &CommandContext,
+        members: &[SourceFile],
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<source_claims::MaintainedInventory>;
+    fn selected_closure(
+        &mut self,
+        ctx: &CommandContext,
+        members: &[SourceFile],
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<source_claims::SelectedIdentityClosure>;
+}
+
+impl HistoricalSchemas for CutWorkerSchemaExecutor {
+    fn matches_revision(&self, revision: SourceRevision) -> bool {
+        self.source_revision() == revision
+    }
+    fn check_historical_schema(
+        &mut self,
+        source_path: &str,
+        ctx: &CommandContext,
+        instance: &JsonValue,
+        root: &str,
+        refs: &[&str],
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        schema(
+            source_path,
+            ctx,
+            self,
+            instance,
+            root,
+            refs,
+            deadline,
+            cancelled,
+        )
+    }
+    fn complete_inventory(
+        &mut self,
+        ctx: &CommandContext,
+        members: &[SourceFile],
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<source_claims::MaintainedInventory> {
+        source_claims::maintained_inventory_from_members(
+            ctx, members, false, self, deadline, cancelled,
+        )
+    }
+    fn selected_closure(
+        &mut self,
+        ctx: &CommandContext,
+        members: &[SourceFile],
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<source_claims::SelectedIdentityClosure> {
+        source_claims::maintained_selected_identity_closure(ctx, members, self, deadline, cancelled)
+    }
+}
+
+struct PgHistoricalRead<'a> {
+    context: &'a CommandContext,
+    identity: source_revisions::PgRecordRevisionIdentity,
+}
+impl source_revisions::RecordRead for PgHistoricalRead<'_> {
+    type Identity = source_revisions::PgRecordRevisionIdentity;
+    fn files(&self) -> &[SourceFile] {
+        &self.context.files
+    }
+    fn input_identity(&self) -> Self::Identity {
+        self.identity
+    }
+    fn effective_uid(&self) -> u64 {
+        self.context.effective_uid
+    }
+    fn schema_source_path(&self) -> SourceCommandResult<String> {
+        Ok(cmd::text(&cmd::parse(&self.context.configuration_raw)?, "source_path")?.to_owned())
+    }
+    fn writer(&self) -> Option<&CommandContext> {
+        Some(self.context)
+    }
+    fn check(&self) -> SourceCommandResult<()> {
+        self.context.check()
+    }
+}
+
+impl HistoricalSchemas
+    for tos_validation::source_cut::InProcessCandidateSchemaExecutor<
+        source_revisions::PgRecordRevisionIdentity,
+    >
+{
+    fn matches_revision(&self, revision: SourceRevision) -> bool {
+        use tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding;
+        self.input_identity().bootstrap_revision == revision
+    }
+    fn check_historical_schema(
+        &mut self,
+        source_path: &str,
+        ctx: &CommandContext,
+        instance: &JsonValue,
+        root: &str,
+        refs: &[&str],
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        use tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding;
+        if !self.matches_revision(ctx.base_revision) {
+            return Err(SourceCommandError::Conflict(
+                "historical Claim PG bootstrap revision differs",
+            ));
+        }
+        let read = PgHistoricalRead {
+            context: ctx,
+            identity: *self.input_identity(),
+        };
+        source_revisions::schema_for_source_path_worker(
+            self,
+            deadline,
+            cancelled,
+            &read,
+            &refs
+                .iter()
+                .map(|name| (*name).to_owned())
+                .collect::<Vec<_>>(),
+            root,
+            source_path,
+            instance,
+        )
+    }
+    fn complete_inventory(
+        &mut self,
+        _ctx: &CommandContext,
+        _members: &[SourceFile],
+        _deadline: Instant,
+        _cancelled: &AtomicBool,
+    ) -> SourceCommandResult<source_claims::MaintainedInventory> {
+        Err(SourceCommandError::Unsupported(
+            "selected PG Claim requires indexed identities",
+        ))
+    }
+    fn selected_closure(
+        &mut self,
+        ctx: &CommandContext,
+        members: &[SourceFile],
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<source_claims::SelectedIdentityClosure> {
+        use tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding;
+        if !self.matches_revision(ctx.base_revision) {
+            return Err(SourceCommandError::Conflict(
+                "historical Claim PG bootstrap revision differs",
+            ));
+        }
+        let typed = source_revisions::PgRecordRevisionCommandContext::new(
+            ctx.clone(),
+            *self.input_identity(),
+        );
+        source_claims::maintained_selected_identity_closure_candidate(
+            &typed, members, self, deadline, cancelled,
+        )
+    }
+}
+
+fn historical_schema(
+    source_path: &str,
+    ctx: &CommandContext,
+    worker: &mut impl HistoricalSchemas,
+    instance: &JsonValue,
+    root: &str,
+    refs: &[&str],
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    worker.check_historical_schema(source_path, ctx, instance, root, refs, deadline, cancelled)
+}
+
+fn verify_pg_historical_schemas(
+    ctx: &CommandContext,
+    worker: &tos_validation::source_cut::InProcessCandidateSchemaExecutor<
+        source_revisions::PgRecordRevisionIdentity,
+    >,
+) -> SourceCommandResult<()> {
+    use tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding;
+    worker
+        .for_each_selected_resource(&mut |resource| {
+            let path = RelativePath::parse(resource.path).map_err(|_| {
+                tos_validation::item_rules::ItemRefusal::Source(
+                    "historical schema path differs".into(),
+                )
+            })?;
+            let raw = ctx
+                .file(&path)
+                .map_err(|_| {
+                    tos_validation::item_rules::ItemRefusal::Source(
+                        "historical schema input differs".into(),
+                    )
+                })?
+                .ok_or_else(|| {
+                    tos_validation::item_rules::ItemRefusal::Source(
+                        "historical schema input absent".into(),
+                    )
+                })?;
+            if raw.len() as u64 != resource.size_bytes
+                || Digest256::of_bytes(raw) != resource.sha256
+            {
+                return Err(tos_validation::item_rules::ItemRefusal::Source(
+                    "historical schema bytes differ".into(),
+                ));
+            }
+            Ok(())
+        })
+        .map_err(|_| SourceCommandError::Conflict("historical Claim PG schema inputs differ"))
+}
+
 struct CorpusHistoricalCurrentSource<'a>(&'a CorpusCutReader);
 
 impl HistoricalCurrentSource for CorpusHistoricalCurrentSource<'_> {
@@ -386,7 +616,7 @@ fn owner(
     ctx: &CommandContext,
     cut: &impl HistoricalCurrentSource,
     authored_members: &[SourceFile],
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl HistoricalSchemas,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Owner> {
@@ -517,14 +747,8 @@ fn owner(
         if let Some(index) = cut.identity_index() {
             selected_form_identity_inputs(ctx, index, &config, &path, id)?;
         } else {
-            let inventory = source_claims::maintained_inventory_from_members(
-                ctx,
-                authored_members,
-                false,
-                worker,
-                deadline,
-                cancelled,
-            )?;
+            let inventory =
+                worker.complete_inventory(ctx, authored_members, deadline, cancelled)?;
             form_identity_inputs(
                 ctx, cut, &inventory, &config, &path, id, worker, deadline, cancelled,
             )?;
@@ -543,7 +767,7 @@ fn owner(
     // Keep these schema dependencies bound to the actual selected worker; the
     // historical-claim schema remains the root and is never rewritten as a
     // public source-Claim profile.
-    if worker.source_revision() != ctx.base_revision {
+    if !worker.matches_revision(ctx.base_revision) {
         return Err(SourceCommandError::Conflict(
             "historical Claim worker and source cut differ",
         ));
@@ -571,7 +795,7 @@ fn form_identity_inputs(
     config: &JsonValue,
     target: &RelativePath,
     claim_id: &str,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl HistoricalSchemas,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -661,7 +885,7 @@ fn form_identity_inputs(
             ));
         }
         let payload = cmd::parse(raw)?;
-        schema(
+        historical_schema(
             path.as_str(),
             ctx,
             worker,
@@ -1329,7 +1553,7 @@ fn validate_captured_request_bytes(raw: &[u8], request: &JsonValue) -> SourceCom
 fn validate_capture(
     current: &LegacyPackage,
     owner: &Owner,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl HistoricalSchemas,
     ctx: &CommandContext,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -1443,7 +1667,7 @@ fn validate_capture(
         .get(&format!("{record_type}.json"))
         .ok_or(invalid())?;
     let current_record = cmd::parse(record_raw)?;
-    schema(
+    historical_schema(
         record_path,
         ctx,
         worker,
@@ -1525,11 +1749,11 @@ fn validate_config_claim(
     ctx: &CommandContext,
     owner: &Owner,
     claim: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl HistoricalSchemas,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
-    schema(
+    historical_schema(
         cmd::text(&owner.config, "source_path")?,
         ctx,
         worker,
@@ -1563,7 +1787,7 @@ fn validate_config_claim(
             "tos.form.historical-claim-schema-check",
             &field.id,
         )?;
-        schema(
+        historical_schema(
             cmd::text(&owner.config, "source_path")?,
             ctx,
             worker,
@@ -1580,7 +1804,7 @@ fn validate_config_claim(
         .and_then(JsonValue::as_str)
         == Some("tos_claim_display_fields_v1")
     {
-        schema(
+        historical_schema(
             cmd::text(&owner.config, "source_path")?,
             ctx,
             worker,
@@ -1609,7 +1833,7 @@ fn validate_historical_creation_outputs(
     receipt: &JsonValue,
     original_claims: &[JsonValue],
     initial_stream: &[u8],
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl HistoricalSchemas,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
@@ -1648,7 +1872,7 @@ fn validate_historical_creation_outputs(
     }
     let event_bytes = event_lines[0].strip_suffix(b"\r").unwrap_or(event_lines[0]);
     let event = cmd::parse(event_bytes)?;
-    schema(
+    historical_schema(
         &format!("{base}/source-create-provenance.jsonl"),
         ctx,
         worker,
@@ -1785,7 +2009,7 @@ fn verify_record_origin(
     history: &History,
     original_claims: &[JsonValue],
     reader: &mut impl LegacyArchiveReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl HistoricalSchemas,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
@@ -1817,7 +2041,7 @@ fn verify_record_origin(
             "captured Historical Record origin identity differs",
         ));
     }
-    schema(
+    historical_schema(
         record_path,
         ctx,
         worker,
@@ -2043,7 +2267,7 @@ fn verify_record_origin(
                     .ok_or(invalid())?,
             ),
         )?;
-        schema(
+        historical_schema(
             record_path,
             ctx,
             worker,
@@ -2080,7 +2304,7 @@ fn verify_record_origin(
 
     let forms_raw = current.get(&forms_name).ok_or(invalid())?;
     let forms = cmd::parse(forms_raw)?;
-    schema(
+    historical_schema(
         record_path,
         ctx,
         worker,
@@ -2278,7 +2502,7 @@ fn validate_history<'a>(
     config: &JsonValue,
     originals: &[JsonValue],
     reader: &mut impl LegacyArchiveReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl HistoricalSchemas,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<History> {
@@ -2505,7 +2729,7 @@ fn verify_archived_form_result(
     config: &JsonValue,
     receipt: &JsonValue,
     principal_id: &str,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl HistoricalSchemas,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
@@ -2522,7 +2746,7 @@ fn verify_archived_form_result(
     let prior_raw = archived.get(&form_name);
     let prior = prior_raw.map(|raw| cmd::parse(raw)).transpose()?;
     if let (Some(raw), Some(set)) = (prior_raw, prior.as_ref()) {
-        schema(
+        historical_schema(
             path,
             ctx,
             worker,
@@ -2924,7 +3148,7 @@ fn historical_grounding(
     authored_members: &[SourceFile],
     config: &JsonValue,
     claim: &JsonValue,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl HistoricalSchemas,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(String, JsonValue)> {
@@ -2938,13 +3162,7 @@ fn historical_grounding(
         form_inputs,
         identity_index_digest,
     ) = if let Some(index) = cut.identity_index() {
-        let selected = source_claims::maintained_selected_identity_closure(
-            ctx,
-            authored_members,
-            worker,
-            deadline,
-            cancelled,
-        )?;
+        let selected = worker.selected_closure(ctx, authored_members, deadline, cancelled)?;
         for (token, resolution) in &index.entries {
             let Some((kind, path)) = resolution else {
                 if selected.objects.contains_key(token)
@@ -3006,14 +3224,7 @@ fn historical_grounding(
             Some(index.selected_digest()?),
         )
     } else {
-        let inventory = source_claims::maintained_inventory_from_members(
-            ctx,
-            authored_members,
-            false,
-            worker,
-            deadline,
-            cancelled,
-        )?;
+        let inventory = worker.complete_inventory(ctx, authored_members, deadline, cancelled)?;
         let form_inputs = form_identity_inputs(
             ctx,
             cut,
@@ -3355,7 +3566,7 @@ fn revision_proposal(
     current: &LegacyPackage,
     claim: &JsonValue,
     existing_forms: Option<&JsonValue>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl HistoricalSchemas,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(
@@ -3457,7 +3668,7 @@ fn validate_claim_head(
     history: &History,
     original_claims: &[JsonValue],
     reader: &mut impl LegacyArchiveReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl HistoricalSchemas,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(JsonValue, Option<JsonValue>)> {
@@ -3489,7 +3700,7 @@ fn validate_claim_head(
         .map(|raw| cmd::parse(raw))
         .transpose()?;
     if let Some(set) = &set {
-        schema(
+        historical_schema(
             cmd::text(&owner.config, "source_path")?,
             ctx,
             worker,
@@ -3512,7 +3723,7 @@ fn prepare_revision(
     owner: &Owner,
     current: &LegacyPackage,
     reader: &mut impl LegacyArchiveReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl HistoricalSchemas,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<LegacyClaimPlan> {
@@ -3791,7 +4002,7 @@ fn prepare_forms(
     owner: &Owner,
     current: &LegacyPackage,
     reader: &mut impl LegacyArchiveReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl HistoricalSchemas,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<LegacyClaimPlan> {
@@ -4044,7 +4255,7 @@ fn prepare_forms(
             "historical Claim form set byte budget",
         ));
     }
-    schema(
+    historical_schema(
         cmd::text(&owner.config, "source_path")?,
         ctx,
         worker,
@@ -4211,7 +4422,7 @@ fn prepare_with_source(
     authored_members: &[SourceFile],
     current: &LegacyPackage,
     reader: &mut impl LegacyArchiveReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl HistoricalSchemas,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<LegacyClaimPlan> {
@@ -4244,7 +4455,7 @@ pub(crate) fn prepare(
     cut: &CorpusCutReader,
     current: &LegacyPackage,
     reader: &mut impl LegacyArchiveReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl HistoricalSchemas,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<LegacyClaimPlan> {
@@ -4273,10 +4484,20 @@ pub(crate) fn prepare_from_indexed_members(
     identity_index: &HistoricalIdentityIndex,
     current: &LegacyPackage,
     reader: &mut impl LegacyArchiveReader,
-    worker: &mut CutWorkerSchemaExecutor,
+    identity: source_revisions::PgRecordRevisionIdentity,
+    worker: &mut tos_validation::source_cut::InProcessCandidateSchemaExecutor<
+        source_revisions::PgRecordRevisionIdentity,
+    >,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<LegacyClaimPlan> {
+    use tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding;
+    if worker.input_identity() != &identity {
+        return Err(SourceCommandError::Conflict(
+            "historical Claim PG schema identity differs",
+        ));
+    }
+    verify_pg_historical_schemas(ctx, worker)?;
     if source_revision != ctx.base_revision {
         return Err(SourceCommandError::Conflict(
             "historical Claim PG source revision differs",
@@ -4892,7 +5113,7 @@ pub(crate) fn pg_current_owner_inventory_contribution(
 
     let mut claims = Vec::with_capacity(current_claims.len());
     for (id, claim) in &current_claims {
-        schema(
+        historical_schema(
             source_path,
             ctx,
             worker,
@@ -4922,7 +5143,7 @@ pub(crate) fn pg_current_owner_inventory_contribution(
         let form = current.get(&form_name);
         let form_ids = if let Some(raw) = form {
             let set = cmd::parse(raw)?;
-            schema(
+            historical_schema(
                 source_path,
                 ctx,
                 worker,
@@ -5315,6 +5536,104 @@ mod pg_identity_selection_tests {
             Err(SourceCommandError::Conflict(_))
         ));
         assert_eq!(worker.calls.len(), 2);
+    }
+
+    #[test]
+    fn historical_schema_preserves_pg_candidate_identity() {
+        use tos_validation::source_cut::InProcessCandidateSchemaExecutor;
+        const GRAMMAR: &str = "ToS/contracts/historical-path-fixture.schema.json";
+        const SOURCE: &str = "ToS/source-witnesses/history/fixture/historical-claims.jsonl";
+        let digest = Digest256::of_bytes(b"selected historical PG epoch");
+        let identity = source_revisions::PgRecordRevisionIdentity {
+            domain_digest: digest,
+            store_id: [7; 16],
+            bootstrap_revision: SourceRevision(digest),
+            bootstrap_membership: tos_source_store::SourceMembershipV1 { count: 1, digest },
+            cohort_digest: digest,
+            cohort_epoch: 1,
+            cohort_definition: digest,
+            cohort_generation: 2,
+            job_id_digest: digest,
+            job_fence: 3,
+            epoch: 4,
+            source_generation: 5,
+            head_seq: 6,
+            audit_generation: 7,
+            rights_version: 8,
+            rule_version: 9,
+            contract: digest,
+        };
+        let uri = format!("https://tree-of-sophia.local/{GRAMMAR}");
+        let grammar = format!(r#"{{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"{uri}","type":"object"}}"#).into_bytes();
+        let deadline = Instant::now() + std::time::Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let mut worker = InProcessCandidateSchemaExecutor::from_selected_source_resources(
+            identity,
+            vec![(
+                GRAMMAR.to_owned(),
+                tos_validation::SchemaResource {
+                    uri,
+                    raw: grammar.clone(),
+                },
+            )],
+            tos_validation::FormatProfile::LegacyPythonObserved20260923,
+            tos_validation::in_process::InputMode::LegacyPythonObserved,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        let mut context = CommandContext {
+            base_revision: identity.bootstrap_revision,
+            configuration_raw: b"{}".to_vec(),
+            request_raw: b"{}".to_vec(),
+            recorded_at: "2026-10-15T00:00:00Z".into(),
+            effective_uid: 1000,
+            files: vec![SourceFile {
+                path: rel(GRAMMAR).unwrap(),
+                raw: grammar,
+            }],
+        };
+        verify_pg_historical_schemas(&context, &worker).unwrap();
+        historical_schema(
+            SOURCE,
+            &context,
+            &mut worker,
+            &cmd::object(vec![]),
+            GRAMMAR,
+            &[GRAMMAR],
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        assert!(matches!(
+            historical_schema(
+                SOURCE,
+                &context,
+                &mut worker,
+                &cmd::number(1),
+                GRAMMAR,
+                &[GRAMMAR],
+                deadline,
+                &cancelled
+            ),
+            Err(SourceCommandError::Invalid(_))
+        ));
+        context.files[0].raw.push(b' ');
+        assert!(verify_pg_historical_schemas(&context, &worker).is_err());
+        context.base_revision = SourceRevision(Digest256::of_bytes(b"different bootstrap"));
+        assert!(matches!(
+            historical_schema(
+                SOURCE,
+                &context,
+                &mut worker,
+                &cmd::object(vec![]),
+                GRAMMAR,
+                &[GRAMMAR],
+                deadline,
+                &cancelled
+            ),
+            Err(SourceCommandError::Conflict(_))
+        ));
     }
 
     #[test]
