@@ -5546,12 +5546,31 @@ pub struct InProcessCandidateSchemaExecutor<I> {
     selected: Vec<SelectedSchemaResource>,
     schema_bytes: usize,
     contract_selection_digest: Digest256,
+    selected_limits_sha256: Option<Digest256>,
+    completed_checks: Option<usize>,
     inner: InProcessCutSchemaExecutor<I>,
     pending_rejections: std::collections::VecDeque<CandidateSchemaDiagnostic<I>>,
     finished: bool,
 }
 
 impl<I: Copy + Eq> InProcessCandidateSchemaExecutor<I> {
+    /// Logical completed validations for this candidate operation.
+    pub fn completed_checks(&self) -> Option<usize> {
+        self.completed_checks
+    }
+    pub fn selected_schema_limits_sha256(&self) -> Option<Digest256> {
+        self.selected_limits_sha256
+    }
+    pub fn schema_bytes(&self) -> usize {
+        self.schema_bytes
+    }
+    pub fn source_resource_count(&self) -> usize {
+        self.selected.len()
+    }
+    pub fn is_finished(&self) -> bool {
+        self.finished
+    }
+
     pub fn source_resource_metadata_state_bytes(&self) -> Option<usize> {
         crate::source_foundation_schema::selected_source_resource_metadata_state(
             &self.selected,
@@ -5588,6 +5607,8 @@ impl<I: Copy + Eq> InProcessCandidateSchemaExecutor<I> {
             selected: selected.source_resources,
             schema_bytes: selected.schema_bytes,
             contract_selection_digest: selected.contract_selection_sha256,
+            selected_limits_sha256: None,
+            completed_checks: Some(0),
             inner,
             pending_rejections: std::collections::VecDeque::new(),
             finished: false,
@@ -5658,6 +5679,8 @@ impl<I: Copy + Eq> InProcessCandidateSchemaExecutor<I> {
             selected: schema_set.source_resources,
             schema_bytes: schema_set.schema_bytes,
             contract_selection_digest: schema_set.contract_selection_sha256,
+            selected_limits_sha256: Some(schema_set.limits_sha256),
+            completed_checks: Some(0),
             inner,
             pending_rejections: std::collections::VecDeque::new(),
             finished: false,
@@ -5678,8 +5701,23 @@ impl<I: Copy + Eq> InProcessCandidateSchemaExecutor<I> {
                 "candidate schema operation finalized".into(),
             ));
         }
-        self.inner
+        let next = self
+            .completed_checks
+            .and_then(|count| count.checked_add(1))
+            .ok_or(crate::item_budget_origin!())?;
+        match self
+            .inner
             .diagnostic_for(path, contract, raw, caps, deadline, cancelled)
+        {
+            Ok(result) => {
+                self.completed_checks = Some(next);
+                Ok(result)
+            }
+            Err(error) => {
+                self.completed_checks = None;
+                Err(error)
+            }
+        }
     }
 }
 
@@ -5756,7 +5794,20 @@ impl<I: Copy + Eq> CutSchemaExecutor for InProcessCandidateSchemaExecutor<I> {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<Vec<bool>, ItemRefusal> {
-        self.inner.check_batch(checks, budget, deadline, cancelled)
+        let next = self
+            .completed_checks
+            .and_then(|count| count.checked_add(checks.len()))
+            .ok_or(crate::item_budget_origin!())?;
+        match self.inner.check_batch(checks, budget, deadline, cancelled) {
+            Ok(result) => {
+                self.completed_checks = Some(next);
+                Ok(result)
+            }
+            Err(error) => {
+                self.completed_checks = None;
+                Err(error)
+            }
+        }
     }
 }
 
@@ -6160,6 +6211,11 @@ pub(crate) mod in_process_candidate_binding_tests {
                 .unwrap(),
             [true, false, true]
         );
+        assert_eq!(executor.completed_checks(), Some(3));
+        assert_eq!(
+            executor.selected_schema_limits_sha256(),
+            Some(selected_set().limits_sha256)
+        );
         executor.finish(deadline, &cancelled).unwrap();
         let mut incomplete = make_executor();
         assert!(
@@ -6172,6 +6228,7 @@ pub(crate) mod in_process_candidate_binding_tests {
                 )
                 .is_err()
         );
+        assert_eq!(incomplete.completed_checks(), None);
         assert!(incomplete.finish(deadline, &cancelled).is_err());
     }
 }
