@@ -17,7 +17,7 @@ use tos_source_store::{
 };
 use tos_validation::FormatProfile;
 use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
-use tos_validation::source_cut::CutWorkerLimits;
+use tos_validation::source_cut::{CutWorkerLimits, CutWorkerSchemaExecutor};
 
 pub(crate) fn repository() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))

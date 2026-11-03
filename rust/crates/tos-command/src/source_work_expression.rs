@@ -17,7 +17,6 @@ use tos_validation::native_compound::CutCompoundSchemaExecutor;
 use tos_validation::record_biblio_cut::{
     SourceCutInput, SourceCutInputWithIdentity, SourceCutMemberMeta,
 };
-use tos_validation::source_cut::CutSchemaExecutor;
 
 #[path = "source_work_expression_pg.rs"]
 mod pg;

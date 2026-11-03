@@ -1590,6 +1590,22 @@ fn run_item(
     }
     Ok(response)
 }
+/// Select the legacy-compatible scalar engine on the exact immutable cut.
+fn selected_in_process_schema(
+    cut: &tos_source_store::CorpusCutReader,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<InProcessCutSchemaExecutor<()>> {
+    InProcessCutSchemaExecutor::from_cut(
+        cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        tos_validation::in_process::InputMode::SerdeNormalized,
+        deadline,
+        cancelled,
+    )
+    .map_err(|_| SourceCommandError::Denied("native schema selection"))
+}
+
 fn selected_schema(
     invocation: &Value,
     cut: &tos_source_store::CorpusCutReader,

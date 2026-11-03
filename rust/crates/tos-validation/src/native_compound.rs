@@ -6150,10 +6150,61 @@ pub(crate) trait NativeCompoundSchema: CutSchemaExecutor {
 /// Source-compatible bridge while cut-backed worker consumers migrate.
 /// Remove this bridge when the worker is retired.
 #[allow(private_bounds)]
-pub trait CutCompoundSchemaExecutor: NativeCompoundSchema {}
+pub trait CutCompoundSchemaExecutor: NativeCompoundSchema {
+    fn validate_public_claim(
+        &mut self,
+        cut: &CorpusCutReader,
+        raw: &[u8],
+        limits: ItemLimits,
+        cancelled: &AtomicBool,
+    ) -> Result<CutPublicClaimSummary, ItemRefusal>;
+}
 
-impl CutCompoundSchemaExecutor for CutWorkerSchemaExecutor {}
-impl CutCompoundSchemaExecutor for InProcessCutSchemaExecutor<()> {}
+/// Public Claim findings and dependencies selected from one complete source cut.
+pub struct CutPublicClaimSummary {
+    pub dependency_digests: BTreeMap<String, Digest256>,
+    pub issues: Vec<crate::relation_rules::RelationIssue>,
+}
+
+impl CutCompoundSchemaExecutor for CutWorkerSchemaExecutor {
+    fn validate_public_claim(
+        &mut self,
+        cut: &CorpusCutReader,
+        raw: &[u8],
+        limits: ItemLimits,
+        cancelled: &AtomicBool,
+    ) -> Result<CutPublicClaimSummary, ItemRefusal> {
+        let report =
+            crate::record_rules::validate_source_claim_from_cut(cut, raw, self, limits, cancelled)?;
+        Ok(CutPublicClaimSummary {
+            dependency_digests: report.dependency_digests,
+            issues: report.issues,
+        })
+    }
+}
+
+impl CutCompoundSchemaExecutor for InProcessCutSchemaExecutor<()> {
+    fn validate_public_claim(
+        &mut self,
+        cut: &CorpusCutReader,
+        raw: &[u8],
+        limits: ItemLimits,
+        cancelled: &AtomicBool,
+    ) -> Result<CutPublicClaimSummary, ItemRefusal> {
+        let report = crate::record_rules::validate_source_claim_from_in_process_cut(
+            cut,
+            raw,
+            self,
+            limits,
+            cancelled,
+            crate::FormatProfile::LegacyPythonObserved20260923,
+        )?;
+        Ok(CutPublicClaimSummary {
+            dependency_digests: report.dependency_digests,
+            issues: report.issues,
+        })
+    }
+}
 
 impl<S: CutSchemaExecutor + CutSchemaReceiptRange> NativeCompoundSchema for S {
     fn source_revision(&self) -> Option<SourceRevision> {
