@@ -758,6 +758,10 @@ struct Policy {
     target_layer: TargetLayerFilename,
     paths: Paths,
     output_schemas: OutputSchemas,
+    event_date: String,
+    event_ended_at: String,
+    event_prefix: String,
+    event_schema: String,
 }
 impl Policy {
     // Compatibility profile for the historical command; remove with its alias.
@@ -779,6 +783,7 @@ impl Policy {
             "parts":[{"label":"I","expected_readings":23},{"label":"II","expected_readings":22},{"label":"III","expected_readings":16},{"label":"IV","expected_readings":20}],
             "work_ref":WORK,"target_layer_filename":{"prefix":"antonovsky-1911-part-","suffix":"-paragraphs.v1.txt"},
             "work_path":BASE,"source_markup":DE,"target_markup":RU,"route":ROUTE,"private_root":PRIVATE,"contract_ref":SCHEMA,
+            "historical_event_date":"2026-09-01","historical_ended_at":"2026-09-01T21:00:00-06:00","historical_event_prefix":"tos.event.zarathustra-de-ru-paragraph-alignment-v1.","historical_event_schema":"tos_zarathustra_de_ru_paragraph_alignment_provenance_v1",
             "output_schema_versions":{"audit":"tos_zarathustra_de_ru_independent_challenger_audit_v1","exclusion":"tos_zarathustra_de_ru_alignment_scope_exclusion_v1","spine":"tos_zarathustra_de_ru_paragraph_alignment_spine_v1","conflict":"tos_zarathustra_de_ru_paragraph_alignment_conflict_v1","reading_diagnostic":"tos_zarathustra_de_ru_paragraph_alignment_reading_diagnostic_v1"}
         });
         Self::selected(
@@ -934,6 +939,16 @@ impl Policy {
                 || paths.output("manifest.v1.json") == s(&recipe["frozen_manifest"]["ref"])?,
             "paragraph manifest outside selected output route",
         )?;
+        let event_date = s(&recipe["historical_event_date"])?.to_owned();
+        let event_ended_at = s(&recipe["historical_ended_at"])?.to_owned();
+        let event_prefix = s(&recipe["historical_event_prefix"])?.to_owned();
+        let event_schema = s(&recipe["historical_event_schema"])?.to_owned();
+        ensure(
+            [&event_date, &event_ended_at, &event_prefix, &event_schema]
+                .iter()
+                .all(|value| !value.is_empty()),
+            "paragraph historical event metadata missing",
+        )?;
         Ok(Self {
             rules,
             cross,
@@ -946,6 +961,10 @@ impl Policy {
             target_layer,
             paths,
             output_schemas,
+            event_date,
+            event_ended_at,
+            event_prefix,
+            event_schema,
         })
     }
     fn reference(&self, role: &str, index: usize) -> Result<String> {
@@ -1383,7 +1402,7 @@ fn build_with_policy(
             policy.paths.contract.clone(),
         ),
     ] {
-        provenance.push(json!({"event_id":format!("tos.event.zarathustra-de-ru-paragraph-alignment-v1.{name}"),"event_kind":kind,"input_ref":reference,"schema_version":"tos_zarathustra_de_ru_paragraph_alignment_provenance_v1","event_date":"2026-09-01","ended_at":"2026-09-01T21:00:00-06:00","method_output_posture":"proposal_not_truth","human_review":false,"source_text_included":false,"semantic_equivalence_asserted":false,"canon_effect":false}));
+        provenance.push(json!({"event_id":format!("{}{name}", policy.event_prefix),"event_kind":kind,"input_ref":reference,"schema_version":policy.event_schema,"event_date":policy.event_date,"ended_at":policy.event_ended_at,"method_output_posture":"proposal_not_truth","human_review":false,"source_text_included":false,"semantic_equivalence_asserted":false,"canon_effect":false}));
     }
     let mut public = packets;
     for (name, rows) in [
@@ -1567,7 +1586,7 @@ fn manifest_check(repo: &ResearchExecution, manifest: &Value) -> Result<()> {
 // The compatibility gate covers recipe fields the legacy producer has not
 // yet consumed. Remove it after the remaining paragraph parameters migrate.
 const COMPATIBILITY_PROFILE_SHA256: &str =
-    "ccd838d0d092fb3b2ed045a1112a78785df936aa7b86a18e9a7a4ca8590d33e7";
+    "5b1a66eb08b5d8281098726ed36e1fe50703fa2e496c4c330f03632a18467015";
 fn compatibility_policy(recipe: &Value, target_plan: &str) -> Result<Policy> {
     // Remove this compatibility guard when the target structural producer moves.
     ensure(
@@ -1595,6 +1614,10 @@ fn compatibility_policy(recipe: &Value, target_plan: &str) -> Result<Policy> {
         "contract_ref",
         "output_schema_versions",
         "target_curation_ref",
+        "historical_event_date",
+        "historical_ended_at",
+        "historical_event_prefix",
+        "historical_event_schema",
     ] {
         object.remove(key);
     }
