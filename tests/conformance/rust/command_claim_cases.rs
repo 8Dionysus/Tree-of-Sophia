@@ -3405,9 +3405,38 @@ fn rich_package(
         return Err(ClaimReferenceError::WitnessMismatch);
     }
     let receipt_request = rich_field(receipt, "request", b)?;
-    if rich_session_digest(receipt_request, b, &mut *session)?
-        != rich_hex(rich_text(receipt, "request_digest", b)?, b)?
-    {
+    // Preserve the session's existing work accounting for both profiles.
+    let legacy_request_digest = rich_session_digest(receipt_request, b, &mut *session)?;
+    let expected_request_digest = rich_hex(rich_text(receipt, "request_digest", b)?, b)?;
+    let profile = if receipt.object_get("request_digest_profile").is_some() {
+        Some(rich_text(receipt, "request_digest_profile", b)?)
+    } else {
+        None
+    };
+    let matches = match profile {
+        None => legacy_request_digest == expected_request_digest,
+        Some(tag) if tag == tos_foundation::JCS_DIGEST_TAG => {
+            tos_foundation::verify_canonical_digest_v1(
+                receipt_request,
+                Some(tag),
+                tos_foundation::CanonicalProfile::SourceCommandInputV1,
+                expected_request_digest,
+                tos_foundation::JsonLimits {
+                    max_bytes: RICH_DIGEST_WIRE_BYTES,
+                    ..tos_foundation::JsonLimits::default()
+                },
+            )
+            .map_err(|error| {
+                if error.code == tos_foundation::FoundationErrorCode::BudgetExceeded {
+                    ClaimReferenceError::Limit
+                } else {
+                    ClaimReferenceError::InvalidInput
+                }
+            })?
+        }
+        Some(_) => return Err(ClaimReferenceError::UnsupportedProfile),
+    };
+    if !matches {
         return Err(ClaimReferenceError::WitnessMismatch);
     }
     let publication = rich_field(receipt, "publication", b)?;
