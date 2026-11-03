@@ -49,7 +49,10 @@ a term with the Tree's word; the reader opens a term on its origin.
   A stand with several editions may instead give an array of witness objects,
   each naming its edition, term and forms. In Antiquity these words are tied to
   the edition of the quoted passage; the Tree's own forms remain available in
-  its authored text. The edition labels are recorded once in `editions`.
+  its authored text. The edition labels are recorded once in `editions`, each
+  with a `short` name (translator and year) in both languages. The origin card
+  gives one line per word with the editions that use it, and the Tree's word in
+  the reader's language when no shown translation says it there.
 - Antiquity cites a place directly by work and corpus unit range (or an external
   fragment locator), without a chapter key. Its original can be Greek or Latin;
   Greek matching ignores accents and breathings while retaining the spelling of
