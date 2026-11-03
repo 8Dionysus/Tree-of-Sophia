@@ -21,7 +21,6 @@ use std::time::Instant;
 use tos_foundation::{Digest256, RelativePath, SourceRevision};
 use tos_source_store::{CorpusCutReader, SourceMembershipV1, SourcePresenceV1};
 use tos_validation::PredicateRead;
-use tos_validation::executor::SharedSchemaWorkerQuota;
 use tos_validation::item_rules::{ItemLimits, ItemRefusal};
 use tos_validation::native_compound::{
     NativeRecordHistoryReadObservation, selected_record_history_from_cut,
@@ -125,9 +124,6 @@ pub(crate) struct ArtifactReplayCost {
     pub candidate_artifact_evidence_peak_state_bytes: usize,
     pub candidate_artifact_evidence_packets: usize,
     pub candidate_artifact_skipped_paths: usize,
-    pub candidate_replay_worker_cpu_micros: u64,
-    pub candidate_replay_worker_wire_bytes: u64,
-    pub candidate_replay_worker_units: u64,
     pub peak_temporary_state_bytes: usize,
     pub failure_reserved_source_read_bytes: u64,
     pub failure_reserved_state_bytes: usize,
@@ -221,7 +217,6 @@ pub(crate) struct CandidateArtifactReplayEvidence<
     source_root: String,
     effective_uid: u64,
     worker: &'provider RefCell<&'worker mut W>,
-    worker_quota: Option<SharedSchemaWorkerQuota>,
     invalid_schema_proofs: CandidateArtifactInvalidSchemaProofs<'provider, 'store, I>,
     history_limits: ItemLimits,
     max_scan_rows: usize,
@@ -292,9 +287,8 @@ impl<'provider, 'store, 'worker, I: Copy + Eq, W: CandidateRecordSchemaWorker<I>
     }
 }
 
-/// Schema-check proxy for the same candidate worker shared with the lazy
-/// Artifact replay provider. Calls are serialized through the RefCell, so the
-/// maintained schema and correction-replay kernels share one worker/quota.
+/// Schema-check proxy shared with the lazy Artifact replay provider.
+/// Calls are serialized through the RefCell over the same selected executor.
 pub(crate) struct CandidateArtifactSchemaExecutor<'cell, 'worker, W: CutSchemaExecutor> {
     worker: &'cell RefCell<&'worker mut W>,
 }
@@ -505,7 +499,6 @@ pub(crate) fn prepare_candidate_artifact_replay<
     source_root: &Path,
     effective_uid: u64,
     worker: &'provider RefCell<&'worker mut W>,
-    worker_quota: Option<SharedSchemaWorkerQuota>,
     history_limits: ItemLimits,
     page_budget: SourceFoundationRecordsPageBudget,
     max_scan_rows: usize,
@@ -719,7 +712,6 @@ pub(crate) fn prepare_candidate_artifact_replay<
         source_root: source_root.to_owned(),
         effective_uid,
         worker,
-        worker_quota,
         invalid_schema_proofs,
         history_limits,
         max_scan_rows,
@@ -1088,18 +1080,6 @@ impl<'provider, 'store, 'worker, I: Copy + Eq, W: CandidateRecordSchemaWorker<I>
             let replay_state = per_path_state
                 .checked_sub(history.returned_state_bytes())
                 .ok_or(ItemRefusal::Budget)?;
-            let quota_before = self
-                .worker_quota
-                .as_ref()
-                .map(|quota| quota.usage().map_err(|_| ItemRefusal::Budget))
-                .transpose()?;
-            if quota_before.as_ref().is_some_and(|quota| {
-                quota.worker_cpu_micros >= quota.max_total_cpu_micros
-                    || quota.worker_wire_bytes >= quota.max_total_wire_bytes
-                    || quota.worker_units >= quota.max_total_units
-            }) {
-                return Err(ItemRefusal::Budget);
-            }
             let mut worker = self.worker.borrow_mut();
             let (observation, source_bytes, input_copy_state) =
                 source_revisions::replay_artifact_corrections_from_candidate(
@@ -1122,39 +1102,6 @@ impl<'provider, 'store, 'worker, I: Copy + Eq, W: CandidateRecordSchemaWorker<I>
                     )
                 })?;
             drop(worker);
-            if let (Some(quota), Some(quota_before)) = (&self.worker_quota, quota_before) {
-                let quota_after = quota.usage().map_err(|_| ItemRefusal::Budget)?;
-                self.cost.candidate_replay_worker_cpu_micros = self
-                    .cost
-                    .candidate_replay_worker_cpu_micros
-                    .checked_add(
-                        quota_after
-                            .worker_cpu_micros
-                            .checked_sub(quota_before.worker_cpu_micros)
-                            .ok_or(ItemRefusal::Budget)?,
-                    )
-                    .ok_or(ItemRefusal::Budget)?;
-                self.cost.candidate_replay_worker_wire_bytes = self
-                    .cost
-                    .candidate_replay_worker_wire_bytes
-                    .checked_add(
-                        quota_after
-                            .worker_wire_bytes
-                            .checked_sub(quota_before.worker_wire_bytes)
-                            .ok_or(ItemRefusal::Budget)?,
-                    )
-                    .ok_or(ItemRefusal::Budget)?;
-                self.cost.candidate_replay_worker_units = self
-                    .cost
-                    .candidate_replay_worker_units
-                    .checked_add(
-                        quota_after
-                            .worker_units
-                            .checked_sub(quota_before.worker_units)
-                            .ok_or(ItemRefusal::Budget)?,
-                    )
-                    .ok_or(ItemRefusal::Budget)?;
-            }
             if observation.input_identity() != &identity
                 || observation.current_membership() != membership
                 || observation.source_path() != path

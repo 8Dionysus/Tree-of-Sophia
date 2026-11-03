@@ -1272,7 +1272,6 @@ pub(crate) fn finish_candidate_payload_and_physical<'candidate, 'host>(
         crate::source_admission_spooled_candidate::CandidateFence,
     >,
     record_executor: &mut BiblioRecordExecutor,
-    worker_quota: &SharedSchemaWorkerQuota,
     held: FoundationPhaseReservation,
     remaining_write_bytes: u64,
 ) -> Result<super::foundation_payload::PhysicalPayloadCompletion, FoundationOrchestratorError> {
@@ -1411,14 +1410,7 @@ pub(crate) fn finish_candidate_payload_and_physical<'candidate, 'host>(
         // The payload reread is bounded by its actual initial stream. Its
         // forwarded returns are charged through the shared original ledger.
         let payload_recheck_bound = payload_before.initial_bytes_read;
-        let quota_before = worker_quota
-            .usage()
-            .map_err(|_| incomplete("schema quota unavailable"))?;
         record_executor.finish(deadline, cancelled).map_err(owner)?;
-        let quota_after = worker_quota
-            .usage()
-            .map_err(|_| incomplete("schema quota unavailable"))?;
-        let (cpu, wire) = use_delta(quota_before, quota_after)?;
         payloads
             .restrict_remaining_read_budget(payload_recheck_bound, deadline, cancelled)
             .map_err(owner)?;
@@ -1533,7 +1525,7 @@ pub(crate) fn finish_candidate_payload_and_physical<'candidate, 'host>(
             .ok_or_else(|| incomplete("candidate final provider retained cost overflow"))?;
         Ok((
             completion,
-            phase_use(read, wire, state, 0, cpu, 0, 0),
+            phase_use(read, 0, state, 0, 0, 0, 0),
             remaining_write,
         ))
     })();
@@ -1763,54 +1755,13 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     )?;
     let owner = |error| FoundationOrchestratorError::OwnerAt("candidate schema", error);
     let schema_operation = schema_ticket.operation_limits();
-    let worker_quota = SharedSchemaWorkerQuota::new(
-        view.remaining_budget
-            .remaining_worker_cpu_micros()
-            .map_err(FoundationOrchestratorError::Command)?,
-        schema_ticket.remaining().worker_wire_bytes,
-        schema_ticket.remaining().worker_wire_bytes.max(1),
-    )
-    .map_err(|_| incomplete("candidate shared schema quota refused"))?;
     let io_before_schema = candidate
         .io_usage()
         .map_err(FoundationOrchestratorError::Admission)?;
-    let worker_image_max = MAX_WORKER_IMAGE_BYTES;
-    // Preflight the worst-case external image read before preparation. No
-    // candidate IO runs until it returns. Its shared physical ceiling only
-    // narrows, so do not permanently spend the unused maximum here; apply the
-    // verified actual image charge below before any candidate read resumes.
-    schema_ticket
-        .remaining()
-        .source_read_bytes
-        .checked_sub(worker_image_max)
-        .ok_or_else(|| incomplete("candidate worker image exceeds source-read reservation"))?;
     let remaining_write_before_schema = *view.remaining_write_bytes;
-    let image_budget =
-        ticket_worker_budget(&schema_ticket, deadline, budgets.worker_address_space_bytes)?;
-    let worker_image = VerifiedWorkerImageHandle::prepare(
-        view.execution_limits.worker.clone(),
-        image_budget,
-        deadline,
-        cancelled,
-    )
-    .map_err(|_| incomplete("candidate verified worker image refused"))?;
-    let worker_image_read = worker_image
-        .image_bytes()
-        .map_err(|_| incomplete("candidate worker image byte count unavailable"))?;
-    let worker_image_state = usize::try_from(
-        worker_image
-            .retained_state_bytes()
-            .map_err(|_| incomplete("candidate worker image state unavailable"))?,
-    )
-    .map_err(|_| incomplete("candidate worker image state range"))?;
-    let candidate_after_image_headroom = schema_ticket
-        .remaining()
-        .source_read_bytes
-        .checked_sub(worker_image_read)
-        .ok_or_else(|| incomplete("candidate worker image exceeds source reservation"))?;
     candidate
         .restrict_remaining_io(
-            candidate_after_image_headroom,
+            schema_ticket.remaining().source_read_bytes,
             remaining_write_before_schema,
         )
         .map_err(FoundationOrchestratorError::Admission)?;
@@ -1852,10 +1803,8 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     }
     // Resource preparation retains a finite report. Whole streamed execution
     // instead follows the selected member bound and original operation ledgers.
-    // Every completed framed exchange costs at least one wire byte. This
-    // original selected finite ceiling admits cardinality without a member
-    // multiplicity guess; actual wire/raw/CPU ledgers remain independently held.
-    let max_checks = usize::try_from(schema_operation.worker_wire_bytes)
+    // Source read bytes provide a finite ceiling for schema request cardinality.
+    let max_checks = usize::try_from(schema_operation.source_read_bytes)
         .ok()
         .filter(|n| *n > 0 && *n < usize::MAX)
         .ok_or_else(|| incomplete("candidate diagnostic whole-operation count range"))?;
@@ -1869,7 +1818,6 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         schema_bytes,
         schema_loader_checks,
     )?;
-    let image_path_state = worker_identity_path_clone_bytes(worker_image.identity(), 4)?;
     // account_spooled_candidate_inner already charged candidate_owned_state
     // before this input received the remaining callback envelope. Keep that
     // baseline in whole-process/final held-state checks, but do not reserve it
@@ -1877,9 +1825,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     // IndexSink and SpoolDefaultStore (and their caches/report) do not exist
     // until the Records phase below. They remain in callback_held there.
     let first_schema_held = base_declared_state_bytes
-        .checked_add(worker_image_state)
-        .and_then(|state| state.checked_add(image_path_state))
-        .and_then(|state| state.checked_add(payload_initial.peak_state_bytes))
+        .checked_add(payload_initial.peak_state_bytes)
         .and_then(|state| state.checked_add(physical_initial.retained_state_bytes))
         .ok_or_else(|| incomplete("candidate schema held-state overflow"))?;
     if first_schema_held
@@ -1913,7 +1859,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                     schema_ticket,
                     view.original_io,
                     io_before_schema,
-                    worker_image_read,
+                    0,
                     view.candidate_io_adopted,
                     view.remaining_write_bytes,
                     error,
@@ -1950,29 +1896,17 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         let schema_candidate_headroom = schema_ticket
             .remaining()
             .source_read_bytes
-            .checked_sub(worker_image_read)
-            .and_then(|bytes| bytes.checked_sub(schema_read_delta))
+            .checked_sub(schema_read_delta)
             .ok_or_else(|| incomplete("candidate schema IO exceeded source reservation"))?;
         candidate
             .restrict_remaining_io(schema_candidate_headroom, remaining_write)
             .map_err(FoundationOrchestratorError::Admission)?;
-        let schema_charge = checked_add_usize(
-            checked_add_usize(base_declared_state_bytes, worker_image_state)?,
-            checked_add_usize(schema_state, image_path_state)?,
-        )?;
+        let schema_charge = checked_add_usize(base_declared_state_bytes, schema_state)?;
         complete_candidate_window(
             view.execution_limits,
             view.remaining_budget,
             schema_ticket,
-            phase_use(
-                checked_add_u64(worker_image_read, schema_read_delta)?,
-                0,
-                schema_charge,
-                0,
-                0,
-                0,
-                0,
-            ),
+            phase_use(schema_read_delta, 0, schema_charge, 0, 0, 0, 0),
             io_before_schema,
             io_after_schema,
             view.candidate_io_adopted,
@@ -2014,8 +1948,6 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             let callback_held = base_declared_state_bytes
                 .checked_add(selected_index.cache_bytes)
                 .and_then(|state| state.checked_add(defaults_limits.cache_bytes))
-                .and_then(|state| state.checked_add(worker_image_state))
-                .and_then(|state| state.checked_add(image_path_state))
                 .and_then(|state| state.checked_add(schema_state))
                 .and_then(|state| state.checked_add(payloads.cost().peak_state_bytes))
                 .and_then(|state| state.checked_add(view.physical.cost().retained_state_bytes))
@@ -2074,50 +2006,19 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                 .execution_limits
                 .rolling_records_limits(records_profile, records_schema_request_state)
                 .map_err(FoundationOrchestratorError::Command)?;
-            let records_max_checks = usize::try_from(records_profile.worker_wire_bytes)
+            let records_max_checks = usize::try_from(records_profile.source_read_bytes)
                 .ok()
                 .filter(|n| *n > 0 && *n < usize::MAX)
                 .ok_or_else(|| incomplete("candidate Records diagnostic count range"))?;
-            let mut records_shape = cut_worker_shape(records_profile, records_max_checks);
-            records_shape.max_chunks = records_shape.max_total_units;
-            let records_stream = view
-                .execution_limits
-                .cut_worker_stream_budget(records_profile, records_shape)
-                .map_err(FoundationOrchestratorError::Command)?;
-            let record_executor_budget = ticket_worker_budget(
-                &records_ticket,
-                deadline,
-                budgets.worker_address_space_bytes,
-            )?;
-            let mut record_executor = BiblioRecordExecutor::new_with_image(
-                &worker_image,
-                record_executor_budget,
+            let mut record_executor = BiblioRecordExecutor::new_in_process_candidate(
+                crate::source_admission_spooled_index::records_store::candidate_fence_value(&fence),
                 FormatProfile::LegacyPythonObserved20260923,
+                tos_validation::in_process::InputMode::LegacyPythonObservedBounded {
+                    max_instance_bytes: schema_limits.max_instance_bytes,
+                },
                 records_max_checks,
-                deadline,
-                cancelled,
             )
             .map_err(owner)?;
-            let record_diagnostic_ceilings = BiblioSchemaDiagnosticsLimits {
-                max_total_issues: records_profile.issue_count.max(1),
-                max_total_report_bytes: bounded_usize(records_profile.worker_wire_bytes)?.max(1),
-                max_total_state_bytes: records_profile.state_bytes.max(1),
-            };
-            let record_diagnostic_limits = BiblioSchemaDiagnosticsLimits::from_operation_ceilings(
-                record_diagnostic_ceilings,
-                records_max_checks,
-                records_stream,
-            )
-            .map_err(owner)?;
-            record_executor
-                .set_operation_budget(records_stream)
-                .map_err(owner)?;
-            record_executor
-                .enable_diagnostics_v2(record_diagnostic_limits)
-                .map_err(owner)?;
-            record_executor
-                .set_shared_schema_worker_quota(worker_quota.clone())
-                .map_err(owner)?;
 
             let stored_operation_state =
                 callback_workspace_state.min(defaults_limits.max_row_state_bytes);
@@ -2165,9 +2066,6 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             }
 
             let io_before_records = view.original_io.snapshot();
-            let quota_before_records = worker_quota
-                .usage()
-                .map_err(|_| incomplete("candidate schema quota unavailable"))?;
             candidate
                 .restrict_remaining_io(
                     records_ticket.remaining().source_read_bytes,
@@ -2435,7 +2333,6 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         &source_root,
                         u64::from(view.invocation.uid()),
                         &schema_worker,
-                        None,
                         artifact_limits,
                         page_budget,
                         max_scan_rows.min(usize::MAX as u64) as usize,
@@ -2667,9 +2564,6 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                                 .as_deref()
                                 .filter(|history| history.shared_io_budget_matches(view.original_io))
                                 .map(|history| history.shared_runtime_read_bytes_returned());
-                            let worker_usage_before_rules = worker_quota
-                                .usage()
-                                .map_err(|_| tos_validation::item_budget_origin!())?;
                             let reader_io_before = view.original_io.snapshot();
                             if let Some(selection) = input.record_selection() {
                                 let mut checked_claims = 0usize;
@@ -2834,30 +2728,6 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                                 .and_then(|state| state.checked_add(evidence_peak_state))
                                 .ok_or(tos_validation::item_budget_origin!())?;
                             let replay_had_skips = replay.has_skips();
-                            let worker_usage_after_discovery = worker_quota
-                                .usage()
-                                .map_err(|_| tos_validation::item_budget_origin!())?;
-                            let replay_worker_cpu = worker_usage_after_discovery
-                                .worker_cpu_micros
-                                .checked_sub(worker_usage_before_rules.worker_cpu_micros)
-                                .ok_or(tos_validation::item_budget_origin!())?;
-                            let replay_worker_wire = worker_usage_after_discovery
-                                .worker_wire_bytes
-                                .checked_sub(worker_usage_before_rules.worker_wire_bytes)
-                                .ok_or(tos_validation::item_budget_origin!())?;
-                            let replay_worker_units = worker_usage_after_discovery
-                                .worker_units
-                                .checked_sub(worker_usage_before_rules.worker_units)
-                                .ok_or(tos_validation::item_budget_origin!())?;
-                            if replay_cost_after_rules.candidate_replay_worker_cpu_micros
-                                > replay_worker_cpu
-                                || replay_cost_after_rules.candidate_replay_worker_wire_bytes
-                                    > replay_worker_wire
-                                || replay_cost_after_rules.candidate_replay_worker_units
-                                    > replay_worker_units
-                            {
-                                return Err(tos_validation::item_budget_origin!());
-                            }
                             rule_source.recheck_auxiliary()
                                 .map_err(|error| candidate_owner_refusal("candidate default auxiliary recheck", error))?;
                             let reader_cost = rule_source.cost();
@@ -3169,10 +3039,6 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             let remaining_write = remaining_write
                 .checked_sub(records_write_delta)
                 .ok_or_else(|| incomplete("candidate Records IO exceeded write reservation"))?;
-            let quota_after_records = worker_quota
-                .usage()
-                .map_err(|_| incomplete("candidate schema quota unavailable"))?;
-            let (records_cpu, records_wire) = use_delta(quota_before_records, quota_after_records)?;
             let defaults_event_state = defaults.default_event_cost().retained_state_bytes;
             let records_charge_state = selected_index
                 .cache_bytes
@@ -3193,10 +3059,10 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                 records_read_delta
                     .checked_add(history_rule_reads)
                     .ok_or_else(|| incomplete("candidate Records external read cost overflow"))?,
-                records_wire,
+                0,
                 records_charge_state,
                 0,
-                records_cpu,
+                0,
                 0,
                 0,
             );
@@ -3381,9 +3247,6 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                     .saturating_add(4),
             };
             let candidate_catalog_path = view.isolated.path().join("source-foundation.sqlite");
-            let quota_before_catalog = worker_quota
-                .usage()
-                .map_err(|_| incomplete("candidate catalog schema quota unavailable"))?;
             let validator = tos_compiler::source_witness_catalog::SourceCatalogValidator::from_in_process_candidate_prepared(
                 cancelled,
                 deadline,
@@ -3529,20 +3392,16 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                     "candidate catalog evidence exceeds the invocation reservation",
                 ));
             }
-            let catalog_quota_after = worker_quota
-                .usage()
-                .map_err(|_| incomplete("candidate catalog schema quota unavailable"))?;
-            let (catalog_cpu, catalog_wire) = use_delta(quota_before_catalog, catalog_quota_after)?;
             let tmpfs_before = view
                 .stage
                 .quota_usage()
                 .map_err(|_| incomplete("candidate catalog stage quota unavailable"))?;
             let catalog_usage = phase_use(
                 catalog_source_use,
-                catalog_wire,
+                0,
                 catalog_state,
                 complete_catalog.issues.len(),
-                catalog_cpu,
+                0,
                 fresh.cost().output_bytes as u64,
                 fresh.cost().created_inodes as u64,
             );
@@ -3621,8 +3480,6 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     )?;
     let held_native = base_declared_state_bytes
         .checked_add(selected_index.cache_bytes)
-        .and_then(|state| state.checked_add(worker_image_state))
-        .and_then(|state| state.checked_add(image_path_state))
         .and_then(|state| state.checked_add(payloads.cost().peak_state_bytes))
         .and_then(|state| state.checked_add(view.physical.cost().retained_state_bytes))
         .and_then(|state| {
@@ -3632,9 +3489,6 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     let io_before_native = candidate
         .io_usage()
         .map_err(FoundationOrchestratorError::Admission)?;
-    let quota_before_native = worker_quota
-        .usage()
-        .map_err(|_| incomplete("candidate native-index quota unavailable"))?;
     candidate
         .restrict_remaining_io(native_ticket.remaining().source_read_bytes, remaining_write)
         .map_err(FoundationOrchestratorError::Admission)?;
@@ -3692,10 +3546,6 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     let remaining_write = remaining_write
         .checked_sub(native_write_delta)
         .ok_or_else(|| incomplete("candidate native-index IO exceeded write reservation"))?;
-    let native_quota_after = worker_quota
-        .usage()
-        .map_err(|_| incomplete("candidate native-index quota unavailable"))?;
-    let (native_cpu, native_wire) = use_delta(quota_before_native, native_quota_after)?;
     let native_state = native_index_state
         .checked_add(native_schema_state)
         .and_then(|state| {
@@ -3716,15 +3566,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         view.execution_limits,
         view.remaining_budget,
         native_ticket,
-        phase_use(
-            native_read_delta,
-            native_wire,
-            native_state,
-            0,
-            native_cpu,
-            0,
-            0,
-        ),
+        phase_use(native_read_delta, 0, native_state, 0, 0, 0, 0),
         io_before_native,
         native_io_after,
         view.candidate_io_adopted,
@@ -3753,8 +3595,6 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     let final_held_state = candidate_owned_state
         .checked_add(base_declared_state_bytes)
         .and_then(|state| state.checked_add(selected_index.cache_bytes))
-        .and_then(|state| state.checked_add(worker_image_state))
-        .and_then(|state| state.checked_add(image_path_state))
         .and_then(|state| state.checked_add(native_schema_state))
         .and_then(|state| state.checked_add(native_index_state))
         .and_then(|state| state.checked_add(records_cost_state))
@@ -3793,7 +3633,6 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         payloads,
         &native_schemas,
         &mut record_executor,
-        &worker_quota,
         final_held,
         remaining_write,
     )?;
