@@ -5621,6 +5621,43 @@ impl<I: Copy + Eq> InProcessCandidateSchemaExecutor<I> {
         self.finished
     }
 
+    /// Resolve the supplied schema bytes through the unique selected resource digest.
+    pub fn check_diagnostic_for_schema_raw(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        schema_raw: &[u8],
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<CandidateSchemaDiagnostic<I>, ItemRefusal> {
+        if schema_raw.is_empty() || schema_raw.len() > SchemaBackendProbe::MAX_RESOURCE_BYTES {
+            return Err(crate::item_budget_origin!());
+        }
+        let digest = Digest256::of_bytes(schema_raw);
+        let mut selected = self.selected.iter().filter(|resource| {
+            resource.size_bytes == schema_raw.len() as u64
+                && resource.sha256 == digest
+                && self.inner.selected_contract_digest(&resource.path) == Some(digest)
+        });
+        let contract = selected
+            .next()
+            .ok_or_else(|| {
+                ItemRefusal::Unsupported(
+                    "source schema bytes are not in the selected closure".into(),
+                )
+            })?
+            .path
+            .clone();
+        if selected.next().is_some() {
+            return Err(ItemRefusal::Unsupported(
+                "source schema bytes select multiple contracts".into(),
+            ));
+        }
+        crate::source_foundation_records::SourceFoundationCandidateSchemaBinding::check_diagnostic(
+            self, path, raw, &contract, deadline, cancelled,
+        )
+    }
+
     pub fn source_resource_metadata_state_bytes(&self) -> Option<usize> {
         crate::source_foundation_schema::selected_source_resource_metadata_state(
             &self.selected,
@@ -6097,6 +6134,7 @@ pub(crate) mod in_process_candidate_binding_tests {
             .is_err()
         );
         let expected = selected_set();
+        let selected_raw = expected.resources[0].raw.clone();
         let expected_set = expected.schema_set_sha256;
         let expected_selection = expected.contract_selection_sha256;
         let expected_bytes = expected.schema_bytes as u64;
@@ -6161,7 +6199,23 @@ pub(crate) mod in_process_candidate_binding_tests {
                 .retained_state_bytes()
                 .is_some_and(|bytes| bytes >= std::mem::size_of_val(&rejected))
         );
-        assert_eq!(executor.completed_checks(), Some(2));
+        let selected = executor
+            .check_diagnostic_for_schema_raw(
+                "record.json",
+                b"3",
+                &selected_raw,
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        assert!(selected.is_valid());
+        assert_eq!(selected.contract(), "ToS/contracts/example.schema.json");
+        assert!(
+            executor
+                .check_diagnostic_for_schema_raw("record.json", b"3", b"{}", deadline, &cancelled)
+                .is_err()
+        );
+        assert_eq!(executor.completed_checks(), Some(3));
         assert!(executor.take_diagnostic_rejection().unwrap().is_none());
         executor.finish(deadline, &cancelled).unwrap();
         assert!(
