@@ -25,7 +25,6 @@ use tos_source_store::{
     CorpusCutReader, CorpusReader, CutReadLimits, MemberMetadata, ReadLimits, RetirementMetadata,
     Snapshot, SoftwareCaptureReader, SoftwareComponentSelectionV1, SourceMembershipV1,
 };
-use tos_validation::source_cut::CutWorkerSchemaExecutor;
 
 const CURRENT_SOURCE_EXPORT_LIMIT_REASON: &str = "current source exceeds configured export limits";
 const RETAINED_SOURCE_HISTORY_LIMIT_REASON: &str =
@@ -453,7 +452,7 @@ pub fn select_current_source_generation(
     bootstrap_context: &CommandContext,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     streamed: Option<(
         &crate::durable_adapter::PrivateGenerationWorkspace,
         crate::durable_adapter::StreamedGenerationProfile,
@@ -525,7 +524,7 @@ pub fn select_current_source_generation_addressed(
     bootstrap_context: &CommandContext,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     streamed: Option<(
         &crate::durable_adapter::PrivateGenerationWorkspace,
         crate::durable_adapter::StreamedGenerationProfile,
@@ -1300,7 +1299,7 @@ pub fn select_current_source_cut(
     bootstrap_context: &CommandContext,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     streamed: Option<(
         &crate::durable_adapter::PrivateGenerationWorkspace,
         crate::durable_adapter::StreamedGenerationProfile,
@@ -1352,7 +1351,7 @@ pub fn select_current_source_cut_addressed(
     bootstrap_context: &CommandContext,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     streamed: Option<(
         &crate::durable_adapter::PrivateGenerationWorkspace,
         crate::durable_adapter::StreamedGenerationProfile,
@@ -1398,7 +1397,7 @@ fn select_current_source_cut_inner(
     bootstrap_context: &CommandContext,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut impl crate::source_creation::CreationSchemaExecutor,
     streamed: Option<(
         &crate::durable_adapter::PrivateGenerationWorkspace,
         crate::durable_adapter::StreamedGenerationProfile,
