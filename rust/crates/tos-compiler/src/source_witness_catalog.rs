@@ -1404,10 +1404,46 @@ impl<'a> SourceCatalogValidator<'a> {
         deadline: Instant,
         cancelled: &'a AtomicBool,
     ) -> Result<Self> {
+        Self::from_in_process_cut_with_mode(
+            cut,
+            tos_validation::in_process::InputMode::SerdeNormalized,
+            deadline,
+            cancelled,
+        )
+    }
+
+    /// Preserve the selected raw-byte ceiling and Python-compatible input profile.
+    pub fn from_in_process_cut_diagnostics(
+        cut: &CorpusCutReader,
+        max_instance_bytes: usize,
+        deadline: Instant,
+        cancelled: &'a AtomicBool,
+    ) -> Result<Self> {
+        if max_instance_bytes == 0
+            || max_instance_bytes > tos_validation::executor::BatchBudget::MAX_RAW_BYTES
+        {
+            return Err(Error::Budget("catalog selected raw instance limit"));
+        }
+        Self::from_in_process_cut_with_mode(
+            cut,
+            tos_validation::in_process::InputMode::LegacyPythonObservedBounded {
+                max_instance_bytes,
+            },
+            deadline,
+            cancelled,
+        )
+    }
+
+    fn from_in_process_cut_with_mode(
+        cut: &CorpusCutReader,
+        input_mode: tos_validation::in_process::InputMode,
+        deadline: Instant,
+        cancelled: &'a AtomicBool,
+    ) -> Result<Self> {
         let schemas = InProcessCutSchemaExecutor::from_cut(
             cut,
             FormatProfile::LegacyPythonObserved20260923,
-            tos_validation::in_process::InputMode::SerdeNormalized,
+            input_mode,
             deadline,
             cancelled,
         )

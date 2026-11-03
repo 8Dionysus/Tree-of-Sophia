@@ -5283,46 +5283,6 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             );
         }
     };
-    // This worker belongs to the catalog phase, whose reservation may be
-    // smaller than the schema phase. Every count dimension uses its own wire
-    // envelope rather than mixing receipts from one phase with units of another.
-    let catalog_max_checks = bounded_usize(
-        u64::try_from(max_checks)
-            .unwrap_or(u64::MAX - 1)
-            .min(catalog_operation.worker_wire_bytes),
-    )?
-    .max(1);
-    let catalog_worker_shape = FoundationCatalogWorkerShape {
-        batch: BatchBudget::laboratory(),
-        max_chunks: catalog_max_checks
-            .div_ceil(BatchBudget::laboratory().max_units)
-            .max(1) as u64,
-        max_total_units: u64::try_from(catalog_max_checks)
-            .unwrap_or(u64::MAX - 1)
-            .min(catalog_operation.worker_wire_bytes)
-            .max(1),
-        max_total_raw_bytes: catalog_operation
-            .source_read_bytes
-            .min(catalog_operation.worker_wire_bytes)
-            .min(BatchBudget::MAX_RAW_BYTES as u64)
-            .max(1),
-        max_total_wire_bytes: catalog_operation.worker_wire_bytes,
-        max_distinct_selectors: catalog_max_checks.max(1).min(1024),
-        max_receipts: catalog_max_checks.max(1),
-        max_receipt_bytes: catalog_operation.state_bytes.min(1024 * 1024).max(1),
-    };
-    let (catalog_executor, catalog_worker_limits, catalog_stream, catalog_diagnostic_limits) =
-        match execution_limits.catalog_worker_limits(catalog_worker_shape) {
-            Ok(limits) => limits,
-            Err(error) => {
-                return fail_window(
-                    execution_limits,
-                    remaining_budget,
-                    catalog_ticket,
-                    FoundationOrchestratorError::Command(error),
-                );
-            }
-        };
     let candidate_path = isolated.path().join("source-foundation.sqlite");
     let catalog_before = match worker_quota.usage() {
         Ok(usage) => usage,
@@ -5362,11 +5322,7 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             catalog_source_limits,
             catalog_read_limits,
             biblio_catalog_limits,
-            &worker_image,
-            catalog_executor,
-            catalog_worker_limits,
-            catalog_stream,
-            catalog_diagnostic_limits,
+            worker_image.operation_deadline(),
             true,
             usize::try_from(max_catalog_files).unwrap_or(usize::MAX - 1),
             // Version resolution charges cumulative reads, not the largest member.
@@ -5385,7 +5341,6 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
                     .min(usize::MAX as u64 - 1),
             )
             .unwrap_or(usize::MAX - 1),
-            &worker_quota,
             isolated,
             DisposableCatalogTreeLimits {
                 max_total_bytes: usize::try_from(
@@ -5436,11 +5391,7 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             catalog_source_limits,
             catalog_read_limits,
             biblio_catalog_limits,
-            &worker_image,
-            catalog_executor,
-            catalog_worker_limits,
-            catalog_stream,
-            catalog_diagnostic_limits,
+            worker_image.operation_deadline(),
             true,
             usize::try_from(max_catalog_files).unwrap_or(usize::MAX - 1),
             // Version resolution charges cumulative reads, not the largest member.
@@ -5459,7 +5410,6 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
                     .min(usize::MAX as u64 - 1),
             )
             .unwrap_or(usize::MAX - 1),
-            &worker_quota,
             cancelled,
             |stage, receipt, limits| {
                 if let Some(observation) = observation.take() {

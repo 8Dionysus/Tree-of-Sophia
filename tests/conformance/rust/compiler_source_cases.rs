@@ -1927,12 +1927,17 @@ fn actual_selected_catalog_and_native_forms_match_maintained_python() {
 /// distinct; neither the owner stubs nor this oracle issue source admission.
 #[test]
 fn actual_native_corpus_composition_with_retained_claim_matches_maintained_python() {
-    native_corpus_composition_case(false, false);
+    native_corpus_composition_case(false, false, false);
 }
 
 #[test]
 fn in_process_native_corpus_composition_matches_maintained_python() {
-    native_corpus_composition_case(false, true);
+    native_corpus_composition_case(false, true, false);
+}
+
+#[test]
+fn in_process_legacy_diagnostics_catalog_matches_maintained_python() {
+    native_corpus_composition_case(false, true, true);
 }
 
 /// Required installed-native producer and consumer stage of the same authored
@@ -1942,7 +1947,7 @@ fn in_process_native_corpus_composition_matches_maintained_python() {
 #[ignore = "requires admitted Linux private-stage ticket, fs-verity, and native owner/consumer binaries"]
 fn actual_native_corpus_managed_installed_consumer() {
     if !native_managed_corpus_consumer::resume_selected_phase() {
-        native_corpus_composition_case(true, false);
+        native_corpus_composition_case(true, false, false);
     }
 }
 
@@ -2851,7 +2856,7 @@ pub(crate) fn native_selected_model_at_existing_cut(
     selected
 }
 
-fn native_corpus_composition_case(installed: bool, in_process: bool) {
+fn native_corpus_composition_case(installed: bool, in_process: bool, diagnostics: bool) {
     use tos_compiler::knowledge_canon_source::*;
     use tos_compiler::knowledge_stage::{InputCollectionReceipt, InputRow};
     use tos_compiler::source_bibliographic::{BibliographicLimits, BibliographicSourceCut};
@@ -3378,7 +3383,42 @@ fn native_corpus_composition_case(installed: bool, in_process: bool) {
     operation.total_execution_wall = remaining;
     operation.operation_cpu_seconds = remaining.as_secs().saturating_add(1);
     operation.operation_address_space_bytes = schema_budget.address_space_bytes;
-    let validator = if in_process {
+    if diagnostics {
+        let validator = SourceCatalogValidator::from_in_process_cut_diagnostics(
+            &cut,
+            2 * 1024 * 1024,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        let path = "source-test/invalid-record.json";
+        assert!(
+            validator
+                .check_selected_document(
+                    revision,
+                    path,
+                    b"{}",
+                    "ToS/contracts/corpus-record.schema.json",
+                )
+                .is_err()
+        );
+        let report = validator
+            .take_schema_diagnostic_rejection()
+            .unwrap()
+            .unwrap();
+        assert!(report.is_invalid());
+        assert_eq!(report.source_revision(), Some(revision));
+        assert_eq!(report.path(), path);
+        assert!(!report.issues().is_empty());
+    }
+    let validator = if diagnostics {
+        SourceCatalogValidator::from_in_process_cut_diagnostics(
+            &cut,
+            2 * 1024 * 1024,
+            deadline,
+            &cancelled,
+        )
+    } else if in_process {
         SourceCatalogValidator::from_in_process_cut(&cut, deadline, &cancelled)
     } else {
         SourceCatalogValidator::from_cut(

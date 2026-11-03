@@ -39,12 +39,9 @@ use tos_foundation::{
 };
 use tos_ops_mechanics_plan::source_reading::{RouteResolvedTarget, RouteSources};
 use tos_source_store::{MetadataPublicationEpoch, ReadLimits};
-use tos_validation::executor::{
-    BatchStreamBudget, ExactWorkerIdentity, ExecutorBudget, VerifiedWorkerImageHandle,
-};
+use tos_validation::executor::{ExactWorkerIdentity, VerifiedWorkerImageHandle};
 use tos_validation::source_cut::{
-    CutSchemaDiagnosticsLimits, CutSchemaEvidence, CutWorkerLimits,
-    cut_schema_resource_preparation_state_upper_bound,
+    CutSchemaEvidence, cut_schema_resource_preparation_state_upper_bound,
 };
 
 const MANIFEST: &str = "ToS/source-witnesses/catalog/catalog.manifest.json";
@@ -1452,11 +1449,7 @@ fn compare_kernel<'candidate>(
     source_limits: SourceCatalogInputLimits,
     read_limits: ReadLimits,
     limits: BibliographicLimits,
-    image: &VerifiedWorkerImageHandle,
-    executor: ExecutorBudget,
-    worker_limits: CutWorkerLimits,
-    operation: BatchStreamBudget,
-    diagnostics_limits: CutSchemaDiagnosticsLimits,
+    schema_deadline: Instant,
     build_bibliographic: bool,
     max_version_files: usize,
     max_version_bytes: usize,
@@ -1464,7 +1457,6 @@ fn compare_kernel<'candidate>(
     max_generated_files: usize,
     max_generated_state_bytes: usize,
     max_source_recheck_read_bytes: usize,
-    quota: &tos_validation::executor::SharedSchemaWorkerQuota,
     candidate_root: Option<(
         &'candidate IsolatedCreationRoot,
         DisposableCatalogTreeLimits,
@@ -1533,22 +1525,15 @@ fn compare_kernel<'candidate>(
         limits.deadline,
         limits.catalog.max_file_bytes,
     )?;
-    let validator = SourceCatalogValidator::from_cut_with_image_diagnostics_v2(
+    let max_instance_bytes = usize::try_from(read_limits.max_selected_object_bytes)
+        .map_err(|_| Error::Budget("catalog selected instance byte range"))?
+        .min(tos_validation::executor::BatchBudget::MAX_RAW_BYTES);
+    let validator = SourceCatalogValidator::from_in_process_cut_diagnostics(
         capture.cut(),
-        image,
-        executor,
-        worker_limits,
-        operation,
-        diagnostics_limits,
-        limits.deadline,
+        max_instance_bytes,
+        limits.deadline.min(schema_deadline),
         cancelled,
     )?;
-    validator.set_diagnostics_v2_legacy_raw_instance_limit(
-        usize::try_from(read_limits.max_selected_object_bytes)
-            .map_err(|_| Error::Budget("catalog selected instance byte range"))?
-            .min(tos_validation::executor::BatchBudget::MAX_RAW_BYTES),
-    )?;
-    validator.set_shared_schema_worker_quota(quota.clone())?;
     compare_prepared_kernel(
         stage,
         &validator,
@@ -1926,11 +1911,7 @@ pub(crate) fn compare_with_owned_catalogue_observation(
     source_limits: SourceCatalogInputLimits,
     read_limits: ReadLimits,
     limits: BibliographicLimits,
-    image: &VerifiedWorkerImageHandle,
-    executor: ExecutorBudget,
-    worker_limits: CutWorkerLimits,
-    operation: BatchStreamBudget,
-    diagnostics_limits: CutSchemaDiagnosticsLimits,
+    schema_deadline: Instant,
     build_bibliographic: bool,
     max_version_files: usize,
     max_version_bytes: usize,
@@ -1938,7 +1919,6 @@ pub(crate) fn compare_with_owned_catalogue_observation(
     max_generated_files: usize,
     max_generated_state_bytes: usize,
     max_source_recheck_read_bytes: usize,
-    quota: &tos_validation::executor::SharedSchemaWorkerQuota,
     cancelled: &AtomicBool,
     observe: impl FnOnce(
         &mut KnowledgeStage<'_>,
@@ -1955,11 +1935,7 @@ pub(crate) fn compare_with_owned_catalogue_observation(
         source_limits,
         read_limits,
         limits,
-        image,
-        executor,
-        worker_limits,
-        operation,
-        diagnostics_limits,
+        schema_deadline,
         build_bibliographic,
         max_version_files,
         max_version_bytes,
@@ -1967,7 +1943,6 @@ pub(crate) fn compare_with_owned_catalogue_observation(
         max_generated_files,
         max_generated_state_bytes,
         max_source_recheck_read_bytes,
-        quota,
         None,
         None,
         cancelled,
@@ -1990,11 +1965,7 @@ pub(crate) fn compare_candidate<'candidate, 'rows>(
     source_limits: SourceCatalogInputLimits,
     read_limits: ReadLimits,
     limits: BibliographicLimits,
-    image: &VerifiedWorkerImageHandle,
-    executor: ExecutorBudget,
-    worker_limits: CutWorkerLimits,
-    operation: BatchStreamBudget,
-    diagnostics_limits: CutSchemaDiagnosticsLimits,
+    schema_deadline: Instant,
     build_bibliographic: bool,
     max_version_files: usize,
     max_version_bytes: usize,
@@ -2002,7 +1973,6 @@ pub(crate) fn compare_candidate<'candidate, 'rows>(
     max_generated_files: usize,
     max_generated_state_bytes: usize,
     max_source_recheck_read_bytes: usize,
-    quota: &tos_validation::executor::SharedSchemaWorkerQuota,
     isolated: &'candidate IsolatedCreationRoot,
     tree_limits: DisposableCatalogTreeLimits,
     index_rows: Option<&'rows mut dyn FreshIndexRowsWriter>,
@@ -2022,11 +1992,7 @@ pub(crate) fn compare_candidate<'candidate, 'rows>(
         source_limits,
         read_limits,
         limits,
-        image,
-        executor,
-        worker_limits,
-        operation,
-        diagnostics_limits,
+        schema_deadline,
         build_bibliographic,
         max_version_files,
         max_version_bytes,
@@ -2034,7 +2000,6 @@ pub(crate) fn compare_candidate<'candidate, 'rows>(
         max_generated_files,
         max_generated_state_bytes,
         max_source_recheck_read_bytes,
-        quota,
         Some((isolated, tree_limits)),
         index_rows,
         cancelled,
