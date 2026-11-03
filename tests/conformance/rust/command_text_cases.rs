@@ -1973,7 +1973,14 @@ fn private_read_lifecycle(
     let grant_raw = serde_json::to_vec(&grant).unwrap();
     fs::write(&grant_path, &grant_raw).unwrap();
     fs::set_permissions(&grant_path, fs::Permissions::from_mode(0o600)).unwrap();
-    let mut worker = text_worker_with_image(&seed.cut, &seed.worker_image, deadline, cancelled);
+    let mut worker = tos_validation::source_cut::InProcessCutSchemaExecutor::from_cut(
+        &seed.cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        tos_validation::in_process::InputMode::SerdeNormalized,
+        deadline,
+        cancelled,
+    )
+    .unwrap();
     let mut selected = PrivateTextReadSelection::load(
         &grant_path,
         &seed.public_root,
