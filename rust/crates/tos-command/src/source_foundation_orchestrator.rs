@@ -2535,7 +2535,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         &source_root,
                         u64::from(view.invocation.uid()),
                         &schema_worker,
-                        worker_quota.clone(),
+                        Some(worker_quota.clone()),
                         artifact_limits,
                         page_budget,
                         max_scan_rows.min(usize::MAX as u64) as usize,

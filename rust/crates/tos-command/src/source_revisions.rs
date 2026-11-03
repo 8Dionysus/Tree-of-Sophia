@@ -4791,7 +4791,10 @@ fn candidate_replay_source_files<I: Copy + Eq>(
 /// schema identity, opaque input identity, and Records membership must agree
 /// before any retained publication is consumed.
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn replay_artifact_corrections_from_candidate<I: Copy + Eq>(
+pub(crate) fn replay_artifact_corrections_from_candidate<
+    I: Copy + Eq,
+    W: CandidateRecordSchemaWorker<I>,
+>(
     input: &dyn SourceCutInputWithIdentity<I>,
     records: &tos_validation::source_foundation_records::SourceFoundationRecordsStreamedReport<
         '_,
@@ -4800,7 +4803,7 @@ pub(crate) fn replay_artifact_corrections_from_candidate<I: Copy + Eq>(
     source_root: &str,
     effective_uid: u64,
     native_history: &CandidateNativeRecordHistoryReadObservation<I>,
-    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    worker: &mut W,
     max_member_bytes: usize,
     max_total_bytes: u64,
     max_state_bytes: usize,
@@ -4820,12 +4823,12 @@ pub(crate) fn replay_artifact_corrections_from_candidate<I: Copy + Eq>(
         ))?;
     if records.input_identity() != &identity
         || native_history.input_identity() != &identity
-        || worker.input_identity() != &identity
+        || RecordSchemaWorker::input_identity(worker) != Some(identity)
         || *records.source_membership() != native_history.current_membership()
         || schema.profile() != worker.profile()
         || schema.schema_set_digest() != worker.schema_set_digest()
         || schema.contract_selection_digest() != worker.contract_selection_digest()
-        || schema.prepared_execution_binding() != Some(worker.prepared_execution_binding())
+        || Some(schema.schema_execution_binding()) != worker.schema_execution_binding()
     {
         return Err(SourceCommandError::Conflict(
             "candidate Artifact replay input, Records, history, or schema bindings differ",

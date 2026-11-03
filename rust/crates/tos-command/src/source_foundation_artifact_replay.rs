@@ -9,7 +9,8 @@ use super::foundation_entry::{
 };
 use crate::source_command::{SourceCommandError, SourceFile};
 use crate::source_revisions::{
-    self, ArtifactCorrectionReplayObservation, ReadonlyRecordFiles, RecordVersionReadInput,
+    self, ArtifactCorrectionReplayObservation, CandidateRecordSchemaWorker, ReadonlyRecordFiles,
+    RecordVersionReadInput,
 };
 use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -28,9 +29,7 @@ use tos_validation::native_compound::{
 };
 use tos_validation::record_biblio_cut::SourceCutRecordReport;
 use tos_validation::record_biblio_cut::{SourceCutInputCoverage, SourceCutInputWithIdentity};
-use tos_validation::source_cut::{
-    CandidateCutWorkerSchemaExecutor, CutSchemaExecutor, CutWorkerSchemaExecutor,
-};
+use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 use tos_validation::source_foundation_discovery::{
     ArtifactCorrectionReplayEvidence, ArtifactCorrectionReplayMap,
     CandidateArtifactCorrectionReplayEvidence, CandidateArtifactEvidence,
@@ -209,14 +208,20 @@ impl<'cut> ArtifactReplayEvidence<'cut> {
 /// Lazy candidate Artifact history and correction evidence provider. It keeps
 /// only the shared schema-rejection proof and one current path's real kernel
 /// results; candidate identity is never translated into a revision.
-pub(crate) struct CandidateArtifactReplayEvidence<'provider, 'store, 'worker, I: Copy + Eq> {
+pub(crate) struct CandidateArtifactReplayEvidence<
+    'provider,
+    'store,
+    'worker,
+    I: Copy + Eq,
+    W: CandidateRecordSchemaWorker<I>,
+> {
     input: &'provider dyn SourceCutInputWithIdentity<I>,
     coverage: &'provider SourceCutInputCoverage,
     records: &'provider SourceFoundationRecordsStreamedReport<'store, I>,
     source_root: String,
     effective_uid: u64,
-    worker: &'provider RefCell<&'worker mut CandidateCutWorkerSchemaExecutor<I>>,
-    worker_quota: SharedSchemaWorkerQuota,
+    worker: &'provider RefCell<&'worker mut W>,
+    worker_quota: Option<SharedSchemaWorkerQuota>,
     invalid_schema_proofs: CandidateArtifactInvalidSchemaProofs<'provider, 'store, I>,
     history_limits: ItemLimits,
     max_scan_rows: usize,
@@ -232,7 +237,9 @@ pub(crate) struct CandidateArtifactReplayEvidence<'provider, 'store, 'worker, I:
     cost: ArtifactReplayCost,
 }
 
-impl<I: Copy + Eq> CandidateArtifactReplayEvidence<'_, '_, '_, I> {
+impl<I: Copy + Eq, W: CandidateRecordSchemaWorker<I>>
+    CandidateArtifactReplayEvidence<'_, '_, '_, I, W>
+{
     pub(crate) fn cost(&self) -> ArtifactReplayCost {
         self.cost
     }
@@ -242,8 +249,8 @@ impl<I: Copy + Eq> CandidateArtifactReplayEvidence<'_, '_, '_, I> {
     }
 }
 
-impl<'provider, 'store, 'worker, I: Copy + Eq>
-    CandidateArtifactReplayEvidence<'provider, 'store, 'worker, I>
+impl<'provider, 'store, 'worker, I: Copy + Eq, W: CandidateRecordSchemaWorker<I>>
+    CandidateArtifactReplayEvidence<'provider, 'store, 'worker, I, W>
 {
     fn retain_skip(&mut self, remaining_state_bytes: usize) -> Result<(), ItemRefusal> {
         let added_skip_state = if self.has_skips {
@@ -288,19 +295,17 @@ impl<'provider, 'store, 'worker, I: Copy + Eq>
 /// Schema-check proxy for the same candidate worker shared with the lazy
 /// Artifact replay provider. Calls are serialized through the RefCell, so the
 /// maintained schema and correction-replay kernels share one worker/quota.
-pub(crate) struct CandidateArtifactSchemaExecutor<'cell, 'worker, I: Copy + Eq> {
-    worker: &'cell RefCell<&'worker mut CandidateCutWorkerSchemaExecutor<I>>,
+pub(crate) struct CandidateArtifactSchemaExecutor<'cell, 'worker, W: CutSchemaExecutor> {
+    worker: &'cell RefCell<&'worker mut W>,
 }
 
-impl<'cell, 'worker, I: Copy + Eq> CandidateArtifactSchemaExecutor<'cell, 'worker, I> {
-    pub(crate) fn new(
-        worker: &'cell RefCell<&'worker mut CandidateCutWorkerSchemaExecutor<I>>,
-    ) -> Self {
+impl<'cell, 'worker, W: CutSchemaExecutor> CandidateArtifactSchemaExecutor<'cell, 'worker, W> {
+    pub(crate) fn new(worker: &'cell RefCell<&'worker mut W>) -> Self {
         Self { worker }
     }
 }
 
-impl<I: Copy + Eq> CutSchemaExecutor for CandidateArtifactSchemaExecutor<'_, '_, I> {
+impl<W: CutSchemaExecutor> CutSchemaExecutor for CandidateArtifactSchemaExecutor<'_, '_, W> {
     fn check(
         &mut self,
         path: &str,
@@ -487,20 +492,27 @@ fn refusal_failure(
 /// actual history and CMD replay packets only when the live Discovery walk
 /// reaches each current Artifact path.
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn prepare_candidate_artifact_replay<'provider, 'store, 'worker, I: Copy + Eq>(
+pub(crate) fn prepare_candidate_artifact_replay<
+    'provider,
+    'store,
+    'worker,
+    I: Copy + Eq,
+    W: CandidateRecordSchemaWorker<I>,
+>(
     input: &'provider dyn SourceCutInputWithIdentity<I>,
     full_coverage: &'provider SourceCutInputCoverage,
     records: &'provider SourceFoundationRecordsStreamedReport<'store, I>,
     source_root: &Path,
     effective_uid: u64,
-    worker: &'provider RefCell<&'worker mut CandidateCutWorkerSchemaExecutor<I>>,
-    worker_quota: SharedSchemaWorkerQuota,
+    worker: &'provider RefCell<&'worker mut W>,
+    worker_quota: Option<SharedSchemaWorkerQuota>,
     history_limits: ItemLimits,
     page_budget: SourceFoundationRecordsPageBudget,
     max_scan_rows: usize,
     max_diagnostic_validation_work: usize,
     cancelled: &AtomicBool,
-) -> Result<CandidateArtifactReplayEvidence<'provider, 'store, 'worker, I>, ArtifactReplayFailure> {
+) -> Result<CandidateArtifactReplayEvidence<'provider, 'store, 'worker, I, W>, ArtifactReplayFailure>
+{
     let mut cost = ArtifactReplayCost::default();
     let deadline = history_limits.deadline;
     let max_source_bytes = history_limits.max_total_bytes;
@@ -536,12 +548,12 @@ pub(crate) fn prepare_candidate_artifact_replay<'provider, 'store, 'worker, I: C
     })?;
     {
         let worker = worker.borrow();
-        if worker.input_identity() != &input_identity
+        if crate::source_revisions::RecordSchemaWorker::input_identity(&**worker)
+            != Some(input_identity)
             || schema_identity.profile() != worker.profile()
             || schema_identity.schema_set_digest() != worker.schema_set_digest()
             || schema_identity.contract_selection_digest() != worker.contract_selection_digest()
-            || schema_identity.prepared_execution_binding()
-                != Some(worker.prepared_execution_binding())
+            || Some(schema_identity.schema_execution_binding()) != worker.schema_execution_binding()
         {
             return Err(failure(
                 ArtifactReplayFailureClass::Source,
@@ -758,8 +770,9 @@ fn candidate_provider_refusal(
     }
 }
 
-impl<'provider, 'store, 'worker, I: Copy + Eq> CandidateArtifactEvidenceProvider<I>
-    for CandidateArtifactReplayEvidence<'provider, 'store, 'worker, I>
+impl<'provider, 'store, 'worker, I: Copy + Eq, W: CandidateRecordSchemaWorker<I>>
+    CandidateArtifactEvidenceProvider<I>
+    for CandidateArtifactReplayEvidence<'provider, 'store, 'worker, I, W>
 {
     fn validate_binding(
         &mut self,
@@ -1075,11 +1088,16 @@ impl<'provider, 'store, 'worker, I: Copy + Eq> CandidateArtifactEvidenceProvider
             let replay_state = per_path_state
                 .checked_sub(history.returned_state_bytes())
                 .ok_or(ItemRefusal::Budget)?;
-            let quota_before = self.worker_quota.usage().map_err(|_| ItemRefusal::Budget)?;
-            if quota_before.worker_cpu_micros >= quota_before.max_total_cpu_micros
-                || quota_before.worker_wire_bytes >= quota_before.max_total_wire_bytes
-                || quota_before.worker_units >= quota_before.max_total_units
-            {
+            let quota_before = self
+                .worker_quota
+                .as_ref()
+                .map(|quota| quota.usage().map_err(|_| ItemRefusal::Budget))
+                .transpose()?;
+            if quota_before.as_ref().is_some_and(|quota| {
+                quota.worker_cpu_micros >= quota.max_total_cpu_micros
+                    || quota.worker_wire_bytes >= quota.max_total_wire_bytes
+                    || quota.worker_units >= quota.max_total_units
+            }) {
                 return Err(ItemRefusal::Budget);
             }
             let mut worker = self.worker.borrow_mut();
@@ -1104,37 +1122,39 @@ impl<'provider, 'store, 'worker, I: Copy + Eq> CandidateArtifactEvidenceProvider
                     )
                 })?;
             drop(worker);
-            let quota_after = self.worker_quota.usage().map_err(|_| ItemRefusal::Budget)?;
-            self.cost.candidate_replay_worker_cpu_micros = self
-                .cost
-                .candidate_replay_worker_cpu_micros
-                .checked_add(
-                    quota_after
-                        .worker_cpu_micros
-                        .checked_sub(quota_before.worker_cpu_micros)
-                        .ok_or(ItemRefusal::Budget)?,
-                )
-                .ok_or(ItemRefusal::Budget)?;
-            self.cost.candidate_replay_worker_wire_bytes = self
-                .cost
-                .candidate_replay_worker_wire_bytes
-                .checked_add(
-                    quota_after
-                        .worker_wire_bytes
-                        .checked_sub(quota_before.worker_wire_bytes)
-                        .ok_or(ItemRefusal::Budget)?,
-                )
-                .ok_or(ItemRefusal::Budget)?;
-            self.cost.candidate_replay_worker_units = self
-                .cost
-                .candidate_replay_worker_units
-                .checked_add(
-                    quota_after
-                        .worker_units
-                        .checked_sub(quota_before.worker_units)
-                        .ok_or(ItemRefusal::Budget)?,
-                )
-                .ok_or(ItemRefusal::Budget)?;
+            if let (Some(quota), Some(quota_before)) = (&self.worker_quota, quota_before) {
+                let quota_after = quota.usage().map_err(|_| ItemRefusal::Budget)?;
+                self.cost.candidate_replay_worker_cpu_micros = self
+                    .cost
+                    .candidate_replay_worker_cpu_micros
+                    .checked_add(
+                        quota_after
+                            .worker_cpu_micros
+                            .checked_sub(quota_before.worker_cpu_micros)
+                            .ok_or(ItemRefusal::Budget)?,
+                    )
+                    .ok_or(ItemRefusal::Budget)?;
+                self.cost.candidate_replay_worker_wire_bytes = self
+                    .cost
+                    .candidate_replay_worker_wire_bytes
+                    .checked_add(
+                        quota_after
+                            .worker_wire_bytes
+                            .checked_sub(quota_before.worker_wire_bytes)
+                            .ok_or(ItemRefusal::Budget)?,
+                    )
+                    .ok_or(ItemRefusal::Budget)?;
+                self.cost.candidate_replay_worker_units = self
+                    .cost
+                    .candidate_replay_worker_units
+                    .checked_add(
+                        quota_after
+                            .worker_units
+                            .checked_sub(quota_before.worker_units)
+                            .ok_or(ItemRefusal::Budget)?,
+                    )
+                    .ok_or(ItemRefusal::Budget)?;
+            }
             if observation.input_identity() != &identity
                 || observation.current_membership() != membership
                 || observation.source_path() != path
