@@ -20,7 +20,6 @@ use tos_foundation::{Digest256, JsonValue};
 use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::item_rules::ItemLimits;
 use tos_validation::record_biblio_cut::{SourceCutInput, SourceCutInputWithIdentity};
-use tos_validation::source_cut::CutSchemaExecutor;
 
 const WORK_CONTRACTS: &[&str] = &[
     "ToS/doctrine/semantic-interchange/entity-types.v1.json",

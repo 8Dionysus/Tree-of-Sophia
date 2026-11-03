@@ -19,7 +19,6 @@ use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::{
     item_rules::{ItemLimits, ItemRefusal},
     record_biblio_cut::SourceCutInputWithIdentity,
-    source_cut::{CandidateCutWorkerSchemaExecutor, CutSchemaExecutor},
 };
 
 pub(crate) const PG_FAMILY: &str = "tos-pg-maintained-growth-v1:native-object-link-create";
@@ -315,7 +314,7 @@ fn selected_context<I: Copy + Eq>(
     ctx: &CommandContext,
     owner: &Owner,
     input: &dyn SourceCutInputWithIdentity<I>,
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
+    schemas: &mut impl crate::source_revisions::CandidateRecordSchemaWorker<I>,
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -1201,7 +1200,7 @@ pub(crate) fn prepare_pg_object_link<'a>(
     fs: &'a CreationFilesystem,
     ctx: &CommandContext,
     input: &dyn SourceCutInputWithIdentity<PgRecordRevisionIdentity>,
-    schemas: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    schemas: &mut impl crate::source_revisions::CandidateRecordSchemaWorker<PgRecordRevisionIdentity>,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
     limits: ItemLimits,
@@ -1302,7 +1301,7 @@ pub(crate) fn prepare_pg_object_link_preview(
     fs: &CreationFilesystem,
     ctx: &CommandContext,
     input: &dyn SourceCutInputWithIdentity<PgRecordRevisionIdentity>,
-    schemas: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    schemas: &mut impl crate::source_revisions::CandidateRecordSchemaWorker<PgRecordRevisionIdentity>,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
     publication_token: Option<&str>,

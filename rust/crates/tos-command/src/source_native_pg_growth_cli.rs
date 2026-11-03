@@ -2652,7 +2652,6 @@ pub(crate) fn observe_growth_semantic_indexes(
 fn prepare_pg_object_link_growth<'a>(
     fs: &'a CreationFilesystem,
     session: &mut SourceRevisionReadSession<'_>,
-    invocation: &Value,
     configuration_raw: &[u8],
     request_raw: &[u8],
     publication_token: Option<&str>,
@@ -2680,8 +2679,7 @@ fn prepare_pg_object_link_growth<'a>(
         effective_uid,
         &software_files,
     )?;
-    let mut worker = super::revisions::selected_candidate_schema_from_context(
-        invocation,
+    let mut worker = super::revisions::selected_in_process_candidate_schema_from_context(
         &context.files,
         identity,
         deadline,
@@ -2887,7 +2885,6 @@ fn run_pg_object_link(
                 let prepared = prepare_pg_object_link_growth(
                     owner_fs,
                     session,
-                    invocation,
                     owner_raw,
                     request_raw,
                     cmd::field(request, "expected_publication")
@@ -3098,8 +3095,7 @@ fn run_pg_object_link_preview(
                     )
                     .map_err(DurableError::Source)?
                 } else {
-                    let mut worker = super::revisions::selected_candidate_schema_from_context(
-                        invocation,
+                    let mut worker = super::revisions::selected_in_process_candidate_schema_from_context(
                         &context.files,
                         identity,
                         deadline,

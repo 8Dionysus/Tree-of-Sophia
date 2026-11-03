@@ -8383,9 +8383,13 @@ pub struct ObjectLinkBytes {
     pub bytes_read: u64,
 }
 
-fn compose_selected_object_link_bytes<'a, I: Copy + Eq>(
+fn compose_selected_object_link_bytes<
+    'a,
+    I: Copy + Eq,
+    S: SourceFoundationCandidateSchemaBinding<I>,
+>(
     input: &'a dyn SourceCutInputWithIdentity<I>,
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
+    schemas: &mut S,
     scope: &Value,
     authorization: &Value,
     request_raw: &[u8],
@@ -8419,22 +8423,23 @@ fn compose_selected_object_link_bytes<'a, I: Copy + Eq>(
             .ok_or(ItemRefusal::Budget)?,
     )?;
     let selected_input = input.source_input();
-    let mut validate_local_claim = |raw: &[u8],
-                                    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
-                                    local_limits: ItemLimits| {
-        schemas.validate_local_claim(None, Some(selected_input), raw, local_limits, cancelled)
-    };
+    let mut selected = CandidateCompoundSchemas::new(schemas, *input.input_identity())?;
+    let mut validate_local_claim =
+        |raw: &[u8], schemas: &mut CandidateCompoundSchemas<'_, I, S>, local_limits: ItemLimits| {
+            schemas.validate_local_claim(None, Some(selected_input), raw, local_limits, cancelled)
+        };
     let prepared = reader.compose_object_link_with_validator(
         scope,
         authorization,
         request_raw,
         environment_raw,
         recorded_at,
-        schemas,
+        &mut selected,
         &mut validate_local_claim,
         retained_event,
         capture,
     )?;
+    selected.guard()?;
     let transaction_id = text(&prepared.receipt, "transaction_id")?.to_owned();
     reader.release_raw_cache();
     Ok(ObjectLinkBytes {
@@ -8451,7 +8456,7 @@ fn compose_selected_object_link_bytes<'a, I: Copy + Eq>(
 /// Compose a native-produced ObjectLink package from exact selected reads.
 pub fn prepare_selected_native_object_link_bytes<'a, I: Copy + Eq>(
     input: &'a dyn SourceCutInputWithIdentity<I>,
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
+    schemas: &mut impl SourceFoundationCandidateSchemaBinding<I>,
     scope: &Value,
     authorization: &Value,
     request_raw: &[u8],
