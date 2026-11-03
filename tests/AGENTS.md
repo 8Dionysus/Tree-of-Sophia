@@ -4,10 +4,9 @@ This card applies to `tests/`.
 
 ## Role and routes
 
-`tests/` owns repo-local regressions for routes, generated parity, canon and
-mechanics contracts, validators, test topology and release behavior. Tests
-prove bounded behavior; eval verdicts, scoring and proof doctrine remain with
-`aoa-evals`.
+`tests/` owns local regressions for routes, generated parity, canon and mechanics
+contracts, validators, test topology and releases. `aoa-evals` owns eval verdicts,
+scoring and proof doctrine.
 
 Use the owning test and selected software checks for admission under TOS-D-0062.
 

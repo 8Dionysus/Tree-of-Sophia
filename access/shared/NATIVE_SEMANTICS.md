@@ -3,15 +3,12 @@
 This is the human compatibility route for bounded Cloudflare projection reads.
 The Worker retains and verifies original D1 row bytes; Rust/WASM owns shared
 temporal, inspection, lens and exploration semantics. Legacy and indexed search
-retain their declared compatibility behavior. These readers expose selected
-derived data; none grants source, rights, review, canon or publication
-authority.
+retain their declared compatibility behavior over selected derived data.
 
 The [Worker deployment guide](../deploy/cloudflare-worker/README.md) owns build,
 import and deployment operations. Versioned schemas and request shapes are
 indexed in [`../contracts/README.md`](../contracts/README.md). This page records
-cross-operation compatibility rules and bounds; it does not describe Python as
-a current runtime.
+cross-operation compatibility rules and bounds.
 
 ## Preserved JSON and text behavior
 
@@ -26,8 +23,6 @@ lost. Request and cursor JSON retain the declared Python last-member-wins rule.
 Text compatibility uses pinned Unicode 16.0.0 lowercase/strip and code-point
 length/order behavior. It does not add NFC or case-fold normalization. Source
 strings and filters remain literal unless the operation declares normalization.
-These rules keep selected reads reproducible; they do not alter authored
-wording or provide translation.
 
 ## Search
 
@@ -98,8 +93,8 @@ changed epoch returns 409 even if the final digest matches the prior value;
 expired or evicted state returns 410; oversized state returns 413; missing
 migration/metadata or damaged required carriers return 503. Ordinary traversal
 excludes edges with absent endpoints, while required origin/result closure
-fails closed. Positive row checks do not prove a completely hidden index entry
-is absent or establish whole-corpus completeness.
+fails closed. Absence of hidden index entries and whole-corpus completeness
+require evidence beyond positive row checks.
 
 ## Bounds and refusal behavior
 
@@ -131,4 +126,5 @@ tos-unicode-tables --root "$PWD" --ucd-dir /absolute/ucd-directory --check
 ```
 
 Use the repository's validation route after changing this contract or its
-generated tables. Regeneration does not read a corpus or publish data.
+generated tables. Regeneration uses the selected UCD inputs; corpus data and
+publication follow their owners.

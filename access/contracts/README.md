@@ -6,10 +6,6 @@ versioned schema or contract for implementation work; this page is a route map.
 Runtime interpretation and engine-specific limits are in
 [`../shared/NATIVE_SEMANTICS.md`](../shared/NATIVE_SEMANTICS.md).
 
-These contracts describe delivery mechanics. ToS remains the owner of source
-identity, authored meaning, assessment, rights, review, registries and canon.
-A packet can preserve those recorded postures but cannot strengthen them.
-
 ## Find the contract
 
 | Concern | Owner contract |
@@ -27,10 +23,8 @@ A packet can preserve those recorded postures but cannot strengthen them.
 | Source read and optional text gateway | [`source-read.v1.schema.json`](source-read.v1.schema.json) · [`source-text-gateway.v1.md`](source-text-gateway.v1.md) · [`source-text-gateway-capability.v1.schema.json`](source-text-gateway-capability.v1.schema.json) |
 | Source command descriptor | [`source-commands.v1.json`](source-commands.v1.json) |
 
-The ToS-owned stable semantic vocabulary lives under
-[`ToS/doctrine/semantic-interchange/`](../../ToS/doctrine/semantic-interchange/)
-and is linked from the relevant source/profile contracts. An Access contract
-may carry those IDs but does not own or revise their meaning.
+The ToS-owned stable semantic vocabulary lives in
+[semantic interchange](../../ToS/doctrine/semantic-interchange/README.md).
 
 ## Compatibility boundaries
 
@@ -51,8 +45,7 @@ may carry those IDs but does not own or revise their meaning.
   prepared profile.
 - Schemas constrain packets and fields; the owner implementation defines
   runtime bounds and currentness checks. Use the native semantics and Rust
-  access guides for those details. Green schema checks do not prove complete
-  data, semantic correctness, rights or deployment.
+  access guides for those details.
 - `web-actions.v1.json` is a migration marker. Current browser action shape is
   owned by `page-commands.v1.json` and WebMCP's active page implementation.
 

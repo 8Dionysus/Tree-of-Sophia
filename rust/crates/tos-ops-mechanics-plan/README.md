@@ -2,14 +2,9 @@
 
 The `philosophy-library` feature exposes bounded philosophy producers to
 native command owners without standalone mechanics families. `tos-command`
-selects that subset. Default `compiler-backed-validators` retains both
-`philosophy-library` and `mechanics`; the default validator contract and
-no-default-feature CI profile remain intact.
-
-The `philosophy-library` feature exposes the bounded philosophy producers to native
-command owners. `tos-command` selects that library subset. Standalone OPS binaries keep
-the default `compiler-backed-validators` feature, which includes it together with the
-dossier, source-registry, artifact and tree-node validators.
+selects that subset. Default `compiler-backed-validators` includes
+`philosophy-library`, `mechanics`, and the dossier, source-registry, artifact
+and tree-node validators. CI executors also support `--no-default-features`.
 
 `tos-ops-mechanics-plan` discovers native package-local and part-local mechanics
 assertions, builders and validators. The default CLI emits one
@@ -17,12 +12,9 @@ assertions, builders and validators. The default CLI emits one
 and `argv`. Order is native
 assertions by home, builder checks, then validators.
 
-`--repo-root ABSOLUTE_PATH` is required. `--execute` runs the native Growth
-pipeline with the other selected native mechanics from that root. Unexpected
-Python test/build/validator files fail discovery before any command starts.
-ToS operations do not select a neighboring repository or its interpreter.
-Consumers own integration, indexing, trust and admission. Maintained validation
-and release sequences use native ToS commands.
+`--repo-root ABSOLUTE_PATH` is required. Unexpected Python test/build/validator
+files fail discovery before any command starts. Maintained validation and
+release sequences use native ToS commands.
 
 The first nonzero child stops execution. Child stdout and stderr retain their
 streams; diagnostic traceback wording and cross-stream interleaving are not
@@ -102,8 +94,7 @@ pidfd/subreaper executor with its default 300-second command wall,
 output per child. The first child failure stops the sequence and preserves its
 exit status. A signalled child is reported by its negative signal status and
 returned as the corresponding Unix shell status; executable lookup failure
-returns status 127. The former Python loader, runner and compatibility entries
-have been retired.
+returns status 127.
 
 `tos-release-check` is a distinct explicit consumer of the same manifest's
 `release_check` sequence. `--phase all` keeps authored order; `checks` and
@@ -113,9 +104,7 @@ only native commands and preserves quoted `list2cmdline` progress text, first
 failure line on stdout, and child status.
 The same native executor imposes the finite command, sequence, cleanup, and
 output limits above.
-Its controlled fixture runs only a temporary four-step release-shaped
-sequence. The existing release command entry selects the native consumer. This source
-wiring does not claim an actual release or repository CI run.
+Its controlled fixture runs a temporary four-step release-shaped sequence.
 
 Install with `cargo install --locked --offline --path
 rust/crates/tos-ops-mechanics-plan --root <admitted isolated install root>`
@@ -125,9 +114,8 @@ without the variable it targets Cargo's built validation CLI. This compares the 
 same lifecycle/ordering risks, without another test framework.
 
 `tos-software-ci` owns software check selection and result aggregation. `plan --repo-root PATH --base REF`
-reads the actual Git no-renames changed paths, validates only new local Markdown
-links and merge markers, and emits the same v2 selection and optional
-`GITHUB_OUTPUT` fields. `--full` and unknown/shared changes require all checks.
+reads the actual Git no-renames changed paths and emits the v3 selection and
+optional `GITHUB_OUTPUT` fields. `--full` and unknown/shared changes require all checks.
 `gate` reads `CI_NEEDS` and rejects missing, failed, cancelled and unexpectedly
 skipped jobs. It cannot run checks or accept a release. The `.github` workflow invokes this native command directly.
 
@@ -281,9 +269,7 @@ reject symlinks, and preserve the previous double accounting for access JSON
 (source plus exported copy), 1 MiB manifest/README allowance, and 16 MiB archive
 overhead. They preserve the existing 1024-member and 4 MiB metadata selections.
 The software archive owner still independently verifies all images/receipts and
-source identities at build, verify, and install. These source changes require
-matching native tests and the actual producer/download/package CI consumers;
-formatting or wrapper assertions alone do not establish that acceptance.
+source identities at build, verify, and install.
 
 ## Standalone source and stats exports
 

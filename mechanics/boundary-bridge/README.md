@@ -13,7 +13,7 @@
 | output | bounded bridge seam and owner split |
 | owner | `mechanics/boundary-bridge/` |
 | stronger route | `ToS/` remains authored truth; sibling repos own their layers |
-| next route | [Derived KAG Seam](parts/derived-kag-seam/README.md) or [Public Mirror Sync](parts/public-mirror-sync/README.md) |
+| next route | [Derived KAG Seam](#derived-kag-seam) or [Public Mirror Sync](#public-mirror-sync) |
 | validation | `tos-ops-mechanics-plan --repo-root ROOT --public-mirror-validate`; `tos-ops-mechanics-plan --kag-source-export-verify --kag-export EXPORT` |
 
 ## Operations
@@ -28,8 +28,8 @@ Each part owns one bridge operation route.
 
 | Part | Function | Stronger owner route |
 | --- | --- | --- |
-| [Derived KAG Seam](parts/derived-kag-seam/README.md) | keep KAG/public handoff bounded and downstream | `ToS/` authored truth and downstream KAG owner |
-| [Public Mirror Sync](parts/public-mirror-sync/README.md) | keep public compatibility mirrors aligned with canon without making them canon | `ToS/canon/` and source review |
+| [Derived KAG Seam](#derived-kag-seam) | keep KAG/public handoff bounded and downstream | `ToS/` authored truth and downstream KAG owner |
+| [Public Mirror Sync](#public-mirror-sync) | keep public compatibility mirrors aligned with canon without making them canon | `ToS/canon/` and source review |
 
 The [local card](AGENTS.md) owns editing; [validation](../VALIDATION.md) owns checks.
 Source or semantic questions return to [the source owner](../../ToS/AGENTS.md).
@@ -38,6 +38,26 @@ Source or semantic questions return to [the source owner](../../ToS/AGENTS.md).
 
 - `derived-kag-seam`: [KAG_EXPORT](parts/derived-kag-seam/docs/KAG_EXPORT.md)
 
+### Derived KAG Seam
+
+The part at `mechanics/boundary-bridge/parts/derived-kag-seam/` turns a
+source node, public mirror or derived export into a checked downstream read
+model. Follow `ToS/derived-exports/` or the sibling KAG owner. The tools are
+`parts/derived-kag-seam/docs/KAG_EXPORT.md` and
+`rust/crates/tos-ops-mechanics-plan/src/kag_corpus_export.rs`; verify with
+`tos-kag-release export-verify --release EXPORT`.
+
+### Public Mirror Sync
+
+Sync maps canonical source, concept, principle, lineage, event, state, support,
+analogy and synthesis nodes to checked public compatibility mirrors. The native
+owner is `rust/crates/tos-ops-mechanics-plan/src/public_mirror.rs`. Use
+`tos-ops-mechanics-plan --repo-root ROOT --public-mirror-sync` to write the
+declared mirrors and `tos-ops-mechanics-plan --repo-root ROOT --public-mirror-validate`
+to validate them; `tos-ops-mechanics-plan --repo-root . --public-mirror-validate`
+is the local check. Outputs live in `ToS/public-compatibility/`; exports may
+continue through the bounded KAG seam.
+
 ## History
 
 Immutable Git history preserves moved-path accounting from the former
@@ -45,48 +65,7 @@ Immutable Git history preserves moved-path accounting from the former
 from `parts/derived-kag-seam/`.
 
 [Exact prior provenance](https://github.com/8Dionysus/Tree-of-Sophia/blob/b54cbf8e30ff46aeddeec5c47a5e7aa1f370977d/mechanics/boundary-bridge/PROVENANCE.md) preserves the pre-compaction route.
-Former `PARTS.md`, `PROVENANCE.md` and `ROADMAP.md` remain narrow compatibility
-entries for known local and unenumerated external readers. Their contents are
-owned here; they are not required components of a new mechanic.
 
 ## Growth conditions
-Boundary Bridge is active as the ToS derived-seam guard. It lets ToS hand
-bounded read models outward without moving authority out of the tree.
 
-### Current Contour
-
-- Keep the derived KAG seam as a bounded downstream handoff.
-- Keep public mirror sync aligned with source and canon routes before public
-  examples widen.
-- Keep public compatibility, generated exports, runtime projections, and KAG
-  consumers visibly weaker than ToS source, doctrine, branch, and canon
-  surfaces.
-- Keep bridge material in the owning part only when it is a repeatable seam,
-  not source-authored meaning.
-
-### Next Work
-
-- Clarify seam posture when ToS adds new graph views, corpus indexes, public
-  compatibility mirrors, or runtime-facing projections.
-- Keep bridge growth paired with a stronger ToS source route and a downstream
-  owner handoff.
-- Keep `abyss-stack` visualization and `aoa-kag` substrate consumers separate:
-  the stack displays, KAG consumes, ToS authors.
-
-### When Time Comes
-
-Time has come when: a second derived seam repeats enough that `derived-kag-seam`
-or `public-mirror-sync` would hide its boundary.
-
-Move: add a new bridge part with its source owner, downstream owner, and return
-route named.
-
-Guardrail: the bridge may transport read models; it may not transfer
-philosophical authority.
-
-### Out Of Scope
-
-- Authority transfer.
-- KAG-as-canon.
-- Runtime activation.
-- Sibling truth claims.
+Add a bridge part when another derived seam recurs, naming its source owner, downstream owner, and return route. `abyss-stack` displays; `aoa-kag` consumes; ToS authors.

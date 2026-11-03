@@ -1,8 +1,8 @@
 # Tree of Sophia stats port
 
-Tree of Sophia owns its measurement questions and source populations;
-`aoa-stats` owns shared measurement grammar and cross-owner composition.
-[port.manifest.json](port.manifest.json) declares the measurements and packets.
+Tree of Sophia owns measurement questions and source populations; `aoa-stats`
+owns shared grammar and composition. [port.manifest.json](port.manifest.json)
+declares measurements and packets.
 
 The reference measurement `Tree-of-Sophia/table-i-prepared-dossier-route-ratio`
 counts unique Table I atlas rows with an explicit route to an existing

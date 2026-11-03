@@ -98,6 +98,9 @@ fn select_checked(
             && (path.starts_with("ToS/")
                 || path == "QUESTBOOK.md"
                 || path.starts_with("quests/")
+                || path == "mechanics/questbook/README.md"
+                // Retain deleted-input selection until all supported branch
+                // bases include the Questbook integration-guide migration.
                 || path
                     == "mechanics/questbook/parts/obligation-boundary/docs/QUESTBOOK_TOS_INTEGRATION.md")
         {
@@ -551,6 +554,7 @@ mod tests {
             (vec!["AGENTS.md", "mechanics/README.md"], "none", false),
             (vec!["ToS/AGENTS.md"], "none", true),
             (vec!["ToS/doctrine/README.md", "QUESTBOOK.md"], "none", true),
+            (vec!["mechanics/questbook/README.md"], "none", true),
             (
                 vec!["AGENTS.md", "new-unclassified/input.xyz"],
                 "full",

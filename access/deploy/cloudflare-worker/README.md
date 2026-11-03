@@ -7,8 +7,8 @@ generation, offline SQLite import, and the selected local verifier. Cloudflare
 credentials, production publication, ToS meaning, review, rights and canon have
 their own owners.
 
-The public route is configured in [`wrangler.jsonc`](wrangler.jsonc); that file
-does not prove a current remote deployment or its dashboard build settings.
+The public route is configured in [`wrangler.jsonc`](wrangler.jsonc). Verify the
+current remote deployment and dashboard build settings independently.
 The Worker can serve the browser and projections without an always-on origin
 machine. The older [Tunnel profile](../cloudflare-tunnel/README.md) is for local
 preview or recovery.
@@ -65,8 +65,7 @@ bindings and request limits.
 
 The Worker shares one 65-second deadline across JWT/JWKS validation, request
 body reading, native response headers and body. Preflight time reduces the
-remaining native-query time; the native 60-second cap is not added on top. This
-gateway does not grant publication authority or change source admission.
+remaining native-query time; the native 60-second cap is not added on top.
 
 ## Production flow
 
@@ -118,8 +117,8 @@ checks the source descriptor and pathname around reads; temporary owned files
 are removed after a confirmed child close. If child close cannot be observed,
 the helper reports the unreaped PID and retains the exact scratch directory.
 
-The generated model is not a native-current read model and does not grant
-publication authority. A D1 migration is not applied by an HTTP request. Apply
+The generated D1 model is distinct from the native-current read model. A D1
+migration is not applied by an HTTP request. Apply
 [`0001-exploration.sql`](migrations/0001-exploration.sql) before serving the
 knowledge routes that depend on its publication clock and indexes. Readers
 bracket their bounded work with revision/epoch checks and fail closed on a
@@ -140,8 +139,7 @@ invents that owner selection. The exact fixture provenance route is
 Green local checks, CI or a successful Workers Build are separate evidence.
 Public acceptance requires external checks of the apex health response, HTML
 and static assets, representative corpus and philosophy queries, and the `www`
-redirect. A dry run is not a deployment, and a deployed Worker does not prove
-semantic acceptance.
+redirect. Semantic acceptance follows its source-owner review.
 
 ## Resumable exploration storage
 

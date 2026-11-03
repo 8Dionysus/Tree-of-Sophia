@@ -11,14 +11,8 @@ produced, which source owns it, where to move next and how to select verificatio
 Use prose or a table as appropriate. A small nested card needs only its local
 delta; do not repeat its parent's identity, boundaries or workflow.
 
-| Surface | Responsibility |
-| --- | --- |
-| root `AGENTS.md` | repository identity, owner map and cross-surface boundaries |
-| `ToS/AGENTS.md` | authored source-home and branch routes |
-| branch cards | local source, canon, review, contract or public-entry invariant |
-| mechanics cards | package/part operation ownership |
-| rust/scripts/tests cards | native implementation, deterministic builder and check ownership |
-| docs cards | documentation and durable rationale ownership |
+The root [owner routes](AGENTS.md#owner-routes) identify each surface and its
+nearest card.
 
 [DESIGN.md](DESIGN.md) owns system architecture. The
 [model-facing guide](.agents/README.md) and its

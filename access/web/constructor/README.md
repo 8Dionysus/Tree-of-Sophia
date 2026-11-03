@@ -23,7 +23,6 @@ from `access/web`. The local server uses port 44257 and proxies `/api` to the
 separately selected read-only backend at 127.0.0.1:44258. Its discovery must offer
 exploration v2 and indexed or compressed search; there is no fixture fallback.
 `TOS_WEB_CACHE_DIR` can place the development cache in owner-managed scratch.
-This does not install, restart or activate the desktop demo.
 
 `live-research.mjs` connects the bounded `ExplorationSession` to the sky through
 `live-model.mjs`. Search returns at most six items of each kind per page. Exact
@@ -72,7 +71,7 @@ carrier. Ordinary local paths are not interpreted as dossier handles or file
 URLs; exact local-source reading still requires the source owner's safe ABI.
 
 **Source changes / Изменение источника** opens the separate
-[source-owner command transport](../../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/SOURCE_COMMAND_HTTP.md).
+[source-owner command transport](../../../mechanics/growth-cycle/README.md#explicit-local-source-command-transport).
 The operator supplies its numeric loopback origin and a private in-memory key;
 the read-only access API never handles a write or issues a grant. The selected
 owner delegation, **not the selected star**, fixes the source and allowed forms.
@@ -89,10 +88,7 @@ workflow without sending the key; they do not encrypt confidential payloads.
 ## What the mockup contains
 
 `atlas-data.mjs` owns prepared **demonstration material** and its explanatory
-relations. The operator explicitly requested logically generated material to
-make the product idea visible. These are authored interpretations, paraphrases,
-questions and comparisons, not admitted ToS nodes, quotations or canon. The
-fixture does not change the source corpus, accepted graph or review history.
+relations: authored interpretations, paraphrases, questions and comparisons.
 
 A bounded selection of existing source materials can come from the private
 `library.json` built by `tos-constructor-library --source-repo REPO --demo-packet DEMO --output LIBRARY`. The exact DE/RU text, source addresses,
@@ -112,8 +108,7 @@ The two Python names are compatibility launchers for the native
 existing source selections and output options belong to those Rust producers;
 `TOS_CONSTRUCTOR_LIBRARY_BIN` and `TOS_CONSTRUCTOR_FRAGMENTS_BIN` can select an
 explicit matched executable. Normal delivery requires the named products admitted into
-the software prefix's `bin/`; selecting a binary does not select source data
-or authorize publication. The authored inquiry and guided-walk files retain
+the software prefix's `bin/`. The authored inquiry and guided-walk files retain
 their wording; their bilingual coverage, textual grounds and prepared route
 binding execute through `constructor_reading_wasm_v1` after the main browser
 entry initializes its generated WASM.
@@ -151,9 +146,7 @@ available units open in the reader, while other works lead to external texts
 or edition pages. A source node's exact text and provenance remain separate.
 `inquiry-layer.mjs` checks coverage, references and bilingual fields, including
 the independent grounds of an optional alternative. Available reader anchors
-come from those references. These mechanics cannot decide whether the passages
-warrant the interpretation; that requires the review recorded in
-`SEMANTIC_REVIEW.md`.
+come from those references.
 
 `bonsai/zarathustra/held.json` keeps, whole, what the strict rebuild of 1 November 2026 took
 off the map — readings, comparisons and the links that rest on another book —
@@ -231,9 +224,8 @@ state. Node offsets remain available when another arrangement is chosen.
 Invalid stored data is protected from automatic overwrite. Download and import
 preserve the graph and layout; the active lens is presentation state.
 
-The existing research-export adapter treats demonstration material as local,
-unreviewed hypotheses and never exports its external links as source locators.
-There is no corpus writeback, review submission or admission action.
+The research-export adapter treats demonstration material as local, unreviewed
+hypotheses. External links stay outside exported source locators.
 
 ## Build and serve locally
 
@@ -274,25 +266,23 @@ zoom. H hides controls, F toggles full screen, O frames the current view, and
 Ctrl/Cmd+Z undoes a graph change. A hidden tab pauses the atmosphere; reduced
 motion disables ambient movement and transitions.
 
-Run the focused model, lens, journey and desktop tests, compile the separate entry, validate the
-actual prepared graph, and exercise the complete result in a browser. Local
-checks do not establish CI, merge, Foundation integration, public publication,
-translation review or semantic admission.
+Run the focused model, lens, journey and desktop tests, compile the separate
+entry, validate the prepared graph and exercise the result in a browser.
 
-## Личное поле при смысловом обновлении
+<a id="личное-поле-при-смысловом-обновлении"></a>
 
-Новая редакция содержания имеет новый полный fingerprint библиотеки.
-`semantic-workspace.mjs` допускает перенос только между точно проверенными редакциями:
-исходные тексты, идентичности и иерархия материалов, топология связей и порядок
-шагов маршрутов совпадают. Перед копированием личное дерево проходит полный
-валидатор новой библиотеки; собственные мысли, связи, позиции и намеренно пустое
-поле сохраняются. Прежние ключи остаются нетронутыми, существующая новая редакция
-никогда не перезаписывается. Запуски окон этой редакции согласуются через
-Web Locks перед чтением рабочего поля; без этого механизма перенос не выполняется.
-Ошибка чтения или записи видна в интерфейсе.
-Из подходящих прежних редакций выбирается самая новая, в которой есть сохранение.
-Повреждённая новая запись не заменяется более старой. Это сохраняет работу и тех,
-кто пропустил промежуточное обновление, и тех, кто уже работал в нём.
-Для другой редакции нужно сначала проверить совместимость и обновить точную привязку;
-совпадение одного имени или ID не разрешает перепривязку к другому источнику.
-Заметки читальни продолжают принадлежать прежним неизменённым версиям текста.
+## Personal workspace during semantic updates
+
+Each content edition has a new full library fingerprint. `semantic-workspace.mjs`
+transfers between verified editions whose source texts, material identities and
+hierarchy, link topology and route-step order match. Before copying, the new
+library's full validator checks the personal graph. Personal thoughts, links,
+positions and an intentionally empty workspace are retained. Existing keys and
+an existing new-edition workspace stay intact.
+
+Windows for this edition coordinate through Web Locks before reading the
+workspace; transfer requires that mechanism. Read and write errors remain
+visible. The newest compatible prior edition with saved work is selected, while
+a damaged new record remains intact. A different edition requires a compatibility
+check and an updated exact binding; a shared name or ID alone cannot rebind a
+different source. Reader notes stay attached to their unchanged text versions.
