@@ -44,6 +44,7 @@ export function termsIssues(module,chapterFiles={},{pivot='de',place=null}={}){
   if(!Array.isArray(module?.terms)||!module.terms.length){issues.push('no terms');return issues;}
   const editions=module.editions??{};
   for(const [id,edition] of Object.entries(editions))if(!LANGUAGES.includes(edition?.lang)||!text(edition?.label?.ru)||!text(edition?.label?.en))issues.push(`edition ${id}: lang and label`);
+  for(const [id,edition] of Object.entries(editions))if(edition?.short!==undefined&&(!text(edition.short?.ru)||!text(edition.short?.en)))issues.push(`edition ${id}: short label`);
   const chapters=new Map(),seen=new Set(),claimed=new Map();
   const chapterOf=key=>{if(!chapters.has(key))chapters.set(key,chapterFiles[key]?readChapter(chapterFiles[key]):null);return chapters.get(key);};
   for(const term of module.terms){

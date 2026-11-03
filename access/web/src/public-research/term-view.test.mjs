@@ -1,6 +1,6 @@
 import {describe,expect,it,vi} from 'vitest';
 import {readFileSync} from 'node:fs';
-import {createTerms,termContextAllows,termForms,termMatcher,treeRendering} from './term-view.mjs';
+import {createTerms,termContextAllows,termForms,termMatcher,treeRendering,witnessLines} from './term-view.mjs';
 
 const module={terms:[
   {id:'ubermensch',original:{lemma:'Übermensch',forms:['Übermensch','Übermenschen']},renderings:{ru:{tos:{term:'сверхчеловек',forms:['сверхчеловек','сверхчеловека']},witness:{term:'сверхчеловек',forms:['сверхчеловеке']}},en:{tos:{term:'overman',forms:['overman']},witness:{term:'Superman',forms:['Superman']}}}},
@@ -19,6 +19,21 @@ describe('active terms',()=>{
     expect(overman.renderings.en.witness.term).toBe('Superman');
     expect(treeRendering(overman,'ru')).toEqual({lang:'en',term:'overman'});
     expect(overman.gloss.ru).toBeTruthy();
+  });
+  it('gives a reader the Tree’s word in their language when no shown translation says it there',()=>{
+    const episteme={renderings:{ru:{tos:{term:'знание'}},en:{tos:{term:'knowledge'},witness:[{edition:'lamb',term:'knowledge'},{edition:'fowler',term:'Knowledge'}]}}};
+    expect(treeRendering(episteme,'ru')).toEqual({lang:'ru',term:'знание'});
+    expect(treeRendering(episteme,'en')).toBeNull();
+    const psyche={renderings:{ru:{tos:{term:'душа'},witness:[{edition:'karpov',term:'душа'}]},en:{tos:{term:'soul'},witness:[{edition:'fowler',term:'soul'}]}}};
+    expect(treeRendering(psyche,'ru')).toBeNull();
+  });
+  it('gives one line per translated word with the editions that use it',()=>{
+    const editions={lamb:{label:{ru:'Платон · 1924 · У. Р. М. Лэмб',en:'Plato · 1924 · W. R. M. Lamb'},short:{ru:'Лэмб 1924',en:'Lamb 1924'}},perseus:{label:{ru:'Платон · Perseus',en:'Plato · Perseus'},short:{ru:'Лэмб 1924',en:'Lamb 1924'}},fowler:{label:{ru:'Платон · 1921 · Г. Н. Фаулер',en:'Plato · 1921 · H. N. Fowler'},short:{ru:'Фаулер 1921',en:'Fowler 1921'}},bury:{label:{ru:'Платон · 1929 · Р. Г. Бери',en:'Plato · 1929 · R. G. Bury'}}};
+    const lines=witnessLines({witness:[{edition:'lamb',term:'knowledge'},{edition:'perseus',term:'knowledge'},{edition:'fowler',term:'Knowledge'},{edition:'bury',term:'science'}]},editions,'ru');
+    expect(lines.map(line=>[line.term,line.source])).toEqual([['knowledge','Лэмб 1924, Фаулер 1921'],['science','Платон · 1929 · Р. Г. Бери']]);
+    expect(lines[0].title).toBe('Платон · 1924 · У. Р. М. Лэмб\nПлатон · Perseus\nПлатон · 1921 · Г. Н. Фаулер');
+    const registry=JSON.parse(readFileSync(new URL('../../../../bonsai/antiquity/terms.json',import.meta.url),'utf8'));
+    for(const [id,edition] of Object.entries(registry.editions))expect([id,edition.short?.ru&&edition.short?.en]).toEqual([id,expect.any(String)]);
   });
   it('read the Tree’s words and the shown translation’s words in a language, and the original’s in German',()=>{
     expect([...termForms(module,'ru').keys()]).toEqual(['сверхчеловек','сверхчеловека','сверхчеловеке','горные духи','горных духов']);

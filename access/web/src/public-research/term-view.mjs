@@ -1,7 +1,8 @@
 // Active terms: the first time a card or an article names a term of the stand's philological core
 // (bonsai/<stand>/terms.json, bonsai/review/philology/README.md), the word opens on its origin. Pointing
 // at it, or reaching it with the keyboard, shows the word of the original, the words of the translations
-// shown beside it, the Tree's own word where it reads another, what the word does in the book and the
+// shown beside it (one line per word, with the editions that use it), the Tree's own word where no
+// translation shown says it or where it reads another, what the word does in the book and the
 // place where the book first says it; opening it opens the book at that place. A finger's first touch
 // shows the origin, and the origin's own button opens the book.
 
@@ -35,14 +36,31 @@ export function termForms(module,language,{edition=null}={}){
   return forms;
 }
 
-// If the Tree and the translation use the same word in the current language,
-// show a distinct Tree rendering in the other language when one exists.
+// The Tree's word in the reader's language when no translation shown says it there;
+// when a translation already says it, a distinct Tree rendering in the other language.
 export function treeRendering(term,language){
   for(const lang of [language,language==='ru'?'en':'ru']){
-    const own=term.renderings?.[lang]?.tos?.term,shown=witnesses(term.renderings?.[lang])[0]?.term;
-    if(own&&shown&&own.toLowerCase()!==shown.toLowerCase())return {lang,term:own};
+    const own=term.renderings?.[lang]?.tos?.term,shown=witnesses(term.renderings?.[lang]).map(witness=>witness?.term?.toLowerCase()).filter(Boolean);
+    if(!own)continue;
+    if(!shown.length){if(lang===language)return {lang,term:own};continue;}
+    if(!shown.includes(own.toLowerCase()))return {lang,term:own};
   }
   return null;
+}
+
+// One line for each word a language's translations use, with the editions that use it.
+export function witnessLines(rendering,editions,locale){
+  const lines=new Map();
+  for(const witness of witnesses(rendering)){
+    if(!witness?.edition||!witness.term)continue;
+    const key=witness.term.toLowerCase();
+    if(!lines.has(key))lines.set(key,{term:witness.term,short:[],full:[]});
+    const line=lines.get(key),edition=editions?.[witness.edition];
+    const short=localeValue(edition?.short,locale)||localeValue(edition?.label,locale)||witness.edition,full=localeValue(edition?.label,locale)||witness.edition;
+    if(!line.short.includes(short))line.short.push(short);
+    if(!line.full.includes(full))line.full.push(full);
+  }
+  return [...lines.values()].map(line=>({term:line.term,source:line.short.join(', '),title:line.full.join('\n')}));
 }
 
 // A form written with a capital (a German noun, Antonovsky's «Само», Common's "Superman") is read with
@@ -147,12 +165,11 @@ export function createTerms({module,locale=()=> 'ru',open=()=>{}}={}){
   let shownFor=null,showTimer=0,hideTimer=0;
   function paint(term){
     const w=words(locale()),ui=resolveLocale(locale())==='ru'?'ru':'en',editions=module.editions??{};
-    const label=edition=>localeValue(editions[edition]?.label,locale())||edition;
     const rows=[];
     const head=make('p','ps-term-original');head.append(make('span','ps-term-eyebrow',w.original),Object.assign(make('span','ps-term-lemma',term.original?.lemma??''),{lang:term.original?.lang??'de'}));rows.push(head);
     for(const language of ['ru','en']){
-      for(const witness of witnesses(term.renderings?.[language])){if(!witness?.edition)continue;
-        const line=make('p','ps-term-witness');const said=make('span','ps-term-word',witness.term);said.lang=language;line.append(said,make('span','ps-term-source',label(witness.edition)));rows.push(line);}
+      for(const witness of witnessLines(term.renderings?.[language],editions,locale())){
+        const line=make('p','ps-term-witness');const said=make('span','ps-term-word',witness.term);said.lang=language;const source=make('span','ps-term-source',witness.source);source.title=witness.title;line.append(said,source);rows.push(line);}
     }
     const own=treeRendering(term,ui);
     if(own){const line=make('p','ps-term-witness is-tree');const said=make('span','ps-term-word',own.term);said.lang=own.lang;line.append(said,make('span','ps-term-source',w.tree));rows.push(line);}
