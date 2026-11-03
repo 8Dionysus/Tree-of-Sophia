@@ -328,19 +328,20 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
             if !input.is_absolute() {
                 return Err("hierarchical source input root must be absolute".into());
             }
-            // The remaining geometry, OCR, identity and historical text are
-            // still implemented by the retained producer. Remove this gate
-            // as those fields migrate into the research-owned stage.
+            // Identity and historical text remain in the retained producer.
+            // Remove this gate as those fields migrate into the research stage.
             let mut compatibility = recipe.clone();
             let object = compatibility
                 .as_object_mut()
                 .ok_or("hierarchical source recipe required")?;
             object.remove("configuration");
             object.remove("frozen_outputs");
+            object.remove("candidate_geometry");
+            object.remove("ocr_substitutions");
             compatibility.sort_all_objects();
             let raw = serde_json::to_vec(&compatibility).map_err(|e| e.to_string())?;
             if tos_foundation::Digest256::of_bytes(&raw).to_hex()
-                != "a83a6707d363ab47e722894c60e2702a460f5d8e483cb153374a7b2a8258334c"
+                != "ce52b1aa94a9e300c552d1e386b1e9e46151a465709ad4b44517dd94b7fcbf85"
             {
                 return Err("unsupported hierarchical source compatibility parameters".into());
             }
@@ -389,6 +390,8 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
                 &ctx,
                 input,
                 &recipe["configuration"],
+                &recipe["candidate_geometry"],
+                &recipe["ocr_substitutions"],
                 &expected,
                 target.as_ref(),
             )?;
