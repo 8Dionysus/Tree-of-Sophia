@@ -470,7 +470,7 @@ fn identities(
     }
     Ok(result)
 }
-fn audit(repo: &ResearchExecution, m: &Material, scope: &ScopeCensus) -> Result<Vec<Value>> {
+fn audit(repo: &ResearchExecution, m: &Material, policy: &Policy) -> Result<Vec<Value>> {
     let mut owner = BTreeMap::new();
     for (i, r) in m.challenger.iter().enumerate() {
         repo.tick(1)?;
@@ -533,10 +533,10 @@ fn audit(repo: &ResearchExecution, m: &Material, scope: &ScopeCensus) -> Result<
         } else {
             "paragraph_group_disagreement"
         };
-        out.push(json!({"schema_version":"tos_zarathustra_de_ru_independent_challenger_audit_v1","primary_proposal_ref":p["alignment_proposal_ref"],"part_order":p["part_order"],"reading_ordinal_within_part":p["reading_ordinal_within_part"],"challenger_alignment_refs":candidates.iter().map(|c|c["alignment_id"].clone()).collect::<Vec<_>>(),"comparison_posture":posture,"same_paragraph_group":agrees,"verse_barrier_risk":verse,"requires_source_and_target_visible_review":!agrees,"resolution":if !agrees&&!outside {"none_machine_disagreement_preserved"}else if outside{"not_applicable_outside_scope"}else{"agreement_is_not_acceptance"},"source_text_included":false,"target_text_included":false}));
+        out.push(json!({"schema_version":policy.output_schemas.audit,"primary_proposal_ref":p["alignment_proposal_ref"],"part_order":p["part_order"],"reading_ordinal_within_part":p["reading_ordinal_within_part"],"challenger_alignment_refs":candidates.iter().map(|c|c["alignment_id"].clone()).collect::<Vec<_>>(),"comparison_posture":posture,"same_paragraph_group":agrees,"verse_barrier_risk":verse,"requires_source_and_target_visible_review":!agrees,"resolution":if !agrees&&!outside {"none_machine_disagreement_preserved"}else if outside{"not_applicable_outside_scope"}else{"agreement_is_not_acceptance"},"source_text_included":false,"target_text_included":false}));
     }
     ensure(
-        out.len() == scope.primary_proposals,
+        out.len() == policy.scope.primary_proposals,
         "challenger audit census drift",
     )?;
     Ok(out)
@@ -588,7 +588,7 @@ fn scope(
             .ok_or("missing verse reading")?;
         let part = n(&g["part_order"])?;
         risks.insert((part, reading));
-        out.push(json!({"schema_version":"tos_zarathustra_de_ru_alignment_scope_exclusion_v1","scope_exclusion_ref":policy.reference("source_scope_exclusion",out.len())?,"side":"source","part_order":part,"reading_ordinal_within_part":reading,"excluded_unit_kind":"verse_group","excluded_group_unit_ref":g["unit_id"],"ordered_excluded_verse_line_refs":de_lines.get(s(&g["unit_id"])?).cloned().unwrap_or_default(),"reason":"paragraph_packet_scope_excludes_source_attested_verse_group","used_as_structural_risk_qualification":true,"source_text_included":false,"semantic_equivalence_asserted":false}));
+        out.push(json!({"schema_version":policy.output_schemas.exclusion,"scope_exclusion_ref":policy.reference("source_scope_exclusion",out.len())?,"side":"source","part_order":part,"reading_ordinal_within_part":reading,"excluded_unit_kind":"verse_group","excluded_group_unit_ref":g["unit_id"],"ordered_excluded_verse_line_refs":de_lines.get(s(&g["unit_id"])?).cloned().unwrap_or_default(),"reason":"paragraph_packet_scope_excludes_source_attested_verse_group","used_as_structural_risk_qualification":true,"source_text_included":false,"semantic_equivalence_asserted":false}));
     }
     let structure = lines(
         repo,
@@ -635,7 +635,7 @@ fn scope(
             .get(s(&g["reading_unit_ref"])?)
             .ok_or("missing Russian verse reading")?;
         risks.insert((part, reading));
-        out.push(json!({"schema_version":"tos_zarathustra_de_ru_alignment_scope_exclusion_v1","scope_exclusion_ref":policy.reference("target_scope_exclusion",i)?,"side":"target","part_order":part,"reading_ordinal_within_part":reading,"excluded_unit_kind":"continuous_verse_group","excluded_group_unit_ref":g["verse_group_unit_id"],"ordered_excluded_verse_line_refs":ru_lines.get(s(&g["verse_group_unit_id"])?).cloned().unwrap_or_default(),"reason":"paragraph_packet_scope_excludes_source_visible_continuous_verse_group","used_as_structural_risk_qualification":true,"source_text_included":false,"semantic_equivalence_asserted":false}));
+        out.push(json!({"schema_version":policy.output_schemas.exclusion,"scope_exclusion_ref":policy.reference("target_scope_exclusion",i)?,"side":"target","part_order":part,"reading_ordinal_within_part":reading,"excluded_unit_kind":"continuous_verse_group","excluded_group_unit_ref":g["verse_group_unit_id"],"ordered_excluded_verse_line_refs":ru_lines.get(s(&g["verse_group_unit_id"])?).cloned().unwrap_or_default(),"reason":"paragraph_packet_scope_excludes_source_visible_continuous_verse_group","used_as_structural_risk_qualification":true,"source_text_included":false,"semantic_equivalence_asserted":false}));
     }
     exclusion_census(repo, &out, &policy.scope)?;
     Ok((out, risks))
@@ -704,6 +704,15 @@ struct Part {
 }
 #[derive(Clone, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
+struct OutputSchemas {
+    audit: String,
+    exclusion: String,
+    spine: String,
+    conflict: String,
+    reading_diagnostic: String,
+}
+#[derive(Clone, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 struct TargetLayerFilename {
     prefix: String,
     suffix: String,
@@ -753,6 +762,7 @@ struct Policy {
     work_ref: String,
     target_layer: TargetLayerFilename,
     paths: Paths,
+    output_schemas: OutputSchemas,
 }
 impl Policy {
     // Compatibility profile for the historical command; remove with its alias.
@@ -773,7 +783,8 @@ impl Policy {
             "derived_reference_formats":[{"role":"source_scope_exclusion","prefix":"de-verse-group-","ordinal_width":3,"ordinal_base":1},{"role":"target_scope_exclusion","prefix":"ru-verse-group-","ordinal_width":3,"ordinal_base":1},{"role":"conflict","prefix":"alignment-conflict-","ordinal_width":4,"ordinal_base":1}],
             "parts":[{"label":"I","expected_readings":23},{"label":"II","expected_readings":22},{"label":"III","expected_readings":16},{"label":"IV","expected_readings":20}],
             "work_ref":WORK,"target_layer_filename":{"prefix":"antonovsky-1911-part-","suffix":"-paragraphs.v1.txt"},
-            "work_path":BASE,"source_markup":DE,"target_markup":RU,"route":ROUTE,"private_root":PRIVATE,"contract_ref":SCHEMA
+            "work_path":BASE,"source_markup":DE,"target_markup":RU,"route":ROUTE,"private_root":PRIVATE,"contract_ref":SCHEMA,
+            "output_schema_versions":{"audit":"tos_zarathustra_de_ru_independent_challenger_audit_v1","exclusion":"tos_zarathustra_de_ru_alignment_scope_exclusion_v1","spine":"tos_zarathustra_de_ru_paragraph_alignment_spine_v1","conflict":"tos_zarathustra_de_ru_paragraph_alignment_conflict_v1","reading_diagnostic":"tos_zarathustra_de_ru_paragraph_alignment_reading_diagnostic_v1"}
         });
         Self::selected(&raw).expect("compiled paragraph compatibility policy")
     }
@@ -902,6 +913,21 @@ impl Policy {
         ] {
             relative(path)?;
         }
+        let output_schemas: OutputSchemas =
+            serde_json::from_value(recipe["output_schema_versions"].clone())
+                .map_err(|e| format!("paragraph output schema versions: {e}"))?;
+        let schema_versions = [
+            &output_schemas.audit,
+            &output_schemas.exclusion,
+            &output_schemas.spine,
+            &output_schemas.conflict,
+            &output_schemas.reading_diagnostic,
+        ];
+        ensure(
+            schema_versions.iter().all(|s| !s.is_empty())
+                && schema_versions.iter().collect::<BTreeSet<_>>().len() == schema_versions.len(),
+            "paragraph output schema version missing or duplicated",
+        )?;
         ensure(
             recipe["frozen_manifest"].is_null()
                 || paths.output("manifest.v1.json") == s(&recipe["frozen_manifest"]["ref"])?,
@@ -918,6 +944,7 @@ impl Policy {
             work_ref,
             target_layer,
             paths,
+            output_schemas,
         })
     }
     fn reference(&self, role: &str, index: usize) -> Result<String> {
@@ -989,7 +1016,7 @@ fn build_with_policy(
     policy: &Policy,
 ) -> Result<(Files, Files)> {
     let ids = identities(repo, m, policy)?;
-    let audit = audit(repo, m, &policy.scope)?;
+    let audit = audit(repo, m, policy)?;
     let (exclusions, risk_readings) = scope(repo, policy)?;
     let method_sha = sha(&bytes(
         repo,
@@ -1054,7 +1081,7 @@ fn build_with_policy(
         al["maker"]["configuration_sha256"] = json!(method_sha);
         al["evidence"] = json!([{"evidence_ref":format!("{}#{reference}",policy.paths.output("independent-challenger-audit.v1.jsonl")),"role":if status=="proposed"{"method_input"}else{"qualification"},"source_anchor_refs":sr,"target_anchor_refs":tr,"description":reason}]);
         alignments.entry(n(&p["part_order"])?).or_default().push(al);
-        spine.push(json!({"schema_version":"tos_zarathustra_de_ru_paragraph_alignment_spine_v1","primary_proposal_ref":reference,"alignment_id":aid,"claim_id":cid,"part_order":p["part_order"],"reading_ordinal_within_part":p["reading_ordinal_within_part"],"technical_subpart_ordinal":p["technical_subpart_ordinal"],"correspondence_shape":shape,"ordered_source_anchor_refs":sr,"ordered_target_anchor_refs":tr,"source_paragraph_unit_refs":p["source_paragraph_refs"],"target_paragraph_unit_refs":p["target_paragraph_refs"],"status":status,"status_reason":reason,"primary_profile_disagreement":!flag(&p["primary_challenger_same_group"])?,"independent_challenger_same_paragraph_group":a["same_paragraph_group"],"independent_challenger_refs":a["challenger_alignment_refs"],"verse_barrier_risk":a["verse_barrier_risk"],"cross_kind_or_verse_scope_risk":cross,"human_acceptance":false,"source_text_included":false,"semantic_equivalence_asserted":false,"canon_effect":false}));
+        spine.push(json!({"schema_version":policy.output_schemas.spine,"primary_proposal_ref":reference,"alignment_id":aid,"claim_id":cid,"part_order":p["part_order"],"reading_ordinal_within_part":p["reading_ordinal_within_part"],"technical_subpart_ordinal":p["technical_subpart_ordinal"],"correspondence_shape":shape,"ordered_source_anchor_refs":sr,"ordered_target_anchor_refs":tr,"source_paragraph_unit_refs":p["source_paragraph_refs"],"target_paragraph_unit_refs":p["target_paragraph_refs"],"status":status,"status_reason":reason,"primary_profile_disagreement":!flag(&p["primary_challenger_same_group"])?,"independent_challenger_same_paragraph_group":a["same_paragraph_group"],"independent_challenger_refs":a["challenger_alignment_refs"],"verse_barrier_risk":a["verse_barrier_risk"],"cross_kind_or_verse_scope_risk":cross,"human_acceptance":false,"source_text_included":false,"semantic_equivalence_asserted":false,"canon_effect":false}));
         if status != "proposed" {
             let mut kinds = Vec::new();
             if !flag(&a["same_paragraph_group"])? {
@@ -1072,7 +1099,7 @@ fn build_with_policy(
             if p["confidence_band"] == "low" {
                 kinds.push("low_length_fit");
             }
-            conflicts.push(json!({"schema_version":"tos_zarathustra_de_ru_paragraph_alignment_conflict_v1","conflict_ref":policy.reference("conflict",conflicts.len())?,"alignment_ref":aid,"primary_proposal_ref":reference,"part_order":p["part_order"],"reading_ordinal_within_part":p["reading_ordinal_within_part"],"conflict_kinds":kinds,"preserved_status":status,"reason":reason,"machine_resolution":"none","requires_source_and_target_visible_review":true,"source_text_included":false,"semantic_equivalence_asserted":false}));
+            conflicts.push(json!({"schema_version":policy.output_schemas.conflict,"conflict_ref":policy.reference("conflict",conflicts.len())?,"alignment_ref":aid,"primary_proposal_ref":reference,"part_order":p["part_order"],"reading_ordinal_within_part":p["reading_ordinal_within_part"],"conflict_kinds":kinds,"preserved_status":status,"reason":reason,"machine_resolution":"none","requires_source_and_target_visible_review":true,"source_text_included":false,"semantic_equivalence_asserted":false}));
         }
     }
     let mut packets = BTreeMap::new();
@@ -1251,7 +1278,7 @@ fn build_with_policy(
                 .collect::<Result<Vec<_>>>()?
                 .iter()
                 .sum::<usize>();
-            diagnostics.push(json!({"schema_version":"tos_zarathustra_de_ru_paragraph_alignment_reading_diagnostic_v1","part_order":part,"part_label":policy.parts[part-1].label,"reading_ordinal_within_part":reading,"mapping_count":rows.len(),"source_paragraph_count":source_count,"target_paragraph_count":target_count,"status_counts":count(repo, &rows,"status")?,"correspondence_shape_counts":count(repo, &rows,"correspondence_shape")?,"independent_challenger_disagreement_count":rows.iter().filter(|r|r["independent_challenger_same_paragraph_group"]==false).count(),"verse_scope_exclusion_present":risk_readings.contains(&(part,reading)),"verse_barrier_risk_mapping_count":rows.iter().filter(|r|r["cross_kind_or_verse_scope_risk"]==true).count(),"order_posture":"monotonic_machine_proposal_within_reading","source_text_included":false,"semantic_equivalence_asserted":false}));
+            diagnostics.push(json!({"schema_version":policy.output_schemas.reading_diagnostic,"part_order":part,"part_label":policy.parts[part-1].label,"reading_ordinal_within_part":reading,"mapping_count":rows.len(),"source_paragraph_count":source_count,"target_paragraph_count":target_count,"status_counts":count(repo, &rows,"status")?,"correspondence_shape_counts":count(repo, &rows,"correspondence_shape")?,"independent_challenger_disagreement_count":rows.iter().filter(|r|r["independent_challenger_same_paragraph_group"]==false).count(),"verse_scope_exclusion_present":risk_readings.contains(&(part,reading)),"verse_barrier_risk_mapping_count":rows.iter().filter(|r|r["cross_kind_or_verse_scope_risk"]==true).count(),"order_posture":"monotonic_machine_proposal_within_reading","source_text_included":false,"semantic_equivalence_asserted":false}));
         }
     }
     ensure(
@@ -1563,6 +1590,7 @@ fn compatibility_policy(recipe: &Value) -> Result<Policy> {
         "route",
         "private_root",
         "contract_ref",
+        "output_schema_versions",
     ] {
         object.remove(key);
     }

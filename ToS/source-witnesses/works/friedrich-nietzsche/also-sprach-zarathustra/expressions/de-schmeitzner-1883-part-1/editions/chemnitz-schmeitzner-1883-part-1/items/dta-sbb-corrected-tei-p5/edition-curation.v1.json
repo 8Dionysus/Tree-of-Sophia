@@ -1959,6 +1959,13 @@
     },
     {
       "stage": "paragraph-alignment",
+      "output_schema_versions": {
+        "audit": "tos_zarathustra_de_ru_independent_challenger_audit_v1",
+        "exclusion": "tos_zarathustra_de_ru_alignment_scope_exclusion_v1",
+        "spine": "tos_zarathustra_de_ru_paragraph_alignment_spine_v1",
+        "conflict": "tos_zarathustra_de_ru_paragraph_alignment_conflict_v1",
+        "reading_diagnostic": "tos_zarathustra_de_ru_paragraph_alignment_reading_diagnostic_v1"
+      },
       "source_item_refs": [
         "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
         "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
