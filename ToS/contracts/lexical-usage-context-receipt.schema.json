@@ -44,7 +44,8 @@
         "ref": {
           "oneOf": [
             {"$ref": "#/$defs/repoPath"},
-            {"const": "rust/crates/tos-compiler/src/lexical_derivatives/usage_context.rs"}
+            {"const": "rust/crates/tos-compiler/src/lexical_derivatives/usage_context.rs"},
+            {"const": "rust/crates/tos-research/src/lexical_usage_context.rs"}
           ]
         },
         "sha256": {"$ref": "#/$defs/sha256"}

@@ -6,10 +6,13 @@ publish = false
 
 [features]
 default = []
+execution = ["dep:fs2", "dep:libc", "rusqlite/hooks"]
 # Exact readers do not prepare, import, archive or transfer source captures.
 capture = ["dep:flate2", "dep:tar", "dep:sha1"]
 
 [dependencies]
+fs2 = { version = "0.4", optional = true }
+libc = { version = "0.2", optional = true }
 tos-foundation = { path = "../tos-foundation" }
 tos-fd-open = { path = "../tos-fd-open" }
 flate2 = { version = "=1.1.10", default-features = false, features = ["rust_backend"], optional = true }

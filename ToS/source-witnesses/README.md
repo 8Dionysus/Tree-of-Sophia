@@ -42,6 +42,10 @@ immutable object pool. The command's `--help` owns the paired input flags and
 limits. Select the complete cut for the source-to-reader operation; a curated Git
 capture alone does not contain the historical package closure.
 
+## Edition curation
+
+An item may carry `edition-curation.v1.json` beside its manifest. The file records ordered, witness-specific historical recipe values under the [edition curation contract](../contracts/edition-curation.v1.schema.json), including locators and review keys. Its item reference identifies the owning witness; referenced records retain their existing roles.
+
 ## Speaking topology
 
 ```text

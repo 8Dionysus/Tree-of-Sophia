@@ -292,6 +292,9 @@ impl ReferenceDiagnostic {
 }
 // Test-owned cumulative scenario work; not RAM, a product quota or a new clock.
 // The original source_inputs bootstrap remains 32 MiB / 1 M visits.
+// Logical reference budget for the authored inputs; it grows with the tracked
+// ToS/ contracts and data the reference reads (edition curation added 2026-11).
+const REFERENCE_BOOTSTRAP_BYTES: usize = 48 * 1024 * 1024;
 const COMPOSITION_REFERENCE_SCENARIO_V2_BYTES: usize = 2_147_483_648;
 const COMPOSITION_REFERENCE_SCENARIO_V2_VISITS: usize = 67_108_864;
 struct CompositionPhase {
@@ -325,7 +328,7 @@ fn activate_composition_reference_scenario_v2(
     if cancelled.load(Ordering::Relaxed) {
         return Err("composition reference cancelled");
     }
-    if COMPOSITION_REFERENCE_SCENARIO_V2_BYTES < 32 * 1024 * 1024
+    if COMPOSITION_REFERENCE_SCENARIO_V2_BYTES < REFERENCE_BOOTSTRAP_BYTES
         || COMPOSITION_REFERENCE_SCENARIO_V2_VISITS < 1_000_000
     {
         return Err("composition reference profile below bootstrap");
@@ -333,7 +336,7 @@ fn activate_composition_reference_scenario_v2(
     // Both snapshots include the setup AND activation admissions above.
     let old_b = work.left;
     let old_v = work.visits_left;
-    let Some(spent_b) = (32usize * 1024 * 1024).checked_sub(old_b) else {
+    let Some(spent_b) = REFERENCE_BOOTSTRAP_BYTES.checked_sub(old_b) else {
         return Err("composition reference bootstrap bytes");
     };
     let Some(spent_v) = 1_000_000usize.checked_sub(old_v) else {
@@ -734,7 +737,7 @@ fn source_inputs(deadline: Instant) -> (BTreeMap<String, Vec<u8>>, CurrentRefere
     let repository = super::validation_cut_cases::repository();
     let mut reference = CurrentReference {
         commit: String::new(),
-        left: 32 * 1024 * 1024,
+        left: REFERENCE_BOOTSTRAP_BYTES,
         visits_left: 1_000_000,
         deadline,
         diagnostic: None,

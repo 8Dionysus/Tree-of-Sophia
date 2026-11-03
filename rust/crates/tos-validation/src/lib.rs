@@ -18,6 +18,7 @@ use tos_foundation::{
 };
 
 mod controlled_schema;
+pub mod edition_curation;
 pub use controlled_schema::{ControlledSchemaBackendProbe, SchemaProbeControl};
 
 #[cfg(feature = "native")]
@@ -55,6 +56,8 @@ pub mod source_cut;
 pub mod source_forms;
 #[cfg(feature = "native")]
 pub mod source_shapes;
+#[cfg(feature = "native")]
+pub mod text_collation_rules;
 pub mod text_metadata_rules;
 pub mod text_rules;
 mod validation_codec;

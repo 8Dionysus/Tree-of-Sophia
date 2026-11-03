@@ -198,7 +198,7 @@ jobs:
             --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
           cargo build --locked -p tos-reader --bin tos-reader --timings \
             --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
-          cargo build --locked --no-default-features -p tos-access --features research-tools --bin tos-research --timings \
+          cargo build --locked --no-default-features -p tos-research --features research-tools --bin tos-research --timings \
             --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
           cargo build --locked --release -p tos-web-rules --features wasm --target wasm32-unknown-unknown --timings
           archive="$RUNNER_TEMP/software-wasm-bindgen.tar.gz"

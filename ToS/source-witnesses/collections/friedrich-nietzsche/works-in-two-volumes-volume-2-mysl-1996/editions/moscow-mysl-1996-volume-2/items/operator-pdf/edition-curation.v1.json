@@ -1,0 +1,1108 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/edition-curation.v1.schema.json",
+  "schema_version": "tos_edition_curation_v1",
+  "curation_id": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf.edition-curation.v1",
+  "version": 1,
+  "status": "historical-constants",
+  "owner_item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+  "edition_ref": "tos.edition.friedrich-nietzsche.works-in-two-volumes.moscow-mysl-1996-volume-2",
+  "manifest": "item.manifest.json",
+  "recipes": [
+    {
+      "stage": "numbered-structure",
+      "work_ref": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+      "expression_ref": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996",
+      "edition_ref": "tos.edition.friedrich-nietzsche.works-in-two-volumes.moscow-mysl-1996-volume-2",
+      "map_id": "tos.target-numbered-unit-page-map.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996",
+      "event_id": "tos.event.target-numbered-unit-page-map.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.2026-07-29",
+      "locators": [
+        {
+          "role": "target_item_dir",
+          "item_root": true
+        },
+        {
+          "role": "manifest_path",
+          "item_relative_path": "item.manifest.json"
+        },
+        {
+          "role": "inventory_path",
+          "item_relative_path": "resource-inventory.json"
+        },
+        {
+          "role": "rights_path",
+          "item_relative_path": "rights.json"
+        },
+        {
+          "role": "work_boundary_path",
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json"
+        },
+        {
+          "role": "source_map_path",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/structure/numbered-unit-page-map.json"
+        },
+        {
+          "role": "output_dir",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/structure/mysl-1996-volume-2-operator-pdf"
+        },
+        {
+          "role": "provenance_path",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/provenance.jsonl"
+        }
+      ],
+      "page_overrides": [
+        {
+          "key": "8",
+          "page": 246
+        },
+        {
+          "key": "29",
+          "page": 265
+        },
+        {
+          "key": "33",
+          "page": 268
+        },
+        {
+          "key": "38",
+          "page": 271
+        },
+        {
+          "key": "41",
+          "page": 273
+        },
+        {
+          "key": "46",
+          "page": 278
+        },
+        {
+          "key": "47",
+          "page": 279
+        },
+        {
+          "key": "49",
+          "page": 281
+        },
+        {
+          "key": "52",
+          "page": 282
+        },
+        {
+          "key": "69",
+          "page": 292
+        },
+        {
+          "key": "77",
+          "page": 293
+        },
+        {
+          "key": "85",
+          "page": 294
+        },
+        {
+          "key": "93",
+          "page": 295
+        },
+        {
+          "key": "102",
+          "page": 296
+        },
+        {
+          "key": "111",
+          "page": 297
+        },
+        {
+          "key": "120",
+          "page": 298
+        },
+        {
+          "key": "129",
+          "page": 299
+        },
+        {
+          "key": "134",
+          "page": 299
+        },
+        {
+          "key": "137",
+          "page": 300
+        },
+        {
+          "key": "145",
+          "page": 301
+        },
+        {
+          "key": "150",
+          "page": 301
+        },
+        {
+          "key": "153",
+          "page": 302
+        },
+        {
+          "key": "162",
+          "page": 303
+        },
+        {
+          "key": "171",
+          "page": 304
+        },
+        {
+          "key": "180",
+          "page": 305
+        },
+        {
+          "key": "195",
+          "page": 315
+        },
+        {
+          "key": "203",
+          "page": 322
+        },
+        {
+          "key": "207",
+          "page": 328
+        },
+        {
+          "key": "225",
+          "page": 346
+        },
+        {
+          "key": "250",
+          "page": 369
+        },
+        {
+          "key": "263",
+          "page": 386
+        },
+        {
+          "key": "264",
+          "page": 389
+        },
+        {
+          "key": "285",
+          "page": 399
+        }
+      ],
+      "tools": [
+        {
+          "name": "pdftotext",
+          "version": "26.01.0"
+        }
+      ],
+      "source_map_sha256": "fb7c15005968bb5795388714ab2b725593f5f29f31cb29c71cece77f751b2b90",
+      "identity": {
+        "anchor_prefix": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-",
+        "anchor_suffix": ".pdf-start-page",
+        "passage_prefix": "tos.passage.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-",
+        "passage_suffix": "",
+        "native_generation_separator": ".native-",
+        "structural_scheme": "jgb-target-numbered-unit-start-v1",
+        "structural_path_prefix": [
+          "work:jenseits-von-gut-und-boese",
+          "expression:ru-polilov-mysl-1996"
+        ]
+      },
+      "ocr_disambiguation_keys": [
+        "6"
+      ],
+      "basis_rule_order": [
+        "page-override",
+        "ocr-disambiguation",
+        "default"
+      ],
+      "default_basis": "embedded_pdf_bbox_order_candidate",
+      "page_order": "nondecreasing",
+      "frozen_outputs": [
+        {
+          "role": "map",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/numbered-unit-page-map.json",
+          "schema_version": "tos_target_numbered_unit_page_map_v1",
+          "expected_sha256": "e2621e08e49bc7f96a8c6dd6c45d32f90fdf3a9e280644e0adbefd5d2c7e09f6"
+        },
+        {
+          "role": "anchors",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/numbered-unit-anchors.jsonl",
+          "schema_version": "tos_source_anchor_v1",
+          "expected_sha256": "6a99956d224cc33d7b22f9693605756bc43c31ab77e32e7bc7f9734a77538729"
+        },
+        {
+          "role": "provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/provenance.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "ad8b6a44207e673c7d50e14f472a1e454c965c59e21c8ec86c73dd9946ea89ed"
+        }
+      ],
+      "unit_sequence": {
+        "first_number": 1,
+        "last_number": 296,
+        "repeat_after": [
+          65,
+          73
+        ],
+        "repeat_suffix": "a",
+        "expected_count": 298
+      },
+      "candidate_profile": {
+        "kind": "pdf-bbox",
+        "first_page": 238,
+        "last_page": 406,
+        "page_batch_size": 8,
+        "minimum_x": 145,
+        "maximum_x": 175,
+        "minimum_y": 40,
+        "maximum_y": 490,
+        "minimum_characters": 1,
+        "maximum_characters": 5,
+        "required_word_count": 1,
+        "minimum_number": 1,
+        "maximum_number": 299,
+        "allow_leading_zero": false,
+        "trim_surrounding_periods": true,
+        "normalization": [
+          {
+            "from": "а",
+            "to": "a"
+          },
+          {
+            "from": "А",
+            "to": "a"
+          },
+          {
+            "from": "б",
+            "to": "6"
+          }
+        ],
+        "alignment": "monotonic-first-match",
+        "source_page_count": 831,
+        "member_sequence": 2,
+        "bounds": "closed"
+      },
+      "payload_roles": [
+        {
+          "role": "pdf",
+          "media_type": "application/pdf",
+          "inventory_profile": "pdf_pages_v1"
+        }
+      ],
+      "required_ocr_keys": [
+        "6",
+        "65a",
+        "73a"
+      ],
+      "ocr_evidence": [
+        {
+          "unit_key": "6",
+          "pdf_page": 244,
+          "raw_token": "б"
+        }
+      ],
+      "source_map_required_keys": [
+        "237a"
+      ]
+    },
+    {
+      "stage": "hierarchical-target-structure",
+      "locators": [
+        {
+          "role": "target_item_dir",
+          "item_root": true
+        },
+        {
+          "role": "manifest_path",
+          "item_relative_path": "item.manifest.json"
+        },
+        {
+          "role": "inventory_path",
+          "item_relative_path": "resource-inventory.json"
+        },
+        {
+          "role": "rights_path",
+          "item_relative_path": "rights.json"
+        },
+        {
+          "role": "work_boundary_path",
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json"
+        },
+        {
+          "role": "transfer_plan_path",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-samples.json"
+        },
+        {
+          "role": "transfer_anchor_path",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-anchors.v1.jsonl"
+        }
+      ],
+      "tools": [
+        {
+          "name": "pdftotext",
+          "version": "26.01.0"
+        }
+      ],
+      "works": [
+        {
+          "slug": "zur-genealogie-der-moral",
+          "work_ref": "tos.work.friedrich-nietzsche.zur-genealogie-der-moral",
+          "expression_ref": "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996",
+          "member_sequence": 3,
+          "start_page": 407,
+          "end_page": 524,
+          "map_id": "tos.hierarchical-target-numbered-unit-page-map.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996",
+          "map_event_id": "tos.event.hierarchical-target-numbered-unit-page-map.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.2026-08-08",
+          "crosswalk_id": "tos.transfer-candidate-target-crosswalk.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996-v1",
+          "crosswalk_event_id": "tos.event.transfer-candidate-target-crosswalk.friedrich-nietzsche.zur-genealogie-der-moral.2026-08-08",
+          "output_dir": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/structure/mysl-1996-volume-2-operator-pdf",
+          "series": [
+            {
+              "series_key": "preface",
+              "series_kind": "numbered-preface",
+              "start_page": 408,
+              "end_page": 414,
+              "expected_unit_count": 8,
+              "overrides": {}
+            },
+            {
+              "series_key": "essay-1",
+              "series_kind": "numbered-essay",
+              "start_page": 415,
+              "end_page": 438,
+              "expected_unit_count": 17,
+              "overrides": {
+                "5": 419,
+                "8": 423,
+                "9": 424
+              }
+            },
+            {
+              "series_key": "essay-2",
+              "series_kind": "numbered-essay",
+              "start_page": 439,
+              "end_page": 471,
+              "expected_unit_count": 25,
+              "overrides": {
+                "15": 460
+              }
+            },
+            {
+              "series_key": "essay-3",
+              "series_kind": "numbered-essay",
+              "start_page": 472,
+              "end_page": 524,
+              "expected_unit_count": 28,
+              "overrides": {
+                "3": 474,
+                "18": 503,
+                "28": 524
+              }
+            }
+          ]
+        },
+        {
+          "slug": "der-antichrist",
+          "work_ref": "tos.work.friedrich-nietzsche.der-antichrist",
+          "expression_ref": "tos.expression.friedrich-nietzsche.der-antichrist.ru-flerova-mysl-1996",
+          "member_sequence": 6,
+          "start_page": 631,
+          "end_page": 692,
+          "map_id": "tos.hierarchical-target-numbered-unit-page-map.friedrich-nietzsche.der-antichrist.ru-flerova-mysl-1996",
+          "map_event_id": "tos.event.hierarchical-target-numbered-unit-page-map.friedrich-nietzsche.der-antichrist.ru-flerova-mysl-1996.2026-08-08",
+          "crosswalk_id": "tos.transfer-candidate-target-crosswalk.friedrich-nietzsche.der-antichrist.ru-flerova-mysl-1996-v1",
+          "crosswalk_event_id": "tos.event.transfer-candidate-target-crosswalk.friedrich-nietzsche.der-antichrist.2026-08-08",
+          "output_dir": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf",
+          "series": [
+            {
+              "series_key": "main",
+              "series_kind": "numbered-main-sequence",
+              "start_page": 633,
+              "end_page": 691,
+              "expected_unit_count": 62,
+              "overrides": {
+                "3": 634,
+                "16": 642,
+                "17": 643,
+                "18": 644,
+                "19": 644,
+                "23": 648,
+                "28": 654,
+                "36": 661,
+                "38": 662,
+                "45": 670
+              }
+            }
+          ]
+        }
+      ],
+      "candidate_geometry": {
+        "page_min": 1,
+        "page_max": 831,
+        "x_min": 145.0,
+        "x_max": 175.0,
+        "y_min": 40.0,
+        "y_max": 490.0,
+        "words_per_line": 1,
+        "max_label_length": 3,
+        "label_suffix": ".",
+        "forbidden_initial": "0"
+      },
+      "historical_input_sha256": {
+        "transfer_plan": "adad0534a5ce61f3eaa821aaa19fcc7257958c7baac06b75f30b321f65f36cb6",
+        "target_rights": "4c72113047353c6148af2ef3580e4128e8a968558f45331542081d7e0e761de0"
+      },
+      "historical_text": {
+        "map_authority": "machine-derived target-visible series-qualified numbered-label start-page candidates with bounded model-only review of explicit machine gaps, plus proposed whole-page addresses for one exact local translation scan only; repeated numeral labels remain distinct by series identity, and no target prose, exact line or passage-end boundary, accepted Russian, source-to-target alignment, translation relation, semantics, rights clearance, eligible transfer unit, target gold, or canon authority follows",
+        "crosswalk_authority": "text-free target-side narrowing of already-frozen whole-page transfer candidates through one proposed hierarchical target numbered-unit map; no German parallel unit map is materialized, so the result establishes neither a source route nor source-to-target passage alignment, accepted German or Russian, translation correspondence, equivalence or quality, exact passage ends, eligible target units, target gold, semantic work, human work, rights clearance, or canon authority",
+        "map_warning": "No source-to-target alignment, translation relation, semantic claim, eligible target unit, target gold, or publication route was created.",
+        "crosswalk_warning": "Proposed target starts do not establish exact passage ends, translation correspondence, equivalence, quality, semantics, rights clearance, eligibility, target gold, or canon authority."
+      },
+      "identity": {
+        "anchor_prefix": "tos.anchor.friedrich-nietzsche.",
+        "passage_prefix": "tos.passage.friedrich-nietzsche.",
+        "unit_separator": ".unit-",
+        "anchor_suffix": ".pdf-start-page"
+      },
+      "frozen_outputs": [
+        {
+          "role": "genealogie-map",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-page-map.json",
+          "schema_version": "tos_hierarchical_target_numbered_unit_page_map_v1",
+          "expected_sha256": "f7012f8538be5c1962eb8e7f9a38b41785e8e9d8af4dd834349115227e66d5b4"
+        },
+        {
+          "role": "genealogie-anchors",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-anchors.jsonl",
+          "schema_version": "tos_source_anchor_v1",
+          "expected_sha256": "e5e5742b98ed8cb2460d986dbc04989d29291b87de3b0de77ae18966b6fd5194"
+        },
+        {
+          "role": "genealogie-map-provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/provenance.numbered-unit-page-map.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "046c7773851bbd88a17035c39378a5acb228a122504861c596f924068f8b3d30"
+        },
+        {
+          "role": "genealogie-crosswalk",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/transfer-candidate-page-crosswalk.v1.json",
+          "schema_version": "tos_transfer_candidate_target_structural_crosswalk_v1",
+          "expected_sha256": "cbf9c84364da6bf4ce220afae7627f16b64e73e71f06156aaf3c14671be5a4a9"
+        },
+        {
+          "role": "genealogie-crosswalk-provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/provenance.transfer-candidate-page-crosswalk.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "91ed6bd2b4c93ee0e0e8f80a29946da6bc556e204360777ec75461e938d6dcae"
+        },
+        {
+          "role": "antichrist-map",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-page-map.json",
+          "schema_version": "tos_hierarchical_target_numbered_unit_page_map_v1",
+          "expected_sha256": "a07b84f2c668b248a44dde791077238a993df0eb8e18d03cf3f9470aecf6d38c"
+        },
+        {
+          "role": "antichrist-anchors",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-anchors.jsonl",
+          "schema_version": "tos_source_anchor_v1",
+          "expected_sha256": "565aeaef69c331e387a20ebdfc853d846c0cdc44f5becc72f1c460537f97bdf8"
+        },
+        {
+          "role": "antichrist-map-provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/provenance.numbered-unit-page-map.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "f7d1cbf587f1041f6bc133a7488b5334ae62045ac99aae91965c0a839a750608"
+        },
+        {
+          "role": "antichrist-crosswalk",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/transfer-candidate-page-crosswalk.v1.json",
+          "schema_version": "tos_transfer_candidate_target_structural_crosswalk_v1",
+          "expected_sha256": "dc5fc271d5298df05b77a2f02df68af80358e8878fef1a008c6914c2cde09abc"
+        },
+        {
+          "role": "antichrist-crosswalk-provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/provenance.transfer-candidate-page-crosswalk.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "cac04633db3543b91faa7e30329e0825e38bba79e220969246e28613b1b54dc2"
+        }
+      ]
+    },
+    {
+      "stage": "target-passages",
+      "locators": [
+        {
+          "role": "research_root",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1"
+        },
+        {
+          "role": "plan",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-samples.json"
+        },
+        {
+          "role": "candidates",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-passage-candidates.v1.json"
+        },
+        {
+          "role": "anchors",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-passage-anchors.v1.jsonl"
+        },
+        {
+          "role": "provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-provenance.jsonl"
+        },
+        {
+          "role": "private_content",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-target-passages/v1"
+        },
+        {
+          "role": "candidate_schema",
+          "repository_path": "ToS/contracts/transfer-target-passage-candidate-set.schema.json"
+        },
+        {
+          "role": "anchor_schema",
+          "repository_path": "ToS/contracts/source-anchor.schema.json"
+        },
+        {
+          "role": "item",
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf"
+        },
+        {
+          "role": "manifest",
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/item.manifest.json"
+        },
+        {
+          "role": "inventory",
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/resource-inventory.json"
+        },
+        {
+          "role": "rights",
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json"
+        }
+      ],
+      "work_mappings": [
+        {
+          "work_ref": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+          "target_map_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/numbered-unit-page-map.json",
+          "crosswalk_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996/transfer-candidate-page-crosswalk.v1.json",
+          "label_correspondence_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996/numbered-unit-label-correspondence.json",
+          "candidate_token": "jenseits",
+          "work_path_segment": "jenseits-von-gut-und-boese"
+        },
+        {
+          "work_ref": "tos.work.friedrich-nietzsche.zur-genealogie-der-moral",
+          "target_map_ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-page-map.json",
+          "source_route_ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/alignments/structure/naumann-1892-second-svasyan-mysl-1996/transfer-candidate-source-structural-route.v1.json",
+          "candidate_token": "genealogie",
+          "work_path_segment": "zur-genealogie-der-moral"
+        },
+        {
+          "work_ref": "tos.work.friedrich-nietzsche.der-antichrist",
+          "target_map_ref": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-page-map.json",
+          "source_route_ref": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/alignments/structure/naumann-1906-flerova-mysl-1996/transfer-candidate-source-structural-route.v1.json",
+          "candidate_token": "antichrist",
+          "work_path_segment": "der-antichrist"
+        }
+      ],
+      "extraction_tool": {
+        "name": "pdftotext",
+        "version": "26.01.0"
+      },
+      "event_id": "tos.event.segmentation.golden-kernel-transfer-target-passages-v1.2026-08-08",
+      "set_id": "tos.transfer-candidate-set.golden-kernel-transfer-target-passages-v1",
+      "schema_ref": "https://tree-of-sophia.local/ToS/contracts/transfer-target-passage-candidate-set.schema.json",
+      "legacy_event_sha256": "13fd906ae6a3124ff71c58cb9e36c276c117e7de0a675c734eae2551ea96b5e4",
+      "legacy_builder_sha256": "045f98b86c49851bb3183bf5f0d054295993a9e27f72c7a5d2d8d2c29483577e",
+      "inputs": [
+        {
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-samples.json",
+          "role": "frozen-golden-kernel-transfer-page-candidate-plan"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/item.manifest.json",
+          "role": "exact-local-target-item-manifest"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/resource-inventory.json",
+          "role": "tracked-target-resource-inventory"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json",
+          "role": "target-rights-posture"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/numbered-unit-page-map.json",
+          "role": "tracked-Jenseits-target-numbered-unit-map"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996/transfer-candidate-page-crosswalk.v1.json",
+          "role": "tracked-Jenseits-conservative-page-crosswalk"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996/numbered-unit-label-correspondence.json",
+          "role": "tracked-Jenseits-source-route-pairings"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-page-map.json",
+          "role": "tracked-Genealogie-target-numbered-unit-map"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/alignments/structure/naumann-1892-second-svasyan-mysl-1996/transfer-candidate-source-structural-route.v1.json",
+          "role": "tracked-Genealogie-source-structural-routes"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-page-map.json",
+          "role": "tracked-Antichrist-target-numbered-unit-map"
+        },
+        {
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/alignments/structure/naumann-1906-flerova-mysl-1996/transfer-candidate-source-structural-route.v1.json",
+          "role": "tracked-Antichrist-source-structural-routes"
+        },
+        {
+          "repository_path": "ToS/contracts/transfer-target-passage-candidate-set.schema.json",
+          "role": "target-passage-candidate-set-contract"
+        },
+        {
+          "repository_path": "ToS/contracts/source-anchor.schema.json",
+          "role": "source-anchor-contract"
+        }
+      ],
+      "generated_set_prefix": "tos.transfer-candidate-set.golden-kernel-transfer-target-passages-",
+      "anchor_namespace": "tos.anchor.friedrich-nietzsche.",
+      "frozen_outputs": [
+        {
+          "role": "candidates",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-passage-candidates.v1.json",
+          "schema_version": "tos_transfer_target_passage_candidate_set_v1",
+          "expected_sha256": "602c6d29a22f11d6958e61324ef0dbd94ca9bb677511254d45033bf91fa69551"
+        },
+        {
+          "role": "anchors",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-passage-anchors.v1.jsonl",
+          "schema_version": "tos_source_anchor_v1",
+          "expected_sha256": "d51a2e449151e86dc24c9d58640242dc40c05a56358e241499882194ccc03696"
+        },
+        {
+          "role": "provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-provenance.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "f66f1f6cf5224e5bc3849b168318af581fab9813eb595c8521c38e509c238b3e"
+        }
+      ],
+      "legacy_candidate_syntax": {
+        "prefix": "tos-target-candidate-",
+        "page_marker": "-p",
+        "page_digits": 4,
+        "kinds": [
+          "random",
+          "hard"
+        ]
+      },
+      "marker_profile": {
+        "normalization_stage": "numbered-structure",
+        "trim": "trailing-periods",
+        "minimum_x": 140,
+        "maximum_x": 180,
+        "maximum_y_exclusive": 500,
+        "required_word_count": 1,
+        "point_decimal_places": 6,
+        "normalized_decimal_places": 8,
+        "override_basis": "source-visible-exact-label-over-ocr-token",
+        "exact_basis": "exact-expected-single-line-number-label-in-pdf-bbox-layer",
+        "overrides": [
+          {
+            "page": 268,
+            "unit_key": "33",
+            "ocr_token": "171"
+          },
+          {
+            "page": 278,
+            "unit_key": "46",
+            "ocr_token": "171"
+          },
+          {
+            "page": 279,
+            "unit_key": "47",
+            "ocr_token": "171"
+          },
+          {
+            "page": 322,
+            "unit_key": "203",
+            "ocr_token": "195"
+          },
+          {
+            "page": 399,
+            "unit_key": "285",
+            "ocr_token": "263"
+          },
+          {
+            "page": 662,
+            "unit_key": "38",
+            "ocr_token": "36"
+          },
+          {
+            "page": 670,
+            "unit_key": "45",
+            "ocr_token": "36"
+          }
+        ],
+        "x_bounds": "closed"
+      },
+      "structural_selector_scheme": "transfer-target-layer-exact-numbered-unit-v1",
+      "nonintersecting_routes": [
+        {
+          "frozen_page_candidate_id": "tos-target-candidate-jenseits-p0399-random",
+          "qualified_unit_key": "284"
+        },
+        {
+          "frozen_page_candidate_id": "tos-target-candidate-jenseits-p0279-hard",
+          "qualified_unit_key": "46"
+        },
+        {
+          "frozen_page_candidate_id": "tos-target-candidate-antichrist-p0661-hard",
+          "qualified_unit_key": "main:35"
+        }
+      ]
+    },
+    {
+      "stage": "transfer-candidates",
+      "locators": [
+        {
+          "role": "research_root",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1"
+        },
+        {
+          "role": "plan",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-samples.json"
+        },
+        {
+          "role": "anchors",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-anchors.v1.jsonl"
+        },
+        {
+          "role": "provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-provenance.jsonl"
+        },
+        {
+          "role": "private_content",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-targets/v1"
+        },
+        {
+          "role": "plan_schema",
+          "repository_path": "ToS/contracts/golden-kernel-transfer-plan.schema.json"
+        },
+        {
+          "role": "boundary_map",
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json"
+        },
+        {
+          "role": "source_pdf",
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/payload/Ницше собрание сочинений.pdf"
+        },
+        {
+          "role": "rights",
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json"
+        },
+        {
+          "role": "gold_assurance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/gold-assurance.v2.json"
+        }
+      ],
+      "event_id": "tos.event.segmentation.zarathustra-transfer-candidate-freeze-v3.2026-07-29",
+      "expected_file_sha256": "ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+      "works": [
+        {
+          "work_ref": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+          "label": "jenseits"
+        },
+        {
+          "work_ref": "tos.work.friedrich-nietzsche.zur-genealogie-der-moral",
+          "label": "genealogie"
+        },
+        {
+          "work_ref": "tos.work.friedrich-nietzsche.der-antichrist",
+          "label": "antichrist"
+        }
+      ],
+      "legacy_event_sha256": "b87ba0c258b9d21b9d675d16691054e02adb90b2cf597f20e9d60299a663c939",
+      "legacy_builder_sha256": "71f61e32b16bd797ae3bc80c97b9cba454539661422a1ff652ddefbf2e849d2c",
+      "anchor_prefix": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-",
+      "historical_templates": [
+        {
+          "role": "legacy-output-template",
+          "ref": "rust/crates/tos-compiler/src/transfer_candidates/templates.json",
+          "sha256": "02bff3f8ec324c985a980fcbb2caff7cc85fce95bccb88edaa25d0f1c12fc911"
+        }
+      ],
+      "frozen_outputs": [
+        {
+          "role": "anchors",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-anchors.v1.jsonl",
+          "schema_version": "tos_source_anchor_v1",
+          "expected_sha256": "e4dfbb6f35100e1ba44975ab9efa6ccbad4e507ab499e2a5119c5ef31129596a"
+        },
+        {
+          "role": "provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-provenance.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "f66f1f6cf5224e5bc3849b168318af581fab9813eb595c8521c38e509c238b3e"
+        }
+      ],
+      "plan_sha256": "55f9cf6486f57a83ad28c1439493cd946862eb43e1750110fc55a8c961769fbf",
+      "selection_rules": {
+        "content_filter_pointer": "/candidate_preparation/content_filter",
+        "work_quotas_pointer": "/candidate_preparation/work_quotas",
+        "seed_domain": "candidate-protocol-v1",
+        "rank_profile": "sha256-seed-work-page-payload-v1",
+        "scoring_weights": {
+          "nonspace_characters": 1,
+          "punctuation_characters": 6,
+          "line_end_hyphenations": 160,
+          "page_edge_fragment_signals": 250,
+          "numbered_heading_candidates": 100
+        },
+        "signal_baselines": {
+          "random": "digest-random-baseline",
+          "hard": "mechanical-hardness-top-rank"
+        },
+        "difficulty_signals": [
+          {
+            "metric": "nonspace_characters",
+            "minimum": 3200,
+            "label": "dense-text"
+          },
+          {
+            "metric": "punctuation_characters",
+            "minimum": 180,
+            "label": "punctuation-rich"
+          },
+          {
+            "metric": "line_end_hyphenations",
+            "minimum": 1,
+            "label": "line-end-hyphenation"
+          },
+          {
+            "metric": "page_edge_fragment_signals",
+            "minimum": 1,
+            "label": "page-edge-fragment-risk"
+          },
+          {
+            "metric": "numbered_heading_candidates",
+            "minimum": 1,
+            "label": "numbered-heading-candidate"
+          }
+        ],
+        "text_metrics": {
+          "punctuation_characters": ".,;:!?—–-«»\"()…",
+          "line_end_characters": "-—–",
+          "edge_end_characters": ",;:-—–",
+          "substantive_min_characters": 3,
+          "numeric_line_max_bytes": 4,
+          "decimal_heading_max_characters": 3,
+          "roman_heading_max_characters": 8,
+          "roman_characters": "IVXLCDM",
+          "heading_suffixes": [
+            ".",
+            ")"
+          ],
+          "line_profile": "python-splitlines-and-trim-v1"
+        },
+        "extraction_pointer": "/candidate_preparation/source_extraction",
+        "plan_id_pointer": "/transfer_plan_id",
+        "seed_digest_pointer": "/candidate_preparation/deterministic_randomization_key_sha256"
+      }
+    },
+    {
+      "stage": "transfer-readiness",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf",
+        "tos.item.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.wikimedia-commons-unc-scan-pdf",
+        "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.internet-archive-google-stanford-djvu-xml",
+        "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf"
+      ],
+      "base_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1",
+      "target_filename": "transfer-target-passage-candidates.v1.json",
+      "source_filename": "transfer-source-passage-candidates.v1.json",
+      "schema_ref": "ToS/contracts/transfer-route-readiness-projection.schema.json",
+      "schema_uri": "https://tree-of-sophia.local/ToS/contracts/transfer-route-readiness-projection.schema.json",
+      "schema_v2_ref": "ToS/contracts/transfer-route-readiness-projection-v2.schema.json",
+      "schema_v2_uri": "https://tree-of-sophia.local/ToS/contracts/transfer-route-readiness-projection-v2.schema.json",
+      "projection_id": "tos.transfer-route-readiness.golden-kernel-v1",
+      "historical_event_id": "tos.event.projection.golden-kernel-transfer-route-readiness-v1.2026-08-09",
+      "historical_event_sha256": "75becae2f58c85dcc30d7098eb90f87d2a38706649c5e69226a0b05f4d7448e4",
+      "historical_builder_ref": "scripts/build_golden_kernel_transfer_route_readiness.py",
+      "historical_builder_sha256": "9fb18fe2ff6eb14672dfec407f0c2210e0b7f6f4286c1fc0987633709e147675",
+      "historical_authority": "text-free co-availability over independently materialized source and target candidates only; shared structural route identity and frozen-page intersection create no bilingual passage pair, alignment, accepted text, eligibility, gold, human task, semantic claim, publication authority, or canon effect",
+      "expected_source_count": 35,
+      "expected_target_count": 35,
+      "output_filename": "transfer-route-readiness.v1.json",
+      "provenance_filename": "transfer-provenance.jsonl",
+      "frozen_outputs": [
+        {
+          "role": "projection",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-route-readiness.v1.json",
+          "schema_version": "tos_transfer_route_readiness_projection_v1",
+          "expected_sha256": "87db57696b663440f2dfd59957f40b308b98f169bb707bbc5855311dc1d745db"
+        },
+        {
+          "role": "provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-provenance.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "f66f1f6cf5224e5bc3849b168318af581fab9813eb595c8521c38e509c238b3e"
+        }
+      ]
+    },
+    {
+      "stage": "structural-source-routes",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.wikimedia-commons-unc-scan-pdf",
+        "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu",
+        "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf"
+      ],
+      "correspondence_contract_ref": "ToS/contracts/hierarchical-numbered-unit-label-correspondence.schema.json",
+      "route_contract_ref": "ToS/contracts/transfer-candidate-source-structural-route.schema.json",
+      "target_rights_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json",
+      "target_rights_sha256": "4d7d4c69118416796f847be97d83cc04a9a30213fda9710d5412918c8f8bdbb7",
+      "correspondence_schema_uri": "https://tree-of-sophia.local/ToS/contracts/hierarchical-numbered-unit-label-correspondence.schema.json",
+      "route_schema_uri": "https://tree-of-sophia.local/ToS/contracts/transfer-candidate-source-structural-route.schema.json",
+      "historical_authority": "mechanical pairing and routing of identical series-qualified structural number-label keys already materialized independently in exact source and target witness maps; it reads no witness text and establishes neither exact passage boundaries nor passage or translation alignment, accepted German or Russian, eligibility, gold, semantics, rights, or canon authority",
+      "historical_exclusions": [
+        "source_text",
+        "target_text",
+        "exact_line_boundaries",
+        "exact_passage_end_boundaries",
+        "source_to_target_passage_alignment",
+        "translation_correspondence",
+        "translation_equivalence",
+        "translation_quality",
+        "textual_identity",
+        "accepted_german",
+        "accepted_russian",
+        "target_gold",
+        "eligible_target_unit",
+        "semantics",
+        "rights_clearance",
+        "canon_promotion"
+      ],
+      "expected_candidate_pages": 12,
+      "expected_source_routes": 20,
+      "configurations": [
+        {
+          "slug": "zur-genealogie-der-moral",
+          "pair_slug": "naumann-1892-second-svasyan-mysl-1996",
+          "source": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/structure/hierarchical-numbered-unit-page-map.json",
+          "target": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-page-map.json",
+          "crosswalk": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/transfer-candidate-page-crosswalk.v1.json",
+          "source_sha256": "2f90121d2948a88e89bfd29713327bb79ab55a666f1f73697feebae3f08ad208",
+          "target_sha256": "f7012f8538be5c1962eb8e7f9a38b41785e8e9d8af4dd834349115227e66d5b4",
+          "crosswalk_sha256": "cbf9c84364da6bf4ce220afae7627f16b64e73e71f06156aaf3c14671be5a4a9",
+          "expected": 78
+        },
+        {
+          "slug": "der-antichrist",
+          "pair_slug": "naumann-1906-flerova-mysl-1996",
+          "source": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/structure/hierarchical-numbered-unit-page-map.json",
+          "target": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-page-map.json",
+          "crosswalk": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/transfer-candidate-page-crosswalk.v1.json",
+          "source_sha256": "341e57c160fcf1cce01d0e9ab191964753717fea62745fbe077e8a5159a3c0d3",
+          "target_sha256": "a07b84f2c668b248a44dde791077238a993df0eb8e18d03cf3f9470aecf6d38c",
+          "crosswalk_sha256": "dc5fc271d5298df05b77a2f02df68af80358e8878fef1a008c6914c2cde09abc",
+          "expected": 62
+        }
+      ],
+      "current_authority": "This map pairs and routes identical series-qualified structural number-label keys from independently prepared exact source and target maps. The operation uses the maps as structural metadata.",
+      "historical_event_suffix": "2026-08-08",
+      "identity_prefixes": [
+        {
+          "kind": "work",
+          "prefix": "tos.work.friedrich-nietzsche."
+        },
+        {
+          "kind": "correspondence_event",
+          "prefix": "tos.event.hierarchical-numbered-unit-label-correspondence.friedrich-nietzsche."
+        },
+        {
+          "kind": "route_event",
+          "prefix": "tos.event.transfer-candidate-source-structural-route.friedrich-nietzsche."
+        },
+        {
+          "kind": "correspondence_map",
+          "prefix": "tos.map.hierarchical-numbered-unit-label-correspondence.friedrich-nietzsche."
+        },
+        {
+          "kind": "route_set",
+          "prefix": "tos.route-set.transfer-candidate-source-structural.friedrich-nietzsche."
+        }
+      ],
+      "alignment_root": "ToS/source-witnesses/works/friedrich-nietzsche",
+      "output_files": [
+        {
+          "role": "correspondence",
+          "filename": "hierarchical-numbered-unit-label-correspondence.json"
+        },
+        {
+          "role": "correspondence-provenance",
+          "filename": "provenance.numbered-unit-label-correspondence.jsonl"
+        },
+        {
+          "role": "route",
+          "filename": "transfer-candidate-source-structural-route.v1.json"
+        },
+        {
+          "role": "route-provenance",
+          "filename": "provenance.transfer-candidate-source-structural-route.jsonl"
+        }
+      ],
+      "frozen_outputs": [
+        {
+          "role": "zur-genealogie-der-moral:correspondence",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/alignments/structure/naumann-1892-second-svasyan-mysl-1996/hierarchical-numbered-unit-label-correspondence.json",
+          "schema_version": "tos_hierarchical_numbered_unit_label_correspondence_v1",
+          "expected_sha256": "ac84b1fa7c3f012944781844719fa6d171774a7b101b000d926e2a43f84374b6"
+        },
+        {
+          "role": "zur-genealogie-der-moral:correspondence-provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/alignments/structure/naumann-1892-second-svasyan-mysl-1996/provenance.numbered-unit-label-correspondence.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "b8170fa112671717369a2f165deb2ce3252f8d30b56e7495eafe96dd01e212d5"
+        },
+        {
+          "role": "zur-genealogie-der-moral:route",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/alignments/structure/naumann-1892-second-svasyan-mysl-1996/transfer-candidate-source-structural-route.v1.json",
+          "schema_version": "tos_transfer_candidate_source_structural_route_v1",
+          "expected_sha256": "f60156767bc4ff59122d1821c691c0b19c8f7fd158c20e5450371501379924c7"
+        },
+        {
+          "role": "zur-genealogie-der-moral:route-provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/alignments/structure/naumann-1892-second-svasyan-mysl-1996/provenance.transfer-candidate-source-structural-route.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "7fb283b6433cb79fc7a33db0b38d2604da12566e56af00327d565f8d6589200e"
+        },
+        {
+          "role": "der-antichrist:correspondence",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/alignments/structure/naumann-1906-flerova-mysl-1996/hierarchical-numbered-unit-label-correspondence.json",
+          "schema_version": "tos_hierarchical_numbered_unit_label_correspondence_v1",
+          "expected_sha256": "f93b3274a4ec668c3ea673a1d56a095202a7fa71aa0691eb00ddf54bc0a44e7a"
+        },
+        {
+          "role": "der-antichrist:correspondence-provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/alignments/structure/naumann-1906-flerova-mysl-1996/provenance.numbered-unit-label-correspondence.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "dba83b662798b8c5e2b2b52c369f5fc1644ed64f712cfb35ec3a0106ee19ecb3"
+        },
+        {
+          "role": "der-antichrist:route",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/alignments/structure/naumann-1906-flerova-mysl-1996/transfer-candidate-source-structural-route.v1.json",
+          "schema_version": "tos_transfer_candidate_source_structural_route_v1",
+          "expected_sha256": "9431f655a09188a3ffde8288fd1ae6c126c2d95fe03d5e55477c7cdf67a3403a"
+        },
+        {
+          "role": "der-antichrist:route-provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/alignments/structure/naumann-1906-flerova-mysl-1996/provenance.transfer-candidate-source-structural-route.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "06243d219bbe8d33b7312f3f5cd04b8e833922ad385defc11b4c2c65587add20"
+        }
+      ],
+      "output_subdirectory": "alignments/structure"
+    },
+    {
+      "stage": "recipe-reference",
+      "curation_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/edition-curation.v1.json",
+      "recipe_stage": "visual-retrieval-result"
+    }
+  ]
+}

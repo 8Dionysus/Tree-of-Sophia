@@ -1,6 +1,8 @@
 //! Source-foundation report contracts shared with ordinary selected-source validation.
 //! Historical laboratories and dossier audits are available with the `research` feature.
 
+pub use crate::source_foundation_schema::SourceFoundationSchemaCheck;
+pub use crate::text_collation_rules::witness_text_collation_semantic_messages;
 use serde_json::Value;
 use tos_foundation::RelativePath;
 
@@ -55,38 +57,6 @@ impl SourceFoundationLab {
             Self::ZarathustraAuthoredCanonBridge => "zarathustra_authored_canon_evidence_bridge",
         }
     }
-}
-
-/// A scheduled exact schema diagnostic. In a lab result, `before_issue` is its
-/// local direct-issue ordinal so the caller can interleave diagnostic-v2
-/// findings without a speculative boolean schema verdict or a second parse.
-/// The aggregate report carries separate copies with aggregate ordinals.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SourceFoundationSchemaCheck {
-    pub before_issue: usize,
-    pub location: String,
-    pub contract: String,
-    /// Already decoded once by the source adapter. The executor normalizes
-    /// this owner-local DTO into its bounded diagnostic unit.
-    pub instance: Value,
-    /// Optional local report-control identity for a schema-only negative.
-    pub negative_control: Option<String>,
-    /// Expected schema validity for reports that assert the result.
-    pub expected_valid: Option<bool>,
-    /// Expected combined rejection result for a maintained negative control.
-    pub expected_rejected: Option<bool>,
-    /// Direct semantic rejection result for controls whose owner contract
-    /// rejects on schema OR semantic findings.
-    pub semantic_rejected: Option<bool>,
-    /// JSON pointer in the route report that receives the resolved verdict.
-    pub report_slot: Option<String>,
-    /// JSON pointer for maintained rejection prose, merged with exact schema
-    /// diagnostics before the caller sorts and deduplicates that field.
-    pub rejection_reasons_slot: Option<String>,
-    /// Fixed maintained document-label prefix for bridge schema issues.
-    pub schema_message_prefix: Option<String>,
-    /// Exact owner message emitted only if the frozen result expectation fails.
-    pub mismatch_message: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -220,16 +220,172 @@ impl Witness {
         self.payload.verify(source)
     }
 }
-fn numeric(raw: &str) -> String {
+#[derive(Clone)]
+struct NumberProfile {
+    x_min: f64,
+    x_max: f64,
+    y_min: f64,
+    y_max: f64,
+    min_word_gap_exclusive: f64,
+    max_word_gap: f64,
+    max_vertical_delta: f64,
+    min_words: usize,
+    max_words: usize,
+    substitutions: BTreeMap<char, char>,
+}
+#[derive(Clone)]
+struct RecordProfile {
+    anchor_prefix: String,
+    passage_prefix: String,
+    unit_separator: String,
+    anchor_suffix: String,
+    authority: String,
+    warning: String,
+}
+impl RecordProfile {
+    // The legacy alias retains its recorded identity until cutover.
+    fn legacy() -> Self {
+        Self::selected(
+            &json!({"anchor_prefix":"tos.anchor.friedrich-nietzsche.","passage_prefix":"tos.passage.friedrich-nietzsche.","unit_separator":".unit-","anchor_suffix":".source-start-page"}),
+            &json!({"authority":LEGACY_AUTHORITY,"warning":LEGACY_WARNING}),
+        ).expect("compiled compatibility record profile")
+    }
+    fn selected(identity: &Value, historical: &Value) -> Result<Self> {
+        let profile = Self {
+            anchor_prefix: s(&identity["anchor_prefix"])?.to_owned(),
+            passage_prefix: s(&identity["passage_prefix"])?.to_owned(),
+            unit_separator: s(&identity["unit_separator"])?.to_owned(),
+            anchor_suffix: s(&identity["anchor_suffix"])?.to_owned(),
+            authority: s(&historical["authority"])?.to_owned(),
+            warning: s(&historical["warning"])?.to_owned(),
+        };
+        ensure(
+            profile.anchor_prefix.starts_with("tos.anchor.")
+                && profile.passage_prefix.starts_with("tos.passage."),
+            "invalid structural identity prefixes",
+        )?;
+        for identity in [
+            profile.anchor("work", "expression", "series", "1"),
+            profile.passage("work", "expression", "series", "1"),
+        ] {
+            tos_foundation::StableId::parse(&identity)
+                .map_err(|e| format!("invalid structural identity: {e}"))?;
+        }
+        Ok(profile)
+    }
+    fn anchor(&self, slug: &str, expression: &str, key: &str, unit: &str) -> String {
+        format!(
+            "{}{slug}.{expression}.{key}{}{unit}{}",
+            self.anchor_prefix, self.unit_separator, self.anchor_suffix
+        )
+    }
+    fn passage(&self, slug: &str, expression: &str, key: &str, unit: &str) -> String {
+        format!(
+            "{}{slug}.{expression}.{key}{}{unit}",
+            self.passage_prefix, self.unit_separator
+        )
+    }
+    fn validate_config(&self, ctx: &ResearchExecution, config: &Value) -> Result<()> {
+        let raw = ctx.read("ToS/contracts/source-anchor.schema.json")?;
+        let schema: Value = serde_json::from_slice(&raw).map_err(|e| e.to_string())?;
+        let pattern = s(&schema["$defs"]["tosId"]["pattern"])?;
+        let valid = regex::Regex::new(pattern).map_err(|e| format!("anchor ID pattern: {e}"))?;
+        let slug = s(&config["slug"])?;
+        let expression = s(&config["expression_ref"])?
+            .rsplit('.')
+            .next()
+            .ok_or("expression identity missing")?;
+        let mut anchors = BTreeSet::new();
+        let mut passages = BTreeSet::new();
+        for series in array(&config["series"])? {
+            let key = s(&series["series_key"])?;
+            for index in 0..array(&series["start_pages"])?.len() {
+                ctx.tick(1)?;
+                let unit = (index + 1).to_string();
+                let anchor = self.anchor(slug, expression, key, &unit);
+                let passage = self.passage(slug, expression, key, &unit);
+                ensure(
+                    valid.is_match(&anchor)
+                        && valid.is_match(&passage)
+                        && anchors.insert(anchor)
+                        && passages.insert(passage),
+                    "invalid or duplicate selected structural identity",
+                )?;
+            }
+        }
+        Ok(())
+    }
+}
+impl NumberProfile {
+    // The legacy alias keeps its original profile until that alias is retired.
+    fn legacy() -> Self {
+        Self::selected(
+            &json!({"x_min":150.0,"x_max":220.0,"y_min":50.0,"y_max":520.0,"min_word_gap_exclusive":0.0,"max_word_gap":15.0,"max_vertical_delta":3.0,"min_words":1,"max_words":2}),
+            &json!([{"characters":"ilx","digit":"1"},{"characters":"o","digit":"0"},{"characters":"s","digit":"5"},{"characters":"z","digit":"2"}]),
+        ).expect("compiled compatibility number profile")
+    }
+    fn selected(geometry: &Value, substitutions: &Value) -> Result<Self> {
+        let profile = Self {
+            x_min: f(&geometry["x_min"])?,
+            x_max: f(&geometry["x_max"])?,
+            y_min: f(&geometry["y_min"])?,
+            y_max: f(&geometry["y_max"])?,
+            min_word_gap_exclusive: f(&geometry["min_word_gap_exclusive"])?,
+            max_word_gap: f(&geometry["max_word_gap"])?,
+            max_vertical_delta: f(&geometry["max_vertical_delta"])?,
+            min_words: u(&geometry["min_words"])?,
+            max_words: u(&geometry["max_words"])?,
+            substitutions: {
+                let mut mapping = BTreeMap::new();
+                for row in array(substitutions)? {
+                    let chars = s(&row["characters"])?;
+                    let mut digits = s(&row["digit"])?.chars();
+                    let digit = digits.next().ok_or("OCR digit required")?;
+                    ensure(
+                        digit.is_ascii_digit() && digits.next().is_none(),
+                        "OCR digit must be one ASCII digit",
+                    )?;
+                    for c in chars.chars() {
+                        ensure(
+                            c.is_ascii_lowercase() && mapping.insert(c, digit).is_none(),
+                            "OCR characters must be unique lowercase ASCII letters",
+                        )?;
+                    }
+                }
+                mapping
+            },
+        };
+        ensure(
+            [
+                profile.x_min,
+                profile.x_max,
+                profile.y_min,
+                profile.y_max,
+                profile.min_word_gap_exclusive,
+                profile.max_word_gap,
+                profile.max_vertical_delta,
+            ]
+            .iter()
+            .all(|n| n.is_finite())
+                && profile.x_min <= profile.x_max
+                && profile.y_min <= profile.y_max
+                && profile.min_word_gap_exclusive >= 0.0
+                && profile.max_word_gap >= profile.min_word_gap_exclusive
+                && profile.max_vertical_delta >= 0.0
+                && profile.min_words > 0
+                && profile.max_words >= profile.min_words,
+            "invalid numeric candidate geometry",
+        )?;
+        Ok(profile)
+    }
+}
+fn numeric(raw: &str, profile: &NumberProfile) -> String {
     let x = raw
         .chars()
         .filter(char::is_ascii_alphanumeric)
-        .map(|c| match c.to_ascii_lowercase() {
-            'i' | 'l' | 'x' => '1',
-            'o' => '0',
-            's' => '5',
-            'z' => '2',
-            other => other,
+        .map(|c| {
+            let c = c.to_ascii_lowercase();
+            profile.substitutions.get(&c).copied().unwrap_or(c)
         })
         .collect::<String>();
     if !x.is_empty() && x.bytes().all(|c| c.is_ascii_digit()) {
@@ -238,21 +394,27 @@ fn numeric(raw: &str) -> String {
         String::new()
     }
 }
-fn pdf_numbers(ctx: &ResearchExecution, page: &Value) -> Result<BTreeSet<String>> {
+fn pdf_numbers(
+    ctx: &ResearchExecution,
+    page: &Value,
+    profile: &NumberProfile,
+) -> Result<BTreeSet<String>> {
     let mut result = BTreeSet::new();
     let mut fragments = Vec::new();
     for line in array(&page["lines"])? {
         let words = array(&line["words"])?;
-        if !(1..=2).contains(&words.len()) {
+        if !(profile.min_words..=profile.max_words).contains(&words.len()) {
             continue;
         }
         let x = f(&line["x_min"])?;
         let y = f(&line["y_min"])?;
-        if !(150.0..=220.0).contains(&x) || !(50.0..=520.0).contains(&y) {
+        if !(profile.x_min..=profile.x_max).contains(&x)
+            || !(profile.y_min..=profile.y_max).contains(&y)
+        {
             continue;
         }
         let raw = words.iter().map(s).collect::<Result<Vec<_>>>()?.join("");
-        let key = numeric(&raw);
+        let key = numeric(&raw, profile);
         if !key.is_empty() {
             result.insert(key);
         }
@@ -261,8 +423,11 @@ fn pdf_numbers(ctx: &ResearchExecution, page: &Value) -> Result<BTreeSet<String>
     for (lx, ly, lraw) in &fragments {
         for (rx, ry, rraw) in &fragments {
             ctx.tick(1)?;
-            if 0.0 < rx - lx && rx - lx <= 15.0 && (ry - ly).abs() <= 3.0 {
-                let key = numeric(&format!("{lraw}{rraw}"));
+            if profile.min_word_gap_exclusive < rx - lx
+                && rx - lx <= profile.max_word_gap
+                && (ry - ly).abs() <= profile.max_vertical_delta
+            {
+                let key = numeric(&format!("{lraw}{rraw}"), profile);
                 if !key.is_empty() {
                     result.insert(key);
                 }
@@ -334,6 +499,82 @@ pub struct Options<'a> {
     pub event_at: Option<&'a str>,
 }
 pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
+    let configs: Vec<Value> = serde_json::from_slice(include_bytes!(
+        "nietzsche_transfer_source_structure/config.json"
+    ))
+    .map_err(|e| e.to_string())?;
+    run_selected_configs(
+        ctx,
+        options,
+        configs,
+        &NumberProfile::legacy(),
+        &RecordProfile::legacy(),
+        None,
+        None,
+    )
+}
+/// Replay one retained configuration while the hierarchical producer migrates.
+/// Remove this compatibility entry when the research-owned stage replaces it.
+pub fn replay_selected(
+    ctx: &ResearchExecution,
+    input_root: &Path,
+    config: &Value,
+    geometry: &Value,
+    substitutions: &Value,
+    identity: &Value,
+    historical: &Value,
+    tools: &Value,
+    expected: &BTreeMap<String, String>,
+    target: Option<&ResearchExecution>,
+) -> Result<Value> {
+    let retained: Vec<Value> = serde_json::from_slice(include_bytes!(
+        "nietzsche_transfer_source_structure/config.json"
+    ))
+    .map_err(|e| e.to_string())?;
+    ensure(
+        retained.iter().filter(|v| *v == config).count() == 1,
+        "unsupported hierarchical source compatibility configuration",
+    )?;
+    let selected = paths(config, None)?;
+    let membership: BTreeSet<_> = selected.values().cloned().collect();
+    ensure(
+        membership == expected.keys().cloned().collect(),
+        "hierarchical source output membership differs",
+    )?;
+    let profile = NumberProfile::selected(geometry, substitutions)?;
+    let records = RecordProfile::selected(identity, historical)?;
+    records.validate_config(ctx, config)?;
+    let tools = array(tools)?;
+    ensure(
+        tools.len() == 1
+            && tools[0]["name"] == "pdftotext"
+            && tools[0]["version"] == PDFTOTEXT_VERSION,
+        "unsupported hierarchical source extraction tool",
+    )?;
+    run_selected_configs(
+        ctx,
+        Options {
+            build: false,
+            input_root: Some(input_root),
+            generation: None,
+            event_at: None,
+        },
+        vec![config.clone()],
+        &profile,
+        &records,
+        Some(expected),
+        target,
+    )
+}
+fn run_selected_configs(
+    ctx: &ResearchExecution,
+    options: Options<'_>,
+    configs: Vec<Value>,
+    profile: &NumberProfile,
+    record_profile: &RecordProfile,
+    expected: Option<&BTreeMap<String, String>>,
+    target: Option<&ResearchExecution>,
+) -> Result<Value> {
     ensure(
         !options.build || options.generation.is_some(),
         "build requires new generation",
@@ -384,10 +625,6 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
         )
     };
     let source = ctx.select_directory(options.input_root.unwrap_or(ctx.root()))?;
-    let configs: Vec<Value> = serde_json::from_slice(include_bytes!(
-        "nietzsche_transfer_source_structure/config.json"
-    ))
-    .map_err(|e| e.to_string())?;
     let mut poppler = Poppler::open(ctx)?;
     let mut outputs = Vec::new();
     let mut summaries = Vec::new();
@@ -440,7 +677,7 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
                 for (page, lines) in
                     poppler.pages(ctx, &navigation.payload.file, first, (first + 7).min(end))?
                 {
-                    numbers.insert(page, pdf_numbers(ctx, &lines)?);
+                    numbers.insert(page, pdf_numbers(ctx, &lines, profile)?);
                 }
             }
         } else {
@@ -478,7 +715,7 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
                                     }
                                 })
                                 .collect::<String>();
-                            let x = numeric(&text);
+                            let x = numeric(&text, profile);
                             (!x.is_empty()).then_some(x)
                         })
                         .collect::<BTreeSet<_>>();
@@ -621,9 +858,7 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
                 )?;
                 let slug = s(&config["slug"])?;
                 let expression = s(&config["expression_ref"])?.rsplit('.').next().unwrap();
-                let original_id = format!(
-                    "tos.anchor.friedrich-nietzsche.{slug}.{expression}.{key}.unit-{unit}.source-start-page"
-                );
+                let original_id = record_profile.anchor(slug, expression, key, &unit);
                 let anchor = options
                     .generation
                     .map_or(original_id.clone(), |g| format!("{original_id}.native-{g}"));
@@ -646,9 +881,7 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
                     ("file_sha256", v(&address.entry["sha256"])?),
                     (
                         "passage_id",
-                        q(format!(
-                            "tos.passage.friedrich-nietzsche.{slug}.{expression}.{key}.unit-{unit}"
-                        )),
+                        q(record_profile.passage(slug, expression, key, &unit)),
                     ),
                     (
                         "selectors",
@@ -739,7 +972,7 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
         )?;
         let mut map = records::map(&d)?;
         if options.generation.is_none() {
-            set(&mut map, "authority_boundary", q(LEGACY_AUTHORITY))?;
+            set(&mut map, "authority_boundary", q(&record_profile.authority))?;
         }
         let map_raw = render(&map, true)?;
         let map_digest = sha(&map_raw);
@@ -751,7 +984,7 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
             let Out::Array(warnings) = field(&mut new_event, "warnings")? else {
                 return Err("event warnings array".into());
             };
-            warnings[4] = q(LEGACY_WARNING);
+            warnings[4] = q(&record_profile.warning);
         } else {
             native_event(&mut new_event, &review)?;
         }
@@ -781,6 +1014,12 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
     poppler.verify()?;
     let mut missing = Vec::new();
     for (reference, bytes) in &outputs {
+        if let Some(expected) = expected {
+            ensure(
+                expected.get(reference) == Some(&sha(bytes)),
+                "curation output fixity differs",
+            )?;
+        }
         match std::fs::symlink_metadata(ctx.root().join(reference)) {
             Ok(_) => {
                 let retained = ctx.read(reference)?;
@@ -805,6 +1044,15 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
             ctx.write(reference, bytes, 0o644, true)?;
         }
     }
+    if let Some(target) = target {
+        for (reference, bytes) in &outputs {
+            target.write(reference, bytes, 0o644, true)?;
+            ensure(
+                target.read(reference)? == *bytes,
+                "isolated hierarchical source output drift",
+            )?;
+        }
+    }
     Ok(
         json!({"status":if options.build{"built"}else{"current"},"generator":BUILDER,"generation":options.generation,"historical_reconstruction_only":options.generation.is_none(),"works":summaries,"outputs_written":missing.len(),"outputs":outputs.iter().map(|(r,b)|json!({"ref":r,"bytes":b.len(),"sha256":sha(b)})).collect::<Vec<_>>(),"accepted_source_text":false,"canon_effect":false,"execution_budget":ctx.budget_report()}),
     )
@@ -816,15 +1064,36 @@ mod tests {
     fn fixed_page_numeric_candidates_preserve_two_fragment_rules() {
         let dir = tempfile::tempdir().unwrap();
         let ctx = ResearchExecution::new(dir.path(), 30).unwrap();
-        assert_eq!(numeric("I.o-sZ"), "1052");
-        assert_eq!(numeric("б7"), "7");
-        assert_eq!(numeric("foo"), "");
+        let profile = NumberProfile::legacy();
+        assert_eq!(numeric("I.o-sZ", &profile), "1052");
+        assert_eq!(numeric("б7", &profile), "7");
+        assert_eq!(numeric("foo", &profile), "");
         let page = json!({"lines":[{"x_min":150,"y_min":50,"words":["2"]},{"x_min":165,"y_min":53,"words":["7."]},{"x_min":181,"y_min":53,"words":["8"]},{"x_min":149,"y_min":50,"words":["9"]},{"x_min":200,"y_min":53,"words":["1","2","3"]}]});
-        let got = pdf_numbers(&ctx, &page).unwrap();
+        let got = pdf_numbers(&ctx, &page, &profile).unwrap();
         assert!(got.contains("27"));
         assert!(!got.contains("78"));
         assert!(!got.contains("9"));
         assert!(!got.contains("123"));
+        let mut changed = profile.clone();
+        changed.x_min = 166.0;
+        changed.substitutions.remove(&'s');
+        assert!(!pdf_numbers(&ctx, &page, &changed).unwrap().contains("27"));
+        assert_eq!(numeric("s", &changed), "");
+        let mut records = RecordProfile::legacy();
+        assert_eq!(
+            records.anchor("work", "expression", "series", "1"),
+            "tos.anchor.friedrich-nietzsche.work.expression.series.unit-1.source-start-page"
+        );
+        records.anchor_suffix = ".selected".into();
+        assert!(
+            records
+                .anchor("work", "expression", "series", "1")
+                .ends_with(".unit-1.selected")
+        );
+        assert_eq!(
+            records.passage("work", "expression", "series", "1"),
+            "tos.passage.friedrich-nietzsche.work.expression.series.unit-1"
+        );
         assert_eq!(render(&v(&json!(-2)).unwrap(), false).unwrap(), b"-2\n");
     }
 }

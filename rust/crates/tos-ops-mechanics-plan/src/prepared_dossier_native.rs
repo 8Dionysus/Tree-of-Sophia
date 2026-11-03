@@ -27,11 +27,11 @@ use std::os::fd::{AsRawFd, FromRawFd};
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::fs::MetadataExt;
 use std::path::{Component, Path, PathBuf};
-use tos_compiler::research_execution::ResearchExecution;
 use tos_compiler::source_philosophy_dossier_docx::DocxDocument;
 use tos_compiler::source_philosophy_dossier_extract::{PreparedDossier, extract_dossier};
 use tos_compiler::source_philosophy_multilingual::Multilingual;
 use tos_foundation::{Digest256, JsonLimits, JsonMode, parse_json};
+use tos_source_store::execution::Execution as ResearchExecution;
 
 const MASTER_ROOT: &str = "ToS/philosophy/atlas/master-tables";
 const PROPOSED_NODES_ROOT: &str = "ToS/philosophy/graph-workbench/proposed-nodes";
