@@ -2620,3 +2620,41 @@ fn authored_edition_curations_bind_to_their_selected_items() {
         }
     }
 }
+
+#[test]
+fn historical_and_compatibility_recipes_keep_distinct_fixity() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
+    let curation = root.join("ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/edition-curation.v1.json");
+    let value: Value = serde_json::from_slice(&fs::read(curation).unwrap()).unwrap();
+    for stage in ["parallel-lexical-candidates", "morphology-theme-candidates"] {
+        let recipe = value["recipes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|r| r["stage"] == stage)
+            .unwrap();
+        let route = if recipe["route_base"] == "work" {
+            root.join(recipe["work_path"].as_str().unwrap())
+                .join(recipe["route"].as_str().unwrap())
+        } else {
+            root.join(recipe["route"].as_str().unwrap())
+        };
+        let event: Value =
+            serde_json::from_slice(&fs::read(route.join("provenance.jsonl")).unwrap()).unwrap();
+        let historical = &recipe["historical_producer"];
+        let compatibility = &recipe["compatibility_recipe"];
+        assert_eq!(event["software_ref"], historical["ref"]);
+        assert_eq!(event["software_sha256"], historical["sha256"]);
+        assert_ne!(historical["sha256"], compatibility["sha256"]);
+        for (reference, expected) in [
+            (&historical["retained_ref"], &historical["sha256"]),
+            (&compatibility["ref"], &compatibility["sha256"]),
+        ] {
+            let raw = fs::read(root.join(reference.as_str().unwrap())).unwrap();
+            assert_eq!(
+                tos_foundation::Digest256::of_bytes(&raw).to_hex(),
+                expected.as_str().unwrap()
+            );
+        }
+    }
+}
