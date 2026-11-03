@@ -233,6 +233,89 @@ struct NumberProfile {
     max_words: usize,
     substitutions: BTreeMap<char, char>,
 }
+#[derive(Clone)]
+struct RecordProfile {
+    anchor_prefix: String,
+    passage_prefix: String,
+    unit_separator: String,
+    anchor_suffix: String,
+    authority: String,
+    warning: String,
+}
+impl RecordProfile {
+    // The legacy alias retains its recorded identity until cutover.
+    fn legacy() -> Self {
+        Self::selected(
+            &json!({"anchor_prefix":"tos.anchor.friedrich-nietzsche.","passage_prefix":"tos.passage.friedrich-nietzsche.","unit_separator":".unit-","anchor_suffix":".source-start-page"}),
+            &json!({"authority":LEGACY_AUTHORITY,"warning":LEGACY_WARNING}),
+        ).expect("compiled compatibility record profile")
+    }
+    fn selected(identity: &Value, historical: &Value) -> Result<Self> {
+        let profile = Self {
+            anchor_prefix: s(&identity["anchor_prefix"])?.to_owned(),
+            passage_prefix: s(&identity["passage_prefix"])?.to_owned(),
+            unit_separator: s(&identity["unit_separator"])?.to_owned(),
+            anchor_suffix: s(&identity["anchor_suffix"])?.to_owned(),
+            authority: s(&historical["authority"])?.to_owned(),
+            warning: s(&historical["warning"])?.to_owned(),
+        };
+        ensure(
+            profile.anchor_prefix.starts_with("tos.anchor.")
+                && profile.passage_prefix.starts_with("tos.passage."),
+            "invalid structural identity prefixes",
+        )?;
+        for identity in [
+            profile.anchor("work", "expression", "series", "1"),
+            profile.passage("work", "expression", "series", "1"),
+        ] {
+            tos_foundation::StableId::parse(&identity)
+                .map_err(|e| format!("invalid structural identity: {e}"))?;
+        }
+        Ok(profile)
+    }
+    fn anchor(&self, slug: &str, expression: &str, key: &str, unit: &str) -> String {
+        format!(
+            "{}{slug}.{expression}.{key}{}{unit}{}",
+            self.anchor_prefix, self.unit_separator, self.anchor_suffix
+        )
+    }
+    fn passage(&self, slug: &str, expression: &str, key: &str, unit: &str) -> String {
+        format!(
+            "{}{slug}.{expression}.{key}{}{unit}",
+            self.passage_prefix, self.unit_separator
+        )
+    }
+    fn validate_config(&self, ctx: &ResearchExecution, config: &Value) -> Result<()> {
+        let raw = ctx.read("ToS/contracts/source-anchor.schema.json")?;
+        let schema: Value = serde_json::from_slice(&raw).map_err(|e| e.to_string())?;
+        let pattern = s(&schema["$defs"]["tosId"]["pattern"])?;
+        let valid = regex::Regex::new(pattern).map_err(|e| format!("anchor ID pattern: {e}"))?;
+        let slug = s(&config["slug"])?;
+        let expression = s(&config["expression_ref"])?
+            .rsplit('.')
+            .next()
+            .ok_or("expression identity missing")?;
+        let mut anchors = BTreeSet::new();
+        let mut passages = BTreeSet::new();
+        for series in array(&config["series"])? {
+            let key = s(&series["series_key"])?;
+            for index in 0..array(&series["start_pages"])?.len() {
+                ctx.tick(1)?;
+                let unit = (index + 1).to_string();
+                let anchor = self.anchor(slug, expression, key, &unit);
+                let passage = self.passage(slug, expression, key, &unit);
+                ensure(
+                    valid.is_match(&anchor)
+                        && valid.is_match(&passage)
+                        && anchors.insert(anchor)
+                        && passages.insert(passage),
+                    "invalid or duplicate selected structural identity",
+                )?;
+            }
+        }
+        Ok(())
+    }
+}
 impl NumberProfile {
     // The legacy alias keeps its original profile until that alias is retired.
     fn legacy() -> Self {
@@ -420,7 +503,15 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
         "nietzsche_transfer_source_structure/config.json"
     ))
     .map_err(|e| e.to_string())?;
-    run_selected_configs(ctx, options, configs, &NumberProfile::legacy(), None, None)
+    run_selected_configs(
+        ctx,
+        options,
+        configs,
+        &NumberProfile::legacy(),
+        &RecordProfile::legacy(),
+        None,
+        None,
+    )
 }
 /// Replay one retained configuration while the hierarchical producer migrates.
 /// Remove this compatibility entry when the research-owned stage replaces it.
@@ -430,6 +521,9 @@ pub fn replay_selected(
     config: &Value,
     geometry: &Value,
     substitutions: &Value,
+    identity: &Value,
+    historical: &Value,
+    tools: &Value,
     expected: &BTreeMap<String, String>,
     target: Option<&ResearchExecution>,
 ) -> Result<Value> {
@@ -448,6 +542,15 @@ pub fn replay_selected(
         "hierarchical source output membership differs",
     )?;
     let profile = NumberProfile::selected(geometry, substitutions)?;
+    let records = RecordProfile::selected(identity, historical)?;
+    records.validate_config(ctx, config)?;
+    let tools = array(tools)?;
+    ensure(
+        tools.len() == 1
+            && tools[0]["name"] == "pdftotext"
+            && tools[0]["version"] == PDFTOTEXT_VERSION,
+        "unsupported hierarchical source extraction tool",
+    )?;
     run_selected_configs(
         ctx,
         Options {
@@ -458,6 +561,7 @@ pub fn replay_selected(
         },
         vec![config.clone()],
         &profile,
+        &records,
         Some(expected),
         target,
     )
@@ -467,6 +571,7 @@ fn run_selected_configs(
     options: Options<'_>,
     configs: Vec<Value>,
     profile: &NumberProfile,
+    record_profile: &RecordProfile,
     expected: Option<&BTreeMap<String, String>>,
     target: Option<&ResearchExecution>,
 ) -> Result<Value> {
@@ -753,9 +858,7 @@ fn run_selected_configs(
                 )?;
                 let slug = s(&config["slug"])?;
                 let expression = s(&config["expression_ref"])?.rsplit('.').next().unwrap();
-                let original_id = format!(
-                    "tos.anchor.friedrich-nietzsche.{slug}.{expression}.{key}.unit-{unit}.source-start-page"
-                );
+                let original_id = record_profile.anchor(slug, expression, key, &unit);
                 let anchor = options
                     .generation
                     .map_or(original_id.clone(), |g| format!("{original_id}.native-{g}"));
@@ -778,9 +881,7 @@ fn run_selected_configs(
                     ("file_sha256", v(&address.entry["sha256"])?),
                     (
                         "passage_id",
-                        q(format!(
-                            "tos.passage.friedrich-nietzsche.{slug}.{expression}.{key}.unit-{unit}"
-                        )),
+                        q(record_profile.passage(slug, expression, key, &unit)),
                     ),
                     (
                         "selectors",
@@ -871,7 +972,7 @@ fn run_selected_configs(
         )?;
         let mut map = records::map(&d)?;
         if options.generation.is_none() {
-            set(&mut map, "authority_boundary", q(LEGACY_AUTHORITY))?;
+            set(&mut map, "authority_boundary", q(&record_profile.authority))?;
         }
         let map_raw = render(&map, true)?;
         let map_digest = sha(&map_raw);
@@ -883,7 +984,7 @@ fn run_selected_configs(
             let Out::Array(warnings) = field(&mut new_event, "warnings")? else {
                 return Err("event warnings array".into());
             };
-            warnings[4] = q(LEGACY_WARNING);
+            warnings[4] = q(&record_profile.warning);
         } else {
             native_event(&mut new_event, &review)?;
         }
@@ -978,6 +1079,21 @@ mod tests {
         changed.substitutions.remove(&'s');
         assert!(!pdf_numbers(&ctx, &page, &changed).unwrap().contains("27"));
         assert_eq!(numeric("s", &changed), "");
+        let mut records = RecordProfile::legacy();
+        assert_eq!(
+            records.anchor("work", "expression", "series", "1"),
+            "tos.anchor.friedrich-nietzsche.work.expression.series.unit-1.source-start-page"
+        );
+        records.anchor_suffix = ".selected".into();
+        assert!(
+            records
+                .anchor("work", "expression", "series", "1")
+                .ends_with(".unit-1.selected")
+        );
+        assert_eq!(
+            records.passage("work", "expression", "series", "1"),
+            "tos.passage.friedrich-nietzsche.work.expression.series.unit-1"
+        );
         assert_eq!(render(&v(&json!(-2)).unwrap(), false).unwrap(), b"-2\n");
     }
 }

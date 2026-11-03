@@ -328,22 +328,25 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
             if !input.is_absolute() {
                 return Err("hierarchical source input root must be absolute".into());
             }
-            // Identity and historical text remain in the retained producer.
-            // Remove this gate as those fields migrate into the research stage.
-            let mut compatibility = recipe.clone();
-            let object = compatibility
-                .as_object_mut()
-                .ok_or("hierarchical source recipe required")?;
-            object.remove("configuration");
-            object.remove("frozen_outputs");
-            object.remove("candidate_geometry");
-            object.remove("ocr_substitutions");
-            compatibility.sort_all_objects();
-            let raw = serde_json::to_vec(&compatibility).map_err(|e| e.to_string())?;
-            if tos_foundation::Digest256::of_bytes(&raw).to_hex()
-                != "ce52b1aa94a9e300c552d1e386b1e9e46151a465709ad4b44517dd94b7fcbf85"
+            let fields: BTreeSet<_> = recipe
+                .as_object()
+                .ok_or("hierarchical source recipe required")?
+                .keys()
+                .map(String::as_str)
+                .collect();
+            if fields
+                != BTreeSet::from([
+                    "stage",
+                    "configuration",
+                    "tools",
+                    "historical_text",
+                    "candidate_geometry",
+                    "ocr_substitutions",
+                    "identity",
+                    "frozen_outputs",
+                ])
             {
-                return Err("unsupported hierarchical source compatibility parameters".into());
+                return Err("unsupported hierarchical source recipe field".into());
             }
             let mut expected = BTreeMap::new();
             let mut frozen = Vec::new();
@@ -392,6 +395,9 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
                 &recipe["configuration"],
                 &recipe["candidate_geometry"],
                 &recipe["ocr_substitutions"],
+                &recipe["identity"],
+                &recipe["historical_text"],
+                &recipe["tools"],
                 &expected,
                 target.as_ref(),
             )?;
