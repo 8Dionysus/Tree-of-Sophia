@@ -2152,9 +2152,9 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
             record["schema_version"] = example["schema_version"].clone();
             record["semantic_content"] = example["semantic_content"].clone();
             // Explicit synthetic source evidence, outside mapping rules/bounds.
-            // The owner preserves this Int; JavaScript receives only opaque text.
+            // New records retain integers beyond 2^53 as exact decimal strings.
             record["semantic_content"]["provenance"]["synthetic_opaque_integer"] =
-                serde_json::json!(9007199254740993u64);
+                serde_json::json!("9007199254740993");
         }
         let operation = if kind == "historical-event" {
             "historical.create"

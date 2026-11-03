@@ -157,6 +157,7 @@
             },
             "provenance": {
               "type": "object",
+              "description": "New records encode numbers that jcs1 cannot represent exactly, including negative zero, as strings with their exact decimal spelling.",
               "minProperties": 1
             }
           }
