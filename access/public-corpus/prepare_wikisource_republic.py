@@ -22,7 +22,10 @@ ROOT = karpov.ROOT
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--capture-dir', required=True, type=pathlib.Path)
-    capture = parser.parse_args().capture_dir.resolve(strict=True)
+    parser.add_argument('--native-owner-command', required=True)
+    args = parser.parse_args()
+    capture = args.capture_dir.resolve(strict=True)
+    owner = retained.resolve_inventory_owner(args.native_owner_command)
     snapshots, responses, sections = [], [], []
     for i in range(1, 11):
         snapshot = json.loads((capture / f'book-{i:02}.json').read_text())
@@ -121,6 +124,8 @@ def main():
         path = ROOT/ref
         path.parent.mkdir(parents=True,exist_ok=True)
         path.write_bytes(content)
+    retained.write_metadata_refresh(owner, ROOT, f'{item}/item.manifest.json',
+        f"tos.event.inventory.{details['item_id']}.20261103")
     doc['versions'].append(version_record)
     selection_path.write_bytes(retained.json_bytes(selection))
     print(f'republic: {len(sections)} sections, {len(all_pages)} page transclusions, {counts}')

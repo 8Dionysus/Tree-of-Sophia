@@ -7,11 +7,10 @@ new curated records live with `ToS/source-witnesses/`; journey questions live
 with `ToS/research-packets/public-prototypes-20261026/`.
 
 Both profiles select the same 50 works: German and English *Zarathustra* and
-all 49 books in the retained Antiquity collection, in 96 retained versions.
-The six previously published reading layers remain available with their
-original IDs and revisions. Four of those layers describe editions also in
-the retained collection; they are distinct reading representations, not four
-additional historical editions. The complete selection has 102 reading layers.
+all 49 books in the retained Antiquity collection. The selection contains 121
+reading versions, including 17 newly captured Russian Karpov translations of
+Plato from Wikisource. Distinct reading representations of the same edition
+are not additional historical editions.
 Gutenberg's electronic editions and the pinned Perseus
 repository revision are identified in `acquisition-index.v1.json` and the
 individual source metadata snapshots. These are the selected electronic
@@ -71,6 +70,18 @@ the native work, version and section IDs without renaming saved graph nodes.
 Completeness here means all sections of the saved reading representations.
 It does not certify transcription quality against scans or critical editions.
 Historical Wikisource transclusions retain their recorded proofreading limits.
+
+The Karpov translations identify the 1863–1879 edition, translator, license,
+article oldids, per-page revisions and proofreading status. Exact parse API
+responses and reading-layer bytes remain in local Item payload custody; the
+repository carries their digests and source records. The 16 dialogue captures
+and ten separately captured books of *Republic* retain their source renderings;
+the latter have a Wikisource template error outside the text body. Captured
+pages were not collated against scans, and the alignment is unreviewed. The
+preparation scripts extract reading text and margin references without silently
+correcting source errors; they do not independently verify historical rights
+or semantic equivalence. *Republic* intake also requires the native inventory
+owner to account for each retained response.
 
 ## Editorial marks in the reader
 
