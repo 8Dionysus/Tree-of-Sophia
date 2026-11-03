@@ -734,6 +734,8 @@
 .ps-term:focus-visible{outline:2px solid #e4cb8b;outline-offset:2px;border-radius:2px}
 .ps-term-card{position:fixed;z-index:60;left:0;top:0;box-sizing:border-box;display:grid;gap:8px;max-width:calc(100vw - 16px);padding:12px 14px 12px;border:1px solid #c9ad7352;border-radius:8px;background:linear-gradient(170deg,#0b1729f7,#070f1bfa);backdrop-filter:blur(16px);box-shadow:0 16px 44px #000c;color:#d6dfeb;font:13px/1.45 system-ui,-apple-system,'Segoe UI',sans-serif;animation:ps-term-in .14s ease-out}
 .ps-term-card[hidden]{display:none}
+.ps-term-card[data-stand="antiquity"]{max-height:calc(100vh - 16px);overflow-y:auto}
+.ps-term-card[data-stand="antiquity"] .ps-term-source{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
 .ps-term-card p{margin:0}
 .ps-term-eyebrow{display:block;margin-bottom:2px;color:#8ea2ba;font:600 9.5px/1.4 system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase}
 .ps-term-lemma{color:#f3e6c6;font:italic 400 20px/1.25 Sophia,Georgia,'Times New Roman',serif}

@@ -142,6 +142,7 @@ export function createTerms({module,locale=()=> 'ru',open=()=>{}}={}){
 
   // The origin card: one for the page, beside the word it shows.
   const card=make('section','ps-term-card');card.hidden=true;card.setAttribute('role','dialog');card.setAttribute('aria-modal','false');
+  if(module.work==='antiquity')card.dataset.stand='antiquity';
   card.id=`ps-term-card-${Math.random().toString(36).slice(2,8)}`;document.body.append(card);
   let shownFor=null,showTimer=0,hideTimer=0;
   function paint(term){

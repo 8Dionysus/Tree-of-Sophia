@@ -114,9 +114,10 @@ it('shows the original, edition words and gloss before opening an Antiquity plac
   vi.stubGlobal('document',{body,documentElement:{lang:'en'},createElement:tag=>new Element(tag),addEventListener:(type,fn)=>{handlers[type]=fn;},removeEventListener(){}});
   vi.stubGlobal('innerWidth',800);vi.stubGlobal('innerHeight',600);vi.stubGlobal('addEventListener',()=>{});vi.stubGlobal('removeEventListener',()=>{});
   const first={w:'discourses',u:['first','first'],s:0,e:30},open=vi.fn();
-  const terms=createTerms({locale:()=> 'en',open,module:{editions:{long:{label:{en:'Long'}},higginson:{label:{en:'Higginson'}}},terms:[{id:'phantasia',original:{lang:'grc',lemma:'φαντασία'},first,renderings:{en:{tos:{term:'impression'},witness:[{edition:'long',term:'appearance'},{edition:'higginson',term:'semblance'}]}},gloss:{en:'An impression meets judgment.'}}]}});
+  const terms=createTerms({locale:()=> 'en',open,module:{work:'antiquity',editions:{long:{label:{en:'Long'}},higginson:{label:{en:'Higginson'}}},terms:[{id:'phantasia',original:{lang:'grc',lemma:'φαντασία'},first,renderings:{en:{tos:{term:'impression'},witness:[{edition:'long',term:'appearance'},{edition:'higginson',term:'semblance'}]}},gloss:{en:'An impression meets judgment.'}}]}});
   const span=new Element('span');span.dataset.term='phantasia';handlers.focusin({target:span});
   const card=body.children[0],text=node=>[node.textContent??'',...node.children.map(text)].join(' ');
+  expect(card.dataset.stand).toBe('antiquity');
   expect(text(card)).toContain('φαντασία');expect(text(card)).toContain('appearance');expect(text(card)).toContain('semblance');expect(text(card)).toContain('An impression meets judgment.');
   card.children.at(-1).listeners.click();expect(open).toHaveBeenCalledWith(first);
   terms.dispose();vi.unstubAllGlobals();
