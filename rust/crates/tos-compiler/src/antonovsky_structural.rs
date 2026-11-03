@@ -1103,10 +1103,75 @@ fn page_footer(r: &Row, rule: &FooterRule) -> bool {
         && x1 - x0 < rule.small_width_below
         && thresholds.iter().any(|threshold| x0 > *threshold)
 }
+#[derive(Clone, Copy)]
+struct ParagraphRule {
+    large_gap_at_least: f64,
+    indent_gap_at_least: f64,
+    indent_at_least: f64,
+    same_baseline_y_tolerance: f64,
+    context_change: f64,
+    role_change: f64,
+    large_gap: f64,
+    indent_and_gap: f64,
+    new_panel_indent: f64,
+    same_baseline_fragment: f64,
+    first_line_indent: f64,
+    continuation: f64,
+}
+impl ParagraphRule {
+    // Compatibility profile is removed when compiler research consumers migrate.
+    fn legacy() -> Self {
+        Self {
+            large_gap_at_least: 5.2,
+            indent_gap_at_least: 2.,
+            indent_at_least: 13.,
+            same_baseline_y_tolerance: 4.8,
+            context_change: 1.,
+            role_change: 1.,
+            large_gap: 0.97,
+            indent_and_gap: 0.95,
+            new_panel_indent: 0.94,
+            same_baseline_fragment: 0.99,
+            first_line_indent: 0.96,
+            continuation: 0.91,
+        }
+    }
+    fn selected(value: &Value) -> Result<Self> {
+        fn number(v: &Value, key: &str) -> Result<f64> {
+            v[key]
+                .as_f64()
+                .filter(|n| n.is_finite() && *n >= 0.)
+                .ok_or_else(|| format!("invalid paragraph rule {key}"))
+        }
+        fn confidence(v: &Value, key: &str) -> Result<f64> {
+            let value = number(v, key)?;
+            if value > 1. {
+                return Err(format!("invalid paragraph confidence {key}"));
+            }
+            Ok(value)
+        }
+        let c = &value["confidence"];
+        Ok(Self {
+            large_gap_at_least: number(value, "large_gap_at_least")?,
+            indent_gap_at_least: number(value, "indent_gap_at_least")?,
+            indent_at_least: number(value, "indent_at_least")?,
+            same_baseline_y_tolerance: number(value, "same_baseline_y_tolerance")?,
+            context_change: confidence(c, "context_change")?,
+            role_change: confidence(c, "role_change")?,
+            large_gap: confidence(c, "large_gap")?,
+            indent_and_gap: confidence(c, "indent_and_gap")?,
+            new_panel_indent: confidence(c, "new_panel_indent")?,
+            same_baseline_fragment: confidence(c, "same_baseline_fragment")?,
+            first_line_indent: confidence(c, "first_line_indent")?,
+            continuation: confidence(c, "continuation")?,
+        })
+    }
+}
 #[derive(Clone)]
 struct LayoutClassification {
     header: HeaderRule,
     footer: FooterRule,
+    paragraph: ParagraphRule,
     regions: Vec<(usize, String, String)>,
     precedence: BTreeMap<String, usize>,
 }
@@ -1141,6 +1206,7 @@ impl LayoutClassification {
         Self {
             header: HeaderRule::legacy(),
             footer: FooterRule::legacy(),
+            paragraph: ParagraphRule::legacy(),
             regions,
             precedence,
         }
@@ -1183,6 +1249,7 @@ impl LayoutClassification {
         Ok(Self {
             header: HeaderRule::selected(&value["header"])?,
             footer: FooterRule::selected(&value["footer"])?,
+            paragraph: ParagraphRule::selected(&value["paragraph"])?,
             regions,
             precedence,
         })
@@ -1203,32 +1270,36 @@ fn same_panel(a: &Row, b: &Row) -> bool {
 fn same_context(a: &Row, b: &Row) -> bool {
     a.reading == b.reading && a.subpart == b.subpart
 }
-fn paragraph_boundary(a: &Row, b: &Row) -> (bool, &'static str, f64) {
+fn paragraph_boundary(a: &Row, b: &Row, rule: ParagraphRule) -> (bool, &'static str, f64) {
     if !same_context(a, b) {
-        return (true, "structural_context_change", 1.);
+        return (true, "structural_context_change", rule.context_change);
     }
     if a.role.as_deref() != Some("prose") || b.role.as_deref() != Some("prose") {
-        return (true, "role_change", 1.);
+        return (true, "role_change", rule.role_change);
     }
     let same = same_panel(a, b);
     if same {
         let gap = b.bbox[1] - a.bbox[3];
-        if gap >= 5.2 {
-            return (true, "large_vertical_gap", 0.97);
+        if gap >= rule.large_gap_at_least {
+            return (true, "large_vertical_gap", rule.large_gap);
         }
-        if gap >= 2. && b.indent.unwrap_or(0.) >= 13. {
-            return (true, "indent_plus_vertical_gap", 0.95);
+        if gap >= rule.indent_gap_at_least && b.indent.unwrap_or(0.) >= rule.indent_at_least {
+            return (true, "indent_plus_vertical_gap", rule.indent_and_gap);
         }
-    } else if b.indent.unwrap_or(0.) >= 13. {
-        return (true, "new_panel_indented_start", 0.94);
+    } else if b.indent.unwrap_or(0.) >= rule.indent_at_least {
+        return (true, "new_panel_indented_start", rule.new_panel_indent);
     }
-    if b.indent.unwrap_or(0.) >= 13. {
-        if same && (b.bbox[1] - a.bbox[1]).abs() <= 4.8 {
-            return (false, "same_logical_baseline_fragment", 0.99);
+    if b.indent.unwrap_or(0.) >= rule.indent_at_least {
+        if same && (b.bbox[1] - a.bbox[1]).abs() <= rule.same_baseline_y_tolerance {
+            return (
+                false,
+                "same_logical_baseline_fragment",
+                rule.same_baseline_fragment,
+            );
         }
-        return (true, "first_line_indent", 0.96);
+        return (true, "first_line_indent", rule.first_line_indent);
     }
-    (false, "base_margin_continuation", 0.91)
+    (false, "base_margin_continuation", rule.continuation)
 }
 fn reconstruct_blocks(
     blocks: Vec<Block>,
@@ -1703,7 +1774,7 @@ fn reconstruct_blocks(
             reasons.push(("content_run_start", 1.));
         } else {
             let (boundary, reason, confidence) =
-                paragraph_boundary(&rows[*current.last().unwrap()], row);
+                paragraph_boundary(&rows[*current.last().unwrap()], row, layout.paragraph);
             if boundary {
                 groups.push(std::mem::take(&mut current));
                 reasons.push((reason, confidence));
@@ -2689,28 +2760,28 @@ mod tests {
         let a = row([430., 100., 620., 110.], 0.);
         let mut b = row([443., 112., 620., 122.], 13.);
         assert_eq!(
-            paragraph_boundary(&a, &b),
+            paragraph_boundary(&a, &b, ParagraphRule::legacy()),
             (true, "indent_plus_vertical_gap", 0.95)
         );
         b.bbox[1] = 105.2;
         b.bbox[3] = 115.;
         assert_eq!(
-            paragraph_boundary(&a, &b),
+            paragraph_boundary(&a, &b, ParagraphRule::legacy()),
             (true, "first_line_indent", 0.96)
         );
         b.bbox[1] = 104.8;
         assert_eq!(
-            paragraph_boundary(&a, &b),
+            paragraph_boundary(&a, &b, ParagraphRule::legacy()),
             (false, "same_logical_baseline_fragment", 0.99)
         );
         b.page = 6;
         assert_eq!(
-            paragraph_boundary(&a, &b),
+            paragraph_boundary(&a, &b, ParagraphRule::legacy()),
             (true, "new_panel_indented_start", 0.94)
         );
         b.subpart = Some("part_1.reading_01.subpart_01".into());
         assert_eq!(
-            paragraph_boundary(&a, &b),
+            paragraph_boundary(&a, &b, ParagraphRule::legacy()),
             (true, "structural_context_change", 1.)
         );
     }
@@ -2746,6 +2817,7 @@ mod tests {
         let mut profile = json!({
             "header":{"y_below": 25,"left_center_x":200,"right_center_x":600,"center_tolerance":4,"max_characters":18,"minimum_dashes":2,"max_letters_for_short_mark":3,"max_characters_for_short_mark":5},
             "footer":{"always_from_y": 550,"inspect_from_y":530,"text_contains":["special"],"allowed_symbols":"*", "marginal_from_y":540,"marginal_width_below":40,"right_panel_x":{"x_min":500,"x_max":620},"left_panel_x":{"x_min":150,"x_max":260},"small_height_at_most":10.1,"small_width_below":180,"small_right_panel_x_above_any":[680,460],"small_left_panel_x_above_any":[300,150]},
+            "paragraph":{"large_gap_at_least":5.2,"indent_gap_at_least":2,"indent_at_least":13,"same_baseline_y_tolerance":4.8,"confidence":{"context_change":1,"role_change":1,"large_gap":0.97,"indent_and_gap":0.95,"new_panel_indent":0.94,"same_baseline_fragment":0.99,"first_line_indent":0.96,"continuation":0.91}},
             "regions":[{"page":2,"panel":"left","kind":"front_matter"}],
             "role_precedence":[{"role":"selected_role","priority":7}]
         });
@@ -2760,6 +2832,25 @@ mod tests {
         let duplicate = profile["regions"][0].clone();
         profile["regions"].as_array_mut().unwrap().push(duplicate);
         assert!(LayoutClassification::selected(&profile).is_err());
+    }
+    #[test]
+    fn selected_paragraph_profile_controls_boundary_and_confidence() {
+        let value = json!({"large_gap_at_least":1, "indent_gap_at_least":2, "indent_at_least":13, "same_baseline_y_tolerance":4.8,
+            "confidence":{"context_change":1,"role_change":1,"large_gap":0.77,"indent_and_gap":0.95,"new_panel_indent":0.94,"same_baseline_fragment":0.99,"first_line_indent":0.96,"continuation":0.91}});
+        let rule = ParagraphRule::selected(&value).unwrap();
+        let a = row([430., 100., 620., 110.], 0.);
+        let b = row([430., 112., 620., 122.], 0.);
+        assert_eq!(
+            paragraph_boundary(&a, &b, rule),
+            (true, "large_vertical_gap", 0.77)
+        );
+        assert_eq!(
+            paragraph_boundary(&a, &b, ParagraphRule::legacy()),
+            (false, "base_margin_continuation", 0.91)
+        );
+        let mut invalid = value;
+        invalid["confidence"]["large_gap"] = json!(1.1);
+        assert!(ParagraphRule::selected(&invalid).is_err());
     }
     #[test]
     fn private_key_and_false_flag_controls() {
