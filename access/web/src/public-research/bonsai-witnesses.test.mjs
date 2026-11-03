@@ -38,6 +38,14 @@ describe('the witnesses of Zarathustra',()=>{
     expect(redemption.units.ru.find(unit=>unit.id==='ru1913.II.20.042').raw).toContain('воля избавительница себя самой и вестником радости');
     expect(chapter('IV.05').units.ru.find(unit=>unit.id==='ru1913.IV.05.039').raw).toContain('о, Заратустра?');
     expect(chapter('IV.20').units.ru.find(unit=>unit.id==='ru1913.IV.20.023').raw).toContain('брежжит мой день');
+    expect(chapter('IV.08').units.ru.find(unit=>unit.id==='ru1913.IV.08.008').raw).toContain('научиться у этих коров');
+    expect(chapter('III.12').units.ru.find(unit=>unit.id==='ru1913.III.12.219').raw).toContain('налагать руку на тысячелетия');
+    expect(chapter('IV.10').units.ru.find(unit=>unit.id==='ru1913.IV.10.022').raw).toContain('Вставай, ты, сонливец!');
+    expect(chapter('IV.12').units.ru.find(unit=>unit.id==='ru1913.IV.12.007').raw).toContain('импровизованное здоровье');
+    expect(chapter('IV.13').units.ru.find(unit=>unit.id==='ru1913.IV.13.096').raw).toContain('Заратустра смеющийся');
+    expect(chapter('IV.20').units.ru.find(unit=>unit.id==='ru1913.IV.20.011').raw).toContain('он увидел, что у ног его лежал');
+    expect(chapter('III.16').units.ru.find(unit=>unit.id==='ru1913.III.16.051').raw).toContain('даже у бога есть есть свой ад');
+    expect(chapter('III.12').units.ru.find(unit=>unit.id==='ru1913.III.12.036').raw).toContain('самым дальным: не щади');
   });
   it('show what a translation leaves out as left out: a whole chapter, or the rest of one',()=>{
     const priests=chapter('II.04');
@@ -60,11 +68,11 @@ describe('the witnesses of Zarathustra',()=>{
     const result=realignWitnesses(manifest,files);
     // Proofread chapters retain their original pairings, with adjusted offsets.
     // Fresh segmentation can split the restored questions differently.
-    const proofread=['I.23','II.20','III.10','III.13','IV.01','IV.04','IV.05','IV.07','IV.08','IV.13','IV.17'];
+    const proofread=["I.22","I.23","II.01","II.05","II.10","II.18","II.19","II.20","II.21","II.22","III.01","III.03","III.05","III.06","III.08","III.10","III.11","III.12","III.13","III.15","III.16","IV.01","IV.02","IV.03","IV.04","IV.05","IV.07","IV.08","IV.09","IV.10","IV.12","IV.13","IV.16","IV.17","IV.20"];
     expect(result.changed.filter(key=>!proofread.includes(key))).toEqual([]);
-    expect(result.alignment.triangle).toEqual(manifest.alignment.triangle);
+    // Re-aligning the changed Russian can change the model and triangle;
+    // the stored correspondences remain in the proofread chapter files.
     expect(result.alignment.pairs['de-en']).toEqual(manifest.alignment.pairs['de-en']);
-    expect(result.alignment.pairs['en-ru']).toEqual(manifest.alignment.pairs['en-ru']);
   },240_000);
 });
 
