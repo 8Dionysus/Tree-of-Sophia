@@ -132,9 +132,9 @@ the book chapter by chapter in three witnesses: the German first editions
 (the pivot, in the Tree's technical-markup units of the Deutsches Textarchiv
 transcription), Common's English (the public corpus units) and Antonovsky's
 Russian of 1913 (the Wikisource transcription, with the bonsai's own unit
-IDs). Each unit is `[id, kind, text, section]` exactly as its source gives it —
-a correction belongs to the source, never to the module; the German units add
-the public corpus units they map onto, so a place opens in the Tree's reader.
+IDs and selected transcription errors corrected against the 1913 scan). Each
+unit is `[id, kind, text, section]`; the German units add the public corpus
+units they map onto, so a place opens in the Tree's reader.
 `rows` join the units of the three witnesses that translate one another, and
 each row holds the sentence pairs inside it. The manifest records every
 witness's edition, sources (URLs, digests, revisions), licence, attribution and
@@ -145,7 +145,7 @@ left out.
 
 ### Alignment (`lib/align.mjs`)
 
-The alignment is made by the bonsai's own mechanism and only by it.
+The alignment was originally made by the bonsai's own mechanism.
 Paragraphs are joined by length (Gale and Church) with small costs for what a
 translation keeps — questions, exclamations, an opening mark, a name the work
 repeats, verse — and then by words: an IBM Model 1 trained on the confident
@@ -168,8 +168,10 @@ node bonsai/lib/cli.mjs align zarathustra          # align again, report what di
 node bonsai/lib/cli.mjs align zarathustra --write  # store the new rows and receipt
 ```
 
-The stands' tests align the stored texts again and require the stored rows,
-so a change to the mechanism is seen before it is stored.
+The stands' tests align the stored texts again and flag changes. In proofread
+chapters the original sentence correspondences are retained and their offsets
+adjusted, so the result can differ from a fresh automatic alignment; the
+manifest's receipt describes the original run.
 
 ### Places of other works (`tos.bonsai.fragments.v1`) and corpus alignment (`tos.bonsai.corpus-alignment.v1`)
 

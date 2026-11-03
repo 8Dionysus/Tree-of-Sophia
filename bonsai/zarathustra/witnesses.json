@@ -11,8 +11,8 @@
   },
   "pivot": "de",
   "posture": {
-    "ru": "Свидетели книги, которыми стенд показывает её собственный текст: немецкий оригинал в первых изданиях, английский перевод Коммона и русский перевод Антоновского 1913 года, по главам, точно как их дают источники. Строки выравнивания и пары предложений предложил механизм бонсая (bonsai/lib/align.mjs) без ручного подбора; они не проверены человеком и в Древо не приняты. Цитата стенда всегда указывает место в оригинале; место в переводе находится через выравнивание.",
-    "en": "The witnesses through which the stand shows the book’s own text: the German original in its first editions, Common’s English and Antonovsky’s Russian of 1913, chapter by chapter, exactly as their sources give them. The alignment rows and sentence pairs were proposed by the bonsai’s mechanism (bonsai/lib/align.mjs), with nothing chosen by hand; no person has reviewed them and the Tree has not admitted them. A citation of the stand always names a place in the original; the place in a translation is found through the alignment."
+    "ru": "Свидетели книги, которыми стенд показывает её собственный текст: немецкий оригинал в первых изданиях, английский перевод Коммона и русский перевод Антоновского 1913 года, по главам, с исправлением отдельных ошибок транскрипции по скану издания 1913 года. Строки выравнивания и пары предложений предложил механизм бонсая (bonsai/lib/align.mjs); после исправления текста в отдельных главах прежние пары сохранены, а их координаты сдвинуты. Выравнивание не проверено человеком и в Древо не принято. Цитата стенда всегда указывает место в оригинале; место в переводе находится через выравнивание.",
+    "en": "The witnesses through which the stand shows the book’s own text: the German original in its first editions, Common’s English and Antonovsky’s Russian of 1913, chapter by chapter, with selected transcription errors corrected against the 1913 scan. The alignment rows and sentence pairs were proposed by the bonsai’s mechanism (bonsai/lib/align.mjs); after proofreading selected chapters, the original pairs were retained with adjusted offsets. No person has reviewed the alignment and the Tree has not admitted it. A citation of the stand always names a place in the original; the place in a translation is found through the alignment."
   },
   "licence": {
     "id": "CC BY-SA 4.0",
@@ -179,8 +179,8 @@
         "en": "The censored edition of 1913 lacks the chapters “The Priests”, “Out of Service” and “The Ass-Festival” and drops the second half of “The Awakening” with its litany; the alignment shows these places as omissions."
       },
       "quality": {
-        "ru": "Большая часть страниц Викитеки ещё не вычитана; ошибки распознавания остаются, их правят по скану, а не в модуле.",
-        "en": "Most Wikisource pages are not yet proofread; recognition errors remain and are corrected against the scan, not in the module."
+        "ru": "Большая часть страниц Викитеки ещё не вычитана. Отдельные ошибки транскрипции в модуле исправлены по скану издания 1913 года; другие ошибки могут оставаться.",
+        "en": "Most Wikisource pages are not yet proofread. Selected transcription errors in this module have been corrected against the 1913 scan; other errors may remain."
       },
       "rights": {
         "basis": "public-domain+licence",
@@ -222,6 +222,7 @@
   "alignment": {
     "mechanism": "bonsai/lib/align.mjs",
     "review": "unreviewed",
+    "receiptNote": "Alignment statistics describe the original automated run; proofreading preserves its sentence pairs while adjusting offsets.",
     "pairs": {
       "de-en": {
         "ratio": 0.9846,
