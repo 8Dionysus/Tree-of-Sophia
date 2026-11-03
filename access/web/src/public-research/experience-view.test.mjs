@@ -23,10 +23,13 @@ test('reference navigation keeps an unavailable historic version distinct from t
   const entries=new Map([['one',{id:'one',kind:'conception',title:{en:'One'},dependencies:[]}]]),index={revision:'current',items:entries,get:id=>entries.get(id),resolveId:id=>id,search:()=>[],references:()=>[]};
   const root=new Element('root'),spaceroot=new Element('space'),space={root:spaceroot,renderResearch:vi.fn(),openResearch:vi.fn(),fragments:{},selection:()=>null};root.append(spaceroot);
   let stored;const notebook={getPreference:vi.fn(async()=>undefined),setPreference:vi.fn(async(_key,value)=>{stored=value;})};
-  const view=mountResearchExperience({root,header:new Element('header'),profile:'test',locale:()=> 'en',index,space,notebook,api:{getQuestion:()=>''}});
+  const header=new Element('header'),view=mountResearchExperience({root,header,profile:'test',locale:()=> 'en',index,space,notebook,api:{getQuestion:()=>''}});
   await vi.waitFor(()=>expect(root.children.some(node=>node.className==='experience-pane'&&node.children.some(child=>child.className==='experience-body'&&child.children.find(item=>item.className==='experience-article')?.children.some(item=>item.textContent?.includes('version is unavailable'))))).toBe(true));
   expect(view.getState()).toMatchObject({mode:'reference',id:'one',revision:'old'});expect(space.renderResearch).not.toHaveBeenCalled();
-  const toolbar=root.children.find(node=>node.className==='experience-toolbar');toolbar.children[1].children.find(button=>button.textContent==='Calculations').listeners.click();
+  // The modes and tools live in the page's one bar, the header, in every mode.
+  expect(header.children.some(node=>node.className==='experience-toolbar')).toBe(true);
+  const find=(node,test)=>test(node)?node:node.children?.map(child=>find(child,test)).find(Boolean);
+  find(header,node=>node.tag==='button'&&node.textContent==='Calculations').listeners.click();
   await vi.waitFor(()=>expect(root.children.find(node=>node.className==='experience-pane').children.at(-1).children[1].textContent).toContain('version is unavailable'));
   expect(mountResearchOperations).not.toHaveBeenCalled();
   view.setMode('original');expect(space.openResearch).not.toHaveBeenCalled();view.setMode('reference');
@@ -69,10 +72,10 @@ test('moving through history keeps the scroll position each entry had',async()=>
   const entries=new Map(['a','b'].map(id=>[id,{id,kind:'conception',title:{en:id.toUpperCase()},dependencies:[]}])),index={revision:'current',items:entries,get:id=>entries.get(id),resolveId:id=>id,search:()=>[],references:()=>[]};
   const root=new Element('root'),space={root:new Element('space'),renderResearch:vi.fn(),openResearch:vi.fn(),fragments:{},selection:()=>null};root.append(space.root);
   const notebook={getPreference:vi.fn(async()=>undefined),setPreference:vi.fn(async()=>{})};
-  const view=mountResearchExperience({root,header:new Element('header'),profile:'test',locale:()=> 'en',index,space,notebook,api:{getQuestion:()=>''}});
+  const header=new Element('header'),view=mountResearchExperience({root,header,profile:'test',locale:()=> 'en',index,space,notebook,api:{getQuestion:()=>''}});
   await vi.waitFor(()=>expect(notebook.getPreference).toHaveBeenCalled());await new Promise(resolve=>setTimeout(resolve,0));
   view.open('a');window.scrollY=100;view.open('b');window.scrollY=500;
-  const all=node=>[node,...(node.children??[]).flatMap(all)],back=all(root).find(node=>node.tag==='button'&&node.textContent==='← Back');
+  const all=node=>[node,...(node.children??[]).flatMap(all)],back=all(header).find(node=>node.tag==='button'&&node.title==='Back');
   back.listeners.click();
   expect(window.scrollTo).toHaveBeenLastCalledWith(0,100);expect(view.getState().stack.map(entry=>entry.scroll)).toEqual([100,500]);
   view.destroy();

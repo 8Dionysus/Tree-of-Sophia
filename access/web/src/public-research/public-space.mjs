@@ -42,8 +42,8 @@ const extraTranslations={
   ru:{addToSpace:'Добавить в пространство',removeFromSpace:'Убрать из пространства',removedFromSpace:'Узел убран из пространства. Отмена восстановит его связи; текст остаётся в библиотеке.',previewOnly:'Просмотр материала · пространство не изменено',authorWorks:'Произведения автора',visibleCount:'В текущей выборке',recordScope:'Древо и личные мысли сохранены в этом браузере',routeScope:'Маршрут и шаг сохранены в адресе страницы',lensInquiry:'Как исследовать этот вопрос',lensMethod:'Способ чтения',lensLimit:'Что остаётся вне линзы',argument:'Ход мысли',counterReading:'Другое прочтение',readingQuestion:'Вопрос к этому чтению',experiment:'Попробовать при чтении',perspectives:'Детали чтения',example:'Проверить на примере',relationWarrant:'На чём держится переход',relationLimit:'Предел этого сопоставления',nextRelation:'Следующий переход',routeEnd:'К чему пришли',routeStarting:'С чем начинаем',routeStakes:'Почему это меняет ответ',routeCarry:'Что проверить дальше',practice:'Практика',chooseQuestion:'Выберите вопрос',graphSaveError:'Не удалось сохранить граф в этом браузере. Он пока доступен в открытой вкладке.',steps:'шагов',stepsOne:'шаг',stepsFew:'шага',graphUndo:'Отменить действие в пространстве',graphRedo:'Вернуть действие в пространстве',bibliographicOnly:'Только библиографическое указание',externalBibliographic:'Внешняя библиографическая ссылка · доступ к полному тексту не заявлен',openExternal:'Открыть внешнюю библиографическую ссылку',basedOn:'Основано на',groundsFor:'Основание для',endpointSource:'Источник узла',endpointRelatedSources:'Ссылки связанных предложений',personalGrounds:'Основания личного исследования',personalRelations:'Предложения и связи',personalObjection:'Возражение к предложению',openGround:'Открыть основание',readWithin:'Читать в составе',containedSource:'Текст доступен внутри существующего издания',sourceLoading:'Сведения об источнике…'},
   en:{addToSpace:'Add to space',removeFromSpace:'Remove from space',removedFromSpace:'Node removed from the space. Undo restores its relations; the text remains in the library.',previewOnly:'Material preview · your space has not changed',authorWorks:'Works by this author',visibleCount:'In current selection',recordScope:'Tree and personal thoughts saved in this browser',routeScope:'Route and step are kept in the page address',lensInquiry:'How to investigate this question',lensMethod:'A way of reading',lensLimit:'What the lens leaves outside',argument:'The argument',counterReading:'Another reading',readingQuestion:'A question for this reading',experiment:'Try while reading',perspectives:'Details to follow',example:'Try an example',relationWarrant:'What grounds this transition',relationLimit:'Limits of this comparison',nextRelation:'The next transition',routeEnd:'What we have reached',routeStarting:'Where we begin',routeStakes:'Why this changes the answer',routeCarry:'What to examine next',practice:'Practice',chooseQuestion:'Choose a question',graphSaveError:'Could not save the graph in this browser. It remains available in this tab.',steps:'steps',stepsOne:'step',stepsFew:'steps',graphUndo:'Undo a space action',graphRedo:'Redo a space action',bibliographicOnly:'Bibliographic reference only',externalBibliographic:'External bibliographic link · full-text access is not asserted',openExternal:'Open external bibliographic link',basedOn:'Based on',groundsFor:'Grounds',endpointSource:'Source of the endpoint',endpointRelatedSources:'Sources from related proposals',personalGrounds:'Grounds of this personal inquiry',personalRelations:'Proposals and relations',personalObjection:'Objection to proposal',openGround:'Open ground',readWithin:'Read within',containedSource:'This text is available within an existing edition',sourceLoading:'Source details…'},
 };
-Object.assign(extraTranslations.ru,{zoomIn:'Увеличить Древо',zoomOut:'Уменьшить Древо',mapSearch:'Искать в пространстве…',mapSearchHint:'Поиск по названиям и описаниям пространства; полный текст ищите в Чтении.',personal:'Личная запись',personalUnknown:'Вид записи не указан',pendingProposal:'Личное предложение · ожидает проверки · не канон',growEmpty:'Создайте собственную мысль в этом пространстве.',routeQuestion:'Вопрос маршрута',generalQuestion:'Общий вопрос',lensQuestion:'Вопрос этого взгляда',modeCancel:'Отменить выбор',modeFirst:'Выберите первую звезду',modeSecond:'Выберите вторую звезду',modeCompare:'Сопоставление',modeConnect:'Связь',stepName:'Шаг',voice:'Голос'});
-Object.assign(extraTranslations.en,{zoomIn:'Zoom in on the tree',zoomOut:'Zoom out on the tree',mapSearch:'Search this space…',mapSearchHint:'Searches space titles and descriptions; search full text in the reader.',personal:'Personal record',personalUnknown:'Record type not specified',pendingProposal:'Personal proposal · pending review · not canon',growEmpty:'Create your own thought in this space.',routeQuestion:'Route question',generalQuestion:'General question',lensQuestion:'Question for this view',modeCancel:'Cancel selection',modeFirst:'Choose the first star',modeSecond:'Choose the second star',modeCompare:'Compare',modeConnect:'Connect',stepName:'Step',voice:'Voice'});
+Object.assign(extraTranslations.ru,{zoomIn:'Увеличить Древо',zoomOut:'Уменьшить Древо',mapSearch:'Искать в пространстве…',mapSearchShort:'Поиск',mapSearchHint:'Поиск по названиям и описаниям пространства; полный текст ищите в Чтении.',personal:'Личная запись',personalUnknown:'Вид записи не указан',pendingProposal:'Личное предложение · ожидает проверки · не канон',growEmpty:'Создайте собственную мысль в этом пространстве.',routeQuestion:'Вопрос маршрута',generalQuestion:'Общий вопрос',lensQuestion:'Вопрос этого взгляда',modeCancel:'Отменить выбор',modeFirst:'Выберите первую звезду',modeSecond:'Выберите вторую звезду',modeCompare:'Сопоставление',modeConnect:'Связь',stepName:'Шаг',voice:'Голос'});
+Object.assign(extraTranslations.en,{zoomIn:'Zoom in on the tree',zoomOut:'Zoom out on the tree',mapSearch:'Search this space…',mapSearchShort:'Search',mapSearchHint:'Searches space titles and descriptions; search full text in the reader.',personal:'Personal record',personalUnknown:'Record type not specified',pendingProposal:'Personal proposal · pending review · not canon',growEmpty:'Create your own thought in this space.',routeQuestion:'Route question',generalQuestion:'General question',lensQuestion:'Question for this view',modeCancel:'Cancel selection',modeFirst:'Choose the first star',modeSecond:'Choose the second star',modeCompare:'Compare',modeConnect:'Connect',stepName:'Step',voice:'Voice'});
 Object.assign(extraTranslations.ru,{excerpt:'Выдержка',proposalGrounds:'Основания этого предложения',manualOrigin:'Ручной ввод',agentOrigin:'Ответ внешнего агента',personalOrigin:'Личное предложение',pending:'Ожидает проверки',notCanon:'Не канон',postureShort:'Прочтения · не канон'});
 Object.assign(extraTranslations.ru,{turn:'Повернуть пространство',turnRest:'Вернуть пространство к исходному повороту',turnRestNote:'Нажатие возвращает исходный поворот',controls:'Управление',transition:'Переход',branch:'Ветвь',journey:'Маршрут',chooseBranch:'Выберите ветвь или маршрут',walkBranch:'Пройти ветвь',openSection:'Открыть раздел издания',sectionSource:'Открывается раздел издания, где стоит это место; точная фраза не размечена.',moveOne:'ход',moveFew:'хода',moveMany:'ходов'});
 Object.assign(extraTranslations.en,{turn:'Turn the space',turnRest:'Bring the space back to its resting turn',turnRestNote:'Pressing it brings back the resting turn',controls:'Controls',transition:'Link',branch:'Branch',journey:'Route',chooseBranch:'Choose a branch or a route',walkBranch:'Walk this branch',openSection:'Open the edition section',sectionSource:'Opens the edition section that contains this passage; the exact sentence is not marked.',moveOne:'move',moveFew:'moves',moveMany:'moves'});
@@ -64,6 +64,12 @@ const graphIdForMaterial=id=>`material:${id}`;
 const sourceKey=binding=>binding?[binding.documentId,binding.versionId,binding.unitId].join('\u0000'):'';
 const copyPosition=value=>Array.isArray(value)&&value.length===3&&value.every(Number.isFinite)?value:null;
 function downloadGraph(packet,name){const blob=new Blob([packet],{type:'application/json'}),url=URL.createObjectURL(blob),anchor=document.createElement('a');anchor.href=url;anchor.download=name;anchor.hidden=true;document.body.append(anchor);anchor.click();anchor.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+
+// The host contains both the map and the shared header, including search and language controls.
+export function toggleResearchFullscreen(host,doc=document){
+  if(doc.fullscreenElement)return doc.exitFullscreen().catch(()=>{});
+  return host.requestFullscreen?.().catch(()=>{});
+}
 
 /** A public adapter over the existing constructor scene and its Rust graph owner. */
 export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',library,bindings=new Map(),documentBindings=new Map(),groundTargets=()=>[],routeGroundTargets=()=>null,graphPredecessors=[],api,workspace,shelf,question,saveState,status,personalOwnerRoot,agentOwnerRoot,journeys=[],index=null}={}){
@@ -156,6 +162,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const linkedCriterion=new URLSearchParams(location.search).get('treeCriterion'),linkedConcept=new URLSearchParams(location.search).get('treeConcept');
   let criterion=criteria.some(item=>item.id===linkedCriterion)?linkedCriterion:criteria[0]?.id??null,traceConcept=linkedConcept||null,measureOpen=false,nearCenter=null;
   const desktopMode=window.matchMedia('(min-width: 761px)');
+  // A narrow bar gives the search a short word, so it is read whole.
+  const narrowBar=window.matchMedia('(max-width: 900px)');narrowBar.addEventListener?.('change',()=>{search.placeholder=t(narrowBar.matches?'mapSearchShort':'mapSearch');});
   let browsingRoutes=false,columnOpen=true,routeStepNode=null;
   const routeDetailState=new Map();
   const personalPositions=new Map();
@@ -169,11 +177,12 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   try{const saved=JSON.parse(localStorage.getItem(positionsKey)||'{}');if(object(saved))for(const [key,value]of Object.entries(saved)){const p=copyPosition(value);if(p)personalPositions.set(key,p);}}catch{}
   const shell=el('section','pr-public-space');shell.id='tree';shell.dataset.profile=profile;shell.dataset.ready='false';shell.dataset.reading='false';shell.dataset.column='overview';shell.dataset.columnOpen='true';
   const canvas=document.createElement('canvas');canvas.className='tree-sky';canvas.setAttribute('aria-label',t('space'));
-  if(header){header.classList.add('header','ps-header');shell.append(header);}
+  // The header is the page's one bar: it stays above the space in every mode, so it lives beside the space, not in it.
+  if(header){header.classList.add('header','ps-header');header.id='research-bar';}
   shell.append(canvas);
   // One search for the whole space sits in the header row; '/' opens it.
   const searchBox=el('div','ps-search-box');
-  const search=document.createElement('input');search.type='search';search.className='ps-search';search.autocomplete='off';search.placeholder=t('mapSearch');search.setAttribute('aria-label',t('mapSearch'));
+  const search=document.createElement('input');search.type='search';search.className='ps-search';search.autocomplete='off';search.placeholder=t(narrowBar.matches?'mapSearchShort':'mapSearch');search.setAttribute('aria-label',t('mapSearch'));
   const searchKey=el('kbd','ps-search-key','/');searchKey.setAttribute('aria-hidden','true');
   const searchResults=el('div','ps-search-results');searchResults.hidden=true;
   searchBox.append(search,searchKey,searchResults);
@@ -206,7 +215,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // A measuring lens keeps its own controls at the top of the column: the concept traced through time, the criterion of proximity.
   const lensControls=el('div','ps-lens-controls');lensControls.hidden=true;
   reading.append(panelTop,lensControls,deck,panelContent);
-  const columnTab=button('','ps-column-tab');columnTab.hidden=true;columnTab.append(el('span','',`‹ ${t('openColumn')}`));
+  const columnTab=button('','ps-column-tab');columnTab.hidden=true;columnTab.append(el('span',''));
   const personal=el('aside','reading ps-panel ps-personal');personal.hidden=true;
   const personalTop=el('div','reading-top');const personalClose=button('×','icon');personalClose.setAttribute('aria-label',t('close'));personalTop.append(el('span','eyebrow',t('research')),personalClose);
   const personalContent=el('div','ps-personal-content');
@@ -228,7 +237,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const importInput=document.createElement('input');importInput.type='file';importInput.accept='application/json,.json';importInput.hidden=true;importInput.setAttribute('aria-label',t('import'));
   shell.append(lensRail,heading,mapTools,relationBar,footer,reading,columnTab,personal,compareBar,modeBanner,dialog,importInput);
   if(header){const tools=header.querySelector('.main-tools, .pr-toolbar');header.insertBefore(searchBox,tools??null);}else shell.append(searchBox);
-  host.append(shell);
+  if(header)host.prepend(header);host.append(shell);
 
   const langButton=localeButtonContainer();
   if(header){const toolbar=header.querySelector('.main-tools, .pr-toolbar');if(toolbar)toolbar.append(langButton);}
@@ -241,9 +250,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const value=resolveLocale(locale);
     shell.dataset.locale=value;document.documentElement.lang=value;
     for(const select of document.querySelectorAll('.ps-locale-select')){select.value=value;select.setAttribute('aria-label',localeText('Interface language',locale));}
-    search.placeholder=t('mapSearch');search.setAttribute('aria-label',t('mapSearch'));searchResults.setAttribute('aria-label',t('searchResults'));
+    search.placeholder=t(narrowBar.matches?'mapSearchShort':'mapSearch');search.setAttribute('aria-label',t('mapSearch'));searchResults.setAttribute('aria-label',t('searchResults'));
     lensTitle.textContent=t('lenses');actionsTitle.textContent=t('researchActions');lensRail.setAttribute('aria-label',t('lenses'));mainActions.setAttribute('aria-label',t('researchActions'));importInput.setAttribute('aria-label',t('import'));
-    crumbNav.setAttribute('aria-label',t('orientation'));mapTools.setAttribute('aria-label',t('mapTools'));columnTab.firstChild.textContent=`‹ ${t('openColumn')}`;
+    crumbNav.setAttribute('aria-label',t('orientation'));mapTools.setAttribute('aria-label',t('mapTools'));
     for(const b of mainActions.querySelectorAll('[data-space-action]')){b.querySelector('.ps-action-label').textContent=t(b.dataset.spaceAction);setHint(b,t(b.dataset.spaceAction));}
     relationToggle.textContent=t('filter');relationToggle.setAttribute('aria-label',t('filter'));canvas.setAttribute('aria-label',t('space'));
     for(const item of uiActions)paintTool(item);
@@ -612,9 +621,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     aspect=null;
     if(!measuredView&&!routePath&&!interaction&&compareBar.hidden&&(selected||selectedEdge)){
       // A free area too narrow for rows on both sides of the star holds the aspect in one column.
-      // Rows past what its height holds close into their families.
-      let narrow=false,budget=Infinity;try{const area=freeArea({width:shell.clientWidth,height:shell.clientHeight});narrow=area.right-area.left<Math.max(1000,(area.bottom-area.top)*1.2);budget=Math.max(5,Math.floor((area.bottom-area.top-60)/28));}catch{}
-      const turned=aspectLayout(projected,{nodeId:selected,edgeId:selectedEdge,open:aspectOpen,narrow,budget,label:value=>tr(value,locale())});
+      // Rows past what its height holds close into their families; a column, whose names take two lines, keeps wider rows.
+      let narrow=false,budget=Infinity,width=Infinity;try{const area=freeArea({width:shell.clientWidth,height:shell.clientHeight});width=area.right-area.left;narrow=width<Math.max(1000,(area.bottom-area.top)*1.2);budget=narrow?Math.max(3,Math.floor((area.bottom-area.top-90)/40)):Math.max(5,Math.floor((area.bottom-area.top-60)/28));}catch{}
+      const turned=aspectLayout(projected,{nodeId:selected,edgeId:selectedEdge,open:aspectOpen,narrow,budget,width,label:value=>tr(value,locale())});
       if(turned.aspect){Object.assign(projected,turned);aspect=turned.aspect;}
     }
     // A new record rises out of what it is about, and a star a thread brings in out of the star it was followed from.
@@ -882,9 +891,11 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     // The scale of time rearranges the map's frame: its tools join the heading and its strips take their room.
     const kind=layoutKind();if(kind)shell.dataset.scale=kind;else delete shell.dataset.scale;
     turnButton.hidden=measuredLens(lens);controlsButton.hidden=measuredLens(lens);
-    if(measuredLens(lens)&&controls?.open)controls.close();
+    if(measuredLens(lens)&&controls?.open)controls.close({remember:false});
     else if(!measuredLens(lens)&&controls&&!controlsDone&&!controlsTimer&&!controls.open)controlsTimer=setTimeout(()=>openControlsOnce(),900);
     refreshSky();
+    // On a phone a chosen star takes the lower half: the card of the controls steps aside until the next visit.
+    if(controls?.open){if(!desktop()&&(selected||selectedEdge||route))controls.close({remember:false});else placeControls();}
     undoButton.disabled=!model.canUndo();redoButton.disabled=!model.canRedo();
     if(!notify.timer)statusLabel.textContent=savedStatus();
     if(personal.hidden)renderColumn();
@@ -1248,7 +1259,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // A chosen link brings its stars into the view and turns the space toward them.
   function selectEdge(id){measureOpen=false;selectedEdge=id;selected=null;browsingRoutes=false;personal.hidden=true;columnOpen=true;sky?.select(null);sky?.selectEdge(id);renderColumn();renderOrientation();refreshSky();}
   function openPanel(){columnOpen=true;renderColumn();sky?.refresh();}
-  function closePanel(){selected=route?routeStepNode:null;selectedEdge=null;sky?.select(selected);sky?.selectEdge(null);if(!desktop())columnOpen=false;reflect();sky?.refresh();}
+  function closePanel(){selected=route?routeStepNode:null;selectedEdge=null;sky?.select(selected);sky?.selectEdge(null);if(!route)columnOpen=false;reflect();sky?.refresh();}
   function togglePersonal(){
     if(!personal.hidden){closePersonal();return;}
     personal.hidden=false;reading.hidden=true;columnTab.hidden=true;shell.dataset.reading='true';shell.dataset.column='personal';shell.dataset.columnOpen='true';
@@ -1256,7 +1267,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   function restoreRouteDock(){renderColumn();sky?.refresh();}
   function closePersonal(){personal.hidden=true;renderColumn();sky?.refresh();}
-  function closeRoute(){routeDockTouched=true;route=null;routeStepNode=null;browsingRoutes=false;selected=null;selectedEdge=null;sky?.select(null);sky?.selectEdge(null);persistView();shell.dataset.journey='false';if(!desktop())columnOpen=false;reflect();frameSky();}
+  function closeRoute(){routeDockTouched=true;route=null;routeStepNode=null;browsingRoutes=false;selected=null;selectedEdge=null;sky?.select(null);sky?.selectEdge(null);persistView();shell.dataset.journey='false';columnOpen=false;reflect();frameSky();}
   function toggleRoutes(){
     routeDockTouched=true;personal.hidden=true;
     // From the measure panel the routes open in its place.
@@ -1296,11 +1307,16 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const mode=columnMode(),wide=desktop();shell.dataset.column=mode;reading.dataset.mode=mode;
     // A card for another star or link opens at its top, however it was chosen: from the map, a search, a route or a card.
     const subject=mode==='node'?`node:${selected}`:mode==='edge'?`edge:${selectedEdge}`:mode;
+    const subjectChanged=subject!==columnSubject;
     if(subject!==columnSubject){const fresh=columnSubject&&(mode==='node'||mode==='edge');columnSubject=subject;if(fresh){reading.scrollTop=0;requestAnimationFrame(()=>{if(columnSubject===subject)reading.scrollTop=0;});}}
     if(mode==='personal'){reading.hidden=true;columnTab.hidden=true;shell.dataset.reading='true';shell.dataset.columnOpen='true';return;}
     // A wide screen shows the column or a tab to reopen it; a narrow screen always keeps the sheet's top bar.
+    const wasShown=!reading.hidden;
     reading.hidden=wide&&!columnOpen;columnTab.hidden=!wide||columnOpen;
-    shell.dataset.columnOpen=String(columnOpen);shell.dataset.sheet=wide?'':columnOpen?'open':'peek';shell.dataset.reading=String(columnOpen);
+    // A column that comes or goes on a wide screen changes the map's room: an aspect shown in it is laid out and framed again.
+    if(wide&&wasShown===reading.hidden&&(selected||selectedEdge))requestAnimationFrame(()=>{if(aspect&&!destroyed){refreshSky();frameSky();}});columnTab.firstChild.textContent=`‹ ${columnCaption(mode)}`;
+    if(!columnOpen||subjectChanged)sheetFull=false;
+    shell.dataset.columnOpen=String(columnOpen);shell.dataset.sheet=wide?'':columnOpen?(sheetFull?'full':'open'):'peek';shell.dataset.reading=String(columnOpen);
     panelTitle.textContent=columnCaption(mode);panelTitle.setAttribute('aria-expanded',String(columnOpen));
     panelClose.hidden=!wide&&!columnOpen;panelClose.setAttribute('aria-label',t(mode==='overview'&&!browsingRoutes?'collapseColumn':mode==='route'?'resetRoute':'close'));
     renderRoutes();renderLensControls(mode);
@@ -1313,14 +1329,17 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function closeColumnLayer({collapse=true}={}){
     const mode=columnMode(),wasOpen=columnOpen;
     if(mode==='measure'){measureOpen=false;reflect();return;}
-    if(mode==='node'||mode==='edge'){selected=route?routeStepNode:null;selectedEdge=null;sky?.select(selected);sky?.selectEdge(null);if(!route&&!desktop())columnOpen=false;}
+    if(mode==='node'||mode==='edge'){selected=route?routeStepNode:null;selectedEdge=null;sky?.select(selected);sky?.selectEdge(null);if(!route)columnOpen=false;}
     else if(mode==='overview'&&browsingRoutes)browsingRoutes=false;
     else if(mode==='route'){closeRoute();return;}
     else if(collapse)columnOpen=false;
     else return;
     reflect();refitAfter(wasOpen);
   }
-  function toggleSheet(){if(desktop()){reading.scrollTo?.({top:0,behavior:'smooth'});return;}const wasOpen=columnOpen;columnOpen=!columnOpen;renderColumn();refitAfter(wasOpen);}
+  function toggleSheet(){if(desktop()){reading.scrollTo?.({top:0,behavior:'smooth'});return;}if(sheetFull){sheetFull=false;reading.scrollTop=0;renderColumn();return;}const wasOpen=columnOpen;columnOpen=!columnOpen;renderColumn();refitAfter(wasOpen);}
+  // On a phone the open sheet leaves the upper map in view; reading on down its card raises it to the whole height, and its title lowers it again.
+  let sheetFull=false;
+  reading.addEventListener('scroll',()=>{if(sheetFull||desktop()||!columnOpen||reading.scrollTop<28)return;sheetFull=true;shell.dataset.sheet='full';},{passive:true});
   function openColumn(){const wasOpen=columnOpen;columnOpen=true;renderColumn();refitAfter(wasOpen);}
   // A column or sheet opened or closed beside the scale of time changes its free area, so the scale refits; elsewhere the camera stays.
   // A sheet that opens or closes changes the room an aspect has: it is laid out and framed again.
@@ -1333,7 +1352,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function goOverview(){measureOpen=false;
     browsingRoutes=false;selected=null;selectedEdge=null;sky?.select(null);sky?.selectEdge(null);personal.hidden=true;
     if(route){route=null;routeStepNode=null;shell.dataset.journey='false';persistView();}
-    columnOpen=desktop();reflect();frameSky();
+    columnOpen=false;reflect();frameSky();
   }
   function showRouteLevel(){browsingRoutes=false;selected=routeStepNode;selectedEdge=null;sky?.select(selected);sky?.selectEdge(null);personal.hidden=true;columnOpen=true;reflect();frameSky();}
   function returnToStep(){browsingRoutes=false;selected=routeStepNode;selectedEdge=null;sky?.select(selected);sky?.selectEdge(null);personal.hidden=true;columnOpen=true;reflect();if(selected)sky?.reveal(selected);keepInColumn(deck.querySelector('.ps-step[data-current="true"]'));}
@@ -1506,7 +1525,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const title=fold.querySelector('h1');if(title){const smaller=el('h3','ps-step-node-title',title.textContent);title.replaceWith(smaller);}
     panelContent.replaceChildren(fold);
   }
-  function syncInitialRouteDock(){columnOpen=desktop();renderColumn();sky?.refresh();}
+  // The map opens at its full width: the column comes with a chosen star, link or route, and the routes wait behind their tab.
+  function syncInitialRouteDock(){columnOpen=columnMode()!=='overview';renderColumn();sky?.refresh();}
   function startRoute(item){measureOpen=false;
     routeDockTouched=true;browsingRoutes=false;personal.hidden=true;columnOpen=true;
     route={id:item.id,source:item.source,path:null};routeIndex=0;routeStepNode=null;selectedEdge=null;sky?.selectEdge(null);
@@ -1610,7 +1630,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function renderPersonalPanel(){
     if(personal.hidden)return;personalContent.querySelector('.ps-personal-summary')?.remove();const summary=el('p','ps-personal-summary',(copyLocale(locale())==='en')?localeText("Personal thoughts: {0} · proposals: {1}",locale,[personalState?.hypotheses?.length??0,personalState?.proposals?.length??0]):`Личных мыслей: ${personalState?.hypotheses?.length??0} · предложений: ${personalState?.proposals?.length??0}`);personalContent.prepend(summary);
   }
-  function toggleFullscreen(){if(document.fullscreenElement)return document.exitFullscreen().catch(()=>{});return shell.requestFullscreen?.().catch(()=>{});}
+  function toggleFullscreen(){return toggleResearchFullscreen(host);}
   function keyboard(event){
     if(dialog.open||event.target.closest('input,textarea,select,[contenteditable="true"],.ps-personal'))return;
     const key=event.key.toLowerCase();if((event.ctrlKey||event.metaKey)&&key==='z'){event.preventDefault();event.shiftKey?model.redo():model.undo();checkGraphPersistence();}
@@ -1680,7 +1700,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   // The space turns under a drag and rests a little turned, so its depth shows; Shift, the right button or two fingers move it,
   // a pinch or the wheel zooms, and a star held still is picked up. A measuring lens lays its scale flat and only moves.
-  sky=mountConstructorSky(shell,{rest:depth?.rest??null,intro:true,holdToMove:380,turnFromStars:true,touch:true,secondaryPan:true,inertia:true,depthCue:true,planarMoves:true,nativeTitles:false,onThreadSelect:id=>followThread(id),threadsFor:id=>darkThreads(id),onEdgeHover:id=>{const label=id?shell.querySelector(`.edge-label[data-edge="${CSS.escape(id)}"]`):null;if(label)hints?.showFor(label);else hints?.hide();},onPose:pose=>paintTurn(pose),dragNodes:()=>!measuredLens(lens)&&!aspect,getViewport:freeArea,onSelect:id=>selectNode(id,{fromMap:true}),onMove:(id,moved)=>{const node=graphState().nodes.find(item=>item.id===id),own=node?.position?.[2],position=[moved[0],moved[1],Number.isFinite(own)?own:moved[2]];if(node?.ownerType==='personal-hypothesis'){personalPositions.set(id,position);try{localStorage.setItem(positionsKey,JSON.stringify(Object.fromEntries(personalPositions)));positionsPersistenceError=false;}catch{positionsPersistenceError=true;notify(t('graphSaveError'));};}else try{model.moveNode(id,position);checkGraphPersistence();}catch{}},onEdgeSelect:selectEdge});
+  sky=mountConstructorSky(shell,{obstacles:()=>header?[header,searchResults]:[],rest:depth?.rest??null,intro:true,holdToMove:380,turnFromStars:true,touch:true,secondaryPan:true,inertia:true,depthCue:true,planarMoves:true,nativeTitles:false,onThreadSelect:id=>followThread(id),threadsFor:id=>darkThreads(id),onEdgeHover:id=>{const label=id?shell.querySelector(`.edge-label[data-edge="${CSS.escape(id)}"]`):null;if(label)hints?.showFor(label);else hints?.hide();},onPose:pose=>paintTurn(pose),dragNodes:()=>!measuredLens(lens)&&!aspect,getViewport:freeArea,onSelect:id=>selectNode(id,{fromMap:true}),onMove:(id,moved)=>{const node=graphState().nodes.find(item=>item.id===id),own=node?.position?.[2],position=[moved[0],moved[1],Number.isFinite(own)?own:moved[2]];if(node?.ownerType==='personal-hypothesis'){personalPositions.set(id,position);try{localStorage.setItem(positionsKey,JSON.stringify(Object.fromEntries(personalPositions)));positionsPersistenceError=false;}catch{positionsPersistenceError=true;notify(t('graphSaveError'));};}else try{model.moveNode(id,position);checkGraphPersistence();}catch{}},onEdgeSelect:selectEdge});
   // One hint answers a pointer that rests on something, or a keyboard that reaches it: a tool says what it does and its key,
   // a star its kind, when and where, a link its kind and what that kind means. Nothing of it stays on the screen by itself.
   function starHint(id){
@@ -1708,23 +1728,23 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     side:element=>element.matches('.tree-star,.tree-thread')?'right':element.closest('.ps-map-tools')?(desktopMode.matches&&!shell.dataset.scale?'left':'bottom'):element.closest('.ps-lens-rail')&&desktopMode.matches?'right':'top',
     moving:element=>element.matches('.tree-star,.edge-label,.tree-thread'),
   });
-  // The controls window opens by itself once, after the space's first turn, on a space that turns; it closes for good
-  // only when asked, and comes back from the map tools.
-  // controlsDone: this visit has settled whether the window opens by itself (it opened, or it is not to).
+  // The controls card opens by itself once, after the space's first turn, on a space that turns and over a map the
+  // reader has not yet chosen anything on; "Got it" puts it away for good, and the map tools bring it back.
+  // controlsDone: this visit has settled whether the card opens by itself (it opened, or it is not to).
   let lastPointer=null,controlsDone=false,controlsTimer=0;
   const notePointer=event=>{lastPointer=event.pointerType==='mouse'?'mouse':'touch';};
   shell.addEventListener('pointerdown',notePointer,{capture:true});
   const storageOf=()=>{try{return window.localStorage;}catch{return null;}};
   controls=mountControls(shell,{storage:storageOf(),anchor:mapTools,locale:()=>locale(),device:()=>lastPointer??(window.matchMedia?.('(hover: none) and (pointer: coarse)').matches?'touch':'mouse')});
-  // The window stands over the free part of the map, no wider or taller than it, so it covers none of the tools around.
+  // The card stands in the lower left corner of the free map, above the legend and the tools, no wider or taller than the map.
   function placeControls(){
     const panel=controls?.element;if(!panel||panel.hidden)return;
-    const area=freeArea({width:shell.clientWidth,height:shell.clientHeight})??{left:8,right:shell.clientWidth-8,top:8,bottom:shell.clientHeight-8};
-    const room={width:Math.max(220,area.right-area.left),height:Math.max(160,area.bottom-area.top)};
-    panel.style.width=`${Math.round(Math.min(420,room.width))}px`;panel.style.maxHeight=`${Math.round(room.height)}px`;
-    const width=panel.offsetWidth,height=Math.min(panel.offsetHeight,room.height);
-    panel.style.left=`${Math.round(Math.max(8,Math.min(shell.clientWidth-width-8,(area.left+area.right)/2-width/2)))}px`;
-    panel.style.top=`${Math.round(Math.max(8,Math.min(shell.clientHeight-height-8,(area.top+area.bottom)/2-height/2)))}px`;
+    const wide=desktop(),area=freeArea({width:shell.clientWidth,height:shell.clientHeight})??{left:8,right:shell.clientWidth-8,top:8,bottom:shell.clientHeight-8};
+    const width=wide?Math.min(440,Math.max(260,area.right-area.left)):shell.clientWidth-16,room=Math.max(140,area.bottom-area.top);
+    panel.style.width=`${Math.round(width)}px`;panel.style.maxHeight=`${Math.round(room)}px`;
+    const height=Math.min(panel.offsetHeight,room);
+    panel.style.bottom='auto';panel.style.left=`${Math.round(wide?Math.max(8,area.left):8)}px`;
+    panel.style.top=`${Math.round(Math.max(8,Math.min(shell.clientHeight-height-8,area.bottom-height)))}px`;
   }
   function openControlsOnce(){
     clearTimeout(controlsTimer);controlsTimer=0;
@@ -1734,8 +1754,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(controlsDismissed(storage)){controlsDone=true;return;}
     // On a flat lens it waits for the first space that turns.
     if(measuredLens(lens))return;
-    // Not over a press, the library, the reader or a search that has the reader's attention; it waits for them to end.
-    const busy=dialog.open||!searchResults.hidden||shell.querySelector('.tree-sky.dragging')||shell.closest('[inert]')||document.querySelector('[data-corpus-reading]');
+    // Not over a chosen star or link, a route, a press, the library, the reader or a search that has the reader's attention,
+    // nor while another mode is shown; it waits for them to end.
+    const busy=selected||selectedEdge||route||interaction||!personal.hidden||shell.classList.contains('experience-space-inactive')||dialog.open||!searchResults.hidden||shell.querySelector('.tree-sky.dragging')||shell.closest('[inert]')||document.querySelector('[data-corpus-reading]');
     if(busy){controlsTimer=setTimeout(openControlsOnce,1200);return;}
     controlsDone=true;
     // Where the browser keeps nothing, the window does not insist.
@@ -1771,5 +1792,5 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   if(upgradeError)notify(copyLocale(locale)==='en'?localeText('The saved graph could not be upgraded. Its original copy is preserved.',locale):'Не удалось перенести сохранённый граф. Исходная копия сохранена.');
   const localeEvent=event=>{if(event.detail?.locale&&event.detail.locale!==locale()){};refreshLocale();};header?.addEventListener('public-space-locale',localeEvent);
   return {root:shell,index,selection:researchSelection,openResearch,renderResearch,fragments,coreView,timeOf:id=>timeline?.spanOf?.(index?.get(id)?.materialId??id)??null,placeOf:id=>placeOf(index?.get(id)?.materialId??id),openPersonal:()=>{if(personal.hidden)togglePersonal();},compare:id=>beginCompare(graphIdForMaterial(index?.get(id)?.materialId??id)),pristineGraphs,openCollection,personalRoot:personalContent,workspaceRoot,agentRoot,refreshLocale,restoreFocus,refreshJourneys(items){journeyList=Array.isArray(items)?items:[];if(route)renderRoutes();},renderJourneys:renderRoutes,model,
-    destroy(){if(destroyed)return;destroyed=true;window.removeEventListener('resize',refitScale);cancelAnimationFrame(refitFrame);shell.removeEventListener('click',openLane);shell.removeEventListener('keydown',openLaneByKey);unsubscribeModel?.();unsubscribeWorkspace?.();workspaceRoot.removeEventListener('public-research-import-result',showImportResult);workspaceRoot.removeEventListener('public-research-workspace-history',researchHistory);document.removeEventListener('keydown',keyboard);document.removeEventListener('pointerdown',notePress,{capture:true});clearTimeout(controlsTimer);shell.removeEventListener('pointerdown',notePointer,{capture:true});hints?.dispose();controls?.dispose();fragments.dispose();desktopMode.removeEventListener('change',syncInitialRouteDock);header?.removeEventListener('public-space-locale',localeEvent);sky?.dispose();model.dispose();shell.remove();}};
+    destroy(){if(destroyed)return;destroyed=true;window.removeEventListener('resize',refitScale);cancelAnimationFrame(refitFrame);shell.removeEventListener('click',openLane);shell.removeEventListener('keydown',openLaneByKey);unsubscribeModel?.();unsubscribeWorkspace?.();workspaceRoot.removeEventListener('public-research-import-result',showImportResult);workspaceRoot.removeEventListener('public-research-workspace-history',researchHistory);document.removeEventListener('keydown',keyboard);document.removeEventListener('pointerdown',notePress,{capture:true});clearTimeout(controlsTimer);shell.removeEventListener('pointerdown',notePointer,{capture:true});hints?.dispose();controls?.dispose();fragments.dispose();desktopMode.removeEventListener('change',syncInitialRouteDock);header?.removeEventListener('public-space-locale',localeEvent);sky?.dispose();model.dispose();shell.remove();header?.remove();}};
 }
