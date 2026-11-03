@@ -22,7 +22,9 @@ use tos_source_store::{
 };
 use tos_validation::FormatProfile;
 use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::{
+    CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor, InProcessCutSchemaExecutor,
+};
 
 #[path = "source_native_agent_publication_cli.rs"]
 mod agent_publication;
@@ -1184,7 +1186,14 @@ fn run_selected(
         );
     }
     if item_invocation {
-        let mut schema = selected_schema(&invocation, &cut, deadline, &cancelled)?;
+        let mut schema = InProcessCutSchemaExecutor::from_cut(
+            &cut,
+            FormatProfile::LegacyPythonObserved20260923,
+            tos_validation::in_process::InputMode::SerdeNormalized,
+            deadline,
+            &cancelled,
+        )
+        .map_err(|_| SourceCommandError::Denied("native Item schema selection"))?;
         return run_item(
             &invocation,
             &request_raw,
@@ -1376,7 +1385,7 @@ fn run_item(
     store: &CorpusReader,
     software: &SoftwareCaptureReader,
     components: &tos_source_store::SoftwareComponentSelectionV1,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut InProcessCutSchemaExecutor<()>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Value> {
@@ -1581,7 +1590,6 @@ fn run_item(
     }
     Ok(response)
 }
-
 fn selected_schema(
     invocation: &Value,
     cut: &tos_source_store::CorpusCutReader,

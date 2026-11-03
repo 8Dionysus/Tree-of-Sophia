@@ -3838,6 +3838,45 @@ pub fn validate_source_claim_from_in_process_cut(
     cancelled: &std::sync::atomic::AtomicBool,
     expected_profile: FormatProfile,
 ) -> Result<InProcessSourceClaimLocalReport, crate::item_rules::ItemRefusal> {
+    validate_source_claim_from_in_process_cut_with_scope(
+        cut,
+        selected_claim_raw,
+        worker,
+        limits,
+        cancelled,
+        expected_profile,
+        LocalClaimValidationScope::PublicForm,
+    )
+}
+
+/// Validate stored compound grammar with its original source visibility.
+pub(crate) fn validate_stored_source_claim_from_in_process_cut(
+    cut: &tos_source_store::CorpusCutReader,
+    selected_claim_raw: &[u8],
+    worker: &mut crate::source_cut::InProcessCutSchemaExecutor<()>,
+    limits: crate::item_rules::ItemLimits,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> Result<InProcessSourceClaimLocalReport, crate::item_rules::ItemRefusal> {
+    validate_source_claim_from_in_process_cut_with_scope(
+        cut,
+        selected_claim_raw,
+        worker,
+        limits,
+        cancelled,
+        FormatProfile::LegacyPythonObserved20260923,
+        LocalClaimValidationScope::StoredSource,
+    )
+}
+
+fn validate_source_claim_from_in_process_cut_with_scope(
+    cut: &tos_source_store::CorpusCutReader,
+    selected_claim_raw: &[u8],
+    worker: &mut crate::source_cut::InProcessCutSchemaExecutor<()>,
+    limits: crate::item_rules::ItemLimits,
+    cancelled: &std::sync::atomic::AtomicBool,
+    expected_profile: FormatProfile,
+    scope: LocalClaimValidationScope,
+) -> Result<InProcessSourceClaimLocalReport, crate::item_rules::ItemRefusal> {
     use crate::item_rules::ItemRefusal;
     local_claim_checkpoint(limits, cancelled)?;
     let revision = cut.current().revision();
@@ -3901,7 +3940,7 @@ pub fn validate_source_claim_from_in_process_cut(
         &CutLocalClaimSource(cut),
         &claim,
         selected_claim_raw,
-        LocalClaimValidationScope::PublicForm,
+        scope,
         header,
         &mut schemas,
         limits,

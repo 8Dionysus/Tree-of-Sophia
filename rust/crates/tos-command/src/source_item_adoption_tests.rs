@@ -9,6 +9,21 @@ use std::sync::atomic::AtomicBool;
 use std::time::Duration;
 use tos_foundation::RelativePath;
 
+fn schema_executor(
+    cut: &CorpusCutReader,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> InProcessCutSchemaExecutor<()> {
+    InProcessCutSchemaExecutor::from_cut(
+        cut,
+        tos_validation::FormatProfile::LegacyPythonObserved20260923,
+        tos_validation::in_process::InputMode::SerdeNormalized,
+        deadline,
+        cancelled,
+    )
+    .unwrap()
+}
+
 fn context_with_request(context: &CommandContext, request_raw: Vec<u8>) -> CommandContext {
     CommandContext {
         base_revision: context.base_revision.clone(),
@@ -125,7 +140,7 @@ fn item_retained_orphan_recovers_through_owner_for_resume_and_rollback() {
             max_issues: 256,
             deadline,
         };
-        let mut preview_worker = support::worker(&cut, deadline, &cancelled);
+        let mut preview_worker = schema_executor(&cut, deadline, &cancelled);
         let prepared = prepare_isolated_item_adoption_from_proposal(
             &filesystem,
             &context,
@@ -155,7 +170,7 @@ fn item_retained_orphan_recovers_through_owner_for_resume_and_rollback() {
         // Fail the actual owner guard's second WorkCorpusFence call, after
         // retain has fsynced the plan but before the pending publication head.
         work_transaction::interrupt_item_second_guard_once_for_test();
-        let mut worker = support::worker(&cut, deadline, &cancelled);
+        let mut worker = schema_executor(&cut, deadline, &cancelled);
         let interrupted = execute_isolated_item_adoption_from_captures(
             &filesystem,
             &prepared_context,
@@ -210,7 +225,7 @@ fn item_retained_orphan_recovers_through_owner_for_resume_and_rollback() {
             &prepared_context,
             serde_json::to_vec(&recovery_request).unwrap(),
         );
-        let mut recovery_worker = support::worker(&cut, deadline, &cancelled);
+        let mut recovery_worker = schema_executor(&cut, deadline, &cancelled);
         let recovered = recover_isolated_item_adoption_from_captures(
             &filesystem,
             &recovery_context,
