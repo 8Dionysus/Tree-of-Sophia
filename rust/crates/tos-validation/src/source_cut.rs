@@ -5180,6 +5180,56 @@ impl<I> CandidateSchemaDiagnostic<I> {
             Self::InProcess(row) => &row.diagnostic.report.issues,
         }
     }
+    pub fn failure(&self) -> schema_diagnostics::Failure {
+        match self {
+            Self::Worker(row) => row.report().failure,
+            Self::InProcess(row) => row.diagnostic.report.failure,
+        }
+    }
+
+    /// Retained diagnostic storage, including dynamically allocated paths and issues.
+    pub fn retained_state_bytes(&self) -> Option<usize> {
+        match self {
+            Self::Worker(row) => row.accounted_state_bytes().checked_add(
+                std::mem::size_of::<Self>()
+                    .saturating_sub(std::mem::size_of::<CandidateCutSchemaDiagnostic<I>>()),
+            ),
+            Self::InProcess(row) => {
+                fn path_state(path: &Vec<schema_diagnostics::PathSegment>) -> Option<usize> {
+                    path.iter().try_fold(
+                        path.capacity()
+                            .checked_mul(std::mem::size_of::<schema_diagnostics::PathSegment>())?,
+                        |used, segment| match segment {
+                            schema_diagnostics::PathSegment::Property(value) => {
+                                used.checked_add(value.capacity())
+                            }
+                            schema_diagnostics::PathSegment::Index(_) => Some(used),
+                        },
+                    )
+                }
+                let diagnostic = &row.diagnostic;
+                let report = &diagnostic.report;
+                let mut used = std::mem::size_of::<Self>()
+                    .checked_add(diagnostic.path.capacity())?
+                    .checked_add(diagnostic.contract.capacity())?
+                    .checked_add(report.root_uri.capacity())?
+                    .checked_add(
+                        report
+                            .issues
+                            .capacity()
+                            .checked_mul(std::mem::size_of::<schema_diagnostics::Issue>())?,
+                    )?;
+                for issue in &report.issues {
+                    used = used
+                        .checked_add(issue.schema_keyword.capacity())?
+                        .checked_add(path_state(&issue.instance_path)?)?
+                        .checked_add(path_state(&issue.schema_path)?)?;
+                }
+                Some(used)
+            }
+        }
+    }
+
     pub fn is_valid(&self) -> bool {
         match self {
             Self::Worker(row) => row.is_valid(),
@@ -6105,6 +6155,13 @@ pub(crate) mod in_process_candidate_binding_tests {
         assert_eq!(rejected.path(), "record.json");
         assert_eq!(rejected.input_sha256(), Digest256::of_bytes(br#""wrong""#));
         assert!(!rejected.issues().is_empty());
+        assert_eq!(rejected.failure(), schema_diagnostics::Failure::None);
+        assert!(
+            rejected
+                .retained_state_bytes()
+                .is_some_and(|bytes| bytes >= std::mem::size_of_val(&rejected))
+        );
+        assert_eq!(executor.completed_checks(), Some(2));
         assert!(executor.take_diagnostic_rejection().unwrap().is_none());
         executor.finish(deadline, &cancelled).unwrap();
         assert!(
