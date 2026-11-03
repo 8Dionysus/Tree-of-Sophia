@@ -4,7 +4,7 @@ html,body{margin:0;min-height:100%;background:radial-gradient(ellipse at 70% 30%
 body{display:grid;min-height:100dvh;place-items:center;font:16px/1.5 system-ui,-apple-system,'Segoe UI',sans-serif}
 .nf{box-sizing:border-box;width:min(640px,100%);padding:48px 24px}
 .nf-mark{display:inline-flex;align-items:center;gap:12px;color:#dfe3e7;text-decoration:none;font:500 12px/1.2 system-ui,sans-serif;letter-spacing:.18em;text-transform:uppercase}
-.nf-mark::before{content:'✧';color:#dfc492;font:34px/1 Georgia,serif;letter-spacing:0}
+.nf-mark::before{content:'';flex:none;width:36px;height:36px;background:url(/tree-mark.svg) center/contain no-repeat;background-image:image-set(url(/tree-mark.svg) 1x,url(/tree-mark-2x.svg) 2x)}
 .nf-mark:hover{color:#f1e3c3}
 .nf-say{margin-top:44px}
 .nf-say+.nf-say{margin-top:36px;padding-top:32px;border-top:1px solid #8296b22b}

@@ -30,7 +30,7 @@
 :root:lang(zh-Hans) #research-bar{--ps-serif:'Noto Serif CJK SC','Songti SC',SimSun,serif;--ps-sans:'Noto Sans CJK SC','Microsoft YaHei',system-ui,sans-serif}
 #research-bar :is(button,a,input,select):focus-visible{outline:2px solid #e4cb8b;outline-offset:2px}
 #research-bar .pr-wordmark{display:flex;flex:none;align-items:center;gap:10px;color:#dfe3e7;text-decoration:none;white-space:nowrap;letter-spacing:.15em;font:500 11px/1.2 var(--ps-sans);text-transform:uppercase}
-#research-bar .pr-wordmark::before{content:'✧';color:#dfc492;font:32px/1 Georgia,serif;letter-spacing:0}
+#research-bar .pr-wordmark::before{content:'';flex:none;width:34px;height:34px;background:url(/tree-mark.svg) center/contain no-repeat;background-image:image-set(url(/tree-mark.svg) 1x,url(/tree-mark-2x.svg) 2x)}
 #research-bar .pr-wordmark:hover{text-decoration:none;color:#f1e3c3}
 /* The modes are the bar's main road: words with a gold line under the one you are in. */
 #research-bar .experience-toolbar{position:relative;z-index:auto;display:flex;flex:none;align-items:center;gap:0;width:auto;margin:0;padding:0 0 0 14px;border:0;border-left:1px solid var(--ps-line);background:none;font-family:var(--ps-sans)}
@@ -80,7 +80,7 @@
 #research-bar :is(.rb-menu,.pr-toolbar) .experience-button[aria-pressed=true]{color:#f0dfb8}
 #research-bar :is(.rb-menu,.pr-toolbar) .experience-button:disabled{opacity:.4;cursor:default}
 
-/* Below a wide desktop the name keeps its star; below 1100px the modes fold into one button that opens them with a line on each. */
+/* Below a wide desktop the name keeps its tree; below 1100px the modes fold into one button that opens them with a line on each. */
 @media(max-width:1280px){
   #research-bar .pr-wordmark{font-size:0;gap:0}
 }
@@ -103,7 +103,7 @@
 @media(max-width:900px){
   #public-reader-host{--rb-h:56px}
   #research-bar{gap:8px;padding:0 10px}
-  #research-bar .pr-wordmark::before{font-size:28px}
+  #research-bar .pr-wordmark::before{width:30px;height:30px}
   #research-bar .experience-toolbar{padding:0;border:0}
   #research-bar .experience-modes{left:0}
   #research-bar .ps-search-box{flex:1 1 auto;min-width:0;margin:0}
