@@ -1182,7 +1182,19 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     else if(item.kind==='statement')fragments.render(parent,item.record);
     else if(item.record?.body)fragments.render(parent,item.record.body);
     else if(item.record?.reading?.reading)fragments.render(parent,item.record.reading.reading);
+    else if(item.kind==='fragment')appendSourcePassage(parent,item.id);
     appendResearchReferences(parent,item.id);return true;
+  }
+  // A place of a source shows the passage itself, in the original and in translation, as the reading grounded in it cites it,
+  // and leads on to that reading.
+  function appendSourcePassage(parent,id){
+    const reading=[...materials.values()].find(node=>node.sourceNodeId===id);
+    if(!reading)return;
+    if(reading.body?.cite?.length)fragments.render(parent,{cite:reading.body.cite});
+    const line=el('p','ps-source-reading',`${copyLocale(locale())==='en'?'The reading of this passage':'Прочтение этого места'}: `);
+    const open=button(tr(reading.title,locale())||reading.id,'text-button');
+    open.addEventListener('click',()=>shell.dispatchEvent(new CustomEvent('public-research-open',{bubbles:true,detail:{id:reading.id}})));
+    line.append(open);parent.append(line);
   }
   function appendResearchReferences(parent,id){
     const item=index?.get(id);if(!item)return;

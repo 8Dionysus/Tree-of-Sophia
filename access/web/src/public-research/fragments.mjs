@@ -315,8 +315,10 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
   // The corpus names a place in Russian ("Книга 6 · 509", "Глава 52", "Строки от 146"); a caption names it in
   // the reader's language. An edition's chunk number ("Unit 59") names no place and is left out.
   const PLACE_WORDS=[['Книга','refBook'],['Глава','refChapter'],['Раздел','refSection'],['Фрагмент','refFragment'],['Строки от','refLines']];
-  const placeName=reference=>{
-    if(!reference||/^Unit \d+$/.test(reference))return '';
+  const placeName=raw=>{
+    if(!raw||/^Unit \d+$/.test(raw))return '';
+    // A collected edition names a dialogue by its slug beside its title ("crito · Критон"); the reader sees the title.
+    const parts=raw.split(' · '),reference=parts.length>1?parts.filter(part=>!/^[a-z][a-z0-9-]*$/.test(part)).join(' · '):raw;
     if(resolveLocale(locale())==='ru')return reference;
     let value=reference.replace(/Предисловие Арриана/gu,words('refArrian'));
     for(const [word,key] of PLACE_WORDS)value=value.replace(new RegExp(`${word}\\s+([^\\s·]+)`,'gu'),(_,n)=>words(key).replace('{n}',n));

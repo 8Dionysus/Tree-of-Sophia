@@ -660,8 +660,17 @@ for correction_name in correction_names:
     review = load(corrections_path)
     if not isinstance(review.get('corrections'), list):
         raise ValueError(f'correction ledger has no corrections array: {corrections_path}')
-    ru_map, paired_en_map, en_only_map = {}, {}, {}
+    ru_map, paired_en_map, en_only_map, added_en_map = {}, {}, {}, {}
     for correction in review['corrections']:
+        # An addition gives English to a reader text the core has only in Russian: {"add": {"ru": text, "en": English}}.
+        if 'add' in correction:
+            added = correction['add']
+            if not isinstance(added, dict) or not all(isinstance(added.get(k), str) and added.get(k) for k in ('ru', 'en')):
+                raise ValueError(f'an English addition must be {{"ru", "en"}} strings: {correction!r}')
+            if added['ru'] in added_en_map and added_en_map[added['ru']] != added['en']:
+                raise ValueError(f'conflicting English additions for {added["ru"]!r} in {corrections_path.name}')
+            added_en_map[added['ru']] = added['en']
+            continue
         for lang in ('ru', 'en'):
             pair = correction.get(lang)
             if pair is not None and (not isinstance(pair, list) or len(pair) != 2 or not all(isinstance(item, str) and item for item in pair)):
@@ -682,8 +691,8 @@ for correction_name in correction_names:
                 raise ValueError(f'conflicting English-only corrections for {old_en!r} in {corrections_path.name}')
             en_only_map[old_en] = new_en
     correction_reviews.append({'name': correction_name, 'review': review, 'ru_map': ru_map,
-                               'paired_en_map': paired_en_map, 'en_only_map': en_only_map,
-                               'used_ru': set(), 'used_paired_en': set(), 'used_en': set()})
+                               'paired_en_map': paired_en_map, 'en_only_map': en_only_map, 'added_en_map': added_en_map,
+                               'used_ru': set(), 'used_paired_en': set(), 'used_en': set(), 'used_added': set()})
 
 if correction_reviews:
     dropped = [0]
@@ -726,6 +735,10 @@ if correction_reviews:
                 if not paired_applied and isinstance(old_en, str) and old_en in en_only_map:
                     value['en'] = en_only_map[old_en]
                     correction_review['used_en'].add(old_en)
+                added_en_map = correction_review['added_en_map']
+                if 'en' not in value and isinstance(value.get('ru'), str) and value['ru'] in added_en_map:
+                    value['en'] = added_en_map[value['ru']]
+                    correction_review['used_added'].add(value['ru'])
             for key, item in value.items():
                 if key not in ('ru', 'en'):
                     correct(item)
@@ -744,8 +757,8 @@ if correction_reviews:
         ru_map, paired_en_map, en_only_map = (correction_review[k] for k in ('ru_map', 'paired_en_map', 'en_only_map'))
         used_ru = correction_review['used_ru']
         admitted_ru, applied_ru = len(ru_map), len(used_ru)
-        admitted_en = len(paired_en_map) + len(en_only_map)
-        applied_en = len(correction_review['used_paired_en']) + len(correction_review['used_en'])
+        admitted_en = len(paired_en_map) + len(en_only_map) + len(correction_review['added_en_map'])
+        applied_en = len(correction_review['used_paired_en']) + len(correction_review['used_en']) + len(correction_review['used_added'])
         ledger_counts.append({'ledger': correction_review['name'],
                               'ru': {'admitted': admitted_ru, 'applied': applied_ru, 'unmatched': admitted_ru - applied_ru},
                               'en': {'admitted': admitted_en, 'applied': applied_en, 'unmatched': admitted_en - applied_en}})

@@ -475,10 +475,12 @@ async function start() {
     workspace:publicOwners.workspace, shelf:publicOwners.shelf, locale:()=>locale,
     graphSpaceContext:{profile,libraryFingerprint:publicSpace.library.fingerprint,pristineGraphs:spaceView.pristineGraphs,reload:()=>window.location.reload()}});
   workspaceView.connectAgentBridge(agentBridge);
-  experience=mountResearchExperience({root:readerRoot,header,profile,locale:()=>locale,index:publicSpace.index,space:spaceView,api:window.tosPublicResearch,notebook:entry.notebook,
+  // The learning mode is the sky opened by the person's own links; a stand offers it once it has that sky.
+  const learning=profile==='zarathustra';
+  experience=mountResearchExperience({root:readerRoot,header,profile,locale:()=>locale,index:publicSpace.index,space:spaceView,api:window.tosPublicResearch,notebook:entry.notebook,learning,
     onCognitive:detail=>{if(cognitive)void cognitive.record(detail.action,detail).catch(error=>console.error('Research event',error));}});
-  // The learning mode is the sky opened by the person's own links; the agent session lives in its journal.
-  knowing=profile==='zarathustra'?mountKnowing({root:experience.cognitiveRoot,index:publicSpace.index,locale:()=>locale,notebook:entry.notebook,profile,fragments:spaceView.fragments,getSession:()=>cognitive,
+  // The agent session lives in the sky's journal.
+  knowing=learning?mountKnowing({root:experience.cognitiveRoot,index:publicSpace.index,locale:()=>locale,notebook:entry.notebook,profile,fragments:spaceView.fragments,getSession:()=>cognitive,
     onOpenReference:id=>{experience.open(id);experience.setMode('reference');},onOpenSpace:id=>{experience.open(id);experience.setMode('original');}}):null;
   if(knowing)spaceView.markTerms?.(experience.cognitiveRoot);
   cognitive=mountCognitiveSession({root:knowing?.agentRoot??experience.cognitiveRoot,notebook:entry.notebook,index:publicSpace.index,api:window.tosPublicResearch,locale:()=>locale,profile,workspace:publicOwners.workspace,onHelpChange:value=>knowing?.setHelpLevel(value),getSelection:()=>experience.getState(),versionContext:experience.versionContext,isActive:()=>experience.getState().mode==='cognitive',onOpen:(id,options)=>experience.open(id,options)});
