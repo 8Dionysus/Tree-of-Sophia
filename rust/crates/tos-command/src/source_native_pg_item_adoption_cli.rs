@@ -660,14 +660,14 @@ pub(super) fn run(
                     max_member_bytes,
                 )
                 .map_err(DurableError::Source)?;
-                let mut worker = super::revisions::selected_candidate_schema_from_context(
-                    invocation,
-                    &context.files,
-                    identity,
-                    deadline,
-                    cancelled,
-                )
-                .map_err(DurableError::Source)?;
+                let mut worker =
+                    super::revisions::selected_in_process_candidate_schema_from_context(
+                        &context.files,
+                        identity,
+                        deadline,
+                        cancelled,
+                    )
+                    .map_err(DurableError::Source)?;
                 let input = super::PgGrowthCurrentInput::new(
                     session,
                     4096,

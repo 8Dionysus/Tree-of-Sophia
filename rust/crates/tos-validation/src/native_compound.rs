@@ -6506,18 +6506,6 @@ fn preparation_grammar_from_cut<S: NativeCompoundSchema>(
     })
 }
 
-fn preparation_grammar_from_selected_input<I: Copy + Eq>(
-    kind: CompoundKind,
-    reader: &mut NativeCompoundReader<'_>,
-    input: &dyn SourceCutInputWithIdentity<I>,
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
-    claim_raw: &[u8],
-) -> Result<WorkGrammar, ItemRefusal> {
-    if input.input_identity() != schemas.input_identity() {
-        return Err(bad("selected Work Claim local profile/binding"));
-    }
-    preparation_grammar_from_cut(kind, reader, schemas, claim_raw)
-}
 struct FinishedCompound {
     request: Value,
     before: Package,
@@ -7720,7 +7708,7 @@ pub fn inspect_edition_item_grammar(
 /// a materialized whole-corpus cut.
 pub fn inspect_edition_item_grammar_from_selected_input<I: Copy + Eq>(
     input: &dyn SourceCutInputWithIdentity<I>,
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
+    schemas: &mut impl SourceFoundationCandidateSchemaBinding<I>,
     edition_raw: &[u8],
     item_raw: &[u8],
     claim_raw: &[u8],
@@ -7731,6 +7719,7 @@ pub fn inspect_edition_item_grammar_from_selected_input<I: Copy + Eq>(
     if input.input_identity() != schemas.input_identity() {
         return Err(bad("Item selected grammar input/schema binding"));
     }
+    let mut selected = CandidateCompoundSchemas::new(schemas, *input.input_identity())?;
     let mut reader = NativeCompoundReader::new_from_input(input.source_input(), limits, cancelled)?;
     for raw in [edition_raw, item_raw, claim_raw] {
         if raw.len() > limits.max_member_bytes.min(MAX_FILE) {
@@ -7756,7 +7745,7 @@ pub fn inspect_edition_item_grammar_from_selected_input<I: Copy + Eq>(
         ("item-adoption-supplied-edition", edition_raw),
         ("item-adoption-supplied-item", item_raw),
     ] {
-        if !schemas.check_reusing_scalar(
+        if !selected.check_reusing_scalar(
             label,
             raw,
             "ToS/contracts/corpus-record.schema.json",
@@ -7774,14 +7763,13 @@ pub fn inspect_edition_item_grammar_from_selected_input<I: Copy + Eq>(
     drop(item);
     drop(claim);
     reader.release_temporary(trees);
-    let grammar = preparation_grammar_from_selected_input(
+    let grammar = preparation_grammar_from_cut(
         CompoundKind::EditionItem,
         &mut reader,
-        input,
-        schemas,
+        &mut selected,
         claim_raw,
     )?;
-    if grammar.binding != schemas.native_schema_binding() {
+    if grammar.binding != selected.native_schema_binding() {
         return Err(bad("Item selected grammar schema binding changed"));
     }
     reader.record_work_dependencies(grammar.dependencies, &grammar.digests)?;
@@ -7806,6 +7794,7 @@ pub fn inspect_edition_item_grammar_from_selected_input<I: Copy + Eq>(
     if returned_state_bytes > limits.max_state_bytes {
         return Err(ItemRefusal::Budget);
     }
+    selected.guard()?;
     Ok(EditionItemGrammarObservation {
         grammar_digests: grammar.digests,
         reads: reader.reads,
@@ -7899,7 +7888,7 @@ pub fn prepare_edition_item_bytes<'a>(
 /// from exact members of a fenced selected source input.
 pub fn prepare_selected_edition_item_bytes<'a, I: Copy + Eq>(
     input: &'a dyn SourceCutInputWithIdentity<I>,
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
+    schemas: &mut impl SourceFoundationCandidateSchemaBinding<I>,
     scope: &Value,
     request_raw: &[u8],
     owned_before: &BTreeMap<String, Vec<u8>>,
@@ -7920,14 +7909,15 @@ pub fn prepare_selected_edition_item_bytes<'a, I: Copy + Eq>(
     crate::retirement_rules::observed_instant_order(recorded_at, recorded_at)
         .map_err(|_| bad("selected Item recorded aware instant"))?;
     let reader = NativeCompoundReader::new_from_input(input.source_input(), limits, cancelled)?;
-    prepare_native_with_reader(
+    let mut selected = CandidateCompoundSchemas::new(schemas, *input.input_identity())?;
+    let result = prepare_native_with_reader(
         CompoundKind::EditionItem,
         Some(ItemPreparationInput::Observed {
             receipt_raw: byte_receipt_raw,
             generator: inventory_generator,
         }),
         reader,
-        schemas,
+        &mut selected,
         scope,
         Cow::Borrowed(request_raw),
         owned_before,
@@ -7938,7 +7928,9 @@ pub fn prepare_selected_edition_item_bytes<'a, I: Copy + Eq>(
     .map(|inner| EditionItemCore {
         inner,
         descriptive_preview: false,
-    })
+    });
+    selected.guard()?;
+    result
 }
 /// Bind the actual native process capture to the prepared Item metadata.
 pub fn finish_edition_item_bytes(
@@ -7977,14 +7969,19 @@ pub fn finish_selected_edition_item_bytes<I: Copy + Eq>(
     core: EditionItemCore<'_>,
     environment_raw: &[u8],
     event_raw: &[u8],
-    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
+    schemas: &mut impl SourceFoundationCandidateSchemaBinding<I>,
 ) -> Result<EditionItemBytes, ItemRefusal> {
     if core.descriptive_preview {
         return Err(bad(
             "descriptive Item preview cannot finish a publication capture",
         ));
     }
-    finish_prepared_compound_bytes(core.inner, environment_raw, event_raw, schemas, true)
+    let identity = *schemas.input_identity();
+    let mut selected = CandidateCompoundSchemas::new(schemas, identity)?;
+    let result =
+        finish_prepared_compound_bytes(core.inner, environment_raw, event_raw, &mut selected, true);
+    selected.guard()?;
+    result
 }
 
 fn preview_item_receipt(
