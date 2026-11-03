@@ -468,45 +468,51 @@ fn legacy_exceptional_values_match_worker_diagnostics() {
     ] {
         let expected =
             worker.check_diagnostics_v2("record.json", raw, contract, deadline, &cancelled);
-        let actual = engine
-            .validate(
-                Unit {
-                    root_uri: &root,
-                    raw,
-                    input_mode: InputMode::LegacyPythonObserved,
-                },
-                Caps::CURRENT,
-                deadline,
-                &cancelled,
-            )
-            .unwrap();
-        if expected.is_err() {
+        for input_mode in [
+            InputMode::LegacyPythonObserved,
+            InputMode::LegacyPythonObservedBounded {
+                max_instance_bytes: 2 * 1024 * 1024,
+            },
+        ] {
+            let actual = engine
+                .validate(
+                    Unit {
+                        root_uri: &root,
+                        raw,
+                        input_mode,
+                    },
+                    Caps::CURRENT,
+                    deadline,
+                    &cancelled,
+                )
+                .unwrap();
+            if expected.is_err() {
+                assert_eq!(
+                    (actual.status, actual.failure),
+                    (Status::Indeterminate, Failure::UnsupportedInputSemantics)
+                );
+                continue;
+            }
+            let r = expected.as_ref().unwrap().report();
             assert_eq!(
-                (actual.status, actual.failure),
-                (Status::Indeterminate, Failure::UnsupportedInputSemantics)
+                (
+                    actual.status,
+                    actual.failure,
+                    actual.total_issue_count,
+                    actual.truncated,
+                    actual.issues
+                ),
+                (
+                    r.status,
+                    r.failure,
+                    r.total_issue_count,
+                    r.truncated,
+                    r.issues.clone()
+                ),
+                "{}",
+                String::from_utf8_lossy(raw)
             );
-            continue;
         }
-        let expected = expected.unwrap();
-        let r = expected.report();
-        assert_eq!(
-            (
-                actual.status,
-                actual.failure,
-                actual.total_issue_count,
-                actual.truncated,
-                actual.issues
-            ),
-            (
-                r.status,
-                r.failure,
-                r.total_issue_count,
-                r.truncated,
-                r.issues.clone()
-            ),
-            "{}",
-            String::from_utf8_lossy(raw)
-        );
     }
 }
 

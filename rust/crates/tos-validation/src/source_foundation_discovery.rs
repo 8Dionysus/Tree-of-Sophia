@@ -6389,7 +6389,11 @@ fn update_in_process_diagnostic_fingerprint(
         InputMode::PublishedStrictSelected => 2,
         InputMode::SerdeNormalized => 3,
         InputMode::LegacyPythonObservedSelected(_) => 4,
+        InputMode::LegacyPythonObservedBounded { .. } => 5,
     }]);
+    if let InputMode::LegacyPythonObservedBounded { max_instance_bytes } = report.input_mode {
+        hash_u64(&mut report_hash, max_instance_bytes as u64);
+    }
     if let InputMode::LegacyPythonObservedSelected(limits) = report.input_mode {
         hash_u64(&mut report_hash, limits.max_instance_bytes as u64);
         hash_u64(&mut report_hash, u64::from(limits.max_visits));

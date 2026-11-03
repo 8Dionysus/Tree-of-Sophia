@@ -30,6 +30,10 @@ pub enum InputMode {
     /// Preserve the existing scalar route's serde decode and re-encoding.
     SerdeNormalized,
     LegacyPythonObserved,
+    /// Historical Python-compatible grammar with an exact selected raw byte limit.
+    LegacyPythonObservedBounded {
+        max_instance_bytes: usize,
+    },
     LegacyPythonObservedSelected(crate::executor::LegacySelectedDiagnosticsLimits),
 }
 
@@ -45,6 +49,10 @@ impl InputMode {
             Self::PublishedStrictSelected => hash.update(b"published-strict-selected"),
             Self::SerdeNormalized => hash.update(b"serde-normalized"),
             Self::LegacyPythonObserved => hash.update(b"legacy-python-observed"),
+            Self::LegacyPythonObservedBounded { max_instance_bytes } => {
+                hash.update(b"legacy-python-observed-bounded\0");
+                hash.update(&(max_instance_bytes as u64).to_be_bytes());
+            }
             Self::LegacyPythonObservedSelected(limits) => {
                 hash.update(b"legacy-python-observed-selected\0");
                 hash.update(&(limits.max_instance_bytes as u64).to_be_bytes());
@@ -184,13 +192,16 @@ impl InProcessSchemaEngine {
         {
             return Err(Incomplete::BatchBudget);
         }
-        if matches!(unit.input_mode, InputMode::LegacyPythonObservedSelected(limits) if limits.validate().is_err())
+        if matches!(unit.input_mode, InputMode::LegacyPythonObservedBounded { max_instance_bytes } if max_instance_bytes == 0 || max_instance_bytes > BatchBudget::MAX_RAW_BYTES)
+            || matches!(unit.input_mode, InputMode::LegacyPythonObservedSelected(limits) if limits.validate().is_err())
         {
             return Err(Incomplete::BatchBudget);
         }
         if matches!(
             unit.input_mode,
-            InputMode::LegacyPythonObserved | InputMode::LegacyPythonObservedSelected(_)
+            InputMode::LegacyPythonObserved
+                | InputMode::LegacyPythonObservedBounded { .. }
+                | InputMode::LegacyPythonObservedSelected(_)
         ) && self.profile != FormatProfile::LegacyPythonObserved20260923
         {
             report.failure = Failure::UnsupportedInputSemantics;
@@ -237,47 +248,57 @@ impl InProcessSchemaEngine {
             InputMode::LegacyPythonObservedSelected(limits) => {
                 crate::selected_legacy::in_process_selected_legacy(unit.raw, limits)
             }
-            InputMode::LegacyPythonObserved => match legacy_tree(unit.raw) {
-                Ok(tree) => match legacy_value(&tree) {
-                    Some(value) => Ok(value),
-                    None => {
-                        #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
-                        {
-                            if self.profile != FormatProfile::LegacyPythonObserved20260923 {
-                                report.failure = Failure::UnsupportedInputSemantics;
-                            } else {
-                                match self.validator(unit.root_uri, unit.input_mode) {
-                                    Ok(_) => {
-                                        (
-                                            report.status,
-                                            report.failure,
-                                            report.total_issue_count,
-                                            report.truncated,
-                                            report.issues,
-                                        ) = crate::executor::in_process_exceptional(
-                                            &self.probe.resources,
-                                            unit.root_uri,
-                                            &tree,
-                                            caps,
-                                        );
+            InputMode::LegacyPythonObserved | InputMode::LegacyPythonObservedBounded { .. } => {
+                match legacy_tree(
+                    unit.raw,
+                    match unit.input_mode {
+                        InputMode::LegacyPythonObservedBounded { max_instance_bytes } => {
+                            max_instance_bytes
+                        }
+                        _ => SchemaBackendProbe::MAX_INSTANCE_BYTES,
+                    },
+                ) {
+                    Ok(tree) => match legacy_value(&tree) {
+                        Some(value) => Ok(value),
+                        None => {
+                            #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+                            {
+                                if self.profile != FormatProfile::LegacyPythonObserved20260923 {
+                                    report.failure = Failure::UnsupportedInputSemantics;
+                                } else {
+                                    match self.validator(unit.root_uri, unit.input_mode) {
+                                        Ok(_) => {
+                                            (
+                                                report.status,
+                                                report.failure,
+                                                report.total_issue_count,
+                                                report.truncated,
+                                                report.issues,
+                                            ) = crate::executor::in_process_exceptional(
+                                                &self.probe.resources,
+                                                unit.root_uri,
+                                                &tree,
+                                                caps,
+                                            );
+                                        }
+                                        Err(SchemaProbeError::UnknownKeyword(_)) => {
+                                            report.failure = Failure::UnsupportedInputSemantics
+                                        }
+                                        Err(_) => {}
                                     }
-                                    Err(SchemaProbeError::UnknownKeyword(_)) => {
-                                        report.failure = Failure::UnsupportedInputSemantics
-                                    }
-                                    Err(_) => {}
                                 }
                             }
+                            #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
+                            {
+                                report.failure = Failure::UnsupportedInputSemantics;
+                            }
+                            check(deadline, cancelled)?;
+                            return Ok(report);
                         }
-                        #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
-                        {
-                            report.failure = Failure::UnsupportedInputSemantics;
-                        }
-                        check(deadline, cancelled)?;
-                        return Ok(report);
-                    }
-                },
-                Err(failure) => Err(failure),
-            },
+                    },
+                    Err(failure) => Err(failure),
+                }
+            }
         };
         match value {
             Err(failure) => {
@@ -345,8 +366,8 @@ fn check(deadline: Instant, cancelled: &AtomicBool) -> Result<(), Incomplete> {
     }
 }
 
-fn legacy_tree(raw: &[u8]) -> Result<JsonValue, Failure> {
-    let limits = JsonLimits::new(SchemaBackendProbe::MAX_INSTANCE_BYTES, 64, 300_000, 4_300)
+fn legacy_tree(raw: &[u8], max_instance_bytes: usize) -> Result<JsonValue, Failure> {
+    let limits = JsonLimits::new(max_instance_bytes, 64, 300_000, 4_300)
         .map_err(|_| Failure::InputBudget)?;
     let doc = parse_json(raw, JsonMode::LegacyPythonObserved, limits).map_err(|e| {
         if e.code == FoundationErrorCode::BudgetExceeded {
@@ -513,6 +534,9 @@ impl Report {
             && self.caps.validate()
             && match self.input_mode {
                 InputMode::LegacyPythonObservedSelected(limits) => limits.validate().is_ok(),
+                InputMode::LegacyPythonObservedBounded { max_instance_bytes } => {
+                    max_instance_bytes > 0 && max_instance_bytes <= BatchBudget::MAX_RAW_BYTES
+                }
                 _ => true,
             }
             && self.issues.len() <= self.caps.max_issues_per_unit as usize
@@ -544,6 +568,55 @@ impl Report {
 #[cfg(test)]
 mod input_mode_identity_tests {
     use super::*;
+
+    #[test]
+    fn bounded_legacy_mode_keeps_large_input_and_binds_the_limit() {
+        let uri = "https://example.test/legacy.schema.json";
+        let mut engine = InProcessSchemaEngine::new(
+            [SchemaResource { uri: uri.into(), raw: br#"{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://example.test/legacy.schema.json","type":"object"}"#.to_vec() }],
+            FormatProfile::LegacyPythonObserved20260923,
+        ).unwrap();
+        let mut raw = vec![b' '; SchemaBackendProbe::MAX_INSTANCE_BYTES];
+        raw.extend_from_slice(b"{}");
+        let deadline = Instant::now() + std::time::Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let bounded = InputMode::LegacyPythonObservedBounded {
+            max_instance_bytes: raw.len(),
+        };
+        let report = engine
+            .validate(
+                Unit {
+                    root_uri: uri,
+                    raw: &raw,
+                    input_mode: bounded,
+                },
+                Caps::CURRENT,
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        assert_eq!(report.status, Status::Valid);
+        let smaller = InputMode::LegacyPythonObservedBounded {
+            max_instance_bytes: raw.len() - 1,
+        };
+        assert_ne!(bounded.identity_sha256(), smaller.identity_sha256());
+        let rejected = engine
+            .validate(
+                Unit {
+                    root_uri: uri,
+                    raw: &raw,
+                    input_mode: smaller,
+                },
+                Caps::CURRENT,
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        assert_eq!(
+            (rejected.status, rejected.failure),
+            (Status::InputRejected, Failure::InputBudget)
+        );
+    }
 
     #[test]
     fn cached_validators_and_selected_limits_bind_input_mode() {
