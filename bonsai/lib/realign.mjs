@@ -1,9 +1,8 @@
 // Aligning a bonsai's stored witnesses again, from their own texts.
 //
-// The stored rows of a witnesses module are what `align.mjs` makes of the
-// stored units; running it again must give them back. A change to the
-// mechanism or its parameters shows here first, chapter by chapter, before it
-// is stored.
+// The stored rows originate in `align.mjs`. After source proofreading, their
+// offsets may be adjusted to preserve the original sentence correspondence.
+// A fresh alignment reports differences; it does not overwrite those choices.
 
 import {alignWitnesses,chapterRows,triangle,weakGroups} from './align.mjs';
 import {readChapter,readingText} from './witnesses.mjs';
