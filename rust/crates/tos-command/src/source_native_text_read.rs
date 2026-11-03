@@ -443,44 +443,28 @@ impl PrivateTextReadSelection {
     pub fn load(
         path: &Path,
         source_root: &Path,
-        worker: &mut dyn CutSchemaExecutor,
+        worker: &mut tos_validation::source_cut::InProcessCutSchemaExecutor<()>,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Self> {
         // Inspect the protected grant before the first schema execution. A
-        // selected legacy route uses the existing bounded Python-compatible
-        // diagnostics worker; no general scalar limit is changed.
+        // selected legacy route uses the bounded Python-compatible input of
+        // the in-process engine; no general scalar limit is changed.
         let uid = rustix::process::getuid().as_raw();
         let hint_raw =
             crate::source_text_owner::read_absolute(path, uid, true, 262_144, deadline, cancelled)?;
         let hint = cmd::parse(&hint_raw)?;
         if hint.object_get("legacy_dta").is_some() {
-            use tos_validation::executor::LegacySelectedDiagnosticsLimits;
-            use tos_validation::source_cut::{CutSchemaDiagnosticsLimits, CutSchemaReceiptRange};
-            let operation = CutSchemaReceiptRange::operation_budget(worker);
-            let limits = CutSchemaDiagnosticsLimits::from_operation_ceilings(
-                CutSchemaDiagnosticsLimits {
-                    max_total_issues: 128,
-                    max_total_report_bytes: 16 * 1024 * 1024,
-                    max_total_state_bytes: 128 * 1024 * 1024,
-                },
-                1,
-                operation,
-            )
-            .map_err(|_| SourceCommandError::Denied("legacy DTA diagnostic limits"))?;
             worker
-                .enable_diagnostics_v2(limits)
-                .and_then(|_| {
-                    worker.set_diagnostics_v2_legacy_selected_limits(
-                        LegacySelectedDiagnosticsLimits {
-                            max_instance_bytes: 4_194_304,
-                            max_visits: 2_000_000,
-                            parser_state_bytes: 192 * 1024 * 1024,
-                            conversion_state_bytes: 192 * 1024 * 1024,
-                        },
-                    )
-                })
-                .map_err(|_| SourceCommandError::Denied("legacy DTA bounded worker"))?;
+                .select_legacy_selected_input(
+                    tos_validation::executor::LegacySelectedDiagnosticsLimits {
+                        max_instance_bytes: 4_194_304,
+                        max_visits: 2_000_000,
+                        parser_state_bytes: 192 * 1024 * 1024,
+                        conversion_state_bytes: 192 * 1024 * 1024,
+                    },
+                )
+                .map_err(|_| SourceCommandError::Denied("legacy DTA bounded input"))?;
         }
         let grant = LocalTextReadSelection::load_profile(
             path,

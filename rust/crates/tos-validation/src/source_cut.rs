@@ -5377,6 +5377,25 @@ impl InProcessCutSchemaExecutor<()> {
 }
 
 impl<I> InProcessCutSchemaExecutor<I> {
+    /// Select the bounded Python-compatible input for one selected legacy
+    /// packet. Callers do this on a fresh executor, before its first check.
+    pub fn select_legacy_selected_input(
+        &mut self,
+        limits: crate::executor::LegacySelectedDiagnosticsLimits,
+    ) -> Result<(), ItemRefusal> {
+        if self.finished
+            || self.failed
+            || self.pending_source_rejection.is_some()
+            || self.profile != FormatProfile::LegacyPythonObserved20260923
+            || self.input_mode != crate::in_process::InputMode::SerdeNormalized
+            || limits.validate().is_err()
+        {
+            return Err(crate::item_budget_origin!());
+        }
+        self.input_mode = crate::in_process::InputMode::LegacyPythonObservedSelected(limits);
+        Ok(())
+    }
+
     pub fn new(
         identity: InProcessCutIdentity<I>,
         contracts: BTreeMap<String, (String, Digest256)>,
