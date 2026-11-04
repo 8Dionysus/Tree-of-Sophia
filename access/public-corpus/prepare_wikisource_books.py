@@ -40,11 +40,23 @@ WORKS = {
         'id': 'metaphysics-ru-kubitsky1934-wikisource', 'translator': 'Александр Владиславович Кубицкий (1880–1937)',
         'credit': 'Перевод: А. В. Кубицкий', 'edition': 'Аристотель. Метафизика. М.; Л.: Соцэкгиз, 1934', 'year': '1934',
         'attribution': 'Аристотель; перевод А. В. Кубицкого (1934); участники русской Викитеки (история указанных страниц).',
-        'rationale': 'Translation first published 1934; the translator died 1937. Public domain in Russia (70 years after death). The Russian term had expired before 1 January 1996, so the translation was not restored in the United States. Wikisource transcription under CC BY-SA 4.0: retain attribution, source, license and change notices. No scan collation or semantic acceptance.'},
+        'rationale': ('Translation first published 1934 in the translator’s lifetime; the translator died 13 January 1937 in Moscow '
+                      '(ru.wikipedia, «Кубицкий, Александр Владиславович», revision 150221856; Wikisource names him with the same dates). '
+                      'Russia: under the 1993 Copyright Law the term ran 50 years after death and ended on 31 December 1987, before that '
+                      'law took effect, so it was not revived; Federal Law 231-FZ art. 6 applies the 70-year term of Civil Code art. 1281 '
+                      'only where the 50-year term was still running on 1 January 2004, and 70 years after death also ended on '
+                      '31 December 2007. Neither extension applies: no record of repression or posthumous rehabilitation was found '
+                      '(art. 1281 p. 4), and he died before the war (wartime extension). United States: not restored under URAA, because '
+                      'the work was in the public domain in its source country on 1 January 1996. Wikisource transcription under '
+                      'CC BY-SA 4.0: retain attribution, source, license and change notices. No scan collation or semantic acceptance.')},
     'poetics': {'author': 'aristotle', 'title': 'Поэтика', 'split': 'roman',
         'id': 'poetics-ru-novosadsky1927-wikisource', 'translator': 'Николай Иванович Новосадский (1859–1941)',
         'credit': 'Перевод: Н. И. Новосадский', 'edition': 'Аристотель. Поэтика. Л.: Academia, 1927', 'year': '1927',
         'attribution': 'Аристотель; перевод Н. И. Новосадского (1927); участники русской Викитеки (история указанной страницы).',
+        'source_warning': ('Source warning: the origin of this transcription is not established and serious errors are possible. '
+                           'The Wikisource page has no scans and no quality rating (category 00%); it names as its source a 1998 '
+                           'Minsk reprint taken from teatr-lib.ru, not the 1927 Academia printing, and gives the translator’s '
+                           'initials as «Н. Н.».'),
         'rationale': 'Translation published 1927; the translator died 1941. Public domain in Russia (70 years after death) and in the United States (published before 1931). Wikisource transcription under CC BY-SA 4.0: retain attribution, source, license and change notices. No scan collation or semantic acceptance.'},
     'politics': {'author': 'aristotle', 'title': 'Политика', 'split': 'books', 'books': [1, 1, 1, 2, 2, 2, 2, 3, 4],
         'margins': True, 'id': 'politics-ru-zhebelev1911-wikisource', 'translator': 'Сергей Александрович Жебелёв (1867–1941)',
@@ -58,7 +70,7 @@ WORKS = {
         'attribution': 'Платон; перевод В. И. Оболенского (1827); участники русской Викитеки (история указанных страниц).',
         'rationale': 'Translation published 1827. Public domain in Russia and the United States by age. Wikisource transcription under CC BY-SA 4.0: retain attribution, source, license and change notices. No scan collation or semantic acceptance.'},
     'meditations': {'author': 'marcus', 'title': 'К самому себе', 'split': 'books',
-        'id': 'meditations-ru-rogovin1914-wikisource', 'translator': 'Сергей Мартынович Роговин',
+        'id': 'meditations-ru-rogovin1914-wikisource', 'translator': 'Семён Миронович Роговин',
         'credit': 'Перевод: С. М. Роговин', 'edition': 'Марк Аврелий. Наедине с собой. Размышления. М., 1914', 'year': '1914',
         'attribution': 'Марк Аврелий; перевод С. М. Роговина (1914); участники русской Викитеки (история указанных страниц).',
         'margins': True, 'rationale': 'Translation published 1914; Wikisource marks it PD-RusEmpire (published before 7 November 1917). Public domain in Russia and in the United States (published before 1931). Wikisource transcription under CC BY-SA 4.0: retain attribution, source, license and change notices. No scan collation or semantic acceptance.'},
@@ -253,7 +265,9 @@ def prepare(work, capture, selection, owner):
     articles = [{'n': p['n'], 'title': p['title'], 'article_url': url_of(p['title'], p['revid'], wiki), 'article_oldid': p['revid'],
                  'revision_timestamp': p['timestamp'], 'captured_at': p['captured_at']} for p in pages]
     licenses = sorted({t for p in pages for t in p['templates'] if re.search(r'PD|License', t)})
-    limit = (f"{len(pages)} Wikisource page{'s' if len(pages) > 1 else ''} without page-scan proofreading; "
+    # A source's own warning about its text is kept first, verbatim in substance, wherever the limit is shown.
+    warning = f"{config['source_warning']} " if config.get('source_warning') else ''
+    limit = (f"{warning}{len(pages)} Wikisource page{'s' if len(pages) > 1 else ''} without page-scan proofreading; "
              f"licence templates {', '.join(licenses) or 'none listed'}. {config.get('coverage', '')} "
              'Scan images were not collated. Automatic alignment is unreviewed.').replace('  ', ' ')
     data = {'header': f"<teiHeader><title>{config['title']}</title><translator>{config['translator']}</translator></teiHeader>",
@@ -293,7 +307,7 @@ def prepare(work, capture, selection, owner):
         'captured_at': articles[-1]['captured_at'], 'source': {'provider': 'Russian Wikisource' if wiki == 'ru' else 'English Wikisource', 'work': config['title'],
         'translator': config['translator'], 'edition': config['edition'], 'index_url': index_url, 'pages': articles,
         'licence_templates': licenses, 'scan_collation_performed': False}, 'rights_evidence': [index_url] + law,
-        'limitations': 'Each page revision was read again after its render; each API response is retained. The pages are not ProofreadPage transclusions, so no page-scan status is recorded.'}
+        'limitations': warning + 'Each page revision was read again after its render; each API response is retained. The pages are not ProofreadPage transclusions, so no page-scan status is recorded.'}
     meta_ref = f'{item}/source-metadata-snapshot.json'
     files[meta_ref] = retained.json_bytes(metadata)
     rights_ref = f'{item}/rights.json'
