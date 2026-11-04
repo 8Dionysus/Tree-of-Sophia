@@ -17,7 +17,7 @@ import pathlib
 import re
 import urllib.parse
 
-from bs4 import BeautifulSoup, NavigableString, Tag
+from bs4 import BeautifulSoup, Comment, NavigableString, Tag
 import prepare_wikisource_karpov as karpov
 
 retained = karpov.retained
@@ -60,7 +60,7 @@ WORKS = {
         'id': 'meditations-ru-rogovin1914-wikisource', 'translator': 'Сергей Мартынович Роговин',
         'credit': 'Перевод: С. М. Роговин', 'edition': 'Марк Аврелий. Наедине с собой. Размышления. М., 1914', 'year': '1914',
         'attribution': 'Марк Аврелий; перевод С. М. Роговина (1914); участники русской Викитеки (история указанных страниц).',
-        'rationale': 'Translation published 1914; Wikisource marks it PD-RusEmpire (published before 7 November 1917). Public domain in Russia and in the United States (published before 1931). Wikisource transcription under CC BY-SA 4.0: retain attribution, source, license and change notices. No scan collation or semantic acceptance.'},
+        'margins': True, 'rationale': 'Translation published 1914; Wikisource marks it PD-RusEmpire (published before 7 November 1917). Public domain in Russia and in the United States (published before 1931). Wikisource transcription under CC BY-SA 4.0: retain attribution, source, license and change notices. No scan collation or semantic acceptance.'},
 }
 
 SKIP_CLASSES = {'reference', 'mw-editsection', 'noprint', 'ws-noexport', 'navbox', 'reflist', 'references',
@@ -91,6 +91,8 @@ def lines_of(html):
     out = []
 
     def walk(node):
+        if isinstance(node, Comment):
+            return
         if isinstance(node, NavigableString):
             out.append(str(node))
             return
@@ -125,6 +127,7 @@ def sections_for(work, config, pages):
             if line.startswith(HEAD) and line[len(HEAD):].strip().lower() == 'примечания':
                 lines = lines[:i]
                 break
+        # Marginal line numbers (Politics) and note numbers (Meditations) stand in parentheses.
         if config.get('margins'):
             lines = [re.sub(r'\s*\(\d{1,3}\)\s*', ' ', line).strip() for line in lines]
         if config['split'] == 'books':
@@ -242,7 +245,7 @@ def prepare(work, capture, selection, owner):
     prov[0]['inputs'] = []
     prov[0]['outputs'] = outputs + [{'ref': f'{item}/payload/retained-reading.json', 'sha256': details['source_json_sha'], 'role': 'captured_and_extracted_representation'}]
     prov[1]['method']['configuration']['purpose'] = ('Extracts the rendered text; excludes the header, navigation, headings, note markers, notes'
-        + (' and marginal line numbers' if config.get('margins') else '') + '; a line per paragraph. No spelling corrections. All API responses are retained intact.')
+        + (' and parenthesised marginal or note numbers' if config.get('margins') else '') + '; a line per paragraph. No spelling corrections. All API responses are retained intact.')
     prov[3]['method']['configuration']['purpose'] = 'Rights assessment from the identified translation, its publication and the Wikisource transcription license; no text or canon acceptance.'
     prov[3]['inputs'] = [{'ref': meta_ref, 'sha256': retained.sha(files[meta_ref]), 'role': 'rights_source_metadata_snapshot'}]
     prov[3]['outputs'][0]['sha256'] = retained.sha(files[rights_ref])
