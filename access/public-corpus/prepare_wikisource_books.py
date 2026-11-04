@@ -129,7 +129,7 @@ def sections_for(work, config, pages):
                 break
         # Marginal line numbers and page marks [c.525] (Politics) and note numbers (Meditations).
         if config.get('margins'):
-            lines = [re.sub(r'\s*(\(\d{1,3}\)|\[c\.\s*\d+\])\s*', ' ', line).strip() for line in lines]
+            lines = [re.sub(r'\s*(\(\d{1,3}\)|\[c\.\s*\d+\])', '', line).strip() for line in lines]
         if config['split'] == 'books':
             book = config.get('books', list(range(1, len(pages) + 1)))[n - 1]
             body = [line for line in lines if line and not line.startswith(HEAD)]
