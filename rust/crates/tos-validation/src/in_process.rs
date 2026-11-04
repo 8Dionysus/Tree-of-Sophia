@@ -405,6 +405,11 @@ impl InProcessSchemaEngine {
         Ok(&self.validators[root])
     }
 
+    /// Compile a selected root ahead of its first check (validation compiles it otherwise).
+    pub fn prepare(&mut self, root: &str) -> Result<(), SchemaProbeError> {
+        self.validator(root).map(|_| ())
+    }
+
     /// Compiled validators held by this engine (one per selected root).
     pub fn compiled_validators(&self) -> usize {
         self.validators.len()

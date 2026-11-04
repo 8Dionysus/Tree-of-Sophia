@@ -5310,6 +5310,22 @@ impl InProcessOperationLimits {
         Ok(self)
     }
 
+    /// The tighter of two envelopes, ceiling by ceiling.
+    pub fn narrowed(self, other: Self) -> Self {
+        Self {
+            max_checks: self.max_checks.min(other.max_checks),
+            max_total_input_bytes: self.max_total_input_bytes.min(other.max_total_input_bytes),
+            max_unit_input_bytes: self.max_unit_input_bytes.min(other.max_unit_input_bytes),
+            max_total_issues: self.max_total_issues.min(other.max_total_issues),
+            max_total_report_bytes: self
+                .max_total_report_bytes
+                .min(other.max_total_report_bytes),
+            wall: self.wall.min(other.wall),
+            cpu: self.cpu.min(other.cpu),
+            max_unit_state_bytes: self.max_unit_state_bytes.min(other.max_unit_state_bytes),
+        }
+    }
+
     /// The ceilings an operation stream budget carried to its worker.
     pub fn from_stream_budget(budget: BatchStreamBudget) -> Result<Self, ItemRefusal> {
         budget
@@ -5684,22 +5700,41 @@ impl<I> InProcessCutSchemaExecutor<I> {
                 cancelled,
             );
         };
-        let checks = self
-            .usage
-            .checks
-            .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
-        let input_bytes = self
-            .usage
-            .input_bytes
-            .checked_add(raw.len() as u64)
-            .ok_or(ItemRefusal::Budget)?;
-        if checks > limits.max_checks
-            || raw.len() as u64 > limits.max_unit_input_bytes
-            || input_bytes > limits.max_total_input_bytes
-            || self.usage.cpu >= limits.cpu
-        {
-            return Err(ItemRefusal::Budget);
+        let over = |check, used: u64, limit: u64| ItemRefusal::BudgetCheck {
+            check,
+            used: Some(used),
+            limit: Some(limit),
+        };
+        let checks = self.usage.checks.saturating_add(1);
+        let input_bytes = self.usage.input_bytes.saturating_add(raw.len() as u64);
+        if checks > limits.max_checks {
+            return Err(over("in-process schema checks", checks, limits.max_checks));
+        }
+        if raw.len() as u64 > limits.max_unit_input_bytes {
+            return Err(over(
+                "in-process schema unit input bytes",
+                raw.len() as u64,
+                limits.max_unit_input_bytes,
+            ));
+        }
+        if input_bytes > limits.max_total_input_bytes {
+            return Err(over(
+                "in-process schema input bytes",
+                input_bytes,
+                limits.max_total_input_bytes,
+            ));
+        }
+        if self.usage.cpu >= limits.cpu {
+            return Err(over(
+                "in-process schema CPU microseconds",
+                self.usage.cpu.as_micros() as u64,
+                limits.cpu.as_micros() as u64,
+            ));
+        }
+        // Compiling a selected root depends on the trusted schema set, not on the
+        // input, and happens once per engine: it is not charged to the operation's CPU.
+        if let Ok(root) = self.selected_root(contract) {
+            let _ = self.engine.prepare(&root);
         }
         let started = *self.usage.started.get_or_insert_with(Instant::now);
         let operation_deadline = started
@@ -5734,24 +5769,32 @@ impl<I> InProcessCutSchemaExecutor<I> {
             .sum::<u64>();
         self.usage.issues = self.usage.issues.saturating_add(report.issues.len() as u64);
         self.usage.report_bytes = self.usage.report_bytes.saturating_add(report_bytes);
-        if self.usage.issues > limits.max_total_issues
-            || self.usage.report_bytes > limits.max_total_report_bytes
-            || self.usage.cpu > limits.cpu
-        {
-            return Err(ItemRefusal::Budget);
+        if self.usage.issues > limits.max_total_issues {
+            return Err(over(
+                "in-process schema issues",
+                self.usage.issues,
+                limits.max_total_issues,
+            ));
+        }
+        if self.usage.report_bytes > limits.max_total_report_bytes {
+            return Err(over(
+                "in-process schema report bytes",
+                self.usage.report_bytes,
+                limits.max_total_report_bytes,
+            ));
+        }
+        if self.usage.cpu > limits.cpu {
+            return Err(over(
+                "in-process schema CPU microseconds",
+                self.usage.cpu.as_micros() as u64,
+                limits.cpu.as_micros() as u64,
+            ));
         }
         Ok(report)
     }
 
-    fn diagnostic_inner(
-        &mut self,
-        contract: &str,
-        raw: &[u8],
-        caps: schema_diagnostics::Caps,
-        ceilings: crate::in_process::UnitCeilings,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> Result<crate::in_process::Report, ItemRefusal> {
+    /// The schema root a selected contract (with an optional fragment) names.
+    fn selected_root(&self, contract: &str) -> Result<String, ItemRefusal> {
         let (base, fragment) = match contract.split_once('#') {
             Some((base, fragment))
                 if !base.is_empty() && fragment.starts_with('/') && !fragment.contains('#') =>
@@ -5774,6 +5817,19 @@ impl<I> InProcessCutSchemaExecutor<I> {
         if root.len() > crate::executor::MAX_URI_BYTES {
             return Err(ItemRefusal::Budget);
         }
+        Ok(root)
+    }
+
+    fn diagnostic_inner(
+        &mut self,
+        contract: &str,
+        raw: &[u8],
+        caps: schema_diagnostics::Caps,
+        ceilings: crate::in_process::UnitCeilings,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<crate::in_process::Report, ItemRefusal> {
+        let root = self.selected_root(contract)?;
         self.engine
             .validate_within(
                 crate::in_process::Unit {
@@ -5800,8 +5856,17 @@ impl<I> CutSchemaExecutor for InProcessCutSchemaExecutor<I> {
     fn schema_profile(&self) -> Option<FormatProfile> {
         Some(self.profile)
     }
+    /// A caller's operation stream narrows the envelope the route already set, as a
+    /// worker's operation budget narrowed the receipt limits it was built with.
     fn set_operation_budget(&mut self, budget: BatchStreamBudget) -> Result<(), ItemRefusal> {
-        self.set_operation_limits(InProcessOperationLimits::from_stream_budget(budget)?)
+        let carried = InProcessOperationLimits::from_stream_budget(budget)?;
+        match self.limits {
+            Some(current) if !self.finished && !self.failed && self.usage.checks == 0 => {
+                self.limits = Some(current.narrowed(carried).validate()?);
+                Ok(())
+            }
+            _ => self.set_operation_limits(carried),
+        }
     }
     fn schema_execution_binding(&self) -> Option<tos_foundation::SchemaExecutionBinding> {
         Some(tos_foundation::SchemaExecutionBinding::InProcessV1(

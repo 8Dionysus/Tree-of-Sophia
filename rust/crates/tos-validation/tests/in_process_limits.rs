@@ -307,7 +307,7 @@ fn an_operation_runs_no_more_checks_than_its_envelope_allows() {
     assert!(check(&mut executor, ONE).unwrap());
     assert!(matches!(
         check(&mut executor, ONE),
-        Err(ItemRefusal::Budget)
+        Err(ItemRefusal::Budget | ItemRefusal::BudgetCheck { .. })
     ));
     assert_eq!(executor.operation_usage().checks, 2);
 }
@@ -323,7 +323,7 @@ fn an_operation_bounds_its_input_bytes() {
         .unwrap();
     assert!(matches!(
         check(&mut executor, ONE),
-        Err(ItemRefusal::Budget)
+        Err(ItemRefusal::Budget | ItemRefusal::BudgetCheck { .. })
     ));
 
     let mut executor = fresh_executor();
@@ -337,7 +337,7 @@ fn an_operation_bounds_its_input_bytes() {
     assert!(check(&mut executor, ONE).unwrap());
     assert!(matches!(
         check(&mut executor, ONE),
-        Err(ItemRefusal::Budget)
+        Err(ItemRefusal::Budget | ItemRefusal::BudgetCheck { .. })
     ));
 }
 
@@ -352,7 +352,7 @@ fn an_operation_bounds_decoded_state_diagnostics_and_cpu() {
         .unwrap();
     assert!(matches!(
         check(&mut executor, ONE),
-        Err(ItemRefusal::Budget)
+        Err(ItemRefusal::Budget | ItemRefusal::BudgetCheck { .. })
     ));
 
     let mut executor = fresh_executor();
@@ -364,7 +364,7 @@ fn an_operation_bounds_decoded_state_diagnostics_and_cpu() {
         .unwrap();
     assert!(matches!(
         check(&mut executor, br#"[{"word":"A1","n":-1}]"#),
-        Err(ItemRefusal::Budget)
+        Err(ItemRefusal::Budget | ItemRefusal::BudgetCheck { .. })
     ));
 
     let (raw, _) = long_validation();
@@ -377,7 +377,7 @@ fn an_operation_bounds_decoded_state_diagnostics_and_cpu() {
         .unwrap();
     assert!(matches!(
         check_heavy(&mut executor, &raw),
-        Err(ItemRefusal::Budget)
+        Err(ItemRefusal::Budget | ItemRefusal::BudgetCheck { .. })
     ));
 }
 
