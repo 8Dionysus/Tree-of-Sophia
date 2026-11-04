@@ -218,7 +218,7 @@ export function mountResearchExperience({root,header,profile,locale=()=> 'ru',in
     onCognitive({action:kind,id:recordId,revision,cite});
   }
   const selectionEvent=event=>{const selection=event.detail;if(suppressSelection||!selection?.id)return;open(selection.id,{show:false});};
-  const openEvent=event=>{if(event.detail?.id)open(event.detail.id,{revision:event.detail.revision??index.revision});};
+  const openEvent=event=>{if(event.detail?.id){event.preventDefault();open(event.detail.id,{revision:event.detail.revision??index.revision});}};
   const actionEvent=event=>handleAction(event.detail??{});
   const popEvent=()=>{const params=new URL(location.href).searchParams;state.mode=validMode(params.get('experience'));state.id=params.get('item');state.revision=params.get('revision')||index.revision;const at=state.stack.findLastIndex(entry=>entry.id===state.id&&entry.revision===state.revision);if(at>=0)state.cursor=at;if(state.id&&state.mode==='original'&&state.revision===index.revision){suppressSelection=true;try{space.openResearch?.(state.id);}finally{suppressSelection=false;}}render();save();};
   root.addEventListener('public-research-selection',selectionEvent);root.addEventListener('public-research-open',openEvent);root.addEventListener('public-research-action',actionEvent);window.addEventListener('popstate',popEvent);
