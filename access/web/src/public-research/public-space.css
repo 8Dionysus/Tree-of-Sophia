@@ -308,6 +308,11 @@
 #tree .ps-panel .ps-question-card{padding:13px 14px;margin:15px 0;border:1px solid #849ab32b;background:#0b1420a0}
 #tree .ps-question-card .eyebrow{display:block;margin-bottom:8px}
 #tree .ps-question-card p{margin:0;font:14px/1.65 var(--ps-serif);color:#d2c8b4}
+/* The book's answer to its own question: both places, in the book's words, and the relation that holds them. */
+#tree .ps-answer-card{display:grid;gap:8px;padding:13px 14px;margin:15px 0;border:1px solid #849ab32b;border-left:2px solid #d7bd8099;background:#0b1420a0}
+#tree .ps-answer-card>.eyebrow{display:block;color:#d7bd80}
+#tree .ps-answer-card .ps-authored>p{margin:10px 0 0;font:14px/1.65 var(--ps-serif);color:#d2c8b4}
+#tree .ps-answer-card>.connection-target{padding:9px 3px 3px;border-top:1px solid #8da5c01a}
 #tree .ps-panel .source-link{margin:8px 0;color:#bbd0c2;font:12px/1.75 var(--ps-sans)}
 #tree .ps-panel .connection-target{width:100%;padding:12px 3px;border-top:1px solid #8da5c01a;text-align:left}
 #tree .ps-panel .connection-target small{font-size:11px}
@@ -615,29 +620,29 @@
   #tree .ps-controls-list{gap:9px 12px}
 }
 
-/* ── the play of knowing: your own line first, then your place among the readings ── */
-#tree .ps-own{display:grid;gap:10px;margin:12px 0 16px;padding:12px 12px 10px;border:1px dashed #b3d9c466;border-radius:6px;background:#0c1a1c80}
-#tree .ps-own-form{display:grid;grid-template-columns:1fr auto;align-items:end;gap:8px}
-#tree .ps-own-form textarea{min-height:44px;resize:vertical;padding:8px 10px;border:1px solid #8aa0b844;border-radius:4px;background:#060d18;color:#e4e6ea;font:13px/1.45 var(--ps-sans)}
-#tree .ps-own-form textarea::placeholder{color:#7f97b0}
-#tree .ps-own-form textarea:focus{outline:none;border-color:#b3d9c4aa;box-shadow:0 0 0 2px #b3d9c422}
-#tree .ps-own-write{min-height:36px;white-space:nowrap}
-#tree .ps-own-around summary{cursor:pointer;color:#8ea2ba;font:600 10px/1.6 var(--ps-sans);letter-spacing:.1em;text-transform:uppercase}
-#tree .ps-own-around[open] summary{margin-bottom:4px}
-#tree .ps-own-line{display:grid;gap:3px;width:100%;padding:2px 0 8px;border:0;border-bottom:1px solid #8da5c01a;background:none;color:#d5ecdf;text-align:left;cursor:pointer}
-#tree .ps-own-line .eyebrow{color:#9fcfb5}
-#tree .ps-own-text{font:400 14px/1.45 var(--ps-serif)}
-#tree .ps-own-line:hover .ps-own-text{color:#eef7f1}
-#tree .ps-own-near,#tree .ps-own-follows{display:grid;gap:4px}
-#tree .ps-own-near .eyebrow,#tree .ps-own-follows .eyebrow{margin:2px 0 2px}
-#tree .ps-own-choice{display:flex;align-items:baseline;justify-content:space-between;gap:10px;width:100%;padding:7px 9px;border:1px solid #8aa0b82e;border-radius:4px;background:#0a1422;color:#c9d4df;text-align:left;font:13px/1.35 var(--ps-sans);cursor:pointer}
-#tree .ps-own-choice small{flex:none;color:#7f97b0;font-size:10.5px;letter-spacing:.04em}
-#tree .ps-own-choice:hover{border-color:#b3d9c466}
-#tree .ps-own-choice[aria-pressed=true]{border-color:#b3d9c4;background:#13302a;color:#eaf6ef}
-#tree .ps-own-choice[aria-pressed=true]::before{content:'◌';margin-right:6px;color:#b3d9c4}
-#tree .ps-own-choice:disabled{opacity:.55;cursor:default}
-#tree .ps-own-none{justify-content:center;color:#93a5b9;font-size:12px}
-#tree .ps-own-follows .connection-target{padding:8px 3px}
+/* ── the play of knowing, in the learning mode: your own line first, then your place among the readings ── */
+:is(#tree,.experience-prompt) .ps-own{display:grid;gap:10px;margin:12px 0 16px;padding:12px 12px 10px;border:1px dashed #b3d9c466;border-radius:6px;background:#0c1a1c80}
+:is(#tree,.experience-prompt) .ps-own-form{display:grid;grid-template-columns:1fr auto;align-items:end;gap:8px}
+:is(#tree,.experience-prompt) .ps-own-form textarea{min-height:44px;resize:vertical;padding:8px 10px;border:1px solid #8aa0b844;border-radius:4px;background:#060d18;color:#e4e6ea;font:13px/1.45 var(--ps-sans)}
+:is(#tree,.experience-prompt) .ps-own-form textarea::placeholder{color:#7f97b0}
+:is(#tree,.experience-prompt) .ps-own-form textarea:focus{outline:none;border-color:#b3d9c4aa;box-shadow:0 0 0 2px #b3d9c422}
+:is(#tree,.experience-prompt) .ps-own-write{min-height:36px;white-space:nowrap}
+:is(#tree,.experience-prompt) .ps-own-around summary{cursor:pointer;color:#8ea2ba;font:600 10px/1.6 var(--ps-sans);letter-spacing:.1em;text-transform:uppercase}
+:is(#tree,.experience-prompt) .ps-own-around[open] summary{margin-bottom:4px}
+:is(#tree,.experience-prompt) .ps-own-line{display:grid;gap:3px;width:100%;padding:2px 0 8px;border:0;border-bottom:1px solid #8da5c01a;background:none;color:#d5ecdf;text-align:left;cursor:pointer}
+:is(#tree,.experience-prompt) .ps-own-line .eyebrow{color:#9fcfb5}
+:is(#tree,.experience-prompt) .ps-own-text{font:400 14px/1.45 var(--ps-serif)}
+:is(#tree,.experience-prompt) .ps-own-line:hover .ps-own-text{color:#eef7f1}
+:is(#tree,.experience-prompt) .ps-own-near,:is(#tree,.experience-prompt) .ps-own-follows{display:grid;gap:4px}
+:is(#tree,.experience-prompt) .ps-own-near .eyebrow,:is(#tree,.experience-prompt) .ps-own-follows .eyebrow{margin:2px 0 2px}
+:is(#tree,.experience-prompt) .ps-own-choice{display:flex;align-items:baseline;justify-content:space-between;gap:10px;width:100%;padding:7px 9px;border:1px solid #8aa0b82e;border-radius:4px;background:#0a1422;color:#c9d4df;text-align:left;font:13px/1.35 var(--ps-sans);cursor:pointer}
+:is(#tree,.experience-prompt) .ps-own-choice small{flex:none;color:#7f97b0;font-size:10.5px;letter-spacing:.04em}
+:is(#tree,.experience-prompt) .ps-own-choice:hover{border-color:#b3d9c466}
+:is(#tree,.experience-prompt) .ps-own-choice[aria-pressed=true]{border-color:#b3d9c4;background:#13302a;color:#eaf6ef}
+:is(#tree,.experience-prompt) .ps-own-choice[aria-pressed=true]::before{content:'◌';margin-right:6px;color:#b3d9c4}
+:is(#tree,.experience-prompt) .ps-own-choice:disabled{opacity:.55;cursor:default}
+:is(#tree,.experience-prompt) .ps-own-none{justify-content:center;color:#93a5b9;font-size:12px}
+:is(#tree,.experience-prompt) .ps-own-follows .connection-target{padding:8px 3px}
 
 /* ── a thread into the dark ends in a small door: following it brings its star into the space ── */
 #tree .tree-thread{width:24px;height:24px;padding:0;border:0;border-radius:50%;background:transparent;cursor:pointer}
