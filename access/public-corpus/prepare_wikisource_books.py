@@ -66,7 +66,7 @@ WORKS = {
 
 # English translations from English Wikisource for works the corpus held only in the original.
 YONGE = {'translator': 'Charles Duke Yonge (1812–1891)', 'credit': 'Translated by C. D. Yonge'}
-STEWART = {'translator': 'Aubrey Stewart (1838–1918)', 'credit': 'Translated by Aubrey Stewart'}
+STEWART = {'translator': 'Aubrey Stewart (1844–1918)', 'credit': 'Translated by Aubrey Stewart'}
 CICERO_1891 = 'The Academic Questions, Treatise De Finibus, and Tusculan Disputations. London: George Bell, 1891'
 for key, config in {
     'athenian-constitution-en': {'work': 'athenian-constitution', 'author': 'aristotle', 'title': 'The Athenian Constitution', 'split': 'single', 'label': 'Text',
