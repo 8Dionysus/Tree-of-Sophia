@@ -1,7 +1,7 @@
 import {readFileSync,readdirSync} from 'node:fs';
 import {expect,test} from 'vitest';
 import ts from 'typescript';
-import {PUBLIC_LOCALES,resolveLocale,localeText,localeValue} from './locale.mjs';
+import {PUBLIC_LOCALES,LOCALE_NAMES,initialLocale,resolveLocale,shownLanguages,translationLanguage,localeText,localeValue} from './locale.mjs';
 import {formatDating,formatYears} from '../../../../bonsai/lib/time.mjs';
 import {localizePublicJourney} from './journey-i18n.mjs';
 import {hypothesisTitle,workspaceConflictLabel} from './presentation-i18n.mjs';
@@ -183,4 +183,30 @@ test('every statically authored public UI message has a translation entry',()=>{
     const missing=[...forms].filter(form=>!Object.hasOwn(catalogs[language].public,form)&&!Object.hasOwn(catalogs[language].bonsai,form));
     expect(missing,`${language}: missing authored public messages`).toEqual([]);
   }
+});
+
+test('the site opens in English unless the address, the saved choice or the system names a language it has',()=>{
+  expect(PUBLIC_LOCALES).toEqual(['en','ru','es','de','zh-Hans']);
+  expect(Object.keys(LOCALE_NAMES)).toEqual([...PUBLIC_LOCALES]);
+  expect(initialLocale()).toBe('en');
+  expect(initialLocale({system:['fr-FR','ru-RU']})).toBe('ru');
+  expect(initialLocale({system:['fr-FR','it-IT']})).toBe('en');
+  expect(initialLocale({saved:'de',system:['ru-RU']})).toBe('de');
+  expect(initialLocale({requested:'zh-CN',saved:'de',system:['ru']})).toBe('zh-Hans');
+  expect(initialLocale({requested:'xx',saved:'nonsense',system:['pt-BR']})).toBe('en');
+  expect(resolveLocale('xx')).toBe('en');expect(resolveLocale(undefined)).toBe('en');
+});
+
+test('a reader sees the original and one translation in a language the interface speaks to them in',()=>{
+  const zarathustra=['de','en','ru'];
+  expect(shownLanguages('en','de',zarathustra)).toEqual(['de','en']);
+  expect(shownLanguages('ru','de',zarathustra)).toEqual(['de','ru']);
+  expect(shownLanguages('es','de',zarathustra)).toEqual(['de','en']);
+  expect(shownLanguages('zh-Hans','de',zarathustra)).toEqual(['de','en']);
+  expect(shownLanguages('de','de',zarathustra)).toEqual(['de']);
+  // A Russian reader is never given the English, nor an English reader the Russian, in its place.
+  expect(shownLanguages('ru','grc',['grc','en'])).toEqual(['grc']);
+  expect(shownLanguages('en','grc',['grc','ru'])).toEqual(['grc']);
+  expect(translationLanguage('es',['ru','es','en'])).toBe('es');
+  for(const locale of PUBLIC_LOCALES)expect(shownLanguages(locale,'de',zarathustra).length).toBeLessThanOrEqual(2);
 });

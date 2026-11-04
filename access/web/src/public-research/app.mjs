@@ -1,4 +1,4 @@
-import {resolveLocale,copyLocale,localeText,localeLabels} from './locale.mjs';
+import {resolveLocale,copyLocale,initialLocale,localeText,localeLabels} from './locale.mjs';
 import {setUiLanguage} from '../observatory/ui-i18n.mjs';
 import {mountCorpusEntry} from '../corpus-reader/host.mjs';
 import {createCorpusNotebook} from '../corpus-reader/notebook.mjs';
@@ -19,7 +19,7 @@ const root = document.querySelector('#public-research') ?? document.querySelecto
 const profile = root?.dataset.profile === 'antiquity' ? 'antiquity' : 'zarathustra';
 const requestedLocale=new URLSearchParams(location.search).get('lang');
 let savedLocale;try{savedLocale=localStorage.getItem('tos.public-research.locale.v1');}catch{}
-let locale=resolveLocale(requestedLocale,null)??resolveLocale(savedLocale,null)??(navigator.languages??[navigator.language]).map(value=>resolveLocale(value,null)).find(Boolean)??'ru';
+let locale=initialLocale({requested:requestedLocale,saved:savedLocale,system:navigator.languages??[navigator.language]});
 let english=copyLocale(locale)==='en';
 setUiLanguage(locale);
 const copy = {

@@ -1,11 +1,11 @@
 import es from './locales/es.json' with {type:'json'};
 import de from './locales/de.json' with {type:'json'};
 import zh from './locales/zh-Hans.json' with {type:'json'};
-import {BONSAI_LOCALES,resolveLocale,copyLocale,bonsaiTranslation} from '../../../../bonsai/lib/locales.mjs';
+import {BONSAI_LOCALES,DEFAULT_LOCALE,resolveLocale,copyLocale,initialLocale,translationLanguage,shownLanguages,bonsaiTranslation} from '../../../../bonsai/lib/locales.mjs';
 
-export {resolveLocale,copyLocale};
+export {DEFAULT_LOCALE,resolveLocale,copyLocale,initialLocale,translationLanguage,shownLanguages};
 export const PUBLIC_LOCALES=BONSAI_LOCALES;
-export const LOCALE_NAMES=Object.freeze({ru:'Русский',en:'English',es:'Español',de:'Deutsch','zh-Hans':'简体中文'});
+export const LOCALE_NAMES=Object.freeze({en:'English',ru:'Русский',es:'Español',de:'Deutsch','zh-Hans':'简体中文'});
 const catalogs=Object.freeze({ru:Object.freeze({'Interface language':'Язык интерфейса'}),es,de,'zh-Hans':zh});
 const translation=(source,language)=>{const catalog=catalogs[language];return catalog&&Object.hasOwn(catalog,source)?catalog[source]:bonsaiTranslation(source,language);};
 

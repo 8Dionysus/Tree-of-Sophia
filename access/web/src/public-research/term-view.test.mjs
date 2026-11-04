@@ -1,6 +1,7 @@
 import {describe,expect,it,vi} from 'vitest';
 import {readFileSync} from 'node:fs';
 import {createTerms,termContextAllows,termForms,termMatcher,treeRendering,witnessLines} from './term-view.mjs';
+import {PUBLIC_LOCALES,shownLanguages} from './locale.mjs';
 
 const module={terms:[
   {id:'ubermensch',original:{lemma:'Übermensch',forms:['Übermensch','Übermenschen']},renderings:{ru:{tos:{term:'сверхчеловек',forms:['сверхчеловек','сверхчеловека']},witness:{term:'сверхчеловек',forms:['сверхчеловеке']}},en:{tos:{term:'overman',forms:['overman']},witness:{term:'Superman',forms:['Superman']}}}},
@@ -8,8 +9,8 @@ const module={terms:[
 ]};
 
 describe('active terms',()=>{
-  it('shows the distinct Tree rendering even when its Russian word matches Antonovsky',()=>{
-    expect(treeRendering(module.terms[0],'ru')).toEqual({lang:'en',term:'overman'});
+  it('shows the Tree’s word only in the reader’s own language, where its translation says another',()=>{
+    expect(treeRendering(module.terms[0],'ru')).toBeNull();
     expect(treeRendering(module.terms[0],'en')).toEqual({lang:'en',term:'overman'});
     expect(treeRendering(module.terms[1],'ru')).toBeNull();
     const registry=JSON.parse(readFileSync(new URL('../../../../bonsai/zarathustra/terms.json',import.meta.url),'utf8'));
@@ -17,7 +18,8 @@ describe('active terms',()=>{
     expect(overman.original.lemma).toBe('Übermensch');
     expect(overman.renderings.ru.witness.term).toBe('сверхчеловек');
     expect(overman.renderings.en.witness.term).toBe('Superman');
-    expect(treeRendering(overman,'ru')).toEqual({lang:'en',term:'overman'});
+    expect(treeRendering(overman,'ru')).toBeNull();
+    expect(treeRendering(overman,'en')).toEqual({lang:'en',term:'overman'});
     expect(overman.gloss.ru).toBeTruthy();
   });
   it('gives a reader the Tree’s word in their language when no shown translation says it there',()=>{
@@ -138,6 +140,40 @@ it('shows the original, edition words and gloss before opening an Antiquity plac
   terms.dispose();vi.unstubAllGlobals();
 });
 
+
+it('names a term in the original and the reader’s one translation only, in every interface language',()=>{
+  let handlers={};
+  class Element{
+    constructor(tag){this.tagName=tag.toUpperCase();this.dataset={};this.style={};this.attrs={};this.children=[];this.listeners={};this.hidden=false;}
+    setAttribute(k,v){this.attrs[k]=v;} removeAttribute(k){delete this.attrs[k];}
+    append(...nodes){for(const node of nodes){node.parentElement=this;this.children.push(node);}}
+    replaceChildren(...nodes){this.children=[];this.append(...nodes);}
+    addEventListener(type,fn){this.listeners[type]=fn;} remove(){} contains(node){return this===node||this.children.includes(node);}
+    closest(selector){return selector==='.ps-term'&&this.dataset.term?this:null;}
+    getBoundingClientRect(){return {left:0,width:20,top:20,bottom:40};}
+  }
+  const all=node=>[node,...node.children.flatMap(all)],text=node=>all(node).map(item=>item.textContent??'').join(' ');
+  for(const stand of ['zarathustra','antiquity']){
+    const registry=JSON.parse(readFileSync(new URL(`../../../../bonsai/${stand}/terms.json`,import.meta.url),'utf8'));
+    for(const locale of PUBLIC_LOCALES){
+      handlers={};const body=new Element('body');
+      vi.stubGlobal('document',{body,documentElement:{lang:locale},createElement:tag=>new Element(tag),addEventListener:(type,fn)=>{handlers[type]=fn;},removeEventListener(){}});
+      vi.stubGlobal('innerWidth',800);vi.stubGlobal('innerHeight',600);vi.stubGlobal('addEventListener',()=>{});vi.stubGlobal('removeEventListener',()=>{});
+      const terms=createTerms({locale:()=>locale,module:{...registry,work:stand==='antiquity'?'antiquity':registry.work}});
+      const card=body.children[0];
+      for(const term of registry.terms){
+        const span=new Element('span');span.dataset.term=term.id;handlers.focusin({target:span});
+        const [,translation]=shownLanguages(locale,term.original?.lang??'de',Object.keys(term.renderings??{}));
+        const said=all(card).filter(node=>node.className==='ps-term-word').map(node=>node.lang);
+        expect(said.filter(lang=>lang!==translation),`${stand} ${locale} ${term.id}`).toEqual([]);
+        if(locale!=='ru')expect(text(card),`${stand} ${locale} ${term.id}`).not.toMatch(/[\u0400-\u04FF]/u);
+        if(translation==='en'&&term.renderings?.en?.witness)expect(said.length,`${stand} ${locale} ${term.id}`).toBeGreaterThan(0);
+        handlers.focusout?.({target:span,relatedTarget:null});
+      }
+      terms.dispose();vi.unstubAllGlobals();
+    }
+  }
+});
 
 it('releases observers for removed roots while preserving connected or reattached roots',()=>{
   const observers=[];

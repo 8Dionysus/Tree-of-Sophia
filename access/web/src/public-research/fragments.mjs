@@ -12,7 +12,7 @@ import {readChapter,fragmentOf,displayText} from '../../../../bonsai/lib/witness
 import {readCorpusFragmentRange} from './corpus-fragment-range.mjs';
 import {modernRussian,isPreReform} from './orthography.mjs';
 import {createLatestFragmentRequest} from './fragment-request.mjs';
-import {copyLocale,localeValue,resolveLocale} from './locale.mjs';
+import {copyLocale,localeValue,resolveLocale,shownLanguages} from './locale.mjs';
 
 const ZARATHUSTRA='also-sprach-zarathustra';
 const chapterFiles=import.meta.glob('../../../../bonsai/zarathustra/witnesses/*.json',{import:'default'});
@@ -44,10 +44,10 @@ export const hasAuthored=(value,locale)=>citesOf(value).length>0||!!localeValue(
  * beside the English for the languages no witness translates into.
  */
 export function readingLanguages(locale,original='de',available=['de','en','ru']){
-  const language=resolveLocale(locale);
-  if(language===original)return {primary:[original],alternate:null};
-  if(available.includes(language))return {primary:[language],alternate:original};
-  return {primary:[original,...(available.includes('en')&&original!=='en'?['en']:[])],alternate:null};
+  const [,translation]=shownLanguages(locale,original,available);
+  if(!translation)return {primary:[original],alternate:null};
+  if(translation===resolveLocale(locale))return {primary:[translation],alternate:original};
+  return {primary:[original,translation],alternate:null};
 }
 
 // Chapter titles as the witnesses print them, without numbering or a closing period.
@@ -211,11 +211,12 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     // The editions themselves, in the reader of the corpus, where a place of this chapter stands there too.
     view.foot.replaceChildren();
     const firstRow=first?data.rows[[...grid.children].indexOf(first)]:data.rows[0];
-    const deUnit=data.units.de?.[firstRow?.de?.[0]],enUnit=data.units.en?.[firstRow?.en?.[0]],ruUnit=data.units.ru?.[firstRow?.ru?.[0]];
+    // Only the editions of the columns shown: the reader is never offered a translation into another language.
     const editions=[];
-    if(openAddress&&deUnit&&info.corpus.dta)editions.push(['DE',{documentId:info.corpus.documentId,versionId:info.corpus.dta.versionId,revision:info.corpus.dta.revision,unitId:deUnit.id}]);
-    if(openAddress&&enUnit)editions.push(['EN',{documentId:info.corpus.documentId,versionId:info.corpus.en.versionId,revision:info.corpus.en.revision,unitId:enUnit.id}]);
-    if(openAddress&&ruUnit&&info.corpus.ru)editions.push(['RU',{documentId:info.corpus.documentId,versionId:info.corpus.ru.versionId,revision:info.corpus.ru.revision,unitId:ruUnit.id}]);
+    for(const language of shownColumns){
+      const unit=data.units[language]?.[firstRow?.[language]?.[0]],version=language==='de'?info.corpus.dta:info.corpus[language];
+      if(openAddress&&unit&&version)editions.push([language==='zh-Hans'?'ZH':language.toUpperCase(),{documentId:info.corpus.documentId,versionId:version.versionId,revision:version.revision,unitId:unit.id}]);
+    }
     // One action, one button per edition: the footer stays one line even on a phone.
     if(editions.length){
       const group=el('span','ps-parallel-editions');group.append(el('span','ps-parallel-editions-label',`↗ ${words('fragmentEdition')}`));
