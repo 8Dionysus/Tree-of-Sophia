@@ -1,4 +1,5 @@
 import { publicPrototypeAsset, withReaderSecurity } from "./public-prototypes.ts";
+import { resolveLocale } from "../../../../bonsai/lib/locale-tag.mjs";
 
 
 interface Env {
@@ -55,17 +56,20 @@ const HEADS: Record<string, Record<"en" | "ru", Head>> = {
 };
 const SITE = { en: "Tree of Sophia", ru: "Древо Софии" } as const;
 const OG_LOCALE = { en: "en_US", ru: "ru_RU" } as const;
-const LANGUAGES = new Set(["en", "ru", "es", "de", "zh-Hans"]);
 const escapeHtml = (value: string) => value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 
-/** The stand page's head in the language its link asks for: Russian copy for Russian, English otherwise. */
-export function localizeHead(html: string, stand: string, lang: string | null): string {
-  const heads = HEADS[stand];
-  if (!heads || !lang || !LANGUAGES.has(lang)) return html;
+/**
+ * The stand page's head in the language its link asks for: Russian copy for Russian, English otherwise.
+ * The tag is read as the browser reads it (bonsai/lib/locale-tag.mjs), so zh-CN or ru-RU name the same
+ * language here as in the page; a tag the site does not have leaves the English page as it is.
+ */
+export function localizeHead(html: string, stand: string, requested: string | null): string {
+  const heads = HEADS[stand], lang = resolveLocale(requested, null);
+  if (!heads || !lang) return html;
   const copy = lang === "ru" ? "ru" : "en", head = heads[copy];
   const content = (pattern: RegExp, value: string) => (text: string) => text.replace(pattern, `$1${escapeHtml(value)}$2`);
   return [
-    (text: string) => text.replace(/<html lang="[^"]*"/, `<html lang="${lang === "zh-Hans" ? "zh" : lang}"`),
+    (text: string) => text.replace(/<html lang="[^"]*"/, `<html lang="${lang}"`),
     (text: string) => text.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(head.title)}</title>`),
     content(/(<meta name="description" content=")[^"]*(")/, head.description),
     content(/(<meta property="og:description" content=")[^"]*(")/, head.description),
@@ -80,7 +84,7 @@ async function standPage(env: Env, request: Request, page: string): Promise<Resp
   const response = await env.ASSETS.fetch(new Request(new URL(page, request.url), request));
   const stand = page.replace(/\//g, "");
   const lang = new URL(request.url).searchParams.get("lang");
-  if (!response.ok || request.method === "HEAD" || !HEADS[stand] || !lang || !LANGUAGES.has(lang)) return withReaderSecurity(response);
+  if (!response.ok || request.method === "HEAD" || !HEADS[stand] || !resolveLocale(lang, null)) return withReaderSecurity(response);
   const headers = new Headers(response.headers);
   headers.delete("Content-Length");
   headers.delete("ETag");
