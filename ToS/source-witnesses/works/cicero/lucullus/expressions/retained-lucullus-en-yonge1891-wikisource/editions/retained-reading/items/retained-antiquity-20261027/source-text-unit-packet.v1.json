@@ -1,7 +1,7 @@
 {
   "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
   "schema_version": "tos_source_text_unit_packet_v1",
-  "packet_id": "tos.source-text-unit-packet.sid-f19013b80fbe493c8ffc5fbd71c1da8e",
+  "packet_id": "tos.source-text-unit-packet.sid-ff1f09716fe04f969a75b55e994ad553",
   "packet_version": 1,
   "supersedes_packet_ref": null,
   "content_posture": "source_bound",
@@ -27,7 +27,7 @@
   },
   "schemes": [
     {
-      "scheme_id": "tos.text-unit-scheme.sid-1ce0c0e59b484e4c8a5460369b0b8e68",
+      "scheme_id": "tos.text-unit-scheme.sid-a0d96d4e41b445b5bd89ca97de1999d1",
       "scheme_version": 1,
       "supersedes_scheme_ref": null,
       "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
@@ -52,7 +52,7 @@
         "unicode_revision": null,
         "tailoring_ref": null,
         "provenance_event_ref": "tos.event.retained-segmentation.lucullus-en-yonge1891-wikisource.20261027",
-        "made_at": "2026-11-04T06:58:52+00:00",
+        "made_at": "2026-11-04T08:12:18+00:00",
         "output_posture": "method_result_not_source_or_linguistic_truth"
       },
       "policies": {
@@ -75,7 +75,7 @@
   ],
   "anchors": [
     {
-      "anchor_ref": "tos.anchor.sid-f4a8d1a97344438eb21409961094266a",
+      "anchor_ref": "tos.anchor.sid-d68f8792976b4eb79c116ac3c617c7e5",
       "ordinal": 1,
       "text_layer_ref": "ToS/source-witnesses/works/cicero/lucullus/expressions/retained-lucullus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
       "text_layer_sha256": "13e8444a6d686d28a86369a65e41b78ea5b83933b76c748c32b775a28fefd3fe",
@@ -94,7 +94,7 @@
       }
     },
     {
-      "anchor_ref": "tos.anchor.sid-969952304b7844b4a3fee6bb3656c544",
+      "anchor_ref": "tos.anchor.sid-71382ba7541743448b355b425bba5fcd",
       "ordinal": 2,
       "text_layer_ref": "ToS/source-witnesses/works/cicero/lucullus/expressions/retained-lucullus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
       "text_layer_sha256": "13e8444a6d686d28a86369a65e41b78ea5b83933b76c748c32b775a28fefd3fe",
@@ -113,7 +113,7 @@
       }
     },
     {
-      "anchor_ref": "tos.anchor.sid-0752a791c6884edbaa7bb791a8cc4eb7",
+      "anchor_ref": "tos.anchor.sid-2d3c51cdd5f24ee08790bd9a874c01bd",
       "ordinal": 3,
       "text_layer_ref": "ToS/source-witnesses/works/cicero/lucullus/expressions/retained-lucullus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
       "text_layer_sha256": "13e8444a6d686d28a86369a65e41b78ea5b83933b76c748c32b775a28fefd3fe",
@@ -132,7 +132,7 @@
       }
     },
     {
-      "anchor_ref": "tos.anchor.sid-0753c04373974f07891efc983df84c6a",
+      "anchor_ref": "tos.anchor.sid-cdf453306c6c4eb399dd109f4c8a2d3a",
       "ordinal": 4,
       "text_layer_ref": "ToS/source-witnesses/works/cicero/lucullus/expressions/retained-lucullus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
       "text_layer_sha256": "13e8444a6d686d28a86369a65e41b78ea5b83933b76c748c32b775a28fefd3fe",
@@ -153,7 +153,7 @@
   ],
   "units": [
     {
-      "unit_id": "tos.text-unit.sid-3888ea68eec9417b8657288d17134cc7",
+      "unit_id": "tos.text-unit.sid-dce804db36d244438d2a5038738cd72d",
       "unit_version": 1,
       "supersedes_unit_ref": null,
       "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
@@ -161,7 +161,7 @@
       "surface_posture": "source_bearing",
       "continuity": "contiguous",
       "ordered_anchor_refs": [
-        "tos.anchor.sid-969952304b7844b4a3fee6bb3656c544"
+        "tos.anchor.sid-71382ba7541743448b355b425bba5fcd"
       ],
       "parent_unit_refs": [],
       "ordered_child_unit_refs": [],
@@ -175,7 +175,7 @@
       "semantic_promotion": false
     },
     {
-      "unit_id": "tos.text-unit.sid-5143d3b07cfb4ae9b545359eb3b00b52",
+      "unit_id": "tos.text-unit.sid-ceb8e57837614f67887b5f6d113cdc3a",
       "unit_version": 1,
       "supersedes_unit_ref": null,
       "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
@@ -183,7 +183,7 @@
       "surface_posture": "source_bearing",
       "continuity": "contiguous",
       "ordered_anchor_refs": [
-        "tos.anchor.sid-0752a791c6884edbaa7bb791a8cc4eb7"
+        "tos.anchor.sid-2d3c51cdd5f24ee08790bd9a874c01bd"
       ],
       "parent_unit_refs": [],
       "ordered_child_unit_refs": [],
@@ -197,7 +197,7 @@
       "semantic_promotion": false
     },
     {
-      "unit_id": "tos.text-unit.sid-b76086929d1b401e93737b587de2a97c",
+      "unit_id": "tos.text-unit.sid-1cc6dc95edb447df803995583859b737",
       "unit_version": 1,
       "supersedes_unit_ref": null,
       "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
@@ -205,7 +205,7 @@
       "surface_posture": "source_bearing",
       "continuity": "contiguous",
       "ordered_anchor_refs": [
-        "tos.anchor.sid-0753c04373974f07891efc983df84c6a"
+        "tos.anchor.sid-cdf453306c6c4eb399dd109f4c8a2d3a"
       ],
       "parent_unit_refs": [],
       "ordered_child_unit_refs": [],
@@ -221,18 +221,18 @@
   ],
   "segmentations": [
     {
-      "segmentation_id": "tos.text-segmentation.sid-3cb8e82915614bbfa29ca02797e3a27f",
+      "segmentation_id": "tos.text-segmentation.sid-fcdc8ef95e854bbba164f075aa159f1f",
       "segmentation_version": 1,
       "supersedes_segmentation_ref": null,
       "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
-      "scheme_ref": "tos.text-unit-scheme.sid-1ce0c0e59b484e4c8a5460369b0b8e68",
+      "scheme_ref": "tos.text-unit-scheme.sid-a0d96d4e41b445b5bd89ca97de1999d1",
       "ordered_unit_refs": [
-        "tos.text-unit.sid-3888ea68eec9417b8657288d17134cc7",
-        "tos.text-unit.sid-5143d3b07cfb4ae9b545359eb3b00b52",
-        "tos.text-unit.sid-b76086929d1b401e93737b587de2a97c"
+        "tos.text-unit.sid-dce804db36d244438d2a5038738cd72d",
+        "tos.text-unit.sid-ceb8e57837614f67887b5f6d113cdc3a",
+        "tos.text-unit.sid-1cc6dc95edb447df803995583859b737"
       ],
       "coverage": {
-        "scope_anchor_ref": "tos.anchor.sid-f4a8d1a97344438eb21409961094266a",
+        "scope_anchor_ref": "tos.anchor.sid-d68f8792976b4eb79c116ac3c617c7e5",
         "coverage_posture": "exhaustive_nonoverlapping",
         "excluded_anchor_refs": [],
         "unreported_gaps_allowed": false,
@@ -256,7 +256,7 @@
         "unicode_revision": null,
         "tailoring_ref": null,
         "provenance_event_ref": "tos.event.retained-segmentation.lucullus-en-yonge1891-wikisource.20261027",
-        "made_at": "2026-11-04T06:58:52+00:00",
+        "made_at": "2026-11-04T08:12:18+00:00",
         "output_posture": "method_result_not_source_or_linguistic_truth"
       },
       "competing_segmentation_refs": [],

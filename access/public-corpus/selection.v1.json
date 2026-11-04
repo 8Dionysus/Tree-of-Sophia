@@ -50687,10 +50687,10 @@
           "language": "en",
           "role": "translation",
           "packetRef": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/source-text-unit-packet.v1.json",
-          "packetSha256": "b7026b15fd3bdca15396db6a9734ba44101fa26cee71bc3a8f2145c7282371f6",
-          "segmentationRef": "tos.text-segmentation.sid-c62b119a2c214b54948732c5f7691581",
+          "packetSha256": "cf8dfd1a7c56dcd21d6c5a878ac2debc6acf21fe2c14995e2018ca592419f776",
+          "segmentationRef": "tos.text-segmentation.sid-b11fbc49ee8e4e14a60081d25ca8f014",
           "rightsRef": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
-          "rightsSha256": "2f8576b6e8c87b3bea4396ad9a1a7a31b03fe3831a4d7b571bcd78e7a8375058",
+          "rightsSha256": "c386ceff7ecd78f781beb0b8c2c8f203727190f14f6323777f4634b0e0d49758",
           "sourceUrl": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661",
           "attribution": "Translated by F. G. Kenyon (1921); contributors to English Wikisource (history of the cited pages).\n1 Wikisource page without page-scan proofreading; licence templates Module:License, Module:License Wikidata, Module:License scope, Module:PD, Module:PD-US, Module:PD-old, Template:License container begin, Template:License container end, Template:License/styles.css, Template:PD-US, Template:PD-old, Template:PD/US. Scan images were not collated. Automatic alignment is unreviewed.",
           "license": {
@@ -50699,9 +50699,485 @@
           },
           "structure": [
             {
-              "id": "tos.anchor.sid-31dbe050ce1a42df9449d9258428f588",
-              "label": "Text",
-              "unitId": "tos.text-unit.sid-59be4e6e634240a49fa8173707c4c441",
+              "id": "tos.anchor.sid-c0b1ee583e434d00a93b7474c3f91f02",
+              "label": "§1",
+              "unitId": "tos.text-unit.sid-3c69fd24689f4a5db0e0df10d3c87539",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-824b3bbca6df48d09bfafffc6412edad",
+              "label": "§2",
+              "unitId": "tos.text-unit.sid-8cec411715f243aa87fb347f445438ab",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-423de2c7d44b48cab297b7ba313b9e16",
+              "label": "§3",
+              "unitId": "tos.text-unit.sid-01fc625c19c046658c186af5818aa218",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-a708610333c149d3a0d0af74ffe89b33",
+              "label": "§4",
+              "unitId": "tos.text-unit.sid-8135931f9e704620ac90f9374a6b909f",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-66a39e4e541542fb84d9137214bcadc3",
+              "label": "§5",
+              "unitId": "tos.text-unit.sid-01eb67237f5a4a55aaa617192c8534b1",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-54916cb286d643bc88311b0ba99aba6a",
+              "label": "§6",
+              "unitId": "tos.text-unit.sid-0f9e87c0077945f9b9972e063d8aa35d",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-fc3fb17f7be743f59e731bb1c6b20415",
+              "label": "§7",
+              "unitId": "tos.text-unit.sid-259f79e6232344d2bfe9cb92da8242d3",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-3eba7fe0b61846b48fd22a62f496a5b7",
+              "label": "§8",
+              "unitId": "tos.text-unit.sid-765e678544664f919f7efe32fa93d77f",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-47327297e66c41768c3f47387ece0fff",
+              "label": "§9",
+              "unitId": "tos.text-unit.sid-1a51e4f56f4343a585ef57ee2afb038e",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-23af6595bddf4e1ca3e93e809f52b3ba",
+              "label": "§10",
+              "unitId": "tos.text-unit.sid-e40b50d73ea64a7797bea46807b7b2a9",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-5e1d8da6895645b784dd3f01dc9232eb",
+              "label": "§11",
+              "unitId": "tos.text-unit.sid-b245b129aad74acc88f79e3e9e940920",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-53cefbadbf7d4344bdcf73489edbbf85",
+              "label": "§12",
+              "unitId": "tos.text-unit.sid-b33045c5ecce4a1fb8b498767d888961",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-400ef32de22545419121c66ff32892f5",
+              "label": "§13",
+              "unitId": "tos.text-unit.sid-636fe201e18c4d9fa1f2121e41be4893",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-7199df090d4e4d05add691551e89d1ac",
+              "label": "§14",
+              "unitId": "tos.text-unit.sid-d208a54f1c7e4e70ad5d34a9052b09ba",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-01c76b66e6b44e7a8363bdde7c4df8a7",
+              "label": "§15",
+              "unitId": "tos.text-unit.sid-5e2db34b391a42f7a8c7a0768a6c370d",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-f949e5c0545b410595d2986e87897fb0",
+              "label": "§16",
+              "unitId": "tos.text-unit.sid-57c5fc1818b34e1c9e267d3b847256c2",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-87a1c0e59334453ab449253f751163c7",
+              "label": "§17",
+              "unitId": "tos.text-unit.sid-6c044026e89b4cb7829619a98bf0a1df",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-523416d09e8e453fb188c14a47d495f4",
+              "label": "§18",
+              "unitId": "tos.text-unit.sid-01df39bdaf3b42c882a124c455ae06f5",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-ebf69c5deb174d378be4e437cf29ea66",
+              "label": "§19",
+              "unitId": "tos.text-unit.sid-3d8fb788232a47959b173615aa105856",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-ddc716f7e53c46e99991e5c6749431d9",
+              "label": "§20",
+              "unitId": "tos.text-unit.sid-0d764865f7cf4a71ba37670223fa8f42",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-a4c708cc571b421495b6d59d2abfe560",
+              "label": "§21",
+              "unitId": "tos.text-unit.sid-8dab77f69fd147b1b3d3577b8607b27b",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-a658fa9f0c914d60a64c27a40e3e2fe4",
+              "label": "§22",
+              "unitId": "tos.text-unit.sid-aab9acfe2f3242e9993e9df1cc2929e1",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-fca436b8ceb34a629bf9a3c4f3b04dc9",
+              "label": "§23",
+              "unitId": "tos.text-unit.sid-650eb47197c2458aafc5f796657b2bec",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-fc46bae645714773b9e596aa92ea440a",
+              "label": "§24",
+              "unitId": "tos.text-unit.sid-b30a121e368643e68b173df925973454",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-3bf207f697934d7f9d3819f3f2467213",
+              "label": "§25",
+              "unitId": "tos.text-unit.sid-f506f44de98440279a009d04eaa7df71",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-04bb258ab0b9483fb4b554a39066029f",
+              "label": "§26",
+              "unitId": "tos.text-unit.sid-612eac41f8bc4e07b9491b4ce960e9fb",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-2742902d02a64b5dbaaf694c10f844d0",
+              "label": "§27",
+              "unitId": "tos.text-unit.sid-2fdd8752fbd64d67acf606a5c601c668",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-65d0d48f57194f0281a6b67da9a1e912",
+              "label": "§28",
+              "unitId": "tos.text-unit.sid-b1e95e6cfcbc4b0e97d6a48eff19ae1f",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-ff3e2c73d71a4394b6911bc1abf161e6",
+              "label": "§29",
+              "unitId": "tos.text-unit.sid-7888ac05c9b74dd4b4755ae61ec9381c",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-e1e8c8c70c37444fac78c9c215d1f1b9",
+              "label": "§30",
+              "unitId": "tos.text-unit.sid-e202e4a1a7bd4e07a31997a618f0050c",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-6de7e0b1ed704870bb32d8f215108b02",
+              "label": "§31",
+              "unitId": "tos.text-unit.sid-4b1375d7139b41fbbaeeef16dc7388c3",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-a1912e6b017843abb4017a007d63fe87",
+              "label": "§32",
+              "unitId": "tos.text-unit.sid-e968affdde9b4765a44d2ee841c4abff",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-2e689aceafa045a8b60b21c4d5dc8fc4",
+              "label": "§33",
+              "unitId": "tos.text-unit.sid-b90aa65b2c264860ba2a4a5380ef7a48",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-e09c95e849974583a7d3233dfb8ed238",
+              "label": "§34",
+              "unitId": "tos.text-unit.sid-efedc505e11244e78469165ace1e8981",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-b98fc9b91ae64261bb2c1591927d1e13",
+              "label": "§35",
+              "unitId": "tos.text-unit.sid-4a53dee08a3347bfbd82ce12f3e09879",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-d92f9cf3b6d349a2a798eca86398ebe4",
+              "label": "§36",
+              "unitId": "tos.text-unit.sid-3bd0f1f14fd44e24a9120a8de3350196",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-1fd3227de8744269ac881a034d44ef5a",
+              "label": "§37",
+              "unitId": "tos.text-unit.sid-41854199a0f249a6a8815fca88f63302",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-37c941ac782c4ad6becee1b8e66a520b",
+              "label": "§38",
+              "unitId": "tos.text-unit.sid-60abf5203add41d7a692ea469dce453a",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-1546cfde60ba4d0a937bcab8c7e1250f",
+              "label": "§39",
+              "unitId": "tos.text-unit.sid-e6b67289efbe4d58a5f277c090086c44",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-3683a392e80144e79bef08aa1cb2d5b7",
+              "label": "§40",
+              "unitId": "tos.text-unit.sid-46268f358fce49a8a874020642b76882",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-158b852d157c41a29cd7aeeceeabeb4d",
+              "label": "§41",
+              "unitId": "tos.text-unit.sid-1cd6bef207c640bbb24e4c2605f59631",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-028ba3c7138e46c4accfa48dac30e504",
+              "label": "§42",
+              "unitId": "tos.text-unit.sid-913defc6e43d4a20a6837f5038476b24",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-db16631fecc240eeab1b403999eef63a",
+              "label": "§43",
+              "unitId": "tos.text-unit.sid-6e8490ad41a64a228c9b88451e4d9e28",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-ddfae3e8114f405b85d4181b558b4983",
+              "label": "§44",
+              "unitId": "tos.text-unit.sid-326156794e6a4e2a9c7d8316d210e4b8",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-c2620569c47440849c26f6e40d3a1f93",
+              "label": "§45",
+              "unitId": "tos.text-unit.sid-4bdc5057bc554cce889d022af867edc0",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-bb09c67daf7b415e9244e196bad54cf0",
+              "label": "§46",
+              "unitId": "tos.text-unit.sid-900701ce323e45808fd490338480dfca",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-30621a883a184b02a27a690d546fe702",
+              "label": "§47",
+              "unitId": "tos.text-unit.sid-f03b5447cbe24e158e643f3ac62591c9",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-d1d424258dfe4113912a9b755420bf8b",
+              "label": "§48",
+              "unitId": "tos.text-unit.sid-cd6b30d24e894662b40b492dc0930206",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-a146d823ab09466a90dfadde5565da35",
+              "label": "§49",
+              "unitId": "tos.text-unit.sid-d12c4faf12d64a798b9c8326569b9f95",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-34a8d6cff72b4e7a8c003927a28da912",
+              "label": "§50",
+              "unitId": "tos.text-unit.sid-6a458ab2eade4d6b9f4b7944ac95a147",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-c747dea34c444b529401ebf6171281fd",
+              "label": "§51",
+              "unitId": "tos.text-unit.sid-0da273ee4631441ba486009cdac694bb",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-0047347fe46c42d38234fe465f3c5755",
+              "label": "§52",
+              "unitId": "tos.text-unit.sid-fa6582e484c641478804b6348498baa7",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-b665ae286d3947d884e0ab90309afb25",
+              "label": "§53",
+              "unitId": "tos.text-unit.sid-844de34e3363406ba7ea92108c18f926",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-af4ee93f58a148b5b78010c8e9ab2fdd",
+              "label": "§54",
+              "unitId": "tos.text-unit.sid-5aa2fb921a3e445da8dd0ffb6ae9b7db",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-8af5124aa42d45fc9f657e6f702ec298",
+              "label": "§55",
+              "unitId": "tos.text-unit.sid-6f5637176e944bcab79a4e06edb782a2",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-0502380167514ac4a9da637355e5c735",
+              "label": "§56",
+              "unitId": "tos.text-unit.sid-1cd68ca993194111806b7fb7984ef1f1",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-077a11a400d04174b1afb7920e331969",
+              "label": "§57",
+              "unitId": "tos.text-unit.sid-b6e7f5e96f5848519429a92055ece909",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-e73cc73fb4034ed78c292e37f8c5cf4d",
+              "label": "§58",
+              "unitId": "tos.text-unit.sid-fbb8bc82ad9245ee98d1cc1abde81761",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-b0ae64d86a454315a6f2ec17f22081b4",
+              "label": "§59",
+              "unitId": "tos.text-unit.sid-e7c968ae2cf4400a86dfd82efa6dd5be",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-58cf2278ed6549b085f6afc0ce089383",
+              "label": "§60",
+              "unitId": "tos.text-unit.sid-51ce12c8c8944130addd716ee4368802",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-204941e9696d4944812b914d81bd75bf",
+              "label": "§61",
+              "unitId": "tos.text-unit.sid-be6a7c182b5140638e448c956143ef12",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-52f74332923e4f0e93aec06db909c56d",
+              "label": "§62",
+              "unitId": "tos.text-unit.sid-3c15d956f4ef4d8495cccee9bcb84c60",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-42a7d4c37da141edb7b4eeb64559fada",
+              "label": "§63",
+              "unitId": "tos.text-unit.sid-bb593b5d4a0848f8960a092364f39aa1",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-cf336880f8c742689e30728924514339",
+              "label": "§64",
+              "unitId": "tos.text-unit.sid-7b28bbf2be154b268f49660db45b7c17",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-c4c99f3122ea4193bbf1f45b5462d923",
+              "label": "§65",
+              "unitId": "tos.text-unit.sid-3a983ca331744478aae3cb8770e9693f",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-2a5b3496b1d14a9381bce73301584861",
+              "label": "§66",
+              "unitId": "tos.text-unit.sid-c398b528dcbe41ffa36cd3db5dc5c452",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-bf3ee9c175ba4a7bab1f04a806354a56",
+              "label": "§67",
+              "unitId": "tos.text-unit.sid-0362ce947f1d482694b43a1c54a5a1f5",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-91cd1a0f981746b8aee789cf115dd43d",
+              "label": "§68",
+              "unitId": "tos.text-unit.sid-da122f67e19a43f290d0cd4f3b9862b8",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-993938552a6740398e6e2be51ae1a711",
+              "label": "§69",
+              "unitId": "tos.text-unit.sid-aa28ab058f2643e4809295442d5d7363",
               "level": 1,
               "parentId": null
             }
@@ -57714,10 +58190,10 @@
           "language": "en",
           "role": "translation",
           "packetRef": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-en-haines1916-wikisource/editions/retained-reading/items/retained-antiquity-20261027/source-text-unit-packet.v1.json",
-          "packetSha256": "46510eb889c080763fa58de5bc7b940b9becf61824f7bf842043d8a984c8fe8a",
-          "segmentationRef": "tos.text-segmentation.sid-6a8098ac8ac04370b93c97fd37834121",
+          "packetSha256": "4561c58bd3dd3808ec86618bc00817bf59d5ea11127852b14363871f085394dc",
+          "segmentationRef": "tos.text-segmentation.sid-c72b0017d4b3438d9e8eeb214d7bd583",
           "rightsRef": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-en-haines1916-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
-          "rightsSha256": "e96d487acfbd40e2fc40265c4f7cccfe0046087172da76a0d235fdfe3357c630",
+          "rightsSha256": "2d165d2f8961bfaa557d82666cfedd6e72977c0279fb03be8d0e97afb2158f58",
           "sourceUrl": "https://en.wikisource.org/wiki/Marcus_Aurelius_%28Haines_1916%29",
           "attribution": "Translated by C. R. Haines (1916); contributors to English Wikisource (history of the cited pages).\n12 Wikisource pages without page-scan proofreading; licence templates none listed. Scan images were not collated. Automatic alignment is unreviewed.",
           "license": {
@@ -57726,86 +58202,86 @@
           },
           "structure": [
             {
-              "id": "tos.anchor.sid-7c9d5ee3c0664b578d78a077a246cc43",
+              "id": "tos.anchor.sid-b673387ec55c43bba8297a8418732ddf",
               "label": "Книга 1",
-              "unitId": "tos.text-unit.sid-c2a26bcf9fbf40a297b3f1c78c3f0b88",
+              "unitId": "tos.text-unit.sid-658cbd0f1b9a4454ac6d3c37263aa065",
               "level": 1,
               "parentId": null
             },
             {
-              "id": "tos.anchor.sid-4894a05a1241411ba6490f26c4a341b0",
+              "id": "tos.anchor.sid-0e90fc091833485784f7d425e4f2caad",
               "label": "Книга 2",
-              "unitId": "tos.text-unit.sid-4611aee6088541aea2343b24a3b69100",
+              "unitId": "tos.text-unit.sid-f9662e98269c4896996bc5f2110fcb2e",
               "level": 1,
               "parentId": null
             },
             {
-              "id": "tos.anchor.sid-b9c401b6773f4786bec7528314ff02e5",
+              "id": "tos.anchor.sid-cfd2584c31fc4dd9bdb4dd20efc9f304",
               "label": "Книга 3",
-              "unitId": "tos.text-unit.sid-c2facd76e5804cfaa52bae307ae7cdc8",
+              "unitId": "tos.text-unit.sid-82176f9692fe4526b99df51b03fa3777",
               "level": 1,
               "parentId": null
             },
             {
-              "id": "tos.anchor.sid-e2b43ae91a52414496471ffed522607d",
+              "id": "tos.anchor.sid-2b958a978c454aec8237a761e60a5764",
               "label": "Книга 4",
-              "unitId": "tos.text-unit.sid-c52b960a8ce44ce7bf8beffbff0d672c",
+              "unitId": "tos.text-unit.sid-44eff4580e534348a90c4879dd39c7cf",
               "level": 1,
               "parentId": null
             },
             {
-              "id": "tos.anchor.sid-7134089095994c2fbf38b5baab5c8d79",
+              "id": "tos.anchor.sid-e68663b83b7748dd900ada06680a5679",
               "label": "Книга 5",
-              "unitId": "tos.text-unit.sid-e76b822c13bf4e5d8c79f394cfc50071",
+              "unitId": "tos.text-unit.sid-b2007ab7069a469c8461ebc8b347e7be",
               "level": 1,
               "parentId": null
             },
             {
-              "id": "tos.anchor.sid-cfe78f493fc44435b182b181bdb5eee5",
+              "id": "tos.anchor.sid-25b36e918bcd4db1bd004d51f540725b",
               "label": "Книга 6",
-              "unitId": "tos.text-unit.sid-0b2bd310408a466a91936411bd7def99",
+              "unitId": "tos.text-unit.sid-6739d120805f49c39d5b3164de487be8",
               "level": 1,
               "parentId": null
             },
             {
-              "id": "tos.anchor.sid-834ebbbf2ab64f298c48c3a9f0fda8f2",
+              "id": "tos.anchor.sid-de593d64a5f542d08a3e6a1735f159f9",
               "label": "Книга 7",
-              "unitId": "tos.text-unit.sid-6c93f17c7083484d95ca702f76a27493",
+              "unitId": "tos.text-unit.sid-305fc84ea6f74f3b9f481f90dc0289c0",
               "level": 1,
               "parentId": null
             },
             {
-              "id": "tos.anchor.sid-f3352979d66049fbb543960d615920a7",
+              "id": "tos.anchor.sid-6f13c140acca465d9885d1ba4a3a89bc",
               "label": "Книга 8",
-              "unitId": "tos.text-unit.sid-7040acc4fb174b0b8324f6cb0afb9cf4",
+              "unitId": "tos.text-unit.sid-83518564bcff4e6da9a01c9d5a1c7061",
               "level": 1,
               "parentId": null
             },
             {
-              "id": "tos.anchor.sid-c1f68ca0e1344827a3e5ff262197c498",
+              "id": "tos.anchor.sid-7b66a6d90f2e490b826610b95fbbf477",
               "label": "Книга 9",
-              "unitId": "tos.text-unit.sid-06c2ade34da44544a206c7c21833944b",
+              "unitId": "tos.text-unit.sid-cf4edefca20e4c9c8c1dfb97f1fcc431",
               "level": 1,
               "parentId": null
             },
             {
-              "id": "tos.anchor.sid-3b3e2e11152b48e79140aa4e051bf689",
+              "id": "tos.anchor.sid-00e7b551ffd54e1d812dcd338299cdf1",
               "label": "Книга 10",
-              "unitId": "tos.text-unit.sid-e8d166a1885f4aa6ad1d9c6903047c40",
+              "unitId": "tos.text-unit.sid-795121f003c64d5aad698aa4a5b1093e",
               "level": 1,
               "parentId": null
             },
             {
-              "id": "tos.anchor.sid-7b124401bc5b421896f8bb88a505ea3a",
+              "id": "tos.anchor.sid-1fb03a76e0d34f15b45dc47118dc747b",
               "label": "Книга 11",
-              "unitId": "tos.text-unit.sid-b454218c2c134ce5abb63d543afaee24",
+              "unitId": "tos.text-unit.sid-d452cd3da51842098621f847cc21e9e3",
               "level": 1,
               "parentId": null
             },
             {
-              "id": "tos.anchor.sid-a05f92f2534a44418cb21b5c6de72adc",
+              "id": "tos.anchor.sid-884e7c703fdc4bdebe41ba39bf7861fe",
               "label": "Книга 12",
-              "unitId": "tos.text-unit.sid-b734fe08819647f48668f1e375296b66",
+              "unitId": "tos.text-unit.sid-3191e04408cc4fb5a64df72abcea888a",
               "level": 1,
               "parentId": null
             }
@@ -63682,10 +64158,10 @@
           "language": "en",
           "role": "translation",
           "packetRef": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-en-stewart1887-wikisource/editions/retained-reading/items/retained-antiquity-20261027/source-text-unit-packet.v1.json",
-          "packetSha256": "52fe221c39303fe56a56d5f2124e7511301c81b3874be6ff4b22d5bdc97b65d9",
-          "segmentationRef": "tos.text-segmentation.sid-54c4950409bd4721bf747d20c6b181bb",
+          "packetSha256": "cfba1bf9e68d9b35cc76a24de739e64d1246f9eefd672d25c32de5ff22bfd0d5",
+          "segmentationRef": "tos.text-segmentation.sid-0a4f74738a384967b262997db3a5934e",
           "rightsRef": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-en-stewart1887-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
-          "rightsSha256": "a9a442799321b1beaaa53afac1c32aa8e1b64520675ed11ede45352f58e5d48f",
+          "rightsSha256": "6ad04297bc0ce4bc0145d50b98bfd76b2a1b2f911f6227ae2a8795f5b3c217fa",
           "sourceUrl": "https://en.wikisource.org/wiki/On_Benefits",
           "attribution": "Translated by Aubrey Stewart (1887); contributors to English Wikisource (history of the cited pages).\n7 Wikisource pages without page-scan proofreading; licence templates none listed. Scan images were not collated. Automatic alignment is unreviewed.",
           "license": {
@@ -63694,51 +64170,51 @@
           },
           "structure": [
             {
-              "id": "tos.anchor.sid-2e1feae4b6314d54a5ad71dc1d4b16bb",
+              "id": "tos.anchor.sid-d53b5e9c45a74a5d8010e1e5bf977267",
               "label": "Книга 1",
-              "unitId": "tos.text-unit.sid-a96e262efab54148be3f73103e54f9d1",
+              "unitId": "tos.text-unit.sid-4dfdba51acb44388a707d45a9d91c8fd",
               "level": 1,
               "parentId": null
             },
             {
-              "id": "tos.anchor.sid-b85b6cac4f1b47088092f8c98b07a323",
+              "id": "tos.anchor.sid-11412cc1186849b4a81bad181daff470",
               "label": "Книга 2",
-              "unitId": "tos.text-unit.sid-32b520d84f72420b9b35806e96be29b5",
+              "unitId": "tos.text-unit.sid-cfa0d74dd3ad4a579fa59587563d3e47",
               "level": 1,
               "parentId": null
             },
             {
-              "id": "tos.anchor.sid-4a16f6b4818542c28742cf83268bca3b",
+              "id": "tos.anchor.sid-01777fbf9f254d33b339fa5e72c32e16",
               "label": "Книга 3",
-              "unitId": "tos.text-unit.sid-b77a9b6a59aa4df682b94662a7315661",
+              "unitId": "tos.text-unit.sid-cd1e505d7b5d4f6eb0231f3216d63a6a",
               "level": 1,
               "parentId": null
             },
             {
-              "id": "tos.anchor.sid-91eda639dc874032b4615aafa0b5ff7a",
+              "id": "tos.anchor.sid-759feb3fa39149a5953b5c7764d12c12",
               "label": "Книга 4",
-              "unitId": "tos.text-unit.sid-0f2895a30ef2455397b6210d7fd91aa7",
+              "unitId": "tos.text-unit.sid-b7f9a2b060c34fb380f82ff792e98d02",
               "level": 1,
               "parentId": null
             },
             {
-              "id": "tos.anchor.sid-a936f6b38a7945238b8434f13661c3ac",
+              "id": "tos.anchor.sid-b4a64b53ccb34d81bfb7d1c1ac81e17e",
               "label": "Книга 5",
-              "unitId": "tos.text-unit.sid-723a927971304503a5fd6398749118c4",
+              "unitId": "tos.text-unit.sid-bdf397441c864ded98126207993fd170",
               "level": 1,
               "parentId": null
             },
             {
-              "id": "tos.anchor.sid-1676b8aebd18467fa96747485350ab79",
+              "id": "tos.anchor.sid-d7092b0601ac478ab344df64f70b5db2",
               "label": "Книга 6",
-              "unitId": "tos.text-unit.sid-5eddd514cace4dc19faa60dc63fecda6",
+              "unitId": "tos.text-unit.sid-eed3056ea4e84a72afa9df2797745b13",
               "level": 1,
               "parentId": null
             },
             {
-              "id": "tos.anchor.sid-e15c197085f647cb808412d2365997cf",
+              "id": "tos.anchor.sid-2e744ee631c348379af0a1370a91fda3",
               "label": "Книга 7",
-              "unitId": "tos.text-unit.sid-235af727b82e44fea7ea989af1d48bbc",
+              "unitId": "tos.text-unit.sid-d34e302df63042b193bce4431d604fe5",
               "level": 1,
               "parentId": null
             }
@@ -64012,10 +64488,10 @@
           "language": "en",
           "role": "translation",
           "packetRef": "ToS/source-witnesses/works/seneca/de-clementia/expressions/retained-de-clementia-en-stewart1900-wikisource/editions/retained-reading/items/retained-antiquity-20261027/source-text-unit-packet.v1.json",
-          "packetSha256": "bd7c2ea33ec028c4951ad8089a875834424af79ebd3bbda3dc57ba44379fee3c",
-          "segmentationRef": "tos.text-segmentation.sid-525924d42a4a47e492a09ae5a5f47613",
+          "packetSha256": "b8a1b4acc7c38de409968e65bb1ee3685a9b08e5eb04d84d2cee1be1d9470dd6",
+          "segmentationRef": "tos.text-segmentation.sid-46c363ed639f47e2aa87296feff26aaf",
           "rightsRef": "ToS/source-witnesses/works/seneca/de-clementia/expressions/retained-de-clementia-en-stewart1900-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
-          "rightsSha256": "8e61574ded2d879e225fc59c6badeecbc7518e5992339b7ae507566013781748",
+          "rightsSha256": "398493d2d832d7a402c898e994c223b0cbda1a8a7d9b9ad4103160845ae3c8e0",
           "sourceUrl": "https://en.wikisource.org/wiki/Of_Clemency",
           "attribution": "Translated by Aubrey Stewart (1900); contributors to English Wikisource (history of the cited pages).\n2 Wikisource pages without page-scan proofreading; licence templates Module:License, Module:License Wikidata, Module:License scope, Module:PD, Module:PD-US, Template:License/styles.css, Template:PD-US. Scan images were not collated. Automatic alignment is unreviewed.",
           "license": {
@@ -64024,16 +64500,16 @@
           },
           "structure": [
             {
-              "id": "tos.anchor.sid-7aeff79d7a4b47da9806f0e375f0e067",
+              "id": "tos.anchor.sid-9f8c51aab5ab4def9cffca802cecf78e",
               "label": "Книга 1",
-              "unitId": "tos.text-unit.sid-6ae6825aeb654ff2b21d4a0384e6e9de",
+              "unitId": "tos.text-unit.sid-5b270d7a09484ea8890de698185ccbf1",
               "level": 1,
               "parentId": null
             },
             {
-              "id": "tos.anchor.sid-9cd3b54aa31f478aa5167f532388d00f",
+              "id": "tos.anchor.sid-fc825c5d169d4f0d99059be6a66d8027",
               "label": "Книга 2",
-              "unitId": "tos.text-unit.sid-14aab0ac9a064e03a997a2264dc6c676",
+              "unitId": "tos.text-unit.sid-de2f4071a9f54dd78fe638b3a77d3e61",
               "level": 1,
               "parentId": null
             }
@@ -64565,36 +65041,6 @@
               "parentId": null
             }
           ]
-        },
-        {
-          "id": "retained-academica-en-yonge1891-wikisource",
-          "legacyId": "academica-en-yonge1891-wikisource",
-          "label": "The Academic Questions, Treatise De Finibus, and Tusculan Disputations. London: George Bell, 1891 · 1891 · Charles Duke Yonge (1812–1891)",
-          "language": "en",
-          "role": "translation",
-          "packetRef": "ToS/source-witnesses/works/cicero/academica/expressions/retained-academica-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/source-text-unit-packet.v1.json",
-          "packetSha256": "6c79ebf7a2f48b00e72d02bfb05e4ebdbfcebdaf5e150232b90e43da528b084a",
-          "segmentationRef": "tos.text-segmentation.sid-7a66a885457c4b249bc7d6fb77912b5a",
-          "rightsRef": "ToS/source-witnesses/works/cicero/academica/expressions/retained-academica-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
-          "rightsSha256": "f10b98c0312e977d104909451746c23f05d923a8f4103036a5f243fdfc30fcbe",
-          "sourceUrl": "https://en.wikisource.org/w/index.php?title=The_Academic_Questions%2C_Treatise_De_Finibus%2C_and_Tusculan_Disputations/Academic_Questions/Book_1&oldid=14228266",
-          "attribution": "Translated by C. D. Yonge (1891); contributors to English Wikisource (history of the cited pages).\n1 Wikisource page without page-scan proofreading; licence templates none listed. Scan images were not collated. Automatic alignment is unreviewed.",
-          "license": {
-            "label": "Creative Commons Attribution-ShareAlike 4.0 International",
-            "url": "https://creativecommons.org/licenses/by-sa/4.0/"
-          },
-          "structure": [
-            {
-              "id": "tos.anchor.sid-eaa5953945f54fc48530ddd6b48d54e4",
-              "label": "Книга 1",
-              "unitId": "tos.text-unit.sid-9202e59022644bb289fb5fd5ac18aefb",
-              "level": 1,
-              "parentId": null
-            }
-          ],
-          "coverageLimit": "1 Wikisource page without page-scan proofreading; licence templates none listed. Scan images were not collated. Automatic alignment is unreviewed.",
-          "coverageStatus": "complete-source-transcription",
-          "proofreadingStatus": "not page-proofread"
         }
       ]
     },
@@ -69597,10 +70043,10 @@
           "language": "en",
           "role": "translation",
           "packetRef": "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/retained-de-finibus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/source-text-unit-packet.v1.json",
-          "packetSha256": "4fc80f688150db28b0b81ccf9b6d5b0425cb075468f7c6048b9fd696981ef750",
-          "segmentationRef": "tos.text-segmentation.sid-8f97e9eb472b4922b17aba1d34ee96df",
+          "packetSha256": "94e90a80854e5562c223f27ab5863fcee499831f8d4f74c8224eaddd0cc31008",
+          "segmentationRef": "tos.text-segmentation.sid-3682a9134511401f9862e6a07daa338c",
           "rightsRef": "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/retained-de-finibus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
-          "rightsSha256": "a45bff46345106f6fe7019d4b923cb3f2bd8b593a9999a152e5fd7d093e43527",
+          "rightsSha256": "834ac149d81deb4792e92dcdc89f0e2bd17a1b0dcc71553e7daa302400df9476",
           "sourceUrl": "https://en.wikisource.org/wiki/The_Academic_Questions%2C_Treatise_De_Finibus%2C_and_Tusculan_Disputations/De_Finibus%2C_a_Treatise_on_the_Chief_Good_and_Evil",
           "attribution": "Translated by C. D. Yonge (1891); contributors to English Wikisource (history of the cited pages).\n5 Wikisource pages without page-scan proofreading; licence templates none listed. Scan images were not collated. Automatic alignment is unreviewed.",
           "license": {
@@ -69609,37 +70055,37 @@
           },
           "structure": [
             {
-              "id": "tos.anchor.sid-33c824d4ac1945ffaf4207fc12e0d260",
+              "id": "tos.anchor.sid-c1c18c660bd74d879b62922aa5d811b6",
               "label": "Книга 1",
-              "unitId": "tos.text-unit.sid-32566f1175ce4e47be5b7bb7c39954f6",
+              "unitId": "tos.text-unit.sid-76ed1e1f427047c1b81aba25bab2b595",
               "level": 1,
               "parentId": null
             },
             {
-              "id": "tos.anchor.sid-8f79d030d4854880847d6b71ca77aecc",
+              "id": "tos.anchor.sid-f39a2e7e095042989954026f740da3a7",
               "label": "Книга 2",
-              "unitId": "tos.text-unit.sid-d5d2f512413d49bda0f5e69f96af4561",
+              "unitId": "tos.text-unit.sid-80e17577e7a9474088d535f818026258",
               "level": 1,
               "parentId": null
             },
             {
-              "id": "tos.anchor.sid-d42cc61ad08b4e6783d3e5772dd000cb",
+              "id": "tos.anchor.sid-ff6f962beed242e3b3746481868afc12",
               "label": "Книга 3",
-              "unitId": "tos.text-unit.sid-506e51f6a9944eef93bc002bd7e9413d",
+              "unitId": "tos.text-unit.sid-575b131854f24d1c9b1f088cc22ce9d6",
               "level": 1,
               "parentId": null
             },
             {
-              "id": "tos.anchor.sid-2e86637b440e4ba7aa8ce45579bc2e4f",
+              "id": "tos.anchor.sid-98ef6cd8551b48f68428cf2bdc6ca765",
               "label": "Книга 4",
-              "unitId": "tos.text-unit.sid-5a2b365ad7894883872f94c375fc3067",
+              "unitId": "tos.text-unit.sid-25c678d140d94ff3b1121001d6b4b4a7",
               "level": 1,
               "parentId": null
             },
             {
-              "id": "tos.anchor.sid-e7cd45e06b014208b4c0ff5edeb3a8aa",
+              "id": "tos.anchor.sid-080c527a5d0a45bbbe8373f8c20a669c",
               "label": "Книга 5",
-              "unitId": "tos.text-unit.sid-025ce77943584886a2e6d653550b4ac2",
+              "unitId": "tos.text-unit.sid-7c2a7185b59449dd92bf56beeb9b289b",
               "level": 1,
               "parentId": null
             }
@@ -72391,10 +72837,10 @@
           "language": "en",
           "role": "translation",
           "packetRef": "ToS/source-witnesses/works/cicero/de-natura-deorum/expressions/retained-de-natura-deorum-en-yonge1888-wikisource/editions/retained-reading/items/retained-antiquity-20261027/source-text-unit-packet.v1.json",
-          "packetSha256": "eb12be2190b784745ffbd08ff63a50902f2c7aaaae97f423dcada18714ff3fa8",
-          "segmentationRef": "tos.text-segmentation.sid-a6099d51736c41b0833f5c20d8b07fa3",
+          "packetSha256": "63993488667d2c5de8df14cbab56bf09bd406f51578056df0bc9b12a0d230910",
+          "segmentationRef": "tos.text-segmentation.sid-0d3b479744f34f69bacd71e7b91a2c55",
           "rightsRef": "ToS/source-witnesses/works/cicero/de-natura-deorum/expressions/retained-de-natura-deorum-en-yonge1888-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
-          "rightsSha256": "d1742c93c0d11b2048ac82f138d680853db7833cd970ed74af56a9411fde4ee9",
+          "rightsSha256": "ef40cb88904e00aadc4ca6399b0b586b4958e0cec4635d55289b5a917a2caca6",
           "sourceUrl": "https://en.wikisource.org/wiki/Cicero%27s_Tusculan_Disputations/On_the_Nature_of_the_Gods",
           "attribution": "Translated by C. D. Yonge (1888); contributors to English Wikisource (history of the cited pages).\n3 Wikisource pages without page-scan proofreading; licence templates none listed. Scan images were not collated. Automatic alignment is unreviewed.",
           "license": {
@@ -72403,23 +72849,23 @@
           },
           "structure": [
             {
-              "id": "tos.anchor.sid-4a044ab79a474b58b24ac9de8125b13c",
+              "id": "tos.anchor.sid-c19e919ff9c948b7bcf6efec9559dbb9",
               "label": "Книга 1",
-              "unitId": "tos.text-unit.sid-0057decfdfb54c06b861e9450ce00e03",
+              "unitId": "tos.text-unit.sid-166aac9b1ef144c0a96803c1c593b0f5",
               "level": 1,
               "parentId": null
             },
             {
-              "id": "tos.anchor.sid-2d995f9d52d04f11915d94bb9a91bb1b",
+              "id": "tos.anchor.sid-aceeca0bff954c16af7107ef1b10bd76",
               "label": "Книга 2",
-              "unitId": "tos.text-unit.sid-a09101d090e24dc098a994dde0a8c2d8",
+              "unitId": "tos.text-unit.sid-ea967aa54aaa4334b62a02540685313a",
               "level": 1,
               "parentId": null
             },
             {
-              "id": "tos.anchor.sid-d5a0a157355044d08a90033b1bab841f",
+              "id": "tos.anchor.sid-b64473df9127406bb6b418efb4a1f717",
               "label": "Книга 3",
-              "unitId": "tos.text-unit.sid-841982c90e2e46d78bc2eeabc26d4815",
+              "unitId": "tos.text-unit.sid-f2b021a193f74990b2c137d2f3d1c45e",
               "level": 1,
               "parentId": null
             }
@@ -77717,10 +78163,10 @@
           "language": "en",
           "role": "translation",
           "packetRef": "ToS/source-witnesses/works/cicero/lucullus/expressions/retained-lucullus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/source-text-unit-packet.v1.json",
-          "packetSha256": "7e099a0368b47c4d0101ee8d3c7f7418f865f301620ca7925acf819be520b15c",
-          "segmentationRef": "tos.text-segmentation.sid-3cb8e82915614bbfa29ca02797e3a27f",
+          "packetSha256": "ba8756658f35e09e5fe0af51719bed08a873f910fa18620a224999b5f5eaa0ad",
+          "segmentationRef": "tos.text-segmentation.sid-fcdc8ef95e854bbba164f075aa159f1f",
           "rightsRef": "ToS/source-witnesses/works/cicero/lucullus/expressions/retained-lucullus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
-          "rightsSha256": "ace8306ec515c915cc0107a106188a23d987d60c7720163c4f9a1cac1345b874",
+          "rightsSha256": "c8cdff0ed27857a30cfb82cfcc8bac0c98171159d076911b7a4ea79f279ffd36",
           "sourceUrl": "https://en.wikisource.org/w/index.php?title=The_Academic_Questions%2C_Treatise_De_Finibus%2C_and_Tusculan_Disputations/Academic_Questions/Book_2&oldid=14228273",
           "attribution": "Translated by C. D. Yonge (1891); contributors to English Wikisource (history of the cited pages).\n1 Wikisource page without page-scan proofreading; licence templates none listed. Scan images were not collated. Automatic alignment is unreviewed.",
           "license": {
@@ -77729,9 +78175,9 @@
           },
           "structure": [
             {
-              "id": "tos.anchor.sid-969952304b7844b4a3fee6bb3656c544",
+              "id": "tos.anchor.sid-71382ba7541743448b355b425bba5fcd",
               "label": "Lucullus",
-              "unitId": "tos.text-unit.sid-3888ea68eec9417b8657288d17134cc7",
+              "unitId": "tos.text-unit.sid-dce804db36d244438d2a5038738cd72d",
               "level": 1,
               "parentId": null
             }
@@ -78490,10 +78936,10 @@
           "language": "en",
           "role": "translation",
           "packetRef": "ToS/source-witnesses/works/porphyry/isagoge/expressions/retained-isagoge-en-owen1853-wikisource/editions/retained-reading/items/retained-antiquity-20261027/source-text-unit-packet.v1.json",
-          "packetSha256": "6f5405c7c97ece73f0b20b78a00a14200ed14d2ac9db331d6a925dfae526e7af",
-          "segmentationRef": "tos.text-segmentation.sid-1730e1771716426ca2497f7d8a893a0b",
+          "packetSha256": "4345f87c4bb3b998910183d20ae130843e6536281db6505aa055848f677cb906",
+          "segmentationRef": "tos.text-segmentation.sid-51815da6a94b4de7a5be413aff0106a0",
           "rightsRef": "ToS/source-witnesses/works/porphyry/isagoge/expressions/retained-isagoge-en-owen1853-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
-          "rightsSha256": "0f2acfdf2c6ad302c19fd5250d2faa78f62f2c2b3d503cdb62b603037e979589",
+          "rightsSha256": "b9ddc38562b607353dfd4e78e4c17abbc6ff30cfe62ccc6db644803610318a3e",
           "sourceUrl": "https://en.wikisource.org/w/index.php?title=Organon_%28Owen%29/The_Introduction_of_Porphyry&oldid=13969404",
           "attribution": "Translated by O. F. Owen (1853); contributors to English Wikisource (history of the cited pages).\n1 Wikisource page without page-scan proofreading; licence templates none listed. Scan images were not collated. Automatic alignment is unreviewed.",
           "license": {
@@ -78502,9 +78948,9 @@
           },
           "structure": [
             {
-              "id": "tos.anchor.sid-a9b8092704b846789111fb6bc3bc3560",
+              "id": "tos.anchor.sid-78417ed7dddf4a2cb30e89a08b6420ea",
               "label": "Text",
-              "unitId": "tos.text-unit.sid-d6bdcefffc564cdd91b63f5561fd7cb4",
+              "unitId": "tos.text-unit.sid-32d4a255f90f4b0581fece7b563b0a48",
               "level": 1,
               "parentId": null
             }

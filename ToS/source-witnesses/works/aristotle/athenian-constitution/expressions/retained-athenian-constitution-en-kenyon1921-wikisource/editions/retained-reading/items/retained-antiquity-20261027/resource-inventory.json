@@ -7,21 +7,21 @@
   "source_text_included": false,
   "files": [
     {
-      "file_id": "tos.file.sha256.0accbb0dd5076669c3effc692ea90e8c5172873268802ea4c7b0016da4be21f6",
-      "file_sha256": "0accbb0dd5076669c3effc692ea90e8c5172873268802ea4c7b0016da4be21f6",
+      "file_id": "tos.file.sha256.5ed86bac9820a526b0ee25ed2f2e3437f2761c573a1b005e6fdb907396deed15",
+      "file_sha256": "5ed86bac9820a526b0ee25ed2f2e3437f2761c573a1b005e6fdb907396deed15",
       "media_type": "application/json",
       "profile": "json_members_v1",
       "summary": {
         "resource_count": 6,
         "top_level_member_count": 5,
         "json_value_counts": {
-          "object_count": 4,
-          "array_count": 8,
-          "string_count": 9,
+          "object_count": 140,
+          "array_count": 280,
+          "string_count": 281,
           "number_count": 2,
           "boolean_count": 0,
           "null_count": 0,
-          "object_key_count": 19
+          "object_key_count": 563
         }
       },
       "resources": [
@@ -74,13 +74,13 @@
             "parent_resource_id": "json-root"
           },
           "json_value_counts": {
-            "object_count": 2,
-            "array_count": 5,
-            "string_count": 4,
+            "object_count": 138,
+            "array_count": 277,
+            "string_count": 276,
             "number_count": 0,
             "boolean_count": 0,
             "null_count": 0,
-            "object_key_count": 8
+            "object_key_count": 552
           },
           "label_fingerprint": {
             "algorithm": "sha256",
@@ -167,8 +167,8 @@
       ]
     },
     {
-      "file_id": "tos.file.sha256.d6d8874782e41929918df8e0d716b76db71a6fad44ac7c998fb8f70be4b31420",
-      "file_sha256": "d6d8874782e41929918df8e0d716b76db71a6fad44ac7c998fb8f70be4b31420",
+      "file_id": "tos.file.sha256.2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "file_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
       "media_type": "text/plain",
       "profile": "plain_text_v1",
       "summary": {
@@ -185,8 +185,8 @@
           "content_fingerprint": {
             "algorithm": "sha256",
             "normalization": "unicode-codepoints-preserved",
-            "sha256": "d6d8874782e41929918df8e0d716b76db71a6fad44ac7c998fb8f70be4b31420",
-            "character_count": 142967
+            "sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+            "character_count": 141394
           }
         }
       ]

@@ -1,7 +1,7 @@
 {
   "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
   "schema_version": "tos_source_text_unit_packet_v1",
-  "packet_id": "tos.source-text-unit-packet.sid-3fadaa748f6e49968a70556dc412677c",
+  "packet_id": "tos.source-text-unit-packet.sid-59a2fbc3a427416d847ba9a3715b43d4",
   "packet_version": 1,
   "supersedes_packet_ref": null,
   "content_posture": "source_bound",
@@ -27,7 +27,7 @@
   },
   "schemes": [
     {
-      "scheme_id": "tos.text-unit-scheme.sid-198dde332f8941a98eb5ece582c6aed5",
+      "scheme_id": "tos.text-unit-scheme.sid-c80f8af7759a497f9eadb40119e7b78b",
       "scheme_version": 1,
       "supersedes_scheme_ref": null,
       "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
@@ -52,7 +52,7 @@
         "unicode_revision": null,
         "tailoring_ref": null,
         "provenance_event_ref": "tos.event.retained-segmentation.de-clementia-en-stewart1900-wikisource.20261027",
-        "made_at": "2026-11-04T06:58:53+00:00",
+        "made_at": "2026-11-04T08:12:20+00:00",
         "output_posture": "method_result_not_source_or_linguistic_truth"
       },
       "policies": {
@@ -75,7 +75,7 @@
   ],
   "anchors": [
     {
-      "anchor_ref": "tos.anchor.sid-3abd1c274c9a4d75b75266c6e2487559",
+      "anchor_ref": "tos.anchor.sid-0e2bb3b2d2d140b4bfab59fdd00a78fd",
       "ordinal": 1,
       "text_layer_ref": "ToS/source-witnesses/works/seneca/de-clementia/expressions/retained-de-clementia-en-stewart1900-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
       "text_layer_sha256": "f0d2fac3b758dedf69d6f76923f0f16204d116034b9204f3db8f1d8105efeb50",
@@ -94,7 +94,7 @@
       }
     },
     {
-      "anchor_ref": "tos.anchor.sid-7aeff79d7a4b47da9806f0e375f0e067",
+      "anchor_ref": "tos.anchor.sid-9f8c51aab5ab4def9cffca802cecf78e",
       "ordinal": 2,
       "text_layer_ref": "ToS/source-witnesses/works/seneca/de-clementia/expressions/retained-de-clementia-en-stewart1900-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
       "text_layer_sha256": "f0d2fac3b758dedf69d6f76923f0f16204d116034b9204f3db8f1d8105efeb50",
@@ -113,7 +113,7 @@
       }
     },
     {
-      "anchor_ref": "tos.anchor.sid-3aae26c00774402ea46c8248fef8b4b2",
+      "anchor_ref": "tos.anchor.sid-bc85f8f62b714815bae04cdc158a04ad",
       "ordinal": 3,
       "text_layer_ref": "ToS/source-witnesses/works/seneca/de-clementia/expressions/retained-de-clementia-en-stewart1900-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
       "text_layer_sha256": "f0d2fac3b758dedf69d6f76923f0f16204d116034b9204f3db8f1d8105efeb50",
@@ -132,7 +132,7 @@
       }
     },
     {
-      "anchor_ref": "tos.anchor.sid-9cd3b54aa31f478aa5167f532388d00f",
+      "anchor_ref": "tos.anchor.sid-fc825c5d169d4f0d99059be6a66d8027",
       "ordinal": 4,
       "text_layer_ref": "ToS/source-witnesses/works/seneca/de-clementia/expressions/retained-de-clementia-en-stewart1900-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
       "text_layer_sha256": "f0d2fac3b758dedf69d6f76923f0f16204d116034b9204f3db8f1d8105efeb50",
@@ -153,7 +153,7 @@
   ],
   "units": [
     {
-      "unit_id": "tos.text-unit.sid-6ae6825aeb654ff2b21d4a0384e6e9de",
+      "unit_id": "tos.text-unit.sid-5b270d7a09484ea8890de698185ccbf1",
       "unit_version": 1,
       "supersedes_unit_ref": null,
       "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
@@ -161,7 +161,7 @@
       "surface_posture": "source_bearing",
       "continuity": "contiguous",
       "ordered_anchor_refs": [
-        "tos.anchor.sid-7aeff79d7a4b47da9806f0e375f0e067"
+        "tos.anchor.sid-9f8c51aab5ab4def9cffca802cecf78e"
       ],
       "parent_unit_refs": [],
       "ordered_child_unit_refs": [],
@@ -175,7 +175,7 @@
       "semantic_promotion": false
     },
     {
-      "unit_id": "tos.text-unit.sid-bbd0e8e2e1c54a5eb554d2807618ae37",
+      "unit_id": "tos.text-unit.sid-217ad15cc56047e890798d7b73234cee",
       "unit_version": 1,
       "supersedes_unit_ref": null,
       "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
@@ -183,7 +183,7 @@
       "surface_posture": "source_bearing",
       "continuity": "contiguous",
       "ordered_anchor_refs": [
-        "tos.anchor.sid-3aae26c00774402ea46c8248fef8b4b2"
+        "tos.anchor.sid-bc85f8f62b714815bae04cdc158a04ad"
       ],
       "parent_unit_refs": [],
       "ordered_child_unit_refs": [],
@@ -197,7 +197,7 @@
       "semantic_promotion": false
     },
     {
-      "unit_id": "tos.text-unit.sid-14aab0ac9a064e03a997a2264dc6c676",
+      "unit_id": "tos.text-unit.sid-de2f4071a9f54dd78fe638b3a77d3e61",
       "unit_version": 1,
       "supersedes_unit_ref": null,
       "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
@@ -205,7 +205,7 @@
       "surface_posture": "source_bearing",
       "continuity": "contiguous",
       "ordered_anchor_refs": [
-        "tos.anchor.sid-9cd3b54aa31f478aa5167f532388d00f"
+        "tos.anchor.sid-fc825c5d169d4f0d99059be6a66d8027"
       ],
       "parent_unit_refs": [],
       "ordered_child_unit_refs": [],
@@ -221,18 +221,18 @@
   ],
   "segmentations": [
     {
-      "segmentation_id": "tos.text-segmentation.sid-525924d42a4a47e492a09ae5a5f47613",
+      "segmentation_id": "tos.text-segmentation.sid-46c363ed639f47e2aa87296feff26aaf",
       "segmentation_version": 1,
       "supersedes_segmentation_ref": null,
       "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
-      "scheme_ref": "tos.text-unit-scheme.sid-198dde332f8941a98eb5ece582c6aed5",
+      "scheme_ref": "tos.text-unit-scheme.sid-c80f8af7759a497f9eadb40119e7b78b",
       "ordered_unit_refs": [
-        "tos.text-unit.sid-6ae6825aeb654ff2b21d4a0384e6e9de",
-        "tos.text-unit.sid-bbd0e8e2e1c54a5eb554d2807618ae37",
-        "tos.text-unit.sid-14aab0ac9a064e03a997a2264dc6c676"
+        "tos.text-unit.sid-5b270d7a09484ea8890de698185ccbf1",
+        "tos.text-unit.sid-217ad15cc56047e890798d7b73234cee",
+        "tos.text-unit.sid-de2f4071a9f54dd78fe638b3a77d3e61"
       ],
       "coverage": {
-        "scope_anchor_ref": "tos.anchor.sid-3abd1c274c9a4d75b75266c6e2487559",
+        "scope_anchor_ref": "tos.anchor.sid-0e2bb3b2d2d140b4bfab59fdd00a78fd",
         "coverage_posture": "exhaustive_nonoverlapping",
         "excluded_anchor_refs": [],
         "unreported_gaps_allowed": false,
@@ -256,7 +256,7 @@
         "unicode_revision": null,
         "tailoring_ref": null,
         "provenance_event_ref": "tos.event.retained-segmentation.de-clementia-en-stewart1900-wikisource.20261027",
-        "made_at": "2026-11-04T06:58:53+00:00",
+        "made_at": "2026-11-04T08:12:20+00:00",
         "output_posture": "method_result_not_source_or_linguistic_truth"
       },
       "competing_segmentation_refs": [],
