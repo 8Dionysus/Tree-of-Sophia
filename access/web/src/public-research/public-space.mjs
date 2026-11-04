@@ -42,8 +42,8 @@ const termWorks=record=>[...new Set([record?.workId,record?.source?.workId,...ci
 // A title's middle dot stays at the end of its line, never at the start of the next.
 const keepDots=text=>String(text??'').replace(/ · /g,'\u00a0· ');
 const extraTranslations={
-  ru:{addToSpace:'Добавить в пространство',removeFromSpace:'Убрать из пространства',removedFromSpace:'Узел убран из пространства. Отмена восстановит его связи; текст остаётся в библиотеке.',previewOnly:'Просмотр материала · пространство не изменено',authorWorks:'Произведения автора',visibleCount:'В текущей выборке',recordScope:'Древо и личные мысли сохранены в этом браузере',routeScope:'Маршрут и шаг сохранены в адресе страницы',lensInquiry:'Как исследовать этот вопрос',lensMethod:'Способ чтения',lensLimit:'Что остаётся вне линзы',argument:'Ход мысли',counterReading:'Другое прочтение',readingQuestion:'Вопрос к этому чтению',experiment:'Попробовать при чтении',perspectives:'Детали чтения',example:'Проверить на примере',relationWarrant:'На чём держится переход',relationLimit:'Предел этого сопоставления',nextRelation:'Следующий переход',routeEnd:'К чему пришли',routeStarting:'С чем начинаем',routeStakes:'Почему это меняет ответ',routeCarry:'Что проверить дальше',practice:'Практика',chooseQuestion:'Выберите вопрос',graphSaveError:'Не удалось сохранить граф в этом браузере. Он пока доступен в открытой вкладке.',steps:'шагов',stepsOne:'шаг',stepsFew:'шага',graphUndo:'Отменить действие в пространстве',graphRedo:'Вернуть действие в пространстве',bibliographicOnly:'Только библиографическое указание',externalBibliographic:'Внешняя библиографическая ссылка · доступ к полному тексту не заявлен',openExternal:'Открыть внешнюю библиографическую ссылку',basedOn:'Основано на',groundsFor:'Основание для',endpointSource:'Источник узла',endpointRelatedSources:'Ссылки связанных предложений',personalGrounds:'Основания личного исследования',personalRelations:'Предложения и связи',personalObjection:'Возражение к предложению',openGround:'Открыть основание',readWithin:'Читать в составе',containedSource:'Текст доступен внутри существующего издания',sourceLoading:'Сведения об источнике…'},
-  en:{addToSpace:'Add to space',removeFromSpace:'Remove from space',removedFromSpace:'Node removed from the space. Undo restores its relations; the text remains in the library.',previewOnly:'Material preview · your space has not changed',authorWorks:'Works by this author',visibleCount:'In current selection',recordScope:'Tree and personal thoughts saved in this browser',routeScope:'Route and step are kept in the page address',lensInquiry:'How to investigate this question',lensMethod:'A way of reading',lensLimit:'What the lens leaves outside',argument:'The argument',counterReading:'Another reading',readingQuestion:'A question for this reading',experiment:'Try while reading',perspectives:'Details to follow',example:'Try an example',relationWarrant:'What grounds this transition',relationLimit:'Limits of this comparison',nextRelation:'The next transition',routeEnd:'What we have reached',routeStarting:'Where we begin',routeStakes:'Why this changes the answer',routeCarry:'What to examine next',practice:'Practice',chooseQuestion:'Choose a question',graphSaveError:'Could not save the graph in this browser. It remains available in this tab.',steps:'steps',stepsOne:'step',stepsFew:'steps',graphUndo:'Undo a space action',graphRedo:'Redo a space action',bibliographicOnly:'Bibliographic reference only',externalBibliographic:'External bibliographic link · full-text access is not asserted',openExternal:'Open external bibliographic link',basedOn:'Based on',groundsFor:'Grounds',endpointSource:'Source of the endpoint',endpointRelatedSources:'Sources from related proposals',personalGrounds:'Grounds of this personal inquiry',personalRelations:'Proposals and relations',personalObjection:'Objection to proposal',openGround:'Open ground',readWithin:'Read within',containedSource:'This text is available within an existing edition',sourceLoading:'Source details…'},
+  ru:{addToSpace:'Добавить в пространство',removeFromSpace:'Убрать из пространства',removedFromSpace:'Узел убран из пространства. Отмена восстановит его связи; текст остаётся в библиотеке.',previewOnly:'Просмотр материала · пространство не изменено',authorWorks:'Произведения автора',visibleCount:'В текущей выборке',recordScope:'Древо и личные мысли сохранены в этом браузере',routeScope:'Маршрут и шаг сохранены в адресе страницы',lensInquiry:'Как исследовать этот вопрос',lensMethod:'Способ чтения',lensLimit:'Что остаётся вне линзы',argument:'Ход мысли',counterReading:'Другое прочтение',readingQuestion:'Вопрос к этому чтению',bookAnswer:'Ответ книги',stepQuestion:'Вопрос, который ход оставляет открытым',experiment:'Попробовать при чтении',perspectives:'Детали чтения',example:'Проверить на примере',relationWarrant:'На чём держится переход',relationLimit:'Предел этого сопоставления',nextRelation:'Следующий переход',routeEnd:'К чему пришли',routeStarting:'С чем начинаем',routeStakes:'Почему это меняет ответ',routeCarry:'Что проверить дальше',practice:'Практика',chooseQuestion:'Выберите вопрос',graphSaveError:'Не удалось сохранить граф в этом браузере. Он пока доступен в открытой вкладке.',steps:'шагов',stepsOne:'шаг',stepsFew:'шага',graphUndo:'Отменить действие в пространстве',graphRedo:'Вернуть действие в пространстве',bibliographicOnly:'Только библиографическое указание',externalBibliographic:'Внешняя библиографическая ссылка · доступ к полному тексту не заявлен',openExternal:'Открыть внешнюю библиографическую ссылку',basedOn:'Основано на',groundsFor:'Основание для',endpointSource:'Источник узла',endpointRelatedSources:'Ссылки связанных предложений',personalGrounds:'Основания личного исследования',personalRelations:'Предложения и связи',personalObjection:'Возражение к предложению',openGround:'Открыть основание',readWithin:'Читать в составе',containedSource:'Текст доступен внутри существующего издания',sourceLoading:'Сведения об источнике…'},
+  en:{addToSpace:'Add to space',removeFromSpace:'Remove from space',removedFromSpace:'Node removed from the space. Undo restores its relations; the text remains in the library.',previewOnly:'Material preview · your space has not changed',authorWorks:'Works by this author',visibleCount:'In current selection',recordScope:'Tree and personal thoughts saved in this browser',routeScope:'Route and step are kept in the page address',lensInquiry:'How to investigate this question',lensMethod:'A way of reading',lensLimit:'What the lens leaves outside',argument:'The argument',counterReading:'Another reading',readingQuestion:'A question for this reading',bookAnswer:'The book’s answer',stepQuestion:'The question this move leaves open',experiment:'Try while reading',perspectives:'Details to follow',example:'Try an example',relationWarrant:'What grounds this transition',relationLimit:'Limits of this comparison',nextRelation:'The next transition',routeEnd:'What we have reached',routeStarting:'Where we begin',routeStakes:'Why this changes the answer',routeCarry:'What to examine next',practice:'Practice',chooseQuestion:'Choose a question',graphSaveError:'Could not save the graph in this browser. It remains available in this tab.',steps:'steps',stepsOne:'step',stepsFew:'steps',graphUndo:'Undo a space action',graphRedo:'Redo a space action',bibliographicOnly:'Bibliographic reference only',externalBibliographic:'External bibliographic link · full-text access is not asserted',openExternal:'Open external bibliographic link',basedOn:'Based on',groundsFor:'Grounds',endpointSource:'Source of the endpoint',endpointRelatedSources:'Sources from related proposals',personalGrounds:'Grounds of this personal inquiry',personalRelations:'Proposals and relations',personalObjection:'Objection to proposal',openGround:'Open ground',readWithin:'Read within',containedSource:'This text is available within an existing edition',sourceLoading:'Source details…'},
 };
 Object.assign(extraTranslations.ru,{zoomIn:'Увеличить Древо',zoomOut:'Уменьшить Древо',mapSearch:'Искать в пространстве…',mapSearchShort:'Поиск',mapSearchHint:'Поиск по названиям и описаниям пространства; полный текст ищите в Чтении.',personal:'Личная запись',personalUnknown:'Вид записи не указан',pendingProposal:'Личное предложение · ожидает проверки · не канон',growEmpty:'Создайте собственную мысль в этом пространстве.',routeQuestion:'Вопрос маршрута',generalQuestion:'Общий вопрос',lensQuestion:'Вопрос этого взгляда',modeCancel:'Отменить выбор',modeFirst:'Выберите первую звезду',modeSecond:'Выберите вторую звезду',modeCompare:'Сопоставление',modeConnect:'Связь',stepName:'Шаг',voice:'Голос'});
 Object.assign(extraTranslations.en,{zoomIn:'Zoom in on the tree',zoomOut:'Zoom out on the tree',mapSearch:'Search this space…',mapSearchShort:'Search',mapSearchHint:'Searches space titles and descriptions; search full text in the reader.',personal:'Personal record',personalUnknown:'Record type not specified',pendingProposal:'Personal proposal · pending review · not canon',growEmpty:'Create your own thought in this space.',routeQuestion:'Route question',generalQuestion:'General question',lensQuestion:'Question for this view',modeCancel:'Cancel selection',modeFirst:'Choose the first star',modeSecond:'Choose the second star',modeCompare:'Compare',modeConnect:'Connect',stepName:'Step',voice:'Voice'});
@@ -403,13 +403,42 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   function appendSourcePointers(parent,material){return appendGrounds(parent,material?.inquiry?.grounds,material?.id);}
   function inquiryDetail(parent,title,value,open=false){if(!value||!fragments.hasAuthored(value))return null;const detail=el('details','inquiry-detail');detail.open=open;detail.append(el('summary','',title));fragments.render(detail,value,{className:''});parent.append(detail);return detail;}
-  function inquiryQuestion(parent,value){
+  function inquiryQuestion(parent,value,kind='readingQuestion'){
     if(!value||!fragments.hasAuthored(value))return;
     const card=el('section','ps-question-card'),own=tr(value,locale()).trim();
     // A question asked by the work is a quotation, not our own research prompt.
-    if(own)card.append(el('span','eyebrow',t('readingQuestion')),el('p','',own));
+    if(own)card.append(el('span','eyebrow',t(kind)),el('p','',own));
     for(const cite of citesOf(value))card.append(fragments.fragment(cite));
     parent.append(card);
+  }
+  // Where the book answers a question in another place, the answer joins the two places: both stand here in the
+  // book's own words, and a relation of the core that holds the same answer opens from here.
+  function appendAnswer(parent,answer){
+    if(!answer||!fragments.hasAuthored(answer))return;
+    const card=el('section','ps-answer-card');card.append(el('span','eyebrow',t('bookAnswer')));
+    fragments.render(card,answer,{className:''});
+    const relation=answer.relation&&core?.links?.find(link=>link.id===answer.relation);
+    if(relation){
+      const row=button('','connection-target');row.append(el('small','',`→ ${tr(relation.verb,locale())}`),el('span','',`${label(core.records?.[relation.from])} → ${label(core.records?.[relation.to])}`));
+      row.addEventListener('click',()=>selectEdge(drawnRelation(relation.id)));card.append(row);
+    }
+    parent.append(card);
+  }
+  // The learning mode asks: the question a riddle of the book or a route's step puts to a star, and the reader's own
+  // line about it. The prompt is drawn again whenever the space changes, so a written line shows at once.
+  let promptHost=null,promptId=null;
+  function readingPrompt(parent,id){
+    promptHost=parent;promptId=id;parent.replaceChildren();
+    const item=index?.get?.(id),materialId=[item?.materialId,item?.id,id].find(value=>value&&materials.has(value));if(!materialId)return false;
+    const material=materials.get(materialId),asks=[];
+    if(material.kind==='question')asks.push(material.inquiry?.question??material.question);
+    if(profile!=='antiquity')for(const route of routes)for(const step of route.steps??[]){const raw=step.nodeId??step.graphNodeId;if(step.question&&raw&&raw.replace(/^material:/,'')===materialId)asks.push(step.question);}
+    const questions=[...new Map(asks.map(value=>[tr(value,locale()).trim(),value]).filter(([text])=>text)).values()];
+    if(!questions.length)return false;
+    // A riddle's title is its question; another star is named above the questions put to it.
+    const name=label(material);if(!questions.some(value=>tr(value,locale()).trim()===name.trim()))parent.append(el('p','eyebrow',name));
+    for(const value of questions)inquiryQuestion(parent,value);
+    ownReadingBlock(parent,materialId);return true;
   }
   function showInquiry(){
     const current=route?.source==='atlas'?routes.find(item=>item.id===route.id):null;
@@ -704,7 +733,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const nodeOfOwn=id=>{const mapped=materializedHypotheses.get(id);return mapped&&state.nodes.some(node=>node.id===mapped)?mapped:state.nodes.some(node=>node.id===id)?id:`personal:${id}`;};
   const placeOfGraph=graphId=>graphState().nodes.find(node=>node.id===graphId)?.position??materialOfGraph(graphId)?.position??null;
   // After the block is drawn again, the keyboard is where it acted.
-  function focusOwn(targetId,selector){requestAnimationFrame(()=>{const box=[...shell.querySelectorAll('.ps-own')].find(item=>item.dataset.target===targetId);box?.querySelector(selector)?.focus({preventScroll:true});});}
+  function focusOwn(targetId,selector){requestAnimationFrame(()=>{const box=[...shell.querySelectorAll('.ps-own'),...(promptHost?.querySelectorAll('.ps-own')??[])].find(item=>item.dataset.target===targetId);box?.querySelector(selector)?.focus({preventScroll:true});});}
   function writeOwnReading(targetId,text){
     if(!workspace?.addHypothesis)return;
     const id=`space:${profile}:own:${crypto.randomUUID()}`,nodeId=`personal:${id}`,targetGraph=graphIdForMaterial(targetId),at=placeOfGraph(targetGraph);
@@ -900,6 +929,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   function reflect(){
     if(destroyed)return;state=model.getState();
+    if(promptHost?.isConnected&&promptId)readingPrompt(promptHost,promptId);
     // The scale of time rearranges the map's frame: its tools join the heading and its strips take their room.
     const kind=layoutKind();if(kind)shell.dataset.scale=kind;else delete shell.dataset.scale;
     turnButton.hidden=measuredLens(lens);controlsButton.hidden=measuredLens(lens);
@@ -1110,7 +1140,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(!body.childElementCount)fold.classList.add('ps-fact-plain');
     parent.append(fold);
   }
-  function renderNode(id,{own=true}={}){
+  function renderNode(id){
     const materialId=id.startsWith('material:')?id.slice(9):null;
     const preview=materialId&&previewMaterials.get(materialId);
     const node=graphState().nodes.find(item=>item.id===id)??(preview?{id,materialId,kind:preview.kind,sourceIds:[]}:null);if(!node){selected=null;return renderWelcome();}
@@ -1141,16 +1171,17 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       else if(source?.binding){const open=button(`↗ ${sourceActionLabel(source)}`,'primary');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));panelContent.append(open);}
       const body=material.atlasBody??material.body;
       if(body)fragments.render(panelContent,body,{className:'body'});
-      // A riddle asks the reader first: its question, the reader's own line, and only then its readings, folded until written.
-      const riddle=own&&material.kind==='question'&&materials.has(material.id),answered=!riddle||!!ownReadingOf(material.id);
-      if(riddle){const asks=material.inquiry?.question??material.question;if(tr(asks,locale()).trim())inquiryQuestion(panelContent,asks);ownReadingBlock(panelContent,material.id);}
-      else if(tr(material.question,locale()).trim()&&!material.inquiry?.question){const questionCard=el('section','ps-question-card');questionCard.append(el('span','eyebrow',t('questionLabel')),el('p','',tr(material.question,locale())));panelContent.append(questionCard);}
+      // The map shows what the book says. A question of the book is the star's title, and the book's answer stands
+      // under it; the reader's own line about it is written in the learning mode (readingPrompt).
+      const asked=tr(material.question,locale()).trim();
+      if(asked&&asked!==nodeTitle.trim()&&!material.inquiry?.question){const questionCard=el('section','ps-question-card');questionCard.append(el('span','eyebrow',t('questionLabel')),el('p','',tr(material.question,locale())));panelContent.append(questionCard);}
       const inquiry=material.inquiry;
       if(inquiry){
-        inquiryDetail(panelContent,t('argument'),inquiry.thesis??inquiry.argument,answered);
+        inquiryDetail(panelContent,t('argument'),inquiry.thesis??inquiry.argument,true);
         appendGrounds(panelContent,inquiry.grounds,material.id);
-        if(inquiry.counterReading){const alternative=inquiryDetail(panelContent,t('counterReading'),inquiry.counterReading.text,answered);if(alternative)appendGrounds(alternative,inquiry.counterReading.grounds,material.id);}
-        if(!riddle)inquiryQuestion(panelContent,inquiry.question);
+        appendAnswer(panelContent,inquiry.answer);
+        if(inquiry.counterReading){const alternative=inquiryDetail(panelContent,t('counterReading'),inquiry.counterReading.text,true);if(alternative)appendGrounds(alternative,inquiry.counterReading.grounds,material.id);}
+        if(material.kind!=='question')inquiryQuestion(panelContent,inquiry.question);
         if(inquiry.experiment){const experiment=inquiryDetail(panelContent,t('experiment'),inquiry.experiment.setup);if(experiment&&inquiry.experiment.question)experiment.append(el('p','inquiry-prompt',tr(inquiry.experiment.question,locale())));}
       }
       if(material.perspectives?.length){panelContent.append(el('h2','minor-title',t('perspectives')));for(const item of material.perspectives)inquiryDetail(panelContent,tr(item.title,locale()),item.body);}
@@ -1500,8 +1531,10 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       entry.append(stepHead(index,tr(step.title,locale()),witnesses[0],isCurrent,goRouteStep));
       if(isCurrent){
         const body=el('div','ps-step-body');for(const witness of witnesses.slice(1))body.append(el('p','ps-source-line',witness));
-        fragments.render(body,step.body,{className:'ps-step-text'});if(step.question)inquiryQuestion(body,step.question);
-        if(step.question){const raw=step.nodeId??step.graphNodeId,stepMaterial=raw&&(materials.has(raw)?raw:raw.replace(/^material:/,''));if(stepMaterial&&materials.has(stepMaterial))ownReadingBlock(body,stepMaterial);}
+        fragments.render(body,step.body,{className:'ps-step-text'});
+        // An Antiquity move leaves a question open, and the next move takes it up: the question belongs to the branch.
+        // A Zarathustra step's question asks the reader about the place itself and waits in the learning mode.
+        if(profile==='antiquity'&&step.question)inquiryQuestion(body,step.question,'stepQuestion');
         const action=stepSourceAction(step,witnesses.length);if(action?.classList.contains('ps-step-places'))body.append(action);else if(action){const row=el('div','ps-route-actions');row.append(action);body.append(row);}
         entry.append(body);
       }
@@ -1547,9 +1580,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function renderStepNode(){
     panelContent.replaceChildren();if(!routeStepNode)return;
     const node=graphState().nodes.find(item=>item.id===routeStepNode);if(!node)return;
-    // A step that asks already holds the reader's own line; its star does not ask again beneath it.
-    const step=route?.source==='atlas'?routes.find(item=>item.id===route.id)?.steps?.[routeIndex]:null;
-    renderNode(routeStepNode,{own:!step?.question});
+    renderNode(routeStepNode);
     const parts=[...panelContent.childNodes],fold=document.createElement('details');fold.className='ps-step-node';fold.open=stepNodeOpen;
     fold.addEventListener('toggle',()=>{stepNodeOpen=fold.open;});
     fold.append(el('summary','',`${t('onMap')} · ${label(node.ownerType==='personal-hypothesis'?node:matForNode(node)??node)}`),...parts);
@@ -1822,6 +1853,6 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   if(moreCollection){const idle=window.requestIdleCallback?callback=>window.requestIdleCallback(callback,{timeout:5000}):callback=>setTimeout(callback,1800);idle(()=>{if(!destroyed)void loadMoreCollection().catch(()=>{});});}
   if(upgradeError)notify(copyLocale(locale)==='en'?localeText('The saved graph could not be upgraded. Its original copy is preserved.',locale):'Не удалось перенести сохранённый граф. Исходная копия сохранена.');
   const localeEvent=event=>{if(event.detail?.locale&&event.detail.locale!==locale()){};refreshLocale();};header?.addEventListener('public-space-locale',localeEvent);
-  return {root:shell,index,selection:researchSelection,openResearch,renderResearch,markTerms:node=>terms.mark(node),fragments,coreView,timeOf:id=>timeline?.spanOf?.(index?.get(id)?.materialId??id)??null,placeOf:id=>placeOf(index?.get(id)?.materialId??id),openPersonal:()=>{if(personal.hidden)togglePersonal();},compare:id=>beginCompare(graphIdForMaterial(index?.get(id)?.materialId??id)),pristineGraphs,openCollection,personalRoot:personalContent,workspaceRoot,agentRoot,refreshLocale,restoreFocus,refreshJourneys(items){journeyList=Array.isArray(items)?items:[];if(route)renderRoutes();},renderJourneys:renderRoutes,model,
+  return {root:shell,index,selection:researchSelection,openResearch,renderResearch,markTerms:node=>terms.mark(node),readingPrompt,fragments,coreView,timeOf:id=>timeline?.spanOf?.(index?.get(id)?.materialId??id)??null,placeOf:id=>placeOf(index?.get(id)?.materialId??id),openPersonal:()=>{if(personal.hidden)togglePersonal();},compare:id=>beginCompare(graphIdForMaterial(index?.get(id)?.materialId??id)),pristineGraphs,openCollection,personalRoot:personalContent,workspaceRoot,agentRoot,refreshLocale,restoreFocus,refreshJourneys(items){journeyList=Array.isArray(items)?items:[];if(route)renderRoutes();},renderJourneys:renderRoutes,model,
     destroy(){if(destroyed)return;destroyed=true;window.removeEventListener('resize',refitScale);cancelAnimationFrame(refitFrame);shell.removeEventListener('click',openLane);shell.removeEventListener('keydown',openLaneByKey);unsubscribeModel?.();unsubscribeWorkspace?.();workspaceRoot.removeEventListener('public-research-import-result',showImportResult);workspaceRoot.removeEventListener('public-research-workspace-history',researchHistory);document.removeEventListener('keydown',keyboard);document.removeEventListener('pointerdown',notePress,{capture:true});clearTimeout(controlsTimer);shell.removeEventListener('pointerdown',notePointer,{capture:true});hints?.dispose();controls?.dispose();fragments.dispose();desktopMode.removeEventListener('change',syncInitialRouteDock);header?.removeEventListener('public-space-locale',localeEvent);sky?.dispose();model.dispose();shell.remove();header?.remove();terms.dispose();}};
 }

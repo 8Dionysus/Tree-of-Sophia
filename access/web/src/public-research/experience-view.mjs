@@ -49,8 +49,10 @@ export function mountResearchExperience({root,header,profile,locale=()=> 'ru',in
   const question=make('p','experience-question'),message=make('p','experience-message'),recover=action('',()=>void recoverState());recover.hidden=true;message.setAttribute('role','status');
   const searchWrap=make('div','experience-search'),search=make('input');search.type='search';const searchResults=make('div','experience-search-results');searchWrap.append(search,searchResults);
   const body=make('div','experience-body'),comparison=make('section','experience-comparison'),history=make('details','experience-history'),historyTitle=make('summary'),historyBody=make('div');history.append(historyTitle,historyBody);
+  // The learning mode first asks about the chosen star: the question its riddle or route puts, and the reader's own line.
+  const promptRoot=make('section','experience-prompt');promptRoot.hidden=true;
   const cognitiveRoot=make('section','experience-cognitive'),operationDetails=make('details','experience-operations'),operationTitle=make('summary'),operationRoot=make('div');operationDetails.append(operationTitle,operationRoot);
-  pane.append(question,message,recover,searchWrap,body,comparison,history,cognitiveRoot,operationDetails);root.append(pane);
+  pane.append(question,message,recover,searchWrap,body,comparison,history,promptRoot,cognitiveRoot,operationDetails);root.append(pane);
   const modeButtons=new Map();for(const mode of standModes){const btn=action('',()=>{setModes(false);setMode(mode);});btn.dataset.mode=mode;modeGroup.append(btn);modeButtons.set(mode,btn);}
   const back=action('',()=>navigate(-1),'experience-button rb-step'),forward=action('',()=>navigate(1),'experience-button rb-step'),pin=action('',()=>togglePin()),copy=action('',()=>void copyLink()),calculation=action('',()=>{opsVisible=!opsVisible;operationDetails.open=opsVisible;render();});menu.append(pin,copy,calculation);tools.append(back,forward,menu);
   let menuOpen=false,modesOpen=false,copiedTimer=0;
@@ -197,6 +199,8 @@ export function mountResearchExperience({root,header,profile,locale=()=> 'ru',in
     space.root.classList.toggle('experience-space-inactive',state.mode!=='original');pane.hidden=state.mode==='original'&&!opsVisible;question.hidden=state.mode!=='reference';pane.classList.toggle('is-cognitive',state.mode==='cognitive');operationDetails.hidden=!opsVisible;body.hidden=state.mode!=='reference';comparison.hidden=state.mode!=='reference';searchWrap.hidden=state.mode!=='reference';history.hidden=state.mode!=='reference';cognitiveRoot.hidden=state.mode!=='cognitive';
     question.textContent=api?.getQuestion?.()?`${t('question')}: ${api.getQuestion()}`:'';search.placeholder=t('search');search.setAttribute('aria-label',t('search'));operationTitle.textContent=t('operations');historyTitle.textContent=t('history');recover.textContent=t('recover');
     body.replaceChildren();comparison.replaceChildren();historyBody.replaceChildren();renderSearch();
+    const asking=state.mode==='cognitive'&&state.id&&state.revision===index.revision;
+    promptRoot.hidden=!space.readingPrompt?.(promptRoot,asking?state.id:null);if(!promptRoot.hidden)space.markTerms?.(promptRoot);
     if(opsVisible)void renderOperations();
     if(state.mode==='reference'){
       if(state.id){body.append(action(`← ${t('toContents')}`,()=>{rememberScroll();state.id=null;writeUrl(true);render();save();window.scrollTo(0,0);},'experience-back'));const toc=make('nav','experience-toc'),article=make('article','experience-article');toc.hidden=true;body.append(toc,article);void renderItem(article,state.id,state.revision).then(()=>{if(token!==renderToken)return;if(state.revision===index.revision)renderRefs(article,state.id);contentsOf(toc,article);space.markTerms?.(article);});}else if(!renderContents(body))body.append(make('p','experience-empty',t('empty')));

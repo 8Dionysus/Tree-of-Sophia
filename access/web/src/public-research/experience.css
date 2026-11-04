@@ -88,3 +88,9 @@
   .experience-article :is(.ps-kernel-reference-section,.ps-kernel-reference){scroll-margin-top:calc(var(--rb-h,0px) + 3.6rem)}
 }
 @media(max-width:600px){.experience-toc{margin-left:-1rem;margin-right:-1rem;padding-left:1rem;padding-right:1rem}}
+/* The learning mode's question about the chosen star, and the reader's own line beneath it. */
+.experience-prompt{--ps-serif:Sophia,Georgia,'Times New Roman',serif;--ps-sans:system-ui,-apple-system,'Segoe UI',sans-serif;max-width:44rem;margin:0 auto 1.5rem}
+.experience-prompt>.eyebrow{margin:0 0 .4rem;color:#93a5b9;font:600 .7rem/1.4 var(--ps-sans);letter-spacing:.12em;text-transform:uppercase}
+.experience-prompt .ps-question-card{padding:13px 14px;margin:0 0 10px;border:1px solid #849ab32b;border-left:1px solid #c9b77e65;background:#0b1420a0}
+.experience-prompt .ps-question-card .eyebrow{display:block;margin-bottom:8px;color:#8ea2ba;font:600 .65rem/1.4 var(--ps-sans);letter-spacing:.12em;text-transform:uppercase}
+.experience-prompt .ps-question-card p{margin:0;font:1.05rem/1.6 var(--ps-serif);color:#e8dcc0}
