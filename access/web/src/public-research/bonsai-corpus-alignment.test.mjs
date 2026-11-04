@@ -49,6 +49,26 @@ describe('the corpus alignment of the stands',()=>{
     translation.units[1].text='Новая мысль начинается здесь.';
     expect(alignVersion(original,translation,new Set(['g2'])).entries.g2.u).not.toContain('r1');
   });
+  it('leaves a finished sentence of the preceding unit with the place that says it',()=>{
+    // Theaetetus 189e–190a: the Greek reference falls before τοῦτο γάρ, the Russian one inside the next sentence.
+    const original={language:'grc',units:[
+      {id:'g1',reference:'189',text:'Τί λέγεις; λόγον ὃν αὐτὴ πρὸς αὑτὴν ἡ ψυχὴ διεξέρχεται περὶ ὧν ἂν σκοπῇ.'},
+      {id:'g2',reference:'190',text:'τοῦτο γάρ μοι ἰνδάλλεται διανοουμένη, αὐτὴ ἑαυτὴν ἐρωτῶσα καὶ ἀποκρινομένη. ἄλλο τι;'},
+    ]};
+    const translation={language:'ru',units:[
+      {id:'r1',reference:'189',text:'Что ты говоришь? Беседу, которую душа ведет сама с собою, когда что-нибудь рассматривает. Вот как она размышляя разговаривает, сама себя '},
+      {id:'r2',reference:'190',text:'спрашивает и отвечает. Дальше идёт разговор.'},
+    ]};
+    const entry=alignVersion(original,translation,new Set(['g2'])).entries.g2;
+    const said=entry.pairs.flatMap(([,targets])=>targets).map(([i,start,end])=>Array.from(translation.units.find(unit=>unit.id===entry.u[i]).text).slice(start,end).join('')).join(' ');
+    expect(said).toContain('Вот как она размышляя разговаривает, сама себя');
+    expect(said).toContain('спрашивает и отвечает.');
+    expect(said).not.toContain('Беседу');
+    // An edition's notes after the preceding unit's text do not make its finished text look cut.
+    translation.units[0].text='Что ты говоришь? Беседу, которую душа ведет сама с собою, когда что-нибудь рассматривает.\n〔1〕 Примечание без точки';
+    translation.units[1].text='вот как она размышляя разговаривает, сама себя спрашивает и отвечает. Дальше идёт разговор.';
+    expect(alignVersion(original,translation,new Set(['g2'])).entries.g2.u).not.toContain('r1');
+  });
   it('is, for Zarathustra, what the mechanism gives from the stand\'s own citations',()=>{
     const content=zarathustraContent();
     const works=worksOf('zarathustra'),stored=readFileSync(join(root,'bonsai','zarathustra','alignment.json'),'utf8');
