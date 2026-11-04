@@ -69,11 +69,9 @@ YONGE = {'translator': 'Charles Duke Yonge (1812–1891)', 'credit': 'Translated
 STEWART = {'translator': 'Aubrey Stewart (1844–1918)', 'credit': 'Translated by Aubrey Stewart'}
 CICERO_1891 = 'The Academic Questions, Treatise De Finibus, and Tusculan Disputations. London: George Bell, 1891'
 for key, config in {
-    'athenian-constitution-en': {'work': 'athenian-constitution', 'author': 'aristotle', 'title': 'The Athenian Constitution', 'split': 'single', 'label': 'Text',
+    'athenian-constitution-en': {'work': 'athenian-constitution', 'author': 'aristotle', 'title': 'The Athenian Constitution', 'split': 'numbered', 'inline_notes': True,
         'id': 'athenian-constitution-en-kenyon1921-wikisource', 'translator': 'Frederic G. Kenyon (1863–1952)', 'credit': 'Translated by F. G. Kenyon',
         'edition': 'The Works of Aristotle, vol. X. Oxford: Clarendon Press, 1921', 'year': '1921', 'rationale': 'Translation published 1921; the translator died 1952.'},
-    'academica-en': {'work': 'academica', 'author': 'cicero', 'title': 'Academic Questions, Book I', 'split': 'books', **YONGE,
-        'id': 'academica-en-yonge1891-wikisource', 'edition': CICERO_1891, 'year': '1891', 'rationale': 'Translation published 1853 (here the 1891 printing); the translator died 1891.'},
     'lucullus-en': {'work': 'lucullus', 'author': 'cicero', 'title': 'Academic Questions, Book II (Lucullus)', 'split': 'single', 'label': 'Lucullus', **YONGE,
         'id': 'lucullus-en-yonge1891-wikisource', 'edition': CICERO_1891, 'year': '1891', 'rationale': 'Translation published 1853 (here the 1891 printing); the translator died 1891.'},
     'de-finibus-en': {'work': 'de-finibus-bonorum-et-malorum', 'author': 'cicero', 'title': 'De Finibus', 'split': 'books', **YONGE,
@@ -171,6 +169,22 @@ def sections_for(work, config, pages):
         lines = [line for line in lines if not (re.search(r'\d', line) and re.fullmatch(r'[\d\s\-–—|·.]+', line))]
         # Wikisource maintenance notices, layout switches and section menus.
         lines = [line for line in lines if not re.match(r'(Layout \d+$|Sections:|This work has been imported|Please take a moment)', line)]
+        # Translator's notes set as numbered lines after the text ("12 Ch. 2, 2.").
+        if config.get('inline_notes'):
+            lines = [line for line in lines if not re.match(r'\d{1,3} (?:[A-Z‘“(\[]|i\.e\.|e\.g\.|cf\.)', line)]
+        if config['split'] == 'numbered':
+            current, body = None, []
+            for line in lines:
+                match = re.match(r'(\d{1,2})\.\s', line[len(HEAD):]) if line.startswith(HEAD) else None
+                if match:
+                    if current is not None:
+                        sections.append(section('', f'§{current}', body))
+                    current, body = int(match.group(1)), []
+                elif current is not None and line and not line.startswith(HEAD):
+                    body.append(line)
+            if current is not None:
+                sections.append(section('', f'§{current}', body))
+            continue
         if config['split'] == 'single':
             body = [line for line in lines if line and not line.startswith(HEAD)]
             if sections:
