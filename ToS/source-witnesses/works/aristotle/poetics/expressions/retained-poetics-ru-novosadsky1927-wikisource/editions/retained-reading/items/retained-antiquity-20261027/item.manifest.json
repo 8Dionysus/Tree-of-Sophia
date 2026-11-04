@@ -1,0 +1,46 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.poetics.poetics-ru-novosadsky1927-wikisource",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.poetics.poetics-ru-novosadsky1927-wikisource",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.d2fbe5953d790fe6a09ca05047a69e36b403c4d24caf0f47bf1dd88fd95eff83",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "poetics-ru-novosadsky1927-wikisource.json",
+      "media_type": "application/json",
+      "byte_size": 142643,
+      "sha256": "d2fbe5953d790fe6a09ca05047a69e36b403c4d24caf0f47bf1dd88fd95eff83",
+      "fixity_verified_at": "2026-11-04T02:42:32+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 136093,
+      "sha256": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+      "fixity_verified_at": "2026-11-04T02:42:32+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.01b1314649638fa6f836216261d6ba4ed7b43fd5d3c14b6b79369862c6d145e4",
+      "relative_path": "payload/wikisource-page-01-api.json",
+      "original_basename": "wikisource-page-01-api.json",
+      "media_type": "application/json",
+      "byte_size": 895146,
+      "sha256": "01b1314649638fa6f836216261d6ba4ed7b43fd5d3c14b6b79369862c6d145e4",
+      "fixity_verified_at": "2026-11-04T02:42:32+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.poetics-ru-novosadsky1927-wikisource.20261027",
+  "rights_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

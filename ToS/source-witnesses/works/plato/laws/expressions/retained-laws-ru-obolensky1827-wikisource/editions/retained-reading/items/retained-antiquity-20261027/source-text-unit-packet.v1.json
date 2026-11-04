@@ -1,0 +1,1221 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "packet_id": "tos.source-text-unit-packet.sid-d6ce4cc9dd8c4cc1951e409b885934a7",
+  "packet_version": 1,
+  "supersedes_packet_ref": null,
+  "content_posture": "source_bound",
+  "source_scope": {
+    "work_ref": "tos.work.retained-antiquity.laws",
+    "expression_ref": "tos.expression.retained.antiquity.laws.laws-ru-obolensky1827-wikisource",
+    "edition_ref": "tos.edition.retained.antiquity.laws.laws-ru-obolensky1827-wikisource",
+    "item_ref": "tos.item.retained.antiquity.laws.laws-ru-obolensky1827-wikisource",
+    "file_ref": "tos.file.sha256.653af9ce48d994568d6e04d592a5fdbb936208d23ea4d4a306f5502325d0bd1c",
+    "file_sha256": "653af9ce48d994568d6e04d592a5fdbb936208d23ea4d4a306f5502325d0bd1c"
+  },
+  "source_layer": {
+    "text_layer_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-ru-obolensky1827-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+    "text_layer_sha256": "bd78cc85c41f8dcb7508c109d3f0c9655d33d4140c37c90f86e86b031a58f102",
+    "language": "ru",
+    "media_type": "text/plain; charset=utf-8",
+    "unicode_form": "source_preserved",
+    "position_unit": "unicode_code_point",
+    "interval": "half_open",
+    "immutable": true,
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "schemes": [
+    {
+      "scheme_id": "tos.text-unit-scheme.sid-3da37dd1708848db9289837618704b61",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "scheme_name": "Retained source section and bounded reading chunk",
+      "analysis_role": "source_structure",
+      "boundary_basis": "rule_based",
+      "unit_kinds": [
+        "section"
+      ],
+      "method": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-ru-obolensky1827-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "ru",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.laws-ru-obolensky1827-wikisource.20261027",
+        "made_at": "2026-11-04T02:42:33+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "policies": {
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "punctuation": "included_in_neighbor",
+        "whitespace": "included_in_neighbor",
+        "line_break": "included_in_neighbor",
+        "hyphenation": "preserve_source",
+        "unreported_gaps_allowed": false,
+        "overlap": "forbid"
+      },
+      "authority_limit": {
+        "algorithmic_output_is_source_truth": false,
+        "algorithmic_output_is_linguistic_truth": false,
+        "model_subword_is_lexeme": false,
+        "unit_identity_is_semantic_identity": false,
+        "text_mutation_allowed": false
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.sid-ce6606d92de64e5898411c2d5feeed47",
+      "ordinal": 1,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-ru-obolensky1827-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd78cc85c41f8dcb7508c109d3f0c9655d33d4140c37c90f86e86b031a58f102",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 608172,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "bd78cc85c41f8dcb7508c109d3f0c9655d33d4140c37c90f86e86b031a58f102",
+      "anchor_role": "scope",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%8B_%D1%80%D0%B0%D0%B7%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D1%8B_%D0%BE_%D0%B7%D0%B0%D0%BA%D0%BE%D0%BD%D0%B0%D1%85_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9E%D0%B1%D0%BE%D0%BB%D0%B5%D0%BD%D1%81%D0%BA%D0%B8%D0%B9%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a06dbfcded8a41cabc1fde18288a64b3",
+      "ordinal": 2,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-ru-obolensky1827-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd78cc85c41f8dcb7508c109d3f0c9655d33d4140c37c90f86e86b031a58f102",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 33081,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "9776a64479e4352c3a6dfae2d86f9c178c65b713ba0b65230a4e1496e09b8d16",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%8B_%D1%80%D0%B0%D0%B7%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D1%8B_%D0%BE_%D0%B7%D0%B0%D0%BA%D0%BE%D0%BD%D0%B0%D1%85_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9E%D0%B1%D0%BE%D0%BB%D0%B5%D0%BD%D1%81%D0%BA%D0%B8%D0%B9%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-74fcba03b8014ebd8fb7b80f1fb2216f",
+      "ordinal": 3,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-ru-obolensky1827-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd78cc85c41f8dcb7508c109d3f0c9655d33d4140c37c90f86e86b031a58f102",
+      "selector": {
+        "type": "text_position",
+        "start": 33081,
+        "end": 49082,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "9d34d15f5c1c1e3c1866ea1403f37fed1a74145af487f5690a740efce8f83084",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%8B_%D1%80%D0%B0%D0%B7%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D1%8B_%D0%BE_%D0%B7%D0%B0%D0%BA%D0%BE%D0%BD%D0%B0%D1%85_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9E%D0%B1%D0%BE%D0%BB%D0%B5%D0%BD%D1%81%D0%BA%D0%B8%D0%B9%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a8e151253e7a402daeefe96e3ffaaa6c",
+      "ordinal": 4,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-ru-obolensky1827-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd78cc85c41f8dcb7508c109d3f0c9655d33d4140c37c90f86e86b031a58f102",
+      "selector": {
+        "type": "text_position",
+        "start": 49082,
+        "end": 82234,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "4ad1ddbb6db242480c7bda023062d814e6bc293dff9fe383e2be20ac688bce1a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%8B_%D1%80%D0%B0%D0%B7%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D1%8B_%D0%BE_%D0%B7%D0%B0%D0%BA%D0%BE%D0%BD%D0%B0%D1%85_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9E%D0%B1%D0%BE%D0%BB%D0%B5%D0%BD%D1%81%D0%BA%D0%B8%D0%B9%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-8eb65635f890494e8bce9f7c1fb28ac5",
+      "ordinal": 5,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-ru-obolensky1827-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd78cc85c41f8dcb7508c109d3f0c9655d33d4140c37c90f86e86b031a58f102",
+      "selector": {
+        "type": "text_position",
+        "start": 82234,
+        "end": 91303,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ddf0d5245bf46c3a95444722710dff91eb5f667be8337744f88122a5ee1acf49",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%8B_%D1%80%D0%B0%D0%B7%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D1%8B_%D0%BE_%D0%B7%D0%B0%D0%BA%D0%BE%D0%BD%D0%B0%D1%85_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9E%D0%B1%D0%BE%D0%BB%D0%B5%D0%BD%D1%81%D0%BA%D0%B8%D0%B9%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d94aebfa1ef846da9fa7fd39fb7bda2e",
+      "ordinal": 6,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-ru-obolensky1827-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd78cc85c41f8dcb7508c109d3f0c9655d33d4140c37c90f86e86b031a58f102",
+      "selector": {
+        "type": "text_position",
+        "start": 91303,
+        "end": 124429,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "04fe3b3e1085d40013632551eb0fddfa99d45b03742348f3c423f7d65b7844ac",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%8B_%D1%80%D0%B0%D0%B7%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D1%8B_%D0%BE_%D0%B7%D0%B0%D0%BA%D0%BE%D0%BD%D0%B0%D1%85_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9E%D0%B1%D0%BE%D0%BB%D0%B5%D0%BD%D1%81%D0%BA%D0%B8%D0%B9%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-685717a2c6c7468cac9836a2e7512da7",
+      "ordinal": 7,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-ru-obolensky1827-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd78cc85c41f8dcb7508c109d3f0c9655d33d4140c37c90f86e86b031a58f102",
+      "selector": {
+        "type": "text_position",
+        "start": 124429,
+        "end": 140476,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "56b5667acd7a7c3565a03dece7017c8fd03ddef95cb71c68fb2a557b830a87dc",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%8B_%D1%80%D0%B0%D0%B7%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D1%8B_%D0%BE_%D0%B7%D0%B0%D0%BA%D0%BE%D0%BD%D0%B0%D1%85_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9E%D0%B1%D0%BE%D0%BB%D0%B5%D0%BD%D1%81%D0%BA%D0%B8%D0%B9%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-99a8013391344fc593022648efcf4566",
+      "ordinal": 8,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-ru-obolensky1827-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd78cc85c41f8dcb7508c109d3f0c9655d33d4140c37c90f86e86b031a58f102",
+      "selector": {
+        "type": "text_position",
+        "start": 140476,
+        "end": 173524,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "981e2749ca1c71832a450ed761678d283e0fb7785dc84865c07976ca1695c21b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%8B_%D1%80%D0%B0%D0%B7%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D1%8B_%D0%BE_%D0%B7%D0%B0%D0%BA%D0%BE%D0%BD%D0%B0%D1%85_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9E%D0%B1%D0%BE%D0%BB%D0%B5%D0%BD%D1%81%D0%BA%D0%B8%D0%B9%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-420d07d523a841a7949abe7154bb6cca",
+      "ordinal": 9,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-ru-obolensky1827-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd78cc85c41f8dcb7508c109d3f0c9655d33d4140c37c90f86e86b031a58f102",
+      "selector": {
+        "type": "text_position",
+        "start": 173524,
+        "end": 177373,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "490511a586a7c1700111e7dda44194ec21772f51e379eb82d7ae178836dc5cdb",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%8B_%D1%80%D0%B0%D0%B7%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D1%8B_%D0%BE_%D0%B7%D0%B0%D0%BA%D0%BE%D0%BD%D0%B0%D1%85_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9E%D0%B1%D0%BE%D0%BB%D0%B5%D0%BD%D1%81%D0%BA%D0%B8%D0%B9%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-0612d0d0d80448b7adb996435aa2cc0f",
+      "ordinal": 10,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-ru-obolensky1827-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd78cc85c41f8dcb7508c109d3f0c9655d33d4140c37c90f86e86b031a58f102",
+      "selector": {
+        "type": "text_position",
+        "start": 177373,
+        "end": 210217,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ca66b416be067ab6e3c3decc4bcfe6a14e7a2d607c123d8d684a937d0186b60f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%8B_%D1%80%D0%B0%D0%B7%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D1%8B_%D0%BE_%D0%B7%D0%B0%D0%BA%D0%BE%D0%BD%D0%B0%D1%85_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9E%D0%B1%D0%BE%D0%BB%D0%B5%D0%BD%D1%81%D0%BA%D0%B8%D0%B9%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-8aad42e8d8e247ad94cc93c71d8d65e7",
+      "ordinal": 11,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-ru-obolensky1827-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd78cc85c41f8dcb7508c109d3f0c9655d33d4140c37c90f86e86b031a58f102",
+      "selector": {
+        "type": "text_position",
+        "start": 210217,
+        "end": 218400,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "4f1f2804bb3e395d94c292ac12318487fb60a857e6814822171f4ab0fc112b9f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%8B_%D1%80%D0%B0%D0%B7%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D1%8B_%D0%BE_%D0%B7%D0%B0%D0%BA%D0%BE%D0%BD%D0%B0%D1%85_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9E%D0%B1%D0%BE%D0%BB%D0%B5%D0%BD%D1%81%D0%BA%D0%B8%D0%B9%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-cb48d896d3694cf8a133898fd02dd2a3",
+      "ordinal": 12,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-ru-obolensky1827-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd78cc85c41f8dcb7508c109d3f0c9655d33d4140c37c90f86e86b031a58f102",
+      "selector": {
+        "type": "text_position",
+        "start": 218400,
+        "end": 251215,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a61fa616abf1ad539c85012fb58a9adbfeef3595199ea5fb4bb3470553043923",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%8B_%D1%80%D0%B0%D0%B7%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D1%8B_%D0%BE_%D0%B7%D0%B0%D0%BA%D0%BE%D0%BD%D0%B0%D1%85_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9E%D0%B1%D0%BE%D0%BB%D0%B5%D0%BD%D1%81%D0%BA%D0%B8%D0%B9%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-6b0fa31ec3a94c2c934f188d1e8ddced",
+      "ordinal": 13,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-ru-obolensky1827-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd78cc85c41f8dcb7508c109d3f0c9655d33d4140c37c90f86e86b031a58f102",
+      "selector": {
+        "type": "text_position",
+        "start": 251215,
+        "end": 281314,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "dc3f7d8121737c2ab45530b445cc6da3e7a8a334a59ab472a1369139ebb27785",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%8B_%D1%80%D0%B0%D0%B7%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D1%8B_%D0%BE_%D0%B7%D0%B0%D0%BA%D0%BE%D0%BD%D0%B0%D1%85_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9E%D0%B1%D0%BE%D0%BB%D0%B5%D0%BD%D1%81%D0%BA%D0%B8%D0%B9%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-1d72c20fd0234c7e97da31e23c0ee4b1",
+      "ordinal": 14,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-ru-obolensky1827-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd78cc85c41f8dcb7508c109d3f0c9655d33d4140c37c90f86e86b031a58f102",
+      "selector": {
+        "type": "text_position",
+        "start": 281314,
+        "end": 314372,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "811e0c137ceccadfcb8a17d88a9c4a3aac41ec6da22f11260214ab28426f3abf",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%8B_%D1%80%D0%B0%D0%B7%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D1%8B_%D0%BE_%D0%B7%D0%B0%D0%BA%D0%BE%D0%BD%D0%B0%D1%85_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9E%D0%B1%D0%BE%D0%BB%D0%B5%D0%BD%D1%81%D0%BA%D0%B8%D0%B9%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-47627dfd8e9048ee976053e4e8b3da2f",
+      "ordinal": 15,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-ru-obolensky1827-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd78cc85c41f8dcb7508c109d3f0c9655d33d4140c37c90f86e86b031a58f102",
+      "selector": {
+        "type": "text_position",
+        "start": 314372,
+        "end": 347408,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "bc495188097f55f257bd487b448c15d8fe528da8ffde981ac5e9f9f746a86275",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%8B_%D1%80%D0%B0%D0%B7%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D1%8B_%D0%BE_%D0%B7%D0%B0%D0%BA%D0%BE%D0%BD%D0%B0%D1%85_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9E%D0%B1%D0%BE%D0%BB%D0%B5%D0%BD%D1%81%D0%BA%D0%B8%D0%B9%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-7325d7ae1470470f8275447f1aa10c54",
+      "ordinal": 16,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-ru-obolensky1827-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd78cc85c41f8dcb7508c109d3f0c9655d33d4140c37c90f86e86b031a58f102",
+      "selector": {
+        "type": "text_position",
+        "start": 347408,
+        "end": 349139,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d9058291a95d4f9abad007e1c7ed0338edcab977274a85a272ecfd26f76b926b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%8B_%D1%80%D0%B0%D0%B7%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D1%8B_%D0%BE_%D0%B7%D0%B0%D0%BA%D0%BE%D0%BD%D0%B0%D1%85_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9E%D0%B1%D0%BE%D0%BB%D0%B5%D0%BD%D1%81%D0%BA%D0%B8%D0%B9%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-0cd764e1530a4bd5a1a4e372f028a93f",
+      "ordinal": 17,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-ru-obolensky1827-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd78cc85c41f8dcb7508c109d3f0c9655d33d4140c37c90f86e86b031a58f102",
+      "selector": {
+        "type": "text_position",
+        "start": 349139,
+        "end": 382058,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "186fd5f0cc394f85f605d4c412b25c4b71b047f6314d09b5809820e5f03e7455",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%8B_%D1%80%D0%B0%D0%B7%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D1%8B_%D0%BE_%D0%B7%D0%B0%D0%BA%D0%BE%D0%BD%D0%B0%D1%85_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9E%D0%B1%D0%BE%D0%BB%D0%B5%D0%BD%D1%81%D0%BA%D0%B8%D0%B9%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-371b1308dde444739f8be9ca9da4fbf7",
+      "ordinal": 18,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-ru-obolensky1827-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd78cc85c41f8dcb7508c109d3f0c9655d33d4140c37c90f86e86b031a58f102",
+      "selector": {
+        "type": "text_position",
+        "start": 382058,
+        "end": 393144,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "04d059c8d78fabdddf7eed1add33d6701f3b42ef7bf14bf5154265c3da239364",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%8B_%D1%80%D0%B0%D0%B7%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D1%8B_%D0%BE_%D0%B7%D0%B0%D0%BA%D0%BE%D0%BD%D0%B0%D1%85_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9E%D0%B1%D0%BE%D0%BB%D0%B5%D0%BD%D1%81%D0%BA%D0%B8%D0%B9%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-aeacb81db8604aa298350f7b8d2e535e",
+      "ordinal": 19,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-ru-obolensky1827-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd78cc85c41f8dcb7508c109d3f0c9655d33d4140c37c90f86e86b031a58f102",
+      "selector": {
+        "type": "text_position",
+        "start": 393144,
+        "end": 426116,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "2dade3e5204f9402bfa64b6766dedb696359d829010b1d527c0295969eeaabd2",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%8B_%D1%80%D0%B0%D0%B7%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D1%8B_%D0%BE_%D0%B7%D0%B0%D0%BA%D0%BE%D0%BD%D0%B0%D1%85_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9E%D0%B1%D0%BE%D0%BB%D0%B5%D0%BD%D1%81%D0%BA%D0%B8%D0%B9%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-72208eb80d3248ad9675a7621944ddfd",
+      "ordinal": 20,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-ru-obolensky1827-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd78cc85c41f8dcb7508c109d3f0c9655d33d4140c37c90f86e86b031a58f102",
+      "selector": {
+        "type": "text_position",
+        "start": 426116,
+        "end": 451505,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c5d57b2425f81b5784017ba9fb32a4da6bc428f3285803a46dfa51d5aeb9f451",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%8B_%D1%80%D0%B0%D0%B7%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D1%8B_%D0%BE_%D0%B7%D0%B0%D0%BA%D0%BE%D0%BD%D0%B0%D1%85_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9E%D0%B1%D0%BE%D0%BB%D0%B5%D0%BD%D1%81%D0%BA%D0%B8%D0%B9%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-16695488ae7c42cf87b020e1e7384b8f",
+      "ordinal": 21,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-ru-obolensky1827-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd78cc85c41f8dcb7508c109d3f0c9655d33d4140c37c90f86e86b031a58f102",
+      "selector": {
+        "type": "text_position",
+        "start": 451505,
+        "end": 484756,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b0f553fd0712c72f461ec739be7ab2dca82dde831413863422c2cd81ee24b77f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%8B_%D1%80%D0%B0%D0%B7%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D1%8B_%D0%BE_%D0%B7%D0%B0%D0%BA%D0%BE%D0%BD%D0%B0%D1%85_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9E%D0%B1%D0%BE%D0%BB%D0%B5%D0%BD%D1%81%D0%BA%D0%B8%D0%B9%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2b5152d4cbf24fd892e6249c5784b05b",
+      "ordinal": 22,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-ru-obolensky1827-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd78cc85c41f8dcb7508c109d3f0c9655d33d4140c37c90f86e86b031a58f102",
+      "selector": {
+        "type": "text_position",
+        "start": 484756,
+        "end": 503342,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "76e5d200bba37bd8ab5d9ebaaa1ec71ccdcb43c5eee27769321a91d54f2abdab",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%8B_%D1%80%D0%B0%D0%B7%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D1%8B_%D0%BE_%D0%B7%D0%B0%D0%BA%D0%BE%D0%BD%D0%B0%D1%85_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9E%D0%B1%D0%BE%D0%BB%D0%B5%D0%BD%D1%81%D0%BA%D0%B8%D0%B9%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-e60f3b3675cc4a4891ce143b1a09c0d0",
+      "ordinal": 23,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-ru-obolensky1827-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd78cc85c41f8dcb7508c109d3f0c9655d33d4140c37c90f86e86b031a58f102",
+      "selector": {
+        "type": "text_position",
+        "start": 503342,
+        "end": 536077,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "cdd7ef651900b36132adf4120a6777c6b58ce1ede0bd53046829affad98e99c7",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%8B_%D1%80%D0%B0%D0%B7%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D1%8B_%D0%BE_%D0%B7%D0%B0%D0%BA%D0%BE%D0%BD%D0%B0%D1%85_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9E%D0%B1%D0%BE%D0%BB%D0%B5%D0%BD%D1%81%D0%BA%D0%B8%D0%B9%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-12a68fd32fbd4e748355a3e98deac19d",
+      "ordinal": 24,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-ru-obolensky1827-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd78cc85c41f8dcb7508c109d3f0c9655d33d4140c37c90f86e86b031a58f102",
+      "selector": {
+        "type": "text_position",
+        "start": 536077,
+        "end": 553712,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c72cbd2f58fec68b8184aa33cbbad8038324dd3ba7b40b480960afae18f0b3e4",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%8B_%D1%80%D0%B0%D0%B7%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D1%8B_%D0%BE_%D0%B7%D0%B0%D0%BA%D0%BE%D0%BD%D0%B0%D1%85_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9E%D0%B1%D0%BE%D0%BB%D0%B5%D0%BD%D1%81%D0%BA%D0%B8%D0%B9%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-04426c7ab0f1429b8e4a8309e17a7814",
+      "ordinal": 25,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-ru-obolensky1827-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd78cc85c41f8dcb7508c109d3f0c9655d33d4140c37c90f86e86b031a58f102",
+      "selector": {
+        "type": "text_position",
+        "start": 553712,
+        "end": 586450,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f53941179f807f92952a7bb54150b07aba3b092261862369ad951bccce02d5c0",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%8B_%D1%80%D0%B0%D0%B7%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D1%8B_%D0%BE_%D0%B7%D0%B0%D0%BA%D0%BE%D0%BD%D0%B0%D1%85_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9E%D0%B1%D0%BE%D0%BB%D0%B5%D0%BD%D1%81%D0%BA%D0%B8%D0%B9%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-38651fbe12444a5ba4b1f6aa157520d0",
+      "ordinal": 26,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-ru-obolensky1827-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd78cc85c41f8dcb7508c109d3f0c9655d33d4140c37c90f86e86b031a58f102",
+      "selector": {
+        "type": "text_position",
+        "start": 586450,
+        "end": 608172,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "2081e9fcb67a1dd8e231b68830535e64554a143540076d67919932d1dd8759e8",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%8B_%D1%80%D0%B0%D0%B7%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D1%8B_%D0%BE_%D0%B7%D0%B0%D0%BA%D0%BE%D0%BD%D0%B0%D1%85_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9E%D0%B1%D0%BE%D0%BB%D0%B5%D0%BD%D1%81%D0%BA%D0%B8%D0%B9%29"
+      }
+    }
+  ],
+  "units": [
+    {
+      "unit_id": "tos.text-unit.sid-11cc8d0c58894ed5b8c61fc4b81f6bf4",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a06dbfcded8a41cabc1fde18288a64b3"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-620f801c9b13433c80cca52720b79953",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-74fcba03b8014ebd8fb7b80f1fb2216f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c4f4391e07934713b8c2582f2e2bad87",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a8e151253e7a402daeefe96e3ffaaa6c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4bab89bd1de5447b937ad0e33da3cafa",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-8eb65635f890494e8bce9f7c1fb28ac5"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-23f64d57ec1847808cf1e5c3c3ce46f9",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d94aebfa1ef846da9fa7fd39fb7bda2e"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-a89d0c0dd7aa4a0a9de00d62a9097c46",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-685717a2c6c7468cac9836a2e7512da7"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-7030df8f5c4f45a993b7a10f95a4a3dc",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-99a8013391344fc593022648efcf4566"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-dfd91f1616d1479697f1269d167f47e2",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-420d07d523a841a7949abe7154bb6cca"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-2d41e6e534dd4afea9b74e1ae826d09c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-0612d0d0d80448b7adb996435aa2cc0f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b0914cef7790459680719eb3d818b7ff",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-8aad42e8d8e247ad94cc93c71d8d65e7"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-37d1608e7e1f48d2a6de888defe429d9",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-cb48d896d3694cf8a133898fd02dd2a3"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8a3569c3a7fd420abe417df431396fa4",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-6b0fa31ec3a94c2c934f188d1e8ddced"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e7b8c5538daf4324a06fe54c7713b67e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-1d72c20fd0234c7e97da31e23c0ee4b1"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c62e9e9ec5814afa999f66b555ee7264",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-47627dfd8e9048ee976053e4e8b3da2f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4e015154b97140e7ad4eb493b87ef57e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-7325d7ae1470470f8275447f1aa10c54"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-7cfe32852da246c5977846051817c92b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-0cd764e1530a4bd5a1a4e372f028a93f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4af63c9f592e4abc9a6f97e5ac27db3e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-371b1308dde444739f8be9ca9da4fbf7"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f2dd7c4c2e1f42c597f8711f170e1a57",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-aeacb81db8604aa298350f7b8d2e535e"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8c9fb84631c243f59344ec84705818c3",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-72208eb80d3248ad9675a7621944ddfd"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-08b694e036d74939aac6cb8f77416d61",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-16695488ae7c42cf87b020e1e7384b8f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8d056780cef14e5db85079ccc46b18d9",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2b5152d4cbf24fd892e6249c5784b05b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6365e212ba0c43788a1baf5129ef1f01",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-e60f3b3675cc4a4891ce143b1a09c0d0"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-2b76401fb6e942ae9b1984001d567e10",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-12a68fd32fbd4e748355a3e98deac19d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f65bf53f19a9495ab9d50e506a92d2ab",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-04426c7ab0f1429b8e4a8309e17a7814"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-0b8e2a41da784641b05145d71f45bc42",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-38651fbe12444a5ba4b1f6aa157520d0"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    }
+  ],
+  "segmentations": [
+    {
+      "segmentation_id": "tos.text-segmentation.sid-2b28932bf2ec4a47849ec8adbc91a689",
+      "segmentation_version": 1,
+      "supersedes_segmentation_ref": null,
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "scheme_ref": "tos.text-unit-scheme.sid-3da37dd1708848db9289837618704b61",
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-11cc8d0c58894ed5b8c61fc4b81f6bf4",
+        "tos.text-unit.sid-620f801c9b13433c80cca52720b79953",
+        "tos.text-unit.sid-c4f4391e07934713b8c2582f2e2bad87",
+        "tos.text-unit.sid-4bab89bd1de5447b937ad0e33da3cafa",
+        "tos.text-unit.sid-23f64d57ec1847808cf1e5c3c3ce46f9",
+        "tos.text-unit.sid-a89d0c0dd7aa4a0a9de00d62a9097c46",
+        "tos.text-unit.sid-7030df8f5c4f45a993b7a10f95a4a3dc",
+        "tos.text-unit.sid-dfd91f1616d1479697f1269d167f47e2",
+        "tos.text-unit.sid-2d41e6e534dd4afea9b74e1ae826d09c",
+        "tos.text-unit.sid-b0914cef7790459680719eb3d818b7ff",
+        "tos.text-unit.sid-37d1608e7e1f48d2a6de888defe429d9",
+        "tos.text-unit.sid-8a3569c3a7fd420abe417df431396fa4",
+        "tos.text-unit.sid-e7b8c5538daf4324a06fe54c7713b67e",
+        "tos.text-unit.sid-c62e9e9ec5814afa999f66b555ee7264",
+        "tos.text-unit.sid-4e015154b97140e7ad4eb493b87ef57e",
+        "tos.text-unit.sid-7cfe32852da246c5977846051817c92b",
+        "tos.text-unit.sid-4af63c9f592e4abc9a6f97e5ac27db3e",
+        "tos.text-unit.sid-f2dd7c4c2e1f42c597f8711f170e1a57",
+        "tos.text-unit.sid-8c9fb84631c243f59344ec84705818c3",
+        "tos.text-unit.sid-08b694e036d74939aac6cb8f77416d61",
+        "tos.text-unit.sid-8d056780cef14e5db85079ccc46b18d9",
+        "tos.text-unit.sid-6365e212ba0c43788a1baf5129ef1f01",
+        "tos.text-unit.sid-2b76401fb6e942ae9b1984001d567e10",
+        "tos.text-unit.sid-f65bf53f19a9495ab9d50e506a92d2ab",
+        "tos.text-unit.sid-0b8e2a41da784641b05145d71f45bc42"
+      ],
+      "coverage": {
+        "scope_anchor_ref": "tos.anchor.sid-ce6606d92de64e5898411c2d5feeed47",
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "unreported_gaps_allowed": false,
+        "overlap_requires_declaration": true,
+        "source_reconstruction_required": true
+      },
+      "status": "proposed",
+      "status_reason": "Deterministic display and navigation segmentation; no textual, linguistic or semantic acceptance.",
+      "maker": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-ru-obolensky1827-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "ru",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.laws-ru-obolensky1827-wikisource.20261027",
+        "made_at": "2026-11-04T02:42:33+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "competing_segmentation_refs": [],
+      "review_refs": [],
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "source_text_authority": false,
+      "linguistic_authority": false,
+      "semantic_authority": false
+    }
+  ],
+  "reviews": [],
+  "projections": [],
+  "rights_and_visibility": {
+    "source_visibility": "public",
+    "packet_visibility": "public",
+    "effective_visibility": "public",
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-ru-obolensky1827-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json"
+    ],
+    "private_source_used": false,
+    "publication_authorized": true,
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins"
+  },
+  "authority_boundary": {
+    "tree_role": "orientation",
+    "graph_role": "relation",
+    "source_role": "authority",
+    "validators_prove_mechanics_not_truth": true,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "legacy_bulk_migration_authorized": false
+  }
+}

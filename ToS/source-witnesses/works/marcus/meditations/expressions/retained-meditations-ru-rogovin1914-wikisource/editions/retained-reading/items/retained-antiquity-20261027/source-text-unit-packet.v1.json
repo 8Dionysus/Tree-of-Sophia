@@ -1,0 +1,675 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "packet_id": "tos.source-text-unit-packet.sid-69825841937b4d59a78ec77839ff1851",
+  "packet_version": 1,
+  "supersedes_packet_ref": null,
+  "content_posture": "source_bound",
+  "source_scope": {
+    "work_ref": "tos.work.retained-antiquity.meditations",
+    "expression_ref": "tos.expression.retained.antiquity.meditations.meditations-ru-rogovin1914-wikisource",
+    "edition_ref": "tos.edition.retained.antiquity.meditations.meditations-ru-rogovin1914-wikisource",
+    "item_ref": "tos.item.retained.antiquity.meditations.meditations-ru-rogovin1914-wikisource",
+    "file_ref": "tos.file.sha256.f7baa2d313e9b6ebb8edda6b7c8565375de75b8acf5f7a2102e109fa0ce3717f",
+    "file_sha256": "f7baa2d313e9b6ebb8edda6b7c8565375de75b8acf5f7a2102e109fa0ce3717f"
+  },
+  "source_layer": {
+    "text_layer_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-ru-rogovin1914-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+    "text_layer_sha256": "8a519ffe9418544b74f02e48e686d674d4cc30c993c57cb0299cba9b78eaf0fa",
+    "language": "ru",
+    "media_type": "text/plain; charset=utf-8",
+    "unicode_form": "source_preserved",
+    "position_unit": "unicode_code_point",
+    "interval": "half_open",
+    "immutable": true,
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "schemes": [
+    {
+      "scheme_id": "tos.text-unit-scheme.sid-78842f9a5e1e41489c11984f203824de",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "scheme_name": "Retained source section and bounded reading chunk",
+      "analysis_role": "source_structure",
+      "boundary_basis": "rule_based",
+      "unit_kinds": [
+        "section"
+      ],
+      "method": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-ru-rogovin1914-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "ru",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.meditations-ru-rogovin1914-wikisource.20261027",
+        "made_at": "2026-11-04T02:42:33+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "policies": {
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "punctuation": "included_in_neighbor",
+        "whitespace": "included_in_neighbor",
+        "line_break": "included_in_neighbor",
+        "hyphenation": "preserve_source",
+        "unreported_gaps_allowed": false,
+        "overlap": "forbid"
+      },
+      "authority_limit": {
+        "algorithmic_output_is_source_truth": false,
+        "algorithmic_output_is_linguistic_truth": false,
+        "model_subword_is_lexeme": false,
+        "unit_identity_is_semantic_identity": false,
+        "text_mutation_allowed": false
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.sid-8983bf25abf44635bfdd51ae9b9418ae",
+      "ordinal": 1,
+      "text_layer_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-ru-rogovin1914-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "8a519ffe9418544b74f02e48e686d674d4cc30c993c57cb0299cba9b78eaf0fa",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 218667,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "8a519ffe9418544b74f02e48e686d674d4cc30c993c57cb0299cba9b78eaf0fa",
+      "anchor_role": "scope",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9D%D0%B0%D0%B5%D0%B4%D0%B8%D0%BD%D0%B5_%D1%81_%D1%81%D0%BE%D0%B1%D0%BE%D0%B9_%28%D0%9C%D0%B0%D1%80%D0%BA_%D0%90%D0%B2%D1%80%D0%B5%D0%BB%D0%B8%D0%B9%3B_%D0%A0%D0%BE%D0%B3%D0%BE%D0%B2%D0%B8%D0%BD%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ad17ee796acf43fda92408a3f3184502",
+      "ordinal": 2,
+      "text_layer_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-ru-rogovin1914-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "8a519ffe9418544b74f02e48e686d674d4cc30c993c57cb0299cba9b78eaf0fa",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 13444,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1a44432ab6210b8c9e3a2fb60eec08baa747d74a0379c9c8668d4157982a2ef1",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9D%D0%B0%D0%B5%D0%B4%D0%B8%D0%BD%D0%B5_%D1%81_%D1%81%D0%BE%D0%B1%D0%BE%D0%B9_%28%D0%9C%D0%B0%D1%80%D0%BA_%D0%90%D0%B2%D1%80%D0%B5%D0%BB%D0%B8%D0%B9%3B_%D0%A0%D0%BE%D0%B3%D0%BE%D0%B2%D0%B8%D0%BD%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-4bfa0a58be724d1ea84b984d858e7124",
+      "ordinal": 3,
+      "text_layer_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-ru-rogovin1914-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "8a519ffe9418544b74f02e48e686d674d4cc30c993c57cb0299cba9b78eaf0fa",
+      "selector": {
+        "type": "text_position",
+        "start": 13444,
+        "end": 24697,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1e96d160d7490290da65f0c76b8db95e9cf029c25ee6affbcfa2baae27b80e4f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9D%D0%B0%D0%B5%D0%B4%D0%B8%D0%BD%D0%B5_%D1%81_%D1%81%D0%BE%D0%B1%D0%BE%D0%B9_%28%D0%9C%D0%B0%D1%80%D0%BA_%D0%90%D0%B2%D1%80%D0%B5%D0%BB%D0%B8%D0%B9%3B_%D0%A0%D0%BE%D0%B3%D0%BE%D0%B2%D0%B8%D0%BD%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-5ccd27133a6c47b5938b18d58e612b38",
+      "ordinal": 4,
+      "text_layer_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-ru-rogovin1914-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "8a519ffe9418544b74f02e48e686d674d4cc30c993c57cb0299cba9b78eaf0fa",
+      "selector": {
+        "type": "text_position",
+        "start": 24697,
+        "end": 38359,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "4f859fca176261caf51ae3c65e781b52676ea393a379afe7a618e0ed718f8023",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9D%D0%B0%D0%B5%D0%B4%D0%B8%D0%BD%D0%B5_%D1%81_%D1%81%D0%BE%D0%B1%D0%BE%D0%B9_%28%D0%9C%D0%B0%D1%80%D0%BA_%D0%90%D0%B2%D1%80%D0%B5%D0%BB%D0%B8%D0%B9%3B_%D0%A0%D0%BE%D0%B3%D0%BE%D0%B2%D0%B8%D0%BD%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-38a0cfd0959b4b3a853f558b4aeb7429",
+      "ordinal": 5,
+      "text_layer_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-ru-rogovin1914-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "8a519ffe9418544b74f02e48e686d674d4cc30c993c57cb0299cba9b78eaf0fa",
+      "selector": {
+        "type": "text_position",
+        "start": 38359,
+        "end": 59503,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7b4c7b0eabaec5a88965ab75f694fe3602d9f1b554405d8f670aa3d60fc50193",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9D%D0%B0%D0%B5%D0%B4%D0%B8%D0%BD%D0%B5_%D1%81_%D1%81%D0%BE%D0%B1%D0%BE%D0%B9_%28%D0%9C%D0%B0%D1%80%D0%BA_%D0%90%D0%B2%D1%80%D0%B5%D0%BB%D0%B8%D0%B9%3B_%D0%A0%D0%BE%D0%B3%D0%BE%D0%B2%D0%B8%D0%BD%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-0b007f1f16f549daa302c05513576f28",
+      "ordinal": 6,
+      "text_layer_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-ru-rogovin1914-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "8a519ffe9418544b74f02e48e686d674d4cc30c993c57cb0299cba9b78eaf0fa",
+      "selector": {
+        "type": "text_position",
+        "start": 59503,
+        "end": 80293,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "58176a577d1dfaf3c5261b984ac2e14884db341bacc8c657c5b3ec2087b70bcc",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9D%D0%B0%D0%B5%D0%B4%D0%B8%D0%BD%D0%B5_%D1%81_%D1%81%D0%BE%D0%B1%D0%BE%D0%B9_%28%D0%9C%D0%B0%D1%80%D0%BA_%D0%90%D0%B2%D1%80%D0%B5%D0%BB%D0%B8%D0%B9%3B_%D0%A0%D0%BE%D0%B3%D0%BE%D0%B2%D0%B8%D0%BD%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-75d5b0ef1f5347d199bae72dceec219b",
+      "ordinal": 7,
+      "text_layer_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-ru-rogovin1914-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "8a519ffe9418544b74f02e48e686d674d4cc30c993c57cb0299cba9b78eaf0fa",
+      "selector": {
+        "type": "text_position",
+        "start": 80293,
+        "end": 101178,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "af09c8c43c29f589304a303d7c5f90d5997ff197fd7f34b74cc13edca7b18d05",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9D%D0%B0%D0%B5%D0%B4%D0%B8%D0%BD%D0%B5_%D1%81_%D1%81%D0%BE%D0%B1%D0%BE%D0%B9_%28%D0%9C%D0%B0%D1%80%D0%BA_%D0%90%D0%B2%D1%80%D0%B5%D0%BB%D0%B8%D0%B9%3B_%D0%A0%D0%BE%D0%B3%D0%BE%D0%B2%D0%B8%D0%BD%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-59068f1a2caa43e797506edbf21fdd27",
+      "ordinal": 8,
+      "text_layer_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-ru-rogovin1914-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "8a519ffe9418544b74f02e48e686d674d4cc30c993c57cb0299cba9b78eaf0fa",
+      "selector": {
+        "type": "text_position",
+        "start": 101178,
+        "end": 122153,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1a500c4034a82412ab70bb66e6798841b09e27185d9be93ff53393290e9249a8",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9D%D0%B0%D0%B5%D0%B4%D0%B8%D0%BD%D0%B5_%D1%81_%D1%81%D0%BE%D0%B1%D0%BE%D0%B9_%28%D0%9C%D0%B0%D1%80%D0%BA_%D0%90%D0%B2%D1%80%D0%B5%D0%BB%D0%B8%D0%B9%3B_%D0%A0%D0%BE%D0%B3%D0%BE%D0%B2%D0%B8%D0%BD%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3334f82f35244b719e7a410583c4db05",
+      "ordinal": 9,
+      "text_layer_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-ru-rogovin1914-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "8a519ffe9418544b74f02e48e686d674d4cc30c993c57cb0299cba9b78eaf0fa",
+      "selector": {
+        "type": "text_position",
+        "start": 122153,
+        "end": 144152,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "153086d66b297aa5725e54a640f2929c49931eeead68ee0328f4420d64251c74",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9D%D0%B0%D0%B5%D0%B4%D0%B8%D0%BD%D0%B5_%D1%81_%D1%81%D0%BE%D0%B1%D0%BE%D0%B9_%28%D0%9C%D0%B0%D1%80%D0%BA_%D0%90%D0%B2%D1%80%D0%B5%D0%BB%D0%B8%D0%B9%3B_%D0%A0%D0%BE%D0%B3%D0%BE%D0%B2%D0%B8%D0%BD%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-4a10cbb270324cd58ddb72649fae64eb",
+      "ordinal": 10,
+      "text_layer_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-ru-rogovin1914-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "8a519ffe9418544b74f02e48e686d674d4cc30c993c57cb0299cba9b78eaf0fa",
+      "selector": {
+        "type": "text_position",
+        "start": 144152,
+        "end": 164488,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "637764d1be06760ade72c9badba16fd5af582352361953f4c7ea154526573b64",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9D%D0%B0%D0%B5%D0%B4%D0%B8%D0%BD%D0%B5_%D1%81_%D1%81%D0%BE%D0%B1%D0%BE%D0%B9_%28%D0%9C%D0%B0%D1%80%D0%BA_%D0%90%D0%B2%D1%80%D0%B5%D0%BB%D0%B8%D0%B9%3B_%D0%A0%D0%BE%D0%B3%D0%BE%D0%B2%D0%B8%D0%BD%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-1eae8ee313c844b5afd77ccb49c2de6e",
+      "ordinal": 11,
+      "text_layer_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-ru-rogovin1914-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "8a519ffe9418544b74f02e48e686d674d4cc30c993c57cb0299cba9b78eaf0fa",
+      "selector": {
+        "type": "text_position",
+        "start": 164488,
+        "end": 185806,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "8425472d8ff02d90a043e6439231ba5cb183bf6d44628677ef840eca6c36aabe",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9D%D0%B0%D0%B5%D0%B4%D0%B8%D0%BD%D0%B5_%D1%81_%D1%81%D0%BE%D0%B1%D0%BE%D0%B9_%28%D0%9C%D0%B0%D1%80%D0%BA_%D0%90%D0%B2%D1%80%D0%B5%D0%BB%D0%B8%D0%B9%3B_%D0%A0%D0%BE%D0%B3%D0%BE%D0%B2%D0%B8%D0%BD%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-230bc8f4c91049c49fbf61a0725c8cf3",
+      "ordinal": 12,
+      "text_layer_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-ru-rogovin1914-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "8a519ffe9418544b74f02e48e686d674d4cc30c993c57cb0299cba9b78eaf0fa",
+      "selector": {
+        "type": "text_position",
+        "start": 185806,
+        "end": 203815,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7bdfc50b180f99781c1f5233db17a4e8254b07ff4f61e72da49eeab0385f66ec",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9D%D0%B0%D0%B5%D0%B4%D0%B8%D0%BD%D0%B5_%D1%81_%D1%81%D0%BE%D0%B1%D0%BE%D0%B9_%28%D0%9C%D0%B0%D1%80%D0%BA_%D0%90%D0%B2%D1%80%D0%B5%D0%BB%D0%B8%D0%B9%3B_%D0%A0%D0%BE%D0%B3%D0%BE%D0%B2%D0%B8%D0%BD%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-907358965ebc49f4a0b4f4d9784e1ac5",
+      "ordinal": 13,
+      "text_layer_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-ru-rogovin1914-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "8a519ffe9418544b74f02e48e686d674d4cc30c993c57cb0299cba9b78eaf0fa",
+      "selector": {
+        "type": "text_position",
+        "start": 203815,
+        "end": 218667,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f7d0977e97585caef321917bddae831e107da134976579b11ea0869c030aa961",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%9D%D0%B0%D0%B5%D0%B4%D0%B8%D0%BD%D0%B5_%D1%81_%D1%81%D0%BE%D0%B1%D0%BE%D0%B9_%28%D0%9C%D0%B0%D1%80%D0%BA_%D0%90%D0%B2%D1%80%D0%B5%D0%BB%D0%B8%D0%B9%3B_%D0%A0%D0%BE%D0%B3%D0%BE%D0%B2%D0%B8%D0%BD%29"
+      }
+    }
+  ],
+  "units": [
+    {
+      "unit_id": "tos.text-unit.sid-7e5bea0b79e4418c8630c89add2bbc14",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ad17ee796acf43fda92408a3f3184502"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f82a043ecddd4073bf76ba73641ced13",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-4bfa0a58be724d1ea84b984d858e7124"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ae6a4a6dfeeb40ed9b56f781b3963720",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-5ccd27133a6c47b5938b18d58e612b38"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ef5f3f2ba4864be6bb34133299ad35b3",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-38a0cfd0959b4b3a853f558b4aeb7429"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-7016153bdd4f42af9f1dd2211098aedd",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-0b007f1f16f549daa302c05513576f28"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-0bc8cfe820c34652a0606bb275a4a6d1",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-75d5b0ef1f5347d199bae72dceec219b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-237960c1097d4d39b362374071115a08",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-59068f1a2caa43e797506edbf21fdd27"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-aafde2a5cde04c92b8d5fb8ea37aec53",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3334f82f35244b719e7a410583c4db05"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-9fb9e86a6dc042a4a0cc82132011f57d",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-4a10cbb270324cd58ddb72649fae64eb"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-389813ddc1e24d8b9d786ec95af8507e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-1eae8ee313c844b5afd77ccb49c2de6e"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-30203c7abd31484991f9b106032083a1",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-230bc8f4c91049c49fbf61a0725c8cf3"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-136651afcf794fd5aeece52e9b32a0e5",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-907358965ebc49f4a0b4f4d9784e1ac5"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    }
+  ],
+  "segmentations": [
+    {
+      "segmentation_id": "tos.text-segmentation.sid-e46b19d4aaa440588d51a6fdc063ab8f",
+      "segmentation_version": 1,
+      "supersedes_segmentation_ref": null,
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "scheme_ref": "tos.text-unit-scheme.sid-78842f9a5e1e41489c11984f203824de",
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-7e5bea0b79e4418c8630c89add2bbc14",
+        "tos.text-unit.sid-f82a043ecddd4073bf76ba73641ced13",
+        "tos.text-unit.sid-ae6a4a6dfeeb40ed9b56f781b3963720",
+        "tos.text-unit.sid-ef5f3f2ba4864be6bb34133299ad35b3",
+        "tos.text-unit.sid-7016153bdd4f42af9f1dd2211098aedd",
+        "tos.text-unit.sid-0bc8cfe820c34652a0606bb275a4a6d1",
+        "tos.text-unit.sid-237960c1097d4d39b362374071115a08",
+        "tos.text-unit.sid-aafde2a5cde04c92b8d5fb8ea37aec53",
+        "tos.text-unit.sid-9fb9e86a6dc042a4a0cc82132011f57d",
+        "tos.text-unit.sid-389813ddc1e24d8b9d786ec95af8507e",
+        "tos.text-unit.sid-30203c7abd31484991f9b106032083a1",
+        "tos.text-unit.sid-136651afcf794fd5aeece52e9b32a0e5"
+      ],
+      "coverage": {
+        "scope_anchor_ref": "tos.anchor.sid-8983bf25abf44635bfdd51ae9b9418ae",
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "unreported_gaps_allowed": false,
+        "overlap_requires_declaration": true,
+        "source_reconstruction_required": true
+      },
+      "status": "proposed",
+      "status_reason": "Deterministic display and navigation segmentation; no textual, linguistic or semantic acceptance.",
+      "maker": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-ru-rogovin1914-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "ru",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.meditations-ru-rogovin1914-wikisource.20261027",
+        "made_at": "2026-11-04T02:42:33+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "competing_segmentation_refs": [],
+      "review_refs": [],
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "source_text_authority": false,
+      "linguistic_authority": false,
+      "semantic_authority": false
+    }
+  ],
+  "reviews": [],
+  "projections": [],
+  "rights_and_visibility": {
+    "source_visibility": "public",
+    "packet_visibility": "public",
+    "effective_visibility": "public",
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-ru-rogovin1914-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json"
+    ],
+    "private_source_used": false,
+    "publication_authorized": true,
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins"
+  },
+  "authority_boundary": {
+    "tree_role": "orientation",
+    "graph_role": "relation",
+    "source_role": "authority",
+    "validators_prove_mechanics_not_truth": true,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "legacy_bulk_migration_authorized": false
+  }
+}
