@@ -959,6 +959,7 @@ fn run_selected(
                 &cancelled,
             )
             .map_err(|_| SourceCommandError::Denied("native private text schema selection"))?;
+            limit_schema(&mut worker, &invocation, deadline)?;
             let mut grant = crate::source_native_text_read::PrivateTextReadSelection::load(
                 &owner_path,
                 &source_root,
@@ -1192,6 +1193,7 @@ fn run_selected(
             &cancelled,
         )
         .map_err(|_| SourceCommandError::Denied("native Item schema selection"))?;
+        limit_schema(&mut schema, &invocation, deadline)?;
         return run_item(
             &invocation,
             &request_raw,
@@ -1212,6 +1214,7 @@ fn run_selected(
         &cancelled,
     )
     .map_err(|_| SourceCommandError::Denied("native Alignment schema selection"))?;
+    limit_schema(&mut schema, &invocation, deadline)?;
     let context = absolute(text(&invocation, "owner_context")?)?;
     let owner = absolute(text(&invocation, "owner_config")?)?;
     let result = match operation {
@@ -1588,18 +1591,34 @@ fn run_item(
     }
     Ok(response)
 }
-/// Select the legacy-compatible scalar engine on the exact immutable cut.
+/// Select the legacy-compatible scalar engine on the exact immutable cut, inside
+/// the invocation's schema envelope.
 fn selected_in_process_schema(
+    invocation: &Value,
     cut: &tos_source_store::CorpusCutReader,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<InProcessCutSchemaExecutor<()>> {
-    InProcessCutSchemaExecutor::from_cut(
+    let mut schema = InProcessCutSchemaExecutor::from_cut(
         cut,
         FormatProfile::LegacyPythonObserved20260923,
         tos_validation::in_process::InputMode::SerdeNormalized,
         deadline,
         cancelled,
     )
-    .map_err(|_| SourceCommandError::Denied("native schema selection"))
+    .map_err(|_| SourceCommandError::Denied("native schema selection"))?;
+    limit_schema(&mut schema, invocation, deadline)?;
+    Ok(schema)
+}
+
+/// Bind an in-process executor to the invocation's schema envelope: the CPU,
+/// address-space and receipt budgets the family's schema worker received.
+pub(crate) fn limit_schema<I>(
+    executor: &mut InProcessCutSchemaExecutor<I>,
+    invocation: &Value,
+    deadline: Instant,
+) -> SourceCommandResult<()> {
+    executor
+        .set_operation_limits(revisions::invocation_schema_limits(invocation, deadline)?)
+        .map_err(|_| SourceCommandError::Denied("native schema budget"))
 }

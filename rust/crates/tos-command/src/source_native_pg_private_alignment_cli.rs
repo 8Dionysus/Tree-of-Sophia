@@ -912,7 +912,7 @@ pub(crate) fn run(
         "PostgreSQL Alignment schema budget",
     )?;
     let worker_sources = source_files(&schema_members)?;
-    let mut worker = super::revisions::selected_in_process_candidate_schema_from_context(
+    let mut worker = super::revisions::selected_path_bound_candidate_schema_from_context(
         &worker_sources,
         schema_identity,
         deadline,

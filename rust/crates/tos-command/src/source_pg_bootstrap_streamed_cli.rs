@@ -24,8 +24,11 @@ use tos_source_store::{
     CorpusReader, CutReadLimits, ReadLimits, SourceMembershipV1, StreamedCutReadLimitsV1,
 };
 use tos_validation::FormatProfile;
+use tos_validation::executor::{BatchStreamBudget, ExecutorBudget};
 use tos_validation::in_process::InputMode;
-use tos_validation::source_cut::InProcessCutSchemaExecutor;
+use tos_validation::source_cut::{
+    CutWorkerLimits, InProcessCutSchemaExecutor, InProcessOperationLimits,
+};
 
 const INVOCATION_SCHEMA: &str = "tos_local_pg_source_bootstrap_streamed_invocation_v1";
 const RESULT_SCHEMA: &str = "tos_local_pg_source_bootstrap_streamed_result_v2";
@@ -63,6 +66,51 @@ pub(super) fn invocation_duration(value: &Value) -> SourceCommandResult<Duration
         MAX_GENERATION_ELAPSED_SECONDS,
     )?;
     Ok(Duration::from_secs(seconds))
+}
+
+/// The streamed bootstrap's schema envelope. Initial assessment covers the
+/// explicitly selected corpus; these cumulative ceilings (the schema worker's
+/// former CPU, address-space and receipt budgets) bound it and never license
+/// skipping a schema check. An absent budget field takes its profile maximum.
+fn initial_schema_limits(
+    invocation: &Value,
+    deadline: Instant,
+) -> SourceCommandResult<InProcessOperationLimits> {
+    let budgets = object(invocation, "budgets")?;
+    let bounded = |key: &str, maximum: u64| -> SourceCommandResult<u64> {
+        if budgets.get(key).is_some() {
+            field(budgets, key, maximum)
+        } else {
+            Ok(maximum)
+        }
+    };
+    let invalid = |_| SourceCommandError::Invalid("streamed initial schema operation budget");
+    let wall = deadline
+        .saturating_duration_since(Instant::now())
+        .min(Duration::from_secs(3600));
+    let mut executor = ExecutorBudget::laboratory();
+    executor.execution_wall = wall;
+    let total_cpu_seconds = bounded("worker_cpu_seconds", 300)?;
+    executor.cpu_seconds = total_cpu_seconds.min(3);
+    executor.address_space_bytes = bounded("worker_address_space_bytes", 1_073_741_824)?;
+    let receipts = CutWorkerLimits {
+        max_receipts: usize::try_from(bounded("max_schema_receipts", 65_536)?).map_err(invalid)?,
+        max_receipt_bytes: usize::try_from(bounded("max_schema_receipt_bytes", 16_777_216)?)
+            .map_err(invalid)?,
+    };
+    if receipts.max_receipts == 0 || receipts.max_receipt_bytes == 0 {
+        return Err(SourceCommandError::Invalid(
+            "streamed schema receipt budget",
+        ));
+    }
+    let mut operation = BatchStreamBudget::laboratory();
+    operation.max_chunks = receipts.max_receipts as u64;
+    operation.max_total_units = receipts.max_receipts as u64;
+    operation.total_execution_wall = wall;
+    operation.operation_cpu_seconds = total_cpu_seconds;
+    operation.operation_address_space_bytes = executor.address_space_bytes;
+    InProcessOperationLimits::from_worker_envelope(executor, receipts, operation, None)
+        .map_err(|_| SourceCommandError::Invalid("streamed initial schema operation budget"))
 }
 
 fn usize_field(value: &Value, key: &str, maximum: u64) -> SourceCommandResult<usize> {
@@ -385,6 +433,9 @@ pub(super) fn reassess_existing_for_initial_model(
         cancelled,
     )
     .map_err(|_| SourceCommandError::Denied("streamed assessment schema preparation"))?;
+    worker
+        .set_operation_limits(initial_schema_limits(invocation, deadline)?)
+        .map_err(|_| SourceCommandError::Denied("streamed assessment schema budget"))?;
     db.require_compatible_schema().map_err(source_error)?;
     db.require_addressed_audit_protocol(deadline, cancelled)
         .map_err(source_error)?;
@@ -522,6 +573,9 @@ pub(super) fn run(
         cancelled.as_ref(),
     )
     .map_err(|_| SourceCommandError::Denied("streamed schema preparation"))?;
+    worker
+        .set_operation_limits(initial_schema_limits(invocation, deadline)?)
+        .map_err(|_| SourceCommandError::Denied("streamed initial schema operation"))?;
     let mut db = DurablePgCoordinator::from_configured_client(
         crate::source_projection_cli::connect_selected_source_pg16()
             .map_err(|_| SourceCommandError::Conflict("selected PostgreSQL unavailable"))?,
@@ -680,4 +734,33 @@ pub(super) fn run(
     result["logical_source_work"]["completed_assessments_reused"] =
         json!(body_work.completed_assessments_reused);
     Ok(result)
+}
+
+#[cfg(test)]
+mod initial_schema_limit_tests {
+    use super::*;
+
+    #[test]
+    fn the_streamed_bootstrap_keeps_its_cumulative_schema_envelope() {
+        let deadline = Instant::now() + Duration::from_secs(600);
+        let invocation = json!({"budgets":{"worker_cpu_seconds":120,"worker_address_space_bytes":536870912,
+            "max_schema_receipts":1024,"max_schema_receipt_bytes":65536}});
+        let limits = initial_schema_limits(&invocation, deadline).unwrap();
+        assert_eq!(limits.max_checks, 1024);
+        assert_eq!(limits.cpu, Duration::from_secs(120));
+        assert_eq!(limits.max_unit_state_bytes, 536_870_912);
+        assert_eq!(limits.max_total_report_bytes, 65_536);
+        assert!(limits.wall <= Duration::from_secs(600));
+        // An absent field keeps the profile maximum; a larger one is refused.
+        let defaults = initial_schema_limits(&json!({"budgets":{}}), deadline).unwrap();
+        assert_eq!(defaults.max_checks, 65_536);
+        assert_eq!(defaults.cpu, Duration::from_secs(300));
+        assert!(
+            initial_schema_limits(&json!({"budgets":{"worker_cpu_seconds":301}}), deadline)
+                .is_err()
+        );
+        assert!(
+            initial_schema_limits(&json!({"budgets":{"max_schema_receipts":0}}), deadline).is_err()
+        );
+    }
 }

@@ -777,6 +777,14 @@ pub(crate) fn project(
     let mut schema_work = limits.schema_work;
     schema_work.total_execution_wall = remaining;
     let validator = SourceCatalogValidator::from_in_process_cut(cut, deadline, cancelled)?;
+    // The operation stream its schema worker received bounds the shared
+    // in-process operation: units, raw and wire bytes, wall, CPU and state.
+    validator.set_in_process_operation_limits(
+        tos_validation::source_cut::InProcessOperationLimits::from_stream_budget(schema_work)
+            .map_err(|error| {
+                tos_compiler::Error::Source(format!("native corpus schema envelope:{error:?}"))
+            })?,
+    )?;
     let catalog_candidate = render_source_bibliographic_plan(
         &catalog_plan,
         cut,

@@ -5,7 +5,7 @@
 
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use tos_foundation::{Digest256, Digest256Hasher, RelativePath, SourceRevision};
 use tos_source_store::{
@@ -5272,6 +5272,127 @@ impl<I> CandidateSchemaDiagnostic<I> {
 }
 
 /// Selected contract names and their exact resource digests are bound at preparation.
+/// The envelope one in-process schema operation keeps. A schema worker received
+/// these ceilings as its receipt count and bytes, its diagnostics totals, its
+/// operation stream (units, raw bytes, wall) and its CPU and address-space
+/// rlimits; in process they are counted here and checked before and during each
+/// check, and an operation that passes one fails as over budget.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct InProcessOperationLimits {
+    /// Checks the operation may run (receipts, stream units).
+    pub max_checks: u64,
+    /// Raw input bytes across the operation and in one check.
+    pub max_total_input_bytes: u64,
+    pub max_unit_input_bytes: u64,
+    /// Diagnostic issues and issue payload bytes the operation may retain.
+    pub max_total_issues: u64,
+    pub max_total_report_bytes: u64,
+    /// Wall time from the operation's first check, and thread CPU time spent validating.
+    pub wall: Duration,
+    pub cpu: Duration,
+    /// Decoded state one checked instance may hold (the worker's address space).
+    pub max_unit_state_bytes: u64,
+}
+
+impl InProcessOperationLimits {
+    /// Every ceiling is finite and leaves room for at least one check.
+    pub fn validate(self) -> Result<Self, ItemRefusal> {
+        if self.max_checks == 0
+            || self.max_total_input_bytes == 0
+            || self.max_unit_input_bytes == 0
+            || self.max_total_report_bytes == 0
+            || self.wall.is_zero()
+            || self.cpu.is_zero()
+            || self.max_unit_state_bytes == 0
+        {
+            return Err(crate::item_budget_origin!());
+        }
+        Ok(self)
+    }
+
+    /// The ceilings an operation stream budget carried to its worker.
+    pub fn from_stream_budget(budget: BatchStreamBudget) -> Result<Self, ItemRefusal> {
+        budget
+            .validate()
+            .map_err(|_| crate::item_budget_origin!())?;
+        Self {
+            max_checks: budget.max_total_units,
+            max_total_input_bytes: budget.max_total_raw_bytes,
+            max_unit_input_bytes: budget.batch.max_total_raw_bytes as u64,
+            max_total_issues: u64::MAX,
+            max_total_report_bytes: budget.max_total_wire_bytes,
+            wall: budget.total_execution_wall,
+            cpu: Duration::from_secs(budget.operation_cpu_seconds),
+            max_unit_state_bytes: budget.operation_address_space_bytes,
+        }
+        .validate()
+    }
+
+    /// The ceilings a cut schema worker received from its executor budget and
+    /// receipt limits alone: the worker image summed its CPU over the operation
+    /// against `cpu_seconds` and ran inside `address_space_bytes`, its preparation
+    /// set the operation's checks to the receipt count, and its operation stream
+    /// otherwise kept the laboratory raw-byte and total-wall bounds. Each check's
+    /// own wall is the caller's deadline, which interrupts it.
+    pub fn from_worker_budget(
+        executor: crate::executor::ExecutorBudget,
+        receipts: CutWorkerLimits,
+    ) -> Result<Self, ItemRefusal> {
+        let stream = BatchStreamBudget::laboratory();
+        Self {
+            max_checks: receipts.max_receipts as u64,
+            max_total_input_bytes: stream.max_total_raw_bytes,
+            max_unit_input_bytes: stream.batch.max_total_raw_bytes as u64,
+            max_total_issues: u64::MAX,
+            max_total_report_bytes: receipts.max_receipt_bytes as u64,
+            wall: stream.total_execution_wall,
+            cpu: Duration::from_secs(executor.cpu_seconds),
+            max_unit_state_bytes: executor.address_space_bytes,
+        }
+        .validate()
+    }
+
+    /// The ceilings a route's schema worker received together: its per-check
+    /// executor budget, its receipt limits, its operation stream and, where it
+    /// had them, its diagnostics totals.
+    pub fn from_worker_envelope(
+        executor: crate::executor::ExecutorBudget,
+        receipts: CutWorkerLimits,
+        stream: BatchStreamBudget,
+        diagnostics: Option<CutSchemaDiagnosticsLimits>,
+    ) -> Result<Self, ItemRefusal> {
+        let carried = Self::from_stream_budget(stream)?;
+        let diagnostics_or = |value: fn(CutSchemaDiagnosticsLimits) -> usize| {
+            diagnostics.map_or(u64::MAX, |limits| value(limits) as u64)
+        };
+        Self {
+            max_checks: carried.max_checks.min(receipts.max_receipts as u64),
+            max_total_issues: diagnostics_or(|limits| limits.max_total_issues),
+            max_total_report_bytes: carried
+                .max_total_report_bytes
+                .min(receipts.max_receipt_bytes as u64)
+                .min(diagnostics_or(|limits| limits.max_total_report_bytes)),
+            max_unit_state_bytes: carried
+                .max_unit_state_bytes
+                .min(executor.address_space_bytes)
+                .min(diagnostics_or(|limits| limits.max_total_state_bytes)),
+            ..carried
+        }
+        .validate()
+    }
+}
+
+/// What one operation has spent against its envelope.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct InProcessOperationUsage {
+    pub checks: u64,
+    pub input_bytes: u64,
+    pub issues: u64,
+    pub report_bytes: u64,
+    pub cpu: Duration,
+    pub started: Option<Instant>,
+}
+
 pub struct InProcessCutSchemaExecutor<I> {
     identity: InProcessCutIdentity<I>,
     contracts: BTreeMap<String, (String, Digest256)>,
@@ -5279,6 +5400,8 @@ pub struct InProcessCutSchemaExecutor<I> {
     profile: FormatProfile,
     input_mode: crate::in_process::InputMode,
     pending_source_rejection: Option<InProcessCutDiagnostic<()>>,
+    limits: Option<InProcessOperationLimits>,
+    usage: InProcessOperationUsage,
     finished: bool,
     failed: bool,
 }
@@ -5433,9 +5556,38 @@ impl<I> InProcessCutSchemaExecutor<I> {
             profile,
             input_mode,
             pending_source_rejection: None,
+            limits: None,
+            usage: InProcessOperationUsage::default(),
             finished: false,
             failed: false,
         })
+    }
+
+    /// Bind this operation to its envelope before its first check.
+    pub fn set_operation_limits(
+        &mut self,
+        limits: InProcessOperationLimits,
+    ) -> Result<(), ItemRefusal> {
+        if self.finished || self.failed || self.usage.checks > 0 || self.limits.is_some() {
+            return Err(ItemRefusal::Unsupported(
+                "schema operation already started".into(),
+            ));
+        }
+        self.limits = Some(limits.validate()?);
+        Ok(())
+    }
+
+    pub fn operation_limits(&self) -> Option<InProcessOperationLimits> {
+        self.limits
+    }
+
+    pub fn operation_usage(&self) -> InProcessOperationUsage {
+        self.usage
+    }
+
+    /// Validators this operation has compiled (one per selected root).
+    pub fn compiled_validators(&self) -> usize {
+        self.engine.compiled_validators()
     }
 
     pub fn identity(&self) -> &InProcessCutIdentity<I> {
@@ -5495,7 +5647,7 @@ impl<I> InProcessCutSchemaExecutor<I> {
                 "schema operation is not active".into(),
             ));
         }
-        let result = self.diagnostic_inner(contract, raw, caps, deadline, cancelled);
+        let result = self.diagnostic_within_limits(contract, raw, caps, deadline, cancelled);
         if !matches!(result.as_ref(), Ok(report) if matches!(report.status,
             schema_diagnostics::Status::Valid | schema_diagnostics::Status::Invalid))
         {
@@ -5504,11 +5656,99 @@ impl<I> InProcessCutSchemaExecutor<I> {
         result
     }
 
+    fn diagnostic_within_limits(
+        &mut self,
+        contract: &str,
+        raw: &[u8],
+        caps: schema_diagnostics::Caps,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<crate::in_process::Report, ItemRefusal> {
+        let Some(limits) = self.limits else {
+            // Without an operation envelope each check keeps the ceilings a scalar
+            // schema worker had: its largest CPU allowance and its address space.
+            self.usage.checks = self.usage.checks.saturating_add(1);
+            return self.diagnostic_inner(
+                contract,
+                raw,
+                caps,
+                crate::in_process::UnitCeilings {
+                    cpu: Some(Duration::from_secs(
+                        crate::executor::ExecutorBudget::MAX_SCALAR_CPU_SECONDS,
+                    )),
+                    max_state_bytes: Some(
+                        crate::executor::ExecutorBudget::laboratory().address_space_bytes,
+                    ),
+                },
+                deadline,
+                cancelled,
+            );
+        };
+        let checks = self
+            .usage
+            .checks
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        let input_bytes = self
+            .usage
+            .input_bytes
+            .checked_add(raw.len() as u64)
+            .ok_or(ItemRefusal::Budget)?;
+        if checks > limits.max_checks
+            || raw.len() as u64 > limits.max_unit_input_bytes
+            || input_bytes > limits.max_total_input_bytes
+            || self.usage.cpu >= limits.cpu
+        {
+            return Err(ItemRefusal::Budget);
+        }
+        let started = *self.usage.started.get_or_insert_with(Instant::now);
+        let operation_deadline = started
+            .checked_add(limits.wall)
+            .map_or(deadline, |end| end.min(deadline));
+        self.usage.checks = checks;
+        self.usage.input_bytes = input_bytes;
+        let cpu_before = crate::in_process::thread_cpu_time();
+        let result = self.diagnostic_inner(
+            contract,
+            raw,
+            caps,
+            crate::in_process::UnitCeilings {
+                cpu: Some(limits.cpu - self.usage.cpu),
+                max_state_bytes: Some(limits.max_unit_state_bytes),
+            },
+            operation_deadline,
+            cancelled,
+        );
+        if let Some(spent) = cpu_before
+            .zip(crate::in_process::thread_cpu_time())
+            .map(|(before, after)| after.saturating_sub(before))
+        {
+            self.usage.cpu = self.usage.cpu.saturating_add(spent);
+        }
+        let report = result?;
+        let report_bytes = report
+            .issues
+            .iter()
+            .filter_map(schema_diagnostics::issue_payload)
+            .map(|payload| payload.len() as u64)
+            .sum::<u64>();
+        self.usage.issues = self.usage.issues.saturating_add(report.issues.len() as u64);
+        self.usage.report_bytes = self.usage.report_bytes.saturating_add(report_bytes);
+        if self.usage.issues > limits.max_total_issues
+            || self.usage.report_bytes > limits.max_total_report_bytes
+            || self.usage.cpu > limits.cpu
+        {
+            return Err(ItemRefusal::Budget);
+        }
+        Ok(report)
+    }
+
     fn diagnostic_inner(
         &mut self,
         contract: &str,
         raw: &[u8],
         caps: schema_diagnostics::Caps,
+        ceilings: crate::in_process::UnitCeilings,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<crate::in_process::Report, ItemRefusal> {
@@ -5535,13 +5775,14 @@ impl<I> InProcessCutSchemaExecutor<I> {
             return Err(ItemRefusal::Budget);
         }
         self.engine
-            .validate(
+            .validate_within(
                 crate::in_process::Unit {
                     root_uri: &root,
                     raw,
                     input_mode: self.input_mode,
                 },
                 caps,
+                ceilings,
                 deadline,
                 cancelled,
             )
@@ -5558,6 +5799,9 @@ impl<I> InProcessCutSchemaExecutor<I> {
 impl<I> CutSchemaExecutor for InProcessCutSchemaExecutor<I> {
     fn schema_profile(&self) -> Option<FormatProfile> {
         Some(self.profile)
+    }
+    fn set_operation_budget(&mut self, budget: BatchStreamBudget) -> Result<(), ItemRefusal> {
+        self.set_operation_limits(InProcessOperationLimits::from_stream_budget(budget)?)
     }
     fn schema_execution_binding(&self) -> Option<tos_foundation::SchemaExecutionBinding> {
         Some(tos_foundation::SchemaExecutionBinding::InProcessV1(
@@ -5704,6 +5948,18 @@ pub struct InProcessCandidateSchemaExecutor<I> {
 }
 
 impl<I: Copy + Eq> InProcessCandidateSchemaExecutor<I> {
+    /// Bind this candidate operation to its envelope before its first check.
+    pub fn set_operation_limits(
+        &mut self,
+        limits: InProcessOperationLimits,
+    ) -> Result<(), ItemRefusal> {
+        self.inner.set_operation_limits(limits)
+    }
+
+    pub fn operation_usage(&self) -> InProcessOperationUsage {
+        self.inner.operation_usage()
+    }
+
     /// Logical completed validations for this candidate operation.
     pub fn completed_checks(&self) -> Option<usize> {
         self.completed_checks
@@ -5911,6 +6167,9 @@ impl<I: Copy + Eq> InProcessCandidateSchemaExecutor<I> {
 impl<I: Copy + Eq> CutSchemaExecutor for InProcessCandidateSchemaExecutor<I> {
     fn schema_profile(&self) -> Option<FormatProfile> {
         self.inner.schema_profile()
+    }
+    fn set_operation_budget(&mut self, budget: BatchStreamBudget) -> Result<(), ItemRefusal> {
+        self.inner.set_operation_budget(budget)
     }
     fn schema_execution_binding(&self) -> Option<tos_foundation::SchemaExecutionBinding> {
         self.inner.schema_execution_binding()

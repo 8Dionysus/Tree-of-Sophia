@@ -1359,21 +1359,40 @@ impl CurrentGuard<'_, '_, '_> {
             .verify_current_with_read_limits(self.read, self.deadline, self.cancelled)
     }
 }
+/// The C01 schema executor inside the envelope its schema worker received:
+/// `seconds` of CPU, 1 GiB and 64 receipts of at most 128 KiB.
 fn prepare_schemas(
     binding: &C01ResearchBindingForConformance<'_>,
     b: &mut BuildDebit<'_>,
+    seconds: u64,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<InProcessCutSchemaExecutor<()>> {
     b.visit(128)?;
     b.own(3, 4096)?; // first-error interface, before schema preparation
-    match InProcessCutSchemaExecutor::from_cut(
+    let mut budget = tos_validation::executor::ExecutorBudget::laboratory();
+    budget.execution_wall = deadline.saturating_duration_since(Instant::now());
+    budget.cpu_seconds = seconds;
+    budget.address_space_bytes = 1_073_741_824;
+    let prepared = InProcessCutSchemaExecutor::from_cut(
         binding.cut,
         tos_validation::FormatProfile::AssertedSourceCandidateV1,
         tos_validation::in_process::InputMode::SerdeNormalized,
         deadline,
         cancelled,
-    ) {
+    )
+    .and_then(|mut w| {
+        let limits = tos_validation::source_cut::InProcessOperationLimits::from_worker_budget(
+            budget,
+            tos_validation::source_cut::CutWorkerLimits {
+                max_receipts: 64,
+                max_receipt_bytes: 131_072,
+            },
+        )?;
+        w.set_operation_limits(limits)?;
+        Ok(w)
+    });
+    match prepared {
         Ok(w) => Ok(w),
         Err(reason) => {
             let e = Error::SchemaExecution {
@@ -2372,7 +2391,7 @@ fn positive(
         payload_wire,
         ..
     } = session;
-    *live = Some(prepare_schemas(binding, build, *deadline, cancelled)?);
+    *live = Some(prepare_schemas(binding, build, 2, *deadline, cancelled)?);
     let w = live
         .as_mut()
         .ok_or(Error::Invalid("C01 initial schema executor"))?;
@@ -2620,7 +2639,7 @@ fn withdrawal(session: &mut C01ResearchSessionForConformance<'_>, head: Digest25
     let selected = sources
         .as_mut()
         .ok_or(Error::Invalid("C01 retained public sources"))?;
-    *live = Some(prepare_schemas(binding, build, *deadline, cancelled)?);
+    *live = Some(prepare_schemas(binding, build, 1, *deadline, cancelled)?);
     let w = live
         .as_mut()
         .ok_or(Error::Invalid("C01 second schema executor"))?;

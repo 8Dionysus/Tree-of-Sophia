@@ -1,10 +1,11 @@
 //! Prepared, offline schema execution for one immutable resource set.
 
+use std::cell::Cell;
 use std::collections::{BTreeMap, BinaryHeap};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
-use jsonschema::{Draft, Registry, Validator};
+use jsonschema::{Draft, Keyword, Registry, ValidationError, Validator};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tos_foundation::{
@@ -96,10 +97,243 @@ pub struct Unit<'a> {
 }
 
 /// The cache is local to one exact schema set and bounded by the batch selector limit.
+/// A validator depends on the schema set, the format profile (fixed for the engine)
+/// and the root: input modes only decode the instance, so one root compiles once.
 pub struct InProcessSchemaEngine {
     probe: SchemaBackendProbe,
     profile: FormatProfile,
-    validators: BTreeMap<(String, Digest256), Validator>,
+    validators: BTreeMap<String, Validator>,
+}
+
+/// Per-check ceilings a caller's operation envelope adds to one validation: the
+/// thread CPU time the check may still spend and the decoded instance state it
+/// may hold (the bounds a schema worker received as CPU and address-space limits).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct UnitCeilings {
+    pub cpu: Option<Duration>,
+    pub max_state_bytes: Option<u64>,
+}
+
+// ── Interruption inside one validation ──────────────────────────────────────
+// Every subschema the engine compiles carries INTERRUPT_KEYWORD. Each time the
+// validator applies a subschema the keyword counts, and every INTERRUPT_STRIDE
+// applications it reads the running check's cancellation flag, wall deadline
+// and thread CPU ceiling. The engine collects every error of a check before it
+// returns any, so a flag alone would let it walk the whole instance: a tripped
+// check therefore unwinds out of the engine with InterruptSignal, which
+// `collect_interruptible` catches, and its report is discarded as incomplete.
+// Under `panic = "abort"` there is no unwinding; the tripped check then fails
+// every remaining subschema and is still discarded.
+const INTERRUPT_KEYWORD: &str = "x-tos-interrupt";
+const INTERRUPT_STRIDE: u32 = 64;
+
+#[derive(Clone, Copy)]
+struct Running {
+    deadline: Instant,
+    cpu_deadline: Option<Duration>,
+    cancelled: *const AtomicBool,
+    applications: u32,
+    tripped: Option<Incomplete>,
+}
+
+thread_local! {
+    static RUNNING: Cell<Option<Running>> = const { Cell::new(None) };
+}
+
+/// The running check on this thread, from its start to the end of its validation.
+struct RunningCheck {
+    previous: Option<Running>,
+}
+
+impl RunningCheck {
+    fn enter(deadline: Instant, cpu_deadline: Option<Duration>, cancelled: &AtomicBool) -> Self {
+        let previous = RUNNING.with(|cell| {
+            cell.replace(Some(Running {
+                deadline,
+                cpu_deadline,
+                cancelled,
+                applications: 0,
+                tripped: None,
+            }))
+        });
+        Self { previous }
+    }
+
+    fn tripped(&self) -> Option<Incomplete> {
+        RUNNING.with(|cell| cell.get().and_then(|running| running.tripped))
+    }
+}
+
+impl Drop for RunningCheck {
+    fn drop(&mut self) {
+        RUNNING.with(|cell| cell.set(self.previous));
+    }
+}
+
+/// CPU time this thread has spent, where the platform reports it.
+pub(crate) fn thread_cpu_time() -> Option<Duration> {
+    #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+    {
+        let mut spec = libc::timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        };
+        // SAFETY: clock_gettime writes one timespec into the valid local above.
+        let status = unsafe { libc::clock_gettime(libc::CLOCK_THREAD_CPUTIME_ID, &mut spec) };
+        if status == 0 && spec.tv_sec >= 0 && spec.tv_nsec >= 0 {
+            return Some(Duration::new(spec.tv_sec as u64, spec.tv_nsec as u32));
+        }
+    }
+    None
+}
+
+fn interrupted() -> bool {
+    RUNNING.with(|cell| {
+        let Some(mut running) = cell.get() else {
+            return false;
+        };
+        if running.tripped.is_none() {
+            running.applications = running.applications.wrapping_add(1);
+            if running.applications % INTERRUPT_STRIDE == 0 {
+                // SAFETY: RunningCheck stores this pointer from a reference the
+                // caller holds for the whole check and restores the previous
+                // state before that reference ends; the keyword runs only inside
+                // that check, synchronously, on this same thread.
+                let cancelled = unsafe { &*running.cancelled };
+                running.tripped = if cancelled.load(Ordering::Relaxed) {
+                    Some(Incomplete::Cancelled)
+                } else if Instant::now() >= running.deadline {
+                    Some(Incomplete::Deadline)
+                } else if running
+                    .cpu_deadline
+                    .zip(thread_cpu_time())
+                    .is_some_and(|(limit, now)| now >= limit)
+                {
+                    Some(Incomplete::BatchBudget)
+                } else {
+                    None
+                };
+            }
+            cell.set(Some(running));
+            if running.tripped.is_some() && cfg!(panic = "unwind") {
+                // resume_unwind skips the panic hook: this is control flow, not a fault.
+                std::panic::resume_unwind(Box::new(InterruptSignal));
+            }
+        }
+        running.tripped.is_some()
+    })
+}
+
+/// The unwinding payload of a tripped check.
+struct InterruptSignal;
+
+/// Run `collect` so that a tripped check stops the engine where it is.
+/// The validator is only borrowed and the report of a tripped check is dropped,
+/// so no state observed after the unwind is partial.
+fn collect_interruptible(validator: &Validator, value: &Value, report: &mut Report) {
+    let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        collect(validator, value, report)
+    }));
+    if let Err(payload) = outcome {
+        if !payload.is::<InterruptSignal>() {
+            std::panic::resume_unwind(payload);
+        }
+    }
+}
+
+struct Interrupt;
+
+impl<'i> Keyword<'i> for Interrupt {
+    fn validate(&self, _instance: &'i Value) -> Result<(), ValidationError<'i>> {
+        if interrupted() {
+            Err(ValidationError::custom("tos schema check interrupted"))
+        } else {
+            Ok(())
+        }
+    }
+
+    fn is_valid(&self, _instance: &'i Value) -> bool {
+        !interrupted()
+    }
+}
+
+/// A copy of a schema whose every applied subschema carries the interrupt keyword.
+/// It follows the keyword positions of the strict selected-keyword policy; values
+/// of `const`, `enum`, `default` and annotations are data and stay untouched.
+fn with_interrupts(schema: &Value) -> Value {
+    fn inject(schema: &mut Value) {
+        let Some(object) = schema.as_object_mut() else {
+            return;
+        };
+        for key in [
+            "additionalProperties",
+            "unevaluatedProperties",
+            "unevaluatedItems",
+            "additionalItems",
+            "items",
+            "contains",
+            "not",
+            "if",
+            "then",
+            "else",
+            "propertyNames",
+        ] {
+            if let Some(child) = object.get_mut(key) {
+                if let Value::Array(children) = child {
+                    // Draft-4 style tuple `items` / `additionalItems` arrays.
+                    children.iter_mut().for_each(inject);
+                } else {
+                    inject(child);
+                }
+            }
+        }
+        for key in ["allOf", "anyOf", "oneOf", "prefixItems"] {
+            if let Some(Value::Array(children)) = object.get_mut(key) {
+                children.iter_mut().for_each(inject);
+            }
+        }
+        for key in [
+            "properties",
+            "patternProperties",
+            "$defs",
+            "definitions",
+            "dependentSchemas",
+        ] {
+            if let Some(Value::Object(children)) = object.get_mut(key) {
+                children.values_mut().for_each(inject);
+            }
+        }
+        object.insert(INTERRUPT_KEYWORD.to_owned(), Value::Bool(true));
+    }
+    let mut copy = schema.clone();
+    inject(&mut copy);
+    copy
+}
+
+/// The decoded state an instance holds, counted until `limit` is passed.
+fn value_state_bytes(value: &Value, limit: u64) -> u64 {
+    let mut total = 0u64;
+    let mut pending = vec![value];
+    while let Some(value) = pending.pop() {
+        total = total.saturating_add(std::mem::size_of::<Value>() as u64);
+        match value {
+            Value::String(text) => total = total.saturating_add(text.len() as u64),
+            Value::Number(number) => total = total.saturating_add(number.as_str().len() as u64),
+            Value::Array(items) => pending.extend(items),
+            Value::Object(map) => {
+                for (key, item) in map {
+                    total =
+                        total.saturating_add((key.len() + std::mem::size_of::<String>()) as u64);
+                    pending.push(item);
+                }
+            }
+            Value::Null | Value::Bool(_) => {}
+        }
+        if total > limit {
+            break;
+        }
+    }
+    total
 }
 
 impl InProcessSchemaEngine {
@@ -120,13 +354,8 @@ impl InProcessSchemaEngine {
         self.probe.resource_digest(uri)
     }
 
-    fn validator(
-        &mut self,
-        root: &str,
-        input_mode: InputMode,
-    ) -> Result<&Validator, SchemaProbeError> {
-        let key = (root.to_owned(), input_mode.identity_sha256());
-        if !self.validators.contains_key(&key) {
+    fn validator(&mut self, root: &str) -> Result<&Validator, SchemaProbeError> {
+        if !self.validators.contains_key(root) {
             if self.validators.len() == BatchBudget::MAX_UNITS {
                 return Err(SchemaProbeError::BudgetExceeded);
             }
@@ -141,10 +370,24 @@ impl InProcessSchemaEngine {
                 .prepare()
                 .map_err(|e| SchemaProbeError::Backend(e.to_string()))?;
             crate::check_selected_schema_keywords(&registry, root, |_| Ok(()))?;
-            let schema = self.probe.selected_schema(root)?;
+            // The checked closure is compiled from copies carrying the interrupt keyword.
+            let interruptible = Registry::new()
+                .extend(
+                    self.probe
+                        .resources
+                        .iter()
+                        .map(|(uri, value)| (uri.as_str(), with_interrupts(value))),
+                )
+                .map_err(|e| SchemaProbeError::Backend(e.to_string()))?
+                .prepare()
+                .map_err(|e| SchemaProbeError::Backend(e.to_string()))?;
+            let schema = with_interrupts(self.probe.selected_schema(root)?.as_ref());
             let mut options = jsonschema::options()
                 .with_draft(Draft::Draft202012)
-                .with_registry(&registry)
+                .with_registry(&interruptible)
+                .with_keyword(INTERRUPT_KEYWORD, |_, _, _| {
+                    Ok(Box::new(Interrupt) as Box<dyn for<'i> Keyword<'i>>)
+                })
                 .offline()
                 .should_validate_formats(true)
                 .should_ignore_unknown_formats(false);
@@ -155,11 +398,16 @@ impl InProcessSchemaEngine {
                     .with_format("uri-reference", |_| true);
             }
             let validator = options
-                .build(schema.as_ref())
+                .build(&schema)
                 .map_err(|e| SchemaProbeError::Backend(e.to_string()))?;
-            self.validators.insert(key.clone(), validator);
+            self.validators.insert(root.to_owned(), validator);
         }
-        Ok(&self.validators[&key])
+        Ok(&self.validators[root])
+    }
+
+    /// Compiled validators held by this engine (one per selected root).
+    pub fn compiled_validators(&self) -> usize {
+        self.validators.len()
     }
 
     pub fn validate(
@@ -169,7 +417,28 @@ impl InProcessSchemaEngine {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<Report, Incomplete> {
+        self.validate_within(unit, caps, UnitCeilings::default(), deadline, cancelled)
+    }
+
+    /// Validate one unit inside a caller's ceilings. The deadline, cancellation and
+    /// CPU ceiling interrupt the validation itself, not only its start and end.
+    pub fn validate_within(
+        &mut self,
+        unit: Unit<'_>,
+        caps: Caps,
+        ceilings: UnitCeilings,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Report, Incomplete> {
         check(deadline, cancelled)?;
+        let cpu_deadline = match ceilings.cpu {
+            Some(allowance) => Some(
+                thread_cpu_time()
+                    .and_then(|now| now.checked_add(allowance))
+                    .ok_or(Incomplete::BatchBudget)?,
+            ),
+            None => None,
+        };
         if unit.root_uri.len() > crate::executor::MAX_URI_BYTES {
             return Err(Incomplete::BatchBudget);
         }
@@ -266,7 +535,7 @@ impl InProcessSchemaEngine {
                                 if self.profile != FormatProfile::LegacyPythonObserved20260923 {
                                     report.failure = Failure::UnsupportedInputSemantics;
                                 } else {
-                                    match self.validator(unit.root_uri, unit.input_mode) {
+                                    match self.validator(unit.root_uri) {
                                         Ok(_) => {
                                             (
                                                 report.status,
@@ -309,13 +578,33 @@ impl InProcessSchemaEngine {
                     Status::Indeterminate
                 };
             }
-            Ok(value) => match self.validator(unit.root_uri, unit.input_mode) {
-                Ok(validator) => collect(validator, &value, &mut report),
+            Ok(value)
+                if ceilings
+                    .max_state_bytes
+                    .is_some_and(|limit| value_state_bytes(&value, limit) > limit) =>
+            {
+                report.failure = Failure::InputBudget;
+                report.status = Status::InputRejected;
+            }
+            Ok(value) => match self.validator(unit.root_uri) {
+                Ok(validator) => {
+                    let running = RunningCheck::enter(deadline, cpu_deadline, cancelled);
+                    collect_interruptible(validator, &value, &mut report);
+                    if let Some(incomplete) = running.tripped() {
+                        return Err(incomplete);
+                    }
+                }
                 Err(SchemaProbeError::UnknownKeyword(_)) => {
                     report.failure = Failure::UnsupportedInputSemantics
                 }
                 Err(_) => {}
             },
+        }
+        if cpu_deadline
+            .zip(thread_cpu_time())
+            .is_some_and(|(limit, now)| now >= limit)
+        {
+            return Err(Incomplete::BatchBudget);
         }
         check(deadline, cancelled)?;
         Ok(report)
@@ -407,6 +696,9 @@ fn collect(validator: &Validator, value: &Value, report: &mut Report) {
     let mut retained = BinaryHeap::new();
     let mut indeterminate = false;
     for error in validator.iter_errors(value) {
+        if RUNNING.with(|cell| cell.get().is_some_and(|running| running.tripped.is_some())) {
+            return;
+        }
         report.total_issue_count = report.total_issue_count.saturating_add(1);
         let Some((issue, failed)) = diag::issue_from_validation_error(&error, caps) else {
             report.truncated = true;
@@ -619,7 +911,7 @@ mod input_mode_identity_tests {
     }
 
     #[test]
-    fn cached_validators_and_selected_limits_bind_input_mode() {
+    fn one_cached_validator_serves_every_input_mode_and_selected_limits_bind_it() {
         let uri = "https://example.test/number.schema.json";
         let mut engine = InProcessSchemaEngine::new(
             [SchemaResource {
@@ -649,7 +941,9 @@ mod input_mode_identity_tests {
                 .unwrap();
             assert_eq!(report.status, Status::Valid);
         }
-        assert_eq!(engine.validators.len(), 2);
+        // Input modes differ in how bytes decode, not in the compiled schema:
+        // one root compiles once for all of them.
+        assert_eq!(engine.validators.len(), 1);
         let first = crate::executor::LegacySelectedDiagnosticsLimits {
             max_instance_bytes: 1024,
             max_visits: 100,

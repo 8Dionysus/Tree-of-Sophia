@@ -152,11 +152,86 @@ mod selected_schema_tests {
                 .check("bad.json", br#""x""#, path, deadline, &cancelled)
                 .unwrap()
         );
-        let mut wrong = file;
+        let mut wrong = file.clone();
         wrong.raw = br#"{"$id":"https://example.test/wrong"}"#.to_vec();
         assert!(
             super::super::revisions::selected_pg_text_schemas(
                 &[wrong],
+                identity,
+                deadline,
+                &cancelled
+            )
+            .is_err()
+        );
+        // The forms, historical-claim and alignment owners bind the same path identity.
+        let mut path_bound =
+            super::super::revisions::selected_path_bound_candidate_schema_from_context(
+                &[file.clone()],
+                identity,
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        assert_eq!(
+            path_bound.selected_contract_digest(path),
+            Some(Digest256::of_bytes(raw))
+        );
+        assert!(
+            path_bound
+                .check("one.json", b"1", path, deadline, &cancelled)
+                .unwrap()
+        );
+        let mut elsewhere = file.clone();
+        elsewhere.raw = br#"{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://tree-of-sophia.local/ToS/contracts/other.schema.json","type":"integer"}"#.to_vec();
+        assert!(
+            super::super::revisions::selected_path_bound_candidate_schema_from_context(
+                &[elsewhere],
+                identity,
+                deadline,
+                &cancelled
+            )
+            .is_err()
+        );
+        // The invocation budgets bound the candidate operation as the worker's did.
+        let limits = super::super::revisions::invocation_schema_limits(
+            &serde_json::json!({"budgets":{"worker_cpu_seconds":2,"max_schema_receipts":1,
+                "max_schema_receipt_bytes":4096,"worker_address_space_bytes":1048576}}),
+            deadline,
+        )
+        .unwrap();
+        assert_eq!(
+            (limits.max_checks, limits.max_total_report_bytes),
+            (1, 4096)
+        );
+        let mut bounded =
+            super::super::revisions::selected_path_bound_candidate_schema_from_context(
+                &[file.clone()],
+                identity,
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        bounded.set_operation_limits(limits).unwrap();
+        assert!(
+            bounded
+                .check("one.json", b"1", path, deadline, &cancelled)
+                .unwrap()
+        );
+        assert!(
+            bounded
+                .check("two.json", b"2", path, deadline, &cancelled)
+                .is_err()
+        );
+        assert!(
+            super::super::revisions::invocation_schema_limits(
+                &serde_json::json!({"budgets":{"worker_cpu_seconds":4}}),
+                deadline
+            )
+            .is_err()
+        );
+        assert!(
+            super::super::revisions::selected_path_bound_candidate_schema_from_context(
+                &[file.clone(), file],
                 identity,
                 deadline,
                 &cancelled

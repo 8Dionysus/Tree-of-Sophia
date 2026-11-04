@@ -111,7 +111,8 @@ pub struct LexicalSchemaLimits {
     pub max_units: usize,
     pub max_raw_bytes: u64,
     pub max_issues: usize,
-    // Accept old deployment profiles until their worker fields have been removed.
+    // The worker-era ceilings stay optional; a declared one bounds the in-process
+    // operation as it bounded the worker, an absent one keeps the engine default.
     #[serde(default)]
     pub max_wire_bytes: u64,
     #[serde(default)]
@@ -126,6 +127,34 @@ pub struct LexicalSchemaLimits {
     pub address_space_bytes: u64,
     #[serde(default)]
     pub max_unit_seconds: u64,
+}
+
+/// The whole-operation envelope a lexical profile declares: its units, bytes and
+/// issues, and, where declared, its report bytes, CPU seconds and state bytes.
+fn operation_limits(
+    l: LexicalSchemaLimits,
+    deadline: Instant,
+) -> Result<tos_validation::source_cut::InProcessOperationLimits> {
+    let declared = |value: u64| (value > 0).then_some(value);
+    tos_validation::source_cut::InProcessOperationLimits {
+        max_checks: l.max_units as u64,
+        max_total_input_bytes: l.max_raw_bytes,
+        max_unit_input_bytes: l.max_instance_bytes as u64,
+        max_total_issues: l.max_issues as u64,
+        max_total_report_bytes: declared(l.max_report_bytes as u64).unwrap_or(u64::MAX),
+        wall: deadline.saturating_duration_since(Instant::now()),
+        cpu: std::time::Duration::from_secs(
+            declared(l.max_cpu_seconds)
+                .unwrap_or(tos_validation::executor::ExecutorBudget::MAX_SCALAR_CPU_SECONDS),
+        ),
+        max_unit_state_bytes: [l.address_space_bytes, l.max_state_bytes as u64]
+            .into_iter()
+            .filter_map(declared)
+            .min()
+            .unwrap_or(1 << 30),
+    }
+    .validate()
+    .map_err(|e| format!("lexical operation budget: {e:?}").into())
 }
 
 pub struct LexicalSchemaExecutor<'a> {
@@ -170,7 +199,7 @@ impl<'a> LexicalSchemaExecutor<'a> {
             parser_state_bytes: l.parser_state_bytes,
             conversion_state_bytes: l.conversion_state_bytes,
         });
-        let executor = InProcessCutSchemaExecutor::from_cut(
+        let mut executor = InProcessCutSchemaExecutor::from_cut(
             cut,
             FormatProfile::LegacyPythonObserved20260923,
             input_mode,
@@ -178,6 +207,9 @@ impl<'a> LexicalSchemaExecutor<'a> {
             cancelled,
         )
         .map_err(|e| format!("lexical schema closure: {e:?}"))?;
+        executor
+            .set_operation_limits(operation_limits(l, deadline)?)
+            .map_err(|e| format!("lexical operation budget: {e:?}"))?;
         Ok(Self {
             executor,
             input_mode,
@@ -262,5 +294,51 @@ impl LexicalSchema for LexicalSchemaExecutor<'_> {
             self.failed = true;
         }
         result
+    }
+}
+
+#[cfg(test)]
+mod operation_limit_tests {
+    use super::*;
+
+    fn declared(extra: Value) -> LexicalSchemaLimits {
+        let mut value = json!({
+            "max_instance_bytes": 1024, "max_visits": 100,
+            "parser_state_bytes": 4096, "conversion_state_bytes": 4096,
+            "max_units": 4, "max_raw_bytes": 2048, "max_issues": 8
+        });
+        value
+            .as_object_mut()
+            .unwrap()
+            .extend(extra.as_object().unwrap().clone());
+        serde_json::from_value(value).unwrap()
+    }
+
+    #[test]
+    fn a_lexical_profile_bounds_its_schema_operation() {
+        let deadline = Instant::now() + std::time::Duration::from_secs(30);
+        let limits = operation_limits(declared(json!({})), deadline).unwrap();
+        assert_eq!(
+            (
+                limits.max_checks,
+                limits.max_total_input_bytes,
+                limits.max_unit_input_bytes
+            ),
+            (4, 2048, 1024)
+        );
+        assert_eq!(limits.max_total_issues, 8);
+        assert_eq!(limits.cpu, std::time::Duration::from_secs(60));
+        let limits = operation_limits(
+            declared(json!({
+                "max_cpu_seconds": 2, "address_space_bytes": 65536,
+                "max_state_bytes": 32768, "max_report_bytes": 512
+            })),
+            deadline,
+        )
+        .unwrap();
+        assert_eq!(limits.cpu, std::time::Duration::from_secs(2));
+        assert_eq!(limits.max_unit_state_bytes, 32768);
+        assert_eq!(limits.max_total_report_bytes, 512);
+        assert!(operation_limits(declared(json!({})), Instant::now()).is_err());
     }
 }

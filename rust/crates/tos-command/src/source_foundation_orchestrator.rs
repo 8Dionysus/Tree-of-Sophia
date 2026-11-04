@@ -6,9 +6,9 @@ use super::foundation_artifact_replay::{CandidateArtifactSchemaExecutor, prepare
 use super::foundation_bootstrap::{FoundationBootstrapError, FoundationBootstrapView};
 use super::foundation_catalog::{self, EvaluatedPersistedCatalog, FoundationCatalogOutcome};
 use super::foundation_execution_limits::{
-    FoundationBudgetTicket, FoundationCharge, FoundationExecutionLimits,
-    FoundationPhaseReservation, FoundationPhaseUse, FoundationRemainingBudget,
-    FoundationWindowKind, FoundationWorkerCpuUse,
+    FoundationBudgetTicket, FoundationCatalogWorkerShape, FoundationCharge,
+    FoundationExecutionLimits, FoundationPhaseReservation, FoundationPhaseUse,
+    FoundationRemainingBudget, FoundationWindowKind, FoundationWorkerCpuUse,
 };
 use super::foundation_output::{self, SourceFoundationOutputOutcome};
 use super::foundation_payload::FoundationPayloadSources;
@@ -4836,6 +4836,51 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
     let mut fresh_candidate = None;
     let mut fresh_catalog_sources = None;
     let mut admission_index = None;
+    // The catalog phase keeps its schema worker's envelope in process: its
+    // checks, raw and wire bytes, CPU and address space come from the catalog
+    // reservation, as the worker's process and stream limits did.
+    let catalog_max_checks = bounded_usize(
+        u64::try_from(max_checks)
+            .unwrap_or(u64::MAX - 1)
+            .min(catalog_operation.worker_wire_bytes),
+    )?
+    .max(1);
+    let catalog_worker_shape = FoundationCatalogWorkerShape {
+        batch: BatchBudget::laboratory(),
+        max_chunks: catalog_max_checks
+            .div_ceil(BatchBudget::laboratory().max_units)
+            .max(1) as u64,
+        max_total_units: u64::try_from(catalog_max_checks)
+            .unwrap_or(u64::MAX - 1)
+            .min(catalog_operation.worker_wire_bytes)
+            .max(1),
+        max_total_raw_bytes: catalog_operation
+            .source_read_bytes
+            .min(catalog_operation.worker_wire_bytes)
+            .min(BatchBudget::MAX_RAW_BYTES as u64)
+            .max(1),
+        max_total_wire_bytes: catalog_operation.worker_wire_bytes,
+        max_distinct_selectors: catalog_max_checks.max(1).min(1024),
+        max_receipts: catalog_max_checks.max(1),
+        max_receipt_bytes: catalog_operation.state_bytes.min(1024 * 1024).max(1),
+    };
+    let catalog_schema_limits = match execution_limits
+        .catalog_worker_limits(catalog_worker_shape)
+        .map_err(FoundationOrchestratorError::Command)
+        .and_then(|(executor, receipts, stream, diagnostics)| {
+            tos_validation::source_cut::InProcessOperationLimits::from_worker_envelope(
+                executor,
+                receipts,
+                stream,
+                Some(diagnostics),
+            )
+            .map_err(|_| incomplete("catalog schema envelope exceeds its reservation"))
+        }) {
+        Ok(limits) => limits,
+        Err(error) => {
+            return fail_window(execution_limits, remaining_budget, catalog_ticket, error);
+        }
+    };
     let catalog_outcome = if fresh_catalogue_mode {
         match foundation_catalog::compare_candidate(
             captured,
@@ -4847,6 +4892,7 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             catalog_read_limits,
             biblio_catalog_limits,
             worker_image.operation_deadline(),
+            catalog_schema_limits,
             true,
             usize::try_from(max_catalog_files).unwrap_or(usize::MAX - 1),
             // Version resolution charges cumulative reads, not the largest member.
@@ -4916,6 +4962,7 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             catalog_read_limits,
             biblio_catalog_limits,
             worker_image.operation_deadline(),
+            catalog_schema_limits,
             true,
             usize::try_from(max_catalog_files).unwrap_or(usize::MAX - 1),
             // Version resolution charges cumulative reads, not the largest member.

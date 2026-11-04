@@ -977,7 +977,7 @@ pub(crate) fn prepare_pg_record_revision(
 }
 
 pub(crate) fn prepare_pg_record_revision_with_work(
-    _invocation: &Value,
+    invocation: &Value,
     context: cmd::CommandContext,
     identity: crate::source_revisions::PgRecordRevisionIdentity,
     work_revision: Option<crate::source_pg_work_revision::Observation>,
@@ -1030,6 +1030,9 @@ pub(crate) fn prepare_pg_record_revision_with_work(
         deadline,
         cancelled,
     )?;
+    worker
+        .set_operation_limits(invocation_schema_limits(invocation, deadline)?)
+        .map_err(|_| SourceCommandError::Denied("native candidate schema budget"))?;
     let read_context = crate::source_revisions::PgRecordRevisionCommandContext::new_with_work(
         context,
         identity,
@@ -1155,6 +1158,65 @@ pub(crate) fn selected_text_schema_resources(
         ));
     }
     Ok(selected)
+}
+
+/// The schema envelope a PostgreSQL candidate route's schema worker received from
+/// the invocation budgets: its CPU and address space (`worker_cpu_seconds`,
+/// `worker_address_space_bytes`), its receipts (`max_schema_receipts`,
+/// `max_schema_receipt_bytes`) and its diagnostics state (`max_total_bytes`),
+/// over the whole operation. An absent field keeps its profile maximum.
+pub(crate) fn invocation_schema_limits(
+    invocation: &Value,
+    deadline: Instant,
+) -> SourceCommandResult<tos_validation::source_cut::InProcessOperationLimits> {
+    let budgets = &invocation["budgets"];
+    let bounded = |key: &str, maximum: u64| -> SourceCommandResult<u64> {
+        if budgets.get(key).is_some() {
+            capped(budgets, key, maximum)
+        } else {
+            Ok(maximum)
+        }
+    };
+    let address_space = bounded("worker_address_space_bytes", 1_073_741_824)?;
+    let receipts = bounded("max_schema_receipts", 128)?;
+    let state = if budgets.get("max_total_bytes").is_some() {
+        super::number(budgets, "max_total_bytes")?
+    } else {
+        address_space
+    };
+    tos_validation::source_cut::InProcessOperationLimits {
+        max_checks: receipts,
+        max_total_input_bytes: u64::MAX,
+        max_unit_input_bytes: tos_validation::executor::BatchBudget::MAX_RAW_BYTES as u64,
+        max_total_issues: receipts,
+        max_total_report_bytes: bounded("max_schema_receipt_bytes", 262_144)?,
+        wall: deadline.saturating_duration_since(Instant::now()),
+        cpu: std::time::Duration::from_secs(bounded("worker_cpu_seconds", 3)?),
+        max_unit_state_bytes: address_space.min(state),
+    }
+    .validate()
+    .map_err(|_| SourceCommandError::Invalid("candidate schema operation budget"))
+}
+
+/// The candidate executor for PostgreSQL routes whose contract files name their own
+/// path in `$id` (the forms, historical-claim and alignment owners): the same
+/// path identity and duplicate checks as the Text routes
+/// (`selected_text_schema_resources`), with the candidate's legacy input.
+pub(crate) fn selected_path_bound_candidate_schema_from_context<I: Copy + Eq>(
+    files: &[cmd::SourceFile],
+    identity: I,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<InProcessCandidateSchemaExecutor<I>> {
+    InProcessCandidateSchemaExecutor::from_selected_source_resources(
+        identity,
+        selected_text_schema_resources(files)?,
+        FormatProfile::LegacyPythonObserved20260923,
+        tos_validation::in_process::InputMode::LegacyPythonObserved,
+        deadline,
+        cancelled,
+    )
+    .map_err(|_| SourceCommandError::Denied("native candidate schema executor"))
 }
 
 pub(crate) fn selected_pg_text_schemas<I: Copy + Eq>(

@@ -2468,6 +2468,25 @@ pub fn resolve_native_text_units_for_conformance(
             "conformance schema selection failed: {error:?}"
         ))
     })?;
+    // The envelope its schema worker received: 3 CPU seconds, 1 GiB and 128
+    // receipts of at most 256 KiB.
+    let mut budget = tos_validation::executor::ExecutorBudget::laboratory();
+    budget.execution_wall = deadline.saturating_duration_since(std::time::Instant::now());
+    budget.cpu_seconds = 3;
+    budget.address_space_bytes = 1_073_741_824;
+    tos_validation::source_cut::InProcessOperationLimits::from_worker_budget(
+        budget,
+        tos_validation::source_cut::CutWorkerLimits {
+            max_receipts: 128,
+            max_receipt_bytes: 262_144,
+        },
+    )
+    .and_then(|limits| worker.set_operation_limits(limits))
+    .map_err(|error| {
+        SourceCommandError::DeniedWithReason(format!(
+            "conformance schema budget refused: {error:?}"
+        ))
+    })?;
 
     let contract_paths = std::iter::once(OWNER_CONTEXT_SCHEMA_FOR_CONFORMANCE)
         .chain(OWNER_ASSESSMENT_FORM_CONTRACTS.iter().copied());

@@ -636,7 +636,12 @@ impl SelectedSourceReadOwner {
         let revision = SourceRevision(
             Digest256::from_hex(&self.revision).map_err(|_| Error::Invalid("source revision"))?,
         );
-        let inner = InProcessCandidateSchemaExecutor::from_selected_source_resources(
+        let schema_error = |reason| Error::SchemaExecution {
+            path: "source.read".into(),
+            root: "selected-schema".into(),
+            reason,
+        };
+        let mut inner = InProcessCandidateSchemaExecutor::from_selected_source_resources(
             revision,
             resources,
             FormatProfile::LegacyPythonObserved20260923,
@@ -644,11 +649,25 @@ impl SelectedSourceReadOwner {
             deadline,
             cancelled,
         )
-        .map_err(|reason| Error::SchemaExecution {
-            path: "source.read".into(),
-            root: "selected-schema".into(),
-            reason,
-        })?;
+        .map_err(schema_error)?;
+        // The envelope its schema worker received: the laboratory budget and
+        // 128 receipts of at most 2 MiB.
+        let mut budget = tos_validation::executor::ExecutorBudget::laboratory();
+        budget.execution_wall = budget
+            .execution_wall
+            .min(deadline.saturating_duration_since(Instant::now()));
+        inner
+            .set_operation_limits(
+                tos_validation::source_cut::InProcessOperationLimits::from_worker_budget(
+                    budget,
+                    tos_validation::source_cut::CutWorkerLimits {
+                        max_receipts: 128,
+                        max_receipt_bytes: 2_097_152,
+                    },
+                )
+                .map_err(schema_error)?,
+            )
+            .map_err(schema_error)?;
         Ok(SelectedReadSchemas { revision, inner })
     }
     fn read_target(
