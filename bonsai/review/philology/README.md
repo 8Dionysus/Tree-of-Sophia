@@ -71,10 +71,17 @@ a term with the Tree's word; the reader opens a term on its origin.
   (`access/web/src/public-research/bonsai-language.test.mjs`) reads them.
 - `gloss`: one sentence per language on what the word does in the book, in the
   book's own words where they serve, said affirmatively.
-- `concept`: the id of the core's concept or figure the term names, when it has one.
+- `concept`: the id of the core's concept or figure the term names, when it has one:
+  the node is the term itself (Schaffende → creation, Augenblick → present). A term
+  that belongs to a concept without naming it (Erde, Kameel, Werthe) carries no
+  `concept`.
 
 ## The reader
 
-A stand's text that names a term carries it as an active word: pointing at it
-shows the origin (the original word, the translations' words, the first place,
-the gloss); opening it opens the book at the first place.
+A stand's text that names a term with a node carries it as an active word, a link
+to that node: in Zarathustra the concept or figure of `concept`, in Antiquity the
+library's concept of `concept` or else the term's own library entry. Pointing at
+the word shows the node's kind, title and opening line; following it opens the node.
+A word does not link the node whose card holds it. A term without a node stays
+plain text. The card speaks of the node; the term's philology (the original, the
+translations' words, the first place, the gloss) stays with this core.
