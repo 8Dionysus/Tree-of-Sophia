@@ -169,6 +169,8 @@ def sections_for(work, config, pages):
             lines = [re.sub(r'\s*(\(\d{1,3}\)|\[c\.\s*\d+\])', '', line).strip() for line in lines]
         # Navigation rows of chapter numbers ("1 - 2 - 3 - …") are not text.
         lines = [line for line in lines if not (re.search(r'\d', line) and re.fullmatch(r'[\d\s\-–—|·.]+', line))]
+        # Wikisource maintenance notices, layout switches and section menus.
+        lines = [line for line in lines if not re.match(r'(Layout \d+$|Sections:|This work has been imported|Please take a moment)', line)]
         if config['split'] == 'single':
             body = [line for line in lines if line and not line.startswith(HEAD)]
             if sections:
