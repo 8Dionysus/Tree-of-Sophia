@@ -1,7 +1,8 @@
 import {describe,expect,it,vi} from 'vitest';
 import {readFileSync} from 'node:fs';
-import {createTerms,termContextAllows,termForms,termMatcher,treeRendering,witnessLines} from './term-view.mjs';
-import {PUBLIC_LOCALES,shownLanguages} from './locale.mjs';
+import {createTerms,linkedTerms,termContextAllows,termForms,termMatcher,termNodes,treeRendering,witnessLines} from './term-view.mjs';
+import {PUBLIC_LOCALES} from './locale.mjs';
+import {attachCore} from './core-projection.mjs';
 
 const module={terms:[
   {id:'ubermensch',original:{lemma:'Übermensch',forms:['Übermensch','Übermenschen']},renderings:{ru:{tos:{term:'сверхчеловек',forms:['сверхчеловек','сверхчеловека']},witness:{term:'сверхчеловек',forms:['сверхчеловеке']}},en:{tos:{term:'overman',forms:['overman']},witness:{term:'Superman',forms:['Superman']}}}},
@@ -93,82 +94,97 @@ it('marks quoted it-was forms without matching ordinary past-tense words',()=>{
   expect(termMatcher(termForms(only,'en')).find('It was late. “It was” and ‘it was’.').map(x=>x.text)).toEqual(['“It was”','‘it was’']);
 });
 
-it('first touch remains a preview when focus arrives before click',()=>{
-  const handlers={};
-  class Element{
-    constructor(tag){this.tagName=tag.toUpperCase();this.dataset={};this.style={};this.attrs={};this.children=[];this.hidden=false;}
-    setAttribute(k,v){this.attrs[k]=v;} removeAttribute(k){delete this.attrs[k];}
-    append(...nodes){for(const node of nodes){node.parentElement=this;this.children.push(node);}}
-    replaceChildren(...nodes){this.children=[];this.append(...nodes);}
-    addEventListener(){} remove(){} contains(node){return this===node||this.children.includes(node);}
-    closest(selector){return selector==='.ps-term'&&this.dataset.term?this:null;}
-    getBoundingClientRect(){return {left:0,width:20,top:20,bottom:40};}
-  }
-  const body=new Element('body');
-  const doc={body,documentElement:{lang:'ru'},createElement:tag=>new Element(tag),addEventListener:(type,fn)=>{handlers[type]=fn;},removeEventListener:()=>{}};
-  vi.stubGlobal('document',doc);vi.stubGlobal('innerWidth',800);vi.stubGlobal('innerHeight',600);vi.stubGlobal('addEventListener',()=>{});vi.stubGlobal('removeEventListener',()=>{});
-  const open=vi.fn(),terms=createTerms({module:{terms:[{id:'x',original:{lemma:'X'},first:{c:'II.20'}}]},open});
-  const span=new Element('span');span.dataset.term='x';
-  const event={target:span,pointerType:'touch',preventDefault(){},stopPropagation(){}};
-  handlers.pointerdown(event);handlers.focusin(event);handlers.click(event);
-  expect(open).not.toHaveBeenCalled();expect(body.children[0].hidden).toBe(false);
-  handlers.pointerdown(event);handlers.click(event);expect(open).toHaveBeenCalledOnce();
-  terms.dispose();vi.unstubAllGlobals();
-});
-
-it('shows the original, edition words and gloss before opening an Antiquity place',()=>{
-  const handlers={};
-  class Element{
-    constructor(tag){this.tagName=tag.toUpperCase();this.dataset={};this.style={};this.attrs={};this.children=[];this.listeners={};this.hidden=false;}
-    setAttribute(k,v){this.attrs[k]=v;} removeAttribute(k){delete this.attrs[k];}
-    append(...nodes){for(const node of nodes){node.parentElement=this;this.children.push(node);}}
-    replaceChildren(...nodes){this.children=[];this.append(...nodes);}
-    addEventListener(type,fn){this.listeners[type]=fn;} remove(){} contains(node){return this===node||this.children.includes(node);}
-    closest(selector){return selector==='.ps-term'&&this.dataset.term?this:null;}
-    getBoundingClientRect(){return {left:0,width:20,top:20,bottom:40};}
-  }
-  const body=new Element('body');
-  vi.stubGlobal('document',{body,documentElement:{lang:'en'},createElement:tag=>new Element(tag),addEventListener:(type,fn)=>{handlers[type]=fn;},removeEventListener(){}});
+// A minimal element for the card: enough to read what it says and press its button.
+const fakeElement=()=>class Element{
+  constructor(tag){this.tagName=tag.toUpperCase();this.dataset={};this.style={};this.attrs={};this.children=[];this.listeners={};this.hidden=false;}
+  setAttribute(k,v){this.attrs[k]=v;} removeAttribute(k){delete this.attrs[k];}
+  append(...nodes){for(const node of nodes){node.parentElement=this;this.children.push(node);}}
+  replaceChildren(...nodes){this.children=[];this.append(...nodes);}
+  addEventListener(type,fn){this.listeners[type]=fn;} remove(){} contains(node){return this===node||this.children.includes(node);}
+  closest(selector){return selector==='.ps-term'&&this.dataset.term?this:null;}
+  getBoundingClientRect(){return {left:0,width:20,top:20,bottom:40};}
+};
+const stubPage=(lang='ru')=>{
+  const handlers={},Element=fakeElement(),body=new Element('body');
+  vi.stubGlobal('document',{body,documentElement:{lang},createElement:tag=>new Element(tag),addEventListener:(type,fn)=>{handlers[type]=fn;},removeEventListener(){}});
   vi.stubGlobal('innerWidth',800);vi.stubGlobal('innerHeight',600);vi.stubGlobal('addEventListener',()=>{});vi.stubGlobal('removeEventListener',()=>{});
-  const first={w:'discourses',u:['first','first'],s:0,e:30},open=vi.fn();
-  const terms=createTerms({locale:()=> 'en',open,module:{work:'antiquity',editions:{long:{label:{en:'Long'}},higginson:{label:{en:'Higginson'}}},terms:[{id:'phantasia',original:{lang:'grc',lemma:'φαντασία'},first,renderings:{en:{tos:{term:'impression'},witness:[{edition:'long',term:'appearance'},{edition:'higginson',term:'semblance'}]}},gloss:{en:'An impression meets judgment.'}}]}});
-  const span=new Element('span');span.dataset.term='phantasia';handlers.focusin({target:span});
-  const card=body.children[0],text=node=>[node.textContent??'',...node.children.map(text)].join(' ');
-  expect(card.dataset.stand).toBe('antiquity');
-  expect(text(card)).toContain('φαντασία');expect(text(card)).toContain('appearance');expect(text(card)).toContain('semblance');expect(text(card)).toContain('An impression meets judgment.');
-  card.children.at(-1).listeners.click();expect(open).toHaveBeenCalledWith(first);
+  const word=(term,node)=>{const span=new Element('span');span.dataset.term=term;span.dataset.node=node;return span;};
+  return {handlers,body,word};
+};
+const all=node=>[node,...node.children.flatMap(all)],text=node=>all(node).map(item=>item.textContent??'').join(' ');
+
+it('leads a term to the node it names and leaves a term without a node as plain text',()=>{
+  const nodeOf=term=>term.concept?`node:${term.concept}`:null;
+  const {module:linked,nodes}=linkedTerms({work:'zarathustra',terms:[{id:'overman',concept:'overman'},{id:'self'}]},nodeOf);
+  expect(linked.terms.map(term=>term.id)).toEqual(['overman']);expect(linked.work).toBe('zarathustra');
+  expect([...nodes]).toEqual([['overman','node:overman']]);
+  stubPage();
+  const none=createTerms({module:{terms:[{id:'self'}]},nodeOf});
+  expect(none.size).toBe(0);expect(document.body.children).toEqual([]);
+  none.mark({});none.dispose();vi.unstubAllGlobals();
+});
+
+it('names the node in Zarathustra’s core and in the Antiquity library',()=>{
+  const read=(stand,name)=>JSON.parse(readFileSync(new URL(`../../../../bonsai/${stand}/${name}.json`,import.meta.url),'utf8'));
+  const core=Object.fromEntries(['concepts','figures','links','chains','proposed'].map(name=>[name,read('zarathustra',`core/${name}`)]));
+  const library={nodes:[{id:'work',kind:'work'}],atlas:{defaultIds:['work'],edges:[]},space:{routes:[]}};
+  const {materialIds}=attachCore(library,core).space.core,held=new Set(library.nodes.map(node=>node.id));
+  const zarathustra=read('zarathustra','terms'),zarathustraNode=termNodes({stand:'zarathustra',materialIds,has:id=>held.has(id)});
+  // Every concept a term names is a node of the core; a term that names none has no link.
+  for(const term of zarathustra.terms)expect([term.id,!!zarathustraNode(term)]).toEqual([term.id,!!term.concept]);
+  const records=new Set([...core.concepts,...core.figures].map(record=>record.id));
+  for(const term of zarathustra.terms.filter(term=>term.concept))expect([term.id,records.has(term.concept)]).toEqual([term.id,true]);
+  const collection=read('antiquity','collection'),antiquity=read('antiquity','terms');
+  const catalog=new Set([...collection.entities.map(entity=>`antiquity:catalog:${entity.id}`),...collection.terms.map(term=>`antiquity:catalog:lexical:${term.id}`)]);
+  const antiquityNode=termNodes({stand:'antiquity',has:id=>catalog.has(id)});
+  for(const term of antiquity.terms)expect([term.id,antiquityNode(term)]).toEqual([term.id,term.concept?`antiquity:catalog:${term.concept}`:`antiquity:catalog:lexical:${term.id}`]);
+});
+
+it('shows where a word leads: the node’s kind, title and opening line, and opens it',()=>{
+  const {handlers,body,word}=stubPage('en');
+  const openNode=vi.fn(),describe=vi.fn(id=>id==='antiquity:catalog:lexical:phantasia'?{kind:'Concept',title:'Impression',lead:'An impression meets judgment.'}:null);
+  const terms=createTerms({locale:()=> 'en',nodeOf:term=>`antiquity:catalog:lexical:${term.id}`,describe,openNode,
+    module:{work:'antiquity',terms:[{id:'phantasia',original:{lang:'grc',lemma:'φαντασία'},renderings:{en:{tos:{term:'impression'}}},gloss:{en:'A gloss of the philological core.'}}]}});
+  const span=word('phantasia','antiquity:catalog:lexical:phantasia');handlers.focusin({target:span});
+  const card=body.children[0];
+  expect(card.dataset.stand).toBe('antiquity');expect(card.hidden).toBe(false);
+  expect(all(card).map(node=>node.className).filter(Boolean)).toEqual(['ps-term-card','ps-term-kind','ps-term-star','ps-term-title','ps-term-lead','ps-term-open']);
+  expect(text(card)).toContain('Concept');expect(text(card)).toContain('Impression');expect(text(card)).toContain('An impression meets judgment.');
+  // The card speaks of the node; the words of the original and the translations belong to the philological core.
+  expect(text(card)).not.toContain('φαντασία');expect(text(card)).not.toContain('A gloss of the philological core.');
+  expect(span.dataset.shown).toBe('true');expect(span.attrs['aria-describedby']).toBe(card.id);
+  card.children.at(-1).listeners.click();
+  expect(openNode).toHaveBeenCalledWith('antiquity:catalog:lexical:phantasia');expect(card.hidden).toBe(true);expect(span.dataset.shown).toBeUndefined();
   terms.dispose();vi.unstubAllGlobals();
 });
 
+it('a first touch shows the node; the next one follows the link, as does a click',()=>{
+  const {handlers,body,word}=stubPage();
+  const openNode=vi.fn(),terms=createTerms({module:{terms:[{id:'x'}]},nodeOf:()=> 'node:x',describe:()=>({kind:'Понятие',title:'Икс',lead:''}),openNode});
+  const span=word('x','node:x'),touch={target:span,pointerType:'touch',preventDefault(){},stopPropagation(){}};
+  handlers.pointerdown(touch);handlers.focusin(touch);handlers.click(touch);
+  expect(openNode).not.toHaveBeenCalled();expect(body.children[0].hidden).toBe(false);
+  handlers.pointerdown(touch);handlers.click(touch);expect(openNode).toHaveBeenCalledWith('node:x');
+  const mouse={target:span,pointerType:'mouse',button:0,preventDefault:vi.fn(),stopPropagation(){}};
+  handlers.pointerdown(mouse);handlers.click(mouse);expect(openNode).toHaveBeenCalledTimes(2);expect(mouse.preventDefault).toHaveBeenCalled();
+  // A link opened in a new tab keeps the browser's own way.
+  span.href='https://example.org/?item=node:x';const tab={...mouse,metaKey:true,preventDefault:vi.fn()};
+  handlers.click(tab);expect(openNode).toHaveBeenCalledTimes(2);expect(tab.preventDefault).not.toHaveBeenCalled();
+  terms.dispose();vi.unstubAllGlobals();
+});
 
-it('names a term in the original and the reader’s one translation only, in every interface language',()=>{
-  let handlers={};
-  class Element{
-    constructor(tag){this.tagName=tag.toUpperCase();this.dataset={};this.style={};this.attrs={};this.children=[];this.listeners={};this.hidden=false;}
-    setAttribute(k,v){this.attrs[k]=v;} removeAttribute(k){delete this.attrs[k];}
-    append(...nodes){for(const node of nodes){node.parentElement=this;this.children.push(node);}}
-    replaceChildren(...nodes){this.children=[];this.append(...nodes);}
-    addEventListener(type,fn){this.listeners[type]=fn;} remove(){} contains(node){return this===node||this.children.includes(node);}
-    closest(selector){return selector==='.ps-term'&&this.dataset.term?this:null;}
-    getBoundingClientRect(){return {left:0,width:20,top:20,bottom:40};}
-  }
-  const all=node=>[node,...node.children.flatMap(all)],text=node=>all(node).map(item=>item.textContent??'').join(' ');
+it('speaks the reader’s interface language on the node card, for every term of both stands',()=>{
   for(const stand of ['zarathustra','antiquity']){
     const registry=JSON.parse(readFileSync(new URL(`../../../../bonsai/${stand}/terms.json`,import.meta.url),'utf8'));
     for(const locale of PUBLIC_LOCALES){
-      handlers={};const body=new Element('body');
-      vi.stubGlobal('document',{body,documentElement:{lang:locale},createElement:tag=>new Element(tag),addEventListener:(type,fn)=>{handlers[type]=fn;},removeEventListener(){}});
-      vi.stubGlobal('innerWidth',800);vi.stubGlobal('innerHeight',600);vi.stubGlobal('addEventListener',()=>{});vi.stubGlobal('removeEventListener',()=>{});
-      const terms=createTerms({locale:()=>locale,module:{...registry,work:stand==='antiquity'?'antiquity':registry.work}});
+      const {handlers,body,word}=stubPage(locale);
+      const terms=createTerms({locale:()=>locale,nodeOf:term=>`node:${term.id}`,describe:id=>({kind:'K',title:id,lead:''}),module:{...registry,work:stand==='antiquity'?'antiquity':registry.work}});
+      expect(terms.size).toBe(registry.terms.length);
       const card=body.children[0];
       for(const term of registry.terms){
-        const span=new Element('span');span.dataset.term=term.id;handlers.focusin({target:span});
-        const [,translation]=shownLanguages(locale,term.original?.lang??'de',Object.keys(term.renderings??{}));
-        const said=all(card).filter(node=>node.className==='ps-term-word').map(node=>node.lang);
-        expect(said.filter(lang=>lang!==translation),`${stand} ${locale} ${term.id}`).toEqual([]);
-        if(locale!=='ru')expect(text(card),`${stand} ${locale} ${term.id}`).not.toMatch(/[\u0400-\u04FF]/u);
-        if(translation==='en'&&term.renderings?.en?.witness)expect(said.length,`${stand} ${locale} ${term.id}`).toBeGreaterThan(0);
-        handlers.focusout?.({target:span,relatedTarget:null});
+        handlers.focusin({target:word(term.id,`node:${term.id}`)});
+        expect(text(card),`${stand} ${locale} ${term.id}`).toContain(`node:${term.id}`);
+        if(locale!=='ru')expect(text(card),`${stand} ${locale} ${term.id}`).not.toMatch(/[Ѐ-ӿ]/u);
       }
       terms.dispose();vi.unstubAllGlobals();
     }
@@ -185,7 +201,7 @@ it('releases observers for removed roots while preserving connected or reattache
   const element=()=>({dataset:{},style:{},setAttribute(){},removeAttribute(){},addEventListener(){},remove(){},querySelectorAll(){return [];},isConnected:true});
   const doc={body,documentElement:{lang:'ru'},createElement:element,createTreeWalker:()=>({nextNode:()=>false}),addEventListener(){},removeEventListener(){}};
   vi.stubGlobal('document',doc);vi.stubGlobal('MutationObserver',Observer);vi.stubGlobal('NodeFilter',{SHOW_TEXT:4});vi.stubGlobal('addEventListener',()=>{});vi.stubGlobal('removeEventListener',()=>{});
-  const terms=createTerms({module:{terms:[{id:'x'}]}}),old=element(),live=element();
+  const terms=createTerms({module:{terms:[{id:'x'}]},nodeOf:()=> 'node:x'}),old=element(),live=element();
   terms.mark(old);terms.mark(live);
   const [removals,oldObserver,liveObserver]=observers;
   old.isConnected=false;

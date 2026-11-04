@@ -12,7 +12,7 @@ import {personalKind,readPersonalKinds} from './personal-kind.mjs';
 import {isAuthoredTransition,ladderRung,nodeForm,partName,relationStyle,routeVoices,searchScore,sourceLine,stepWitness} from './space-legibility.mjs';
 import {antiquityTimeline,formatDating,formatYears,stepTimeline,trajectory,zarathustraTimeline} from './space-timeline.mjs';
 import {bonsaiFor,depthOf,lensPositions} from './bonsai.mjs';
-import {createTerms} from './term-view.mjs';
+import {createTerms,termNodes} from './term-view.mjs';
 import {citedPlaces} from './research-index.mjs';
 import {readChronology} from '../../../../bonsai/lib/chronology.mjs';
 import {readPlaces} from '../../../../bonsai/lib/places.mjs';
@@ -108,8 +108,15 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const loadMoreCollection=()=>!moreCollection||collectionReady?Promise.resolve():moreCollection().then(()=>{if(destroyed)return;absorbCollection();collectionReady=true;if(searchValue)renderSearch();});
   // The stand's bonsai: its chronology, places, and how each of its lenses reads.
   const bonsai=bonsaiFor(profile);
-  // The stand's terms open on their origin wherever a card names them; opening one opens the book at its first place.
-  const terms=createTerms({module:bonsai?.terms??null,locale,open:cite=>{if(cite?.c)void fragments.showChapter(cite.c,cite).catch(()=>{});else if(cite)shell.dispatchEvent(new CustomEvent('public-research-action',{bubbles:true,detail:{action:'read',cite}}));}});
+  // A term that names a node of the stand is a link to it wherever a card, an article or the book says it.
+  const termNode=termNodes({stand:profile,materialIds:core?.materialIds,has:id=>previewMaterials.has(id)});
+  // The node's opening line: the first sentence of what it says, or the question it asks when it speaks through its sources.
+  const termLead=material=>{const text=String(tr(material?.body,locale())||tr(material?.question,locale())||'').replace(/\s+/g,' ').trim();if(!text)return '';const first=text.match(/^.+?[.!?…](?=\s|$)/u)?.[0]??text;return first.length>240?`${first.slice(0,239).trimEnd()}…`:first;};
+  const terms=createTerms({module:bonsai?.terms??null,locale,nodeOf:termNode,
+    describe:id=>{const material=previewMaterials.get(id);return material?{kind:partName(profile,material,locale(),{moveIds})||kindName(material.kind),title:keepDots(label(material)),lead:termLead(material)}:null;},
+    hrefOf:id=>{const url=new URL(location.href);url.searchParams.set('item',index?.resolveId?.(id)??id);if(index?.revision)url.searchParams.set('revision',index.revision);return url.href;},
+    // The node opens where the reader is: in the experience when it holds the page, on the map otherwise; an open book gives way to it.
+    openNode:id=>{const book=fragments.reader?.dialog;if(book?.open)book.close();if(shell.dispatchEvent(new CustomEvent('public-research-open',{bubbles:true,cancelable:true,detail:{id}})))openResearch(id);}});
   // The lens "Time" exists where the data dates or orders its material: Antiquity by the years its bonsai gives the writings, Zarathustra by the order of the book.
   const timeline=profile==='antiquity'?antiquityTimeline({routes,entries:library.space?.collection??[],chronology:bonsai?.chronology}):profile==='zarathustra'?zarathustraTimeline({materials:[...materials.values()],references:atlas.references??{},clusters:atlas.clusters??[],chronology:bonsai?.chronology}):null;
   // What a star's dating and place are about: the writing of its passage or work (Antiquity), of the text it first rests on (Zarathustra).
@@ -1109,7 +1116,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const node=graphState().nodes.find(item=>item.id===id)??(preview?{id,materialId,kind:preview.kind,sourceIds:[]}:null);if(!node){selected=null;return renderWelcome();}
     const inSavedGraph=state.nodes.some(item=>item.id===id),inView=graphState().nodes.some(item=>item.id===id);
     const material=matForNode(node),ownerHyp=(personalState?.hypotheses??[]).find(item=>item.id===node.workspaceHypothesisId||item.id===node.id||materializedHypotheses.get(item.id)===node.id);
-    panelContent.replaceChildren();
+    panelContent.replaceChildren();panelContent.dataset.termNode=material?.id??'';
     if(profile==='antiquity')panelContent.dataset.termWorks=termWorks(material);
     const nodeTitle=label(node.ownerType==='personal-hypothesis'?node:material??node),part=partName(profile,material,locale(),{moveIds});panelContent.append(el('p','eyebrow',`${t('kind')} · ${part||kindName(material?.kind??node.kind)}`),el('h1','',keepDots(node.ownerType==='personal-hypothesis'&&nodeTitle.length>120?kindName(node.kind):nodeTitle)));
     // A move names its author, work and place right under its title.
@@ -1180,6 +1187,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function renderResearch(parent,id){
     const item=index?.get(id);if(!item)return false;
     if(profile==='antiquity')parent.dataset.termWorks=termWorks(item.record);
+    parent.dataset.termNode=item.materialId??(previewMaterials.has(item.id)?item.id:'');
     if(item.owner==='bonsai/core'&&coreView?.renderReference(parent,{kind:item.kind==='relation'?'relation':'node',id:item.id}))return true;
     parent.append(el('h2','',tr(item.title,locale())||item.id));
     if(item.kind==='passage')parent.append(fragments.fragment(item.record));
@@ -1340,7 +1348,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     shell.dataset.columnOpen=String(columnOpen);shell.dataset.sheet=wide?'':columnOpen?(sheetFull?'full':'open'):'peek';shell.dataset.reading=String(columnOpen);
     panelTitle.textContent=columnCaption(mode);panelTitle.setAttribute('aria-expanded',String(columnOpen));
     panelClose.hidden=!wide&&!columnOpen;panelClose.setAttribute('aria-label',t(mode==='overview'&&!browsingRoutes?'collapseColumn':mode==='route'?'resetRoute':'close'));
-    delete panelContent.dataset.termWorks;
+    delete panelContent.dataset.termWorks;delete panelContent.dataset.termNode;
     renderRoutes();renderLensControls(mode);
     if(mode==='overview')renderWelcome();else if(mode==='route')renderStepNode();else if(mode==='node')renderNode(selected);else if(mode==='edge')renderEdge(selectedEdge);else if(mode==='measure')renderMeasure();
     // The scale of time shows the chosen move's author's life, so a new choice redraws its strip.
