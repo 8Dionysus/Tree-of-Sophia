@@ -1,0 +1,297 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "packet_id": "tos.source-text-unit-packet.sid-f19013b80fbe493c8ffc5fbd71c1da8e",
+  "packet_version": 1,
+  "supersedes_packet_ref": null,
+  "content_posture": "source_bound",
+  "source_scope": {
+    "work_ref": "tos.work.retained-antiquity.lucullus",
+    "expression_ref": "tos.expression.retained.antiquity.lucullus.lucullus-en-yonge1891-wikisource",
+    "edition_ref": "tos.edition.retained.antiquity.lucullus.lucullus-en-yonge1891-wikisource",
+    "item_ref": "tos.item.retained.antiquity.lucullus.lucullus-en-yonge1891-wikisource",
+    "file_ref": "tos.file.sha256.d407a066e16f38d42c4bc3d4254f2f12f595841db1d198875a04e3d71a7d8510",
+    "file_sha256": "d407a066e16f38d42c4bc3d4254f2f12f595841db1d198875a04e3d71a7d8510"
+  },
+  "source_layer": {
+    "text_layer_ref": "ToS/source-witnesses/works/cicero/lucullus/expressions/retained-lucullus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+    "text_layer_sha256": "13e8444a6d686d28a86369a65e41b78ea5b83933b76c748c32b775a28fefd3fe",
+    "language": "en",
+    "media_type": "text/plain; charset=utf-8",
+    "unicode_form": "source_preserved",
+    "position_unit": "unicode_code_point",
+    "interval": "half_open",
+    "immutable": true,
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "schemes": [
+    {
+      "scheme_id": "tos.text-unit-scheme.sid-1ce0c0e59b484e4c8a5460369b0b8e68",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "scheme_name": "Retained source section and bounded reading chunk",
+      "analysis_role": "source_structure",
+      "boundary_basis": "rule_based",
+      "unit_kinds": [
+        "section"
+      ],
+      "method": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/cicero/lucullus/expressions/retained-lucullus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.lucullus-en-yonge1891-wikisource.20261027",
+        "made_at": "2026-11-04T06:58:52+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "policies": {
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "punctuation": "included_in_neighbor",
+        "whitespace": "included_in_neighbor",
+        "line_break": "included_in_neighbor",
+        "hyphenation": "preserve_source",
+        "unreported_gaps_allowed": false,
+        "overlap": "forbid"
+      },
+      "authority_limit": {
+        "algorithmic_output_is_source_truth": false,
+        "algorithmic_output_is_linguistic_truth": false,
+        "model_subword_is_lexeme": false,
+        "unit_identity_is_semantic_identity": false,
+        "text_mutation_allowed": false
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.sid-f4a8d1a97344438eb21409961094266a",
+      "ordinal": 1,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/lucullus/expressions/retained-lucullus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "13e8444a6d686d28a86369a65e41b78ea5b83933b76c748c32b775a28fefd3fe",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 168736,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "13e8444a6d686d28a86369a65e41b78ea5b83933b76c748c32b775a28fefd3fe",
+      "anchor_role": "scope",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=The_Academic_Questions%2C_Treatise_De_Finibus%2C_and_Tusculan_Disputations/Academic_Questions/Book_2&oldid=14228273"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-969952304b7844b4a3fee6bb3656c544",
+      "ordinal": 2,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/lucullus/expressions/retained-lucullus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "13e8444a6d686d28a86369a65e41b78ea5b83933b76c748c32b775a28fefd3fe",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 59763,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c40b2ffef1c3fd5b260f830f45128de06dedc61187a273d33701814da4a86bce",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=The_Academic_Questions%2C_Treatise_De_Finibus%2C_and_Tusculan_Disputations/Academic_Questions/Book_2&oldid=14228273"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-0752a791c6884edbaa7bb791a8cc4eb7",
+      "ordinal": 3,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/lucullus/expressions/retained-lucullus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "13e8444a6d686d28a86369a65e41b78ea5b83933b76c748c32b775a28fefd3fe",
+      "selector": {
+        "type": "text_position",
+        "start": 59763,
+        "end": 119530,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "85a4b15c0a018a6c10a9f2fa89c6c9546248ff503101128b5bed8271f3295433",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=The_Academic_Questions%2C_Treatise_De_Finibus%2C_and_Tusculan_Disputations/Academic_Questions/Book_2&oldid=14228273"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-0753c04373974f07891efc983df84c6a",
+      "ordinal": 4,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/lucullus/expressions/retained-lucullus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "13e8444a6d686d28a86369a65e41b78ea5b83933b76c748c32b775a28fefd3fe",
+      "selector": {
+        "type": "text_position",
+        "start": 119530,
+        "end": 168736,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "db75d9a77a7a5747a1656a8c5d8cb1282cb26674cb7085041d136a1bff380a11",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=The_Academic_Questions%2C_Treatise_De_Finibus%2C_and_Tusculan_Disputations/Academic_Questions/Book_2&oldid=14228273"
+      }
+    }
+  ],
+  "units": [
+    {
+      "unit_id": "tos.text-unit.sid-3888ea68eec9417b8657288d17134cc7",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-969952304b7844b4a3fee6bb3656c544"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-5143d3b07cfb4ae9b545359eb3b00b52",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-0752a791c6884edbaa7bb791a8cc4eb7"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b76086929d1b401e93737b587de2a97c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-0753c04373974f07891efc983df84c6a"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    }
+  ],
+  "segmentations": [
+    {
+      "segmentation_id": "tos.text-segmentation.sid-3cb8e82915614bbfa29ca02797e3a27f",
+      "segmentation_version": 1,
+      "supersedes_segmentation_ref": null,
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "scheme_ref": "tos.text-unit-scheme.sid-1ce0c0e59b484e4c8a5460369b0b8e68",
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-3888ea68eec9417b8657288d17134cc7",
+        "tos.text-unit.sid-5143d3b07cfb4ae9b545359eb3b00b52",
+        "tos.text-unit.sid-b76086929d1b401e93737b587de2a97c"
+      ],
+      "coverage": {
+        "scope_anchor_ref": "tos.anchor.sid-f4a8d1a97344438eb21409961094266a",
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "unreported_gaps_allowed": false,
+        "overlap_requires_declaration": true,
+        "source_reconstruction_required": true
+      },
+      "status": "proposed",
+      "status_reason": "Deterministic display and navigation segmentation; no textual, linguistic or semantic acceptance.",
+      "maker": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/cicero/lucullus/expressions/retained-lucullus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.lucullus-en-yonge1891-wikisource.20261027",
+        "made_at": "2026-11-04T06:58:52+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "competing_segmentation_refs": [],
+      "review_refs": [],
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "source_text_authority": false,
+      "linguistic_authority": false,
+      "semantic_authority": false
+    }
+  ],
+  "reviews": [],
+  "projections": [],
+  "rights_and_visibility": {
+    "source_visibility": "public",
+    "packet_visibility": "public",
+    "effective_visibility": "public",
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/cicero/lucullus/expressions/retained-lucullus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json"
+    ],
+    "private_source_used": false,
+    "publication_authorized": true,
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins"
+  },
+  "authority_boundary": {
+    "tree_role": "orientation",
+    "graph_role": "relation",
+    "source_role": "authority",
+    "validators_prove_mechanics_not_truth": true,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "legacy_bulk_migration_authorized": false
+  }
+}

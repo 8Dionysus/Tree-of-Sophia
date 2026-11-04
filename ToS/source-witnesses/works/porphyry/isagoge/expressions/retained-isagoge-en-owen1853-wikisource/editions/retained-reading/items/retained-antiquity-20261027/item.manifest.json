@@ -1,0 +1,46 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.isagoge.isagoge-en-owen1853-wikisource",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.isagoge.isagoge-en-owen1853-wikisource",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.ed119b204e168f00406fbee480c3a83e3e003a9c9ef67b5203f187315f9d08a5",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "isagoge-en-owen1853-wikisource.json",
+      "media_type": "application/json",
+      "byte_size": 48134,
+      "sha256": "ed119b204e168f00406fbee480c3a83e3e003a9c9ef67b5203f187315f9d08a5",
+      "fixity_verified_at": "2026-11-04T06:58:54+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.43f410659a436407997701637f4a3a7c76b37ec366fb78115d4f0d87e52b4729",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 47241,
+      "sha256": "43f410659a436407997701637f4a3a7c76b37ec366fb78115d4f0d87e52b4729",
+      "fixity_verified_at": "2026-11-04T06:58:54+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.49647a3a1c62bd1e950c879657f4cb80af30002ddfc24caf511634da45642353",
+      "relative_path": "payload/wikisource-page-01-api.json",
+      "original_basename": "wikisource-page-01-api.json",
+      "media_type": "application/json",
+      "byte_size": 127874,
+      "sha256": "49647a3a1c62bd1e950c879657f4cb80af30002ddfc24caf511634da45642353",
+      "fixity_verified_at": "2026-11-04T06:58:54+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.isagoge-en-owen1853-wikisource.20261027",
+  "rights_ref": "ToS/source-witnesses/works/porphyry/isagoge/expressions/retained-isagoge-en-owen1853-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/porphyry/isagoge/expressions/retained-isagoge-en-owen1853-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/porphyry/isagoge/expressions/retained-isagoge-en-owen1853-wikisource/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/porphyry/isagoge/expressions/retained-isagoge-en-owen1853-wikisource/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/porphyry/isagoge/expressions/retained-isagoge-en-owen1853-wikisource/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

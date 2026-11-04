@@ -1,0 +1,675 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "packet_id": "tos.source-text-unit-packet.sid-a10bd959446c4c9fb97e2bcaee8bcddf",
+  "packet_version": 1,
+  "supersedes_packet_ref": null,
+  "content_posture": "source_bound",
+  "source_scope": {
+    "work_ref": "tos.work.retained-antiquity.de-beneficiis",
+    "expression_ref": "tos.expression.retained.antiquity.de-beneficiis.de-beneficiis-en-stewart1887-wikisource",
+    "edition_ref": "tos.edition.retained.antiquity.de-beneficiis.de-beneficiis-en-stewart1887-wikisource",
+    "item_ref": "tos.item.retained.antiquity.de-beneficiis.de-beneficiis-en-stewart1887-wikisource",
+    "file_ref": "tos.file.sha256.3c44baf82d8b5ba768ae62897ac8b67bd6a282a3fd705f92aeb2a62038966350",
+    "file_sha256": "3c44baf82d8b5ba768ae62897ac8b67bd6a282a3fd705f92aeb2a62038966350"
+  },
+  "source_layer": {
+    "text_layer_ref": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-en-stewart1887-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+    "text_layer_sha256": "2b4076ba6917af719f9e9cf16a18c18fb064b8338659533f1c1eed0109fbfba2",
+    "language": "en",
+    "media_type": "text/plain; charset=utf-8",
+    "unicode_form": "source_preserved",
+    "position_unit": "unicode_code_point",
+    "interval": "half_open",
+    "immutable": true,
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "schemes": [
+    {
+      "scheme_id": "tos.text-unit-scheme.sid-78713542c1aa450090511bb7326f1d63",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "scheme_name": "Retained source section and bounded reading chunk",
+      "analysis_role": "source_structure",
+      "boundary_basis": "rule_based",
+      "unit_kinds": [
+        "section"
+      ],
+      "method": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-en-stewart1887-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.de-beneficiis-en-stewart1887-wikisource.20261027",
+        "made_at": "2026-11-04T06:58:53+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "policies": {
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "punctuation": "included_in_neighbor",
+        "whitespace": "included_in_neighbor",
+        "line_break": "included_in_neighbor",
+        "hyphenation": "preserve_source",
+        "unreported_gaps_allowed": false,
+        "overlap": "forbid"
+      },
+      "authority_limit": {
+        "algorithmic_output_is_source_truth": false,
+        "algorithmic_output_is_linguistic_truth": false,
+        "model_subword_is_lexeme": false,
+        "unit_identity_is_semantic_identity": false,
+        "text_mutation_allowed": false
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.sid-e76782ad12214d499e8d3095538a4381",
+      "ordinal": 1,
+      "text_layer_ref": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-en-stewart1887-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2b4076ba6917af719f9e9cf16a18c18fb064b8338659533f1c1eed0109fbfba2",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 431304,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "2b4076ba6917af719f9e9cf16a18c18fb064b8338659533f1c1eed0109fbfba2",
+      "anchor_role": "scope",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/On_Benefits"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2e1feae4b6314d54a5ad71dc1d4b16bb",
+      "ordinal": 2,
+      "text_layer_ref": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-en-stewart1887-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2b4076ba6917af719f9e9cf16a18c18fb064b8338659533f1c1eed0109fbfba2",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 37397,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "28f4ddafb94d46ec8b27d4f581bb117ddd40ca94d55a091e9b42129371d5401d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/On_Benefits"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b85b6cac4f1b47088092f8c98b07a323",
+      "ordinal": 3,
+      "text_layer_ref": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-en-stewart1887-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2b4076ba6917af719f9e9cf16a18c18fb064b8338659533f1c1eed0109fbfba2",
+      "selector": {
+        "type": "text_position",
+        "start": 37397,
+        "end": 97397,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "11c94829445d035e6eabf439809a210f0a4b3e54c7bedf7a6017a1de6066995c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/On_Benefits"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-07176f24cc6b4e00853e2bb01df514dc",
+      "ordinal": 4,
+      "text_layer_ref": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-en-stewart1887-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2b4076ba6917af719f9e9cf16a18c18fb064b8338659533f1c1eed0109fbfba2",
+      "selector": {
+        "type": "text_position",
+        "start": 97397,
+        "end": 98490,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d57cefaa24cc34d41af052c62ee717259067a61f017790992eb904eb9be1b296",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/On_Benefits"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-4a16f6b4818542c28742cf83268bca3b",
+      "ordinal": 5,
+      "text_layer_ref": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-en-stewart1887-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2b4076ba6917af719f9e9cf16a18c18fb064b8338659533f1c1eed0109fbfba2",
+      "selector": {
+        "type": "text_position",
+        "start": 98490,
+        "end": 158488,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b1f5c3d7236b7b93359be802cfdc0b5d3c0503f561dbe71c94edab2649fd6ec9",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/On_Benefits"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d3cc4a09ed5c4a2e90c87eb8f38703e9",
+      "ordinal": 6,
+      "text_layer_ref": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-en-stewart1887-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2b4076ba6917af719f9e9cf16a18c18fb064b8338659533f1c1eed0109fbfba2",
+      "selector": {
+        "type": "text_position",
+        "start": 158488,
+        "end": 162205,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b5f8107ce9132b98c1d570698c53affb9173ac1743d4767b4f3e4c3da688ad44",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/On_Benefits"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-91eda639dc874032b4615aafa0b5ff7a",
+      "ordinal": 7,
+      "text_layer_ref": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-en-stewart1887-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2b4076ba6917af719f9e9cf16a18c18fb064b8338659533f1c1eed0109fbfba2",
+      "selector": {
+        "type": "text_position",
+        "start": 162205,
+        "end": 222201,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "395506d6a8526399fa9cf3d5597636ac6087ac48fd50859a5772ab291ec2e657",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/On_Benefits"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-00db0c2741c34ab58f6ab8ba80db74cb",
+      "ordinal": 8,
+      "text_layer_ref": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-en-stewart1887-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2b4076ba6917af719f9e9cf16a18c18fb064b8338659533f1c1eed0109fbfba2",
+      "selector": {
+        "type": "text_position",
+        "start": 222201,
+        "end": 233499,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7398f6be6179d28771007fdade829e085c2def700b012fcab90473834c50e3cd",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/On_Benefits"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a936f6b38a7945238b8434f13661c3ac",
+      "ordinal": 9,
+      "text_layer_ref": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-en-stewart1887-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2b4076ba6917af719f9e9cf16a18c18fb064b8338659533f1c1eed0109fbfba2",
+      "selector": {
+        "type": "text_position",
+        "start": 233499,
+        "end": 293494,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c3a2a9ef6a432af8e19aff4218bc97528b2aba1f2404a8352865c57d82dba79a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/On_Benefits"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-8d040a9f429240968fd0512652697ebb",
+      "ordinal": 10,
+      "text_layer_ref": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-en-stewart1887-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2b4076ba6917af719f9e9cf16a18c18fb064b8338659533f1c1eed0109fbfba2",
+      "selector": {
+        "type": "text_position",
+        "start": 293494,
+        "end": 295104,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "64fb25a204b8e02bdc437b5dbbc37d14a578f2cb47d2355c9086937e074fa57d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/On_Benefits"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-1676b8aebd18467fa96747485350ab79",
+      "ordinal": 11,
+      "text_layer_ref": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-en-stewart1887-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2b4076ba6917af719f9e9cf16a18c18fb064b8338659533f1c1eed0109fbfba2",
+      "selector": {
+        "type": "text_position",
+        "start": 295104,
+        "end": 355094,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e4fd83a65c29c657e6f452099bc173323f72fe0ed18aae02bb85ac18cb5f0760",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/On_Benefits"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-53ca86386537400f83d5673c36f38f61",
+      "ordinal": 12,
+      "text_layer_ref": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-en-stewart1887-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2b4076ba6917af719f9e9cf16a18c18fb064b8338659533f1c1eed0109fbfba2",
+      "selector": {
+        "type": "text_position",
+        "start": 355094,
+        "end": 371455,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "4b237ed3c449271010341b0284313106c1cb8ecaa6e2a073360a1d07636d98bc",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/On_Benefits"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-e15c197085f647cb808412d2365997cf",
+      "ordinal": 13,
+      "text_layer_ref": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-en-stewart1887-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2b4076ba6917af719f9e9cf16a18c18fb064b8338659533f1c1eed0109fbfba2",
+      "selector": {
+        "type": "text_position",
+        "start": 371455,
+        "end": 431304,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "eabbfe39859d23042dfd65138b6967e0b84afc8da18d81e4354a7716b1def643",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/On_Benefits"
+      }
+    }
+  ],
+  "units": [
+    {
+      "unit_id": "tos.text-unit.sid-a96e262efab54148be3f73103e54f9d1",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2e1feae4b6314d54a5ad71dc1d4b16bb"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-32b520d84f72420b9b35806e96be29b5",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b85b6cac4f1b47088092f8c98b07a323"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-61c39550029c44bf9b29cfa6a7f683d2",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-07176f24cc6b4e00853e2bb01df514dc"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b77a9b6a59aa4df682b94662a7315661",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-4a16f6b4818542c28742cf83268bca3b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-00b4045ba4fc48d9a89fa607724229eb",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d3cc4a09ed5c4a2e90c87eb8f38703e9"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-0f2895a30ef2455397b6210d7fd91aa7",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-91eda639dc874032b4615aafa0b5ff7a"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-42e3f3ac9a29499dba767c4d7dc7c0f4",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-00db0c2741c34ab58f6ab8ba80db74cb"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-723a927971304503a5fd6398749118c4",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a936f6b38a7945238b8434f13661c3ac"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-62ae2615bcfa4068a0bd799de46ed9b9",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-8d040a9f429240968fd0512652697ebb"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-5eddd514cace4dc19faa60dc63fecda6",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-1676b8aebd18467fa96747485350ab79"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8dc0bb2cda8a4e33add08aeeb7e15e8a",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-53ca86386537400f83d5673c36f38f61"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-235af727b82e44fea7ea989af1d48bbc",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-e15c197085f647cb808412d2365997cf"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    }
+  ],
+  "segmentations": [
+    {
+      "segmentation_id": "tos.text-segmentation.sid-54c4950409bd4721bf747d20c6b181bb",
+      "segmentation_version": 1,
+      "supersedes_segmentation_ref": null,
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "scheme_ref": "tos.text-unit-scheme.sid-78713542c1aa450090511bb7326f1d63",
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-a96e262efab54148be3f73103e54f9d1",
+        "tos.text-unit.sid-32b520d84f72420b9b35806e96be29b5",
+        "tos.text-unit.sid-61c39550029c44bf9b29cfa6a7f683d2",
+        "tos.text-unit.sid-b77a9b6a59aa4df682b94662a7315661",
+        "tos.text-unit.sid-00b4045ba4fc48d9a89fa607724229eb",
+        "tos.text-unit.sid-0f2895a30ef2455397b6210d7fd91aa7",
+        "tos.text-unit.sid-42e3f3ac9a29499dba767c4d7dc7c0f4",
+        "tos.text-unit.sid-723a927971304503a5fd6398749118c4",
+        "tos.text-unit.sid-62ae2615bcfa4068a0bd799de46ed9b9",
+        "tos.text-unit.sid-5eddd514cace4dc19faa60dc63fecda6",
+        "tos.text-unit.sid-8dc0bb2cda8a4e33add08aeeb7e15e8a",
+        "tos.text-unit.sid-235af727b82e44fea7ea989af1d48bbc"
+      ],
+      "coverage": {
+        "scope_anchor_ref": "tos.anchor.sid-e76782ad12214d499e8d3095538a4381",
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "unreported_gaps_allowed": false,
+        "overlap_requires_declaration": true,
+        "source_reconstruction_required": true
+      },
+      "status": "proposed",
+      "status_reason": "Deterministic display and navigation segmentation; no textual, linguistic or semantic acceptance.",
+      "maker": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-en-stewart1887-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.de-beneficiis-en-stewart1887-wikisource.20261027",
+        "made_at": "2026-11-04T06:58:53+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "competing_segmentation_refs": [],
+      "review_refs": [],
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "source_text_authority": false,
+      "linguistic_authority": false,
+      "semantic_authority": false
+    }
+  ],
+  "reviews": [],
+  "projections": [],
+  "rights_and_visibility": {
+    "source_visibility": "public",
+    "packet_visibility": "public",
+    "effective_visibility": "public",
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-en-stewart1887-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json"
+    ],
+    "private_source_used": false,
+    "publication_authorized": true,
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins"
+  },
+  "authority_boundary": {
+    "tree_role": "orientation",
+    "graph_role": "relation",
+    "source_role": "authority",
+    "validators_prove_mechanics_not_truth": true,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "legacy_bulk_migration_authorized": false
+  }
+}
