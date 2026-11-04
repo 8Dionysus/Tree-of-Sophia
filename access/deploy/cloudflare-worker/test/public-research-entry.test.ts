@@ -106,34 +106,41 @@ test("icons, crawler files and link cards come from the root of the research bui
 });
 
 const STAND = `<!doctype html>
-<html lang="ru">
+<html lang="en">
   <head>
-    <title>Заратустра · Древо Софии</title>
-    <meta name="description" content="«Так говорил Заратустра» в Древе Софии" />
-    <meta property="og:site_name" content="Древо Софии" />
-    <meta property="og:title" content="Так говорил Заратустра · Древо Софии" />
-    <meta property="og:description" content="«Так говорил Заратустра» в Древе Софии" />
-    <meta property="og:image" content="https://treeofsophia.com/og/zarathustra-ru.jpg" />
-    <meta property="og:locale" content="ru_RU" />
+    <title>Zarathustra · Tree of Sophia</title>
+    <meta name="description" content="Thus Spoke Zarathustra in the Tree of Sophia" />
+    <meta property="og:site_name" content="Tree of Sophia" />
+    <meta property="og:title" content="Thus Spoke Zarathustra · Tree of Sophia" />
+    <meta property="og:description" content="Thus Spoke Zarathustra in the Tree of Sophia" />
+    <meta property="og:image" content="https://treeofsophia.com/og/zarathustra-en.jpg" />
+    <meta property="og:locale" content="en_US" />
   </head>
 </html>`;
 
-test("a stand's page names itself in the language its link asks for", async () => {
-  const english = localizeHead(STAND, "zarathustra", "en");
-  assert.match(english, /<html lang="en"/);
-  assert.match(english, /<title>Zarathustra · Tree of Sophia<\/title>/);
-  assert.match(english, /<meta property="og:title" content="Thus Spoke Zarathustra · Tree of Sophia"/);
-  assert.match(english, /<meta name="description" content="Thus Spoke Zarathustra in the Tree of Sophia: the German original/);
-  assert.match(english, /og\/zarathustra-en\.jpg/);
-  assert.match(english, /content="en_US"/);
-  assert.equal(localizeHead(STAND, "zarathustra", "ru"), STAND);
+test("a stand's page names itself in English unless its link asks for Russian", async () => {
+  const russian = localizeHead(STAND, "zarathustra", "ru");
+  assert.match(russian, /<html lang="ru"/);
+  assert.match(russian, /<title>Заратустра · Древо Софии<\/title>/);
+  assert.match(russian, /<meta property="og:title" content="Так говорил Заратустра · Древо Софии"/);
+  assert.match(russian, /<meta name="description" content="«Так говорил Заратустра» в Древе Софии: немецкий оригинал/);
+  assert.match(russian, /<meta property="og:site_name" content="Древо Софии"/);
+  assert.match(russian, /og\/zarathustra-ru\.jpg/);
+  assert.match(russian, /content="ru_RU"/);
   assert.equal(localizeHead(STAND, "zarathustra", null), STAND);
-  assert.match(localizeHead(STAND, "zarathustra", "zh-Hans"), /<html lang="zh"/);
+  assert.equal(localizeHead(STAND, "zarathustra", "xx"), STAND);
+  const english = localizeHead(STAND, "zarathustra", "en");
+  assert.match(english, /<title>Zarathustra · Tree of Sophia<\/title>/);
+  assert.match(english, /<meta name="description" content="Thus Spoke Zarathustra in the Tree of Sophia: the German original/);
+  const chinese = localizeHead(STAND, "zarathustra", "zh-Hans");
+  assert.match(chinese, /<html lang="zh"/);
+  assert.match(chinese, /<title>Zarathustra · Tree of Sophia<\/title>/);
+  assert.doesNotMatch(localizeHead(STAND, "antiquity", "es"), /[А-Яа-яЁё]/);
   const app = fixture(() => new Response(STAND, { headers: { "Content-Type": "text/html; charset=utf-8", "Content-Length": "999", ETag: "x" } }));
-  const response = await app.fetch(new Request("https://treeofsophia.com/?lang=en"));
+  const response = await app.fetch(new Request("https://treeofsophia.com/?lang=ru"));
   assert.equal(app.paths.at(-1), "/zarathustra/");
-  assert.match(await response.text(), /Thus Spoke Zarathustra · Tree of Sophia/);
+  assert.match(await response.text(), /Так говорил Заратустра · Древо Софии/);
   assert.equal(response.headers.get("ETag"), null);
-  const russian = await app.fetch(new Request("https://treeofsophia.com/zarathustra/?lang=ru"));
-  assert.equal(await russian.text(), STAND);
+  const plain = await app.fetch(new Request("https://treeofsophia.com/zarathustra/"));
+  assert.equal(await plain.text(), STAND);
 });

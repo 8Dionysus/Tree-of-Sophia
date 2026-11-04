@@ -6,7 +6,7 @@
 // place where the book first says it; opening it opens the book at that place. A finger's first touch
 // shows the origin, and the origin's own button opens the book.
 
-import {localeText,localeValue,resolveLocale} from './locale.mjs';
+import {DEFAULT_LOCALE,localeText,localeValue,resolveLocale,shownLanguages} from './locale.mjs';
 
 const WORDS={
   ru:{original:'В оригинале',tree:'В Древе',open:'Открыть первое место в книге',first:'Впервые'},
@@ -36,16 +36,12 @@ export function termForms(module,language,{edition=null}={}){
   return forms;
 }
 
-// The Tree's word in the reader's language when no translation shown says it there;
-// when a translation already says it, a distinct Tree rendering in the other language.
+// The Tree's word in the reader's translation language when no translation shown says that word.
+// Never a word of another language: a reader sees the original and their own translation only.
 export function treeRendering(term,language){
-  for(const lang of [language,language==='ru'?'en':'ru']){
-    const own=term.renderings?.[lang]?.tos?.term,shown=witnesses(term.renderings?.[lang]).map(witness=>witness?.term?.toLowerCase()).filter(Boolean);
-    if(!own)continue;
-    if(!shown.length){if(lang===language)return {lang,term:own};continue;}
-    if(!shown.includes(own.toLowerCase()))return {lang,term:own};
-  }
-  return null;
+  const own=term.renderings?.[language]?.tos?.term;if(!own)return null;
+  const shown=witnesses(term.renderings?.[language]).map(witness=>witness?.term?.toLowerCase()).filter(Boolean);
+  return shown.includes(own.toLowerCase())?null:{lang:language,term:own};
 }
 
 // One line for each word a language's translations use, with the editions that use it.
@@ -112,13 +108,13 @@ export function termMatcher(forms,{greek=false}={}){
  * Terms for a stand. `mark(root)` makes the first mention of every term in `root` active (once per root,
  * again after content arrives later); `open(cite)` opens the book at a place.
  */
-export function createTerms({module,locale=()=> 'ru',open=()=>{}}={}){
+export function createTerms({module,locale=()=>DEFAULT_LOCALE,open=()=>{}}={}){
   if(!module?.terms?.length)return {mark(){},dispose(){},get size(){return 0;}};
   const skip=module.work==='antiquity'?`${SKIP},figcaption,.eyebrow,.minor-title,.muted,.ps-source-status`:SKIP;
   const byId=new Map(module.terms.map(term=>[term.id,term]));
   const matchers=new Map();
   const matcherFor=(language,edition)=>{const key=`${language}:${edition??''}`;if(!matchers.has(key))matchers.set(key,termMatcher(termForms(module,language,{edition}),{greek:language==='grc'}));return matchers.get(key);};
-  const languageOf=element=>{const lang=(element?.closest?.('[lang]')?.getAttribute('lang')||document.documentElement.lang||'ru').toLowerCase();return ['grc','la','de','ru'].find(value=>lang===value||lang.startsWith(`${value}-`))??'en';};
+  const languageOf=element=>{const lang=(element?.closest?.('[lang]')?.getAttribute('lang')||document.documentElement.lang||DEFAULT_LOCALE).toLowerCase();return ['grc','la','de','ru'].find(value=>lang===value||lang.startsWith(`${value}-`))??'en';};
 
   const observed=new Map();let marking=false;
   // A root does not observe its own removal. Watch the stable document for removed
@@ -164,14 +160,15 @@ export function createTerms({module,locale=()=> 'ru',open=()=>{}}={}){
   card.id=`ps-term-card-${Math.random().toString(36).slice(2,8)}`;document.body.append(card);
   let shownFor=null,showTimer=0,hideTimer=0;
   function paint(term){
-    const w=words(locale()),ui=resolveLocale(locale())==='ru'?'ru':'en',editions=module.editions??{};
+    // The original and the reader's one translation (shownLanguages), never the other translations.
+    const [,ui]=shownLanguages(locale(),term.original?.lang??'de',Object.keys(term.renderings??{})),w=words(locale()),editions=module.editions??{};
     const rows=[];
     const head=make('p','ps-term-original');head.append(make('span','ps-term-eyebrow',w.original),Object.assign(make('span','ps-term-lemma',term.original?.lemma??''),{lang:term.original?.lang??'de'}));rows.push(head);
-    for(const language of ['ru','en']){
+    for(const language of [ui].filter(Boolean)){
       for(const witness of witnessLines(term.renderings?.[language],editions,locale())){
         const line=make('p','ps-term-witness');const said=make('span','ps-term-word',witness.term);said.lang=language;const source=make('span','ps-term-source',witness.source);source.title=witness.title;line.append(said,source);rows.push(line);}
     }
-    const own=treeRendering(term,ui);
+    const own=ui?treeRendering(term,ui):null;
     if(own){const line=make('p','ps-term-witness is-tree');const said=make('span','ps-term-word',own.term);said.lang=own.lang;line.append(said,make('span','ps-term-source',w.tree));rows.push(line);}
     const gloss=localeValue(term.gloss,locale());if(gloss)rows.push(make('p','ps-term-gloss',gloss));
     if(term.first?.q){const first=make('p','ps-term-first');first.append(make('span','ps-term-eyebrow',w.first),Object.assign(make('q','',term.first.q),{lang:term.original?.lang??'de'}));rows.push(first);}

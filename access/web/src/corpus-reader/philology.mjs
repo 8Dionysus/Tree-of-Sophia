@@ -1,4 +1,4 @@
-import {localeText,copyLocale,localeLabels} from '../public-research/locale.mjs';
+import {localeText,copyLocale,localeLabels,translationLanguage} from '../public-research/locale.mjs';
 import './philology.css';
 import {referenceKey, validateReference} from './model.mjs';
 import {languageName} from '../observatory/human-presentation.mjs';
@@ -293,7 +293,10 @@ export function renderPhilology(body, {
     body.append(section);
   }
 
-  const mappings = !multiword && Array.isArray(result?.mappings) ? result.mappings : [];
+  // A proposed correspondence is offered in the reader's one translation language only (shownLanguages).
+  const proposed = !multiword && Array.isArray(result?.mappings) ? result.mappings : [];
+  const mappingLanguage = translationLanguage(locale, proposed.map(mapping => mapping?.targetLanguage).filter(Boolean));
+  const mappings = proposed.filter(mapping => mapping?.targetLanguage === mappingLanguage);
   if (mappings.length) {
     const section=element('section','cr-philology-mappings');
     section.append(element('h3','',words.mappings));

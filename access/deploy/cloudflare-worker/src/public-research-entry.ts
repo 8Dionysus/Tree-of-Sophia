@@ -23,27 +23,46 @@ function originPath(pathname: string): boolean {
 const ROOT_FILES = new Set(["/favicon.svg", "/favicon.ico", "/apple-touch-icon.png", "/robots.txt", "/sitemap.xml"]);
 const rootFile = (pathname: string) => ROOT_FILES.has(pathname) || /^\/og\/[a-z-]+\.jpg$/.test(pathname);
 
-// A stand's page names itself in Russian; a link that asks for another language gets its
-// title, description and card in English, so a shared link reads in the reader's language.
-const HEADS: Record<string, { title: string; og: string; description: string }> = {
+// A stand's page names itself in English, the site's default. A link that asks for Russian gets
+// its title, description and card in Russian; a link in another language of the site keeps the
+// English head under its own language tag. A shared link reads in the reader's language.
+type Head = { title: string; og: string; description: string };
+const HEADS: Record<string, Record<"en" | "ru", Head>> = {
   zarathustra: {
-    title: "Zarathustra · Tree of Sophia",
-    og: "Thus Spoke Zarathustra · Tree of Sophia",
-    description: "Thus Spoke Zarathustra in the Tree of Sophia: the German original, Common’s and Antonovsky’s translations, and a map of the book — its concepts, figures, links and reading routes.",
+    en: {
+      title: "Zarathustra · Tree of Sophia",
+      og: "Thus Spoke Zarathustra · Tree of Sophia",
+      description: "Thus Spoke Zarathustra in the Tree of Sophia: the German original, Common’s and Antonovsky’s translations, and a map of the book — its concepts, figures, links and reading routes.",
+    },
+    ru: {
+      title: "Заратустра · Древо Софии",
+      og: "Так говорил Заратустра · Древо Софии",
+      description: "«Так говорил Заратустра» в Древе Софии: немецкий оригинал, переводы Антоновского и Коммона и карта книги — её понятия, фигуры, связи и маршруты чтения.",
+    },
   },
   antiquity: {
-    title: "Antiquity · Tree of Sophia",
-    og: "Antiquity · Tree of Sophia",
-    description: "Antiquity in the Tree of Sophia: Plato, Aristotle, the Stoics, Epicurus, Cicero, Seneca and Sextus — questions, places in the original and their readings.",
+    en: {
+      title: "Antiquity · Tree of Sophia",
+      og: "Antiquity · Tree of Sophia",
+      description: "Antiquity in the Tree of Sophia: Plato, Aristotle, the Stoics, Epicurus, Cicero, Seneca and Sextus — questions, places in the original and their readings.",
+    },
+    ru: {
+      title: "Античность · Древо Софии",
+      og: "Античность · Древо Софии",
+      description: "Античность в Древе Софии: Платон, Аристотель, стоики, Эпикур, Цицерон, Сенека и Секст — вопросы, места в оригинале и их прочтения.",
+    },
   },
 };
-const LANGUAGES = new Set(["en", "es", "de", "zh-Hans"]);
+const SITE = { en: "Tree of Sophia", ru: "Древо Софии" } as const;
+const OG_LOCALE = { en: "en_US", ru: "ru_RU" } as const;
+const LANGUAGES = new Set(["en", "ru", "es", "de", "zh-Hans"]);
 const escapeHtml = (value: string) => value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 
-/** The stand page's head in English for a link that asks for a language other than Russian. */
+/** The stand page's head in the language its link asks for: Russian copy for Russian, English otherwise. */
 export function localizeHead(html: string, stand: string, lang: string | null): string {
-  const head = HEADS[stand];
-  if (!head || !lang || !LANGUAGES.has(lang)) return html;
+  const heads = HEADS[stand];
+  if (!heads || !lang || !LANGUAGES.has(lang)) return html;
+  const copy = lang === "ru" ? "ru" : "en", head = heads[copy];
   const content = (pattern: RegExp, value: string) => (text: string) => text.replace(pattern, `$1${escapeHtml(value)}$2`);
   return [
     (text: string) => text.replace(/<html lang="[^"]*"/, `<html lang="${lang === "zh-Hans" ? "zh" : lang}"`),
@@ -51,9 +70,9 @@ export function localizeHead(html: string, stand: string, lang: string | null): 
     content(/(<meta name="description" content=")[^"]*(")/, head.description),
     content(/(<meta property="og:description" content=")[^"]*(")/, head.description),
     content(/(<meta property="og:title" content=")[^"]*(")/, head.og),
-    content(/(<meta property="og:site_name" content=")[^"]*(")/, "Tree of Sophia"),
-    content(/(<meta property="og:locale" content=")[^"]*(")/, "en_US"),
-    (text: string) => text.replace(/(<meta property="og:image" content="[^"]*\/og\/[a-z]+)-ru(\.jpg")/, "$1-en$2"),
+    content(/(<meta property="og:site_name" content=")[^"]*(")/, SITE[copy]),
+    content(/(<meta property="og:locale" content=")[^"]*(")/, OG_LOCALE[copy]),
+    (text: string) => text.replace(/(<meta property="og:image" content="[^"]*\/og\/[a-z]+)-(?:ru|en)(\.jpg")/, `$1-${copy}$2`),
   ].reduce((text, step) => step(text), html);
 }
 
