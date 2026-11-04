@@ -48,7 +48,15 @@ export const INQUIRY_READINGS_ECHOES = {
           "en": "The question of return leads to Zarathustra’s fear and the dog’s howl."
         }
       }
-    ]
+    ],
+    "answer": {
+      "ru": "В «Выздоравливающем» звери отвечают Заратустре его же учением: все вещи вечно возвращаются, и мы сами вместе с ними.",
+      "en": "In “The Convalescent” the animals answer Zarathustra with his own teaching: all things return eternally, and we ourselves with them.",
+      "cite": [
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d","tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"]},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-20f9857d42ebc6a252b6b3b83551b13e","tos.text-unit.sid-20f9857d42ebc6a252b6b3b83551b13e"]}
+      ]
+    }
   },
   "demo:shepherd-riddle": {
     "argument": {
@@ -69,7 +77,17 @@ export const INQUIRY_READINGS_ECHOES = {
           "en": "The question of the shepherd comes between the cry and the account of transformation."
         }
       }
-    ]
+    ],
+    "answer": {
+      "ru": "В «Выздоравливающем» Заратустра рассказывает это о себе: чудовище заползло ему в глотку и душило его, и он откусил ему голову. Это было великое отвращение к человеку.",
+      "en": "In “The Convalescent” Zarathustra tells it of himself: the monster crawled into his throat and choked him, and he bit off its head. It was the great disgust at man.",
+      "cite": [
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-86f0bdcb39af8bf302dbd2e4ed48b554","tos.text-unit.sid-86f0bdcb39af8bf302dbd2e4ed48b554"]},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c1a61ec1014026941c54254a0978115d","tos.text-unit.sid-c1a61ec1014026941c54254a0978115d"]},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-37240c18b66cd0884b3095c69df63da3","tos.text-unit.sid-37240c18b66cd0884b3095c69df63da3"]}
+      ],
+      "relation": "shepherd--recurrence--5"
+    }
   },
   "demo:nausea-return": {
     "argument": {
