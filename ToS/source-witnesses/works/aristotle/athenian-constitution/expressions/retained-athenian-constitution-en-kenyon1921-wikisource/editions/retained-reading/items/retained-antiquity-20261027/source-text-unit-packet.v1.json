@@ -1,0 +1,3069 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "packet_id": "tos.source-text-unit-packet.sid-ea51032ef44f45ba93024c5f62c10414",
+  "packet_version": 1,
+  "supersedes_packet_ref": null,
+  "content_posture": "source_bound",
+  "source_scope": {
+    "work_ref": "tos.work.retained-antiquity.athenian-constitution",
+    "expression_ref": "tos.expression.retained.antiquity.athenian-constitution.athenian-constitution-en-kenyon1921-wikisource",
+    "edition_ref": "tos.edition.retained.antiquity.athenian-constitution.athenian-constitution-en-kenyon1921-wikisource",
+    "item_ref": "tos.item.retained.antiquity.athenian-constitution.athenian-constitution-en-kenyon1921-wikisource",
+    "file_ref": "tos.file.sha256.5ed86bac9820a526b0ee25ed2f2e3437f2761c573a1b005e6fdb907396deed15",
+    "file_sha256": "5ed86bac9820a526b0ee25ed2f2e3437f2761c573a1b005e6fdb907396deed15"
+  },
+  "source_layer": {
+    "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+    "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+    "language": "en",
+    "media_type": "text/plain; charset=utf-8",
+    "unicode_form": "source_preserved",
+    "position_unit": "unicode_code_point",
+    "interval": "half_open",
+    "immutable": true,
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "schemes": [
+    {
+      "scheme_id": "tos.text-unit-scheme.sid-8e3bbca217e247df97c29ade15b93a38",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "scheme_name": "Retained source section and bounded reading chunk",
+      "analysis_role": "source_structure",
+      "boundary_basis": "rule_based",
+      "unit_kinds": [
+        "section"
+      ],
+      "method": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.athenian-constitution-en-kenyon1921-wikisource.20261027",
+        "made_at": "2026-11-04T08:12:18+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "policies": {
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "punctuation": "included_in_neighbor",
+        "whitespace": "included_in_neighbor",
+        "line_break": "included_in_neighbor",
+        "hyphenation": "preserve_source",
+        "unreported_gaps_allowed": false,
+        "overlap": "forbid"
+      },
+      "authority_limit": {
+        "algorithmic_output_is_source_truth": false,
+        "algorithmic_output_is_linguistic_truth": false,
+        "model_subword_is_lexeme": false,
+        "unit_identity_is_semantic_identity": false,
+        "text_mutation_allowed": false
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.sid-cb8728dc283046ef96064ac9d1b0768e",
+      "ordinal": 1,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 141394,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "anchor_role": "scope",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-c0b1ee583e434d00a93b7474c3f91f02",
+      "ordinal": 2,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 361,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b7deecc237428793a7434a15cddaccd013ce49c9fad2db06bf4d28035ea5d230",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-824b3bbca6df48d09bfafffc6412edad",
+      "ordinal": 3,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 361,
+        "end": 1319,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1bbe54d3f3bc209d0093fa7cb2882aa591e2cb127f10e08fe9741d77729b977a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-423de2c7d44b48cab297b7ba313b9e16",
+      "ordinal": 4,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 1319,
+        "end": 4694,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "748b94b9050a21943f076bdf32486df20677a6bcfbc11b4b28c5cb119362622f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a708610333c149d3a0d0af74ffe89b33",
+      "ordinal": 5,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 4694,
+        "end": 6737,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "de8cf730fdbc0858244fb178114ef0947bb3e1701031e46f5fd1c3c4788666fc",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-66a39e4e541542fb84d9137214bcadc3",
+      "ordinal": 6,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 6737,
+        "end": 8294,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e3966974fde2549c22bfeae783580272b67bdbf458389bc2b9f6e1509845c3e0",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-54916cb286d643bc88311b0ba99aba6a",
+      "ordinal": 7,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 8294,
+        "end": 10082,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "5cb55b4dd2d7d211aa3630438a88c6de384ca152e2919d4c50e458b169065b97",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-fc3fb17f7be743f59e731bb1c6b20415",
+      "ordinal": 8,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 10082,
+        "end": 12543,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "da637882c9c5e4257593a117d82e0005369c29900520e9fc312ad6a6345e0c4a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3eba7fe0b61846b48fd22a62f496a5b7",
+      "ordinal": 9,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 12543,
+        "end": 14774,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "0aef5f5700f3f52a0854acfa8cfaa6d4a6c924af7a8a18cfbfb2d9848bd6d2f5",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-47327297e66c41768c3f47387ece0fff",
+      "ordinal": 10,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 14774,
+        "end": 16061,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a788689771336a7d6ea85adbf0281e245427b725e3906ee2a27a0c9de026451a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-23af6595bddf4e1ca3e93e809f52b3ba",
+      "ordinal": 11,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 16061,
+        "end": 16720,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "69b1d233aed48090af53f0968deb0cf100036c6a87497aa3d4723304a318314d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-5e1d8da6895645b784dd3f01dc9232eb",
+      "ordinal": 12,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 16720,
+        "end": 18077,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d26c16d17728402199a24c2c53fd8a382520d49fdf78aadd07330931e2c343c4",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-53cefbadbf7d4344bdcf73489edbbf85",
+      "ordinal": 13,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 18077,
+        "end": 21640,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a26eea1bcea193ad64826d29a02593a91123d0c4e18bbb22e537f27b085bd732",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-400ef32de22545419121c66ff32892f5",
+      "ordinal": 14,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 21640,
+        "end": 23860,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ba12053f6ebb9e20a52552f2008e4870b43555c782680befcf4b99be959a3acf",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-7199df090d4e4d05add691551e89d1ac",
+      "ordinal": 15,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 23860,
+        "end": 26185,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ea1111eef0eee55e87be04dbf3141bbf58e1fb997565df81c03c3cae0f07d8be",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-01c76b66e6b44e7a8363bdde7c4df8a7",
+      "ordinal": 16,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 26185,
+        "end": 28106,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "0b6b6aee240ced362c860abec47618020ebb90cb95838b1c9ed3475c3c8d14e9",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f949e5c0545b410595d2986e87897fb0",
+      "ordinal": 17,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 28106,
+        "end": 31271,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "37d547ec8eb624ff831c8ecdfee8c628ea59a916f22bcb8827f2bd04875be088",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-87a1c0e59334453ab449253f751163c7",
+      "ordinal": 18,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 31271,
+        "end": 32689,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "4555f71312314f699cc655b1952346c6b171be81c1ff3e3b7f89e9908a56d714",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-523416d09e8e453fb188c14a47d495f4",
+      "ordinal": 19,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 32689,
+        "end": 35748,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "733e1c8188d1adba518e58283e83fd1bbebb5929ae41dbfeb9cc4d0066fe4ba6",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ebf69c5deb174d378be4e437cf29ea66",
+      "ordinal": 20,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 35748,
+        "end": 38710,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f49183c44189d6d6573206a355969b86476fb49a058bcaf0aed265bb0ddcc1ad",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ddc716f7e53c46e99991e5c6749431d9",
+      "ordinal": 21,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 38710,
+        "end": 40541,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1129069ce04e98aacb3329f1d70ed4bd47968f754cef98bc24279d56d8358666",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a4c708cc571b421495b6d59d2abfe560",
+      "ordinal": 22,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 40541,
+        "end": 42769,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "20d26f13ce73605466171731f43f00c88257a90d29dfbf9997f719c348ae3420",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a658fa9f0c914d60a64c27a40e3e2fe4",
+      "ordinal": 23,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 42769,
+        "end": 46244,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d45f65923d863b127181714ad84d3b2c30aea2f17704dcb22337f78dc5d41be8",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-fca436b8ceb34a629bf9a3c4f3b04dc9",
+      "ordinal": 24,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 46244,
+        "end": 48231,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "06f1d28a98c65a9f5efd11bbb2b433413be52385683d5ba7797046324709879b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-fc46bae645714773b9e596aa92ea440a",
+      "ordinal": 25,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 48231,
+        "end": 49834,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "df12e0045a94610008062d4b64eed220f5e5c3ded5fc60cfa4ded38e0226bef6",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3bf207f697934d7f9d3819f3f2467213",
+      "ordinal": 26,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 49834,
+        "end": 51822,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ec774ad52655f4412be168aa5b413653e4b2a992454ec48438354573900e0ff0",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-04bb258ab0b9483fb4b554a39066029f",
+      "ordinal": 27,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 51822,
+        "end": 53659,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "921dbc68d57ac126e56114f746df7fb52010bca93b8ad3d457bb0175d7b7170e",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2742902d02a64b5dbaaf694c10f844d0",
+      "ordinal": 28,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 53659,
+        "end": 55993,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ea5e5cf72d46422ec178ae88bf8c01f3850e989c4e3c44a0b366456d2c5ad959",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-65d0d48f57194f0281a6b67da9a1e912",
+      "ordinal": 29,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 55993,
+        "end": 59071,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "48dc81d5dad2859d3265c2347f38d59f6ae79ffa732887827032983f799031ac",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ff3e2c73d71a4394b6911bc1abf161e6",
+      "ordinal": 30,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 59071,
+        "end": 62143,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c5b642f8ec3efa9aa561c4f51ff352108c5ae75d501a646eee28eddf3563a74d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-e1e8c8c70c37444fac78c9c215d1f1b9",
+      "ordinal": 31,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 62143,
+        "end": 65027,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "235f01c6e3f735048f8bdaabe763a8b85b433921bf8b25aa6be63489cf7bfe19",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-6de7e0b1ed704870bb32d8f215108b02",
+      "ordinal": 32,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 65027,
+        "end": 66762,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "17d91b1cb6c04ee5bc47fadec3711eeb4d2fce9feb513f22235297004631436c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a1912e6b017843abb4017a007d63fe87",
+      "ordinal": 33,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 66762,
+        "end": 68122,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "0e7912cd9792da461056b809b225940b2f3050f78ae15d3cfb2b7961aed5cd66",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2e689aceafa045a8b60b21c4d5dc8fc4",
+      "ordinal": 34,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 68122,
+        "end": 69271,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "0ee2f24b7c05af3c2128bd7b9380e40535870bb1a929e34cc8188b4434370b8c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-e09c95e849974583a7d3233dfb8ed238",
+      "ordinal": 35,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 69271,
+        "end": 71568,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d94439ab77c8dea52604b190a00eb3b72da841f2077a48643c62f55db3d707fe",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b98fc9b91ae64261bb2c1591927d1e13",
+      "ordinal": 36,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 71568,
+        "end": 73668,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d5ccf563a3237861ca882cb804c62efdb2a3572b7ca79b546161ac6dbb5b3a65",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d92f9cf3b6d349a2a798eca86398ebe4",
+      "ordinal": 37,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 73668,
+        "end": 75081,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "74c233f104b88685a118467b0042b64925bfa19552c3cf0e7ba8368aa9b23c31",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-1fd3227de8744269ac881a034d44ef5a",
+      "ordinal": 38,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 75081,
+        "end": 76394,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "8457783aa249c295e33e7d2fcc2c1dcd19b786ed2baafba4c020603b12858ffc",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-37c941ac782c4ad6becee1b8e66a520b",
+      "ordinal": 39,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 76394,
+        "end": 78871,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "cf4b1c4bda41386eedb87ad7f03bfb7f4c68ccc0f41a086ae94afb7f5a92a390",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-1546cfde60ba4d0a937bcab8c7e1250f",
+      "ordinal": 40,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 78871,
+        "end": 81331,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "97a618720dc331ecfebd72b42bccf632d81ca005058b0a2cd1a2cdcfc6964977",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3683a392e80144e79bef08aa1cb2d5b7",
+      "ordinal": 41,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 81331,
+        "end": 83694,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "4c76d5ab30e9478c631e23fe2bac0376d8bb39b9f56ff2da759636d3d95b5f3e",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-158b852d157c41a29cd7aeeceeabeb4d",
+      "ordinal": 42,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 83694,
+        "end": 86494,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "0f02203e4f04d497f56bff201d9cacece174d417d3b08b7def91a94f53c5324a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-028ba3c7138e46c4accfa48dac30e504",
+      "ordinal": 43,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 86494,
+        "end": 89486,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "5e7f9e61f5e63205ed968b8498f74b821cd32c7be273b10d6c4738bc699abdfd",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-db16631fecc240eeab1b403999eef63a",
+      "ordinal": 44,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 89486,
+        "end": 92327,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "edea866a273c1dac29d774c3491c3cda6b89c1ff322fe2bf0582b379c1d219ea",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ddfae3e8114f405b85d4181b558b4983",
+      "ordinal": 45,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 92327,
+        "end": 93747,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7dfa4a15262fb6bb01fb93e647a91ab828958b26da766afc37c97e48ded13105",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-c2620569c47440849c26f6e40d3a1f93",
+      "ordinal": 46,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 93747,
+        "end": 95644,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a666ee3dc34b13a3ab2469a738d4cf6899b748afb296213ac8f00f1ad0f7cdf7",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-bb09c67daf7b415e9244e196bad54cf0",
+      "ordinal": 47,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 95644,
+        "end": 96407,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ea1a079578fe13aa983ab36486c193da1e34dd06d8cec6f5de561624c28ea5e0",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-30621a883a184b02a27a690d546fe702",
+      "ordinal": 48,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 96407,
+        "end": 99129,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ff62c5cd8c54bd14820283b16e9a3a8bfb6bd6e3c6fd19a7caefeee478ac7770",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d1d424258dfe4113912a9b755420bf8b",
+      "ordinal": 49,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 99129,
+        "end": 101421,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "59b2592f6716636e3f4a5b80e2528c6d2645d8c100faa2d636ba8c7e7084e3e8",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a146d823ab09466a90dfadde5565da35",
+      "ordinal": 50,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 101421,
+        "end": 103803,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e37332ce3d1ed45eb745df4187efb1e1593f5e3c2b5c44fea2ebfaad04cebcec",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-34a8d6cff72b4e7a8c003927a28da912",
+      "ordinal": 51,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 103803,
+        "end": 104790,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "9814670ebe5356aa70e9632de7b985023ca998923111d133248e49adb11599f4",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-c747dea34c444b529401ebf6171281fd",
+      "ordinal": 52,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 104790,
+        "end": 105945,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "8d52940c595acb2edf67354191c5cbdedd5a366884a379b3c34161d95bec41f2",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-0047347fe46c42d38234fe465f3c5755",
+      "ordinal": 53,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 105945,
+        "end": 107606,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "0c70f8af6ee0123e207b8dfb0ab8160e3d38155d0f057c8a7ffc6aad1296803d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b665ae286d3947d884e0ab90309afb25",
+      "ordinal": 54,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 107606,
+        "end": 110790,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7373803520a8efb72d35b75c236ba79f77e465a10f7247e64f51167bc440ded0",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-af4ee93f58a148b5b78010c8e9ab2fdd",
+      "ordinal": 55,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 110790,
+        "end": 113625,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7690a49a47da14c55d935e583436ea356e1207476186dcbb38c5e83b1367a782",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-8af5124aa42d45fc9f657e6f702ec298",
+      "ordinal": 56,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 113625,
+        "end": 116372,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7fd10b635d883a0ef3d57682aa7fc2bd041c8f7ebc87a44021c93a2660931ac1",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-0502380167514ac4a9da637355e5c735",
+      "ordinal": 57,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 116372,
+        "end": 120045,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e3bff7075d42eaa16ca14e99334fc02a47e5d1b2ff3c60d2e10716014a07f94b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-077a11a400d04174b1afb7920e331969",
+      "ordinal": 58,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 120045,
+        "end": 122480,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "95a6610e874a4e114e4b21233de3a57a4af2234eb35957e9299279f9c1744993",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-e73cc73fb4034ed78c292e37f8c5cf4d",
+      "ordinal": 59,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 122480,
+        "end": 123395,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f15e5fd5206ab06a6302059c0cb3e8cace9355d9bf10207ed8de873a71c002ea",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b0ae64d86a454315a6f2ec17f22081b4",
+      "ordinal": 60,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 123395,
+        "end": 125211,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "19c7b40ccd8643fb76c943603aef58955180a1de133a84701437477fcf3afe85",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-58cf2278ed6549b085f6afc0ce089383",
+      "ordinal": 61,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 125211,
+        "end": 126825,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "6752eee82e6aab69edb83f1adc2790ce9f3352c0c071ac204e041b7225b26893",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-204941e9696d4944812b914d81bd75bf",
+      "ordinal": 62,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 126825,
+        "end": 129001,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "54b352d30efbe74673592aacc623643b652cf3e50afd6c5aff29f5367f557b3e",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-52f74332923e4f0e93aec06db909c56d",
+      "ordinal": 63,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 129001,
+        "end": 130435,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c72ebcabd69f0954849c4b2e0ef13fe634f16eda9d07c3cbe2c5bb75f9483edd",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-42a7d4c37da141edb7b4eeb64559fada",
+      "ordinal": 64,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 130435,
+        "end": 132211,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ae9cdcbcb19c598236093be3858f301a0cc8ea9662710b68157b60278d3dc100",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-cf336880f8c742689e30728924514339",
+      "ordinal": 65,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 132211,
+        "end": 134087,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "63795109bc96d13900b5ab0d71d8a64b18cb7c65805c0253cf2dd30c41f55f9d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-c4c99f3122ea4193bbf1f45b5462d923",
+      "ordinal": 66,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 134087,
+        "end": 135323,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1854936d789c29ede67eaeaf700a407ec42717695ef9a696afe391d126fe2a12",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2a5b3496b1d14a9381bce73301584861",
+      "ordinal": 67,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 135323,
+        "end": 137014,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "58b66a2163648a8e1b71d88552805c90a37cdbaf613471c3dcfd61f9c0d65795",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-bf3ee9c175ba4a7bab1f04a806354a56",
+      "ordinal": 68,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 137014,
+        "end": 138519,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "07d66d47dfd4318783b58bb2e88d4d9bf06988f25d56e2babc9cf187d7b08367",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-91cd1a0f981746b8aee789cf115dd43d",
+      "ordinal": 69,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 138519,
+        "end": 140394,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "34c2c5f0f75eec0e4aeeeb7d2ca5c41c4f388750d7e8d169c8efa76c92e0d32a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-993938552a6740398e6e2be51ae1a711",
+      "ordinal": 70,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "selector": {
+        "type": "text_position",
+        "start": 140394,
+        "end": 141394,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "2329fa32f8f981b8c518ff9de80639061990e14d1f14f9fdee47cd161e0ea2fe",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/w/index.php?title=Athenian_Constitution&oldid=15710661"
+      }
+    }
+  ],
+  "units": [
+    {
+      "unit_id": "tos.text-unit.sid-3c69fd24689f4a5db0e0df10d3c87539",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-c0b1ee583e434d00a93b7474c3f91f02"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8cec411715f243aa87fb347f445438ab",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-824b3bbca6df48d09bfafffc6412edad"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-01fc625c19c046658c186af5818aa218",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-423de2c7d44b48cab297b7ba313b9e16"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8135931f9e704620ac90f9374a6b909f",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a708610333c149d3a0d0af74ffe89b33"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-01eb67237f5a4a55aaa617192c8534b1",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-66a39e4e541542fb84d9137214bcadc3"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-0f9e87c0077945f9b9972e063d8aa35d",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-54916cb286d643bc88311b0ba99aba6a"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-259f79e6232344d2bfe9cb92da8242d3",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-fc3fb17f7be743f59e731bb1c6b20415"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-765e678544664f919f7efe32fa93d77f",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3eba7fe0b61846b48fd22a62f496a5b7"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1a51e4f56f4343a585ef57ee2afb038e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-47327297e66c41768c3f47387ece0fff"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e40b50d73ea64a7797bea46807b7b2a9",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-23af6595bddf4e1ca3e93e809f52b3ba"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b245b129aad74acc88f79e3e9e940920",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-5e1d8da6895645b784dd3f01dc9232eb"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b33045c5ecce4a1fb8b498767d888961",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-53cefbadbf7d4344bdcf73489edbbf85"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-636fe201e18c4d9fa1f2121e41be4893",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-400ef32de22545419121c66ff32892f5"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-d208a54f1c7e4e70ad5d34a9052b09ba",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-7199df090d4e4d05add691551e89d1ac"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-5e2db34b391a42f7a8c7a0768a6c370d",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-01c76b66e6b44e7a8363bdde7c4df8a7"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-57c5fc1818b34e1c9e267d3b847256c2",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f949e5c0545b410595d2986e87897fb0"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6c044026e89b4cb7829619a98bf0a1df",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-87a1c0e59334453ab449253f751163c7"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-01df39bdaf3b42c882a124c455ae06f5",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-523416d09e8e453fb188c14a47d495f4"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-3d8fb788232a47959b173615aa105856",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ebf69c5deb174d378be4e437cf29ea66"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-0d764865f7cf4a71ba37670223fa8f42",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ddc716f7e53c46e99991e5c6749431d9"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8dab77f69fd147b1b3d3577b8607b27b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a4c708cc571b421495b6d59d2abfe560"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-aab9acfe2f3242e9993e9df1cc2929e1",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a658fa9f0c914d60a64c27a40e3e2fe4"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-650eb47197c2458aafc5f796657b2bec",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-fca436b8ceb34a629bf9a3c4f3b04dc9"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b30a121e368643e68b173df925973454",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-fc46bae645714773b9e596aa92ea440a"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f506f44de98440279a009d04eaa7df71",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3bf207f697934d7f9d3819f3f2467213"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-612eac41f8bc4e07b9491b4ce960e9fb",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-04bb258ab0b9483fb4b554a39066029f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-2fdd8752fbd64d67acf606a5c601c668",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2742902d02a64b5dbaaf694c10f844d0"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b1e95e6cfcbc4b0e97d6a48eff19ae1f",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-65d0d48f57194f0281a6b67da9a1e912"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-7888ac05c9b74dd4b4755ae61ec9381c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ff3e2c73d71a4394b6911bc1abf161e6"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e202e4a1a7bd4e07a31997a618f0050c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-e1e8c8c70c37444fac78c9c215d1f1b9"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4b1375d7139b41fbbaeeef16dc7388c3",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-6de7e0b1ed704870bb32d8f215108b02"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e968affdde9b4765a44d2ee841c4abff",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a1912e6b017843abb4017a007d63fe87"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b90aa65b2c264860ba2a4a5380ef7a48",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2e689aceafa045a8b60b21c4d5dc8fc4"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-efedc505e11244e78469165ace1e8981",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-e09c95e849974583a7d3233dfb8ed238"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4a53dee08a3347bfbd82ce12f3e09879",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b98fc9b91ae64261bb2c1591927d1e13"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-3bd0f1f14fd44e24a9120a8de3350196",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d92f9cf3b6d349a2a798eca86398ebe4"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-41854199a0f249a6a8815fca88f63302",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-1fd3227de8744269ac881a034d44ef5a"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-60abf5203add41d7a692ea469dce453a",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-37c941ac782c4ad6becee1b8e66a520b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e6b67289efbe4d58a5f277c090086c44",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-1546cfde60ba4d0a937bcab8c7e1250f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-46268f358fce49a8a874020642b76882",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3683a392e80144e79bef08aa1cb2d5b7"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1cd6bef207c640bbb24e4c2605f59631",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-158b852d157c41a29cd7aeeceeabeb4d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-913defc6e43d4a20a6837f5038476b24",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-028ba3c7138e46c4accfa48dac30e504"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6e8490ad41a64a228c9b88451e4d9e28",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-db16631fecc240eeab1b403999eef63a"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-326156794e6a4e2a9c7d8316d210e4b8",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ddfae3e8114f405b85d4181b558b4983"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4bdc5057bc554cce889d022af867edc0",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-c2620569c47440849c26f6e40d3a1f93"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-900701ce323e45808fd490338480dfca",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-bb09c67daf7b415e9244e196bad54cf0"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f03b5447cbe24e158e643f3ac62591c9",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-30621a883a184b02a27a690d546fe702"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-cd6b30d24e894662b40b492dc0930206",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d1d424258dfe4113912a9b755420bf8b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-d12c4faf12d64a798b9c8326569b9f95",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a146d823ab09466a90dfadde5565da35"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6a458ab2eade4d6b9f4b7944ac95a147",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-34a8d6cff72b4e7a8c003927a28da912"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-0da273ee4631441ba486009cdac694bb",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-c747dea34c444b529401ebf6171281fd"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-fa6582e484c641478804b6348498baa7",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-0047347fe46c42d38234fe465f3c5755"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-844de34e3363406ba7ea92108c18f926",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b665ae286d3947d884e0ab90309afb25"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-5aa2fb921a3e445da8dd0ffb6ae9b7db",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-af4ee93f58a148b5b78010c8e9ab2fdd"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6f5637176e944bcab79a4e06edb782a2",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-8af5124aa42d45fc9f657e6f702ec298"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1cd68ca993194111806b7fb7984ef1f1",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-0502380167514ac4a9da637355e5c735"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b6e7f5e96f5848519429a92055ece909",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-077a11a400d04174b1afb7920e331969"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-fbb8bc82ad9245ee98d1cc1abde81761",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-e73cc73fb4034ed78c292e37f8c5cf4d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e7c968ae2cf4400a86dfd82efa6dd5be",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b0ae64d86a454315a6f2ec17f22081b4"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-51ce12c8c8944130addd716ee4368802",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-58cf2278ed6549b085f6afc0ce089383"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-be6a7c182b5140638e448c956143ef12",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-204941e9696d4944812b914d81bd75bf"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-3c15d956f4ef4d8495cccee9bcb84c60",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-52f74332923e4f0e93aec06db909c56d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-bb593b5d4a0848f8960a092364f39aa1",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-42a7d4c37da141edb7b4eeb64559fada"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-7b28bbf2be154b268f49660db45b7c17",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-cf336880f8c742689e30728924514339"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-3a983ca331744478aae3cb8770e9693f",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-c4c99f3122ea4193bbf1f45b5462d923"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c398b528dcbe41ffa36cd3db5dc5c452",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2a5b3496b1d14a9381bce73301584861"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-0362ce947f1d482694b43a1c54a5a1f5",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-bf3ee9c175ba4a7bab1f04a806354a56"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-da122f67e19a43f290d0cd4f3b9862b8",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-91cd1a0f981746b8aee789cf115dd43d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-aa28ab058f2643e4809295442d5d7363",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-993938552a6740398e6e2be51ae1a711"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    }
+  ],
+  "segmentations": [
+    {
+      "segmentation_id": "tos.text-segmentation.sid-b11fbc49ee8e4e14a60081d25ca8f014",
+      "segmentation_version": 1,
+      "supersedes_segmentation_ref": null,
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "scheme_ref": "tos.text-unit-scheme.sid-8e3bbca217e247df97c29ade15b93a38",
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-3c69fd24689f4a5db0e0df10d3c87539",
+        "tos.text-unit.sid-8cec411715f243aa87fb347f445438ab",
+        "tos.text-unit.sid-01fc625c19c046658c186af5818aa218",
+        "tos.text-unit.sid-8135931f9e704620ac90f9374a6b909f",
+        "tos.text-unit.sid-01eb67237f5a4a55aaa617192c8534b1",
+        "tos.text-unit.sid-0f9e87c0077945f9b9972e063d8aa35d",
+        "tos.text-unit.sid-259f79e6232344d2bfe9cb92da8242d3",
+        "tos.text-unit.sid-765e678544664f919f7efe32fa93d77f",
+        "tos.text-unit.sid-1a51e4f56f4343a585ef57ee2afb038e",
+        "tos.text-unit.sid-e40b50d73ea64a7797bea46807b7b2a9",
+        "tos.text-unit.sid-b245b129aad74acc88f79e3e9e940920",
+        "tos.text-unit.sid-b33045c5ecce4a1fb8b498767d888961",
+        "tos.text-unit.sid-636fe201e18c4d9fa1f2121e41be4893",
+        "tos.text-unit.sid-d208a54f1c7e4e70ad5d34a9052b09ba",
+        "tos.text-unit.sid-5e2db34b391a42f7a8c7a0768a6c370d",
+        "tos.text-unit.sid-57c5fc1818b34e1c9e267d3b847256c2",
+        "tos.text-unit.sid-6c044026e89b4cb7829619a98bf0a1df",
+        "tos.text-unit.sid-01df39bdaf3b42c882a124c455ae06f5",
+        "tos.text-unit.sid-3d8fb788232a47959b173615aa105856",
+        "tos.text-unit.sid-0d764865f7cf4a71ba37670223fa8f42",
+        "tos.text-unit.sid-8dab77f69fd147b1b3d3577b8607b27b",
+        "tos.text-unit.sid-aab9acfe2f3242e9993e9df1cc2929e1",
+        "tos.text-unit.sid-650eb47197c2458aafc5f796657b2bec",
+        "tos.text-unit.sid-b30a121e368643e68b173df925973454",
+        "tos.text-unit.sid-f506f44de98440279a009d04eaa7df71",
+        "tos.text-unit.sid-612eac41f8bc4e07b9491b4ce960e9fb",
+        "tos.text-unit.sid-2fdd8752fbd64d67acf606a5c601c668",
+        "tos.text-unit.sid-b1e95e6cfcbc4b0e97d6a48eff19ae1f",
+        "tos.text-unit.sid-7888ac05c9b74dd4b4755ae61ec9381c",
+        "tos.text-unit.sid-e202e4a1a7bd4e07a31997a618f0050c",
+        "tos.text-unit.sid-4b1375d7139b41fbbaeeef16dc7388c3",
+        "tos.text-unit.sid-e968affdde9b4765a44d2ee841c4abff",
+        "tos.text-unit.sid-b90aa65b2c264860ba2a4a5380ef7a48",
+        "tos.text-unit.sid-efedc505e11244e78469165ace1e8981",
+        "tos.text-unit.sid-4a53dee08a3347bfbd82ce12f3e09879",
+        "tos.text-unit.sid-3bd0f1f14fd44e24a9120a8de3350196",
+        "tos.text-unit.sid-41854199a0f249a6a8815fca88f63302",
+        "tos.text-unit.sid-60abf5203add41d7a692ea469dce453a",
+        "tos.text-unit.sid-e6b67289efbe4d58a5f277c090086c44",
+        "tos.text-unit.sid-46268f358fce49a8a874020642b76882",
+        "tos.text-unit.sid-1cd6bef207c640bbb24e4c2605f59631",
+        "tos.text-unit.sid-913defc6e43d4a20a6837f5038476b24",
+        "tos.text-unit.sid-6e8490ad41a64a228c9b88451e4d9e28",
+        "tos.text-unit.sid-326156794e6a4e2a9c7d8316d210e4b8",
+        "tos.text-unit.sid-4bdc5057bc554cce889d022af867edc0",
+        "tos.text-unit.sid-900701ce323e45808fd490338480dfca",
+        "tos.text-unit.sid-f03b5447cbe24e158e643f3ac62591c9",
+        "tos.text-unit.sid-cd6b30d24e894662b40b492dc0930206",
+        "tos.text-unit.sid-d12c4faf12d64a798b9c8326569b9f95",
+        "tos.text-unit.sid-6a458ab2eade4d6b9f4b7944ac95a147",
+        "tos.text-unit.sid-0da273ee4631441ba486009cdac694bb",
+        "tos.text-unit.sid-fa6582e484c641478804b6348498baa7",
+        "tos.text-unit.sid-844de34e3363406ba7ea92108c18f926",
+        "tos.text-unit.sid-5aa2fb921a3e445da8dd0ffb6ae9b7db",
+        "tos.text-unit.sid-6f5637176e944bcab79a4e06edb782a2",
+        "tos.text-unit.sid-1cd68ca993194111806b7fb7984ef1f1",
+        "tos.text-unit.sid-b6e7f5e96f5848519429a92055ece909",
+        "tos.text-unit.sid-fbb8bc82ad9245ee98d1cc1abde81761",
+        "tos.text-unit.sid-e7c968ae2cf4400a86dfd82efa6dd5be",
+        "tos.text-unit.sid-51ce12c8c8944130addd716ee4368802",
+        "tos.text-unit.sid-be6a7c182b5140638e448c956143ef12",
+        "tos.text-unit.sid-3c15d956f4ef4d8495cccee9bcb84c60",
+        "tos.text-unit.sid-bb593b5d4a0848f8960a092364f39aa1",
+        "tos.text-unit.sid-7b28bbf2be154b268f49660db45b7c17",
+        "tos.text-unit.sid-3a983ca331744478aae3cb8770e9693f",
+        "tos.text-unit.sid-c398b528dcbe41ffa36cd3db5dc5c452",
+        "tos.text-unit.sid-0362ce947f1d482694b43a1c54a5a1f5",
+        "tos.text-unit.sid-da122f67e19a43f290d0cd4f3b9862b8",
+        "tos.text-unit.sid-aa28ab058f2643e4809295442d5d7363"
+      ],
+      "coverage": {
+        "scope_anchor_ref": "tos.anchor.sid-cb8728dc283046ef96064ac9d1b0768e",
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "unreported_gaps_allowed": false,
+        "overlap_requires_declaration": true,
+        "source_reconstruction_required": true
+      },
+      "status": "proposed",
+      "status_reason": "Deterministic display and navigation segmentation; no textual, linguistic or semantic acceptance.",
+      "maker": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.athenian-constitution-en-kenyon1921-wikisource.20261027",
+        "made_at": "2026-11-04T08:12:18+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "competing_segmentation_refs": [],
+      "review_refs": [],
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "source_text_authority": false,
+      "linguistic_authority": false,
+      "semantic_authority": false
+    }
+  ],
+  "reviews": [],
+  "projections": [],
+  "rights_and_visibility": {
+    "source_visibility": "public",
+    "packet_visibility": "public",
+    "effective_visibility": "public",
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json"
+    ],
+    "private_source_used": false,
+    "publication_authorized": true,
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins"
+  },
+  "authority_boundary": {
+    "tree_role": "orientation",
+    "graph_role": "relation",
+    "source_role": "authority",
+    "validators_prove_mechanics_not_truth": true,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "legacy_bulk_migration_authorized": false
+  }
+}

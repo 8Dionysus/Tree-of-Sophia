@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare Russian Wikisource translations of Antiquity works as retained readings.
+"""Prepare Wikisource translations of Antiquity works as retained readings.
 
 Input is a capture directory with, per work, `capture.json` (page titles,
 revisions and capture times) and the exact parse API response of every page
@@ -23,9 +23,10 @@ import prepare_wikisource_karpov as karpov
 retained = karpov.retained
 ROOT = karpov.ROOT
 LICENSE = karpov.LICENSE
-LAW = ['https://ru.wikisource.org/wiki/Викитека:Авторские_права', LICENSE,
-       'https://www.copyright.gov/circs/circ22.pdf',
+LAW = {'ru': ['https://ru.wikisource.org/wiki/Викитека:Авторские_права'], 'en': ['https://en.wikisource.org/wiki/Wikisource:Copyright_policy']}
+LAW_COMMON = [LICENSE, 'https://www.copyright.gov/circs/circ22.pdf',
        'https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/']
+EN_RIGHTS = ' Public domain in the United States (published before 1931) and in Russia (the translator died more than 70 years ago). Wikisource transcription under CC BY-SA 4.0: retain attribution, source, license and change notices. No scan collation or semantic acceptance.'
 
 UNITS = {'первая': 1, 'вторая': 2, 'третья': 3, 'четвертая': 4, 'пятая': 5, 'шестая': 6, 'седьмая': 7,
          'восьмая': 8, 'девятая': 9, 'десятая': 10, 'одиннадцатая': 11, 'двенадцатая': 12, 'тринадцатая': 13,
@@ -62,6 +63,40 @@ WORKS = {
         'attribution': 'Марк Аврелий; перевод С. М. Роговина (1914); участники русской Викитеки (история указанных страниц).',
         'margins': True, 'rationale': 'Translation published 1914; Wikisource marks it PD-RusEmpire (published before 7 November 1917). Public domain in Russia and in the United States (published before 1931). Wikisource transcription under CC BY-SA 4.0: retain attribution, source, license and change notices. No scan collation or semantic acceptance.'},
 }
+
+# English translations from English Wikisource for works the corpus held only in the original.
+YONGE = {'translator': 'Charles Duke Yonge (1812–1891)', 'credit': 'Translated by C. D. Yonge'}
+STEWART = {'translator': 'Aubrey Stewart (1844–1918)', 'credit': 'Translated by Aubrey Stewart'}
+CICERO_1891 = 'The Academic Questions, Treatise De Finibus, and Tusculan Disputations. London: George Bell, 1891'
+for key, config in {
+    'athenian-constitution-en': {'work': 'athenian-constitution', 'author': 'aristotle', 'title': 'The Athenian Constitution', 'split': 'numbered', 'inline_notes': True,
+        'id': 'athenian-constitution-en-kenyon1921-wikisource', 'translator': 'Frederic G. Kenyon (1863–1952)', 'credit': 'Translated by F. G. Kenyon',
+        'edition': 'The Works of Aristotle, vol. X. Oxford: Clarendon Press, 1921', 'year': '1921', 'rationale': 'Translation published 1921; the translator died 1952.'},
+    'lucullus-en': {'work': 'lucullus', 'author': 'cicero', 'title': 'Academic Questions, Book II (Lucullus)', 'split': 'single', 'label': 'Lucullus', **YONGE,
+        'id': 'lucullus-en-yonge1891-wikisource', 'edition': CICERO_1891, 'year': '1891', 'rationale': 'Translation published 1853 (here the 1891 printing); the translator died 1891.'},
+    'de-finibus-en': {'work': 'de-finibus-bonorum-et-malorum', 'author': 'cicero', 'title': 'De Finibus', 'split': 'books', **YONGE,
+        'id': 'de-finibus-en-yonge1891-wikisource', 'edition': CICERO_1891, 'year': '1891', 'rationale': 'Translation published 1853 (here the 1891 printing); the translator died 1891.'},
+    'de-natura-deorum-en': {'work': 'de-natura-deorum', 'author': 'cicero', 'title': 'On the Nature of the Gods', 'split': 'books', **YONGE,
+        'id': 'de-natura-deorum-en-yonge1888-wikisource', 'edition': "Cicero's Tusculan Disputations; also Treatises on the Nature of the Gods and on the Commonwealth. New York: Harper, 1888", 'year': '1888',
+        'rationale': 'Translation published 1888; the translator died 1891.'},
+    'de-beneficiis-en': {'work': 'de-beneficiis', 'author': 'seneca', 'title': 'On Benefits', 'split': 'books', **STEWART,
+        'id': 'de-beneficiis-en-stewart1887-wikisource', 'edition': 'L. Annaeus Seneca on Benefits. London: George Bell, 1887', 'year': '1887',
+        'rationale': 'Translation published 1887; the translator died 1918.'},
+    'de-clementia-en': {'work': 'de-clementia', 'author': 'seneca', 'title': 'Of Clemency', 'split': 'books', **STEWART,
+        'id': 'de-clementia-en-stewart1900-wikisource', 'edition': 'L. Annaeus Seneca, Minor Dialogues together with the Dialogue On Clemency. London: George Bell, 1900', 'year': '1900',
+        'rationale': 'Translation published 1889 (here the 1900 printing); the translator died 1918.'},
+    'meditations-en': {'work': 'meditations', 'author': 'marcus', 'title': 'The Communings with Himself', 'split': 'books',
+        'id': 'meditations-en-haines1916-wikisource', 'translator': 'Charles Reginald Haines (1858–1935)', 'credit': 'Translated by C. R. Haines',
+        'edition': 'The Communings with Himself of Marcus Aurelius Antoninus. Loeb Classical Library. London: Heinemann, 1916', 'year': '1916',
+        'rationale': 'Translation published 1916; the translator died 1935.'},
+    'isagoge-en': {'work': 'isagoge', 'author': 'porphyry', 'title': 'The Introduction of Porphyry', 'split': 'single', 'label': 'Text',
+        'id': 'isagoge-en-owen1853-wikisource', 'translator': 'Octavius Freire Owen (1816–1873)', 'credit': 'Translated by O. F. Owen',
+        'edition': 'The Organon, or Logical Treatises, of Aristotle, with the Introduction of Porphyry. London: Bohn, 1853', 'year': '1853',
+        'rationale': 'Translation published 1853; the translator died 1873.'},
+}.items():
+    config.update(wiki='en', language='en', attribution=f"{config['credit']} ({config['year']}); contributors to English Wikisource (history of the cited pages).")
+    config['rationale'] += EN_RIGHTS
+    WORKS[key] = config
 
 SKIP_CLASSES = {'reference', 'mw-editsection', 'noprint', 'ws-noexport', 'navbox', 'reflist', 'references',
                 'mw-references-wrap', 'licenseContainer', 'ws-footer', 'pagenumber'}
@@ -124,12 +159,39 @@ def sections_for(work, config, pages):
         lines = lines_of(page['html'])
         # Notes follow their heading at the end of a page; they are not the work's text.
         for i, line in enumerate(lines):
-            if line.startswith(HEAD) and line[len(HEAD):].strip().lower() == 'примечания':
+            if line.startswith(HEAD) and line[len(HEAD):].strip().lower() in ('примечания', 'notes', 'footnotes'):
                 lines = lines[:i]
                 break
         # Marginal line numbers and page marks [c.525] (Politics) and note numbers (Meditations).
         if config.get('margins'):
             lines = [re.sub(r'\s*(\(\d{1,3}\)|\[c\.\s*\d+\])', '', line).strip() for line in lines]
+        # Navigation rows of chapter numbers ("1 - 2 - 3 - …") are not text.
+        lines = [line for line in lines if not (re.search(r'\d', line) and re.fullmatch(r'[\d\s\-–—|·.]+', line))]
+        # Wikisource maintenance notices, layout switches and section menus.
+        lines = [line for line in lines if not re.match(r'(Layout \d+$|Sections:|This work has been imported|Please take a moment)', line)]
+        # Translator's notes set as numbered lines after the text ("12 Ch. 2, 2.").
+        if config.get('inline_notes'):
+            lines = [line for line in lines if not re.match(r'\d{1,3} (?:[A-Z‘“(\[]|i\.e\.|e\.g\.|cf\.)', line)]
+        if config['split'] == 'numbered':
+            current, body = None, []
+            for line in lines:
+                match = re.match(r'(\d{1,2})\.\s', line[len(HEAD):]) if line.startswith(HEAD) else None
+                if match:
+                    if current is not None:
+                        sections.append(section('', f'§{current}', body))
+                    current, body = int(match.group(1)), []
+                elif current is not None and line and not line.startswith(HEAD):
+                    body.append(line)
+            if current is not None:
+                sections.append(section('', f'§{current}', body))
+            continue
+        if config['split'] == 'single':
+            body = [line for line in lines if line and not line.startswith(HEAD)]
+            if sections:
+                sections[-1]['blocks'][0]['text'] += '\n' + '\n'.join(body)
+            else:
+                sections.append(section('', config['label'], body))
+            continue
         if config['split'] == 'books':
             book = config.get('books', list(range(1, len(pages) + 1)))[n - 1]
             body = [line for line in lines if line and not line.startswith(HEAD)]
@@ -177,16 +239,18 @@ def load(capture, work):
     return record, pages, raws
 
 
-def url_of(title, revid):
-    return 'https://ru.wikisource.org/w/index.php?title=' + urllib.parse.quote(title.replace(' ', '_')) + f'&oldid={revid}'
+def url_of(title, revid, wiki='ru'):
+    return f'https://{wiki}.wikisource.org/w/index.php?title=' + urllib.parse.quote(title.replace(' ', '_')) + f'&oldid={revid}'
 
 
 def prepare(work, capture, selection, owner):
     config = WORKS[work]
     record, pages, raws = load(capture, work)
     sections = sections_for(work, config, pages)
-    index_url = 'https://ru.wikisource.org/wiki/' + urllib.parse.quote(record['index'].replace(' ', '_'))
-    articles = [{'n': p['n'], 'title': p['title'], 'article_url': url_of(p['title'], p['revid']), 'article_oldid': p['revid'],
+    wiki = config.get('wiki', 'ru')
+    law = LAW[wiki] + LAW_COMMON
+    index_url = f'https://{wiki}.wikisource.org/wiki/' + urllib.parse.quote(record['index'].replace(' ', '_'))
+    articles = [{'n': p['n'], 'title': p['title'], 'article_url': url_of(p['title'], p['revid'], wiki), 'article_oldid': p['revid'],
                  'revision_timestamp': p['timestamp'], 'captured_at': p['captured_at']} for p in pages]
     licenses = sorted({t for p in pages for t in p['templates'] if re.search(r'PD|License', t)})
     limit = (f"{len(pages)} Wikisource page{'s' if len(pages) > 1 else ''} without page-scan proofreading; "
@@ -202,11 +266,11 @@ def prepare(work, capture, selection, owner):
     retained.MADE_AT = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
     retained.MINT_IDENTITIES = True
     source = articles[0]['article_url'] if len(articles) == 1 else index_url
-    version = {'id': config['id'], 'language': 'ru', 'credit': config['credit'], 'creditRole': 'translator',
+    version = {'id': config['id'], 'language': config.get('language', 'ru'), 'credit': config['credit'], 'creditRole': 'translator',
                'license': LICENSE, 'source': source, 'publication': {'titles': [config['edition']], 'dates': [config['year']]},
                'attribution': config['attribution'], 'coverageLimit': limit, 'proofreadingStatus': 'not page-proofread',
                'coverageStatus': 'partial-source-transcription' if config.get('coverage') else 'complete-source-transcription'}
-    files, details = retained.output_for({'id': work, 'author': config['author'], 'title': config['title']}, version, data)
+    files, details = retained.output_for({'id': config.get('work', work), 'author': config['author'], 'title': config['title']}, version, data)
     item = details['item_dir_ref']
     for ref, note in (
         (f"{item.split('/editions/')[0]}/expression.json", 'A separately captured Wikisource translation; no equivalence to another local edition or review is claimed.'),
@@ -226,16 +290,16 @@ def prepare(work, capture, selection, owner):
         article.update(raw_api_response_ref=f'{item}/{rel}', raw_api_response_sha256=sha)
     files[f'{item}/item.manifest.json'] = retained.json_bytes(manifest)
     metadata = {'schema_version': 'tos_public_source_metadata_snapshot_v1', 'record_version': 1, 'item_id': details['item_id'],
-        'captured_at': articles[-1]['captured_at'], 'source': {'provider': 'Russian Wikisource', 'work': config['title'],
+        'captured_at': articles[-1]['captured_at'], 'source': {'provider': 'Russian Wikisource' if wiki == 'ru' else 'English Wikisource', 'work': config['title'],
         'translator': config['translator'], 'edition': config['edition'], 'index_url': index_url, 'pages': articles,
-        'licence_templates': licenses, 'scan_collation_performed': False}, 'rights_evidence': [index_url] + LAW,
+        'licence_templates': licenses, 'scan_collation_performed': False}, 'rights_evidence': [index_url] + law,
         'limitations': 'Each page revision was read again after its render; each API response is retained. The pages are not ProofreadPage transclusions, so no page-scan status is recorded.'}
     meta_ref = f'{item}/source-metadata-snapshot.json'
     files[meta_ref] = retained.json_bytes(metadata)
     rights_ref = f'{item}/rights.json'
     rights = json.loads(files[rights_ref])
     rights['jurisdictions_reviewed'] = ['RU', 'US']
-    rights['source_refs'] = [index_url] + [a['article_url'] for a in articles] + LAW
+    rights['source_refs'] = [index_url] + [a['article_url'] for a in articles] + law
     rights['scope_refs'].extend('tos.file.sha256.' + o['sha256'] for o in outputs)
     rights['rationale'] = config['rationale']
     files[rights_ref] = retained.json_bytes(rights)

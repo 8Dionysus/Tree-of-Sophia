@@ -1,0 +1,675 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "packet_id": "tos.source-text-unit-packet.sid-2193ab04773e4e048562e82d3d48358d",
+  "packet_version": 1,
+  "supersedes_packet_ref": null,
+  "content_posture": "source_bound",
+  "source_scope": {
+    "work_ref": "tos.work.retained-antiquity.meditations",
+    "expression_ref": "tos.expression.retained.antiquity.meditations.meditations-en-haines1916-wikisource",
+    "edition_ref": "tos.edition.retained.antiquity.meditations.meditations-en-haines1916-wikisource",
+    "item_ref": "tos.item.retained.antiquity.meditations.meditations-en-haines1916-wikisource",
+    "file_ref": "tos.file.sha256.189f2dbb76d62c3fcf5d7a1c25a751a7d90b89299c6628ef736d5628804ca845",
+    "file_sha256": "189f2dbb76d62c3fcf5d7a1c25a751a7d90b89299c6628ef736d5628804ca845"
+  },
+  "source_layer": {
+    "text_layer_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-en-haines1916-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+    "text_layer_sha256": "7e90f5df010aae3f378ccccee0d9c25b35a95a403d1e94129fce184785fac6ba",
+    "language": "en",
+    "media_type": "text/plain; charset=utf-8",
+    "unicode_form": "source_preserved",
+    "position_unit": "unicode_code_point",
+    "interval": "half_open",
+    "immutable": true,
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "schemes": [
+    {
+      "scheme_id": "tos.text-unit-scheme.sid-ef542fc496614e5f85b3eb0c5ddf5d7b",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "scheme_name": "Retained source section and bounded reading chunk",
+      "analysis_role": "source_structure",
+      "boundary_basis": "rule_based",
+      "unit_kinds": [
+        "section"
+      ],
+      "method": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-en-haines1916-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.meditations-en-haines1916-wikisource.20261027",
+        "made_at": "2026-11-04T08:12:20+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "policies": {
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "punctuation": "included_in_neighbor",
+        "whitespace": "included_in_neighbor",
+        "line_break": "included_in_neighbor",
+        "hyphenation": "preserve_source",
+        "unreported_gaps_allowed": false,
+        "overlap": "forbid"
+      },
+      "authority_limit": {
+        "algorithmic_output_is_source_truth": false,
+        "algorithmic_output_is_linguistic_truth": false,
+        "model_subword_is_lexeme": false,
+        "unit_identity_is_semantic_identity": false,
+        "text_mutation_allowed": false
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.sid-8c33bce2e55d46e28c650589472dc789",
+      "ordinal": 1,
+      "text_layer_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-en-haines1916-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e90f5df010aae3f378ccccee0d9c25b35a95a403d1e94129fce184785fac6ba",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 236327,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7e90f5df010aae3f378ccccee0d9c25b35a95a403d1e94129fce184785fac6ba",
+      "anchor_role": "scope",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Marcus_Aurelius_%28Haines_1916%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b673387ec55c43bba8297a8418732ddf",
+      "ordinal": 2,
+      "text_layer_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-en-haines1916-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e90f5df010aae3f378ccccee0d9c25b35a95a403d1e94129fce184785fac6ba",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 14891,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "99cec571b6798f03e5e7d1d5162d93d6172e1221e4ac2ea9f4b1cae8d29916db",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Marcus_Aurelius_%28Haines_1916%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-0e90fc091833485784f7d425e4f2caad",
+      "ordinal": 3,
+      "text_layer_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-en-haines1916-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e90f5df010aae3f378ccccee0d9c25b35a95a403d1e94129fce184785fac6ba",
+      "selector": {
+        "type": "text_position",
+        "start": 14891,
+        "end": 27218,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "fcd5ee8596bf8ec6c7da5ccc2fdd3dd9f7f2c9aa00bbcc22af93a5d6d28d51a2",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Marcus_Aurelius_%28Haines_1916%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-cfd2584c31fc4dd9bdb4dd20efc9f304",
+      "ordinal": 4,
+      "text_layer_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-en-haines1916-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e90f5df010aae3f378ccccee0d9c25b35a95a403d1e94129fce184785fac6ba",
+      "selector": {
+        "type": "text_position",
+        "start": 27218,
+        "end": 42819,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "490e994eeb1831096a6e53713dd2fde01e20abff7dd7df0c94ba2e09e8dda5e7",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Marcus_Aurelius_%28Haines_1916%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2b958a978c454aec8237a761e60a5764",
+      "ordinal": 5,
+      "text_layer_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-en-haines1916-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e90f5df010aae3f378ccccee0d9c25b35a95a403d1e94129fce184785fac6ba",
+      "selector": {
+        "type": "text_position",
+        "start": 42819,
+        "end": 66082,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "387ff275f550d4d1d6105566c7cdaec59d3663506a6c11bb71357e2ba56d0e2c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Marcus_Aurelius_%28Haines_1916%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-e68663b83b7748dd900ada06680a5679",
+      "ordinal": 6,
+      "text_layer_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-en-haines1916-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e90f5df010aae3f378ccccee0d9c25b35a95a403d1e94129fce184785fac6ba",
+      "selector": {
+        "type": "text_position",
+        "start": 66082,
+        "end": 88463,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "6304c88a64cd981aa18c3416624153608281f15adcff46218ca55268eca13437",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Marcus_Aurelius_%28Haines_1916%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-25b36e918bcd4db1bd004d51f540725b",
+      "ordinal": 7,
+      "text_layer_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-en-haines1916-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e90f5df010aae3f378ccccee0d9c25b35a95a403d1e94129fce184785fac6ba",
+      "selector": {
+        "type": "text_position",
+        "start": 88463,
+        "end": 111293,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b30276ab8cdcac5c94724271cfe1fe5e66e8a482186e04168596ae7b07588b8f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Marcus_Aurelius_%28Haines_1916%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-de593d64a5f542d08a3e6a1735f159f9",
+      "ordinal": 8,
+      "text_layer_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-en-haines1916-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e90f5df010aae3f378ccccee0d9c25b35a95a403d1e94129fce184785fac6ba",
+      "selector": {
+        "type": "text_position",
+        "start": 111293,
+        "end": 133664,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d2a97dedb0a15a7e4f5a23d145cee86d7e34c7cee19a0a5474d2360bbe365a83",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Marcus_Aurelius_%28Haines_1916%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-6f13c140acca465d9885d1ba4a3a89bc",
+      "ordinal": 9,
+      "text_layer_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-en-haines1916-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e90f5df010aae3f378ccccee0d9c25b35a95a403d1e94129fce184785fac6ba",
+      "selector": {
+        "type": "text_position",
+        "start": 133664,
+        "end": 156700,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "74c396e355057e23a3c77ea895b34094f6c95b55ea46783f1637a9914e1d448c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Marcus_Aurelius_%28Haines_1916%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-7b66a6d90f2e490b826610b95fbbf477",
+      "ordinal": 10,
+      "text_layer_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-en-haines1916-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e90f5df010aae3f378ccccee0d9c25b35a95a403d1e94129fce184785fac6ba",
+      "selector": {
+        "type": "text_position",
+        "start": 156700,
+        "end": 178372,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1ff4a2abd351f78489a1db343adf9263cf803eb8297b50d6681903d3c3e11c22",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Marcus_Aurelius_%28Haines_1916%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-00e7b551ffd54e1d812dcd338299cdf1",
+      "ordinal": 11,
+      "text_layer_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-en-haines1916-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e90f5df010aae3f378ccccee0d9c25b35a95a403d1e94129fce184785fac6ba",
+      "selector": {
+        "type": "text_position",
+        "start": 178372,
+        "end": 200954,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "9ecf598aa51939ed49d2faaa8515314f06498c9c26ebe67cf1f628024323626f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Marcus_Aurelius_%28Haines_1916%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-1fb03a76e0d34f15b45dc47118dc747b",
+      "ordinal": 12,
+      "text_layer_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-en-haines1916-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e90f5df010aae3f378ccccee0d9c25b35a95a403d1e94129fce184785fac6ba",
+      "selector": {
+        "type": "text_position",
+        "start": 200954,
+        "end": 220311,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "97c9e8f090126ed0c735b56b4b21c90384a9d7e1f57511605f6e50681f5fcf45",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Marcus_Aurelius_%28Haines_1916%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-884e7c703fdc4bdebe41ba39bf7861fe",
+      "ordinal": 13,
+      "text_layer_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-en-haines1916-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e90f5df010aae3f378ccccee0d9c25b35a95a403d1e94129fce184785fac6ba",
+      "selector": {
+        "type": "text_position",
+        "start": 220311,
+        "end": 236327,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "01708e793762e6b19e50462150c14805f0fcd2991a3dd585396604a6080eb77d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Marcus_Aurelius_%28Haines_1916%29"
+      }
+    }
+  ],
+  "units": [
+    {
+      "unit_id": "tos.text-unit.sid-658cbd0f1b9a4454ac6d3c37263aa065",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b673387ec55c43bba8297a8418732ddf"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f9662e98269c4896996bc5f2110fcb2e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-0e90fc091833485784f7d425e4f2caad"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-82176f9692fe4526b99df51b03fa3777",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-cfd2584c31fc4dd9bdb4dd20efc9f304"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-44eff4580e534348a90c4879dd39c7cf",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2b958a978c454aec8237a761e60a5764"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b2007ab7069a469c8461ebc8b347e7be",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-e68663b83b7748dd900ada06680a5679"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6739d120805f49c39d5b3164de487be8",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-25b36e918bcd4db1bd004d51f540725b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-305fc84ea6f74f3b9f481f90dc0289c0",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-de593d64a5f542d08a3e6a1735f159f9"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-83518564bcff4e6da9a01c9d5a1c7061",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-6f13c140acca465d9885d1ba4a3a89bc"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-cf4edefca20e4c9c8c1dfb97f1fcc431",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-7b66a6d90f2e490b826610b95fbbf477"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-795121f003c64d5aad698aa4a5b1093e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-00e7b551ffd54e1d812dcd338299cdf1"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-d452cd3da51842098621f847cc21e9e3",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-1fb03a76e0d34f15b45dc47118dc747b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-3191e04408cc4fb5a64df72abcea888a",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-884e7c703fdc4bdebe41ba39bf7861fe"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    }
+  ],
+  "segmentations": [
+    {
+      "segmentation_id": "tos.text-segmentation.sid-c72b0017d4b3438d9e8eeb214d7bd583",
+      "segmentation_version": 1,
+      "supersedes_segmentation_ref": null,
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "scheme_ref": "tos.text-unit-scheme.sid-ef542fc496614e5f85b3eb0c5ddf5d7b",
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-658cbd0f1b9a4454ac6d3c37263aa065",
+        "tos.text-unit.sid-f9662e98269c4896996bc5f2110fcb2e",
+        "tos.text-unit.sid-82176f9692fe4526b99df51b03fa3777",
+        "tos.text-unit.sid-44eff4580e534348a90c4879dd39c7cf",
+        "tos.text-unit.sid-b2007ab7069a469c8461ebc8b347e7be",
+        "tos.text-unit.sid-6739d120805f49c39d5b3164de487be8",
+        "tos.text-unit.sid-305fc84ea6f74f3b9f481f90dc0289c0",
+        "tos.text-unit.sid-83518564bcff4e6da9a01c9d5a1c7061",
+        "tos.text-unit.sid-cf4edefca20e4c9c8c1dfb97f1fcc431",
+        "tos.text-unit.sid-795121f003c64d5aad698aa4a5b1093e",
+        "tos.text-unit.sid-d452cd3da51842098621f847cc21e9e3",
+        "tos.text-unit.sid-3191e04408cc4fb5a64df72abcea888a"
+      ],
+      "coverage": {
+        "scope_anchor_ref": "tos.anchor.sid-8c33bce2e55d46e28c650589472dc789",
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "unreported_gaps_allowed": false,
+        "overlap_requires_declaration": true,
+        "source_reconstruction_required": true
+      },
+      "status": "proposed",
+      "status_reason": "Deterministic display and navigation segmentation; no textual, linguistic or semantic acceptance.",
+      "maker": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-en-haines1916-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.meditations-en-haines1916-wikisource.20261027",
+        "made_at": "2026-11-04T08:12:20+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "competing_segmentation_refs": [],
+      "review_refs": [],
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "source_text_authority": false,
+      "linguistic_authority": false,
+      "semantic_authority": false
+    }
+  ],
+  "reviews": [],
+  "projections": [],
+  "rights_and_visibility": {
+    "source_visibility": "public",
+    "packet_visibility": "public",
+    "effective_visibility": "public",
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-en-haines1916-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json"
+    ],
+    "private_source_used": false,
+    "publication_authorized": true,
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins"
+  },
+  "authority_boundary": {
+    "tree_role": "orientation",
+    "graph_role": "relation",
+    "source_role": "authority",
+    "validators_prove_mechanics_not_truth": true,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "legacy_bulk_migration_authorized": false
+  }
+}

@@ -1,0 +1,257 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-resource-inventory.schema.json",
+  "schema_version": "tos_source_resource_inventory_v1",
+  "item_id": "tos.item.retained.antiquity.lucullus.lucullus-en-yonge1891-wikisource",
+  "generated_from_manifest_ref": "ToS/source-witnesses/works/cicero/lucullus/expressions/retained-lucullus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/item.manifest.json",
+  "inventory_authority": "mechanical_metadata_only",
+  "source_text_included": false,
+  "files": [
+    {
+      "file_id": "tos.file.sha256.d407a066e16f38d42c4bc3d4254f2f12f595841db1d198875a04e3d71a7d8510",
+      "file_sha256": "d407a066e16f38d42c4bc3d4254f2f12f595841db1d198875a04e3d71a7d8510",
+      "media_type": "application/json",
+      "profile": "json_members_v1",
+      "summary": {
+        "resource_count": 6,
+        "top_level_member_count": 5,
+        "json_value_counts": {
+          "object_count": 4,
+          "array_count": 8,
+          "string_count": 9,
+          "number_count": 2,
+          "boolean_count": 0,
+          "null_count": 0,
+          "object_key_count": 19
+        }
+      },
+      "resources": [
+        {
+          "resource_id": "json-root",
+          "resource_kind": "json_container",
+          "structural_role": "container_metadata",
+          "locator": {
+            "json_value_type": "object"
+          }
+        },
+        {
+          "resource_id": "json-member-00001",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 1,
+            "json_value_type": "string",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 0,
+            "array_count": 0,
+            "string_count": 1,
+            "number_count": 0,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 0
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "1e0584a25d9f43bf5cbd0aec01eb1af2220ed085b4e7f1837b0d89958cae353a",
+            "character_count": 6
+          },
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "b84d64c67391d0f131b350dafba52581b2e7edca2ce41a0c23aa42fb1065aa0c",
+            "character_count": 131
+          }
+        },
+        {
+          "resource_id": "json-member-00002",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 2,
+            "json_value_type": "array",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 2,
+            "array_count": 5,
+            "string_count": 4,
+            "number_count": 0,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 8
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "4697ef322d1be99283cb2c0f3ff2133eb2fb0b75e4c096232b52629c31f2cfe3",
+            "character_count": 8
+          }
+        },
+        {
+          "resource_id": "json-member-00003",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 3,
+            "json_value_type": "array",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 0,
+            "array_count": 1,
+            "string_count": 0,
+            "number_count": 0,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 0
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "ab5aa97074c454a0632057e704220d9a6678fbf773a0a5806fc09b8173b07309",
+            "character_count": 5
+          }
+        },
+        {
+          "resource_id": "json-member-00004",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 4,
+            "json_value_type": "array",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 0,
+            "array_count": 1,
+            "string_count": 0,
+            "number_count": 0,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 0
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "921cfc4c813e29dc5f7bf7e5b9f666a569a8218b7c773b99bf5479bc727c3a0f",
+            "character_count": 11
+          }
+        },
+        {
+          "resource_id": "json-member-00005",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 5,
+            "json_value_type": "array",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 1,
+            "array_count": 1,
+            "string_count": 4,
+            "number_count": 2,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 6
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "9e560181a990e0bd53afc7be00b8a651fc01f975acebc4789a44b681e07d79ad",
+            "character_count": 12
+          }
+        }
+      ]
+    },
+    {
+      "file_id": "tos.file.sha256.13e8444a6d686d28a86369a65e41b78ea5b83933b76c748c32b775a28fefd3fe",
+      "file_sha256": "13e8444a6d686d28a86369a65e41b78ea5b83933b76c748c32b775a28fefd3fe",
+      "media_type": "text/plain",
+      "profile": "plain_text_v1",
+      "summary": {
+        "resource_count": 1
+      },
+      "resources": [
+        {
+          "resource_id": "plain-text-file",
+          "resource_kind": "plain_text_file",
+          "locator": {
+            "container_order": 1
+          },
+          "structural_role": "member",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "13e8444a6d686d28a86369a65e41b78ea5b83933b76c748c32b775a28fefd3fe",
+            "character_count": 168736
+          }
+        }
+      ]
+    },
+    {
+      "file_id": "tos.file.sha256.18c54bd7e6bdff8503eeca734feb74da2034153f20e710eb10f59944f28e8af5",
+      "file_sha256": "18c54bd7e6bdff8503eeca734feb74da2034153f20e710eb10f59944f28e8af5",
+      "media_type": "application/json",
+      "profile": "json_members_v1",
+      "summary": {
+        "resource_count": 2,
+        "top_level_member_count": 1,
+        "json_value_counts": {
+          "object_count": 138,
+          "array_count": 1,
+          "string_count": 272,
+          "number_count": 136,
+          "boolean_count": 0,
+          "null_count": 0,
+          "object_key_count": 412
+        }
+      },
+      "resources": [
+        {
+          "resource_id": "json-root",
+          "resource_kind": "json_container",
+          "structural_role": "container_metadata",
+          "locator": {
+            "json_value_type": "object"
+          }
+        },
+        {
+          "resource_id": "json-member-00001",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 1,
+            "json_value_type": "object",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 137,
+            "array_count": 1,
+            "string_count": 272,
+            "number_count": 136,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 411
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "30c471f6aafbca7085640653eeef555e85eb0df1602c98a662814c27767d1188",
+            "character_count": 5
+          }
+        }
+      ]
+    }
+  ],
+  "generator": {
+    "name": "build_source_resource_inventories.py",
+    "version": "2"
+  },
+  "provenance_event_ref": "tos.event.inventory.tos.item.retained.antiquity.lucullus.lucullus-en-yonge1891-wikisource.20261104",
+  "inventory_version": 1,
+  "supersedes_inventory_ref": null,
+  "authority_boundary": "This inventory records resource enumeration, geometry, ordering, counts and one-way fingerprints for the selected source."
+}

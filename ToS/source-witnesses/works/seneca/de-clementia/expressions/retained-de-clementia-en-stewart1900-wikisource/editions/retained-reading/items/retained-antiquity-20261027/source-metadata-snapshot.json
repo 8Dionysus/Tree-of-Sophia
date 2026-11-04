@@ -1,0 +1,53 @@
+{
+  "schema_version": "tos_public_source_metadata_snapshot_v1",
+  "record_version": 1,
+  "item_id": "tos.item.retained.antiquity.de-clementia.de-clementia-en-stewart1900-wikisource",
+  "captured_at": "2026-11-04T06:55:39+00:00",
+  "source": {
+    "provider": "English Wikisource",
+    "work": "Of Clemency",
+    "translator": "Aubrey Stewart (1844–1918)",
+    "edition": "L. Annaeus Seneca, Minor Dialogues together with the Dialogue On Clemency. London: George Bell, 1900",
+    "index_url": "https://en.wikisource.org/wiki/Of_Clemency",
+    "pages": [
+      {
+        "n": 1,
+        "title": "Of Clemency/Book I",
+        "article_url": "https://en.wikisource.org/w/index.php?title=Of_Clemency/Book_I&oldid=12261437",
+        "article_oldid": 12261437,
+        "revision_timestamp": "2022-04-03T19:07:50Z",
+        "captured_at": "2026-11-04T06:55:38+00:00",
+        "raw_api_response_ref": "ToS/source-witnesses/works/seneca/de-clementia/expressions/retained-de-clementia-en-stewart1900-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/wikisource-page-01-api.json",
+        "raw_api_response_sha256": "ddec76371191b686792d9c58e03b934174f3a48436fd71613e16fea5faf36e03"
+      },
+      {
+        "n": 2,
+        "title": "Of Clemency/Book II",
+        "article_url": "https://en.wikisource.org/w/index.php?title=Of_Clemency/Book_II&oldid=10797165",
+        "article_oldid": 10797165,
+        "revision_timestamp": "2021-01-02T05:28:15Z",
+        "captured_at": "2026-11-04T06:55:39+00:00",
+        "raw_api_response_ref": "ToS/source-witnesses/works/seneca/de-clementia/expressions/retained-de-clementia-en-stewart1900-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/wikisource-page-02-api.json",
+        "raw_api_response_sha256": "856215a2a17aed3a73047470f0493c00b0f9946c3b885b5d3de2d52469d86b49"
+      }
+    ],
+    "licence_templates": [
+      "Module:License",
+      "Module:License Wikidata",
+      "Module:License scope",
+      "Module:PD",
+      "Module:PD-US",
+      "Template:License/styles.css",
+      "Template:PD-US"
+    ],
+    "scan_collation_performed": false
+  },
+  "rights_evidence": [
+    "https://en.wikisource.org/wiki/Of_Clemency",
+    "https://en.wikisource.org/wiki/Wikisource:Copyright_policy",
+    "https://creativecommons.org/licenses/by-sa/4.0/",
+    "https://www.copyright.gov/circs/circ22.pdf",
+    "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/"
+  ],
+  "limitations": "Each page revision was read again after its render; each API response is retained. The pages are not ProofreadPage transclusions, so no page-scan status is recorded."
+}

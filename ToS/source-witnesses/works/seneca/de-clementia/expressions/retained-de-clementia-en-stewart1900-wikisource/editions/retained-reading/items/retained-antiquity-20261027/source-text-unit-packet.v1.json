@@ -1,0 +1,297 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "packet_id": "tos.source-text-unit-packet.sid-59a2fbc3a427416d847ba9a3715b43d4",
+  "packet_version": 1,
+  "supersedes_packet_ref": null,
+  "content_posture": "source_bound",
+  "source_scope": {
+    "work_ref": "tos.work.retained-antiquity.de-clementia",
+    "expression_ref": "tos.expression.retained.antiquity.de-clementia.de-clementia-en-stewart1900-wikisource",
+    "edition_ref": "tos.edition.retained.antiquity.de-clementia.de-clementia-en-stewart1900-wikisource",
+    "item_ref": "tos.item.retained.antiquity.de-clementia.de-clementia-en-stewart1900-wikisource",
+    "file_ref": "tos.file.sha256.f225a21ce02758b516bd0598a65a1b5df1290e6b1d23fde8c102ae3d2f5779c1",
+    "file_sha256": "f225a21ce02758b516bd0598a65a1b5df1290e6b1d23fde8c102ae3d2f5779c1"
+  },
+  "source_layer": {
+    "text_layer_ref": "ToS/source-witnesses/works/seneca/de-clementia/expressions/retained-de-clementia-en-stewart1900-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+    "text_layer_sha256": "f0d2fac3b758dedf69d6f76923f0f16204d116034b9204f3db8f1d8105efeb50",
+    "language": "en",
+    "media_type": "text/plain; charset=utf-8",
+    "unicode_form": "source_preserved",
+    "position_unit": "unicode_code_point",
+    "interval": "half_open",
+    "immutable": true,
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "schemes": [
+    {
+      "scheme_id": "tos.text-unit-scheme.sid-c80f8af7759a497f9eadb40119e7b78b",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "scheme_name": "Retained source section and bounded reading chunk",
+      "analysis_role": "source_structure",
+      "boundary_basis": "rule_based",
+      "unit_kinds": [
+        "section"
+      ],
+      "method": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/seneca/de-clementia/expressions/retained-de-clementia-en-stewart1900-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.de-clementia-en-stewart1900-wikisource.20261027",
+        "made_at": "2026-11-04T08:12:20+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "policies": {
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "punctuation": "included_in_neighbor",
+        "whitespace": "included_in_neighbor",
+        "line_break": "included_in_neighbor",
+        "hyphenation": "preserve_source",
+        "unreported_gaps_allowed": false,
+        "overlap": "forbid"
+      },
+      "authority_limit": {
+        "algorithmic_output_is_source_truth": false,
+        "algorithmic_output_is_linguistic_truth": false,
+        "model_subword_is_lexeme": false,
+        "unit_identity_is_semantic_identity": false,
+        "text_mutation_allowed": false
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.sid-0e2bb3b2d2d140b4bfab59fdd00a78fd",
+      "ordinal": 1,
+      "text_layer_ref": "ToS/source-witnesses/works/seneca/de-clementia/expressions/retained-de-clementia-en-stewart1900-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "f0d2fac3b758dedf69d6f76923f0f16204d116034b9204f3db8f1d8105efeb50",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 78713,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f0d2fac3b758dedf69d6f76923f0f16204d116034b9204f3db8f1d8105efeb50",
+      "anchor_role": "scope",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Of_Clemency"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-9f8c51aab5ab4def9cffca802cecf78e",
+      "ordinal": 2,
+      "text_layer_ref": "ToS/source-witnesses/works/seneca/de-clementia/expressions/retained-de-clementia-en-stewart1900-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "f0d2fac3b758dedf69d6f76923f0f16204d116034b9204f3db8f1d8105efeb50",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 59963,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "bb124197043c53ad1c0cb3dd0c85d034c46d87e416ca57c8cca65308dcf79a91",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Of_Clemency"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-bc85f8f62b714815bae04cdc158a04ad",
+      "ordinal": 3,
+      "text_layer_ref": "ToS/source-witnesses/works/seneca/de-clementia/expressions/retained-de-clementia-en-stewart1900-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "f0d2fac3b758dedf69d6f76923f0f16204d116034b9204f3db8f1d8105efeb50",
+      "selector": {
+        "type": "text_position",
+        "start": 59963,
+        "end": 64131,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "0d06315f28594843c707190fb87cb18364fc1a4d219d859fb659c2a8aa673325",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Of_Clemency"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-fc825c5d169d4f0d99059be6a66d8027",
+      "ordinal": 4,
+      "text_layer_ref": "ToS/source-witnesses/works/seneca/de-clementia/expressions/retained-de-clementia-en-stewart1900-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "f0d2fac3b758dedf69d6f76923f0f16204d116034b9204f3db8f1d8105efeb50",
+      "selector": {
+        "type": "text_position",
+        "start": 64131,
+        "end": 78713,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "38edd7726c32a82e262e3572cde6fdb3d1932a4bb1c06beab99792bd91732e16",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Of_Clemency"
+      }
+    }
+  ],
+  "units": [
+    {
+      "unit_id": "tos.text-unit.sid-5b270d7a09484ea8890de698185ccbf1",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-9f8c51aab5ab4def9cffca802cecf78e"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-217ad15cc56047e890798d7b73234cee",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-bc85f8f62b714815bae04cdc158a04ad"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-de2f4071a9f54dd78fe638b3a77d3e61",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-fc825c5d169d4f0d99059be6a66d8027"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    }
+  ],
+  "segmentations": [
+    {
+      "segmentation_id": "tos.text-segmentation.sid-46c363ed639f47e2aa87296feff26aaf",
+      "segmentation_version": 1,
+      "supersedes_segmentation_ref": null,
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "scheme_ref": "tos.text-unit-scheme.sid-c80f8af7759a497f9eadb40119e7b78b",
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-5b270d7a09484ea8890de698185ccbf1",
+        "tos.text-unit.sid-217ad15cc56047e890798d7b73234cee",
+        "tos.text-unit.sid-de2f4071a9f54dd78fe638b3a77d3e61"
+      ],
+      "coverage": {
+        "scope_anchor_ref": "tos.anchor.sid-0e2bb3b2d2d140b4bfab59fdd00a78fd",
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "unreported_gaps_allowed": false,
+        "overlap_requires_declaration": true,
+        "source_reconstruction_required": true
+      },
+      "status": "proposed",
+      "status_reason": "Deterministic display and navigation segmentation; no textual, linguistic or semantic acceptance.",
+      "maker": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/seneca/de-clementia/expressions/retained-de-clementia-en-stewart1900-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.de-clementia-en-stewart1900-wikisource.20261027",
+        "made_at": "2026-11-04T08:12:20+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "competing_segmentation_refs": [],
+      "review_refs": [],
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "source_text_authority": false,
+      "linguistic_authority": false,
+      "semantic_authority": false
+    }
+  ],
+  "reviews": [],
+  "projections": [],
+  "rights_and_visibility": {
+    "source_visibility": "public",
+    "packet_visibility": "public",
+    "effective_visibility": "public",
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/seneca/de-clementia/expressions/retained-de-clementia-en-stewart1900-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json"
+    ],
+    "private_source_used": false,
+    "publication_authorized": true,
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins"
+  },
+  "authority_boundary": {
+    "tree_role": "orientation",
+    "graph_role": "relation",
+    "source_role": "authority",
+    "validators_prove_mechanics_not_truth": true,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "legacy_bulk_migration_authorized": false
+  }
+}

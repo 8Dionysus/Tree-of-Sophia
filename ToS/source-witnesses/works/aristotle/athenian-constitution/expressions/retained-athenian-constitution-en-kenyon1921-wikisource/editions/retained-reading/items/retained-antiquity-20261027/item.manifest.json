@@ -1,0 +1,46 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.athenian-constitution.athenian-constitution-en-kenyon1921-wikisource",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.athenian-constitution.athenian-constitution-en-kenyon1921-wikisource",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.5ed86bac9820a526b0ee25ed2f2e3437f2761c573a1b005e6fdb907396deed15",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "athenian-constitution-en-kenyon1921-wikisource.json",
+      "media_type": "application/json",
+      "byte_size": 156206,
+      "sha256": "5ed86bac9820a526b0ee25ed2f2e3437f2761c573a1b005e6fdb907396deed15",
+      "fixity_verified_at": "2026-11-04T08:12:18+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 141582,
+      "sha256": "2e548d7c56c25f085a1cc189e5f99fc082038bb01d8af6aab3b69acbe8608ee7",
+      "fixity_verified_at": "2026-11-04T08:12:18+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.43410e652802930be70afd63296d014a7c3f3ce0f0e31862e585be72bb7a1a4f",
+      "relative_path": "payload/wikisource-page-01-api.json",
+      "original_basename": "wikisource-page-01-api.json",
+      "media_type": "application/json",
+      "byte_size": 458816,
+      "sha256": "43410e652802930be70afd63296d014a7c3f3ce0f0e31862e585be72bb7a1a4f",
+      "fixity_verified_at": "2026-11-04T08:12:18+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.athenian-constitution-en-kenyon1921-wikisource.20261027",
+  "rights_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-en-kenyon1921-wikisource/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

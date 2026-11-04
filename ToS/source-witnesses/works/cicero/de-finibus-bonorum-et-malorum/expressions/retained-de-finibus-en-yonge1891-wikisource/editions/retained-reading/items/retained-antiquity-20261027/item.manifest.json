@@ -1,0 +1,82 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.de-finibus-bonorum-et-malorum.de-finibus-en-yonge1891-wikisource",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.de-finibus-bonorum-et-malorum.de-finibus-en-yonge1891-wikisource",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.26e667604e06ebbd82db55e088dcbc508596cd0e1cd307e76452e1006ab3f4f3",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "de-finibus-en-yonge1891-wikisource.json",
+      "media_type": "application/json",
+      "byte_size": 445733,
+      "sha256": "26e667604e06ebbd82db55e088dcbc508596cd0e1cd307e76452e1006ab3f4f3",
+      "fixity_verified_at": "2026-11-04T08:12:18+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.775647138e2bbd0d21f1e5369d9bf3b11aafd65eb741c045f2158281334fd3cb",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 441381,
+      "sha256": "775647138e2bbd0d21f1e5369d9bf3b11aafd65eb741c045f2158281334fd3cb",
+      "fixity_verified_at": "2026-11-04T08:12:18+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.1183b6119ea8a40405aa904eca669b29f72cae088a66fa68424c7c3cb8262d1b",
+      "relative_path": "payload/wikisource-page-01-api.json",
+      "original_basename": "wikisource-page-01-api.json",
+      "media_type": "application/json",
+      "byte_size": 107314,
+      "sha256": "1183b6119ea8a40405aa904eca669b29f72cae088a66fa68424c7c3cb8262d1b",
+      "fixity_verified_at": "2026-11-04T08:12:18+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.5c1a7855a1284ef932541cc851c6bb8d27e2fd6b4967333393047e5b1b67918c",
+      "relative_path": "payload/wikisource-page-02-api.json",
+      "original_basename": "wikisource-page-02-api.json",
+      "media_type": "application/json",
+      "byte_size": 190811,
+      "sha256": "5c1a7855a1284ef932541cc851c6bb8d27e2fd6b4967333393047e5b1b67918c",
+      "fixity_verified_at": "2026-11-04T08:12:18+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.3f296934941524b71f78d83865987c6b759c06fddb3f0156d2c6ce6486b7101d",
+      "relative_path": "payload/wikisource-page-03-api.json",
+      "original_basename": "wikisource-page-03-api.json",
+      "media_type": "application/json",
+      "byte_size": 105619,
+      "sha256": "3f296934941524b71f78d83865987c6b759c06fddb3f0156d2c6ce6486b7101d",
+      "fixity_verified_at": "2026-11-04T08:12:18+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.3a9cd0c95ec199a29bd849ca9f8ec2b6ca2f56009478edc11dfd8385c50e8295",
+      "relative_path": "payload/wikisource-page-04-api.json",
+      "original_basename": "wikisource-page-04-api.json",
+      "media_type": "application/json",
+      "byte_size": 114507,
+      "sha256": "3a9cd0c95ec199a29bd849ca9f8ec2b6ca2f56009478edc11dfd8385c50e8295",
+      "fixity_verified_at": "2026-11-04T08:12:18+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.48bd8153b5fab4f13438685c756983aefbdac85347f8ee931613bf1336d6331a",
+      "relative_path": "payload/wikisource-page-05-api.json",
+      "original_basename": "wikisource-page-05-api.json",
+      "media_type": "application/json",
+      "byte_size": 138204,
+      "sha256": "48bd8153b5fab4f13438685c756983aefbdac85347f8ee931613bf1336d6331a",
+      "fixity_verified_at": "2026-11-04T08:12:18+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.de-finibus-en-yonge1891-wikisource.20261027",
+  "rights_ref": "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/retained-de-finibus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/retained-de-finibus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/retained-de-finibus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/retained-de-finibus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/retained-de-finibus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

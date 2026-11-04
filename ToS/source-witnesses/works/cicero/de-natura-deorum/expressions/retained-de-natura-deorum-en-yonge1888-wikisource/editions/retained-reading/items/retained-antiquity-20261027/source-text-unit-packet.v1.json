@@ -1,0 +1,465 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "packet_id": "tos.source-text-unit-packet.sid-7778526766634422894d0609ac5539a4",
+  "packet_version": 1,
+  "supersedes_packet_ref": null,
+  "content_posture": "source_bound",
+  "source_scope": {
+    "work_ref": "tos.work.retained-antiquity.de-natura-deorum",
+    "expression_ref": "tos.expression.retained.antiquity.de-natura-deorum.de-natura-deorum-en-yonge1888-wikisource",
+    "edition_ref": "tos.edition.retained.antiquity.de-natura-deorum.de-natura-deorum-en-yonge1888-wikisource",
+    "item_ref": "tos.item.retained.antiquity.de-natura-deorum.de-natura-deorum-en-yonge1888-wikisource",
+    "file_ref": "tos.file.sha256.5392388f7619fd2fda659dc819daadb477642fa0ecbcf269aba35bb0ab4570e8",
+    "file_sha256": "5392388f7619fd2fda659dc819daadb477642fa0ecbcf269aba35bb0ab4570e8"
+  },
+  "source_layer": {
+    "text_layer_ref": "ToS/source-witnesses/works/cicero/de-natura-deorum/expressions/retained-de-natura-deorum-en-yonge1888-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+    "text_layer_sha256": "9bb797bb2f93fe401b896e96a90a8d4b1fd5176665b7801ba90913b5e53ca7b8",
+    "language": "en",
+    "media_type": "text/plain; charset=utf-8",
+    "unicode_form": "source_preserved",
+    "position_unit": "unicode_code_point",
+    "interval": "half_open",
+    "immutable": true,
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "schemes": [
+    {
+      "scheme_id": "tos.text-unit-scheme.sid-e6fc46350efd4942b28f2622253e4559",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "scheme_name": "Retained source section and bounded reading chunk",
+      "analysis_role": "source_structure",
+      "boundary_basis": "rule_based",
+      "unit_kinds": [
+        "section"
+      ],
+      "method": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/cicero/de-natura-deorum/expressions/retained-de-natura-deorum-en-yonge1888-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.de-natura-deorum-en-yonge1888-wikisource.20261027",
+        "made_at": "2026-11-04T08:12:19+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "policies": {
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "punctuation": "included_in_neighbor",
+        "whitespace": "included_in_neighbor",
+        "line_break": "included_in_neighbor",
+        "hyphenation": "preserve_source",
+        "unreported_gaps_allowed": false,
+        "overlap": "forbid"
+      },
+      "authority_limit": {
+        "algorithmic_output_is_source_truth": false,
+        "algorithmic_output_is_linguistic_truth": false,
+        "model_subword_is_lexeme": false,
+        "unit_identity_is_semantic_identity": false,
+        "text_mutation_allowed": false
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.sid-9a6b5e2ca9c44a688780eb0368960054",
+      "ordinal": 1,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-natura-deorum/expressions/retained-de-natura-deorum-en-yonge1888-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "9bb797bb2f93fe401b896e96a90a8d4b1fd5176665b7801ba90913b5e53ca7b8",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 296406,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "9bb797bb2f93fe401b896e96a90a8d4b1fd5176665b7801ba90913b5e53ca7b8",
+      "anchor_role": "scope",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Cicero%27s_Tusculan_Disputations/On_the_Nature_of_the_Gods"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-c19e919ff9c948b7bcf6efec9559dbb9",
+      "ordinal": 2,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-natura-deorum/expressions/retained-de-natura-deorum-en-yonge1888-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "9bb797bb2f93fe401b896e96a90a8d4b1fd5176665b7801ba90913b5e53ca7b8",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 59840,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "4d03a8cb3f672f055bc29d5e432ba50920904bff7435bed3505f6b1b717d1487",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Cicero%27s_Tusculan_Disputations/On_the_Nature_of_the_Gods"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-406b4a76a97b44948f15b414a4ffb9e1",
+      "ordinal": 3,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-natura-deorum/expressions/retained-de-natura-deorum-en-yonge1888-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "9bb797bb2f93fe401b896e96a90a8d4b1fd5176665b7801ba90913b5e53ca7b8",
+      "selector": {
+        "type": "text_position",
+        "start": 59840,
+        "end": 96561,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "6f1f30243cef105fee3e07361eeca0076f2ce9b41a91d0020d7eb7d79768d17f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Cicero%27s_Tusculan_Disputations/On_the_Nature_of_the_Gods"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-aceeca0bff954c16af7107ef1b10bd76",
+      "ordinal": 4,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-natura-deorum/expressions/retained-de-natura-deorum-en-yonge1888-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "9bb797bb2f93fe401b896e96a90a8d4b1fd5176665b7801ba90913b5e53ca7b8",
+      "selector": {
+        "type": "text_position",
+        "start": 96561,
+        "end": 156358,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "89990f8b2ef86840421b55bb1965dbec6f0b9b31599b7b22bcb7081e954b37f1",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Cicero%27s_Tusculan_Disputations/On_the_Nature_of_the_Gods"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-15914a4b647d45a2b6cfd61981485b58",
+      "ordinal": 5,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-natura-deorum/expressions/retained-de-natura-deorum-en-yonge1888-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "9bb797bb2f93fe401b896e96a90a8d4b1fd5176665b7801ba90913b5e53ca7b8",
+      "selector": {
+        "type": "text_position",
+        "start": 156358,
+        "end": 216269,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b0c089e23fe70c143ed2fa2e8ad949d576148007de351988f6daf12497db7836",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Cicero%27s_Tusculan_Disputations/On_the_Nature_of_the_Gods"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-308c4d4d833c44b9963747f1e613f1db",
+      "ordinal": 6,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-natura-deorum/expressions/retained-de-natura-deorum-en-yonge1888-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "9bb797bb2f93fe401b896e96a90a8d4b1fd5176665b7801ba90913b5e53ca7b8",
+      "selector": {
+        "type": "text_position",
+        "start": 216269,
+        "end": 221829,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "966beef8d15c8c6f1abca78a5d746989f390472c53e49e68ada110ab07936c4f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Cicero%27s_Tusculan_Disputations/On_the_Nature_of_the_Gods"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b64473df9127406bb6b418efb4a1f717",
+      "ordinal": 7,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-natura-deorum/expressions/retained-de-natura-deorum-en-yonge1888-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "9bb797bb2f93fe401b896e96a90a8d4b1fd5176665b7801ba90913b5e53ca7b8",
+      "selector": {
+        "type": "text_position",
+        "start": 221829,
+        "end": 281739,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c6a24efcfa2c482f066172f5d390ec3a4f23fb05161f22464d0f04675f109da6",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Cicero%27s_Tusculan_Disputations/On_the_Nature_of_the_Gods"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-feb80f9e51d9409c84c012641c9d10e1",
+      "ordinal": 8,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-natura-deorum/expressions/retained-de-natura-deorum-en-yonge1888-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "9bb797bb2f93fe401b896e96a90a8d4b1fd5176665b7801ba90913b5e53ca7b8",
+      "selector": {
+        "type": "text_position",
+        "start": 281739,
+        "end": 296406,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "9bc9ab11bf4b4335c34c15f65a2a341d6158e5bbb9bc23a2fdb12340005cd296",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Cicero%27s_Tusculan_Disputations/On_the_Nature_of_the_Gods"
+      }
+    }
+  ],
+  "units": [
+    {
+      "unit_id": "tos.text-unit.sid-166aac9b1ef144c0a96803c1c593b0f5",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-c19e919ff9c948b7bcf6efec9559dbb9"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f1fa1aad3ba242e48debe82853ee3c56",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-406b4a76a97b44948f15b414a4ffb9e1"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ea967aa54aaa4334b62a02540685313a",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-aceeca0bff954c16af7107ef1b10bd76"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-89df79298954484bb97bd69b2fad9bd9",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-15914a4b647d45a2b6cfd61981485b58"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-fad01d625e43448ea678b33739fcc841",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-308c4d4d833c44b9963747f1e613f1db"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f2b021a193f74990b2c137d2f3d1c45e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b64473df9127406bb6b418efb4a1f717"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4288c377fc21401e9ff805597ac29f3f",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-feb80f9e51d9409c84c012641c9d10e1"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    }
+  ],
+  "segmentations": [
+    {
+      "segmentation_id": "tos.text-segmentation.sid-0d3b479744f34f69bacd71e7b91a2c55",
+      "segmentation_version": 1,
+      "supersedes_segmentation_ref": null,
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "scheme_ref": "tos.text-unit-scheme.sid-e6fc46350efd4942b28f2622253e4559",
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-166aac9b1ef144c0a96803c1c593b0f5",
+        "tos.text-unit.sid-f1fa1aad3ba242e48debe82853ee3c56",
+        "tos.text-unit.sid-ea967aa54aaa4334b62a02540685313a",
+        "tos.text-unit.sid-89df79298954484bb97bd69b2fad9bd9",
+        "tos.text-unit.sid-fad01d625e43448ea678b33739fcc841",
+        "tos.text-unit.sid-f2b021a193f74990b2c137d2f3d1c45e",
+        "tos.text-unit.sid-4288c377fc21401e9ff805597ac29f3f"
+      ],
+      "coverage": {
+        "scope_anchor_ref": "tos.anchor.sid-9a6b5e2ca9c44a688780eb0368960054",
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "unreported_gaps_allowed": false,
+        "overlap_requires_declaration": true,
+        "source_reconstruction_required": true
+      },
+      "status": "proposed",
+      "status_reason": "Deterministic display and navigation segmentation; no textual, linguistic or semantic acceptance.",
+      "maker": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/cicero/de-natura-deorum/expressions/retained-de-natura-deorum-en-yonge1888-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.de-natura-deorum-en-yonge1888-wikisource.20261027",
+        "made_at": "2026-11-04T08:12:19+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "competing_segmentation_refs": [],
+      "review_refs": [],
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "source_text_authority": false,
+      "linguistic_authority": false,
+      "semantic_authority": false
+    }
+  ],
+  "reviews": [],
+  "projections": [],
+  "rights_and_visibility": {
+    "source_visibility": "public",
+    "packet_visibility": "public",
+    "effective_visibility": "public",
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/cicero/de-natura-deorum/expressions/retained-de-natura-deorum-en-yonge1888-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json"
+    ],
+    "private_source_used": false,
+    "publication_authorized": true,
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins"
+  },
+  "authority_boundary": {
+    "tree_role": "orientation",
+    "graph_role": "relation",
+    "source_role": "authority",
+    "validators_prove_mechanics_not_truth": true,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "legacy_bulk_migration_authorized": false
+  }
+}

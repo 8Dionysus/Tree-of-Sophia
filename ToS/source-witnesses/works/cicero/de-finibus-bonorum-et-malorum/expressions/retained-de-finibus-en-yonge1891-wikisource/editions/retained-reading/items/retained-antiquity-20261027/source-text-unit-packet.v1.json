@@ -1,0 +1,633 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "packet_id": "tos.source-text-unit-packet.sid-fba6e19a1c494bc4850e4f1be6480f58",
+  "packet_version": 1,
+  "supersedes_packet_ref": null,
+  "content_posture": "source_bound",
+  "source_scope": {
+    "work_ref": "tos.work.retained-antiquity.de-finibus-bonorum-et-malorum",
+    "expression_ref": "tos.expression.retained.antiquity.de-finibus-bonorum-et-malorum.de-finibus-en-yonge1891-wikisource",
+    "edition_ref": "tos.edition.retained.antiquity.de-finibus-bonorum-et-malorum.de-finibus-en-yonge1891-wikisource",
+    "item_ref": "tos.item.retained.antiquity.de-finibus-bonorum-et-malorum.de-finibus-en-yonge1891-wikisource",
+    "file_ref": "tos.file.sha256.26e667604e06ebbd82db55e088dcbc508596cd0e1cd307e76452e1006ab3f4f3",
+    "file_sha256": "26e667604e06ebbd82db55e088dcbc508596cd0e1cd307e76452e1006ab3f4f3"
+  },
+  "source_layer": {
+    "text_layer_ref": "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/retained-de-finibus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+    "text_layer_sha256": "775647138e2bbd0d21f1e5369d9bf3b11aafd65eb741c045f2158281334fd3cb",
+    "language": "en",
+    "media_type": "text/plain; charset=utf-8",
+    "unicode_form": "source_preserved",
+    "position_unit": "unicode_code_point",
+    "interval": "half_open",
+    "immutable": true,
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "schemes": [
+    {
+      "scheme_id": "tos.text-unit-scheme.sid-001747bdb669401fb68a228664b066f4",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "scheme_name": "Retained source section and bounded reading chunk",
+      "analysis_role": "source_structure",
+      "boundary_basis": "rule_based",
+      "unit_kinds": [
+        "section"
+      ],
+      "method": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/retained-de-finibus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.de-finibus-en-yonge1891-wikisource.20261027",
+        "made_at": "2026-11-04T08:12:18+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "policies": {
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "punctuation": "included_in_neighbor",
+        "whitespace": "included_in_neighbor",
+        "line_break": "included_in_neighbor",
+        "hyphenation": "preserve_source",
+        "unreported_gaps_allowed": false,
+        "overlap": "forbid"
+      },
+      "authority_limit": {
+        "algorithmic_output_is_source_truth": false,
+        "algorithmic_output_is_linguistic_truth": false,
+        "model_subword_is_lexeme": false,
+        "unit_identity_is_semantic_identity": false,
+        "text_mutation_allowed": false
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.sid-956be70933664fdd881ce5bc36183ef5",
+      "ordinal": 1,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/retained-de-finibus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "775647138e2bbd0d21f1e5369d9bf3b11aafd65eb741c045f2158281334fd3cb",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 440152,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "775647138e2bbd0d21f1e5369d9bf3b11aafd65eb741c045f2158281334fd3cb",
+      "anchor_role": "scope",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/The_Academic_Questions%2C_Treatise_De_Finibus%2C_and_Tusculan_Disputations/De_Finibus%2C_a_Treatise_on_the_Chief_Good_and_Evil"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-c1c18c660bd74d879b62922aa5d811b6",
+      "ordinal": 2,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/retained-de-finibus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "775647138e2bbd0d21f1e5369d9bf3b11aafd65eb741c045f2158281334fd3cb",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 59858,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ade168d37ba8daf030353eb896d53e5d24ac934ac170a5889393c7cee6fa089b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/The_Academic_Questions%2C_Treatise_De_Finibus%2C_and_Tusculan_Disputations/De_Finibus%2C_a_Treatise_on_the_Chief_Good_and_Evil"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-9753626a1cf543f9be3afc3178ab733a",
+      "ordinal": 3,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/retained-de-finibus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "775647138e2bbd0d21f1e5369d9bf3b11aafd65eb741c045f2158281334fd3cb",
+      "selector": {
+        "type": "text_position",
+        "start": 59858,
+        "end": 68300,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a9fbff00183ca19658fc710edf380271dd2fdd344a6706e7e47e0c9120b41b3c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/The_Academic_Questions%2C_Treatise_De_Finibus%2C_and_Tusculan_Disputations/De_Finibus%2C_a_Treatise_on_the_Chief_Good_and_Evil"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f39a2e7e095042989954026f740da3a7",
+      "ordinal": 4,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/retained-de-finibus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "775647138e2bbd0d21f1e5369d9bf3b11aafd65eb741c045f2158281334fd3cb",
+      "selector": {
+        "type": "text_position",
+        "start": 68300,
+        "end": 128114,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b5c2ee876f05ca45fa2785582d88cb63625a32a3a1a7aadf821ceb3e128098cb",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/The_Academic_Questions%2C_Treatise_De_Finibus%2C_and_Tusculan_Disputations/De_Finibus%2C_a_Treatise_on_the_Chief_Good_and_Evil"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-cffe382368d942edb0d82f8823dccf6e",
+      "ordinal": 5,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/retained-de-finibus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "775647138e2bbd0d21f1e5369d9bf3b11aafd65eb741c045f2158281334fd3cb",
+      "selector": {
+        "type": "text_position",
+        "start": 128114,
+        "end": 188016,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "2b224e420093cba960f34f6cb93d91e396535a8df7061c872dde2f7d4149add9",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/The_Academic_Questions%2C_Treatise_De_Finibus%2C_and_Tusculan_Disputations/De_Finibus%2C_a_Treatise_on_the_Chief_Good_and_Evil"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2fea5a89509145a0bcf1b44656b8d97f",
+      "ordinal": 6,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/retained-de-finibus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "775647138e2bbd0d21f1e5369d9bf3b11aafd65eb741c045f2158281334fd3cb",
+      "selector": {
+        "type": "text_position",
+        "start": 188016,
+        "end": 189954,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "fd52bfc9dcf0fb4eb03715b9f7746f79b043bf5a2b9fc78b8ab849723461cbcc",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/The_Academic_Questions%2C_Treatise_De_Finibus%2C_and_Tusculan_Disputations/De_Finibus%2C_a_Treatise_on_the_Chief_Good_and_Evil"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ff6f962beed242e3b3746481868afc12",
+      "ordinal": 7,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/retained-de-finibus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "775647138e2bbd0d21f1e5369d9bf3b11aafd65eb741c045f2158281334fd3cb",
+      "selector": {
+        "type": "text_position",
+        "start": 189954,
+        "end": 249644,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "88b03aadfe3c2f78255ed5b8c2d86cfe82201ff9bbea7ed6bc3d13da3b7d78b3",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/The_Academic_Questions%2C_Treatise_De_Finibus%2C_and_Tusculan_Disputations/De_Finibus%2C_a_Treatise_on_the_Chief_Good_and_Evil"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-5a6bfedbd8c241aa98ccf8ee09b625cf",
+      "ordinal": 8,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/retained-de-finibus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "775647138e2bbd0d21f1e5369d9bf3b11aafd65eb741c045f2158281334fd3cb",
+      "selector": {
+        "type": "text_position",
+        "start": 249644,
+        "end": 262709,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "32e08adc6d96184a51f8ee676ee1934e6fb7adff62b39c48bdfcd78ec2cd87d4",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/The_Academic_Questions%2C_Treatise_De_Finibus%2C_and_Tusculan_Disputations/De_Finibus%2C_a_Treatise_on_the_Chief_Good_and_Evil"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-98ef6cd8551b48f68428cf2bdc6ca765",
+      "ordinal": 9,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/retained-de-finibus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "775647138e2bbd0d21f1e5369d9bf3b11aafd65eb741c045f2158281334fd3cb",
+      "selector": {
+        "type": "text_position",
+        "start": 262709,
+        "end": 322543,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f3521a2c86992f8fc2411f4f3401a3a9ffa33d83246a008518876abb63bd65a9",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/The_Academic_Questions%2C_Treatise_De_Finibus%2C_and_Tusculan_Disputations/De_Finibus%2C_a_Treatise_on_the_Chief_Good_and_Evil"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ddb7be60a3cd4e5087379505601158a8",
+      "ordinal": 10,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/retained-de-finibus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "775647138e2bbd0d21f1e5369d9bf3b11aafd65eb741c045f2158281334fd3cb",
+      "selector": {
+        "type": "text_position",
+        "start": 322543,
+        "end": 341370,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "41cb6affbeadc86908dfb7a95aa765c58af1564ca96e122339c854460fa3d744",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/The_Academic_Questions%2C_Treatise_De_Finibus%2C_and_Tusculan_Disputations/De_Finibus%2C_a_Treatise_on_the_Chief_Good_and_Evil"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-080c527a5d0a45bbbe8373f8c20a669c",
+      "ordinal": 11,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/retained-de-finibus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "775647138e2bbd0d21f1e5369d9bf3b11aafd65eb741c045f2158281334fd3cb",
+      "selector": {
+        "type": "text_position",
+        "start": 341370,
+        "end": 401238,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "86b8fde480b85401a8128388a9f4c61cfebdf2641f5a4b483e6531bf12a69bfc",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/The_Academic_Questions%2C_Treatise_De_Finibus%2C_and_Tusculan_Disputations/De_Finibus%2C_a_Treatise_on_the_Chief_Good_and_Evil"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b30c51b94fb240c6af3acbfb052aee24",
+      "ordinal": 12,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/retained-de-finibus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "775647138e2bbd0d21f1e5369d9bf3b11aafd65eb741c045f2158281334fd3cb",
+      "selector": {
+        "type": "text_position",
+        "start": 401238,
+        "end": 440152,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "25ed0d489be9afc243eeee0b2a40180333c4705d068bd8ac2d4193c92f3e26e3",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/The_Academic_Questions%2C_Treatise_De_Finibus%2C_and_Tusculan_Disputations/De_Finibus%2C_a_Treatise_on_the_Chief_Good_and_Evil"
+      }
+    }
+  ],
+  "units": [
+    {
+      "unit_id": "tos.text-unit.sid-76ed1e1f427047c1b81aba25bab2b595",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-c1c18c660bd74d879b62922aa5d811b6"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ea2ef60c97854ad9850a3acdb6b231f9",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-9753626a1cf543f9be3afc3178ab733a"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-80e17577e7a9474088d535f818026258",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f39a2e7e095042989954026f740da3a7"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-0e91597b5bf24e35969a0a22455daaf6",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-cffe382368d942edb0d82f8823dccf6e"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-7cfbd6ae9805461a9aac16dbab7b44e7",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2fea5a89509145a0bcf1b44656b8d97f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-575b131854f24d1c9b1f088cc22ce9d6",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ff6f962beed242e3b3746481868afc12"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e36dd4631c344b61926b5c6e8ae758f4",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-5a6bfedbd8c241aa98ccf8ee09b625cf"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-25c678d140d94ff3b1121001d6b4b4a7",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-98ef6cd8551b48f68428cf2bdc6ca765"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c6e26ee9e65a43ff9ddea2fce63cbf13",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ddb7be60a3cd4e5087379505601158a8"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-7c2a7185b59449dd92bf56beeb9b289b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-080c527a5d0a45bbbe8373f8c20a669c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-cd5625b3a398420e931b3c94dc1542e1",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b30c51b94fb240c6af3acbfb052aee24"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    }
+  ],
+  "segmentations": [
+    {
+      "segmentation_id": "tos.text-segmentation.sid-3682a9134511401f9862e6a07daa338c",
+      "segmentation_version": 1,
+      "supersedes_segmentation_ref": null,
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "scheme_ref": "tos.text-unit-scheme.sid-001747bdb669401fb68a228664b066f4",
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-76ed1e1f427047c1b81aba25bab2b595",
+        "tos.text-unit.sid-ea2ef60c97854ad9850a3acdb6b231f9",
+        "tos.text-unit.sid-80e17577e7a9474088d535f818026258",
+        "tos.text-unit.sid-0e91597b5bf24e35969a0a22455daaf6",
+        "tos.text-unit.sid-7cfbd6ae9805461a9aac16dbab7b44e7",
+        "tos.text-unit.sid-575b131854f24d1c9b1f088cc22ce9d6",
+        "tos.text-unit.sid-e36dd4631c344b61926b5c6e8ae758f4",
+        "tos.text-unit.sid-25c678d140d94ff3b1121001d6b4b4a7",
+        "tos.text-unit.sid-c6e26ee9e65a43ff9ddea2fce63cbf13",
+        "tos.text-unit.sid-7c2a7185b59449dd92bf56beeb9b289b",
+        "tos.text-unit.sid-cd5625b3a398420e931b3c94dc1542e1"
+      ],
+      "coverage": {
+        "scope_anchor_ref": "tos.anchor.sid-956be70933664fdd881ce5bc36183ef5",
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "unreported_gaps_allowed": false,
+        "overlap_requires_declaration": true,
+        "source_reconstruction_required": true
+      },
+      "status": "proposed",
+      "status_reason": "Deterministic display and navigation segmentation; no textual, linguistic or semantic acceptance.",
+      "maker": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/retained-de-finibus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.de-finibus-en-yonge1891-wikisource.20261027",
+        "made_at": "2026-11-04T08:12:18+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "competing_segmentation_refs": [],
+      "review_refs": [],
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "source_text_authority": false,
+      "linguistic_authority": false,
+      "semantic_authority": false
+    }
+  ],
+  "reviews": [],
+  "projections": [],
+  "rights_and_visibility": {
+    "source_visibility": "public",
+    "packet_visibility": "public",
+    "effective_visibility": "public",
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/retained-de-finibus-en-yonge1891-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json"
+    ],
+    "private_source_used": false,
+    "publication_authorized": true,
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins"
+  },
+  "authority_boundary": {
+    "tree_role": "orientation",
+    "graph_role": "relation",
+    "source_role": "authority",
+    "validators_prove_mechanics_not_truth": true,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "legacy_bulk_migration_authorized": false
+  }
+}
