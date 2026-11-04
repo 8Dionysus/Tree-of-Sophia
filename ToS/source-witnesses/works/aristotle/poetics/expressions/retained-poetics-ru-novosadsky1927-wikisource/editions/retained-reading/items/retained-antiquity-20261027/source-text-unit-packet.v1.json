@@ -1,0 +1,1263 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "packet_id": "tos.source-text-unit-packet.sid-df30555b90264abe9c076ed37ae0373f",
+  "packet_version": 1,
+  "supersedes_packet_ref": null,
+  "content_posture": "source_bound",
+  "source_scope": {
+    "work_ref": "tos.work.retained-antiquity.poetics",
+    "expression_ref": "tos.expression.retained.antiquity.poetics.poetics-ru-novosadsky1927-wikisource",
+    "edition_ref": "tos.edition.retained.antiquity.poetics.poetics-ru-novosadsky1927-wikisource",
+    "item_ref": "tos.item.retained.antiquity.poetics.poetics-ru-novosadsky1927-wikisource",
+    "file_ref": "tos.file.sha256.d2fbe5953d790fe6a09ca05047a69e36b403c4d24caf0f47bf1dd88fd95eff83",
+    "file_sha256": "d2fbe5953d790fe6a09ca05047a69e36b403c4d24caf0f47bf1dd88fd95eff83"
+  },
+  "source_layer": {
+    "text_layer_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+    "text_layer_sha256": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+    "language": "ru",
+    "media_type": "text/plain; charset=utf-8",
+    "unicode_form": "source_preserved",
+    "position_unit": "unicode_code_point",
+    "interval": "half_open",
+    "immutable": true,
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "schemes": [
+    {
+      "scheme_id": "tos.text-unit-scheme.sid-912c585b343b49e595174e20f4460cb1",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "scheme_name": "Retained source section and bounded reading chunk",
+      "analysis_role": "source_structure",
+      "boundary_basis": "rule_based",
+      "unit_kinds": [
+        "section"
+      ],
+      "method": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "ru",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.poetics-ru-novosadsky1927-wikisource.20261027",
+        "made_at": "2026-11-04T02:42:32+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "policies": {
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "punctuation": "included_in_neighbor",
+        "whitespace": "included_in_neighbor",
+        "line_break": "included_in_neighbor",
+        "hyphenation": "preserve_source",
+        "unreported_gaps_allowed": false,
+        "overlap": "forbid"
+      },
+      "authority_limit": {
+        "algorithmic_output_is_source_truth": false,
+        "algorithmic_output_is_linguistic_truth": false,
+        "model_subword_is_lexeme": false,
+        "unit_identity_is_semantic_identity": false,
+        "text_mutation_allowed": false
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.sid-38dbf5f8cada42b083a61c4599b86466",
+      "ordinal": 1,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 74821,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+      "anchor_role": "scope",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9F%D0%BE%D1%8D%D1%82%D0%B8%D0%BA%D0%B0_%28%D0%90%D1%80%D0%B8%D1%81%D1%82%D0%BE%D1%82%D0%B5%D0%BB%D1%8C%29&oldid=4030988"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-57b4097655ea41d2b43a3c852d2ddcb1",
+      "ordinal": 2,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 2649,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "aeaa89cdc322e11ce8c13bfb67755451df93f909c34f3161a8b58819ec76abd8",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9F%D0%BE%D1%8D%D1%82%D0%B8%D0%BA%D0%B0_%28%D0%90%D1%80%D0%B8%D1%81%D1%82%D0%BE%D1%82%D0%B5%D0%BB%D1%8C%29&oldid=4030988"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-4c4522465ed44343bb82d272e3f889db",
+      "ordinal": 3,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+      "selector": {
+        "type": "text_position",
+        "start": 2649,
+        "end": 3733,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "8a8fdfe813fce4ec3081a023955d16b5bc8be2e1b995ac45b51c2205d6368b5c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9F%D0%BE%D1%8D%D1%82%D0%B8%D0%BA%D0%B0_%28%D0%90%D1%80%D0%B8%D1%81%D1%82%D0%BE%D1%82%D0%B5%D0%BB%D1%8C%29&oldid=4030988"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a2d3616d6f2646d9b95c48e2039c36a0",
+      "ordinal": 4,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+      "selector": {
+        "type": "text_position",
+        "start": 3733,
+        "end": 5421,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "bec27bc5db1adabfafc722d9d2cffb4e0ddb0137fd0a12700828006d470ea643",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9F%D0%BE%D1%8D%D1%82%D0%B8%D0%BA%D0%B0_%28%D0%90%D1%80%D0%B8%D1%81%D1%82%D0%BE%D1%82%D0%B5%D0%BB%D1%8C%29&oldid=4030988"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ea1568dd63814c4d9d7c637dc16794b8",
+      "ordinal": 5,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+      "selector": {
+        "type": "text_position",
+        "start": 5421,
+        "end": 9468,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "35aa9e32cbc5156fc06d267b4aadabf4d30efa06d8f221b083b664b02d962de9",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9F%D0%BE%D1%8D%D1%82%D0%B8%D0%BA%D0%B0_%28%D0%90%D1%80%D0%B8%D1%81%D1%82%D0%BE%D1%82%D0%B5%D0%BB%D1%8C%29&oldid=4030988"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ec362fec1fcc4ccca86a07c33cfa645a",
+      "ordinal": 6,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+      "selector": {
+        "type": "text_position",
+        "start": 9468,
+        "end": 11248,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "10c6dbb62e7a57bae05a17dbb6288a8e038e642999d1566582fbeadec2d0326b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9F%D0%BE%D1%8D%D1%82%D0%B8%D0%BA%D0%B0_%28%D0%90%D1%80%D0%B8%D1%81%D1%82%D0%BE%D1%82%D0%B5%D0%BB%D1%8C%29&oldid=4030988"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-6e07f2252d2846c4bc6ff43bd9b1068f",
+      "ordinal": 7,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+      "selector": {
+        "type": "text_position",
+        "start": 11248,
+        "end": 16318,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a1e32a6a1bfa5e25c2732af9d861985357f2f5d370add87bd06c5e0f0ad35e1c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9F%D0%BE%D1%8D%D1%82%D0%B8%D0%BA%D0%B0_%28%D0%90%D1%80%D0%B8%D1%81%D1%82%D0%BE%D1%82%D0%B5%D0%BB%D1%8C%29&oldid=4030988"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ade282d800ea467c93098b693b54a166",
+      "ordinal": 8,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+      "selector": {
+        "type": "text_position",
+        "start": 16318,
+        "end": 18656,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "98d7454bb060610119d5ad7ccc284b418772c45a321207af2610128a692b0247",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9F%D0%BE%D1%8D%D1%82%D0%B8%D0%BA%D0%B0_%28%D0%90%D1%80%D0%B8%D1%81%D1%82%D0%BE%D1%82%D0%B5%D0%BB%D1%8C%29&oldid=4030988"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f9102fe2490346dcabdb0521c27d4a13",
+      "ordinal": 9,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+      "selector": {
+        "type": "text_position",
+        "start": 18656,
+        "end": 20184,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "8882a7e7bba68b46043baf6c1be090916930364813c23f0506ee80ad447c202d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9F%D0%BE%D1%8D%D1%82%D0%B8%D0%BA%D0%B0_%28%D0%90%D1%80%D0%B8%D1%81%D1%82%D0%BE%D1%82%D0%B5%D0%BB%D1%8C%29&oldid=4030988"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ccc5de6c8ddd41ffbbd08ee60de30776",
+      "ordinal": 10,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+      "selector": {
+        "type": "text_position",
+        "start": 20184,
+        "end": 23461,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "28a62d4f5259544432f47e25f8f2e57f4efcfb01ac78e6af917f3105d8e6a057",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9F%D0%BE%D1%8D%D1%82%D0%B8%D0%BA%D0%B0_%28%D0%90%D1%80%D0%B8%D1%81%D1%82%D0%BE%D1%82%D0%B5%D0%BB%D1%8C%29&oldid=4030988"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-5fb6c031fe5049ff9ea8471ebc14bf27",
+      "ordinal": 11,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+      "selector": {
+        "type": "text_position",
+        "start": 23461,
+        "end": 24082,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "819399dd6a7ac4a5e439d8277c0ab7f286e7e7f7208c30d2a0ab5382ee33305e",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9F%D0%BE%D1%8D%D1%82%D0%B8%D0%BA%D0%B0_%28%D0%90%D1%80%D0%B8%D1%81%D1%82%D0%BE%D1%82%D0%B5%D0%BB%D1%8C%29&oldid=4030988"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-8aca1a14400d4924bc0174b51902df8d",
+      "ordinal": 12,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+      "selector": {
+        "type": "text_position",
+        "start": 24082,
+        "end": 25905,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1b20cbd8bdd1d60be6670b6c3a9cf22424664d4227d39f610c3752fe35768163",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9F%D0%BE%D1%8D%D1%82%D0%B8%D0%BA%D0%B0_%28%D0%90%D1%80%D0%B8%D1%81%D1%82%D0%BE%D1%82%D0%B5%D0%BB%D1%8C%29&oldid=4030988"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-40ec862b8b78441c91d7a7e2b4f0091a",
+      "ordinal": 13,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+      "selector": {
+        "type": "text_position",
+        "start": 25905,
+        "end": 26680,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ed8a6455b3612ab500eaf18b910d2587f8bdef895dee1e3f47508c3f6dc1efbb",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9F%D0%BE%D1%8D%D1%82%D0%B8%D0%BA%D0%B0_%28%D0%90%D1%80%D0%B8%D1%81%D1%82%D0%BE%D1%82%D0%B5%D0%BB%D1%8C%29&oldid=4030988"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-09b6103779fc42c485034ad725fcb1cf",
+      "ordinal": 14,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+      "selector": {
+        "type": "text_position",
+        "start": 26680,
+        "end": 29846,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "aded8aa053a3a17fa58f31bb9bcafed8f8b59f3270c502de5d57c4aa76f411cb",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9F%D0%BE%D1%8D%D1%82%D0%B8%D0%BA%D0%B0_%28%D0%90%D1%80%D0%B8%D1%81%D1%82%D0%BE%D1%82%D0%B5%D0%BB%D1%8C%29&oldid=4030988"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-5d23484dc753439d9bd0e5b4632e8701",
+      "ordinal": 15,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+      "selector": {
+        "type": "text_position",
+        "start": 29846,
+        "end": 33341,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "96fc75afd21542374d3b7d2c47dda1c08adf983f140e1d57319f1c271d3f67f7",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9F%D0%BE%D1%8D%D1%82%D0%B8%D0%BA%D0%B0_%28%D0%90%D1%80%D0%B8%D1%81%D1%82%D0%BE%D1%82%D0%B5%D0%BB%D1%8C%29&oldid=4030988"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d7a0018339ef4b27bcb9e3f083fa986b",
+      "ordinal": 16,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+      "selector": {
+        "type": "text_position",
+        "start": 33341,
+        "end": 36061,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "58a4586d414490e12b45af3cb17fa7cd2ac139544aad3ea4c92145416a9218b4",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9F%D0%BE%D1%8D%D1%82%D0%B8%D0%BA%D0%B0_%28%D0%90%D1%80%D0%B8%D1%81%D1%82%D0%BE%D1%82%D0%B5%D0%BB%D1%8C%29&oldid=4030988"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-acb6098213784b4ca47354a04e22df87",
+      "ordinal": 17,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+      "selector": {
+        "type": "text_position",
+        "start": 36061,
+        "end": 38690,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d4b46692adf95319549b9ec1713f0db0253477509ad4a8770557ca2bfd7dd9b7",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9F%D0%BE%D1%8D%D1%82%D0%B8%D0%BA%D0%B0_%28%D0%90%D1%80%D0%B8%D1%81%D1%82%D0%BE%D1%82%D0%B5%D0%BB%D1%8C%29&oldid=4030988"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-683d5c9180cb46138e9290da409ad97f",
+      "ordinal": 18,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+      "selector": {
+        "type": "text_position",
+        "start": 38690,
+        "end": 41240,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "12dfe52dcf4ddb8d57b72f71cc6680207fa2fa0e8b265240fd29748eb7df1dd4",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9F%D0%BE%D1%8D%D1%82%D0%B8%D0%BA%D0%B0_%28%D0%90%D1%80%D0%B8%D1%81%D1%82%D0%BE%D1%82%D0%B5%D0%BB%D1%8C%29&oldid=4030988"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-be3bb51a1c9b4ea49b5f52a5e9b3b369",
+      "ordinal": 19,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+      "selector": {
+        "type": "text_position",
+        "start": 41240,
+        "end": 44204,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "6ba710708c1b72fe7a774a7fbba90c55368a0c8e72c1c23572e513c90fe60a7b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9F%D0%BE%D1%8D%D1%82%D0%B8%D0%BA%D0%B0_%28%D0%90%D1%80%D0%B8%D1%81%D1%82%D0%BE%D1%82%D0%B5%D0%BB%D1%8C%29&oldid=4030988"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-756125aa73184b8ca8f4b08d2afe711e",
+      "ordinal": 20,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+      "selector": {
+        "type": "text_position",
+        "start": 44204,
+        "end": 45956,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "008f1da76195e2544bcf1e8387832da3bc79ebda6cec7996a96702faf9dfe1e7",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9F%D0%BE%D1%8D%D1%82%D0%B8%D0%BA%D0%B0_%28%D0%90%D1%80%D0%B8%D1%81%D1%82%D0%BE%D1%82%D0%B5%D0%BB%D1%8C%29&oldid=4030988"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-518b1079bdf547fca9122493ef8e2026",
+      "ordinal": 21,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+      "selector": {
+        "type": "text_position",
+        "start": 45956,
+        "end": 49424,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "43398e569c1c56f75d06f5b8df73307d79717f28f8156f6eb8825d061dc149c2",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9F%D0%BE%D1%8D%D1%82%D0%B8%D0%BA%D0%B0_%28%D0%90%D1%80%D0%B8%D1%81%D1%82%D0%BE%D1%82%D0%B5%D0%BB%D1%8C%29&oldid=4030988"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ed4772a4b33c47a3b9da05d4a4b12e78",
+      "ordinal": 22,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+      "selector": {
+        "type": "text_position",
+        "start": 49424,
+        "end": 53420,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "3d205b3492243f40e4786568824bbd593e29f1730a9023c8e860d145268aac58",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9F%D0%BE%D1%8D%D1%82%D0%B8%D0%BA%D0%B0_%28%D0%90%D1%80%D0%B8%D1%81%D1%82%D0%BE%D1%82%D0%B5%D0%BB%D1%8C%29&oldid=4030988"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-78d31044e12f45e481c47e6d5bafd076",
+      "ordinal": 23,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+      "selector": {
+        "type": "text_position",
+        "start": 53420,
+        "end": 57347,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "2dbd133acc8e12f223576c9aef9be1860c5eac2cbf781ce30796fe523e2ba217",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9F%D0%BE%D1%8D%D1%82%D0%B8%D0%BA%D0%B0_%28%D0%90%D1%80%D0%B8%D1%81%D1%82%D0%BE%D1%82%D0%B5%D0%BB%D1%8C%29&oldid=4030988"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-258a0c8df2d545639e465918c2d50191",
+      "ordinal": 24,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+      "selector": {
+        "type": "text_position",
+        "start": 57347,
+        "end": 59228,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1d722165f3663edd9a37cde17ebf2790c6c8649154400548b645baac73cd3d10",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9F%D0%BE%D1%8D%D1%82%D0%B8%D0%BA%D0%B0_%28%D0%90%D1%80%D0%B8%D1%81%D1%82%D0%BE%D1%82%D0%B5%D0%BB%D1%8C%29&oldid=4030988"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-0b989db62f9c43c2bcf03c35efff71b2",
+      "ordinal": 25,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+      "selector": {
+        "type": "text_position",
+        "start": 59228,
+        "end": 64100,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "789e0c6039efb9ced5f7ff42acc9c3803769388dfc007b21c175b5696148ba42",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9F%D0%BE%D1%8D%D1%82%D0%B8%D0%BA%D0%B0_%28%D0%90%D1%80%D0%B8%D1%81%D1%82%D0%BE%D1%82%D0%B5%D0%BB%D1%8C%29&oldid=4030988"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ff82c7d0315b48059bac8c66cbaf14c0",
+      "ordinal": 26,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+      "selector": {
+        "type": "text_position",
+        "start": 64100,
+        "end": 71487,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "8a16169dbf81755bbeeff2a5849f6033739bd97c9d5ef31b4562a0217f3d6050",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9F%D0%BE%D1%8D%D1%82%D0%B8%D0%BA%D0%B0_%28%D0%90%D1%80%D0%B8%D1%81%D1%82%D0%BE%D1%82%D0%B5%D0%BB%D1%8C%29&oldid=4030988"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-8bef52a2ac2745819f8a7e28a3187000",
+      "ordinal": 27,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+      "selector": {
+        "type": "text_position",
+        "start": 71487,
+        "end": 74821,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "875cbbc89b5264b093ebdd820c4ecf1e969831f420425d74c3320551f4abcaf5",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/w/index.php?title=%D0%9F%D0%BE%D1%8D%D1%82%D0%B8%D0%BA%D0%B0_%28%D0%90%D1%80%D0%B8%D1%81%D1%82%D0%BE%D1%82%D0%B5%D0%BB%D1%8C%29&oldid=4030988"
+      }
+    }
+  ],
+  "units": [
+    {
+      "unit_id": "tos.text-unit.sid-1a522fa31c594789906fd867a71795d3",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-57b4097655ea41d2b43a3c852d2ddcb1"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-09e1ff31b1a74614acf749aae1919456",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-4c4522465ed44343bb82d272e3f889db"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4d0c917684a546b5878a5cc3cbd5c1fc",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a2d3616d6f2646d9b95c48e2039c36a0"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e53939d49d8a4e9ba7a17b19a4a6c4a3",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ea1568dd63814c4d9d7c637dc16794b8"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-30465ad5980e4073959a57e0ce08f132",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ec362fec1fcc4ccca86a07c33cfa645a"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-2073c64bf34a4b4fb45092d1b0188d84",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-6e07f2252d2846c4bc6ff43bd9b1068f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-3ad6a8c3d0b24a66a5a9331ccebaf4b6",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ade282d800ea467c93098b693b54a166"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-bed28b4f3f27420782edee39dc082919",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f9102fe2490346dcabdb0521c27d4a13"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-189cdd8000f94c92a771648e978310ac",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ccc5de6c8ddd41ffbbd08ee60de30776"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-287af4a3ab544b3fa992947c9c7b316c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-5fb6c031fe5049ff9ea8471ebc14bf27"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-fdc48db3670b4242a306f834c6172c28",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-8aca1a14400d4924bc0174b51902df8d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-876d9003fb2a47848a5460f57b425eda",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-40ec862b8b78441c91d7a7e2b4f0091a"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-441495df77e04692998bb21d10275d0f",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-09b6103779fc42c485034ad725fcb1cf"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4d20685f2ef745e48f96d9cfc31f4b68",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-5d23484dc753439d9bd0e5b4632e8701"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-87b29a79357b45799aace3b9c19813c7",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d7a0018339ef4b27bcb9e3f083fa986b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-17e3f115832747dfbb7aa109351c2eaa",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-acb6098213784b4ca47354a04e22df87"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-30a6c8021bb84eb1a35194f0f7392601",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-683d5c9180cb46138e9290da409ad97f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-bbb0ae70bd3c4cada91f5c3ffb998f35",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-be3bb51a1c9b4ea49b5f52a5e9b3b369"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1ede61a1a2034d889ba030250be7f089",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-756125aa73184b8ca8f4b08d2afe711e"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6ba3ce666c564612a2e142320c7a778b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-518b1079bdf547fca9122493ef8e2026"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-91bdfb93c2e94ac492c27b9b24d401e4",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ed4772a4b33c47a3b9da05d4a4b12e78"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1abd620ada9b435d9f49b79233aa3f36",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-78d31044e12f45e481c47e6d5bafd076"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-a9faad8d86024f458450ec51dc267c8b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-258a0c8df2d545639e465918c2d50191"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c3a01629cee749b7a054b1dbd8416fcf",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-0b989db62f9c43c2bcf03c35efff71b2"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c8ec84a8bef54dc2ad028ff0223620ec",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ff82c7d0315b48059bac8c66cbaf14c0"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e7d0d143ec1f4c9499fcd82f57cac30b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-8bef52a2ac2745819f8a7e28a3187000"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    }
+  ],
+  "segmentations": [
+    {
+      "segmentation_id": "tos.text-segmentation.sid-865f6790b71443d2a1e34bc4f7ba5754",
+      "segmentation_version": 1,
+      "supersedes_segmentation_ref": null,
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "scheme_ref": "tos.text-unit-scheme.sid-912c585b343b49e595174e20f4460cb1",
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-1a522fa31c594789906fd867a71795d3",
+        "tos.text-unit.sid-09e1ff31b1a74614acf749aae1919456",
+        "tos.text-unit.sid-4d0c917684a546b5878a5cc3cbd5c1fc",
+        "tos.text-unit.sid-e53939d49d8a4e9ba7a17b19a4a6c4a3",
+        "tos.text-unit.sid-30465ad5980e4073959a57e0ce08f132",
+        "tos.text-unit.sid-2073c64bf34a4b4fb45092d1b0188d84",
+        "tos.text-unit.sid-3ad6a8c3d0b24a66a5a9331ccebaf4b6",
+        "tos.text-unit.sid-bed28b4f3f27420782edee39dc082919",
+        "tos.text-unit.sid-189cdd8000f94c92a771648e978310ac",
+        "tos.text-unit.sid-287af4a3ab544b3fa992947c9c7b316c",
+        "tos.text-unit.sid-fdc48db3670b4242a306f834c6172c28",
+        "tos.text-unit.sid-876d9003fb2a47848a5460f57b425eda",
+        "tos.text-unit.sid-441495df77e04692998bb21d10275d0f",
+        "tos.text-unit.sid-4d20685f2ef745e48f96d9cfc31f4b68",
+        "tos.text-unit.sid-87b29a79357b45799aace3b9c19813c7",
+        "tos.text-unit.sid-17e3f115832747dfbb7aa109351c2eaa",
+        "tos.text-unit.sid-30a6c8021bb84eb1a35194f0f7392601",
+        "tos.text-unit.sid-bbb0ae70bd3c4cada91f5c3ffb998f35",
+        "tos.text-unit.sid-1ede61a1a2034d889ba030250be7f089",
+        "tos.text-unit.sid-6ba3ce666c564612a2e142320c7a778b",
+        "tos.text-unit.sid-91bdfb93c2e94ac492c27b9b24d401e4",
+        "tos.text-unit.sid-1abd620ada9b435d9f49b79233aa3f36",
+        "tos.text-unit.sid-a9faad8d86024f458450ec51dc267c8b",
+        "tos.text-unit.sid-c3a01629cee749b7a054b1dbd8416fcf",
+        "tos.text-unit.sid-c8ec84a8bef54dc2ad028ff0223620ec",
+        "tos.text-unit.sid-e7d0d143ec1f4c9499fcd82f57cac30b"
+      ],
+      "coverage": {
+        "scope_anchor_ref": "tos.anchor.sid-38dbf5f8cada42b083a61c4599b86466",
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "unreported_gaps_allowed": false,
+        "overlap_requires_declaration": true,
+        "source_reconstruction_required": true
+      },
+      "status": "proposed",
+      "status_reason": "Deterministic display and navigation segmentation; no textual, linguistic or semantic acceptance.",
+      "maker": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "ru",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.poetics-ru-novosadsky1927-wikisource.20261027",
+        "made_at": "2026-11-04T02:42:32+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "competing_segmentation_refs": [],
+      "review_refs": [],
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "source_text_authority": false,
+      "linguistic_authority": false,
+      "semantic_authority": false
+    }
+  ],
+  "reviews": [],
+  "projections": [],
+  "rights_and_visibility": {
+    "source_visibility": "public",
+    "packet_visibility": "public",
+    "effective_visibility": "public",
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-ru-novosadsky1927-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json"
+    ],
+    "private_source_used": false,
+    "publication_authorized": true,
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins"
+  },
+  "authority_boundary": {
+    "tree_role": "orientation",
+    "graph_role": "relation",
+    "source_role": "authority",
+    "validators_prove_mechanics_not_truth": true,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "legacy_bulk_migration_authorized": false
+  }
+}

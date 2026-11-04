@@ -1,0 +1,851 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-resource-inventory.schema.json",
+  "schema_version": "tos_source_resource_inventory_v1",
+  "item_id": "tos.item.retained.antiquity.meditations.meditations-ru-rogovin1914-wikisource",
+  "generated_from_manifest_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-ru-rogovin1914-wikisource/editions/retained-reading/items/retained-antiquity-20261027/item.manifest.json",
+  "inventory_authority": "mechanical_metadata_only",
+  "source_text_included": false,
+  "files": [
+    {
+      "file_id": "tos.file.sha256.f7baa2d313e9b6ebb8edda6b7c8565375de75b8acf5f7a2102e109fa0ce3717f",
+      "file_sha256": "f7baa2d313e9b6ebb8edda6b7c8565375de75b8acf5f7a2102e109fa0ce3717f",
+      "media_type": "application/json",
+      "profile": "json_members_v1",
+      "summary": {
+        "resource_count": 6,
+        "top_level_member_count": 5,
+        "json_value_counts": {
+          "object_count": 37,
+          "array_count": 52,
+          "string_count": 97,
+          "number_count": 24,
+          "boolean_count": 0,
+          "null_count": 0,
+          "object_key_count": 173
+        }
+      },
+      "resources": [
+        {
+          "resource_id": "json-root",
+          "resource_kind": "json_container",
+          "structural_role": "container_metadata",
+          "locator": {
+            "json_value_type": "object"
+          }
+        },
+        {
+          "resource_id": "json-member-00001",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 1,
+            "json_value_type": "string",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 0,
+            "array_count": 0,
+            "string_count": 1,
+            "number_count": 0,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 0
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "1e0584a25d9f43bf5cbd0aec01eb1af2220ed085b4e7f1837b0d89958cae353a",
+            "character_count": 6
+          },
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "e98122ab73e60f7999e2736b589756a3612de5ab2f0082de76670e03974db999",
+            "character_count": 101
+          }
+        },
+        {
+          "resource_id": "json-member-00002",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 2,
+            "json_value_type": "array",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 24,
+            "array_count": 49,
+            "string_count": 48,
+            "number_count": 0,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 96
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "4697ef322d1be99283cb2c0f3ff2133eb2fb0b75e4c096232b52629c31f2cfe3",
+            "character_count": 8
+          }
+        },
+        {
+          "resource_id": "json-member-00003",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 3,
+            "json_value_type": "array",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 0,
+            "array_count": 1,
+            "string_count": 0,
+            "number_count": 0,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 0
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "ab5aa97074c454a0632057e704220d9a6678fbf773a0a5806fc09b8173b07309",
+            "character_count": 5
+          }
+        },
+        {
+          "resource_id": "json-member-00004",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 4,
+            "json_value_type": "array",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 0,
+            "array_count": 1,
+            "string_count": 0,
+            "number_count": 0,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 0
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "921cfc4c813e29dc5f7bf7e5b9f666a569a8218b7c773b99bf5479bc727c3a0f",
+            "character_count": 11
+          }
+        },
+        {
+          "resource_id": "json-member-00005",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 5,
+            "json_value_type": "array",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 12,
+            "array_count": 1,
+            "string_count": 48,
+            "number_count": 24,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 72
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "9e560181a990e0bd53afc7be00b8a651fc01f975acebc4789a44b681e07d79ad",
+            "character_count": 12
+          }
+        }
+      ]
+    },
+    {
+      "file_id": "tos.file.sha256.8a519ffe9418544b74f02e48e686d674d4cc30c993c57cb0299cba9b78eaf0fa",
+      "file_sha256": "8a519ffe9418544b74f02e48e686d674d4cc30c993c57cb0299cba9b78eaf0fa",
+      "media_type": "text/plain",
+      "profile": "plain_text_v1",
+      "summary": {
+        "resource_count": 1
+      },
+      "resources": [
+        {
+          "resource_id": "plain-text-file",
+          "resource_kind": "plain_text_file",
+          "locator": {
+            "container_order": 1
+          },
+          "structural_role": "member",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "8a519ffe9418544b74f02e48e686d674d4cc30c993c57cb0299cba9b78eaf0fa",
+            "character_count": 218667
+          }
+        }
+      ]
+    },
+    {
+      "file_id": "tos.file.sha256.13dd59f8eb92491c25a6002e1e770f22ad1175ca7dd3517f36d2a17b12bebc41",
+      "file_sha256": "13dd59f8eb92491c25a6002e1e770f22ad1175ca7dd3517f36d2a17b12bebc41",
+      "media_type": "application/json",
+      "profile": "json_members_v1",
+      "summary": {
+        "resource_count": 2,
+        "top_level_member_count": 1,
+        "json_value_counts": {
+          "object_count": 32,
+          "array_count": 1,
+          "string_count": 60,
+          "number_count": 30,
+          "boolean_count": 0,
+          "null_count": 0,
+          "object_key_count": 94
+        }
+      },
+      "resources": [
+        {
+          "resource_id": "json-root",
+          "resource_kind": "json_container",
+          "structural_role": "container_metadata",
+          "locator": {
+            "json_value_type": "object"
+          }
+        },
+        {
+          "resource_id": "json-member-00001",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 1,
+            "json_value_type": "object",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 31,
+            "array_count": 1,
+            "string_count": 60,
+            "number_count": 30,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 93
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "30c471f6aafbca7085640653eeef555e85eb0df1602c98a662814c27767d1188",
+            "character_count": 5
+          }
+        }
+      ]
+    },
+    {
+      "file_id": "tos.file.sha256.75365b524f396fde4011188378d1f07ae8223d80540517798ad89de553a6614d",
+      "file_sha256": "75365b524f396fde4011188378d1f07ae8223d80540517798ad89de553a6614d",
+      "media_type": "application/json",
+      "profile": "json_members_v1",
+      "summary": {
+        "resource_count": 2,
+        "top_level_member_count": 1,
+        "json_value_counts": {
+          "object_count": 31,
+          "array_count": 1,
+          "string_count": 58,
+          "number_count": 29,
+          "boolean_count": 0,
+          "null_count": 0,
+          "object_key_count": 91
+        }
+      },
+      "resources": [
+        {
+          "resource_id": "json-root",
+          "resource_kind": "json_container",
+          "structural_role": "container_metadata",
+          "locator": {
+            "json_value_type": "object"
+          }
+        },
+        {
+          "resource_id": "json-member-00001",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 1,
+            "json_value_type": "object",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 30,
+            "array_count": 1,
+            "string_count": 58,
+            "number_count": 29,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 90
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "30c471f6aafbca7085640653eeef555e85eb0df1602c98a662814c27767d1188",
+            "character_count": 5
+          }
+        }
+      ]
+    },
+    {
+      "file_id": "tos.file.sha256.42a38721711b86e82cc906c9665788189fc2f1f8a3da25b87ba2c8eed4b01874",
+      "file_sha256": "42a38721711b86e82cc906c9665788189fc2f1f8a3da25b87ba2c8eed4b01874",
+      "media_type": "application/json",
+      "profile": "json_members_v1",
+      "summary": {
+        "resource_count": 2,
+        "top_level_member_count": 1,
+        "json_value_counts": {
+          "object_count": 31,
+          "array_count": 1,
+          "string_count": 58,
+          "number_count": 29,
+          "boolean_count": 0,
+          "null_count": 0,
+          "object_key_count": 91
+        }
+      },
+      "resources": [
+        {
+          "resource_id": "json-root",
+          "resource_kind": "json_container",
+          "structural_role": "container_metadata",
+          "locator": {
+            "json_value_type": "object"
+          }
+        },
+        {
+          "resource_id": "json-member-00001",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 1,
+            "json_value_type": "object",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 30,
+            "array_count": 1,
+            "string_count": 58,
+            "number_count": 29,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 90
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "30c471f6aafbca7085640653eeef555e85eb0df1602c98a662814c27767d1188",
+            "character_count": 5
+          }
+        }
+      ]
+    },
+    {
+      "file_id": "tos.file.sha256.d85f7efd068d26a145d4a07b8d6da84a6051bc78c07cbbc8ddf233cfb760341c",
+      "file_sha256": "d85f7efd068d26a145d4a07b8d6da84a6051bc78c07cbbc8ddf233cfb760341c",
+      "media_type": "application/json",
+      "profile": "json_members_v1",
+      "summary": {
+        "resource_count": 2,
+        "top_level_member_count": 1,
+        "json_value_counts": {
+          "object_count": 31,
+          "array_count": 1,
+          "string_count": 58,
+          "number_count": 29,
+          "boolean_count": 0,
+          "null_count": 0,
+          "object_key_count": 91
+        }
+      },
+      "resources": [
+        {
+          "resource_id": "json-root",
+          "resource_kind": "json_container",
+          "structural_role": "container_metadata",
+          "locator": {
+            "json_value_type": "object"
+          }
+        },
+        {
+          "resource_id": "json-member-00001",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 1,
+            "json_value_type": "object",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 30,
+            "array_count": 1,
+            "string_count": 58,
+            "number_count": 29,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 90
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "30c471f6aafbca7085640653eeef555e85eb0df1602c98a662814c27767d1188",
+            "character_count": 5
+          }
+        }
+      ]
+    },
+    {
+      "file_id": "tos.file.sha256.eed421922f8ae53fabde46e1df2a44145817f2da7ae7ac622b65777f42b66e5f",
+      "file_sha256": "eed421922f8ae53fabde46e1df2a44145817f2da7ae7ac622b65777f42b66e5f",
+      "media_type": "application/json",
+      "profile": "json_members_v1",
+      "summary": {
+        "resource_count": 2,
+        "top_level_member_count": 1,
+        "json_value_counts": {
+          "object_count": 31,
+          "array_count": 1,
+          "string_count": 58,
+          "number_count": 29,
+          "boolean_count": 0,
+          "null_count": 0,
+          "object_key_count": 91
+        }
+      },
+      "resources": [
+        {
+          "resource_id": "json-root",
+          "resource_kind": "json_container",
+          "structural_role": "container_metadata",
+          "locator": {
+            "json_value_type": "object"
+          }
+        },
+        {
+          "resource_id": "json-member-00001",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 1,
+            "json_value_type": "object",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 30,
+            "array_count": 1,
+            "string_count": 58,
+            "number_count": 29,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 90
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "30c471f6aafbca7085640653eeef555e85eb0df1602c98a662814c27767d1188",
+            "character_count": 5
+          }
+        }
+      ]
+    },
+    {
+      "file_id": "tos.file.sha256.0fc2a48e4fc915e33863d844901568c9dbb5016ce0644a68655addd300c20265",
+      "file_sha256": "0fc2a48e4fc915e33863d844901568c9dbb5016ce0644a68655addd300c20265",
+      "media_type": "application/json",
+      "profile": "json_members_v1",
+      "summary": {
+        "resource_count": 2,
+        "top_level_member_count": 1,
+        "json_value_counts": {
+          "object_count": 31,
+          "array_count": 1,
+          "string_count": 58,
+          "number_count": 29,
+          "boolean_count": 0,
+          "null_count": 0,
+          "object_key_count": 91
+        }
+      },
+      "resources": [
+        {
+          "resource_id": "json-root",
+          "resource_kind": "json_container",
+          "structural_role": "container_metadata",
+          "locator": {
+            "json_value_type": "object"
+          }
+        },
+        {
+          "resource_id": "json-member-00001",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 1,
+            "json_value_type": "object",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 30,
+            "array_count": 1,
+            "string_count": 58,
+            "number_count": 29,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 90
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "30c471f6aafbca7085640653eeef555e85eb0df1602c98a662814c27767d1188",
+            "character_count": 5
+          }
+        }
+      ]
+    },
+    {
+      "file_id": "tos.file.sha256.153234de6d4e1c71377a68ae1be0d98ac08be35823794e29626f7851bc394644",
+      "file_sha256": "153234de6d4e1c71377a68ae1be0d98ac08be35823794e29626f7851bc394644",
+      "media_type": "application/json",
+      "profile": "json_members_v1",
+      "summary": {
+        "resource_count": 2,
+        "top_level_member_count": 1,
+        "json_value_counts": {
+          "object_count": 31,
+          "array_count": 1,
+          "string_count": 58,
+          "number_count": 29,
+          "boolean_count": 0,
+          "null_count": 0,
+          "object_key_count": 91
+        }
+      },
+      "resources": [
+        {
+          "resource_id": "json-root",
+          "resource_kind": "json_container",
+          "structural_role": "container_metadata",
+          "locator": {
+            "json_value_type": "object"
+          }
+        },
+        {
+          "resource_id": "json-member-00001",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 1,
+            "json_value_type": "object",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 30,
+            "array_count": 1,
+            "string_count": 58,
+            "number_count": 29,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 90
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "30c471f6aafbca7085640653eeef555e85eb0df1602c98a662814c27767d1188",
+            "character_count": 5
+          }
+        }
+      ]
+    },
+    {
+      "file_id": "tos.file.sha256.3ffb45429133cb6e937f563bbe3e5e9dccd388a2320960c3846a653a9c657488",
+      "file_sha256": "3ffb45429133cb6e937f563bbe3e5e9dccd388a2320960c3846a653a9c657488",
+      "media_type": "application/json",
+      "profile": "json_members_v1",
+      "summary": {
+        "resource_count": 2,
+        "top_level_member_count": 1,
+        "json_value_counts": {
+          "object_count": 31,
+          "array_count": 1,
+          "string_count": 58,
+          "number_count": 29,
+          "boolean_count": 0,
+          "null_count": 0,
+          "object_key_count": 91
+        }
+      },
+      "resources": [
+        {
+          "resource_id": "json-root",
+          "resource_kind": "json_container",
+          "structural_role": "container_metadata",
+          "locator": {
+            "json_value_type": "object"
+          }
+        },
+        {
+          "resource_id": "json-member-00001",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 1,
+            "json_value_type": "object",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 30,
+            "array_count": 1,
+            "string_count": 58,
+            "number_count": 29,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 90
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "30c471f6aafbca7085640653eeef555e85eb0df1602c98a662814c27767d1188",
+            "character_count": 5
+          }
+        }
+      ]
+    },
+    {
+      "file_id": "tos.file.sha256.e8c304250ec527b14f2a2295159fc38fc371abb3301b2d13dae38a58a9ef7bdf",
+      "file_sha256": "e8c304250ec527b14f2a2295159fc38fc371abb3301b2d13dae38a58a9ef7bdf",
+      "media_type": "application/json",
+      "profile": "json_members_v1",
+      "summary": {
+        "resource_count": 2,
+        "top_level_member_count": 1,
+        "json_value_counts": {
+          "object_count": 31,
+          "array_count": 1,
+          "string_count": 58,
+          "number_count": 29,
+          "boolean_count": 0,
+          "null_count": 0,
+          "object_key_count": 91
+        }
+      },
+      "resources": [
+        {
+          "resource_id": "json-root",
+          "resource_kind": "json_container",
+          "structural_role": "container_metadata",
+          "locator": {
+            "json_value_type": "object"
+          }
+        },
+        {
+          "resource_id": "json-member-00001",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 1,
+            "json_value_type": "object",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 30,
+            "array_count": 1,
+            "string_count": 58,
+            "number_count": 29,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 90
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "30c471f6aafbca7085640653eeef555e85eb0df1602c98a662814c27767d1188",
+            "character_count": 5
+          }
+        }
+      ]
+    },
+    {
+      "file_id": "tos.file.sha256.f81c396bcee39e229a12af26a0a18d10fd987d4b83a35958deaa03667efd31e5",
+      "file_sha256": "f81c396bcee39e229a12af26a0a18d10fd987d4b83a35958deaa03667efd31e5",
+      "media_type": "application/json",
+      "profile": "json_members_v1",
+      "summary": {
+        "resource_count": 2,
+        "top_level_member_count": 1,
+        "json_value_counts": {
+          "object_count": 31,
+          "array_count": 1,
+          "string_count": 58,
+          "number_count": 29,
+          "boolean_count": 0,
+          "null_count": 0,
+          "object_key_count": 91
+        }
+      },
+      "resources": [
+        {
+          "resource_id": "json-root",
+          "resource_kind": "json_container",
+          "structural_role": "container_metadata",
+          "locator": {
+            "json_value_type": "object"
+          }
+        },
+        {
+          "resource_id": "json-member-00001",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 1,
+            "json_value_type": "object",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 30,
+            "array_count": 1,
+            "string_count": 58,
+            "number_count": 29,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 90
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "30c471f6aafbca7085640653eeef555e85eb0df1602c98a662814c27767d1188",
+            "character_count": 5
+          }
+        }
+      ]
+    },
+    {
+      "file_id": "tos.file.sha256.a3c2c6eb74edbc4d58da140a986665d76185349ce96d76e80ba5e4257dcb4efb",
+      "file_sha256": "a3c2c6eb74edbc4d58da140a986665d76185349ce96d76e80ba5e4257dcb4efb",
+      "media_type": "application/json",
+      "profile": "json_members_v1",
+      "summary": {
+        "resource_count": 2,
+        "top_level_member_count": 1,
+        "json_value_counts": {
+          "object_count": 31,
+          "array_count": 1,
+          "string_count": 58,
+          "number_count": 29,
+          "boolean_count": 0,
+          "null_count": 0,
+          "object_key_count": 91
+        }
+      },
+      "resources": [
+        {
+          "resource_id": "json-root",
+          "resource_kind": "json_container",
+          "structural_role": "container_metadata",
+          "locator": {
+            "json_value_type": "object"
+          }
+        },
+        {
+          "resource_id": "json-member-00001",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 1,
+            "json_value_type": "object",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 30,
+            "array_count": 1,
+            "string_count": 58,
+            "number_count": 29,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 90
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "30c471f6aafbca7085640653eeef555e85eb0df1602c98a662814c27767d1188",
+            "character_count": 5
+          }
+        }
+      ]
+    },
+    {
+      "file_id": "tos.file.sha256.dbce0e4fe2a0f41ad91187ee42be0b4f4669ad4d65de72ca1283c0c43374acdd",
+      "file_sha256": "dbce0e4fe2a0f41ad91187ee42be0b4f4669ad4d65de72ca1283c0c43374acdd",
+      "media_type": "application/json",
+      "profile": "json_members_v1",
+      "summary": {
+        "resource_count": 2,
+        "top_level_member_count": 1,
+        "json_value_counts": {
+          "object_count": 31,
+          "array_count": 1,
+          "string_count": 58,
+          "number_count": 29,
+          "boolean_count": 0,
+          "null_count": 0,
+          "object_key_count": 91
+        }
+      },
+      "resources": [
+        {
+          "resource_id": "json-root",
+          "resource_kind": "json_container",
+          "structural_role": "container_metadata",
+          "locator": {
+            "json_value_type": "object"
+          }
+        },
+        {
+          "resource_id": "json-member-00001",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 1,
+            "json_value_type": "object",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 30,
+            "array_count": 1,
+            "string_count": 58,
+            "number_count": 29,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 90
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "30c471f6aafbca7085640653eeef555e85eb0df1602c98a662814c27767d1188",
+            "character_count": 5
+          }
+        }
+      ]
+    }
+  ],
+  "generator": {
+    "name": "build_source_resource_inventories.py",
+    "version": "2"
+  },
+  "provenance_event_ref": "tos.event.inventory.tos.item.retained.antiquity.meditations.meditations-ru-rogovin1914-wikisource.20261104",
+  "inventory_version": 1,
+  "supersedes_inventory_ref": null,
+  "authority_boundary": "This inventory records resource enumeration, geometry, ordering, counts and one-way fingerprints for the selected source."
+}
