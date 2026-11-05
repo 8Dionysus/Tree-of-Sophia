@@ -873,10 +873,12 @@
 /* The trail: the cards laid before this one. The column shows the step back to the last of them; the bench, the path. */
 #tree .ps-column>.ps-trail{order:0;display:flex;align-items:center;gap:6px;min-width:0;padding:6px 14px 6px 16px;border-bottom:1px solid var(--ps-line);font:12px/1.4 var(--ps-sans)}
 #tree .ps-column>.ps-trail[hidden]{display:none}
-#tree .ps-trail-step{flex:none;display:inline-grid;place-items:center;width:26px;height:26px;padding:0;border:0;border-radius:5px;background:none;color:var(--ps-muted);font:16px/1 var(--ps-sans);cursor:pointer}
-#tree .ps-trail-step:hover:not(:disabled){color:var(--ps-gold);background:#c9ad7314}
-#tree .ps-trail-step:disabled{opacity:.25;cursor:default}
-#tree .ps-trail-crumbs{display:flex;align-items:center;gap:4px;min-width:0;margin:0;padding:0;list-style:none;overflow:hidden}
+#tree .ps-trail-step{flex:none;display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border:1px solid var(--ps-line-strong);border-radius:6px;background:#c9ad730a;color:var(--ps-text);font:12px/1 var(--ps-sans);cursor:pointer}
+#tree .ps-trail-step>.ps-trail-glyph{font-size:14px;color:var(--ps-gold-soft)}
+#tree .ps-trail-step[data-way=forward]{margin-left:auto}
+#tree .ps-trail-step:hover:not(:disabled){color:var(--ps-gold);border-color:#c9ad7380;background:#c9ad7314}
+#tree .ps-trail-step:disabled{opacity:.35;cursor:default}
+#tree .ps-trail-crumbs{display:flex;flex:1 1 auto;align-items:center;gap:4px;min-width:0;margin:0 4px;padding:0;list-style:none;overflow:hidden}
 #tree .ps-trail-crumb{display:flex;align-items:center;min-width:0;max-width:24ch;color:var(--ps-text)}
 #tree .ps-trail-crumb+.ps-trail-crumb::before{content:'›';flex:none;margin:0 6px 0 2px;color:var(--ps-faint)}
 #tree .ps-trail-crumb>*{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
