@@ -141,6 +141,8 @@ export function themePostcss(){
     const rules=[];root.walkRules(rule=>{rules.push(rule);});
     for(const rule of rules){
       if(rule.parent?.type==='atrule'&&/keyframes$/i.test(rule.parent.name))continue;
+      // A rule written for a theme already is that theme's own word; it has no night to be turned.
+      if(rule.selector.includes(`[${THEME_ATTRIBUTE}`))continue;
       const painting=rule.nodes.filter(node=>node.type==='decl'&&paints(node.prop,node.value));
       if(!painting.length||!painting.some(node=>themeValue('noon',node.value,node.prop)!==node.value))continue;
       let at=rule;

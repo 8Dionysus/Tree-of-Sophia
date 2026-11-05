@@ -248,7 +248,7 @@ async function makeAntiquity(sources, structureByDocument) {
       intro: bi('Вопросы из прежнего Древа Античности связывают Менона, «Никомахову этику» и «Апологию Сократа» с более широкими сопоставлениями.', 'Questions from the earlier Antiquity tree connect Meno, the Nicomachean Ethics and the Apology with broader comparisons.'),
       posture: bi('Античные ветви и сопоставления — авторские исследовательские предложения. Связи не утверждают канон, историческое влияние или тождество изданий.', 'Ancient branches and comparisons are authored research proposals. Relations do not claim canon, historical influence, or edition identity.'),
       lenses: [
-        {id: 'tree', icon: '✧', title: bi('Древо', 'The tree'), description: bi('Все ветви, источники и переходы этого профиля.', 'All branches, sources and transitions in this profile.')},
+        {id: 'tree', icon: '✧', title: bi('Древо', 'The tree'), description: bi('Весь бонсай: корни — тексты, ствол — слова и понятия, крона — ветви и вопросы.', 'The whole bonsai: the texts in the roots, words and concepts in the trunk, branches and questions in the crown.')},
         {id: 'sources', icon: '⌘', title: bi('Источники', 'Sources'), description: bi('Публичные произведения и точные библиографические места.', 'Public works and exact bibliographic locations.')},
         {id: 'meaning', icon: '◈', title: bi('Прочтения', 'Readings'), description: bi('Авторские прочтения, вопросы и их основания.', 'Authored readings, questions and their grounds.')},
         {id: 'tensions', icon: '⋈', title: bi('Различия', 'Differences'), description: bi('Возражения, уточнения и аналогии в предложенных маршрутах.', 'Objections, qualifications and analogies in the proposed routes.')},

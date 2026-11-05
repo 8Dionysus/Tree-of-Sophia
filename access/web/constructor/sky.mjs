@@ -185,7 +185,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
         el.addEventListener('pointerenter',()=>{hover=item.id;kick()});el.addEventListener('pointerleave',()=>{hover=null;kick()});
         el.addEventListener('focus',()=>{hover=item.id;kick()});el.addEventListener('blur',()=>{hover=null;kick()});
       }
-      n.target=[...item.position];n.kind=item.kind;n.color=item.color;n.prominent=!!item.prominent;n.dimmed=!!item.dim;n.labelSide=['left','right','above','below'].includes(item.labelSide)?item.labelSide:null;n.quiet=!!item.quiet;n.form=item.form==='proposal'||item.form==='personal'?item.form:'source';n.el.dataset.form=n.form;n.major=item.major??['work','concept','dossier','figure'].includes(item.kind);
+      n.target=[...item.position];n.kind=item.kind;n.color=item.color;n.prominent=!!item.prominent;n.dimmed=!!item.dim;n.labelSide=['left','right','above','below'].includes(item.labelSide)?item.labelSide:null;n.quiet=!!item.quiet;n.form=item.form==='proposal'||item.form==='personal'?item.form:'source';n.el.dataset.form=n.form;n.major=item.major??['work','concept','dossier','figure'].includes(item.kind);n.labelFrom=Number.isFinite(item.labelFrom)?item.labelFrom:0;
       n.titleText=labels[item.id]??item.title??item.id;n.subtitle=typeof item.subtitle==='string'?item.subtitle:'';
       n.labelMaxWidth=Number.isFinite(item.labelMaxWidth)?Math.max(80,Math.min(320,item.labelMaxWidth)):null;n.labelLines=item.labelLines===2?2:1;
       const clampStyle={whiteSpace:n.labelLines>1?'normal':'',display:n.labelLines>1?'-webkit-box':'',webkitBoxOrient:n.labelLines>1?'vertical':'',webkitLineClamp:n.labelLines>1?String(n.labelLines):''};
@@ -205,7 +205,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     const oldClusters=new Map(clusters.map(c=>[c.id,c]));
     clusters=(state.clusters??[]).map(item=>{let c=oldClusters.get(item.id);oldClusters.delete(item.id);if(!c){const el=document.createElement('div'),title=document.createElement('span'),subtitle=document.createElement('small');el.className='tree-cluster';title.className='cluster-title';subtitle.className='cluster-subtitle';el.append(title,subtitle);Object.assign(el.style,{position:'absolute',left:'0',top:'0',pointerEvents:'none'});clusterLayer.append(el);c={el,title,subtitle,p:[...item.center]};}c.id=item.id;c.target=[...item.center];c.variant=typeof item.variant==='string'?item.variant:'';if(c.variant)c.el.dataset.variant=c.variant;else delete c.el.dataset.variant;c.strip=Number.isFinite(item.strip)?item.strip:null;c.span=Array.isArray(item.span)&&item.span.length===2&&item.span.every(Number.isFinite)?[...item.span]:null;c.align=item.align==='start'||item.align==='end'?item.align:'';if(c.align)c.el.dataset.align=c.align;else delete c.el.dataset.align;c.maxWidth=Number.isFinite(item.maxWidth)?item.maxWidth:null;c.radius=Number.isFinite(item.radius)?item.radius:null;const home=clipped.has(c.variant)?ringLayer:underStars.has(c.variant)?ruleLayer:clusterLayer;if(c.el.parentElement!==home)home.append(c.el);if(item.ref){c.el.dataset.ref=String(item.ref);c.el.style.pointerEvents='auto';c.el.setAttribute('role','button');c.el.tabIndex=0;}else{delete c.el.dataset.ref;c.el.style.pointerEvents='none';c.el.removeAttribute('role');c.el.removeAttribute('tabindex');}if(item.tone)c.el.dataset.tone=String(item.tone);else delete c.el.dataset.tone;if(item.hint&&nativeTitles)c.el.title=item.hint;else c.el.removeAttribute('title');if(item.hint&&!nativeTitles)c.el.dataset.hint=item.hint;else delete c.el.dataset.hint;c.title.textContent=item.title??'';c.subtitle.textContent=item.subtitle??'';c.el.style.setProperty('--cluster-color',hex(item.color,'#a5b7cf'));c.el.style.color=hex(item.color,'#a5b7cf');return c;});oldClusters.forEach(c=>c.el.remove());
     // A measured plane may lie on a backdrop of lines in its own units, such as coastlines.
-    backdrop=Array.isArray(state.backdrop)?state.backdrop.filter(line=>Array.isArray(line)&&line.length>1):[];
+    // A backdrop line is its points, or its points with a colour, an alpha and a weight in the layout's units.
+    backdrop=Array.isArray(state.backdrop)?state.backdrop.filter(line=>(Array.isArray(line)?line:line?.points)?.length>1):[];
     // A space read in depth may lay its stars on planes, each at its own depth and named at a corner.
     const oldPlanes=new Map(planes.map(plane=>[plane.id,plane]));
     planes=(Array.isArray(state.planes)?state.planes:[]).filter(item=>typeof item?.id==='string'&&Number.isFinite(item.z)&&[item.x,item.y].every(range=>Array.isArray(range)&&range.length===2&&range.every(Number.isFinite))).map(item=>{
@@ -577,6 +578,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const hot=n.id===selectedId||n.id===hover;
       // A star the view has stepped back keeps its light and gives its name's room to the stars in front.
       if((n.dimmed||n.quiet)&&!hot){showLabel(n,null,false);continue;}
+      // A name that waits for a nearer view stands once the view comes that near, or while its star is reached.
+      if(n.labelFrom&&n.screen.s<n.labelFrom&&!hot&&!near.has(n.id)){showLabel(n,null,false);continue;}
       const place=height=>{
         const within=around(n,height).filter(inView),clear=within.find(rect=>!occupied.some(o=>overlaps(rect,o))&&!nodeObstacles.some(o=>o.id!==n.id&&overlaps(rect,o,2)));
         return clear||(hot?within[0]:n.prominent?within.find(rect=>!occupied.some(o=>overlaps(rect,o))):null);
@@ -671,19 +674,33 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       ctx.globalAlpha=1;
     }
     if(measured&&backdrop.length){
-      ctx.strokeStyle='#8fa8c4';ctx.globalAlpha=.3;ctx.lineWidth=.9;ctx.beginPath();
-      for(const line of backdrop){let previous=null;for(const [x,y] of line){const point=project([x,y,0]);if(previous){const cut=clipSegment(previous,point);if(cut){ctx.moveTo(cut[0].x,cut[0].y);ctx.lineTo(cut[1].x,cut[1].y);}}previous=point;}}
-      ctx.stroke();ctx.globalAlpha=1;
+      // The lines under a chosen or pointed star step back with the stars it does not reach.
+      const fade=focused?.42:1;
+      for(const line of backdrop){
+        const points=Array.isArray(line)?line:line.points,style=Array.isArray(line)?{}:line;
+        ctx.strokeStyle=style.color??'#8fa8c4';ctx.globalAlpha=(style.alpha??.3)*fade;ctx.beginPath();
+        let previous=null;for(const [x,y] of points){const point=project([x,y,0]);if(previous){const cut=clipSegment(previous,point);if(cut){ctx.moveTo(cut[0].x,cut[0].y);ctx.lineTo(cut[1].x,cut[1].y);}}previous=point;}
+        ctx.lineWidth=Number.isFinite(style.weight)?clamp(style.weight*(previous?.s??1),.6,7):.9;ctx.stroke();
+      }
+      ctx.globalAlpha=1;
     }
     for(const edge of edges){
-      let a=byId.get(edge.from)?.screen,b=byId.get(edge.to)?.screen,whole=true;if(!a||!b)continue;
-      if(measured){const cut=clipSegment(a,b);if(!cut)continue;[a,b,whole]=cut;}
-      if(edge.muted){ctx.strokeStyle=edge.color;ctx.globalAlpha=.05;ctx.lineWidth=.6;strokeSegment(a,b,edge.dash);continue;}
-      const hot=edge.id===hoverEdge||edge.id===selectedEdgeId||edge.highlight,neighbor=focusEdges.has(edge.id)||keptEdges.has(edge.id),rest=Number.isFinite(edge.baseAlpha)?edge.baseAlpha:.24,weight=Number.isFinite(edge.weight)?edge.weight:1;
+      const from=byId.get(edge.from)?.screen,to=byId.get(edge.to)?.screen;if(!from||!to)continue;
+      const hot=edge.id===hoverEdge||edge.id===selectedEdgeId||edge.highlight,neighbor=focusEdges.has(edge.id)||keptEdges.has(edge.id);
+      // A latent link is drawn only while one of its stars is pointed at or chosen.
+      if(edge.latent&&!hot&&!neighbor)continue;
+      // A link may run through points of its own, so the links between distant parts of a layout gather on their way.
+      const route=Array.isArray(edge.via)&&edge.via.length?[from,...edge.via.map(project),to]:[from,to];
+      if(edge.muted){ctx.strokeStyle=edge.color;ctx.globalAlpha=.05;ctx.lineWidth=.6;for(let i=1;i<route.length;i++){let a=route[i-1],b=route[i];if(measured){const cut=clipSegment(a,b);if(!cut)continue;[a,b]=cut;}strokeSegment(a,b,edge.dash);}continue;}
+      const rest=Number.isFinite(edge.baseAlpha)?edge.baseAlpha:.24,weight=Number.isFinite(edge.weight)?edge.weight:1;
       ctx.strokeStyle=edge.color;ctx.globalAlpha=hot?.85:neighbor?.57:focused?rest*.23:rest;ctx.lineWidth=(hot?1.55:neighbor?1.1:.65)*weight;
-      strokeSegment(a,b,edge.dash??(edge.kind==='questions'||edge.kind==='contrasts'?'dashed':'solid'));
-      if((hot||neighbor)&&whole)arrow(a,b);
-      edgeHits.push({id:edge.id,a,b});
+      const dash=edge.dash??(edge.kind==='questions'||edge.kind==='contrasts'?'dashed':'solid');let longest=null;
+      for(let i=1;i<route.length;i++){
+        let a=route[i-1],b=route[i],whole=true;if(measured){const cut=clipSegment(a,b);if(!cut)continue;[a,b,whole]=cut;}
+        strokeSegment(a,b,dash);if((hot||neighbor)&&whole&&i===route.length-1)arrow(a,b);
+        const length=Math.hypot(b.x-a.x,b.y-a.y);if(!longest||length>longest.length)longest={a,b,length};
+      }
+      if(longest)edgeHits.push({id:edge.id,a:longest.a,b:longest.b});
     }
     // A route's way lights up while its card is pointed at: a golden line through its stars in the order it walks them.
     const litTarget=lit?1:0;litGlow+=(litTarget-litGlow)*(1-Math.exp(-dt*(lit?9:4)));if(Math.abs(litTarget-litGlow)<.01)litGlow=litTarget;
