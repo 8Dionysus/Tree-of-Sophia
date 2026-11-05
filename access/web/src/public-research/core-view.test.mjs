@@ -75,3 +75,19 @@ it('shows a proposal’s actual reading and grounds, and opens an addressed revi
   expect(text(application)).toContain('Два понятия подвергнуты критике.');expect(text(application)).toContain('не разрешает все вопросы о свободе');
   expect(all(application).find(item=>item.tagName==='a').href).toBe('https://www.gutenberg.org/cache/epub/7204/pg7204.html');
 });
+
+it('lays every part of a subject open at its step on the workbench and keeps the reader’s own work out of the tools',()=>{
+  const cite={w:'also-sprach-zarathustra',c:'III.13',u:['u1','u1']};
+  const record={id:'recurrence',title:{ru:'Вечное возвращение'},conception:{thesis:{ru:'Всё возвращается.'},grounds:{ru:'Так поют звери.'},formula:{cite,speaker:'animals'}},development:{emergence:{ru:'Впервые у ворот.'}},appearances:[{cite,line:{ru:'У ворот'}}]};
+  const core={records:{recurrence:record,gateway:{id:'gateway',title:{ru:'Ворота'}}},materialIds:{recurrence:'recurrence',gateway:'gateway'},links:[{id:'opens',from:'gateway',to:'recurrence',verb:{ru:'открывает'},sense:{ru:'Ворота открывают мысль'}}],chains:[]};
+  const fragments={render(parent,value){if(value?.ru)parent.append(Object.assign(new Element('p'),{textContent:value.ru}));},fragment(value){return Object.assign(new Element('p'),{textContent:`Источник ${value.c}`});}};
+  const view=createCoreView({core,locale:()=> 'ru',fragments,onAction(){}}),root=new Element('div');
+  view.node(root,'recurrence',{bench:true});
+  expect(Object.fromEntries(all(root).filter(item=>item.dataset.part).map(item=>[item.dataset.part,item.dataset.zone]))).toEqual({essence:'reading',development:'reading',links:'comparison',witnesses:'source'});
+  expect(all(root).some(item=>item.className==='ps-core-tabs')).toBe(false);
+  expect(all(root).find(item=>item.className==='ps-kernel-actions').children.map(item=>item.textContent)).toEqual(['Читать','Сопоставить','Связи']);
+  expect(all(root).some(item=>item.className==='ps-kernel-personal')).toBe(true);
+  // At the end of a link the subject brings its thesis and its formula in the book's words.
+  const end=new Element('div');expect(view.brief(end,'recurrence')).toBe(true);
+  expect(text(end)).toContain('Всё возвращается.');expect(text(end)).toContain('Источник III.13');
+});

@@ -25,6 +25,7 @@ import {datingKind,measureAntiquity,measureZarathustra} from './space-measure.mj
 import {depthLayout} from './space-depth.mjs';
 import {aspectLayout} from './space-aspect.mjs';
 import {mountHints,setHint} from './space-hints.mjs';
+import {layBench} from './space-bench.mjs';
 import {controlsDismissed,controlsShouldOpen,mountControls} from './space-controls.mjs';
 import {besidePosition,disputes,ownTitle,readingsAround,restsOn,routeStars,routeWithRecords,threadsIntoDark,pathThrough} from './space-play.mjs';
 import {citesOf,createFragments} from './fragments.mjs';
@@ -72,6 +73,9 @@ const copyPosition=value=>Array.isArray(value)&&value.length===3&&value.every(Nu
 function downloadGraph(packet,name){const blob=new Blob([packet],{type:'application/json'}),url=URL.createObjectURL(blob),anchor=document.createElement('a');anchor.href=url;anchor.download=name;anchor.hidden=true;document.body.append(anchor);anchor.click();anchor.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 
 // The host contains both the map and the shared header, including search and language controls.
+// The workbench: the card of a star or a link over the whole space, its columns the steps of interpretation.
+Object.assign(extraTranslations.ru,{bench:'Верстак',openBench:'Развернуть карточку на весь экран — исследовательский верстак',closeBench:'Свернуть верстак обратно к небу',myWork:'Моя работа',workHelp:'Заметка, тезис или возражение к этому предмету',continueResearch:'Продолжить исследование',benchSource:'Источник — слова самого текста.',benchReading:'Прочтение — то, что Древо видит в источнике.',benchComparison:'Сопоставление — встреча этого прочтения с другими.',benchLink:'Сопоставление — то, что связывает два предмета.'});
+Object.assign(extraTranslations.en,{bench:'Workbench',openBench:'Open the card over the whole screen as a research workbench',closeBench:'Fold the workbench back beside the sky',myWork:'My work',workHelp:'A note, thesis or objection about this subject',continueResearch:'Continue research',benchSource:'The source: the words of the text itself.',benchReading:'The reading: what the tree sees in the source.',benchComparison:'The comparison: this reading meeting others.',benchLink:'The comparison: what joins the two subjects.'});
 export function toggleResearchFullscreen(host,doc=document){
   if(doc.fullscreenElement)return doc.exitFullscreen().catch(()=>{});
   return host.requestFullscreen?.().catch(()=>{});
@@ -233,7 +237,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // The reading column holds the space's overview, an open branch or route, or the chosen star.
   // On a narrow screen it becomes a sheet whose top bar always stays in reach.
   const reading=el('aside','reading ps-panel ps-column');reading.hidden=true;
-  const panelTop=el('div','reading-top'),panelTitle=button('','eyebrow ps-column-title'),panelClose=button('×','icon');panelClose.setAttribute('aria-label',t('close'));panelTop.append(panelTitle,panelClose);
+  const panelTop=el('div','reading-top'),panelTitle=button('','eyebrow ps-column-title'),panelClose=button('×','icon');panelClose.setAttribute('aria-label',t('close'));
+  // The card of a star or a link opens over the whole screen as the research workbench and folds back beside the sky.
+  const panelBench=button('','icon ps-bench-toggle'),panelTools=el('div','ps-column-tools');panelBench.hidden=true;panelBench.addEventListener('click',()=>toggleBench());panelTools.append(panelBench,panelClose);panelTop.append(panelTitle,panelTools);
   const panelContent=el('div','ps-panel-content');
   // A measuring lens keeps its own controls at the top of the column: the concept traced through time, the criterion of proximity.
   const lensControls=el('div','ps-lens-controls');lensControls.hidden=true;
@@ -1124,7 +1130,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function ladderLine(rung){
     const wrap=el('p','ps-ladder');setHint(wrap,t('ladderHint'));wrap.setAttribute('aria-label',t('ladderLabel'));
     if(rung==='personal'){const item=el('span','ps-rung',t('rungPersonal'));item.setAttribute('aria-current','true');wrap.append(item);return wrap;}
-    ['source','reading','comparison'].forEach((key,index)=>{if(index)wrap.append(el('span','ps-rung-sep','›'));const item=el('span','ps-rung',t(`rung_${key}`));if(key===rung)item.setAttribute('aria-current','true');wrap.append(item);});
+    ['source','reading','comparison'].forEach((key,index)=>{if(index)wrap.append(el('span','ps-rung-sep','›'));const item=el('span','ps-rung',t(`rung_${key}`));item.dataset.rung=key;if(key===rung)item.setAttribute('aria-current','true');wrap.append(item);});
     return wrap;
   }
   const chronologyReader=bonsai?.chronology?readChronology(bonsai.chronology):null;
@@ -1180,7 +1186,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     // The centre lists the stars nearest to it by the criterion; choosing one moves the centre there.
     if(materialId===center){
       const nearest=starIds.filter(id=>id!==center&&distanceOf(id)!==null).sort((a,b)=>distanceOf(a)-distanceOf(b)).slice(0,6);
-      const {fold,body}=fact('⊙',tr(item.label,locale()),nearest.length?t('nearClosest'):t('nearIsCenter'));
+      const {fold,body}=fact('⊙',tr(item.label,locale()),nearest.length?t('nearClosest'):t('nearIsCenter'));fold.dataset.zone='comparison';
       for(const id of nearest){const row=button('','connection-target');row.append(el('small','',nearValue(item,distanceOf(id))),el('span','',label(previewMaterials.get(id))));row.addEventListener('click',()=>selectNode(graphIdForMaterial(id)));body.append(row);}
       if(!body.childElementCount)fold.classList.add('ps-fact-plain');
       parent.append(fold);return;
@@ -1220,11 +1226,11 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       const proposals=personalProposals(ownerHyp?.id??node.workspaceHypothesisId);
       appendPersonalProposals(panelContent,proposals);
     }else if(material?.coreId&&coreView){
-      coreView.node(panelContent,material.coreId);appendResearchReferences(panelContent,material.coreId);
+      coreView.node(panelContent,material.coreId,{bench});appendResearchReferences(panelContent,material.coreId);
     }else if(material){
       const source=sourceForMaterial(material,node);
-      if(source?.exact){const open=button(`↗ ${sourceActionLabel(source)}`,'primary');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));panelContent.append(open);}
-      else if(source?.binding){const open=button(`↗ ${sourceActionLabel(source)}`,'primary');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));panelContent.append(open);}
+      if(source?.exact){const open=button(`↗ ${sourceActionLabel(source)}`,'primary ps-source-open');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));panelContent.append(open);}
+      else if(source?.binding){const open=button(`↗ ${sourceActionLabel(source)}`,'primary ps-source-open');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));panelContent.append(open);}
       const body=material.atlasBody??material.body;
       if(body)fragments.render(panelContent,body,{className:'body'});
       // The map shows what the book says. A question of the book is the star's title, and the book's answer stands
@@ -1242,20 +1248,42 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       }
       if(material.perspectives?.length){panelContent.append(el('h2','minor-title',t('perspectives')));for(const item of material.perspectives)inquiryDetail(panelContent,tr(item.title,locale()),item.body);}
       if(material.example)inquiryDetail(panelContent,t('example'),material.example);
-      if(!material.inquiry?.grounds?.length&&material.sourceRefs?.length){panelContent.append(el('h2','minor-title',t('sourceRefs')));for(const ref of material.sourceRefs){const address=typeof ref==='string'?ref:ref.url??ref.ref;const labelText=typeof ref==='string'?ref:tr(ref.label,locale())||ref.title||address;if(typeof address==='string'&&/^https?:\/\//.test(address)){const a=el('a','source-link',`${labelText} ↗`);a.href=address;a.target='_blank';a.rel='noopener noreferrer';panelContent.append(a);}else if(labelText)panelContent.append(el('p','muted',labelText));}}
+      if(!material.inquiry?.grounds?.length&&material.sourceRefs?.length){const refs=el('section','ps-source-refs');refs.dataset.zone='source';refs.append(el('h2','minor-title',t('sourceRefs')));for(const ref of material.sourceRefs){const address=typeof ref==='string'?ref:ref.url??ref.ref;const labelText=typeof ref==='string'?ref:tr(ref.label,locale())||ref.title||address;if(typeof address==='string'&&/^https?:\/\//.test(address)){const a=el('a','source-link',`${labelText} ↗`);a.href=address;a.target='_blank';a.rel='noopener noreferrer';refs.append(a);}else if(labelText)refs.append(el('p','muted',labelText));}panelContent.append(refs);}
     }else if(node.body)panelContent.append(el('p','body',node.body));
     const authorId=material?.legacyId??material?.id,works=material?.kind==='figure'?[...previewMaterials.values()].filter(item=>item.kind==='work'&&((material.works??[]).includes(item.legacyId??item.id)||(authorId&&item.author===authorId))):[];
-    if(works.length){panelContent.append(el('h2','minor-title',t('authorWorks')));for(const work of works){const open=button(label(work),'connection-target');open.addEventListener('click',()=>previewMaterial(work.id));panelContent.append(open);}}
-    const connections=graphState().edges.filter(edge=>edge.from===id||edge.to===id);
-    if(connections.length){panelContent.append(el('h2','minor-title',t('connections')));for(const edge of connections){const otherId=edge.from===id?edge.to:edge.from;const other=graphState().nodes.find(item=>item.id===otherId);const row=button('', 'connection-target'),type=relationName(edge,edge.to===id),extra=humanEdgeLabel(edge);row.append(el('small','',`${isBasedOn(edge)||edge.from===id?'→':'←'} ${type}${extra&&extra!==type?` · ${extra}`:''}`),el('span','',label(other?.ownerType==='personal-hypothesis'?other:matForNode(other)??other)));row.style.setProperty('--relation-color',paint(styleOf(edge.kind).color??'#a5b7cf'));row.addEventListener('click',()=>selectNode(otherId));panelContent.append(row);}}
-    if(material&&materials.has(material.id)){
-      const edit=button(t(inSavedGraph?'removeFromSpace':'addToSpace'),'text-button');
-      edit.addEventListener('click',()=>{try{if(inSavedGraph){model.removeNode(id);selected=id;notifyGraphResult(t('removedFromSpace'));}else{const added=model.addMaterial(material.id);state=model.getState();selectActual(added);notifyGraphResult(t('saved'));}reflect();}catch(error){notify(displayPublicError(error,locale));}});panelContent.append(edit);
+    if(works.length){const shelf=el('section','ps-author-works');shelf.dataset.zone='source';shelf.append(el('h2','minor-title',t('authorWorks')));for(const work of works){const open=button(label(work),'connection-target');open.addEventListener('click',()=>previewMaterial(work.id));shelf.append(open);}panelContent.append(shelf);}
+    // On the workbench a core subject's own links already stand in its comparison; the map's other lines join them there.
+    const linked=bench&&material?.coreId&&core?new Set((core.links??[]).filter(link=>link.from===material.coreId||link.to===material.coreId).map(link=>graphIdForMaterial(core.materialIds?.[link.from===material.coreId?link.to:link.from]))):null;
+    const connections=graphState().edges.filter(edge=>(edge.from===id||edge.to===id)&&!linked?.has(edge.from===id?edge.to:edge.from));
+    if(connections.length){
+      // Links of one kind stand together under their name and the colour of their line on the sky: what the star rests on,
+      // what grows from it, what questions it.
+      const list=el('section','ps-card-relations'),groups=new Map();list.dataset.zone='comparison';list.append(el('h2','minor-title',t('connections')));
+      for(const edge of connections){const key=`${isBasedOn(edge)||edge.from===id?'→':'←'} ${isBasedOn(edge)?t(edge.to===id?'groundsFor':'basedOn'):relationWord(edge.kind)||t('relation')}`;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(edge);}
+      for(const [key,edges] of groups){
+        const group=el('div','ps-relation-group');group.style.setProperty('--relation-color',paint(styleOf(edges[0].kind).color??'#a5b7cf'));group.append(el('h3','ps-relation-kind',`${key} · ${edges.length}`));
+        for(const edge of edges){
+          const otherId=edge.from===id?edge.to:edge.from,other=graphState().nodes.find(item=>item.id===otherId),atlasEdge=(atlas.edges??[]).find(item=>`atlas:${item.id}`===edge.id||item.id===edge.id);
+          const said=humanEdgeLabel(edge)||humanEdgeLabel(atlasEdge)||relationName(edge,edge.to===id),row=el('div','ps-link-row');
+          // The words of a link open the link itself; the name lays the star at its other end.
+          if(said&&!key.endsWith(` ${said}`)){const verb=button(said,'ps-link-row-verb');verb.addEventListener('click',()=>selectEdge(edge.id));row.append(verb);}
+          const end=button(label(other?.ownerType==='personal-hypothesis'?other:matForNode(other)??other),'ps-link-row-end');end.addEventListener('click',()=>selectNode(otherId));row.append(end);group.append(row);
+        }
+        list.append(group);
+      }
+      panelContent.append(list);
     }
-    if(!inView)return;
-    const actions=el('div','reading-bottom');
+    // The reader's own work on the star closes the card: a note, a thesis or an objection, and the star kept in their own space.
+    const work=material&&!(material.coreId&&coreView)?el('section','ps-kernel-personal ps-card-work'):null;
+    if(work){work.append(el('h3','minor-title',t('myWork')),el('p','muted',t('workHelp')));const go=button(t('continueResearch'),'ps-kernel-action');go.addEventListener('click',()=>shell.dispatchEvent(new CustomEvent('public-research-action',{bubbles:true,detail:{action:'continue',recordId:material.id,kind:'node',record:material}})));work.append(go);}
+    if(material&&materials.has(material.id)){
+      const edit=button(t(inSavedGraph?'removeFromSpace':'addToSpace'),'text-button');edit.dataset.zone='work';
+      edit.addEventListener('click',()=>{try{if(inSavedGraph){model.removeNode(id);selected=id;notifyGraphResult(t('removedFromSpace'));}else{const added=model.addMaterial(material.id);state=model.getState();selectActual(added);notifyGraphResult(t('saved'));}reflect();}catch(error){notify(displayPublicError(error,locale));}});(work??panelContent).append(edit);
+    }
+    if(!inView){if(work)panelContent.append(work);return;}
+    const actions=el('div','reading-bottom');actions.dataset.zone='comparison';
     actions.append(button(`↔ ${t('compare')}`,'text-button'),button(`↗ ${t('connect')}`,'text-button'));
-    actions.children[0].addEventListener('click',()=>{closePanel();beginCompare(id);});actions.children[1].addEventListener('click',()=>{closePanel();beginConnect(id);});panelContent.append(actions);
+    actions.children[0].addEventListener('click',()=>{closePanel();beginCompare(id);});actions.children[1].addEventListener('click',()=>{closePanel();beginConnect(id);});panelContent.append(actions);if(work)panelContent.append(work);
   }
   function researchSelection(){const id=selectedEdge??selected?.replace(/^material:/,'');return id?{id:index?.resolveId(id)??id,kind:selectedEdge?'relation':'node',lens,route:route?.id??null,step:routeIndex,scroll:reading.scrollTop}:null;}
   // A core relation is drawn on the map as a context link; its address, a record id or an edge id, names that link.
@@ -1297,7 +1325,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   function appendResearchReferences(parent,id){
     const item=index?.get(id);if(!item)return;
-    const fold=el('details','ps-core-fold'),summary=el('summary','',copyLocale(locale())==='en'?'References and dependencies':'Ссылки и зависимости');fold.append(summary);
+    const fold=el('details','ps-core-fold'),summary=el('summary','',copyLocale(locale())==='en'?'References and dependencies':'Ссылки и зависимости');fold.append(summary);fold.dataset.zone='comparison';
     const own=el('a','source-link',copyLocale(locale())==='en'?'Copyable link to this item':'Точная ссылка на этот предмет');
     const url=new URL(location.href);url.searchParams.set('item',item.id);url.searchParams.set('revision',index.revision);own.href=url.href;fold.append(own);
     const rows=[...item.dependencies.map(reference=>index.get(typeof reference==='string'?reference:reference.id)),...index.references(id)].filter(Boolean);
@@ -1320,7 +1348,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     }
     const edge=findEdge(id);if(!edge)return dropEdge();
     panelContent.replaceChildren();
-    if(edge.coreRecord&&coreView){coreView.link(panelContent,edge.coreRecord);appendResearchReferences(panelContent,edge.coreRecord.id??id);return;}
+    if(edge.coreRecord&&coreView){coreView.link(panelContent,edge.coreRecord,{bench});appendResearchReferences(panelContent,edge.coreRecord.id??id);return;}
     const from=graphState().nodes.find(node=>node.id===edge.from),to=graphState().nodes.find(node=>node.id===edge.to),atlasEdge=(atlas.edges??[]).find(item=>`atlas:${item.id}`===id||item.id===id);
     // The graph copy of an atlas edge may carry only an id; the authored label lives on the atlas edge.
     const relationLabel=relationName(edge),edgeLabel=humanEdgeLabel(edge)||humanEdgeLabel(atlasEdge);
@@ -1336,12 +1364,12 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(proposal){panelContent.append(el('p','posture',proposalStatus(proposal)));appendPersonalGrounds(panelContent,[proposal],'proposalGrounds');}
     for(const endpoint of [from,to]){
       if(endpoint?.ownerType==='personal-hypothesis'){
-        const section=el('section','ps-endpoint-source');section.append(el('h2','minor-title',`${t('endpointRelatedSources')}: ${label(endpoint)}`));
+        const section=el('section','ps-endpoint-source');section.dataset.end=endpoint===from?'from':'to';section.append(el('h2','minor-title',`${t('endpointRelatedSources')}: ${label(endpoint)}`));
         appendPersonalGrounds(section,personalProposals(endpoint.workspaceHypothesisId));panelContent.append(section);continue;
       }
       const source=sourceForMaterial(matForNode(endpoint),endpoint);
       if(!source)continue;
-      const section=el('section','ps-endpoint-source');section.append(el('h2','minor-title',`${t('endpointSource')}: ${label(matForNode(endpoint)??endpoint)}`));
+      const section=el('section','ps-endpoint-source');section.dataset.end=endpoint===from?'from':'to';section.append(el('h2','minor-title',`${t('endpointSource')}: ${label(matForNode(endpoint)??endpoint)}`));
       const open=button(`↗ ${sourceActionLabel(source)}`,'text-button');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));section.append(open);panelContent.append(section);
     }
     const actions=el('div','reading-actions'),compare=button(t('compare'),'text-button');compare.addEventListener('click',()=>{closePanel();beginCompare(from?.id,to?.id);});actions.append(compare);panelContent.append(actions);
@@ -1382,7 +1410,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(leaving&&treeView())sky?.frame?.();if(!route)columnOpen=false;reflect();sky?.refresh();}
   function togglePersonal(){
     if(!personal.hidden){closePersonal();return;}
-    personal.hidden=false;reading.hidden=true;columnTab.hidden=true;shell.dataset.reading='true';shell.dataset.column='personal';shell.dataset.columnOpen='true';
+    personal.hidden=false;reading.hidden=true;columnTab.hidden=true;shell.dataset.bench='false';shell.dataset.reading='true';shell.dataset.column='personal';shell.dataset.columnOpen='true';
     personalState=workspace?.getState?.()??personalState;renderPersonalPanel();sky?.refresh();
   }
   function restoreRouteDock(){renderColumn();sky?.refresh();}
@@ -1422,6 +1450,36 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     return `${t('routes')} · ${routes.filter(item=>!item.coreChainId||item.featured).length}`;
   }
   let columnSubject='';
+  // ------------------------------------------------------------ the workbench
+  // The card of a chosen star or link opens over the whole space as the research workbench (space-bench.mjs): the
+  // source, its reading and its comparison side by side, the reader's own work with the comparison.
+  let bench=false;
+  const BENCH_PATHS={open:'M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5',close:'M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5'};
+  const benchIcon=open=>`<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="${BENCH_PATHS[open?'close':'open']}"/></svg>`;
+  function toggleBench(open=!bench){bench=open;renderColumn();panelBench.focus({preventScroll:true});sky?.refresh();}
+  // A card drawn again for the same star keeps each tray where the reader left it.
+  const benchTrays=()=>new Map([...panelContent.querySelectorAll('.ps-bench-tray')].map(tray=>[tray.parentElement.dataset.step,tray.scrollTop]));
+  // One end of a link on the bench: the star itself, in its own words, beside the other end.
+  function benchEnd(graphId,side){
+    const node=graphState().nodes.find(item=>item.id===graphId),materialId=String(graphId??'').replace(/^material:/,''),material=matForNode(node)??previewMaterials.get(materialId);
+    if(!node&&!material)return null;
+    const end=el('article','ps-bench-end'),head=el('header','ps-bench-end-head');end.dataset.end=side;
+    head.append(el('p','eyebrow',(material&&partName(profile,material,locale(),{moveIds}))||kindName(material?.kind??node?.kind)));
+    const title=button(label(node?.ownerType==='personal-hypothesis'?node:material??node),'ps-bench-end-title');title.addEventListener('click',()=>node?selectNode(node.id):previewMaterial(materialId));head.append(title);
+    const witness=material&&!material.route?sourceLine(material,{materials:previewMaterials,entryByLegacyId:collectionByLegacyId,locale:locale()}):'';if(witness)head.append(el('p','ps-source-line',witness));
+    end.append(head);
+    if(material?.coreId&&coreView)coreView.brief(end,material.coreId);
+    else if(material){const body=material.atlasBody??material.body;if(body)fragments.render(end,body,{className:'body'});const asked=tr(material.question,locale()).trim();if(asked){const card=el('section','ps-question-card');card.append(el('span','eyebrow',t('questionLabel')),el('p','',asked));end.append(card);}}
+    else if(node?.body)end.append(el('p','body',node.body));
+    return end;
+  }
+  function openBench(mode,trays){
+    if(mode==='node'?!selected:!selectedEdge)return;
+    if(mode==='edge'){const link=String(selectedEdge).startsWith('trace:')?traceLinks.get(selectedEdge):findEdge(selectedEdge);if(link&&link.from!==link.to)panelContent.append(...[benchEnd(link.from,'from'),benchEnd(link.to,'to')].filter(Boolean));}
+    const board=layBench(panelContent,{mode,words:{source:t('rung_source'),reading:t('rung_reading'),comparison:t('rung_comparison'),sourceCaption:t('benchSource'),readingCaption:t('benchReading'),comparisonCaption:t(mode==='edge'?'benchLink':'benchComparison')},heading:line=>setHint(line,t('ladderHint'))});
+    reading.scrollTop=0;
+    if(trays)for(const tray of board.querySelectorAll('.ps-bench-tray'))tray.scrollTop=trays.get(tray.parentElement.dataset.step)??0;
+  }
   function renderColumn(){
     if(destroyed)return;
     const mode=columnMode(),wide=desktop();shell.dataset.column=mode;reading.dataset.mode=mode;
@@ -1429,7 +1487,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const subject=mode==='node'?`node:${selected}`:mode==='edge'?`edge:${selectedEdge}`:mode;
     const subjectChanged=subject!==columnSubject;
     if(subject!==columnSubject){const fresh=columnSubject&&(mode==='node'||mode==='edge');columnSubject=subject;if(fresh){reading.scrollTop=0;requestAnimationFrame(()=>{if(columnSubject===subject)reading.scrollTop=0;});}}
-    if(mode==='personal'){reading.hidden=true;columnTab.hidden=true;shell.dataset.reading='true';shell.dataset.columnOpen='true';return;}
+    if(mode==='personal'){shell.dataset.bench='false';reading.hidden=true;columnTab.hidden=true;shell.dataset.reading='true';shell.dataset.columnOpen='true';return;}
     // A wide screen shows the column or a tab to reopen it; a narrow screen always keeps the sheet's top bar.
     const wasShown=!reading.hidden;
     reading.hidden=wide&&!columnOpen;columnTab.hidden=!wide||columnOpen;
@@ -1439,9 +1497,16 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     shell.dataset.columnOpen=String(columnOpen);shell.dataset.sheet=wide?'':columnOpen?(sheetFull?'full':'open'):'peek';shell.dataset.reading=String(columnOpen);
     panelTitle.textContent=columnCaption(mode);panelTitle.setAttribute('aria-expanded',String(columnOpen));
     panelClose.hidden=!wide&&!columnOpen;panelClose.setAttribute('aria-label',t(mode==='overview'&&!browsingRoutes?'collapseColumn':mode==='route'?'resetRoute':'close'));
+    // Only the open card of a star or a link is a workbench; any other column, or a closed one, folds it back.
+    const benchable=(mode==='node'||mode==='edge')&&columnOpen;if(!benchable)bench=false;
+    shell.dataset.bench=String(bench);reading.dataset.bench=String(bench);panelBench.hidden=!benchable;panelBench.innerHTML=benchIcon(bench);
+    panelBench.setAttribute('aria-pressed',String(bench));panelBench.setAttribute('aria-label',t(bench?'closeBench':'openBench'));setHint(panelBench,t(bench?'closeBench':'openBench'));
+    if(bench)panelTitle.textContent=`${t('bench')} · ${columnCaption(mode)}`;
+    const trays=bench&&!subjectChanged?benchTrays():null;
     delete panelContent.dataset.termWorks;delete panelContent.dataset.termNode;
     renderRoutes();renderLensControls(mode);
     if(mode==='overview')renderWelcome();else if(mode==='route')renderStepNode();else if(mode==='node')renderNode(selected);else if(mode==='edge')renderEdge(selectedEdge);else if(mode==='measure')renderMeasure();
+    if(bench)openBench(mode,trays);
     // The scale of time shows the chosen move's author's life, so a new choice redraws its strip.
     if(measuredLens(lens)&&scaleChoice!==selected)refreshSky();
     terms.mark(panelContent);
@@ -1698,7 +1763,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       renderAuthored:(parent,value,options)=>fragments.render(parent,value,options),
       onOpenMaterial:id=>{try{const graphId=model.addMaterial(id);checkGraphPersistence();state=model.getState();dialog.close();selectActual(graphId,{reveal:true});reflect();}catch(error){notify(displayPublicError(error,locale));}},
       onOpenSource:item=>{const material=materials.get(item.materialId??item.id)??item;const source=sourceForMaterial(material,{sourceNodeId:item.sourceNodeId??material.sourceNodeId});if(!source)return null;
-        const wrap=el('div','ps-collection-source');const open=button(`↗ ${sourceActionLabel(source)}`,'primary');open.addEventListener('click',()=>{dialog.close();void openPublicAddress(source.binding).catch(()=>notify(t('unavailable')));});wrap.append(open);return wrap;}
+        const wrap=el('div','ps-collection-source');const open=button(`↗ ${sourceActionLabel(source)}`,'primary ps-source-open');open.addEventListener('click',()=>{dialog.close();void openPublicAddress(source.binding).catch(()=>notify(t('unavailable')));});wrap.append(open);return wrap;}
     });dialog.showModal();
   }
   function openGrow(){
@@ -1759,6 +1824,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     else if(!event.ctrlKey&&!event.metaKey&&!event.altKey){
       if(key==='o')frameSky();
       // Escape lets a chosen star go; on the tree the view steps back to the whole of it.
+      // Escape folds the workbench back to the column, with the same star still chosen; the reader's own work opened
+      // from the bench closes back onto it.
+      if(key==='escape'&&bench){event.preventDefault();if(!personal.hidden)closePersonal();else toggleBench(false);return;}
       if(key==='escape'&&(selected||selectedEdge)&&!route){event.preventDefault();closePanel();}
       if(key==='/'){event.preventDefault();search.focus();}
       if(key==='+'||key==='='){event.preventDefault();sky?.zoomBy(1.25);}

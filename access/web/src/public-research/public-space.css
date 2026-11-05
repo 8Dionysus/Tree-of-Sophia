@@ -779,3 +779,68 @@
 .ps-term-open:focus-visible{outline:2px solid #e4cb8b;outline-offset:2px}
 @keyframes ps-term-in{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.ps-term-card{animation:none}.ps-term,.ps-term::after{transition:none}}
+
+/* The workbench. The card of a star or a link opens over the whole space; the tree's ladder of interpretation becomes
+   its columns — the source itself, its reading, its comparison with other stars — and the reader's own work closes the
+   last. A link lies between its two stars, each in its own words, with what joins them in the middle. */
+#tree .ps-column-tools{display:flex;align-items:center;gap:2px;margin-left:auto}
+#tree .ps-column .reading-top .ps-bench-toggle{display:inline-grid;place-items:center;color:var(--ps-muted)}
+#tree .ps-column .reading-top .ps-bench-toggle:hover,#tree .ps-column .reading-top .ps-bench-toggle[aria-pressed=true]{color:var(--ps-gold-soft)}
+#tree .ps-column .reading-top .ps-bench-toggle[hidden]{display:none}
+#tree .ps-relation-group{margin:2px 0 10px}
+#tree .ps-card-work{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px}
+#tree .ps-card-work>:is(h3,p){flex-basis:100%;margin:0}
+#tree .ps-relation-kind{display:flex;align-items:center;gap:9px;margin:12px 0 0;color:var(--ps-muted);font:500 11px/1.4 var(--ps-sans);letter-spacing:.05em}
+#tree .ps-relation-kind::before{content:'';flex:none;width:18px;border-top:1.5px solid var(--relation-color,#a5b7cf)}
+#tree.pr-public-space[data-bench=true] .ps-column{z-index:32;top:calc(var(--rb-h,56px) + 12px);left:16px;right:16px;bottom:14px;width:auto;max-height:none;overflow:hidden;background:linear-gradient(170deg,#0a1526fb,#060d18fd);box-shadow:0 30px 90px #020913b0}
+#tree .ps-column[data-bench=true]>:is(.ps-lens-controls,.ps-route-dock){display:none}
+#tree .ps-column[data-bench=true]>.ps-panel-content{flex:1;min-height:0;padding:0;overflow:hidden}
+#tree .ps-bench{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,.85fr);grid-template-rows:auto minmax(0,1fr);height:100%}
+#tree .ps-bench[data-card=edge]{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr) minmax(0,1fr)}
+#tree .ps-bench-head{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 32px;padding:16px 28px 18px;border-bottom:1px solid var(--ps-line)}
+#tree .ps-bench-title{min-width:0;max-width:80ch}
+#tree .ps-bench-title>.eyebrow{display:block}
+#tree.pr-public-space .ps-bench-title h1{margin:6px 0 4px;font-size:32px;line-height:1.2}
+#tree .ps-bench-title>.ps-source-line{margin:2px 0 0}
+#tree .ps-bench-title>:is(.edge-endpoints,.ps-link-sentence){margin:10px 0 0}
+/* The two ends of a link stand in their own columns, so the head keeps only the link's name. */
+#tree .ps-bench[data-card=edge] .ps-bench-title>.edge-endpoints:not(.ps-link-sentence){display:none}
+#tree .ps-bench-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}
+#tree .ps-bench-tools>*{margin:0}
+#tree .ps-bench-step{display:flex;flex-direction:column;min-width:0;min-height:0;border-right:1px solid var(--ps-line)}
+#tree .ps-bench-step:last-child{border-right:0}
+#tree .ps-bench-step-title{margin:0;padding:14px 28px 0;color:var(--ps-faint);font:600 10px/1.4 var(--ps-sans);letter-spacing:.18em;text-transform:uppercase}
+#tree .ps-bench-step-title[aria-current=true]{color:var(--ps-gold-soft)}
+#tree .ps-bench-step-caption{margin:3px 28px 10px;color:var(--ps-faint);font:italic 12.5px/1.5 var(--ps-serif)}
+#tree .ps-bench-tray{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#344a62 transparent;padding:2px 28px 36px}
+#tree .ps-bench .body,#tree .ps-bench .ps-authored>p:not(.ps-fragment-line){font-size:15px;line-height:1.85}
+#tree .ps-bench :is(.ps-bench-step[data-step=source],.ps-bench-end) .ps-fragment-text{font-size:16.5px;line-height:1.72}
+#tree .ps-bench .ps-bench-step[data-step=source] .ps-fragment+.ps-fragment{margin-top:22px}
+#tree .ps-bench-work{margin-top:26px}
+#tree .ps-bench-step[data-step=relation]{background:#d6b37a05}
+#tree .ps-bench-end-head{margin:12px 0 12px;padding-bottom:12px;border-bottom:1px solid var(--ps-line)}
+#tree .ps-bench-end-head>.eyebrow{display:block}
+#tree .ps-bench-end-title{display:block;margin:4px 0 2px;padding:0;border:0;background:none;color:#e3e4e7;font:24px/1.25 var(--ps-serif);text-align:left;cursor:pointer}
+#tree .ps-bench-end-title:hover{color:#fff;text-decoration:underline;text-decoration-color:#d6b37a88;text-underline-offset:5px}
+#tree .ps-bench-end-title:focus-visible{outline:2px solid #d6b37a;outline-offset:3px}
+#tree .ps-link-row{display:grid;gap:2px;padding:9px 2px 10px;border-top:1px solid #8da5c01a}
+#tree .ps-link-row-verb{justify-self:start;padding:0;border:0;background:none;color:#cdb98d;font:italic 13.5px/1.45 var(--ps-serif);text-align:left}
+#tree .ps-link-row-end{justify-self:start;padding:0;border:0;background:none;color:#dfe3ea;font:14px/1.45 var(--ps-sans);text-align:left}
+#tree button:is(.ps-link-row-verb,.ps-link-row-end){cursor:pointer}
+#tree button:is(.ps-link-row-verb,.ps-link-row-end):hover{color:#fff;text-decoration:underline;text-underline-offset:3px;text-decoration-color:#d6b37a88}
+#tree button:is(.ps-link-row-verb,.ps-link-row-end):focus-visible{outline:2px solid #d6b37a;outline-offset:2px}
+@media(min-width:761px) and (max-width:1100px){
+  #tree .ps-bench{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);grid-template-rows:auto minmax(0,1.3fr) minmax(0,1fr)}
+  #tree .ps-bench-step[data-step=comparison]{grid-column:1/-1;border-top:1px solid var(--ps-line);border-right:0}
+}
+@media(max-width:760px){
+  #tree.pr-public-space[data-bench=true] .ps-column{top:calc(var(--rb-h,56px) + 6px);left:6px;right:6px;bottom:6px;max-height:none;overflow-y:auto}
+  #tree .ps-column[data-bench=true]>.ps-panel-content{overflow:visible}
+  #tree .ps-bench,#tree .ps-bench[data-card=edge]{display:block;height:auto}
+  #tree .ps-bench-head{padding:12px 16px 14px}
+  #tree.pr-public-space .ps-bench-title h1{font-size:25px}
+  #tree .ps-bench-step{border-right:0;border-top:1px solid var(--ps-line)}
+  #tree .ps-bench-step-title{padding:14px 16px 0}
+  #tree .ps-bench-step-caption{margin:3px 16px 8px}
+  #tree .ps-bench-tray{overflow:visible;padding:2px 16px 22px}
+}
