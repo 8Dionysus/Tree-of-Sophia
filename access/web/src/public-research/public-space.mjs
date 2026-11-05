@@ -16,6 +16,7 @@ import {createTerms,termNodes} from './term-view.mjs';
 import {SYSTEM_NAME,SYSTEM_THEME,THEMES,applyTheme,currentTheme,paint,themeChoice} from './site-theme.mjs';
 import {hasIcon,iconElement} from './space-icons.mjs';
 import {VOLUME_REST,proximityVolume,spaceVolume,timeVolume} from './space-volumes.mjs';
+import {bookSpiral,colonnade,imageDome,meaningTiers,tensionScales} from './space-gatherings.mjs';
 import {citedPlaces} from './research-index.mjs';
 import {readChronology} from '../../../../bonsai/lib/chronology.mjs';
 import {readPlaces} from '../../../../bonsai/lib/places.mjs';
@@ -69,7 +70,7 @@ Object.assign(extraTranslations.en,{excerpt:'Excerpt',proposalGrounds:'Grounds o
 // The measuring lenses and the measure panel speak in few words; the map shows the rest.
 Object.assign(extraTranslations.ru,{"traceTitle": "Понятие во времени", "traceLink": "след понятия", "traceLabel": "Понятие", "nearTitle": "Близость по", "nearIsCenter": "центр", "nearClosest": "ближе всех", "nearFrom": "от", "nearNotMeasured": "не измеряется", "nearSharedConcepts": "общих понятий", "nearSharedGrounds": "общих оснований", "dateUnknown": "дата неизвестна", "duringLifeShort": "в пределах жизни автора", "duringActivityShort": "в годы деятельности автора", "placeUnknown": "место не установлено", "placeActivityShort": "здесь жил автор", "certainty_exact": "точно", "certainty_approximate": "приблизительно", "certainty_uncertain": "под вопросом", "certainty_unknown": "неизвестно", "certainty_none": "без датировки", "measureKind_date-assertion": "своя дата", "measureKind_interval-assertion": "свой интервал", "measureKind_relative-phase": "внутри периода", "measureKind_relative-life": "в пределах жизни автора", "measureKind_relative-activity": "в годы деятельности автора", "measureKind_relative-order": "относительно другого события", "measureKind_unknown-date": "дата неизвестна", "measureKind_none": "без датировки", "footing_high": "исследование", "footing_medium": "обзор исследований", "footing_low": "без ссылок на исследования", "placeBasis_composition": "место написания", "placeBasis_event": "место события", "placeBasis_activity": "место жизни автора", "placeBasis_unknown": "не установлено", "measureAction": "Мера и полнота", "measureDating": "Датировки", "measureCertainty": "Точность", "measureFooting": "Опора", "measurePlaces": "Места", "measureEras": "Эпохи", "measureConcepts": "Понятия", "measureBranches": "Ветви во времени", "measureLifeOnly": "Без собственной датировки", "measurePlaceless": "Без места", "measureGrounding": "Опора звёзд", "measureInBook": "главы книги", "measureOutside": "другие тексты", "measureChapters": "Главы", "measureOutsideTexts": "Тексты вне книги", "measureRoutes": "Маршруты по книге"});
 Object.assign(extraTranslations.en,{"traceTitle": "A concept through time", "traceLink": "concept trace", "traceLabel": "Concept", "nearTitle": "Proximity by", "nearIsCenter": "centre", "nearClosest": "nearest", "nearFrom": "from", "nearNotMeasured": "not measured", "nearSharedConcepts": "shared concepts", "nearSharedGrounds": "shared grounds", "dateUnknown": "date unknown", "duringLifeShort": "within the author’s life", "duringActivityShort": "within the author’s years of activity", "placeUnknown": "place unknown", "placeActivityShort": "where the author lived", "certainty_exact": "exact", "certainty_approximate": "approximate", "certainty_uncertain": "uncertain", "certainty_unknown": "unknown", "certainty_none": "no dating", "measureKind_date-assertion": "a date of its own", "measureKind_interval-assertion": "an interval of its own", "measureKind_relative-phase": "within a phase", "measureKind_relative-life": "within the author’s life", "measureKind_relative-activity": "within the author’s years of activity", "measureKind_relative-order": "relative to another event", "measureKind_unknown-date": "date unknown", "measureKind_none": "no dating", "footing_high": "a study", "footing_medium": "a summary of scholarship", "footing_low": "no study cited", "placeBasis_composition": "place of writing", "placeBasis_event": "place of the event", "placeBasis_activity": "where the author lived", "placeBasis_unknown": "unknown", "measureAction": "Measure and completeness", "measureDating": "Datings", "measureCertainty": "Precision", "measureFooting": "Grounds", "measurePlaces": "Places", "measureEras": "Eras", "measureConcepts": "Concepts", "measureBranches": "Branches in time", "measureLifeOnly": "No dating of their own", "measurePlaceless": "No place", "measureGrounding": "What the stars rest on", "measureInBook": "chapters of the book", "measureOutside": "other texts", "measureChapters": "Chapters", "measureOutsideTexts": "Texts outside the book", "measureRoutes": "Routes through the book"});
-Object.assign(extraTranslations.ru,{nearEarlier:"раньше",nearLater:"позже"});Object.assign(extraTranslations.en,{nearEarlier:"earlier",nearLater:"later"});
+Object.assign(extraTranslations.ru,{nearEarlier:"раньше",nearLater:"позже",gatherText:"текст",gatherReadings:"прочтения",gatherConcepts:"понятия",gatherQuestions:"вопросы"});Object.assign(extraTranslations.en,{nearEarlier:"earlier",nearLater:"later",gatherText:"text",gatherReadings:"readings",gatherConcepts:"concepts",gatherQuestions:"questions"});
 const materialMap=library=>new Map((library?.nodes??[]).map(item=>[item.id,item]));
 const graphIdForMaterial=id=>`material:${id}`;
 const sourceKey=binding=>binding?[binding.documentId,binding.versionId,binding.unitId].join('\u0000'):'';
@@ -167,6 +168,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const measuredData=id=>(id==='time'&&!!timeline)||(id==='space'&&!!geography)||(id==='proximity'&&!!proximityLens);
   const volumeLens=id=>measuredData(id)&&!(id==='time'&&stepView());
   const measuredLens=id=>measuredData(id)&&!volumeLens(id);
+  // The lenses that gather stand in volume as the tree does, each in the form of what it gathers (space-gatherings.mjs).
+  const GATHERING=new Set(['sources','meaning','tensions','images']),gatherings=new Map();
+  const gatherView=(id=lens)=>!!treeLayout&&GATHERING.has(id)&&!!gatheringNow(id);
   // The tree lays the whole bonsai out in space by its own layout; it turns, and it measures nothing.
   const treeView=()=>lens==='tree'&&!!treeLayout;
   const relationKinds=[...new Set([...(Array.isArray(library.space?.relationKinds)?library.space.relationKinds:Object.keys(RELATIONS)),'relates'])].filter(key=>RELATIONS[key]);
@@ -632,7 +636,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const coreViewContext=coreContext(core,{materialId:selected?.replace(/^material:/,''),edgeId:selectedEdge,chainId:routes.find(item=>item.id===route?.id)?.coreChainId});
     context.push(...coreViewContext.materialIds);
     if(route?.source==='atlas')for(const step of routes.find(item=>item.id===route.id)?.steps??[])context.push(step.nodeId??step.graphNodeId);
-    if(lens==='tree'&&treeLayout)context.push(...treeLayout.positions.keys());else if(measuredData(lens))context.push(...starIds);
+    if((lens==='tree'||GATHERING.has(lens))&&treeLayout)context.push(...treeLayout.positions.keys());else if(measuredData(lens))context.push(...starIds);
     if(context.length){
       for(const materialId of context){const material=materials.get(materialId),id=graphIdForMaterial(materialId);if(!material||byId.has(id))continue;
         const node={id,materialId,kind:material.kind,title:tr(material.title,locale()),body:tr(material.body,locale()),position:material.position??[0,0,0],sourceIds:[],routeContext:true};base.nodes.push(node);byId.set(id,node);}
@@ -649,11 +653,11 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     traceLinks.clear();
     const current=graphState();
     // A route keeps showing the reader's own records about its stars, including one just written on a step.
-    const measuredView=measuredData(lens),routePath=interaction||!compareBar.hidden?null:routeWithRecords(route?.path??null,current);
-    const projected=makeLensView(current,library,{lens:measuredView?'tree':lens,enabled:enabled.size===relationKinds.length?null:enabled,path:routePath});
+    const measuredView=measuredData(lens),gathered=gatherView(),routePath=interaction||!compareBar.hidden?null:routeWithRecords(route?.path??null,current);
+    const projected=makeLensView(current,library,{lens:measuredView||gathered?'tree':lens,enabled:enabled.size===relationKinds.length?null:enabled,path:routePath});
     // A chosen star brings its whole neighbourhood into a lens that groups: the links and stars the lens leaves out are
     // added where the tree has them, so the map never shows less of the star than its card does.
-    if(selected&&!measuredView&&!routePath&&lens!=='tree'&&projected.nodes.some(node=>node.id===selected)){
+    if(selected&&!measuredView&&!gathered&&!routePath&&lens!=='tree'&&projected.nodes.some(node=>node.id===selected)){
       const whole=makeLensView(current,library,{lens:'tree',enabled:enabled.size===relationKinds.length?null:enabled});
       const have=new Set(projected.nodes.map(node=>node.id)),linked=new Set(projected.edges.map(edge=>edge.id));
       for(const edge of whole.edges){
@@ -694,11 +698,12 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     else if(lens==='space'&&geography){if(volumeLens('space'))applyVolume(projected,spaceVolumeNow());else applyPlane(projected);}
     else if(lens==='proximity'&&proximityLens)applyProximity(projected);
     else if(lens==='tree'&&treeLayout)applyTree(projected);
+    else if(gathered)applyGathering(projected,gatheringNow(lens));
     else applyDepth(projected);
     // A choice turns the space toward itself on the lenses that group; a measure keeps its axes, a route its way and a
     // comparison or a new link its stars where the reader set them.
     aspect=null;
-    if(!measuredView&&!treeView()&&!routePath&&!interaction&&compareBar.hidden&&(selected||selectedEdge)){
+    if(!measuredView&&!gathered&&!treeView()&&!routePath&&!interaction&&compareBar.hidden&&(selected||selectedEdge)){
       // A free area too narrow for rows on both sides of the star holds the aspect in one column.
       // Rows past what its height holds close into their families; a column, whose names take two lines, keeps wider rows.
       let narrow=false,budget=Infinity,width=Infinity;try{const area=freeArea({width:shell.clientWidth,height:shell.clientHeight});width=area.right-area.left;narrow=width<Math.max(1000,(area.bottom-area.top)*1.2);budget=narrow?Math.max(3,Math.floor((area.bottom-area.top-90)/40)):Math.max(5,Math.floor((area.bottom-area.top-60)/28));}catch{}
@@ -854,6 +859,104 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   // Time in volume keeps the trace of a concept: a thread through the stars that carry it, in the order of the years.
   function applyTimeVolume(projected){applyVolume(projected,timeVolumeNow());if(traceConcept)traceThrough(projected,[],null);}
+
+  // ── The lenses that gather, in volume. A form is worked out once for a language, from the tree's stars and their links.
+  // How far a star stands from the text: the text and its people, the readings, the concepts and images, the questions.
+  const GATHER_TIER={work:0,chapter:0,passage:0,version:0,author:0,translator:0,era:0,school:0,step:1,concept:2,term:2,image:2,figure:2,question:3,branch:3};
+  const GROUNDING=new Set(['supports','develops','interprets','echoes','image-presents-conception','thought-uses-image']),OPPOSING=new Set(['contrasts','questions']);
+  function gatheringNow(id){const key=`${id}:${locale()}`;if(!gatherings.has(key))gatherings.set(key,gatheringFor(id));return gatherings.get(key);}
+  const coreMaterial=key=>core?.materialIds instanceof Map?core.materialIds.get(key):core?.materialIds?.[key];
+  // The links between the tree's stars by their material, once each: the core's with its verdict, the tree's, the atlas's.
+  let gatherLinksMemo=null;
+  function gatherLinks(){
+    if(gatherLinksMemo)return gatherLinksMemo;
+    const out=[],seen=new Set(),add=(from,to,kind,verdict=null)=>{if(!from||!to||from===to||!treeLayout.roles.has(from)||!treeLayout.roles.has(to))return;const key=`${from}|${to}|${kind}`;if(seen.has(key))return;seen.add(key);out.push({from,to,kind,verdict});};
+    for(const link of core?.links??[])add(coreMaterial(link.from),coreMaterial(link.to),String(link.relation??'').replace(/^tos\.relation\./,''),link.assessment?.verdict??null);
+    for(const edge of treeLayout.edges)add(edge.from,edge.to,edge.kind);
+    for(const edge of [...(atlas.edges??[]),...(core?.edges??[])])add(edge.from,edge.to,edge.kind);
+    return gatherLinksMemo=out;
+  }
+  function gatheringFor(id){
+    if(!treeLayout)return null;
+    const stars=[...treeLayout.roles.keys()],role=star=>treeLayout.roles.get(star)??null,links=gatherLinks();
+    const names=new Map((timeline?.labels?.(locale())??[]).map(item=>[item.id,item.title]));
+    if(id==='sources'&&timeline?.kind==='book')return bookSpiral({stars,chapterOf:star=>timeline.placeOf(star),rungOf:star=>GATHER_TIER[role(star)]??1,chapterName:chapter=>names.get(`time:ch${chapter}`)??String(chapter),partName:part=>names.get(`time:part${part}`)??String(part)});
+    if(id==='sources'){
+      // A passage, a version and a reading belong to the work that contains or translates them, a work to its author.
+      const parent=new Map();for(const edge of treeLayout.edges)if((edge.kind==='contains'||edge.kind==='translates')&&!parent.has(edge.to))parent.set(edge.to,edge.from);
+      const workOf=star=>{let at=parent.get(star);for(let k=0;at&&role(at)!=='work'&&k<4;k++)at=parent.get(at);return role(at)==='work'?at:null;};
+      const authors=new Map(),works=new Map(),loose=[];
+      const workEntry=work=>{if(!works.has(work)){const author=role(parent.get(work))==='author'?parent.get(work):null;if(!authors.has(author))authors.set(author,[]);const entry={id:work,up:[],front:[]};authors.get(author).push(entry);works.set(work,entry);}return works.get(work);};
+      for(const star of stars){
+        const r=role(star);
+        if(r==='author'){if(!authors.has(star))authors.set(star,[]);}
+        else if(r==='work')workEntry(star);
+        else if(r==='passage'||r==='version'||r==='step'){const work=workOf(star);if(work)workEntry(work)[r==='step'?'front':'up'].push(star);else loose.push(star);}
+        else if(r==='translator')loose.push(star);
+      }
+      // Authors stand in the order of their lives, else of their earliest writing, and works in the order of their writing.
+      const earliest=list=>{const xs=list.map(star=>timeline?.xOf?.(star)).filter(Number.isFinite);return xs.length?Math.min(...xs):Infinity;};
+      const workAt=work=>earliest([work.id,...work.up,...work.front]);
+      const lifeAt=author=>{const life=timeline?.lifeSpan?.(String(author).replace(/^.*:/,''))??timeline?.lifeSpan?.(author);return life&&Number.isFinite(life.from)&&timeline.xOfYear?timeline.xOfYear(life.from):Infinity;};
+      const list=[...authors].filter(([,own])=>own.length).map(([author,own])=>{own.sort((a,b)=>workAt(a)-workAt(b)||a.id.localeCompare(b.id));const life=author===null?Infinity:lifeAt(author);return {id:author,works:own,at:author===null?Infinity:Number.isFinite(life)?life:Math.min(...own.map(workAt))};}).sort((a,b)=>a.at-b.at||String(a.id).localeCompare(String(b.id)));
+      return colonnade({authors:list,loose});
+    }
+    if(id==='meaning'){
+      const material=star=>materials.get(star)??previewMaterials.get(star);
+      const circles=new Map((atlas.clusters??[]).map(item=>[item.id,tr(item.title,locale())]));
+      return meaningTiers({stars,tierOf:star=>GATHER_TIER[role(star)]??null,groupOf:star=>material(star)?.cluster??null,links,tierNames:[t('gatherText'),t('gatherReadings'),t('gatherConcepts'),t('gatherQuestions')],groupNames:circles});
+    }
+    if(id==='tensions'){
+      // A star is disputed where a link opposes it or its reading is revised; what grounds, develops or echoes it stands with it.
+      const pivots=new Map(),entry=star=>{if(!pivots.has(star))pivots.set(star,{id:star,grounds:[],against:[]});return pivots.get(star);};
+      for(const link of links){
+        if(role(link.from)==='branch'||role(link.to)==='branch')continue;
+        if(OPPOSING.has(link.kind)||link.verdict==='revise'||link.verdict==='rejected'){entry(link.from).against.push(link.to);entry(link.to).against.push(link.from);}
+        else if(GROUNDING.has(link.kind)&&link.verdict!=='reconstruction'){entry(link.from).grounds.push(link.to);entry(link.to).grounds.push(link.from);}
+      }
+      // A reading rests on the passage it reads; a concept is answered by the voices the book sets against it.
+      for(const star of stars){const passage=role(star)==='step'?timeline?.timeOf?.(star)?.passageId:null,ground=passage&&[passage,`antiquity:catalog:${passage}`].find(item=>treeLayout.roles.has(item));if(ground&&pivots.has(star))pivots.get(star).grounds.push(ground);}
+      for(const concept of core?.concepts??[])for(const voice of concept.counter_voices??[]){const a=coreMaterial(concept.id),b=coreMaterial(voice.speaker);if(a&&b&&role(a)&&role(b))entry(a).against.push(b);}
+      return tensionScales({pivots:[...pivots.values()]});
+    }
+    if(id==='images'){
+      const images=stars.filter(star=>role(star)==='image');if(images.length<2)return null;
+      const reach=new Map(),near=new Map();
+      for(const link of links)for(const [image,other] of [[link.from,link.to],[link.to,link.from]]){if(role(image)!=='image'||!['concept','figure','term'].includes(role(other)))continue;if(!near.has(other))near.set(other,new Set());if(!near.get(other).has(image)){near.get(other).add(image);reach.set(image,(reach.get(image)??0)+1);}}
+      const most=Math.max(1,...reach.values()),parts=new Map();
+      for(const star of stars){const place=timeline?.placeOf?.(star);if(place&&Number.isFinite(place.part)&&(!parts.has(place.part)||place.chapter<parts.get(place.part)))parts.set(place.part,place.chapter);}
+      return imageDome({images:images.map(image=>({id:image,chapter:timeline?.placeOf?.(image)?.chapter??null,reach:(reach.get(image)??0)/most})),concepts:[...near].map(([concept,own])=>({id:concept,images:[...own],low:role(concept)==='figure'})),maxChapter:timeline?.domain?.max??80,chapterName:chapter=>names.get(`time:ch${chapter}`)??String(chapter),marks:[...parts].map(([part,chapter])=>({id:`part${part}`,chapter,title:names.get(`time:part${part}`)??String(part)}))});
+    }
+    return null;
+  }
+  // A form is a view as well: stars take its places, and its links wait until one of their stars is reached, except those
+  // the form is about: the concepts' own links in the shells of meaning, the images' in their dome.
+  function applyGathering(projected,gathering){
+    const placed=new Map();
+    for(const node of projected.nodes){const at=node.materialId?gathering.positions.get(node.materialId):null;if(at)placed.set(node.id,at);}
+    const beside=new Map();
+    for(const node of projected.nodes){
+      if(placed.has(node.id)||!(node.ownerType==='personal-hypothesis'||String(node.id).startsWith('personal:')))continue;
+      const edge=projected.edges.find(item=>(item.from===node.id&&placed.has(item.to))||(item.to===node.id&&placed.has(item.from))),anchor=edge?placed.get(edge.from===node.id?edge.to:edge.from):null;
+      if(anchor){const n=beside.get(anchor)??0;beside.set(anchor,n+1);placed.set(node.id,[anchor[0]+22+n*14,anchor[1]-22-n*12,anchor[2]]);}
+    }
+    const roleOf=id=>treeLayout.roles.get(id),tierOf=id=>GATHER_TIER[roleOf(id)]??0;
+    const about=gathering.kind==='meaning'?(a,b)=>tierOf(a)>=2&&tierOf(b)>=2:gathering.kind==='images'?(a,b)=>roleOf(a)==='image'||roleOf(b)==='image':()=>false;
+    projected.nodes=projected.nodes.filter(node=>placed.has(node.id)).map(node=>{const role=roleOf(node.materialId);return {...node,position:[...placed.get(node.id)],...(role?{labelFrom:gathering.lead?.has(node.materialId)?0:TREE_LABEL_FROM[role]??0,major:['author','figure','concept','branch','era','image'].includes(role)}:{})};});
+    const shown=new Set(projected.nodes.map(node=>node.id)),materialOf=new Map(projected.nodes.map(node=>[node.id,node.materialId])),pairs=new Set();
+    const atRest=edge=>about(materialOf.get(edge.from),materialOf.get(edge.to));
+    projected.edges=projected.edges.filter(edge=>shown.has(edge.from)&&shown.has(edge.to)).map(edge=>{pairs.add(`${edge.from}|${edge.to}`);pairs.add(`${edge.to}|${edge.from}`);return edge.highlight?edge:atRest(edge)?{...edge,baseAlpha:.16}:{...edge,latent:true};});
+    const all=enabled.size===relationKinds.length;
+    for(const edge of treeLayout.edges){
+      const from=graphIdForMaterial(edge.from),to=graphIdForMaterial(edge.to);
+      if(!shown.has(from)||!shown.has(to)||pairs.has(`${from}|${to}`)||(!all&&!enabled.has(edge.kind)))continue;
+      pairs.add(`${from}|${to}`);pairs.add(`${to}|${from}`);
+      const style=styleOf(edge.kind),rest=about(edge.from,edge.to);
+      projected.edges.push({id:edge.id,from,to,kind:edge.kind,label:tr(edge.label,locale()),color:style.color??RELATIONS[edge.kind]?.color,dash:style.dash,weight:1,...(rest?{baseAlpha:.16}:{latent:true})});
+    }
+    scaleChoice=selected;
+    projected.clusters=gathering.names.map(name=>({...name}));projected.backdrop=gathering.lines;projected.shade=gathering.shade??null;
+  }
   // Time is a view: stars take places the scale gives them, the saved graph keeps its own.
   function applyTimeline(projected,routePath){
     const current=stepView(routePath)?routes.find(item=>item.id===route.id):null;
@@ -1002,6 +1105,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(treeView()){sky.setRest?.(null);sky.frame();sky.turnTo?.(null,-.2);}
     // A lens that measures in volume is framed whole and seen from its own rest, a little from above and from its left.
     else if(volumeLens(lens)){const rest=VOLUME_REST[lens];sky.setRest?.(rest.yaw,rest.pitch);sky.frame();sky.turnTo?.(rest.yaw,rest.pitch);}
+    // A lens that gathers is framed whole from the rest its form is best read from.
+    else if(gatherView()){const rest=gatheringNow(lens).rest;sky.setRest?.(rest.yaw,rest.pitch);sky.frame();sky.turnTo?.(rest.yaw,rest.pitch);}
     else if(lens==='time'&&timeline)sky.frame({fill:true,x:timeline.bounds});
     // A plane keeps one unit on both axes: the map of places and the rings of proximity are never stretched.
     else if(lens==='space'&&geography)sky.frame({fill:true,plane:true,x:geography.bounds.x,y:geography.bounds.y});
@@ -1028,7 +1133,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const layoutStrip=()=>volumeLens(lens)?0:lens==='time'&&timeline?timeline.strip:lens==='space'&&geography?geography.strip:0;
   let shownView=null;
   function refreshSky(){
-    sky?.setCloseIn?.(treeView());sky?.setZoomCeiling?.(treeView()?14:4);
+    sky?.setCloseIn?.(treeView()||gatherView());sky?.setZoomCeiling?.(treeView()||gatherView()?14:4);
     if(!sky)return;shownView=visibleState();sky.update(shownView,Object.fromEntries(graphState().nodes.map(node=>[node.id,label(matForNode(node)??node)])));rising.clear();sky.select(selected);sky.selectEdge(selectedEdge);
     // An aspect is framed whole once, when its choice is made: the chosen star or link and the rows beside it.
     const key=aspect?`${aspect.kind}:${aspect.focus.join('|')}`:'';
@@ -1477,9 +1582,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function selectActual(id,{reveal=false}={}){const changed=id!==selected;measureOpen=false;selected=id;selectedEdge=null;browsingRoutes=false;personal.hidden=true;columnOpen=true;
     // In a lens that groups, the map is drawn again so that the chosen star's whole neighbourhood is on it.
     if(changed&&!measuredLens(lens)&&(core||lens!=='tree'))refreshSky();
-    sky?.setCloseIn?.(treeView());sky?.select(id);sky?.selectEdge(null);renderColumn();
+    sky?.setCloseIn?.(treeView()||gatherView());sky?.select(id);sky?.selectEdge(null);renderColumn();
     // On the tree a chosen star turns to face the reader, with what grew from it and what it grew from.
-    if(changed&&treeView()){const at=shownView?.nodes?.find(node=>node.id===id)?.position;if(at&&Math.hypot(at[0],at[2])>1)sky?.turnTo?.(Math.atan2(at[0],at[2]));}
+    if(changed&&(treeView()||gatherView())){const at=shownView?.nodes?.find(node=>node.id===id)?.position;if(at&&Math.hypot(at[0],at[2])>1)sky?.turnTo?.(Math.atan2(at[0],at[2]));}
     // A newly chosen star's card opens at its beginning, not where the previous card was scrolled to.
     if(changed){reading.scrollTop=0;panelContent.scrollTop=0;}
     renderOrientation();sky?.refresh();if(reveal||!desktop())sky?.reveal(id);}
@@ -1488,7 +1593,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function openPanel(){columnOpen=true;renderColumn();sky?.refresh();}
   function closePanel(){const leaving=!!selected&&!route;selected=route?routeStepNode:null;selectedEdge=null;sky?.select(selected);sky?.selectEdge(null);
     // Leaving a chosen star on the tree, the view steps back to the whole tree, turned as the reader left it.
-    if(leaving&&treeView())sky?.frame?.();if(!route)columnOpen=false;reflect();sky?.refresh();}
+    if(leaving&&(treeView()||gatherView()))sky?.frame?.();if(!route)columnOpen=false;reflect();sky?.refresh();}
   function togglePersonal(){
     if(!personal.hidden){closePersonal();return;}
     personal.hidden=false;reading.hidden=true;columnTab.hidden=true;shell.dataset.bench='false';shell.dataset.reading='true';shell.dataset.column='personal';shell.dataset.columnOpen='true';
@@ -2025,9 +2130,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   // The space turns under a drag and rests a little turned, so its depth shows; Shift, the right button or two fingers move it,
   // a pinch or the wheel zooms, and a star held still is picked up. A measuring lens lays its scale flat and only moves.
-  sky=mountConstructorSky(shell,{obstacles:()=>header?[header,searchResults]:[],rest:depth?.rest??null,intro:true,holdToMove:380,turnFromStars:true,touch:true,secondaryPan:true,inertia:true,depthCue:true,planarMoves:true,nativeTitles:false,onThreadSelect:id=>followThread(id),threadsFor:id=>darkThreads(id),onEdgeHover:id=>{const label=id?shell.querySelector(`.edge-label[data-edge="${CSS.escape(id)}"]`):null;if(label)hints?.showFor(label);else hints?.hide();},onPose:pose=>paintTurn(pose),dragNodes:()=>!measuredLens(lens)&&!treeView()&&!aspect,getViewport:freeArea,onSelect:id=>selectNode(id,{fromMap:true}),onMove:(id,moved)=>{const node=graphState().nodes.find(item=>item.id===id),own=node?.position?.[2],position=[moved[0],moved[1],Number.isFinite(own)?own:moved[2]];if(node?.ownerType==='personal-hypothesis'){personalPositions.set(id,position);try{localStorage.setItem(positionsKey,JSON.stringify(Object.fromEntries(personalPositions)));positionsPersistenceError=false;}catch{positionsPersistenceError=true;notify(t('graphSaveError'));};}else try{model.moveNode(id,position);checkGraphPersistence();}catch{}},onEdgeSelect:selectEdge,
+  sky=mountConstructorSky(shell,{obstacles:()=>header?[header,searchResults]:[],rest:depth?.rest??null,intro:true,holdToMove:380,turnFromStars:true,touch:true,secondaryPan:true,inertia:true,depthCue:true,planarMoves:true,nativeTitles:false,onThreadSelect:id=>followThread(id),threadsFor:id=>darkThreads(id),onEdgeHover:id=>{const label=id?shell.querySelector(`.edge-label[data-edge="${CSS.escape(id)}"]`):null;if(label)hints?.showFor(label);else hints?.hide();},onPose:pose=>paintTurn(pose),dragNodes:()=>!measuredLens(lens)&&!treeView()&&!gatherView()&&!aspect,getViewport:freeArea,onSelect:id=>selectNode(id,{fromMap:true}),onMove:(id,moved)=>{const node=graphState().nodes.find(item=>item.id===id),own=node?.position?.[2],position=[moved[0],moved[1],Number.isFinite(own)?own:moved[2]];if(node?.ownerType==='personal-hypothesis'){personalPositions.set(id,position);try{localStorage.setItem(positionsKey,JSON.stringify(Object.fromEntries(personalPositions)));positionsPersistenceError=false;}catch{positionsPersistenceError=true;notify(t('graphSaveError'));};}else try{model.moveNode(id,position);checkGraphPersistence();}catch{}},onEdgeSelect:selectEdge,
     // A click on the empty sky lets a chosen star of the tree go.
-    onBackground:()=>{if(selected&&treeView()&&!route)closePanel();}});
+    onBackground:()=>{if(selected&&(treeView()||gatherView())&&!route)closePanel();}});
   inkTheme();
   // One hint answers a pointer that rests on something, or a keyboard that reaches it: a tool says what it does and its key,
   // a star its kind, when and where, a link its kind and what that kind means. Nothing of it stays on the screen by itself.
