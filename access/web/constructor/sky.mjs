@@ -104,6 +104,9 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   const hex=(value,fallback)=>/^#[a-f\d]{6}$/i.test(value??'')?value:/^#[a-f\d]{3}$/i.test(value??'')?'#'+[...value.slice(1)].map(c=>c+c).join(''):fallback;
   // How strongly links and lines are inked: more on a light page, where a thin dark line reads fainter than its twin on the night.
   let ink=1;
+  // On a light page depth is the day's air: what lies further back pales into the paper, and a near star
+  // stands over the page with a soft shadow. 0 on the night, 1 on a light page.
+  const daylight=()=>ink>1?1:0;
   let nodes=[],edges=[],clusters=[],backdrop=[],planes=[],threads=[],lit=null,litGlow=0,selectedId=null,selectedEdgeId=null,hoverEdge=null,linkFrom=null,center=[0,0,0],targetCenter=[0,0,0],fitScale=1,targetFit=1,edgeHits=[],measureLabels=true,aspectIds=null;
   let viewport={left:0,right:1,top:0,bottom:1},targetViewport={...viewport},uiObstacles=[];
   const colorOf=n=>hex(n.color,({work:'#a8cde5',part:'#88aaca',chapter:'#b2aedc',fragment:'#dac697',dossier:'#c7a5e6',concept:'#f4cf87',interpretation:'#ba9be5',question:'#83cec7',note:'#b9c7d5',excerpt:'#dfc18e',figure:'#b9c9e5',symbol:'#91ccc5',tradition:'#b5abd3'}[n.kind]||'#bdcfdf'));
@@ -289,7 +292,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     if(first)viewport={...targetViewport};measureLabels=true;kick();
   }
   function paintFog(texture,phase,alpha){
-    ctx.save();ctx.globalCompositeOperation='screen';ctx.globalAlpha=alpha;
+    // In the day the night's clouds are only a breath of air over the paper.
+    ctx.save();ctx.globalCompositeOperation='screen';ctx.globalAlpha=alpha*(daylight()?.38:1);
     // The fog leans with the turn and comes back round with it.
     ctx.translate(w*.5+Math.sin(skyTime*.025+phase)*w*.026+eye.x*16-Math.sin(yaw)*27,h*.51+Math.cos(skyTime*.019+phase)*h*.024+eye.y*12);
     ctx.rotate(Math.sin(skyTime*.013+phase)*.055-Math.sin(yaw)*.035);
@@ -755,7 +759,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
         let previous=null,depth=0,count=0;
         for(const [x,y,z=0] of points){const point=project([x,y,z]);depth+=point.d;count++;if(previous){const cut=measured?clipSegment(previous,point):[previous,point];if(cut){ctx.moveTo(cut[0].x,cut[0].y);ctx.lineTo(cut[1].x,cut[1].y);}}previous=point;}
         const back=depthCue&&!measured&&count?.35+.65*clamp((depth/count-.82)/.34,0,1):1;
-        ctx.globalAlpha=Math.min(1,(style.alpha??.3)*fade*back*ink);ctx.lineWidth=Number.isFinite(style.weight)?clamp(style.weight*(previous?.s??1),.6,7):.9;ctx.stroke();
+        ctx.globalAlpha=Math.min(1,(style.alpha??.3)*fade*ink)*(daylight()&&back<1?.2+.8*back*back:back);ctx.lineWidth=Number.isFinite(style.weight)?clamp(style.weight*(previous?.s??1),.6,7):.9;ctx.stroke();
       }
       ctx.globalAlpha=1;
     }
@@ -769,7 +773,9 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const route=Array.isArray(edge.via)&&edge.via.length?[from,...edge.via.map(project),to]:[from,to];
       if(edge.muted){ctx.strokeStyle=edge.color;ctx.globalAlpha=.05;ctx.lineWidth=.6;for(let i=1;i<route.length;i++){let a=route[i-1],b=route[i];if(measured){const cut=clipSegment(a,b);if(!cut)continue;[a,b]=cut;}strokeSegment(a,b,edge.dash);}continue;}
       const rest=Number.isFinite(edge.baseAlpha)?edge.baseAlpha:.24,weight=Number.isFinite(edge.weight)?edge.weight:1;
-      ctx.strokeStyle=edge.color;ctx.globalAlpha=Math.min(1,(hot?.85:neighbor?.57:focused?rest*.23:rest)*ink)*(1-awayEdge);ctx.lineWidth=(hot?1.55:neighbor?1.1:.65)*weight*(1+(ink-1)*.35);
+      // In the day's air a link pales as it goes back, by the depth of its two ends; a pointed or chosen one stays clear.
+      const air=depthCue&&!measured&&daylight()&&!hot?.22+.78*clamp(((from.d+to.d)/2-.84)/.34,0,1):1;
+      ctx.strokeStyle=edge.color;ctx.globalAlpha=Math.min(1,(hot?.85:neighbor?.57:focused?rest*.23:rest)*ink)*(1-awayEdge)*air;ctx.lineWidth=(hot?1.55:neighbor?1.1:.65)*weight*(1+(ink-1)*.35);
       const dash=edge.dash??(edge.kind==='questions'||edge.kind==='contrasts'?'dashed':'solid');let longest=null;
       for(let i=1;i<route.length;i++){
         let a=route[i-1],b=route[i],whole=true;if(measured){const cut=clipSegment(a,b);if(!cut)continue;[a,b,whole]=cut;}
@@ -801,13 +807,14 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     }
     nodes.forEach(n=>{
       const p=n.screen,hot=n.id===selectedId||n.id===hover||(holdToMove>0&&n.dragging),color=colorOf(n),big=n.major,dim=(focused&&root.dataset.journey!=='true'&&!near.has(n.id)&&!kept.has(n.id)||n.dimmed)&&!hot,radius=(hot?5.2:big?4.3:2.8)*Math.max(.70,Math.min(1.5,p.s));
-      const near01=depthCue&&!measured?clamp((p.d-.86)/.3,0,1):1,fade=hot?1:.5+.5*near01;
+      const near01=depthCue&&!measured?clamp((p.d-.86)/.3,0,1):1,fade=hot?1:daylight()?.3+.7*near01:.5+.5*near01;
       // A measured layout draws only the stars inside its free area; every star still keeps its type, so its label is measured right.
       if(n.el.dataset.major!==String(!!big)){n.el.dataset.major=String(!!big);measureLabels=true;}
       if(measured&&!inView(box(p.x-5,p.y-5,10,10))){n.el.hidden=true;return;}
       // On a light page a star's glow turns to a shadow, so there it keeps only a trace of it and its ink stays clear.
       const away=!kept.has(n.id)&&!hot?focusMix:0,starAlpha=(dim?.28:hot?1:.9)*fade*(1-.86*away),glow=(hot?125:big?86:46)*Math.max(.65,Math.min(1.4,p.s));
-      ctx.globalAlpha=starAlpha*(ink>1?(hot?.55:.3):1);ctx.drawImage(sprite(color),p.x-glow/2,p.y-glow/2,glow,glow);ctx.globalAlpha=starAlpha;
+      // On a light page the glow turns to a shadow: a near star casts a soft one and stands over the page, a far one lies flat in the air.
+      ctx.globalAlpha=starAlpha*(daylight()?(hot?.5:.05+.3*near01*near01):1);ctx.drawImage(sprite(color),p.x-glow/2,p.y-glow/2,glow,glow);ctx.globalAlpha=starAlpha;
       // A source is a disc; an authored proposal a ring; a personal record a broken ring.
       if(n.form==='source'){ctx.fillStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,radius,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff9ea';ctx.fillRect(p.x-1,p.y-1,2,2);}
       else ring(p.x,p.y,radius+.9,color,n.form==='personal',hot);
