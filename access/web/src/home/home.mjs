@@ -2,7 +2,7 @@
 // it shows (the copy below, the theme and the bonsai drawn here), so it opens at once; the stands load
 // their catalogs and their sky when the reader enters one.
 import {BONSAI_LOCALES,initialLocale,resolveLocale} from '../../../../bonsai/lib/locale-choice.mjs';
-import {THEMES,applyTheme,currentTheme} from '../public-research/site-theme.mjs';
+import {SYSTEM_NAME,SYSTEM_THEME,THEMES,applyTheme,currentTheme,themeChoice} from '../public-research/site-theme.mjs';
 import {STANDS} from '../public-research/stands.mjs';
 import {bonsaiDrawing} from './home-bonsai.mjs';
 import './home.css';
@@ -16,7 +16,7 @@ const COPY={
   de:{site:'Tree of Sophia',tagline:'Denken, aus den Texten selbst gewachsen. Jeder Bonsai ist ein Werk oder eine ganze Welt: im Original, in Übersetzung und auf einer Karte seiner Verbindungen.',choose:'Wählen Sie einen Bonsai',language:'Sprache',theme:'Design'},
   'zh-Hans':{site:'智慧之树',tagline:'从文本本身生长出的思想。每一株盆景都是一部作品或一个完整的世界：原文、译本，以及它的关联地图。',choose:'选择一株盆景',language:'语言',theme:'主题'},
 };
-const THEME_NAMES={es:{midnight:'Medianoche',noon:'Mediodía',rubric:'Rúbrica',dawn:'Aurora'},de:{midnight:'Mitternacht',noon:'Mittag',rubric:'Rubrik',dawn:'Morgenröte'},'zh-Hans':{midnight:'午夜',noon:'正午',rubric:'朱批',dawn:'晨曦'}};
+const THEME_NAMES={es:{system:'Sistema',midnight:'Medianoche',noon:'Mediodía'},de:{system:'System',midnight:'Mitternacht',noon:'Mittag'},'zh-Hans':{system:'跟随系统',midnight:'午夜',noon:'正午'}};
 // What each bonsai holds, and how it grows on this page: a seed, its height, how wide its branches
 // reach, how its trunk leans. A stand without its own words here still shows, by its title.
 const BONSAI={
@@ -60,7 +60,7 @@ const standTitle=stand=>BONSAI[stand.id]?.title?.[locale]??stand.title[locale===
 const bar=document.querySelector('.home-bar'),head=document.querySelector('.home-head'),choice=document.querySelector('.home-choice');
 const language=make('select','home-select'),theme=make('select','home-select');
 for(const value of BONSAI_LOCALES){const option=make('option','',LANGUAGE_NAMES[value]);option.value=value;option.lang=value;language.append(option);}
-for(const value of THEMES){const option=make('option');option.value=value.id;theme.append(option);}
+for(const value of [{id:SYSTEM_THEME},...THEMES]){const option=make('option');option.value=value.id;theme.append(option);}
 bar.replaceChildren(language,theme);
 const mark=make('h1','home-mark'),tagline=make('p','home-tagline'),choose=make('h2','home-choose');choose.id='home-choose';
 head.replaceChildren(mark,tagline);
@@ -78,8 +78,8 @@ function render(){
   mark.textContent=words.site;tagline.textContent=words.tagline;choose.textContent=words.choose;
   language.value=locale;language.setAttribute('aria-label',words.language);
   theme.setAttribute('aria-label',words.theme);
-  for(const option of theme.options){const named=THEMES.find(item=>item.id===option.value);option.textContent=THEME_NAMES[locale]?.[named.id]??named.name[locale==='ru'?'ru':'en'];}
-  theme.value=currentTheme();
+  for(const option of theme.options){const named=THEMES.find(item=>item.id===option.value)??{id:SYSTEM_THEME,name:SYSTEM_NAME};option.textContent=THEME_NAMES[locale]?.[named.id]??named.name[locale==='ru'?'ru':'en'];}
+  theme.value=themeChoice();
   for(const {stand,title,meta,description} of cards){title.textContent=standTitle(stand);meta.textContent=say(BONSAI[stand.id]?.meta);meta.hidden=!meta.textContent;description.textContent=say(BONSAI[stand.id]?.description);description.hidden=!description.textContent;}
 }
 language.addEventListener('change',()=>{locale=resolveLocale(language.value);try{localStorage.setItem(LOCALE_KEY,locale);}catch{}render();});

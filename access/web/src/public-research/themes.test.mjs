@@ -10,7 +10,7 @@ const contrast=(a,b)=>{const [x,y]=[luminance(a),luminance(b)].sort((p,q)=>q-p);
 const light=THEMES.filter(theme=>!theme.dark);
 
 it('takes the night’s ground, ink and gold to each light theme’s page, ink and accent',()=>{
-  expect(THEMES.map(theme=>theme.id)).toEqual(['midnight','noon','rubric','dawn']);
+  expect(THEMES.map(theme=>theme.id)).toEqual(['midnight','noon']);
   for(const theme of light){
     expect(themeColor(theme.id,'#070F1B').toUpperCase()).toBe(theme.palette.ground.toUpperCase());
     expect(themeColor(theme.id,'#E4E6EA').toUpperCase()).toBe(theme.palette.ink.toUpperCase());
@@ -36,20 +36,40 @@ it('keeps a shadow dark and a veil a veil, and the night’s other hues their ow
 
 it('adds one twin per light theme to each rule that paints, scoped to the theme on the root',async()=>{
   expect(themeSelector(':root:lang(zh-Hans) #bar','noon')).toBe(':root[data-site-theme="noon"]:lang(zh-Hans) #bar');
-  expect(themeSelector('html','dawn')).toBe('html[data-site-theme="dawn"]');
-  expect(themeSelector(' body','dawn')).toBe(':root[data-site-theme="dawn"] body');
+  expect(themeSelector('html','noon')).toBe('html[data-site-theme="noon"]');
+  expect(themeSelector(' body','noon')).toBe(':root[data-site-theme="noon"] body');
   const css=':root{--gold:#dcc690;--space:4px}@media (max-width:600px){#tree .x{color:#e4e6ea;border:0;margin:0}}.y{margin:0}.z{color:inherit}@keyframes k{from{color:#fff}}';
   const result=(await postcss([themePostcss()]).process(css,{from:undefined})).root;
   const twins=[];result.walkRules(rule=>{if(rule.selector.includes('data-site-theme'))twins.push(rule);});
   expect(twins.map(rule=>rule.selector)).toEqual([
-    ':root[data-site-theme="noon"]',':root[data-site-theme="rubric"]',':root[data-site-theme="dawn"]',
-    ':root[data-site-theme="noon"] #tree .x',':root[data-site-theme="rubric"] #tree .x',':root[data-site-theme="dawn"] #tree .x',
+    ':root[data-site-theme="noon"]',':root[data-site-theme="noon"] #tree .x',
+    // `inherit` keeps its colour, and is twinned all the same: its rule still wins over the colour before it.
+    ':root[data-site-theme="noon"] .z',
   ]);
-  expect(twins[0].toString()).toBe(':root[data-site-theme="noon"]{--gold:#83601f;--space:4px}');
+  expect(twins[0].toString()).toBe(':root[data-site-theme="noon"]{--gold:#83601f}');
   // A rule written for one theme already stays that theme's own.
-  const own=(await postcss([themePostcss()]).process(':root[data-site-theme="dawn"] .w{background:#edf0f4e0}',{from:undefined})).root;
+  const own=(await postcss([themePostcss()]).process(':root[data-site-theme="noon"] .w{background:#f4efe4e0}',{from:undefined})).root;
   expect(own.nodes).toHaveLength(1);
-  expect(twins[3].parent.type).toBe('atrule');expect(twins[3].toString()).toBe(':root[data-site-theme="noon"] #tree .x{color:#1f2633;border:0}');
+  expect(twins[1].parent.type).toBe('atrule');expect(twins[1].toString()).toBe(':root[data-site-theme="noon"] #tree .x{color:#1f2633}');
+});
+
+it('keeps the night’s cascade for every family it turns, and leaves the others to the night',async()=>{
+  // A width held in a custom property is the night's own, narrowed by a later rule: no twin may restore it.
+  const css='#t{--panel:calc(20px + 8px);--ink:#e4e6ea}#t[data-open=false]{--panel:12px}.a{background:#070f1b}.a.b{background:none}';
+  const result=(await postcss([themePostcss()]).process(css,{from:undefined})).root;
+  const twins=[];result.walkRules(rule=>{if(rule.selector.includes('data-site-theme'))twins.push(rule.toString());});
+  expect(twins).toEqual([':root[data-site-theme="noon"] #t{--ink:#1f2633}',':root[data-site-theme="noon"] .a{background:#f4efe4}',':root[data-site-theme="noon"] .a.b{background:none}']);
+});
+
+it('follows the system’s light or dark until the reader chooses a theme',()=>{
+  const boot=readFileSync(new URL('../../public/theme.js',import.meta.url),'utf8');
+  const run=(saved,dark)=>{const attributes={},root={setAttribute:(key,value)=>{attributes[key]=value;},style:{}};
+    new Function('document','localStorage','matchMedia',boot)({documentElement:root},{getItem:()=>saved},query=>({matches:/dark/.test(query)?dark:!dark}));
+    return [attributes['data-site-theme'],root.style.colorScheme];};
+  expect(run(null,true)).toEqual(['midnight','dark']);expect(run(null,false)).toEqual(['noon','light']);
+  expect(run('noon',true)).toEqual(['noon','light']);expect(run('midnight',false)).toEqual(['midnight','dark']);
+  // A theme the site no longer has gives way to the system's.
+  expect(run('dawn',false)).toEqual(['noon','light']);
 });
 
 it('sets the saved theme before the first paint, from the same names',()=>{
