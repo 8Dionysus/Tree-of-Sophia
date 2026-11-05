@@ -19,3 +19,6 @@
    page's own ground on a light page. */
 :root[data-site-theme="noon"] #tree .tree-cluster.tree-cluster:not([data-variant])::before{background:radial-gradient(closest-side,#f4efe4e0,#f4efe400)}
 :root[data-site-theme="noon"] #tree .tree-cluster.tree-cluster:not([data-variant])[data-crowded]::before{background:radial-gradient(closest-side,#f4efe499,#f4efe400)}
+/* On the day's paper the icons' stars are gold ink. */
+:root[data-site-theme="noon"] #tree .ps-icon-star{fill:#9a7124}
+:root[data-site-theme="noon"] #tree :is(.lens,.ps-top-action,button):is(:hover,[aria-pressed=true]) .ps-icon-star{fill:#7d5a14;filter:none}

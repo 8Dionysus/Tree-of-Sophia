@@ -14,6 +14,7 @@ import {antiquityTimeline,formatDating,formatYears,stepTimeline,trajectory,zarat
 import {bonsaiFor,depthOf,lensPositions} from './bonsai.mjs';
 import {createTerms,termNodes} from './term-view.mjs';
 import {SYSTEM_NAME,SYSTEM_THEME,THEMES,applyTheme,currentTheme,paint,themeChoice} from './site-theme.mjs';
+import {hasIcon,iconElement} from './space-icons.mjs';
 import {citedPlaces} from './research-index.mjs';
 import {readChronology} from '../../../../bonsai/lib/chronology.mjs';
 import {readPlaces} from '../../../../bonsai/lib/places.mjs';
@@ -222,7 +223,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const lensTitle=el('p','eyebrow ps-rail-title',t('lenses')),lensList=el('div','lens-list');
   const actionsTitle=el('p','eyebrow ps-rail-title',t('researchActions')),mainActions=el('div','ps-main-actions');mainActions.setAttribute('role','group');mainActions.setAttribute('aria-label',t('researchActions'));
   lensRail.append(lensTitle,lensList,actionsTitle,mainActions);
-  for(const [key,icon,action] of [['routes','⌁',()=>toggleRoutes()],['lensInquiry','?',()=>showInquiry()],['grow','✣',()=>openGrow()],['research','◎',()=>togglePersonal()],['new','＋',()=>openNewThought()],['connect','↗',()=>beginConnect()],['compare','⇄',()=>beginCompare()],['measureAction','∑',()=>openMeasure()]]){const b=button('','ps-top-action');b.dataset.spaceAction=key;setHint(b,t(key));b.append(el('span','ps-action-icon',icon),el('span','ps-action-label',t(key)));b.addEventListener('click',action);mainActions.append(b);}
+  for(const [key,icon,action] of [['routes','⌁',()=>toggleRoutes()],['lensInquiry','?',()=>showInquiry()],['grow','✣',()=>openGrow()],['research','◎',()=>togglePersonal()],['new','＋',()=>openNewThought()],['connect','↗',()=>beginConnect()],['compare','⇄',()=>beginCompare()],['measureAction','∑',()=>openMeasure()]]){const b=button('','ps-top-action');b.dataset.spaceAction=key;setHint(b,t(key));b.append(hasIcon(key)?iconElement(document,key,'ps-action-icon',18):el('span','ps-action-icon',icon),el('span','ps-action-label',t(key)));b.addEventListener('click',action);mainActions.append(b);}
   // Orientation: where in the tree the reader stands, from the whole space down to the chosen star.
   const heading=el('header','view-heading ps-orientation');
   const kicker=el('p','view-kicker');
@@ -336,7 +337,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     // The globe is named by what pressing it does; its title says how the space turns.
     if(key==='turn'){b.replaceChildren(globe());setHint(b,t(key),['←','↑','→','↓'],{note:t('turnRestNote')});b.setAttribute('aria-label',t('turnRest'));return;}
     if(key==='controls'){b.replaceChildren(controlsSign());setHint(b,t(key));b.setAttribute('aria-label',t(key));return;}
-    b.replaceChildren(el('span','ps-tool-symbol',label));
+    b.replaceChildren(hasIcon(key)?iconElement(document,key,'ps-tool-symbol',18):el('span','ps-tool-symbol',label));
     if(key==='routes'||key==='research')b.append(el('span','ps-tool-label',t(key)));
     // A tool names its key; the overview also says how the map is moved.
     const keyHint={zoomIn:'+',zoomOut:'−',fit:'O'}[key];
@@ -1030,7 +1031,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       const kind=item.positions?.positions==='measure'?'measure':'group';
       if(previous==='group'&&kind==='measure')lensList.append(el('span','ps-lens-divider'));previous=kind;
       const b=button('', 'lens');b.setAttribute('aria-pressed',String(lens===item.id));b.dataset.positions=kind;
-      b.append(el('span','lens-icon',item.icon),el('span','lens-name',tr(item.title,locale())));
+      b.append(hasIcon(item.id)?iconElement(document,item.id,'lens-icon',18):el('span','lens-icon',item.icon),el('span','lens-name',tr(item.title,locale())));
       setHint(b,tr(item.description,locale()));
       b.addEventListener('click',event=>{lens=item.id;const refocus=event.detail===0||lensList.contains(document.activeElement);
       // An open branch reads on the tree, on the scale of time and on the map of places; other lenses look at the whole space.
