@@ -84,7 +84,7 @@ export function mountHints(root,{selector='[data-hint]',describe=null,delay=380,
     tip.replaceChildren();
     if(content.title||content.lines||content.eyebrow){
       tip.dataset.form='card';
-      if(content.eyebrow)tip.append(make('span','ps-hint-eyebrow',content.eyebrow));
+      if(content.eyebrow){const line=make('span','ps-hint-eyebrow',content.eyebrow);if(content.glyph)line.prepend(content.glyph);tip.append(line);}
       if(content.title)tip.append(make('strong','ps-hint-title',content.title));
       for(const line of content.lines??[])if(line)tip.append(make('span','ps-hint-line',line));
     }else{

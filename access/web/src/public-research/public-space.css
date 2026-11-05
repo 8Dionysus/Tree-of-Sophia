@@ -844,3 +844,57 @@
   #tree .ps-bench-step-caption{margin:3px 16px 8px}
   #tree .ps-bench-tray{overflow:visible;padding:2px 16px 22px}
 }
+
+/* The signs of the kinds of stars, the same in every bonsai: a small line figure before a star's name on its card, in its
+   links, in search and in its hint, in the star's own colour on the sky. */
+.ps-sign{display:inline-flex;flex:none;align-items:center;justify-content:center;width:15px;height:15px;margin-right:7px;vertical-align:-3px;color:var(--ps-gold-soft,#d6c59c)}
+.ps-sign svg{display:block;width:100%;height:100%}
+#tree .ps-panel .eyebrow>.ps-sign,#tree .ps-bench-end-head>.eyebrow>.ps-sign{width:16px;height:16px;margin-right:8px;vertical-align:-4px}
+#tree .ps-link-row-end>.ps-sign,#tree .ps-panel .connection-target>.ps-sign{width:14px;height:14px;margin-right:8px;vertical-align:-2px}
+#tree .ps-link-sentence .ps-link-end>.ps-sign{width:15px;height:15px;margin-right:8px;vertical-align:-2px}
+#research-bar .ps-result small>.ps-sign,#tree .ps-result small>.ps-sign{width:13px;height:13px;margin-right:6px;vertical-align:-2px}
+.ps-hint-eyebrow>.ps-sign{width:13px;height:13px;margin-right:6px;vertical-align:-2px}
+/* The ways a star stands on: its branch or path, its place in it, the moves before and after. */
+#tree .ps-paths{display:grid;gap:4px;margin:6px 0 10px}
+#tree .ps-path{display:flex;align-items:center;gap:6px;min-width:0;font:12px/1.4 var(--ps-sans)}
+#tree .ps-path-name{display:inline-flex;align-items:center;min-width:0;padding:2px 0;border:0;background:none;color:var(--ps-gold-soft);font:inherit;text-align:left;cursor:pointer}
+#tree .ps-path-name>span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tree .ps-path-name:hover>span:last-child{text-decoration:underline;text-underline-offset:3px}
+#tree .ps-path-name>.ps-sign{width:14px;height:14px;margin-right:7px}
+#tree .ps-paths-more{flex:none;padding:2px 7px;border:1px solid var(--ps-line-strong);border-radius:99px;background:none;color:var(--ps-muted);font:11px/1.3 var(--ps-sans);cursor:pointer}
+#tree .ps-paths-more:hover{color:var(--ps-gold)}
+#tree .ps-column:not([data-bench=true]) .ps-paths:not([data-open=true])>.ps-path+.ps-path{display:none}
+#tree .ps-column[data-bench=true] .ps-paths-more{display:none}
+#tree .ps-path-place{flex:none;color:var(--ps-muted);font-variant-numeric:tabular-nums}
+#tree .ps-path-step{flex:none;display:inline-grid;place-items:center;width:26px;height:26px;padding:0;border:1px solid var(--ps-line-strong);border-radius:5px;background:none;color:var(--ps-text);font:15px/1 var(--ps-sans);cursor:pointer}
+#tree .ps-path-step:hover:not(:disabled){border-color:#c9ad7380;color:var(--ps-gold)}
+#tree .ps-path-step:disabled{opacity:.3;cursor:default}
+#tree .ps-path-name:focus-visible,#tree .ps-path-step:focus-visible,#tree .ps-trail button:focus-visible,#tree .ps-bench-mark:focus-visible{outline:2px solid #d6b37a;outline-offset:2px}
+/* The trail: the cards laid before this one. The column shows the step back to the last of them; the bench, the path. */
+#tree .ps-column>.ps-trail{order:0;display:flex;align-items:center;gap:6px;min-width:0;padding:6px 14px 6px 16px;border-bottom:1px solid var(--ps-line);font:12px/1.4 var(--ps-sans)}
+#tree .ps-column>.ps-trail[hidden]{display:none}
+#tree .ps-trail-step{flex:none;display:inline-grid;place-items:center;width:26px;height:26px;padding:0;border:0;border-radius:5px;background:none;color:var(--ps-muted);font:16px/1 var(--ps-sans);cursor:pointer}
+#tree .ps-trail-step:hover:not(:disabled){color:var(--ps-gold);background:#c9ad7314}
+#tree .ps-trail-step:disabled{opacity:.25;cursor:default}
+#tree .ps-trail-crumbs{display:flex;align-items:center;gap:4px;min-width:0;margin:0;padding:0;list-style:none;overflow:hidden}
+#tree .ps-trail-crumb{display:flex;align-items:center;min-width:0;max-width:24ch;color:var(--ps-text)}
+#tree .ps-trail-crumb+.ps-trail-crumb::before{content:'›';flex:none;margin:0 6px 0 2px;color:var(--ps-faint)}
+#tree .ps-trail-crumb>*{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tree .ps-trail-go{min-width:0;padding:2px 0;border:0;background:none;color:var(--ps-muted);font:inherit;cursor:pointer}
+#tree .ps-trail-go:hover{color:var(--ps-gold);text-decoration:underline;text-underline-offset:3px}
+#tree .ps-trail-crumb[data-near=current]{color:var(--ps-gold-soft)}
+#tree .ps-column:not([data-bench=true]) .ps-trail-crumb:not([data-near=previous]){display:none}
+#tree .ps-column:not([data-bench=true]) .ps-trail-crumb::before{content:none}
+#tree .ps-column[data-bench=true]>.ps-trail{padding:7px 22px}
+/* The bench button says what it does beside its sign; the index of a long column names its parts. */
+#tree .ps-column .reading-top .ps-bench-toggle{display:inline-flex;align-items:center;gap:7px;width:auto;min-width:40px;padding:0 10px;font:12px/1 var(--ps-sans);letter-spacing:.02em}
+#tree .ps-bench-index{display:flex;flex-wrap:wrap;gap:4px 6px;margin:0 28px 10px}
+#tree .ps-bench-mark{padding:3px 9px;border:1px solid var(--ps-line-strong);border-radius:99px;background:none;color:var(--ps-text);font:11.5px/1.35 var(--ps-sans);cursor:pointer}
+#tree .ps-bench-mark:hover{border-color:#c9ad7380;color:var(--ps-gold)}
+.ps-fragment-copy{color:var(--ps-muted,#93a5b9)!important}
+@media(max-width:760px){
+  #tree .ps-column .reading-top .ps-bench-word{display:none}
+  #tree .ps-column .reading-top .ps-bench-toggle{width:40px;padding:0}
+  #tree .ps-bench-index{margin:0 16px 8px;flex-wrap:nowrap;overflow-x:auto}
+  #tree .ps-bench-mark{flex:none}
+}
