@@ -343,9 +343,11 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     const [cx,cy,cz]=shade.center,r=shade.radius,mid=project([cx,cy,cz]);
     const rim=[[cx+r,cy,cz],[cx-r,cy,cz],[cx,cy,cz+r],[cx,cy,cz-r]].map(project);
     const rx=Math.max(...rim.map(p=>Math.abs(p.x-mid.x)))*1.18,ry=Math.max(6,Math.max(...rim.map(p=>Math.abs(p.y-mid.y)))*1.18);
-    // A soft shadow over the whole ground, and a closer, darker one where the trunk meets it.
-    ctx.globalAlpha=.4;ctx.drawImage(dayShadow,mid.x-rx,mid.y-ry,rx*2,ry*2);
-    ctx.globalAlpha=.3;ctx.drawImage(dayShadow,mid.x-rx*.32,mid.y-ry*.32,rx*.64,ry*.64);
+    // A soft shadow over the whole ground, and a closer, darker one where the trunk meets it; it steps back with the
+    // rest of the space when a chosen star gathers the view.
+    const keep=1-.9*focusMix;
+    ctx.globalAlpha=.4*keep;ctx.drawImage(dayShadow,mid.x-rx,mid.y-ry,rx*2,ry*2);
+    ctx.globalAlpha=.3*keep;ctx.drawImage(dayShadow,mid.x-rx*.32,mid.y-ry*.32,rx*.64,ry*.64);
     ctx.globalAlpha=1;
   }
   function paintFog(texture,phase,alpha){
