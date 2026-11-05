@@ -48,7 +48,7 @@ const occurrenceFiles=import.meta.glob('../../../../bonsai/zarathustra/core/occu
 const HERE={speaks:'hereSpeaks',acts:'hereActs','spoken-of':'hereSpokenOf',addressed:'hereAddressed'};
 
 /** Every quoted word is rendered by the existing aligned-witness reader. */
-export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,onAction}){
+export function createCoreView({core,locale,fragments,signOf,hint,onNode,onRoute,onRelation,onAction}){
   let serial=0;
   const tr=value=>localeValue(value,locale());
   const t=key=>words[key]?.[Math.max(0,langs.indexOf(resolveLocale(locale())))]??key;
@@ -157,6 +157,8 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
     // The link reads as a sentence of the book: subject, the book's verb, object. Its registry family and type are provenance.
     const box=el('section','ps-core-link'),ends=el('div','edge-endpoints ps-link-sentence');
     ends.append(button(name(record.from),()=>onNode?.(core.materialIds[record.from]),'ps-link-end'),el('span','ps-link-verb',tr(record.verb)),button(name(record.to),()=>onNode?.(core.materialIds[record.to]),'ps-link-end'));
+    // Each end of the sentence bears the sign of its kind.
+    for(const [index,id] of [[0,record.from],[2,record.to]]){const mark=signOf?.(core.materialIds[id]);if(mark)ends.children[index].prepend(mark);}
     const kindLine=el('p','ps-core-kind',t('relation'));status(kindLine,record.admission==='rejected'?'rejected':record.status);box.append(kindLine,ends);
     voice(box,record.voice);
     const seen=new Set(),sense=tr(record.sense);
@@ -297,7 +299,7 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
         for(const item of list){
           const other=item.from===id?item.to:item.from,row=el('div','ps-link-row'),materialId=core.materialIds[other];
           row.append(onRelation?button(tr(item.verb),()=>onRelation(item.id),'ps-link-row-verb'):el('span','ps-link-row-verb',tr(item.verb)));
-          row.append(materialId&&onNode?button(name(other),()=>onNode(materialId),'ps-link-row-end'):el('span','ps-link-row-end',name(other)));
+          const end=materialId&&onNode?button(name(other),()=>onNode(materialId),'ps-link-row-end'):el('span','ps-link-row-end',name(other)),mark=materialId&&signOf?.(materialId);if(mark)end.prepend(mark);hint?.(end,glimpse(other));row.append(end);
           group.append(row);
         }
         body.append(group);
@@ -313,6 +315,8 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
   }
   // A part of the card speaks only when it has something to say: an empty part is left out, its tab and its heading too.
   const filledKeys=(keys,record,id,lead)=>keys.filter(key=>{if(key==='essence')return true;const probe=el('div');sections(probe,key,record,id,lead);return probe.childElementCount>0;});
+  // What a subject holds in a line: its thesis, who it is, or its reading.
+  function glimpse(id){const record=core.records[id],essence=record?.conception??record?.essence??{};const line=String(tr(essence.thesis??essence.who??record?.reading?.reading??record?.reading)??'').replace(/\s+/g,' ').trim();return line.length>220?`${line.slice(0,219).replace(/\s+\S*$/,'')}…`:line;}
   // A subject at one end of a link, as the workbench lays it beside the other: its thesis or reading, its formula
   // in the book's words and the question it holds.
   function brief(parent,id){
@@ -397,5 +401,5 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
     return false;
   }
 
-  return {node,link,brief,renderReference};
+  return {node,link,brief,glimpse,renderReference};
 }

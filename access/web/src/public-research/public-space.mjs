@@ -26,6 +26,7 @@ import {depthLayout} from './space-depth.mjs';
 import {aspectLayout} from './space-aspect.mjs';
 import {mountHints,setHint} from './space-hints.mjs';
 import {layBench} from './space-bench.mjs';
+import {signElement,starKind} from './space-glyphs.mjs';
 import {controlsDismissed,controlsShouldOpen,mountControls} from './space-controls.mjs';
 import {besidePosition,disputes,ownTitle,readingsAround,restsOn,routeStars,routeWithRecords,threadsIntoDark,pathThrough} from './space-play.mjs';
 import {citesOf,createFragments} from './fragments.mjs';
@@ -76,6 +77,9 @@ function downloadGraph(packet,name){const blob=new Blob([packet],{type:'applicat
 // The workbench: the card of a star or a link over the whole space, its columns the steps of interpretation.
 Object.assign(extraTranslations.ru,{bench:'Верстак',openBench:'Развернуть карточку на весь экран — исследовательский верстак',closeBench:'Свернуть верстак обратно к небу',myWork:'Моя работа',workHelp:'Заметка, тезис или возражение к этому предмету',continueResearch:'Продолжить исследование',benchSource:'Источник — слова самого текста.',benchReading:'Прочтение — то, что Древо видит в источнике.',benchComparison:'Сопоставление — встреча этого прочтения с другими.',benchLink:'Сопоставление — то, что связывает два предмета.'});
 Object.assign(extraTranslations.en,{bench:'Workbench',openBench:'Open the card over the whole screen as a research workbench',closeBench:'Fold the workbench back beside the sky',myWork:'My work',workHelp:'A note, thesis or objection about this subject',continueResearch:'Continue research',benchSource:'The source: the words of the text itself.',benchReading:'The reading: what the tree sees in the source.',benchComparison:'The comparison: this reading meeting others.',benchLink:'The comparison: what joins the two subjects.'});
+// The kinds of stars every bonsai shares, the ways along a branch, the reader's trail and the quotation taken away.
+Object.assign(extraTranslations.ru,{kind_era:'Эпоха',kind_branch:'Ветвь',kind_path:'Путь',kind_step:'Ход',kind_author:'Мыслитель',kind_figure:'Фигура',kind_translator:'Переводчик',kind_school:'Традиция',kind_work:'Произведение',kind_version:'Издание',kind_chapter:'Глава',kind_passage:'Фрагмент',kind_concept:'Понятие',kind_term:'Термин',kind_image:'Образ',kind_question:'Вопрос',kind_personal:'Личная запись',previousMove:'Предыдущий ход',nextMove:'Следующий ход',trail:'След исследования',trailBack:'Назад по следу',trailForward:'Вперёд по следу',benchWord:'Верстак',benchFoldWord:'Свернуть',fragmentCopy:'Копировать цитату',fragmentCopied:'Скопировано'});
+Object.assign(extraTranslations.en,{kind_era:'Era',kind_branch:'Branch',kind_path:'Path',kind_step:'Move',kind_author:'Thinker',kind_figure:'Figure',kind_translator:'Translator',kind_school:'Tradition',kind_work:'Work',kind_version:'Edition',kind_chapter:'Chapter',kind_passage:'Passage',kind_concept:'Concept',kind_term:'Term',kind_image:'Image',kind_question:'Question',kind_personal:'Personal record',previousMove:'Previous move',nextMove:'Next move',trail:'Research trail',trailBack:'Back along the trail',trailForward:'Forward along the trail',benchWord:'Workbench',benchFoldWord:'Fold',fragmentCopy:'Copy quotation',fragmentCopied:'Copied'});
 export function toggleResearchFullscreen(host,doc=document){
   if(doc.fullscreenElement)return doc.exitFullscreen().catch(()=>{});
   return host.requestFullscreen?.().catch(()=>{});
@@ -92,7 +96,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // The work's own text in place of a retelling: cited places, opened in the whole work.
   const fragments=createFragments({profile,locale,t:key=>t(key),provider:api.provider,openAddress:openPublicAddress,hint:(element,text)=>setHint(element,text),onError:()=>notify(t('unavailable')),host:()=>shell,decorate:node=>terms.mark(node)});
   const materials=materialMap(library),atlas=library.atlas??{},routes=library.space?.routes??atlas.routes??[];
-  const core=library.space?.core,coreView=core?createCoreView({core,locale,fragments,onNode:id=>previewMaterial(id),onRelation:id=>selectEdge(drawnRelation(id)),onAction:detail=>shell.dispatchEvent(new CustomEvent('public-research-action',{bubbles:true,detail})),onRoute:id=>{const item=routeItems().find(item=>item.id===id);if(item)startRoute(item);}}):null;
+  const core=library.space?.core,coreView=core?createCoreView({core,locale,fragments,signOf:materialId=>signOf(previewMaterials.get(materialId)),hint:(element,text)=>setHint(element,text),onNode:id=>previewMaterial(id),onRelation:id=>selectEdge(drawnRelation(id)),onAction:detail=>shell.dispatchEvent(new CustomEvent('public-research-action',{bubbles:true,detail})),onRoute:id=>{const item=routeItems().find(item=>item.id===id);if(item)startRoute(item);}}):null;
   const collectionMaterials=new Map((library.space?.collection??[]).map(item=>[item.materialId??item.id,{...item,id:item.materialId??item.id,kind:({author:'figure',school:'tradition'})[item.kind]??item.kind}]));
   const previewMaterials=new Map([...collectionMaterials,...materials]);
   const entryByLegacyId=new Map([...previewMaterials.values()].map(item=>[item.legacyId??item.id,item]));
@@ -243,7 +247,10 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const panelContent=el('div','ps-panel-content');
   // A measuring lens keeps its own controls at the top of the column: the concept traced through time, the criterion of proximity.
   const lensControls=el('div','ps-lens-controls');lensControls.hidden=true;
-  reading.append(panelTop,lensControls,deck,panelContent);
+  // The reader's own path through the cards, as the research history keeps it: the cards laid before this one, and the
+  // way back and forward along them.
+  const trailBar=el('nav','ps-trail');trailBar.hidden=true;trailBar.setAttribute('aria-label',t('trail'));let trail=null;
+  reading.append(panelTop,trailBar,lensControls,deck,panelContent);
   const columnTab=button('','ps-column-tab');columnTab.hidden=true;columnTab.append(el('span',''));
   const personal=el('aside','reading ps-panel ps-personal');personal.hidden=true;
   const personalTop=el('div','reading-top');const personalClose=button('×','icon');personalClose.setAttribute('aria-label',t('close'));personalTop.append(el('span','eyebrow',t('research')),personalClose);
@@ -1202,6 +1209,36 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(!body.childElementCount)fold.classList.add('ps-fact-plain');
     parent.append(fold);
   }
+  // ------------------------------------------------------------ the kinds of stars
+  // Every bonsai's stars fall into the kinds the tree grows by (space-glyphs.mjs). Each kind has one sign and one name
+  // wherever a star is named, and the sign takes the star's own colour on the sky.
+  function kindOfStar(material,node=null){return starKind({role:material?.id?treeLayout?.roles?.get(material.id):null,kind:material?.kind??node?.kind,personal:node?.ownerType==='personal-hypothesis'});}
+  function kindWord(material,node=null){const kind=kindOfStar(material,node);return kind?t(`kind_${kind}`):(partName(profile,material,locale(),{moveIds})||kindName(material?.kind??node?.kind));}
+  function signOf(material,node=null,kind=kindOfStar(material,node)){const mark=signElement(document,kind),color=node?.color??material?.color;if(mark&&color)mark.style.color=paint(color);return mark;}
+  // What a star holds in a line: its thesis or question, else the start of its own words.
+  function glimpse(material){if(!material)return '';const text=(material.coreId&&coreView?.glimpse?.(material.coreId))||tr(material.question,locale())||tr(material.atlasBody??material.body,locale());const line=String(text??'').replace(/\s+/g,' ').trim();return line.length>220?`${line.slice(0,219).replace(/\s+\S*$/,'')}…`:line;}
+  function kindLine(material,node=null,cls='eyebrow'){const line=el('p',cls,kindWord(material,node)),mark=signOf(material,node);if(mark)line.prepend(mark);return line;}
+  // A star that is a move of a branch or a step of a path names it and its place in it, and leads to the moves before
+  // and after it; the name walks the whole branch from this move.
+  const stepMaterial=step=>{const id=step?.nodeId??step?.graphNodeId;return id&&(materials.has(id)||previewMaterials.has(id))?id:String(id??'').replace(/^material:/,'');};
+  function appendPaths(parent,material){
+    if(!material?.id)return;
+    const held=[];
+    for(const item of routeItems()){if(item.source!=='atlas')continue;const index=(item.steps??[]).findIndex(step=>stepMaterial(step)===material.id);if(index>=0)held.push({item,index});if(held.length>=3)break;}
+    if(!held.length)return;
+    const box=el('section','ps-paths');
+    for(const {item,index} of held){
+      const steps=item.steps,row=el('div','ps-path'),name=button('','ps-path-name');
+      name.append(signElement(document,'branch'),el('span','',`${routeWord(item)} «${tr(shownRoute(item)?.title,locale())}»`));
+      name.addEventListener('click',()=>{startRoute(item);goRouteStep(index);});
+      const near=(offset,glyph,word)=>{const target=steps[index+offset],go=button(glyph,'ps-path-step');go.setAttribute('aria-label',word);go.disabled=!target;
+        if(target){const id=stepMaterial(target);setHint(go,`${word}: ${label(previewMaterials.get(id))||tr(target.title,locale())}`);go.addEventListener('click',()=>previewMaterial(id));}return go;};
+      row.append(name,near(-1,'‹',t('previousMove')),el('span','ps-path-place',`${index+1} / ${steps.length}`),near(1,'›',t('nextMove')));box.append(row);
+    }
+    // In the column the first way stands and the others wait behind their count; the bench lays out all of them.
+    if(held.length>1){const more=button(`+${held.length-1}`,'ps-paths-more');more.setAttribute('aria-expanded','false');more.addEventListener('click',()=>{const open=box.dataset.open!=='true';box.dataset.open=String(open);more.setAttribute('aria-expanded',String(open));more.textContent=open?'−':`+${held.length-1}`;});box.firstChild.append(more);}
+    parent.append(box);
+  }
   function renderNode(id){
     const materialId=id.startsWith('material:')?id.slice(9):null;
     const preview=materialId&&previewMaterials.get(materialId);
@@ -1210,14 +1247,14 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const material=matForNode(node),ownerHyp=(personalState?.hypotheses??[]).find(item=>item.id===node.workspaceHypothesisId||item.id===node.id||materializedHypotheses.get(item.id)===node.id);
     panelContent.replaceChildren();panelContent.dataset.termNode=material?.id??'';
     if(profile==='antiquity')panelContent.dataset.termWorks=termWorks(material);
-    const nodeTitle=label(node.ownerType==='personal-hypothesis'?node:material??node),part=partName(profile,material,locale(),{moveIds});panelContent.append(el('p','eyebrow',`${t('kind')} · ${part||kindName(material?.kind??node.kind)}`),el('h1','',keepDots(node.ownerType==='personal-hypothesis'&&nodeTitle.length>120?kindName(node.kind):nodeTitle)));
+    const nodeTitle=label(node.ownerType==='personal-hypothesis'?node:material??node),part=partName(profile,material,locale(),{moveIds});panelContent.append(kindLine(material,node),el('h1','',keepDots(node.ownerType==='personal-hypothesis'&&nodeTitle.length>120?kindName(node.kind):nodeTitle)));
     // A move names its author, work and place right under its title.
     const witness=part&&!material?.route?sourceLine(material,{materials:previewMaterials,entryByLegacyId:collectionByLegacyId,locale:locale()}):'';if(witness)panelContent.append(el('p','ps-source-line',witness));
     // A star names when and where its text was written, in the bonsai's own kinds of dating and with their sources;
     // on the lens of proximity, how far it stands from the centre and by what.
     appendDating(panelContent,material?.id);appendPlace(panelContent,material?.id);
     if(lens==='proximity'&&proximityLens)appendDistance(panelContent,material?.id);
-    panelContent.append(ladderLine(ladderRung({material,node})));
+    panelContent.append(ladderLine(ladderRung({material,node})));appendPaths(panelContent,material);
     const branchRoute=profile==='antiquity'?routeItems().find(item=>item.source==='atlas'&&(item.id===material?.route?.id||`antiquity:route:${item.id}`===material?.id)):null;
     if(branchRoute){const walk=button(`${t('walkBranch')} · ${countMoves(branchRoute.steps?.length??0)} →`,'primary ps-walk-branch');walk.addEventListener('click',()=>{closePanel();startRoute(branchRoute);});panelContent.append(walk);}if(node.ownerType==='personal-hypothesis'&&nodeTitle.length>120)panelContent.append(el('p','ps-personal-title',nodeTitle));
     if(node.ownerType==='personal-hypothesis'){
@@ -1251,7 +1288,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       if(!material.inquiry?.grounds?.length&&material.sourceRefs?.length){const refs=el('section','ps-source-refs');refs.dataset.zone='source';refs.append(el('h2','minor-title',t('sourceRefs')));for(const ref of material.sourceRefs){const address=typeof ref==='string'?ref:ref.url??ref.ref;const labelText=typeof ref==='string'?ref:tr(ref.label,locale())||ref.title||address;if(typeof address==='string'&&/^https?:\/\//.test(address)){const a=el('a','source-link',`${labelText} ↗`);a.href=address;a.target='_blank';a.rel='noopener noreferrer';refs.append(a);}else if(labelText)refs.append(el('p','muted',labelText));}panelContent.append(refs);}
     }else if(node.body)panelContent.append(el('p','body',node.body));
     const authorId=material?.legacyId??material?.id,works=material?.kind==='figure'?[...previewMaterials.values()].filter(item=>item.kind==='work'&&((material.works??[]).includes(item.legacyId??item.id)||(authorId&&item.author===authorId))):[];
-    if(works.length){const shelf=el('section','ps-author-works');shelf.dataset.zone='source';shelf.append(el('h2','minor-title',t('authorWorks')));for(const work of works){const open=button(label(work),'connection-target');open.addEventListener('click',()=>previewMaterial(work.id));shelf.append(open);}panelContent.append(shelf);}
+    if(works.length){const shelf=el('section','ps-author-works');shelf.dataset.zone='source';shelf.append(el('h2','minor-title',t('authorWorks')));for(const work of works){const open=button(label(work),'connection-target'),mark=signOf(work);if(mark)open.prepend(mark);open.addEventListener('click',()=>previewMaterial(work.id));shelf.append(open);}panelContent.append(shelf);}
     // On the workbench a core subject's own links already stand in its comparison; the map's other lines join them there.
     const linked=bench&&material?.coreId&&core?new Set((core.links??[]).filter(link=>link.from===material.coreId||link.to===material.coreId).map(link=>graphIdForMaterial(core.materialIds?.[link.from===material.coreId?link.to:link.from]))):null;
     const connections=graphState().edges.filter(edge=>(edge.from===id||edge.to===id)&&!linked?.has(edge.from===id?edge.to:edge.from));
@@ -1267,7 +1304,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
           const said=humanEdgeLabel(edge)||humanEdgeLabel(atlasEdge)||relationName(edge,edge.to===id),row=el('div','ps-link-row');
           // The words of a link open the link itself; the name lays the star at its other end.
           if(said&&!key.endsWith(` ${said}`)){const verb=button(said,'ps-link-row-verb');verb.addEventListener('click',()=>selectEdge(edge.id));row.append(verb);}
-          const end=button(label(other?.ownerType==='personal-hypothesis'?other:matForNode(other)??other),'ps-link-row-end');end.addEventListener('click',()=>selectNode(otherId));row.append(end);group.append(row);
+          const end=button(label(other?.ownerType==='personal-hypothesis'?other:matForNode(other)??other),'ps-link-row-end'),mark=signOf(other?.ownerType==='personal-hypothesis'?null:matForNode(other),other);if(mark)end.prepend(mark);setHint(end,glimpse(matForNode(other)));end.addEventListener('click',()=>selectNode(otherId));row.append(end);group.append(row);
         }
         list.append(group);
       }
@@ -1464,7 +1501,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const node=graphState().nodes.find(item=>item.id===graphId),materialId=String(graphId??'').replace(/^material:/,''),material=matForNode(node)??previewMaterials.get(materialId);
     if(!node&&!material)return null;
     const end=el('article','ps-bench-end'),head=el('header','ps-bench-end-head');end.dataset.end=side;
-    head.append(el('p','eyebrow',(material&&partName(profile,material,locale(),{moveIds}))||kindName(material?.kind??node?.kind)));
+    head.append(kindLine(material,node));
     const title=button(label(node?.ownerType==='personal-hypothesis'?node:material??node),'ps-bench-end-title');title.addEventListener('click',()=>node?selectNode(node.id):previewMaterial(materialId));head.append(title);
     const witness=material&&!material.route?sourceLine(material,{materials:previewMaterials,entryByLegacyId:collectionByLegacyId,locale:locale()}):'';if(witness)head.append(el('p','ps-source-line',witness));
     end.append(head);
@@ -1473,12 +1510,45 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     else if(node?.body)end.append(el('p','body',node.body));
     return end;
   }
+  // The named parts of a column of the bench: each part that opens with a heading of its own.
+  function benchMarks(tray){
+    const marks=[],seen=new Set();
+    const visit=part=>{
+      if(part.matches('.ps-core-card,.ps-core-link,.ps-authored,.ps-bench-work,.ps-card-relations')){for(const child of part.children)visit(child);return;}
+      const heading=part.matches('details')?part.querySelector(':scope>summary'):part.querySelector(':scope>h2,:scope>h3,:scope>.eyebrow');
+      const name=heading?.textContent.trim().replace(/\s+/g,' ');
+      if(name&&name.length<=40&&!seen.has(name)){seen.add(name);marks.push({name,target:part});}
+    };
+    for(const child of tray?.children??[])visit(child);
+    return marks;
+  }
   function openBench(mode,trays){
     if(mode==='node'?!selected:!selectedEdge)return;
     if(mode==='edge'){const link=String(selectedEdge).startsWith('trace:')?traceLinks.get(selectedEdge):findEdge(selectedEdge);if(link&&link.from!==link.to)panelContent.append(...[benchEnd(link.from,'from'),benchEnd(link.to,'to')].filter(Boolean));}
     const board=layBench(panelContent,{mode,words:{source:t('rung_source'),reading:t('rung_reading'),comparison:t('rung_comparison'),sourceCaption:t('benchSource'),readingCaption:t('benchReading'),comparisonCaption:t(mode==='edge'?'benchLink':'benchComparison')},heading:line=>setHint(line,t('ladderHint'))});
+    // A long column names its parts at its head, and a name brings that part into view.
+    for(const step of board.querySelectorAll('.ps-bench-step')){
+      const tray=step.querySelector('.ps-bench-tray'),marks=benchMarks(tray);if(marks.length<3)continue;
+      const index=el('nav','ps-bench-index');index.setAttribute('aria-label',step.querySelector('.ps-bench-step-title')?.textContent??'');
+      for(const {name,target} of marks){const go=button(name,'ps-bench-mark');go.addEventListener('click',()=>target.scrollIntoView({block:'start',behavior:'smooth'}));index.append(go);}
+      step.insertBefore(index,tray);
+    }
     reading.scrollTop=0;
     if(trays)for(const tray of board.querySelectorAll('.ps-bench-tray'))tray.scrollTop=trays.get(tray.parentElement.dataset.step)??0;
+  }
+  function setTrail(next){trail=next;renderTrail();}
+  function renderTrail(){
+    const mode=columnMode(),items=trail?.items??[],cursor=trail?.cursor??-1;trailBar.replaceChildren();
+    trailBar.hidden=!(mode==='node'||mode==='edge')||!reading.isConnected||items.length<2||cursor<0;if(trailBar.hidden)return;
+    const step=(glyph,word,delta)=>{const go=button(glyph,'ps-trail-step');go.setAttribute('aria-label',word);setHint(go,word);go.disabled=!items[cursor+delta];go.addEventListener('click',()=>trail?.go?.(delta));return go;};
+    const crumbs=el('ol','ps-trail-crumbs');
+    for(let index=Math.max(0,cursor-4);index<=cursor;index++){
+      const item=el('li','ps-trail-crumb'),name=items[index].title||items[index].id;item.dataset.near=index===cursor?'current':index===cursor-1?'previous':'far';
+      if(index===cursor){const here=el('span','',name);here.setAttribute('aria-current','true');item.append(here);}
+      else{const go=button(name,'ps-trail-go');go.addEventListener('click',()=>trail?.go?.(index-cursor));item.append(go);}
+      crumbs.append(item);
+    }
+    trailBar.append(step('‹',t('trailBack'),-1),crumbs,step('›',t('trailForward'),1));
   }
   function renderColumn(){
     if(destroyed)return;
@@ -1499,8 +1569,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     panelClose.hidden=!wide&&!columnOpen;panelClose.setAttribute('aria-label',t(mode==='overview'&&!browsingRoutes?'collapseColumn':mode==='route'?'resetRoute':'close'));
     // Only the open card of a star or a link is a workbench; any other column, or a closed one, folds it back.
     const benchable=(mode==='node'||mode==='edge')&&columnOpen;if(!benchable)bench=false;
-    shell.dataset.bench=String(bench);reading.dataset.bench=String(bench);panelBench.hidden=!benchable;panelBench.innerHTML=benchIcon(bench);
-    panelBench.setAttribute('aria-pressed',String(bench));panelBench.setAttribute('aria-label',t(bench?'closeBench':'openBench'));setHint(panelBench,t(bench?'closeBench':'openBench'));
+    shell.dataset.bench=String(bench);reading.dataset.bench=String(bench);panelBench.hidden=!benchable;panelBench.innerHTML=benchIcon(bench);panelBench.append(el('span','ps-bench-word',t(bench?'benchFoldWord':'benchWord')));
+    panelBench.setAttribute('aria-pressed',String(bench));panelBench.setAttribute('aria-label',t(bench?'closeBench':'openBench'));setHint(panelBench,t(bench?'closeBench':'openBench'),'B');
     if(bench)panelTitle.textContent=`${t('bench')} · ${columnCaption(mode)}`;
     const trays=bench&&!subjectChanged?benchTrays():null;
     delete panelContent.dataset.termWorks;delete panelContent.dataset.termNode;
@@ -1509,7 +1579,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(bench)openBench(mode,trays);
     // The scale of time shows the chosen move's author's life, so a new choice redraws its strip.
     if(measuredLens(lens)&&scaleChoice!==selected)refreshSky();
-    terms.mark(panelContent);
+    terms.mark(panelContent);renderTrail();
     shell.dispatchEvent(new CustomEvent('public-research-selection',{bubbles:true,detail:researchSelection()}));
   }
   // The close button climbs one level: a chosen star or link, then the open branch, then the column itself.
@@ -1798,20 +1868,20 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(!searchResults)return;searchResults.replaceChildren();const query=searchValue.toLocaleLowerCase();if(!query){searchResults.hidden=true;return;}
     // Names first: a branch called by its own name leads the results.
     const current=graphState(),options={locale:locale()};
-    const found=[...previewMaterials.values()].map(item=>({score:searchScore(item,searchValue,{...options,authorTitle:tr(entryByLegacyId.get(item.author)?.title,locale())}),kind:partName(profile,item,locale(),{moveIds})||kindName(item.kind),title:label(item),body:tr(item.atlasBody??item.body,locale()),open:()=>previewMaterial(item.id)}));
+    const found=[...previewMaterials.values()].map(item=>({score:searchScore(item,searchValue,{...options,authorTitle:tr(entryByLegacyId.get(item.author)?.title,locale())}),kind:kindWord(item),sign:()=>signOf(item),title:label(item),body:tr(item.atlasBody??item.body,locale()),open:()=>previewMaterial(item.id)}));
     // Routes and their steps are found by their own names too, wherever the library does not already hold them as materials.
     const held=new Set([...previewMaterials.values()].map(item=>item.route?.id).filter(Boolean));
     for(const item of routeItems()){
       const shown=item.source==='manifest'?localizePublicJourney(item,locale()):item;if(!shown||item.source==='atlas'&&held.has(item.id))continue;
       const name=tr(shown.title,locale());
-      found.push({score:searchScore({title:shown.title,question:shown.question,body:shown.description,route:shown},searchValue,options),kind:`${routeWord(item)} · ${routeSize(item,shown.steps?.length??0)}`,title:name,body:tr(shown.question??shown.description,locale()),open:()=>{searchResults.hidden=true;search.blur();startRoute(item);}});
+      found.push({score:searchScore({title:shown.title,question:shown.question,body:shown.description,route:shown},searchValue,options),kind:`${routeWord(item)} · ${routeSize(item,shown.steps?.length??0)}`,sign:()=>signElement(document,'branch'),title:name,body:tr(shown.question??shown.description,locale()),open:()=>{searchResults.hidden=true;search.blur();startRoute(item);}});
       if(item.source!=='atlas')continue;
       (shown.steps??[]).forEach((step,index)=>{const material=materials.get(step.nodeId);if(material&&label(material)===tr(step.title,locale()))return;
-        found.push({score:searchScore({title:step.title,question:step.question,body:step.body},searchValue,options),kind:`${routeWord(item)} · ${t('stepName')} ${index+1}`,title:tr(step.title,locale()),body:name,open:()=>{searchResults.hidden=true;search.blur();startRoute(item);goRouteStep(index);}});});
+        found.push({score:searchScore({title:step.title,question:step.question,body:step.body},searchValue,options),kind:`${routeWord(item)} · ${t('stepName')} ${index+1}`,sign:()=>signElement(document,'step'),title:tr(step.title,locale()),body:name,open:()=>{searchResults.hidden=true;search.blur();startRoute(item);goRouteStep(index);}});});
     }
     const available=found.map((entry,index)=>({...entry,index})).filter(entry=>entry.score>0).sort((a,b)=>b.score-a.score||a.index-b.index).slice(0,24);
-    for(const item of available){const b=button('','ps-result');b.append(el('small','',item.kind),el('strong','',item.title),el('span','',String(item.body??'').slice(0,140)));b.addEventListener('click',item.open);searchResults.append(b);}
-    for(const item of current.nodes.filter(node=>node.ownerType==='personal-hypothesis'&&`${node.title} ${node.body}`.toLocaleLowerCase().includes(query))){const b=button('','ps-result');b.append(el('small','',t('personal')),el('strong','',item.title),el('span','',item.body.slice(0,140)));b.addEventListener('click',()=>{searchResults.hidden=true;search.blur();selectActual(item.id);});searchResults.append(b);}
+    for(const item of available){const b=button('','ps-result'),kind=el('small','',item.kind),mark=item.sign?.();if(mark)kind.prepend(mark);b.append(kind,el('strong','',item.title),el('span','',String(item.body??'').slice(0,140)));b.addEventListener('click',item.open);searchResults.append(b);}
+    for(const item of current.nodes.filter(node=>node.ownerType==='personal-hypothesis'&&`${node.title} ${node.body}`.toLocaleLowerCase().includes(query))){const b=button('','ps-result'),kind=el('small','',t('personal'));kind.prepend(signElement(document,'personal'));b.append(kind,el('strong','',item.title),el('span','',item.body.slice(0,140)));b.addEventListener('click',()=>{searchResults.hidden=true;search.blur();selectActual(item.id);});searchResults.append(b);}
     if(!searchResults.childElementCount)searchResults.append(el('p','ps-no-results',t('emptySearch')));searchResults.hidden=false;
   }
   function renderPersonalPanel(){
@@ -1829,6 +1899,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       if(key==='escape'&&bench){event.preventDefault();if(!personal.hidden)closePersonal();else toggleBench(false);return;}
       if(key==='escape'&&(selected||selectedEdge)&&!route){event.preventDefault();closePanel();}
       if(key==='/'){event.preventDefault();search.focus();}
+      // B lays the open card on the workbench and folds it back, in any keyboard layout.
+      if(event.code==='KeyB'&&!panelBench.hidden){event.preventDefault();toggleBench();return;}
       if(key==='+'||key==='='){event.preventDefault();sky?.zoomBy(1.25);}
       if(key==='-'||key==='_'){event.preventDefault();sky?.zoomBy(1/1.25);}
       // Arrows walk the open branch or route a step at a time.
@@ -1900,15 +1972,15 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // a star its kind, when and where, a link its kind and what that kind means. Nothing of it stays on the screen by itself.
   function starHint(id){
     const node=graphState().nodes.find(item=>item.id===id);if(!node)return null;
-    if(node.ownerType==='personal-hypothesis')return {eyebrow:t('rungPersonal'),title:label(node),lines:[]};
+    if(node.ownerType==='personal-hypothesis')return {eyebrow:t('rungPersonal'),glyph:signElement(document,'personal'),title:label(node),lines:[]};
     const material=matForNode(node),part=partName(profile,material,locale(),{moveIds}),rung=ladderRung({material,node});
-    const eyebrow=[part||kindName(material?.kind??node.kind),rung==='personal'?t('rungPersonal'):t(`rung_${rung}`)].filter(Boolean).join(' · ');
+    const eyebrow=[kindWord(material,node),rung==='personal'?t('rungPersonal'):t(`rung_${rung}`)].filter(Boolean).join(' · ');
     const lines=[],situationId=material?.id&&chronologyReader?situationOf(material.id):null,words=situationId?datingWords(situationId):null;
     if(words)lines.push(`◷ ${words.when}${words.context?` · ${words.context}`:''}`);
     if(material?.id&&geography&&starSet.has(material.id)){const entry=placeEntryOf(material.id),place=entry?.place?placesReader.place(entry.place):null;if(place)lines.push(`⌖ ${tr(place.label,locale())}`);}
     // On the tree a star's hint also says where it stands in it.
     const note=treeView()&&material?.id?treeLayout.notes?.get(material.id):null;if(note)lines.push(`✧ ${tr(note,locale())}`);
-    return {eyebrow,title:keepDots(label(material??node)),lines};
+    return {eyebrow,glyph:signOf(material,node),title:keepDots(label(material??node)),lines};
   }
   function edgeHint(id){
     const edge=shownView?.edges?.find(item=>item.id===id);if(!edge||edge.proposalId)return null;
@@ -1992,6 +2064,6 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const localeEvent=event=>{if(event.detail?.locale&&event.detail.locale!==locale()){};refreshLocale();};header?.addEventListener('public-space-locale',localeEvent);
   // A new theme repaints what is coloured from code: the relation chips and the links of a route.
   const themeEvent=()=>{if(destroyed)return;inkTheme();setLocaleState();reflect();};window.addEventListener('site-theme',themeEvent);
-  return {root:shell,index,selection:researchSelection,openResearch,renderResearch,markTerms:node=>terms.mark(node),readingPrompt,fragments,coreView,timeOf:id=>timeline?.spanOf?.(index?.get(id)?.materialId??id)??null,placeOf:id=>placeOf(index?.get(id)?.materialId??id),openPersonal:()=>{if(personal.hidden)togglePersonal();},compare:id=>beginCompare(graphIdForMaterial(index?.get(id)?.materialId??id)),pristineGraphs,openCollection,personalRoot:personalContent,workspaceRoot,agentRoot,refreshLocale,restoreFocus,refreshJourneys(items){journeyList=Array.isArray(items)?items:[];if(route)renderRoutes();},renderJourneys:renderRoutes,model,
+  return {root:shell,index,selection:researchSelection,setTrail,openResearch,renderResearch,markTerms:node=>terms.mark(node),readingPrompt,fragments,coreView,timeOf:id=>timeline?.spanOf?.(index?.get(id)?.materialId??id)??null,placeOf:id=>placeOf(index?.get(id)?.materialId??id),openPersonal:()=>{if(personal.hidden)togglePersonal();},compare:id=>beginCompare(graphIdForMaterial(index?.get(id)?.materialId??id)),pristineGraphs,openCollection,personalRoot:personalContent,workspaceRoot,agentRoot,refreshLocale,restoreFocus,refreshJourneys(items){journeyList=Array.isArray(items)?items:[];if(route)renderRoutes();},renderJourneys:renderRoutes,model,
     destroy(){if(destroyed)return;destroyed=true;window.removeEventListener('site-theme',themeEvent);window.removeEventListener('resize',refitScale);cancelAnimationFrame(refitFrame);shell.removeEventListener('click',openLane);shell.removeEventListener('keydown',openLaneByKey);unsubscribeModel?.();unsubscribeWorkspace?.();workspaceRoot.removeEventListener('public-research-import-result',showImportResult);workspaceRoot.removeEventListener('public-research-workspace-history',researchHistory);document.removeEventListener('keydown',keyboard);document.removeEventListener('pointerdown',notePress,{capture:true});clearTimeout(controlsTimer);shell.removeEventListener('pointerdown',notePointer,{capture:true});hints?.dispose();controls?.dispose();fragments.dispose();desktopMode.removeEventListener('change',syncInitialRouteDock);header?.removeEventListener('public-space-locale',localeEvent);sky?.dispose();model.dispose();shell.remove();header?.remove();terms.dispose();}};
 }

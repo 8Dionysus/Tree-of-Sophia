@@ -103,3 +103,18 @@ test('a long claim is named by whole sentences, a single long sentence by whole 
   const line=claimLine(one);
   expect(line.endsWith('…')).toBe(true);expect(one.startsWith(line.slice(0,-1))).toBe(true);expect(one[line.length-1]).toBe(' ');
 });
+
+test('the space is given the reader’s trail of cards and walks it back and forth',async()=>{
+  const window={history:{replaceState:vi.fn(),pushState:vi.fn(),state:null},addEventListener(){},removeEventListener(){},scrollTo:vi.fn(),scrollY:0};
+  vi.stubGlobal('document',{createElement:tag=>new Element(tag)});vi.stubGlobal('window',window);vi.stubGlobal('location',{href:'http://localhost/?experience=original'});vi.stubGlobal('requestAnimationFrame',fn=>fn());
+  const entries=new Map(['a','b','c'].map(id=>[id,{id,kind:'conception',title:{en:id.toUpperCase()},dependencies:[]}])),index={revision:'current',items:entries,get:id=>entries.get(id),resolveId:id=>id,search:()=>[],references:()=>[]};
+  const root=new Element('root'),space={root:new Element('space'),renderResearch:vi.fn(),openResearch:vi.fn(),setTrail:vi.fn(),fragments:{},selection:()=>null};root.append(space.root);
+  const notebook={getPreference:vi.fn(async()=>undefined),setPreference:vi.fn(async()=>{})};
+  const view=mountResearchExperience({root,header:new Element('header'),profile:'test',locale:()=> 'en',index,space,notebook,api:{getQuestion:()=>''}});
+  await vi.waitFor(()=>expect(notebook.getPreference).toHaveBeenCalled());await new Promise(resolve=>setTimeout(resolve,0));
+  view.open('a');view.open('b');view.open('c');
+  const last=()=>space.setTrail.mock.calls.at(-1)[0];
+  expect(last().items.map(item=>item.title)).toEqual(['A','B','C']);expect(last().cursor).toBe(2);
+  last().go(-2);expect(last().cursor).toBe(0);expect(space.openResearch).toHaveBeenLastCalledWith('a');
+  view.destroy();
+});

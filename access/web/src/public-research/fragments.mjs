@@ -147,6 +147,17 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     return {documentId,versionId,revision,source:version.source,selections};
   }
   const words=key=>t(key);
+  // A quotation is taken away with its source: the words shown, in each language shown, and the line naming where they stand.
+  function copyTool(figure,tools){
+    const clipboard=globalThis.navigator?.clipboard;if(!clipboard?.writeText)return;
+    const copy=button(words('fragmentCopy'),'text-button ps-fragment-copy');
+    copy.addEventListener('click',()=>{
+      const [open,close]=String(locale()).startsWith('ru')?['«','»']:['“','”'],sources=[...figure.querySelectorAll('.ps-fragment-source')];
+      const text=[...figure.querySelectorAll('.ps-fragment-text')].map((quote,index)=>`${open}${quote.innerText.trim()}${close}${sources[index]?`\n— ${sources[index].textContent.trim()}`:''}`).join('\n\n');
+      void clipboard.writeText(text).then(()=>{copy.textContent=words('fragmentCopied');setTimeout(()=>{copy.textContent=words('fragmentCopy');},1600);}).catch(()=>{});
+    });
+    tools.append(copy);
+  }
   const local=value=>localeValue(value,locale());
 
   // ── The parallel reading: a chapter, original beside translation, row by row. ──
@@ -265,7 +276,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       if(omitted.length){const absent=el('span','ps-fragment-absent','∅');absent.setAttribute('aria-label',words('fragmentOmitted'));hint?.(absent,words('fragmentOmitted'));tools.append(absent);}
       const whole=button(`↗ ${words('fragmentWhole')}`,'text-button ps-fragment-whole');
       whole.addEventListener('click',()=>void showChapter(cite.c,cite).catch(error=>onError?.(error)));
-      tools.append(whole);figure.append(tools);
+      tools.append(whole);copyTool(figure,tools);figure.append(tools);
     };
     paint();
   }
@@ -306,7 +317,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       const witness=witnessOf(showing[0]);
       const [url,opens]=place.links?.[showing[0]]?[place.links[showing[0]],'work']:place.url?[place.url,place.opens??'book']:[witness?.url,witness?.opens??'work'];
       if(typeof url==='string'&&/^https:\/\//.test(url)){const link=el('a','text-button ps-fragment-whole',`↗ ${words({quotation:'fragmentQuoted',book:'fragmentBook'}[opens]??'fragmentWhole')}`);link.href=url;link.target='_blank';link.rel='noopener noreferrer';tools.append(link);}
-      figure.append(tools);
+      copyTool(figure,tools);figure.append(tools);
     };
     paint();
   }
@@ -398,7 +409,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
         const shown=versionFor(showing[0])??work.original,unitId=shown===work.original?first:(texts.get(showing[0])??[])[0]?.id;
         if(unitId){const whole=button(`↗ ${words('fragmentWhole')}`,'text-button ps-fragment-whole');whole.addEventListener('click',()=>void openAddress({documentId:work.documentId,versionId:shown.versionId,revision:shown.revision,unitId}).catch(error=>onError?.(error)));tools.append(whole);}
       }
-      figure.append(tools);
+      copyTool(figure,tools);figure.append(tools);
     };
     await paint();
   }

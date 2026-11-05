@@ -4,7 +4,7 @@
 // in the middle, at the step of comparison.
 
 export const BENCH_STEPS=['source','reading','comparison'];
-const HEAD='h1,.eyebrow,.ps-source-line,.ps-personal-title,.ps-kernel-actions,.ps-link-sentence,.edge-endpoints,.reading-actions,.ps-walk-branch';
+const HEAD='h1,.eyebrow,.ps-paths,.ps-source-line,.ps-personal-title,.ps-kernel-actions,.ps-link-sentence,.edge-endpoints,.reading-actions,.ps-walk-branch';
 const TOOLS='.ps-kernel-actions,.reading-actions,.ps-walk-branch';
 const SOURCE='.ps-fact,.ps-fragment,.ps-core-formula,.ps-grounds,.ps-source-open,.ps-source-refs,.ps-author-works';
 const COMPARISON='.connection-target,.reading-bottom';
