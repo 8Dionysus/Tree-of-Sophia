@@ -564,7 +564,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     const visibleEdges=new Set();
     const showEdge=(e,chosen,compact,hot)=>{visibleEdges.add(e.id);e.el.dataset.active=String(hot);e.el.dataset.kind=e.kind;e.el.dataset.compact=String(compact);e.el.style.setProperty('--edge-color',e.color);e.el.style.color=e.color;e.el.style.width=(compact?e.compactWidth:e.labelWidth)+'px';e.el.style.transform=`translate3d(${chosen.left.toFixed(2)}px,${chosen.top.toFixed(2)}px,0)`;if(nativeTitles)e.el.title=e.el.getAttribute('aria-label');occupied.push(chosen);};
     // Within its rank a name already standing goes first, so that it keeps its room.
-    const rank=n=>priority(n)+(n.labelShown?4:0),ordered=[...nodes].sort((a,b)=>rank(b)-rank(a));
+    // Among equals the nearer star names itself first.
+    const rank=n=>priority(n)+(n.labelShown?4:0),ordered=[...nodes].sort((a,b)=>rank(b)-rank(a)||(b.screen?.d??1)-(a.screen?.d??1));
     for(const n of ordered){
       if(!kept.has(n.id)||n.el.hidden)continue;
       // A kept name keeps its source line where there is free room for it, else its name alone where that is free;
@@ -615,6 +616,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     const keptNames=new Set();let keptShown=0,keptForced=0;
     for(const e of edges){
       if(!keptEdges.has(e.id)||e.muted||(e.labelAt&&!deferred.has(e.id)))continue;
+      // In a space read in depth a chosen star's links keep to their colours and lines; a link names itself when pointed at.
+      if(depthCue&&!measured&&e.id!==selectedEdgeId&&e.id!==hoverEdge)continue;
       const hot=e.id===selectedEdgeId||e.id===hoverEdge,name=`${e.from===selectedId?e.from:e.to===selectedId?e.to:''}|${e.el.textContent}`,again=keptNames.has(name);
       if(!hot&&keptShown>=10)continue;
       const forced=!again&&keptForced<4;
@@ -629,8 +632,9 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       // A name already standing waits a little longer before it goes than a new one waits to come.
       const was=!!n.labelShown;
       if(depthCue&&!measured&&n.labelFrom&&n.screen.d<(was?.87:.9)&&!hot&&!near.has(n.id)){showLabel(n,null,false);continue;}
-      // A name that waits for a nearer view stands once the view comes that near, or while its star is reached.
-      if(n.labelFrom&&n.screen.s<n.labelFrom*(was?.9:1)&&!hot&&!near.has(n.id)){showLabel(n,null,false);continue;}
+      // A name that waits for a nearer view stands once the view comes that near (`labelFrom` counts the view's zoom
+      // over the whole, a nearer star counting nearer), or while its star is reached.
+      if(n.labelFrom&&zoom*n.screen.d<n.labelFrom*(was?.9:1)&&!hot&&!near.has(n.id)){showLabel(n,null,false);continue;}
       const place=height=>{
         // A name that stands keeps its side while that side stays nearly clear: a star passing under it, or another
         // name grazing its edge, does not move it.
@@ -648,7 +652,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       else if(!was&&!hot&&!n.prominent&&!near.has(n.id)&&n.labelSeen&&!instant){if(n.wantSince==null)n.wantSince=now;if(now-n.wantSince<APPEAR_MS){occupied.push(chosen);labelsSettling=true;showLabel(n,null,false);continue;}}
       showLabel(n,chosen,short);
     }
-    const candidates=edges.filter(e=>!e.muted&&!visibleEdges.has(e.id)&&(e.id===selectedEdgeId||e.id===hoverEdge||((hover||selectedId)&&focusEdges.has(e.id)))).sort((a,b)=>(b.id===hoverEdge?100:b.id===selectedEdgeId?90:b.highlight?70:0)-(a.id===hoverEdge?100:a.id===selectedEdgeId?90:a.highlight?70:0));
+    // In a space read in depth only a pointed or chosen link names itself; the star's other links keep to their colours.
+    const candidates=edges.filter(e=>!e.muted&&!visibleEdges.has(e.id)&&(e.id===selectedEdgeId||e.id===hoverEdge||(!(depthCue&&!measured)&&(hover||selectedId)&&focusEdges.has(e.id)))).sort((a,b)=>(b.id===hoverEdge?100:b.id===selectedEdgeId?90:b.highlight?70:0)-(a.id===hoverEdge?100:a.id===selectedEdgeId?90:a.highlight?70:0));
     let shown=0;
     for(const e of candidates){
       if(shown>=6)break;const hit=edgeHits.find(hit=>hit.id===e.id);if(!hit)continue;
@@ -913,7 +918,9 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   }
   // A turning space can be drawn close enough to open a crowded part, or far enough to see it whole.
   // A framing may come nearer than the reader's own zoom goes (`max`); from there the reader's zoom only moves back.
-  const zoomTo=(value,max=4)=>{tzoom=measured?clamp(value,1,measured.axes==='xy'?8:4):clamp(value,.5,Math.max(max,Math.min(tzoom,16)));kick();};
+  // How near the reader may come; a space laid out whole (the tree) lets the reader come much nearer than a map.
+  let zoomCeiling=4;
+  const zoomTo=(value,max=zoomCeiling)=>{tzoom=measured?clamp(value,1,measured.axes==='xy'?8:4):clamp(value,.5,Math.max(max,Math.min(tzoom,16)));kick();};
   const wheel=e=>{
     e.preventDefault();const before=tzoom;zoomTo(tzoom*Math.exp(-e.deltaY*.0012));
     // On a measured scale the moment under the pointer stays under it.
@@ -1025,6 +1032,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   return {
     update:refresh,
     setCloseIn(on){closeIn=!!on;},
+    setZoomCeiling(value){if(Number.isFinite(value)&&value>=1)zoomCeiling=value;},
     setInk(value){const next=clamp(Number(value)||1,1,2.5);if(next!==ink){ink=next;kick();}},
     capturePose(){return validateSkyPose({v:1,yaw:tyaw,pitch:tpitch,zoom:tzoom,pan:[tpan.x,tpan.y],center:[...targetCenter],fit:targetFit});},
     restorePose(value){const pose=validateSkyPose(value);yaw=tyaw=pose.yaw;pitch=tpitch=pose.pitch;zoom=tzoom=pose.zoom;
