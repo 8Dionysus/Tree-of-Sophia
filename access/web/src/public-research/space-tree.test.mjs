@@ -73,6 +73,12 @@ describe('the whole Antiquity bonsai as one tree in space',()=>{
     const crossing=tree.edges.find(e=>tree.regionOf(e.from)==='roots'&&tree.regionOf(e.to)==='crown');
     expect(crossing.via.some(p=>reach(p)<30&&p[1]<-300)).toBe(true);
   });
+  it('lets a star’s hint say where it stands: a move’s branch, a passage’s work, who answers a question',()=>{
+    const branch=collection.branches[0],move=branch.nodes.find(n=>n.id!==branch.root)??branch.nodes[0];
+    expect(tree.notes.get(materialOf(move.id)).ru).toMatch(new RegExp(`^Ветвь «${branch.title.ru}» · ход \\d+$`));
+    const answered=collection.questions.find(q=>q.positions?.length);
+    expect(tree.notes.get(materialOf(answered.id)).ru).toMatch(/^Отвечают: [^,]+/);
+  });
   it('is the same tree every time and holds every star inside its bounds',()=>{
     const again=antiquityTree({collection,chronology,materialOf});
     expect([...again.positions]).toEqual([...tree.positions]);expect(again.edges.map(e=>e.id)).toEqual(tree.edges.map(e=>e.id));

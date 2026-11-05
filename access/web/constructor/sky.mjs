@@ -84,6 +84,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   let tyaw=restYaw,tpitch=restPitch,tzoom=1,pan={x:0,y:0},tpan={x:0,y:0},eye={x:0,y:0},calm=0,revealId=null,stretchY=1,tstretchY=1,measured=null;
   // The fit the framing chose for the space seen from the front, and the pose and layout the turned fit was last worked out for.
   let frontFit=0,fittedFor='',layoutVersion=0,neighbourhoodPending=null;
+  // In a space laid out whole (the tree) a chosen star brings its neighbourhood near and to the middle of the view.
+  let closeIn=false;
   // A turn keeps its last speed when let go and coasts to rest; a pose heard last is not told again.
   let velocity=null,lastTurn=null,introDone=false,introPending=false,introUntil=0,turnShownUntil=0,reveal=0,heardPose='',framedOnce=false;
   let skyCos=1,skySin=0,skyPitchCos=1,skyPitchSin=0,last=0,lastFrame=0,raf=0,hover=null,playing=!reduced.matches&&!softwareRenderer,drag=null,disposed=false;
@@ -867,6 +869,13 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     const extent=list=>({left:Math.min(...list.map(p=>p.x)),right:Math.max(...list.map(p=>p.x)),top:Math.min(...list.map(p=>p.y)),bottom:Math.max(...list.map(p=>p.y))});
     let span=extent(points);
     const roomX=Math.max(40,area.right-area.left-2*mx),roomY=Math.max(40,area.bottom-area.top-2*my);
+    if(closeIn){
+      // The neighbourhood comes to the middle of the free area and nearer, until it fills about three quarters of it,
+      // never further than the whole view and never more than two and a half times nearer at once.
+      const fill=Math.min(roomX*.75/Math.max(1,span.right-span.left),roomY*.75/Math.max(1,span.bottom-span.top)),factor=clamp(fill,1,2.5);
+      if(factor>1.05){const before=tzoom;zoomTo(tzoom*factor);const ratio=tzoom/before;span=extent(points.map(p=>({x:cx+(p.x-cx-tpan.x)*ratio+tpan.x,y:cy+(p.y-cy-tpan.y)*ratio+tpan.y})));}
+      tpan={x:tpan.x+cx-(span.left+span.right)/2,y:tpan.y+cy-(span.top+span.bottom)/2};kick();return;
+    }
     const back=Math.min(1,roomX/Math.max(1,span.right-span.left),roomY/Math.max(1,span.bottom-span.top));
     // A crowded neighbourhood is drawn closer, so that its names have room to stand apart: the room its names need is
     // set against the room around its stars, never past what the free area holds or twice the present zoom.
@@ -988,6 +997,16 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     aim(best?.id??null);
   },{passive:true,capture:true});
   root.addEventListener('pointerleave',()=>aim(null));
+  // A tap on a star's own disc among close stars reaches the star whose centre lies nearest the finger; a tap on a name
+  // reaches that name's star, and a finger that moved has turned the space and chooses nothing.
+  let lastTouch=null;
+  root.addEventListener('pointerdown',e=>{if(e.pointerType!=='touch')return;const b=root.getBoundingClientRect();lastTouch={x:e.clientX-b.left,y:e.clientY-b.top,cx:e.clientX,cy:e.clientY,at:performance.now()};},{capture:true,passive:true});
+  root.addEventListener('click',e=>{
+    const touch=lastTouch;lastTouch=null;const star=e.target?.closest?.('.tree-star');
+    if(!touch||!star||e.target!==star||performance.now()-touch.at>900||Math.hypot(e.clientX-touch.cx,e.clientY-touch.cy)>10)return;
+    let best=null,reach=26;for(const n of nodes){if(n.el.hidden||!n.screen)continue;const d=Math.hypot(n.screen.x-touch.x,n.screen.y-touch.y);if(d<reach){reach=d;best=n;}}
+    if(best&&best.el!==star){e.stopPropagation();e.preventDefault();best.el.click();}
+  },{capture:true});
   canvas.addEventListener('pointermove',e=>{
     if(pinching(e))return;
     if(!drag){const p=pointer(e),id=hitEdge(p.x,p.y);if(hoverEdge!==id){hoverEdge=id;canvas.style.cursor=id?'pointer':'';onEdgeHover?.(id);kick();}return;}
@@ -1005,6 +1024,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   document.fonts?.ready?.then(()=>{if(!disposed){measureLabels=true;kick();}});
   return {
     update:refresh,
+    setCloseIn(on){closeIn=!!on;},
     setInk(value){const next=clamp(Number(value)||1,1,2.5);if(next!==ink){ink=next;kick();}},
     capturePose(){return validateSkyPose({v:1,yaw:tyaw,pitch:tpitch,zoom:tzoom,pan:[tpan.x,tpan.y],center:[...targetCenter],fit:targetFit});},
     restorePose(value){const pose=validateSkyPose(value);yaw=tyaw=pose.yaw;pitch=tpitch=pose.pitch;zoom=tzoom=pose.zoom;

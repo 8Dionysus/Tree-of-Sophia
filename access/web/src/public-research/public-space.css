@@ -619,6 +619,27 @@
 #tree .ps-map-tools .ps-controls-tool[hidden]{display:none}
 @keyframes ps-controls-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){#tree .ps-controls{animation:none}}
+/* On a desktop the controls lie along the foot of the space, over the legend of links until they are put away, so that
+   the tree itself stays whole in view from the first moment. */
+@media (min-width:1100px){
+  #tree.pr-public-space .ps-controls{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:18px;padding:9px 14px}
+  #tree.pr-public-space .ps-controls-head{flex-direction:column;align-items:flex-start;gap:8px;margin:0}
+  #tree.pr-public-space .ps-controls-list{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px 14px}
+  #tree.pr-public-space .ps-controls-row{grid-template-columns:24px minmax(0,1fr);column-gap:8px}
+  #tree.pr-public-space .ps-controls-sign{width:24px;height:24px;border-radius:5px}
+  #tree.pr-public-space .ps-controls-sign svg{width:18px;height:18px}
+  #tree.pr-public-space .ps-controls-gesture{font-size:11px}
+  #tree.pr-public-space .ps-controls-action{font-size:10.5px;line-height:1.3}
+}
+/* On a phone they stand in one row the reader slides through, low over the space. */
+@media (max-width:759px){
+  #tree.pr-public-space .ps-controls{padding:9px 10px 10px}
+  #tree.pr-public-space .ps-controls-head{margin:0 0 7px}
+  #tree.pr-public-space .ps-controls-list{grid-auto-flow:column;grid-template-columns:none;grid-auto-columns:minmax(148px,46%);overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding-bottom:2px}
+  #tree.pr-public-space .ps-controls-row{scroll-snap-align:start;grid-template-columns:24px minmax(0,1fr);column-gap:8px}
+  #tree.pr-public-space .ps-controls-sign{width:24px;height:24px}
+  #tree.pr-public-space .ps-controls-sign svg{width:18px;height:18px}
+}
 @media(max-width:760px){
   #tree .ps-controls{padding:11px 12px 12px}
   #tree .ps-controls-list{gap:9px 12px}
