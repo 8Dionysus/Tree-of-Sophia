@@ -13,7 +13,7 @@ import {validateSkyPose} from './sky-pose.mjs';
 // depthCue dims what lies further back; planarMoves keeps a moved star in its
 // own depth; onPose hears every turn of the view. Such a space may lay its
 // stars on named planes of depth (state.planes), shown while it turns.
-export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}, getViewport=null, rotate=true, dragNodes=true, rest=null, intro=false, holdToMove=0, turnFromStars=false, touch=false, secondaryPan=false, inertia=false, depthCue=false, planarMoves=false, onPose=null, nativeTitles=true, onEdgeHover=null, onThreadSelect=null, threadsFor=null, obstacles=null}) {
+export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}, onBackground=null, getViewport=null, rotate=true, dragNodes=true, rest=null, intro=false, holdToMove=0, turnFromStars=false, touch=false, secondaryPan=false, inertia=false, depthCue=false, planarMoves=false, onPose=null, nativeTitles=true, onEdgeHover=null, onThreadSelect=null, threadsFor=null, obstacles=null}) {
   let canvas=root.querySelector('canvas'),ctx;
   try {ctx=new SophiaGpuCanvas(canvas);root.dataset.renderer='three-webgl2';}
   catch {const next=canvas.cloneNode();canvas.replaceWith(next);canvas=next;ctx=canvas.getContext('2d',{alpha:false});root.dataset.renderer='canvas-fallback';}
@@ -86,6 +86,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   let frontFit=0,fittedFor='',layoutVersion=0,neighbourhoodPending=null;
   // In a space laid out whole (the tree) a chosen star brings its neighbourhood near and to the middle of the view.
   let closeIn=false;
+  // How far the view has gathered to a chosen star: 0 open, 1 gathered.
+  let focusMix=0;
   // A turn keeps its last speed when let go and coasts to rest; a pose heard last is not told again.
   let velocity=null,lastTurn=null,introDone=false,introPending=false,introUntil=0,turnShownUntil=0,reveal=0,heardPose='',framedOnce=false;
   let skyCos=1,skySin=0,skyPitchCos=1,skyPitchSin=0,last=0,lastFrame=0,raf=0,hover=null,playing=!reduced.matches&&!softwareRenderer,drag=null,disposed=false;
@@ -626,6 +628,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     for(const n of ordered){
       if(kept.has(n.id)&&!n.el.hidden)continue;
       const hot=n.id===selectedId||n.id===hover;
+      if(focusMix>.3&&!hot){showLabel(n,null,false);continue;}
       // A star the view has stepped back keeps its light and gives its name's room to the stars in front.
       if((n.dimmed||n.quiet)&&!hot){showLabel(n,null,false);continue;}
       // In a space read in depth the stars far behind give their names' room to the ones in front.
@@ -720,6 +723,11 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     const kept=new Set(),keptEdges=new Set();
     if(selectedId&&byId.has(selectedId)){kept.add(selectedId);for(const edge of edges)if(!edge.muted&&(edge.from===selectedId||edge.to===selectedId)&&byId.has(edge.from)&&byId.has(edge.to)){kept.add(edge.from);kept.add(edge.to);keptEdges.add(edge.id);}}
     if(selectedEdge&&!selectedEdge.muted&&byId.has(selectedEdge.from)&&byId.has(selectedEdge.to)){kept.add(selectedEdge.from);kept.add(selectedEdge.to);keptEdges.add(selectedEdge.id);}
+    // A chosen star in a space read in depth gathers the view to itself: every star outside it and its neighbours steps
+    // back, nameless and out of reach, with the links and lines that do not touch it, until the star is let go.
+    const chosenFocus=depthCue&&!measured&&!!selectedId&&kept.size>0,focusTo=chosenFocus?1:0;
+    focusMix=still||reduced.matches?focusTo:focusMix+(focusTo-focusMix)*(1-Math.exp(-dt*9));if(Math.abs(focusMix-focusTo)<.01)focusMix=focusTo;else layoutMoving=true;
+    if(root.dataset.focus!==(chosenFocus?'chosen':''))root.dataset.focus=chosenFocus?'chosen':'';
     // An aspect names every link it stands in rows, and every star at their ends.
     for(const edge of edges)if(edge.labelAt&&!edge.muted&&byId.has(edge.from)&&byId.has(edge.to)){kept.add(edge.from);kept.add(edge.to);keptEdges.add(edge.id);}
     const focused=near.size>0;edgeHits=[];
@@ -740,7 +748,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     if(backdrop.length){
       // The lines under a chosen or pointed star step back with the stars it does not reach; in a space read in depth
       // a line also dims as it goes back, as the stars do.
-      const fade=focused?.42:1;
+      const fade=(focused?.42:1)*(1-.72*focusMix);
       for(const line of backdrop){
         const points=Array.isArray(line)?line:line.points,style=Array.isArray(line)?{}:line;
         ctx.strokeStyle=style.color??'#8fa8c4';ctx.beginPath();
@@ -756,11 +764,12 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const hot=edge.id===hoverEdge||edge.id===selectedEdgeId||edge.highlight,neighbor=focusEdges.has(edge.id)||keptEdges.has(edge.id);
       // A latent link is drawn only while one of its stars is pointed at or chosen.
       if(edge.latent&&!hot&&!neighbor)continue;
+      const awayEdge=!hot&&!keptEdges.has(edge.id)&&!focusEdges.has(edge.id)?focusMix:0;if(awayEdge>.98)continue;
       // A link may run through points of its own, so the links between distant parts of a layout gather on their way.
       const route=Array.isArray(edge.via)&&edge.via.length?[from,...edge.via.map(project),to]:[from,to];
       if(edge.muted){ctx.strokeStyle=edge.color;ctx.globalAlpha=.05;ctx.lineWidth=.6;for(let i=1;i<route.length;i++){let a=route[i-1],b=route[i];if(measured){const cut=clipSegment(a,b);if(!cut)continue;[a,b]=cut;}strokeSegment(a,b,edge.dash);}continue;}
       const rest=Number.isFinite(edge.baseAlpha)?edge.baseAlpha:.24,weight=Number.isFinite(edge.weight)?edge.weight:1;
-      ctx.strokeStyle=edge.color;ctx.globalAlpha=Math.min(1,(hot?.85:neighbor?.57:focused?rest*.23:rest)*ink);ctx.lineWidth=(hot?1.55:neighbor?1.1:.65)*weight*(1+(ink-1)*.35);
+      ctx.strokeStyle=edge.color;ctx.globalAlpha=Math.min(1,(hot?.85:neighbor?.57:focused?rest*.23:rest)*ink)*(1-awayEdge);ctx.lineWidth=(hot?1.55:neighbor?1.1:.65)*weight*(1+(ink-1)*.35);
       const dash=edge.dash??(edge.kind==='questions'||edge.kind==='contrasts'?'dashed':'solid');let longest=null;
       for(let i=1;i<route.length;i++){
         let a=route[i-1],b=route[i],whole=true;if(measured){const cut=clipSegment(a,b);if(!cut)continue;[a,b,whole]=cut;}
@@ -797,16 +806,17 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(n.el.dataset.major!==String(!!big)){n.el.dataset.major=String(!!big);measureLabels=true;}
       if(measured&&!inView(box(p.x-5,p.y-5,10,10))){n.el.hidden=true;return;}
       // On a light page a star's glow turns to a shadow, so there it keeps only a trace of it and its ink stays clear.
-      const starAlpha=(dim?.28:hot?1:.9)*fade,glow=(hot?125:big?86:46)*Math.max(.65,Math.min(1.4,p.s));
+      const away=!kept.has(n.id)&&!hot?focusMix:0,starAlpha=(dim?.28:hot?1:.9)*fade*(1-.86*away),glow=(hot?125:big?86:46)*Math.max(.65,Math.min(1.4,p.s));
       ctx.globalAlpha=starAlpha*(ink>1?(hot?.55:.3):1);ctx.drawImage(sprite(color),p.x-glow/2,p.y-glow/2,glow,glow);ctx.globalAlpha=starAlpha;
       // A source is a disc; an authored proposal a ring; a personal record a broken ring.
       if(n.form==='source'){ctx.fillStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,radius,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff9ea';ctx.fillRect(p.x-1,p.y-1,2,2);}
       else ring(p.x,p.y,radius+.9,color,n.form==='personal',hot);
-      const ray=hot?17:big?10:5;ctx.globalAlpha=dim?.12:hot?.9:.38;ctx.strokeStyle=color;ctx.lineWidth=.65;ctx.beginPath();ctx.moveTo(p.x-ray,p.y);ctx.lineTo(p.x+ray,p.y);ctx.moveTo(p.x,p.y-ray);ctx.lineTo(p.x,p.y+ray);ctx.stroke();
+      const ray=hot?17:big?10:5;ctx.globalAlpha=(dim?.12:hot?.9:.38)*(1-.9*away);ctx.strokeStyle=color;ctx.lineWidth=.65;ctx.beginPath();ctx.moveTo(p.x-ray,p.y);ctx.lineTo(p.x+ray,p.y);ctx.moveTo(p.x,p.y-ray);ctx.lineTo(p.x,p.y+ray);ctx.stroke();
       if(n.id===selectedId||n.id===linkFrom){ctx.globalAlpha=.65;ctx.beginPath();for(const [sx,sy] of [[-1,-1],[-1,1],[1,-1],[1,1]]){ctx.moveTo(p.x+sx*22,p.y+sy*16);ctx.lineTo(p.x+sx*22,p.y+sy*22);ctx.lineTo(p.x+sx*16,p.y+sy*22);}ctx.stroke();}
       n.el.style.transform=`translate3d(${(p.x-22).toFixed(2)}px,${(p.y-22).toFixed(2)}px,0)`;
       // The nearer star lies over the farther, so that the pointer reaches the star it is over, and the chosen one over all.
       const layer=String(hot?3000:100+Math.round(clamp(p.d,0,2.4)*400));if(n.el.dataset.layer!==layer){n.el.dataset.layer=layer;n.el.style.zIndex=layer;}
+      const outside=String(away>.5);if(n.el.dataset.outside!==outside){n.el.dataset.outside=outside;n.el.tabIndex=away>.5?-1:0;}
       n.el.dataset.active=String(n.id===selectedId);n.el.dataset.prominent=String(n.prominent);n.el.dataset.dim=String(dim);n.el.style.opacity=dim?'.35':fade<1?(.62+.38*near01).toFixed(2):'1';n.el.setAttribute('aria-pressed',String(n.id===selectedId));n.el.style.setProperty('--star-color',color);
       n.el.hidden=!inView(box(p.x-5,p.y-5,10,10));
     });
@@ -1000,7 +1010,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     if(!finePointer.matches||e.pointerType==='touch'||drag)return;
     const bounds=root.getBoundingClientRect(),x=e.clientX-bounds.left,y=e.clientY-bounds.top;
     let best=null,reach=14;
-    for(const n of nodes){if(n.el.hidden||!n.screen)continue;const d=Math.hypot(n.screen.x-x,n.screen.y-y);if(d<reach){reach=d;best=n;}}
+    for(const n of nodes){if(n.el.hidden||!n.screen||n.el.dataset.outside==='true')continue;const d=Math.hypot(n.screen.x-x,n.screen.y-y);if(d<reach){reach=d;best=n;}}
     aim(best?.id??null);
   },{passive:true,capture:true});
   root.addEventListener('pointerleave',()=>aim(null));
@@ -1011,7 +1021,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   root.addEventListener('click',e=>{
     const touch=lastTouch;lastTouch=null;const star=e.target?.closest?.('.tree-star');
     if(!touch||!star||e.target!==star||performance.now()-touch.at>900||Math.hypot(e.clientX-touch.cx,e.clientY-touch.cy)>10)return;
-    let best=null,reach=26;for(const n of nodes){if(n.el.hidden||!n.screen)continue;const d=Math.hypot(n.screen.x-touch.x,n.screen.y-touch.y);if(d<reach){reach=d;best=n;}}
+    let best=null,reach=26;for(const n of nodes){if(n.el.hidden||!n.screen||n.el.dataset.outside==='true')continue;const d=Math.hypot(n.screen.x-touch.x,n.screen.y-touch.y);if(d<reach){reach=d;best=n;}}
     if(best&&best.el!==star){e.stopPropagation();e.preventDefault();best.el.click();}
   },{capture:true});
   canvas.addEventListener('pointermove',e=>{
@@ -1021,7 +1031,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   });
   const release=e=>{
     if(!drag||e.pointerId!==drag.id)return;const click=e.type==='pointerup'&&!drag.moved&&!drag.forcePan;drag=null;canvas.classList.remove('dragging');letGo();
-    if(click){const p=pointer(e),id=hitEdge(p.x,p.y);if(id)onEdgeSelect(id);}kick();
+    if(click){const p=pointer(e),id=hitEdge(p.x,p.y);if(id)onEdgeSelect(id);else onBackground?.();}kick();
   };canvas.addEventListener('pointerup',release);canvas.addEventListener('pointercancel',release);canvas.addEventListener('lostpointercapture',release);
   canvas.addEventListener('pointerleave',()=>{if(!drag){if(hoverEdge)onEdgeHover?.(null);hoverEdge=null;canvas.style.cursor='';kick();}});
   const visibility=()=>{last=0;if(document.hidden){cancelAnimationFrame(raf);raf=0}else kick()};document.addEventListener('visibilitychange',visibility);
