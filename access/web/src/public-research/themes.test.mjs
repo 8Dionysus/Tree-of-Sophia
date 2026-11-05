@@ -46,6 +46,9 @@ it('adds one twin per light theme to each rule that paints, scoped to the theme 
     ':root[data-site-theme="noon"] #tree .x',':root[data-site-theme="rubric"] #tree .x',':root[data-site-theme="dawn"] #tree .x',
   ]);
   expect(twins[0].toString()).toBe(':root[data-site-theme="noon"]{--gold:#83601f;--space:4px}');
+  // A rule written for one theme already stays that theme's own.
+  const own=(await postcss([themePostcss()]).process(':root[data-site-theme="dawn"] .w{background:#edf0f4e0}',{from:undefined})).root;
+  expect(own.nodes).toHaveLength(1);
   expect(twins[3].parent.type).toBe('atrule');expect(twins[3].toString()).toBe(':root[data-site-theme="noon"] #tree .x{color:#1f2633;border:0}');
 });
 

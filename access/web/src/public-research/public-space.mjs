@@ -18,6 +18,7 @@ import {citedPlaces} from './research-index.mjs';
 import {readChronology} from '../../../../bonsai/lib/chronology.mjs';
 import {readPlaces} from '../../../../bonsai/lib/places.mjs';
 import {clipLinesRight,planeOfPlaces} from './space-geography.mjs';
+import {TREE_LABEL_FROM,antiquityTree} from './space-tree.mjs';
 import {proximityCriteria,proximityLayout} from './space-proximity.mjs';
 import {datingKind,measureAntiquity,measureZarathustra} from './space-measure.mjs';
 import {depthLayout} from './space-depth.mjs';
@@ -126,6 +127,10 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const placeOf=materialId=>{const situation=situationOf(materialId),own=situation?placesReader?.at(situation):null;return own?{...own,situation}:null;};
   const placeEntryOf=materialId=>{const situation=situationOf(materialId);return situation?placesReader?.entry(situation)??null:null;};
   const starIds=timeline?[...timeline.positions.keys()]:[];
+  // The lens "The tree" lays the whole bonsai out where the stand holds its collection: the texts in the roots, words and
+  // concepts in the trunk, the branches and their questions in the crown. It is a view; the saved graph keeps its own places.
+  const treeLayout=profile==='antiquity'&&bonsai?.collection?antiquityTree({collection:bonsai.collection,chronology:bonsai.chronology,
+    materialOf:legacy=>{const id=collectionByLegacyId.get(legacy)?.materialId;return id&&materials.has(id)?id:null;}}):null;
   // The lens "Space" exists where the bonsai places the material; a star without a sourced place stands apart from the map.
   const geography=bonsai?.places?planeOfPlaces({stars:starIds,placeOf,places:bonsai.places.places}):null;
   // The lens "Proximity" measures from one star by one criterion its bonsai names; its direction groups by branch or circle.
@@ -143,7 +148,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // A lens with no stars of its own in this library is not offered.
   const lenses=[...(Array.isArray(library.space?.lenses)?library.space.lenses:LENSES.filter(item=>lensHasStars(library,item.id))),...[timeLens,spaceLens,proximityLens].filter(Boolean)].map(item=>({...item,positions:lensPositions(profile,item.id)}));
   // A measuring lens lays the stars out itself; the others keep the map's own arrangement.
-  const measuredLens=id=>(id==='time'&&!!timeline)||(id==='space'&&!!geography)||(id==='proximity'&&!!proximityLens);
+  const measuredLens=id=>(id==='tree'&&!!treeLayout)||(id==='time'&&!!timeline)||(id==='space'&&!!geography)||(id==='proximity'&&!!proximityLens);
   const relationKinds=[...new Set([...(Array.isArray(library.space?.relationKinds)?library.space.relationKinds:Object.keys(RELATIONS)),'relates'])].filter(key=>RELATIONS[key]);
   // Relation words, colours and line patterns: the profile's own vocabulary where it has one.
   const styleOf=key=>relationStyle(profile,key,RELATIONS[key]??{});
@@ -602,7 +607,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const coreViewContext=coreContext(core,{materialId:selected?.replace(/^material:/,''),edgeId:selectedEdge,chainId:routes.find(item=>item.id===route?.id)?.coreChainId});
     context.push(...coreViewContext.materialIds);
     if(route?.source==='atlas')for(const step of routes.find(item=>item.id===route.id)?.steps??[])context.push(step.nodeId??step.graphNodeId);
-    if(measuredLens(lens))context.push(...starIds);
+    if(lens==='tree'&&treeLayout)context.push(...treeLayout.positions.keys());else if(measuredLens(lens))context.push(...starIds);
     if(context.length){
       for(const materialId of context){const material=materials.get(materialId),id=graphIdForMaterial(materialId);if(!material||byId.has(id))continue;
         const node={id,materialId,kind:material.kind,title:tr(material.title,locale()),body:tr(material.body,locale()),position:material.position??[0,0,0],sourceIds:[],routeContext:true};base.nodes.push(node);byId.set(id,node);}
@@ -663,6 +668,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(lens==='time'&&timeline)applyTimeline(projected,routePath);
     else if(lens==='space'&&geography)applyPlane(projected);
     else if(lens==='proximity'&&proximityLens)applyProximity(projected);
+    else if(lens==='tree'&&treeLayout)applyTree(projected);
     else applyDepth(projected);
     // A choice turns the space toward itself on the lenses that group; a measure keeps its axes, a route its way and a
     // comparison or a new link its stars where the reader set them.
@@ -857,6 +863,38 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       labels.push({id:'time:trace',variant:'span',strip:timeline.rows.side,span:xs,title:`${t('traceLabel')} ${quote(traceName(traceConcept))} · ${members.size}`,subtitle:'',maxWidth:360,center:[(xs[0]+xs[1])/2,0,0]});
     }
   }
+  // The tree is a view as well: every star of the bonsai stands where the tree grows it.
+  const TREE_LINES={root:{color:'#8ea2ba',alpha:.5,weight:1.7},ground:{color:'#8ea2ba',alpha:.55,weight:1.6},era:{alpha:.8,weight:3},trunk:{color:'#9fb3cc',alpha:.55,weight:2.4},limb:{alpha:.55,weight:7},bough:{alpha:.5,weight:3.4}};
+  const treeBackdrop=treeLayout?treeLayout.lines.map(line=>({...TREE_LINES[line.tone],...(line.color?{color:line.color}:{}),points:line.points})):[];
+  function applyTree(projected){
+    const placed=new Map();
+    for(const node of projected.nodes){const at=node.materialId?treeLayout.positions.get(node.materialId):null;if(at)placed.set(node.id,at);}
+    // A record of the reader's own stands beside the star it is about, else on the ground at the right of the roots.
+    const beside=new Map();let free=0;
+    for(const node of projected.nodes){
+      if(placed.has(node.id)||!(node.ownerType==='personal-hypothesis'||String(node.id).startsWith('personal:')))continue;
+      const edge=projected.edges.find(item=>(item.from===node.id&&placed.has(item.to))||(item.to===node.id&&placed.has(item.from))),anchor=edge?placed.get(edge.from===node.id?edge.to:edge.from):null;
+      if(anchor){const n=beside.get(anchor)??0;beside.set(anchor,n+1);placed.set(node.id,[anchor[0]+22+n*14,anchor[1]-22-n*12,0]);}
+      else placed.set(node.id,[treeLayout.bounds.x[1]-90,-70-34*free++,0]);
+    }
+    projected.nodes=projected.nodes.filter(node=>placed.has(node.id)).map(node=>{
+      const role=treeLayout.roles.get(node.materialId),side=treeLayout.sides.get(node.materialId);
+      return {...node,position:[...placed.get(node.id)],...(side?{labelSide:side}:{}),...(role?{labelFrom:TREE_LABEL_FROM[role]??0,major:['author','concept','branch','era'].includes(role)}:{})};
+    });
+    // Only a branch's own transitions stand at rest; every other link waits until one of its stars is reached.
+    const shown=new Set(projected.nodes.map(node=>node.id)),pairs=new Set();
+    projected.edges=projected.edges.filter(edge=>shown.has(edge.from)&&shown.has(edge.to)).map(edge=>{pairs.add(`${edge.from}|${edge.to}`);pairs.add(`${edge.to}|${edge.from}`);return Number.isFinite(edge.baseAlpha)?edge:{...edge,latent:true};});
+    const all=enabled.size===relationKinds.length;
+    for(const edge of treeLayout.edges){
+      const from=graphIdForMaterial(edge.from),to=graphIdForMaterial(edge.to);
+      if(!shown.has(from)||!shown.has(to)||pairs.has(`${from}|${to}`)||(!all&&!enabled.has(edge.kind)))continue;
+      const style=styleOf(edge.kind),rest=Number.isFinite(edge.rest)?edge.rest:null;
+      projected.edges.push({id:edge.id,from,to,kind:edge.kind,label:tr(edge.label,locale()),color:style.color??RELATIONS[edge.kind]?.color,dash:style.dash,weight:1,via:edge.via,...(rest===null?{latent:true}:{baseAlpha:rest})});
+    }
+    scaleChoice=selected;
+    projected.clusters=treeLayout.names.map(name=>({id:name.id,title:tr(name.title,locale()),subtitle:'',center:name.center,...(name.color?{color:paint(name.color)}:{}),tone:name.kind}));
+    projected.backdrop=treeBackdrop;
+  }
   // Space is a view as well: stars stand at the place of their writing, the saved graph keeps its own positions.
   function applyPlane(projected){
     const place=node=>node.materialId?geography.positions.get(node.materialId):null;
@@ -899,7 +937,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // A measuring lens fills its free area and shows its whole extent; other lenses frame the sky as the constructor does.
   function frameSky(){
     if(!sky)return;
-    if(lens==='time'&&timeline)sky.frame({fill:true,x:timeline.bounds});
+    // The tree frames itself whole; an open branch frames its own moves where they grow on it.
+    if(lens==='tree'&&treeLayout)sky.frame(route?.path?{fill:true,plane:true}:{fill:true,plane:true,x:treeLayout.bounds.x,y:treeLayout.bounds.y});
+    else if(lens==='time'&&timeline)sky.frame({fill:true,x:timeline.bounds});
     // A plane keeps one unit on both axes: the map of places and the rings of proximity are never stretched.
     else if(lens==='space'&&geography)sky.frame({fill:true,plane:true,x:geography.bounds.x,y:geography.bounds.y});
     else if(lens==='proximity'&&proximityLens)sky.frame({fill:true,plane:true,x:[-NEAR_EXTENT,NEAR_EXTENT],y:[-NEAR_EXTENT,NEAR_EXTENT]});
@@ -921,7 +961,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   let sky,scaleChoice;
   const NEAR_EXTENT=530;
   // The layout a measuring lens shows, and the strip its scale keeps above the map.
-  const layoutKind=()=>lens==='time'&&timeline?timeline.kind:lens==='space'&&geography?'plane':lens==='proximity'&&proximityLens?'proximity':null;
+  const layoutKind=()=>lens==='tree'&&treeLayout?'tree':lens==='time'&&timeline?timeline.kind:lens==='space'&&geography?'plane':lens==='proximity'&&proximityLens?'proximity':null;
   const layoutStrip=()=>lens==='time'&&timeline?timeline.strip:lens==='space'&&geography?geography.strip:0;
   let shownView=null;
   function refreshSky(){

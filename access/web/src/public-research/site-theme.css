@@ -10,3 +10,10 @@
 :root:is([data-site-theme="noon"],[data-site-theme="rubric"],[data-site-theme="dawn"]) #research-bar .pr-wordmark::before{filter:invert(1) hue-rotate(180deg) brightness(.6)}
 /* "Утренняя заря" is the longest name of a theme; its whole name shows. */
 #research-bar .ps-theme-select{max-width:156px}
+/* The tree's own names stand on the page without the night's dark halo. */
+:root:is([data-site-theme="noon"],[data-site-theme="rubric"],[data-site-theme="dawn"]) #tree .tree-cluster[data-tone]{text-shadow:none}
+/* A group's name clears the stars behind it with a glow of the page itself: the night's dark veil on the night, the
+   page's own ground on a light page. */
+:root[data-site-theme="noon"] #tree .tree-cluster.tree-cluster:not([data-variant])::before{background:radial-gradient(closest-side,#f4efe4e0,#f4efe400)}
+:root[data-site-theme="rubric"] #tree .tree-cluster.tree-cluster:not([data-variant])::before{background:radial-gradient(closest-side,#f5f2ebe0,#f5f2eb00)}
+:root[data-site-theme="dawn"] #tree .tree-cluster.tree-cluster:not([data-variant])::before{background:radial-gradient(closest-side,#edf0f4e0,#edf0f400)}
