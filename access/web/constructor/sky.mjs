@@ -488,7 +488,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
         c.el.style.setProperty('--band-left',band?(band[0]-left).toFixed(1)+'px':'0px');c.el.style.setProperty('--band-width',band?(band[1]-band[0]).toFixed(1)+'px':'0px');
         if(band)c.el.dataset.band='true';else delete c.el.dataset.band;
       }
-      const fits=c.variant==='lane'||c.variant==='ytick'||c.variant==='edge'?area.right-area.left>=24&&area.top>=vt-2&&area.bottom<=vb+2:text.left>=vl-12&&text.right<=vr+12;
+      // A name at the edge of the view needs a view wide enough to leave the stars their room beside it.
+      const fits=c.variant==='lane'||c.variant==='ytick'||c.variant==='edge'?area.right-area.left>=24&&area.top>=vt-2&&area.bottom<=vb+2&&(c.variant!=='edge'||vr-vl>=600):text.left>=vl-12&&text.right<=vr+12;
       // A scale never writes over the page's own panels, even when the map is squeezed under a sheet.
       const shown=fits&&!scaleLabels.some(o=>overlaps(area,o,2))&&!uiObstacles.some(o=>overlaps(area,o,0));
       c.el.hidden=!shown;
