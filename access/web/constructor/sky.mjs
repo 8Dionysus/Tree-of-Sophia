@@ -575,7 +575,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     }
     // An aspect's names take their own rows first; a name whose row is taken, and every other kept name, looks along its link after.
     const deferred=new Set();
-    const placeKept=(e,rowOnly)=>{
+    const placeKept=(e,rowOnly,roomOnly=false)=>{
       const hit=edgeHits.find(item=>item.id===e.id);if(!hit)return;
       // The part of the link inside the free area carries its whole name, however short the link is.
       const cut=clipSegment(hit.a,hit.b);if(!cut)return;
@@ -603,10 +603,21 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       let spot=placeAlways([...pinned(e.labelWidth,e.labelHeight),...along(e.labelWidth,e.labelHeight)],occupied,nodeObstacles,null,guarded),compact=false;
       // With no free place for either, the smaller kind-only label covers the least.
       if(spot&&!spot.clear&&e.tag&&e.compactWidth){const brief=placeAlways([...pinned(e.compactWidth,e.compactHeight),...along(e.compactWidth,e.compactHeight)],occupied,nodeObstacles,null,guarded);if(brief){spot=brief;compact=true;}}
-      if(spot)showEdge(e,spot.area,compact,hot);
+      if(!spot||(roomOnly&&!spot.clear))return false;
+      showEdge(e,spot.area,compact,hot);return true;
     };
     for(const e of edges)if(keptEdges.has(e.id)&&!e.muted&&e.labelAt)placeKept(e,true);
-    for(const e of edges)if(keptEdges.has(e.id)&&!e.muted&&(!e.labelAt||deferred.has(e.id)))placeKept(e,false);
+    // Round the chosen star each name its links carry stands once, the first four of them where they cover least; every
+    // further name stands only where it has room of its own, and no more than ten stand in all. The panel lists every
+    // link; a pointed link always names itself.
+    const keptNames=new Set();let keptShown=0,keptForced=0;
+    for(const e of edges){
+      if(!keptEdges.has(e.id)||e.muted||(e.labelAt&&!deferred.has(e.id)))continue;
+      const hot=e.id===selectedEdgeId||e.id===hoverEdge,name=`${e.from===selectedId?e.from:e.to===selectedId?e.to:''}|${e.el.textContent}`,again=keptNames.has(name);
+      if(!hot&&keptShown>=10)continue;
+      const forced=!again&&keptForced<4;
+      if(placeKept(e,false,!forced&&!hot)){keptNames.add(name);keptShown++;if(forced)keptForced++;}
+    }
     for(const n of ordered){
       if(kept.has(n.id)&&!n.el.hidden)continue;
       const hot=n.id===selectedId||n.id===hover;
@@ -787,6 +798,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const ray=hot?17:big?10:5;ctx.globalAlpha=dim?.12:hot?.9:.38;ctx.strokeStyle=color;ctx.lineWidth=.65;ctx.beginPath();ctx.moveTo(p.x-ray,p.y);ctx.lineTo(p.x+ray,p.y);ctx.moveTo(p.x,p.y-ray);ctx.lineTo(p.x,p.y+ray);ctx.stroke();
       if(n.id===selectedId||n.id===linkFrom){ctx.globalAlpha=.65;ctx.beginPath();for(const [sx,sy] of [[-1,-1],[-1,1],[1,-1],[1,1]]){ctx.moveTo(p.x+sx*22,p.y+sy*16);ctx.lineTo(p.x+sx*22,p.y+sy*22);ctx.lineTo(p.x+sx*16,p.y+sy*22);}ctx.stroke();}
       n.el.style.transform=`translate3d(${(p.x-22).toFixed(2)}px,${(p.y-22).toFixed(2)}px,0)`;
+      // The nearer star lies over the farther, so that the pointer reaches the star it is over, and the chosen one over all.
+      const layer=String(hot?3000:100+Math.round(clamp(p.d,0,2.4)*400));if(n.el.dataset.layer!==layer){n.el.dataset.layer=layer;n.el.style.zIndex=layer;}
       n.el.dataset.active=String(n.id===selectedId);n.el.dataset.prominent=String(n.prominent);n.el.dataset.dim=String(dim);n.el.style.opacity=dim?'.35':fade<1?(.62+.38*near01).toFixed(2):'1';n.el.setAttribute('aria-pressed',String(n.id===selectedId));n.el.style.setProperty('--star-color',color);
       n.el.hidden=!inView(box(p.x-5,p.y-5,10,10));
     });
@@ -963,6 +976,18 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     drag={id:e.pointerId,x:e.clientX,y:e.clientY,yaw:tyaw,pitch:tpitch,pan:{...tpan},shift:e.shiftKey,forcePan:panButton,moved:false};canvas.setPointerCapture(e.pointerId);canvas.classList.add('dragging');
   });
   if(secondaryPan)canvas.addEventListener('contextmenu',e=>e.preventDefault());
+  // With a fine pointer the star whose centre lies nearest the pointer is the one it reaches: among close stars, and
+  // under another star's name, the pointer takes the star it is over.
+  const finePointer=matchMedia('(pointer: fine)');let aimed=null;
+  const aim=id=>{if(id===aimed)return;const before=nodes.find(n=>n.id===aimed);if(before)delete before.el.dataset.aim;aimed=id;const next=id?nodes.find(n=>n.id===id):null;if(next)next.el.dataset.aim='true';root.dataset.aiming=String(!!next);};
+  root.addEventListener('pointermove',e=>{
+    if(!finePointer.matches||e.pointerType==='touch'||drag)return;
+    const bounds=root.getBoundingClientRect(),x=e.clientX-bounds.left,y=e.clientY-bounds.top;
+    let best=null,reach=14;
+    for(const n of nodes){if(n.el.hidden||!n.screen)continue;const d=Math.hypot(n.screen.x-x,n.screen.y-y);if(d<reach){reach=d;best=n;}}
+    aim(best?.id??null);
+  },{passive:true,capture:true});
+  root.addEventListener('pointerleave',()=>aim(null));
   canvas.addEventListener('pointermove',e=>{
     if(pinching(e))return;
     if(!drag){const p=pointer(e),id=hitEdge(p.x,p.y);if(hoverEdge!==id){hoverEdge=id;canvas.style.cursor=id?'pointer':'';onEdgeHover?.(id);kick();}return;}
