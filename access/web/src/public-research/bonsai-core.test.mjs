@@ -15,6 +15,15 @@ describe('the philosophical core of the Zarathustra bonsai',()=>{
     expect(coreIssues(fresh(),chapters,registry)).toEqual([]);
   });
 
+  it('reads every link and chain step as a sentence of its ends: the verb is a predicate with no subject of its own',()=>{
+    const core=fresh(),verbs=[...core.links.map(link=>[link.id,link.verb]),...core.chains.flatMap(chain=>(chain.steps??[]).map((step,index)=>[`${chain.id}:${index}`,step.verb]))];
+    // A verb that opens with a figure, a crowd or a pronoun names its own subject, and the sentence “from — verb — to” loses its ends.
+    const subject=/^(звери|карлик|толпа|народ|заратустра|тень|один из|его |её |их |им |чью )/i;
+    expect(verbs.filter(([,verb])=>subject.test(verb?.ru??'')).map(([id,verb])=>`${id}: ${verb.ru}`)).toEqual([]);
+    // A sentence with a participant the place names keeps it: the child shows the distorted teaching to Zarathustra.
+    expect(core.links.find(link=>link.id==='child:link:06:child-mirror').verb.ru).toContain('Заратустре');
+  });
+
   it('keeps every German unit in one primary voice and every formula in the voice that says it',()=>{
     const core=fresh();
     expect(Object.keys(core.voices).sort()).toEqual(Object.keys(chapters).sort());

@@ -87,6 +87,10 @@ it('lays every part of a subject open at its step on the workbench and keeps the
   expect(all(root).some(item=>item.className==='ps-core-tabs')).toBe(false);
   expect(all(root).find(item=>item.className==='ps-kernel-actions').children.map(item=>item.textContent)).toEqual(['Читать','Сопоставить','Связи']);
   expect(all(root).some(item=>item.className==='ps-kernel-personal')).toBe(true);
+  // A link that comes to the subject reads with its own subject first: the gateway, then what it does here.
+  const incoming=all(root).find(item=>typeof item.className==='string'&&item.className.includes('is-incoming'));
+  expect(incoming.children.map(item=>item.className)).toEqual(['ps-link-row-end','ps-link-row-verb']);
+  expect(incoming.children.map(item=>item.textContent)).toEqual(['Ворота','открывает']);
   // At the end of a link the subject brings its thesis and its formula in the book's words.
   const end=new Element('div');expect(view.brief(end,'recurrence')).toBe(true);
   expect(text(end)).toContain('Всё возвращается.');expect(text(end)).toContain('Источник III.13');
