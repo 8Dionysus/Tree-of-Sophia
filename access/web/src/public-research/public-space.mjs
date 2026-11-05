@@ -973,6 +973,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const layoutStrip=()=>lens==='time'&&timeline?timeline.strip:lens==='space'&&geography?geography.strip:0;
   let shownView=null;
   function refreshSky(){
+    sky?.setCloseIn?.(treeView());
     if(!sky)return;shownView=visibleState();sky.update(shownView,Object.fromEntries(graphState().nodes.map(node=>[node.id,label(matForNode(node)??node)])));rising.clear();sky.select(selected);sky.selectEdge(selectedEdge);
     // An aspect is framed whole once, when its choice is made: the chosen star or link and the rows beside it.
     const key=aspect?`${aspect.kind}:${aspect.focus.join('|')}`:'';
@@ -1367,7 +1368,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function selectActual(id,{reveal=false}={}){const changed=id!==selected;measureOpen=false;selected=id;selectedEdge=null;browsingRoutes=false;personal.hidden=true;columnOpen=true;
     // In a lens that groups, the map is drawn again so that the chosen star's whole neighbourhood is on it.
     if(changed&&!measuredLens(lens)&&(core||lens!=='tree'))refreshSky();
-    sky?.select(id);sky?.selectEdge(null);renderColumn();
+    sky?.setCloseIn?.(treeView());sky?.select(id);sky?.selectEdge(null);renderColumn();
     // On the tree a chosen star turns to face the reader, with what grew from it and what it grew from.
     if(changed&&treeView()){const at=shownView?.nodes?.find(node=>node.id===id)?.position;if(at&&Math.hypot(at[0],at[2])>1)sky?.turnTo?.(Math.atan2(at[0],at[2]));}
     // A newly chosen star's card opens at its beginning, not where the previous card was scrolled to.
@@ -1376,7 +1377,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // A chosen link brings its stars into the view and turns the space toward them.
   function selectEdge(id){measureOpen=false;selectedEdge=id;selected=null;browsingRoutes=false;personal.hidden=true;columnOpen=true;sky?.select(null);sky?.selectEdge(id);renderColumn();renderOrientation();refreshSky();}
   function openPanel(){columnOpen=true;renderColumn();sky?.refresh();}
-  function closePanel(){selected=route?routeStepNode:null;selectedEdge=null;sky?.select(selected);sky?.selectEdge(null);if(!route)columnOpen=false;reflect();sky?.refresh();}
+  function closePanel(){const leaving=!!selected&&!route;selected=route?routeStepNode:null;selectedEdge=null;sky?.select(selected);sky?.selectEdge(null);
+    // Leaving a chosen star on the tree, the view steps back to the whole tree, turned as the reader left it.
+    if(leaving&&treeView())sky?.frame?.();if(!route)columnOpen=false;reflect();sky?.refresh();}
   function togglePersonal(){
     if(!personal.hidden){closePersonal();return;}
     personal.hidden=false;reading.hidden=true;columnTab.hidden=true;shell.dataset.reading='true';shell.dataset.column='personal';shell.dataset.columnOpen='true';
@@ -1755,6 +1758,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const key=event.key.toLowerCase();if((event.ctrlKey||event.metaKey)&&key==='z'){event.preventDefault();event.shiftKey?model.redo():model.undo();checkGraphPersistence();}
     else if(!event.ctrlKey&&!event.metaKey&&!event.altKey){
       if(key==='o')frameSky();
+      // Escape lets a chosen star go; on the tree the view steps back to the whole of it.
+      if(key==='escape'&&(selected||selectedEdge)&&!route){event.preventDefault();closePanel();}
       if(key==='/'){event.preventDefault();search.focus();}
       if(key==='+'||key==='='){event.preventDefault();sky?.zoomBy(1.25);}
       if(key==='-'||key==='_'){event.preventDefault();sky?.zoomBy(1/1.25);}
@@ -1831,6 +1836,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const lines=[],situationId=material?.id&&chronologyReader?situationOf(material.id):null,words=situationId?datingWords(situationId):null;
     if(words)lines.push(`◷ ${words.when}${words.context?` · ${words.context}`:''}`);
     if(material?.id&&geography&&starSet.has(material.id)){const entry=placeEntryOf(material.id),place=entry?.place?placesReader.place(entry.place):null;if(place)lines.push(`⌖ ${tr(place.label,locale())}`);}
+    // On the tree a star's hint also says where it stands in it.
+    const note=treeView()&&material?.id?treeLayout.notes?.get(material.id):null;if(note)lines.push(`✧ ${tr(note,locale())}`);
     return {eyebrow,title:keepDots(label(material??node)),lines};
   }
   function edgeHint(id){
@@ -1856,15 +1863,17 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   shell.addEventListener('pointerdown',notePointer,{capture:true});
   const storageOf=()=>{try{return window.localStorage;}catch{return null;}};
   controls=mountControls(shell,{storage:storageOf(),anchor:mapTools,locale:()=>locale(),device:()=>lastPointer??(window.matchMedia?.('(hover: none) and (pointer: coarse)').matches?'touch':'mouse')});
-  // The card stands in the lower left corner of the free map, above the legend and the tools, no wider or taller than the map.
+  // On a wide desktop the card lies along the foot of the free map, over the legend until it is put away, so that the
+  // space itself stays whole in view; elsewhere it stands in the lower left corner of the free map, above the legend and
+  // the tools. It is never wider or taller than the map.
   function placeControls(){
     const panel=controls?.element;if(!panel||panel.hidden)return;
-    const wide=desktop(),area=freeArea({width:shell.clientWidth,height:shell.clientHeight})??{left:8,right:shell.clientWidth-8,top:8,bottom:shell.clientHeight-8};
-    const width=wide?Math.min(440,Math.max(260,area.right-area.left)):shell.clientWidth-16,room=Math.max(140,area.bottom-area.top);
+    const wide=desktop(),foot=wide&&shell.clientWidth>=1100,area=freeArea({width:shell.clientWidth,height:shell.clientHeight})??{left:8,right:shell.clientWidth-8,top:8,bottom:shell.clientHeight-8};
+    const width=foot?Math.max(260,area.right-area.left):wide?Math.min(440,Math.max(260,area.right-area.left)):shell.clientWidth-16,room=Math.max(140,area.bottom-area.top);
     panel.style.width=`${Math.round(width)}px`;panel.style.maxHeight=`${Math.round(room)}px`;
     const height=Math.min(panel.offsetHeight,room);
     panel.style.bottom='auto';panel.style.left=`${Math.round(wide?Math.max(8,area.left):8)}px`;
-    panel.style.top=`${Math.round(Math.max(8,Math.min(shell.clientHeight-height-8,area.bottom-height)))}px`;
+    panel.style.top=`${Math.round(foot?shell.clientHeight-height-10:Math.max(8,Math.min(shell.clientHeight-height-8,area.bottom-height)))}px`;
   }
   function openControlsOnce(){
     clearTimeout(controlsTimer);controlsTimer=0;
