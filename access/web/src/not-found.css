@@ -6,7 +6,7 @@ body{display:grid;min-height:100dvh;place-items:center;font:16px/1.5 system-ui,-
 .nf-mark{display:inline-flex;align-items:center;gap:12px;color:#dfe3e7;text-decoration:none;font:500 12px/1.2 system-ui,sans-serif;letter-spacing:.18em;text-transform:uppercase}
 .nf-mark::before{content:'';flex:none;width:36px;height:36px;background:url(/tree-mark.svg) center/contain no-repeat;background-image:image-set(url(/tree-mark.svg) 1x,url(/tree-mark-2x.svg) 2x)}
 .nf-mark:hover{color:#f1e3c3}
-:root:is([data-site-theme="noon"],[data-site-theme="rubric"],[data-site-theme="dawn"]) .nf-mark::before{filter:invert(1) hue-rotate(180deg) brightness(.6)}
+:root[data-site-theme="noon"] .nf-mark::before{filter:invert(1) hue-rotate(180deg) brightness(.6)}
 .nf-say{margin-top:44px}
 .nf-say+.nf-say{margin-top:36px;padding-top:32px;border-top:1px solid #8296b22b}
 .nf h1{margin:0 0 10px;color:#f3e6c6;font:400 clamp(26px,5vw,34px)/1.2 Georgia,'Times New Roman',serif}

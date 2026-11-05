@@ -98,6 +98,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   const underStars=new Set(['rule','thread','hrule','ring']),clipped=new Set(['hrule','ring']);
   const relationColors={contains:'#829dbb',supports:'#b7c991',interprets:'#bea7e1',questions:'#e5a18f',contrasts:'#e09591',echoes:'#8ecbc4',develops:'#e0c48c',compares:'#96b7e4',translates:'#8ebdc9',relates:'#a5b7cf'};
   const hex=(value,fallback)=>/^#[a-f\d]{6}$/i.test(value??'')?value:/^#[a-f\d]{3}$/i.test(value??'')?'#'+[...value.slice(1)].map(c=>c+c).join(''):fallback;
+  // How strongly links and lines are inked: more on a light page, where a thin dark line reads fainter than its twin on the night.
+  let ink=1;
   let nodes=[],edges=[],clusters=[],backdrop=[],planes=[],threads=[],lit=null,litGlow=0,selectedId=null,selectedEdgeId=null,hoverEdge=null,linkFrom=null,center=[0,0,0],targetCenter=[0,0,0],fitScale=1,targetFit=1,edgeHits=[],measureLabels=true,aspectIds=null;
   let viewport={left:0,right:1,top:0,bottom:1},targetViewport={...viewport},uiObstacles=[];
   const colorOf=n=>hex(n.color,({work:'#a8cde5',part:'#88aaca',chapter:'#b2aedc',fragment:'#dac697',dossier:'#c7a5e6',concept:'#f4cf87',interpretation:'#ba9be5',question:'#83cec7',note:'#b9c7d5',excerpt:'#dfc18e',figure:'#b9c9e5',symbol:'#91ccc5',tradition:'#b5abd3'}[n.kind]||'#bdcfdf'));
@@ -416,8 +418,22 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     for(const rect of within){const covered=occupied.reduce((sum,o)=>sum+overlapArea(rect,o),0)+uiObstacles.reduce((sum,o)=>sum+overlapArea(rect,o)*20,0)+guarded.reduce((sum,o)=>sum+overlapArea(rect,o)*20,0)+stars.reduce((sum,o)=>sum+(o.id===ownId?0:overlapArea(rect,o)*.3),0);if(covered<cost){best=rect;cost=covered;}}
     return best?{area:best,clear:false}:null;
   }
-  function labelsForScene(near,focusEdges,kept=new Set(),keptEdges=new Set()){
-    measure();const occupied=[...uiObstacles];
+  // A name comes and goes softly. A new one stands once it has had its room for a moment, so that a turn or a zoom
+  // passing over it does not make it flicker; a name that leaves fades where it stood, and one that moves to another of
+  // its places slides there. A name already standing keeps its place while that place stays clear.
+  const APPEAR_MS=110,GLIDE='opacity .25s,color .25s,left .24s cubic-bezier(.2,.7,.2,1),top .24s cubic-bezier(.2,.7,.2,1)';
+  let labelsSettling=false;
+  function presence(item,want,now,dt,instant){
+    if(want){if(item.wantSince==null)item.wantSince=now;if(instant||item.fade==null||item.present||now-item.wantSince>=APPEAR_MS)item.present=true;}
+    else{item.wantSince=null;item.present=false;}
+    const target=item.present?1:0;
+    item.fade=item.fade==null||instant?target:item.fade+(target-item.fade)*(1-Math.exp(-dt*14));
+    if(Math.abs(item.fade-target)<.02)item.fade=target;
+    if(item.fade!==target||(want&&!item.present))labelsSettling=true;
+    return item.fade;
+  }
+  function labelsForScene(near,focusEdges,kept=new Set(),keptEdges=new Set(),now=performance.now(),dt=1/36,instant=false){
+    measure();const occupied=[...uiObstacles];labelsSettling=false;
     // Cluster names orient the atlas before the smaller labels compete for room.
     // A scale stays readable at any zoom: its eras, ticks and the chosen move's span keep to rows of a strip
     // above the map at the x of their value, its rows' names to a strip at its left, and its rules and rows'
@@ -491,24 +507,32 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       // A name at the edge of the view needs a view wide enough to leave the stars their room beside it.
       const fits=c.variant==='lane'||c.variant==='ytick'||c.variant==='edge'?area.right-area.left>=24&&area.top>=vt-2&&area.bottom<=vb+2&&(c.variant!=='edge'||vr-vl>=600):text.left>=vl-12&&text.right<=vr+12;
       // A scale never writes over the page's own panels, even when the map is squeezed under a sheet.
-      const shown=fits&&!scaleLabels.some(o=>overlaps(area,o,2))&&!uiObstacles.some(o=>overlaps(area,o,0));
-      c.el.hidden=!shown;
-      if(shown){c.el.style.width=(area.right-area.left).toFixed(1)+'px';c.el.style.transform=`translate3d(${area.left.toFixed(2)}px,${area.top.toFixed(2)}px,0)`;scaleLabels.push(area);occupied.push(area);}
+      const shown=fits&&!scaleLabels.some(o=>overlaps(area,o,2))&&!uiObstacles.some(o=>overlaps(area,o,0)),fade=presence(c,shown,now,dt,instant);
+      c.el.hidden=!fade;
+      if(fade){c.el.style.width=(area.right-area.left).toFixed(1)+'px';c.el.style.transform=`translate3d(${area.left.toFixed(2)}px,${area.top.toFixed(2)}px,0)`;c.el.style.filter=fade<1?`opacity(${fade.toFixed(3)})`:'';}
+      if(shown){scaleLabels.push(area);occupied.push(area);}
     }
     // A star the view has stepped back lies under the names in front of it.
     const nodeObstacles=nodes.filter(n=>!n.el.hidden&&!n.dimmed).map(n=>({id:n.id,...box(n.screen.x-9,n.screen.y-9,18,18)}));
     for(const c of clusters){
       if(c.variant)continue;
       const width=c.labelWidth??110,height=c.labelHeight??(c.subtitle.textContent?40:25);
-      const candidates=[-101,-76,106,-136,140].map(offset=>{const p=project([c.p[0],c.p[1]+offset,c.p[2]]),top=offset===-101?Math.max(targetViewport.top+4,p.y-20):p.y-20;return box(p.x-width/2,top,width,height);}).filter(inView);
-      // A group's name takes a place clear of the stars where it can, and never one over another name.
+      const places=[-101,-76,106,-136,140].map((offset,slot)=>{const p=project([c.p[0],c.p[1]+offset,c.p[2]]),top=offset===-101?Math.max(targetViewport.top+4,p.y-20):p.y-20;return Object.assign(box(p.x-width/2,top,width,height),{slot});});
+      const sticky=c.present?c.slot:null,candidates=places.filter(inView).sort((a,b)=>(b.slot===sticky)-(a.slot===sticky));
+      // A group's name keeps the place it stands in while that stays clear; else it takes the first place clear of the
+      // stars, and never one over another name.
       const clear=candidates.find(candidate=>!occupied.some(o=>overlaps(candidate,o))&&!nodeObstacles.some(o=>overlaps(candidate,o,2)));
       const area=clear??candidates.find(candidate=>!occupied.some(o=>overlaps(candidate,o)))??null;
       if(area&&!clear)c.el.dataset.crowded='true';else delete c.el.dataset.crowded;
       // A group that recedes is quieter further back in a space read in depth, as its stars are.
       c.el.style.opacity=depthCue&&!measured&&c.recede?(.38+.62*clamp((project(c.p).d-.86)/.3,0,1)).toFixed(2):'';
-      c.el.hidden=!area;
-      if(area){c.el.style.width=width+'px';c.el.style.transform=`translate3d(${area.left.toFixed(2)}px,${area.top.toFixed(2)}px,0)`;occupied.push(area);}
+      const fade=presence(c,!!area,now,dt,instant);
+      if(area&&c.at&&c.slot!==area.slot&&fade>0&&!instant)c.slide={x:c.at.left+(c.slide?.x??0)-area.left,y:c.at.top+(c.slide?.y??0)-area.top};
+      if(area){c.slot=area.slot;occupied.push(area);}
+      const at=area??places[c.slot]??null;c.at=at;
+      if(c.slide){const k=Math.exp(-dt*12);c.slide.x*=k;c.slide.y*=k;if(Math.abs(c.slide.x)+Math.abs(c.slide.y)<.6)c.slide=null;else labelsSettling=true;}
+      c.el.hidden=!fade||!at;
+      if(at&&fade){c.el.style.width=width+'px';c.el.style.transform=`translate3d(${(at.left+(c.slide?.x??0)).toFixed(2)}px,${(at.top+(c.slide?.y??0)).toFixed(2)}px,0)`;c.el.style.filter=fade<1?`opacity(${fade.toFixed(3)})`:'';}
     }
     // The chosen star, the stars it links to and the links between them are always named. They take their places
     // first, their links' names next, and only then do the other names look for the room that is left.
@@ -518,6 +542,9 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       // A whole name wraps over up to three lines; another keeps its own clamp.
       if(full!==n.fullShown){n.fullShown=full;const target=n.subtitle&&n.titleEl?n.titleEl:n.label;Object.assign(target.style,full?{whiteSpace:'normal',display:'-webkit-box',webkitBoxOrient:'vertical',webkitLineClamp:'3',overflow:'hidden'}:{...n.clampStyle,overflow:'',...(n.subtitle&&n.titleEl?{display:n.labelLines>1?'-webkit-box':'block',overflow:'hidden'}:{})});}
       n.labelBox=visible?chosen:null;n.el.dataset.quiet=String(!visible);n.label.style.opacity=visible?'1':'0';n.label.style.pointerEvents=visible?'auto':'none';
+      // A name already standing slides to its new side; a name coming into view takes its place before it shows.
+      if(chosen){const glide=!!n.labelShown&&visible&&!instant;if(glide!==n.labelGlide){n.labelGlide=glide;n.label.style.transition=glide?GLIDE:'';}}
+      n.labelShown=visible;n.labelSeen=true;if(visible){n.labelSideNow=chosen.side??null;n.wantSince=null;}
       if(chosen){const fit=chosen.right-chosen.left;Object.assign(n.label.style,{left:(chosen.left-x+22)+'px',top:(chosen.top-y+22)+'px',bottom:'auto',transform:'none',width:fit+'px',maxWidth:fit+'px',minWidth:'0'});if(visible)occupied.push(chosen);}
     };
     // Below, above, right and left of the star, and further out for a name that must be shown.
@@ -526,6 +553,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const {x,y}=n.screen,narrow=Math.max(90,width-28);
       const below=box(x-width/2,y+gap,width,height),above=box(x-width/2,y-height-gap,width,height),right=box(x+gap,y-height/2,width,height),left=box(x-width-gap,y-height/2,width,height);
       const narrowRight=narrow<width?[box(x+gap,y-height/2,narrow,height)]:[],narrowLeft=narrow<width?[box(x-narrow-gap,y-height/2,narrow,height)]:[];
+      below.side='below';above.side='above';right.side='right';left.side='left';for(const r of narrowRight)r.side='right';for(const r of narrowLeft)r.side='left';
       if(n.labelSide==='right')return [right,...narrowRight,below,above,left];
       if(n.labelSide==='left')return [left,...narrowLeft,below,above,right];
       if(n.labelSide==='above')return [above,below,right,left,...narrowRight,...narrowLeft];
@@ -533,7 +561,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     };
     const visibleEdges=new Set();
     const showEdge=(e,chosen,compact,hot)=>{visibleEdges.add(e.id);e.el.dataset.active=String(hot);e.el.dataset.kind=e.kind;e.el.dataset.compact=String(compact);e.el.style.setProperty('--edge-color',e.color);e.el.style.color=e.color;e.el.style.width=(compact?e.compactWidth:e.labelWidth)+'px';e.el.style.transform=`translate3d(${chosen.left.toFixed(2)}px,${chosen.top.toFixed(2)}px,0)`;if(nativeTitles)e.el.title=e.el.getAttribute('aria-label');occupied.push(chosen);};
-    const ordered=[...nodes].sort((a,b)=>priority(b)-priority(a));
+    // Within its rank a name already standing goes first, so that it keeps its room.
+    const rank=n=>priority(n)+(n.labelShown?4:0),ordered=[...nodes].sort((a,b)=>rank(b)-rank(a));
     for(const n of ordered){
       if(!kept.has(n.id)||n.el.hidden)continue;
       // A kept name keeps its source line where there is free room for it, else its name alone where that is free;
@@ -584,16 +613,26 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       // A star the view has stepped back keeps its light and gives its name's room to the stars in front.
       if((n.dimmed||n.quiet)&&!hot){showLabel(n,null,false);continue;}
       // In a space read in depth the stars far behind give their names' room to the ones in front.
-      if(depthCue&&!measured&&n.labelFrom&&n.screen.d<.9&&!hot&&!near.has(n.id)){showLabel(n,null,false);continue;}
+      // A name already standing waits a little longer before it goes than a new one waits to come.
+      const was=!!n.labelShown;
+      if(depthCue&&!measured&&n.labelFrom&&n.screen.d<(was?.87:.9)&&!hot&&!near.has(n.id)){showLabel(n,null,false);continue;}
       // A name that waits for a nearer view stands once the view comes that near, or while its star is reached.
-      if(n.labelFrom&&n.screen.s<n.labelFrom&&!hot&&!near.has(n.id)){showLabel(n,null,false);continue;}
+      if(n.labelFrom&&n.screen.s<n.labelFrom*(was?.9:1)&&!hot&&!near.has(n.id)){showLabel(n,null,false);continue;}
       const place=height=>{
-        const within=around(n,height).filter(inView),clear=within.find(rect=>!occupied.some(o=>overlaps(rect,o))&&!nodeObstacles.some(o=>o.id!==n.id&&overlaps(rect,o,2)));
+        // A name that stands keeps its side while that side stays nearly clear: a star passing under it, or another
+        // name grazing its edge, does not move it.
+        const within=around(n,height).filter(inView).sort((a,b)=>was?(b.side===n.labelSideNow)-(a.side===n.labelSideNow):0);
+        const own=was?within.find(rect=>rect.side===n.labelSideNow):null,size=rect=>(rect.right-rect.left)*(rect.bottom-rect.top);
+        if(own&&!occupied.some(o=>overlapArea(own,o)>size(own)*.12))return own;
+        const clear=within.find(rect=>!occupied.some(o=>overlaps(rect,o))&&!nodeObstacles.some(o=>o.id!==n.id&&overlaps(rect,o,2)));
         return clear||(hot?within[0]:n.prominent?within.find(rect=>!occupied.some(o=>overlaps(rect,o))):null);
       };
       // Without room for its source line, a star keeps its name rather than losing both.
       let chosen=place(n.labelHeight),short=false;
       if(!chosen&&n.subtitle&&n.titleHeight){chosen=place(n.titleHeight);short=!!chosen;}
+      // A new name stands once it has had its room for a moment; meanwhile that room is kept for it.
+      if(!chosen)n.wantSince=null;
+      else if(!was&&!hot&&!n.prominent&&!near.has(n.id)&&n.labelSeen&&!instant){if(n.wantSince==null)n.wantSince=now;if(now-n.wantSince<APPEAR_MS){occupied.push(chosen);labelsSettling=true;showLabel(n,null,false);continue;}}
       showLabel(n,chosen,short);
     }
     const candidates=edges.filter(e=>!e.muted&&!visibleEdges.has(e.id)&&(e.id===selectedEdgeId||e.id===hoverEdge||((hover||selectedId)&&focusEdges.has(e.id)))).sort((a,b)=>(b.id===hoverEdge?100:b.id===selectedEdgeId?90:b.highlight?70:0)-(a.id===hoverEdge?100:a.id===selectedEdgeId?90:a.highlight?70:0));
@@ -610,7 +649,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(!chosen&&hot&&e.tag&&e.compactWidth){const area=box((a.x+b.x)/2-e.compactWidth/2,(a.y+b.y)/2-e.compactHeight/2,e.compactWidth,e.compactHeight);if(inView(area)&&!uiObstacles.some(o=>overlaps(area,o)))[chosen,compact]=[area,true];}
       if(!chosen)continue;
       // A hovered link's name may cover another name, never a kept one.
-      if(hot)for(const n of nodes)if(n.labelBox&&!kept.has(n.id)&&overlaps(chosen,n.labelBox)){n.labelBox=null;n.el.dataset.quiet='true';n.label.style.opacity='0';n.label.style.pointerEvents='none';}
+      if(hot)for(const n of nodes)if(n.labelBox&&!kept.has(n.id)&&overlaps(chosen,n.labelBox)){n.labelBox=null;n.labelShown=false;n.el.dataset.quiet='true';n.label.style.opacity='0';n.label.style.pointerEvents='none';}
       showEdge(e,chosen,compact,hot);shown++;
     }
     for(const e of edges)e.el.hidden=!visibleEdges.has(e.id);
@@ -690,7 +729,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
         let previous=null,depth=0,count=0;
         for(const [x,y,z=0] of points){const point=project([x,y,z]);depth+=point.d;count++;if(previous){const cut=measured?clipSegment(previous,point):[previous,point];if(cut){ctx.moveTo(cut[0].x,cut[0].y);ctx.lineTo(cut[1].x,cut[1].y);}}previous=point;}
         const back=depthCue&&!measured&&count?.35+.65*clamp((depth/count-.82)/.34,0,1):1;
-        ctx.globalAlpha=(style.alpha??.3)*fade*back;ctx.lineWidth=Number.isFinite(style.weight)?clamp(style.weight*(previous?.s??1),.6,7):.9;ctx.stroke();
+        ctx.globalAlpha=Math.min(1,(style.alpha??.3)*fade*back*ink);ctx.lineWidth=Number.isFinite(style.weight)?clamp(style.weight*(previous?.s??1),.6,7):.9;ctx.stroke();
       }
       ctx.globalAlpha=1;
     }
@@ -703,7 +742,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const route=Array.isArray(edge.via)&&edge.via.length?[from,...edge.via.map(project),to]:[from,to];
       if(edge.muted){ctx.strokeStyle=edge.color;ctx.globalAlpha=.05;ctx.lineWidth=.6;for(let i=1;i<route.length;i++){let a=route[i-1],b=route[i];if(measured){const cut=clipSegment(a,b);if(!cut)continue;[a,b]=cut;}strokeSegment(a,b,edge.dash);}continue;}
       const rest=Number.isFinite(edge.baseAlpha)?edge.baseAlpha:.24,weight=Number.isFinite(edge.weight)?edge.weight:1;
-      ctx.strokeStyle=edge.color;ctx.globalAlpha=hot?.85:neighbor?.57:focused?rest*.23:rest;ctx.lineWidth=(hot?1.55:neighbor?1.1:.65)*weight;
+      ctx.strokeStyle=edge.color;ctx.globalAlpha=Math.min(1,(hot?.85:neighbor?.57:focused?rest*.23:rest)*ink);ctx.lineWidth=(hot?1.55:neighbor?1.1:.65)*weight*(1+(ink-1)*.35);
       const dash=edge.dash??(edge.kind==='questions'||edge.kind==='contrasts'?'dashed':'solid');let longest=null;
       for(let i=1;i<route.length;i++){
         let a=route[i-1],b=route[i],whole=true;if(measured){const cut=clipSegment(a,b);if(!cut)continue;[a,b,whole]=cut;}
@@ -739,8 +778,9 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       // A measured layout draws only the stars inside its free area; every star still keeps its type, so its label is measured right.
       if(n.el.dataset.major!==String(!!big)){n.el.dataset.major=String(!!big);measureLabels=true;}
       if(measured&&!inView(box(p.x-5,p.y-5,10,10))){n.el.hidden=true;return;}
-      ctx.globalAlpha=(dim?.28:hot?1:.9)*fade;const glow=(hot?125:big?86:46)*Math.max(.65,Math.min(1.4,p.s));
-      ctx.drawImage(sprite(color),p.x-glow/2,p.y-glow/2,glow,glow);
+      // On a light page a star's glow turns to a shadow, so there it keeps only a trace of it and its ink stays clear.
+      const starAlpha=(dim?.28:hot?1:.9)*fade,glow=(hot?125:big?86:46)*Math.max(.65,Math.min(1.4,p.s));
+      ctx.globalAlpha=starAlpha*(ink>1?(hot?.55:.3):1);ctx.drawImage(sprite(color),p.x-glow/2,p.y-glow/2,glow,glow);ctx.globalAlpha=starAlpha;
       // A source is a disc; an authored proposal a ring; a personal record a broken ring.
       if(n.form==='source'){ctx.fillStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,radius,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff9ea';ctx.fillRect(p.x-1,p.y-1,2,2);}
       else ring(p.x,p.y,radius+.9,color,n.form==='personal',hot);
@@ -750,7 +790,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       n.el.dataset.active=String(n.id===selectedId);n.el.dataset.prominent=String(n.prominent);n.el.dataset.dim=String(dim);n.el.style.opacity=dim?'.35':fade<1?(.62+.38*near01).toFixed(2):'1';n.el.setAttribute('aria-pressed',String(n.id===selectedId));n.el.style.setProperty('--star-color',color);
       n.el.hidden=!inView(box(p.x-5,p.y-5,10,10));
     });
-    const taken=labelsForScene(near,focusEdges,kept,keptEdges);
+    const taken=labelsForScene(near,focusEdges,kept,keptEdges,now,dt,still||reduced.matches);if(labelsSettling)layoutMoving=true;
     // A plane's name keeps to one of its corners or edges where no other name stands.
     for(const plane of planes){
       if(reveal<.05||!plane.el.textContent||!plane.corners){plane.el.hidden=true;continue;}
@@ -940,6 +980,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   document.fonts?.ready?.then(()=>{if(!disposed){measureLabels=true;kick();}});
   return {
     update:refresh,
+    setInk(value){const next=clamp(Number(value)||1,1,2.5);if(next!==ink){ink=next;kick();}},
     capturePose(){return validateSkyPose({v:1,yaw:tyaw,pitch:tpitch,zoom:tzoom,pan:[tpan.x,tpan.y],center:[...targetCenter],fit:targetFit});},
     restorePose(value){const pose=validateSkyPose(value);yaw=tyaw=pose.yaw;pitch=tpitch=pose.pitch;zoom=tzoom=pose.zoom;
       pan={x:pose.pan[0],y:pose.pan[1]};tpan={...pan};center=[...pose.center];targetCenter=[...pose.center];fitScale=targetFit=pose.fit;

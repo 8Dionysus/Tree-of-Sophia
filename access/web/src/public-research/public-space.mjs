@@ -13,7 +13,7 @@ import {isAuthoredTransition,ladderRung,nodeForm,partName,relationStyle,routeVoi
 import {antiquityTimeline,formatDating,formatYears,stepTimeline,trajectory,zarathustraTimeline} from './space-timeline.mjs';
 import {bonsaiFor,depthOf,lensPositions} from './bonsai.mjs';
 import {createTerms,termNodes} from './term-view.mjs';
-import {THEMES,applyTheme,currentTheme,paint} from './site-theme.mjs';
+import {SYSTEM_NAME,SYSTEM_THEME,THEMES,applyTheme,currentTheme,paint,themeChoice} from './site-theme.mjs';
 import {citedPlaces} from './research-index.mjs';
 import {readChronology} from '../../../../bonsai/lib/chronology.mjs';
 import {readPlaces} from '../../../../bonsai/lib/places.mjs';
@@ -269,15 +269,15 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const select=document.createElement('select');select.className='ps-locale-select';select.setAttribute('aria-label',localeText('Interface language',locale));for(const value of PUBLIC_LOCALES){const option=document.createElement('option');option.value=value;option.lang=value;option.textContent=LOCALE_NAMES[value];select.append(option);}select.value=resolveLocale(locale);select.addEventListener('change',()=>header?.dispatchEvent(new CustomEvent('public-space-locale',{detail:{locale:select.value}})));group.append(select);
     // The page's theme stands beside its language; the reader's choice holds on every page of the site.
     const theme=document.createElement('select');theme.className='ps-locale-select ps-theme-select';
-    theme.setAttribute('aria-label',t('theme'));for(const value of THEMES){const option=document.createElement('option');option.value=value.id;option.textContent=tr(value.name,locale());theme.append(option);}
-    theme.value=currentTheme();theme.addEventListener('change',()=>applyTheme(theme.value));group.append(theme);
+    theme.setAttribute('aria-label',t('theme'));for(const value of [{id:SYSTEM_THEME,name:SYSTEM_NAME},...THEMES]){const option=document.createElement('option');option.value=value.id;option.textContent=tr(value.name,locale());theme.append(option);}
+    theme.value=themeChoice();theme.addEventListener('change',()=>applyTheme(theme.value));group.append(theme);
     return group;
   }
   function setLocaleState(){
     const value=resolveLocale(locale);
     shell.dataset.locale=value;document.documentElement.lang=value;
     for(const select of document.querySelectorAll('.ps-locale-select:not(.ps-theme-select)')){select.value=value;select.setAttribute('aria-label',localeText('Interface language',locale));}
-    for(const select of document.querySelectorAll('.ps-theme-select')){select.setAttribute('aria-label',t('theme'));for(const option of select.options)option.textContent=tr(THEMES.find(theme=>theme.id===option.value)?.name,locale());select.value=currentTheme();}
+    for(const select of document.querySelectorAll('.ps-theme-select')){select.setAttribute('aria-label',t('theme'));for(const option of select.options)option.textContent=tr(THEMES.find(theme=>theme.id===option.value)?.name??SYSTEM_NAME,locale());select.value=themeChoice();}
     search.placeholder=t(narrowBar.matches?'mapSearchShort':'mapSearch');search.setAttribute('aria-label',t('mapSearch'));searchResults.setAttribute('aria-label',t('searchResults'));
     lensTitle.textContent=t('lenses');actionsTitle.textContent=t('researchActions');lensRail.setAttribute('aria-label',t('lenses'));mainActions.setAttribute('aria-label',t('researchActions'));importInput.setAttribute('aria-label',t('import'));
     crumbNav.setAttribute('aria-label',t('orientation'));mapTools.setAttribute('aria-label',t('mapTools'));
@@ -870,10 +870,10 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   // The tree is a view as well: every star of the bonsai stands where the tree grows it.
   const TREE_LINES={root:{color:'#8ea2ba',alpha:.5,weight:1.7},ground:{color:'#8ea2ba',alpha:.55,weight:1.6},era:{alpha:.8,weight:3},trunk:{color:'#9fb3cc',alpha:.55,weight:2.4},limb:{alpha:.55,weight:7},bough:{alpha:.5,weight:3.4}};
-  // A light theme turns the sky's lightness over, and a thin dark line on a light page reads fainter than its twin
-  // on the night, so there the tree's lines are drawn a little stronger.
-  const treeBackdrops=new Map();
-  const treeBackdrop=()=>{const dark=!!THEMES.find(theme=>theme.id===currentTheme())?.dark;if(!treeBackdrops.has(dark))treeBackdrops.set(dark,treeLayout.lines.map(line=>{const style={...TREE_LINES[line.tone],...(line.color?{color:line.color}:{}),points:line.points};if(!dark)style.alpha=Math.min(.95,style.alpha*1.55);return style;}));return treeBackdrops.get(dark);};
+  let treeLines=null;
+  const treeBackdrop=()=>treeLines??=treeLayout.lines.map(line=>({...TREE_LINES[line.tone],...(line.color?{color:line.color}:{}),points:line.points}));
+  // Noon is the night turned over; its links and lines are inked stronger, so that they stand as clearly on the day's paper.
+  const inkTheme=()=>sky?.setInk?.(THEMES.find(theme=>theme.id===currentTheme())?.dark?1:1.7);
   function applyTree(projected){
     const placed=new Map();
     for(const node of projected.nodes){const at=node.materialId?treeLayout.positions.get(node.materialId):null;if(at)placed.set(node.id,at);}
@@ -1820,6 +1820,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // The space turns under a drag and rests a little turned, so its depth shows; Shift, the right button or two fingers move it,
   // a pinch or the wheel zooms, and a star held still is picked up. A measuring lens lays its scale flat and only moves.
   sky=mountConstructorSky(shell,{obstacles:()=>header?[header,searchResults]:[],rest:depth?.rest??null,intro:true,holdToMove:380,turnFromStars:true,touch:true,secondaryPan:true,inertia:true,depthCue:true,planarMoves:true,nativeTitles:false,onThreadSelect:id=>followThread(id),threadsFor:id=>darkThreads(id),onEdgeHover:id=>{const label=id?shell.querySelector(`.edge-label[data-edge="${CSS.escape(id)}"]`):null;if(label)hints?.showFor(label);else hints?.hide();},onPose:pose=>paintTurn(pose),dragNodes:()=>!measuredLens(lens)&&!treeView()&&!aspect,getViewport:freeArea,onSelect:id=>selectNode(id,{fromMap:true}),onMove:(id,moved)=>{const node=graphState().nodes.find(item=>item.id===id),own=node?.position?.[2],position=[moved[0],moved[1],Number.isFinite(own)?own:moved[2]];if(node?.ownerType==='personal-hypothesis'){personalPositions.set(id,position);try{localStorage.setItem(positionsKey,JSON.stringify(Object.fromEntries(personalPositions)));positionsPersistenceError=false;}catch{positionsPersistenceError=true;notify(t('graphSaveError'));};}else try{model.moveNode(id,position);checkGraphPersistence();}catch{}},onEdgeSelect:selectEdge});
+  inkTheme();
   // One hint answers a pointer that rests on something, or a keyboard that reaches it: a tool says what it does and its key,
   // a star its kind, when and where, a link its kind and what that kind means. Nothing of it stays on the screen by itself.
   function starHint(id){
@@ -1911,7 +1912,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   if(upgradeError)notify(copyLocale(locale)==='en'?localeText('The saved graph could not be upgraded. Its original copy is preserved.',locale):'Не удалось перенести сохранённый граф. Исходная копия сохранена.');
   const localeEvent=event=>{if(event.detail?.locale&&event.detail.locale!==locale()){};refreshLocale();};header?.addEventListener('public-space-locale',localeEvent);
   // A new theme repaints what is coloured from code: the relation chips and the links of a route.
-  const themeEvent=()=>{if(destroyed)return;setLocaleState();reflect();};window.addEventListener('site-theme',themeEvent);
+  const themeEvent=()=>{if(destroyed)return;inkTheme();setLocaleState();reflect();};window.addEventListener('site-theme',themeEvent);
   return {root:shell,index,selection:researchSelection,openResearch,renderResearch,markTerms:node=>terms.mark(node),readingPrompt,fragments,coreView,timeOf:id=>timeline?.spanOf?.(index?.get(id)?.materialId??id)??null,placeOf:id=>placeOf(index?.get(id)?.materialId??id),openPersonal:()=>{if(personal.hidden)togglePersonal();},compare:id=>beginCompare(graphIdForMaterial(index?.get(id)?.materialId??id)),pristineGraphs,openCollection,personalRoot:personalContent,workspaceRoot,agentRoot,refreshLocale,restoreFocus,refreshJourneys(items){journeyList=Array.isArray(items)?items:[];if(route)renderRoutes();},renderJourneys:renderRoutes,model,
     destroy(){if(destroyed)return;destroyed=true;window.removeEventListener('site-theme',themeEvent);window.removeEventListener('resize',refitScale);cancelAnimationFrame(refitFrame);shell.removeEventListener('click',openLane);shell.removeEventListener('keydown',openLaneByKey);unsubscribeModel?.();unsubscribeWorkspace?.();workspaceRoot.removeEventListener('public-research-import-result',showImportResult);workspaceRoot.removeEventListener('public-research-workspace-history',researchHistory);document.removeEventListener('keydown',keyboard);document.removeEventListener('pointerdown',notePress,{capture:true});clearTimeout(controlsTimer);shell.removeEventListener('pointerdown',notePointer,{capture:true});hints?.dispose();controls?.dispose();fragments.dispose();desktopMode.removeEventListener('change',syncInitialRouteDock);header?.removeEventListener('public-space-locale',localeEvent);sky?.dispose();model.dispose();shell.remove();header?.remove();terms.dispose();}};
 }
