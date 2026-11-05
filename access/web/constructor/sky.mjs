@@ -457,6 +457,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const height=16,width=Math.min(c.maxWidth??260,Math.max(24,Math.ceil(c.textWidth??c.title.textContent.length*7.4)+(c.variant==='lane'?4:12)));
       let area,text;
       if(c.variant==='lane'){const right=vl-14,left=Math.max(4,right-width);area=text=box(left,p.y-height/2,right-left,height);}
+      // A name at the edge of the free area, at the height its point has on the screen: it stays in view however the space turns.
+      else if(c.variant==='edge'){const y=project([center[0],c.p[1],center[2]]).y;area=text=box(vl+8,y-height/2,width,height);}
       else if(c.variant==='ytick'){const right=vl-6,left=Math.max(4,right-width);area=text=box(left,p.y-height/2,right-left,height);}
       else if(c.variant==='place'||c.variant==='tick'){
         // A name at a point of the plane: a place beside its dot — to the right, else to the left, else above or below
@@ -486,7 +488,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
         c.el.style.setProperty('--band-left',band?(band[0]-left).toFixed(1)+'px':'0px');c.el.style.setProperty('--band-width',band?(band[1]-band[0]).toFixed(1)+'px':'0px');
         if(band)c.el.dataset.band='true';else delete c.el.dataset.band;
       }
-      const fits=c.variant==='lane'||c.variant==='ytick'?area.right-area.left>=24&&area.top>=vt-2&&area.bottom<=vb+2:text.left>=vl-12&&text.right<=vr+12;
+      const fits=c.variant==='lane'||c.variant==='ytick'||c.variant==='edge'?area.right-area.left>=24&&area.top>=vt-2&&area.bottom<=vb+2:text.left>=vl-12&&text.right<=vr+12;
       // A scale never writes over the page's own panels, even when the map is squeezed under a sheet.
       const shown=fits&&!scaleLabels.some(o=>overlaps(area,o,2))&&!uiObstacles.some(o=>overlaps(area,o,0));
       c.el.hidden=!shown;
@@ -502,6 +504,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const clear=candidates.find(candidate=>!occupied.some(o=>overlaps(candidate,o))&&!nodeObstacles.some(o=>overlaps(candidate,o,2)));
       const area=clear??candidates.find(candidate=>!occupied.some(o=>overlaps(candidate,o)))??null;
       if(area&&!clear)c.el.dataset.crowded='true';else delete c.el.dataset.crowded;
+      // In a space read in depth a group's name further back is quieter, as its stars are.
+      c.el.style.opacity=depthCue&&!measured?(.38+.62*clamp((project(c.p).d-.86)/.3,0,1)).toFixed(2):'';
       c.el.hidden=!area;
       if(area){c.el.style.width=width+'px';c.el.style.transform=`translate3d(${area.left.toFixed(2)}px,${area.top.toFixed(2)}px,0)`;occupied.push(area);}
     }
@@ -578,6 +582,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const hot=n.id===selectedId||n.id===hover;
       // A star the view has stepped back keeps its light and gives its name's room to the stars in front.
       if((n.dimmed||n.quiet)&&!hot){showLabel(n,null,false);continue;}
+      // In a space read in depth the stars far behind give their names' room to the ones in front.
+      if(depthCue&&!measured&&n.labelFrom&&n.screen.d<.9&&!hot&&!near.has(n.id)){showLabel(n,null,false);continue;}
       // A name that waits for a nearer view stands once the view comes that near, or while its star is reached.
       if(n.labelFrom&&n.screen.s<n.labelFrom&&!hot&&!near.has(n.id)){showLabel(n,null,false);continue;}
       const place=height=>{
@@ -673,14 +679,17 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       for(const f of [.2,.4,.6,.8]){const a=project([x0,y0+(y1-y0)*f,z]),b=project([x1,y0+(y1-y0)*f,z]);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}
       ctx.globalAlpha=1;
     }
-    if(measured&&backdrop.length){
-      // The lines under a chosen or pointed star step back with the stars it does not reach.
+    if(backdrop.length){
+      // The lines under a chosen or pointed star step back with the stars it does not reach; in a space read in depth
+      // a line also dims as it goes back, as the stars do.
       const fade=focused?.42:1;
       for(const line of backdrop){
         const points=Array.isArray(line)?line:line.points,style=Array.isArray(line)?{}:line;
-        ctx.strokeStyle=style.color??'#8fa8c4';ctx.globalAlpha=(style.alpha??.3)*fade;ctx.beginPath();
-        let previous=null;for(const [x,y] of points){const point=project([x,y,0]);if(previous){const cut=clipSegment(previous,point);if(cut){ctx.moveTo(cut[0].x,cut[0].y);ctx.lineTo(cut[1].x,cut[1].y);}}previous=point;}
-        ctx.lineWidth=Number.isFinite(style.weight)?clamp(style.weight*(previous?.s??1),.6,7):.9;ctx.stroke();
+        ctx.strokeStyle=style.color??'#8fa8c4';ctx.beginPath();
+        let previous=null,depth=0,count=0;
+        for(const [x,y,z=0] of points){const point=project([x,y,z]);depth+=point.d;count++;if(previous){const cut=measured?clipSegment(previous,point):[previous,point];if(cut){ctx.moveTo(cut[0].x,cut[0].y);ctx.lineTo(cut[1].x,cut[1].y);}}previous=point;}
+        const back=depthCue&&!measured&&count?.35+.65*clamp((depth/count-.82)/.34,0,1):1;
+        ctx.globalAlpha=(style.alpha??.3)*fade*back;ctx.lineWidth=Number.isFinite(style.weight)?clamp(style.weight*(previous?.s??1),.6,7):.9;ctx.stroke();
       }
       ctx.globalAlpha=1;
     }
@@ -970,6 +979,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     /** Face the space straight on, so that rows read level; a measured layout already does. */
     faceFront(){if(measured)return;velocity=null;introUntil=0;tyaw=nearestTurn(0,tyaw);tpitch=0;kick();},
     /** Bring the view back to its resting pose, the shorter way round. */
+    // Turn the space about its vertical axis so that the given turn faces the reader; the tilt stays, unless given.
+    turnTo(yawTo,pitchTo=null){if(measured)return;velocity=null;introUntil=0;turnShownUntil=performance.now()+900;if(Number.isFinite(yawTo))tyaw=nearestTurn(yawTo,tyaw);if(Number.isFinite(pitchTo))tpitch=clamp(pitchTo,...PITCH);kick();},
     turnToRest(){if(measured)return;velocity=null;introUntil=0;turnShownUntil=performance.now()+900;tyaw=nearestTurn(restYaw,tyaw);tpitch=restPitch;kick();},
     pose(){return {yaw,pitch,targetYaw:tyaw,targetPitch:tpitch,restYaw,restPitch,measured:!!measured};},
     focus(id){const n=nodes.find(n=>n.id===id);if(!n)return;targetCenter=[...n.target];tzoom=1.3;tpan={x:0,y:0};kick();},

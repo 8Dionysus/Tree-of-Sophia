@@ -148,7 +148,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // A lens with no stars of its own in this library is not offered.
   const lenses=[...(Array.isArray(library.space?.lenses)?library.space.lenses:LENSES.filter(item=>lensHasStars(library,item.id))),...[timeLens,spaceLens,proximityLens].filter(Boolean)].map(item=>({...item,positions:lensPositions(profile,item.id)}));
   // A measuring lens lays the stars out itself; the others keep the map's own arrangement.
-  const measuredLens=id=>(id==='tree'&&!!treeLayout)||(id==='time'&&!!timeline)||(id==='space'&&!!geography)||(id==='proximity'&&!!proximityLens);
+  const measuredLens=id=>(id==='time'&&!!timeline)||(id==='space'&&!!geography)||(id==='proximity'&&!!proximityLens);
+  // The tree lays the whole bonsai out in space by its own layout; it turns, and it measures nothing.
+  const treeView=()=>lens==='tree'&&!!treeLayout;
   const relationKinds=[...new Set([...(Array.isArray(library.space?.relationKinds)?library.space.relationKinds:Object.keys(RELATIONS)),'relates'])].filter(key=>RELATIONS[key]);
   // Relation words, colours and line patterns: the profile's own vocabulary where it has one.
   const styleOf=key=>relationStyle(profile,key,RELATIONS[key]??{});
@@ -673,7 +675,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     // A choice turns the space toward itself on the lenses that group; a measure keeps its axes, a route its way and a
     // comparison or a new link its stars where the reader set them.
     aspect=null;
-    if(!measuredView&&!routePath&&!interaction&&compareBar.hidden&&(selected||selectedEdge)){
+    if(!measuredView&&!treeView()&&!routePath&&!interaction&&compareBar.hidden&&(selected||selectedEdge)){
       // A free area too narrow for rows on both sides of the star holds the aspect in one column.
       // Rows past what its height holds close into their families; a column, whose names take two lines, keeps wider rows.
       let narrow=false,budget=Infinity,width=Infinity;try{const area=freeArea({width:shell.clientWidth,height:shell.clientHeight});width=area.right-area.left;narrow=width<Math.max(1000,(area.bottom-area.top)*1.2);budget=narrow?Math.max(3,Math.floor((area.bottom-area.top-90)/40)):Math.max(5,Math.floor((area.bottom-area.top-60)/28));}catch{}
@@ -706,7 +708,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // From the chosen star on the whole tree, threads lead into the dark toward the stars the space does not hold yet.
   const threadKinds=new Map();
   function darkThreads(id){
-    if(lens!=='tree'||measuredLens(lens)||route?.path||interaction||!compareBar.hidden||!id||!materialOfGraph(id))return [];
+    if(lens!=='tree'||treeView()||measuredLens(lens)||route?.path||interaction||!compareBar.hidden||!id||!materialOfGraph(id))return [];
     const current=graphState();
     const held=new Set(current.nodes.map(node=>node.id));
     const positionOf=graphId=>{const node=current.nodes.find(item=>item.id===graphId);if(Array.isArray(node?.position))return node.position;const position=materialOfGraph(graphId)?.position;return Array.isArray(position)&&position.length>=2?position:null;};
@@ -865,7 +867,10 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   // The tree is a view as well: every star of the bonsai stands where the tree grows it.
   const TREE_LINES={root:{color:'#8ea2ba',alpha:.5,weight:1.7},ground:{color:'#8ea2ba',alpha:.55,weight:1.6},era:{alpha:.8,weight:3},trunk:{color:'#9fb3cc',alpha:.55,weight:2.4},limb:{alpha:.55,weight:7},bough:{alpha:.5,weight:3.4}};
-  const treeBackdrop=treeLayout?treeLayout.lines.map(line=>({...TREE_LINES[line.tone],...(line.color?{color:line.color}:{}),points:line.points})):[];
+  // A light theme turns the sky's lightness over, and a thin dark line on a light page reads fainter than its twin
+  // on the night, so there the tree's lines are drawn a little stronger.
+  const treeBackdrops=new Map();
+  const treeBackdrop=()=>{const dark=!!THEMES.find(theme=>theme.id===currentTheme())?.dark;if(!treeBackdrops.has(dark))treeBackdrops.set(dark,treeLayout.lines.map(line=>{const style={...TREE_LINES[line.tone],...(line.color?{color:line.color}:{}),points:line.points};if(!dark)style.alpha=Math.min(.95,style.alpha*1.55);return style;}));return treeBackdrops.get(dark);};
   function applyTree(projected){
     const placed=new Map();
     for(const node of projected.nodes){const at=node.materialId?treeLayout.positions.get(node.materialId):null;if(at)placed.set(node.id,at);}
@@ -892,8 +897,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       projected.edges.push({id:edge.id,from,to,kind:edge.kind,label:tr(edge.label,locale()),color:style.color??RELATIONS[edge.kind]?.color,dash:style.dash,weight:1,via:edge.via,...(rest===null?{latent:true}:{baseAlpha:rest})});
     }
     scaleChoice=selected;
-    projected.clusters=treeLayout.names.map(name=>({id:name.id,title:tr(name.title,locale()),subtitle:'',center:name.center,...(name.color?{color:paint(name.color)}:{}),tone:name.kind}));
-    projected.backdrop=treeBackdrop;
+    projected.clusters=treeLayout.names.map(name=>({id:name.id,title:tr(name.title,locale()),subtitle:'',center:name.center,...(name.color?{color:paint(name.color)}:{}),tone:name.kind,...(name.kind==='stratum'?{variant:'edge'}:{})}));
+    projected.backdrop=treeBackdrop();
   }
   // Space is a view as well: stars stand at the place of their writing, the saved graph keeps its own positions.
   function applyPlane(projected){
@@ -937,8 +942,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // A measuring lens fills its free area and shows its whole extent; other lenses frame the sky as the constructor does.
   function frameSky(){
     if(!sky)return;
-    // The tree frames itself whole; an open branch frames its own moves where they grow on it.
-    if(lens==='tree'&&treeLayout)sky.frame(route?.path?{fill:true,plane:true}:{fill:true,plane:true,x:treeLayout.bounds.x,y:treeLayout.bounds.y});
+    // The tree frames itself whole, or an open branch's moves where they grow on it, seen a little from above.
+    if(treeView()){sky.frame();sky.turnTo?.(null,-.2);}
     else if(lens==='time'&&timeline)sky.frame({fill:true,x:timeline.bounds});
     // A plane keeps one unit on both axes: the map of places and the rings of proximity are never stretched.
     else if(lens==='space'&&geography)sky.frame({fill:true,plane:true,x:geography.bounds.x,y:geography.bounds.y});
@@ -961,7 +966,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   let sky,scaleChoice;
   const NEAR_EXTENT=530;
   // The layout a measuring lens shows, and the strip its scale keeps above the map.
-  const layoutKind=()=>lens==='tree'&&treeLayout?'tree':lens==='time'&&timeline?timeline.kind:lens==='space'&&geography?'plane':lens==='proximity'&&proximityLens?'proximity':null;
+  const layoutKind=()=>lens==='time'&&timeline?timeline.kind:lens==='space'&&geography?'plane':lens==='proximity'&&proximityLens?'proximity':null;
   const layoutStrip=()=>lens==='time'&&timeline?timeline.strip:lens==='space'&&geography?geography.strip:0;
   let shownView=null;
   function refreshSky(){
@@ -1360,6 +1365,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     // In a lens that groups, the map is drawn again so that the chosen star's whole neighbourhood is on it.
     if(changed&&!measuredLens(lens)&&(core||lens!=='tree'))refreshSky();
     sky?.select(id);sky?.selectEdge(null);renderColumn();
+    // On the tree a chosen star turns to face the reader, with what grew from it and what it grew from.
+    if(changed&&treeView()){const at=shownView?.nodes?.find(node=>node.id===id)?.position;if(at&&Math.hypot(at[0],at[2])>1)sky?.turnTo?.(Math.atan2(at[0],at[2]));}
     // A newly chosen star's card opens at its beginning, not where the previous card was scrolled to.
     if(changed){reading.scrollTop=0;panelContent.scrollTop=0;}
     renderOrientation();sky?.refresh();if(reveal||!desktop())sky?.reveal(id);}
@@ -1809,7 +1816,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   // The space turns under a drag and rests a little turned, so its depth shows; Shift, the right button or two fingers move it,
   // a pinch or the wheel zooms, and a star held still is picked up. A measuring lens lays its scale flat and only moves.
-  sky=mountConstructorSky(shell,{obstacles:()=>header?[header,searchResults]:[],rest:depth?.rest??null,intro:true,holdToMove:380,turnFromStars:true,touch:true,secondaryPan:true,inertia:true,depthCue:true,planarMoves:true,nativeTitles:false,onThreadSelect:id=>followThread(id),threadsFor:id=>darkThreads(id),onEdgeHover:id=>{const label=id?shell.querySelector(`.edge-label[data-edge="${CSS.escape(id)}"]`):null;if(label)hints?.showFor(label);else hints?.hide();},onPose:pose=>paintTurn(pose),dragNodes:()=>!measuredLens(lens)&&!aspect,getViewport:freeArea,onSelect:id=>selectNode(id,{fromMap:true}),onMove:(id,moved)=>{const node=graphState().nodes.find(item=>item.id===id),own=node?.position?.[2],position=[moved[0],moved[1],Number.isFinite(own)?own:moved[2]];if(node?.ownerType==='personal-hypothesis'){personalPositions.set(id,position);try{localStorage.setItem(positionsKey,JSON.stringify(Object.fromEntries(personalPositions)));positionsPersistenceError=false;}catch{positionsPersistenceError=true;notify(t('graphSaveError'));};}else try{model.moveNode(id,position);checkGraphPersistence();}catch{}},onEdgeSelect:selectEdge});
+  sky=mountConstructorSky(shell,{obstacles:()=>header?[header,searchResults]:[],rest:depth?.rest??null,intro:true,holdToMove:380,turnFromStars:true,touch:true,secondaryPan:true,inertia:true,depthCue:true,planarMoves:true,nativeTitles:false,onThreadSelect:id=>followThread(id),threadsFor:id=>darkThreads(id),onEdgeHover:id=>{const label=id?shell.querySelector(`.edge-label[data-edge="${CSS.escape(id)}"]`):null;if(label)hints?.showFor(label);else hints?.hide();},onPose:pose=>paintTurn(pose),dragNodes:()=>!measuredLens(lens)&&!treeView()&&!aspect,getViewport:freeArea,onSelect:id=>selectNode(id,{fromMap:true}),onMove:(id,moved)=>{const node=graphState().nodes.find(item=>item.id===id),own=node?.position?.[2],position=[moved[0],moved[1],Number.isFinite(own)?own:moved[2]];if(node?.ownerType==='personal-hypothesis'){personalPositions.set(id,position);try{localStorage.setItem(positionsKey,JSON.stringify(Object.fromEntries(personalPositions)));positionsPersistenceError=false;}catch{positionsPersistenceError=true;notify(t('graphSaveError'));};}else try{model.moveNode(id,position);checkGraphPersistence();}catch{}},onEdgeSelect:selectEdge});
   // One hint answers a pointer that rests on something, or a keyboard that reaches it: a tool says what it does and its key,
   // a star its kind, when and where, a link its kind and what that kind means. Nothing of it stays on the screen by itself.
   function starHint(id){
