@@ -75,6 +75,41 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   }
   const fogBack=cloudTexture([76,102,151],17),fogFront=cloudTexture([111,91,136],53);
 
+  // ── The day. A light page shows this canvas through invert(1) hue-rotate(180deg) contrast(1.25) saturate(1.25)
+  // (site-theme.css): the night turned over. The day's own light and colours are drawn here as the night colours
+  // that filter turns into them, so the day is a cosmos turned over: lit paper where the night was dark, tinted
+  // shadow where it had clouds, motes of gold where it had stars.
+  const LUMA=[.213,.715,.072],DAY_CONTRAST=1.25,DAY_SATURATE=1.25;
+  function nightOf(hex){
+    let c=[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255);
+    const luma=v=>LUMA[0]*v[0]+LUMA[1]*v[1]+LUMA[2]*v[2];
+    let l=luma(c);c=c.map(v=>l+(v-l)/DAY_SATURATE);            // saturate undone
+    c=c.map(v=>(v-.5)/DAY_CONTRAST+.5);                         // contrast undone
+    l=luma(c);c=c.map(v=>2*l-v);                                // hue-rotate(180deg) is its own inverse
+    return '#'+c.map(v=>Math.round(Math.max(0,Math.min(1,1-v))*255).toString(16).padStart(2,'0')).join('');
+  }
+  const nightCache=new Map(),night=hex=>{let v=nightCache.get(hex);if(!v){v=nightOf(hex);nightCache.set(hex,v);}return v;};
+  const mixHex=(a,b,t)=>{if(t<=0)return a;const p=x=>[1,3,5].map(i=>parseInt(x.slice(i,i+2),16)),A=p(a),B=p(b);return '#'+A.map((v,i)=>Math.round(v+(B[i]-v)*Math.min(1,t)).toString(16).padStart(2,'0')).join('');};
+  // The paper is a shade under white, so the noon light can stand brighter than it; washes of warm umber, lilac and
+  // sage lie toward the edges as the day's coloured shadow, never round the tree.
+  const dayGround=document.createElement('canvas');dayGround.width=1100;dayGround.height=780;
+  {const g=dayGround.getContext('2d');g.fillStyle=nightOf('#F8F5EF');g.fillRect(0,0,1100,780);
+    for(const [x,y,r,hex,a] of [[90,740,560,'#E8DACA',.75],[1040,150,480,'#E3DEEB',.7],[1010,770,460,'#DEE5D6',.65],[40,90,400,'#F0E6D6',.55],[560,860,420,'#EDE3D5',.5]]){
+      const n=nightOf(hex),grad=g.createRadialGradient(x,y,0,x,y,r);grad.addColorStop(0,n+Math.round(a*255).toString(16).padStart(2,'0'));grad.addColorStop(.55,n+Math.round(a*110).toString(16).padStart(2,'0'));grad.addColorStop(1,n+'00');g.fillStyle=grad;g.fillRect(0,0,1100,780);}}
+  const radialTexture=(hex,size,stops)=>{const c=document.createElement('canvas');c.width=c.height=size;const g=c.getContext('2d'),h=size/2,grad=g.createRadialGradient(h,h,0,h,h,h),n=nightOf(hex);for(const [at,a] of stops)grad.addColorStop(at,n+Math.round(a*255).toString(16).padStart(2,'0'));g.fillStyle=grad;g.fillRect(0,0,size,size);return c;};
+  // The noon light from above, a shadow's soft blot, and a ray of light falling from the top.
+  const dayLight=radialTexture('#FFFFFF',512,[[0,1],[.35,.62],[.7,.18],[1,0]]);
+  const dayShadow=radialTexture('#5C4E40',256,[[0,.9],[.4,.55],[.75,.16],[1,0]]);
+  const dayRay=document.createElement('canvas');dayRay.width=128;dayRay.height=1024;
+  {const g=dayRay.getContext('2d'),n=nightOf('#FFFFFF'),im=g.createImageData(128,1024),d=im.data,[r,gg,b]=[1,3,5].map(i=>parseInt(n.slice(i,i+2),16));
+    for(let y=0;y<1024;y++){const t=y/1024,half=10+52*t,fade=Math.sin(Math.PI*Math.min(1,t*1.15))*(1-t*.55);
+      for(let x=0;x<128;x++){const k=(y*128+x)*4,dx=(x-64)/half,a=Math.exp(-dx*dx*2.2)*fade;d[k]=r;d[k+1]=gg;d[k+2]=b;d[k+3]=Math.round(a*120);}}
+    g.putImageData(im,0,0);}
+  // Stars of the night turn into motes of gold drifting in the light.
+  const moteColors=['#B48C3C','#C49E57','#A27A3A','#CFAE6C','#9A8467','#B5966C'].map(nightOf);
+  // The tree's ground, when the layout has one: its shadow lies on it in the day.
+  let shade=null;
+
   const restYaw=Number.isFinite(rest?.yaw)?rest.yaw:0,restPitch=Number.isFinite(rest?.pitch)?rest.pitch:-.055;
   // The view turns all the way round and over the top and the bottom, stopping short of the poles,
   // where up would flip. A return to a pose takes the shorter way round.
@@ -215,6 +250,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     clusters=(state.clusters??[]).map(item=>{let c=oldClusters.get(item.id);oldClusters.delete(item.id);if(!c){const el=document.createElement('div'),title=document.createElement('span'),subtitle=document.createElement('small');el.className='tree-cluster';title.className='cluster-title';subtitle.className='cluster-subtitle';el.append(title,subtitle);Object.assign(el.style,{position:'absolute',left:'0',top:'0',pointerEvents:'none'});clusterLayer.append(el);c={el,title,subtitle,p:[...item.center]};}c.id=item.id;c.target=[...item.center];c.variant=typeof item.variant==='string'?item.variant:'';c.recede=!!item.recede;if(c.variant)c.el.dataset.variant=c.variant;else delete c.el.dataset.variant;c.strip=Number.isFinite(item.strip)?item.strip:null;c.span=Array.isArray(item.span)&&item.span.length===2&&item.span.every(Number.isFinite)?[...item.span]:null;c.align=item.align==='start'||item.align==='end'?item.align:'';if(c.align)c.el.dataset.align=c.align;else delete c.el.dataset.align;c.maxWidth=Number.isFinite(item.maxWidth)?item.maxWidth:null;c.radius=Number.isFinite(item.radius)?item.radius:null;const home=clipped.has(c.variant)?ringLayer:underStars.has(c.variant)?ruleLayer:clusterLayer;if(c.el.parentElement!==home)home.append(c.el);if(item.ref){c.el.dataset.ref=String(item.ref);c.el.style.pointerEvents='auto';c.el.setAttribute('role','button');c.el.tabIndex=0;}else{delete c.el.dataset.ref;c.el.style.pointerEvents='none';c.el.removeAttribute('role');c.el.removeAttribute('tabindex');}if(item.tone)c.el.dataset.tone=String(item.tone);else delete c.el.dataset.tone;if(item.hint&&nativeTitles)c.el.title=item.hint;else c.el.removeAttribute('title');if(item.hint&&!nativeTitles)c.el.dataset.hint=item.hint;else delete c.el.dataset.hint;c.title.textContent=item.title??'';c.subtitle.textContent=item.subtitle??'';c.el.style.setProperty('--cluster-color',hex(item.color,'#a5b7cf'));c.el.style.color=hex(item.color,'#a5b7cf');return c;});oldClusters.forEach(c=>c.el.remove());
     // A measured plane may lie on a backdrop of lines in its own units, such as coastlines.
     // A backdrop line is its points, or its points with a colour, an alpha and a weight in the layout's units.
+    shade=state.shade&&Array.isArray(state.shade.center)&&Number.isFinite(state.shade.radius)?state.shade:null;
     backdrop=Array.isArray(state.backdrop)?state.backdrop.filter(line=>(Array.isArray(line)?line:line?.points)?.length>1):[];
     // A space read in depth may lay its stars on planes, each at its own depth and named at a corner.
     const oldPlanes=new Map(planes.map(plane=>[plane.id,plane]));
@@ -291,6 +327,27 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     if(supplied&&['left','right','top','bottom'].every(k=>Number.isFinite(supplied[k]))&&supplied.right-supplied.left>=120&&supplied.bottom-supplied.top>=120)targetViewport={...supplied};
     if(first)viewport={...targetViewport};measureLabels=true;kick();
   }
+  // The day's paper under the noon light: the light breathes slowly, its rays sway, and the tree's shadow lies on its ground.
+  function paintDay(){
+    ctx.drawImage(dayGround,0,0,w,h);
+    const breath=Math.sin(skyTime*.07),size=Math.max(w,h)*1.35*(1+.035*breath),lx=w*.53+Math.sin(skyTime*.021)*w*.02-Math.sin(yaw)*w*.04,ly=-h*.18;
+    ctx.globalAlpha=.88+.12*breath;ctx.drawImage(dayLight,lx-size/2,ly-size/2,size,size);
+    for(let i=0;i<5;i++){
+      const angle=(i-2)*.19+Math.sin(skyTime*.045+i*1.7)*.03-Math.sin(yaw)*.05,length=h*1.45,width=w*(.07+.025*(i%2));
+      ctx.save();ctx.translate(lx,ly+h*.06);ctx.rotate(angle);ctx.globalAlpha=(.42+.14*Math.sin(skyTime*.06+i*2.3))*(i===2?1:.8);ctx.drawImage(dayRay,-width/2,0,width,length);ctx.restore();
+    }
+    ctx.globalAlpha=1;
+  }
+  function paintShade(){
+    if(!shade||!daylight())return;
+    const [cx,cy,cz]=shade.center,r=shade.radius,mid=project([cx,cy,cz]);
+    const rim=[[cx+r,cy,cz],[cx-r,cy,cz],[cx,cy,cz+r],[cx,cy,cz-r]].map(project);
+    const rx=Math.max(...rim.map(p=>Math.abs(p.x-mid.x)))*1.18,ry=Math.max(6,Math.max(...rim.map(p=>Math.abs(p.y-mid.y)))*1.18);
+    // A soft shadow over the whole ground, and a closer, darker one where the trunk meets it.
+    ctx.globalAlpha=.4;ctx.drawImage(dayShadow,mid.x-rx,mid.y-ry,rx*2,ry*2);
+    ctx.globalAlpha=.3;ctx.drawImage(dayShadow,mid.x-rx*.32,mid.y-ry*.32,rx*.64,ry*.64);
+    ctx.globalAlpha=1;
+  }
   function paintFog(texture,phase,alpha){
     // The night's clouds turn over into blue blots on the day's paper; the day has its air and its lamp instead.
     if(daylight())return;
@@ -316,7 +373,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const flare=s.flare?Math.pow(Math.max(0,Math.sin(skyTime*.23+s.phase*1.7)),28):0;
       const alpha=Math.min(.92,s.alpha*birth*(.66+wave+flare*.8))*(1-calm*.16);
       const size=Math.min(layer===2?3.3:2.2,Math.max(.38,s.size*depth*(.64+base*.32)));
-      const color=starColors[s.tone];ctx.fillStyle=color;ctx.globalAlpha=alpha;
+      const color=daylight()?moteColors[s.tone]:starColors[s.tone];ctx.fillStyle=color;ctx.globalAlpha=daylight()?alpha*.8:alpha;
       if(layer===2){const haze=17+size*8;ctx.drawImage(sprite(color),px-haze/2,py-haze/2,haze,haze);ctx.globalAlpha=alpha*.7;ctx.beginPath();ctx.arc(px,py,size*.62,0,Math.PI*2);ctx.fill()}
       else{ctx.fillRect(px-size/2,py-size/2,size,size);if(s.flare||size>1.5){const glow=12+size*5+flare*17;ctx.globalAlpha=alpha*.6;ctx.drawImage(sprite(color),px-glow/2,py-glow/2,glow,glow)}}
       if(s.flare&&flare>.25&&layer!==0){ctx.globalAlpha=alpha*flare*.52;const ray=3+flare*7;ctx.lineWidth=.6;ctx.strokeStyle=color;ctx.beginPath();ctx.moveTo(px-ray,py);ctx.lineTo(px+ray,py);ctx.moveTo(px,py-ray);ctx.lineTo(px,py+ray);ctx.stroke()}
@@ -716,9 +773,10 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     skyPitchCos=Math.cos(pitch);skyPitchSin=Math.sin(pitch);
     ctx.beginFrame?.();ctx.setTransform(dpr,0,0,dpr,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
     // The night's nebula is the night's own; turned over for the day it would lie on the paper as a cold stain.
-    if(daylight()){ctx.fillStyle='#04070e';ctx.fillRect(0,0,w,h);}else ctx.drawImage(nebula,0,0,w,h);
+    if(daylight())paintDay();else ctx.drawImage(nebula,0,0,w,h);
     const count=Math.round(dust.length*design.density);paintStars(0,count);paintFog(fogBack,.2,.85);paintStars(1,count);paintFog(fogFront,2.4,.46);
     nodes.forEach(n=>n.screen=project(n.p));
+    paintShade();
     if(revealId&&!drag)revealPending();
     if(neighbourhoodPending&&!drag)revealNeighbourhood();
     const byId=new Map(nodes.map(n=>[n.id,n]));
@@ -758,10 +816,12 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const fade=(focused?.42:1)*(1-.72*focusMix);
       for(const line of backdrop){
         const points=Array.isArray(line)?line:line.points,style=Array.isArray(line)?{}:line;
-        ctx.strokeStyle=style.color??'#8fa8c4';ctx.beginPath();
+        ctx.beginPath();
         let previous=null,depth=0,count=0;
         for(const [x,y,z=0] of points){const point=project([x,y,z]);depth+=point.d;count++;if(previous){const cut=measured?clipSegment(previous,point):[previous,point];if(cut){ctx.moveTo(cut[0].x,cut[0].y);ctx.lineTo(cut[1].x,cut[1].y);}}previous=point;}
         const back=depthCue&&!measured&&count?.35+.65*clamp((depth/count-.82)/.34,0,1):1;
+        // In the day what lies back takes the cool of the air as well as its paleness.
+        ctx.strokeStyle=daylight()&&back<1?mixHex(style.color??'#8fa8c4',night('#B3B6C4'),(1-back)*.75):style.color??'#8fa8c4';
         ctx.globalAlpha=Math.min(1,(style.alpha??.3)*fade*ink)*(daylight()&&back<1?.2+.8*back*back:back);ctx.lineWidth=Number.isFinite(style.weight)?clamp(style.weight*(previous?.s??1),.6,7):.9;ctx.stroke();
       }
       ctx.globalAlpha=1;
@@ -778,7 +838,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const rest=Number.isFinite(edge.baseAlpha)?edge.baseAlpha:.24,weight=Number.isFinite(edge.weight)?edge.weight:1;
       // In the day's air a link pales as it goes back, by the depth of its two ends; a pointed or chosen one stays clear.
       const air=depthCue&&!measured&&daylight()&&!hot?.22+.78*clamp(((from.d+to.d)/2-.84)/.34,0,1):1;
-      ctx.strokeStyle=edge.color;ctx.globalAlpha=Math.min(1,(hot?.85:neighbor?.57:focused?rest*.23:rest)*ink)*(1-awayEdge)*air;ctx.lineWidth=(hot?1.55:neighbor?1.1:.65)*weight*(1+(ink-1)*.35);
+      ctx.strokeStyle=air<1?mixHex(edge.color,night('#B3B6C4'),(1-air)*.8):edge.color;ctx.globalAlpha=Math.min(1,(hot?.85:neighbor?.57:focused?rest*.23:rest)*ink)*(1-awayEdge)*air;ctx.lineWidth=(hot?1.55:neighbor?1.1:.65)*weight*(1+(ink-1)*.35);
       const dash=edge.dash??(edge.kind==='questions'||edge.kind==='contrasts'?'dashed':'solid');let longest=null;
       for(let i=1;i<route.length;i++){
         let a=route[i-1],b=route[i],whole=true;if(measured){const cut=clipSegment(a,b);if(!cut)continue;[a,b,whole]=cut;}
@@ -809,15 +869,19 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(thread.grown<.995)layoutMoving=true;
     }
     nodes.forEach(n=>{
-      const p=n.screen,hot=n.id===selectedId||n.id===hover||(holdToMove>0&&n.dragging),color=colorOf(n),big=n.major,dim=(focused&&root.dataset.journey!=='true'&&!near.has(n.id)&&!kept.has(n.id)||n.dimmed)&&!hot,radius=(hot?5.2:big?4.3:2.8)*Math.max(.70,Math.min(1.5,p.s));
+      const p=n.screen,hot=n.id===selectedId||n.id===hover||(holdToMove>0&&n.dragging),own=colorOf(n),big=n.major,dim=(focused&&root.dataset.journey!=='true'&&!near.has(n.id)&&!kept.has(n.id)||n.dimmed)&&!hot,radius=(hot?5.2:big?4.3:2.8)*Math.max(.70,Math.min(1.5,p.s));
       const near01=depthCue&&!measured?clamp((p.d-.86)/.3,0,1):1,fade=hot?1:daylight()?.3+.7*near01:.5+.5*near01;
+      const color=daylight()&&!hot&&near01<1?mixHex(own,night('#B3B6C4'),(1-near01)*.6):own;
       // A measured layout draws only the stars inside its free area; every star still keeps its type, so its label is measured right.
       if(n.el.dataset.major!==String(!!big)){n.el.dataset.major=String(!!big);measureLabels=true;}
       if(measured&&!inView(box(p.x-5,p.y-5,10,10))){n.el.hidden=true;return;}
       // On a light page a star's glow turns to a shadow, so there it keeps only a trace of it and its ink stays clear.
       const away=!kept.has(n.id)&&!hot?focusMix:0,starAlpha=(dim?.28:hot?1:.9)*fade*(1-.86*away),glow=(hot?125:big?86:46)*Math.max(.65,Math.min(1.4,p.s));
-      // On a light page the glow turns to a shadow: a near star casts a soft one and stands over the page, a far one lies flat in the air.
-      ctx.globalAlpha=starAlpha*(daylight()?(hot?.5:.05+.3*near01*near01):1);ctx.drawImage(sprite(color),p.x-glow/2,p.y-glow/2,glow,glow);ctx.globalAlpha=starAlpha;
+      // On a light page the glow turns to a shadow: the light falls from above, so a near star casts its shadow
+      // below and aside and stands over the page; a far one lies flat in the air.
+      if(daylight()){const lift=hot?1:near01,size=glow*.5,dx=1.5+4.5*lift,dy=2.5+7*lift;ctx.globalAlpha=starAlpha*(hot?.55:.06+.32*lift*lift);ctx.drawImage(dayShadow,p.x+dx-size/2,p.y+dy-size/2,size,size);}
+      else{ctx.globalAlpha=starAlpha;ctx.drawImage(sprite(color),p.x-glow/2,p.y-glow/2,glow,glow);}
+      ctx.globalAlpha=starAlpha;
       // A source is a disc; an authored proposal a ring; a personal record a broken ring.
       if(n.form==='source'){ctx.fillStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,radius,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff9ea';ctx.fillRect(p.x-1,p.y-1,2,2);}
       else ring(p.x,p.y,radius+.9,color,n.form==='personal',hot);

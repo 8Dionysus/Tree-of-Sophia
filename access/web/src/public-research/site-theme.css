@@ -4,7 +4,7 @@
 :root[data-site-theme="noon"] canvas.tree-sky{filter:invert(1) hue-rotate(180deg) contrast(1.25) saturate(1.25);mix-blend-mode:multiply}
 /* Turned over, the night's sky is white; laid on the day's paper it takes the paper's warmth and keeps its ink. The paper
    lies under a lamp: lightest where the space stands, warmer and deeper toward the edges, so the day has its own depth. */
-:root[data-site-theme="noon"] #tree{background:radial-gradient(ellipse 62% 58% at 54% 46%,#FCFAF4 0%,#F6F1E7 42%,#ECE4D5 78%,#E2D8C6 100%) #F4EFE4}
+:root[data-site-theme="noon"] #tree{background:radial-gradient(ellipse 62% 58% at 54% 46%,#FDFBF6 0%,#F8F4EC 45%,#F0E9DD 80%,#E9E0D1 100%) #F4EFE4}
 /* A depth plane's name is coloured from code for the night; on a light page it takes the page's ink. */
 :root[data-site-theme="noon"] .tree-plane{color:inherit!important}
 /* The tree's mark is drawn light for the night; on a light page it is drawn in ink. */
