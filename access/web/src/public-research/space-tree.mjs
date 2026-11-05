@@ -21,7 +21,10 @@ const ERA_START=Object.freeze({classical:-500,hellenistic:-330,roman:-30,late:20
 const SCHOOL_ERA=Object.freeze({academy:'classical',lyceum:'classical',cynics:'classical',garden:'hellenistic','academic-scepticism':'hellenistic',stoa:'hellenistic',skeptics:'hellenistic',platonism:'late'});
 
 /** The zoom (screen pixels per unit of the layout) from which a star's name may stand without being pointed at. */
-export const TREE_LABEL_FROM=Object.freeze({era:0,figure:.2,image:.42,chapter:.55,branch:.2,author:.2,concept:.22,question:.42,school:.5,translator:.5,work:.62,version:.8,term:.75,step:.85,passage:1.25});
+// How near the view must come before a star's name stands of itself, in the view's zoom over the whole tree (a nearer
+// star counts nearer): from afar the eras, the branches, the authors and the names of the regions; coming nearer the
+// figures, concepts and questions; then works, words, images and moves; at last every passage and version.
+export const TREE_LABEL_FROM=Object.freeze({era:0,branch:0,author:0,concept:1.4,figure:1.5,question:1.8,school:2,work:2,image:2,chapter:2.2,term:2.4,step:2.4,translator:2.8,version:3,passage:3});
 /** The strata of the tree, top to bottom, as the edge of the map names them. */
 export const TREE_STRATA=Object.freeze([['crown',bi('Ветви и вопросы','Branches and questions')],['concepts',bi('Понятия','Concepts')],['words',bi('Слова','Words')],['texts',bi('Тексты','Texts')]]);
 

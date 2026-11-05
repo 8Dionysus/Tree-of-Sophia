@@ -973,7 +973,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const layoutStrip=()=>lens==='time'&&timeline?timeline.strip:lens==='space'&&geography?geography.strip:0;
   let shownView=null;
   function refreshSky(){
-    sky?.setCloseIn?.(treeView());
+    sky?.setCloseIn?.(treeView());sky?.setZoomCeiling?.(treeView()?14:4);
     if(!sky)return;shownView=visibleState();sky.update(shownView,Object.fromEntries(graphState().nodes.map(node=>[node.id,label(matForNode(node)??node)])));rising.clear();sky.select(selected);sky.selectEdge(selectedEdge);
     // An aspect is framed whole once, when its choice is made: the chosen star or link and the rows beside it.
     const key=aspect?`${aspect.kind}:${aspect.focus.join('|')}`:'';
