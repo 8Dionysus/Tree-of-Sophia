@@ -1,10 +1,13 @@
 import { defineConfig } from "vite";
 import { fileURLToPath } from "node:url";
+// Every light theme of the public site is the night's stylesheets in its own colours, added at build time.
+import { themePostcss } from "./src/public-research/themes.mjs";
 
 export default defineConfig(({ mode }) => {
   const publicResearch = mode === "public-research";
   return {
   base: publicResearch ? "/__research/" : "/static/",
+  css: { postcss: { plugins: [themePostcss()] } },
   server: {
     host: "127.0.0.1",
     fs: {
@@ -31,11 +34,14 @@ export default defineConfig(({ mode }) => {
         'zarathustra/index':fileURLToPath(new URL('./zarathustra/index.html',import.meta.url)),
         'antiquity/index':fileURLToPath(new URL('./antiquity/index.html',import.meta.url)),
         'not-found/index':fileURLToPath(new URL('./not-found/index.html',import.meta.url)),
+        // The site's own address greets the reader with its bonsai to choose from.
+        'home/index':fileURLToPath(new URL('./home/index.html',import.meta.url)),
       } : {
         index:fileURLToPath(new URL('./index.html',import.meta.url)),
         research:fileURLToPath(new URL('./research.html',import.meta.url)),
         'zarathustra/index':fileURLToPath(new URL('./zarathustra/index.html',import.meta.url)),
         'antiquity/index':fileURLToPath(new URL('./antiquity/index.html',import.meta.url)),
+        'home/index':fileURLToPath(new URL('./home/index.html',import.meta.url)),
       },
       output: {
         entryFileNames: chunk=>chunk.name==='index'?'assets/tos-graph.js':chunk.name==='research'?'assets/tos-research.js':`assets/${chunk.name.replaceAll('/','-')}.js`,

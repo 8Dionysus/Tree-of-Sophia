@@ -1,0 +1,2 @@
+// Before the first paint: the theme the reader chose on any page of the site (src/public-research/site-theme.mjs).
+(function(){try{var theme=localStorage.getItem('tos.public-research.theme.v1');if(/^(midnight|noon|rubric|dawn)$/.test(theme||'')){document.documentElement.setAttribute('data-site-theme',theme);document.documentElement.style.colorScheme=theme==='midnight'?'dark':'light';}}catch(error){}})();

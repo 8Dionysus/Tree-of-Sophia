@@ -1,0 +1,12 @@
+/* The sky is drawn on a canvas for the night. A light theme turns its lightness over and keeps its hues
+   (inverting, then turning the hue back half a circle): the night's glowing stars become ink on paper, and
+   the theme's page shows through where the night was dark, warmed or cooled to the page's own tone. */
+:root[data-site-theme="noon"] canvas.tree-sky{filter:invert(1) hue-rotate(180deg) sepia(.3) brightness(.96)}
+:root[data-site-theme="rubric"] canvas.tree-sky{filter:invert(1) hue-rotate(180deg) sepia(.22) brightness(.965)}
+:root[data-site-theme="dawn"] canvas.tree-sky{filter:invert(1) hue-rotate(180deg) saturate(.8) brightness(.985)}
+/* A depth plane's name is coloured from code for the night; on a light page it takes the page's ink. */
+:root:is([data-site-theme="noon"],[data-site-theme="rubric"],[data-site-theme="dawn"]) .tree-plane{color:inherit!important}
+/* The tree's mark is drawn light for the night; on a light page it is drawn in ink. */
+:root:is([data-site-theme="noon"],[data-site-theme="rubric"],[data-site-theme="dawn"]) #research-bar .pr-wordmark::before{filter:invert(1) hue-rotate(180deg) brightness(.6)}
+/* "Утренняя заря" is the longest name of a theme; its whole name shows. */
+#research-bar .ps-theme-select{max-width:156px}
