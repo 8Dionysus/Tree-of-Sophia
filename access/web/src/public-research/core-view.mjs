@@ -30,6 +30,7 @@ const words={
   semanticUses:['Смысловые употребления','Contextual uses','Usos contextuales','Kontextuelle Verwendungen','语境用法'],semanticScope:['Слова подобраны по совпадению словоформ или как ориентир для исследования. Группы относятся к указанным местам; не все употребления слова автоматически относятся к этому предмету.','Words are selected by matching forms or as research leads. Groups concern the cited passages; not every use of the word automatically concerns this subject.','Las palabras se seleccionan por formas coincidentes o como pistas; no todo uso concierne automáticamente a este tema.','Wörter werden über Wortformen oder als Forschungshinweise ausgewählt; nicht jede Verwendung betrifft automatisch diesen Gegenstand.','词语依据词形或研究线索选择；并非每次用法都自动属于此主题。'],unknownUses:['Места без рассмотренного значения','Places with unassessed meaning','Pasajes sin significado examinado','Stellen ohne geprüfte Bedeutung','含义尚未审查的段落'],via:['Через','Via','Por medio de','Über','经由'],
   formulaReview:['Как выбрана формула','How the formula was chosen','Cómo se eligió la fórmula','Wie die Formel gewählt wurde','原句如何选定'],madeBy:['Предложил','Proposed by','Propuesto por','Vorgeschlagen von','提出者'],checkedBy:['Проверил','Checked by','Revisado por','Geprüft von','审核者'],samePlace:['То же место книги','The same place in the book','El mismo lugar del libro','Dieselbe Stelle des Buches','书中同一处'],
   proposalReading:['Прочтение','Reading','Lectura','Lesart','解读'],readingLimit:['Границы прочтения','Limits of the reading','Límites de la lectura','Grenzen der Deutung','解读范围'],relatedSubject:['Связанный предмет','Related subject','Tema relacionado','Verwandter Gegenstand','相关主题'],method:['Исследовательский приём','Research method','Método de investigación','Untersuchungsmethode','研究方法'],methodEpisode:['От разбора к приёму','From reading to method','De la lectura al método','Von der Lektüre zur Methode','从阅读到方法'],previousTitle:['Прежнее название','Previous title','Título anterior','Früherer Titel','先前标题'],
+  outgoing:['Ведёт к','Leads to','Conduce a','Führt zu','通向'],incoming:['Приходит от','Comes from','Viene de','Kommt von','来自'],
 };
 const langs=['ru','en','es','de','zh-Hans'];
 const el=(tag,cls='',text)=>{const node=document.createElement(tag);node.className=cls;if(text!==undefined)node.textContent=text;return node;};
@@ -152,7 +153,7 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
     if(item.why&&item.assessment?.reason!==item.why.ru&&!alike(tr(item.why),lead))form(box,item.why);
     parent.append(box);
   }
-  function link(parent,record){
+  function link(parent,record,{bench=false}={}){
     // The link reads as a sentence of the book: subject, the book's verb, object. Its registry family and type are provenance.
     const box=el('section','ps-core-link'),ends=el('div','edge-endpoints ps-link-sentence');
     ends.append(button(name(record.from),()=>onNode?.(core.materialIds[record.from]),'ps-link-end'),el('span','ps-link-verb',tr(record.verb)),button(name(record.to),()=>onNode?.(core.materialIds[record.to]),'ps-link-end'));
@@ -160,7 +161,7 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
     voice(box,record.voice);
     const seen=new Set(),sense=tr(record.sense);
     form(box,{...record.sense,cite:[...new Map([...(record.cite?[record.cite]:[]),...(record.grounds??[])].map(cite=>[JSON.stringify(cite),cite])).values()]},seen);
-    actions(box,record,'relation');
+    actions(box,record,'relation',null,{bench});
     section(box,'question',record.question);
     if(record.answer&&tr(record.answer)!==sense)section(box,'answer',record.answer,seen);
     for(const field of ['scope','conditions'])if(record[field])section(box,field,record[field]);
@@ -229,11 +230,13 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
     for(const chain of core.chains){const index=chain.steps?.indexOf(record)??-1;if(index>=0)return `core-chain:${chain.id}:${index}`;}
     return null;
   }
-  function actions(parent,record,recordKind,selectLinks){
+  function actions(parent,record,recordKind,selectLinks,{bench=false}={}){
     if(!onAction&&!selectLinks)return;
     const bar=el('nav','ps-kernel-actions');bar.setAttribute('aria-label',t('researchState'));
     for(const action of ['read','compare','links','continue']){
       if(!onAction&&action!=='links')continue;
+      // On the workbench the reader's own work has a place of its own, so the tools keep reading, comparing and the links.
+      if(bench&&action==='continue')continue;
       bar.append(button(t(action),()=>{
         if(action==='links'&&selectLinks&&!onAction){selectLinks();return;}
         onAction?.({action,recordId:recordKind==='relation'?relationId(record):record.id,kind:recordKind,record,cite:firstCite(record,recordKind)});
@@ -260,7 +263,7 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
       if(familyProposed){const box=el('section','ps-core-section'),label=core.links.find(link=>link.relation_family?.family===familyProposed.family)?.relation_family?.family_label;box.append(el('h3','minor-title',t('previousFamily')),el('p','',tr(label)||familyProposed.family||''));if(familyProposed.family_reason)form(box,familyProposed.family_reason);body.append(box);}
     });
   }
-  function sections(body,key,record,id,lead){
+  function sections(body,key,record,id,lead,bench=false){
     const essence=record.conception??record.essence??{};
     if(key==='essence'){
       const first=essence.formula??essence.formulas?.[0],seen=new Set(first?.cite?[placeKey(first.cite)]:[]);
@@ -284,7 +287,22 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
       }
     }
     if(key==='dimensions')for(const item of record.dimensions??[]){const box=el('section','ps-core-section');box.append(el('h3','minor-title',tr(item.name)));form(box,item);body.append(box);}
-    if(key==='links')for(const item of core.links.filter(link=>(link.from===id||link.to===id)&&link.admission!=='rejected').sort((a,b)=>(a.order??0)-(b.order??0))){
+    if(key==='links'&&bench){
+      // On the workbench the links read as two lists, what the subject leads to and what leads to it: a name lays that
+      // subject on the bench, the verb opens the link itself between the two.
+      const items=core.links.filter(link=>(link.from===id||link.to===id)&&link.admission!=='rejected').sort((a,b)=>(a.order??0)-(b.order??0));
+      for(const [arrow,side,list] of [['→','outgoing',items.filter(item=>item.from===id)],['←','incoming',items.filter(item=>item.from!==id)]]){
+        if(!list.length)continue;
+        const group=el('div','ps-relation-group');group.append(el('h3','ps-relation-kind',`${arrow} ${t(side)} · ${list.length}`));
+        for(const item of list){
+          const other=item.from===id?item.to:item.from,row=el('div','ps-link-row'),materialId=core.materialIds[other];
+          row.append(onRelation?button(tr(item.verb),()=>onRelation(item.id),'ps-link-row-verb'):el('span','ps-link-row-verb',tr(item.verb)));
+          row.append(materialId&&onNode?button(name(other),()=>onNode(materialId),'ps-link-row-end'):el('span','ps-link-row-end',name(other)));
+          group.append(row);
+        }
+        body.append(group);
+      }
+    }else if(key==='links')for(const item of core.links.filter(link=>(link.from===id||link.to===id)&&link.admission!=='rejected').sort((a,b)=>(a.order??0)-(b.order??0))){
       const other=item.from===id?item.to:item.from;
       fold(body,`${item.from===id?'→':'←'} ${tr(item.verb)} · ${name(other)}${item.admission==='rejected'?` · ${t('rejected')}`:''}`,box=>{
         if(onRelation)box.append(button(t('openRelation'),()=>onRelation(item.id),'ps-kernel-action'));
@@ -295,7 +313,17 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
   }
   // A part of the card speaks only when it has something to say: an empty part is left out, its tab and its heading too.
   const filledKeys=(keys,record,id,lead)=>keys.filter(key=>{if(key==='essence')return true;const probe=el('div');sections(probe,key,record,id,lead);return probe.childElementCount>0;});
-  function node(parent,id,{reference=false}={}){
+  // A subject at one end of a link, as the workbench lays it beside the other: its thesis or reading, its formula
+  // in the book's words and the question it holds.
+  function brief(parent,id){
+    const record=core.records[id];if(!record)return false;
+    const essence=record.conception??record.essence??{},short=essence.thesis??essence.who??record.reading?.reading??record.reading;
+    if(tr(short))parent.append(el('p','body',tr(short)));
+    formula(parent,essence.formula??essence.formulas?.[0],tr(short));
+    section(parent,'question',record.question??essence.question);
+    return true;
+  }
+  function node(parent,id,{reference=false,bench=false}={}){
     const record=core.records[id];if(!record)return false;
     const essence=record.conception??record.essence??{},root=el('article',reference?'ps-core-card ps-kernel-reference':'ps-core-card');root.dataset.coreId=id;parent.append(root);
     const header=el('header','ps-kernel-header');const kindLine=el('p','ps-core-kind',t(kind(record)));header.append(kindLine);if(reference)header.append(el('h2','ps-kernel-title',name(id)));root.append(header);
@@ -307,11 +335,15 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
     else if(!record.conception&&!record.essence&&!record.chainId)status(kindLine,'held');
     else status(kindLine,essence.thesis?.status??essence.formula?.status??record.status);
     const keys=['essence','development','dimensions','links','witnesses'];let showLinks;
-    actions(root,record,'node',reference?null:()=>showLinks?.());
+    actions(root,record,'node',reference?null:()=>showLinks?.(),{bench});
     formula(root,essence.formula??essence.formulas?.[0],tr(short));
-    if(reference){
-      for(const key of keys){const content=el('div');sections(content,key,record,id,lead);if(!content.childElementCount)continue;const part=el('section','ps-kernel-reference-section');part.append(el('h3','ps-kernel-section-title',t(key)),content);root.append(part);}
-      keepQuotesOnce(root,{label:source=>t('quotedAbove').replace('{0}',`«${source.split(' · ')[0]}»`)});
+    if(reference||bench){
+      // On the workbench every part lies open at its step of interpretation: the book's places with the source,
+      // the links with the comparison, the rest with the reading.
+      const steps={witnesses:'source',links:'comparison'};
+      for(const key of keys){const content=el('div');sections(content,key,record,id,lead,bench);if(!content.childElementCount)continue;const part=el('section','ps-kernel-reference-section');part.append(el('h3','ps-kernel-section-title',t(key)),content);root.append(part);
+        if(bench){part.dataset.zone=steps[key]??'reading';part.dataset.part=key;if(key==='links')showLinks=()=>part.scrollIntoView({block:'start',behavior:'smooth'});}}
+      if(reference)keepQuotesOnce(root,{label:source=>t('quotedAbove').replace('{0}',`«${source.split(' · ')[0]}»`)});
     }else{
       const tabs=el('div','ps-core-tabs'),body=el('section','ps-core-pane'),instance=++serial;tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label',name(id));body.setAttribute('role','tabpanel');
       const draw=key=>{
@@ -365,5 +397,5 @@ export function createCoreView({core,locale,fragments,onNode,onRoute,onRelation,
     return false;
   }
 
-  return {node,link,renderReference};
+  return {node,link,brief,renderReference};
 }
