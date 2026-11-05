@@ -292,8 +292,9 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     if(first)viewport={...targetViewport};measureLabels=true;kick();
   }
   function paintFog(texture,phase,alpha){
-    // In the day the night's clouds are only a breath of air over the paper.
-    ctx.save();ctx.globalCompositeOperation='screen';ctx.globalAlpha=alpha*(daylight()?.38:1);
+    // The night's clouds turn over into blue blots on the day's paper; the day has its air and its lamp instead.
+    if(daylight())return;
+    ctx.save();ctx.globalCompositeOperation='screen';ctx.globalAlpha=alpha;
     // The fog leans with the turn and comes back round with it.
     ctx.translate(w*.5+Math.sin(skyTime*.025+phase)*w*.026+eye.x*16-Math.sin(yaw)*27,h*.51+Math.cos(skyTime*.019+phase)*h*.024+eye.y*12);
     ctx.rotate(Math.sin(skyTime*.013+phase)*.055-Math.sin(yaw)*.035);
@@ -713,7 +714,9 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     if(Math.abs(base-nextBase)>.00001||frameCount===0){base=nextBase;dust.forEach(s=>{const spread=(FOCAL-s.minZ-s.range*.5)/FOCAL;s.x=s.sx*w*.5/base*spread;s.y=s.sy*h*.5/base*spread;});}
     skyCos=Math.cos(yaw+Math.sin(skyTime*.021)*.011);skySin=Math.sin(yaw+Math.sin(skyTime*.021)*.011);
     skyPitchCos=Math.cos(pitch);skyPitchSin=Math.sin(pitch);
-    ctx.beginFrame?.();ctx.setTransform(dpr,0,0,dpr,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.drawImage(nebula,0,0,w,h);
+    ctx.beginFrame?.();ctx.setTransform(dpr,0,0,dpr,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+    // The night's nebula is the night's own; turned over for the day it would lie on the paper as a cold stain.
+    if(daylight()){ctx.fillStyle='#04070e';ctx.fillRect(0,0,w,h);}else ctx.drawImage(nebula,0,0,w,h);
     const count=Math.round(dust.length*design.density);paintStars(0,count);paintFog(fogBack,.2,.85);paintStars(1,count);paintFog(fogFront,2.4,.46);
     nodes.forEach(n=>n.screen=project(n.p));
     if(revealId&&!drag)revealPending();
