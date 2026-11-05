@@ -16,8 +16,8 @@ test("public page paths map to their MPA HTML and receive security headers", asy
     headers: { "Content-Type": "text/html; charset=utf-8" },
   }));
   for (const [path, expected] of [
-    ["/", "/zarathustra/"],
-    ["/?lang=en", "/zarathustra/"],
+    ["/", "/home/"],
+    ["/?lang=en", "/home/"],
     ["/zarathustra", "/zarathustra/"],
     ["/zarathustra/", "/zarathustra/"],
     ["/antiquity", "/antiquity/"],
@@ -98,7 +98,7 @@ test("an address the site does not hold gets the Tree's own page with status 404
 
 test("icons, crawler files and link cards come from the root of the research build", async () => {
   const app = fixture(request => new Response(new URL(request.url).pathname));
-  for (const path of ["/favicon.svg", "/favicon.ico", "/apple-touch-icon.png", "/robots.txt", "/sitemap.xml", "/og/zarathustra-en.jpg"]) {
+  for (const path of ["/favicon.svg", "/favicon.ico", "/apple-touch-icon.png", "/robots.txt", "/sitemap.xml", "/theme.js", "/og/zarathustra-en.jpg"]) {
     const response = await app.fetch(new Request(`https://treeofsophia.com${path}`));
     assert.equal(app.paths.at(-1), path);
     assert.equal(await response.text(), path);
@@ -137,12 +137,24 @@ test("a stand's page names itself in English unless its link asks for Russian", 
   assert.match(chinese, /<title>Zarathustra · Tree of Sophia<\/title>/);
   assert.doesNotMatch(localizeHead(STAND, "antiquity", "es"), /[А-Яа-яЁё]/);
   const app = fixture(() => new Response(STAND, { headers: { "Content-Type": "text/html; charset=utf-8", "Content-Length": "999", ETag: "x" } }));
-  const response = await app.fetch(new Request("https://treeofsophia.com/?lang=ru"));
+  const response = await app.fetch(new Request("https://treeofsophia.com/zarathustra/?lang=ru"));
   assert.equal(app.paths.at(-1), "/zarathustra/");
   assert.match(await response.text(), /Так говорил Заратустра · Древо Софии/);
   assert.equal(response.headers.get("ETag"), null);
   const plain = await app.fetch(new Request("https://treeofsophia.com/zarathustra/"));
   assert.equal(await plain.text(), STAND);
+});
+
+test("the site's own address greets in the language its link asks for", async () => {
+  const page = `<!doctype html>\n<html lang="en">\n  <head>\n    <title>Tree of Sophia</title>\n    <meta name="description" content="Thought grown from the texts themselves." />\n    <meta property="og:site_name" content="Tree of Sophia" />\n    <meta property="og:title" content="Tree of Sophia" />\n  </head>\n</html>`;
+  const app = fixture(() => new Response(page, { headers: { "Content-Type": "text/html; charset=utf-8" } }));
+  const russian = await (await app.fetch(new Request("https://treeofsophia.com/?lang=ru"))).text();
+  assert.equal(app.paths.at(-1), "/home/");
+  assert.match(russian, /<html lang="ru"/);
+  assert.match(russian, /<title>Древо Софии<\/title>/);
+  assert.match(russian, /content="Мысль, выращенная из самих текстов\./);
+  const english = await (await app.fetch(new Request("https://treeofsophia.com/"))).text();
+  assert.equal(english, page);
 });
 
 test("the server reads a language tag as the page does, aliases included", async () => {

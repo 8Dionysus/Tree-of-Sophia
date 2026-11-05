@@ -21,7 +21,8 @@ function originPath(pathname: string): boolean {
 }
 
 // Icons, the crawler files and the link cards live at the root of the research build.
-const ROOT_FILES = new Set(["/favicon.svg", "/favicon.ico", "/apple-touch-icon.png", "/robots.txt", "/sitemap.xml"]);
+// The theme script sets the reader's theme before a page paints (web/public/theme.js).
+const ROOT_FILES = new Set(["/favicon.svg", "/favicon.ico", "/apple-touch-icon.png", "/robots.txt", "/sitemap.xml", "/theme.js"]);
 const rootFile = (pathname: string) => ROOT_FILES.has(pathname) || /^\/og\/[a-z-]+\.jpg$/.test(pathname);
 
 // A stand's page names itself in English, the site's default. A link that asks for Russian gets
@@ -29,6 +30,18 @@ const rootFile = (pathname: string) => ROOT_FILES.has(pathname) || /^\/og\/[a-z-
 // English head under its own language tag. A shared link reads in the reader's language.
 type Head = { title: string; og: string; description: string };
 const HEADS: Record<string, Record<"en" | "ru", Head>> = {
+  home: {
+    en: {
+      title: "Tree of Sophia",
+      og: "Tree of Sophia",
+      description: "Thought grown from the texts themselves. Each bonsai of the Tree of Sophia is a work or a whole world: in the original, in translation and on a map of its links.",
+    },
+    ru: {
+      title: "Древо Софии",
+      og: "Древо Софии",
+      description: "Мысль, выращенная из самих текстов. Каждый бонсай Древа Софии — произведение или целый мир: в оригинале, в переводах и на карте его связей.",
+    },
+  },
   zarathustra: {
     en: {
       title: "Zarathustra · Tree of Sophia",
@@ -116,9 +129,9 @@ export default {
       return textResponse("method not allowed", 405, request.method);
     }
 
-    // The public site's main address opens the research space, too.
+    // The public site's main address greets the reader with its bonsai to choose from.
     // Fetch the directory directly to avoid ASSETS index canonicalization.
-    const page = url.pathname === "/" ? "/zarathustra/" : publicPrototypeAsset(url.pathname);
+    const page = url.pathname === "/" ? "/home/" : publicPrototypeAsset(url.pathname);
     if (page) return standPage(env, request, page);
 
     if (url.pathname.startsWith("/__research/")) {

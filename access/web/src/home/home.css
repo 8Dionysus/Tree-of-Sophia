@@ -1,0 +1,49 @@
+/* The choice of a bonsai: the night of the stands (and each light theme by the build's twins), the
+   Tree's name, one line on what it grows, and its bonsai growing in, branch by branch, star by star. */
+@font-face{font-family:Sophia;src:local('Noto Serif'),local('DejaVu Serif');font-display:swap}
+@view-transition{navigation:auto}
+:root{color-scheme:dark;--ground:#070f1b;--raised:#0b1626;--ink:#e4e6ea;--text:#b9c6d5;--muted:#93a5b9;--accent:#dcc690;--rule:#8296b22b;--branch:#8ea2ba}
+html,body{margin:0;min-height:100%;background:var(--ground);color:var(--text)}
+body{display:flex;flex-direction:column;min-height:100dvh;font:16px/1.5 system-ui,-apple-system,'Segoe UI',sans-serif}
+.home-bar{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;min-height:36px;padding:16px 20px 0}
+.home-select{appearance:none;min-height:36px;padding:0 14px;border:1px solid var(--rule);border-radius:999px;background:transparent;color:var(--muted);font:500 12px/1 system-ui,-apple-system,'Segoe UI',sans-serif;cursor:pointer}
+.home-select:hover{color:var(--ink)}
+.home-select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.home-select option{background:var(--ground);color:var(--ink)}
+.home{box-sizing:border-box;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(28px,5vh,52px);width:100%;max-width:1040px;margin:0 auto;padding:24px 20px 56px}
+.home-head{display:flex;flex-direction:column;align-items:center;gap:16px;max-width:600px;text-align:center}
+.home-mark{display:flex;flex-direction:column;align-items:center;gap:14px;margin:0;color:var(--ink);font:500 12px/1.2 system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:.22em;text-transform:uppercase}
+.home-mark::before{content:'';width:44px;height:44px;background:url(/tree-mark.svg) center/contain no-repeat}
+:root:is([data-site-theme="noon"],[data-site-theme="rubric"],[data-site-theme="dawn"]) .home-mark::before{filter:invert(1) hue-rotate(180deg) brightness(.6)}
+.home-tagline{margin:0;color:var(--text);font:400 clamp(17px,2.3vw,20px)/1.6 Sophia,Georgia,'Times New Roman',serif}
+.home-choice{display:flex;flex-direction:column;align-items:center;gap:18px;width:100%}
+.home-choose{margin:0;color:var(--muted);font:600 11px/1.4 system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:.18em;text-transform:uppercase}
+.home-stands{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:16px;width:100%;max-width:980px;margin:0;padding:0;list-style:none}
+.home-stand a{box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;padding:8px 24px 28px;border:1px solid transparent;border-radius:18px;color:inherit;text-align:center;text-decoration:none;transition:border-color .35s,background-color .35s,transform .35s}
+.home-stand a:hover{border-color:var(--rule);background:var(--raised);transform:translateY(-3px)}
+.home-stand a:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-color:var(--rule);background:var(--raised)}
+.home-tree{display:block;width:min(220px,62vw);height:min(220px,62vw);margin-bottom:4px;overflow:visible;transform-origin:50% 84%}
+.home-tree .home-branch{fill:none;stroke:var(--branch);stroke-linecap:round;stroke-linejoin:round}
+.home-tree .home-pot{fill:none;stroke:var(--muted);stroke-width:1.2;stroke-linejoin:round;opacity:.75}
+.home-tree .home-star{fill:var(--accent);transform-box:fill-box;transform-origin:center}
+.home-tree .home-crown{filter:drop-shadow(0 0 5px var(--accent))}
+.home-title{color:var(--ink);font:400 clamp(24px,3vw,28px)/1.2 Sophia,Georgia,'Times New Roman',serif}
+.home-meta{color:var(--muted);font-size:13px;line-height:1.45}
+.home-desc{max-width:36ch;color:var(--text);font:15px/1.6 Sophia,Georgia,'Times New Roman',serif}
+.home-stand a:hover .home-branch,.home-stand a:focus-visible .home-branch{stroke:var(--accent)}
+.home-stand a:hover .home-title,.home-stand a:focus-visible .home-title{color:var(--accent)}
+.home-branch,.home-title{transition:stroke .45s,color .45s}
+@media (prefers-reduced-motion:no-preference){
+  .home-head{animation:home-rise .55s ease-out both}
+  .home-choose{animation:home-rise .55s .12s ease-out both}
+  .home-stand{animation:home-rise .55s ease-out both;animation-delay:calc(.18s + var(--i,0) * .12s)}
+  .home-tree .home-branch{stroke-dasharray:1;stroke-dashoffset:1;animation:home-grow .42s cubic-bezier(.3,.7,.3,1) forwards;animation-delay:calc(.22s + var(--i,0) * .12s + var(--d,0) * .075s)}
+  .home-tree .home-star{transform:scale(0);animation:home-bloom .38s cubic-bezier(.3,1.5,.5,1) forwards,home-twinkle 3.4s ease-in-out infinite;animation-delay:calc(.5s + var(--i,0) * .12s + var(--d,0) * .075s),calc(1.4s + var(--t,0) * 1s)}
+  .home-stand a:hover .home-tree,.home-stand a:focus-visible .home-tree{animation:home-sway 2.6s ease-in-out infinite}
+}
+@keyframes home-rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes home-grow{to{stroke-dashoffset:0}}
+@keyframes home-bloom{to{transform:scale(1)}}
+@keyframes home-twinkle{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes home-sway{0%,100%{transform:rotate(0)}50%{transform:rotate(1.4deg)}}
+@media (max-width:620px){.home-bar{padding:12px 14px 0}.home{padding:16px 16px 40px}.home-stand a{padding:4px 12px 22px}}
