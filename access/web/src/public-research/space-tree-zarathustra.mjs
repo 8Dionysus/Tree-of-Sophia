@@ -135,5 +135,12 @@ export function zarathustraTree({library,chapters=witnesses.chapters}){
   const strata={crown:top.length?[Math.min(...top.map(b=>b[0])),Math.max(...top.map(b=>b[1]))]:null,concepts:band('concept'),images:band('image'),figures:band('figure')?[-24,-24]:null,texts:[40,rootBottom]};
   for(const [id,title] of ZARATHUSTRA_STRATA){const range=strata[id];if(range)names.push({id:`tree:stratum:${id}`,kind:'stratum',title,center:[0,Math.round((range[0]+range[1])/2),0],range});}
 
-  return {positions,roles,sides,edges,lines,names,bounds,rootRadius:RA,regionOf:id=>at(id)?treeRegion(at(id)):null,angleOf:id=>at(id)?angleOf(at(id)):null};
+  // ── What a star's hint says of its place in the tree: the path and step it is, the chapter where it enters the book,
+  // how many chapters it cites.
+  const notes=new Map(),ru=v=>v?.ru??v?.en??'',en=v=>v?.en??v?.ru??'',chapterName=(i,locale)=>String(chapters[i]?.titles?.[locale]??chapters[i]?.key??'').replace(/[.。]\s*$/,'');
+  for(const g of grown)g.steps.forEach((id,k)=>notes.set(id,bi(`Путь «${ru(g.route.title)}» · шаг ${k+1} из ${g.steps.length}`,`Path “${en(g.route.title)}” · step ${k+1} of ${g.steps.length}`)));
+  for(const node of nodes){const role=roleOf(node),list=[...new Set(cited(node))];if(!list.length)continue;
+    if(role==='figure'||role==='passage'||role==='chapter'){const i=Math.min(...list);notes.set(node.id,role==='figure'?bi(`Входит в книгу: «${chapterName(i,'ru')}»`,`Enters the book: “${chapterName(i,'en')}”`):bi(`«${chapterName(i,'ru')}»`,`“${chapterName(i,'en')}”`));}
+    else if((role==='image'||role==='concept')&&list.length>1)notes.set(node.id,bi(`Глав в книге: ${list.length}`,`Chapters of the book: ${list.length}`));}
+  return {positions,roles,sides,edges,lines,names,notes,bounds,rootRadius:RA,regionOf:id=>at(id)?treeRegion(at(id)):null,angleOf:id=>at(id)?angleOf(at(id)):null};
 }

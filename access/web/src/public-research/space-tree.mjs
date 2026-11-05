@@ -228,7 +228,17 @@ export function antiquityTree({collection,chronology=null,materialOf}){
   for(const area of areaPlaces)names.push({id:`tree:area:${area.id}`,kind:'area',title:area.title,count:area.branches,center:point(area.center),color:area.color});
   for(const [id,title] of TREE_STRATA){const range=strata[id];if(range)names.push({id:`tree:stratum:${id}`,kind:'stratum',title,center:[0,round((range[0]+range[1])/2),0],range});}
 
-  return {positions,roles,sides,edges,lines,names,bounds,rootRadius:RA,regionOf:id=>at(id)?treeRegion(at(id)):null,angleOf:id=>at(id)?angleOf(at(id)):null};
+  // ── What a star's hint says of its place in the tree: the branch and move it grows as, the work it hangs on, who answers it.
+  const notes=new Map(),named=new Map(entities.map(e=>[e.id,e])),ru=v=>v?.ru??v?.en??'',en=v=>v?.en??v?.ru??'';
+  for(const g of grown)g.levels.forEach((level,d)=>level.forEach(id=>{if(readBy.get(id)===g.branch.id)notes.set(of(id),bi(`Ветвь «${ru(g.branch.title)}» · ход ${d+1}`,`Branch “${en(g.branch.title)}” · move ${d+1}`));}));
+  for(const p of passages)if(!readBy.has(p.id)){const w=named.get(p.workId),a=named.get(w?.author);if(w)notes.set(of(p.id),bi(`«${ru(w.title)}»${a?` · ${ru(a.title)}`:''}`,`“${en(w.title)}”${a?` · ${en(a.title)}`:''}`));}
+  for(const a of authors){const n=works.filter(w=>w.author===a.id).length;if(n)notes.set(of(a.id),bi(`Произведений: ${n}`,`Works: ${n}`));}
+  const passageAuthor=new Map(passages.map(p=>[p.id,named.get(named.get(p.workId)?.author)??named.get(p.author)]));
+  for(const q of questions){const voices=[...new Map((q.positions??[]).map(x=>passageAuthor.get(x.passage)).filter(Boolean).map(a=>[a.id,a])).values()];if(!voices.length)continue;
+    const list=(pick,more)=>voices.slice(0,3).map(a=>pick(a.title)).join(', ')+(voices.length>3?more(voices.length-3):'');
+    notes.set(of(q.id),bi(`Отвечают: ${list(ru,n=>` и ещё ${n}`)}`,`Answered by ${list(en,n=>` and ${n} more`)}`));}
+
+  return {positions,roles,sides,edges,lines,names,notes,bounds,rootRadius:RA,regionOf:id=>at(id)?treeRegion(at(id)):null,angleOf:id=>at(id)?angleOf(at(id)):null};
 }
 
 // The geometry every tree of the lens shares.

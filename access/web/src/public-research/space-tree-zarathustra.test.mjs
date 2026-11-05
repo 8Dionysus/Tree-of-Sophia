@@ -62,6 +62,9 @@ describe('the whole Zarathustra bonsai as one tree',()=>{
     expect(gap(angle(at(steps[0])),angle(at('core:jester')))).toBeLessThan(Math.PI/2);
     expect(gap(angle(at('core:dwarf-weight#0')),angle(at('demo:dwarf')))).toBeLessThan(Math.PI/2);
     expect(at('demo:circle-change')[1]).toBeLessThan(Math.min(...steps.map(id=>at(id)[1])));
+    // A star's hint says where it stands in the tree.
+    expect(tree.notes.get('core:jester-leap#1')).toEqual({ru:'Путь «Прыжок» · шаг 2 из 4',en:'Path “Leap” · step 2 of 4'});
+    expect(tree.notes.get('core:jester').ru).toMatch(/^Входит в книгу: «.+»$/);
   });
   it('draws each route’s own moves and the book’s places, through the trunk between strata, the same every time',()=>{
     const move=tree.edges.find(edge=>edge.from==='core:jester-leap#0'&&edge.to==='core:jester-leap#1');
