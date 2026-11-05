@@ -14,7 +14,7 @@ body{display:flex;flex-direction:column;min-height:100dvh;font:16px/1.5 system-u
 .home-head{display:flex;flex-direction:column;align-items:center;gap:16px;max-width:600px;text-align:center}
 .home-mark{display:flex;flex-direction:column;align-items:center;gap:14px;margin:0;color:var(--ink);font:500 12px/1.2 system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:.22em;text-transform:uppercase}
 .home-mark::before{content:'';width:44px;height:44px;background:url(/tree-mark.svg) center/contain no-repeat}
-:root:is([data-site-theme="noon"],[data-site-theme="rubric"],[data-site-theme="dawn"]) .home-mark::before{filter:invert(1) hue-rotate(180deg) brightness(.6)}
+:root[data-site-theme="noon"] .home-mark::before{filter:invert(1) hue-rotate(180deg) brightness(.6)}
 .home-tagline{margin:0;color:var(--text);font:400 clamp(17px,2.3vw,20px)/1.6 Sophia,Georgia,'Times New Roman',serif}
 .home-choice{display:flex;flex-direction:column;align-items:center;gap:18px;width:100%}
 .home-choose{margin:0;color:var(--muted);font:600 11px/1.4 system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:.18em;text-transform:uppercase}

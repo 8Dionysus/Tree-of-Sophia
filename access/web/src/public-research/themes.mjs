@@ -1,21 +1,22 @@
-// The site's themes. Midnight is the stands' own night sky; Noon, Rubric and Dawn are its light themes.
+// The site's themes. Midnight is the stands' own night sky; Noon is its day, the night turned over.
 // A light theme takes every colour of the night into its own palette by one rule: grounds become its
 // page and leaves, light words become its ink, the night's gold becomes its accent, and every other
 // hue keeps itself at the lightness the page needs. The stylesheets are written once, for the night;
 // the build adds each light theme's twin of every rule that paints (themePostcss), so a rule written
 // later wears every theme by itself.
 //   Noon: warm paper, ink and the gold of the great noon.
-//   Rubric: a manuscript's ink and cinnabar.
-//   Dawn: the cool morning, white leaves on a grey sky.
+// Until the reader chooses, the page follows the system's own light or dark.
 
 export const THEME_ATTRIBUTE='data-site-theme';
 export const THEME_KEY='tos.public-research.theme.v1';
 export const DEFAULT_THEME='midnight';
+export const SYSTEM_THEME='system';
+export const SYSTEM_NAME=Object.freeze({ru:'Как в системе',en:'System'});
+/** The theme of the system's light or dark. */
+export const systemTheme=dark=>dark?'midnight':'noon';
 export const THEMES=Object.freeze([
   Object.freeze({id:'midnight',dark:true,name:Object.freeze({ru:'Полночь',en:'Midnight'}),palette:Object.freeze({ground:'#070F1B',raised:'#0B1626',ink:'#E4E6EA',accent:'#DCC690'})}),
   Object.freeze({id:'noon',name:Object.freeze({ru:'Полдень',en:'Noon'}),palette:Object.freeze({ground:'#F4EFE4',raised:'#FBF8F1',ink:'#1F2633',accent:'#83601F'})}),
-  Object.freeze({id:'rubric',name:Object.freeze({ru:'Рубрика',en:'Rubric'}),palette:Object.freeze({ground:'#F5F2EB',raised:'#FCFAF6',ink:'#26211D',accent:'#A13A22'})}),
-  Object.freeze({id:'dawn',name:Object.freeze({ru:'Утренняя заря',en:'Dawn'}),palette:Object.freeze({ground:'#EDF0F4',raised:'#FFFFFF',ink:'#142033',accent:'#7A5B22'})}),
 ]);
 export const themeById=id=>THEMES.find(theme=>theme.id===id)??null;
 
@@ -130,21 +131,33 @@ export function themeSelector(selector,id){
   return `:root${scope} ${trimmed}`;
 }
 
+// A painting property and its longhands are one family for the cascade: `border` and `border-left-color`, `background`
+// and `background-image`. A custom property is a family of its own.
+const familyOf=property=>{const name=property.toLowerCase();return name.startsWith('--')?name:name.replace(/-(?:top|right|bottom|left|block|inline|start|end|color|image)/g,'');};
+
 /**
  * The build's PostCSS plugin: after each rule that paints, one twin per light theme holding that rule's
- * painting declarations in the theme's colours. Every twin is more specific than every rule of the night by
- * the same measure, so the cascade among the twins is the night's own cascade.
+ * painting declarations in the theme's colours. A family of properties is the themes' to turn when any of its
+ * values in the sheet holds a colour; then every value of it is twinned, those that keep their colour too. Every
+ * twin is more specific than every rule of the night by the same measure, so the cascade among the twins is the
+ * night's own cascade, and a family no theme turns, such as a custom property holding a width, keeps the night's.
  */
 export function themePostcss(){
   const light=THEMES.filter(theme=>!theme.dark);
   return {postcssPlugin:'tos-site-themes',OnceExit(root){
-    const rules=[];root.walkRules(rule=>{rules.push(rule);});
-    for(const rule of rules){
-      if(rule.parent?.type==='atrule'&&/keyframes$/i.test(rule.parent.name))continue;
+    const rules=[];
+    root.walkRules(rule=>{
+      if(rule.parent?.type==='atrule'&&/keyframes$/i.test(rule.parent.name))return;
       // A rule written for a theme already is that theme's own word; it has no night to be turned.
-      if(rule.selector.includes(`[${THEME_ATTRIBUTE}`))continue;
-      const painting=rule.nodes.filter(node=>node.type==='decl'&&paints(node.prop,node.value));
-      if(!painting.length||!painting.some(node=>themeValue('noon',node.value,node.prop)!==node.value))continue;
+      if(rule.selector.includes(`[${THEME_ATTRIBUTE}`))return;
+      rules.push(rule);
+    });
+    const declarations=rule=>rule.nodes.filter(node=>node.type==='decl'&&paints(node.prop,node.value));
+    const turned=new Set();
+    for(const rule of rules)for(const node of declarations(rule))if(light.some(theme=>themeValue(theme.id,node.value,node.prop)!==node.value))turned.add(familyOf(node.prop));
+    for(const rule of rules){
+      const painting=declarations(rule).filter(node=>turned.has(familyOf(node.prop)));
+      if(!painting.length)continue;
       let at=rule;
       for(const theme of light){
         const twin=rule.clone({selectors:rule.selectors.map(selector=>themeSelector(selector,theme.id))});twin.removeAll();
