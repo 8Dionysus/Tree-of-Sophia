@@ -519,6 +519,7 @@ pub(super) fn run(
         cancelled,
     )
     .map_err(|_| SourceCommandError::Denied("native assessment schema selection"))?;
+    super::limit_schema(&mut worker, invocation, deadline)?;
     crate::source_sign::require_assessment_profile(&worker)?;
     let context_schema_path = RelativePath::parse(OWNER_CONTEXT_SCHEMA)
         .map_err(|_| SourceCommandError::Invalid("assessment context schema path"))?;
@@ -723,6 +724,7 @@ pub(crate) fn run_public_v2_batch(
         cancelled,
     )
     .map_err(|_| SourceCommandError::Denied("native assessment schema selection"))?;
+    super::limit_schema(&mut worker, invocation, deadline)?;
     crate::source_sign::require_assessment_profile(&worker)?;
     let context = selected_command_context(
         cut,

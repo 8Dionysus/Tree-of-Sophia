@@ -1053,6 +1053,16 @@ pub(crate) fn run(
                     cancelled,
                 )
                 .map_err(DurableError::Source)?;
+                worker
+                    .set_operation_limits(
+                        super::revisions::invocation_schema_limits(invocation, deadline)
+                            .map_err(DurableError::Source)?,
+                    )
+                    .map_err(|_| {
+                        DurableError::Source(SourceCommandError::Denied(
+                            "native asserted-source candidate schema budget",
+                        ))
+                    })?;
                 let (owner, context_config) = OwnerTextContext::select_pg(
                     &context_path,
                     context_schema,

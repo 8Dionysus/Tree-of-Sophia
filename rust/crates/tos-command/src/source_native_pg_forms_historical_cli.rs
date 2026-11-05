@@ -1812,7 +1812,7 @@ pub(super) fn run(
                     let schema_identity =
                         PgRecordRevisionIdentity::from_selection(session.selection());
                     let mut worker =
-                        super::revisions::selected_in_process_candidate_schema_from_context(
+                        super::revisions::selected_path_bound_candidate_schema_from_context(
                             &context.files,
                             schema_identity,
                             deadline,
@@ -1900,7 +1900,7 @@ pub(super) fn run(
                     let schema_identity =
                         PgRecordRevisionIdentity::from_selection(session.selection());
                     let mut worker =
-                        super::revisions::selected_in_process_candidate_schema_from_context(
+                        super::revisions::selected_path_bound_candidate_schema_from_context(
                             &context.files,
                             schema_identity,
                             deadline,

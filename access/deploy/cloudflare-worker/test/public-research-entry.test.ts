@@ -133,7 +133,7 @@ test("a stand's page names itself in English unless its link asks for Russian", 
   assert.match(english, /<title>Zarathustra · Tree of Sophia<\/title>/);
   assert.match(english, /<meta name="description" content="Thus Spoke Zarathustra in the Tree of Sophia: the German original/);
   const chinese = localizeHead(STAND, "zarathustra", "zh-Hans");
-  assert.match(chinese, /<html lang="zh"/);
+  assert.match(chinese, /<html lang="zh-Hans"/);
   assert.match(chinese, /<title>Zarathustra · Tree of Sophia<\/title>/);
   assert.doesNotMatch(localizeHead(STAND, "antiquity", "es"), /[А-Яа-яЁё]/);
   const app = fixture(() => new Response(STAND, { headers: { "Content-Type": "text/html; charset=utf-8", "Content-Length": "999", ETag: "x" } }));
@@ -143,4 +143,23 @@ test("a stand's page names itself in English unless its link asks for Russian", 
   assert.equal(response.headers.get("ETag"), null);
   const plain = await app.fetch(new Request("https://treeofsophia.com/zarathustra/"));
   assert.equal(await plain.text(), STAND);
+});
+
+test("the server reads a language tag as the page does, aliases included", async () => {
+  const app = fixture(() => new Response(STAND, { headers: { "Content-Type": "text/html; charset=utf-8" } }));
+  const page = async (lang: string) => (await app.fetch(new Request(`https://treeofsophia.com/zarathustra/?lang=${encodeURIComponent(lang)}`))).text();
+  for (const alias of ["zh-CN", "zh_Hans", "zh-SG", "zh-Hans-CN", "ZH-cn", "zh"]) {
+    const html = await page(alias);
+    assert.match(html, /<html lang="zh-Hans"/, alias);
+    assert.match(html, /<title>Zarathustra · Tree of Sophia<\/title>/, alias);
+  }
+  for (const alias of ["ru-RU", "RU", "ru_RU"]) {
+    const html = await page(alias);
+    assert.match(html, /<html lang="ru"/, alias);
+    assert.match(html, /<title>Заратустра · Древо Софии<\/title>/, alias);
+    assert.match(html, /content="ru_RU"/, alias);
+  }
+  assert.match(await page("es-MX"), /<html lang="es"/);
+  assert.match(await page("de-AT"), /<html lang="de"/);
+  for (const unknown of ["fr", "zh-TW", "xx-YY"]) assert.equal(await page(unknown), STAND, unknown);
 });

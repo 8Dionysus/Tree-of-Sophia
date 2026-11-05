@@ -99,6 +99,7 @@ pub(super) fn run(
         cancelled,
     )
     .map_err(|_| SourceCommandError::Denied("creation schema selection"))?;
+    super::limit_schema(&mut worker, invocation, deadline)?;
     let mut batch = tos_validation::executor::BatchBudget::laboratory();
     batch.total_execution_wall = deadline.saturating_duration_since(Instant::now());
     batch.cpu_seconds = capped(budgets, "worker_cpu_seconds", 3)?;
@@ -135,6 +136,7 @@ pub(super) fn run(
                 cancelled,
             )
             .map_err(|_| SourceCommandError::Denied("Sign assessment schema selection"))?;
+            super::limit_schema(&mut assessment, invocation, deadline)?;
             let promotion = owner::describe_sign_promotion_from_captures(
                 &configuration_path,
                 &context,
@@ -160,6 +162,7 @@ pub(super) fn run(
             cancelled,
         )
         .map_err(|_| SourceCommandError::Denied("Sign assessment schema selection"))?;
+        super::limit_schema(&mut assessment, invocation, deadline)?;
         owner::prepare_sign_promotion_from_captures(
             &configuration_path,
             &context,
@@ -218,7 +221,7 @@ pub(super) fn run(
         };
         crate::source_creation_store::finish_creation_worker(&mut worker, deadline, cancelled)?;
         let publication = if family == CreationFamily::Sign {
-            let mut local = selected_in_process_schema(&original, deadline, cancelled)?;
+            let mut local = selected_in_process_schema(invocation, &original, deadline, cancelled)?;
             let mut assessment = tos_validation::source_cut::InProcessCutSchemaExecutor::from_cut(
                 &original,
                 tos_validation::FormatProfile::AssertedSourceCandidateV1,
@@ -227,6 +230,7 @@ pub(super) fn run(
                 cancelled,
             )
             .map_err(|_| SourceCommandError::Denied("Sign assessment schema selection"))?;
+            super::limit_schema(&mut assessment, invocation, deadline)?;
             if replay {
                 filesystem.replay_sign_isolated(
                     &serialized,

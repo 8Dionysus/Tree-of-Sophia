@@ -97,7 +97,7 @@ pub(super) fn run(
     } else {
         current
     };
-    let mut worker = selected_in_process_schema(selected, deadline, cancelled)?;
+    let mut worker = selected_in_process_schema(invocation, selected, deadline, cancelled)?;
     components
         .members()
         .try_fold(0u64, |sum, member| sum.checked_add(member.size_bytes))

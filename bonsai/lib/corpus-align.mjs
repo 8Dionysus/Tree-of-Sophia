@@ -104,6 +104,30 @@ export function alignVersion(original,translation,cited){
   const beads=PERIODS.has(original.language)?LONG_PERIOD:[];
   const {how,map}=counterparts(original,translation),textOf=new Map(translation.units.map(unit=>[unit.id,unit.text]));
   const position=new Map(translation.units.map((unit,index)=>[unit.id,index])),whole=unit=>({id:unit.id,s:0,e:chars(unit.text).length});
+  const textOfTarget=target=>chars(textOf.get(target.id)).slice(target.s,Math.min(target.e,textEnd(textOf.get(target.id)))).join('');
+  // Where the translation's preceding unit hands over to a run: the original's unit before the run and
+  // the run's own units are aligned by length, sentence by sentence, against the preceding unit and the
+  // run's counterparts; the run takes the preceding unit from its first sentence paired with the run's
+  // original, and never more than the two closing sentences the cut can involve. With no original unit
+  // before the run, only the sentence the reference cuts is offered. Null when the preceding unit gives
+  // this run nothing.
+  function handover(original,group,previous,priorText){
+    const own=sentencesOf([{index:0,raw:priorText}],translation.language);
+    if(!own.length)return null;
+    const at=original.units.findIndex(unit=>unit.id===group.units[0].id),before=original.units[at-1];
+    if(!before)return own.at(-1).id[1];
+    const bound=own[Math.max(0,own.length-2)].id[1];
+    const S=sentencesOf([before,...group.units].map((unit,index)=>({index,raw:chars(unit.text).slice(0,textEnd(unit.text)).join('')})),original.language);
+    // The sentence the reference cuts is one sentence: its continuation in the run's first unit joins the
+    // preceding unit's last sentence, so it is weighed whole against the original.
+    const [head,...rest]=group.targets.map(textOfTarget),cut=sentencesOf([{index:0,raw:head??''}],translation.language)[0]?.id[2]??0;
+    const T=sentencesOf([{index:0,raw:priorText+chars(head??'').slice(0,cut).join('')},{index:1,raw:chars(head??'').slice(cut).join('')},
+      ...rest.map((raw,index)=>({index:index+2,raw}))],translation.language).filter(item=>item.len>0);
+    const ratio=T.reduce((n,item)=>n+item.len,0)/Math.max(1,S.reduce((n,item)=>n+item.len,0));
+    const starts=alignRun(S,T,ratio,VARIANCE,{band:60,beads})
+      .filter(pair=>pair.s.some(([unit])=>unit>0)).flatMap(pair=>pair.t).filter(([unit])=>unit===0).map(([,start])=>start);
+    return starts.length?Math.max(bound,Math.min(...starts)):null;
+  }
   let groups=[];
   if(map){
     // A unit of the original with counterparts begins a run; a unit the translation does not divide (an
@@ -131,14 +155,16 @@ export function alignVersion(original,translation,cited){
       group.targets.sort((a,b)=>position.get(a.id)-position.get(b.id));
       // A source's printed reference can fall inside a sentence, and the two
       // editions need not place it at the same word. When the translation
-      // starts mid-sentence, offer the end of its preceding unit to this run
-      // as well. Keep offsets in the original units: no source text moves.
+      // starts mid-sentence, offer this run the part of its preceding unit that
+      // belongs to it: the sentences the original's own preceding unit leaves
+      // over (handover). A finished sentence that preceding unit accounts for
+      // stays with it. Keep offsets in the original units: no source text moves.
       const first=group.targets[0],index=position.get(first?.id),previous=translation.units[index-1];
-      const firstText=textOf.get(first?.id)??'',priorText=previous?.text??'';
+      const firstText=textOf.get(first?.id)??'',priorText=previous?chars(previous.text).slice(0,textEnd(previous.text)).join(''):'';
       if(previous&&first.s===0&&!group.targets.some(target=>target.id===previous.id)
         &&continues(firstText)&&unfinished(priorText)){
-        const tail=sentencesOf([{index:0,raw:chars(priorText).slice(0,textEnd(priorText)).join('')}],translation.language);
-        if(tail.length)group.targets.unshift({id:previous.id,s:tail[Math.max(0,tail.length-2)].id[1],e:textEnd(priorText)});
+        const start=handover(original,group,previous,priorText);
+        if(start!==null)group.targets.unshift({id:previous.id,s:start,e:textEnd(previous.text)});
       }
     }
   }else groups=[{units:original.units,targets:translation.units.map(whole),whole:true}];

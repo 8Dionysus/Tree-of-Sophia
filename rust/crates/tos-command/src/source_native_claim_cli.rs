@@ -90,7 +90,7 @@ pub(super) fn run(
     authored.append(&mut context.files);
     context.files = authored;
     filesystem.current_context(&context, deadline, cancelled)?;
-    let mut worker = selected_in_process_schema(selected, deadline, cancelled)?;
+    let mut worker = selected_in_process_schema(invocation, selected, deadline, cancelled)?;
     let response = match operation {
         "prepare-create" => {
             if original_revision != current.current().revision() {
@@ -111,7 +111,8 @@ pub(super) fn run(
             .response
         }
         "claims.create" => {
-            let mut current_worker = selected_in_process_schema(current, deadline, cancelled)?;
+            let mut current_worker =
+                selected_in_process_schema(invocation, current, deadline, cancelled)?;
             let (_, _, response) = owner::execute_isolated_claim_creation_from_captures(
                 &filesystem,
                 &context,

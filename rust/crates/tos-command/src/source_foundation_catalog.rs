@@ -1450,6 +1450,7 @@ fn compare_kernel<'candidate>(
     read_limits: ReadLimits,
     limits: BibliographicLimits,
     schema_deadline: Instant,
+    schema_limits: tos_validation::source_cut::InProcessOperationLimits,
     build_bibliographic: bool,
     max_version_files: usize,
     max_version_bytes: usize,
@@ -1534,6 +1535,8 @@ fn compare_kernel<'candidate>(
         limits.deadline.min(schema_deadline),
         cancelled,
     )?;
+    // The catalog phase keeps its schema worker's envelope in process.
+    validator.set_in_process_operation_limits(schema_limits)?;
     compare_prepared_kernel(
         stage,
         &validator,
@@ -1912,6 +1915,7 @@ pub(crate) fn compare_with_owned_catalogue_observation(
     read_limits: ReadLimits,
     limits: BibliographicLimits,
     schema_deadline: Instant,
+    schema_limits: tos_validation::source_cut::InProcessOperationLimits,
     build_bibliographic: bool,
     max_version_files: usize,
     max_version_bytes: usize,
@@ -1936,6 +1940,7 @@ pub(crate) fn compare_with_owned_catalogue_observation(
         read_limits,
         limits,
         schema_deadline,
+        schema_limits,
         build_bibliographic,
         max_version_files,
         max_version_bytes,
@@ -1966,6 +1971,7 @@ pub(crate) fn compare_candidate<'candidate, 'rows>(
     read_limits: ReadLimits,
     limits: BibliographicLimits,
     schema_deadline: Instant,
+    schema_limits: tos_validation::source_cut::InProcessOperationLimits,
     build_bibliographic: bool,
     max_version_files: usize,
     max_version_bytes: usize,
@@ -1993,6 +1999,7 @@ pub(crate) fn compare_candidate<'candidate, 'rows>(
         read_limits,
         limits,
         schema_deadline,
+        schema_limits,
         build_bibliographic,
         max_version_files,
         max_version_bytes,

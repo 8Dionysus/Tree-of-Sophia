@@ -1461,6 +1461,23 @@ impl<'a> SourceCatalogValidator<'a> {
         )
     }
 
+    /// Bind the resident in-process schema operation to its phase envelope
+    /// (checks, input and report bytes, CPU, wall and decoded state) before
+    /// its first check.
+    pub fn set_in_process_operation_limits(
+        &self,
+        limits: tos_validation::source_cut::InProcessOperationLimits,
+    ) -> Result<()> {
+        match &mut *self.schemas.borrow_mut() {
+            CatalogSchemas::ResidentInProcess(schemas) => schemas
+                .set_operation_limits(limits)
+                .map_err(|error| Error::Source(format!("catalog schema envelope:{error:?}"))),
+            _ => Err(Error::Source(
+                "catalog schema envelope needs the in-process executor".into(),
+            )),
+        }
+    }
+
     fn from_in_process_cut_with_mode(
         cut: &CorpusCutReader,
         input_mode: tos_validation::in_process::InputMode,

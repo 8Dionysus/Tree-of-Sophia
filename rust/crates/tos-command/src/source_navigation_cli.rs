@@ -448,6 +448,7 @@ fn navigation_producer_owner_selection(
         event_path: &producer.event_path,
         schema_paths: &producer.schema_paths,
         schema_profile: tos_validation::FormatProfile::LegacyPythonObserved20260923,
+        schema_limits: declared_schema_limits(producer)?,
         max_events: producer.max_events,
         event_limits: producer.event_limits.into_limits(),
         max_total_rows: aggregate.max_total_rows,
@@ -455,6 +456,48 @@ fn navigation_producer_owner_selection(
         max_total_dependency_bytes: aggregate.max_total_dependency_bytes,
         max_total_work_units: aggregate.max_total_work_units,
     })
+}
+
+/// A producer that still declares its schema worker's CPU, address-space and
+/// receipt budgets bounds the in-process schema operation by them, under the
+/// caps those budgets had; a producer that declares none keeps the engine's
+/// per-check ceilings.
+fn declared_schema_limits(
+    producer: &NavigationProducerSelection,
+) -> Result<
+    Option<tos_validation::source_cut::InProcessOperationLimits>,
+    SourceNavigationSelectionError,
+> {
+    let fields = [
+        &producer._schema_cpu_seconds,
+        &producer._schema_address_space_bytes,
+        &producer._schema_max_receipts,
+        &producer._schema_max_receipt_bytes,
+    ];
+    if fields.iter().all(|field| field.is_none()) {
+        return Ok(None);
+    }
+    let invalid = || SourceNavigationSelectionError::Invalid("source navigation schema budget");
+    let bounded = |field: &Option<serde_json::Value>, cap: u64| {
+        field
+            .as_ref()
+            .and_then(serde_json::Value::as_u64)
+            .filter(|value| (1..=cap).contains(value))
+            .ok_or_else(invalid)
+    };
+    let mut budget = tos_validation::executor::ExecutorBudget::laboratory();
+    budget.cpu_seconds = bounded(
+        &producer._schema_cpu_seconds,
+        tos_validation::executor::ExecutorBudget::MAX_SCALAR_CPU_SECONDS,
+    )?;
+    budget.address_space_bytes = bounded(&producer._schema_address_space_bytes, u64::MAX - 1)?;
+    let receipts = tos_validation::source_cut::CutWorkerLimits {
+        max_receipts: bounded(&producer._schema_max_receipts, 100_000)? as usize,
+        max_receipt_bytes: bounded(&producer._schema_max_receipt_bytes, 64 * 1024 * 1024)? as usize,
+    };
+    tos_validation::source_cut::InProcessOperationLimits::from_worker_budget(budget, receipts)
+        .map(Some)
+        .map_err(|_| invalid())
 }
 
 fn validate_producer_selection(
@@ -694,6 +737,8 @@ pub(crate) struct NavigationProducerOwnerSelection<'a> {
     pub event_path: &'a str,
     pub schema_paths: &'a [String],
     pub schema_profile: tos_validation::FormatProfile,
+    /// The schema envelope a v1 producer still declares for its former worker.
+    pub schema_limits: Option<tos_validation::source_cut::InProcessOperationLimits>,
     pub max_events: usize,
     pub event_limits: DurableNavigationEventLimits,
     pub max_total_rows: u64,
@@ -945,6 +990,24 @@ mod producer_schema_tests {
         value["schema_worker_sha256"] = json!("historical");
         let parsed: NavigationProducerSelection = serde_json::from_value(value.clone()).unwrap();
         assert!(validate_producer_selection(&parsed).is_ok());
+        assert_eq!(declared_schema_limits(&parsed).unwrap(), None);
+        value["schema_cpu_seconds"] = json!(2);
+        value["schema_address_space_bytes"] = json!(1_073_741_824u64);
+        value["schema_max_receipts"] = json!(16);
+        value["schema_max_receipt_bytes"] = json!(4096);
+        let parsed: NavigationProducerSelection = serde_json::from_value(value.clone()).unwrap();
+        let limits = declared_schema_limits(&parsed).unwrap().unwrap();
+        assert_eq!(limits.cpu, std::time::Duration::from_secs(2));
+        assert_eq!(limits.max_checks, 16);
+        assert_eq!(limits.max_total_report_bytes, 4096);
+        assert_eq!(limits.max_unit_state_bytes, 1_073_741_824);
+        value["schema_cpu_seconds"] = json!(61);
+        let parsed: NavigationProducerSelection = serde_json::from_value(value.clone()).unwrap();
+        assert!(declared_schema_limits(&parsed).is_err());
+        value["schema_cpu_seconds"] = json!(2);
+        value["schema_max_receipts"] = serde_json::Value::Null;
+        let parsed: NavigationProducerSelection = serde_json::from_value(value.clone()).unwrap();
+        assert!(declared_schema_limits(&parsed).is_err());
         value["schema_paths"] = json!(["ToS/contracts/../escape.schema.json"]);
         let parsed: NavigationProducerSelection = serde_json::from_value(value).unwrap();
         assert!(validate_producer_selection(&parsed).is_err());

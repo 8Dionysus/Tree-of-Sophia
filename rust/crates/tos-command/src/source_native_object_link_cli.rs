@@ -142,7 +142,7 @@ pub(super) fn run(
             )
             .is_some();
     let selected = if replay { current } else { &original };
-    let mut worker = selected_in_process_schema(selected, deadline, cancelled)?;
+    let mut worker = selected_in_process_schema(invocation, selected, deadline, cancelled)?;
     if operation == "prepare-create" {
         let prepared = owner::prepare_isolated_object_link_from_proposal(
             &fs,

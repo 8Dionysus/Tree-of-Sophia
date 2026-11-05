@@ -775,6 +775,35 @@ fn validate_policy_template(
     Ok(())
 }
 
+/// A producer that still declares its schema worker's envelope bounds the
+/// in-process recheck by it, under the same caps that envelope had; a producer
+/// that declares none keeps the engine's per-check ceilings.
+fn declared_schema_limits(
+    producer: &Value,
+) -> SourceCommandResult<Option<tos_validation::source_cut::InProcessOperationLimits>> {
+    if producer.get("schema_cpu_seconds").is_none() {
+        return Ok(None);
+    }
+    let mut budget = tos_validation::executor::ExecutorBudget::laboratory();
+    budget.cpu_seconds = selected_positive(producer, "schema_cpu_seconds", 60)?;
+    budget.address_space_bytes = selected_positive(
+        producer,
+        "schema_address_space_bytes",
+        8 * 1024 * 1024 * 1024,
+    )?;
+    let receipts = tos_validation::source_cut::CutWorkerLimits {
+        max_receipts: selected_positive(producer, "schema_max_receipts", 100_000)? as usize,
+        max_receipt_bytes: selected_positive(
+            producer,
+            "schema_max_receipt_bytes",
+            64 * 1024 * 1024,
+        )? as usize,
+    };
+    tos_validation::source_cut::InProcessOperationLimits::from_worker_budget(budget, receipts)
+        .map(Some)
+        .map_err(|_| SourceCommandError::Invalid("selected source-navigation schema budget"))
+}
+
 fn selected_positive(value: &Value, key: &str, cap: u64) -> SourceCommandResult<u64> {
     value
         .get(key)
@@ -1176,9 +1205,10 @@ fn prepare_initial(
             owner.model_limits.max_source_member_bytes,
         )
         .ok_or(SourceCommandError::Invalid("selected schema input limit"))?;
+    let declared_schema_limits = declared_schema_limits(producer)?;
     // Recheck the exact source-cut schema closure before and after compilation.
     let recheck_schema = || {
-        InProcessCutSchemaExecutor::from_cut(
+        let mut schema = InProcessCutSchemaExecutor::from_cut(
             original_cut,
             FormatProfile::LegacyPythonObserved20260923,
             InputMode::LegacyPythonObservedBounded {
@@ -1191,7 +1221,15 @@ fn prepare_initial(
             SourceCommandError::DeniedWithReason(format!(
                 "selected initial schema preparation failed: {error:?}"
             ))
-        })
+        })?;
+        if let Some(limits) = declared_schema_limits {
+            schema.set_operation_limits(limits).map_err(|error| {
+                SourceCommandError::DeniedWithReason(format!(
+                    "selected initial schema budget refused: {error:?}"
+                ))
+            })?;
+        }
+        Ok::<_, SourceCommandError>(schema)
     };
     // Exercise publication prerequisites before exporting or compiling the cut.
     drop(recheck_schema()?);
