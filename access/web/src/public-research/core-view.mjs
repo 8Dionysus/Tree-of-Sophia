@@ -253,13 +253,13 @@ export function createCoreView({core,locale,fragments,signOf,hint,onNode,onRoute
   }
   function history(parent,record){
     const formulaRecord=(record.conception??record.essence)?.formula;
-    const revisions=[...(record.sense_revision_history??[]),...(record.step_revision_history??[])],familyProposed=record.relation_family?.family_proposed;
+    const revisions=[...(record.sense_revision_history??[]),...(record.step_revision_history??[]),...(record.verb_revision_history??[])],familyProposed=record.relation_family?.family_proposed;
     const oldReadings=record.reading?.reading_revision_history??record.reading_revision_history??[],oldTitles=record.title_revision_history??[];
     if(!record.assessment&&!proposalOf(record)&&!formulaRecord?.assessment&&!formulaRecord?.proposed&&!revisions.length&&!familyProposed&&!oldReadings.length&&!oldTitles.length)return;
     fold(parent,t('history'),body=>{
       review(body,record);
       if(formulaRecord)review(body,formulaRecord,t('formulaReview'));
-      for(const revision of revisions){const box=el('section','ps-core-section');box.append(el('h3','minor-title',t('previousSense')));if(revision.verb)form(box,revision.verb);form(box,{...revision.sense,...(revision.cite?{cite:[revision.cite]}:{})});if(revision.answer)section(box,'answer',revision.answer);if(revision.assessment?.reason)form(box,revision.assessment.reason);status(box,revision.assessment?.verdict);body.append(box);}
+      for(const revision of revisions){const box=el('section','ps-core-section');box.append(el('h3','minor-title',t('previousSense')));if(revision.verb)form(box,revision.verb);form(box,{...revision.sense,...(revision.cite?{cite:[revision.cite]}:{})});if(revision.answer)section(box,'answer',revision.answer);if(revision.assessment?.reason)form(box,revision.assessment.reason);if(revision.revision?.reason)form(box,revision.revision.reason);status(box,revision.assessment?.verdict);body.append(box);}
       for(const title of oldTitles){const box=el('section','ps-core-section');box.append(el('h3','minor-title',t('previousTitle')));form(box,title);body.append(box);}
       for(const reading of oldReadings){const box=el('section','ps-core-section');box.append(el('h3','minor-title',t('previousSense')));form(box,{...reading.reading,cite:reading.grounds??(reading.cite?[reading.cite]:[])});section(box,'readingLimit',reading.limit);body.append(box);}
       if(familyProposed){const box=el('section','ps-core-section'),label=core.links.find(link=>link.relation_family?.family===familyProposed.family)?.relation_family?.family_label;box.append(el('h3','minor-title',t('previousFamily')),el('p','',tr(label)||familyProposed.family||''));if(familyProposed.family_reason)form(box,familyProposed.family_reason);body.append(box);}
@@ -298,15 +298,17 @@ export function createCoreView({core,locale,fragments,signOf,hint,onNode,onRoute
         const group=el('div','ps-relation-group');group.append(el('h3','ps-relation-kind',`${arrow} ${t(side)} · ${list.length}`));
         for(const item of list){
           const other=item.from===id?item.to:item.from,row=el('div','ps-link-row'),materialId=core.materialIds[other];
-          row.append(onRelation?button(tr(item.verb),()=>onRelation(item.id),'ps-link-row-verb'):el('span','ps-link-row-verb',tr(item.verb)));
-          const end=materialId&&onNode?button(name(other),()=>onNode(materialId),'ps-link-row-end'):el('span','ps-link-row-end',name(other)),mark=materialId&&signOf?.(materialId);if(mark)end.prepend(mark);hint?.(end,glimpse(other));row.append(end);
+          const verb=onRelation?button(tr(item.verb),()=>onRelation(item.id),'ps-link-row-verb'):el('span','ps-link-row-verb',tr(item.verb));
+          const end=materialId&&onNode?button(name(other),()=>onNode(materialId),'ps-link-row-end'):el('span','ps-link-row-end',name(other)),mark=materialId&&signOf?.(materialId);if(mark)end.prepend(mark);hint?.(end,glimpse(other));
+          // A row reads as the link's sentence: what this subject does to the other, or the other first and what it does here.
+          if(item.from===id)row.append(verb,end);else{row.className+=' is-incoming';row.append(end,verb);}
           group.append(row);
         }
         body.append(group);
       }
     }else if(key==='links')for(const item of core.links.filter(link=>(link.from===id||link.to===id)&&link.admission!=='rejected').sort((a,b)=>(a.order??0)-(b.order??0))){
       const other=item.from===id?item.to:item.from;
-      fold(body,`${item.from===id?'→':'←'} ${tr(item.verb)} · ${name(other)}${item.admission==='rejected'?` · ${t('rejected')}`:''}`,box=>{
+      fold(body,`${item.from===id?`→ ${tr(item.verb)} · ${name(other)}`:`← ${name(other)} · ${tr(item.verb)}`}${item.admission==='rejected'?` · ${t('rejected')}`:''}`,box=>{
         if(onRelation)box.append(button(t('openRelation'),()=>onRelation(item.id),'ps-kernel-action'));
         link(box,item);
       });
