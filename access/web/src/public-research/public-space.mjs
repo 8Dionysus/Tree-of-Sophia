@@ -15,6 +15,7 @@ import {bonsaiFor,depthOf,lensPositions} from './bonsai.mjs';
 import {createTerms,termNodes} from './term-view.mjs';
 import {SYSTEM_NAME,SYSTEM_THEME,THEMES,applyTheme,currentTheme,paint,themeChoice} from './site-theme.mjs';
 import {hasIcon,iconElement} from './space-icons.mjs';
+import {VOLUME_REST,proximityVolume,spaceVolume,timeVolume} from './space-volumes.mjs';
 import {citedPlaces} from './research-index.mjs';
 import {readChronology} from '../../../../bonsai/lib/chronology.mjs';
 import {readPlaces} from '../../../../bonsai/lib/places.mjs';
@@ -68,6 +69,7 @@ Object.assign(extraTranslations.en,{excerpt:'Excerpt',proposalGrounds:'Grounds o
 // The measuring lenses and the measure panel speak in few words; the map shows the rest.
 Object.assign(extraTranslations.ru,{"traceTitle": "Понятие во времени", "traceLink": "след понятия", "traceLabel": "Понятие", "nearTitle": "Близость по", "nearIsCenter": "центр", "nearClosest": "ближе всех", "nearFrom": "от", "nearNotMeasured": "не измеряется", "nearSharedConcepts": "общих понятий", "nearSharedGrounds": "общих оснований", "dateUnknown": "дата неизвестна", "duringLifeShort": "в пределах жизни автора", "duringActivityShort": "в годы деятельности автора", "placeUnknown": "место не установлено", "placeActivityShort": "здесь жил автор", "certainty_exact": "точно", "certainty_approximate": "приблизительно", "certainty_uncertain": "под вопросом", "certainty_unknown": "неизвестно", "certainty_none": "без датировки", "measureKind_date-assertion": "своя дата", "measureKind_interval-assertion": "свой интервал", "measureKind_relative-phase": "внутри периода", "measureKind_relative-life": "в пределах жизни автора", "measureKind_relative-activity": "в годы деятельности автора", "measureKind_relative-order": "относительно другого события", "measureKind_unknown-date": "дата неизвестна", "measureKind_none": "без датировки", "footing_high": "исследование", "footing_medium": "обзор исследований", "footing_low": "без ссылок на исследования", "placeBasis_composition": "место написания", "placeBasis_event": "место события", "placeBasis_activity": "место жизни автора", "placeBasis_unknown": "не установлено", "measureAction": "Мера и полнота", "measureDating": "Датировки", "measureCertainty": "Точность", "measureFooting": "Опора", "measurePlaces": "Места", "measureEras": "Эпохи", "measureConcepts": "Понятия", "measureBranches": "Ветви во времени", "measureLifeOnly": "Без собственной датировки", "measurePlaceless": "Без места", "measureGrounding": "Опора звёзд", "measureInBook": "главы книги", "measureOutside": "другие тексты", "measureChapters": "Главы", "measureOutsideTexts": "Тексты вне книги", "measureRoutes": "Маршруты по книге"});
 Object.assign(extraTranslations.en,{"traceTitle": "A concept through time", "traceLink": "concept trace", "traceLabel": "Concept", "nearTitle": "Proximity by", "nearIsCenter": "centre", "nearClosest": "nearest", "nearFrom": "from", "nearNotMeasured": "not measured", "nearSharedConcepts": "shared concepts", "nearSharedGrounds": "shared grounds", "dateUnknown": "date unknown", "duringLifeShort": "within the author’s life", "duringActivityShort": "within the author’s years of activity", "placeUnknown": "place unknown", "placeActivityShort": "where the author lived", "certainty_exact": "exact", "certainty_approximate": "approximate", "certainty_uncertain": "uncertain", "certainty_unknown": "unknown", "certainty_none": "no dating", "measureKind_date-assertion": "a date of its own", "measureKind_interval-assertion": "an interval of its own", "measureKind_relative-phase": "within a phase", "measureKind_relative-life": "within the author’s life", "measureKind_relative-activity": "within the author’s years of activity", "measureKind_relative-order": "relative to another event", "measureKind_unknown-date": "date unknown", "measureKind_none": "no dating", "footing_high": "a study", "footing_medium": "a summary of scholarship", "footing_low": "no study cited", "placeBasis_composition": "place of writing", "placeBasis_event": "place of the event", "placeBasis_activity": "where the author lived", "placeBasis_unknown": "unknown", "measureAction": "Measure and completeness", "measureDating": "Datings", "measureCertainty": "Precision", "measureFooting": "Grounds", "measurePlaces": "Places", "measureEras": "Eras", "measureConcepts": "Concepts", "measureBranches": "Branches in time", "measureLifeOnly": "No dating of their own", "measurePlaceless": "No place", "measureGrounding": "What the stars rest on", "measureInBook": "chapters of the book", "measureOutside": "other texts", "measureChapters": "Chapters", "measureOutsideTexts": "Texts outside the book", "measureRoutes": "Routes through the book"});
+Object.assign(extraTranslations.ru,{nearEarlier:"раньше",nearLater:"позже"});Object.assign(extraTranslations.en,{nearEarlier:"earlier",nearLater:"later"});
 const materialMap=library=>new Map((library?.nodes??[]).map(item=>[item.id,item]));
 const graphIdForMaterial=id=>`material:${id}`;
 const sourceKey=binding=>binding?[binding.documentId,binding.versionId,binding.unitId].join('\u0000'):'';
@@ -160,7 +162,11 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // A lens with no stars of its own in this library is not offered.
   const lenses=[...(Array.isArray(library.space?.lenses)?library.space.lenses:LENSES.filter(item=>lensHasStars(library,item.id))),...[timeLens,spaceLens,proximityLens].filter(Boolean)].map(item=>({...item,positions:lensPositions(profile,item.id)}));
   // A measuring lens lays the stars out itself; the others keep the map's own arrangement.
-  const measuredLens=id=>(id==='time'&&!!timeline)||(id==='space'&&!!geography)||(id==='proximity'&&!!proximityLens);
+  // A lens measures where its bonsai has the measure; it stands in volume as the tree does (space-volumes.mjs), but an open
+  // branch on the scale of time keeps its own flat order, read top to bottom. A flat lens is a measured one.
+  const measuredData=id=>(id==='time'&&!!timeline)||(id==='space'&&!!geography)||(id==='proximity'&&!!proximityLens);
+  const volumeLens=id=>measuredData(id)&&!(id==='time'&&stepView());
+  const measuredLens=id=>measuredData(id)&&!volumeLens(id);
   // The tree lays the whole bonsai out in space by its own layout; it turns, and it measures nothing.
   const treeView=()=>lens==='tree'&&!!treeLayout;
   const relationKinds=[...new Set([...(Array.isArray(library.space?.relationKinds)?library.space.relationKinds:Object.keys(RELATIONS)),'relates'])].filter(key=>RELATIONS[key]);
@@ -626,7 +632,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const coreViewContext=coreContext(core,{materialId:selected?.replace(/^material:/,''),edgeId:selectedEdge,chainId:routes.find(item=>item.id===route?.id)?.coreChainId});
     context.push(...coreViewContext.materialIds);
     if(route?.source==='atlas')for(const step of routes.find(item=>item.id===route.id)?.steps??[])context.push(step.nodeId??step.graphNodeId);
-    if(lens==='tree'&&treeLayout)context.push(...treeLayout.positions.keys());else if(measuredLens(lens))context.push(...starIds);
+    if(lens==='tree'&&treeLayout)context.push(...treeLayout.positions.keys());else if(measuredData(lens))context.push(...starIds);
     if(context.length){
       for(const materialId of context){const material=materials.get(materialId),id=graphIdForMaterial(materialId);if(!material||byId.has(id))continue;
         const node={id,materialId,kind:material.kind,title:tr(material.title,locale()),body:tr(material.body,locale()),position:material.position??[0,0,0],sourceIds:[],routeContext:true};base.nodes.push(node);byId.set(id,node);}
@@ -643,7 +649,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     traceLinks.clear();
     const current=graphState();
     // A route keeps showing the reader's own records about its stars, including one just written on a step.
-    const measuredView=measuredLens(lens),routePath=interaction||!compareBar.hidden?null:routeWithRecords(route?.path??null,current);
+    const measuredView=measuredData(lens),routePath=interaction||!compareBar.hidden?null:routeWithRecords(route?.path??null,current);
     const projected=makeLensView(current,library,{lens:measuredView?'tree':lens,enabled:enabled.size===relationKinds.length?null:enabled,path:routePath});
     // A chosen star brings its whole neighbourhood into a lens that groups: the links and stars the lens leaves out are
     // added where the tree has them, so the map never shows less of the star than its card does.
@@ -684,8 +690,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       const line=profile==='antiquity'&&partName(profile,material,locale(),{moveIds})&&(routeIds.has(node.id)||selectedIds.has(node.id))?sourceLine(material,{materials:previewMaterials,entryByLegacyId:collectionByLegacyId,locale:locale()}):'';
       return line?{...next,subtitle:line,labelLines:2,labelMaxWidth:210,accessibilityLabel:`${label(material)} · ${line}`}:next;
     });
-    if(lens==='time'&&timeline)applyTimeline(projected,routePath);
-    else if(lens==='space'&&geography)applyPlane(projected);
+    if(lens==='time'&&timeline){if(volumeLens('time'))applyTimeVolume(projected);else applyTimeline(projected,routePath);}
+    else if(lens==='space'&&geography){if(volumeLens('space'))applyVolume(projected,spaceVolumeNow());else applyPlane(projected);}
     else if(lens==='proximity'&&proximityLens)applyProximity(projected);
     else if(lens==='tree'&&treeLayout)applyTree(projected);
     else applyDepth(projected);
@@ -833,6 +839,21 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     }
     parent.append(box);return box;
   }
+  // ── The lenses that measure, in volume (space-volumes.mjs). A volume is worked out once for a language.
+  const volumes=new Map();
+  const volumeMemo=(key,make)=>{const id=`${key}:${locale()}`;if(!volumes.has(id))volumes.set(id,make());return volumes.get(id);};
+  const timeVolumeNow=()=>volumeMemo('time',()=>timeVolume(timeline,{locale:locale()}));
+  const spaceVolumeNow=()=>volumeMemo('space',()=>spaceVolume(geography,{xOfTime:id=>timeline?.xOf(id)??null,timeBounds:timeline?.bounds??null,timeLabels:timeline?.labels(locale())??[],basemap:geographyBackdrop(),locale:locale()}));
+  function applyVolume(projected,volume){
+    if(!volume){projected.nodes=[];projected.edges=[];projected.clusters=[];return;}
+    const place=node=>node.materialId?volume.positions.get(node.materialId):null;
+    projected.nodes=projected.nodes.filter(node=>place(node)).map(node=>({...node,position:[...place(node)]}));
+    // A volume keeps its measure clear: a link shows while one of its stars is pointed at or chosen, as on the tree.
+    const ids=new Set(projected.nodes.map(node=>node.id));projected.edges=projected.edges.filter(edge=>ids.has(edge.from)&&ids.has(edge.to)).map(edge=>edge.highlight?edge:{...edge,latent:true});
+    scaleChoice=selected;projected.clusters=[...volume.names];projected.backdrop=volume.lines;
+  }
+  // Time in volume keeps the trace of a concept: a thread through the stars that carry it, in the order of the years.
+  function applyTimeVolume(projected){applyVolume(projected,timeVolumeNow());if(traceConcept)traceThrough(projected,[],null);}
   // Time is a view: stars take places the scale gives them, the saved graph keeps its own.
   function applyTimeline(projected,routePath){
     const current=stepView(routePath)?routes.find(item=>item.id===route.id):null;
@@ -960,6 +981,14 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const center=nearCenterId(),item=nearCriterion();
     if(!center||!item){projected.nodes=[];projected.edges=[];projected.clusters=[];return;}
     const nearLayout=proximityLayout({center,stars:starIds,distance:distances[item.id](center),groupOf:id=>nearGroupOf.get(id)??null,groups:nearGroups,integer:item.id==='relations'||item.id==='chapters'});
+    // In volume the rings lie on the ground round the chosen star and the height is the time: earlier below, later above.
+    if(volumeLens('proximity')){
+      const volume=proximityVolume(nearLayout,{xOfTime:id=>timeline?.xOf(id)??null,format:value=>nearValue(item,value),locale:locale(),unmeasuredLabel:{ru:t('nearNotMeasured'),en:t('nearNotMeasured')},words:{earlier:t('nearEarlier'),later:t('nearLater')}});
+      applyVolume(projected,volume);
+      const ids=new Set(projected.nodes.map(node=>node.id));projected.edges=projected.edges.filter(edge=>ids.has(edge.from)&&ids.has(edge.to)&&(edge.from===graphIdForMaterial(center)||edge.to===graphIdForMaterial(center)));
+      projected.nodes=projected.nodes.map(node=>node.materialId===center?{...node,prominent:true}:node);
+      return;
+    }
     const place=node=>node.materialId?nearLayout.positions.get(node.materialId):null;
     projected.nodes=projected.nodes.filter(node=>place(node)).map(node=>({...node,position:[...place(node)],...(node.materialId===center?{prominent:true}:{})}));
     const ids=new Set(projected.nodes.map(node=>node.id));projected.edges=projected.edges.filter(edge=>ids.has(edge.from)&&ids.has(edge.to)&&(edge.from===graphIdForMaterial(center)||edge.to===graphIdForMaterial(center)));
@@ -970,12 +999,14 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function frameSky(){
     if(!sky)return;
     // The tree frames itself whole, or an open branch's moves where they grow on it, seen a little from above.
-    if(treeView()){sky.frame();sky.turnTo?.(null,-.2);}
+    if(treeView()){sky.setRest?.(null);sky.frame();sky.turnTo?.(null,-.2);}
+    // A lens that measures in volume is framed whole and seen from its own rest, a little from above and from its left.
+    else if(volumeLens(lens)){const rest=VOLUME_REST[lens];sky.setRest?.(rest.yaw,rest.pitch);sky.frame();sky.turnTo?.(rest.yaw,rest.pitch);}
     else if(lens==='time'&&timeline)sky.frame({fill:true,x:timeline.bounds});
     // A plane keeps one unit on both axes: the map of places and the rings of proximity are never stretched.
     else if(lens==='space'&&geography)sky.frame({fill:true,plane:true,x:geography.bounds.x,y:geography.bounds.y});
     else if(lens==='proximity'&&proximityLens)sky.frame({fill:true,plane:true,x:[-NEAR_EXTENT,NEAR_EXTENT],y:[-NEAR_EXTENT,NEAR_EXTENT]});
-    else{sky.frame();if(aspect)sky.revealAll(aspect.ids);}
+    else{sky.setRest?.(null);sky.frame();if(aspect)sky.revealAll(aspect.ids);}
   }
   // An open branch or route on the scale of time reads in its own rows, top to bottom.
   function stepView(routePath=interaction||!compareBar.hidden?null:route?.path??null){return !!(routePath&&route?.source==='atlas');}
@@ -983,7 +1014,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // Its type follows the page's widths: 13px on a wide screen, 12px on a middle one, 11px on a phone.
   let laneMeasure=null;
   function laneStrip(){
-    if(!(lens==='time'&&timeline)||stepView())return 0;
+    if(!(lens==='time'&&timeline)||stepView()||volumeLens('time'))return 0;
     const width=shell.clientWidth||innerWidth,[size,cap]=width>1180?[13,248]:width>760?[12,176]:[11,162];
     laneMeasure??=document.createElement('canvas').getContext('2d');if(!laneMeasure)return cap;
     laneMeasure.font=`${size}px ${getComputedStyle(shell).getPropertyValue('--ps-serif').trim()||'Georgia,serif'}`;
@@ -993,8 +1024,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   let sky,scaleChoice;
   const NEAR_EXTENT=530;
   // The layout a measuring lens shows, and the strip its scale keeps above the map.
-  const layoutKind=()=>lens==='time'&&timeline?timeline.kind:lens==='space'&&geography?'plane':lens==='proximity'&&proximityLens?'proximity':null;
-  const layoutStrip=()=>lens==='time'&&timeline?timeline.strip:lens==='space'&&geography?geography.strip:0;
+  const layoutKind=()=>volumeLens(lens)?null:lens==='time'&&timeline?timeline.kind:lens==='space'&&geography?'plane':lens==='proximity'&&proximityLens?'proximity':null;
+  const layoutStrip=()=>volumeLens(lens)?0:lens==='time'&&timeline?timeline.strip:lens==='space'&&geography?geography.strip:0;
   let shownView=null;
   function refreshSky(){
     sky?.setCloseIn?.(treeView());sky?.setZoomCeiling?.(treeView()?14:4);

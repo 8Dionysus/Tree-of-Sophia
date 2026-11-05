@@ -110,7 +110,9 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   // The tree's ground, when the layout has one: its shadow lies on it in the day.
   let shade=null;
 
-  const restYaw=Number.isFinite(rest?.yaw)?rest.yaw:0,restPitch=Number.isFinite(rest?.pitch)?rest.pitch:-.055;
+  // The rest the view returns to; a layout may set its own (a lens that measures in volume is seen from above and aside).
+  const baseRestYaw=Number.isFinite(rest?.yaw)?rest.yaw:0,baseRestPitch=Number.isFinite(rest?.pitch)?rest.pitch:-.055;
+  let restYaw=baseRestYaw,restPitch=baseRestPitch;
   // The view turns all the way round and over the top and the bottom, stopping short of the poles,
   // where up would flip. A return to a pose takes the shorter way round.
   const PITCH=[-1.45,1.45],TURN=Math.PI*2;
@@ -1162,6 +1164,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     /** Bring the view back to its resting pose, the shorter way round. */
     // Turn the space about its vertical axis so that the given turn faces the reader; the tilt stays, unless given.
     turnTo(yawTo,pitchTo=null){if(measured)return;velocity=null;introUntil=0;turnShownUntil=performance.now()+900;if(Number.isFinite(yawTo))tyaw=nearestTurn(yawTo,tyaw);if(Number.isFinite(pitchTo))tpitch=clamp(pitchTo,...PITCH);kick();},
+    setRest(yawTo=null,pitchTo=null){restYaw=Number.isFinite(yawTo)?yawTo:baseRestYaw;restPitch=Number.isFinite(pitchTo)?pitchTo:baseRestPitch;},
     turnToRest(){if(measured)return;velocity=null;introUntil=0;turnShownUntil=performance.now()+900;tyaw=nearestTurn(restYaw,tyaw);tpitch=restPitch;kick();},
     pose(){return {yaw,pitch,targetYaw:tyaw,targetPitch:tpitch,restYaw,restPitch,measured:!!measured};},
     focus(id){const n=nodes.find(n=>n.id===id);if(!n)return;targetCenter=[...n.target];tzoom=1.3;tpan={x:0,y:0};kick();},
