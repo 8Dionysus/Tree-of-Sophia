@@ -2,17 +2,9 @@ import es from '../locales/es.json' with {type:'json'};
 import de from '../locales/de.json' with {type:'json'};
 import zh from '../locales/zh-Hans.json' with {type:'json'};
 
-import {BONSAI_LOCALES,DEFAULT_LOCALE,resolveLocale} from './locale-tag.mjs';
-
-export {BONSAI_LOCALES,DEFAULT_LOCALE,resolveLocale};
+import {BONSAI_LOCALES,DEFAULT_LOCALE,resolveLocale,copyLocale,initialLocale} from './locale-choice.mjs';
+export {BONSAI_LOCALES,DEFAULT_LOCALE,resolveLocale,copyLocale,initialLocale};
 const catalogs=Object.freeze({es,de,'zh-Hans':zh});
-
-export const copyLocale=value=>resolveLocale(value)==='ru'?'ru':'en';
-
-/** The interface language at start: the address's, the reader's saved choice, the first system language the site has, else English. */
-export function initialLocale({requested=null,saved=null,system=[]}={}){
-  return resolveLocale(requested,null)??resolveLocale(saved,null)??[].concat(system??[]).map(value=>resolveLocale(value,null)).find(Boolean)??DEFAULT_LOCALE;
-}
 
 /**
  * The one translation a reader of `locale` sees: one in a language the interface itself speaks to

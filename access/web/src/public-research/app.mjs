@@ -1,4 +1,5 @@
-import {resolveLocale,copyLocale,initialLocale,localeText,localeLabels} from './locale.mjs';
+import {resolveLocale,copyLocale,initialLocale,localeText,localeLabels,localeValue} from './locale.mjs';
+import {STANDS} from './stands.mjs';
 import {setUiLanguage} from '../observatory/ui-i18n.mjs';
 import {mountCorpusEntry} from '../corpus-reader/host.mjs';
 import {createCorpusNotebook} from '../corpus-reader/notebook.mjs';
@@ -51,28 +52,38 @@ const button = (label, cls = '') => { const node = h('button', cls, label); node
 const link = (label, href, cls = '') => { const node = h('a', cls, label); node.href = href; return node; };
 const routeBase = location.pathname.startsWith(import.meta.env.BASE_URL) ? import.meta.env.BASE_URL : '/';
 const profileUrl = name => `${routeBase}${name}/`;
-const alternate = profileUrl(profile === 'antiquity' ? 'zarathustra' : 'antiquity');
-const targetProfile = profile === 'antiquity' ? 'zarathustra' : 'antiquity';
+// The site's own address greets the reader with every bonsai to choose from.
+const homeUrl = routeBase === '/' ? '/' : `${routeBase}home/`;
 const toolbar = h('nav', 'main-tools pr-toolbar');
 const readerRoot = h('main', 'pr-page pr-space-page');
 readerRoot.id = 'public-reader-host';
 const header = h('header', 'header pr-header');
-header.append(link(english ? localeText('Tree of Sophia',locale) : 'Древо Софии', profileUrl(profile), 'pr-wordmark'), toolbar);
+header.append(link(english ? localeText('Tree of Sophia',locale) : 'Древо Софии', homeUrl, 'pr-wordmark'), toolbar);
 const hero = h('section', 'pr-hero');
 const eyebrow = h('p', 'pr-eyebrow', strings.eyebrow);
 const title = h('h1', '', strings.title);
 const intro = h('p', 'pr-intro', strings.intro);
 const description = h('p', 'pr-description', strings.description);
 const actions = h('div', 'pr-actions');
-// The two public spaces sit side by side: the current one is marked, the other is a link.
+// The site's bonsai sit side by side: the current one is marked, every other is a link.
 const spacesNav = h('nav', 'pr-spaces');
-const currentSpace = h('span', 'pr-space-current', strings.title);
-currentSpace.setAttribute('aria-current', 'page');
-const switchProfile = link(strings.other, alternate, 'pr-switch');
-switchProfile.href = `${alternate}?lang=${locale}`;
-const labelSpaces = () => { spacesNav.setAttribute('aria-label', english ? localeText('Spaces',locale) : 'Пространства'); switchProfile.setAttribute('aria-label', `${english ? localeText('Explore',locale) : 'Перейти'}: ${strings.other}`); };
+const standTitle = stand => english ? localeValue(stand.title, locale) : stand.title.ru;
+const spaceLinks = STANDS.map(stand => {
+  const node = stand.id === profile ? h('span', 'pr-space-current') : link('', profileUrl(stand.id), 'pr-switch');
+  if (stand.id === profile) node.setAttribute('aria-current', 'page');
+  return { stand, node };
+});
+const labelSpaces = () => {
+  spacesNav.setAttribute('aria-label', english ? localeText('Spaces',locale) : 'Пространства');
+  for (const { stand, node } of spaceLinks) {
+    node.textContent = standTitle(stand);
+    if (stand.id !== profile) { node.href = `${profileUrl(stand.id)}?lang=${locale}`; node.setAttribute('aria-label', `${english ? localeText('Explore',locale) : 'Перейти'}: ${standTitle(stand)}`); }
+  }
+};
 labelSpaces();
-if (profile === 'zarathustra') spacesNav.append(currentSpace, switchProfile); else spacesNav.append(switchProfile, currentSpace);
+spacesNav.append(...spaceLinks.map(item => item.node));
+// Leaving for another bonsai or for the choice of them first keeps this one's question and place.
+const leaveLinks = () => [header.querySelector('.pr-wordmark'), ...spaceLinks.filter(item => item.stand.id !== profile).map(item => item.node)].filter(Boolean);
 toolbar.append(spacesNav);
 const questionLabel = h('label', 'pr-question-label', strings.question);
 const question = document.createElement('textarea');
@@ -311,12 +322,13 @@ function confirmDraftNavigation() {
 
 async function switchProfiles(event) {
   event.preventDefault();
+  const destination = event.currentTarget.href;
   try {
     if (workspaceView?.hasUnsavedDraft?.() && !(await confirmDraftNavigation())) return;
     if (!(await persistQuestion())) return;
     const currentRoute = validRoute(location.hash);
     if (currentRoute) await notebook.setPreference(routeKey(profile), currentRoute);
-    const next=new URL(alternate,location.href);next.searchParams.set('lang',locale);
+    const next=new URL(destination,location.href);next.searchParams.set('lang',locale);
     allowProfileLeave = true;
     location.assign(next.toString());
   } catch {
@@ -329,8 +341,7 @@ function setLanguage(value,{updateUrl=true}={}){
   value=resolveLocale(value,null);if(!value||value===locale)return;
   locale=value;english=copyLocale(locale)==='en';try{localStorage.setItem('tos.public-research.locale.v1',locale);}catch{};strings=stringsFor();document.documentElement.lang=locale;document.title=`${strings.title} · ${english?localeText('Tree of Sophia',locale):'Древо Софии'}`;refreshProviderStatus();
   header.querySelector('.pr-wordmark').textContent=english?localeText('Tree of Sophia',locale):'Древо Софии';
-  switchProfile.textContent=strings.other;currentSpace.textContent=strings.title;labelSpaces();
-  switchProfile.href=alternate+`?lang=${locale}`;
+  labelSpaces();
   if(questionLabel.firstChild?.nodeType===Node.TEXT_NODE)questionLabel.firstChild.nodeValue=strings.question;
   question.placeholder=strings.placeholder;
   saveState.textContent=questionTouched?(english?localeText('Your question has unsaved changes.',locale):'В вопросе есть несохранённые изменения.'):'';
@@ -504,7 +515,7 @@ const onSwitchProfile=event=>void switchProfiles(event);
 function disposeApp() {
   if(appDisposed)return;
   appDisposed=true;clearTimeout(saveTimer);
-  switchProfile.removeEventListener('click',onSwitchProfile);
+  for(const node of leaveLinks())node.removeEventListener('click',onSwitchProfile);
   header.removeEventListener('public-space-locale',onPublicSpaceLocale);
   question.removeEventListener('input',scheduleQuestionSave);
   window.removeEventListener('pagehide',onPageHide);
@@ -523,7 +534,7 @@ function onPageHide(event) { if(!event.persisted)disposeApp(); }
 function onBeforeUnload(event) {
   if (!allowProfileLeave && (questionTouched || workspaceView?.hasUnsavedDraft?.())) { event.preventDefault(); event.returnValue = ''; }
 }
-switchProfile.addEventListener('click',onSwitchProfile);
+for(const node of leaveLinks())node.addEventListener('click',onSwitchProfile);
 window.addEventListener('pagehide',onPageHide);
 window.addEventListener('beforeunload',onBeforeUnload);
 question.addEventListener('input', scheduleQuestionSave);
