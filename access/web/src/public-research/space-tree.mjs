@@ -21,7 +21,7 @@ const ERA_START=Object.freeze({classical:-500,hellenistic:-330,roman:-30,late:20
 const SCHOOL_ERA=Object.freeze({academy:'classical',lyceum:'classical',cynics:'classical',garden:'hellenistic','academic-scepticism':'hellenistic',stoa:'hellenistic',skeptics:'hellenistic',platonism:'late'});
 
 /** The zoom (screen pixels per unit of the layout) from which a star's name may stand without being pointed at. */
-export const TREE_LABEL_FROM=Object.freeze({era:0,branch:.2,author:.2,concept:.22,question:.42,school:.5,translator:.5,work:.62,version:.8,term:.75,step:.85,passage:1.25});
+export const TREE_LABEL_FROM=Object.freeze({era:0,figure:.2,image:.42,chapter:.55,branch:.2,author:.2,concept:.22,question:.42,school:.5,translator:.5,work:.62,version:.8,term:.75,step:.85,passage:1.25});
 /** The strata of the tree, top to bottom, as the edge of the map names them. */
 export const TREE_STRATA=Object.freeze([['crown',bi('Ветви и вопросы','Branches and questions')],['concepts',bi('Понятия','Concepts')],['words',bi('Слова','Words')],['texts',bi('Тексты','Texts')]]);
 
@@ -51,6 +51,29 @@ function smooth(points,per=6){
   return out.map(point);
 }
 const ring=(r,y,from=-Math.PI,to=Math.PI,steps=96)=>Array.from({length:steps+1},(_,i)=>point(around(r,from+(to-from)*i/steps,y)));
+
+// Where a point of a tree lies, and the way a link between two points runs: between strata through the trunk.
+export const treeRegion=([x,y,z])=>y>-60?'roots':Math.hypot(x,z)<200&&y>-T+40?'trunk':'crown';
+const toward=([x,y,z],k,height)=>[x*k,height,z*k];
+export const treeVia=(a,b)=>{
+  const ra=treeRegion(a),rb=treeRegion(b);
+  if(ra===rb){if(ra!=='roots')return [];return smooth([a,toward(a.map((v,k)=>(v+b[k])/2),.86,Math.min(a[1],b[1])-34),b],5).slice(1,-1);}
+  const low=ra==='roots'?a:rb==='roots'?b:null,high=low===a?b:a;
+  let path;
+  if(low&&treeRegion(high)==='crown')path=[low,toward(low,.3,-50),[0,-T*.5,0],[0,-T-40,0],high];
+  else if(low)path=[low,toward(low,.32,-46),high];
+  else{const trunk=ra==='trunk'?a:b,top=trunk===a?b:a;path=[trunk,toward(trunk,.5,-T-30),top];}
+  if(path[0]!==a)path.reverse();
+  return smooth(path,6).slice(1,-1);
+};
+// The trunk: its outline at four sides and its rings at the ground and under the crown.
+export function trunkLines(){
+  const out=[];
+  const width=y=>y>-260?178-(178-122)*(-y/260):y>-620?122-4*((-y-260)/360):y>-T+30?118+32*((-y-620)/(T-650)):150+55*((-y-T+30)/90);
+  for(const phi of [0,Math.PI/2,Math.PI,-Math.PI/2])out.push({tone:'trunk',points:smooth([0,-260,-620,-T+30,-T-60].map(y=>around(width(y),phi,y)),6)});
+  out.push({tone:'trunk',points:ring(178,0,-Math.PI,Math.PI,48)},{tone:'trunk',points:ring(150,-T+30,-Math.PI,Math.PI,48)});
+  return out;
+}
 
 /**
  * Lay out the Antiquity bonsai. `collection` is the bonsai's collection, `chronology` its chronology (for the order
@@ -165,30 +188,14 @@ export function antiquityTree({collection,chronology=null,materialOf}){
   const conceptQuestions=id=>questions.filter(q=>(q.concepts??[]).includes(id)).map(q=>of(q.id));
   [...kind('concept')].map(concept=>({concept,phi:facing([...conceptTexts(concept.id),...conceptQuestions(concept.id)])})).sort((a,b)=>a.phi-b.phi)
     .forEach(({concept,phi},j,all)=>set(of(concept.id),'concept',around(122,phi,-430-j*(400/Math.max(1,all.length-1))),Math.sin(phi)<0?'left':'right'));
-  // The trunk: its outline at four sides and its rings at the ground and under the crown.
-  const width=y=>y>-260?178-(178-122)*(-y/260):y>-620?122-4*((-y-260)/360):y>-T+30?118+32*((-y-620)/(T-650)):150+55*((-y-T+30)/90);
-  for(const phi of [0,Math.PI/2,Math.PI,-Math.PI/2])lines.push({tone:'trunk',points:smooth([0,-260,-620,-T+30,-T-60].map(y=>around(width(y),phi,y)),6)});
-  lines.push({tone:'trunk',points:ring(178,0,-Math.PI,Math.PI,48)},{tone:'trunk',points:ring(150,-T+30,-Math.PI,Math.PI,48)});
+  lines.push(...trunkLines());
 
   // ── Links. Every one the collection states; between strata through the trunk.
-  const regionOf=([x,y,z])=>y>-60?'roots':Math.hypot(x,z)<200&&y>-T+40?'trunk':'crown';
-  const toward=([x,y,z],k,height)=>[x*k,height,z*k];
-  const via=(a,b)=>{
-    const ra=regionOf(a),rb=regionOf(b);
-    if(ra===rb){if(ra!=='roots')return [];return smooth([a,toward(a.map((v,k)=>(v+b[k])/2),.86,Math.min(a[1],b[1])-34),b],5).slice(1,-1);}
-    const low=ra==='roots'?a:rb==='roots'?b:null,high=low===a?b:a;
-    let path;
-    if(low&&regionOf(high)==='crown')path=[low,toward(low,.3,-50),[0,-T*.5,0],[0,-T-40,0],high];
-    else if(low)path=[low,toward(low,.32,-46),high];
-    else{const trunk=ra==='trunk'?a:b,top=trunk===a?b:a;path=[trunk,toward(trunk,.5,-T-30),top];}
-    if(path[0]!==a)path.reverse();
-    return smooth(path,6).slice(1,-1);
-  };
   const seen=new Set();
   const link=(from,to,edgeKind,label,extra={})=>{
     if(!from||!to||from===to||!positions.has(from)||!positions.has(to))return;
     const id=`tree:${edgeKind}:${from}>${to}`;if(seen.has(id))return;seen.add(id);
-    edges.push({id,from,to,kind:edgeKind,label,via:via(at(from),at(to)),...extra});
+    edges.push({id,from,to,kind:edgeKind,label,via:treeVia(at(from),at(to)),...extra});
   };
   for(const w of works)link(of(w.author),of(w.id),'contains',bi('Произведение автора','A work of the author'));
   for(const v of versions){link(of(v.work),of(v.id),'translates',bi(v.kind==='original'?'Подлинник':v.kind==='edition'?'Издание':'Перевод',v.kind==='original'?'The original':v.kind==='edition'?'An edition':'A translation'));
@@ -221,5 +228,8 @@ export function antiquityTree({collection,chronology=null,materialOf}){
   for(const area of areaPlaces)names.push({id:`tree:area:${area.id}`,kind:'area',title:area.title,count:area.branches,center:point(area.center),color:area.color});
   for(const [id,title] of TREE_STRATA){const range=strata[id];if(range)names.push({id:`tree:stratum:${id}`,kind:'stratum',title,center:[0,round((range[0]+range[1])/2),0],range});}
 
-  return {positions,roles,sides,edges,lines,names,bounds,rootRadius:RA,regionOf:id=>at(id)?regionOf(at(id)):null,angleOf:id=>at(id)?angleOf(at(id)):null};
+  return {positions,roles,sides,edges,lines,names,bounds,rootRadius:RA,regionOf:id=>at(id)?treeRegion(at(id)):null,angleOf:id=>at(id)?angleOf(at(id)):null};
 }
+
+// The geometry every tree of the lens shares.
+export const TREE_GEOMETRY=Object.freeze({T,TOP,ARC,AREA_GAP,R0,RS,SX,SY,TURN,STRAND,EMPTY,BEAD,round,point,around,crown,deg,angleOf,wrap,meanAngle,smooth,ring});

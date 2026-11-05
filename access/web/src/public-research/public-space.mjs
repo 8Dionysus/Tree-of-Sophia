@@ -19,6 +19,7 @@ import {readChronology} from '../../../../bonsai/lib/chronology.mjs';
 import {readPlaces} from '../../../../bonsai/lib/places.mjs';
 import {clipLinesRight,planeOfPlaces} from './space-geography.mjs';
 import {TREE_LABEL_FROM,antiquityTree} from './space-tree.mjs';
+import {zarathustraTree} from './space-tree-zarathustra.mjs';
 import {proximityCriteria,proximityLayout} from './space-proximity.mjs';
 import {datingKind,measureAntiquity,measureZarathustra} from './space-measure.mjs';
 import {depthLayout} from './space-depth.mjs';
@@ -127,10 +128,12 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const placeOf=materialId=>{const situation=situationOf(materialId),own=situation?placesReader?.at(situation):null;return own?{...own,situation}:null;};
   const placeEntryOf=materialId=>{const situation=situationOf(materialId);return situation?placesReader?.entry(situation)??null:null;};
   const starIds=timeline?[...timeline.positions.keys()]:[];
-  // The lens "The tree" lays the whole bonsai out where the stand holds its collection: the texts in the roots, words and
-  // concepts in the trunk, the branches and their questions in the crown. It is a view; the saved graph keeps its own places.
+  // The lens "The tree" lays the whole bonsai out: the texts in the roots, words, images and concepts in the trunk, the
+  // branches or paths and their questions in the crown. Antiquity's tree grows from its collection, Zarathustra's from its
+  // library and core. It is a view; the saved graph keeps its own places.
   const treeLayout=profile==='antiquity'&&bonsai?.collection?antiquityTree({collection:bonsai.collection,chronology:bonsai.chronology,
-    materialOf:legacy=>{const id=collectionByLegacyId.get(legacy)?.materialId;return id&&materials.has(id)?id:null;}}):null;
+    materialOf:legacy=>{const id=collectionByLegacyId.get(legacy)?.materialId;return id&&materials.has(id)?id:null;}})
+    :profile==='zarathustra'&&library?.space?.core?zarathustraTree({library}):null;
   // The lens "Space" exists where the bonsai places the material; a star without a sourced place stands apart from the map.
   const geography=bonsai?.places?planeOfPlaces({stars:starIds,placeOf,places:bonsai.places.places}):null;
   // The lens "Proximity" measures from one star by one criterion its bonsai names; its direction groups by branch or circle.
@@ -884,7 +887,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     }
     projected.nodes=projected.nodes.filter(node=>placed.has(node.id)).map(node=>{
       const role=treeLayout.roles.get(node.materialId),side=treeLayout.sides.get(node.materialId);
-      return {...node,position:[...placed.get(node.id)],...(side?{labelSide:side}:{}),...(role?{labelFrom:TREE_LABEL_FROM[role]??0,major:['author','concept','branch','era'].includes(role)}:{})};
+      return {...node,position:[...placed.get(node.id)],...(side?{labelSide:side}:{}),...(role?{labelFrom:TREE_LABEL_FROM[role]??0,major:['author','figure','concept','branch','era'].includes(role)}:{})};
     });
     // Only a branch's own transitions stand at rest; every other link waits until one of its stars is reached.
     const shown=new Set(projected.nodes.map(node=>node.id)),pairs=new Set();

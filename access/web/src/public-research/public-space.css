@@ -469,6 +469,7 @@
 /* The tree names its strata at its left in small capitals, and its areas in the colour of their limbs. */
 #tree .tree-cluster[data-tone=stratum] .cluster-title{font:600 10.5px/16px var(--ps-sans);letter-spacing:.16em;text-transform:uppercase;color:#8194ab}
 #tree .tree-cluster[data-tone=area] .cluster-title{font:italic 400 17px/20px var(--ps-serif);letter-spacing:.01em}
+#tree .tree-cluster[data-tone=path] .cluster-title{font:italic 400 13px/16px var(--ps-serif);letter-spacing:.01em}
 
 /* ── mid widths: a narrower rail and column ── */
 @media(min-width:761px) and (max-width:1180px){
