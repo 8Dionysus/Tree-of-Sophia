@@ -900,3 +900,9 @@
   #tree .ps-bench-index{margin:0 16px 8px;flex-wrap:nowrap;overflow-x:auto}
   #tree .ps-bench-mark{flex:none}
 }
+
+/* The Tree's icons: a line in the colour of the text, its stars in the theme's gold; a pointed or chosen one lights its stars. */
+#tree :is(.lens-icon,.ps-action-icon,.ps-tool-symbol):has(svg){display:inline-flex;align-items:center;justify-content:center;line-height:0}
+#tree :is(.lens-icon,.ps-action-icon,.ps-tool-symbol) svg{width:18px;height:18px;overflow:visible}
+#tree .ps-icon-star{fill:#d9bd7f;stroke:none;transition:fill .18s ease,filter .18s ease}
+#tree :is(.lens,.ps-top-action,button):is(:hover,[aria-pressed=true]) .ps-icon-star{fill:#f1d79c;filter:drop-shadow(0 0 2.5px #e9c97f99)}

@@ -3,7 +3,7 @@ import {STAR_KINDS,signElement,signFamily,signMarkup,starKind} from './space-gly
 import {TREE_LABEL_FROM} from './space-tree.mjs';
 
 it('gives every role the tree grows by in either bonsai a kind with a sign',()=>{
-  for(const role of Object.keys(TREE_LABEL_FROM)){expect(starKind({role}),role).toBe(role);expect(signMarkup(role),role).toMatch(/^<svg [^>]*><path d="M[^"]+"\/><\/svg>$/);}
+  for(const role of Object.keys(TREE_LABEL_FROM)){expect(starKind({role}),role).toBe(role);expect(signMarkup(role),role).toMatch(/^<svg [^>]*><path d="M[^"]+"\/>(<circle class="ps-icon-star" [^>]+\/>)+<\/svg>$/);}
   for(const kind of STAR_KINDS)expect(signFamily(kind),kind).toBeTruthy();
 });
 
