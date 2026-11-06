@@ -169,6 +169,7 @@ export class SophiaGpuCanvas {
   }
   beginFrame() {
     this.used=0;this.groups=[];
+    if(this.atlasFull)this.clearAtlas();
     if(this.resolution.x!==this.canvas.width||this.resolution.y!==this.canvas.height) {
       this.resolution.set(this.canvas.width,this.canvas.height);
       this.renderer.setSize(this.canvas.width,this.canvas.height,false);
@@ -204,14 +205,22 @@ export class SophiaGpuCanvas {
       this.data[offset+8]=shape[0];this.data[offset+9]=shape[1];this.data[offset+10]=shape[2];
     }
   }
+  // The atlas packs images on shelves as they are first drawn. When it is full, the image waits and the next frame starts
+  // the atlas over with only the images it draws, so a scene that changes its images (a theme, a lens) never runs out.
   atlasEntry(image) {
     if(this.images.has(image))return this.images.get(image);
     const width=image.width,height=image.height;
+    if(width+4>2048||height+4>2048)return null;
     if(this.shelfX+width+2>2048){this.shelfX=2;this.shelfY+=this.shelfHeight+4;this.shelfHeight=0;}
-    if(this.shelfY+height+2>2048)throw new Error('Scene texture atlas budget exceeded');
+    if(this.shelfY+height+2>2048){this.atlasFull=true;return null;}
     const entry={x:this.shelfX,y:this.shelfY,width,height};
     this.shelfX+=width+4;this.shelfHeight=Math.max(this.shelfHeight,height);
     this.images.set(image,entry);this.invalidateImage(image);return entry;
+  }
+  clearAtlas() {
+    this.images.clear();this.atlasContext.clearRect(0,0,2048,2048);
+    this.shelfX=2;this.shelfY=2;this.shelfHeight=0;this.atlasFull=false;this.atlasTexture.needsUpdate=true;
+    this.canvas.dataset.atlasResets=String((Number(this.canvas.dataset.atlasResets)||0)+1);
   }
   invalidateImage(image) {
     const e=this.images.get(image);if(!e)return;
@@ -224,7 +233,8 @@ export class SophiaGpuCanvas {
     this.atlasTexture.needsUpdate=true;
   }
   drawImage(image,x,y,w,h) {
-    const e=this.atlasEntry(image),u=e.x/2048,v=1-e.y/2048,uw=e.width/2048,vh=e.height/2048;
+    const e=this.atlasEntry(image);if(!e)return;
+    const u=e.x/2048,v=1-e.y/2048,uw=e.width/2048,vh=e.height/2048;
     const m=this.matrix,points=this.quadPoints,locals=this.quadLocals,shape=this.quadShape;
     for(let i=0;i<4;i++) {
       const right=i===1||i===2,bottom=i>=2,px=right?x+w:x,py=bottom?y+h:y;
