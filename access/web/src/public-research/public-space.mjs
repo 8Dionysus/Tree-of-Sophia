@@ -915,6 +915,16 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     scaleChoice=selected;
     projected.clusters=treeLayout.names.map(name=>({id:name.id,title:tr(name.title,locale()),subtitle:'',center:name.center,...(name.color?{color:paint(name.color)}:{}),tone:name.kind,...(name.kind==='stratum'?{variant:'edge'}:{recede:true})}));
     projected.backdrop=treeBackdrop();
+    projected.shade=treeShade();
+  }
+  // The tree's ground, where its shadow lies in the day: the centre and radius of its ground circle.
+  let treeShadeMemo;
+  function treeShade(){
+    if(treeShadeMemo!==undefined)return treeShadeMemo;
+    const ground=treeLayout.lines.find(line=>line.tone==='ground')?.points??[];
+    if(ground.length<3)return treeShadeMemo=null;
+    const center=[0,1,2].map(i=>ground.reduce((sum,p)=>sum+(p[i]??0),0)/ground.length);
+    return treeShadeMemo={center,radius:Math.max(...ground.map(p=>Math.hypot(p[0]-center[0],(p[2]??0)-center[2])))};
   }
   // Space is a view as well: stars stand at the place of their writing, the saved graph keeps its own positions.
   function applyPlane(projected){
