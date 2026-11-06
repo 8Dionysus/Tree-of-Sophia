@@ -92,18 +92,19 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   const mixHex=(a,b,t)=>{if(t<=0)return a;const p=x=>[1,3,5].map(i=>parseInt(x.slice(i,i+2),16)),A=p(a),B=p(b);return '#'+A.map((v,i)=>Math.round(v+(B[i]-v)*Math.min(1,t)).toString(16).padStart(2,'0')).join('');};
   // The paper is a shade under white, so the noon light can stand brighter than it; washes of warm umber, lilac and
   // sage lie toward the edges as the day's coloured shadow, never round the tree.
-  const dayGround=document.createElement('canvas');dayGround.width=1100;dayGround.height=780;
-  {const g=dayGround.getContext('2d');g.fillStyle=nightOf('#F8F5EF');g.fillRect(0,0,1100,780);
+  // The day's textures are soft, so they are kept small: they share one atlas with the night's on the GPU.
+  const dayGround=document.createElement('canvas');dayGround.width=550;dayGround.height=390;
+  {const g=dayGround.getContext('2d');g.scale(.5,.5);g.fillStyle=nightOf('#F8F5EF');g.fillRect(0,0,1100,780);
     for(const [x,y,r,hex,a] of [[90,740,560,'#E8DACA',.75],[1040,150,480,'#E3DEEB',.7],[1010,770,460,'#DEE5D6',.65],[40,90,400,'#F0E6D6',.55],[560,860,420,'#EDE3D5',.5]]){
       const n=nightOf(hex),grad=g.createRadialGradient(x,y,0,x,y,r);grad.addColorStop(0,n+Math.round(a*255).toString(16).padStart(2,'0'));grad.addColorStop(.55,n+Math.round(a*110).toString(16).padStart(2,'0'));grad.addColorStop(1,n+'00');g.fillStyle=grad;g.fillRect(0,0,1100,780);}}
   const radialTexture=(hex,size,stops)=>{const c=document.createElement('canvas');c.width=c.height=size;const g=c.getContext('2d'),h=size/2,grad=g.createRadialGradient(h,h,0,h,h,h),n=nightOf(hex);for(const [at,a] of stops)grad.addColorStop(at,n+Math.round(a*255).toString(16).padStart(2,'0'));g.fillStyle=grad;g.fillRect(0,0,size,size);return c;};
   // The noon light from above, a shadow's soft blot, and a ray of light falling from the top.
-  const dayLight=radialTexture('#FFFFFF',512,[[0,1],[.35,.62],[.7,.18],[1,0]]);
+  const dayLight=radialTexture('#FFFFFF',256,[[0,1],[.35,.62],[.7,.18],[1,0]]);
   const dayShadow=radialTexture('#5C4E40',256,[[0,.9],[.4,.55],[.75,.16],[1,0]]);
-  const dayRay=document.createElement('canvas');dayRay.width=128;dayRay.height=1024;
-  {const g=dayRay.getContext('2d'),n=nightOf('#FFFFFF'),im=g.createImageData(128,1024),d=im.data,[r,gg,b]=[1,3,5].map(i=>parseInt(n.slice(i,i+2),16));
-    for(let y=0;y<1024;y++){const t=y/1024,half=10+52*t,fade=Math.sin(Math.PI*Math.min(1,t*1.15))*(1-t*.55);
-      for(let x=0;x<128;x++){const k=(y*128+x)*4,dx=(x-64)/half,a=Math.exp(-dx*dx*2.2)*fade;d[k]=r;d[k+1]=gg;d[k+2]=b;d[k+3]=Math.round(a*120);}}
+  const dayRay=document.createElement('canvas');dayRay.width=64;dayRay.height=512;
+  {const g=dayRay.getContext('2d'),n=nightOf('#FFFFFF'),im=g.createImageData(64,512),d=im.data,[r,gg,b]=[1,3,5].map(i=>parseInt(n.slice(i,i+2),16));
+    for(let y=0;y<512;y++){const t=y/512,half=5+26*t,fade=Math.sin(Math.PI*Math.min(1,t*1.15))*(1-t*.55);
+      for(let x=0;x<64;x++){const k=(y*64+x)*4,dx=(x-32)/half,a=Math.exp(-dx*dx*2.2)*fade;d[k]=r;d[k+1]=gg;d[k+2]=b;d[k+3]=Math.round(a*120);}}
     g.putImageData(im,0,0);}
   // Stars of the night turn into motes of gold drifting in the light.
   const moteColors=['#B48C3C','#C49E57','#A27A3A','#CFAE6C','#9A8467','#B5966C'].map(nightOf);
@@ -743,7 +744,13 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     return occupied;
   }
 
+  // A frame that fails keeps the sky alive: the error is reported once, and the next frame is drawn as usual.
+  let failed='';
   function draw(now,still=false){
+    try{drawFrame(now,still);}
+    catch(error){raf=0;const said=String(error?.message??error);if(said!==failed){failed=said;console.error(error);}if(!still)kick();}
+  }
+  function drawFrame(now,still){
     raf=0;if(disposed||(document.hidden&&!still))return;
     const frameInterval=softwareRenderer?1000/28:1000/36;if(!still&&lastFrame&&now-lastFrame<frameInterval){raf=requestAnimationFrame(draw);return;}lastFrame=now;
     const started=performance.now(),elapsed=last?(now-last)/1000:1/60,dt=Math.min(elapsed,.05),ease=(reduced.matches||still)?1:1-Math.exp(-dt*5);last=now;
