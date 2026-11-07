@@ -3,6 +3,7 @@ import './philology.css';
 import {referenceKey, validateReference} from './model.mjs';
 import {languageName} from '../observatory/human-presentation.mjs';
 import {lexicalReading} from './bonsai-lexical-readings.mjs';
+import {renderWordContext} from './word-context.mjs';
 
 const COPY = {
   ru: {
@@ -220,7 +221,7 @@ function renderCandidate(parent, candidate, index, locale, words) {
 export function renderPhilology(body, {
   locale = 'ru', form = '', language = '', reference = null, version = null,
   result = null, busy = false, concordance = null, searchAvailable = false,
-  onConcordance, onMore, onOccurrence, onMappingTarget,
+  onConcordance, onMore, onOccurrence, onMappingTarget, onOrigin,
 } = {}) {
   const words = localeLabels(COPY[copyLocale(locale)],locale);
   const multiword=Boolean(form) && !isSingleWordSelection(form);
@@ -238,6 +239,8 @@ export function renderPhilology(body, {
     const details=element('details','cr-philology-exact');details.append(element('summary','',words.address),exact);body.append(details);
   }
   if(language)body.append(element('p','cr-philology-muted',`${words.language}: ${languageName(language, locale)}`));
+  // The stand's word layer: the word in its sentence, before the dictionary candidates of the form.
+  if(!multiword && !busy && result?.context) renderWordContext(body, result.context, {locale, onOrigin});
 
   if (multiword) body.append(element('p','cr-philology-muted',words.selectWord));
   else if (busy) body.append(element('p', 'cr-philology-muted', words.loading));
