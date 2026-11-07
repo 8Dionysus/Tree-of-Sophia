@@ -1,4 +1,4 @@
-// The research workbench. A chosen star's or link's card opens over the whole space and is laid out by the steps of
+// The expanded card. A chosen star's or link's card opens over the whole space and is laid out by the steps of
 // interpretation the tree keeps apart: the source itself, its reading, and its comparison with other stars; the reader's
 // own work closes the last of them. A link lies between its two stars, each in its own words, and what joins them stands
 // in the middle, at the step of comparison.
