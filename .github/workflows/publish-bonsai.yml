@@ -19,6 +19,8 @@ concurrency:
 
 jobs:
   publish:
+    outputs:
+      deployed: ${{ steps.final_check.outputs.deploy }}
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
@@ -73,6 +75,20 @@ jobs:
             exit 1
           fi
 
+      # The stands' generated layers live in R2 (docs/STORAGE.md); git keeps
+      # their digest manifests, bonsai/<stand>/layers.json.
+      - name: Check R2 configuration
+        if: steps.current.outputs.deploy == 'true'
+        env:
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          if [[ -z "$R2_ENDPOINT" || -z "$R2_ACCESS_KEY_ID" || -z "$R2_SECRET_ACCESS_KEY" ]]; then
+            echo '::error::Configure R2_ENDPOINT, R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY in Actions.'
+            exit 1
+          fi
+
       - name: Set up Node
         if: steps.current.outputs.deploy == 'true'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
@@ -82,6 +98,21 @@ jobs:
           cache-dependency-path: |
             access/web/package-lock.json
             access/deploy/cloudflare-worker/package-lock.json
+
+      # From R2, else the site's copy, else the transfer branch where a
+      # producer without R2 access left new files; every file is checked
+      # against its digest before it is written.
+      - name: Bring the bonsai layers
+        if: steps.current.outputs.deploy == 'true'
+        env:
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          set -euo pipefail
+          for home in bonsai/*/; do
+            if [[ -f "${home}layers.json" ]]; then node bonsai/lib/layers.mjs fetch "$home"; fi
+          done
 
       - name: Build the exact browser rules
         if: steps.current.outputs.deploy == 'true'
@@ -107,8 +138,15 @@ jobs:
           set -euo pipefail
           npm ci --prefix access/web
           npm ci --prefix access/deploy/cloudflare-worker
+          # With the layers present the check and their own cases read them whole.
+          node bonsai/lib/cli.mjs check
+          (cd access/web && npx --no-install vitest run src/public-research/bonsai-layers.test.mjs src/public-research/bonsai-words.test.mjs src/public-research/renderings-view.test.mjs)
           npm --prefix access/web run build:public-research
           output=access/deploy/cloudflare-worker/dist-public-research
+          # The site's copy of the layers, by digest, for checkouts without R2 access.
+          for home in bonsai/*/; do
+            if [[ -f "${home}layers.json" ]]; then node bonsai/lib/layers.mjs mirror "$home" "$output/layers"; fi
+          done
           mkdir -p "$output/_builds"
           tree=$(git rev-parse 'HEAD^{tree}')
           printf '{"commit":"%s","tree":"%s"}\n' "$TARGET_SHA" "$tree" > "$output/_builds/$TARGET_SHA.json"
@@ -125,6 +163,19 @@ jobs:
             echo "Skipping $TARGET_SHA: main is now $main"
             echo 'deploy=false' >> "$GITHUB_OUTPUT"
           fi
+
+      # Files enter R2 only from main: each is read back and checked.
+      - name: Store new layers in R2
+        if: steps.final_check.outputs.deploy == 'true'
+        env:
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          set -euo pipefail
+          for home in bonsai/*/; do
+            if [[ -f "${home}layers.json" ]]; then node bonsai/lib/layers.mjs upload "$home"; fi
+          done
 
       - name: Deploy the existing public research Worker
         if: steps.final_check.outputs.deploy == 'true'
@@ -157,3 +208,30 @@ jobs:
           done
           echo '::error::The published commit marker was not observed; inspect the Cloudflare deployment before retrying.'
           exit 1
+
+  # What R2 now holds leaves the transfer branch; the branch keeps one commit,
+  # so the files it carried stop being reachable from it.
+  release-transfer:
+    needs: publish
+    if: needs.publish.outputs.deployed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the published commit
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22
+
+      - name: Keep on the transfer branch only what R2 still lacks
+        env:
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: node bonsai/lib/layers.mjs prune bonsai/zarathustra

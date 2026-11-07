@@ -66,7 +66,10 @@ reference:
     sourceReference, sourceQuote, targetReference, targetQuote,
     sourceVersionId, targetVersionId, sourceRevision, targetRevision,
     targetVersionLabel, targetLanguage, reviewBasis, evidence}],
-  mappingStatus?: 'available' | 'none'
+  mappingStatus?: 'available' | 'none',
+  context?: {status:'proposed', language, chapter,
+    words:[{lemma, upos, feats, start, end, form, reading, deprel, head, headText, basis, spelling?}],
+    analyzer, posture}
 }
 ```
 
@@ -83,6 +86,14 @@ checks its quote before returning it. A missing or stale target yields an empty
 mapping list with `mappingStatus: 'none'`, without changing morphology status.
 The reader preserves alternatives and analysis errors, labels proposals as
 unreviewed, and never writes a review or canon claim.
+
+`context` is the bonsai's word layer at the selected place of a Zarathustra
+witness (`bonsai/<stand>/tokens/`): lemma, Universal Dependencies part of speech
+and features, the word it depends on, today's spelling of a historical form and
+how the lemma stands against Wiktionary. It is present only where the reader's
+unit text equals the witness text the layer was made from, and it is a machine
+proposal beside the dictionary candidates. The reader's *Origin* tab and the
+menu beside a selected word read the stand's origin records by this lemma.
 
 `total` and `unitCount` are optional knowledge. A missing or `null` value is
 normalized to an explicit unknown state; only a supplied non-negative integer

@@ -19,6 +19,8 @@ import {objectsIssues,semanticRegistry} from './objects.mjs';
 import {coreIssues,loadCore} from './core.mjs';
 import {citeIssues,readChapter,witnessesIssues} from './witnesses.mjs';
 import {termsIssues} from './terms.mjs';
+import {isLayerPath,layerStatus,layersIssues,readLayers} from './layers.mjs';
+import {renderingsIssues,spellingIssues,termFormGaps,tokenChapterIssues,TOKENS_SCHEMA} from './tokens.mjs';
 import {corpusReader} from './corpus-align.mjs';
 
 export const MANIFEST_SCHEMA='tos.bonsai.v1';
@@ -27,14 +29,28 @@ const sha256=path=>createHash('sha256').update(readFileSync(path)).digest('hex')
 
 /** A bonsai's manifest and its modules by id, read from `<root>/bonsai/<id>/`. */
 export function loadBonsai(root,id){
-  const home=join(root,'bonsai',id),manifest=json(join(home,'bonsai.json')),modules={};
-  for(const module of manifest.modules??[])if(module.path&&!module.borrowed)modules[module.id]=json(join(home,module.path));
-  return {home,manifest,modules};
+  const home=join(root,'bonsai',id),manifest=json(join(home,'bonsai.json')),modules={},layers=readLayers(home);
+  for(const module of manifest.modules??[]){
+    if(!module.path||module.borrowed)continue;
+    // A generated layer kept in R2 (bonsai/lib/layers.mjs) is read where a checkout has fetched it.
+    if(isLayerPath(layers,module.path)&&!existsSync(join(home,module.path)))continue;
+    modules[module.id]=json(join(home,module.path));
+  }
+  return {home,manifest,modules,layers};
 }
 
 /** The chapter files of a bonsai's witnesses module, by chapter key. */
 export function loadWitnessChapters(home,manifest){
   const module=(manifest.modules??[]).find(item=>item.id==='witnesses');
+  if(!module?.chapters)return {};
+  const dir=join(home,dirname(module.chapters));
+  if(!existsSync(dir))return {};
+  return Object.fromEntries(readdirSync(dir).filter(name=>name.endsWith('.json')).sort().map(name=>[name.slice(0,-5),json(join(dir,name))]));
+}
+
+/** The chapters of a bonsai's word layer, keyed like its witness chapters. */
+export function loadTokenChapters(home,manifest){
+  const module=(manifest.modules??[]).find(item=>item.id==='tokens');
   if(!module?.chapters)return {};
   const dir=join(home,dirname(module.chapters));
   if(!existsSync(dir))return {};
@@ -141,7 +157,16 @@ export function termPlaceReader(root,alignment,fragments){
 
 /** Problems that make a bonsai or its export unfit for the Tree, and what has moved since the graft. */
 export function checkBonsai(root,id,{validator=treeContracts(root),relations,identities=treeIdentities(root)}={}){
-  const {home,manifest,modules}=loadBonsai(root,id),problems=[],drift=[];
+  const {home,manifest,modules,layers}=loadBonsai(root,id),problems=[],drift=[];
+  // The layers kept in R2: their manifest always; their files, checked like any module, where all are present.
+  let layerFiles=null;
+  if(layers){
+    problems.push(...layersIssues(layers).map(issue=>`layers: ${issue}`));
+    const states=layerStatus(home,layers),missing=states.filter(entry=>entry.state==='missing');
+    for(const entry of states)if(entry.state==='different')problems.push(`layers: ${entry.path} differs from layers.json; write the manifest again`);
+    if(missing.length&&missing.length<states.length)problems.push(`layers: ${missing.length} of ${states.length} files are missing; fetch them`);
+    layerFiles=missing.length===states.length?'absent':'present';
+  }
   // Without a readable relation registry the export's predicates go unchecked, which the check says rather than hides.
   if(relations===undefined){try{relations=treeRelations(root);}catch(error){relations=null;problems.push(`relation registry: ${error.message}`);}}
   if(manifest.schema!==MANIFEST_SCHEMA)problems.push('manifest schema');
@@ -155,6 +180,20 @@ export function checkBonsai(root,id,{validator=treeContracts(root),relations,ide
     const options=!modules.witnesses&&modules.alignment?{pivot:['grc','la'],place:termPlaceReader(root,modules.alignment,modules.fragments)}:{};
     problems.push(...termsIssues(modules.terms,chapters,options).map(issue=>`terms: ${issue}`));
   }
+  // The word layer (bonsai/lib/tokens.mjs): every word at its place, bound to the witness text it was made from.
+  if(modules.tokens){
+    if(modules.tokens.schema!==TOKENS_SCHEMA)problems.push('tokens: schema');
+    const tokenChapters=loadTokenChapters(home,manifest),sha256=text=>createHash('sha256').update(text).digest('hex');
+    for(const key of Object.keys(chapters)){
+      if(!tokenChapters[key]){problems.push(`tokens: no words for chapter ${key}`);continue;}
+      problems.push(...tokenChapterIssues(tokenChapters[key],chapters[key],sha256).map(issue=>`tokens: ${issue}`));
+    }
+    // Forms of a term the layer finds under its lemma and the term does not list: a report, not a failure.
+    if(modules.terms)for(const [id,forms] of Object.entries(termFormGaps(modules.terms,tokenChapters,chapters,modules.spelling??null)))
+      drift.push(`terms: ${id} occurs also as ${Object.entries(forms).map(([form,count])=>`${form} ×${count}`).join(', ')}`);
+  }
+  if(modules.spelling)problems.push(...spellingIssues(modules.spelling).map(issue=>`spelling: ${issue}`));
+  if(modules.renderings)problems.push(...renderingsIssues(modules.renderings,chapters).map(issue=>`renderings: ${issue}`));
   if(modules.fragments)problems.push(...externalPlacesIssues(modules.fragments).map(issue=>`fragments: ${issue}`));
   if(modules.alignment)problems.push(...corpusAlignmentIssues(modules.alignment).map(issue=>`alignment: ${issue}`));
   let registry=null;
@@ -189,7 +228,7 @@ export function checkBonsai(root,id,{validator=treeContracts(root),relations,ide
     if(entry.status==='resolved'&&!identities.has(entry.tree))drift.push(`expression ${entry.tree} (${key}): resolved in the bonsai, absent from the Tree`);
     if(entry.status==='to-mint'&&identities.has(entry.tree))drift.push(`expression ${entry.tree} (${key}): the Tree now holds it; mark it resolved`);
   }
-  return {id,problems,drift,packet,checkedIdentities:!!identities};
+  return {id,problems,drift,packet,checkedIdentities:!!identities,layers:layerFiles};
 }
 
 /** The digest the manifest records for a Tree contract. */

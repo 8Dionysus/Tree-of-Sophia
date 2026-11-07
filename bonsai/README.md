@@ -15,7 +15,7 @@ routes.
 | Bonsai | Stand | Holds |
 | --- | --- | --- |
 | [`antiquity/`](antiquity/bonsai.json) | `/antiquity/` | the collection and its fifteen branches, the first six branches, the alignment of the corpus works they cite and the places of other works, the Tree's object types of its own words, the chronology of lives, phases and writings, places, the graft map |
-| [`zarathustra/`](zarathustra/bonsai.json) | `/zarathustra/` | the book's witnesses (German first editions, Common's English, Antonovsky's Russian of 1913) aligned paragraph by paragraph and sentence by sentence, the places of other works its map cites, the alignment of the corpus works it cites, the Tree's object types of its own words, the [philosophical core](CORE.md) of the book, the chronology of the book's four parts, of the texts its map rests on and of the thought of eternal recurrence, their places, the graft map; the map itself is grafted from the [constructor atlas](../access/web/constructor/README.md) |
+| [`zarathustra/`](zarathustra/bonsai.json) | `/zarathustra/` | the book's witnesses (German first editions, Common's English, Antonovsky's Russian of 1913) aligned paragraph by paragraph and sentence by sentence, the places of other works its map cites, the alignment of the corpus works it cites, the Tree's object types of its own words, the [philosophical core](CORE.md) of the book, the [word layer, today's spelling and the origin of every lemma](review/philology/README.md#the-word-layer), the chronology of the book's four parts, of the texts its map rests on and of the thought of eternal recurrence, their places, the graft map; the map itself is grafted from the [constructor atlas](../access/web/constructor/README.md) |
 | [`shared/`](shared/coastlines.json) | both | Natural Earth coastlines under the map of places |
 
 [`zarathustra/held.json`](zarathustra/held.json) keeps whole the stars and links removed by the strict rebuild of 1 November 2026, together with their texts, verdicts, reasons and places, and the earlier texts of what stays. The audit found 19 of the 128 earlier links grounded in a named place in the book; the remaining readings and comparisons are held to grow together with the operator, and the stand neither shows nor binds them.
@@ -288,6 +288,35 @@ Modules use the bonsai's own IDs for works, agents and places. `identities.json`
 maps each to the Tree identity it stands for, `resolved` where the Tree already
 holds it and `to-mint` where the Tree's own route would have to create it.
 When the Tree renames or mints differently, only this map changes.
+
+### Layers kept in R2 (`tos.bonsai.layers.v1`)
+
+A stand's generated layers live in R2, in `tos-public-layers` under
+`sha256/<hex>` ([storage](../docs/STORAGE.md)). Git keeps `layers.json`, the
+digest manifest: the declared paths, each file's SHA-256 and size, and the
+rights each group of files carries. The Zarathustra word layer is kept this way:
+its tokens, spelling, origins and renderings.
+
+```sh
+node bonsai/lib/layers.mjs fetch bonsai/zarathustra     # bring the files into a checkout
+node bonsai/lib/layers.mjs status bonsai/zarathustra    # present, missing or different
+```
+
+`fetch` takes each file from R2 when `R2_ENDPOINT`, `R2_ACCESS_KEY_ID` and
+`R2_SECRET_ACCESS_KEY` are set, else from the site's copy
+(`https://treeofsophia.com/__research/layers/sha256/<hex>`), else from the
+`layers/transfer` branch, and writes only bytes that match their digest. A
+checkout without the files builds and tests the stand without its word layer;
+the check then verifies the manifest, and with the files present it checks them
+like any module.
+
+After regenerating a layer, `layers.mjs manifest bonsai/<stand>` writes the
+new digests and `layers.mjs send bonsai/<stand>` puts every file that no store
+holds yet on `layers/transfer`, one commit holding objects named
+`sha256/<hex>`. The pull request carries only the manifest. Once it lands, the
+publication from main fetches the files, checks them, puts what R2 lacks into
+R2, reads each back, copies all of them into the site's copy and keeps on the
+transfer branch only what R2 still lacks.
 
 ## Check and export
 

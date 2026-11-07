@@ -16,6 +16,10 @@ import {
 import {createNotebookMetadataResolver,notebookFallbackLabel,notebookReferenceWorkId} from './notebook-labels.mjs';
 import {languageName,sourceLinkLabel,corpusWorkTitle,corpusSectionLabel} from '../observatory/human-presentation.mjs';
 import {bindPhilologyResult,philologyMarkIntervals,renderPhilology,selectedPhilologyForm,isSingleWordSelection} from './philology.mjs';
+import {renderOrigin} from './word-origin.mjs';
+import {createSelectionMenu} from './selection-menu.mjs';
+import {versionIdOf,witnessUnitText} from './bonsai-words.mjs';
+import {createReference} from './model.mjs';
 import {editionRepresentationKind,groupEditionRepresentations} from './edition-groups.mjs';
 import {readableUnitLocator} from './location-label.mjs';
 import {editorialRanges,editorialLabel,editorialKindForMatch,hasEditorialProjection,quotationWithEditorialRoles,sourceLayerKind} from './editorial.mjs';
@@ -52,7 +56,7 @@ const WORDING = {
     previous: 'Предыдущий фрагмент', next: 'Следующий фрагмент', one: 'Один текст', parallel: 'Сравнить тексты', compare: 'Сравнить с',
     search: 'Поиск', searchPlaceholder: 'Искать в открытом тексте', loaded: 'Загруженный фрагмент', version: 'Всё произведение',
     corpus: 'Весь корпус', noSearch: 'Совпадений нет', searchUnavailable: 'Поиск недоступен для этого источника',
-    notes: 'Блокнот', context: 'Контекст', source: 'Источник', word: 'Слово', settings: 'Вид текста', bookmark: 'Закладка', bookmarked: 'Закладка снята',
+    notes: 'Блокнот', context: 'Контекст', source: 'Источник', word: 'Слово', origin: 'Происхождение', settings: 'Вид текста', bookmark: 'Закладка', bookmarked: 'Закладка снята',
     addNote: 'Оставить заметку', notePlaceholder: 'Что открылось здесь? Вопрос, связь, возражение…', save: 'Сохранить', delete: 'Удалить',
     copy: 'Скопировать цитату', copied: 'Цитата и атрибуция скопированы', graph: 'Открыть в Древе', export: 'Скачать блокнот', import: 'Импортировать блокнот',
     noNotes: 'Выберите фрагмент, чтобы оставить заметку или закладку.', saved: 'Сохранено на этом устройстве', pending: 'Сохраняется…', memory: 'Только в памяти', session: 'Только на время сеанса', saveError: 'Не удалось сохранить', providerUnavailable: 'Источник полных текстов пока не подключён.',
@@ -73,7 +77,7 @@ const WORDING = {
     previous: 'Previous passage', next: 'Next passage', one: 'One text', parallel: 'Compare texts', compare: 'Compare with',
     search: 'Search', searchPlaceholder: 'Search the open text', loaded: 'Loaded passage', version: 'This work',
     corpus: 'Entire corpus', noSearch: 'No matches', searchUnavailable: 'Search is unavailable for this source',
-    notes: 'Notebook', context: 'Context', source: 'Source', word: 'Word', settings: 'Text appearance', bookmark: 'Bookmark', bookmarked: 'Bookmark removed',
+    notes: 'Notebook', context: 'Context', source: 'Source', word: 'Word', origin: 'Origin', settings: 'Text appearance', bookmark: 'Bookmark', bookmarked: 'Bookmark removed',
     addNote: 'Leave a note', notePlaceholder: 'What opened here? A question, connection, objection…', save: 'Save', delete: 'Delete',
     copy: 'Copy quotation', copied: 'Quotation and attribution copied', graph: 'Open in the tree', export: 'Download notebook', import: 'Import notebook',
     noNotes: 'Choose a passage to leave a note or bookmark.', saved: 'Saved on this device', pending: 'Saving…', memory: 'Memory only', session: 'This session only', saveError: 'Could not save', providerUnavailable: 'The full-text source is not connected yet.', changed: 'The source version changed. The old bookmark is kept.',
@@ -569,6 +573,27 @@ export function mountCorpusReader({
     currentTab = 'context';
     emitLocation(reference);
     render(); revealSelectedSource();
+  }
+
+  // The origin view reads the word layer's analysis; it waits for the analysis of the current selection.
+  function showOrigin() {
+    currentTab = 'origin';
+    inspectorOpen = true;
+    renderInspector();
+    if (selected?.reference && philology.busy) {
+      const reference = selected.reference;
+      const wait = () => { if (selected?.reference !== reference || currentTab !== 'origin') return; if (philology.busy) setTimeout(wait, 80); else renderInspector(); };
+      setTimeout(wait, 80);
+    }
+  }
+
+  async function openOriginPlace({chapter,unitId,start,end,language}) {
+    const versionId = versionIdOf(language), version = activeVersion(versionId);
+    if (!version) return;
+    const quote = await witnessUnitText(chapter, language, unitId, start, end);
+    if (quote == null) return;
+    const targetReference = createReference({source:version.source,versionId,unitId,start,end});
+    await openPhilologyTarget({targetReference,targetQuote:quote});
   }
 
   async function openPhilologyTarget(mapping) {
@@ -1369,7 +1394,7 @@ export function mountCorpusReader({
     const state = modelState(); const inspector = root.querySelector('.cr-inspector'); if (!inspector) return;
     noteEditor = null; inspector.replaceChildren();
     const tabs = element('nav', 'cr-inspector-tabs');
-    for (const name of ['context', 'word', 'notes', 'source']) { const b = button(t(name), async () => {
+    for (const name of ['context', 'word', 'origin', 'notes', 'source']) { const b = button(t(name), async () => {
       if(!(await flushNote()))return;
       currentTab = name;
       if (name === 'word' && selected?.reference && !philology.busy && (!philology.result || philology.error)) void loadPhilology();
@@ -1390,8 +1415,15 @@ export function mountCorpusReader({
         onMore:()=>void findPhilologyConcordance(philology.concordance?.query||form,philology.concordance?.nextCursor),
         onOccurrence:hit=>void openPhilologyOccurrence(hit),
         onMappingTarget:mapping=>void openPhilologyTarget(mapping),
+        onOrigin:()=>showOrigin(),
       });
       if (philology.error) body.append(element('p','cr-philology-muted',t('error')));
+    } else if (currentTab === 'origin') {
+      const version = activeVersion(selected?.versionId || state.activeVersionId);
+      const reference = selected?.reference || null;
+      const form = selected?.unit ? selectedPhilologyForm(selected.unit.text, reference) : '';
+      void renderOrigin(body, {locale:uiLocale(),form:isSingleWordSelection(form)?form:'',language:version?.language||'',
+        context:philology.result?.context??null,onOpenPlace:place=>void openOriginPlace(place)});
     } else renderContext(body, state);
   }
 
@@ -1600,6 +1632,9 @@ export function mountCorpusReader({
   root.addEventListener('keydown', keydown);
   root.addEventListener('click', event => { if (event.target === root) close(); });
   document.addEventListener('selectionchange', onSelectionChange);
+  // A word selected in a pane offers its origin beside it.
+  const selectionMenu = createSelectionMenu({container:root,accept:value=>Boolean(value.element.closest?.('.cr-unit')),
+    actions:[{label:copyLocale(uiLocale())==='en'?localeText('Origin of the word',uiLocale()):'Происхождение слова',run:()=>showOrigin()}]});
   const beforeUnload=event=>{if(noteDirty||noteFlushPromise){void flushNote();event.preventDefault();event.returnValue='';}};
   const visibilityChanged=()=>{if(document.visibilityState==='hidden')void flushNote();};
   window.addEventListener('beforeunload',beforeUnload);
@@ -1651,7 +1686,7 @@ export function mountCorpusReader({
       const positionSaving=opened?capturePanePositions():Promise.resolve();
       const saving=Promise.allSettled([flushNote(),positionSaving]);
       disposed=true;opened=false;philologyController?.abort();philologyController=null;notebookListGeneration+=1;notebookMetadataResolver.dispose();catalogCancel?.();searchCancel?.();
-      document.removeEventListener('selectionchange',onSelectionChange);document.removeEventListener('visibilitychange',visibilityChanged);
+      document.removeEventListener('selectionchange',onSelectionChange);document.removeEventListener('visibilitychange',visibilityChanged);selectionMenu.dispose();
       window.removeEventListener('beforeunload',beforeUnload);
       destroyWork=saving.finally(()=>{root?.remove();root=null;model.destroy();});return destroyWork;
     },
