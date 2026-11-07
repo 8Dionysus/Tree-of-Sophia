@@ -425,14 +425,30 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
    * Append a form: the places it cites, then its own words. Returns the
    * element appended, or null when the form neither says nor shows anything.
    */
-  function render(parent,value,{className='body',tag='p'}={}){
+  function render(parent,value,{className='body',tag='p',grounds=false}={}){
     const cites=citesOf(value),own=local(value).trim();
     if(!cites.length&&!own)return null;
     const box=el('div','ps-authored');
-    for(const cite of cites)box.append(fragment(cite));
-    if(own)box.append(el(tag,className,own));
+    if(grounds&&(own||grounds==='places')){
+      // In the book the stand's own words lead and the places they rest on stand beside them: each place shows
+      // its first lines and its source, and opens whole where it stands. A list of places alone is laid out the same way.
+      box.classList.add('rb-claim');if(own){const words=el('div','rb-claim-text');words.append(el(tag,className,own));box.append(words);}else box.classList.add('is-places');
+      if(cites.length){const aside=el('div','rb-grounds');for(const cite of cites)aside.append(ground(cite));box.append(aside);}
+    }else{
+      for(const cite of cites)box.append(fragment(cite));
+      if(own)box.append(el(tag,className,own));
+    }
     parent.append(box);
     return box;
+  }
+  /** A place beside the words it grounds: its first lines, opened whole on request. */
+  function ground(cite){
+    const wrap=el('div','rb-ground'),figure=fragment(cite),toggle=button(words('groundOpen'),'rb-ground-toggle');
+    toggle.setAttribute('aria-expanded','false');
+    toggle.addEventListener('click',()=>{const open=!wrap.classList.contains('is-open');wrap.classList.toggle('is-open',open);toggle.setAttribute('aria-expanded',String(open));toggle.textContent=words(open?'groundClose':'groundOpen');});
+    // A folded place opens where it is pressed, as well as by its own button.
+    figure.addEventListener('click',event=>{if(!wrap.classList.contains('is-open')&&!event.target.closest?.('button,a'))toggle.click();});
+    wrap.append(figure,toggle);return wrap;
   }
   return {render,fragment,showChapter,sourceSelection,citesOf,hasAuthored:value=>hasAuthored(value,locale()),get reader(){return reader;},dispose(){chapterRequests.cancel();reader?.dialog.remove();reader=null;}};
 }

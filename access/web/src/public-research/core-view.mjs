@@ -48,7 +48,7 @@ const occurrenceFiles=import.meta.glob('../../../../bonsai/zarathustra/core/occu
 const HERE={speaks:'hereSpeaks',acts:'hereActs','spoken-of':'hereSpokenOf',addressed:'hereAddressed'};
 
 /** Every quoted word is rendered by the existing aligned-witness reader. */
-export function createCoreView({core,locale,fragments,signOf,hint,onNode,onRoute,onRelation,onAction}){
+export function createCoreView({core,locale,fragments,signOf,hint,onNode,onRoute,onRelation,onAction,book=false}){
   let serial=0;
   const tr=value=>localeValue(value,locale());
   const t=key=>words[key]?.[Math.max(0,langs.indexOf(resolveLocale(locale())))]??key;
@@ -65,9 +65,14 @@ export function createCoreView({core,locale,fragments,signOf,hint,onNode,onRoute
       const cites=normalized.cite.filter(cite=>{const key=placeKey(cite);if(seen.has(key)){shared=true;return false;}seen.add(key);return true;});
       normalized={...normalized,cite:cites};
     }
-    fragments.render(parent,normalized);
-    if(shared)parent.append(el('small','ps-core-status',t('sharedCitation')));
-    status(parent,value.status);
+    // In the book the subject's own words lead and the places of the book stand beside them.
+    const box=fragments.render(parent,normalized,book?{grounds:true}:undefined);
+    // A claim's status stays under its own words, its grounds beside them.
+    // In the book the margin already shows a repeated place, and a claim's footing is marked only where it reaches
+    // beyond the words it cites; elsewhere every claim keeps both marks.
+    const under=box?.querySelector?.(':scope > .rb-claim-text')??parent;
+    if(shared&&!book)under.append(el('small','ps-core-status',t('sharedCitation')));
+    if(!book||value.status!=='text')status(under,value.status);
   }
   function section(parent,key,value,seen=null){
     if(!value||(Array.isArray(value)&&!value.length)||filler(value))return;
@@ -270,7 +275,7 @@ export function createCoreView({core,locale,fragments,signOf,hint,onNode,onRoute
     if(key==='essence'){
       const first=essence.formula??essence.formulas?.[0],seen=new Set(first?.cite?[placeKey(first.cite)]:[]);
       // The lead field's words already open the card; here it keeps only the book's grounds for them.
-      for(const field of ['thesis','who','position','answer','grounds','consequences','deed','function'])section(body,field,field===lead?(essence[field]?.cite?{cite:essence[field].cite}:null):essence[field],seen);
+      for(const field of ['thesis','who','position','answer','grounds','consequences','deed','function']){if(book&&field===lead)continue;section(body,field,field===lead?(essence[field]?.cite?{cite:essence[field].cite}:null):essence[field],seen);}
       if(kind(record)==='argument')for(const field of ['premises','steps'])section(body,field,record[field]??essence[field],seen);
       if(kind(record)==='claim')for(const field of ['scope','conditions'])section(body,field,record[field]??essence[field],seen);
       for(const counter of record.counter_voices??[])fold(body,[t('counter'),speakerName(counter.speaker)].filter(Boolean).join(' · '),box=>{voice(box,counter.voice??{speaker:counter.speaker});form(box,{...counter.line,cite:[counter.cite],status:counter.status});section(box,'reply',counter.reply);});
@@ -366,17 +371,17 @@ export function createCoreView({core,locale,fragments,signOf,hint,onNode,onRoute
     }
     history(root,record);personal(root,record,'node');return true;
   }
-  function routeReference(parent,chain){
-    const article=el('article','ps-kernel-reference');parent.append(article);
-    article.append(el('p','eyebrow',t('route')),el('h2','',tr(chain.title)));status(article,'familyStatus');
-    form(article,chain.sense);section(article,'question',chain.question);
-    const states=el('section','ps-core-section');states.append(el('h3','minor-title',t('states')));
+  function routeReference(parent,chain,{book:inBook=false}={}){
+    const article=el(inBook?'div':'article',inBook?'rb-route':'ps-kernel-reference');parent.append(article);
+    if(!inBook){article.append(el('p','eyebrow',t('route')),el('h2','',tr(chain.title)));status(article,'familyStatus');}
+    if(!inBook){form(article,chain.sense);section(article,'question',chain.question);}
+    const states=el('section',inBook?'rb-section':'ps-core-section');if(inBook&&!chain.states?.length)states.hidden=true;states.append(el(inBook?'h2':'h3',inBook?'rb-section-title':'minor-title',t('states')));if(inBook)states.dataset.part='states';
     for(const state of chain.states??[]){
-      const part=el('section','ps-core-section');part.append(button(tr(state.title),()=>onNode?.(core.materialIds[state.id]??state.id),'connection-target'));
+      const part=el('section',inBook?'ps-core-section rb-state':'ps-core-section');part.append(button(tr(state.title),()=>onNode?.(core.materialIds[state.id]??state.id),'connection-target'));
       form(part,state.reading);if(state.cite)part.append(fragments.fragment(state.cite));status(part,state.independent_review?.verdict);states.append(part);
     }
     article.append(states);
-    const transitions=el('section','ps-core-section');transitions.append(el('h3','minor-title',t('transitions')));
+    const transitions=el('section',inBook?'rb-section':'ps-core-section');transitions.append(el(inBook?'h2':'h3',inBook?'rb-section-title':'minor-title',t('transitions')));if(inBook)transitions.dataset.part='transitions';
     for(const step of chain.steps??[]){
       const stateName=id=>tr(chain.states?.find(state=>state.id===id)?.title)||name(id);
       fold(transitions,`${stateName(step.from)} → ${tr(step.verb)} → ${stateName(step.to)}`,box=>{
@@ -403,5 +408,48 @@ export function createCoreView({core,locale,fragments,signOf,hint,onNode,onRoute
     return false;
   }
 
-  return {node,link,brief,glimpse,renderReference};
+  // ── The book's article of a subject. The book draws its head, its links and the way on; these give what the
+  // subject says: its lead and the book's own formula for it, the parts of its card in the order of reading, and the
+  // apparatus of its witnesses and history.
+  const essenceOf=record=>record?.conception??record?.essence??{};
+  function lead(parent,id){
+    const chain=core.chains.find(item=>item.id===id);if(chain){if(!tr(chain.sense))return false;form(parent,chain.sense);return true;}
+    const record=core.records[id];if(!record)return false;
+    const essence=essenceOf(record),value=essence.thesis??essence.who??record.reading?.reading??record.reading;
+    if(!tr(value))return false;
+    const cites=[...(essence.thesis?.cite??essence.who?.cite??[]),...(!essence.thesis&&!essence.who?record.reading?.grounds??[]:[])];
+    // The lead's footing stands beside the kind of the subject, above it.
+    const {status:_,...words}=typeof value==='object'?value:{ru:value,en:value};form(parent,{...words,cite:cites});return true;
+  }
+  function epigraph(parent,id){
+    const record=core.records[id],item=essenceOf(record).formula??essenceOf(record).formulas?.[0];if(!item?.cite)return false;
+    const box=el('div','rb-epigraph');voice(box,item.voice??{speaker:item.speaker});box.firstElementChild?.setAttribute('data-terms','off');box.append(fragments.fragment(item.cite));parent.append(box);return true;
+  }
+  function question(id){const chain=core.chains.find(item=>item.id===id);if(chain)return tr(chain.question);const record=core.records[id];return tr(record?.question??essenceOf(record).question);}
+  function kindWord(id){if(core.chains.some(item=>item.id===id))return t('route');const record=core.records[id];return record?t(kind(record)):'';}
+  function statusWord(id){
+    const record=core.records[id];if(!record)return '';
+    if(record.reading?.reading||record.reading?.ru||record.reading?.en)return t('familyStatus');
+    if(!record.conception&&!record.essence&&!record.chainId)return t('held');
+    const value=essenceOf(record).thesis?.status??essenceOf(record).formula?.status??record.status;return value?t(value):'';
+  }
+  function bookBody(parent,id){
+    const chain=core.chains.find(item=>item.id===id);if(chain)return routeReference(parent,chain,{book:true});
+    const record=core.records[id];if(!record)return false;
+    const essence=essenceOf(record),leadKey=essence.thesis?'thesis':essence.who?'who':null;
+    if(record.work_scope?.roles?.length){const scope=el('section','ps-core-section');scope.append(el('h3','minor-title',t('figureScope')),el('p','',record.work_scope.roles.map(role=>t(role)).join(' · ')));parent.append(scope);}
+    for(const key of ['essence','development','dimensions']){
+      const content=el('div','rb-section-body');sections(content,key,record,id,leadKey);if(!content.childElementCount)continue;
+      const part=el('section','rb-section');part.dataset.part=key;part.append(el('h2','rb-section-title',t(key)),content);parent.append(part);
+    }
+    return true;
+  }
+  function bookApparatus(parent,id){
+    const record=core.records[id];if(!record)return false;
+    const content=el('div','rb-section-body');witnesses(content,record);history(content,record);
+    if(!content.childElementCount)return false;
+    const part=el('section','rb-section rb-apparatus-part');part.dataset.part='witnesses';part.append(el('h2','rb-section-title',t('witnesses')),content);parent.append(part);return true;
+  }
+
+  return {node,link,brief,glimpse,renderReference,lead,epigraph,question,kindWord,statusWord,bookBody,bookApparatus};
 }

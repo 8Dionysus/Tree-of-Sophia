@@ -7,14 +7,17 @@ const QUOTE='blockquote.ps-fragment-text',LINE=':scope > *';
 const keyOf=node=>`${node.closest('[lang]')?.getAttribute('lang')??''}\u0000${node.textContent.replace(/\s+/gu,' ').trim()}`;
 
 /** Keep every quoted line once in `root`; `label(source)` names the line that leads to the first quotation. */
-export function keepQuotesOnce(root,{label=source=>`↑ ${source}`}={}){
+/** `later` names figures that defer to every other figure: a short note in a margin leads back to the text it repeats. */
+export function keepQuotesOnce(root,{label=source=>`↑ ${source}`,later=null}={}){
   if(typeof root?.querySelectorAll!=='function')return {refresh(){},dispose(){}};
   let working=false,frame=0,observer=null;
   function refresh(){
     working=true;
     try{
       const first=new Map();
-      for(const figure of root.querySelectorAll('figure')){
+      const figures=[...root.querySelectorAll('figure')];
+      if(later){const deferred=figure=>figure.closest(later)?1:0;figures.sort((a,b)=>deferred(a)-deferred(b));}
+      for(const figure of figures){
         figure.querySelector(':scope > .ps-fragment-repeat')?.remove();
         const quotes=[...figure.querySelectorAll(QUOTE)];if(!quotes.length)continue;
         let shown=0;
