@@ -1,7 +1,7 @@
 import {readFileSync,readdirSync} from 'node:fs';
 import {describe,expect,it} from 'vitest';
 import {formPattern,holdsForm,termsIssues} from '../../../../bonsai/lib/terms.mjs';
-import {termPlaceReader} from '../../../../bonsai/lib/graft.mjs';
+import {corpusOnDisk,termPlaceReader} from '../../../../bonsai/lib/graft.mjs';
 import {fileURLToPath} from 'node:url';
 import {citationId,createResearchIndex} from './research-index.mjs';
 
@@ -21,7 +21,8 @@ const kobolde=()=>({
   gloss:{ru:'Заратустра хочет горных духов вокруг себя, потому что он мужествен.',en:'Zarathustra wants goblins about him, for he is courageous.'},
 });
 
-it('checks an Antiquity corpus place, its exact word boundaries and normalized Greek forms',()=>{
+// The corpus snapshot's pages live in R2 (access/public-corpus/layers.json); this case reads them where a checkout fetched them.
+it.skipIf(corpusOnDisk(fileURLToPath(new URL('../../../../',import.meta.url)))!=='present')('checks an Antiquity corpus place, its exact word boundaries and normalized Greek forms',()=>{
   const root=fileURLToPath(new URL('../../../../',import.meta.url));
   const alignment=JSON.parse(readFileSync(new URL('../../../../bonsai/antiquity/alignment.json',import.meta.url),'utf8'));
   const collection=JSON.parse(readFileSync(new URL('../../../../bonsai/antiquity/collection.json',import.meta.url),'utf8'));

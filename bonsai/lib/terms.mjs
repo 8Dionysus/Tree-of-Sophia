@@ -77,6 +77,8 @@ export function termsIssues(module,chapterFiles={},{pivot='de',place=null}={}){
     const cite=term.first;
     if(!cite?.c&&place){
       const result=place(cite,original.lang);
+      // A place in a corpus this checkout has not fetched stays unchecked here.
+      if(result?.unchecked)continue;
       if(result?.error)issues.push(`${at}: first place ${result.error}`);
       else if(!result||!holdsOriginal(result,original.forms??[],original.lang))issues.push(`${at}: the original does not say ${original.lemma} at ${cite?.w??'?'}`);
       if(result&&!result.error&&cite?.q&&!result.text.includes(cite.q))issues.push(`${at}: first place quote is not in the cited original`);

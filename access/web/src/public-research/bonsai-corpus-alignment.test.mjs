@@ -12,10 +12,12 @@ import * as foundation from '../../constructor/inquiry-foundation.mjs';
 import * as atlasData from '../../constructor/atlas-data.mjs';
 import * as sourceReferences from '../../constructor/source-references.mjs';
 import * as closeReading from '../../constructor/close-reading-guides.mjs';
-import {loadBonsai} from '../../../../bonsai/lib/graft.mjs';
+import {corpusOnDisk,loadBonsai} from '../../../../bonsai/lib/graft.mjs';
 
 const root=new URL('../../../../',import.meta.url).pathname;
 const read=corpusReader(join(root,'access','web','public','public-corpus'));
+// The corpus snapshot's pages live in R2 (access/public-corpus/layers.json); the cases reading them run where a checkout fetched them.
+const corpusFetched=corpusOnDisk(root)==='present';
 const json=path=>JSON.parse(readFileSync(join(root,path),'utf8'));
 // What the stand cites, as the bonsai's own mechanism reads it: the modules it borrows and its own modules.
 function zarathustraContent(){
@@ -69,12 +71,12 @@ describe('the corpus alignment of the stands',()=>{
     translation.units[1].text='вот как она размышляя разговаривает, сама себя спрашивает и отвечает. Дальше идёт разговор.';
     expect(alignVersion(original,translation,new Set(['g2'])).entries.g2.u).not.toContain('r1');
   });
-  it('is, for Zarathustra, what the mechanism gives from the stand\'s own citations',()=>{
+  it.skipIf(!corpusFetched)('is, for Zarathustra, what the mechanism gives from the stand\'s own citations',()=>{
     const content=zarathustraContent();
     const works=worksOf('zarathustra'),stored=readFileSync(join(root,'bonsai','zarathustra','alignment.json'),'utf8');
     expect(formatAlignment(alignCorpus(citedUnits(content,works,read),works,read))).toBe(stored);
   },120000);
-  for(const stand of ['zarathustra','antiquity'])it(`${stand}: holds every cited unit of a work the corpus translates`,()=>{
+  for(const stand of ['zarathustra','antiquity'])it.skipIf(!corpusFetched)(`${stand}: holds every cited unit of a work the corpus translates`,()=>{
     const module=json(`bonsai/${stand}/alignment.json`),works=worksOf(stand);
     expect(corpusAlignmentIssues(module)).toEqual([]);
     const content=stand==='antiquity'?[json('bonsai/antiquity/collection.json'),json('bonsai/antiquity/first-branches.json')]:zarathustraContent();

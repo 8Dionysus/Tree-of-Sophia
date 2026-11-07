@@ -1,4 +1,5 @@
 import '../observatory/human-forms-wasm-test-runtime.mjs';
+import {corpusOnDisk} from '../../../../bonsai/lib/graft.mjs';
 import {readFile} from 'node:fs/promises';
 import {describe, expect, it} from 'vitest';
 import {createPublicCorpusProvider} from '../corpus-reader/public-provider.mjs';
@@ -13,6 +14,8 @@ import {savePublicThought} from './workspace-view.mjs';
 import {AGENT_RESPONSE_SCHEMA, planAgentApplication, responsePacket} from './agent-bridge.mjs';
 
 const corpusRoot = new URL('../../public/public-corpus/', import.meta.url);
+// The corpus snapshot's pages and documents live in R2 (access/public-corpus/layers.json); these cases run where a checkout fetched them.
+const corpusFetched=corpusOnDisk(new URL('../../../../',import.meta.url).pathname)==='present';
 
 async function localCorpusFetch(path) {
   const prefix = '/static/public-corpus/';
@@ -26,7 +29,7 @@ async function localCorpusFetch(path) {
 }
 
 describe('public research shelf source addresses', () => {
-  it('stages and reopens a real long German canonical reference through its shelf owner', async () => {
+  it.skipIf(!corpusFetched)('stages and reopens a real long German canonical reference through its shelf owner', async () => {
     const provider = createPublicCorpusProvider({fetch: localCorpusFetch});
     const manifest = await provider.describe();
     const documentId = manifest.profiles.zarathustra.documentIds[0];

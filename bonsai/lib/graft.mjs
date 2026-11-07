@@ -19,7 +19,7 @@ import {objectsIssues,semanticRegistry} from './objects.mjs';
 import {coreIssues,loadCore} from './core.mjs';
 import {citeIssues,readChapter,witnessesIssues} from './witnesses.mjs';
 import {termsIssues} from './terms.mjs';
-import {isLayerPath,layerStatus,layersIssues,readLayers} from './layers.mjs';
+import {isLayerPath,layerStatus,layersIssues,layersOnDisk,readLayers} from './layers.mjs';
 import {renderingsIssues,spellingIssues,termFormGaps,tokenChapterIssues,TOKENS_SCHEMA} from './tokens.mjs';
 import {corpusReader} from './corpus-align.mjs';
 
@@ -127,8 +127,14 @@ export function placeChecker(chapters,fragments){
   };
 }
 
-/** Read the exact original span shown by a stand for a corpus or external place. */
-export function termPlaceReader(root,alignment,fragments){
+/** Whether this checkout holds the public corpus snapshot's files, kept in R2 behind access/public-corpus/layers.json. */
+export function corpusOnDisk(root){
+  const home=join(root,'access/public-corpus'),layers=readLayers(home);
+  return layers?layersOnDisk(home,layers):'present';
+}
+
+/** Read the exact original span shown by a stand for a corpus or external place; a corpus place is unchecked where the corpus is absent. */
+export function termPlaceReader(root,alignment,fragments,{corpus=corpusOnDisk(root)}={}){
   let read;
   return (cite,language)=>{
     if(!cite?.w)return {error:'no work'};
@@ -140,6 +146,7 @@ export function termPlaceReader(root,alignment,fragments){
     }else{
       const work=alignment?.works?.[cite.w];
       if(work?.original?.language!==language||!Array.isArray(cite.u)||cite.u.length!==2)return {error:`no original units for ${cite.w}`};
+      if(corpus==='absent')return {unchecked:true};
       try{
         read??=corpusReader(join(root,'access/web/public/public-corpus'));
         const version=read(work.documentId)?.versions.find(item=>item.id===work.original.versionId);
@@ -158,6 +165,7 @@ export function termPlaceReader(root,alignment,fragments){
 /** Problems that make a bonsai or its export unfit for the Tree, and what has moved since the graft. */
 export function checkBonsai(root,id,{validator=treeContracts(root),relations,identities=treeIdentities(root)}={}){
   const {home,manifest,modules,layers}=loadBonsai(root,id),problems=[],drift=[];
+  let corpus=null;
   // The layers kept in R2: their manifest always; their files, checked like any module, where all are present.
   let layerFiles=null;
   if(layers){
@@ -177,7 +185,8 @@ export function checkBonsai(root,id,{validator=treeContracts(root),relations,ide
   if(modules.witnesses)problems.push(...witnessesIssues(modules.witnesses,chapters).map(issue=>`witnesses: ${issue}`));
   // The philological core: each term's first place and the translations' words there (bonsai/lib/terms.mjs).
   if(modules.terms){
-    const options=!modules.witnesses&&modules.alignment?{pivot:['grc','la'],place:termPlaceReader(root,modules.alignment,modules.fragments)}:{};
+    if(!modules.witnesses&&modules.alignment)corpus=corpusOnDisk(root);
+    const options=!modules.witnesses&&modules.alignment?{pivot:['grc','la'],place:termPlaceReader(root,modules.alignment,modules.fragments,{corpus})}:{};
     problems.push(...termsIssues(modules.terms,chapters,options).map(issue=>`terms: ${issue}`));
   }
   // The word layer (bonsai/lib/tokens.mjs): every word at its place, bound to the witness text it was made from.
@@ -228,7 +237,7 @@ export function checkBonsai(root,id,{validator=treeContracts(root),relations,ide
     if(entry.status==='resolved'&&!identities.has(entry.tree))drift.push(`expression ${entry.tree} (${key}): resolved in the bonsai, absent from the Tree`);
     if(entry.status==='to-mint'&&identities.has(entry.tree))drift.push(`expression ${entry.tree} (${key}): the Tree now holds it; mark it resolved`);
   }
-  return {id,problems,drift,packet,checkedIdentities:!!identities,layers:layerFiles};
+  return {id,problems,drift,packet,checkedIdentities:!!identities,layers:layerFiles,corpus};
 }
 
 /** The digest the manifest records for a Tree contract. */

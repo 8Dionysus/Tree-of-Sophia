@@ -1,4 +1,5 @@
 import {describe,it,expect} from 'vitest';
+import {corpusOnDisk} from '../../../../bonsai/lib/graft.mjs';
 import {readFileSync} from 'node:fs';
 import {RESEARCH_ROUTES} from '../../constructor/atlas-routes.mjs';
 import {PRIMARY_SOURCES} from '../../constructor/source-references.mjs';
@@ -28,12 +29,14 @@ describe('public Zarathustra textual grounds',()=>{
   });
 });
 
-describe('public Zarathustra route-step grounds',()=>{
+// The corpus snapshot's pages and documents live in R2 (access/public-corpus/layers.json); these cases run where a checkout fetched them.
+const corpusFetched=corpusOnDisk(new URL('../../../../',import.meta.url).pathname)==='present';
+describe.skipIf(!corpusFetched)('public Zarathustra route-step grounds',()=>{
   const corpusRoot=new URL('../../public/public-corpus/',import.meta.url);
   const manifest=JSON.parse(readFileSync(new URL('manifest.json',corpusRoot),'utf8'));
   const work=manifest.documents.find(entry=>entry.id===ZARATHUSTRA_DOCUMENT_ID);
-  const published=JSON.parse(readFileSync(new URL(work.manifest.path,corpusRoot),'utf8'));
-  const resolve=createZarathustraRouteGroundTargets(published);
+  const published=corpusFetched?JSON.parse(readFileSync(new URL(work.manifest.path,corpusRoot),'utf8')):null;
+  const resolve=corpusFetched?createZarathustraRouteGroundTargets(published):null;
   it('chooses a named source for every authored step and addresses the chosen edition',()=>{
     expect(Object.keys(ZARATHUSTRA_ROUTE_GROUNDS).sort()).toEqual(RESEARCH_ROUTES.map(route=>route.id).sort());
     for(const route of RESEARCH_ROUTES){
