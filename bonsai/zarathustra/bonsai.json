@@ -201,6 +201,38 @@
         "ru": "Слова книги, которыми читает её ядро стенда: оригинал, первое место, слова переводчиков и собственные слова Древа.",
         "en": "The book’s words through which the stand’s core reads it: original, first place, translators’ words and the Tree’s own terms."
       }
+    },
+    {
+      "id": "spelling",
+      "path": "spelling.json",
+      "format": "tos.bonsai.spelling.v1",
+      "spec": "bonsai/review/philology/README.md",
+      "role": {
+        "ru": "Как пишется сегодня каждое историческое написание первых изданий (Thier → Tier, gieng → ging, Räthsel → Rätsel) и на чём это стоит: статья Викисловаря об устаревшем написании или правила орфографии с проверкой по словарю. Текст свидетеля не меняется.",
+        "en": "How each historical spelling of the first editions is written today (Thier → Tier, gieng → ging, Räthsel → Rätsel) and on what ground: Wiktionary's entry for the obsolete spelling, or the spelling rules checked against the dictionary. The witness's text never changes."
+      }
+    },
+    {
+      "id": "tokens",
+      "path": "tokens.json",
+      "chapters": "tokens/<chapter>.json",
+      "format": "tos.bonsai.tokens.v1",
+      "spec": "bonsai/review/philology/README.md",
+      "role": {
+        "ru": "Слой слов: каждое слово трёх свидетелей на его точном месте — лемма, часть речи, грамматические признаки и синтаксическая вершина в предложении; немецкий читается в сегодняшнем написании, лемма сверена с Викисловарём.",
+        "en": "The word layer: every word of the three witnesses at its exact place, with lemma, part of speech, grammatical features and syntactic head in its sentence; the German reads in today's spelling and each lemma is checked against Wiktionary."
+      }
+    },
+    {
+      "id": "origins",
+      "path": "origins.json",
+      "chapters": "origins/<language>-<shard>.json",
+      "format": "tos.bonsai.origins.v1",
+      "spec": "bonsai/review/philology/README.md",
+      "role": {
+        "ru": "Происхождение каждой леммы: сколько раз и где слово стоит в книге, как его передают переводы, его история и этимология по Викисловарю его же словами, словари для дальнейшего чтения.",
+        "en": "The origin of every lemma: how often and where the word stands in the book, how the translations render it, its history and etymology from Wiktionary in Wiktionary's own words, and dictionaries to read further."
+      }
     }
   ],
   "lenses": {

@@ -1,0 +1,4325 @@
+{
+ "schema": "tos.bonsai.spelling.v1",
+ "witness": "de",
+ "posture": {
+  "ru": "Машинное предложение стенда, непроверенное: как каждое историческое написание первых изданий пишется сегодня. Текст свидетеля не меняется; современное написание служит чтению и разбору.",
+  "en": "A machine proposal of the stand, unreviewed: how each historical spelling of the first editions is written today. The witness's text never changes; today's spelling serves reading and analysis."
+ },
+ "sources": {
+  "wiktionary": {
+   "label": "English Wiktionary via kaikki.org (Wiktextract)",
+   "url": "https://kaikki.org/dictionary/German/",
+   "extract_sha256": "4fb15662a125085e1eb6b533a210b45edcdffa7b8e72e07634f46e1485e4e715",
+   "licence": "CC BY-SA 4.0",
+   "attribution": "Wiktionary contributors"
+  }
+ },
+ "rules": {
+  "th": "th → t (Thier → Tier, Muth → Mut)",
+  "dt-t": "dt → t (todt → tot)",
+  "dt-d": "dt → d inside a word (tödtlich → tödlich)",
+  "ie-i": "ie → i before ng, b (gieng → ging, giebt → gibt)",
+  "niss": "-niss → -nis (Gedächtniss → Gedächtnis)",
+  "ss-sz": "ss → ß after a long vowel or diphthong (grosse → große)",
+  "umlaut": "Ae, Oe, Ue → Ä, Ö, Ü",
+  "ee-e": "ee → e (Kameel → Kamel)",
+  "aa-a": "aa → a (Waare → Ware)",
+  "oo-o": "oo → o (Loos → Los)",
+  "c-k": "c → k before a, o, u (Cultur → Kultur)",
+  "c-z": "c → z before e, i (Citrone → Zitrone)",
+  "ey-ei": "ey → ei (seyn → sein)",
+  "iren": "-iren → -ieren (regiren → regieren)"
+ },
+ "counts": {
+  "forms": 480,
+  "occurrences": 2010,
+  "line_end_joins": 738,
+  "basis": {
+   "rules+compound": 52,
+   "rules": 290,
+   "wiktionary": 138
+  }
+ },
+ "forms": {
+  "Abendröthen": {
+   "modern": "Abendröten",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 2
+  },
+  "Aergerniss": {
+   "modern": "Ärgernis",
+   "basis": "rules",
+   "rules": [
+    "niss",
+    "umlaut"
+   ],
+   "lexicon": "Ärgernis",
+   "count": 1
+  },
+  "Aether": {
+   "modern": "Äther",
+   "basis": "rules",
+   "rules": [
+    "umlaut"
+   ],
+   "lexicon": "Äther",
+   "count": 1
+  },
+  "Angelruthe": {
+   "modern": "Angelrute",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Angelrute",
+   "count": 1
+  },
+  "Angelruthen": {
+   "modern": "Angelruten",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Angelruten",
+   "count": 1
+  },
+  "Angelrüthchen": {
+   "modern": "Angelrütchen",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 1
+  },
+  "Anmuth": {
+   "modern": "Anmut",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Anmut",
+   "count": 1
+  },
+  "Anstosse": {
+   "modern": "Anstoße",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "Anstoße",
+   "count": 1
+  },
+  "Armuth": {
+   "modern": "Armut",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Armut",
+   "count": 11
+  },
+  "Athem": {
+   "modern": "Atem",
+   "basis": "wiktionary",
+   "entry": "Athem",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 16
+  },
+  "Athems": {
+   "modern": "Atems",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Atems",
+   "count": 1
+  },
+  "Austheilen": {
+   "modern": "Austeilen",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Austeilen",
+   "count": 1
+  },
+  "Begrüssung": {
+   "modern": "Begrüßung",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "Begrüßung",
+   "count": 2
+  },
+  "Besorgniss": {
+   "modern": "Besorgnis",
+   "basis": "rules",
+   "rules": [
+    "niss"
+   ],
+   "lexicon": "Besorgnis",
+   "count": 1
+  },
+  "Bildniss": {
+   "modern": "Bildnis",
+   "basis": "rules",
+   "rules": [
+    "niss"
+   ],
+   "lexicon": "Bildnis",
+   "count": 2
+  },
+  "Büsser": {
+   "modern": "Büßer",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "Büßer",
+   "count": 8
+  },
+  "Capitän": {
+   "modern": "Kapitän",
+   "basis": "rules",
+   "rules": [
+    "c-k"
+   ],
+   "lexicon": "Kapitän",
+   "count": 2
+  },
+  "Cisterne": {
+   "modern": "Zisterne",
+   "basis": "wiktionary",
+   "entry": "Cisterne",
+   "tags": [
+    "alternative"
+   ],
+   "count": 1
+  },
+  "Demuth": {
+   "modern": "Demut",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Demut",
+   "count": 3
+  },
+  "Eheschliessen": {
+   "modern": "Eheschließen",
+   "basis": "rules+compound",
+   "rules": [
+    "ss-sz"
+   ],
+   "count": 1
+  },
+  "Ehrenthiere": {
+   "modern": "Ehrentiere",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 1
+  },
+  "Eigenthume": {
+   "modern": "Eigentume",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Eigentume",
+   "count": 1
+  },
+  "Ereigniss": {
+   "modern": "Ereignis",
+   "basis": "wiktionary",
+   "entry": "Ereigniss",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 1
+  },
+  "Erkenntniss": {
+   "modern": "Erkenntnis",
+   "basis": "wiktionary",
+   "entry": "Erkenntniss",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 20
+  },
+  "Erlebniss": {
+   "modern": "Erlebnis",
+   "basis": "wiktionary",
+   "entry": "Erlebniss",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 1
+  },
+  "Ermuthigung": {
+   "modern": "Ermutigung",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Ermutigung",
+   "count": 1
+  },
+  "Errathen": {
+   "modern": "Erraten",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Erraten",
+   "count": 2
+  },
+  "Faulthier": {
+   "modern": "Faultier",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Faultier",
+   "count": 1
+  },
+  "Faulthiere": {
+   "modern": "Faultiere",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Faultiere",
+   "count": 1
+  },
+  "Finsterniss": {
+   "modern": "Finsternis",
+   "basis": "rules",
+   "rules": [
+    "niss"
+   ],
+   "lexicon": "Finsternis",
+   "count": 2
+  },
+  "Fleiss": {
+   "modern": "Fleiß",
+   "basis": "wiktionary",
+   "entry": "Fleiss",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 3
+  },
+  "Fluth": {
+   "modern": "Flut",
+   "basis": "wiktionary",
+   "entry": "Fluth",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 4
+  },
+  "Fuss": {
+   "modern": "Fuß",
+   "basis": "wiktionary",
+   "entry": "Fuss",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 17
+  },
+  "Fussbrett": {
+   "modern": "Fußbrett",
+   "basis": "rules+compound",
+   "rules": [
+    "ss-sz"
+   ],
+   "count": 1
+  },
+  "Fusse": {
+   "modern": "Fuße",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "Fuße",
+   "count": 5
+  },
+  "Fusses": {
+   "modern": "Fußes",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "Fußes",
+   "count": 2
+  },
+  "Fusspfad": {
+   "modern": "Fußpfad",
+   "basis": "rules+compound",
+   "rules": [
+    "ss-sz"
+   ],
+   "count": 1
+  },
+  "Fusssteige": {
+   "modern": "Fußsteige",
+   "basis": "rules+compound",
+   "rules": [
+    "ss-sz"
+   ],
+   "count": 1
+  },
+  "Fusssteigs": {
+   "modern": "Fußsteigs",
+   "basis": "rules+compound",
+   "rules": [
+    "ss-sz"
+   ],
+   "count": 1
+  },
+  "Fusstritten": {
+   "modern": "Fußtritten",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "Fußtritten",
+   "count": 1
+  },
+  "Füsse": {
+   "modern": "Füße",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "Füße",
+   "count": 11
+  },
+  "Gedächtniss": {
+   "modern": "Gedächtnis",
+   "basis": "wiktionary",
+   "entry": "Gedächtniss",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 2
+  },
+  "Gefängniss": {
+   "modern": "Gefängnis",
+   "basis": "wiktionary",
+   "entry": "Gefängniss",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 4
+  },
+  "Gefäss": {
+   "modern": "Gefäß",
+   "basis": "wiktionary",
+   "entry": "Gefäss",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 1
+  },
+  "Geheimniss": {
+   "modern": "Geheimnis",
+   "basis": "wiktionary",
+   "entry": "Geheimniss",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 8
+  },
+  "Gehöfte": {
+   "modern": "Gehöft",
+   "basis": "wiktionary",
+   "entry": "Gehöfte",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 1
+  },
+  "Geissel": {
+   "modern": "Geißel",
+   "basis": "wiktionary",
+   "entry": "Geissel",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 2
+  },
+  "Gelöbniss": {
+   "modern": "Gelöbnis",
+   "basis": "rules",
+   "rules": [
+    "niss"
+   ],
+   "lexicon": "Gelöbnis",
+   "count": 2
+  },
+  "Gemüth": {
+   "modern": "Gemüt",
+   "basis": "wiktionary",
+   "entry": "Gemüth",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 3
+  },
+  "Geschmeiss": {
+   "modern": "Geschmeiß",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "Geschmeiß",
+   "count": 2
+  },
+  "Gesetze": {
+   "modern": "Gesetz",
+   "basis": "wiktionary",
+   "entry": "Gesetze",
+   "tags": [
+    "alternative"
+   ],
+   "count": 1
+  },
+  "Gethier": {
+   "modern": "Getier",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Getier",
+   "count": 7
+  },
+  "Gleichniss": {
+   "modern": "Gleichnis",
+   "basis": "wiktionary",
+   "entry": "Gleichniss",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 22
+  },
+  "Gliedmaassen": {
+   "modern": "Gliedmaßen",
+   "basis": "rules",
+   "rules": [
+    "ss-sz",
+    "aa-a"
+   ],
+   "lexicon": "Gliedmaßen",
+   "count": 2
+  },
+  "Gluth": {
+   "modern": "Glut",
+   "basis": "wiktionary",
+   "entry": "Gluth",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 5
+  },
+  "Gluthblicke": {
+   "modern": "Glutblicke",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 1
+  },
+  "Gluthen": {
+   "modern": "Gluten",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Gluten",
+   "count": 1
+  },
+  "Grossmuth": {
+   "modern": "Großmut",
+   "basis": "rules",
+   "rules": [
+    "th",
+    "ss-sz"
+   ],
+   "lexicon": "Großmut",
+   "count": 1
+  },
+  "Gruss": {
+   "modern": "Gruß",
+   "basis": "wiktionary",
+   "entry": "Gruss",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 1
+  },
+  "Grösse": {
+   "modern": "Größe",
+   "basis": "wiktionary",
+   "entry": "Grösse",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 10
+  },
+  "Hausthiere": {
+   "modern": "Haustiere",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Haustiere",
+   "count": 1
+  },
+  "Hausthieren": {
+   "modern": "Haustieren",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Haustieren",
+   "count": 1
+  },
+  "Heerde": {
+   "modern": "Herde",
+   "basis": "rules",
+   "rules": [
+    "ee-e"
+   ],
+   "lexicon": "Herde",
+   "count": 13
+  },
+  "Heerschaaren": {
+   "modern": "Heerscharen",
+   "basis": "rules",
+   "rules": [
+    "aa-a"
+   ],
+   "lexicon": "Heerscharen",
+   "count": 2
+  },
+  "Heiligthum": {
+   "modern": "Heiligtum",
+   "basis": "wiktionary",
+   "entry": "Heiligthum",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 1
+  },
+  "Heisshunger": {
+   "modern": "Heißhunger",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "Heißhunger",
+   "count": 2
+  },
+  "Hirt": {
+   "modern": "Hirte",
+   "basis": "wiktionary",
+   "entry": "Hirt",
+   "tags": [
+    "dated"
+   ],
+   "count": 9
+  },
+  "Hochmuth": {
+   "modern": "Hochmut",
+   "basis": "wiktionary",
+   "entry": "Hochmuth",
+   "tags": [
+    "alternative"
+   ],
+   "count": 1
+  },
+  "Irrthum": {
+   "modern": "Irrtum",
+   "basis": "wiktionary",
+   "entry": "Irrthum",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 5
+  },
+  "Kameel": {
+   "modern": "Kamel",
+   "basis": "wiktionary",
+   "entry": "Kameel",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 2
+  },
+  "Kameele": {
+   "modern": "Kamele",
+   "basis": "rules",
+   "rules": [
+    "ee-e"
+   ],
+   "lexicon": "Kamele",
+   "count": 5
+  },
+  "Kameeltreibern": {
+   "modern": "Kameltreibern",
+   "basis": "rules",
+   "rules": [
+    "ee-e"
+   ],
+   "lexicon": "Kameltreibern",
+   "count": 1
+  },
+  "Klumpfuss": {
+   "modern": "Klumpfuß",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "Klumpfuß",
+   "count": 1
+  },
+  "Koth": {
+   "modern": "Kot",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Kot",
+   "count": 2
+  },
+  "Leuchtthurm": {
+   "modern": "Leuchtturm",
+   "basis": "wiktionary",
+   "entry": "Leuchtthurm",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 1
+  },
+  "Loos": {
+   "modern": "Los",
+   "basis": "wiktionary",
+   "entry": "Loos",
+   "tags": [
+    "alternative"
+   ],
+   "count": 8
+  },
+  "Lückenbüsser": {
+   "modern": "Lückenbüßer",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "Lückenbüßer",
+   "count": 1
+  },
+  "Maass": {
+   "modern": "Maß",
+   "basis": "rules",
+   "rules": [
+    "ss-sz",
+    "aa-a"
+   ],
+   "lexicon": "Maß",
+   "count": 1
+  },
+  "Maassen": {
+   "modern": "Massen",
+   "basis": "rules",
+   "rules": [
+    "aa-a"
+   ],
+   "lexicon": "Massen",
+   "count": 1
+  },
+  "Mannsfüsse": {
+   "modern": "Mannsfüße",
+   "basis": "rules+compound",
+   "rules": [
+    "ss-sz"
+   ],
+   "count": 1
+  },
+  "Maulthiere": {
+   "modern": "Maultiere",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Maultiere",
+   "count": 1
+  },
+  "Mildthätigkeit": {
+   "modern": "Mildtätigkeit",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Mildtätigkeit",
+   "count": 1
+  },
+  "Missrathen": {
+   "modern": "Missraten",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Missraten",
+   "count": 2
+  },
+  "Missrieth": {
+   "modern": "Missriet",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 1
+  },
+  "Morgengruss": {
+   "modern": "Morgengruß",
+   "basis": "rules+compound",
+   "rules": [
+    "ss-sz"
+   ],
+   "count": 1
+  },
+  "Morgenrothe": {
+   "modern": "Morgenrote",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 1
+  },
+  "Morgenröthe": {
+   "modern": "Morgenröte",
+   "basis": "wiktionary",
+   "entry": "Morgenröthe",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 7
+  },
+  "Morgenröthen": {
+   "modern": "Morgenröten",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Morgenröten",
+   "count": 1
+  },
+  "Muth": {
+   "modern": "Mut",
+   "basis": "wiktionary",
+   "entry": "Muth",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 29
+  },
+  "Muthe": {
+   "modern": "Mute",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Mute",
+   "count": 2
+  },
+  "Muthmaassen": {
+   "modern": "Mutmaßen",
+   "basis": "rules",
+   "rules": [
+    "th",
+    "ss-sz",
+    "aa-a"
+   ],
+   "lexicon": "Mutmaßen",
+   "count": 2
+  },
+  "Muthmaassung": {
+   "modern": "Mutmaßung",
+   "basis": "rules",
+   "rules": [
+    "th",
+    "ss-sz",
+    "aa-a"
+   ],
+   "lexicon": "Mutmaßung",
+   "count": 4
+  },
+  "Muths": {
+   "modern": "Muts",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Muts",
+   "count": 1
+  },
+  "Muthwille": {
+   "modern": "Mutwille",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Mutwille",
+   "count": 1
+  },
+  "Muthwillen": {
+   "modern": "Mutwillen",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Mutwillen",
+   "count": 4
+  },
+  "Muthwillens": {
+   "modern": "Mutwillens",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Mutwillens",
+   "count": 2
+  },
+  "Müssiggänger": {
+   "modern": "Müßiggänger",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "Müßiggänger",
+   "count": 2
+  },
+  "Narrethei": {
+   "modern": "Narretei",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Narretei",
+   "count": 1
+  },
+  "Noth": {
+   "modern": "Not",
+   "basis": "wiktionary",
+   "entry": "Noth",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 21
+  },
+  "Nothdurft": {
+   "modern": "Notdurft",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Notdurft",
+   "count": 3
+  },
+  "Nothleidende": {
+   "modern": "Notleidende",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 1
+  },
+  "Nothschrei": {
+   "modern": "Notschrei",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 9
+  },
+  "Nothschreiende": {
+   "modern": "Notschreiende",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 1
+  },
+  "Nothschreienden": {
+   "modern": "Notschreienden",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 1
+  },
+  "Nothschrein": {
+   "modern": "Notschrein",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 2
+  },
+  "Nothstandes": {
+   "modern": "Notstandes",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Notstandes",
+   "count": 1
+  },
+  "Nothstände": {
+   "modern": "Notstände",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Notstände",
+   "count": 1
+  },
+  "Nothwendigen": {
+   "modern": "Notwendigen",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 1
+  },
+  "Nothwendigkeit": {
+   "modern": "Notwendigkeit",
+   "basis": "wiktionary",
+   "entry": "Nothwendigkeit",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 3
+  },
+  "Nöthe": {
+   "modern": "Nöte",
+   "basis": "wiktionary",
+   "entry": "Nöthe",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 1
+  },
+  "Oelberge": {
+   "modern": "Ölberge",
+   "basis": "rules",
+   "rules": [
+    "umlaut"
+   ],
+   "lexicon": "Ölberge",
+   "count": 1
+  },
+  "Oelberges": {
+   "modern": "Ölberges",
+   "basis": "rules",
+   "rules": [
+    "umlaut"
+   ],
+   "lexicon": "Ölberges",
+   "count": 1
+  },
+  "Oelbergs": {
+   "modern": "Ölbergs",
+   "basis": "rules",
+   "rules": [
+    "umlaut"
+   ],
+   "lexicon": "Ölbergs",
+   "count": 1
+  },
+  "Opferthier": {
+   "modern": "Opfertier",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 1
+  },
+  "Pferdefuss": {
+   "modern": "Pferdefuß",
+   "basis": "wiktionary",
+   "entry": "Pferdefuss",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 1
+  },
+  "Purpurröthen": {
+   "modern": "Purpurröten",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 1
+  },
+  "Rath": {
+   "modern": "Rat",
+   "basis": "wiktionary",
+   "entry": "Rath",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 3
+  },
+  "Rathe": {
+   "modern": "Rate",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Rate",
+   "count": 4
+  },
+  "Rathen": {
+   "modern": "Raten",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Raten",
+   "count": 1
+  },
+  "Rathgeber": {
+   "modern": "Ratgeber",
+   "basis": "wiktionary",
+   "entry": "Rathgeber",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 1
+  },
+  "Raubthier": {
+   "modern": "Raubtier",
+   "basis": "wiktionary",
+   "entry": "Raubthier",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 2
+  },
+  "Raubthiere": {
+   "modern": "Raubtiere",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Raubtiere",
+   "count": 3
+  },
+  "Raubthieren": {
+   "modern": "Raubtieren",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Raubtieren",
+   "count": 2
+  },
+  "Raubthiers": {
+   "modern": "Raubtiers",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Raubtiers",
+   "count": 1
+  },
+  "Reichthum": {
+   "modern": "Reichtum",
+   "basis": "wiktionary",
+   "entry": "Reichthum",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 3
+  },
+  "Reichthume": {
+   "modern": "Reichtume",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Reichtume",
+   "count": 1
+  },
+  "Reichthums": {
+   "modern": "Reichtums",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Reichtums",
+   "count": 3
+  },
+  "Reichthümer": {
+   "modern": "Reichtümer",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Reichtümer",
+   "count": 2
+  },
+  "Ruthen": {
+   "modern": "Ruten",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Ruten",
+   "count": 1
+  },
+  "Ruthenstreichen": {
+   "modern": "Rutenstreichen",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 1
+  },
+  "Räthsel": {
+   "modern": "Rätsel",
+   "basis": "wiktionary",
+   "entry": "Räthsel",
+   "tags": [
+    "archaic"
+   ],
+   "count": 19
+  },
+  "Räthseln": {
+   "modern": "Rätseln",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Rätseln",
+   "count": 3
+  },
+  "Röthe": {
+   "modern": "Röte",
+   "basis": "wiktionary",
+   "entry": "Röthe",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 1
+  },
+  "Schafheerden": {
+   "modern": "Schafherden",
+   "basis": "rules",
+   "rules": [
+    "ee-e"
+   ],
+   "lexicon": "Schafherden",
+   "count": 1
+  },
+  "Schalthieren": {
+   "modern": "Schaltieren",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 1
+  },
+  "Schliessen": {
+   "modern": "Schließen",
+   "basis": "wiktionary",
+   "entry": "Schliessen",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 1
+  },
+  "Schmeissfliegen": {
+   "modern": "Schmeißfliegen",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "Schmeißfliegen",
+   "count": 1
+  },
+  "Schooss": {
+   "modern": "Schoß",
+   "basis": "wiktionary",
+   "entry": "Schooss",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 1
+  },
+  "Schuppenthier": {
+   "modern": "Schuppentier",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Schuppentier",
+   "count": 1
+  },
+  "Schweiss": {
+   "modern": "Schweiß",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "Schweiß",
+   "count": 2
+  },
+  "Schweisse": {
+   "modern": "Schweiße",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "Schweiße",
+   "count": 2
+  },
+  "Schwermuth": {
+   "modern": "Schwermut",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Schwermut",
+   "count": 15
+  },
+  "Scorpione": {
+   "modern": "Skorpione",
+   "basis": "rules",
+   "rules": [
+    "c-k"
+   ],
+   "lexicon": "Skorpione",
+   "count": 1
+  },
+  "Silb": {
+   "modern": "Silbe",
+   "basis": "wiktionary",
+   "entry": "Silb",
+   "tags": [
+    "alternative"
+   ],
+   "count": 1
+  },
+  "Spässen": {
+   "modern": "Späßen",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "Späßen",
+   "count": 1
+  },
+  "Stadtthor": {
+   "modern": "Stadttor",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Stadttor",
+   "count": 2
+  },
+  "Süsse": {
+   "modern": "Süße",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "Süße",
+   "count": 4
+  },
+  "Süssholz": {
+   "modern": "Süßholz",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "Süßholz",
+   "count": 1
+  },
+  "Taubenfüssen": {
+   "modern": "Taubenfüßen",
+   "basis": "rules+compound",
+   "rules": [
+    "ss-sz"
+   ],
+   "count": 1
+  },
+  "Thal": {
+   "modern": "Tal",
+   "basis": "wiktionary",
+   "entry": "Thal",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 4
+  },
+  "Thale": {
+   "modern": "Tale",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Tale",
+   "count": 3
+  },
+  "That": {
+   "modern": "Tat",
+   "basis": "wiktionary",
+   "entry": "That",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 16
+  },
+  "Thaten": {
+   "modern": "Taten",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Taten",
+   "count": 1
+  },
+  "Thau": {
+   "modern": "Tau",
+   "basis": "wiktionary",
+   "entry": "Thau",
+   "tags": [
+    "alternative"
+   ],
+   "count": 6
+  },
+  "Thauwind": {
+   "modern": "Tauwind",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 3
+  },
+  "Theil": {
+   "modern": "Teil",
+   "basis": "wiktionary",
+   "entry": "Theil",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 1
+  },
+  "Theilen": {
+   "modern": "Teilen",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Teilen",
+   "count": 1
+  },
+  "Thier": {
+   "modern": "Tier",
+   "basis": "wiktionary",
+   "entry": "Thier",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 30
+  },
+  "Thierbändiger": {
+   "modern": "Tierbändiger",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Tierbändiger",
+   "count": 2
+  },
+  "Thiere": {
+   "modern": "Tiere",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Tiere",
+   "count": 52
+  },
+  "Thieres": {
+   "modern": "Tieres",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Tieres",
+   "count": 1
+  },
+  "Thierwald": {
+   "modern": "Tierwald",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 1
+  },
+  "Thor": {
+   "modern": "Tor",
+   "basis": "wiktionary",
+   "entry": "Thor",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 7
+  },
+  "Thore": {
+   "modern": "Tore",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Tore",
+   "count": 8
+  },
+  "Thoren": {
+   "modern": "Toren",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Toren",
+   "count": 2
+  },
+  "Thores": {
+   "modern": "Tores",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Tores",
+   "count": 1
+  },
+  "Thorheit": {
+   "modern": "Torheit",
+   "basis": "wiktionary",
+   "entry": "Thorheit",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 20
+  },
+  "Thorheiten": {
+   "modern": "Torheiten",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Torheiten",
+   "count": 5
+  },
+  "Thorweg": {
+   "modern": "Torweg",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 4
+  },
+  "Thorwege": {
+   "modern": "Torwege",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 4
+  },
+  "Thorwegs": {
+   "modern": "Torwegs",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 1
+  },
+  "Thräne": {
+   "modern": "Träne",
+   "basis": "wiktionary",
+   "entry": "Thräne",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 1
+  },
+  "Thränen": {
+   "modern": "Tränen",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Tränen",
+   "count": 18
+  },
+  "Thun": {
+   "modern": "Tun",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Tun",
+   "count": 1
+  },
+  "Thunichtgute": {
+   "modern": "Tunichtgute",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Tunichtgute",
+   "count": 1
+  },
+  "Thurm": {
+   "modern": "Turm",
+   "basis": "wiktionary",
+   "entry": "Thurm",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 2
+  },
+  "Thurme": {
+   "modern": "Turme",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Turme",
+   "count": 1
+  },
+  "Thäler": {
+   "modern": "Täler",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Täler",
+   "count": 6
+  },
+  "Thäter": {
+   "modern": "Täter",
+   "basis": "wiktionary",
+   "entry": "Thäter",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 2
+  },
+  "Thür": {
+   "modern": "Tür",
+   "basis": "wiktionary",
+   "entry": "Thür",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 9
+  },
+  "Thürmen": {
+   "modern": "Türmen",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Türmen",
+   "count": 2
+  },
+  "Thürwart": {
+   "modern": "Türwart",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 1
+  },
+  "Todten": {
+   "modern": "Toten",
+   "basis": "rules",
+   "rules": [
+    "dt-t"
+   ],
+   "lexicon": "Toten",
+   "count": 11
+  },
+  "Todtengräber": {
+   "modern": "Totengräber",
+   "basis": "wiktionary",
+   "entry": "Todtengräber",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 6
+  },
+  "Todtenkammern": {
+   "modern": "Totenkammern",
+   "basis": "rules+compound",
+   "rules": [
+    "dt-t"
+   ],
+   "count": 2
+  },
+  "Todter": {
+   "modern": "Toter",
+   "basis": "rules",
+   "rules": [
+    "dt-t"
+   ],
+   "lexicon": "Toter",
+   "count": 2
+  },
+  "Todtschlagen": {
+   "modern": "Totschlagen",
+   "basis": "rules",
+   "rules": [
+    "dt-t"
+   ],
+   "lexicon": "Totschlagen",
+   "count": 1
+  },
+  "Todtschläger": {
+   "modern": "Totschläger",
+   "basis": "rules",
+   "rules": [
+    "dt-t"
+   ],
+   "lexicon": "Totschläger",
+   "count": 4
+  },
+  "Tödten": {
+   "modern": "Töten",
+   "basis": "rules",
+   "rules": [
+    "dt-t"
+   ],
+   "lexicon": "Töten",
+   "count": 1
+  },
+  "Unflath": {
+   "modern": "Unflat",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Unflat",
+   "count": 3
+  },
+  "Ungethüm": {
+   "modern": "Ungetüm",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Ungetüm",
+   "count": 3
+  },
+  "Unmuth": {
+   "modern": "Unmut",
+   "basis": "wiktionary",
+   "entry": "Unmuth",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 4
+  },
+  "Unmuthe": {
+   "modern": "Unmute",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Unmute",
+   "count": 1
+  },
+  "Unrath": {
+   "modern": "Unrat",
+   "basis": "wiktionary",
+   "entry": "Unrath",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 1
+  },
+  "Unrathe": {
+   "modern": "Unrate",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Unrate",
+   "count": 1
+  },
+  "Unthier": {
+   "modern": "Untier",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Untier",
+   "count": 5
+  },
+  "Unthiere": {
+   "modern": "Untiere",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Untiere",
+   "count": 3
+  },
+  "Urgrossmütter": {
+   "modern": "Urgroßmütter",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "Urgroßmütter",
+   "count": 1
+  },
+  "Verhängniss": {
+   "modern": "Verhängnis",
+   "basis": "wiktionary",
+   "entry": "Verhängniss",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 6
+  },
+  "Verräther": {
+   "modern": "Verräter",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Verräter",
+   "count": 1
+  },
+  "Vortheil": {
+   "modern": "Vorteil",
+   "basis": "wiktionary",
+   "entry": "Vortheil",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 1
+  },
+  "Vortheile": {
+   "modern": "Vorteile",
+   "basis": "wiktionary",
+   "entry": "Vortheile",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 2
+  },
+  "Vorurtheil": {
+   "modern": "Vorurteil",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Vorurteil",
+   "count": 1
+  },
+  "Wagniss": {
+   "modern": "Wagnis",
+   "basis": "rules",
+   "rules": [
+    "niss"
+   ],
+   "lexicon": "Wagnis",
+   "count": 2
+  },
+  "Wehethun": {
+   "modern": "Wehetun",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 1
+  },
+  "Wehethäter": {
+   "modern": "Wehetäter",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 1
+  },
+  "Wehthaten": {
+   "modern": "Wehtaten",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 1
+  },
+  "Weisskopf": {
+   "modern": "Weißkopf",
+   "basis": "rules+compound",
+   "rules": [
+    "ss-sz"
+   ],
+   "count": 2
+  },
+  "Werthe": {
+   "modern": "Werte",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Werte",
+   "count": 22
+  },
+  "Werthen": {
+   "modern": "Werten",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Werten",
+   "count": 6
+  },
+  "Werthschätzungen": {
+   "modern": "Wertschätzungen",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Wertschätzungen",
+   "count": 2
+  },
+  "Wildniss": {
+   "modern": "Wildnis",
+   "basis": "rules",
+   "rules": [
+    "niss"
+   ],
+   "lexicon": "Wildnis",
+   "count": 1
+  },
+  "Wirthes": {
+   "modern": "Wirtes",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Wirtes",
+   "count": 1
+  },
+  "Wohlgerathenem": {
+   "modern": "Wohlgeratenem",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 1
+  },
+  "Wohlthat": {
+   "modern": "Wohltat",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Wohltat",
+   "count": 2
+  },
+  "Wohlthun": {
+   "modern": "Wohltun",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Wohltun",
+   "count": 1
+  },
+  "Wohlthäter": {
+   "modern": "Wohltäter",
+   "basis": "wiktionary",
+   "entry": "Wohlthäter",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 1
+  },
+  "Wunderthäter": {
+   "modern": "Wundertäter",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Wundertäter",
+   "count": 1
+  },
+  "Wurmfrass": {
+   "modern": "Wurmfraß",
+   "basis": "rules+compound",
+   "rules": [
+    "ss-sz"
+   ],
+   "count": 2
+  },
+  "Wuth": {
+   "modern": "Wut",
+   "basis": "wiktionary",
+   "entry": "Wuth",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 2
+  },
+  "Zeugniss": {
+   "modern": "Zeugnis",
+   "basis": "wiktionary",
+   "entry": "Zeugniss",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 2
+  },
+  "Zugthiere": {
+   "modern": "Zugtiere",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Zugtiere",
+   "count": 1
+  },
+  "abgethan": {
+   "modern": "abgetan",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "abgetan",
+   "count": 1
+  },
+  "abgetödtet": {
+   "modern": "abgetötet",
+   "basis": "rules",
+   "rules": [
+    "dt-t"
+   ],
+   "lexicon": "abgetötet",
+   "count": 1
+  },
+  "abthun": {
+   "modern": "abtun",
+   "basis": "wiktionary",
+   "entry": "abthun",
+   "tags": [
+    "alternative"
+   ],
+   "count": 1
+  },
+  "abthätet": {
+   "modern": "abtätet",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "abtätet",
+   "count": 1
+  },
+  "allesammt": {
+   "modern": "allesamt",
+   "basis": "wiktionary",
+   "entry": "allesammt",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 4
+  },
+  "alterthümliches": {
+   "modern": "altertümliches",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "altertümliches",
+   "count": 1
+  },
+  "angethan": {
+   "modern": "angetan",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "angetan",
+   "count": 1
+  },
+  "anstösst": {
+   "modern": "anstößt",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "anstößt",
+   "count": 1
+  },
+  "assen": {
+   "modern": "aßen",
+   "basis": "wiktionary",
+   "entry": "assen",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 1
+  },
+  "athme": {
+   "modern": "atme",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "atme",
+   "count": 1
+  },
+  "athmen": {
+   "modern": "atmen",
+   "basis": "wiktionary",
+   "entry": "athmen",
+   "tags": [
+    "alternative"
+   ],
+   "count": 2
+  },
+  "athmet": {
+   "modern": "atmet",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "atmet",
+   "count": 1
+  },
+  "athmete": {
+   "modern": "atmete",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "atmete",
+   "count": 2
+  },
+  "aufathmend": {
+   "modern": "aufatmend",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "aufatmend",
+   "count": 1
+  },
+  "aufgieng": {
+   "modern": "aufging",
+   "basis": "rules",
+   "rules": [
+    "ie-i"
+   ],
+   "lexicon": "aufging",
+   "count": 2
+  },
+  "aufreissen": {
+   "modern": "aufreißen",
+   "basis": "wiktionary",
+   "entry": "aufreissen",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 1
+  },
+  "aufreisst": {
+   "modern": "aufreißt",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "aufreißt",
+   "count": 1
+  },
+  "aufthat": {
+   "modern": "auftat",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "auftat",
+   "count": 1
+  },
+  "ausgetheilt": {
+   "modern": "ausgeteilt",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "ausgeteilt",
+   "count": 1
+  },
+  "ausgieng": {
+   "modern": "ausging",
+   "basis": "rules",
+   "rules": [
+    "ie-i"
+   ],
+   "lexicon": "ausging",
+   "count": 1
+  },
+  "ausser": {
+   "modern": "außer",
+   "basis": "wiktionary",
+   "entry": "ausser",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 5
+  },
+  "ausserdem": {
+   "modern": "außerdem",
+   "basis": "wiktionary",
+   "entry": "ausserdem",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 1
+  },
+  "austheilen": {
+   "modern": "austeilen",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "austeilen",
+   "count": 1
+  },
+  "austheilst": {
+   "modern": "austeilst",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "austeilst",
+   "count": 1
+  },
+  "austheilt": {
+   "modern": "austeilt",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "austeilt",
+   "count": 1
+  },
+  "barfuss": {
+   "modern": "barfuß",
+   "basis": "wiktionary",
+   "entry": "barfuss",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 1
+  },
+  "begiebt": {
+   "modern": "begibt",
+   "basis": "wiktionary",
+   "entry": "begiebt",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 1
+  },
+  "beissen": {
+   "modern": "beißen",
+   "basis": "wiktionary",
+   "entry": "beissen",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 7
+  },
+  "beisst": {
+   "modern": "beißt",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "beißt",
+   "count": 3
+  },
+  "besass": {
+   "modern": "besaß",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "besaß",
+   "count": 3
+  },
+  "beschliessend": {
+   "modern": "beschließend",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "beschließend",
+   "count": 1
+  },
+  "büssen": {
+   "modern": "büßen",
+   "basis": "wiktionary",
+   "entry": "büssen",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 1
+  },
+  "demüthig": {
+   "modern": "demütig",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "demütig",
+   "count": 2
+  },
+  "demüthigen": {
+   "modern": "demütigen",
+   "basis": "wiktionary",
+   "entry": "demüthigen",
+   "tags": [
+    "alternative"
+   ],
+   "count": 1
+  },
+  "dermaassen": {
+   "modern": "dermaßen",
+   "basis": "rules",
+   "rules": [
+    "ss-sz",
+    "aa-a"
+   ],
+   "lexicon": "dermaßen",
+   "count": 1
+  },
+  "desshalb": {
+   "modern": "deshalb",
+   "basis": "wiktionary",
+   "entry": "desshalb",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 6
+  },
+  "diess": {
+   "modern": "dies",
+   "basis": "wiktionary",
+   "entry": "diess",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 105
+  },
+  "draussen": {
+   "modern": "draußen",
+   "basis": "wiktionary",
+   "entry": "draussen",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 4
+  },
+  "dreissig": {
+   "modern": "dreißig",
+   "basis": "wiktionary",
+   "entry": "dreissig",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 1
+  },
+  "durchsüsst": {
+   "modern": "durchsüßt",
+   "basis": "rules+compound",
+   "rules": [
+    "ss-sz"
+   ],
+   "count": 1
+  },
+  "einathmen": {
+   "modern": "einatmen",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "einatmen",
+   "count": 1
+  },
+  "einschliesslich": {
+   "modern": "einschließlich",
+   "basis": "wiktionary",
+   "entry": "einschliesslich",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 1
+  },
+  "enge": {
+   "modern": "eng",
+   "basis": "wiktionary",
+   "entry": "enge",
+   "tags": [
+    "alternative"
+   ],
+   "count": 1
+  },
+  "entmuthigte": {
+   "modern": "entmutigte",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "entmutigte",
+   "count": 1
+  },
+  "entrathen": {
+   "modern": "entraten",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "entraten",
+   "count": 1
+  },
+  "ergieb": {
+   "modern": "ergib",
+   "basis": "rules",
+   "rules": [
+    "ie-i"
+   ],
+   "lexicon": "ergib",
+   "count": 1
+  },
+  "ergieng": {
+   "modern": "erging",
+   "basis": "wiktionary",
+   "entry": "ergieng",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 2
+  },
+  "errathbar": {
+   "modern": "erratbar",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 1
+  },
+  "errathe": {
+   "modern": "errate",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "errate",
+   "count": 2
+  },
+  "errathen": {
+   "modern": "erraten",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "erraten",
+   "count": 6
+  },
+  "errathet": {
+   "modern": "erratet",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "erratet",
+   "count": 2
+  },
+  "errieth": {
+   "modern": "erriet",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "erriet",
+   "count": 6
+  },
+  "erriethe": {
+   "modern": "erriete",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "erriete",
+   "count": 3
+  },
+  "erriethest": {
+   "modern": "errietest",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "errietest",
+   "count": 4
+  },
+  "erriethst": {
+   "modern": "errietst",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "errietst",
+   "count": 1
+  },
+  "erräth": {
+   "modern": "errät",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "errät",
+   "count": 5
+  },
+  "erräthst": {
+   "modern": "errätst",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "errätst",
+   "count": 2
+  },
+  "erröthen": {
+   "modern": "erröten",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "erröten",
+   "count": 1
+  },
+  "erröthend": {
+   "modern": "errötend",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "errötend",
+   "count": 1
+  },
+  "erröthest": {
+   "modern": "errötest",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "errötest",
+   "count": 1
+  },
+  "erröthetest": {
+   "modern": "errötetest",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "errötetest",
+   "count": 1
+  },
+  "erschliessen": {
+   "modern": "erschließen",
+   "basis": "wiktionary",
+   "entry": "erschliessen",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 1
+  },
+  "fieng": {
+   "modern": "fing",
+   "basis": "rules",
+   "rules": [
+    "ie-i"
+   ],
+   "lexicon": "fing",
+   "count": 2
+  },
+  "fienge": {
+   "modern": "finge",
+   "basis": "rules",
+   "rules": [
+    "ie-i"
+   ],
+   "lexicon": "finge",
+   "count": 1
+  },
+  "fliesse": {
+   "modern": "fließe",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "fließe",
+   "count": 1
+  },
+  "fliessen": {
+   "modern": "fließen",
+   "basis": "wiktionary",
+   "entry": "fliessen",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 1
+  },
+  "fliesst": {
+   "modern": "fließt",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "fließt",
+   "count": 4
+  },
+  "frass": {
+   "modern": "fraß",
+   "basis": "wiktionary",
+   "entry": "frass",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 3
+  },
+  "frühe": {
+   "modern": "früh",
+   "basis": "wiktionary",
+   "entry": "frühe",
+   "tags": [
+    "alternative"
+   ],
+   "count": 1
+  },
+  "gehn": {
+   "modern": "gehen",
+   "basis": "wiktionary",
+   "entry": "gehn",
+   "tags": [
+    "dated"
+   ],
+   "count": 28
+  },
+  "geniesse": {
+   "modern": "genieße",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "genieße",
+   "count": 1
+  },
+  "geniessen": {
+   "modern": "genießen",
+   "basis": "wiktionary",
+   "entry": "geniessen",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 4
+  },
+  "gerathe": {
+   "modern": "gerate",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "gerate",
+   "count": 1
+  },
+  "gerathen": {
+   "modern": "geraten",
+   "basis": "wiktionary",
+   "entry": "gerathen",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 2
+  },
+  "gerieth": {
+   "modern": "geriet",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "geriet",
+   "count": 1
+  },
+  "geriethen": {
+   "modern": "gerieten",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "gerieten",
+   "count": 1
+  },
+  "geriethet": {
+   "modern": "gerietet",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "gerietet",
+   "count": 1
+  },
+  "geräth": {
+   "modern": "gerät",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "gerät",
+   "count": 2
+  },
+  "gestossen": {
+   "modern": "gestoßen",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "gestoßen",
+   "count": 1
+  },
+  "gethan": {
+   "modern": "getan",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "getan",
+   "count": 11
+  },
+  "getödtet": {
+   "modern": "getötet",
+   "basis": "rules",
+   "rules": [
+    "dt-t"
+   ],
+   "lexicon": "getötet",
+   "count": 1
+  },
+  "gewaltthätig": {
+   "modern": "gewalttätig",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "gewalttätig",
+   "count": 2
+  },
+  "gieb": {
+   "modern": "gib",
+   "basis": "rules",
+   "rules": [
+    "ie-i"
+   ],
+   "lexicon": "gib",
+   "count": 7
+  },
+  "giebst": {
+   "modern": "gibst",
+   "basis": "wiktionary",
+   "entry": "giebst",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 2
+  },
+  "giebt": {
+   "modern": "gibt",
+   "basis": "wiktionary",
+   "entry": "giebt",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 110
+  },
+  "gieng": {
+   "modern": "ging",
+   "basis": "wiktionary",
+   "entry": "gieng",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 68
+  },
+  "gienge": {
+   "modern": "ginge",
+   "basis": "wiktionary",
+   "entry": "gienge",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 2
+  },
+  "giengen": {
+   "modern": "gingen",
+   "basis": "wiktionary",
+   "entry": "giengen",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 10
+  },
+  "giengst": {
+   "modern": "gingst",
+   "basis": "wiktionary",
+   "entry": "giengst",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 3
+  },
+  "giessen": {
+   "modern": "gießen",
+   "basis": "wiktionary",
+   "entry": "giessen",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 1
+  },
+  "gross": {
+   "modern": "groß",
+   "basis": "wiktionary",
+   "entry": "gross",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 23
+  },
+  "grossmächtigsten": {
+   "modern": "großmächtigsten",
+   "basis": "rules+compound",
+   "rules": [
+    "ss-sz"
+   ],
+   "count": 1
+  },
+  "grüsst": {
+   "modern": "grüßt",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "grüßt",
+   "count": 1
+  },
+  "grüsste": {
+   "modern": "grüßte",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "grüßte",
+   "count": 1
+  },
+  "heiss": {
+   "modern": "heiß",
+   "basis": "wiktionary",
+   "entry": "heiss",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 4
+  },
+  "heisse": {
+   "modern": "heiße",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "heiße",
+   "count": 42
+  },
+  "heissen": {
+   "modern": "heißen",
+   "basis": "wiktionary",
+   "entry": "heissen",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 41
+  },
+  "heisser": {
+   "modern": "heißer",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "heißer",
+   "count": 2
+  },
+  "heissere": {
+   "modern": "heißere",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "heißere",
+   "count": 1
+  },
+  "heisses": {
+   "modern": "heißes",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "heißes",
+   "count": 2
+  },
+  "heissest": {
+   "modern": "heißest",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "heißest",
+   "count": 1
+  },
+  "heisseste": {
+   "modern": "heißeste",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "heißeste",
+   "count": 1
+  },
+  "heisshungrig": {
+   "modern": "heißhungrig",
+   "basis": "rules+compound",
+   "rules": [
+    "ss-sz"
+   ],
+   "count": 1
+  },
+  "heisst": {
+   "modern": "heißt",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "heißt",
+   "count": 70
+  },
+  "herumgieng": {
+   "modern": "herumging",
+   "basis": "rules",
+   "rules": [
+    "ie-i"
+   ],
+   "lexicon": "herumging",
+   "count": 1
+  },
+  "hieng": {
+   "modern": "hing",
+   "basis": "wiktionary",
+   "entry": "hieng",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 6
+  },
+  "hiengen": {
+   "modern": "hingen",
+   "basis": "wiktionary",
+   "entry": "hiengen",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 2
+  },
+  "hiess": {
+   "modern": "hieß",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "hieß",
+   "count": 21
+  },
+  "hiesse": {
+   "modern": "hieße",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "hieße",
+   "count": 4
+  },
+  "hiessen": {
+   "modern": "hießen",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "hießen",
+   "count": 1
+  },
+  "hiesset": {
+   "modern": "hießet",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "hießet",
+   "count": 1
+  },
+  "hingiebt": {
+   "modern": "hingibt",
+   "basis": "rules",
+   "rules": [
+    "ie-i"
+   ],
+   "lexicon": "hingibt",
+   "count": 1
+  },
+  "hinreissenden": {
+   "modern": "hinreißenden",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "hinreißenden",
+   "count": 1
+  },
+  "insgesammt": {
+   "modern": "insgesamt",
+   "basis": "wiktionary",
+   "entry": "insgesammt",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 3
+  },
+  "knieen": {
+   "modern": "knien",
+   "basis": "wiktionary",
+   "entry": "knieen",
+   "tags": [
+    "former"
+   ],
+   "count": 1
+  },
+  "kreisst": {
+   "modern": "kreißt",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "kreißt",
+   "count": 1
+  },
+  "liess": {
+   "modern": "ließ",
+   "basis": "wiktionary",
+   "entry": "liess",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 5
+  },
+  "liesse": {
+   "modern": "ließe",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "ließe",
+   "count": 1
+  },
+  "liessen": {
+   "modern": "ließen",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "ließen",
+   "count": 1
+  },
+  "liessest": {
+   "modern": "ließest",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "ließest",
+   "count": 1
+  },
+  "missgerathen": {
+   "modern": "missgeraten",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 1
+  },
+  "missrathen": {
+   "modern": "missraten",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "missraten",
+   "count": 1
+  },
+  "missrathene": {
+   "modern": "missratene",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "missratene",
+   "count": 1
+  },
+  "missrieth": {
+   "modern": "missriet",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "missriet",
+   "count": 6
+  },
+  "missriethet": {
+   "modern": "missrietet",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "missrietet",
+   "count": 3
+  },
+  "missräth": {
+   "modern": "missrät",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "missrät",
+   "count": 1
+  },
+  "mitgiebt": {
+   "modern": "mitgibt",
+   "basis": "rules",
+   "rules": [
+    "ie-i"
+   ],
+   "lexicon": "mitgibt",
+   "count": 1
+  },
+  "muthig": {
+   "modern": "mutig",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "mutig",
+   "count": 2
+  },
+  "muthigste": {
+   "modern": "mutigste",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "mutigste",
+   "count": 1
+  },
+  "muthigsten": {
+   "modern": "mutigsten",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "mutigsten",
+   "count": 1
+  },
+  "muthmaassen": {
+   "modern": "mutmaßen",
+   "basis": "rules",
+   "rules": [
+    "th",
+    "ss-sz",
+    "aa-a"
+   ],
+   "lexicon": "mutmaßen",
+   "count": 1
+  },
+  "muthwillig": {
+   "modern": "mutwillig",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "mutwillig",
+   "count": 2
+  },
+  "muthwilligen": {
+   "modern": "mutwilligen",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "mutwilligen",
+   "count": 1
+  },
+  "muthwilliges": {
+   "modern": "mutwilliges",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "mutwilliges",
+   "count": 1
+  },
+  "noth": {
+   "modern": "not",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "not",
+   "count": 2
+  },
+  "noththut": {
+   "modern": "nottut",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "nottut",
+   "count": 1
+  },
+  "nothwendig": {
+   "modern": "notwendig",
+   "basis": "wiktionary",
+   "entry": "nothwendig",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 4
+  },
+  "nothwendiger": {
+   "modern": "notwendiger",
+   "basis": "wiktionary",
+   "entry": "nothwendiger",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 3
+  },
+  "nothwendigste": {
+   "modern": "notwendigste",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "notwendigste",
+   "count": 1
+  },
+  "nöthig": {
+   "modern": "nötig",
+   "basis": "wiktionary",
+   "entry": "nöthig",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 9
+  },
+  "nöthigsten": {
+   "modern": "nötigsten",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "nötigsten",
+   "count": 1
+  },
+  "rathe": {
+   "modern": "rate",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "rate",
+   "count": 15
+  },
+  "rathen": {
+   "modern": "raten",
+   "basis": "wiktionary",
+   "entry": "rathen",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 3
+  },
+  "rathet": {
+   "modern": "ratet",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "ratet",
+   "count": 2
+  },
+  "rauh": {
+   "modern": "rau",
+   "basis": "wiktionary",
+   "entry": "rauh",
+   "tags": [
+    "archaic"
+   ],
+   "count": 1
+  },
+  "reisse": {
+   "modern": "reiße",
+   "basis": "wiktionary",
+   "entry": "reisse",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 1
+  },
+  "reissen": {
+   "modern": "reißen",
+   "basis": "wiktionary",
+   "entry": "reissen",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 1
+  },
+  "reisst": {
+   "modern": "reißt",
+   "basis": "wiktionary",
+   "entry": "reisst",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 3
+  },
+  "rieth": {
+   "modern": "riet",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "riet",
+   "count": 1
+  },
+  "riethe": {
+   "modern": "riete",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "riete",
+   "count": 1
+  },
+  "rosenrothe": {
+   "modern": "rosenrote",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "rosenrote",
+   "count": 1
+  },
+  "rothe": {
+   "modern": "rote",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "rote",
+   "count": 5
+  },
+  "rothem": {
+   "modern": "rotem",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "rotem",
+   "count": 1
+  },
+  "rothen": {
+   "modern": "roten",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "roten",
+   "count": 4
+  },
+  "rothgefleckten": {
+   "modern": "rotgefleckten",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 1
+  },
+  "räth": {
+   "modern": "rät",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "rät",
+   "count": 4
+  },
+  "sammt": {
+   "modern": "samt",
+   "basis": "wiktionary",
+   "entry": "sammt",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 4
+  },
+  "sass": {
+   "modern": "saß",
+   "basis": "wiktionary",
+   "entry": "sass",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 24
+  },
+  "sassen": {
+   "modern": "saßen",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "saßen",
+   "count": 4
+  },
+  "sassest": {
+   "modern": "saßest",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "saßest",
+   "count": 2
+  },
+  "schiessen": {
+   "modern": "schießen",
+   "basis": "wiktionary",
+   "entry": "schiessen",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 1
+  },
+  "schliesse": {
+   "modern": "schließe",
+   "basis": "wiktionary",
+   "entry": "schliesse",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 1
+  },
+  "schliessen": {
+   "modern": "schließen",
+   "basis": "wiktionary",
+   "entry": "schliessen",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 2
+  },
+  "schliesst": {
+   "modern": "schließt",
+   "basis": "wiktionary",
+   "entry": "schliesst",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 1
+  },
+  "schneeweissen": {
+   "modern": "schneeweißen",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "schneeweißen",
+   "count": 1
+  },
+  "schwermüthige": {
+   "modern": "schwermütige",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "schwermütige",
+   "count": 2
+  },
+  "schwermüthigen": {
+   "modern": "schwermütigen",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "schwermütigen",
+   "count": 2
+  },
+  "schwermüthiger": {
+   "modern": "schwermütiger",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "schwermütiger",
+   "count": 2
+  },
+  "solchermaassen": {
+   "modern": "solchermaßen",
+   "basis": "rules",
+   "rules": [
+    "ss-sz",
+    "aa-a"
+   ],
+   "lexicon": "solchermaßen",
+   "count": 4
+  },
+  "stehn": {
+   "modern": "stehen",
+   "basis": "wiktionary",
+   "entry": "stehn",
+   "tags": [
+    "dated"
+   ],
+   "count": 17
+  },
+  "stiess": {
+   "modern": "stieß",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "stieß",
+   "count": 1
+  },
+  "stosse": {
+   "modern": "stoße",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "stoße",
+   "count": 1
+  },
+  "stossen": {
+   "modern": "stoßen",
+   "basis": "wiktionary",
+   "entry": "stossen",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 4
+  },
+  "stösst": {
+   "modern": "stößt",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "stößt",
+   "count": 2
+  },
+  "sässe": {
+   "modern": "säße",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "säße",
+   "count": 1
+  },
+  "sässen": {
+   "modern": "säßen",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "säßen",
+   "count": 1
+  },
+  "süss": {
+   "modern": "süß",
+   "basis": "wiktionary",
+   "entry": "süss",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 2
+  },
+  "süssduftenden": {
+   "modern": "süßduftenden",
+   "basis": "rules+compound",
+   "rules": [
+    "ss-sz"
+   ],
+   "count": 1
+  },
+  "süsse": {
+   "modern": "süße",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "süße",
+   "count": 3
+  },
+  "süssem": {
+   "modern": "süßem",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "süßem",
+   "count": 2
+  },
+  "süssen": {
+   "modern": "süßen",
+   "basis": "wiktionary",
+   "entry": "süssen",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 3
+  },
+  "süsser": {
+   "modern": "süßer",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "süßer",
+   "count": 2
+  },
+  "süsses": {
+   "modern": "süßes",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "süßes",
+   "count": 1
+  },
+  "süsseste": {
+   "modern": "süßeste",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "süßeste",
+   "count": 1
+  },
+  "süssesten": {
+   "modern": "süßesten",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "süßesten",
+   "count": 2
+  },
+  "süsslich": {
+   "modern": "süßlich",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "süßlich",
+   "count": 1
+  },
+  "süssliche": {
+   "modern": "süßliche",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "süßliche",
+   "count": 1
+  },
+  "that": {
+   "modern": "tat",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "tat",
+   "count": 15
+  },
+  "thaten": {
+   "modern": "taten",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "taten",
+   "count": 1
+  },
+  "thatest": {
+   "modern": "tatest",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "tatest",
+   "count": 7
+  },
+  "thatet": {
+   "modern": "tatet",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "tatet",
+   "count": 3
+  },
+  "theilen": {
+   "modern": "teilen",
+   "basis": "wiktionary",
+   "entry": "theilen",
+   "tags": [
+    "alternative"
+   ],
+   "count": 1
+  },
+  "thränenlösender": {
+   "modern": "tränenlösender",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 1
+  },
+  "thue": {
+   "modern": "tue",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "tue",
+   "count": 5
+  },
+  "thun": {
+   "modern": "tun",
+   "basis": "wiktionary",
+   "entry": "thun",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 33
+  },
+  "thust": {
+   "modern": "tust",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "tust",
+   "count": 3
+  },
+  "thut": {
+   "modern": "tut",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "tut",
+   "count": 24
+  },
+  "thäte": {
+   "modern": "täte",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "täte",
+   "count": 2
+  },
+  "thätest": {
+   "modern": "tätest",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "tätest",
+   "count": 1
+  },
+  "thörichten": {
+   "modern": "törichten",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "törichten",
+   "count": 2
+  },
+  "thörichteren": {
+   "modern": "törichteren",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "törichteren",
+   "count": 1
+  },
+  "thörichtsten": {
+   "modern": "törichtsten",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "törichtsten",
+   "count": 1
+  },
+  "thürmte": {
+   "modern": "türmte",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "türmte",
+   "count": 1
+  },
+  "todt": {
+   "modern": "tot",
+   "basis": "wiktionary",
+   "entry": "todt",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 14
+  },
+  "todte": {
+   "modern": "tote",
+   "basis": "rules",
+   "rules": [
+    "dt-t"
+   ],
+   "lexicon": "tote",
+   "count": 2
+  },
+  "todten": {
+   "modern": "toten",
+   "basis": "rules",
+   "rules": [
+    "dt-t"
+   ],
+   "lexicon": "toten",
+   "count": 2
+  },
+  "todtenstill": {
+   "modern": "totenstill",
+   "basis": "rules+compound",
+   "rules": [
+    "dt-t"
+   ],
+   "count": 1
+  },
+  "todtgeschlagen": {
+   "modern": "totgeschlagen",
+   "basis": "rules",
+   "rules": [
+    "dt-t"
+   ],
+   "lexicon": "totgeschlagen",
+   "count": 1
+  },
+  "todtschlagen": {
+   "modern": "totschlagen",
+   "basis": "rules",
+   "rules": [
+    "dt-t"
+   ],
+   "lexicon": "totschlagen",
+   "count": 1
+  },
+  "todtschweigsam": {
+   "modern": "totschweigsam",
+   "basis": "rules+compound",
+   "rules": [
+    "dt-t"
+   ],
+   "count": 1
+  },
+  "tödten": {
+   "modern": "töten",
+   "basis": "wiktionary",
+   "entry": "tödten",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 9
+  },
+  "tödtet": {
+   "modern": "tötet",
+   "basis": "rules",
+   "rules": [
+    "dt-t"
+   ],
+   "lexicon": "tötet",
+   "count": 6
+  },
+  "tödtete": {
+   "modern": "tötete",
+   "basis": "rules",
+   "rules": [
+    "dt-t"
+   ],
+   "lexicon": "tötete",
+   "count": 3
+  },
+  "umschliessen": {
+   "modern": "umschließen",
+   "basis": "wiktionary",
+   "entry": "umschliessen",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 1
+  },
+  "ungethan": {
+   "modern": "ungetan",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "ungetan",
+   "count": 1
+  },
+  "unvermuthetes": {
+   "modern": "unvermutetes",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "unvermutetes",
+   "count": 1
+  },
+  "unwerth": {
+   "modern": "unwert",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "unwert",
+   "count": 1
+  },
+  "urtheilen": {
+   "modern": "urteilen",
+   "basis": "wiktionary",
+   "entry": "urtheilen",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 1
+  },
+  "vergass": {
+   "modern": "vergaß",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "vergaß",
+   "count": 6
+  },
+  "vergieb": {
+   "modern": "vergib",
+   "basis": "wiktionary",
+   "entry": "vergieb",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 4
+  },
+  "vergiebt": {
+   "modern": "vergibt",
+   "basis": "wiktionary",
+   "entry": "vergiebt",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 1
+  },
+  "vergieng": {
+   "modern": "verging",
+   "basis": "rules",
+   "rules": [
+    "ie-i"
+   ],
+   "lexicon": "verging",
+   "count": 1
+  },
+  "vergiengen": {
+   "modern": "vergingen",
+   "basis": "rules",
+   "rules": [
+    "ie-i"
+   ],
+   "lexicon": "vergingen",
+   "count": 1
+  },
+  "verheissen": {
+   "modern": "verheißen",
+   "basis": "wiktionary",
+   "entry": "verheissen",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 2
+  },
+  "verhiess": {
+   "modern": "verhieß",
+   "basis": "wiktionary",
+   "entry": "verhiess",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 1
+  },
+  "verliess": {
+   "modern": "verließ",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "verließ",
+   "count": 3
+  },
+  "verliessen": {
+   "modern": "verließen",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "verließen",
+   "count": 1
+  },
+  "verrathen": {
+   "modern": "verraten",
+   "basis": "wiktionary",
+   "entry": "verrathen",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 3
+  },
+  "verräth": {
+   "modern": "verrät",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "verrät",
+   "count": 7
+  },
+  "versüsse": {
+   "modern": "versüße",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "versüße",
+   "count": 1
+  },
+  "verthan": {
+   "modern": "vertan",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "vertan",
+   "count": 1
+  },
+  "vorübergiengst": {
+   "modern": "vorübergingst",
+   "basis": "rules",
+   "rules": [
+    "ie-i"
+   ],
+   "lexicon": "vorübergingst",
+   "count": 1
+  },
+  "wehethun": {
+   "modern": "wehetun",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 3
+  },
+  "weiss": {
+   "modern": "weiß",
+   "basis": "wiktionary",
+   "entry": "weiss",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 52
+  },
+  "weissen": {
+   "modern": "weißen",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "weißen",
+   "count": 3
+  },
+  "weisser": {
+   "modern": "weißer",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "weißer",
+   "count": 1
+  },
+  "weisses": {
+   "modern": "weißes",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "weißes",
+   "count": 2
+  },
+  "weisst": {
+   "modern": "weißt",
+   "basis": "wiktionary",
+   "entry": "weisst",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 24
+  },
+  "werth": {
+   "modern": "wert",
+   "basis": "wiktionary",
+   "entry": "werth",
+   "tags": [
+    "alternative"
+   ],
+   "count": 3
+  },
+  "werthende": {
+   "modern": "wertende",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "wertende",
+   "count": 1
+  },
+  "wesshalb": {
+   "modern": "weshalb",
+   "basis": "wiktionary",
+   "entry": "wesshalb",
+   "tags": [
+    "obsolete"
+   ],
+   "count": 1
+  },
+  "widerrathen": {
+   "modern": "widerraten",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 1
+  },
+  "widerrieth": {
+   "modern": "widerriet",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 1
+  },
+  "widerräth": {
+   "modern": "widerrät",
+   "basis": "rules+compound",
+   "rules": [
+    "th"
+   ],
+   "count": 1
+  },
+  "wohlthut": {
+   "modern": "wohltut",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "wohltut",
+   "count": 2
+  },
+  "wüthend": {
+   "modern": "wütend",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "wütend",
+   "count": 1
+  },
+  "wüthender": {
+   "modern": "wütender",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "wütender",
+   "count": 1
+  },
+  "wüthet": {
+   "modern": "wütet",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "wütet",
+   "count": 1
+  },
+  "zerreissen": {
+   "modern": "zerreißen",
+   "basis": "wiktionary",
+   "entry": "zerreissen",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 1
+  },
+  "zerreissend": {
+   "modern": "zerreißend",
+   "basis": "wiktionary",
+   "entry": "zerreissend",
+   "tags": [
+    "Switzerland"
+   ],
+   "count": 1
+  },
+  "zugestossen": {
+   "modern": "zugestoßen",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "zugestoßen",
+   "count": 1
+  },
+  "zugethan": {
+   "modern": "zugetan",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "zugetan",
+   "count": 1
+  },
+  "zurückgiebt": {
+   "modern": "zurückgibt",
+   "basis": "rules",
+   "rules": [
+    "ie-i"
+   ],
+   "lexicon": "zurückgibt",
+   "count": 1
+  },
+  "zustösst": {
+   "modern": "zustößt",
+   "basis": "rules",
+   "rules": [
+    "ss-sz"
+   ],
+   "lexicon": "zustößt",
+   "count": 1
+  },
+  "Übermuth": {
+   "modern": "Übermut",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Übermut",
+   "count": 5
+  },
+  "Übermuthe": {
+   "modern": "Übermute",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "Übermute",
+   "count": 3
+  },
+  "überfliessen": {
+   "modern": "überfließen",
+   "basis": "rules+compound",
+   "rules": [
+    "ss-sz"
+   ],
+   "count": 1
+  },
+  "übermüthig": {
+   "modern": "übermütig",
+   "basis": "rules",
+   "rules": [
+    "th"
+   ],
+   "lexicon": "übermütig",
+   "count": 1
+  }
+ }
+}

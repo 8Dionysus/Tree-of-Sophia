@@ -1,0 +1,52 @@
+{
+ "schema": "tos.bonsai.origins.v1",
+ "work": {
+  "id": "za",
+  "tree": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+  "title": {
+   "ru": "Так говорил Заратустра",
+   "en": "Thus Spoke Zarathustra",
+   "de": "Also sprach Zarathustra"
+  }
+ },
+ "original": "de",
+ "posture": {
+  "ru": "Откуда пришло каждое слово свидетелей: его родословная от древнейшей формы, части, из которых оно сложено, родственные слова, написание первых изданий, слово оригинала, которое передаёт перевод, и первое место в книге.",
+  "en": "Where each word of the witnesses comes from: its descent from its oldest form, the parts it is made of, its cognates, the first editions' spelling, the word of the original a translation renders, and its first place in the book."
+ },
+ "shards": {
+  "count": 32,
+  "key": "FNV-1a 32-bit over the UTF-8 bytes of the lemma, modulo the count",
+  "path": "origins/<language>-<shard, two digits>.json"
+ },
+ "renderings": {
+  "method": "Dice association of content lemmas over the aligned sentence pairs of bonsai/lib/align.mjs (at least two shared pairs, Dice ≥ 0.2); at each place of the lemma the strongest associated word present in the aligned sentence",
+  "posture": "association over an unreviewed automatic alignment; a measure of co-occurrence"
+ },
+ "sources": {
+  "de": {
+   "label": "English Wiktionary via kaikki.org (Wiktextract)",
+   "url": "https://kaikki.org/dictionary/German/",
+   "extract_sha256": "4fb15662a125085e1eb6b533a210b45edcdffa7b8e72e07634f46e1485e4e715",
+   "licence": "CC BY-SA 4.0",
+   "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+   "attribution": "Wiktionary contributors"
+  },
+  "ru": {
+   "label": "English Wiktionary via kaikki.org (Wiktextract)",
+   "url": "https://kaikki.org/dictionary/Russian/",
+   "extract_sha256": "9078947aa21ed33ccfe9ada814fa70605c282a26bc0b7d60e388865da17984b7",
+   "licence": "CC BY-SA 4.0",
+   "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+   "attribution": "Wiktionary contributors"
+  }
+ },
+ "licence": "CC BY-SA 4.0",
+ "counts": {
+  "de_with_origin": 3865,
+  "de_lemmas": 6382,
+  "ru_with_origin": 4841,
+  "ru_lemmas": 6145,
+  "en_lemmas": 6145
+ }
+}

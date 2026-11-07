@@ -19,6 +19,7 @@ import {objectsIssues,semanticRegistry} from './objects.mjs';
 import {coreIssues,loadCore} from './core.mjs';
 import {citeIssues,readChapter,witnessesIssues} from './witnesses.mjs';
 import {termsIssues} from './terms.mjs';
+import {spellingIssues,termFormGaps,tokenChapterIssues,TOKENS_SCHEMA} from './tokens.mjs';
 import {corpusReader} from './corpus-align.mjs';
 
 export const MANIFEST_SCHEMA='tos.bonsai.v1';
@@ -35,6 +36,15 @@ export function loadBonsai(root,id){
 /** The chapter files of a bonsai's witnesses module, by chapter key. */
 export function loadWitnessChapters(home,manifest){
   const module=(manifest.modules??[]).find(item=>item.id==='witnesses');
+  if(!module?.chapters)return {};
+  const dir=join(home,dirname(module.chapters));
+  if(!existsSync(dir))return {};
+  return Object.fromEntries(readdirSync(dir).filter(name=>name.endsWith('.json')).sort().map(name=>[name.slice(0,-5),json(join(dir,name))]));
+}
+
+/** The chapters of a bonsai's word layer, keyed like its witness chapters. */
+export function loadTokenChapters(home,manifest){
+  const module=(manifest.modules??[]).find(item=>item.id==='tokens');
   if(!module?.chapters)return {};
   const dir=join(home,dirname(module.chapters));
   if(!existsSync(dir))return {};
@@ -155,6 +165,19 @@ export function checkBonsai(root,id,{validator=treeContracts(root),relations,ide
     const options=!modules.witnesses&&modules.alignment?{pivot:['grc','la'],place:termPlaceReader(root,modules.alignment,modules.fragments)}:{};
     problems.push(...termsIssues(modules.terms,chapters,options).map(issue=>`terms: ${issue}`));
   }
+  // The word layer (bonsai/lib/tokens.mjs): every word at its place, bound to the witness text it was made from.
+  if(modules.tokens){
+    if(modules.tokens.schema!==TOKENS_SCHEMA)problems.push('tokens: schema');
+    const tokenChapters=loadTokenChapters(home,manifest),sha256=text=>createHash('sha256').update(text).digest('hex');
+    for(const key of Object.keys(chapters)){
+      if(!tokenChapters[key]){problems.push(`tokens: no words for chapter ${key}`);continue;}
+      problems.push(...tokenChapterIssues(tokenChapters[key],chapters[key],sha256).map(issue=>`tokens: ${issue}`));
+    }
+    // Forms of a term the layer finds under its lemma and the term does not list: a report, not a failure.
+    if(modules.terms)for(const [id,forms] of Object.entries(termFormGaps(modules.terms,tokenChapters,chapters,modules.spelling??null)))
+      drift.push(`terms: ${id} occurs also as ${Object.entries(forms).map(([form,count])=>`${form} ×${count}`).join(', ')}`);
+  }
+  if(modules.spelling)problems.push(...spellingIssues(modules.spelling).map(issue=>`spelling: ${issue}`));
   if(modules.fragments)problems.push(...externalPlacesIssues(modules.fragments).map(issue=>`fragments: ${issue}`));
   if(modules.alignment)problems.push(...corpusAlignmentIssues(modules.alignment).map(issue=>`alignment: ${issue}`));
   let registry=null;
