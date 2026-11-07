@@ -19,6 +19,9 @@ export function loadAntiquityCollection(){
   collectionLoad??=import('../../../../bonsai/antiquity/collection.json').then(json).catch(error=>{collectionLoad=null;throw error;});
   return collectionLoad;
 }
+// How the translations render the terms (bonsai/<stand>/renderings.json) lives in R2 with the word layer; absent, the stand shows no renderings.
+const RENDERINGS=import.meta.glob('../../../../bonsai/*/renderings.json',{import:'default'});
+const renderingsOf=profile=>RENDERINGS[`../../../../bonsai/${profile}/renderings.json`]?.()??Promise.resolve(null);
 const LOADERS=Object.freeze({
   antiquity:()=>Promise.all([
     loadAntiquityCollection().then(collection=>({default:collection})),
@@ -44,8 +47,8 @@ const LOADERS=Object.freeze({
       import('../../../../bonsai/zarathustra/core/place-relations.json'),
       import('../../../../bonsai/zarathustra/core/semantic-uses.json'),
     ]).then(([manifest,concepts,figures,links,chains,proposed,voices,placeRelations,semanticUses])=>({manifest:json(manifest),concepts:json(concepts),figures:json(figures),links:json(links),chains:json(chains),proposed:json(proposed),voices:json(voices),placeRelations:json(placeRelations),semanticUses:json(semanticUses)})),
-    import('../../../../bonsai/zarathustra/renderings.json'),
-  ]).then(([chronology,places,identities,basemap,core,renderings])=>({chronology:json(chronology),places:json(places),identities:json(identities),basemap:json(basemap),core,renderings:json(renderings)})),
+    renderingsOf('zarathustra'),
+  ]).then(([chronology,places,identities,basemap,core,renderings])=>({chronology:json(chronology),places:json(places),identities:json(identities),basemap:json(basemap),core,renderings})),
 });
 const BONSAI={
   antiquity:Object.freeze({manifest:antiquityManifest}),

@@ -203,6 +203,16 @@
       }
     },
     {
+      "id": "layers",
+      "path": "layers.json",
+      "format": "tos.bonsai.layers.v1",
+      "spec": "bonsai/README.md",
+      "role": {
+        "ru": "Где лежит слой слов: хеш каждого файла разметки, написаний, происхождений и переводов, которые хранятся в R2; рабочая копия получает их по этим хешам.",
+        "en": "Where the word layer lives: the digest of every file of the tokens, spelling, origins and renderings, kept in R2; a checkout fetches them by these digests."
+      }
+    },
+    {
       "id": "spelling",
       "path": "spelling.json",
       "format": "tos.bonsai.spelling.v1",

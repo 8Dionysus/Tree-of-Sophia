@@ -3,11 +3,12 @@
 // first editions' spelling, and, for a translation's word, the word of the
 // original it renders together with that word's descent. Records load only
 // when the reader asks for an origin.
-import manifest from '../../../../bonsai/zarathustra/origins.json' with {type:'json'};
 import witness from '../../../../bonsai/zarathustra/witnesses.json' with {type:'json'};
 import {copyLocale,localeText} from '../public-research/locale.mjs';
 import {languageName} from './language-names.mjs';
 
+// The origins live in R2 with the word layer (bonsai/zarathustra/layers.json); without them no word has one.
+const manifest=Object.values(import.meta.glob('../../../../bonsai/zarathustra/origins.json',{eager:true,import:'default'}))[0]??{};
 const shardFiles=import.meta.glob('../../../../bonsai/zarathustra/origins/*.json',{import:'default'});
 const cache=new Map();
 const ORIGINAL=manifest.original??'de';

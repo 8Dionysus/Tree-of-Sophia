@@ -289,6 +289,35 @@ maps each to the Tree identity it stands for, `resolved` where the Tree already
 holds it and `to-mint` where the Tree's own route would have to create it.
 When the Tree renames or mints differently, only this map changes.
 
+### Layers kept in R2 (`tos.bonsai.layers.v1`)
+
+A stand's generated layers live in R2, in `tos-public-layers` under
+`sha256/<hex>` ([storage](../docs/STORAGE.md)). Git keeps `layers.json`, the
+digest manifest: the declared paths, each file's SHA-256 and size, and the
+rights each group of files carries. The Zarathustra word layer is kept this way:
+its tokens, spelling, origins and renderings.
+
+```sh
+node bonsai/lib/layers.mjs fetch bonsai/zarathustra     # bring the files into a checkout
+node bonsai/lib/layers.mjs status bonsai/zarathustra    # present, missing or different
+```
+
+`fetch` takes each file from R2 when `R2_ENDPOINT`, `R2_ACCESS_KEY_ID` and
+`R2_SECRET_ACCESS_KEY` are set, else from the site's copy
+(`https://treeofsophia.com/__research/layers/sha256/<hex>`), else from the
+`layers/transfer` branch, and writes only bytes that match their digest. A
+checkout without the files builds and tests the stand without its word layer;
+the check then verifies the manifest, and with the files present it checks them
+like any module.
+
+After regenerating a layer, `layers.mjs manifest bonsai/<stand>` writes the
+new digests and `layers.mjs send bonsai/<stand>` puts every file that no store
+holds yet on `layers/transfer`, one commit holding objects named
+`sha256/<hex>`. The pull request carries only the manifest. Once it lands, the
+publication from main fetches the files, checks them, puts what R2 lacks into
+R2, reads each back, copies all of them into the site's copy and keeps on the
+transfer branch only what R2 still lacks.
+
 ## Check and export
 
 ```sh

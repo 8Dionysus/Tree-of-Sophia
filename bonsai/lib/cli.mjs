@@ -37,7 +37,7 @@ if(command==='check'){
   for(const id of names.length?names:bonsaiIds(root)){
     const result=checkBonsai(root,id);
     const counts=result.packet?`${result.packet.claims.length} claims, ${result.packet.records.length} records, ${result.packet.identities.length} identities`:'no export';
-    console.log(`${id}: ${result.problems.length?'FAILED':'ok'} · ${counts}${result.checkedIdentities?'':' · Tree identities not checked out'}`);
+    console.log(`${id}: ${result.problems.length?'FAILED':'ok'} · ${counts}${result.checkedIdentities?'':' · Tree identities not checked out'}${result.layers==='absent'?' · layers not fetched, their manifest checked':''}`);
     for(const problem of result.problems)console.log(`  problem: ${problem}`);
     for(const item of result.drift)console.log(`  drift: ${item}`);
     failed||=result.problems.length>0;

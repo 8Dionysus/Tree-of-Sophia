@@ -125,8 +125,14 @@ term's lemma and the term does not list.
 python3 lexicon.py kaikki.org-dictionary-German.jsonl $LEX/de.sqlite --lang de
 python3 lexicon.py kaikki.org-dictionary-Russian.jsonl $LEX/ru.sqlite --lang ru
 python3 annotate.py <repo> zarathustra --lexicon-dir $LEX        # spelling.json, tokens/
-python3 origins.py <repo> zarathustra --lexicon-dir $LEX         # origins.json, origins/
+python3 origins.py <repo> zarathustra --lexicon-dir $LEX         # origins.json, origins/, renderings.json
+node bonsai/lib/layers.mjs manifest bonsai/zarathustra             # layers.json: the new digests
+node bonsai/lib/layers.mjs send bonsai/zarathustra                 # new files onto layers/transfer
 ```
+
+These files live in R2 and stay out of git; `layers.json` is their digest
+manifest ([layers kept in R2](../../README.md#layers-kept-in-r2-tosbonsailayersv1)),
+and `layers.mjs fetch bonsai/zarathustra` brings them into a checkout.
 
 `annotate.py --finalize-only` rebinds the layer's digests and chapter index
 without reading the text again. The pinned runtime is in

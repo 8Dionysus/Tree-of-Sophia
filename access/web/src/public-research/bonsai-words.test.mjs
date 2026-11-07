@@ -1,6 +1,7 @@
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {describe,expect,it} from 'vitest';
+import {layerStatus} from '../../../../bonsai/lib/layers.mjs';
 import {spellingIssues,termFormGaps,tokenChapterIssues,unitWords,unitsDigest,wordsAt,sourceForm} from '../../../../bonsai/lib/tokens.mjs';
 import {isSingleWord} from '../corpus-reader/selection-menu.mjs';
 import {shardOf} from '../corpus-reader/word-origin.mjs';
@@ -9,6 +10,8 @@ import {grammarLabel,relationLabel} from '../corpus-reader/word-context.mjs';
 // The word layer reads every word of a witness at its exact place; the origin of a word is gathered by lemma.
 const sha256=text=>createHash('sha256').update(text).digest('hex');
 const read=path=>JSON.parse(readFileSync(new URL(`../../../../bonsai/zarathustra/${path}`,import.meta.url),'utf8'));
+// The stand's own layer lives in R2 (bonsai/zarathustra/layers.json): its cases run where a checkout fetched it.
+const fetched=layerStatus(new URL('../../../../bonsai/zarathustra',import.meta.url).pathname).every(entry=>entry.state==='present');
 const witness={chapter:'X.01',units:{de:[['u1','p','Ich lehre euch den Über¬\nmenschen. Gieng er?']]}};
 const layer=()=>({schema:'tos.bonsai.tokens.chapter.v1',chapter:'X.01',
   entries:[['ich','PRON','Case=Nom|Number=Sing|Person=1'],['lehren','VERB','Mood=Ind|Tense=Pres'],['euch','PRON','Case=Dat'],
@@ -43,7 +46,7 @@ describe('the word layer',()=>{
     expect(spellingIssues({schema:'tos.bonsai.spelling.v1',rules:{th:'th → t'},forms:{Thier:{modern:'Tier',basis:'wiktionary',count:3},Thiere:{modern:'Tiere',basis:'rules',rules:['th'],count:1}}})).toEqual([]);
     expect(spellingIssues({schema:'tos.bonsai.spelling.v1',rules:{},forms:{Thiere:{modern:'Tiere',basis:'rules',rules:['th'],count:1}}})).toEqual(['Thiere: unknown rule']);
   });
-  it('binds every chapter of the stand to its witnesses',()=>{
+  it.skipIf(!fetched)('binds every chapter of the stand to its witnesses',()=>{
     const manifest=read('tokens.json');
     expect(manifest.schema).toBe('tos.bonsai.tokens.v1');
     for(const key of ['I.01','III.02']){
@@ -63,7 +66,7 @@ describe('the origin of a word',()=>{
     expect(shardOf('Übermensch')).toBe(4188479793%32);
     expect(shardOf('сверхчеловек')).toBe(644943858%32);
   });
-  it('holds a word\'s descent, oldest form first, and its first editions\' spelling',()=>{
+  it.skipIf(!fetched)('holds a word\'s descent, oldest form first, and its first editions\' spelling',()=>{
     const shard=(language,lemma)=>read(`origins/${language}-${String(shardOf(lemma)).padStart(2,'0')}.json`).lemmas[lemma];
     const tier=shard('de','Tier');
     expect(tier.origin[0].chain[0]).toEqual(['inherited','ine-pro','*dʰewsóm']);

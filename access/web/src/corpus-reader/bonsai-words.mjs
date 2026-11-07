@@ -2,10 +2,13 @@
 // lemma, part of speech, features, today's spelling and syntactic head of the
 // word in its sentence. A machine proposal, unreviewed; it is shown only where
 // the reader's unit text is exactly the witness text the layer was made from.
-import manifest from '../../../../bonsai/zarathustra/tokens.json' with {type:'json'};
 import witness from '../../../../bonsai/zarathustra/witnesses.json' with {type:'json'};
-import spelling from '../../../../bonsai/zarathustra/spelling.json' with {type:'json'};
 import {unitWords,wordsAt,sourceForm} from '../../../../bonsai/lib/tokens.mjs';
+
+// The layer lives in R2 (bonsai/zarathustra/layers.json); a checkout without it reads no words.
+const present=files=>Object.values(files)[0]??null;
+const manifest=present(import.meta.glob('../../../../bonsai/zarathustra/tokens.json',{eager:true,import:'default'}));
+const spelling=present(import.meta.glob('../../../../bonsai/zarathustra/spelling.json',{eager:true,import:'default'}));
 
 const tokenFiles=import.meta.glob('../../../../bonsai/zarathustra/tokens/*.json',{import:'default'});
 const witnessFiles=import.meta.glob('../../../../bonsai/zarathustra/witnesses/*.json',{import:'default'});
@@ -31,7 +34,7 @@ export function chapterOf(version,language,unitId){
   const position=order.get(unitId);
   if(position===undefined)return null;
   let found=null;
-  for(const [chapter,first] of manifest.index?.[language]??[]){
+  for(const [chapter,first] of manifest?.index?.[language]??[]){
     const at=order.get(first);
     if(at!==undefined&&at<=position)found=chapter;
   }
@@ -40,7 +43,7 @@ export function chapterOf(version,language,unitId){
 
 /** Today's spelling the stand reads for a historical form of the original, with its ground, or null. */
 export function modernSpelling(form){
-  const entry=spelling.forms?.[sourceForm(form)];
+  const entry=spelling?.forms?.[sourceForm(form)];
   return entry?{...entry,form:sourceForm(form)}:null;
 }
 
@@ -65,8 +68,8 @@ export async function bonsaiWords({version,reference,unitText}){
   });
   if(!words.length)return null;
   return {status:'proposed',language,chapter,words,
-    analyzer:{label:{ru:'Разбор слов стенда',en:"The stand's word analysis"},stanza:manifest.analyzer?.stanza??null,basis:manifest.basis},
-    posture:manifest.posture};
+    analyzer:{label:{ru:'Разбор слов стенда',en:"The stand's word analysis"},stanza:manifest?.analyzer?.stanza??null,basis:manifest?.basis},
+    posture:manifest?.posture};
 }
 
 /** Every place of a lemma in one chapter of a witness, for a reader to open. */
@@ -111,6 +114,6 @@ export async function bonsaiWordByForm({chapter,language,unitId,form,nth=0,near=
   return {status:'proposed',language,chapter,
     words:[{...word,form:sourceForm(word.text),headLemma:head?.lemma??null,headText:head?sourceForm(head.text):null,
       spelling:language==='de'?modernSpelling(word.text):null}],
-    analyzer:{label:{ru:'Разбор слов стенда',en:"The stand's word analysis"},stanza:manifest.analyzer?.stanza??null,basis:manifest.basis},
-    posture:manifest.posture};
+    analyzer:{label:{ru:'Разбор слов стенда',en:"The stand's word analysis"},stanza:manifest?.analyzer?.stanza??null,basis:manifest?.basis},
+    posture:manifest?.posture};
 }
