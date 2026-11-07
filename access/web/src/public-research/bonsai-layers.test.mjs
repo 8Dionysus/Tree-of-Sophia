@@ -3,7 +3,7 @@ import {mkdirSync,mkdtempSync,readFileSync,rmSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach,describe,expect,it} from 'vitest';
-import {fetchLayers,layerStatus,layersIssues,mirrorLayers,objectKey,pruneTransfer,readLayers,sendLayers,sha256,signS3,transferSource,uploadLayers,writeManifest} from '../../../../bonsai/lib/layers.mjs';
+import {fetchLayers,layerStatus,layersIssues,layersOnDisk,mirrorLayers,objectKey,pruneTransfer,readLayers,sendLayers,sha256,signS3,transferSource,uploadLayers,writeManifest} from '../../../../bonsai/lib/layers.mjs';
 
 // A stand's generated layers live in R2; git keeps their digest manifest.
 const homes=[];
@@ -87,6 +87,29 @@ describe('the layer store',()=>{
     expect(git(remote,'ls-tree','-r','--name-only','layers/transfer').trim()).toBe(objectKey(layers.entries[2].sha256));
     // The branch is one commit: nothing it held before stays reachable from it.
     expect(git(remote,'rev-list','--count','layers/transfer').trim()).toBe('1');
+  });
+  it('reads files from the directory its root names, and tells which are on disk',async()=>{
+    const root=mkdtempSync(join(tmpdir(),'tos-layers-'));homes.push(root);
+    const home=join(root,'owner'),files=join(root,'site','corpus');mkdirSync(home,{recursive:true});mkdirSync(join(files,'pages'),{recursive:true});
+    writeFileSync(join(files,'pages','a.json'),'[1]');writeFileSync(join(files,'pages','b.json'),'[2]');writeFileSync(join(files,'manifest.json'),'{}');
+    writeFileSync(join(home,'layers.json'),JSON.stringify({schema:'tos.bonsai.layers.v1',root:'../site/corpus',paths:['pages/'],entries:[]}));
+    const layers=writeManifest(home);
+    expect(layers.entries.map(entry=>entry.path)).toEqual(['pages/a.json','pages/b.json']);
+    expect(readFileSync(join(home,'layers.json'),'utf8').split('\n').filter(line=>line.startsWith('  {'))).toHaveLength(2);
+    expect(layersOnDisk(home)).toBe('present');
+    const bytes=readFileSync(join(files,'pages','a.json'));rmSync(join(files,'pages','a.json'));
+    expect(layersOnDisk(home)).toBe('partial');
+    await fetchLayers(home,{sources:[memory('m',new Map([[layers.entries[0].sha256,bytes]]))]});
+    expect(readFileSync(join(files,'pages','a.json'),'utf8')).toBe('[1]');
+    rmSync(join(files,'pages'),{recursive:true});
+    expect(layersOnDisk(home)).toBe('absent');
+    expect(layersIssues({...layers,root:'/abs'})).toContain('root');
+  });
+  it('keeps the public corpus snapshot\'s pages, indexes, documents and analyses in its manifest',()=>{
+    const layers=readLayers(new URL('../../../../access/public-corpus',import.meta.url).pathname);
+    expect(layersIssues(layers)).toEqual([]);
+    expect(layers.root).toBe('../web/public/public-corpus');
+    expect(layers.paths).toEqual(['analyses/','documents/','indexes/','pages/']);
   });
   it('keeps the Zarathustra word layer in its manifest',()=>{
     const layers=readLayers(new URL('../../../../bonsai/zarathustra',import.meta.url).pathname);

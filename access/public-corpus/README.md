@@ -47,7 +47,18 @@ does not fold case, spelling or Unicode, and does not infer lemmas. A bounded
 page scan remains available when an index exceeds its cap.
 
 Review the fresh output, then replace `access/web/public/public-corpus/` as a
-whole and build the public Worker assets. The exporter does not traverse the
+whole and build the public Worker assets. Its pages, indexes, document
+manifests and analyses live in R2 and stay out of git; `layers.json` here is
+their digest manifest, and the snapshot's own `manifest.json`, `retained.json`,
+`revisions/` and `mappings/` stay tracked. After replacing the snapshot:
+
+```sh
+node bonsai/lib/layers.mjs manifest access/public-corpus   # the new digests
+node bonsai/lib/layers.mjs send access/public-corpus       # new files onto layers/transfer
+```
+
+A checkout brings the files with `node bonsai/lib/layers.mjs fetch
+access/public-corpus` ([layers kept in R2](../../bonsai/README.md#layers-kept-in-r2-tosbonsailayersv1)). The exporter does not traverse the
 private local corpus or discover an installed data root. It refuses symlink
 source references and has finite byte/time budgets.
 

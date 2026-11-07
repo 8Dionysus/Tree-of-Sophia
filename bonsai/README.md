@@ -295,7 +295,9 @@ A stand's generated layers live in R2, in `tos-public-layers` under
 `sha256/<hex>` ([storage](../docs/STORAGE.md)). Git keeps `layers.json`, the
 digest manifest: the declared paths, each file's SHA-256 and size, and the
 rights each group of files carries. The Zarathustra word layer is kept this way:
-its tokens, spelling, origins and renderings.
+its tokens, spelling, origins and renderings. So is the bulk of the public corpus
+snapshot: `access/public-corpus/layers.json` names its pages, indexes, document
+manifests and analyses, and its `root` points to `access/web/public/public-corpus/`.
 
 ```sh
 node bonsai/lib/layers.mjs fetch bonsai/zarathustra     # bring the files into a checkout
@@ -308,7 +310,8 @@ node bonsai/lib/layers.mjs status bonsai/zarathustra    # present, missing or di
 `layers/transfer` branch, and writes only bytes that match their digest. A
 checkout without the files builds and tests the stand without its word layer;
 the check then verifies the manifest, and with the files present it checks them
-like any module.
+like any module. Without the corpus files the stands read no corpus texts, and
+the check leaves the places a stand cites in the corpus unchecked.
 
 After regenerating a layer, `layers.mjs manifest bonsai/<stand>` writes the
 new digests and `layers.mjs send bonsai/<stand>` puts every file that no store

@@ -14,6 +14,14 @@ dist/
 /access/deploy/cloudflare-worker/generated
 /access/deploy/cloudflare-worker/worker-configuration.d.ts
 
+# The bulk of the public corpus snapshot lives in R2; access/public-corpus/layers.json
+# is its digest manifest and the snapshot's manifest.json, retained.json, revisions/
+# and mappings/ stay tracked (`node bonsai/lib/layers.mjs fetch access/public-corpus`).
+/access/web/public/public-corpus/analyses/
+/access/web/public/public-corpus/documents/
+/access/web/public/public-corpus/indexes/
+/access/web/public/public-corpus/pages/
+
 # Runtime locks of the native canonical HumanForms writer are not corpus data.
 # Source nodes, adjacent form sets, their histories and reviews remain tracked.
 /ToS/canon/..canonical-human-forms-lock.writer.lock

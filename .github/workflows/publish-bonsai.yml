@@ -75,8 +75,9 @@ jobs:
             exit 1
           fi
 
-      # The stands' generated layers live in R2 (docs/STORAGE.md); git keeps
-      # their digest manifests, bonsai/<stand>/layers.json.
+      # The stands' generated layers and the bulk of the public corpus live in
+      # R2 (docs/STORAGE.md); git keeps their digest manifests, the layers.json
+      # of bonsai/<stand>/ and access/public-corpus/.
       - name: Check R2 configuration
         if: steps.current.outputs.deploy == 'true'
         env:
@@ -110,7 +111,7 @@ jobs:
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
         run: |
           set -euo pipefail
-          for home in bonsai/*/; do
+          for home in bonsai/*/ access/public-corpus/; do
             if [[ -f "${home}layers.json" ]]; then node bonsai/lib/layers.mjs fetch "$home"; fi
           done
 
@@ -138,13 +139,13 @@ jobs:
           set -euo pipefail
           npm ci --prefix access/web
           npm ci --prefix access/deploy/cloudflare-worker
-          # With the layers present the check and their own cases read them whole.
+          # With the layers and the corpus present the check and their own cases read them whole.
           node bonsai/lib/cli.mjs check
-          (cd access/web && npx --no-install vitest run src/public-research/bonsai-layers.test.mjs src/public-research/bonsai-words.test.mjs src/public-research/renderings-view.test.mjs)
+          (cd access/web && npx --no-install vitest run src/public-research/bonsai-layers.test.mjs src/public-research/bonsai-words.test.mjs src/public-research/renderings-view.test.mjs src/public-research/zarathustra-ground-targets.test.mjs src/public-research/source-address.test.mjs src/public-research/bonsai-corpus-alignment.test.mjs)
           npm --prefix access/web run build:public-research
           output=access/deploy/cloudflare-worker/dist-public-research
-          # The site's copy of the layers, by digest, for checkouts without R2 access.
-          for home in bonsai/*/; do
+          # The site's copy of the layers and the corpus, by digest, for checkouts without R2 access.
+          for home in bonsai/*/ access/public-corpus/; do
             if [[ -f "${home}layers.json" ]]; then node bonsai/lib/layers.mjs mirror "$home" "$output/layers"; fi
           done
           mkdir -p "$output/_builds"
@@ -173,7 +174,7 @@ jobs:
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
         run: |
           set -euo pipefail
-          for home in bonsai/*/; do
+          for home in bonsai/*/ access/public-corpus/; do
             if [[ -f "${home}layers.json" ]]; then node bonsai/lib/layers.mjs upload "$home"; fi
           done
 
@@ -234,4 +235,4 @@ jobs:
           R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-        run: node bonsai/lib/layers.mjs prune bonsai/zarathustra
+        run: node bonsai/lib/layers.mjs prune access/public-corpus

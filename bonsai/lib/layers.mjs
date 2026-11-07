@@ -1,9 +1,11 @@
 #!/usr/bin/env node
-// A stand's generated layers live in R2 (docs/STORAGE.md, bucket tos-public-layers, key sha256/<hex>);
-// git keeps only bonsai/<stand>/layers.json, the digest manifest of their files. This tool writes and
-// checks that manifest, brings the files to a checkout and takes new ones to R2:
+// Generated public layers live in R2 (docs/STORAGE.md, bucket tos-public-layers, key sha256/<hex>);
+// git keeps only their digest manifest, a layers.json beside its owner: bonsai/<stand>/layers.json for a
+// stand's word layer, access/public-corpus/layers.json for the public corpus snapshot (whose `root` names
+// the directory of its files). This tool writes and checks a manifest, brings the files to a checkout and
+// takes new ones to R2:
 //
-//   manifest <home>          hash the declared paths and rewrite the manifest's entries
+//   manifest <home>          hash the declared paths and rewrite the manifest's entries (<home> holds layers.json)
 //   status <home>            which files are present, missing or different (exit 1 when not all present)
 //   fetch <home>             bring missing files: from R2 when R2_* credentials are set, then from the
 //                            site's copy (TOS_LAYERS_MIRROR), then from the transfer branch
@@ -33,6 +35,9 @@ export function readLayers(home){
   return existsSync(path)?JSON.parse(readFileSync(path,'utf8')):null;
 }
 
+/** The directory a manifest's paths are relative to: its own, or the one its `root` names relative to it. */
+export const filesRoot=(home,layers)=>resolve(home,layers?.root??'.');
+
 /** Whether a stand-relative path is one of the layer files a manifest declares. */
 export const isLayerPath=(layers,path)=>Boolean(layers?.paths?.some(item=>path===item||item.endsWith('/')&&path.startsWith(item)));
 
@@ -40,6 +45,7 @@ export const isLayerPath=(layers,path)=>Boolean(layers?.paths?.some(item=>path==
 export function layersIssues(layers){
   if(layers?.schema!==LAYERS_SCHEMA)return ['schema'];
   const issues=[];
+  if(layers.root!==undefined&&(typeof layers.root!=='string'||!layers.root||layers.root.startsWith('/')))issues.push('root');
   if(!Array.isArray(layers.paths)||!layers.paths.length)issues.push('paths');
   if(!Array.isArray(layers.entries))return [...issues,'entries'];
   const seen=new Set();
@@ -69,28 +75,44 @@ export function declaredFiles(home,paths){
   return [...new Set(files)].sort();
 }
 
+/** A manifest as written: its fields indented, one entry per line, so a regeneration diffs file by file. */
+export function formatLayers(layers){
+  const {entries,...head}=layers;
+  const fields=Object.entries(head).map(([key,value])=>` ${JSON.stringify(key)}: ${JSON.stringify(value)}`);
+  const lines=entries.map(entry=>`  ${JSON.stringify(entry)}`);
+  return `{\n${[...fields,` "entries": [${lines.length?`\n${lines.join(',\n')}\n `:''}]`].join(',\n')}\n}\n`;
+}
+
 /** Rewrite the entries from the files present. */
 export function writeManifest(home){
   const layers=readLayers(home);
   if(!layers)throw new Error(`${home} has no layers.json`);
-  const entries=declaredFiles(home,layers.paths).map(path=>{const bytes=readFileSync(join(home,path));return {path,sha256:sha256(bytes),bytes:bytes.length};});
+  const root=filesRoot(home,layers);
+  const entries=declaredFiles(root,layers.paths).map(path=>{const bytes=readFileSync(join(root,path));return {path,sha256:sha256(bytes),bytes:bytes.length};});
   const next={...layers,entries};
-  writeFileSync(join(home,'layers.json'),`${JSON.stringify(next,null,1)}\n`);
+  writeFileSync(join(home,'layers.json'),formatLayers(next));
   return next;
 }
 
 const bytesMatch=(bytes,entry)=>bytes&&bytes.length===entry.bytes&&sha256(bytes)===entry.sha256;
-function localBytes(home,entry){
-  const path=join(home,entry.path);
+function localBytes(home,entry,layers=readLayers(home)){
+  const path=join(filesRoot(home,layers),entry.path);
   if(!existsSync(path))return null;
   const bytes=readFileSync(path);
   return bytesMatch(bytes,entry)?bytes:null;
 }
 
+/** Whether every file is on disk ('present'), none is ('absent') or some are ('partial'), by existence alone. */
+export function layersOnDisk(home,layers=readLayers(home)){
+  const root=filesRoot(home,layers),on=layers.entries.filter(entry=>existsSync(join(root,entry.path))).length;
+  return on===layers.entries.length?'present':on===0?'absent':'partial';
+}
+
 /** Each entry with its state: present, missing or different. */
 export function layerStatus(home,layers=readLayers(home)){
+  const root=filesRoot(home,layers);
   return layers.entries.map(entry=>{
-    const path=join(home,entry.path);
+    const path=join(root,entry.path);
     if(!existsSync(path))return {...entry,state:'missing'};
     return {...entry,state:bytesMatch(readFileSync(path),entry)?'present':'different'};
   });
@@ -204,7 +226,7 @@ export async function fetchLayers(home,{sources,log=()=>{}}){
     let bytes=null,from=null;
     for(const source of sources){const candidate=await source.get(entry.sha256);if(bytesMatch(candidate,entry)){bytes=candidate;from=source.name;break;}}
     if(!bytes){unresolved.push(entry.path);continue;}
-    writeAtomically(join(home,entry.path),bytes);log(`${entry.path} ← ${from}`);
+    writeAtomically(join(filesRoot(home,layers),entry.path),bytes);log(`${entry.path} ← ${from}`);
   }
   return {fetched:missing.length-unresolved.length,unresolved};
 }
@@ -214,7 +236,7 @@ export async function uploadLayers(home,{r2,log=()=>{}}){
   const layers=readLayers(home);let uploaded=0;
   for(const entry of layers.entries){
     if(await r2.has(entry.sha256))continue;
-    const bytes=localBytes(home,entry);if(!bytes)throw new Error(`${entry.path} is not present with its manifest bytes; fetch it first`);
+    const bytes=localBytes(home,entry,layers);if(!bytes)throw new Error(`${entry.path} is not present with its manifest bytes; fetch it first`);
     await r2.put(entry.sha256,bytes);
     if(!bytesMatch(await r2.get(entry.sha256),entry))throw new Error(`${entry.path}: R2 returned other bytes for ${entry.sha256}`);
     uploaded++;log(`${entry.path} → R2`);
@@ -226,7 +248,7 @@ export async function uploadLayers(home,{r2,log=()=>{}}){
 export function mirrorLayers(home,dir){
   const layers=readLayers(home);
   for(const entry of layers.entries){
-    const bytes=localBytes(home,entry);if(!bytes)throw new Error(`${entry.path} is not present with its manifest bytes`);
+    const bytes=localBytes(home,entry,layers);if(!bytes)throw new Error(`${entry.path} is not present with its manifest bytes`);
     writeAtomically(join(dir,objectKey(entry.sha256)),bytes);
   }
   return layers.entries.length;
@@ -241,7 +263,7 @@ export async function sendLayers(home,{repo,stores,log=()=>{}}){
     if(held.has(entry.sha256)||objects.has(entry.sha256))continue;
     let stored=false;for(const store of stores)if(bytesMatch(await store.get(entry.sha256),entry)){stored=true;break;}
     if(stored)continue;
-    const bytes=localBytes(home,entry);if(!bytes)throw new Error(`${entry.path} is not present with its manifest bytes`);
+    const bytes=localBytes(home,entry,layers);if(!bytes)throw new Error(`${entry.path} is not present with its manifest bytes`);
     objects.set(entry.sha256,bytes);added++;log(`${entry.path} → ${TRANSFER_BRANCH}`);
   }
   if(added)writeTransfer(repo,objects,{message:`Layers waiting for R2: ${objects.size} objects`,expected:head});

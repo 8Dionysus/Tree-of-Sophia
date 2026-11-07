@@ -44,8 +44,9 @@ use; this grant permits writes and deletes there, subject to the bucket lock.
 Restrict which workflows receive these secrets and prefer a separate read-only
 token when a consumer only needs reads. The Publish Bonsai workflow consumes
 them on main: it reads the stands' generated layers named by each
-`bonsai/<stand>/layers.json`, writes the files R2 lacks, reads each back, and
-copies the layers into the published site at `/__research/layers/sha256/<hex>`
+`bonsai/<stand>/layers.json` and the public corpus snapshot named by
+`access/public-corpus/layers.json`, writes the files R2 lacks, reads each back,
+and copies them into the published site at `/__research/layers/sha256/<hex>`
 for checkouts without R2 access. A producer without R2 access leaves new files
 on the `layers/transfer` branch; the publication keeps there only what R2 still
 lacks ([bonsai layers](../bonsai/README.md#layers-kept-in-r2-tosbonsailayersv1)).
