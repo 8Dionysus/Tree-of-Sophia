@@ -1,0 +1,6 @@
+/* The bands of a term's renderings: as wide as each word's places, the commonest word strongest. */
+.ps-renderings-bar{display:flex;gap:2px;margin:8px 0 10px;height:22px;border-radius:5px;overflow:hidden;font:11px/22px var(--ps-sans,system-ui,sans-serif)}
+.ps-renderings-bar span{min-width:0;padding:0 6px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:var(--ps-ink,#17140e);background:var(--ps-gold,#d5b77b)}
+.ps-renderings-bar span[data-rank="1"]{background:color-mix(in srgb,var(--ps-gold,#d5b77b) 70%,transparent)}
+.ps-renderings-bar span[data-rank="2"]{background:color-mix(in srgb,var(--ps-gold,#d5b77b) 48%,transparent)}
+.ps-renderings-bar span[data-rank="3"]{background:color-mix(in srgb,var(--ps-gold,#d5b77b) 30%,transparent)}

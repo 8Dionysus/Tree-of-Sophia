@@ -1,9 +1,11 @@
 // The stand's quotations and parallel reading offer the origin of a selected
 // word of the book: a small menu beside the word, then the origin in a sheet.
+// A word that belongs to a term also offers how the translations render it.
 import {createSelectionMenu} from '../corpus-reader/selection-menu.mjs';
 import {renderOrigin} from '../corpus-reader/word-origin.mjs';
 import {bonsaiWordByForm} from '../corpus-reader/bonsai-words.mjs';
 import {copyLocale,localeText} from './locale.mjs';
+import {renderRenderings,renderingsWord,translationLanguage,wordRenderings} from './renderings-view.mjs';
 import '../corpus-reader/philology.css';
 
 const LANGUAGES=new Set(['de','ru','en']);
@@ -18,8 +20,9 @@ function displayPosition(element,range){
 /**
  * Offer the origin of words selected inside `root` in elements carrying `data-chapter` and `data-unit`
  * (a witness unit) within an element whose `lang` names the witness. `openPlace(place)` opens a place of the book.
+ * With the stand's `renderings` and `terms`, a word of a term also offers its renderings; `fragment(cite)` shows their places.
  */
-export function createStandOrigin({root,locale,openPlace=null}){
+export function createStandOrigin({root,locale,openPlace=null,renderings=null,terms=null,fragment=null}){
   let dialog=null;
   const label=()=>copyLocale(locale())==='en'?localeText('Origin of the word',locale()):'Происхождение слова';
   function sheet(){
@@ -33,19 +36,45 @@ export function createStandOrigin({root,locale,openPlace=null}){
     (root.ownerDocument?.body??document.body).append(dialog);
     return dialog;
   }
-  async function show({text,range,element}){
-    const unitNode=element.closest('[data-unit][data-chapter]'),langNode=element.closest('[lang]');
-    const language=langNode?.lang;
-    if(!unitNode||!LANGUAGES.has(language))return;
-    const context=await bonsaiWordByForm({chapter:unitNode.dataset.chapter,language,unitId:unitNode.dataset.unit,form:text,
-      near:displayPosition(unitNode,range)}).catch(()=>null);
+  // The selected word as the word layer reads it; the menu and the sheet ask once for the same word.
+  const resolved=new Map();
+  function word({text,range,element}){
+    const unitNode=element.closest('[data-unit][data-chapter]'),language=element.closest('[lang]')?.lang;
+    if(!unitNode||!LANGUAGES.has(language))return Promise.resolve(null);
+    const near=displayPosition(unitNode,range),key=[unitNode.dataset.chapter,unitNode.dataset.unit,language,text,near].join('|');
+    if(!resolved.has(key)){
+      if(resolved.size>64)resolved.clear();
+      resolved.set(key,bonsaiWordByForm({chapter:unitNode.dataset.chapter,language,unitId:unitNode.dataset.unit,form:text,near}).catch(()=>null).then(context=>({language,context})));
+    }
+    return resolved.get(key);
+  }
+  function open(){
     const view=sheet(),body=view.querySelector('.ps-origin-body');
     body.replaceChildren();
     if(!view.open)view.showModal();
-    await renderOrigin(body,{locale:locale(),form:text,language,context,
+    return {view,body};
+  }
+  async function show(value){
+    const found=await word(value);if(!found)return;
+    const {view,body}=open();
+    await renderOrigin(body,{locale:locale(),form:value.text,language:found.language,context:found.context,
       onOpenPlace:openPlace?place=>{view.close();openPlace(place);}:undefined});
   }
+  const translationOf=value=>{const language=value.element.closest('[lang]')?.lang;return language==='de'?translationLanguage(locale()):language;};
+  const termsOf=async value=>{
+    const found=await word(value);if(!found)return [];
+    return wordRenderings(renderings,terms,{language:found.language,form:value.text,lemma:found.context?.words?.[0]?.lemma});
+  };
+  async function showRenderings(value){
+    const found=await word(value),entries=await termsOf(value);if(!found||!entries.length)return;
+    const language=found.language==='de'?translationLanguage(locale()):found.language;
+    const {body}=open();
+    body.append(Object.assign(document.createElement('h2'),{className:'cr-inspector-title',textContent:renderingsWord('translations',locale())}));
+    for(const entry of entries)renderRenderings(body,entry,{language,locale:locale(),fragment});
+  }
   const menu=createSelectionMenu({container:root,accept:value=>Boolean(value.element.closest('[data-unit][data-chapter]')),
-    actions:[{get label(){return label();},run:value=>void show(value)}]});
+    actions:[{get label(){return label();},run:value=>void show(value)},
+      ...(renderings&&fragment?[{get label(){return renderingsWord('translations',locale());},run:value=>void showRenderings(value),
+        when:value=>termsOf(value).then(entries=>entries.some(entry=>entry[translationOf(value)]))}]:[])]});
   return {dispose(){menu.dispose();dialog?.remove();dialog=null;}};
 }

@@ -126,6 +126,52 @@ class Wiktionary:
         return out[:2]
 
 
+def write_renderings(home, terms, pair_places, witnesses):
+    """How each translation renders each single-word term of the book, place by place.
+
+    A place of the term is a word of the original whose form the term lists. The
+    translation's words for the term are the lemmas most associated with those
+    places over the aligned sentence pairs (Dice, at least two shared pairs); at
+    each place the strongest of them present in the aligned sentence names the
+    rendering, and a place whose sentence holds none of them renders it otherwise."""
+    out = {}
+    for term in terms.get('terms', []):
+        forms = {f.lower() for f in term['original']['forms'] if ' ' not in f}
+        if not forms or ' ' in term['original']['lemma']:
+            continue
+        item = {'lemma': term['original']['lemma'], 'concept': term.get('concept')}
+        for lang, pairs in pair_places.items():
+            hits = [(left, right) for left, right in pairs if any(t[0] in forms for t in left)]
+            if len(hits) < 2:
+                continue
+            c_t = Counter()
+            for _, right in pairs:
+                c_t.update(right)
+            joint = Counter()
+            for _, right in hits:
+                joint.update(right)
+            scored = sorted(((2 * n / (len(hits) + c_t[r]), r) for r, n in joint.items() if n >= 2), reverse=True)
+            candidates = [r for d, r in scored if d >= 0.15][:5]
+            groups, other = defaultdict(list), []
+            for left, right in hits:
+                place = next(t for t in left if t[0] in forms)
+                cite = [place[1], place[2], place[3], place[4]]  # chapter, unit, sentence start, end
+                word = next((r for r in candidates if r in right), None)
+                (groups[word] if word else other).append(cite)
+            ranked = sorted(groups.items(), key=lambda kv: -len(kv[1]))
+            item[lang] = {'words': [[word, places] for word, places in ranked], 'other': other}
+            item['n'] = max(item.get('n', 0), len(hits))
+        if any(lang in item for lang in pair_places):
+            out[term['id']] = item
+    doc = {'schema': 'tos.bonsai.renderings.v1', 'work': witnesses.get('work'),
+           'places': '[chapter, unit, start, end]: the sentence of the original that holds the place, in the offsets of the witness alignment',
+           'method': 'Places of a term: words of the original whose form the term lists. A translation\'s words for it: lemmas most associated with those places over the aligned sentence pairs of bonsai/lib/align.mjs (Dice, at least two shared pairs, Dice >= 0.15); each place goes under the strongest of them present in its aligned sentence, or under other.',
+           'terms': out}
+    with open(os.path.join(home, 'renderings.json'), 'w') as fh:
+        json.dump(doc, fh, ensure_ascii=False, separators=(',', ':'))
+        fh.write('\n')
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('repo')
@@ -144,6 +190,7 @@ def main():
     stats = {lang: defaultdict(lambda: {'n': 0, 'first': None, 'chapters': set(), 'upos': Counter(), 'spellings': Counter()})
              for lang in ('de', 'ru', 'en')}
     pair_lemmas = {lang: [] for lang in ('ru', 'en')}  # per aligned sentence pair: (original lemmas, translation lemmas)
+    pair_places = {lang: [] for lang in ('ru', 'en')}  # per aligned sentence pair: (original words with places, translation lemmas)
     for key in order:
         path_t = os.path.join(home, 'tokens', f'{key}.json')
         if not os.path.exists(path_t):
@@ -171,6 +218,16 @@ def main():
                     if record['first'] is None:
                         record['first'] = [key, unit[0], row[0], row[1]]
 
+        def tokens_in(spans):
+            out = []
+            for k, a, b in spans:
+                unit = chapter['units'][original][k]
+                for row in by_unit.get((original, k), []):
+                    if row[0] >= a and row[1] <= b and entries[row[2]][1] != 'PUNCT':
+                        form = re.sub(r'¬\s*', '', ''.join(list(unit[2])[row[0]:row[1]]))
+                        out.append((form.lower(), key, unit[0], a, b))
+            return out
+
         def lemmas_in(lang, spans):
             out = set()
             for k, a, b in spans:
@@ -183,6 +240,7 @@ def main():
             for lang in ('ru', 'en'):
                 for left, right in row.get('sentences', {}).get(lang, []):
                     pair_lemmas[lang].append((lemmas_in(original, left), lemmas_in(lang, right)))
+                    pair_places[lang].append((tokens_in(left), lemmas_in(lang, right)))
 
     # Dice association between original and translation lemmas over aligned sentence pairs.
     renderings, renders = defaultdict(dict), defaultdict(dict)
@@ -270,6 +328,7 @@ def main():
                            'licence_url': 'https://creativecommons.org/licenses/by-sa/4.0/', 'attribution': 'Wiktionary contributors'}
                     for lang, w in lex.items()},
         'licence': 'CC BY-SA 4.0', 'counts': dict(counts)}
+    write_renderings(home, terms, pair_places, witnesses)
     with open(os.path.join(home, 'origins.json'), 'w') as fh:
         json.dump(manifest, fh, ensure_ascii=False, indent=1)
         fh.write('\n')

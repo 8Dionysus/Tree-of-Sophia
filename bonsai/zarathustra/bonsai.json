@@ -233,6 +233,16 @@
         "ru": "Происхождение каждой леммы: сколько раз и где слово стоит в книге, как его передают переводы, его история и этимология по Викисловарю его же словами, словари для дальнейшего чтения.",
         "en": "The origin of every lemma: how often and where the word stands in the book, how the translations render it, its history and etymology from Wiktionary in Wiktionary's own words, and dictionaries to read further."
       }
+    },
+    {
+      "id": "renderings",
+      "path": "renderings.json",
+      "format": "tos.bonsai.renderings.v1",
+      "spec": "bonsai/review/philology/README.md",
+      "role": {
+        "ru": "Как каждый перевод передаёт каждый термин книги, место за местом: слова Антоновского и Коммона для термина и предложения, где стоит каждое из них.",
+        "en": "How each translation renders each term of the book, place by place: Antonovsky's and Common's words for the term and the sentences where each of them stands."
+      }
     }
   ],
   "lenses": {

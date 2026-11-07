@@ -155,3 +155,17 @@ In the reader and in the stand's quotations, a selected word shows a small
 menu beside it; *Origin of the word* opens its descent. For a translation's
 word the descent of the original's word comes first. Nothing loads until the
 reader asks.
+
+## How the translations render a term
+
+`bonsai/<stand>/renderings.json` (`tos.bonsai.renderings.v1`) holds, for every
+single-word term, each translation's words for it place by place. A place is a
+word of the original whose form the term lists; the translation's words are the
+lemmas most associated with those places over the aligned sentence pairs (Dice);
+each place stands under the strongest of them that its aligned sentence holds.
+The stand shows it in its own view, *Translations*: one band per word, as wide
+as its places, and under each word the sentences where it stands. A term's node
+has it as a tab; a word of a term selected in the book offers it beside its
+origin, for the original's word in the reader's translation and for a
+translation's word in that translation.
+`origins.py` writes the module with the origins.

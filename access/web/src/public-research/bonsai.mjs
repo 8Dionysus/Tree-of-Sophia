@@ -44,7 +44,8 @@ const LOADERS=Object.freeze({
       import('../../../../bonsai/zarathustra/core/place-relations.json'),
       import('../../../../bonsai/zarathustra/core/semantic-uses.json'),
     ]).then(([manifest,concepts,figures,links,chains,proposed,voices,placeRelations,semanticUses])=>({manifest:json(manifest),concepts:json(concepts),figures:json(figures),links:json(links),chains:json(chains),proposed:json(proposed),voices:json(voices),placeRelations:json(placeRelations),semanticUses:json(semanticUses)})),
-  ]).then(([chronology,places,identities,basemap,core])=>({chronology:json(chronology),places:json(places),identities:json(identities),basemap:json(basemap),core})),
+    import('../../../../bonsai/zarathustra/renderings.json'),
+  ]).then(([chronology,places,identities,basemap,core,renderings])=>({chronology:json(chronology),places:json(places),identities:json(identities),basemap:json(basemap),core,renderings:json(renderings)})),
 });
 const BONSAI={
   antiquity:Object.freeze({manifest:antiquityManifest}),

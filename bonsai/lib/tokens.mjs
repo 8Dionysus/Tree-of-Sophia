@@ -125,3 +125,18 @@ export function termFormGaps(terms,tokenChapters,witnessChapters,spelling=null){
   }
   return gaps;
 }
+
+/** Where the renderings module names a place its witnesses do not hold. */
+export function renderingsIssues(renderings,witnessChapters){
+  if(renderings?.schema!=='tos.bonsai.renderings.v1')return ['schema'];
+  const issues=[];
+  for(const [id,entry] of Object.entries(renderings.terms??{}))for(const [language,rendering] of Object.entries(entry)){
+    if(!rendering||typeof rendering!=='object'||!Array.isArray(rendering.words))continue;
+    const places=[...rendering.words.flatMap(([,list])=>list),...(rendering.other??[])];
+    for(const [chapter,unitId,start,end] of places){
+      const unit=witnessChapters[chapter]?.units?.de?.find(item=>item[0]===unitId);
+      if(!unit||!(start>=0&&end>start&&end<=unit[2].length))issues.push(`${id} ${language}: no place ${chapter} ${unitId} ${start}-${end}`);
+    }
+  }
+  return issues;
+}

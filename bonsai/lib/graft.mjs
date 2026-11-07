@@ -19,7 +19,7 @@ import {objectsIssues,semanticRegistry} from './objects.mjs';
 import {coreIssues,loadCore} from './core.mjs';
 import {citeIssues,readChapter,witnessesIssues} from './witnesses.mjs';
 import {termsIssues} from './terms.mjs';
-import {spellingIssues,termFormGaps,tokenChapterIssues,TOKENS_SCHEMA} from './tokens.mjs';
+import {renderingsIssues,spellingIssues,termFormGaps,tokenChapterIssues,TOKENS_SCHEMA} from './tokens.mjs';
 import {corpusReader} from './corpus-align.mjs';
 
 export const MANIFEST_SCHEMA='tos.bonsai.v1';
@@ -178,6 +178,7 @@ export function checkBonsai(root,id,{validator=treeContracts(root),relations,ide
       drift.push(`terms: ${id} occurs also as ${Object.entries(forms).map(([form,count])=>`${form} ×${count}`).join(', ')}`);
   }
   if(modules.spelling)problems.push(...spellingIssues(modules.spelling).map(issue=>`spelling: ${issue}`));
+  if(modules.renderings)problems.push(...renderingsIssues(modules.renderings,chapters).map(issue=>`renderings: ${issue}`));
   if(modules.fragments)problems.push(...externalPlacesIssues(modules.fragments).map(issue=>`fragments: ${issue}`));
   if(modules.alignment)problems.push(...corpusAlignmentIssues(modules.alignment).map(issue=>`alignment: ${issue}`));
   let registry=null;

@@ -101,10 +101,10 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // The work's own text in place of a retelling: cited places, opened in the whole work.
   const fragments=createFragments({profile,locale,t:key=>t(key),provider:api.provider,openAddress:openPublicAddress,hint:(element,text)=>setHint(element,text),onError:()=>notify(t('unavailable')),host:()=>shell,decorate:node=>terms.mark(node)});
   // A word of the book selected in a quotation or the parallel reading offers its origin.
-  const standOrigin=profile==='zarathustra'?createStandOrigin({root:document.body,locale,
+  const standOrigin=profile==='zarathustra'?createStandOrigin({root:document.body,locale,renderings:bonsaiFor(profile)?.renderings,terms:bonsaiFor(profile)?.terms,fragment:cite=>fragments.fragment(cite),
     openPlace:place=>void fragments.showChapter(place.chapter,place.language==='de'?{w:'also-sprach-zarathustra',c:place.chapter,u:[place.unitId,place.unitId],s:place.start,e:place.end}:null).catch(()=>notify(t('unavailable')))}):null;
   const materials=materialMap(library),atlas=library.atlas??{},routes=library.space?.routes??atlas.routes??[];
-  const core=library.space?.core,coreView=core?createCoreView({core,locale,fragments,signOf:materialId=>signOf(previewMaterials.get(materialId)),hint:(element,text)=>setHint(element,text),onNode:id=>previewMaterial(id),onRelation:id=>selectEdge(drawnRelation(id)),onAction:detail=>coreAction(detail),onRoute:id=>{const item=routeItems().find(item=>item.id===id);if(item)startRoute(item);}}):null;
+  const core=library.space?.core,coreView=core?createCoreView({core,renderings:bonsaiFor(profile)?.renderings,locale,fragments,signOf:materialId=>signOf(previewMaterials.get(materialId)),hint:(element,text)=>setHint(element,text),onNode:id=>previewMaterial(id),onRelation:id=>selectEdge(drawnRelation(id)),onAction:detail=>coreAction(detail),onRoute:id=>{const item=routeItems().find(item=>item.id===id);if(item)startRoute(item);}}):null;
   const collectionMaterials=new Map((library.space?.collection??[]).map(item=>[item.materialId??item.id,{...item,id:item.materialId??item.id,kind:({author:'figure',school:'tradition'})[item.kind]??item.kind}]));
   const previewMaterials=new Map([...collectionMaterials,...materials]);
   const entryByLegacyId=new Map([...previewMaterials.values()].map(item=>[item.legacyId??item.id,item]));
