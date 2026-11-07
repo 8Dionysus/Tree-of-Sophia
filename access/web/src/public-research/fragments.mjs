@@ -276,7 +276,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       if(omitted.length){const absent=el('span','ps-fragment-absent','∅');absent.setAttribute('aria-label',words('fragmentOmitted'));hint?.(absent,words('fragmentOmitted'));tools.append(absent);}
       const whole=button(`↗ ${words('fragmentWhole')}`,'text-button ps-fragment-whole');
       whole.addEventListener('click',()=>void showChapter(cite.c,cite).catch(error=>onError?.(error)));
-      tools.append(whole);copyTool(figure,tools);figure.append(tools);
+      tools.append(whole);copyTool(figure,tools);figure.append(tools);painted(figure);
     };
     paint();
   }
@@ -317,7 +317,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       const witness=witnessOf(showing[0]);
       const [url,opens]=place.links?.[showing[0]]?[place.links[showing[0]],'work']:place.url?[place.url,place.opens??'book']:[witness?.url,witness?.opens??'work'];
       if(typeof url==='string'&&/^https:\/\//.test(url)){const link=el('a','text-button ps-fragment-whole',`↗ ${words({quotation:'fragmentQuoted',book:'fragmentBook'}[opens]??'fragmentWhole')}`);link.href=url;link.target='_blank';link.rel='noopener noreferrer';tools.append(link);}
-      copyTool(figure,tools);figure.append(tools);
+      copyTool(figure,tools);figure.append(tools);painted(figure);
     };
     paint();
   }
@@ -391,7 +391,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
         quote.append(...nodes);
         const references=[...new Set(value.map(item=>placeName(item.reference)).filter(Boolean))];
         const caption=el('figcaption','ps-fragment-cite');
-        caption.append(el('span','ps-fragment-source',[version?.label,references.length?references[0]+(references.length>1?`–${references.at(-1)}`:''):'',value.some(item=>item.respelled)?words('modernSpelling'):''].filter(Boolean).join(' · ')));
+        caption.append(el('span','ps-fragment-source',[...saidOnce(String(version?.label??'').split(' · ')),references.length?references[0]+(references.length>1?`–${references.at(-1)}`:''):'',value.some(item=>item.respelled)?words('modernSpelling'):''].filter(Boolean).join(' · ')));
         figure.append(quote,caption);
       }
       const tools=el('div','ps-fragment-tools');
@@ -409,9 +409,19 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
         const shown=versionFor(showing[0])??work.original,unitId=shown===work.original?first:(texts.get(showing[0])??[])[0]?.id;
         if(unitId){const whole=button(`↗ ${words('fragmentWhole')}`,'text-button ps-fragment-whole');whole.addEventListener('click',()=>void openAddress({documentId:work.documentId,versionId:shown.versionId,revision:shown.revision,unitId}).catch(error=>onError?.(error)));tools.append(whole);}
       }
-      copyTool(figure,tools);figure.append(tools);
+      copyTool(figure,tools);figure.append(tools);painted(figure);
     };
     await paint();
+  }
+  // A figure tells the page when its text is shown, and again when the reader turns it to another language.
+  const painted=figure=>figure.dispatchEvent(new CustomEvent('ps-fragment-painted',{bubbles:true}));
+  // A part of an edition's label that an earlier part already says is said once ("…, 1934 · 1934").
+  const saidOnce=parts=>parts.filter((part,at)=>part&&!parts.slice(0,at).some(earlier=>earlier.includes(part)));
+  // Quotations of one source in a row name it once, under the last of them.
+  const sourceOf=figure=>[...figure.querySelectorAll(':scope > .ps-fragment-cite')].map(node=>node.textContent).join('\n');
+  function shareSource(box){
+    const figures=[...box.querySelectorAll(':scope > .ps-fragment')];
+    figures.forEach((figure,at)=>{const own=sourceOf(figure),next=figures[at+1];figure.classList.toggle('is-same-source',!!own&&!!next&&own===sourceOf(next));});
   }
   /** One cited place as a figure, filled when its text arrives. */
   function fragment(cite){
@@ -436,6 +446,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       if(cites.length){const aside=el('div','rb-grounds');for(const cite of cites)aside.append(ground(cite));box.append(aside);}
     }else{
       for(const cite of cites)box.append(fragment(cite));
+      if(cites.length>1)box.addEventListener('ps-fragment-painted',()=>shareSource(box));
       if(own)box.append(el(tag,className,own));
     }
     parent.append(box);

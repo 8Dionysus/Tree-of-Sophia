@@ -1517,7 +1517,15 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     }
     return bookOutline;
   }
-  const bookMaterial=id=>{const item=index?.get?.(id);return previewMaterials.get(item?.materialId??id)??previewMaterials.get(id)??null;};
+  // A work bound to its public record is read in the book by the collection's own description: its line, the places
+  // it opens on and its concepts.
+  let collectionByMaterial=null;
+  const bookMaterial=id=>{
+    const item=index?.get?.(id),material=previewMaterials.get(item?.materialId??id)??previewMaterials.get(id)??null;if(material?.kind!=='work')return material;
+    collectionByMaterial??=new Map([...collectionByLegacyId.values()].map(entry=>[entry.materialId,entry]));
+    const entry=collectionByMaterial.get(material.id);
+    return entry?{...material,author:entry.author??material.author,meta:entry.meta??material.meta,body:entry.body??material.body,concepts:entry.concepts??material.concepts}:material;
+  };
   const bookBranch=id=>bonsai?.collection?.branches?.find(branch=>`antiquity:route:${branch.id}`===id)??null;
   const bookRoute=id=>profile==='antiquity'?routes.find(route=>`antiquity:route:${route.id}`===id)??null:null;
   function bookTitle(id){const item=index?.get?.(id);return tr(item?.title,locale())||label(bookMaterial(id))||'';}
@@ -1574,7 +1582,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function referenceBook(){
     if(book)return book;
     const shape=outline();if(!shape)return null;
-    const data={locale,profile,fragments,coreBook,coreRecord:id=>core?.records?.[id]??null,material:bookMaterial,route:bookRoute,branch:bookBranch,idOf:id=>index?.resolveId?.(id)??id,
+    const data={locale,profile,fragments,coreBook,coreRecord:id=>core?.records?.[id]??null,material:bookMaterial,route:bookRoute,branch:bookBranch,has,idOf:id=>index?.resolveId?.(id)??id,
       sourceLine:bookSourceLine,glimpse:id=>glimpse(bookMaterial(id))||coreView?.glimpse?.(id)||'',
       turnStyle:turn=>{const kind=turn.kind??atlasEdgeFor(turn.edgeId)?.kind??'supports',style=styleOf(kind);return {word:relationWord(kind),color:paint(style.color??'#a5b7cf'),dash:style.dash};},
       passageOf:passageId,catalogId:legacy=>catalogId(String(legacy??'').replace(/^lexical:/,'lexical:')),

@@ -14,12 +14,15 @@ const cites=value=>Array.isArray(value?.cite)?value.cite.filter(Boolean):value?.
  * Write the body of the article `id` into `body` and its lead into `head`. `kit` is the book's own tools
  * (claim, section, field, link, done, w); `data` reads the stand's materials.
  */
-export function articleBody({head,body,id,item,claim,section,field,link,done,w},data){
+export function articleBody({head,body,id,item,claim,section,field,link,sign,done,w},data){
   const locale=data.locale(),tr=value=>said(value,locale);
   const lead=(value,cls='rb-lead')=>{if(!value||(!tr(value)&&!cites(value).length))return;const box=make('div',cls);claim(box,value,{className:'rb-lead-text'});head.append(box);};
   const ask=value=>{const text=tr(value);if(text)head.append(make('p','rb-question',text));};
   const places=(parent,value)=>{if(cites(value).length)claim(parent,{cite:cites(value)},{grounds:'places'});};
-  const links=(parent,ids,label)=>{const list=ids.filter(Boolean);if(!list.length)return;const row=field(parent,label),names=make('p','rb-chips');for(const other of list)names.append(link(other,undefined,'rb-chip'));row.append(names);};
+  // A question a claim leaves stands under its words, beside the places they rest on.
+  const after=(said,parent,node)=>(said?.classList?.contains('rb-claim')&&!said.classList.contains('is-places')?said:parent).append(node);
+  // Names the article leads to once: a list leaves out what the head and the body already lead to.
+  const links=(parent,ids,label)=>{const shown=new Set([...head.querySelectorAll('[data-open]'),...body.querySelectorAll('[data-open]')].map(node=>node.dataset.open)),list=[...new Set(ids.filter(Boolean))].filter(other=>!shown.has(other));if(!list.length){if(parent.classList.contains('rb-section-body'))done(parent);return;}const row=field(parent,label),names=make('p','rb-chips');for(const other of list)names.append(link(other,undefined,'rb-chip'));row.append(names);};
 
   // A subject of the core: its question, its lead and the book's own formula, then the parts of its card.
   if(item.owner==='bonsai/core'&&data.coreBook&&(item.kind==='chain'||data.coreRecord(id))){
@@ -36,18 +39,26 @@ export function articleBody({head,body,id,item,claim,section,field,link,done,w},
 
   const material=data.material(id);if(!material)return;
   const route=data.route(id);
-  // A branch or a path reads as a chapter: its question, its moves in order and the turns between them.
+  // A branch or a path reads as a chapter: its question, its moves in order and the turns between them. The moves
+  // where a branch stays open carry that mark: their questions are where the branch arrives.
   if(route){
     ask(route.question);
     if(tr(route.description))lead({ru:tr(route.description),en:tr(route.description)});
     const steps=route.steps??[],turns=route.transitions??[];
+    const open=new Set((data.branch(id)?.openEnds??[]).map(value=>data.passageOf(typeof value==='string'?value:value.ru??value.en)).filter(Boolean));
     const moves=section(body,'moves',w(data.profile==='antiquity'?'moves':'steps')),list=make('ol','rb-moves');
     for(const [at,step] of steps.entries()){
       const stepId=data.idOf(step.nodeId),entry=make('li','rb-move');
       const name=make('h3','rb-move-title');name.append(make('span','rb-move-n',String(at+1)),stepId?link(stepId,tr(step.title)||undefined,'rb-link'):make('span','',tr(step.title)));entry.append(name);
-      const witness=stepId?data.sourceLine(stepId):'';if(witness)entry.append(make('p','rb-move-source',witness));
-      claim(entry,step.body);
-      if(tr(step.question))entry.append(make('p','rb-move-question',tr(step.question)));
+      // The source of a move opens the place itself.
+      const witness=stepId?data.sourceLine(stepId):'',place=data.has(step.sourceNodeId)?step.sourceNodeId:null;
+      if(witness)entry.append(place?link(place,witness,'rb-move-source'):make('p','rb-move-source',witness));
+      const said=claim(entry,step.body);
+      if(tr(step.question)){
+        const question=make('p','rb-move-question',tr(step.question));
+        if(open.has(stepId)){entry.classList.add('is-open');question.prepend(make('span','rb-move-end',w('openEnd')));}
+        after(said,entry,question);
+      }
       list.append(entry);
       const next=steps[at+1];if(!next)continue;
       const turn=turns.find(item=>(item.fromNodeId??item.from)===step.nodeId&&(item.toNodeId??item.to)===next.nodeId)??turns.find(item=>item.from===step.nodeId&&item.to===next.nodeId);
@@ -59,22 +70,28 @@ export function articleBody({head,body,id,item,claim,section,field,link,done,w},
       }
     }
     moves.append(list);
-    if(route.conclusion)claim(section(body,'conclusion',w('conclusion')),route.conclusion);
-    const branch=data.branch(id);
-    if(branch?.openEnds?.length)links(section(body,'open-ends',w('openEnds')),branch.openEnds.map(value=>data.passageOf(typeof value==='string'?value:value.ru??value.en)),'');
     const questions=data.questionsOf(id);
     if(questions.length){const box=section(body,'questions',w('branchQuestions')),list=make('ul','rb-asks');for(const question of questions){const row=make('li','rb-ask');row.append(link(question.id));if(tr(question.line))row.append(make('p','rb-ask-line',tr(question.line)));list.append(row);}box.append(list);}
     for(const part of body.querySelectorAll(':scope > .rb-section > .rb-section-body'))done(part);
     return;
   }
-  // A word of the trunk: the lemma, what it means, where it is used and its kin.
+  // A word of the trunk: the lemma, what it means, where it is used and its kin. A use names its form where the
+  // form differs from the lemma, and the place it is used in.
   if(material.lexical||material.lemma){
     const lemma=make('p','rb-lemma',material.lemma);if(material.language)lemma.lang=material.language==='grc'?'grc':material.language;head.append(lemma);
     lead(material.body);ask(material.question);
-    if(material.uses?.length){const box=section(body,'uses',w('uses'));for(const use of material.uses){const label=[use.form,data.workTitle(use.work),use.citation].filter(Boolean).join(' ');const row=field(box,label);claim(row,use.body);}}
+    if(material.uses?.length){
+      const box=section(body,'uses',w('uses')),lemmaKey=String(material.lemma??'').toLocaleLowerCase();
+      for(const use of material.uses){
+        const entry=make('div','rb-use'),line=make('p','rb-use-head'),where=[data.workTitle(use.work),use.citation].filter(Boolean).join(' · '),place=data.passageOf(use.part);
+        if(use.form&&use.form.toLocaleLowerCase()!==lemmaKey){const form=make('span','rb-use-form',use.form);if(lemma.lang)form.lang=lemma.lang;line.append(form);}
+        if(where)line.append(place?link(place,where,'rb-use-source'):make('span','rb-use-source',where));
+        if(line.childElementCount)entry.append(line);
+        claim(entry,use.body);box.append(entry);
+      }
+    }
     if(material.aliases?.length){const row=field(section(body,'forms',w('otherForms')),'');row.append(make('p','rb-forms',material.aliases.join(', ')));}
     links(body,(material.relatedIds??[]).map(data.catalogId),w('relatedWords'));
-    if(material.source?.url){const row=field(body,w('dictionary')),anchor=make('a','rb-source-link',material.source.title??material.source.url);anchor.href=material.source.url;anchor.target='_blank';anchor.rel='noopener noreferrer';row.append(anchor);}
     return;
   }
   const voice=tr(material.voice);if(voice)head.append(make('p','rb-voice',voice));
@@ -103,7 +120,7 @@ export function articleBody({head,body,id,item,claim,section,field,link,done,w},
       const row=field(box,tr(position.voice),'rb-voice-answer');
       if(tr(position.title))row.append(make('h3','rb-step-title',tr(position.title)));
       claim(row,position.body);
-      const place=data.passageOf(position.passage);if(place)row.append(link(place,undefined,'rb-place-link'));
+      const place=data.passageOf(position.passage);if(place)row.append(sign(place,link(place,undefined,'rb-place-link')));
     }
     links(body,(material.concepts??[]).map(data.catalogId),w('concepts'));
     return;
@@ -121,7 +138,7 @@ export function articleBody({head,body,id,item,claim,section,field,link,done,w},
     for(const [at,stage] of (map.stages??[]).entries()){
       const entry=make('li','rb-move'),name=make('h3','rb-move-title');name.append(make('span','rb-move-n',String(at+1)),make('span','',tr(stage.title)));if(stage.span)name.append(make('span','rb-move-span',stage.span));entry.append(name);
       claim(entry,stage.body);
-      const parts=(stage.parts??[]).map(data.passageOf).filter(Boolean);if(parts.length){const row=make('p','rb-chips');for(const part of parts)row.append(link(part,undefined,'rb-chip'));entry.append(row);}
+      const parts=(stage.parts??[]).map(data.passageOf).filter(Boolean);if(parts.length){const row=make('div','rb-places');for(const part of parts)row.append(sign(part,link(part,undefined,'rb-place-link')));entry.append(row);}
       list.append(entry);
     }
     box.append(list);
@@ -153,8 +170,8 @@ export function articleBody({head,body,id,item,claim,section,field,link,done,w},
       if(role)entry.append(make('p','rb-step-role',role));
       const text=make('div','rb-step-text');if(tr(step.title))text.append(make('h3','rb-step-title',tr(step.title)));
       // A step said in the source's own words shows them whole; a step said in the stand's words shows its grounds beside them.
-      if(tr(step.body))claim(text,step.body);else if(cites(step.body).length)data.fragments.render(text,{cite:cites(step.body)});
-      if(tr(step.question))text.append(make('p','rb-step-question',tr(step.question)));
+      const said=tr(step.body)?claim(text,step.body):cites(step.body).length?data.fragments.render(text,{cite:cites(step.body)}):null;
+      if(tr(step.question))after(said,text,make('p','rb-step-question',tr(step.question)));
       entry.append(text);list.append(entry);
     }
     box.append(list);

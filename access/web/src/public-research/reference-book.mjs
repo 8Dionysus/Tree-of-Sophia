@@ -18,21 +18,22 @@ const W={
   contentsNoteZarathustra:{ru:'Древо от кроны к корням: пути и вопросы, понятия, образы, фигуры и книга.',en:'The tree from the crown to the roots: paths and questions, concepts, images, figures and the book.'},
   indexNote:{ru:'Все предметы справочника по алфавиту.',en:'Every subject of the reference in alphabetical order.'},
   libraryNoteAntiquity:{ru:'Эпохи, их авторы, произведения и места, на которых стоит Древо.',en:'The eras, their authors, their works and the places the tree rests on.'},
-  libraryNoteZarathustra:{ru:'Части и главы книги. Под главой стоят предметы, которые на неё опираются.',en:'The parts and chapters of the book. Under a chapter stand the subjects that rest on it.'},
+  libraryNoteZarathustra:{ru:'Части и главы книги. Над ними — предметы, которые проходят через всю книгу, под главой — предметы, которые на неё опираются.',en:'The parts and chapters of the book. Above them stand the subjects that run through the whole book; under a chapter, those that rest on it.'},
+  through:{ru:'Через всю книгу',en:'Through the whole book'},
   all:{ru:'Все',en:'All'},kinds:{ru:'Виды предметов',en:'Kinds of subjects'},
   openOnTree:{ru:'Открыть на Древе',en:'Open on the tree'},placeOnTree:{ru:'Место на Древе',en:'Place on the tree'},
   compare:{ru:'Сопоставить',en:'Compare'},continueWork:{ru:'Продолжить исследование',en:'Continue research'},
   moves:{ru:'Ходы ветви',en:'Moves of the branch'},steps:{ru:'Шаги пути',en:'Steps of the path'},
   reasoning:{ru:'Ход рассуждения',en:'The reasoning'},readingSteps:{ru:'Шаги чтения',en:'Reading steps'},
   openQuestion:{ru:'Остаётся открытым',en:'Left open'},
-  conclusion:{ru:'К чему приходит ветвь',en:'Where the branch arrives'},openEnds:{ru:'Куда ветвь ведёт дальше',en:'Where the branch leads on'},
+  openEnd:{ru:'Здесь ветвь остаётся открытой',en:'The branch stays open here'},
   branchQuestions:{ru:'Вопросы ветви',en:'Questions of the branch'},voices:{ru:'Ответы голосов',en:'Answers of the voices'},
   readingsOfPlace:{ru:'Прочтения этого места',en:'Readings of this passage'},passage:{ru:'Место',en:'The passage'},
   reading:{ru:'Прочтение',en:'Reading'},links:{ru:'Связи',en:'Links'},
   apparatus:{ru:'Источники и упоминания',en:'Sources and mentions'},sources:{ru:'Источники',en:'Sources'},mentions:{ru:'Где упоминается',en:'Where it is mentioned'},
   previous:{ru:'Предыдущая статья',en:'Previous article'},next:{ru:'Следующая статья',en:'Next article'},
   ofTotal:{ru:'{0} из {1}',en:'{0} of {1}'},
-  uses:{ru:'Употребления',en:'Uses'},dictionary:{ru:'Словарь',en:'Dictionary'},otherForms:{ru:'Другие формы',en:'Other forms'},relatedWords:{ru:'Родственные слова',en:'Related words'},
+  uses:{ru:'Употребления',en:'Uses'},otherForms:{ru:'Другие формы',en:'Other forms'},relatedWords:{ru:'Родственные слова',en:'Related words'},
   works:{ru:'Произведения',en:'Works'},places:{ru:'Места',en:'Places'},courseOfWork:{ru:'Ход произведения',en:'The course of the work'},
   concepts:{ru:'Понятия',en:'Concepts'},about:{ru:'О ком',en:'About whom'},
   argument:{ru:'Ход мысли',en:'The argument'},answer:{ru:'Ответ',en:'Answer'},otherReading:{ru:'Другое прочтение',en:'Another reading'},
@@ -63,7 +64,7 @@ export function createReferenceBook(source){
   const title=id=>source.title(id)||'';
   const emit=(name,detail,target)=>target.dispatchEvent(new CustomEvent(name,{bubbles:true,cancelable:true,detail}));
   const link=(id,text,cls='rb-link')=>{
-    const node=action(text??title(id),event=>emit('public-research-open',{id},event.currentTarget),cls);
+    const node=action(text??title(id),event=>emit('public-research-open',{id},event.currentTarget),cls);node.dataset.open=id;
     const line=source.glimpse(id);if(line)node.title=line;
     return node;
   };
@@ -81,10 +82,11 @@ export function createReferenceBook(source){
 
   // ── The figure of the tree. The frontispiece draws it whole; an article draws it small with its own star lit.
   let figure=null;
-  const treeFigure=(width,label)=>source.layout?drawTree(source.layout,{width,label,colorOf:source.lineColor,via:source.via}):null;
+  const treeFigure=(width,label,strata=false)=>source.layout?drawTree(source.layout,{width,label,colorOf:source.lineColor,via:source.via,strata:strata?title=>tr(title):null}):null;
   const treeId=id=>source.treeId(id);
   function lightEntry(entry){
     if(!figure)return;
+    figure.stratum(entry?.stratum??null);
     if(!entry){figure.light([]);return;}
     const ids=book.addresses(entry).map(treeId).filter(id=>figure.has(id));
     const steps=entry.children?.filter(child=>Number.isInteger(child.n)).map(child=>treeId(child.id))??[];
@@ -96,36 +98,44 @@ export function createReferenceBook(source){
   let tab=new URL(location.href).searchParams.get('book');if(!['contents','index','library'].includes(tab))tab='contents';
   function setTab(next,target){
     tab=next;const url=new URL(location.href);if(tab==='contents')url.searchParams.delete('book');else url.searchParams.set('book',tab);
-    window.history.replaceState(window.history.state,'',url);contents(target);
+    window.history.replaceState(window.history.state,'',url);contents(target,{onTab});
   }
-  let host=null;
-  function contents(target,{focus=null}={}){
-    host=target;target.replaceChildren();
+  let host=null,onTab=null;
+  function contents(target,{focus=null,onTab:placed=null}={}){
+    host=target;onTab=placed??onTab;target.replaceChildren();
     const root=make('div','rb-contents');root.dataset.tab=tab;target.append(root);
     const cover=make('header','rb-cover'),name=make('h1','rb-book-title',tr(source.intro?.title)),tabs=make('nav','rb-tabs');
     tabs.setAttribute('aria-label',w('parts'));
     for(const key of ['contents','index','library']){const button=action(w(key),()=>setTab(key,target),'rb-tab');button.setAttribute('aria-current',String(key===tab));tabs.append(button);}
     const note=tab==='index'?w('indexNote'):tab==='library'?w(profile==='antiquity'?'libraryNoteAntiquity':'libraryNoteZarathustra'):w(profile==='antiquity'?'contentsNoteAntiquity':'contentsNoteZarathustra');
-    cover.append(name,make('p','rb-book-note',note),tabs);root.append(cover);
+    // The tabs and the search share one row: the ways into the book and the way straight to a subject.
+    const row=make('div','rb-tabs-row');row.append(tabs,make('div','rb-tools'));
+    cover.append(name,make('p','rb-book-note',note),row);root.append(cover);
     const grid=make('div','rb-contents-grid'),main=make('div','rb-contents-main');grid.append(main);root.append(grid);
     // The tree stands beside the contents; an entry pointed at lights its stars in it.
     figure=null;
     if(tab!=='index'){
-      figure=treeFigure(420,tr(source.intro?.title));
-      if(figure){const frame=make('figure','rb-frontispiece');frame.append(figure.svg);grid.append(frame);}
+      figure=treeFigure(420,tr(source.intro?.title),tab==='contents');
+      if(figure){
+        const frame=make('figure','rb-frontispiece');frame.append(figure.svg);grid.append(frame);
+        // A stratum named beside the tree leads to its part of the contents.
+        frame.addEventListener('click',event=>{const stratum=event.target.closest?.('[data-stratum]')?.dataset.stratum;if(!stratum)return;main.querySelector(`.rb-part[data-stratum="${CSS.escape(stratum)}"]`)?.scrollIntoView({block:'start',behavior:globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});});
+      }
     }
     if(tab==='index')renderIndex(main);else if(tab==='library')renderLibrary(main);else renderContents(main);
     main.addEventListener('pointerover',event=>{const entry=event.target.closest?.('[data-entry]');lightEntry(entry?entries.get(entry.dataset.entry):null);});
     main.addEventListener('focusin',event=>{const entry=event.target.closest?.('[data-entry]');lightEntry(entry?entries.get(entry.dataset.entry):null);});
     main.addEventListener('pointerleave',()=>lightEntry(null));
     if(focus)requestAnimationFrame(()=>main.querySelector(`[data-key="${CSS.escape(focus)}"]`)?.scrollIntoView({block:'start'}));
+    onTab?.();
   }
   const entries=new Map();
-  const remember=(node,entry)=>{entries.set(entry.key,entry);node.dataset.entry=entry.key;node.dataset.key=entry.key;return node;};
+  let stratum=null;
+  const remember=(node,entry)=>{entries.set(entry.key,stratum&&!entry.stratum?{...entry,stratum}:entry);node.dataset.entry=entry.key;node.dataset.key=entry.key;return node;};
   function entryNode(entry,{numbered=false,brief=false}={}){
     const item=remember(make('li','rb-entry'),entry),head=make('p','rb-entry-head');
     if(numbered&&entry.n)head.append(make('span','rb-entry-n',String(entry.n)));
-    head.append(entry.id?link(entry.id,tr(entry.title),'rb-entry-title'):make('span','rb-entry-title',tr(entry.title)));
+    head.append(entry.id?link(entry.id,tr(entry.title),'rb-entry-title'):entry.children?.length?action(tr(entry.title),event=>{const fold=event.currentTarget.closest('.rb-entry')?.querySelector(':scope > .rb-entry-more');if(fold)fold.open=!fold.open;},'rb-entry-title'):make('span','rb-entry-title',tr(entry.title)));
     if(entry.meta&&!brief&&own(entry.meta)!==own(entry.line)&&own(entry.meta)!==own(entry.title))head.append(make('span','rb-entry-meta',tr(entry.meta)));
     item.append(head);
     if(!brief&&own(entry.line))item.append(make('p','rb-entry-line',own(entry.line)));
@@ -133,6 +143,7 @@ export function createReferenceBook(source){
   }
   function renderContents(main){
     for(const part of book.parts){
+      stratum=part.stratum??null;
       const box=remember(make('section','rb-part'),part);box.dataset.stratum=part.stratum??'';
       box.append(make('h2','rb-part-title',tr(part.title)));
       if(part.library){
@@ -159,6 +170,7 @@ export function createReferenceBook(source){
       }
       main.append(box);
     }
+    stratum=null;
   }
   // A branch, a path or a subject with its own routes: its moves or steps stand under it, folded.
   function walkEntry(entry){
@@ -189,7 +201,7 @@ export function createReferenceBook(source){
       for(const [letter,items] of groups){
         const block=make('section','rb-index-letter');block.id=`rb-letter-${letter}`;block.append(make('h2','rb-index-mark',letter));
         const names=make('ul','rb-index-names');
-        for(const item of items){const row=make('li','rb-index-row');row.append(sign(item.id,link(item.id,item.name,'rb-index-name')),make('span','rb-index-kind',item.kind));names.append(row);}
+        for(const item of items){const row=make('li','rb-index-row');row.append(sign(item.id,link(item.id,item.name,'rb-index-name')),' ',make('span','rb-index-kind',item.kind));names.append(row);}
         block.append(names);list.append(block);
         const jump=action(letter,()=>block.scrollIntoView({block:'start',behavior:globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'}),'rb-letter');letters.append(jump);
       }
@@ -199,6 +211,11 @@ export function createReferenceBook(source){
     main.append(filter,letters,list);draw();
   }
   function renderLibrary(main){
+    if(book.through?.length){
+      const box=make('section','rb-through'),names=plainNames(make('p','rb-through-names'));
+      for(const [at,entry] of book.through.entries()){if(at)names.append(document.createTextNode(', '));names.append(link(entry.id,tr(entry.title)));}
+      box.append(make('h2','rb-through-title',w('through')),names);main.append(box);
+    }
     for(const group of book.library){
       const box=remember(make('section','rb-part rb-shelf'),group);
       box.append(make('h2','rb-part-title',tr(group.title)));
@@ -247,16 +264,17 @@ export function createReferenceBook(source){
     // The opening — the question, the lead with its grounds, the book's own formula — runs the width of the text
     // and its margin under the head; the body follows it.
     const opening=make('div','rb-opening'),body=make('div','rb-body');
-    source.body({head:opening,body,id,item,claim,section,field,link,done,w});
+    source.body({head:opening,body,id,item,claim,section,field,link,sign,done,w});
     text.append(opening);target.append(body);
     placeOnTree(place,id);
     // The places the lead rests on stand under the figure of the tree, in the same margin.
     const grounds=opening.querySelector('.rb-lead .rb-grounds');if(grounds)place.append(grounds);
     // A place of a source is quoted once on the page; a later ground leads back to it.
-    keepQuotesOnce(target,{label:source=>`↑ ${source.split(' · ')[0]}`,later:'.rb-ground'});
-    linksOf(target,id);
+    keepQuotesOnce(target,{later:'.rb-ground'});
+    const beside=besideOf(id);
+    linksOf(target,id,beside);
     apparatusOf(target,id);
-    pagerOf(target,id);
+    pagerOf(target,id,beside);
     return true;
   }
   function trailOf(target,id){
@@ -267,10 +285,10 @@ export function createReferenceBook(source){
       nav.append(make('span','rb-crumb-sep','›'));
       nav.append(entry.id?link(entry.id,tr(entry.title),'rb-crumb'):action(tr(entry.title),event=>emit('public-research-contents',{tab:root,key:entry.key},event.currentTarget),'rb-crumb'));
     }
-    target.append(nav);
+    const row=make('div','rb-trail-row');row.append(nav,make('div','rb-tools'));target.append(row);
   }
   function placeOnTree(place,id){
-    const mini=treeFigure(230,`${w('placeOnTree')}: ${title(id)}`);
+    const mini=treeFigure(200,`${w('placeOnTree')}: ${title(id)}`);
     if(mini&&mini.has(treeId(id))){
       const links=source.relations(id).filter(relation=>mini.has(treeId(relation.other))).map(relation=>[treeId(id),treeId(relation.other),relation.color]);
       mini.light(links.map(link=>link[1]),{current:treeId(id),links});
@@ -284,9 +302,18 @@ export function createReferenceBook(source){
     actions.append(action(w('continueWork'),event=>emit('public-research-action',{action:'continue',recordId:id},event.currentTarget),'rb-action'));
     return actions;
   }
-  // Links of one kind stand together under the word, colour and line of that kind on the map.
-  function linksOf(target,id){
-    const relations=source.relations(id);if(!relations.length)return;
+  // What the head and the body of an article already lead to.
+  const shownIn=target=>new Set([...target.querySelectorAll(':is(.rb-head,.rb-body) [data-open]')].map(node=>node.dataset.open));
+  // Links of one kind stand together under the word, colour and line of that kind on the map. A subject the article
+  // already leads to in its text is not listed again.
+  // The link to the article before or after is told by the way on at the foot of the page.
+  function besideOf(id){
+    const around=book.neighbours(id),out=new Map();
+    for(const entry of [around?.previous,around?.next])if(entry?.id){const relation=source.relations(id).find(item=>item.other===entry.id);if(relation)out.set(entry.id,relation);}
+    return out;
+  }
+  function linksOf(target,id,beside){
+    const shown=shownIn(target),relations=source.relations(id).filter(relation=>!shown.has(relation.other)&&!beside.has(relation.other));if(!relations.length)return;
     const body=section(target,'links',w('links')),groups=new Map();
     for(const relation of relations){if(!groups.has(relation.group))groups.set(relation.group,{relation,rows:[]});groups.get(relation.group).rows.push(relation);}
     for(const {relation,rows} of groups.values()){
@@ -308,20 +335,26 @@ export function createReferenceBook(source){
     source.apparatus?.(box,id);
     const body=section(box,'mentions',w('apparatus'));
     // The apparatus names what the page does not: the sources it can open, and where the subject is mentioned
-    // beyond its own links.
+    // beyond its own text and links.
     const refs=(source.sources?.(id)??[]).filter(ref=>ref.url);
     if(refs.length){const list=field(body,w('sources'));for(const ref of refs){const anchor=make('a','rb-source-link',ref.label);anchor.href=ref.url;anchor.target='_blank';anchor.rel='noopener noreferrer';list.append(anchor);}}
-    const linked=new Set(source.relations(id).map(relation=>relation.other)),mentions=source.mentions(id).filter(other=>!linked.has(other));
+    const linked=new Set([...source.relations(id).map(relation=>relation.other),...shownIn(target)]),mentions=source.mentions(id).filter(other=>!linked.has(other));
     if(mentions.length){const list=field(body,w('mentions')),names=plainNames(make('p','rb-mention-list'));for(const [at,other] of mentions.entries()){if(at)names.append(document.createTextNode(', '));names.append(link(other));}list.append(names);}
     done(body);
     if(box.childElementCount)target.append(box);
   }
-  function pagerOf(target,id){
+  function pagerOf(target,id,beside){
     const around=book.neighbours(id);if(!around||(!around.previous&&!around.next))return;
     const nav=plainNames(make('nav','rb-pager'));nav.setAttribute('aria-label',`${w('previous')} · ${w('next')}`);
     const side=(entry,cls,label)=>{
       if(!entry)return make('span',`rb-page ${cls} is-empty`);
-      const go=link(entry.id,'',`rb-page ${cls}`);go.replaceChildren(make('span','rb-page-label',label),make('span','rb-page-title',title(entry.id)||tr(entry.title)));return go;
+      const go=link(entry.id,'',`rb-page ${cls}`),name=title(entry.id)||tr(entry.title);go.replaceChildren(make('span','rb-page-label',label),make('span','rb-page-title',name));
+      const relation=beside.get(entry.id);
+      if(relation){
+        const how=make('span','rb-page-how'),verb=afterName(relation.verb,name);how.style.setProperty('--link-color',relation.color??'#a5b7cf');how.dataset.dash=relation.dash??'solid';
+        how.append(make('span','rb-link-line'),make('span','',[relation.word,verb!==relation.word?verb:''].filter(Boolean).join(' · ')));go.append(how);
+      }
+      return go;
     };
     const middle=around.parent?.id?link(around.parent.id,tr(around.parent.title),'rb-page-parent'):make('span','rb-page-parent',tr(around.parent?.title));
     nav.append(side(around.previous,'is-previous',w('previous')),middle,side(around.next,'is-next',w('next')));target.append(nav);

@@ -382,8 +382,19 @@ export function createCoreView({core,locale,fragments,signOf,hint,onNode,onRoute
     }
     article.append(states);
     const transitions=el('section',inBook?'rb-section':'ps-core-section');transitions.append(el(inBook?'h2':'h3',inBook?'rb-section-title':'minor-title',t('transitions')));if(inBook)transitions.dataset.part='transitions';
-    for(const step of chain.steps??[]){
-      const stateName=id=>tr(chain.states?.find(state=>state.id===id)?.title)||name(id);
+    const stateName=id=>tr(chain.states?.find(state=>state.id===id)?.title)||name(id);
+    if(inBook){
+      // In the book a route reads as a path: each transition a sentence of its two subjects and the verb between
+      // them, the verb opening the link itself, and the place it rests on under it.
+      const list=el('ol','rb-moves');
+      for(const [at,step] of (chain.steps??[]).entries()){
+        const entry=el('li','rb-move'),sentence=el('h3','rb-move-title rb-chain-step');
+        const end=id=>{const node=button(stateName(id),()=>onNode?.(core.materialIds[id]??id),'rb-link rb-chain-end'),mark=signOf?.(core.materialIds[id]);if(mark)node.prepend(mark);return node;};
+        sentence.append(el('span','rb-move-n',String(at+1)),end(step.from),onRelation?button(tr(step.verb),()=>onRelation(relationId(step)),'rb-chain-verb'):el('span','rb-chain-verb',tr(step.verb)),end(step.to));
+        entry.append(sentence);if(step.cite)entry.append(fragments.fragment(step.cite));list.append(entry);
+      }
+      transitions.append(list);
+    }else for(const step of chain.steps??[]){
       fold(transitions,`${stateName(step.from)} → ${tr(step.verb)} → ${stateName(step.to)}`,box=>{
         if(onRelation)box.append(button(t('openRelation'),()=>onRelation(relationId(step)),'ps-kernel-action'));
         link(box,step);

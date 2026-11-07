@@ -11,15 +11,19 @@ const round=value=>Math.round(value*10)/10;
 
 /**
  * `layout` is a tree layout ({positions, roles, lines}); `colorOf(line)` gives a line's colour.
+ * With `strata`, the names of the tree's strata stand at their heights beside it, each named by `strata(title)`.
  * Returns the figure's svg, the projected point of an id, and `light(ids, {current, links})` to light its stars.
  */
-export function drawTree(layout,{width=320,label='',colorOf=line=>line.color??'#8ea2ba',via=null,className='rb-tree'}={}){
+export function drawTree(layout,{width=320,label='',colorOf=line=>line.color??'#8ea2ba',via=null,className='rb-tree',strata=null}={}){
   const points=new Map();for(const [id,position] of layout.positions)points.set(id,project(position));
   const all=[...points.values(),...layout.lines.flatMap(line=>line.points.map(project))];
   const xs=all.map(point=>point[0]),ys=all.map(point=>point[1]);
+  const levels=strata?(layout.names??[]).filter(name=>name.kind==='stratum'):[];
+  // The names of the strata take a margin of their own at the left of the figure.
+  const margin=levels.length?.27*width:0;
   const pad=24,minX=Math.min(...xs)-pad,maxX=Math.max(...xs)+pad,minY=Math.min(...ys)-pad,maxY=Math.max(...ys)+pad;
-  const scale=width/(maxX-minX),height=round((maxY-minY)*scale);
-  const at=([x,y])=>[round((x-minX)*scale),round((y-minY)*scale)];
+  const scale=(width-margin)/(maxX-minX),height=round((maxY-minY)*scale);
+  const at=([x,y])=>[round(margin+(x-minX)*scale),round((y-minY)*scale)];
   const root=svg('svg',{class:className,viewBox:`0 0 ${width} ${height}`,role:'img','aria-label':label});
   const ground=svg('g',{class:'rb-tree-lines'}),stars=svg('g',{class:'rb-tree-stars'}),lit=svg('g',{class:'rb-tree-lit'});
   for(const line of layout.lines){
@@ -28,7 +32,15 @@ export function drawTree(layout,{width=320,label='',colorOf=line=>line.color??'#
   }
   const dots=new Map();
   for(const [id,point] of points){const [cx,cy]=at(point),dot=svg('circle',{cx,cy,r:1.2,'data-role':layout.roles?.get(id)??''});dot.dataset.id=id;stars.append(dot);dots.set(id,dot);}
-  root.append(ground,stars,lit);
+  const names=svg('g',{class:'rb-tree-strata'});
+  // Strata that stand close keep a line apart, each at its own height or just under the one above it.
+  let previous=-Infinity;
+  const heights=levels.map(level=>({level,y:at(project(level.center))[1]})).sort((a,b)=>a.y-b.y).map(entry=>{const y=Math.max(entry.y,previous+.045*width);previous=y;return {...entry,y:round(y)};});
+  for(const {level,y} of heights){
+    const text=svg('text',{x:0,y,'dominant-baseline':'middle'});
+    text.textContent=strata(level.title);text.dataset.stratum=String(level.id).replace(/^tree:stratum:/,'');names.append(text);
+  }
+  root.append(ground,names,stars,lit);
   const pointOf=id=>points.has(id)?at(points.get(id)):null;
   // A link between strata runs through the trunk, as on the map.
   const path=(a,b)=>{
@@ -48,5 +60,7 @@ export function drawTree(layout,{width=320,label='',colorOf=line=>line.color??'#
       dots.get(current)?.classList.add('is-current');
     }
   }
-  return {svg:root,width,height,pointOf,light,has:id=>points.has(id)};
+  /** Mark the stratum a part of the contents stands in. */
+  function stratum(id){for(const text of names.children)text.classList.toggle('is-current',!!id&&text.dataset.stratum===id);}
+  return {svg:root,width,height,pointOf,light,stratum,has:id=>points.has(id)};
 }

@@ -88,14 +88,21 @@ export function zarathustraBook({core={},routes=[],questions=[],chapters=[],part
     {key:'figures',title:BOOK_PARTS.figures,stratum:'figures',children:(core.figures??[]).map(withChains).sort(byTitle),flat:true},
     {key:'proposed',title:BOOK_PARTS.proposed,stratum:'crown',children:proposed.map(subject).sort(byTitle),flat:true},
   ].filter(part=>part.children.length);
-  // The book's parts and chapters, each chapter with the subjects that rest on it.
-  const library=['I','II','III','IV'].map(part=>({key:`part:${part}`,title:partTitles[part]??part,children:chapters.filter(chapter=>chapter.key.startsWith(`${part}.`)).map(chapter=>({key:`chapter:${chapter.key}`,chapter:chapter.key,title:chapter.titles,children:unique(citing(chapter.key).map(id=>({key:`${chapter.key}:${id}`,id,title:title(id)})).filter(entry=>entry.title))}))}));
+  // The book's parts and chapters, each chapter with the subjects that rest on it. A subject that rests on a quarter
+  // of the chapters or more runs through the book: it is named once above them, and a chapter lists the subjects
+  // that rest on it in particular, the rarest first.
+  const cited=new Map(chapters.map(chapter=>[chapter.key,unique(citing(chapter.key).map(id=>({key:`${chapter.key}:${id}`,id,title:title(id)})).filter(entry=>entry.title))]));
+  const count=new Map();for(const list of cited.values())for(const entry of list)count.set(entry.id,(count.get(entry.id)??0)+1);
+  const through=[...count].filter(([,n])=>n>=chapters.length/4).sort((a,b)=>b[1]-a[1]).map(([id])=>({key:`through:${id}`,id,title:title(id)}));
+  const common=new Set(through.map(entry=>entry.id));
+  const library=['I','II','III','IV'].map(part=>({key:`part:${part}`,title:partTitles[part]??part,children:chapters.filter(chapter=>chapter.key.startsWith(`${part}.`)).map(chapter=>({key:`chapter:${chapter.key}`,chapter:chapter.key,title:chapter.titles,children:(cited.get(chapter.key)??[]).filter(entry=>!common.has(entry.id)).sort((a,b)=>count.get(a.id)-count.get(b.id))}))}));
   parts.push({key:'book',title:BOOK_PARTS.book,stratum:'texts',children:library.map(part=>({...part,children:[]})),library:true});
-  return createBook({parts,library});
+  return createBook({parts,library,through});
 }
 
-/** The ways through a book: where an address stands in it, and the entries before and after it. */
-export function createBook({parts=[],library=[]}={}){
+/** The ways through a book: where an address stands in it, and the entries before and after it. `through` names the
+ * subjects that run through the whole library. */
+export function createBook({parts=[],library=[],through=[]}={}){
   // An address is at home where the contents list it as itself, then where a branch or a path steps through it,
   // then in the library. An article's path and its neighbours come from its home.
   const homes=new Map(),steps=new Map(),shelves=new Map();
@@ -107,7 +114,7 @@ export function createBook({parts=[],library=[]}={}){
   for(const part of parts)if(!part.library)visit(part.children,[part],'contents');
   visit(library,[],'library');
   const home=id=>homes.get(id)??steps.get(id)??shelves.get(id)??null;
-  return {parts,library,home,
+  return {parts,library,through,home,
     /** The entries above an address, from its part of the book down to its own parent. */
     trail(id){const found=home(id);return found?found.trail:[];},
     /** The entry before and after an address among its siblings that have articles; a numbered sequence says its place. */

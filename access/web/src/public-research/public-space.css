@@ -679,6 +679,8 @@
 .ps-authored>p:not(.ps-fragment-line){margin:10px 0 0}
 .ps-fragment{margin:10px 0 12px;padding:0}
 .ps-fragment+.ps-fragment{margin-top:14px}
+/* Quotations of one source in a row name it under the last of them. */
+.ps-fragment.is-same-source>.ps-fragment-cite{display:none}
 .ps-fragment-text{margin:0;padding:2px 0 2px 14px;border-left:2px solid var(--ps-gold-line,#c9ad7366);color:var(--ps-ink,#e4e6ea);font:15px/1.62 var(--ps-serif,Georgia,serif)}
 .ps-fragment-text+.ps-fragment-cite+.ps-fragment-text{margin-top:10px}
 .ps-fragment-line{margin:0 0 6px;color:inherit;font:inherit}
