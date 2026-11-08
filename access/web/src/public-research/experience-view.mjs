@@ -159,7 +159,10 @@ export function mountResearchExperience({root,header,profile,locale=()=> 'ru',in
     const top=book?null:article.querySelector('.ps-kernel-title,h1,h2'),still=globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     const entries=[...(top?[[article,top.textContent]]:[]),...heads.map(head=>[head.closest('section')??head,head.textContent])];
     tocItems=entries.map(([target,label])=>[target,action(label,()=>target.scrollIntoView({behavior:still?'auto':'smooth',block:'start'}),'experience-toc-link')]);
-    toc.setAttribute('aria-label',t('onThisPage'));toc.replaceChildren(make('p','experience-toc-title',t('onThisPage')),...tocItems.map(([,link])=>link));toc.hidden=false;markContents();
+    toc.setAttribute('aria-label',t('onThisPage'));toc.replaceChildren(make('p','experience-toc-title',t('onThisPage')),...tocItems.map(([,link])=>link));toc.hidden=false;
+    // In the book the strip of parts follows the head of the article: the page opens on its path and its title.
+    const head=book?article.querySelector?.(':scope > .rb-head'):null;if(head)head.after(toc);
+    markContents();
   }
   function markContents(){
     tocFrame=0;if(!tocItems.length)return;const bar=parseFloat(getComputedStyle(root).getPropertyValue('--rb-h'))||64,line=bar+120;

@@ -438,6 +438,11 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     const figures=[...box.querySelectorAll(':scope > .ps-fragment')];
     figures.forEach((figure,at)=>{const own=sourceOf(figure),next=figures[at+1];figure.classList.toggle('is-same-source',!!own&&!!next&&own===sourceOf(next));});
   }
+  // Places of one source beside the same words name it once, above the first of them.
+  function shareGroundSource(aside){
+    const figures=[...aside.querySelectorAll(':scope > .rb-ground > .ps-fragment')];
+    figures.forEach((figure,at)=>{const own=sourceOf(figure),before=figures[at-1];figure.parentElement.classList.toggle('is-same-source',!!own&&!!before&&own===sourceOf(before));});
+  }
   /** One cited place as a figure, filled when its text arrives. */
   function fragment(cite){
     const figure=el('figure','ps-fragment');figure.dataset.work=cite.w;figure.setAttribute('aria-busy','true');
@@ -458,7 +463,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       // In the book the stand's own words lead and the places they rest on stand beside them: each place shows
       // its first lines and its source, and opens whole where it stands. A list of places alone is laid out the same way.
       box.classList.add('rb-claim');if(own){const words=el('div','rb-claim-text');words.append(el(tag,className,own));box.append(words);}else box.classList.add('is-places');
-      if(cites.length){const aside=el('div','rb-grounds');for(const cite of cites)aside.append(ground(cite));box.append(aside);}
+      if(cites.length){const aside=el('div','rb-grounds');for(const cite of cites)aside.append(ground(cite));if(cites.length>1)aside.addEventListener('ps-fragment-painted',()=>shareGroundSource(aside));box.append(aside);}
     }else{
       for(const cite of cites)box.append(fragment(cite));
       if(cites.length>1)box.addEventListener('ps-fragment-painted',()=>shareSource(box));

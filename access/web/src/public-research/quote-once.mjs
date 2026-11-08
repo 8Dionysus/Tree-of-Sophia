@@ -4,17 +4,24 @@
 // page is read again whenever its quotations change.
 
 const QUOTE='blockquote.ps-fragment-text',LINE=':scope > *';
-const keyOf=node=>`${node.closest('[lang]')?.getAttribute('lang')??''}\u0000${node.textContent.replace(/\s+/gu,' ').trim()}`;
+// A line is the same line whether or not a quotation marks it as cut short.
+const keyOf=node=>`${node.closest('[lang]')?.getAttribute('lang')??''}\u0000${node.textContent.replace(/\s+/gu,' ').trim().replace(/^…\s*|\s*…$/gu,'')}`;
 
-/** Keep every quoted line once in `root`; `label(source)` names the line that leads to the first quotation. */
+/** Keep every quoted line once in `root`; `label(source, arrow)` names the line that leads to the first quotation,
+ * the arrow pointing up or down to where it stands. */
 /** `later` names figures that defer to every other figure: a short note in a margin leads back to the text it repeats. */
-export function keepQuotesOnce(root,{label=source=>`↑ ${source}`,later=null}={}){
+export function keepQuotesOnce(root,{label=(source,arrow)=>`${arrow} ${source}`,later=null}={}){
   if(typeof root?.querySelectorAll!=='function')return {refresh(){},dispose(){}};
   let working=false,frame=0,observer=null;
+  // A figure stands on the page by itself or, deferred, in its note in the margin.
+  const unit=figure=>(later&&figure.closest(later))||figure;
+  const figureOf=node=>node?.tagName==='FIGURE'?node:node?.querySelector?.('figure')??null;
+  const folded=new Set();
   function refresh(){
     working=true;
     try{
-      const first=new Map();
+      for(const node of folded)node.hidden=false;folded.clear();
+      const first=new Map(),leads=new Map();
       const figures=[...root.querySelectorAll('figure')];
       if(later){const deferred=figure=>figure.closest(later)?1:0;figures.sort((a,b)=>deferred(a)-deferred(b));}
       for(const figure of figures){
@@ -38,7 +45,12 @@ export function keepQuotesOnce(root,{label=source=>`↑ ${source}`,later=null}={
         const source=figure.querySelector('.ps-fragment-source')?.textContent??'';
         for(const quote of quotes)quote.hidden=true;
         for(const part of figure.querySelectorAll(':scope > figcaption, :scope > .ps-fragment-tools'))part.hidden=true;
-        const back=document.createElement('button');back.type='button';back.className='text-button ps-fragment-repeat';back.textContent=label(source);
+        // Two ways back to the same quotation side by side are one.
+        leads.set(figure,lead);
+        const before=figureOf(unit(figure).previousElementSibling);
+        if(lead&&before&&leads.get(before)===lead){const node=unit(figure);node.hidden=true;folded.add(node);continue;}
+        const below=lead&&typeof lead.compareDocumentPosition==='function'&&(figure.compareDocumentPosition(lead)&4);
+        const back=document.createElement('button');back.type='button';back.className='text-button ps-fragment-repeat';back.textContent=label(source,below?'↓':'↑');
         back.addEventListener('click',()=>{
           for(let node=lead?.parentElement;node;node=node.parentElement)if(node.tagName==='DETAILS')node.open=true;
           lead?.scrollIntoView({behavior:'smooth',block:'center'});

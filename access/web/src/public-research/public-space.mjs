@@ -1532,12 +1532,12 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   };
   const bookBranch=id=>bonsai?.collection?.branches?.find(branch=>`antiquity:route:${branch.id}`===id)??null;
   const bookRoute=id=>profile==='antiquity'?routes.find(route=>`antiquity:route:${route.id}`===id)??null:null;
-  function bookTitle(id){const item=index?.get?.(id);return tr(item?.title,locale())||label(bookMaterial(id))||'';}
+  function bookTitle(id){const item=index?.get?.(id);return (item?.owner==='bonsai/core'&&coreBook?.title(id))||tr(item?.title,locale())||label(bookMaterial(id))||'';}
   function bookKind(id){
     const item=index?.get?.(id),material=bookMaterial(id);
     if(item?.owner==='bonsai/core'&&coreBook)return {word:coreBook.kindWord(id)||kindWord(material),sign:()=>material?signOf(material):null};
     if(material)return {word:kindWord(material),sign:()=>signOf(material)};
-    return {word:item?.kind==='relation'?t('relation'):item?.kind==='passage'?t('fragment'):'',sign:()=>null};
+    return {word:item?.kind==='passage'?t('fragment'):item?.kind==='bibliographic-pointer'?t('source'):'',sign:()=>null};
   }
   function bookSourceLine(id){
     const material=bookMaterial(id);if(!material||material.lexical)return '';
@@ -1594,12 +1594,15 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       readingsOf:id=>[...materials.values()].filter(item=>item.sourceNodeId===id).map(item=>item.id),
       workTitle:slug=>tr(collectionByLegacyId.get(slug)?.title,locale()),
       worksOf:material=>{const authorId=material.legacyId??material.id;return [...previewMaterials.values()].filter(item=>item.kind==='work'&&((material.works??[]).includes(item.legacyId??item.id)||(authorId&&item.author===authorId))).map(item=>item.id).filter(has);},
-      placesOf:id=>(shape.home(id)?.entry?.children??[]).map(entry=>entry.id).filter(Boolean)};
+      placesOf:id=>(shape.home(id)?.entry?.children??[]).map(entry=>entry.id).filter(Boolean),
+      // An era of the library is read by who wrote in it and the schools of its time.
+      eraOf:id=>(shape.library?.find(entry=>`antiquity:catalog:${entry.key}`===id)?.children??[]).map(entry=>entry.id).filter(has)};
     book=createReferenceBook({profile,index,book:shape,locale,intro:{title:library.space?.title},
       layout:treeLayout,lineColor:line=>paint(line.color??TREE_LINES[line.tone]?.color??'#8ea2ba'),via:treeVia,treeId:id=>index?.get?.(id)?.materialId??id,
       fragments,markTerms:node=>terms.mark(node),showChapter:key=>fragments.showChapter(key).catch(()=>notify(t('unavailable'))),
-      title:bookTitle,kind:bookKind,glimpse:data.glimpse,sourceLine:bookSourceLine,status:id=>{const item=index?.get?.(id);if(item?.owner==='bonsai/core')return coreBook?.statusWord(id)??'';const material=bookMaterial(id);if(!material)return '';const rung=ladderRung({material});return rung&&rung!=='personal'?t(`rung_${rung}`):'';},
+      title:bookTitle,kind:bookKind,glimpse:data.glimpse,sourceLine:bookSourceLine,status:id=>{const item=index?.get?.(id);if(item?.owner==='bonsai/core')return coreBook?.statusWord(id)??'';if(item?.kind==='bibliographic-pointer')return t('linkOnly');const material=bookMaterial(id);if(!material)return '';const rung=ladderRung({material});return rung&&rung!=='personal'?t(`rung_${rung}`):'';},
       facts:(parent,id)=>{const materialId=index?.get?.(id)?.materialId??id;appendDating(parent,materialId);appendPlace(parent,materialId);},
+      ends:id=>{const ends=coreBook?.ends(id);if(!ends||!has(ends.from)||!has(ends.to))return null;return {...ends,word:ends.family,color:paint(styleOf('relates').color??'#a5b7cf'),dash:'solid'};},
       relations:bookRelations,mentions:bookMentions,sources:bookSources,apparatus:(parent,id)=>coreBook?.bookApparatus(parent,id),
       countSteps:value=>profile==='antiquity'?countMoves(value):countSteps(value),countRoutes,
       body:context=>articleBody(context,data)});
@@ -1608,9 +1611,17 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function renderContents(parent,options={}){const own=referenceBook();if(!own)return false;own.contents(parent,options);return true;}
   function renderResearch(parent,id){
     const item=index?.get(id);if(!item)return false;
+    // A claim is read in the article it belongs to, at its own words.
+    if(item.kind==='statement'&&has(item.parentId)){const done=renderResearch(parent,item.parentId);if(done)markClaim(parent,tr(item.record,locale()));return done;}
     if(profile==='antiquity')parent.dataset.termWorks=termWorks(item.record);
     parent.dataset.termNode=item.materialId??(previewMaterials.has(item.id)?item.id:'');
     return !!referenceBook()?.article(parent,item.id);
+  }
+  function markClaim(parent,words){
+    const said=String(words??'').replace(/\s+/g,' ').trim();if(!said)return;
+    const node=[...parent.querySelectorAll('.rb-claim-text,.rb-lead-text,.ps-authored,p')].find(item=>item.textContent.replace(/\s+/g,' ').includes(said));if(!node)return;
+    const claim=node.closest('.rb-claim')??node;claim.classList.add('is-cited');
+    requestAnimationFrame(()=>requestAnimationFrame(()=>claim.scrollIntoView({block:'center'})));
   }
   function appendResearchReferences(parent,id){
     const item=index?.get(id);if(!item)return;

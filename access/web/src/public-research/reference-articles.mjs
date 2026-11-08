@@ -24,15 +24,14 @@ export function articleBody({head,body,id,item,claim,section,field,link,sign,don
   // Names the article leads to once: a list leaves out what the head and the body already lead to.
   const links=(parent,ids,label)=>{const shown=new Set([...head.querySelectorAll('[data-open]'),...body.querySelectorAll('[data-open]')].map(node=>node.dataset.open)),list=[...new Set(ids.filter(Boolean))].filter(other=>!shown.has(other));if(!list.length){if(parent.classList.contains('rb-section-body'))done(parent);return;}const row=field(parent,label),names=make('p','rb-chips');for(const other of list)names.append(link(other,undefined,'rb-chip'));row.append(names);};
 
-  // A subject of the core: its question, its lead and the book's own formula, then the parts of its card.
-  if(item.owner==='bonsai/core'&&data.coreBook&&(item.kind==='chain'||data.coreRecord(id))){
+  // A subject or a link of the core: its question, its lead and the book's own formula, then the parts of its card.
+  if(item.owner==='bonsai/core'&&data.coreBook&&(['chain','relation','passage-relation'].includes(item.kind)||data.coreRecord(id))){
     ask(data.coreBook.question(id));
     const box=make('div','rb-lead');if(data.coreBook.lead(box,id))head.append(box);
     data.coreBook.epigraph(head,id);
     data.coreBook.bookBody(body,id);
     return;
   }
-  if(item.kind==='relation'){data.coreBook?.renderReference(body,{kind:'relation',id});return;}
   if(item.kind==='statement'){lead(item.record);if(item.parentId){const row=field(body,'');row.append(link(item.parentId));}return;}
   if(item.kind==='passage'){body.append(data.fragments.fragment(item.record));return;}
   if(item.kind==='bibliographic-pointer')return;
@@ -96,11 +95,13 @@ export function articleBody({head,body,id,item,claim,section,field,link,sign,don
   const voice=tr(material.voice);if(voice)head.append(make('p','rb-voice',voice));
   // The place of a text: the text itself in the original and in translation, then what is read in it.
   if(material.kind==='fragment'){
-    const text=section(body,'passage',w('passage'));
     const reading=data.readingsOf(id)[0];
-    const cited=cites(material.body).length?material.body:{cite:cites(data.material(reading)?.body)};
-    data.fragments.render(text,{cite:cites(cited)});
-    if(tr(material.body))claim(text,{ru:tr(material.body),en:tr(material.body)});
+    const cited=cites(material.body).length?cites(material.body):cites(data.material(reading)?.body);
+    if(cited.length||tr(material.body)){
+      const text=section(body,'passage',w('passage'));
+      if(cited.length)data.fragments.render(text,{cite:cited});
+      if(tr(material.body))claim(text,{ru:tr(material.body),en:tr(material.body)});
+    }
     reasoning(body,material);
     ask(material.question);
     const readings=data.readingsOf(id);
@@ -128,8 +129,12 @@ export function articleBody({head,body,id,item,claim,section,field,link,sign,don
   const named=tr(material.title).trim();
   if(material.kind!=='interpretation'&&tr(material.question).trim()!==named)ask(material.question);
   const words=material.atlasBody??material.body;
+  // Places the steps of the reasoning, the course of the work, the argument or its perspectives quote are not listed again.
+  const inquiry=material.inquiry;
+  const stepped=new Set([...(material.argument?.steps?.length?material.argument.steps:material.readingSteps??[]).map(step=>step.body),...(material.workMap?.stages??[]).map(stage=>stage.body),...(material.perspectives??[]).map(perspective=>perspective.body),inquiry?.thesis??inquiry?.argument,inquiry?.answer?.text??inquiry?.answer,inquiry?.counterReading?.text].flatMap(cites).map(cite=>JSON.stringify(cite)));
+  const own=cites(words).filter(cite=>!stepped.has(JSON.stringify(cite)));
   if(tr(words))lead(words);
-  else if(cites(words).length)places(section(body,'places',w('places')),words);
+  else if(own.length)places(section(body,'places',w('places')),{cite:own});
   if(material.workMap){
     const map=material.workMap,box=section(body,'course',w('courseOfWork'));
     if(tr(map.question))box.append(make('p','rb-course-question',tr(map.question)));
@@ -146,7 +151,7 @@ export function articleBody({head,body,id,item,claim,section,field,link,sign,don
   if(material.kind==='interpretation'&&tr(material.question)){const box=body.querySelector('[data-part="reasoning"] > .rb-section-body')??body;const row=field(box,w('openQuestion'),'rb-open');row.append(make('p','rb-open-question',tr(material.question)));}
   // The argument of an inquiry, its answer, another reading of it and the details to follow, under one part;
   // words the lead already says are not said twice.
-  const inquiry=material.inquiry,leadText=tr(words).trim();
+  const leadText=tr(words).trim();
   if(inquiry||material.perspectives?.length){
     const box=section(body,'argument',w('argument')),argument=inquiry?.thesis??inquiry?.argument;
     if(tr(argument)&&tr(argument).trim()!==leadText)claim(field(box,''),argument);
@@ -155,6 +160,7 @@ export function articleBody({head,body,id,item,claim,section,field,link,sign,don
     for(const perspective of material.perspectives??[])claim(field(box,tr(perspective.title)),perspective.body);
     done(box);
   }
+  const people=data.eraOf?.(id)??[];if(people.length)links(section(body,'era',w('eraPeople')),people,'');
   if(material.kind==='figure'){const works=data.worksOf(material);if(works.length)links(section(body,'works',w('works')),works,'');}
   if(material.kind==='work'){const passages=data.placesOf(id);if(passages.length)links(section(body,'work-places',w('places')),passages,'');}
   links(body,(material.kind==='interpretation'?[]:material.concepts??[]).map(data.catalogId),w('concepts'));

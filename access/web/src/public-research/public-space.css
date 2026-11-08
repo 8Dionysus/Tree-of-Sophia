@@ -763,7 +763,7 @@
 /* ── active terms: a word of the stand's philological core opens on its origin ── */
 /* An active word is a link to a node of the stand; its small star is the star of that node on the map. */
 /* The star stands in the word's own trailing space, so the punctuation after the word never parts from it at a line's end. */
-.ps-term{position:relative;padding-right:.54em;color:inherit;cursor:pointer;text-decoration:underline 1px solid #c9ad738c;text-underline-offset:.22em;text-decoration-skip-ink:auto;transition:color .15s,text-decoration-color .15s}
+.ps-term{position:relative;padding-right:.54em;white-space:nowrap;color:inherit;cursor:pointer;text-decoration:underline 1px solid #c9ad738c;text-underline-offset:.22em;text-decoration-skip-ink:auto;transition:color .15s,text-decoration-color .15s}
 .ps-term::after{content:'';position:absolute;right:0;bottom:.62em;width:.42em;height:.42em;background:#d7bd80;clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%);opacity:.8;transition:opacity .15s,transform .15s}
 .ps-term:hover,.ps-term[data-shown=true]{color:#f3e6c6;text-decoration-color:#e4cb8b}
 .ps-term:hover::after,.ps-term[data-shown=true]::after{opacity:1;transform:scale(1.15)}

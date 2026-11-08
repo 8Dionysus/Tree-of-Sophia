@@ -34,7 +34,7 @@ const W={
   previous:{ru:'Предыдущая статья',en:'Previous article'},next:{ru:'Следующая статья',en:'Next article'},
   ofTotal:{ru:'{0} из {1}',en:'{0} of {1}'},
   uses:{ru:'Употребления',en:'Uses'},relatedWords:{ru:'Родственные слова',en:'Related words'},
-  works:{ru:'Произведения',en:'Works'},places:{ru:'Места',en:'Places'},courseOfWork:{ru:'Ход произведения',en:'The course of the work'},
+  works:{ru:'Произведения',en:'Works'},eraPeople:{ru:'Мыслители и школы',en:'Thinkers and schools'},places:{ru:'Места',en:'Places'},courseOfWork:{ru:'Ход произведения',en:'The course of the work'},
   concepts:{ru:'Понятия',en:'Concepts'},about:{ru:'О ком',en:'About whom'},
   argument:{ru:'Ход мысли',en:'The argument'},answer:{ru:'Ответ',en:'Answer'},otherReading:{ru:'Другое прочтение',en:'Another reading'},
 
@@ -257,6 +257,7 @@ export function createReferenceBook(source){
     if(around?.numbered&&around.total>1)kindLine.append(make('span','rb-kind-place',w('ofTotal',[around.index+1,around.total])));
     const status=source.status?.(id);if(status)kindLine.append(make('span','rb-status',status));
     text.append(kindLine,make('h1','rb-title',title(id)));
+    endsOf(text,id);
     const line=source.sourceLine(id);if(line)text.append(plainNames(make('p','rb-source',line)));
     const facts=make('div','rb-facts');source.facts(facts,id);if(facts.childElementCount)text.append(facts);
     text.append(actionsOf(id));
@@ -285,6 +286,16 @@ export function createReferenceBook(source){
       nav.append(entry.id?link(entry.id,tr(entry.title),'rb-crumb'):action(tr(entry.title),event=>emit('public-research-contents',{tab:root,key:entry.key},event.currentTarget),'rb-crumb'));
     }
     const row=make('div','rb-trail-row');row.append(nav,make('div','rb-tools'));target.append(row);
+  }
+  // A link names the two subjects it joins under its title: the one it starts from, the line of its kind as the map
+  // draws it, the one it comes to.
+  function endsOf(parent,id){
+    const ends=source.ends?.(id);if(!ends)return;
+    // The line keeps to the subject it comes to: a long sentence breaks before the line, never after it.
+    const row=plainNames(make('p','rb-ends')),to=make('span','rb-ends-to'),line=make('span','rb-ends-line');
+    line.style.setProperty('--link-color',ends.color??'#a5b7cf');line.dataset.dash=ends.dash??'solid';
+    line.append(make('span','rb-link-line'));if(ends.word)line.append(make('span','rb-ends-word',ends.word));line.append(make('span','rb-ends-arrow','→'));
+    to.append(line,sign(ends.to,link(ends.to,undefined,'rb-ends-end')));row.append(sign(ends.from,link(ends.from,undefined,'rb-ends-end')),to);parent.append(row);
   }
   function placeOnTree(place,id){
     const mini=treeFigure(200,`${w('placeOnTree')}: ${title(id)}`);

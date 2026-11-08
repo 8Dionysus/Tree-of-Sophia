@@ -27,6 +27,8 @@ const words={
   formulaReview:['Как выбрана формула','How the formula was chosen','Cómo se eligió la fórmula','Wie die Formel gewählt wurde','原句如何选定'],madeBy:['Предложил','Proposed by','Propuesto por','Vorgeschlagen von','提出者'],checkedBy:['Проверил','Checked by','Revisado por','Geprüft von','审核者'],samePlace:['То же место книги','The same place in the book','El mismo lugar del libro','Dieselbe Stelle des Buches','书中同一处'],
   proposalReading:['Прочтение','Reading','Lectura','Lesart','解读'],readingLimit:['Границы прочтения','Limits of the reading','Límites de la lectura','Grenzen der Deutung','解读范围'],relatedSubject:['Связанный предмет','Related subject','Tema relacionado','Verwandter Gegenstand','相关主题'],method:['Исследовательский приём','Research method','Método de investigación','Untersuchungsmethode','研究方法'],methodEpisode:['От разбора к приёму','From reading to method','De la lectura al método','Von der Lektüre zur Methode','从阅读到方法'],previousTitle:['Прежнее название','Previous title','Título anterior','Früherer Titel','先前标题'],
   outgoing:['Ведёт к','Leads to','Conduce a','Führt zu','通向'],incoming:['Приходит от','Comes from','Viene de','Kommt von','来自'],
+  link:['Связь','Link','Vínculo','Verbindung','联系'],placeLink:['Связь мест','Link of passages','Vínculo entre pasajes','Verbindung zweier Stellen','段落之间的联系'],
+  verb_answer:['Ответ','Answer','Respuesta','Antwort','回应'],verb_variation:['Вариация','Variation','Variación','Variation','变奏'],verb_contrast:['Противопоставление','Contrast','Contraste','Kontrast','对照'],verb_attribution:['Приписанная речь','Attributed speech','Discurso atribuido','Zugeschriebene Rede','被归属的话语'],verb_repeat:['Повтор','Repetition','Repetición','Wiederholung','重复'],verb_echo:['Отзвук','Echo','Eco','Echo','回响'],
 };
 const langs=['ru','en','es','de','zh-Hans'];
 const el=(tag,cls='',text)=>{const node=document.createElement(tag);node.className=cls;if(text!==undefined)node.textContent=text;return node;};
@@ -53,7 +55,7 @@ export function createCoreView({core,renderings=null,locale,fragments,signOf,hin
   const speakerName=id=>tr(core.records[id]?.title)||(id==='narrator'?t('narrator'):'');
   const status=(parent,value)=>{if(value)parent.append(el('small','ps-core-status',t(value)));};
   // The words an article of the book has already said: a claim made again in the same words stands once.
-  let said=null;
+  let said=null;const spoken=new Map();
   function form(parent,value,seen=null){
     if(!value||filler(value))return;
     if(Array.isArray(value)){for(const item of value)form(parent,item,seen);return;}
@@ -83,7 +85,8 @@ export function createCoreView({core,renderings=null,locale,fragments,signOf,hin
   }
   function voice(parent,value){
     if(!value)return;
-    const parts=[speakerName(value.speaker),value.mode&&t(value.mode),value.layer&&t(value.layer),value.via&&speakerName(value.via)].filter(Boolean);
+    // A voice that passes through its own speaker names that speaker once.
+    const parts=[speakerName(value.speaker),value.mode&&t(value.mode),value.layer&&t(value.layer),value.via&&value.via!==value.speaker&&speakerName(value.via)].filter(Boolean);
     parent.append(el('p','ps-core-voice',parts.join(' · ')));
   }
   function voiceDescriptor(parent,descriptor){
@@ -202,9 +205,11 @@ export function createCoreView({core,renderings=null,locale,fragments,signOf,hin
       });
     });
   }
-  function witnesses(parent,record){
-    for(const item of record.appearances??[])fold(parent,`${chapterName(item.cite.c,locale())} · ${tr(item.line)}`,box=>{if(item.role)box.append(el('p','ps-core-voice',HERE[item.role]?t(HERE[item.role]):`${t('figureScope')}: ${t(item.role)}`));form(box,{...item.line,cite:[item.cite],status:item.status});appearanceVoices(box,item,record);});
-    for(const item of record.voice??[])fold(parent,[chapterName(item.cite.c,locale()),speakerName(item.speaker),tr(item.line)].filter(Boolean).join(' · '),box=>{voice(box,item);form(box,{...item.line,cite:[item.cite],status:item.status});});
+  function witnesses(parent,record,known=null){
+    // In the book a witness whose words the article has already said in its text is not listed again.
+    const fresh=item=>!known?.has(tr(item.line));
+    for(const item of (record.appearances??[]).filter(fresh))fold(parent,`${chapterName(item.cite.c,locale())} · ${tr(item.line)}`,box=>{if(item.role)box.append(el('p','ps-core-voice',HERE[item.role]?t(HERE[item.role]):`${t('figureScope')}: ${t(item.role)}`));form(box,{...item.line,cite:[item.cite],status:item.status});appearanceVoices(box,item,record);});
+    for(const item of (record.voice??[]).filter(fresh))fold(parent,[chapterName(item.cite.c,locale()),item.speaker!==record.id&&speakerName(item.speaker),tr(item.line)].filter(Boolean).join(' · '),box=>{voice(box,item);form(box,{...item.line,cite:[item.cite],status:item.status});});
     for(const item of record.conception?.formulas??[])fold(parent,`${chapterName(item.cite.c,locale())} · ${tr(item.why)}`,box=>{formula(box,item);review(box,item,t('formulaReview'));});
     for(const item of record.questions??[])fold(parent,tr(item.question),box=>{form(box,item.answer);status(box,item.status);});
     const names=record.lexicon??record.names;
@@ -260,19 +265,22 @@ export function createCoreView({core,renderings=null,locale,fragments,signOf,hin
     const box=el('section','ps-kernel-personal');box.append(el('h3','minor-title',t('myWork')),el('p','muted',t('workHelp')));
     box.append(button(t('continue'),()=>onAction({action:'continue',recordId:recordKind==='relation'?relationId(record):record.id,kind:recordKind,record,cite:firstCite(record,recordKind)}),'ps-kernel-action'));parent.append(box);
   }
-  function history(parent,record){
+  // What a record was before review changed it: the review itself, earlier senses, titles, readings and families.
+  function hasHistory(record){
+    const formulaRecord=(record.conception??record.essence)?.formula;
+    return Boolean(record.assessment||proposalOf(record)||formulaRecord?.assessment||formulaRecord?.proposed||record.sense_revision_history?.length||record.step_revision_history?.length||record.verb_revision_history?.length||record.relation_family?.family_proposed||(record.reading?.reading_revision_history??record.reading_revision_history??[]).length||record.title_revision_history?.length);
+  }
+  function history(parent,record){if(hasHistory(record))fold(parent,t('history'),body=>historyParts(body,record));}
+  function historyParts(body,record){
     const formulaRecord=(record.conception??record.essence)?.formula;
     const revisions=[...(record.sense_revision_history??[]),...(record.step_revision_history??[]),...(record.verb_revision_history??[])],familyProposed=record.relation_family?.family_proposed;
     const oldReadings=record.reading?.reading_revision_history??record.reading_revision_history??[],oldTitles=record.title_revision_history??[];
-    if(!record.assessment&&!proposalOf(record)&&!formulaRecord?.assessment&&!formulaRecord?.proposed&&!revisions.length&&!familyProposed&&!oldReadings.length&&!oldTitles.length)return;
-    fold(parent,t('history'),body=>{
-      review(body,record);
-      if(formulaRecord)review(body,formulaRecord,t('formulaReview'));
-      for(const revision of revisions){const box=el('section','ps-core-section');box.append(el('h3','minor-title',t('previousSense')));if(revision.verb)form(box,revision.verb);form(box,{...revision.sense,...(revision.cite?{cite:[revision.cite]}:{})});if(revision.answer)section(box,'answer',revision.answer);if(revision.assessment?.reason)form(box,revision.assessment.reason);if(revision.revision?.reason)form(box,revision.revision.reason);status(box,revision.assessment?.verdict);body.append(box);}
-      for(const title of oldTitles){const box=el('section','ps-core-section');box.append(el('h3','minor-title',t('previousTitle')));form(box,title);body.append(box);}
-      for(const reading of oldReadings){const box=el('section','ps-core-section');box.append(el('h3','minor-title',t('previousSense')));form(box,{...reading.reading,cite:reading.grounds??(reading.cite?[reading.cite]:[])});section(box,'readingLimit',reading.limit);body.append(box);}
-      if(familyProposed){const box=el('section','ps-core-section'),label=core.links.find(link=>link.relation_family?.family===familyProposed.family)?.relation_family?.family_label;box.append(el('h3','minor-title',t('previousFamily')),el('p','',tr(label)||familyProposed.family||''));if(familyProposed.family_reason)form(box,familyProposed.family_reason);body.append(box);}
-    });
+    review(body,record);
+    if(formulaRecord)review(body,formulaRecord,t('formulaReview'));
+    for(const revision of revisions){const box=el('section','ps-core-section');box.append(el('h3','minor-title',t('previousSense')));if(revision.verb)form(box,revision.verb);form(box,{...revision.sense,...(revision.cite?{cite:[revision.cite]}:{})});if(revision.answer)section(box,'answer',revision.answer);if(revision.assessment?.reason)form(box,revision.assessment.reason);if(revision.revision?.reason)form(box,revision.revision.reason);status(box,revision.assessment?.verdict);body.append(box);}
+    for(const title of oldTitles){const box=el('section','ps-core-section');box.append(el('h3','minor-title',t('previousTitle')));form(box,title);body.append(box);}
+    for(const reading of oldReadings){const box=el('section','ps-core-section');box.append(el('h3','minor-title',t('previousSense')));form(box,{...reading.reading,cite:reading.grounds??(reading.cite?[reading.cite]:[])});section(box,'readingLimit',reading.limit);body.append(box);}
+    if(familyProposed){const box=el('section','ps-core-section'),label=core.links.find(link=>link.relation_family?.family===familyProposed.family)?.relation_family?.family_label;box.append(el('h3','minor-title',t('previousFamily')),el('p','',tr(label)||familyProposed.family||''));if(familyProposed.family_reason)form(box,familyProposed.family_reason);body.append(box);}
   }
   function sections(body,key,record,id,lead,bench=false){
     const essence=record.conception??record.essence??{};
@@ -286,7 +294,12 @@ export function createCoreView({core,renderings=null,locale,fragments,signOf,hin
       if(record.reading?.reading){
         for(const cite of record.reading.grounds??[])body.append(fragments.fragment(cite));
         section(body,'readingLimit',record.reading.limit);
-        if(record.reading.related_existing&&core.records[record.reading.related_existing])body.append(button(`${t('relatedSubject')}: ${name(record.reading.related_existing)}`,()=>onNode?.(core.materialIds[record.reading.related_existing]),'connection-target'));
+        const related=record.reading.related_existing;
+        if(related&&core.records[related]){
+          // In the book the related subject is a field of the reading, named with its sign.
+          if(book){const box=el('section','ps-core-section');box.append(el('h3','minor-title',t('relatedSubject')),bookEnd(related));body.append(box);}
+          else body.append(button(`${t('relatedSubject')}: ${name(related)}`,()=>onNode?.(core.materialIds[related]),'connection-target'));
+        }
         const review=record.reading.independent_review;if(review)fold(body,t('review'),box=>{status(box,review.verdict);});
       }
     }
@@ -392,12 +405,7 @@ export function createCoreView({core,renderings=null,locale,fragments,signOf,hin
       // In the book a route reads as a path: each transition a sentence of its two subjects and the verb between
       // them, the verb opening the link itself, and the place it rests on under it.
       const list=el('ol','rb-moves');
-      for(const [at,step] of (chain.steps??[]).entries()){
-        const entry=el('li','rb-move'),sentence=el('h3','rb-move-title rb-chain-step');
-        const end=id=>{const node=button(stateName(id),()=>onNode?.(core.materialIds[id]??id),'rb-link rb-chain-end'),mark=signOf?.(core.materialIds[id]);if(mark)node.prepend(mark);return node;};
-        sentence.append(el('span','rb-move-n',String(at+1)),end(step.from),onRelation?button(tr(step.verb),()=>onRelation(relationId(step)),'rb-chain-verb'):el('span','rb-chain-verb',tr(step.verb)),end(step.to));
-        entry.append(sentence);if(step.cite)entry.append(fragments.fragment(step.cite));list.append(entry);
-      }
+      for(const [at,step] of (chain.steps??[]).entries())list.append(bookStep(at,[bookEnd(step.from,stateName(step.from)),onRelation?button(tr(step.verb),()=>onRelation(relationId(step)),'rb-chain-verb'):el('span','rb-chain-verb',tr(step.verb)),bookEnd(step.to,stateName(step.to))],citesOf(step.cite)));
       transitions.append(list);
     }else for(const step of chain.steps??[]){
       fold(transitions,`${stateName(step.from)} → ${tr(step.verb)} → ${stateName(step.to)}`,box=>{
@@ -415,22 +423,46 @@ export function createCoreView({core,renderings=null,locale,fragments,signOf,hin
       return chain?routeReference(parent,chain):node(parent,id,{reference:true});
     }
     if(recordKind==='relation'){
-      let record=core.links.find(item=>item.id===id||`core-link:${item.id}`===id);
-      if(!record)for(const chain of core.chains){record=chain.steps?.find(item=>item.id===id||item.aliases?.includes(id));if(record)break;}
-      if(!record&&id?.startsWith('core-chain:'))for(const chain of core.chains){const prefix=`core-chain:${chain.id}:`;if(id.startsWith(prefix)){record=chain.steps?.[Number(id.slice(prefix.length))];break;}}
-      if(!record)return false;
+      const record=relationOf(id);if(!record)return false;
       const article=el('article','ps-kernel-reference');parent.append(article);link(article,record);return true;
     }
     return false;
   }
+  // A link of the core by its address: a link of the map, a step of a route by its id, alias or place in the route.
+  function relationOf(id){
+    let record=core.links.find(item=>item.id===id||`core-link:${item.id}`===id);
+    if(!record)for(const chain of core.chains){record=chain.steps?.find(item=>item.id===id||item.aliases?.includes(id));if(record)break;}
+    if(!record&&id?.startsWith('core-chain:'))for(const chain of core.chains){const prefix=`core-chain:${chain.id}:`;if(id.startsWith(prefix)){record=chain.steps?.[Number(id.slice(prefix.length))];break;}}
+    return record??null;
+  }
+  // A link between two places of the book: one place answers, varies, repeats or echoes the other.
+  const placeLinkOf=id=>core.placeRelations?.relations?.find(item=>item.id===id)??null;
+  const citesOf=value=>value?(Array.isArray(value)?value:[value]):[];
+  const uniqueCites=list=>[...new Map(list.filter(Boolean).map(cite=>[placeKey(cite),cite])).values()];
 
   // ── The book's article of a subject. The book draws its head, its links and the way on; these give what the
   // subject says: its lead and the book's own formula for it, the parts of its card in the order of reading, and the
   // apparatus of its witnesses and history.
   const essenceOf=record=>record?.conception??record?.essence??{};
+  // A subject named in a sentence of the book: its sign and its name, opening its own article.
+  function bookEnd(id,label=name(id)){
+    const node=button(label,()=>onNode?.(core.materialIds[id]??id),'rb-link rb-chain-end'),mark=signOf?.(core.materialIds[id]);if(mark)node.prepend(mark);return node;
+  }
+  // A step of a way in the book: its number, the sentence of its subjects and the places it rests on.
+  function bookStep(at,sentence,cites){
+    const entry=el('li','rb-move'),head=el('h3','rb-move-title rb-chain-step');head.append(el('span','rb-move-n',String(at+1)),...sentence);entry.append(head);
+    for(const cite of cites)entry.append(fragments.fragment(cite));return entry;
+  }
   function lead(parent,id){
     const chain=core.chains.find(item=>item.id===id);if(chain){if(!tr(chain.sense))return false;form(parent,chain.sense);return true;}
-    const record=core.records[id];if(!record)return false;
+    const record=core.records[id];
+    if(!record){
+      // A link leads with its sense on the places it rests on; a link of two places with its sense alone, the places follow.
+      // A step of a route without words of its own leads with its place.
+      const relation=relationOf(id),place=!relation&&placeLinkOf(id),value=relation?.sense??place?.sense,cites=relation?uniqueCites([...citesOf(relation.cite),...(relation.grounds??[])]):[];
+      if(!tr(value)&&!cites.length)return false;
+      form(parent,relation?{...(tr(value)?value:{}),cite:cites}:value);return true;
+    }
     const essence=essenceOf(record),value=essence.thesis??essence.who??record.reading?.reading??record.reading;
     if(!tr(value))return false;
     const cites=[...(essence.thesis?.cite??essence.who?.cite??[]),...(!essence.thesis&&!essence.who?record.reading?.grounds??[]:[])];
@@ -441,33 +473,66 @@ export function createCoreView({core,renderings=null,locale,fragments,signOf,hin
     const record=core.records[id],item=essenceOf(record).formula??essenceOf(record).formulas?.[0];if(!item?.cite)return false;
     const box=el('div','rb-epigraph');voice(box,item.voice??{speaker:item.speaker});box.firstElementChild?.setAttribute('data-terms','off');box.append(fragments.fragment(item.cite));parent.append(box);return true;
   }
-  function question(id){const chain=core.chains.find(item=>item.id===id);if(chain)return tr(chain.question);const record=core.records[id];return tr(record?.question??essenceOf(record).question);}
-  function kindWord(id){if(core.chains.some(item=>item.id===id))return t('route');const record=core.records[id];return record?t(kind(record)):'';}
+  function question(id){const chain=core.chains.find(item=>item.id===id);if(chain)return tr(chain.question);const record=core.records[id];if(!record){const value=relationOf(id)?.question;return filler(value)?'':tr(value);}return tr(record.question??essenceOf(record).question);}
+  function kindWord(id){if(core.chains.some(item=>item.id===id))return t('route');const record=core.records[id];return record?t(kind(record)):relationOf(id)?t('link'):placeLinkOf(id)?t('placeLink'):'';}
+  // A link of two places is named by what the later place does to the earlier one.
+  function title(id){const place=placeLinkOf(id);return place?t(`verb_${place.verb}`):'';}
+  // The two subjects a link joins and the family of the link, for the sentence under its title.
+  function ends(id){const relation=!core.records[id]&&relationOf(id);return relation?{from:relation.from,to:relation.to,family:tr(relation.relation_family?.family_label)}:null;}
   function statusWord(id){
-    const record=core.records[id];if(!record)return '';
+    const record=core.records[id];
+    if(!record){const relation=relationOf(id);if(relation)return t(relation.admission==='rejected'?'rejected':relation.status)??'';return placeLinkOf(id)?t('familyStatus'):'';}
     if(record.reading?.reading||record.reading?.ru||record.reading?.en)return t('familyStatus');
     if(!record.conception&&!record.essence&&!record.chainId)return t('held');
     const value=essenceOf(record).thesis?.status??essenceOf(record).formula?.status??record.status;return value?t(value):'';
   }
   function bookBody(parent,id){
     const chain=core.chains.find(item=>item.id===id);if(chain)return routeReference(parent,chain,{book:true});
-    const record=core.records[id];if(!record)return false;
+    const record=core.records[id];
+    if(!record){const relation=relationOf(id);if(relation)return relationBody(parent,relation);const place=placeLinkOf(id);return place?placeLinkBody(parent,place):false;}
     const essence=essenceOf(record),leadKey=essence.thesis?'thesis':essence.who?'who':null;
-    if(record.work_scope?.roles?.length){const scope=el('section','ps-core-section');scope.append(el('h3','minor-title',t('figureScope')),el('p','',record.work_scope.roles.map(role=>t(role)).join(' · ')));parent.append(scope);}
-    said=new Set();
-    for(const key of ['essence','development','dimensions']){
-      const content=el('div','rb-section-body');sections(content,key,record,id,leadKey);if(!content.childElementCount)continue;
-      const part=el('section','rb-section');part.dataset.part=key;part.append(el('h2','rb-section-title',t(key)),content);parent.append(part);
-    }
-    said=null;
+    // A figure's roles in the work open the essence of its article.
+    const scope=record.work_scope?.roles?.length?el('section','ps-core-section rb-roles'):null;
+    if(scope)scope.append(el('h3','minor-title',t('figureScope')),el('p','',record.work_scope.roles.map(role=>t(role)).join(' · ')));
+    said=new Set([tr(essence[leadKey]??record.reading?.reading??record.reading)].filter(Boolean));
+    for(const key of ['essence','development','dimensions']){const content=el('div','rb-section-body');if(key==='essence'&&scope)content.append(scope);sections(content,key,record,id,leadKey);bookPart(parent,key,t(key),content);}
+    spoken.set(id,said);said=null;
     return true;
   }
+  // A book's part: its title and what it holds, left out when it holds nothing.
+  function bookPart(parent,key,label,content){if(!content.childElementCount)return false;const part=el('section','rb-section');part.dataset.part=key;part.append(el('h2','rb-section-title',label),content);parent.append(part);return true;}
+  // A link reads its answer where it says more than the sense, its scope and conditions, and the way it goes through
+  // other subjects where that way passes more than its two ends.
+  function relationBody(parent,record){
+    said=new Set([tr(record.sense)]);
+    const content=el('div','rb-section-body');section(content,'answer',record.answer);for(const field of ['scope','conditions'])section(content,field,record[field]);
+    said=null;bookPart(parent,'essence',t('essence'),content);
+    const steps=record.path??[],through=steps.some(step=>!step.id)||steps.map(step=>step.id).join('|')!==[record.from,record.to].join('|');
+    if(steps.length&&through){
+      const list=el('ol','rb-moves');
+      for(const [at,step] of steps.entries())list.append(bookStep(at,step.id?[bookEnd(step.id)]:[bookEnd(step.from),el('span','rb-chain-verb',tr(step.verb)),bookEnd(step.to)],citesOf(step.cite)));
+      const content=el('div','rb-section-body');content.append(list);bookPart(parent,'path',t('path'),content);
+    }
+    return true;
+  }
+  // A link of two places lays the two places side by side, each under its speaker, and the limits of its reading.
+  function placeLinkBody(parent,record){
+    const content=el('div','rb-section-body');said=new Set([tr(record.sense)]);
+    for(const end of [record.from,record.to]){if(!end?.cite)continue;const box=el('section','ps-core-section');box.append(el('h3','minor-title',speakerName(end.speaker)||chapterName(end.cite.c,locale())),fragments.fragment(end.cite));content.append(box);}
+    section(content,'readingLimit',record.limit);said=null;
+    return bookPart(parent,'places',t('occurrences'),content);
+  }
   function bookApparatus(parent,id){
-    const record=core.records[id];if(!record)return false;
-    const content=el('div','rb-section-body');witnesses(content,record);history(content,record);
+    const record=core.records[id],own=record??relationOf(id);if(!own)return false;
+    // A subject's apparatus is its witnesses with its history folded under them; a link's is the method it passed on
+    // and its history. Where there are no witnesses the history stands open under its own title.
+    const content=el('div','rb-section-body');
+    if(record)witnesses(content,record,spoken.get(id));else methodTransfer(content,own);
+    const witnessed=Boolean(record&&content.childElementCount);
+    if(witnessed)history(content,record);else if(hasHistory(own))historyParts(content,own);
     if(!content.childElementCount)return false;
-    const part=el('section','rb-section rb-apparatus-part');part.dataset.part='witnesses';part.append(el('h2','rb-section-title',t('witnesses')),content);parent.append(part);return true;
+    const key=witnessed?'witnesses':'history',part=el('section','rb-section rb-apparatus-part');part.dataset.part=key;part.append(el('h2','rb-section-title',t(key)),content);parent.append(part);return true;
   }
 
-  return {node,link,brief,glimpse,renderReference,lead,epigraph,question,kindWord,statusWord,bookBody,bookApparatus};
+  return {node,link,brief,glimpse,renderReference,lead,epigraph,question,kindWord,statusWord,title,ends,bookBody,bookApparatus};
 }
