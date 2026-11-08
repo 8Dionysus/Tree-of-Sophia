@@ -802,7 +802,10 @@ export function mountCorpusReader({
     await Promise.all(pending);
   }
 
+  // Every opening of a work or edition advances it, from its first step; a pending edition switch then stands down.
+  let editionSwitch = 0;
   async function openDocument(documentId) {
+    editionSwitch++;
     if(!(await flushNote()) || disposed)return null;
     if(window.innerWidth<=850)libraryOpen=false;
     await capturePanePositions();
@@ -821,6 +824,7 @@ export function mountCorpusReader({
   }
 
   async function openVersion(documentId, versionId, unitId = null) {
+    editionSwitch++;
     if(!(await flushNote()) || disposed)return null;
     if(window.innerWidth<=850){libraryOpen=false;inspectorOpen=false;}
     await capturePanePositions();
@@ -864,7 +868,6 @@ export function mountCorpusReader({
 
   // Another edition opens where the reader is: at the selected unit, else at the first unit in view, carried
   // over as finely as the Tree aligns the two editions (edition-place.mjs); with no such place, at its beginning.
-  let editionSwitch = 0;
   async function switchEdition(version) {
     // Any navigation advances selectionSequence; a later choice of edition advances the ticket.
     const ticket = ++editionSwitch, sequence = selectionSequence;
@@ -1697,6 +1700,7 @@ export function mountCorpusReader({
     /** The host's own actions for a selected word, shown after its origin. */
     setSelectionActions(actions = []) { selectionMenu.setActions([originAction, ...actions.map(hostAction)]); },
     async open(args = {}) {
+      editionSwitch++;
       if(disposed)return this;
       await model.ready?.();
       if(disposed || !(await flushNote()) || disposed || !root)return this;

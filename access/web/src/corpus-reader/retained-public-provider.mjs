@@ -90,8 +90,19 @@ export function createRetainedPublicCorpusProvider({baseUrl='/static/public-corp
       catch(error){if(error?.code==='retained-version-unavailable')return {status:'unavailable',reference:args.reference};throw error;}
     },
     analyze:async args=>(await select(args)).analyze(args),
-    // Where a place of one edition stands in another, by the current snapshot's editions.
-    place:args=>current.place?.(args)??null,
+    // Where a place of one edition stands in another: in the snapshot that holds both editions, the current one first.
+    place:async args=>{
+      const holds=async candidate=>{
+        try{const ids=new Set((await candidate.document({documentId:args.documentId,signal:args.signal})).versions.map(version=>version.id));return ids.has(args.versionId)&&ids.has(args.targetVersionId);}
+        catch{return false;}
+      };
+      if(await holds(current))return current.place?.(args)??null;
+      for(const descriptor of await retained(args.signal)){
+        const candidate=await snapshot(descriptor,args.signal);
+        if(await holds(candidate))return candidate.place?.(args)??null;
+      }
+      throw unavailable();
+    },
   };
   return Object.freeze({...bindCorpusProvider(provider),describe:args=>current.describe(args)});
 }

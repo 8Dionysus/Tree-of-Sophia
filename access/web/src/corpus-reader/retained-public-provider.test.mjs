@@ -63,3 +63,10 @@ test('an explicit retained snapshot is authenticated even when its layer is stil
  const broken=fixture();broken.files.set(`/static/public-corpus/revisions/${broken.oldRev}.json`,Buffer.from('{'));
  await expect(broken.provider.document({documentId:'work',versionId:'stable',revision:'e'.repeat(64),snapshotRevision:broken.oldRev})).rejects.toMatchObject({code:'invalid_response'});
 });
+
+test('a place lookup reads the snapshot that holds both editions, and a lookup no snapshot can answer rejects',async()=>{
+ const {provider}=fixture();
+ // `removed` stands only in the retained snapshot, beside `stable`: the lookup reads that snapshot, by section.
+ expect(await provider.place({documentId:'work',versionId:'removed',targetVersionId:'stable',unitId:'removed-unit'})).toEqual({unitId:'same-unit',by:'section'});
+ await expect(provider.place({documentId:'work',versionId:'nowhere',targetVersionId:'stable',unitId:'u'})).rejects.toMatchObject({code:'retained-version-unavailable'});
+});
