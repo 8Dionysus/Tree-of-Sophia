@@ -7,6 +7,7 @@
 
 import antiquityManifest from '../../../../bonsai/antiquity/bonsai.json' with {type:'json'};
 import zarathustraManifest from '../../../../bonsai/zarathustra/bonsai.json' with {type:'json'};
+import {readMedia} from '../../../../bonsai/lib/media.mjs';
 
 // A stand loads its own bonsai when it opens, and nothing of another's: the
 // manifests are small and always here, the modules come with their stand.
@@ -64,6 +65,17 @@ export function loadBonsai(profile){
   if(!LOADERS[profile])return Promise.resolve(null);
   if(!loading.has(profile))loading.set(profile,Promise.all([LOADERS[profile](),termsOf(profile)]).then(([modules,terms])=>(BONSAI[profile]=Object.freeze({...BONSAI[profile],...modules,terms}))).catch(error=>{loading.delete(profile);throw error;}));
   return loading.get(profile);
+}
+
+// The images on a stand's cards (bonsai/<stand>/media.json) come when a card first asks for them: the space never waits for media.
+const MEDIA=import.meta.glob('../../../../bonsai/*/media.json',{import:'default'});
+const mediaLoads=new Map();
+/** A stand's media module, read with `readMedia`, loaded once; null where the stand keeps none. */
+export function loadMedia(profile){
+  const load=MEDIA[`../../../../bonsai/${profile}/media.json`];
+  if(!load)return Promise.resolve(null);
+  if(!mediaLoads.has(profile))mediaLoads.set(profile,load().then(readMedia).catch(error=>{mediaLoads.delete(profile);throw error;}));
+  return mediaLoads.get(profile);
 }
 
 /** The bonsai a stand grows from, or null: its manifest always, its modules once `loadBonsai` has brought them. */

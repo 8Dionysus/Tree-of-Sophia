@@ -41,6 +41,7 @@ pub fn run() -> i32 {
             "custody" => crate::source_payload_custody::invoke(&request),
             "payload-import" => crate::source_payload_import::invoke(&request),
             "inventory" => crate::source_item_inventory::invoke(&request),
+            "media" => crate::source_media_bridge::invoke(&request),
             _ => Err("unsupported acquisition family".into()),
         }?;
         Ok::<Value, String>(value)
