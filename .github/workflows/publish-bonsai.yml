@@ -141,7 +141,7 @@ jobs:
           npm ci --prefix access/deploy/cloudflare-worker
           # With the layers and the corpus present the check and their own cases read them whole.
           node bonsai/lib/cli.mjs check
-          (cd access/web && npx --no-install vitest run src/public-research/bonsai-layers.test.mjs src/public-research/bonsai-words.test.mjs src/public-research/renderings-view.test.mjs src/public-research/zarathustra-ground-targets.test.mjs src/public-research/source-address.test.mjs src/public-research/bonsai-corpus-alignment.test.mjs src/public-research/bonsai-terms.test.mjs)
+          (cd access/web && npx --no-install vitest run src/public-research/bonsai-layers.test.mjs src/public-research/bonsai-words.test.mjs src/public-research/renderings-view.test.mjs src/corpus-reader/word-history.test.mjs src/public-research/zarathustra-ground-targets.test.mjs src/public-research/source-address.test.mjs src/public-research/bonsai-corpus-alignment.test.mjs src/public-research/bonsai-terms.test.mjs)
           npm --prefix access/web run build:public-research
           output=access/deploy/cloudflare-worker/dist-public-research
           # The site's copy of the layers and the corpus, by digest, for checkouts without R2 access.

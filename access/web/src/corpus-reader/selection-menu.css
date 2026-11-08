@@ -41,3 +41,25 @@
 .cr-origin-line{margin:6px 0!important;font-size:13px;line-height:1.65}
 .cr-origin-line em{font-style:normal;font-family:Georgia,serif;color:var(--cr-ink)}
 .cr-origin-first{margin-top:16px!important;font-size:12px;color:var(--cr-muted)}
+.cr-origin-told{margin:2px 0 3px!important;font:14px/1.6 Georgia,serif;color:var(--cr-ink)}
+.cr-origin-source{margin:0 0 10px!important;font-size:11px;line-height:1.5;color:var(--cr-muted)}
+.cr-origin-link{color:var(--cr-accent);text-decoration:none}
+.cr-origin-link:hover,.cr-origin-link:focus-visible{text-decoration:underline}
+.cr-origin-more{margin:0 0 10px}
+.cr-origin-more>summary{width:max-content;font-size:11px;color:var(--cr-muted);cursor:pointer}
+.cr-origin-more[open]>summary{margin-bottom:6px}
+.cr-origin-attested{margin-top:14px;padding-top:10px;border-top:1px solid var(--cr-rule)}
+.cr-origin-subhead{margin:0 0 6px!important;font:12px/1.4 system-ui,sans-serif;color:var(--cr-muted)}
+.cr-origin-figure{margin:6px 0 12px}
+.cr-origin-frequency{display:block;width:100%;height:34px}
+.cr-origin-bar{fill:var(--cr-muted);opacity:.5}
+.cr-origin-bar-book{fill:var(--cr-accent);opacity:1}
+.cr-origin-axis{display:flex;justify-content:space-between;margin-top:2px;font-size:10px;color:var(--cr-muted);font-variant-numeric:tabular-nums}
+.cr-origin-uses{margin:8px 0 6px;padding:0;list-style:none}
+.cr-origin-use{margin:0 0 12px}
+.cr-origin-who{margin:0!important;font-size:12px;line-height:1.5;color:var(--cr-muted)}
+.cr-origin-year{margin-inline-end:4px;color:var(--cr-accent);font-variant-numeric:tabular-nums}
+.cr-origin-said{display:block;margin:2px 0 1px;font:14px/1.55 Georgia,serif;color:var(--cr-ink);quotes:'„' '“'}
+.cr-origin-said mark{background:transparent;color:var(--cr-accent)}
+.cr-origin-use .cr-origin-source{margin-bottom:0!important}
+.cr-origin-book{margin-top:14px!important;font-size:12px;color:var(--cr-muted)}

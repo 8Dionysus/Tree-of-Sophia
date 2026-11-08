@@ -126,6 +126,9 @@ python3 lexicon.py kaikki.org-dictionary-German.jsonl $LEX/de.sqlite --lang de
 python3 lexicon.py kaikki.org-dictionary-Russian.jsonl $LEX/ru.sqlite --lang ru
 python3 annotate.py <repo> zarathustra --lexicon-dir $LEX        # spelling.json, tokens/
 python3 origins.py <repo> zarathustra --lexicon-dir $LEX         # origins.json, origins/, renderings.json
+python3 histories.py told dewiktionary.jsonl.gz ruwiktionary.jsonl.gz --out $TOLD
+python3 histories.py attest <repo> zarathustra --cache $DTA/dta.jsonl
+python3 histories.py build <repo> zarathustra --lexicon-dir $LEX --told-dir $TOLD --attest $DTA/dta.jsonl   # histories.json, histories/
 node bonsai/lib/layers.mjs manifest bonsai/zarathustra             # layers.json: the new digests
 node bonsai/lib/layers.mjs send bonsai/zarathustra                 # new files onto layers/transfer
 ```
@@ -156,6 +159,47 @@ word comes from:
   association over the sentence alignment of `lib/align.mjs`
   (сверхчеловек: Übermensch, of which it is a calque);
 - its first place in the book.
+
+### The history of a word
+
+`bonsai/<stand>/histories.json` with `histories/<language>-<shard>.json`
+(`tos.bonsai.histories.v1`, written by `histories.py`) holds, for every lemma
+of the original and the Russian witness, what is told and found of the word
+beyond its descent:
+
+- `told`: its etymology as each Wiktionary edition tells it, in the edition's
+  own language: the English edition (in the lexicon of `lexicon.py`), the
+  German edition (*Herkunft*, which often says since when the word is attested:
+  Mitleid since the 14th century, in today's form since the 17th) and the
+  Russian (*Этимология*, with the dictionary it draws on: Vasmer, Chernykh,
+  Krylov). Each telling is the entry's first sentences, without the lists of
+  kindred forms that the origin's *Kindred words* already holds.
+- `attested`, for the original's words: the word in the Deutsches Textarchiv
+  (DTA), German texts of the 15th to the early 20th century under CC BY-SA 4.0,
+  read through the DTA's own lemmatizer outside Nietzsche's works. The year of
+  its earliest use; its uses per quarter century, read against the corpus's
+  nouns in that quarter century; the earliest uses by up to three authors, each
+  with its sentence as the work spells it and the page of the work in the
+  archive; Nietzsche's works in the archive that use it. Übermensch: Herder
+  1769, Goethe's *Faust* 1790, Jean Paul 1809, then *Also sprach Zarathustra*
+  1883.
+- `book`: how often the book says the word, part by part.
+
+`histories.py told` indexes the Wiktextract extracts of the German and Russian
+Wiktionary (kaikki.org); `attest` asks the DTA's public corpus search (D*,
+`ddc.dwds.de/dstar/dta`), a few questions at a time, and keeps every answer in
+a cache file, so that `build` runs offline from it and a second `attest` asks
+only what the cache lacks. The manifest records the extracts' digests, the
+queries and when the archive was asked.
+
+The origin sheet tells the word first (the reader's language, then the word's
+own edition, then English; the other editions folded beneath, each with its
+entry linked), then its descent, parts and kin, then *In German texts*: the
+first year, the frequency by quarter century with the quarter of the book
+marked, the earliest sentences with the word marked and the archive's page
+linked, and Nietzsche's works; under all of it, how often the book says the
+word. For a translation's word the original's word comes first, with its whole
+history.
 
 ### Where a selected word offers its origin
 
