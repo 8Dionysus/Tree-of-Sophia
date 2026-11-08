@@ -31,6 +31,8 @@
 #research-bar :is(button,a,input,select):focus-visible{outline:2px solid #e4cb8b;outline-offset:2px}
 #research-bar .pr-wordmark{display:flex;flex:none;align-items:center;gap:10px;color:#dfe3e7;text-decoration:none;white-space:nowrap;letter-spacing:.15em;font:500 11px/1.2 var(--ps-sans);text-transform:uppercase}
 #research-bar .pr-wordmark::before{content:'';flex:none;width:34px;height:34px;background:url(/tree-mark.svg) center/contain no-repeat;background-image:image-set(url(/tree-mark.svg) 1x,url(/tree-mark-2x.svg) 2x)}
+/* The tree's mark is drawn light for the night; on the day's paper it has a drawing of its own, in ink with gold stars. */
+:root[data-site-theme="noon"] #research-bar .pr-wordmark::before{background-image:url(/tree-mark-noon.svg)}
 #research-bar .pr-wordmark:hover{text-decoration:none;color:#f1e3c3}
 /* The modes are the bar's main road: words with a gold line under the one you are in. */
 #research-bar .experience-toolbar{position:relative;z-index:auto;display:flex;flex:none;align-items:center;gap:0;width:auto;margin:0;padding:0 0 0 14px;border:0;border-left:1px solid var(--ps-line);background:none;font-family:var(--ps-sans)}
