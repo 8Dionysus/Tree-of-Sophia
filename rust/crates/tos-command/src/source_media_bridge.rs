@@ -596,7 +596,7 @@ fn observe_rijksmuseum(observer: &mut Observer, object: &str) -> Result<Found> {
                     continue;
                 }
                 seen_access.push(access_url.to_owned());
-                let image = match iiif_service_of(access_url) {
+                let mut image = match iiif_service_of(access_url) {
                     Some(service_id) => match observer.image_service(&service_id)? {
                         Some(service) => {
                             json!({"form":"image_service","access_url":access_url,"image_service":service,"file_url":null,"preview_url":null,"file_fingerprint":null,"preview_fingerprint":null})
@@ -611,6 +611,7 @@ fn observe_rijksmuseum(observer: &mut Observer, object: &str) -> Result<Found> {
                         continue;
                     }
                 };
+                image["rights_source"] = json!(item_final);
                 images.push(image);
             }
         }
@@ -1383,12 +1384,7 @@ fn fetch(url: &str, limit: usize, accept: &str) -> Result<Response> {
         "--fail",
         "--silent",
         "--show-error",
-        "--location",
-        "--max-redirs",
-        "10",
         "--proto",
-        "=https",
-        "--proto-redir",
         "=https",
         "--max-time",
         "45",

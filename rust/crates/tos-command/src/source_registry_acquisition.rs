@@ -1241,10 +1241,17 @@ pub(crate) fn append_jsonl(path: &Path, value: &Value) -> Result<()> {
     )
     .map_err(|error| format!("JSONL append open failed: {error}"))?;
     let mut file = File::from(fd);
-    let bytes = serde_json::to_vec(value).map_err(|error| error.to_string())?;
-    file.write_all(&bytes).map_err(|error| error.to_string())?;
-    file.write_all(b"\n").map_err(|error| error.to_string())?;
-    file.sync_data().map_err(|error| error.to_string())?;
+    rustix::fs::flock(&file, rustix::fs::FlockOperation::LockExclusive)
+        .map_err(|error| error.to_string())?;
+    let length = file.metadata().map_err(|error| error.to_string())?.len();
+    let mut bytes = serde_json::to_vec(value).map_err(|error| error.to_string())?;
+    bytes.push(b'\n');
+    if let Err(error) = file.write_all(&bytes).and_then(|_| file.sync_data()) {
+        file.set_len(length)
+            .and_then(|_| file.sync_data())
+            .map_err(|rollback| format!("{error}; JSONL rollback failed: {rollback}"))?;
+        return Err(error.to_string());
+    }
     Ok(())
 }
 

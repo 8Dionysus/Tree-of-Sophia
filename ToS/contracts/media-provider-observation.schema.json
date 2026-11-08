@@ -264,6 +264,7 @@
       "properties": {
         "role": {"enum": ["primary", "additional"]},
         "form": {"enum": ["image_service", "file"]},
+        "rights_source": {"$ref": "#/$defs/httpsUri", "description": "VisualItem response from which this image inherits its scoped rights statements."},
         "access_url": {"$ref": "#/$defs/httpsUri"},
         "image_service": {
           "oneOf": [

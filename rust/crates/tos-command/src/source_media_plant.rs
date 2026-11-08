@@ -12,7 +12,7 @@
 //! writes the operator's decisions and the provider's statements, and decides
 //! neither.
 
-use crate::source_registry_acquisition::{append_jsonl, publish_json, validate_json};
+use crate::source_registry_acquisition::{append_jsonl, json_bytes, validate_json};
 use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
 use tos_foundation::Digest256;
@@ -28,6 +28,7 @@ const CONTRACTS: &str = "https://tree-of-sophia.local/ToS/contracts";
 
 pub(crate) fn prepare_artifact(request: &Value) -> Result<Value> {
     let root = root(request)?;
+    let _lock = lock_checkout(&root)?;
     let observation = observation(&root, request)?;
     let home = ArtifactHome::parse(text(request, "artifact_path")?)?;
     let owner = field(request, "owner")?;
@@ -90,18 +91,31 @@ pub(crate) fn prepare_artifact(request: &Value) -> Result<Value> {
     )?;
     validate_json(&root, &run, "material-discovery-record")?;
 
-    let research = path(&root, &research_ref)?;
-    write_new(&research, &observation)?;
-    write_new(&path(&root, &rights_ref)?, &rights)?;
-    write_new(&path(&root, &run_ref)?, &run)?;
-    let outputs = [
-        (&run_ref, "artifact-targeted-provider-discovery"),
-        (&rights_ref, "artifact-metadata-only-rights"),
-        (&research_ref, "provider-observation-research"),
-    ]
-    .iter()
-    .map(|(reference, role)| digest_ref(&root, reference, role))
-    .collect::<Result<Vec<_>>>()?;
+    let files = [
+        (
+            research_ref.as_str(),
+            &observation,
+            "provider-observation-research",
+        ),
+        (
+            rights_ref.as_str(),
+            &rights,
+            "artifact-metadata-only-rights",
+        ),
+        (
+            run_ref.as_str(),
+            &run,
+            "artifact-targeted-provider-discovery",
+        ),
+    ];
+    let outputs = files
+        .iter()
+        .map(|(reference, value, role)| {
+            Ok(json!({
+                "ref":reference, "role":role, "sha256":digest_value(value)?
+            }))
+        })
+        .collect::<Result<Vec<_>>>()?;
     let started = text(&observation, "observed_at")?;
     let event = provenance(
         &event_id,
@@ -116,12 +130,10 @@ pub(crate) fn prepare_artifact(request: &Value) -> Result<Value> {
         vec![run_ref.clone()],
     );
     validate_json(&root, &event, "provenance-event")?;
-    append_jsonl(&path(&root, PROVENANCE)?, &event)?;
-
     let bindings = json!({
-        "rights_ref":digest_binding(&root, &rights_ref)?,
-        "discovery_ref":digest_binding(&root, &run_ref)?,
-        "research_ref":digest_binding(&root, &research_ref)?,
+        "rights_ref":{"ref":rights_ref,"sha256":digest_value(&rights)?},
+        "discovery_ref":{"ref":run_ref,"sha256":digest_value(&run)?},
+        "research_ref":{"ref":research_ref,"sha256":digest_value(&observation)?},
     });
     let record = artifact_record(
         &observation,
@@ -139,6 +151,11 @@ pub(crate) fn prepare_artifact(request: &Value) -> Result<Value> {
         {"form_id":form_ids[1],"field_id":"metadata.source-note"}
     ]);
     check_forms(&root, &record, &forms, &form_ids, principal)?;
+    publish_evidence(
+        &root,
+        files.map(|(reference, value, _)| (reference, value)),
+        &event,
+    )?;
     Ok(json!({
         "written":[research_ref,rights_ref,run_ref,PROVENANCE],
         "discovery_event_id":event_id,
@@ -167,6 +184,7 @@ pub(crate) fn prepare_artifact(request: &Value) -> Result<Value> {
 
 pub(crate) fn plant_representation(request: &Value) -> Result<Value> {
     let root = root(request)?;
+    let _lock = lock_checkout(&root)?;
     let observation = observation(&root, request)?;
     let home = ArtifactHome::parse(text(request, "artifact_path")?)?;
     let view = slug_text(request, "view")?;
@@ -198,6 +216,12 @@ pub(crate) fn plant_representation(request: &Value) -> Result<Value> {
     if witness["artifact_id"] != artifact_id.as_str() {
         return Err(format!("{witness_ref} does not hold {artifact_id}"));
     }
+    let catalogue = &witness["digital_catalog_record"];
+    if catalogue["record_url"] != observation["object"]["record_url"]
+        || catalogue["provider"] != provider_name(text(&observation, "provider")?)
+    {
+        return Err("the observation describes a different Artifact catalogue record".into());
+    }
     let discovery_ref = text(&witness, "discovery_ref")?.to_owned();
     let base = format!("{}/representations/{view}", home.dir());
     let representation_ref = format!("{base}/representation.json");
@@ -222,7 +246,13 @@ pub(crate) fn plant_representation(request: &Value) -> Result<Value> {
         .as_array()
         .into_iter()
         .flatten()
-        .filter(|statement| statement["scope"] == "image")
+        .filter(|statement| {
+            statement["scope"] == "image"
+                && (observation["provider"] != "rijksmuseum"
+                    || image
+                        .get("rights_source")
+                        .is_some_and(|source| statement["stated_in"] == *source))
+        })
         .filter_map(|statement| statement["stated_in"].as_str())
         .map(|url| Value::String(url.to_owned()))
         .collect();
@@ -293,15 +323,9 @@ pub(crate) fn plant_representation(request: &Value) -> Result<Value> {
     });
     validate_json(&root, &representation, "artifact-visual-representation-v2")?;
 
-    write_new(&path(&root, &rights_ref)?, &rights)?;
-    write_new(&path(&root, &representation_ref)?, &representation)?;
     let outputs = vec![
-        digest_ref(
-            &root,
-            &representation_ref,
-            "image-service-visual-representation",
-        )?,
-        digest_ref(&root, &rights_ref, "image-service-rights")?,
+        json!({"ref":representation_ref,"role":"image-service-visual-representation","sha256":digest_value(&representation)?}),
+        json!({"ref":rights_ref,"role":"image-service-rights","sha256":digest_value(&rights)?}),
     ];
     let event = provenance(
         &event_id,
@@ -316,7 +340,14 @@ pub(crate) fn plant_representation(request: &Value) -> Result<Value> {
         vec![representation_ref.clone(), rights_ref.clone()],
     );
     validate_json(&root, &event, "provenance-event")?;
-    append_jsonl(&path(&root, PROVENANCE)?, &event)?;
+    publish_evidence(
+        &root,
+        [
+            (rights_ref.as_str(), &rights),
+            (representation_ref.as_str(), &representation),
+        ],
+        &event,
+    )?;
     Ok(json!({
         "written":[representation_ref,rights_ref,PROVENANCE],
         "representation_id":representation_id,
@@ -922,11 +953,49 @@ fn event_absent(root: &Path, event_id: &str) -> Result<()> {
     Ok(())
 }
 
-fn write_new(target: &Path, value: &Value) -> Result<()> {
-    if let Some(parent) = target.parent() {
-        std::fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+fn lock_checkout(root: &Path) -> Result<std::fs::File> {
+    let directory =
+        tos_fd_open::open_absolute_directory(root).map_err(|error| error.to_string())?;
+    rustix::fs::flock(&directory, rustix::fs::FlockOperation::LockExclusive)
+        .map_err(|error| error.to_string())?;
+    Ok(directory)
+}
+
+fn publish_evidence<const N: usize>(
+    root: &Path,
+    files: [(&str, &Value); N],
+    event: &Value,
+) -> Result<()> {
+    let mut created = Vec::new();
+    let result = (|| {
+        for (reference, value) in files {
+            let target = path(root, reference)?;
+            let state =
+                crate::source_acquisition_batch::publish(&target, &json_bytes(value)?, 0o644)?;
+            if state != "copied" {
+                return Err(format!("{reference} appeared during media publication"));
+            }
+            created.push(target);
+        }
+        append_jsonl(&path(root, PROVENANCE)?, event)
+    })();
+    if let Err(error) = result {
+        let mut rollback = Vec::new();
+        for target in created.iter().rev() {
+            if let Err(failure) = std::fs::remove_file(target) {
+                rollback.push(format!("{}: {failure}", target.display()));
+            }
+        }
+        return if rollback.is_empty() {
+            Err(error)
+        } else {
+            Err(format!(
+                "{error}; media rollback failed: {}",
+                rollback.join(", ")
+            ))
+        };
     }
-    publish_json(target, value)
+    Ok(())
 }
 
 fn digest_ref(root: &Path, reference: &str, role: &str) -> Result<Value> {
@@ -935,10 +1004,8 @@ fn digest_ref(root: &Path, reference: &str, role: &str) -> Result<Value> {
     Ok(json!({"ref":reference,"role":role,"sha256":Digest256::of_bytes(&raw).to_hex()}))
 }
 
-fn digest_binding(root: &Path, reference: &str) -> Result<Value> {
-    let raw =
-        std::fs::read(path(root, reference)?).map_err(|error| format!("{reference}: {error}"))?;
-    Ok(json!({"ref":reference,"sha256":Digest256::of_bytes(&raw).to_hex()}))
+fn digest_value(value: &Value) -> Result<String> {
+    Ok(Digest256::of_bytes(&json_bytes(value)?).to_hex())
 }
 
 fn day(instant: &str) -> Result<String> {
@@ -1162,7 +1229,12 @@ mod tests {
         assert!(early.contains("plant the Artifact first"), "{early}");
         // The native owner creates the Artifact from the returned request.
         let witness = root.join(format!("{ARTIFACTS}/{HOME}/artifact-witness.json"));
-        publish_json(&witness, record).unwrap();
+        crate::source_registry_acquisition::publish_json(&witness, record).unwrap();
+
+        let mut foreign = observation.clone();
+        foreign["object"]["record_url"] = json!("https://id.rijksmuseum.nl/123");
+        let error = plant_representation(&plant_request(root, foreign, "authorized")).unwrap_err();
+        assert!(error.contains("different Artifact"), "{error}");
 
         let refused =
             plant_representation(&plant_request(root, observation.clone(), "metadata_only"))

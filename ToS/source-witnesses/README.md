@@ -727,7 +727,7 @@ publication keep their owners.
 | `nga` | numeric `objectid` or accession number | the Gallery's open data release (CC0, [GitHub](https://github.com/NationalGalleryOfArt/opendata)) checked out at one commit: `objects.csv`, `published_images.csv` with its `openaccess` flag, `objects_dimensions.csv` | the primary view's IIIF Image API 2 service on `api.nga.gov`, observed through `info.json` |
 
 `media.describe` lists the providers and their hosts. Each bridge reads over
-HTTPS from its own hosts only and follows redirects only within them. Every
+HTTPS from its own hosts only. The native transport refuses redirects. Every
 response stays within the deployment profile's acquisition record limit
 (`admission.acquisition.max_record_bytes`), and an observation makes at most
 the `max_requests` provider requests its request states: the Night Watch takes
