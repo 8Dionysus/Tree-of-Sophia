@@ -1,0 +1,204 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/media-provider-observation.schema.json",
+  "schema_version": "tos_media_provider_observation_v1",
+  "provider": "nga",
+  "requested_object": "1942.9.1",
+  "observed_at": "2026-11-08T06:55:34.091387564Z",
+  "requests": [
+    {
+      "role": "image-service-info",
+      "url": "https://api.nga.gov/iiif/3a640014-a2f0-4cd4-b440-979f62316da2/info.json",
+      "final_url": "https://api.nga.gov/iiif/3a640014-a2f0-4cd4-b440-979f62316da2/info.json",
+      "http_status": 200,
+      "media_type": null,
+      "byte_size": 864,
+      "sha256": "49aa88165ffd7ac5390bf54b3aa413879e7b41fa050ad51d66ea5a56c23b4d50",
+      "started_at": "2026-11-08T06:55:38.835674345Z",
+      "elapsed_seconds": 0.76246598
+    }
+  ],
+  "object": {
+    "provider_object_uri": "https://www.nga.gov/collection/art-object-page.1138.html",
+    "record_url": "https://www.nga.gov/collection/art-object-page.1138.html",
+    "api_url": "https://raw.githubusercontent.com/NationalGalleryOfArt/opendata/9d3ba90ca8172c62c308a608373a957e9e4a1739/data/objects.csv",
+    "identifiers": [
+      {
+        "scheme": "NGA object ID",
+        "value": "1138"
+      },
+      {
+        "scheme": "NGA accession number",
+        "value": "1942.9.1"
+      },
+      {
+        "scheme": "Wikidata",
+        "value": "https://www.wikidata.org/wiki/Q15008032"
+      }
+    ],
+    "titles": [
+      {
+        "text": "The Feast of the Gods",
+        "language": null,
+        "language_uri": null,
+        "role": null
+      }
+    ],
+    "makers": [],
+    "production_statements": [
+      {
+        "text": "Giovanni Bellini and Titian",
+        "language": null,
+        "language_uri": null
+      }
+    ],
+    "dating": {
+      "statement": "1514/1529",
+      "begin_year": 1514,
+      "end_year": 1529
+    },
+    "classifications": [
+      "Painting"
+    ],
+    "materials": [
+      "oil on canvas"
+    ],
+    "dimensions": [
+      {
+        "kind": null,
+        "value": null,
+        "unit": null,
+        "unit_uri": null,
+        "statement": "overall: 170.2 x 188 cm (67 x 74 in.)\r\nframed: 203.8 x 218.4 x 7.6 cm (80 1/4 x 86 x 3 in.)"
+      },
+      {
+        "kind": "Overall height",
+        "value": "170.2",
+        "unit": "cm",
+        "unit_uri": null,
+        "statement": null
+      },
+      {
+        "kind": "Overall width",
+        "value": "188",
+        "unit": "cm",
+        "unit_uri": null,
+        "statement": null
+      }
+    ],
+    "credit_lines": [
+      {
+        "text": "Widener Collection",
+        "language": null,
+        "language_uri": null
+      }
+    ],
+    "repository": "National Gallery of Art, Washington",
+    "depicted": [],
+    "visual_item_uri": null
+  },
+  "rights": [
+    {
+      "scope": "image",
+      "provider_field": "openaccess",
+      "value": "1",
+      "statement_uri": null,
+      "label": null,
+      "stated_in": "https://raw.githubusercontent.com/NationalGalleryOfArt/opendata/9d3ba90ca8172c62c308a608373a957e9e4a1739/data/published_images.csv"
+    }
+  ],
+  "images": [
+    {
+      "role": "primary",
+      "form": "image_service",
+      "access_url": "https://api.nga.gov/iiif/3a640014-a2f0-4cd4-b440-979f62316da2/full/full/0/default.jpg",
+      "image_service": {
+        "protocol": "http://iiif.io/api/image",
+        "api_version": "2",
+        "service_id": "https://api.nga.gov/iiif/3a640014-a2f0-4cd4-b440-979f62316da2",
+        "profile": "http://iiif.io/api/image/2/level1.json",
+        "width_pixels": 26900,
+        "height_pixels": 24642,
+        "max_area": null,
+        "max_width": null,
+        "max_height": null,
+        "tiles": [
+          {
+            "width": 256,
+            "height": 256,
+            "scale_factors": [
+              1,
+              2,
+              4,
+              8,
+              16,
+              32,
+              64,
+              128,
+              256
+            ]
+          }
+        ],
+        "formats": [
+          "jpg"
+        ],
+        "qualities": [
+          "native",
+          "color",
+          "gray"
+        ],
+        "info_fingerprint": {
+          "url": "https://api.nga.gov/iiif/3a640014-a2f0-4cd4-b440-979f62316da2/info.json",
+          "byte_size": 864,
+          "sha256": "49aa88165ffd7ac5390bf54b3aa413879e7b41fa050ad51d66ea5a56c23b4d50",
+          "checked_at": "2026-11-08T06:55:38.835662144Z"
+        }
+      },
+      "file_url": null,
+      "preview_url": null,
+      "file_fingerprint": null,
+      "preview_fingerprint": null
+    }
+  ],
+  "warnings": [],
+  "authority": {
+    "evidence_status": "provider_observation",
+    "review_status": "unreviewed",
+    "identity_admitted": false,
+    "rights_decided": false,
+    "source_text_admitted": false,
+    "semantic_authority": false,
+    "graph_authority": false,
+    "canon_authority": false,
+    "publication_authority": false
+  },
+  "maker": {
+    "maker_type": "software",
+    "agent_ref": "software:tos-native-owner-command/acquisition/media.observe"
+  },
+  "datasets": [
+    {
+      "repository": "https://github.com/NationalGalleryOfArt/opendata",
+      "commit": "9d3ba90ca8172c62c308a608373a957e9e4a1739",
+      "path": "data/objects.csv",
+      "url": "https://raw.githubusercontent.com/NationalGalleryOfArt/opendata/9d3ba90ca8172c62c308a608373a957e9e4a1739/data/objects.csv",
+      "byte_size": 82680215,
+      "sha256": "0cafa80e1dc3db32252f4fcecf67c917dc5286a2b84e6ec9a3a36b749a5b13eb"
+    },
+    {
+      "repository": "https://github.com/NationalGalleryOfArt/opendata",
+      "commit": "9d3ba90ca8172c62c308a608373a957e9e4a1739",
+      "path": "data/published_images.csv",
+      "url": "https://raw.githubusercontent.com/NationalGalleryOfArt/opendata/9d3ba90ca8172c62c308a608373a957e9e4a1739/data/published_images.csv",
+      "byte_size": 92026162,
+      "sha256": "8978a6a3ce51b1217e86e237c5cb250c33e6d255c780ca775e364d4b8816495a"
+    },
+    {
+      "repository": "https://github.com/NationalGalleryOfArt/opendata",
+      "commit": "9d3ba90ca8172c62c308a608373a957e9e4a1739",
+      "path": "data/objects_dimensions.csv",
+      "url": "https://raw.githubusercontent.com/NationalGalleryOfArt/opendata/9d3ba90ca8172c62c308a608373a957e9e4a1739/data/objects_dimensions.csv",
+      "byte_size": 10726426,
+      "sha256": "6e41f21b06d31698dee40d1d382e1c1b17d21cbacf4620861c83e417223bed3f"
+    }
+  ]
+}

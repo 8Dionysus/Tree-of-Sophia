@@ -165,6 +165,34 @@
 #tree .ps-fact-sources{display:flex;flex-wrap:wrap;gap:4px 12px}
 #tree .ps-fact-sources a{color:#d9c391;text-decoration:none}
 #tree .ps-fact-sources a:hover{text-decoration:underline}
+/* An image on a card stands whole, in its own proportions, with its caption under it; it opens over the stand at full detail. */
+#tree .ps-media-list{display:grid;gap:14px;margin:4px 0 14px}
+#tree .ps-media{margin:0}
+#tree .ps-media-open{display:block;width:100%;margin:0 0 8px;padding:0;border:0;background:none;cursor:zoom-in}
+#tree .ps-media-open img{display:block;max-width:100%;max-height:340px;width:auto;height:auto;margin:0 auto;border:1px solid #8ea2ba30;background:#0b1626}
+#tree .ps-media-open:focus-visible{outline:2px solid #dcc690;outline-offset:3px}
+#tree .ps-media figcaption{color:#a9b8c9;font:12.5px/1.55 var(--ps-sans)}
+#tree .ps-media figcaption p{margin:0 0 3px}
+#tree .ps-media-what{color:#d9c391;letter-spacing:.02em}
+#tree .ps-media-title{color:#e7ddc6;font:14px/1.45 var(--ps-serif)}
+#tree .ps-media-inscribed span:last-child{font-style:italic}
+#tree .ps-media-label{color:#8ea2ba}
+#tree .ps-media-sources{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px!important}
+#tree .ps-media-sources a{color:#d9c391;text-decoration:none}
+#tree .ps-media-sources a:hover{text-decoration:underline}
+#tree .ps-media-missing,.ps-media-viewer .ps-media-missing{margin:0 0 8px;color:#8ea2ba;font:12.5px/1.55 var(--ps-sans)}
+.ps-media-viewer{position:fixed;inset:0;box-sizing:border-box;width:100%;height:100%;max-width:none;max-height:none;margin:0;padding:0;border:0;background:#04070e;color:#e4e6ea;font:13px/1.5 system-ui,-apple-system,'Segoe UI',sans-serif}
+.ps-media-viewer[open]{display:flex;flex-direction:column}
+.ps-media-viewer::backdrop{background:#04070e}
+.ps-media-viewer .ps-media-stage{position:relative;flex:1;min-height:0}
+.ps-media-viewer .ps-media-stage>.ps-media-missing{position:absolute;inset:auto 0 50%;text-align:center}
+.ps-media-viewer .ps-media-bar{display:flex;align-items:center;gap:6px;padding:10px 16px;border-top:1px solid #8296b22b;background:#070f1bf7}
+.ps-media-viewer .ps-media-viewer-title{flex:1;min-width:0;margin:0;overflow:hidden;color:#e7ddc6;text-overflow:ellipsis;white-space:nowrap}
+.ps-media-viewer .ps-media-viewer-date,.ps-media-viewer .ps-media-viewer-holder{color:#8ea2ba}
+.ps-media-viewer .ps-media-control{flex:none;width:36px;height:36px;border:1px solid #8296b24a;border-radius:6px;background:#0b1626;color:#e4e6ea;font:18px/1 system-ui,sans-serif;cursor:pointer}
+.ps-media-viewer .ps-media-control:hover,.ps-media-viewer .ps-media-control:focus-visible{border-color:#dcc690;color:#dcc690;outline:none}
+/* The viewer's own rule for touch screens, kept here: the page admits no style written by a script. */
+@media (hover:none){.ps-media-viewer .openseadragon-canvas:focus{outline:none!important}}
 /* Measure and completeness: bars for counts, a shared scale for paths. */
 #tree .ps-measure-block{margin:0 0 20px}
 #tree .ps-bar{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(48px,1fr) auto;align-items:center;gap:8px;width:100%;min-height:26px;padding:2px 0;color:#c2ccd8;font:12.5px/1.35 var(--ps-sans);text-align:left}
@@ -681,6 +709,8 @@
 .ps-authored>p:not(.ps-fragment-line){margin:10px 0 0}
 .ps-fragment{margin:10px 0 12px;padding:0}
 .ps-fragment+.ps-fragment{margin-top:14px}
+/* Quotations of one source in a row name it under the last of them. */
+.ps-fragment.is-same-source>.ps-fragment-cite{display:none}
 .ps-fragment-text{margin:0;padding:2px 0 2px 14px;border-left:2px solid var(--ps-gold-line,#c9ad7366);color:var(--ps-ink,#e4e6ea);font:15px/1.62 var(--ps-serif,Georgia,serif)}
 .ps-fragment-text+.ps-fragment-cite+.ps-fragment-text{margin-top:10px}
 .ps-fragment-line{margin:0 0 6px;color:inherit;font:inherit}
@@ -762,8 +792,9 @@
 
 /* ── active terms: a word of the stand's philological core opens on its origin ── */
 /* An active word is a link to a node of the stand; its small star is the star of that node on the map. */
-.ps-term{color:inherit;cursor:pointer;text-decoration:underline 1px solid #c9ad738c;text-underline-offset:.22em;text-decoration-skip-ink:auto;transition:color .15s,text-decoration-color .15s}
-.ps-term::after{content:'';display:inline-block;width:.42em;height:.42em;margin-left:.12em;vertical-align:.52em;background:#d7bd80;clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%);opacity:.8;transition:opacity .15s,transform .15s}
+/* The star stands in the word's own trailing space, so the punctuation after the word never parts from it at a line's end. */
+.ps-term{position:relative;padding-right:.54em;white-space:nowrap;color:inherit;cursor:pointer;text-decoration:underline 1px solid #c9ad738c;text-underline-offset:.22em;text-decoration-skip-ink:auto;transition:color .15s,text-decoration-color .15s}
+.ps-term::after{content:'';position:absolute;right:0;bottom:.62em;width:.42em;height:.42em;background:#d7bd80;clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%);opacity:.8;transition:opacity .15s,transform .15s}
 .ps-term:hover,.ps-term[data-shown=true]{color:#f3e6c6;text-decoration-color:#e4cb8b}
 .ps-term:hover::after,.ps-term[data-shown=true]::after{opacity:1;transform:scale(1.15)}
 .ps-term:focus-visible{outline:2px solid #e4cb8b;outline-offset:2px;border-radius:2px}

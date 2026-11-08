@@ -12,13 +12,13 @@
 // runs through the trunk, so the links of one star gather there the way sap does.
 
 const bi=(ru,en)=>({ru,en});
-const AREA_TITLES=Object.freeze({'area-knowledge':bi('Знание','Knowledge'),'area-nature':bi('Природа','Nature'),'area-speech':bi('Речь','Speech'),
+export const AREA_TITLES=Object.freeze({'area-knowledge':bi('Знание','Knowledge'),'area-nature':bi('Природа','Nature'),'area-speech':bi('Речь','Speech'),
   'area-action':bi('Поступок','Action'),'area-good-life':bi('Благая жизнь','The good life'),'area-city':bi('Город','The city'),'area-love':bi('Любовь и образ','Love and image')});
 const AREA_COLORS=['#9fb7d9','#93c2a8','#c9b28a','#d39c8a','#c7a6d6','#a8b9cc','#d6a3b6'];
 const ERA_COLORS=Object.freeze({classical:'#cdbb8e',hellenistic:'#8fc4b5',roman:'#a9a4d6',late:'#d19c9c'});
 const ERA_START=Object.freeze({classical:-500,hellenistic:-330,roman:-30,late:200});
 // A school is named by where and when it taught; it stands on the ground of that era.
-const SCHOOL_ERA=Object.freeze({academy:'classical',lyceum:'classical',cynics:'classical',garden:'hellenistic','academic-scepticism':'hellenistic',stoa:'hellenistic',skeptics:'hellenistic',platonism:'late'});
+export const SCHOOL_ERA=Object.freeze({academy:'classical',lyceum:'classical',cynics:'classical',garden:'hellenistic','academic-scepticism':'hellenistic',stoa:'hellenistic',skeptics:'hellenistic',platonism:'late'});
 
 /** The zoom (screen pixels per unit of the layout) from which a star's name may stand without being pointed at. */
 // How near the view must come before a star's name stands of itself, in the view's zoom over the whole tree (a nearer

@@ -228,6 +228,12 @@ test('real host stays explicitly unavailable until a provider or caller transpor
   expect(calls[0][0]).toBe('catalog');
   expect(calls[0][1].limit).toBe(1);
   expect(transport.capabilities).toMatchObject({search: true, searchScopes: ['corpus']});
+
+  // A transport supplies the optional place lookup the same way as structure and analysis.
+  const placing = createTransportProvider({request: () => null, place: async ({unitId}) => ({unitId: `${unitId}-b`, by: 'unit'})});
+  await expect(placing.place({documentId: 'work-1', versionId: 'a', targetVersionId: 'b', unitId: 'u1'})).resolves.toEqual({unitId: 'u1-b', by: 'unit'});
+  expect(placing.capabilities.place).toBe(true);
+  expect(() => createTransportProvider({request: () => null, place: 'nowhere'})).toThrow(/place must be a function/);
 });
 
 test('bound providers reject response identity drift and revision drift before the UI sees it', async () => {

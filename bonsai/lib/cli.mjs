@@ -5,6 +5,7 @@
 //   node bonsai/lib/cli.mjs export <bonsai> [--out <file>]
 //   node bonsai/lib/cli.mjs align <bonsai> [--write]
 //   node bonsai/lib/cli.mjs align-corpus <bonsai> [--write] [--corpus <dir>]
+//   node bonsai/lib/cli.mjs media add <bonsai> <observation.json> --subject <id> --role <role> --artifact <tradition/site/identity> [--view <view>]
 //
 // `check` exits non-zero when a module breaks its contract or the export does
 // not satisfy the Tree's contracts in this checkout; drift since the graft is
@@ -15,8 +16,16 @@
 // `align-corpus` aligns, with corpus-align.mjs, the public corpus works the
 // stand's content cites (its own modules and the modules it borrows) and
 // reports whether the stored alignment module still matches; `--write` stores it.
+// `media add` attaches a medium to a card: it reads a provider observation made by
+// the Tree's media bridge (`tos-native-owner-command acquisition`, `media.observe`),
+// stores its work and image in the bonsai's media module with a use for the
+// subject in the role, names their Tree Artifact and representation in the graft
+// map, and checks the bonsai. A file image's file and smaller copy are fetched
+// from the provider, checked against the observation's fingerprints, kept under
+// the stand's layer store (`media/`) and entered in its layers.json; `layers.mjs
+// send` or the Publish Bonsai workflow takes them on to R2.
 
-import {readFileSync,writeFileSync,readdirSync,existsSync} from 'node:fs';
+import {readFileSync,writeFileSync,readdirSync,existsSync,mkdirSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {loadCore} from './core.mjs';
@@ -26,6 +35,8 @@ import {fileURLToPath,pathToFileURL} from 'node:url';
 import {alignCorpus,citedUnits,corpusReader,formatAlignment} from './corpus-align.mjs';
 import {bonsaiIds,checkBonsai,loadBonsai,loadWitnessChapters} from './graft.mjs';
 import {realignWitnesses} from './realign.mjs';
+import {addMedia,MEDIA_LAYER_PATH,mediaFilePath} from './media.mjs';
+import {formatLayers,readLayers,sha256} from './layers.mjs';
 
 const root=join(dirname(fileURLToPath(import.meta.url)),'..','..');
 const [command,...rest]=process.argv.slice(2);
@@ -100,7 +111,67 @@ if(command==='check'){
   console.log(`${names[0]}: the stored corpus alignment ${same?'matches':'differs from'} the one the mechanism gives`);
   if(rest.includes('--write')){writeFileSync(path,text);console.log('stored');}
   else if(!same)process.exit(1);
+}else if(command==='media'&&names[0]==='add'&&names.length===3){
+  // The manifest is read alone: the media module it names may not exist before the first medium.
+  const [,stand,file]=names,home=join(root,'bonsai',stand),manifest=JSON.parse(readFileSync(join(home,'bonsai.json'),'utf8'));
+  const entry=(manifest.modules??[]).find(item=>item.id==='media'),graftEntry=(manifest.modules??[]).find(item=>item.id==='identities');
+  if(!entry||!graftEntry){console.error(`${stand}: its manifest names no ${entry?'identities':'media'} module; add it to bonsai/${stand}/bonsai.json first`);process.exit(1);}
+  const read=path=>existsSync(path)?JSON.parse(readFileSync(path,'utf8')):null,write=(path,value)=>writeFileSync(path,`${JSON.stringify(value,null,2)}\n`);
+  const mediaPath=join(home,entry.path),graftPath=join(home,graftEntry.path);
+  const result=addMedia({
+    module:read(mediaPath),identities:read(graftPath),observation:JSON.parse(readFileSync(file,'utf8')),bonsai:stand,
+    subject:option('--subject'),role:option('--role'),artifact:option('--artifact'),view:option('--view')??'whole',
+    digest:text=>createHash('sha256').update(text,'utf8').digest('hex'),
+  });
+  let layers=null;
+  const copies=new Map();
+  if(result.image.api==='file'){
+    layers=readLayers(home);
+    if(!layers||layers.root)throw new Error(`${stand}: file media needs a layer store beside the manifest`);
+    if(!layers.paths.includes(MEDIA_LAYER_PATH))layers.paths.push(MEDIA_LAYER_PATH);
+    const profile=JSON.parse(readFileSync(join(root,'access/profiles/deployment-profile.default.v1.json'),'utf8'));
+    const limit=profile.admission.acquisition.max_record_bytes;
+    for(const file of [result.image.preview,result.image.file]){
+      const url=new URL(file.source);
+      if(url.origin!=='https://images.metmuseum.org'||url.username||url.password
+        ||!Number.isSafeInteger(file.bytes)||file.bytes<=0||file.bytes>limit||!/^[a-f0-9]{64}$/.test(file.sha256))
+        throw new Error('invalid or out-of-bounds media file descriptor');
+      const path=mediaFilePath(file),full=join(home,path);
+      copies.set(full,file);
+      layers.entries=[...layers.entries.filter(entry=>entry.path!==path),{path,sha256:file.sha256,bytes:file.bytes}]
+        .sort((a,b)=>a.path<b.path?-1:a.path>b.path?1:0);
+    }
+  }
+  const check=checkBonsai(root,stand,{overrides:{media:result.module,identities:result.identities},mediaLayers:layers});
+  for(const problem of check.problems)console.error(`  problem: ${problem}`);
+  if(check.problems.length)process.exit(1);
+  const pending=[];
+  for(const [full,file] of copies){
+    if(existsSync(full)){
+      const bytes=readFileSync(full);
+      if(bytes.length===file.bytes&&sha256(bytes)===file.sha256)continue;
+      throw new Error(`${full}: existing media does not match its fingerprint`);
+    }
+    const response=await fetch(file.source,{redirect:'error',signal:AbortSignal.timeout(45000),
+      headers:{'User-Agent':'Tree-of-Sophia-bonsai-media/1',Accept:'image/jpeg, image/png;q=0.9, image/*;q=0.8'}});
+    if(!response.ok||!response.body)throw new Error(`${file.source}: HTTP ${response.status}`);
+    const chunks=[];let size=0;
+    for await(const chunk of response.body){
+      size+=chunk.length;
+      if(size>file.bytes)throw new Error(`${file.source}: response exceeds its fingerprinted size`);
+      chunks.push(chunk);
+    }
+    const bytes=Buffer.concat(chunks,size);
+    if(size!==file.bytes||sha256(bytes)!==file.sha256)throw new Error(`${file.source}: response differs from the observation`);
+    pending.push([full,bytes]);
+  }
+  for(const [full,bytes] of pending){
+    mkdirSync(dirname(full),{recursive:true});writeFileSync(full,bytes,{flag:'wx'});
+  }
+  if(layers)writeFileSync(join(home,'layers.json'),formatLayers(layers));
+  write(mediaPath,result.module);write(graftPath,result.identities);
+  console.log(`${stand}: ${result.imageId} shows ${option('--subject')} as ${option('--role')}; work ${result.workId}`);
 }else{
-  console.error('usage: node bonsai/lib/cli.mjs check [<bonsai>...] | export <bonsai> [--out <file>] | export-philosophy <bonsai> [--out <file>] | align <bonsai> [--write] | align-corpus <bonsai> [--write] [--corpus <dir>]');
+  console.error('usage: node bonsai/lib/cli.mjs check [<bonsai>...] | export <bonsai> [--out <file>] | export-philosophy <bonsai> [--out <file>] | align <bonsai> [--write] | align-corpus <bonsai> [--write] [--corpus <dir>] | media add <bonsai> <observation.json> --subject <id> --role <role> --artifact <tradition/site/identity> [--view <view>]');
   process.exit(2);
 }

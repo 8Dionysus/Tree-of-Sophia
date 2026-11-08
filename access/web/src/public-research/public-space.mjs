@@ -11,28 +11,34 @@ import {describeSourceLocator} from './source-address.mjs';
 import {personalKind,readPersonalKinds} from './personal-kind.mjs';
 import {isAuthoredTransition,ladderRung,nodeForm,partName,relationStyle,routeVoices,searchScore,sourceLine,stepWitness} from './space-legibility.mjs';
 import {antiquityTimeline,formatDating,formatYears,stepTimeline,trajectory,zarathustraTimeline} from './space-timeline.mjs';
-import {bonsaiFor,depthOf,lensPositions} from './bonsai.mjs';
-import {createTerms,termNodes} from './term-view.mjs';
+import {bonsaiFor,depthOf,lensPositions,loadMedia} from './bonsai.mjs';
+import {createMediaView} from './media-view.mjs';
+import {createTerms,termForms,termMatcher,termNodes} from './term-view.mjs';
 import {SYSTEM_NAME,SYSTEM_THEME,THEMES,applyTheme,currentTheme,paint,themeChoice} from './site-theme.mjs';
 import {hasIcon,iconElement,iconMarkup} from './space-icons.mjs';
 import {VOLUME_REST,proximityVolume,spaceVolume,timeVolume} from './space-volumes.mjs';
 import {bookSpiral,colonnade,imageDome,meaningTiers,tensionScales} from './space-gatherings.mjs';
-import {citedPlaces} from './research-index.mjs';
+import {citationId,citedPlaces} from './research-index.mjs';
 import {readChronology} from '../../../../bonsai/lib/chronology.mjs';
 import {readPlaces} from '../../../../bonsai/lib/places.mjs';
 import {clipLinesRight,planeOfPlaces} from './space-geography.mjs';
-import {TREE_LABEL_FROM,antiquityTree} from './space-tree.mjs';
-import {zarathustraTree} from './space-tree-zarathustra.mjs';
+import {AREA_TITLES,SCHOOL_ERA,TREE_LABEL_FROM,antiquityTree,treeVia} from './space-tree.mjs';
+import {PART_TITLES,zarathustraTree} from './space-tree-zarathustra.mjs';
+import {antiquityBook,zarathustraBook} from './reference-outline.mjs';
+import {createReferenceBook} from './reference-book.mjs';
+import {articleBody} from './reference-articles.mjs';
+import zarathustraWitnesses from '../../../../bonsai/zarathustra/witnesses.json' with {type:'json'};
 import {proximityCriteria,proximityLayout} from './space-proximity.mjs';
 import {datingKind,measureAntiquity,measureZarathustra} from './space-measure.mjs';
 import {depthLayout} from './space-depth.mjs';
 import {aspectLayout} from './space-aspect.mjs';
 import {mountHints,setHint} from './space-hints.mjs';
 import {layBench} from './space-bench.mjs';
+import {createBench} from './bench/index.mjs';
 import {signElement,starKind} from './space-glyphs.mjs';
 import {controlsDismissed,controlsShouldOpen,mountControls} from './space-controls.mjs';
 import {besidePosition,disputes,ownTitle,readingsAround,restsOn,routeStars,routeWithRecords,threadsIntoDark,pathThrough} from './space-play.mjs';
-import {citesOf,createFragments} from './fragments.mjs';
+import {chapterName,citesOf,createFragments} from './fragments.mjs';
 import {createStandOrigin} from './word-origin-menu.mjs';
 import {coreContext} from './core-projection.mjs';
 import {createCoreView} from './core-view.mjs';
@@ -66,8 +72,8 @@ Object.assign(extraTranslations.ru,{dating_medium:'опора — обзор и�
 Object.assign(extraTranslations.en,{dating_medium:'rests on a summary of scholarship',dating_low:'rests on a source that cites no study',lifeLine:'Author’s years',journeys:'Reading routes',researchActions:'Research',orientation:'Where you are in the tree',mapTools:'Map controls',openColumn:'Panel',collapseColumn:'Collapse panel',toOverview:'To the whole space',backToRoute:'back to the route',onMap:'On the map',selectedLink:'Selected link',lensWord:'lens',statusTitle:'Status',formSource:'Source',formSourceHint:'A work, passage, author or tradition: what readings rest on',formProposal:'Reading',formProposalHint:'An authored reading, concept, question or branch: proposed for inquiry, not canon',formPersonal:'Personal',formPersonalHint:'Your own thought or link, saved in this browser',
   ladderLabel:'Step of interpretation',ladderHint:'The tree tells a source, its reading and a comparison of readings apart; each step returns to the source.',rung_source:'Source',rung_reading:'Reading',rung_comparison:'Comparison',rungPersonal:'Personal record',ownPlaceholder:'How do you read it? One line',ownWrite:'Write it down',ownMine:'Your reading',ownAround:'Readings nearby',ownNearest:'Nearest to yours',ownNone:'None of them',ownRestsOn:'Rests on',ownDisputed:'Disputed by',ownWritten:'Your reading has taken its place in the space',threadNote:'not yet in the space',threadAdded:'The star has entered the space',
   basisContains:'Structure: a part and its whole.',basisGround:'The reading rests on this place in the source.',basisEditorial:'An editorial comparison of two readings · proposed, not canon · not a claim of historical influence.',basisProposed:'A relation proposed for inquiry · not canon · similarity is not influence.',basisPersonal:'A personal link from your research.'});
-Object.assign(extraTranslations.ru,{modernSpelling:'в современной орфографии',fragmentOriginal:'Оригинал',fragmentTranslation:'Перевод',fragmentWhole:'Читать в целом произведении',refBook:'Книга {n}',refChapter:'Глава {n}',refSection:'Раздел {n}',refFragment:'Фрагмент {n}',refLines:'Строки от {n}',refArrian:'Предисловие Арриана',fragmentQuoted:'Откуда взята цитата',fragmentBook:'Об издании книги',fragmentEdition:'Открыть в читателе',fragmentOmitted:'В этом издании перевода места нет',fragmentUnavailable:'Текст этого места сейчас недоступен',parallelPrevious:'Предыдущая глава',parallelNext:'Следующая глава'});
-Object.assign(extraTranslations.en,{modernSpelling:'in modern spelling',fragmentOriginal:'Original',fragmentTranslation:'Translation',fragmentWhole:'Read in the whole work',refBook:'Book {n}',refChapter:'Chapter {n}',refSection:'Section {n}',refFragment:'Fragment {n}',refLines:'Lines from {n}',refArrian:'Arrian’s preface',fragmentQuoted:'Where the quotation is taken from',fragmentBook:'About the book’s edition',fragmentEdition:'Open in the reader',fragmentOmitted:'This edition of the translation lacks the place',fragmentUnavailable:'The text of this place is unavailable now',parallelPrevious:'Previous chapter',parallelNext:'Next chapter'});
+Object.assign(extraTranslations.ru,{modernSpelling:'в современной орфографии',groundOpen:'Открыть место целиком',groundClose:'Свернуть место',routeOne:'путь',routeFew:'пути',routeMany:'путей',fragmentOriginal:'Оригинал',fragmentTranslation:'Перевод',fragmentWhole:'Читать в целом произведении',refBook:'Книга {n}',refChapter:'Глава {n}',refSection:'Раздел {n}',refFragment:'Фрагмент {n}',refLines:'Строки от {n}',refArrian:'Предисловие Арриана',fragmentQuoted:'Откуда взята цитата',fragmentBook:'Об издании книги',fragmentEdition:'Открыть в читателе',fragmentOmitted:'В этом издании перевода места нет',fragmentUnavailable:'Текст этого места сейчас недоступен',parallelPrevious:'Предыдущая глава',parallelNext:'Следующая глава'});
+Object.assign(extraTranslations.en,{modernSpelling:'in modern spelling',groundOpen:'Open the whole passage',groundClose:'Fold the passage',routeOne:'route',routeMany:'routes',fragmentOriginal:'Original',fragmentTranslation:'Translation',fragmentWhole:'Read in the whole work',refBook:'Book {n}',refChapter:'Chapter {n}',refSection:'Section {n}',refFragment:'Fragment {n}',refLines:'Lines from {n}',refArrian:'Arrian’s preface',fragmentQuoted:'Where the quotation is taken from',fragmentBook:'About the book’s edition',fragmentEdition:'Open in the reader',fragmentOmitted:'This edition of the translation lacks the place',fragmentUnavailable:'The text of this place is unavailable now',parallelPrevious:'Previous chapter',parallelNext:'Next chapter'});
 Object.assign(extraTranslations.en,{excerpt:'Excerpt',proposalGrounds:'Grounds of this proposal',manualOrigin:'Manual entry',agentOrigin:'External agent response',personalOrigin:'Personal proposal',pending:'Pending review',notCanon:'Not canon',postureShort:'Readings · not canon'});
 // The measuring lenses and the measure panel speak in few words; the map shows the rest.
 Object.assign(extraTranslations.ru,{"traceTitle": "Понятие во времени", "traceLink": "след понятия", "traceLabel": "Понятие", "nearTitle": "Близость по", "nearIsCenter": "центр", "nearClosest": "ближе всех", "nearFrom": "от", "nearNotMeasured": "не измеряется", "nearSharedConcepts": "общих понятий", "nearSharedGrounds": "общих оснований", "dateUnknown": "дата неизвестна", "duringLifeShort": "в пределах жизни автора", "duringActivityShort": "в годы деятельности автора", "placeUnknown": "место не установлено", "placeActivityShort": "здесь жил автор", "certainty_exact": "точно", "certainty_approximate": "приблизительно", "certainty_uncertain": "под вопросом", "certainty_unknown": "неизвестно", "certainty_none": "без датировки", "measureKind_date-assertion": "своя дата", "measureKind_interval-assertion": "свой интервал", "measureKind_relative-phase": "внутри периода", "measureKind_relative-life": "в пределах жизни автора", "measureKind_relative-activity": "в годы деятельности автора", "measureKind_relative-order": "относительно другого события", "measureKind_unknown-date": "дата неизвестна", "measureKind_none": "без датировки", "footing_high": "исследование", "footing_medium": "обзор исследований", "footing_low": "без ссылок на исследования", "placeBasis_composition": "место написания", "placeBasis_event": "место события", "placeBasis_activity": "место жизни автора", "placeBasis_unknown": "не установлено", "measureAction": "Мера и полнота", "measureDating": "Датировки", "measureCertainty": "Точность", "measureFooting": "Опора", "measurePlaces": "Места", "measureEras": "Эпохи", "measureConcepts": "Понятия", "measureBranches": "Ветви во времени", "measureLifeOnly": "Без собственной датировки", "measurePlaceless": "Без места", "measureGrounding": "Опора звёзд", "measureInBook": "главы книги", "measureOutside": "другие тексты", "measureChapters": "Главы", "measureOutsideTexts": "Тексты вне книги", "measureRoutes": "Маршруты по книге"});
@@ -75,17 +81,22 @@ Object.assign(extraTranslations.en,{"traceTitle": "A concept through time", "tra
 Object.assign(extraTranslations.ru,{nearEarlier:"раньше",nearLater:"позже",gatherText:"текст",gatherReadings:"прочтения",gatherConcepts:"понятия",gatherQuestions:"вопросы"});Object.assign(extraTranslations.en,{nearEarlier:"earlier",nearLater:"later",gatherText:"text",gatherReadings:"readings",gatherConcepts:"concepts",gatherQuestions:"questions"});
 const materialMap=library=>new Map((library?.nodes??[]).map(item=>[item.id,item]));
 const graphIdForMaterial=id=>`material:${id}`;
+// The workbench's sign: a bench with something laid on it.
+const BENCH_ADD_ICON='<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12.5h18M6 12.5V19M18 12.5V19M8.5 9.5h7M12 5.5v7"/></svg>';
 const sourceKey=binding=>binding?[binding.documentId,binding.versionId,binding.unitId].join('\u0000'):'';
 const copyPosition=value=>Array.isArray(value)&&value.length===3&&value.every(Number.isFinite)?value:null;
 function downloadGraph(packet,name){const blob=new Blob([packet],{type:'application/json'}),url=URL.createObjectURL(blob),anchor=document.createElement('a');anchor.href=url;anchor.download=name;anchor.hidden=true;document.body.append(anchor);anchor.click();anchor.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 
 // The host contains both the map and the shared header, including search and language controls.
 // The workbench: the card of a star or a link over the whole space, its columns the steps of interpretation.
-Object.assign(extraTranslations.ru,{bench:'Верстак',openBench:'Развернуть карточку на весь экран — исследовательский верстак',closeBench:'Свернуть верстак обратно к небу',myWork:'Моя работа',workHelp:'Заметка, тезис или возражение к этому предмету',continueResearch:'Продолжить исследование',benchSource:'Источник — слова самого текста.',benchReading:'Прочтение — то, что Древо видит в источнике.',benchComparison:'Сопоставление — встреча этого прочтения с другими.',benchLink:'Сопоставление — то, что связывает два предмета.'});
-Object.assign(extraTranslations.en,{bench:'Workbench',openBench:'Open the card over the whole screen as a research workbench',closeBench:'Fold the workbench back beside the sky',myWork:'My work',workHelp:'A note, thesis or objection about this subject',continueResearch:'Continue research',benchSource:'The source: the words of the text itself.',benchReading:'The reading: what the tree sees in the source.',benchComparison:'The comparison: this reading meeting others.',benchLink:'The comparison: what joins the two subjects.'});
+Object.assign(extraTranslations.ru,{fragmentBench:'На верстак',fragmentBenched:'На верстаке',bench:'Верстак',openBench:'Развернуть карточку на весь экран',closeBench:'Свернуть карточку обратно к небу',myWork:'Моя работа',workHelp:'Заметка, тезис или возражение к этому предмету',continueResearch:'Продолжить исследование',benchSource:'Источник — слова самого текста.',benchReading:'Прочтение — то, что Древо видит в источнике.',benchComparison:'Сопоставление — встреча этого прочтения с другими.',benchLink:'Сопоставление — то, что связывает два предмета.'});
+Object.assign(extraTranslations.en,{fragmentBench:'To the workbench',fragmentBenched:'On the workbench',bench:'Workbench',openBench:'Expand the card over the whole screen',closeBench:'Fold the card back beside the sky',myWork:'My work',workHelp:'A note, thesis or objection about this subject',continueResearch:'Continue research',benchSource:'The source: the words of the text itself.',benchReading:'The reading: what the tree sees in the source.',benchComparison:'The comparison: this reading meeting others.',benchLink:'The comparison: what joins the two subjects.'});
 // The kinds of stars every bonsai shares, the ways along a branch, the reader's trail and the quotation taken away.
 Object.assign(extraTranslations.ru,{kind_era:'Эпоха',kind_branch:'Ветвь',kind_path:'Путь',kind_step:'Ход',kind_author:'Мыслитель',kind_figure:'Фигура',kind_translator:'Переводчик',kind_school:'Традиция',kind_work:'Произведение',kind_version:'Издание',kind_chapter:'Глава',kind_passage:'Фрагмент',kind_concept:'Понятие',kind_term:'Термин',kind_image:'Образ',kind_question:'Вопрос',kind_personal:'Личная запись',previousMove:'Предыдущий ход',nextMove:'Следующий ход',trail:'След исследования',trailBack:'Назад по следу',trailForward:'Вперёд по следу',trailBackWord:'Назад',trailForwardWord:'Вперёд',benchWord:'Верстак',benchFoldWord:'Свернуть',fragmentCopy:'Копировать цитату',fragmentCopied:'Скопировано'});
 Object.assign(extraTranslations.en,{kind_era:'Era',kind_branch:'Branch',kind_path:'Path',kind_step:'Move',kind_author:'Thinker',kind_figure:'Figure',kind_translator:'Translator',kind_school:'Tradition',kind_work:'Work',kind_version:'Edition',kind_chapter:'Chapter',kind_passage:'Passage',kind_concept:'Concept',kind_term:'Term',kind_image:'Image',kind_question:'Question',kind_personal:'Personal record',previousMove:'Previous move',nextMove:'Next move',trail:'Research trail',trailBack:'Back along the trail',trailForward:'Forward along the trail',trailBackWord:'Back',trailForwardWord:'Forward',benchWord:'Workbench',benchFoldWord:'Fold',fragmentCopy:'Copy quotation',fragmentCopied:'Copied'});
+// The images on a card: what each is for, and the words of its caption and viewer.
+Object.assign(extraTranslations.ru,{'media_author-portrait':'Портрет автора','media_book-response':'Отклик на книгу',media_motif:'Совпадение мотива',mediaPublicDomain:'Общественное достояние',mediaOpenAccess:'Открытый доступ','media_era-material':'Материал эпохи','media_object-of-analysis':'Предмет анализа',media_comparison:'Для сравнения',mediaOpen:'Открыть изображение во всех подробностях',mediaInscribed:'Надпись на предмете',mediaSeries:'Серия',mediaSize:'{0} × {1} мм',mediaMissing:'Изображение не загрузилось с сервиса держателя.',mediaZoomIn:'Приблизить',mediaZoomOut:'Отдалить',mediaWhole:'Показать целиком'});
+Object.assign(extraTranslations.en,{'media_author-portrait':'Portrait of the author','media_book-response':'A response to the book',media_motif:'A shared motif',mediaPublicDomain:'Public domain',mediaOpenAccess:'Open access','media_era-material':'Material of the era','media_object-of-analysis':'Object of analysis',media_comparison:'For comparison',mediaOpen:'Open the image in full detail',mediaInscribed:'Inscribed on the object',mediaSeries:'Series',mediaSize:'{0} × {1} mm',mediaMissing:'The image did not load from the holder’s service.',mediaZoomIn:'Zoom in',mediaZoomOut:'Zoom out',mediaWhole:'Show whole'});
 export function toggleResearchFullscreen(host,doc=document){
   if(doc.fullscreenElement)return doc.exitFullscreen().catch(()=>{});
   return host.requestFullscreen?.().catch(()=>{});
@@ -107,7 +118,10 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // The reader offers the same renderings for a word its layer reads.
   api.reader?.setSelectionActions?.(standOrigin?.readerActions??[]);
   const materials=materialMap(library),atlas=library.atlas??{},routes=library.space?.routes??atlas.routes??[];
+  const mediaView=createMediaView({t,locale,hint:(element,text)=>setHint(element,text)});
   const core=library.space?.core,coreView=core?createCoreView({core,renderings:bonsaiFor(profile)?.renderings,locale,fragments,signOf:materialId=>signOf(previewMaterials.get(materialId)),hint:(element,text)=>setHint(element,text),onNode:id=>previewMaterial(id),onRelation:id=>selectEdge(drawnRelation(id)),onAction:detail=>coreAction(detail),onRoute:id=>{const item=routeItems().find(item=>item.id===id);if(item)startRoute(item);}}):null;
+  // The book reads the same core: its own words lead and the book's places stand beside them.
+  const coreBook=core?createCoreView({core,renderings:bonsaiFor(profile)?.renderings,locale,fragments,signOf:materialId=>signOf(previewMaterials.get(materialId)),hint:(element,text)=>setHint(element,text),onNode:id=>openInBook(index?.resolveId?.(id)??id),onRelation:id=>openInBook(id),onAction:detail=>shell.dispatchEvent(new CustomEvent('public-research-action',{bubbles:true,detail})),onRoute:id=>openInBook(String(id).replace(/^core:/,'')),book:true}):null;
   const collectionMaterials=new Map((library.space?.collection??[]).map(item=>[item.materialId??item.id,{...item,id:item.materialId??item.id,kind:({author:'figure',school:'tradition'})[item.kind]??item.kind}]));
   const previewMaterials=new Map([...collectionMaterials,...materials]);
   const entryByLegacyId=new Map([...previewMaterials.values()].map(item=>[item.legacyId??item.id,item]));
@@ -260,8 +274,11 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // On a narrow screen it becomes a sheet whose top bar always stays in reach.
   const reading=el('aside','reading ps-panel ps-column');reading.hidden=true;
   const panelTop=el('div','reading-top'),panelTitle=button('','eyebrow ps-column-title'),panelClose=button('×','icon');panelClose.setAttribute('aria-label',t('close'));
-  // The card of a star or a link opens over the whole screen as the research workbench and folds back beside the sky.
-  const panelBench=button('','icon ps-bench-toggle'),panelTools=el('div','ps-column-tools');panelBench.hidden=true;panelBench.addEventListener('click',()=>toggleBench());panelTools.append(panelBench,panelClose);panelTop.append(panelTitle,panelTools);
+  // The card of a star or a link expands over the whole screen and folds back beside the sky.
+  const panelBench=button('','icon ps-bench-toggle'),panelTools=el('div','ps-column-tools');panelBench.hidden=true;panelBench.addEventListener('click',()=>toggleBench());
+  // The card goes onto the workbench, where it is worked on beside the text, the word and the reader's own thought.
+  const panelAdd=button('','icon ps-bench-add');panelAdd.hidden=true;panelAdd.innerHTML=BENCH_ADD_ICON;panelAdd.addEventListener('click',()=>layOnBench());
+  panelTools.append(panelAdd,panelBench,panelClose);panelTop.append(panelTitle,panelTools);
   const panelContent=el('div','ps-panel-content');
   // A measuring lens keeps its own controls at the top of the column: the concept traced through time, the criterion of proximity.
   const lensControls=el('div','ps-lens-controls');lensControls.hidden=true;
@@ -1307,6 +1324,23 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     for(const source of [...sources,...extra]){const link=document.createElement('a');link.href=source.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=`${source.short} ↗`;setHint(link,source.title??'');row.append(link);}
     if(row.childElementCount)parent.append(row);
   }
+  // A star's images live in the bonsai that owns it: a subject of the Antiquity collection in Antiquity's, on either stand
+  // that shows it, a star of Zarathustra in Zarathustra's, named by its core record or, without one, by its own id.
+  // They come after the card has drawn, into the place kept for them; a card that has moved on by then takes none.
+  function mediaOwner(material){
+    const id=material?.id;if(typeof id!=='string')return null;
+    if(id.startsWith('antiquity:catalog:'))return {profile:'antiquity',subject:material.legacyId??id.slice('antiquity:catalog:'.length)};
+    if(id.startsWith('antiquity:'))return null;
+    return profile==='zarathustra'?{profile:'zarathustra',subject:material.coreId??id}:null;
+  }
+  function appendMedia(parent,material){
+    const owner=mediaOwner(material);if(!owner)return;
+    const slot=el('div','ps-media-slot');parent.append(slot);
+    void loadMedia(owner.profile).then(media=>{
+      const items=media?.forSubject(owner.subject)??[];
+      if(slot.isConnected&&items.length)mediaView.render(slot,items);else slot.remove();
+    }).catch(()=>slot.remove());
+  }
   function appendDating(parent,materialId){
     if(!materialId||!chronologyReader)return;
     const situationId=situationOf(materialId),words=situationId?datingWords(situationId):null;if(!words)return;
@@ -1384,58 +1418,61 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(held.length>1){const more=button(`+${held.length-1}`,'ps-paths-more');more.setAttribute('aria-expanded','false');more.addEventListener('click',()=>{const open=box.dataset.open!=='true';box.dataset.open=String(open);more.setAttribute('aria-expanded',String(open));more.textContent=open?'−':`+${held.length-1}`;});box.firstChild.append(more);}
     parent.append(box);
   }
-  function renderNode(id){
+  // The card is drawn into the column, or into a window of the workbench (`into`), where what it names opens on the bench (`pane`).
+  function renderNode(id,{into=panelContent,pane=null}={}){
     const materialId=id.startsWith('material:')?id.slice(9):null;
     const preview=materialId&&previewMaterials.get(materialId);
-    const node=graphState().nodes.find(item=>item.id===id)??(preview?{id,materialId,kind:preview.kind,sourceIds:[]}:null);if(!node){selected=null;return renderWelcome();}
+    const node=graphState().nodes.find(item=>item.id===id)??(preview?{id,materialId,kind:preview.kind,sourceIds:[]}:null);if(!node){if(pane)return false;selected=null;return renderWelcome();}
     const inSavedGraph=state.nodes.some(item=>item.id===id),inView=graphState().nodes.some(item=>item.id===id);
     const material=matForNode(node),ownerHyp=(personalState?.hypotheses??[]).find(item=>item.id===node.workspaceHypothesisId||item.id===node.id||materializedHypotheses.get(item.id)===node.id);
-    panelContent.replaceChildren();panelContent.dataset.termNode=material?.id??'';
-    if(profile==='antiquity')panelContent.dataset.termWorks=termWorks(material);
-    const nodeTitle=label(node.ownerType==='personal-hypothesis'?node:material??node),part=partName(profile,material,locale(),{moveIds});panelContent.append(kindLine(material,node),el('h1','',keepDots(node.ownerType==='personal-hypothesis'&&nodeTitle.length>120?kindName(node.kind):nodeTitle)));
+    into.replaceChildren();into.dataset.termNode=material?.id??'';
+    if(profile==='antiquity')into.dataset.termWorks=termWorks(material);
+    const nodeTitle=label(node.ownerType==='personal-hypothesis'?node:material??node),part=partName(profile,material,locale(),{moveIds});into.append(kindLine(material,node),el('h1','',keepDots(node.ownerType==='personal-hypothesis'&&nodeTitle.length>120?kindName(node.kind):nodeTitle)));
     // A move names its author, work and place right under its title.
-    const witness=part&&!material?.route?sourceLine(material,{materials:previewMaterials,entryByLegacyId:collectionByLegacyId,locale:locale()}):'';if(witness)panelContent.append(el('p','ps-source-line',witness));
+    const witness=part&&!material?.route?sourceLine(material,{materials:previewMaterials,entryByLegacyId:collectionByLegacyId,locale:locale()}):'';if(witness)into.append(el('p','ps-source-line',witness));
+    // An author's portrait stands right under the name; every image a bonsai binds to this subject follows in the order of its role.
+    appendMedia(into,material);
     // A star names when and where its text was written, in the bonsai's own kinds of dating and with their sources;
     // on the lens of proximity, how far it stands from the centre and by what.
-    appendDating(panelContent,material?.id);appendPlace(panelContent,material?.id);
-    if(lens==='proximity'&&proximityLens)appendDistance(panelContent,material?.id);
-    panelContent.append(ladderLine(ladderRung({material,node})));appendPaths(panelContent,material);
+    appendDating(into,material?.id);appendPlace(into,material?.id);
+    if(lens==='proximity'&&proximityLens)appendDistance(into,material?.id);
+    into.append(ladderLine(ladderRung({material,node})));appendPaths(into,material);
     const branchRoute=profile==='antiquity'?routeItems().find(item=>item.source==='atlas'&&(item.id===material?.route?.id||`antiquity:route:${item.id}`===material?.id)):null;
-    if(branchRoute){const walk=button(`${t('walkBranch')} · ${countMoves(branchRoute.steps?.length??0)} →`,'primary ps-walk-branch');walk.addEventListener('click',()=>{closePanel();startRoute(branchRoute);});panelContent.append(walk);}if(node.ownerType==='personal-hypothesis'&&nodeTitle.length>120)panelContent.append(el('p','ps-personal-title',nodeTitle));
+    if(branchRoute&&!pane){const walk=button(`${t('walkBranch')} · ${countMoves(branchRoute.steps?.length??0)} →`,'primary ps-walk-branch');walk.addEventListener('click',()=>{closePanel();startRoute(branchRoute);});into.append(walk);}if(node.ownerType==='personal-hypothesis'&&nodeTitle.length>120)into.append(el('p','ps-personal-title',nodeTitle));
     if(node.ownerType==='personal-hypothesis'){
-      if(node.body)panelContent.append(el('p','body',node.body));
-      if(ownerHyp?.targetId)panelContent.append(el('p','muted',`${t('related')}: ${ownerHyp.targetId}`));
+      if(node.body)into.append(el('p','body',node.body));
+      if(ownerHyp?.targetId)into.append(el('p','muted',`${t('related')}: ${ownerHyp.targetId}`));
       const proposals=personalProposals(ownerHyp?.id??node.workspaceHypothesisId);
-      appendPersonalProposals(panelContent,proposals);
+      appendPersonalProposals(into,proposals);
     }else if(material?.coreId&&coreView){
-      coreView.node(panelContent,material.coreId,{bench});appendResearchReferences(panelContent,material.coreId);
+      (pane?paneCore(pane):coreView).node(into,material.coreId,{bench:pane?false:bench});appendResearchReferences(into,material.coreId);
     }else if(material){
       const source=sourceForMaterial(material,node);
-      if(source?.exact){const open=button(`↗ ${sourceActionLabel(source)}`,'primary ps-source-open');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));panelContent.append(open);}
-      else if(source?.binding){const open=button(`↗ ${sourceActionLabel(source)}`,'primary ps-source-open');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));panelContent.append(open);}
+      if(source?.exact){const open=button(`↗ ${sourceActionLabel(source)}`,'primary ps-source-open');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));into.append(open);}
+      else if(source?.binding){const open=button(`↗ ${sourceActionLabel(source)}`,'primary ps-source-open');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));into.append(open);}
       const body=material.atlasBody??material.body;
-      if(body)fragments.render(panelContent,body,{className:'body'});
+      if(body)fragments.render(into,body,{className:'body'});
       // The map shows what the book says. A question of the book is the star's title, and the book's answer stands
       // under it; the reader's own line about it is written in the learning mode (readingPrompt).
       const asked=tr(material.question,locale()).trim();
-      if(asked&&asked!==nodeTitle.trim()&&!material.inquiry?.question){const questionCard=el('section','ps-question-card');questionCard.append(el('span','eyebrow',t('questionLabel')),el('p','',tr(material.question,locale())));panelContent.append(questionCard);}
+      if(asked&&asked!==nodeTitle.trim()&&!material.inquiry?.question){const questionCard=el('section','ps-question-card');questionCard.append(el('span','eyebrow',t('questionLabel')),el('p','',tr(material.question,locale())));into.append(questionCard);}
       const inquiry=material.inquiry;
       if(inquiry){
-        inquiryDetail(panelContent,t('argument'),inquiry.thesis??inquiry.argument,true);
-        appendGrounds(panelContent,inquiry.grounds,material.id);
-        appendAnswer(panelContent,inquiry.answer);
-        if(inquiry.counterReading){const alternative=inquiryDetail(panelContent,t('counterReading'),inquiry.counterReading.text,true);if(alternative)appendGrounds(alternative,inquiry.counterReading.grounds,material.id);}
-        if(material.kind!=='question')inquiryQuestion(panelContent,inquiry.question);
-        if(inquiry.experiment){const experiment=inquiryDetail(panelContent,t('experiment'),inquiry.experiment.setup);if(experiment&&inquiry.experiment.question)experiment.append(el('p','inquiry-prompt',tr(inquiry.experiment.question,locale())));}
+        inquiryDetail(into,t('argument'),inquiry.thesis??inquiry.argument,true);
+        appendGrounds(into,inquiry.grounds,material.id);
+        appendAnswer(into,inquiry.answer);
+        if(inquiry.counterReading){const alternative=inquiryDetail(into,t('counterReading'),inquiry.counterReading.text,true);if(alternative)appendGrounds(alternative,inquiry.counterReading.grounds,material.id);}
+        if(material.kind!=='question')inquiryQuestion(into,inquiry.question);
+        if(inquiry.experiment){const experiment=inquiryDetail(into,t('experiment'),inquiry.experiment.setup);if(experiment&&inquiry.experiment.question)experiment.append(el('p','inquiry-prompt',tr(inquiry.experiment.question,locale())));}
       }
-      if(material.perspectives?.length){panelContent.append(el('h2','minor-title',t('perspectives')));for(const item of material.perspectives)inquiryDetail(panelContent,tr(item.title,locale()),item.body);}
-      if(material.example)inquiryDetail(panelContent,t('example'),material.example);
-      if(!material.inquiry?.grounds?.length&&material.sourceRefs?.length){const refs=el('section','ps-source-refs');refs.dataset.zone='source';refs.append(el('h2','minor-title',t('sourceRefs')));for(const ref of material.sourceRefs){const address=typeof ref==='string'?ref:ref.url??ref.ref;const labelText=typeof ref==='string'?ref:tr(ref.label,locale())||ref.title||address;if(typeof address==='string'&&/^https?:\/\//.test(address)){const a=el('a','source-link',`${labelText} ↗`);a.href=address;a.target='_blank';a.rel='noopener noreferrer';refs.append(a);}else if(labelText)refs.append(el('p','muted',labelText));}panelContent.append(refs);}
-    }else if(node.body)panelContent.append(el('p','body',node.body));
+      if(material.perspectives?.length){into.append(el('h2','minor-title',t('perspectives')));for(const item of material.perspectives)inquiryDetail(into,tr(item.title,locale()),item.body);}
+      if(material.example)inquiryDetail(into,t('example'),material.example);
+      if(!material.inquiry?.grounds?.length&&material.sourceRefs?.length){const refs=el('section','ps-source-refs');refs.dataset.zone='source';refs.append(el('h2','minor-title',t('sourceRefs')));for(const ref of material.sourceRefs){const address=typeof ref==='string'?ref:ref.url??ref.ref;const labelText=typeof ref==='string'?ref:tr(ref.label,locale())||ref.title||address;if(typeof address==='string'&&/^https?:\/\//.test(address)){const a=el('a','source-link',`${labelText} ↗`);a.href=address;a.target='_blank';a.rel='noopener noreferrer';refs.append(a);}else if(labelText)refs.append(el('p','muted',labelText));}into.append(refs);}
+    }else if(node.body)into.append(el('p','body',node.body));
     const authorId=material?.legacyId??material?.id,works=material?.kind==='figure'?[...previewMaterials.values()].filter(item=>item.kind==='work'&&((material.works??[]).includes(item.legacyId??item.id)||(authorId&&item.author===authorId))):[];
-    if(works.length){const shelf=el('section','ps-author-works');shelf.dataset.zone='source';shelf.append(el('h2','minor-title',t('authorWorks')));for(const work of works){const open=button(label(work),'connection-target'),mark=signOf(work);if(mark)open.prepend(mark);open.addEventListener('click',()=>previewMaterial(work.id));shelf.append(open);}panelContent.append(shelf);}
+    if(works.length){const shelf=el('section','ps-author-works');shelf.dataset.zone='source';shelf.append(el('h2','minor-title',t('authorWorks')));for(const work of works){const open=button(label(work),'connection-target'),mark=signOf(work);if(mark)open.prepend(mark);open.addEventListener('click',()=>pane?pane.subject({kind:'node',id:graphIdForMaterial(work.id)}):previewMaterial(work.id));shelf.append(open);}into.append(shelf);}
     // On the workbench a core subject's own links already stand in its comparison; the map's other lines join them there.
-    const linked=bench&&material?.coreId&&core?new Set((core.links??[]).filter(link=>link.from===material.coreId||link.to===material.coreId).map(link=>graphIdForMaterial(core.materialIds?.[link.from===material.coreId?link.to:link.from]))):null;
+    const linked=(bench||pane)&&material?.coreId&&core?new Set((core.links??[]).filter(link=>link.from===material.coreId||link.to===material.coreId).map(link=>graphIdForMaterial(core.materialIds?.[link.from===material.coreId?link.to:link.from]))):null;
     const connections=graphState().edges.filter(edge=>(edge.from===id||edge.to===id)&&!linked?.has(edge.from===id?edge.to:edge.from));
     if(connections.length){
       // Links of one kind stand together under their name and the colour of their line on the sky: what the star rests on,
@@ -1448,26 +1485,26 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
           const otherId=edge.from===id?edge.to:edge.from,other=graphState().nodes.find(item=>item.id===otherId),atlasEdge=(atlas.edges??[]).find(item=>`atlas:${item.id}`===edge.id||item.id===edge.id);
           const said=humanEdgeLabel(edge)||humanEdgeLabel(atlasEdge)||relationName(edge,edge.to===id),row=el('div','ps-link-row');
           // The words of a link open the link itself; the name lays the star at its other end.
-          let verb=null;if(said&&!key.endsWith(` ${said}`)){verb=button(said,'ps-link-row-verb');verb.addEventListener('click',()=>selectEdge(edge.id));}
-          const end=button(label(other?.ownerType==='personal-hypothesis'?other:matForNode(other)??other),'ps-link-row-end'),mark=signOf(other?.ownerType==='personal-hypothesis'?null:matForNode(other),other);if(mark)end.prepend(mark);setHint(end,glimpse(matForNode(other)));end.addEventListener('click',()=>selectNode(otherId));
+          let verb=null;if(said&&!key.endsWith(` ${said}`)){verb=button(said,'ps-link-row-verb');verb.addEventListener('click',()=>pane?pane.subject({kind:'edge',id:edge.id}):selectEdge(edge.id));}
+          const end=button(label(other?.ownerType==='personal-hypothesis'?other:matForNode(other)??other),'ps-link-row-end'),mark=signOf(other?.ownerType==='personal-hypothesis'?null:matForNode(other),other);if(mark)end.prepend(mark);setHint(end,glimpse(matForNode(other)));end.addEventListener('click',()=>pane?pane.subject({kind:'node',id:otherId}):selectNode(otherId));
           // A row reads as the link's sentence: the star's own link first, a link from the other star with that star first.
           const incoming=!(isBasedOn(edge)||edge.from===id);if(incoming)row.classList.add('is-incoming');row.append(...(incoming?[end,verb]:[verb,end]).filter(Boolean));group.append(row);
         }
         list.append(group);
       }
-      panelContent.append(list);
+      into.append(list);
     }
     // The reader's own work on the star closes the card: a note, a thesis or an objection, and the star kept in their own space.
     const work=material&&!(material.coreId&&coreView)?el('section','ps-kernel-personal ps-card-work'):null;
     if(work){work.append(el('h3','minor-title',t('myWork')),el('p','muted',t('workHelp')));const go=button(t('continueResearch'),'ps-kernel-action');go.addEventListener('click',()=>shell.dispatchEvent(new CustomEvent('public-research-action',{bubbles:true,detail:{action:'continue',recordId:material.id,kind:'node',record:material}})));work.append(go);}
     if(material&&materials.has(material.id)){
       const edit=button(t(inSavedGraph?'removeFromSpace':'addToSpace'),'text-button');edit.dataset.zone='work';
-      edit.addEventListener('click',()=>{try{if(inSavedGraph){model.removeNode(id);selected=id;notifyGraphResult(t('removedFromSpace'));}else{const added=model.addMaterial(material.id);state=model.getState();selectActual(added);notifyGraphResult(t('saved'));}reflect();}catch(error){notify(displayPublicError(error,locale));}});(work??panelContent).append(edit);
+      edit.addEventListener('click',()=>{try{if(inSavedGraph){model.removeNode(id);selected=id;notifyGraphResult(t('removedFromSpace'));}else{const added=model.addMaterial(material.id);state=model.getState();selectActual(added);notifyGraphResult(t('saved'));}reflect();}catch(error){notify(displayPublicError(error,locale));}});(work??into).append(edit);
     }
-    if(!inView){if(work)panelContent.append(work);return;}
+    if(!inView||pane){if(work)into.append(work);return true;}
     const actions=el('div','reading-bottom');actions.dataset.zone='comparison';
     actions.append(button(`↔ ${t('compare')}`,'text-button'),button(`↗ ${t('connect')}`,'text-button'));
-    actions.children[0].addEventListener('click',()=>{closePanel();beginCompare(id);});actions.children[1].addEventListener('click',()=>{closePanel();beginConnect(id);});panelContent.append(actions);if(work)panelContent.append(work);
+    actions.children[0].addEventListener('click',()=>{closePanel();beginCompare(id);});actions.children[1].addEventListener('click',()=>{closePanel();beginConnect(id);});into.append(actions);if(work)into.append(work);return true;
   }
   function researchSelection(){const id=selectedEdge??selected?.replace(/^material:/,'');return id?{id:index?.resolveId(id)??id,kind:selectedEdge?'relation':'node',lens,route:route?.id??null,step:routeIndex,scroll:reading.scrollTop}:null;}
   // A core relation is drawn on the map as a context link; its address, a record id or an edge id, names that link.
@@ -1483,29 +1520,133 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(item.kind==='passage'){panelContent.replaceChildren(fragments.fragment(item.record));columnOpen=true;reading.hidden=false;return true;}
     return false;
   }
+  // ------------------------------------------------------------ the reference as a book
+  // The book reads the stand's own outline (reference-outline.mjs): its contents from the crown to the roots and its
+  // library. An article opens where the reader is: in the reference when it holds the page.
+  function openInBook(id){if(id)shell.dispatchEvent(new CustomEvent('public-research-open',{bubbles:true,cancelable:true,detail:{id}}));}
+  let bookOutline=null,book=null;
+  const has=id=>!!(id&&index?.get?.(id));
+  const catalogId=legacy=>{if(!legacy)return null;const own=collectionByLegacyId.get(legacy)?.materialId;if(has(own))return own;for(const id of [`antiquity:catalog:${legacy}`,`antiquity:reading:${legacy}`])if(has(id))return id;return null;};
+  // A place of a work opens at its reading where a branch reads it, and at the passage itself otherwise.
+  const passageId=legacy=>{if(!legacy)return null;for(const id of [`antiquity:reading:${legacy}`,`antiquity:source:${legacy}`])if(has(id))return id;return catalogId(legacy);};
+  function outline(){
+    if(bookOutline)return bookOutline;
+    if(profile==='antiquity'&&bonsai?.collection){
+      const chronology=bonsai.chronology,lifeStart=id=>{const year=parseInt(chronology?.situations?.[chronology?.lives?.[id]]?.dating?.interval?.start,10);return Number.isFinite(year)?year:null;};
+      const passages=new Set((bonsai.collection.passages??[]).map(item=>item.id));
+      bookOutline=antiquityBook({routes,collection:bonsai.collection,materialOf:legacy=>passages.has(legacy)?passageId(legacy):catalogId(legacy),areaTitles:AREA_TITLES,schoolEra:SCHOOL_ERA,lifeStart});
+    }else if(profile==='zarathustra'&&core){
+      const cited=new Map(),subjects=new Set([...(core.concepts??[]),...(core.figures??[]),...(core.proposed??[])].map(record=>record.id));
+      for(const item of index?.items?.values?.()??[]){
+        if(item.kind!=='passage'||item.record?.w!=='also-sprach-zarathustra'||!item.record?.c)continue;
+        for(const reference of index.references(item.id)){const subject=reference.kind==='statement'?reference.parentId:reference.id;if(!subjects.has(subject))continue;if(!cited.has(item.record.c))cited.set(item.record.c,new Set());cited.get(item.record.c).add(subject);}
+      }
+      // The core's own routes are read under the subject they start from; the paths of the atlas stand in the crown.
+      bookOutline=zarathustraBook({core,routes:routes.filter(route=>!String(route.id).startsWith('core:')),questions:[...materials.values()].filter(item=>item.kind==='question'),chapters:(zarathustraWitnesses.chapters??[]).map(chapter=>({key:chapter.key,titles:Object.fromEntries(PUBLIC_LOCALES.map(language=>[language,chapterName(chapter,language)]))})),partTitles:PART_TITLES,idOf:id=>index?.resolveId?.(id)??id,citing:key=>[...(cited.get(key)??[])]});
+    }
+    return bookOutline;
+  }
+  // A work bound to its public record is read in the book by the collection's own description: its line, the places
+  // it opens on and its concepts.
+  let collectionByMaterial=null;
+  const bookMaterial=id=>{
+    const item=index?.get?.(id),material=previewMaterials.get(item?.materialId??id)??previewMaterials.get(id)??null;if(material?.kind!=='work')return material;
+    collectionByMaterial??=new Map([...collectionByLegacyId.values()].map(entry=>[entry.materialId,entry]));
+    const entry=collectionByMaterial.get(material.id);
+    return entry?{...material,author:entry.author??material.author,meta:entry.meta??material.meta,body:entry.body??material.body,concepts:entry.concepts??material.concepts}:material;
+  };
+  const bookBranch=id=>bonsai?.collection?.branches?.find(branch=>`antiquity:route:${branch.id}`===id)??null;
+  const bookRoute=id=>profile==='antiquity'?routes.find(route=>`antiquity:route:${route.id}`===id)??null:null;
+  function bookTitle(id){const item=index?.get?.(id);return (item?.owner==='bonsai/core'&&coreBook?.title(id))||tr(item?.title,locale())||label(bookMaterial(id))||'';}
+  function bookKind(id){
+    const item=index?.get?.(id),material=bookMaterial(id);
+    if(item?.owner==='bonsai/core'&&coreBook)return {word:coreBook.kindWord(id)||kindWord(material),sign:()=>material?signOf(material):null};
+    if(material)return {word:kindWord(material),sign:()=>signOf(material)};
+    return {word:item?.kind==='passage'?t('fragment'):item?.kind==='bibliographic-pointer'?t('source'):'',sign:()=>null};
+  }
+  function bookSourceLine(id){
+    const material=bookMaterial(id);if(!material||material.lexical)return '';
+    const branch=bookBranch(material.id);if(branch)return tr(branch.title,locale());
+    if(profile==='antiquity'&&(String(material.id).startsWith('antiquity:reading:')||material.kind==='fragment')){const line=sourceLine(material,{materials:previewMaterials,entryByLegacyId:collectionByLegacyId,locale:locale()});if(line)return line;}
+    if(material.kind==='work'){const author=collectionByLegacyId.get(material.author)?.title;return [tr(author,locale()),tr(material.meta,locale())].filter(Boolean).join(' · ');}
+    return tr(material.meta,locale());
+  }
+  // The links of a subject: the core's own links with the book's verbs, and the map's links with their kind.
+  function bookRelations(id){
+    const out=[],record=core?.records?.[id],materialId=index?.get?.(id)?.materialId??id;
+    if(record){
+      for(const item of core.links??[]){
+        if(item.admission==='rejected'||(item.from!==id&&item.to!==id))continue;
+        const other=item.from===id?item.to:item.from;if(!has(other))continue;
+        const family=tr(item.relation_family?.family_label,locale())||relationWord('relates');
+        out.push({group:`family:${family}`,word:family,color:paint(styleOf('relates').color??'#a5b7cf'),dash:'solid',direction:item.from===id?'out':'in',other,verb:tr(item.verb,locale()),relationId:item.id});
+      }
+    }
+    for(const edge of atlas.edges??[]){
+      if(edge.from!==materialId&&edge.to!==materialId)continue;
+      const otherMaterial=edge.from===materialId?edge.to:edge.from,other=index?.resolveId?.(otherMaterial)??otherMaterial;if(!has(other)||other===id)continue;
+      const based=isBasedOn(edge),inverse=edge.to===materialId,style=styleOf(edge.kind);
+      const word=based?t(inverse?'groundsFor':'basedOn'):relationWord(edge.kind)||t('relation');
+      const said=humanEdgeLabel(edge);
+      out.push({group:based?`based:${inverse}`:`kind:${edge.kind}`,word,hint:tr(style.hint,locale()),color:paint(style.color??'#a5b7cf'),dash:style.dash??'solid',direction:inverse?'in':'out',other,verb:said&&said!==word?said:''});
+    }
+    return out;
+  }
+  // Where a subject is mentioned beyond its own article: one entry per name, without the routes that start from it,
+  // which its article already reads.
+  function bookMentions(id){
+    const seen=new Set([id]),names=new Set(),out=[];
+    for(const reference of index?.references?.(id)??[]){
+      const subject=reference.kind==='statement'?reference.parentId:reference.kind==='relation'?null:reference.id;
+      if(!subject||seen.has(subject)||!has(subject)||(reference.kind==='chain'&&reference.record?.from===id))continue;seen.add(subject);
+      const name=bookTitle(subject);if(names.has(name))continue;names.add(name);out.push(subject);if(out.length>=40)break;
+    }
+    return out;
+  }
+  function bookSources(id){
+    const material=bookMaterial(id);
+    return (material?.sourceRefs??[]).map(ref=>{const address=typeof ref==='string'?ref:ref.url??ref.ref;const name=typeof ref==='string'?ref:tr(ref.label,locale())||ref.title||address;return {label:name,url:typeof address==='string'&&/^https:\/\//.test(address)?address:null};}).filter(ref=>ref.label);
+  }
+  const countRoutes=value=>{const n=Math.abs(Number(value)||0),mod100=n%100,mod10=n%10;return `${n} ${copyLocale(locale())==='en'?(n===1?t('routeOne'):t('routeMany')):mod100>=11&&mod100<=14?t('routeMany'):mod10===1?t('routeOne'):mod10>=2&&mod10<=4?t('routeFew'):t('routeMany')}`;};
+  function referenceBook(){
+    if(book)return book;
+    const shape=outline();if(!shape)return null;
+    const data={locale,profile,fragments,coreBook,coreRecord:id=>core?.records?.[id]??null,material:bookMaterial,route:bookRoute,branch:bookBranch,has,idOf:id=>index?.resolveId?.(id)??id,
+      sourceLine:bookSourceLine,glimpse:id=>glimpse(bookMaterial(id))||coreView?.glimpse?.(id)||'',
+      turnStyle:turn=>{const kind=turn.kind??atlasEdgeFor(turn.edgeId)?.kind??'supports',style=styleOf(kind);return {word:relationWord(kind),color:paint(style.color??'#a5b7cf'),dash:style.dash};},
+      passageOf:passageId,catalogId:legacy=>catalogId(String(legacy??'').replace(/^lexical:/,'lexical:')),
+      questionsOf:id=>shape.home(id)?.entry?.questions??[],
+      readingsOf:id=>[...materials.values()].filter(item=>item.sourceNodeId===id).map(item=>item.id),
+      workTitle:slug=>tr(collectionByLegacyId.get(slug)?.title,locale()),
+      worksOf:material=>{const authorId=material.legacyId??material.id;return [...previewMaterials.values()].filter(item=>item.kind==='work'&&((material.works??[]).includes(item.legacyId??item.id)||(authorId&&item.author===authorId))).map(item=>item.id).filter(has);},
+      placesOf:id=>(shape.home(id)?.entry?.children??[]).map(entry=>entry.id).filter(Boolean),
+      // An era of the library is read by who wrote in it and the schools of its time.
+      eraOf:id=>(shape.library?.find(entry=>`antiquity:catalog:${entry.key}`===id)?.children??[]).map(entry=>entry.id).filter(has)};
+    book=createReferenceBook({profile,index,book:shape,locale,intro:{title:library.space?.title},
+      layout:treeLayout,lineColor:line=>paint(line.color??TREE_LINES[line.tone]?.color??'#8ea2ba'),via:treeVia,treeId:id=>index?.get?.(id)?.materialId??id,
+      fragments,markTerms:node=>terms.mark(node),showChapter:key=>fragments.showChapter(key).catch(()=>notify(t('unavailable'))),
+      title:bookTitle,kind:bookKind,glimpse:data.glimpse,sourceLine:bookSourceLine,status:id=>{const item=index?.get?.(id);if(item?.owner==='bonsai/core')return coreBook?.statusWord(id)??'';if(item?.kind==='bibliographic-pointer')return t('linkOnly');const material=bookMaterial(id);if(!material)return '';const rung=ladderRung({material});return rung&&rung!=='personal'?t(`rung_${rung}`):'';},
+      facts:(parent,id)=>{const materialId=index?.get?.(id)?.materialId??id;appendDating(parent,materialId);appendPlace(parent,materialId);},
+      ends:id=>{const ends=coreBook?.ends(id);if(!ends||!has(ends.from)||!has(ends.to))return null;return {...ends,word:ends.family,color:paint(styleOf('relates').color??'#a5b7cf'),dash:'solid'};},
+      relations:bookRelations,mentions:bookMentions,sources:bookSources,apparatus:(parent,id)=>coreBook?.bookApparatus(parent,id),
+      countSteps:value=>profile==='antiquity'?countMoves(value):countSteps(value),countRoutes,
+      body:context=>articleBody(context,data)});
+    return book;
+  }
+  function renderContents(parent,options={}){const own=referenceBook();if(!own)return false;own.contents(parent,options);return true;}
   function renderResearch(parent,id){
     const item=index?.get(id);if(!item)return false;
+    // A claim is read in the article it belongs to, at its own words.
+    if(item.kind==='statement'&&has(item.parentId)){const done=renderResearch(parent,item.parentId);if(done)markClaim(parent,tr(item.record,locale()));return done;}
     if(profile==='antiquity')parent.dataset.termWorks=termWorks(item.record);
     parent.dataset.termNode=item.materialId??(previewMaterials.has(item.id)?item.id:'');
-    if(item.owner==='bonsai/core'&&coreView?.renderReference(parent,{kind:item.kind==='relation'?'relation':'node',id:item.id}))return true;
-    parent.append(el('h2','',tr(item.title,locale())||item.id));
-    if(item.kind==='passage')parent.append(fragments.fragment(item.record));
-    else if(item.kind==='statement')fragments.render(parent,item.record);
-    else if(item.record?.body)fragments.render(parent,item.record.body);
-    else if(item.record?.reading?.reading)fragments.render(parent,item.record.reading.reading);
-    else if(item.kind==='fragment')appendSourcePassage(parent,item.id);
-    appendResearchReferences(parent,item.id);return true;
+    return !!referenceBook()?.article(parent,item.id);
   }
-  // A place of a source shows the passage itself, in the original and in translation, as the reading grounded in it cites it,
-  // and leads on to that reading.
-  function appendSourcePassage(parent,id){
-    const reading=[...materials.values()].find(node=>node.sourceNodeId===id);
-    if(!reading)return;
-    if(reading.body?.cite?.length)fragments.render(parent,{cite:reading.body.cite});
-    const line=el('p','ps-source-reading',`${copyLocale(locale())==='en'?'The reading of this passage':'Прочтение этого места'}: `);
-    const open=button(tr(reading.title,locale())||reading.id,'text-button');
-    open.addEventListener('click',()=>shell.dispatchEvent(new CustomEvent('public-research-open',{bubbles:true,detail:{id:reading.id}})));
-    line.append(open);parent.append(line);
+  function markClaim(parent,words){
+    const said=String(words??'').replace(/\s+/g,' ').trim();if(!said)return;
+    const node=[...parent.querySelectorAll('.rb-claim-text,.rb-lead-text,.ps-authored,p')].find(item=>item.textContent.replace(/\s+/g,' ').includes(said));if(!node)return;
+    const claim=node.closest('.rb-claim')??node;claim.classList.add('is-cited');
+    requestAnimationFrame(()=>requestAnimationFrame(()=>claim.scrollIntoView({block:'center'})));
   }
   function appendResearchReferences(parent,id){
     const item=index?.get(id);if(!item)return;
@@ -1521,42 +1662,43 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function findEdge(id){const drawn=graphState().edges.find(edge=>edge.id===id);if(drawn)return drawn;const item=index?.get(id);return item?.kind==='relation'?{id,from:graphIdForMaterial(core?.materialIds?.[item.record.from]??item.record.from),to:graphIdForMaterial(core?.materialIds?.[item.record.to]??item.record.to),kind:'relates',label:item.record.verb,coreRecord:item.record}:null;}
   // A chosen line the view no longer draws (a trace turned off, a lens changed) is let go, and the column is drawn anew without it.
   function dropEdge(){selectedEdge=null;sky?.selectEdge(null);renderColumn();renderOrientation();refreshSky();}
-  function renderEdge(id){
+  function renderEdge(id,{into=panelContent,pane=null}={}){
     // A traced concept's line is no relation of the graph: it says only where the concept recurs.
     if(String(id).startsWith('trace:')){
-      const link=traceLinks.get(id);if(!link)return dropEdge();
+      const link=traceLinks.get(id);if(!link)return pane?false:dropEdge();
       const {concept,from,to}=link,name=traceName(concept),ends=[from,to].map(value=>label(previewMaterials.get(String(value).replace(/^material:/,''))));
-      panelContent.replaceChildren(el('p','eyebrow',t('traceTitle')),el('h1','',quote(name)));
-      const endpoints=el('div','edge-endpoints');[from,to].forEach((id,index)=>{const b=button(ends[index],'text-button');b.addEventListener('click',()=>selectNode(id));endpoints.append(b);if(!index)endpoints.append(el('span','','→'));});panelContent.append(endpoints);
-      return;
+      into.replaceChildren(el('p','eyebrow',t('traceTitle')),el('h1','',quote(name)));
+      const endpoints=el('div','edge-endpoints');[from,to].forEach((id,index)=>{const b=button(ends[index],'text-button');b.addEventListener('click',()=>pane?pane.subject({kind:'node',id}):selectNode(id));endpoints.append(b);if(!index)endpoints.append(el('span','','→'));});into.append(endpoints);
+      return true;
     }
-    const edge=findEdge(id);if(!edge)return dropEdge();
-    panelContent.replaceChildren();
-    if(edge.coreRecord&&coreView){coreView.link(panelContent,edge.coreRecord,{bench});appendResearchReferences(panelContent,edge.coreRecord.id??id);return;}
+    const edge=findEdge(id);if(!edge)return pane?false:dropEdge();
+    into.replaceChildren();
+    if(edge.coreRecord&&coreView){(pane?paneCore(pane):coreView).link(into,edge.coreRecord,{bench:pane?false:bench});appendResearchReferences(into,edge.coreRecord.id??id);return true;}
     const from=graphState().nodes.find(node=>node.id===edge.from),to=graphState().nodes.find(node=>node.id===edge.to),atlasEdge=(atlas.edges??[]).find(item=>`atlas:${item.id}`===id||item.id===id);
     // The graph copy of an atlas edge may carry only an id; the authored label lives on the atlas edge.
     const relationLabel=relationName(edge),edgeLabel=humanEdgeLabel(edge)||humanEdgeLabel(atlasEdge);
     // A transition is a link a branch or route actually walks; elsewhere it is a relation.
     const openRoute=route?.source==='atlas'?routes.find(item=>item.id===route.id):null,plainId=bareEdgeId(edge.id);
     const authored=profile==='antiquity'?isAuthoredTransition(edge):(openRoute?.transitions??[]).some(item=>bareEdgeId(item.edgeId??item.id)===plainId);
-    panelContent.append(el('p','eyebrow',(authored?t('transition'):t('relation'))+' · '+relationLabel),el('h1','',edgeLabel&&edgeLabel.length<=120?edgeLabel:relationLabel));if(edgeLabel.length>120)panelContent.append(el('p','body',edgeLabel));
-    if(!edge.ownerType&&edge.kind!=='contains'&&!isBasedOn(edge))panelContent.append(ladderLine('comparison'));
-    if(edge.body||atlasEdge?.body)fragments.render(panelContent,edge.body??atlasEdge.body,{className:'body'});
-    const inquiry=atlasEdge?.inquiry??edge.inquiry;if(inquiry){inquiryDetail(panelContent,t('relationWarrant'),inquiry.warrant,true);appendGrounds(panelContent,inquiry.grounds);inquiryDetail(panelContent,t('relationLimit'),inquiry.limit);inquiryQuestion(panelContent,inquiry.question);}
-    const endpoints=el('div','edge-endpoints');const a=button(label(from?.ownerType==='personal-hypothesis'?from:matForNode(from)??from),'text-button'),b=button(label(to?.ownerType==='personal-hypothesis'?to:matForNode(to)??to),'text-button');a.addEventListener('click',()=>selectNode(from.id));b.addEventListener('click',()=>selectNode(to.id));endpoints.append(a,el('span','',relationLabel),b);panelContent.append(endpoints);
+    into.append(el('p','eyebrow',(authored?t('transition'):t('relation'))+' · '+relationLabel),el('h1','',edgeLabel&&edgeLabel.length<=120?edgeLabel:relationLabel));if(edgeLabel.length>120)into.append(el('p','body',edgeLabel));
+    if(!edge.ownerType&&edge.kind!=='contains'&&!isBasedOn(edge))into.append(ladderLine('comparison'));
+    if(edge.body||atlasEdge?.body)fragments.render(into,edge.body??atlasEdge.body,{className:'body'});
+    const inquiry=atlasEdge?.inquiry??edge.inquiry;if(inquiry){inquiryDetail(into,t('relationWarrant'),inquiry.warrant,true);appendGrounds(into,inquiry.grounds);inquiryDetail(into,t('relationLimit'),inquiry.limit);inquiryQuestion(into,inquiry.question);}
+    const endpoints=el('div','edge-endpoints');const a=button(label(from?.ownerType==='personal-hypothesis'?from:matForNode(from)??from),'text-button'),b=button(label(to?.ownerType==='personal-hypothesis'?to:matForNode(to)??to),'text-button');a.addEventListener('click',()=>pane?pane.subject({kind:'node',id:from.id}):selectNode(from.id));b.addEventListener('click',()=>pane?pane.subject({kind:'node',id:to.id}):selectNode(to.id));endpoints.append(a,el('span','',relationLabel),b);into.append(endpoints);
     const proposal=(workspace?.getState?.()?.proposals??[]).find(item=>item.id===edge.proposalId);
-    if(proposal){panelContent.append(el('p','posture',proposalStatus(proposal)));appendPersonalGrounds(panelContent,[proposal],'proposalGrounds');}
+    if(proposal){into.append(el('p','posture',proposalStatus(proposal)));appendPersonalGrounds(into,[proposal],'proposalGrounds');}
     for(const endpoint of [from,to]){
       if(endpoint?.ownerType==='personal-hypothesis'){
         const section=el('section','ps-endpoint-source');section.dataset.end=endpoint===from?'from':'to';section.append(el('h2','minor-title',`${t('endpointRelatedSources')}: ${label(endpoint)}`));
-        appendPersonalGrounds(section,personalProposals(endpoint.workspaceHypothesisId));panelContent.append(section);continue;
+        appendPersonalGrounds(section,personalProposals(endpoint.workspaceHypothesisId));into.append(section);continue;
       }
       const source=sourceForMaterial(matForNode(endpoint),endpoint);
       if(!source)continue;
       const section=el('section','ps-endpoint-source');section.dataset.end=endpoint===from?'from':'to';section.append(el('h2','minor-title',`${t('endpointSource')}: ${label(matForNode(endpoint)??endpoint)}`));
-      const open=button(`↗ ${sourceActionLabel(source)}`,'text-button');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));section.append(open);panelContent.append(section);
+      const open=button(`↗ ${sourceActionLabel(source)}`,'text-button');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));section.append(open);into.append(section);
     }
-    const actions=el('div','reading-actions'),compare=button(t('compare'),'text-button');compare.addEventListener('click',()=>{closePanel();beginCompare(from?.id,to?.id);});actions.append(compare);panelContent.append(actions);
+    if(pane)return true;
+    const actions=el('div','reading-actions'),compare=button(t('compare'),'text-button');compare.addEventListener('click',()=>{closePanel();beginCompare(from?.id,to?.id);});actions.append(compare);into.append(actions);return true;
   }
   function selectNode(id,{fromMap=false}={}){
     if(interaction==='connect'){const nextId=id;if(!connectIds.length){connectIds=[nextId];renderInteraction();return;}if(nextId===connectIds[0])return;connectIds=[connectIds[0],nextId];interaction=null;renderInteraction();openRelationDialog();return;}
@@ -1635,8 +1777,114 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   let columnSubject='';
   // ------------------------------------------------------------ the workbench
-  // The card of a chosen star or link opens over the whole space as the research workbench (space-bench.mjs): the
-  // source, its reading and its comparison side by side, the reader's own work with the comparison.
+  // The workbench (bench/) lies over the space. The card's own expanded view below stays a way of reading one card at length.
+  let benchView=null,benchButton=null,skyMoved=true;
+  function benchSubjectOfColumn(){const mode=columnMode();return mode==='node'&&selected?{kind:'node',id:selected}:mode==='edge'&&selectedEdge?{kind:'edge',id:selectedEdge}:null;}
+  function layOnBench(){const subject=benchSubjectOfColumn();if(!subject||!benchView)return;benchView.add(subject,subjectTitle(subject));paintBenchAdd();}
+  function paintBenchAdd(){
+    if(!benchView){panelAdd.hidden=true;return;}
+    const subject=benchSubjectOfColumn(),held=!!subject&&benchView.holds(subject),word=benchView.t(held?'onBench':'toBench',[subject?subjectTitle(subject):'']);
+    panelAdd.setAttribute('aria-pressed',String(held));panelAdd.setAttribute('aria-label',word);setHint(panelAdd,word,'B');
+  }
+  function paintBenchButton(){
+    if(!benchButton||!benchView)return;const count=benchView.store.state.benches.find(item=>item.id===benchView.store.state.active)?.tray.length??0;
+    const badge=benchButton.querySelector('.rb-bench-count'),before=Number(badge.textContent)||0;
+    benchButton.querySelector('.rb-bench-word').textContent=benchView.t('bench');badge.textContent=count?String(count):'';
+    // Something laid from elsewhere: the badge takes it with a breath.
+    if(count>before){badge.classList.remove('is-new');void badge.offsetWidth;badge.classList.add('is-new');}
+    benchButton.setAttribute('aria-label',`${benchView.t('openBench')}${count?` · ${benchView.t('benchCount',[count])}`:''}`);setHint(benchButton,benchView.t('openBench'),'⇧B');
+  }
+  function subjectTitle(subject){
+    if(subject?.kind==='node'){const node=graphState().nodes.find(item=>item.id===subject.id),material=matForNode(node)??previewMaterials.get(String(subject.id).replace(/^material:/,''));return keepDots(label(node?.ownerType==='personal-hypothesis'?node:material??node??{id:subject.id}));}
+    if(subject?.kind==='edge'){
+      if(String(subject.id).startsWith('trace:')){const link=traceLinks.get(subject.id);return link?quote(traceName(link.concept)):subject.id;}
+      const edge=findEdge(subject.id);if(!edge)return subject.id;
+      const end=id=>{const node=graphState().nodes.find(item=>item.id===id);return label(node?.ownerType==='personal-hypothesis'?node:matForNode(node)??node??previewMaterials.get(String(id).replace(/^material:/,''))??{id});};
+      return `${end(edge.from)} → ${end(edge.to)}`;
+    }
+    return '';
+  }
+  function subjectKind(subject){
+    if(subject?.kind==='edge')return 'step';
+    if(subject?.kind!=='node')return null;
+    const node=graphState().nodes.find(item=>item.id===subject.id),material=matForNode(node)??previewMaterials.get(String(subject.id).replace(/^material:/,''));
+    return kindOfStar(material,node)??'concept';
+  }
+  // A record of the research index as a subject of the bench: a star, a link, or the place of the book it names.
+  function benchSubject(id){
+    if(!id)return null;const item=index?.get(id);
+    if(item?.kind==='relation')return {kind:'edge',id:drawnRelation(item.id)};
+    const placeOfCite=cite=>cite?.c&&cite.w==='also-sprach-zarathustra'?{kind:'chapter',chapter:cite.c,language:'de',...(cite.u?.[0]?{unit:cite.u[0]}:{})}:null;
+    if(item?.kind==='passage-relation')return placeOfCite(item.record?.from?.cite);
+    if(item?.kind==='passage')return placeOfCite(item.record);
+    if(item?.kind==='statement'&&item.parentId)return benchSubject(item.parentId);
+    const materialId=item?.materialId??String(id).replace(/^material:/,'');
+    if(previewMaterials.has(materialId))return {kind:'node',id:graphIdForMaterial(materialId)};
+    if(graphState().nodes.some(node=>node.id===id))return {kind:'node',id};
+    return null;
+  }
+  // A card on the workbench is the same card; what it names opens on the bench.
+  function paneCore(pane){
+    return createCoreView({core,locale,fragments,signOf:materialId=>signOf(previewMaterials.get(materialId)),hint:(element,text)=>setHint(element,text),
+      onNode:id=>pane.subject({kind:'node',id:graphIdForMaterial(id)}),onRelation:id=>pane.subject({kind:'edge',id:drawnRelation(id)}),
+      onAction:detail=>paneAction(detail,pane),onRoute:id=>{const item=routeItems().find(item=>item.id===id);if(item){benchView?.hide();startRoute(item);}}});
+  }
+  function paneAction(detail,pane){
+    const {action,record,kind,cite}=detail;
+    if(action==='read'&&cite?.c&&cite.w==='also-sprach-zarathustra'){pane.read(cite);return;}
+    if(action==='compare'){const ids=(kind==='relation'?[record?.from,record?.to]:[record?.id]).map(id=>core?.materialIds?.[id]).filter(Boolean).map(graphIdForMaterial);for(const id of ids)pane.open({kind:'node',id},{place:'auto'});pane.compare?.();return;}
+    if(action==='links')return;
+    if(action==='continue'){pane.open({kind:'thought',id:''});return;}
+    shell.dispatchEvent(new CustomEvent('public-research-action',{bubbles:true,detail}));
+  }
+  // A fragment or a thought of the bench goes into "My research" as the reader's own record with its exact places.
+  function saveBenchExcerpt(fragment,words){
+    try{const notes=fragment.notes.map(note=>`${note.kind}: ${note.body}`).join('\n');
+      const body=[quote(words),fragment.cite.c,notes].filter(Boolean).join('\n\n').slice(0,3800);
+      const saved=workspace?.addHypothesis?.({id:`bench-${fragment.id}`,kind:'excerpt',title:(fragment.label||words).slice(0,480),body,targetId:citationId(fragment.cite)});
+      notify(t('saved'));return saved?.id??null;}catch(error){notify(displayPublicError(error,locale));return null;}
+  }
+  function saveBenchThought(thought,grounds){
+    try{const lines=grounds.map(item=>`— ${item.label} (${item.cite.c}; ${citationId(item.cite)})`).join('\n');
+      const title=(thought.question||thought.thesis||'').trim().slice(0,480)||t('new');
+      const body=[thought.thesis.trim(),lines].filter(Boolean).join('\n\n').slice(0,3800);
+      const saved=workspace?.addHypothesis?.({id:`bench-${thought.id}-${Date.now().toString(36)}`,kind:'thought',title,body});
+      notify(t('saved'));return saved?.id??null;}catch(error){notify(displayPublicError(error,locale));return null;}
+  }
+  const benchTerms=new Map();
+  function termsOfLanguage(language){if(!benchTerms.has(language)){const forms=termForms(bonsai?.terms,language),lower=new Map();for(const [form,term]of forms)if(!lower.has(form.toLocaleLowerCase(language)))lower.set(form.toLocaleLowerCase(language),term);benchTerms.set(language,{lower,matcher:termMatcher(forms,{greek:language==='grc'})});}return benchTerms.get(language);}
+  function mountWorkbench(){
+    benchView=createBench({host:shell,profile,locale,onOpenChange:open=>{
+      benchButton?.setAttribute('aria-pressed',String(open));
+      if(open){skyMoved=sky?.moving?.()??true;sky?.motion?.(false);}else{if(skyMoved)sky?.motion?.(true);paintBenchAdd();restoreFocus();}
+    },stand:{
+      index,core,notify,
+      renderCard:(into,subject,pane)=>subject.kind==='edge'?renderEdge(subject.id,{into,pane}):renderNode(subject.id,{into,pane}),
+      titleOf:subjectTitle,kindOf:subjectKind,toSubject:benchSubject,
+      markTerms:node=>{if(node)terms.mark(node);},
+      termFor:(form,language)=>{const term=termsOfLanguage(language).lower.get(String(form).toLocaleLowerCase(language));return term?{term,module:bonsai?.terms}:null;},
+      termNode:term=>{const id=termNode(term);return id?{kind:'node',id:graphIdForMaterial(id)}:null;},
+      termsIn:(words,language)=>{const found=termsOfLanguage(language).matcher?.find(String(words))??[],seen=new Set();return found.filter(item=>!seen.has(item.term.id)&&seen.add(item.term.id)).map(item=>({form:item.text,term:item.term}));},
+      saveExcerpt:saveBenchExcerpt,saveThought:saveBenchThought,
+      readingLanguage:()=>{const language=resolveLocale(locale);return ['ru','en'].includes(language)?language:'de';},
+      startChapter:()=>{const material=selected?previewMaterials.get(String(selected).replace(/^material:/,'')):null;const cite=material?.coreId?citedPlaces(index?.get(material.coreId)?.record).find(item=>item.w==='also-sprach-zarathustra'&&item.c):null;return cite?.c??Object.values(benchView?.store.state.fragments??{}).at(-1)?.cite.c??'I.01';},
+      isBusy:()=>!!fragments.reader?.dialog?.open||dialog.open,
+    }});
+    benchView.store.subscribe(()=>{paintBenchButton();paintBenchAdd();});
+    // What a card, an article or an active word opens while the bench is open, opens on the bench.
+    shell.addEventListener('public-research-open',event=>{if(!benchView?.isOpen())return;const subject=benchSubject(event.detail?.id);if(!subject)return;event.preventDefault();event.stopImmediatePropagation();benchView.ctx.open(subject);});
+    if(header){
+      benchButton=button('','rb-bench');benchButton.setAttribute('aria-pressed','false');benchButton.innerHTML=`${BENCH_ADD_ICON}<span class="rb-bench-word"></span><span class="rb-bench-count"></span>`;
+      benchButton.addEventListener('click',()=>benchView.toggle());
+      const toolbar=header.querySelector('.main-tools, .pr-toolbar'),library=toolbar?.querySelector('.corpus-open');
+      if(library)library.after(benchButton);else toolbar?.prepend(benchButton);
+      // The workbench belongs to the original mode; the reference and learning modes keep their own page.
+      new MutationObserver(()=>{if(header.dataset.mode&&header.dataset.mode!=='original')benchView?.hide();}).observe(header,{attributes:true,attributeFilter:['data-mode']});
+    }
+    paintBenchButton();paintBenchAdd();
+  }
+  // The card of a chosen star or link expands over the whole space (space-bench.mjs): the source, its reading and its
+  // comparison side by side, the reader's own work with the comparison. The workbench itself lives in bench/.
   let bench=false;
   // The open card folds back to the sky; the folded one spreads over the whole space.
   const benchIcon=open=>iconMarkup(open?'benchClose':'benchOpen',18);
@@ -1731,9 +1979,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     panelClose.hidden=!wide&&!columnOpen;panelClose.setAttribute('aria-label',t(mode==='overview'&&!browsingRoutes?'collapseColumn':mode==='route'?'resetRoute':'close'));
     // Only the open card of a star or a link is a workbench; any other column, or a closed one, folds it back.
     const benchable=(mode==='node'||mode==='edge')&&columnOpen;if(!benchable)bench=false;
-    shell.dataset.bench=String(bench);reading.dataset.bench=String(bench);panelBench.hidden=!benchable;panelBench.innerHTML=benchIcon(bench);panelBench.append(el('span','ps-bench-word',t(bench?'benchFoldWord':'benchWord')));
-    panelBench.setAttribute('aria-pressed',String(bench));panelBench.setAttribute('aria-label',t(bench?'closeBench':'openBench'));setHint(panelBench,t(bench?'closeBench':'openBench'),'B');
-    if(bench)panelTitle.textContent=`${t('bench')} · ${columnCaption(mode)}`;
+    shell.dataset.bench=String(bench);reading.dataset.bench=String(bench);panelBench.hidden=!benchable;panelBench.innerHTML=benchIcon(bench);panelAdd.hidden=!benchable;paintBenchAdd();
+    panelBench.setAttribute('aria-pressed',String(bench));panelBench.setAttribute('aria-label',t(bench?'closeBench':'openBench'));setHint(panelBench,t(bench?'closeBench':'openBench'),'F');
     const trays=bench&&!subjectChanged?benchTrays():null;
     delete panelContent.dataset.termWorks;delete panelContent.dataset.termNode;
     renderRoutes();renderLensControls(mode);
@@ -2051,7 +2298,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   function toggleFullscreen(){return toggleResearchFullscreen(host);}
   function keyboard(event){
-    if(dialog.open||event.target.closest('input,textarea,select,[contenteditable="true"],.ps-personal'))return;
+    if(benchView?.isOpen()||dialog.open||event.target.closest('input,textarea,select,[contenteditable="true"],.ps-personal'))return;
     const key=event.key.toLowerCase();if((event.ctrlKey||event.metaKey)&&key==='z'){event.preventDefault();event.shiftKey?model.redo():model.undo();checkGraphPersistence();}
     else if(!event.ctrlKey&&!event.metaKey&&!event.altKey){
       if(key==='o')frameSky();
@@ -2063,8 +2310,10 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       if(key==='escape'&&bench){event.preventDefault();if(!personal.hidden)closePersonal();else toggleBench(false);return;}
       if(key==='escape'&&(selected||selectedEdge)&&!route){event.preventDefault();closePanel();}
       if(key==='/'){event.preventDefault();search.focus();}
-      // B lays the open card on the workbench and folds it back, in any keyboard layout.
-      if(event.code==='KeyB'&&!panelBench.hidden){event.preventDefault();toggleBench();return;}
+      // B lays the open card on the workbench, or opens the workbench when no card is open (Shift+B always opens it);
+      // F spreads the card over the whole screen and folds it back. Both in any keyboard layout.
+      if(event.code==='KeyB'){event.preventDefault();if(!event.shiftKey&&!panelAdd.hidden)layOnBench();else benchView?.show();return;}
+      if(event.code==='KeyF'&&!panelBench.hidden){event.preventDefault();toggleBench();return;}
       if(key==='+'||key==='='){event.preventDefault();sky?.zoomBy(1.25);}
       if(key==='-'||key==='_'){event.preventDefault();sky?.zoomBy(1/1.25);}
       // Arrows walk the open branch or route a step at a time.
@@ -2080,7 +2329,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(!target?.isConnected)return false;target.focus({preventScroll:true});return document.activeElement===target;
   }
   let collectionView=null,collectionRoot=null;
-  function refreshLocale(){setLocaleState();if(!personal.hidden)renderPersonalPanel();if(dialog.open){dialog.querySelector('.dialog-top .icon')?.setAttribute('aria-label',t('close'));}if(dialog.open&&collectionRoot?.isConnected){dialog.querySelector('.dialog-top h2').textContent=t('library');for(const b of dialog.querySelectorAll('[data-public-locale]'))b.setAttribute('aria-pressed',String(b.dataset.publicLocale===locale()));collectionView?.refresh();}}
+  function refreshLocale(){setLocaleState();benchView?.relocale?.();paintBenchButton();paintBenchAdd();if(!personal.hidden)renderPersonalPanel();if(dialog.open){dialog.querySelector('.dialog-top .icon')?.setAttribute('aria-label',t('close'));}if(dialog.open&&collectionRoot?.isConnected){dialog.querySelector('.dialog-top h2').textContent=t('library');for(const b of dialog.querySelectorAll('[data-public-locale]'))b.setAttribute('aria-pressed',String(b.dataset.publicLocale===locale()));collectionView?.refresh();}}
   function updateWorkspace(){personalState=workspace?.getState?.()??personalState;if(syncingOwner)return;reflect();if(!personal.hidden)renderPersonalPanel();}
   function syncManagedDrafts(next){
     const graphIds=new Set(next.nodes.map(node=>node.id)),ownerIds=new Set((workspace?.getState?.()?.hypotheses??[]).map(item=>item.id));let changed=false;syncingOwner=true;
@@ -2228,6 +2477,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const localeEvent=event=>{if(event.detail?.locale&&event.detail.locale!==locale()){};refreshLocale();};header?.addEventListener('public-space-locale',localeEvent);
   // A new theme repaints what is coloured from code: the relation chips and the links of a route.
   const themeEvent=()=>{if(destroyed)return;inkTheme();setLocaleState();reflect();};window.addEventListener('site-theme',themeEvent);
-  return {root:shell,index,selection:researchSelection,setTrail,openResearch,renderResearch,markTerms:node=>terms.mark(node),readingPrompt,fragments,coreView,timeOf:id=>timeline?.spanOf?.(index?.get(id)?.materialId??id)??null,placeOf:id=>placeOf(index?.get(id)?.materialId??id),openPersonal:()=>{if(personal.hidden)togglePersonal();},compare:id=>beginCompare(graphIdForMaterial(index?.get(id)?.materialId??id)),pristineGraphs,openCollection,personalRoot:personalContent,workspaceRoot,agentRoot,refreshLocale,restoreFocus,refreshJourneys(items){journeyList=Array.isArray(items)?items:[];if(route)renderRoutes();},renderJourneys:renderRoutes,model,
-    destroy(){if(destroyed)return;destroyed=true;window.removeEventListener('site-theme',themeEvent);window.removeEventListener('resize',refitScale);cancelAnimationFrame(refitFrame);shell.removeEventListener('click',openLane);shell.removeEventListener('keydown',openLaneByKey);unsubscribeModel?.();unsubscribeWorkspace?.();workspaceRoot.removeEventListener('public-research-import-result',showImportResult);workspaceRoot.removeEventListener('public-research-workspace-history',researchHistory);document.removeEventListener('keydown',keyboard);document.removeEventListener('pointerdown',notePress,{capture:true});clearTimeout(controlsTimer);shell.removeEventListener('pointerdown',notePointer,{capture:true});hints?.dispose();controls?.dispose();fragments.dispose();standOrigin?.dispose();api.reader?.setSelectionActions?.([]);desktopMode.removeEventListener('change',syncInitialRouteDock);header?.removeEventListener('public-space-locale',localeEvent);sky?.dispose();model.dispose();shell.remove();header?.remove();terms.dispose();}};
+  mountWorkbench();
+  return {root:shell,index,selection:researchSelection,openBench:()=>benchView?.show(),bench:()=>benchView,setTrail,openResearch,renderResearch,renderContents,markTerms:node=>terms.mark(node),readingPrompt,fragments,coreView,timeOf:id=>timeline?.spanOf?.(index?.get(id)?.materialId??id)??null,placeOf:id=>placeOf(index?.get(id)?.materialId??id),openPersonal:()=>{if(personal.hidden)togglePersonal();},compare:id=>beginCompare(graphIdForMaterial(index?.get(id)?.materialId??id)),pristineGraphs,openCollection,personalRoot:personalContent,workspaceRoot,agentRoot,refreshLocale,restoreFocus,refreshJourneys(items){journeyList=Array.isArray(items)?items:[];if(route)renderRoutes();},renderJourneys:renderRoutes,model,
+    destroy(){if(destroyed)return;destroyed=true;window.removeEventListener('site-theme',themeEvent);window.removeEventListener('resize',refitScale);cancelAnimationFrame(refitFrame);shell.removeEventListener('click',openLane);shell.removeEventListener('keydown',openLaneByKey);unsubscribeModel?.();unsubscribeWorkspace?.();workspaceRoot.removeEventListener('public-research-import-result',showImportResult);workspaceRoot.removeEventListener('public-research-workspace-history',researchHistory);document.removeEventListener('keydown',keyboard);document.removeEventListener('pointerdown',notePress,{capture:true});clearTimeout(controlsTimer);shell.removeEventListener('pointerdown',notePointer,{capture:true});hints?.dispose();controls?.dispose();fragments.dispose();standOrigin?.dispose();api.reader?.setSelectionActions?.([]);desktopMode.removeEventListener('change',syncInitialRouteDock);header?.removeEventListener('public-space-locale',localeEvent);benchView?.dispose();benchButton?.remove();sky?.dispose();model.dispose();shell.remove();header?.remove();terms.dispose();}};
 }

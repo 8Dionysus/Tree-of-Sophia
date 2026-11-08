@@ -291,9 +291,9 @@ export async function createPublicSpace({profile, provider} = {}) {
 // A cited place is named for readers by the chapter of the book or by the work and its locator.
 async function placeTitles(profile){
   if(profile==='zarathustra'){
-    const [{chapterTitle},manifest]=await Promise.all([import('./fragments.mjs'),import('../../../../bonsai/zarathustra/witnesses.json').then(module=>module.default)]);
+    const [{chapterName},manifest]=await Promise.all([import('./fragments.mjs'),import('../../../../bonsai/zarathustra/witnesses.json').then(module=>module.default)]);
     const chapters=new Map((manifest.chapters??[]).map(chapter=>[chapter.key,chapter]));
-    return cite=>{const chapter=chapters.get(cite?.c);return chapter?{ru:chapterTitle(chapter,'ru'),en:chapterTitle(chapter,'en')}:null;};
+    return cite=>{const chapter=chapters.get(cite?.c);return chapter?{ru:chapterName(chapter,'ru'),en:chapterName(chapter,'en')}:null;};
   }
   const works=new Map(((await loadBonsai(profile)).collection?.entities??[]).filter(entity=>entity.kind==='work').map(entity=>[entity.id,entity.title]));
   return cite=>{const title=works.get(cite?.w);if(!title)return null;const at=cite.loc?` · ${cite.loc}`:'';return {ru:`${title.ru??title.en}${at}`,en:`${title.en??title.ru}${at}`};};

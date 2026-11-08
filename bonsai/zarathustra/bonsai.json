@@ -194,6 +194,15 @@
       "format": "tos.bonsai.identities.v1"
     },
     {
+      "id": "media",
+      "path": "media.json",
+      "format": "tos.bonsai.media.v1",
+      "role": {
+        "ru": "Изображения произведений на карточках стенда: произведение с названиями, мастерами, датировкой и записью держателя, его воспроизведение через сервис изображений с правами провайдера и роль изображения у предмета карточки — портрет автора, материал эпохи, предмет анализа, сравнение. Слова провайдеров хранятся дословно, с языком.",
+        "en": "Images of works on the stand’s cards: the work with its titles, makers, dating and the holder’s record, its reproduction through an image service with the provider’s rights, and the image’s role for the card’s subject — an author’s portrait, a material of the era, an object of analysis, a comparison. Provider texts are kept word for word, with their language."
+      }
+    },
+    {
       "id": "terms",
       "path": "terms.json",
       "format": "tos.bonsai.terms.v1",
@@ -208,8 +217,8 @@
       "format": "tos.bonsai.layers.v1",
       "spec": "bonsai/README.md",
       "role": {
-        "ru": "Где лежит слой слов: хеш каждого файла разметки, написаний, происхождений и переводов, которые хранятся в R2; рабочая копия получает их по этим хешам.",
-        "en": "Where the word layer lives: the digest of every file of the tokens, spelling, origins and renderings, kept in R2; a checkout fetches them by these digests."
+        "ru": "Где лежит слой слов: хеш каждого файла разметки, написаний, происхождений, историй, рассказов о словах и переводов, которые хранятся в R2; рабочая копия получает их по этим хешам.",
+        "en": "Where the word layer lives: the digest of every file of the tokens, spelling, origins, histories, word stories and renderings, kept in R2; a checkout fetches them by these digests."
       }
     },
     {
@@ -240,8 +249,29 @@
       "format": "tos.bonsai.origins.v1",
       "spec": "bonsai/review/philology/README.md",
       "role": {
-        "ru": "Происхождение каждой леммы: сколько раз и где слово стоит в книге, как его передают переводы, его история и этимология по Викисловарю его же словами, словари для дальнейшего чтения.",
-        "en": "The origin of every lemma: how often and where the word stands in the book, how the translations render it, its history and etymology from Wiktionary in Wiktionary's own words, and dictionaries to read further."
+        "ru": "Происхождение каждой леммы: её родословная от древнейшей формы по Викисловарю, части, из которых она сложена, родственные слова, написание первых изданий, слово оригинала, которое передаёт перевод, и первое место в книге.",
+        "en": "The origin of every lemma: its descent from its oldest form as Wiktionary records it, the parts it is made of, its kindred words, the first editions' spelling, the word of the original a translation renders, and its first place in the book."
+      }
+    },
+    {
+      "id": "histories",
+      "path": "histories.json",
+      "chapters": "histories/<language>-<shard>.json",
+      "format": "tos.bonsai.histories.v1",
+      "spec": "bonsai/review/philology/README.md",
+      "role": {
+        "ru": "История каждой леммы: что рассказывают о слове английский, немецкий и русский Викисловари, где его употребляют немецкие тексты XV — начала XX века в Немецком текстовом архиве (первые работы с предложением и страницей, частота по четвертям века, работы Ницше) и сколько раз его говорит каждая часть книги.",
+        "en": "The history of every lemma: what the English, German and Russian Wiktionaries tell of the word, where the German texts of the 15th to the early 20th century in the German Text Archive use it (the earliest works with the sentence and page, its frequency by quarter century, Nietzsche's works), and how often each part of the book says it."
+      }
+    },
+    {
+      "id": "stories",
+      "path": "stories.json",
+      "format": "tos.bonsai.stories.v1",
+      "spec": "bonsai/review/philology/README.md",
+      "role": {
+        "ru": "Короткая история слова каждого термина, рассказанная моделью только по собранным источникам: каждое предложение несёт номера кусков, на которых стоит, — этимологий Викисловаря, фраз Немецкого текстового архива, мест книги и слов переводчиков; проверка сверила числа, цитаты и имена, вторая модель вычитала текст.",
+        "en": "The short story of each term's word, told by a model from its gathered sources only: every sentence carries the numbers of the pieces it stands on — Wiktionary's etymologies, the German Text Archive's sentences, places of the book and the translators' words; a check matched its numbers, quotations and names, and a second model read the text."
       }
     },
     {

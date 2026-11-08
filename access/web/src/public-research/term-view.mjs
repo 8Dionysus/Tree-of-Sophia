@@ -14,8 +14,8 @@ const WORDS={
 };
 const words=locale=>{const ru=resolveLocale(locale)==='ru';return ru?WORDS.ru:Object.fromEntries(Object.entries(WORDS.en).map(([key,value])=>[key,localeText(value,locale)]));};
 
-// Text that is already an action, a title or a term keeps its own behaviour.
-const SKIP='a,button,input,textarea,select,code,h1,summary,.ps-term,.ps-term-card,[data-terms="off"]';
+// Text that is already an action, a title, a label or a term keeps its own behaviour.
+const SKIP='a,button,input,textarea,select,code,h1,h2,h3,summary,figcaption,.minor-title,.rb-field-label,.ps-term,.ps-term-card,[data-terms="off"]';
 const escape=value=>value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 const make=(tag,className,text)=>{const node=document.createElement(tag);if(className)node.className=className;if(text!==undefined)node.textContent=text;return node;};
 const witnesses=rendering=>[].concat(rendering?.witness??[]);
@@ -223,7 +223,8 @@ export function createTerms({module,locale=()=>DEFAULT_LOCALE,nodeOf=()=>null,de
     touch=false;touchPreview=null;follow(span);
   };
   const key=event=>{
-    if(event.key==='Escape'&&!card.hidden){hide(true);return;}
+    // Escape closes the card and only the card: whatever stands beneath it stays.
+    if(event.key==='Escape'&&!card.hidden){event.preventDefault();hide(true);return;}
     // A real link follows on Enter by itself, through its click.
     const span=termOf(event);if(!span||span.href)return;
     if(event.key==='Enter'){event.preventDefault();follow(span);}

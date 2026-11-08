@@ -1289,6 +1289,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     light(ids){lit=Array.isArray(ids)&&ids.length>1?[...ids]:null;kick();},
     refresh:resize,
     motion(value){playing=value;kick()},
+    moving(){return playing;},
     dispose(){disposed=true;cancelAnimationFrame(raf);ro.disconnect();document.removeEventListener('visibilitychange',visibility);for(const target of [canvas,layer,edgeLayer,clusterLayer])target.removeEventListener('wheel',wheel);canvas.removeEventListener('sophia-renderer-restored',kick);nodes.forEach(n=>n.el.remove());edges.forEach(e=>e.el.remove());clusters.forEach(c=>c.el.remove());planes.forEach(plane=>plane.el.remove());threads.forEach(thread=>thread.el.remove());ctx.dispose?.()}
   };
 }

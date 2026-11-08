@@ -1,4 +1,5 @@
 import { withSecurity } from "./common.ts";
+import { MEDIA_HOSTS } from "../../../../bonsai/lib/media-hosts.mjs";
 
 /** The public prototype HTML is emitted by the Vite multi-page build. */
 export function publicPrototypeAsset(pathname: string): string | null {
@@ -9,12 +10,18 @@ export function publicPrototypeAsset(pathname: string): string | null {
   return null;
 }
 
+// A card shows images of works from the image services the bonsai media modules name: the page loads
+// their images and, for the full view, their IIIF descriptions. Each host is admitted by name.
+const MEDIA_SOURCES = MEDIA_HOSTS.map((host: string) => `https://${host}`).join(" ");
+
 export function withReaderSecurity(response: Response): Response {
   const secured = withSecurity(response);
   // The reader compiles its bundled Rust WASM. JavaScript eval and inline
   // scripts stay disallowed; only WASM compilation is admitted on this Worker.
   secured.headers.set("Content-Security-Policy", secured.headers.get("Content-Security-Policy")!
-    .replace("script-src 'self'", "script-src 'self' 'wasm-unsafe-eval'"));
+    .replace("script-src 'self'", "script-src 'self' 'wasm-unsafe-eval'")
+    .replace("img-src 'self' data:", `img-src 'self' data: ${MEDIA_SOURCES}`)
+    .replace("connect-src 'self'", `connect-src 'self' ${MEDIA_SOURCES}`));
   return secured;
 }
 

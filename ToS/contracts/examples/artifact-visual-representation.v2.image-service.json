@@ -1,0 +1,110 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/artifact-visual-representation-v2.schema.json",
+  "schema_version": "tos_artifact_visual_representation_v2",
+  "representation_form": "image_service",
+  "representation_id": "tos.image-service.sha256.3a6bdcae71d38c233eeea30343765d3ad89952707707c1ed9794d6bcaa38df8c",
+  "artifact_id": "tos.artifact.dutch-painting.amsterdam.rijksmuseum-sk-c-5",
+  "artifact_ref": "ToS/source-witnesses/artifacts/dutch-painting/amsterdam/rijksmuseum-sk-c-5/artifact-witness.json",
+  "layer_kind": "photograph",
+  "view_label": "whole painting, Rijksmuseum IIIF image service",
+  "provider_records": [
+    {
+      "provider": "Rijksmuseum Data Services",
+      "role": "originating-record",
+      "record_url": "https://id.rijksmuseum.nl/200107928",
+      "api_url": "https://data.rijksmuseum.nl/200107928?_profile=la-framed",
+      "checked_at": "2026-11-08T03:00:53.993756571Z",
+      "response_fingerprint": {
+        "byte_size": 173384,
+        "sha256": "323a2b896ce89ad5e1a9f6ae4bee311e453c7841cfeb48a068da9cbdfa9531b8",
+        "captured": false
+      }
+    },
+    {
+      "provider": "Rijksmuseum IIIF Image API (iiif.micr.io)",
+      "role": "image-service-record",
+      "record_url": "https://iiif.micr.io/PJEZO/info.json",
+      "api_url": null,
+      "checked_at": "2026-11-08T03:00:56.220083343Z",
+      "response_fingerprint": {
+        "byte_size": 835,
+        "sha256": "ff297404d450a750af106f9e0793a055a46cc22565286a0c1643c525fcd963bd",
+        "captured": false
+      }
+    }
+  ],
+  "observation": {
+    "service_info_url": "https://iiif.micr.io/PJEZO/info.json",
+    "observed_at": "2026-11-08T03:00:56.220083343Z",
+    "transport": "https",
+    "technical_access_bypass_used": false,
+    "operator_authorization_ref": "operator-directive:example"
+  },
+  "image_service": {
+    "protocol": "http://iiif.io/api/image",
+    "api_version": "3",
+    "service_id": "https://iiif.micr.io/PJEZO",
+    "profile": "level2",
+    "width_pixels": 14645,
+    "height_pixels": 12158,
+    "max_area": 17550000,
+    "max_width": null,
+    "max_height": null,
+    "tiles": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "scale_factors": [
+          1,
+          2,
+          4,
+          8,
+          16
+        ]
+      }
+    ],
+    "formats": [
+      "jpg",
+      "png",
+      "webp"
+    ],
+    "qualities": [
+      "default",
+      "gray",
+      "color"
+    ],
+    "info_fingerprint": {
+      "url": "https://iiif.micr.io/PJEZO/info.json",
+      "byte_size": 835,
+      "sha256": "ff297404d450a750af106f9e0793a055a46cc22565286a0c1643c525fcd963bd",
+      "checked_at": "2026-11-08T03:00:56.220083343Z"
+    }
+  },
+  "rights_ref": "ToS/source-witnesses/artifacts/dutch-painting/amsterdam/rijksmuseum-sk-c-5/representations/whole-iiif-service/rights.json",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/example-rijksmuseum-sk-c-5.v1.json",
+  "provenance_event_ref": "tos.event.acquisition.example-rijksmuseum-sk-c-5-image-service",
+  "layer_separation": {
+    "visual_is_physical_artifact": false,
+    "visual_is_catalog_record": false,
+    "visual_is_transcription": false,
+    "embedded_text_admitted": false,
+    "same_bytes_as_originating_provider_asserted": false
+  },
+  "authority": {
+    "evidence_status": "visual_source_witness",
+    "review_status": "unreviewed",
+    "visibility": "public_metadata_only",
+    "source_text_admitted": false,
+    "semantic_authority": false,
+    "graph_authority": false,
+    "canon_authority": false,
+    "publication_authority": false
+  },
+  "maker": {
+    "maker_type": "software",
+    "agent_ref": "software:tos-native-owner-command/acquisition/media.observe",
+    "human_review_performed": false
+  },
+  "created_at": "2026-11-08T03:00:52.904275573Z",
+  "record_version": 1
+}
