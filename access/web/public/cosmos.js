@@ -250,7 +250,6 @@
   // `whole`: the near galaxies and the crowd come up too. A page that calls the sky up on its way out shows the field
   // alone, since a page loading behind the sky would lose them for a moment; the page that arrives raises them.
   function light(id,whole){
-    host.dataset.sky=root.getAttribute('data-site-theme')==='noon'?'noon':'midnight';
     var v=viewport(),area=v.w*v.h/1e6,scale=resolution();
     paintField(far,101,Math.round(620*area),[1.3,7],2.3,FAR,Math.round(220*area),scale);
     paintField(middle,202,Math.round(130*area),[3,15],2.1,NEAR,Math.round(60*area),scale);

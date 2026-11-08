@@ -102,26 +102,26 @@
 @keyframes cosmos-title{from{opacity:0;transform:translateY(8px)}to{opacity:.94;transform:none}}
 
 /* ── Midnight: the depth itself, black, its light the galaxies' own. */
-.tos-cosmos[data-sky=midnight] .cosmos-ground{background:radial-gradient(ellipse 110% 90% at 50% 46%,#070a12 0%,#030409 55%,#010103 100%)}
-.tos-cosmos[data-sky=midnight] .cosmos-veil{background:radial-gradient(ellipse 90% 80% at 50% 46%,transparent 60%,rgba(0,0,0,.5) 100%)}
-.tos-cosmos[data-sky=midnight] .cosmos-hush{background:radial-gradient(circle,rgba(1,2,5,.5) 0,rgba(1,2,5,.22) 40%,transparent 72%)}
-.tos-cosmos[data-sky=midnight] .cosmos-halo{background:radial-gradient(circle,rgba(240,220,176,.2) 0,rgba(198,174,124,.07) 34%,transparent 66%)}
-.tos-cosmos[data-sky=midnight] .cosmos-orbit::before{background:conic-gradient(from 0deg,rgba(214,190,140,.1) 0 62%,rgba(243,223,169,.6) 100%)}
-.tos-cosmos[data-sky=midnight] .cosmos-orbit i{background:#fbecc4;box-shadow:0 0 10px 3px rgba(243,223,169,.75)}
-.tos-cosmos[data-sky=midnight] .cosmos-title{color:#eee4cc;text-shadow:0 0 22px rgba(0,0,0,.9),0 0 30px rgba(233,213,173,.25)}
+:root:not([data-site-theme=noon]) .tos-cosmos .cosmos-ground{background:radial-gradient(ellipse 110% 90% at 50% 46%,#070a12 0%,#030409 55%,#010103 100%)}
+:root:not([data-site-theme=noon]) .tos-cosmos .cosmos-veil{background:radial-gradient(ellipse 90% 80% at 50% 46%,transparent 60%,rgba(0,0,0,.5) 100%)}
+:root:not([data-site-theme=noon]) .tos-cosmos .cosmos-hush{background:radial-gradient(circle,rgba(1,2,5,.5) 0,rgba(1,2,5,.22) 40%,transparent 72%)}
+:root:not([data-site-theme=noon]) .tos-cosmos .cosmos-halo{background:radial-gradient(circle,rgba(240,220,176,.2) 0,rgba(198,174,124,.07) 34%,transparent 66%)}
+:root:not([data-site-theme=noon]) .tos-cosmos .cosmos-orbit::before{background:conic-gradient(from 0deg,rgba(214,190,140,.1) 0 62%,rgba(243,223,169,.6) 100%)}
+:root:not([data-site-theme=noon]) .tos-cosmos .cosmos-orbit i{background:#fbecc4;box-shadow:0 0 10px 3px rgba(243,223,169,.75)}
+:root:not([data-site-theme=noon]) .tos-cosmos .cosmos-title{color:#eee4cc;text-shadow:0 0 22px rgba(0,0,0,.9),0 0 30px rgba(233,213,173,.25)}
 
 /* ── Noon: the great noon reads the same field as a plate, its negative in ink on warm paper. */
-.tos-cosmos[data-sky=noon] .cosmos-ground{background:radial-gradient(ellipse 110% 90% at 50% 46%,#fdf8ee 0%,#f5eedf 55%,#ebe1cc 100%)}
-.tos-cosmos[data-sky=noon] .cosmos-deep{filter:invert(1) hue-rotate(180deg) sepia(.35) saturate(.75) brightness(.92)}
-.tos-cosmos[data-sky=noon] .cosmos-veil{background:radial-gradient(ellipse 90% 80% at 50% 46%,transparent 62%,rgba(140,108,56,.14) 100%)}
-.tos-cosmos[data-sky=noon] .cosmos-hush{background:radial-gradient(circle,rgba(253,248,238,.85) 0,rgba(253,248,238,.5) 36%,transparent 68%)}
-.tos-cosmos[data-sky=noon] .cosmos-halo{background:radial-gradient(circle,rgba(255,232,170,.75) 0,rgba(244,206,128,.25) 34%,transparent 68%)}
-.tos-cosmos[data-sky=noon] .cosmos-mark{filter:invert(1) hue-rotate(180deg) brightness(.55)}
+:root[data-site-theme=noon] .tos-cosmos .cosmos-ground{background:radial-gradient(ellipse 110% 90% at 50% 46%,#fdf8ee 0%,#f5eedf 55%,#ebe1cc 100%)}
+:root[data-site-theme=noon] .tos-cosmos .cosmos-deep{filter:invert(1) hue-rotate(180deg) sepia(.35) saturate(.75) brightness(.92)}
+:root[data-site-theme=noon] .tos-cosmos .cosmos-veil{background:radial-gradient(ellipse 90% 80% at 50% 46%,transparent 62%,rgba(140,108,56,.14) 100%)}
+:root[data-site-theme=noon] .tos-cosmos .cosmos-hush{background:radial-gradient(circle,rgba(253,248,238,.85) 0,rgba(253,248,238,.5) 36%,transparent 68%)}
+:root[data-site-theme=noon] .tos-cosmos .cosmos-halo{background:radial-gradient(circle,rgba(255,232,170,.75) 0,rgba(244,206,128,.25) 34%,transparent 68%)}
+:root[data-site-theme=noon] .tos-cosmos .cosmos-mark{filter:invert(1) hue-rotate(180deg) brightness(.55)}
 /* The Tree's own mark has a drawing of its own for the noon, in ink with gold stars; a bonsai's tree is turned as the plate is. */
-.tos-cosmos[data-sky=noon]:not([data-tree]) .cosmos-mark{filter:none;background-image:url(tree-mark-noon.svg)}
-.tos-cosmos[data-sky=noon] .cosmos-orbit::before{background:conic-gradient(from 0deg,rgba(131,96,31,.1) 0 62%,rgba(131,96,31,.55) 100%)}
-.tos-cosmos[data-sky=noon] .cosmos-orbit i{background:#83601f;box-shadow:0 0 8px 2px rgba(196,150,62,.55)}
-.tos-cosmos[data-sky=noon] .cosmos-title{color:#3b3122;text-shadow:0 0 18px rgba(253,248,238,1)}
+:root[data-site-theme=noon] .tos-cosmos:not([data-tree]) .cosmos-mark{filter:none;background-image:url(tree-mark-noon.svg)}
+:root[data-site-theme=noon] .tos-cosmos .cosmos-orbit::before{background:conic-gradient(from 0deg,rgba(131,96,31,.1) 0 62%,rgba(131,96,31,.55) 100%)}
+:root[data-site-theme=noon] .tos-cosmos .cosmos-orbit i{background:#83601f;box-shadow:0 0 8px 2px rgba(196,150,62,.55)}
+:root[data-site-theme=noon] .tos-cosmos .cosmos-title{color:#3b3122;text-shadow:0 0 18px rgba(253,248,238,1)}
 
 /* A reader who asked for stillness has the sky without its motion. */
 .tos-cosmos.is-still *{animation:none!important}
