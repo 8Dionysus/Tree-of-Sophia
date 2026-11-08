@@ -5,8 +5,8 @@
 // receives every trial and reading through the existing cognitive session.
 import Graph from 'graphology';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
-import {copyLocale,localeText,localeValue,resolveLocale} from './locale.mjs';
-import {chapterTitle} from './fragments.mjs';
+import {copyLocale,localeText,localeValue} from './locale.mjs';
+import {chapterName as nameOfChapter} from './fragments.mjs';
 import './knowing.css';
 
 const SVG='http://www.w3.org/2000/svg';
@@ -43,7 +43,7 @@ export function mountKnowing({root,index,locale,notebook,profile,fragments,onOpe
   const placeOf=link=>{const r=link.record,cite=r.grounds?.[0]??r.cite;return Array.isArray(cite)?cite[0]:cite;};
   let chapters=new Map();
   void import('../../../../bonsai/zarathustra/witnesses.json').then(module=>{chapters=new Map((module.default??module).chapters.map(item=>[item.key,item]));if(!disposed)paint();}).catch(()=>{});
-  const chapterName=key=>{const chapter=chapters.get(key),language=resolveLocale(locale());return chapter?chapterTitle(chapter,['ru','de'].includes(language)?language:'en')||key:key;};
+  const chapterName=key=>nameOfChapter(chapters.get(key),locale())||key;
   // A rumor names where it is heard; the link's own question joins it when it differs from its star's question.
   const rumorOf=(link,from)=>{const own=tr(link.record.question),general=tr(nodes.get(from)?.record?.question),place=placeOf(link);const target=other(link,from);return {head:`→ ${kindWord(target).toLocaleLowerCase()} ?${place?.c?` · ${chapterName(place.c)}`:''}`,question:own&&own!==general?own:''};};
 

@@ -12,7 +12,7 @@ import {readChapter,fragmentOf,displayText} from '../../../../bonsai/lib/witness
 import {readCorpusFragmentRange} from './corpus-fragment-range.mjs';
 import {modernRussian,isPreReform} from './orthography.mjs';
 import {createLatestFragmentRequest} from './fragment-request.mjs';
-import {copyLocale,localeValue,resolveLocale,shownLanguages} from './locale.mjs';
+import {copyLocale,localeText,localeValue,resolveLocale,shownLanguages} from './locale.mjs';
 
 const ZARATHUSTRA='also-sprach-zarathustra';
 const chapterFiles=import.meta.glob('../../../../bonsai/zarathustra/witnesses/*.json',{import:'default'});
@@ -59,6 +59,17 @@ export function chapterTitle(chapter,language){
     if(value===value.toUpperCase())value=value.toLowerCase().split(' ').map((word,index)=>index&&SMALL.has(word)?word:word.replace(/\p{L}/u,letter=>letter.toUpperCase())).join(' ');
   }
   return value;
+}
+/**
+ * A chapter's name for a reader: its title in the witness of the reader's language; where that witness omits the
+ * chapter, the stand's own name for it; in a language without a witness, the English title as the catalog renders it.
+ */
+export function chapterName(chapter,locale){
+  if(!chapter)return '';
+  const language=resolveLocale(locale);
+  if(language==='ru'||language==='de'||language==='en')return chapterTitle(chapter,language)||chapter.names?.[language]||chapterTitle(chapter,'en');
+  const raw=chapter.titles?.en??'',translated=localeText(raw,language);
+  return translated!==raw?translated.replace(/^[IVXLC]+\.\s*/,'').replace(/\.$/,'').trim():chapterTitle(chapter,'en');
 }
 
 /** Text of a fragment in one witness: the cited part of each unit, verse keeping its lines. */
@@ -280,7 +291,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       if(omitted.length){const absent=el('span','ps-fragment-absent','∅');absent.setAttribute('aria-label',words('fragmentOmitted'));hint?.(absent,words('fragmentOmitted'));tools.append(absent);}
       const whole=button(`↗ ${words('fragmentWhole')}`,'text-button ps-fragment-whole');
       whole.addEventListener('click',()=>void showChapter(cite.c,cite).catch(error=>onError?.(error)));
-      tools.append(whole);copyTool(figure,tools);figure.append(tools);
+      tools.append(whole);copyTool(figure,tools);figure.append(tools);painted(figure);
     };
     paint();
   }
@@ -321,7 +332,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       const witness=witnessOf(showing[0]);
       const [url,opens]=place.links?.[showing[0]]?[place.links[showing[0]],'work']:place.url?[place.url,place.opens??'book']:[witness?.url,witness?.opens??'work'];
       if(typeof url==='string'&&/^https:\/\//.test(url)){const link=el('a','text-button ps-fragment-whole',`↗ ${words({quotation:'fragmentQuoted',book:'fragmentBook'}[opens]??'fragmentWhole')}`);link.href=url;link.target='_blank';link.rel='noopener noreferrer';tools.append(link);}
-      copyTool(figure,tools);figure.append(tools);
+      copyTool(figure,tools);figure.append(tools);painted(figure);
     };
     paint();
   }
@@ -395,7 +406,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
         quote.append(...nodes);
         const references=[...new Set(value.map(item=>placeName(item.reference)).filter(Boolean))];
         const caption=el('figcaption','ps-fragment-cite');
-        caption.append(el('span','ps-fragment-source',[version?.label,references.length?references[0]+(references.length>1?`–${references.at(-1)}`:''):'',value.some(item=>item.respelled)?words('modernSpelling'):''].filter(Boolean).join(' · ')));
+        caption.append(el('span','ps-fragment-source',[...saidOnce(String(version?.label??'').split(' · ')),references.length?references[0]+(references.length>1?`–${references.at(-1)}`:''):'',value.some(item=>item.respelled)?words('modernSpelling'):''].filter(Boolean).join(' · ')));
         figure.append(quote,caption);
       }
       const tools=el('div','ps-fragment-tools');
@@ -413,9 +424,24 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
         const shown=versionFor(showing[0])??work.original,unitId=shown===work.original?first:(texts.get(showing[0])??[])[0]?.id;
         if(unitId){const whole=button(`↗ ${words('fragmentWhole')}`,'text-button ps-fragment-whole');whole.addEventListener('click',()=>void openAddress({documentId:work.documentId,versionId:shown.versionId,revision:shown.revision,unitId}).catch(error=>onError?.(error)));tools.append(whole);}
       }
-      copyTool(figure,tools);figure.append(tools);
+      copyTool(figure,tools);figure.append(tools);painted(figure);
     };
     await paint();
+  }
+  // A figure tells the page when its text is shown, and again when the reader turns it to another language.
+  const painted=figure=>figure.dispatchEvent(new CustomEvent('ps-fragment-painted',{bubbles:true}));
+  // A part of an edition's label that an earlier part already says is said once ("…, 1934 · 1934").
+  const saidOnce=parts=>parts.filter((part,at)=>part&&!parts.slice(0,at).some(earlier=>earlier.includes(part)));
+  // Quotations of one source in a row name it once, under the last of them.
+  const sourceOf=figure=>[...figure.querySelectorAll(':scope > .ps-fragment-cite')].map(node=>node.textContent).join('\n');
+  function shareSource(box){
+    const figures=[...box.querySelectorAll(':scope > .ps-fragment')];
+    figures.forEach((figure,at)=>{const own=sourceOf(figure),next=figures[at+1];figure.classList.toggle('is-same-source',!!own&&!!next&&own===sourceOf(next));});
+  }
+  // Places of one source beside the same words name it once, above the first of them.
+  function shareGroundSource(aside){
+    const figures=[...aside.querySelectorAll(':scope > .rb-ground > .ps-fragment')];
+    figures.forEach((figure,at)=>{const own=sourceOf(figure),before=figures[at-1];figure.parentElement.classList.toggle('is-same-source',!!own&&!!before&&own===sourceOf(before));});
   }
   /** One cited place as a figure, filled when its text arrives. */
   function fragment(cite){
@@ -429,14 +455,31 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
    * Append a form: the places it cites, then its own words. Returns the
    * element appended, or null when the form neither says nor shows anything.
    */
-  function render(parent,value,{className='body',tag='p'}={}){
+  function render(parent,value,{className='body',tag='p',grounds=false}={}){
     const cites=citesOf(value),own=local(value).trim();
     if(!cites.length&&!own)return null;
     const box=el('div','ps-authored');
-    for(const cite of cites)box.append(fragment(cite));
-    if(own)box.append(el(tag,className,own));
+    if(grounds&&(own||grounds==='places')){
+      // In the book the stand's own words lead and the places they rest on stand beside them: each place shows
+      // its first lines and its source, and opens whole where it stands. A list of places alone is laid out the same way.
+      box.classList.add('rb-claim');if(own){const words=el('div','rb-claim-text');words.append(el(tag,className,own));box.append(words);}else box.classList.add('is-places');
+      if(cites.length){const aside=el('div','rb-grounds');for(const cite of cites)aside.append(ground(cite));if(cites.length>1)aside.addEventListener('ps-fragment-painted',()=>shareGroundSource(aside));box.append(aside);}
+    }else{
+      for(const cite of cites)box.append(fragment(cite));
+      if(cites.length>1)box.addEventListener('ps-fragment-painted',()=>shareSource(box));
+      if(own)box.append(el(tag,className,own));
+    }
     parent.append(box);
     return box;
+  }
+  /** A place beside the words it grounds: its first lines, opened whole on request. */
+  function ground(cite){
+    const wrap=el('div','rb-ground'),figure=fragment(cite),toggle=button(words('groundOpen'),'rb-ground-toggle');
+    toggle.setAttribute('aria-expanded','false');
+    toggle.addEventListener('click',()=>{const open=!wrap.classList.contains('is-open');wrap.classList.toggle('is-open',open);toggle.setAttribute('aria-expanded',String(open));toggle.textContent=words(open?'groundClose':'groundOpen');});
+    // A folded place opens where it is pressed, as well as by its own button.
+    figure.addEventListener('click',event=>{if(!wrap.classList.contains('is-open')&&!event.target.closest?.('button,a'))toggle.click();});
+    wrap.append(figure,toggle);return wrap;
   }
   return {render,fragment,showChapter,sourceSelection,citesOf,hasAuthored:value=>hasAuthored(value,locale()),get reader(){return reader;},dispose(){chapterRequests.cancel();reader?.dialog.remove();reader=null;}};
 }

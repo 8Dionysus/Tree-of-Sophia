@@ -1,0 +1,453 @@
+/* The reference as a book of the tree. Written for the night; the build gives every light theme its twin.
+   The page has three columns where the screen allows: the names of the parts hang in the left margin, the text
+   keeps a reading measure, and the places the text rests on stand in the right margin beside the words they ground. */
+/* The book's night: the ink of a night page, warm paper-white words and the gold of the tree. */
+:root{
+  --rb-ground:#0D0F17;--rb-well:#13151F;--rb-veil:#0D0F17F2;
+  --rb-white:#FFFBF2;--rb-ink:#F0EADC;--rb-text:#D8D2C6;--rb-muted:#A39C8F;--rb-faint:#736D64;
+  --rb-gold:#DCC690;--rb-gold-soft:#C9AF78;--rb-gold-line:#DCC69080;--rb-gold-wash:#DCC69014;
+  --rb-rule:#E6D5AA1F;--rb-edge:#E6D5AA33;
+}
+.rb-contents,.rb-article,.experience-body:has(>.rb-article){
+  --rb-serif:Sophia,'Noto Serif',Georgia,'Times New Roman',serif;--rb-sans:system-ui,-apple-system,'Segoe UI',sans-serif;
+  --rb-label:8.5rem;--rb-measure:40rem;--rb-margin:17.5rem;--rb-gap:2.25rem;
+  /* One scale of sizes: the sans for the apparatus in three steps, the serif for the text from its margins to its titles. */
+  --rb-micro:.78rem;--rb-meta:.84rem;--rb-ui:.92rem;
+  --rb-s:.92rem;--rb-m:1rem;--rb-body:1.08rem;--rb-h4:1.2rem;--rb-lead:1.3rem;--rb-h2:1.6rem;--rb-h1:2rem;
+  color:var(--rb-text);font-family:var(--rb-serif);
+}
+/* The page of the book lies under the whole reader while the book is open, lit softly over its head and even below,
+   where the bar and the strip of parts lie on it in its own colour. */
+body:has(#public-reader-host :is(.rb-contents,.rb-article)){background:radial-gradient(75% 620px at 50% 0,#17171E 0,#11131B 50%,#0D0F1700 100%) no-repeat var(--rb-ground)}
+/* The bar over the book wears the book's night, over the bar's own colours for the modes beside the map. */
+#research-bar[data-mode=reference]:not([data-mode=original]){--ps-line:var(--rb-rule);--ps-line-strong:var(--rb-edge);background:var(--rb-veil);border-bottom-color:var(--rb-rule)}
+#research-bar[data-mode=reference] :is(.pr-spaces,.ps-locale-select,.rb-more,.rb-mode-current){border-color:var(--rb-edge);background:var(--rb-well)}
+:root:lang(zh-Hans) :is(.rb-contents,.rb-article,.experience-body:has(>.rb-article)){--rb-serif:'Noto Serif CJK SC','Songti SC',SimSun,serif;--rb-sans:'Noto Sans CJK SC','Microsoft YaHei',system-ui,sans-serif}
+/* The figures of the text stand among its letters; titles break into balanced lines and paragraphs keep their last
+   word company. */
+.rb-article :is(.rb-claim-text,.rb-lead,.ps-fragment-text,.rb-turn-text,.rb-question,.rb-move-question,.rb-ask-line),.rb-contents :is(.rb-entry-line,.rb-part-line,.rb-book-note,.rb-entry-n){font-variant-numeric:oldstyle-nums proportional-nums}
+:is(.rb-title,.rb-book-title,.rb-section-title,.rb-part-title,.rb-move-title,.rb-entry-title,.rb-question,.rb-book-note,.rb-page-title){text-wrap:balance}
+.rb-article :is(.rb-claim-text>.body,.rb-claim-text>p,.rb-lead-text,.ps-fragment-line,.rb-turn-text,.rb-move-question,.rb-ask-line),.rb-contents :is(.rb-entry-line,.rb-part-line){text-wrap:pretty}
+.rb-keep{white-space:nowrap}
+.rb-keep>*{white-space:normal}
+:where(.rb-contents,.rb-article) button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+.rb-contents :is(button,a):focus-visible,.rb-article :is(button,a,summary):focus-visible{outline:2px solid var(--rb-gold);outline-offset:2px;border-radius:2px}
+.rb-link,.rb-entry-title,.rb-work-title,.rb-index-name,.rb-link-end,.rb-chip,.rb-place-link{color:var(--rb-ink);text-decoration:none}
+:is(.rb-link,.rb-entry-title,.rb-work-title,.rb-index-name,.rb-link-end,.rb-place-link):hover{color:var(--rb-white);text-decoration:underline;text-decoration-color:var(--rb-gold-line);text-underline-offset:.2em}
+
+/* ── The experience gives the book the whole width of its column. */
+#public-reader-host .experience-pane:not(.is-cognitive)>.experience-body:has(.rb-article,.rb-contents){max-width:calc(var(--rb-wide,71.5rem) + 1rem)}
+.experience-body:has(>.rb-article){display:block}
+.rb-article>.experience-toc{position:sticky;top:var(--rb-h,0px);z-index:5;display:flex;gap:.1rem 1.4rem;overflow-x:auto;max-width:calc(var(--rb-measure) + var(--rb-gap) + var(--rb-margin));margin:1rem 0 0;padding:.5rem 0 0;border:0;border-bottom:1px solid var(--rb-rule);background:none;backdrop-filter:none;scrollbar-width:none;font:var(--rb-meta)/1.3 var(--rb-sans)}
+/* On the page the strip of parts is a line of words over a rule. Held under the bar it becomes the bar's second row:
+   the bar's veil runs under it from edge to edge, with the rule below it. */
+.rb-article>.experience-toc.is-stuck{border-image:linear-gradient(var(--rb-veil) calc(100% - 1px),var(--rb-rule) 0) fill 0/0/0 100vmax;backdrop-filter:blur(14px)}
+.rb-article>.experience-toc[hidden]{display:none}
+.rb-article>.experience-toc .experience-toc-title{display:none}
+.rb-article>.experience-toc .experience-toc-link{flex:none;width:auto;margin:0;padding:.25rem 0 .5rem;border:0;border-bottom:2px solid transparent;border-radius:0;white-space:nowrap;color:var(--rb-muted);background:none}
+.rb-article>.experience-toc .experience-toc-link:hover{color:var(--rb-text)}
+.rb-article>.experience-toc .experience-toc-link[aria-current=true]{border-bottom-color:var(--rb-gold);color:var(--rb-ink);background:none}
+.experience-article.rb-article{max-width:calc(var(--rb-label) + var(--rb-gap) + var(--rb-measure) + var(--rb-gap) + var(--rb-margin));padding-left:calc(var(--rb-label) + var(--rb-gap));box-sizing:border-box}
+.rb-article :is(.rb-section,.ps-core-section){scroll-margin-top:calc(var(--rb-h,0px) + 3.5rem)}
+/* The reader's trail of pages closes the book quietly. */
+#public-reader-host .experience-pane:has(.rb-article,.rb-contents)>.experience-history{max-width:calc(var(--rb-wide,71.5rem) + 1rem);border-top:1px solid var(--rb-rule)}
+#public-reader-host .experience-pane:has(.rb-article,.rb-contents)>.experience-history>summary{list-style:none;color:var(--rb-muted);font:.84rem/1.4 system-ui,-apple-system,'Segoe UI',sans-serif}
+#public-reader-host .experience-pane:has(.rb-article,.rb-contents)>.experience-history>summary::-webkit-details-marker{display:none}
+#public-reader-host .experience-pane:has(.rb-article,.rb-contents)>.experience-history>summary:hover{color:var(--rb-text)}
+
+/* ── The path above an article: the part of the book, the region, the branch. */
+.rb-trail-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.6rem 1.5rem;margin:.2rem 0 2rem}
+.rb-trail{display:flex;flex-wrap:wrap;align-items:baseline;gap:.15rem .45rem;margin:0;font:var(--rb-meta)/1.4 var(--rb-sans);color:var(--rb-muted)}
+.rb-crumb{color:var(--rb-muted)!important;text-decoration:none}
+.rb-crumb:hover{color:var(--rb-ink)!important;text-decoration:underline}
+.rb-crumb-sep{color:var(--rb-faint)}
+
+/* The search stands in the book's own row: beside the tabs of the contents, beside the path of an article. */
+.rb-tools{position:relative;flex:0 1 17rem;min-width:12rem}
+.rb-tools:empty{display:none}
+.rb-tools .experience-search{margin:0!important;max-width:none!important}
+.rb-tools .experience-search input{box-sizing:border-box;width:100%;padding:.42rem .75rem;border:1px solid var(--rb-edge);border-radius:.45rem;background:var(--rb-well);color:var(--rb-ink);font:var(--rb-meta)/1.3 var(--rb-sans)}
+.rb-tools .experience-search input::placeholder{color:var(--rb-muted)}
+.rb-tools .experience-search-results{position:absolute;right:0;top:calc(100% + .4rem);z-index:30;display:grid;gap:0;width:min(30rem,calc(100vw - 2rem));max-height:60vh;overflow:auto;margin:0;padding:.3rem;border:1px solid var(--rb-edge);border-radius:.6rem;background:var(--rb-veil);box-shadow:0 18px 40px #00000066}
+.rb-tools .experience-search-results:empty{display:none}
+.rb-tools .experience-search-results>p{margin:.4rem .6rem;color:var(--rb-muted);font:var(--rb-meta)/1.4 var(--rb-sans)}
+.rb-tools .experience-result{border:0;border-radius:.35rem;background:none;padding:.45rem .6rem;font:var(--rb-m)/1.35 var(--rb-serif);color:var(--rb-text)}
+.rb-tools .experience-result:hover,.rb-tools .experience-result:focus-visible{background:var(--rb-gold-wash);color:var(--rb-white)}
+
+/* ── The head: kind, name, source and facts; beside it the place on the tree. */
+.rb-head{display:grid;grid-template-columns:minmax(0,1fr) var(--rb-margin);column-gap:var(--rb-gap);align-items:start;margin-bottom:1.6rem}
+.rb-kind{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem .7rem;margin:0 0 .7rem;font:var(--rb-meta)/1.4 var(--rb-sans);color:var(--rb-gold-soft)}
+.rb-kind>.ps-sign{display:inline-block;width:1.05em;height:1.05em;flex:none}
+.rb-kind>.ps-sign svg{display:block;width:100%;height:100%}
+.rb-kind-place{color:var(--rb-muted)}
+.rb-status{padding:.1rem .55rem;border:1px solid var(--rb-edge);border-radius:99px;color:var(--rb-muted);font-size:.76rem}
+.rb-title{margin:0;font:400 clamp(2.1rem,3.4vw,2.9rem)/1.1 var(--rb-serif);letter-spacing:-.005em;color:var(--rb-ink);text-wrap:balance}
+.rb-ends{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem .8rem;margin:.9rem 0 0;font:var(--rb-body)/1.35 var(--rb-serif)}
+.rb-ends-end{display:inline-flex;align-items:baseline;gap:.45rem;color:var(--rb-ink)}
+.rb-ends-end>.ps-sign{display:inline-block;width:.9em;height:.9em;flex:none;align-self:center}
+.rb-ends-end>.ps-sign svg{display:block;width:100%;height:100%}
+.rb-ends-end:hover{text-decoration:underline;text-decoration-color:var(--rb-gold-line);text-underline-offset:.2em}
+.rb-ends-to{display:inline-flex;flex-wrap:wrap;align-items:center;gap:.4rem .8rem}
+.rb-ends-line{display:inline-flex;align-items:center;gap:.5rem;font:var(--rb-meta)/1.3 var(--rb-sans);color:var(--link-color,#A5B7CF)}
+.rb-ends-line .rb-link-line{width:1.6rem}
+.rb-ends-line[data-dash="dashed"] .rb-link-line{border-top-style:dashed}
+.rb-ends-arrow{margin-left:-.35rem}
+
+.rb-source{margin:.75rem 0 0;font:var(--rb-ui)/1.45 var(--rb-sans);color:var(--rb-muted)}
+.rb-facts{display:flex;flex-wrap:wrap;gap:.3rem 1.2rem;margin:.8rem 0 0;font:var(--rb-meta)/1.4 var(--rb-sans)}
+.rb-facts .ps-fact{margin:0;max-width:100%}
+.rb-facts .ps-fact>summary{list-style:none;display:flex;flex-wrap:wrap;gap:0 .4rem;align-items:baseline;cursor:pointer;color:var(--rb-text)}
+.rb-facts .ps-fact>summary::-webkit-details-marker{display:none}
+.rb-facts .ps-fact-icon{color:var(--rb-gold)}
+.rb-facts .ps-fact-context{color:var(--rb-muted)}
+.rb-facts .ps-fact[open]{flex-basis:100%}
+.rb-facts .ps-fact-body{margin:.4rem 0 .2rem 1.3rem;max-width:var(--rb-measure);color:var(--rb-muted);font-size:.86rem;line-height:1.5}
+.rb-facts .ps-fact-body a{color:var(--rb-gold-soft)}
+.rb-head-text{min-width:0}
+.rb-place{grid-column:2;grid-row:1;display:grid;gap:.9rem;justify-items:start;min-width:0;padding-top:.2rem}
+.rb-place>.rb-mini{max-width:13.5rem}
+.rb-place>.rb-grounds{grid-column:auto;width:100%;padding-top:.4rem}
+/* Without a figure of the tree the places the lead rests on stand level with the lead. */
+.rb-place:not(:has(.rb-mini)){align-self:end}
+/* A place the body quotes in full is not repeated beside the lead. */
+.rb-place .rb-ground:has(.ps-fragment-repeat){display:none}
+.rb-article .rb-head .ps-authored.rb-claim{display:block;max-width:var(--rb-measure)}
+.rb-head .rb-opening{margin:1.6rem 0 0}
+.rb-mini{display:grid;gap:.35rem;justify-items:start;width:100%;padding:.2rem 0!important}
+.rb-mini svg{display:block;width:100%;height:auto}
+.rb-mini-caption{font:var(--rb-meta)/1.3 var(--rb-sans);color:var(--rb-gold-soft)}
+.rb-mini:hover .rb-mini-caption{color:var(--rb-gold);text-decoration:underline}
+.rb-actions{display:flex;flex-wrap:wrap;gap:.4rem 1.1rem;margin:.9rem 0 0;font:var(--rb-meta)/1.3 var(--rb-sans)}
+.rb-action{padding:.1rem 0;color:var(--rb-gold-soft)}
+.rb-action:hover{color:var(--rb-gold);text-decoration:underline;text-decoration-color:var(--rb-gold-line);text-underline-offset:.22em}
+
+/* ── The figure of the tree: lines faint, stars as dust; a lit star and its links stand out of it. */
+.rb-tree{overflow:visible}
+.rb-tree-lines path{fill:none;stroke-width:.8;stroke-opacity:.32;vector-effect:non-scaling-stroke}
+.rb-tree-lines path[data-tone="limb"]{stroke-width:1.6;stroke-opacity:.38}
+.rb-tree-stars circle{fill:var(--rb-text);fill-opacity:.42;transition:fill-opacity .3s}
+.rb-tree.is-lit .rb-tree-stars circle{fill-opacity:.16}
+.rb-tree .rb-tree-stars circle.is-near{fill:var(--rb-ink);fill-opacity:.95;r:2.4px}
+.rb-tree .rb-tree-stars circle.is-current{fill-opacity:0}
+.rb-tree-link{fill:none;stroke-width:1.1;stroke-opacity:.75;vector-effect:non-scaling-stroke}
+.rb-tree-halo{fill:none;stroke:var(--rb-gold);stroke-opacity:.45;stroke-width:1}
+.rb-tree-current{fill:var(--rb-gold)}
+/* The names of the strata beside the frontispiece lead to their parts of the contents. */
+.rb-tree-strata text{font:12.5px system-ui,-apple-system,'Segoe UI',sans-serif;fill:var(--rb-muted);cursor:pointer;transition:fill .2s}
+.rb-tree-strata text:hover,.rb-tree-strata text.is-current{fill:var(--rb-gold)}
+@media(prefers-reduced-motion:reduce){.rb-tree-stars circle,.rb-tree-strata text{transition:none}}
+
+/* ── The opening: the question, the lead with its grounds, the book's own formula. */
+.rb-question{max-width:var(--rb-measure);margin:0 0 1.2rem;font:italic var(--rb-h4)/1.5 var(--rb-serif);color:var(--rb-gold-soft)}
+.rb-lead{margin:0 0 1.4rem}
+.rb-lead .rb-lead-text,.rb-lead>.ps-authored>.body{margin:0;font:var(--rb-lead)/1.6 var(--rb-serif);color:var(--rb-ink);white-space:normal}
+.rb-voice{max-width:var(--rb-measure);margin:0 0 1rem;font:italic var(--rb-m)/1.5 var(--rb-serif);color:var(--rb-muted)}
+.rb-lemma{max-width:var(--rb-measure);margin:0 0 .9rem;font:italic var(--rb-h2)/1.3 var(--rb-serif);color:var(--rb-gold)}
+.rb-epigraph{display:flex;flex-direction:column;max-width:calc(var(--rb-measure) - 3rem);margin:1.6rem 0 1.4rem 3rem}
+/* The epigraph reads as the quotation, its source and its voice in one column; the tools of the place come last. */
+.rb-article .rb-epigraph>.ps-fragment{display:contents}
+.rb-article .rb-epigraph .ps-fragment-text{order:1;margin:0;padding:0;border:0;font:italic var(--rb-body)/1.65 var(--rb-serif);color:var(--rb-text)}
+.rb-article .rb-epigraph .ps-fragment-cite{order:2;margin:.55rem 0 0;padding:0}
+.rb-article .rb-epigraph>.ps-core-voice{order:3;margin:.1rem 0 0;font:italic var(--rb-micro)/1.45 var(--rb-sans);color:var(--rb-faint)}
+.rb-article .rb-epigraph .ps-fragment-tools{order:4;margin:.2rem 0 0}
+
+/* ── A claim: the stand's words in the measure, the places they rest on in the margin beside them. A place shows
+   its source and its first lines; the places after the first show their source alone until they are opened. */
+.rb-article .ps-authored{max-width:var(--rb-measure);margin:0 0 1.1rem}
+.rb-article .ps-authored.rb-claim{display:grid;grid-template-columns:minmax(0,var(--rb-measure)) var(--rb-margin);grid-template-rows:auto 1fr;column-gap:var(--rb-gap);max-width:none;align-items:start}
+.rb-claim-text{grid-column:1;min-width:0}
+/* The grounds stand beside the words and the question they leave, which follows the words without waiting for them. */
+.rb-claim>.rb-grounds{grid-row:1/span 2}
+.rb-claim>:not(.rb-claim-text,.rb-grounds){grid-column:1}
+.rb-article .rb-claim-text>.body,.rb-article .rb-claim-text>p{margin:0;font:var(--rb-body)/1.72 var(--rb-serif);color:var(--rb-text);white-space:pre-line}
+.rb-article .rb-claim-text>.ps-core-status{margin:.35rem 0 0}
+.rb-article .rb-claim.is-places{display:block}
+.rb-article .rb-claim.is-places>.rb-grounds{grid-template-columns:repeat(auto-fill,minmax(min(100%,var(--rb-margin)),1fr));column-gap:var(--rb-gap);max-width:calc(var(--rb-measure) + var(--rb-gap) + var(--rb-margin))}
+.rb-grounds{grid-column:2;display:grid;gap:.7rem;align-content:start;padding-top:.35rem;min-width:0}
+.rb-ground{position:relative;display:grid;min-width:0;padding:0 1.6rem 0 .85rem;border-left:1px solid #DCC69040}
+.rb-ground:has(.ps-fragment-repeat) .rb-ground-toggle{display:none}
+.rb-article .rb-ground .ps-fragment{display:flex;flex-direction:column;min-width:0;margin:0;padding:0;border:0;background:none}
+.rb-article .rb-ground .ps-fragment-cite{order:-1;margin:0 0 .2rem;font:var(--rb-micro)/1.35 var(--rb-sans);color:var(--rb-faint)}
+.rb-article .rb-ground .ps-fragment-text{margin:0;padding:0;border:0;font:var(--rb-s)/1.55 var(--rb-serif);color:var(--rb-muted)}
+.rb-article .rb-ground .ps-fragment-line{margin:0 0 .35em}
+.rb-ground:not(.is-open) .ps-fragment{cursor:pointer}
+.rb-ground:not(.is-open) .ps-fragment-cite{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.rb-ground:not(.is-open) .ps-fragment-text{max-height:3.1em;overflow:hidden;-webkit-mask-image:linear-gradient(#000 50%,transparent);mask-image:linear-gradient(#000 50%,transparent)}
+.rb-ground:not(.is-open) .ps-fragment-text~.ps-fragment-text,.rb-ground:not(.is-open) .ps-fragment-cite~.ps-fragment-cite,.rb-ground:not(.is-open) .ps-fragment-tools{display:none}
+/* A later place beside the same words shows its first line; a place of the source named just above it is not named again. */
+.rb-claim:not(.is-places) .rb-ground+.rb-ground:not(.is-open) .ps-fragment-text{max-height:1.6em;-webkit-mask-image:linear-gradient(90deg,#000 72%,transparent);mask-image:linear-gradient(90deg,#000 72%,transparent)}
+.rb-claim:not(.is-places) .rb-ground.is-same-source:not(.is-open) .ps-fragment-cite{display:none}
+.rb-ground:not(.is-open):hover .ps-fragment-cite{color:var(--rb-muted)}
+.rb-ground.is-open .ps-fragment-text{color:var(--rb-text)}
+.rb-ground .ps-fragment-tools{display:flex;flex-wrap:wrap;gap:.2rem .7rem;margin-top:.35rem;font:var(--rb-micro)/1.3 var(--rb-sans)}
+.rb-ground-toggle{position:absolute;top:-.1rem;right:0;display:grid;place-items:center;width:1.4rem;height:1.4rem;font-size:0!important;color:var(--rb-gold-soft)!important;border-radius:50%}
+.rb-ground-toggle::before{content:'+';font:1rem/1 var(--rb-sans)}
+.rb-ground.is-open .rb-ground-toggle::before{content:'−'}
+.rb-ground-toggle:hover{color:var(--rb-gold)!important;background:#DCC69018!important}
+/* A quotation that stands in the text itself: the passage of a source, a section that only cites. */
+.rb-article .ps-authored:not(.rb-claim) .ps-fragment-text,.rb-article :is(.rb-section-body,.rb-move,.rb-body,.ps-core-section)>.ps-fragment .ps-fragment-text{margin:0 0 .4rem;padding:.05rem 0 .05rem 1.1rem;border:0;border-left:2px solid #DCC69055;font:var(--rb-m)/1.72 var(--rb-serif);color:var(--rb-text)}
+.rb-article .ps-fragment-cite{font:var(--rb-micro)/1.4 var(--rb-sans);color:var(--rb-faint)}
+.rb-article .ps-fragment-tools{font:var(--rb-micro)/1.3 var(--rb-sans)}
+.rb-article .ps-fragment-tools .text-button{color:var(--rb-gold-soft);padding:.1rem 0}
+/* A quotation in the text: the words across the measure, its source and its tools on one line under them. */
+.rb-article .ps-fragment:not(.rb-ground .ps-fragment,.rb-epigraph .ps-fragment){display:flex;flex-wrap:wrap;align-items:baseline;column-gap:1.1rem;row-gap:.1rem}
+.rb-article .ps-fragment:not(.rb-ground .ps-fragment,.rb-epigraph .ps-fragment)>.ps-fragment-text{flex:1 0 100%}
+.rb-article .ps-fragment:not(.rb-ground .ps-fragment,.rb-epigraph .ps-fragment)>:is(.ps-fragment-cite,.ps-fragment-tools){margin:0}
+.rb-article .ps-fragment:not(.rb-ground .ps-fragment,.rb-epigraph .ps-fragment)>.ps-fragment-cite{padding-left:1.1rem}
+/* A quotation's tools — original, the whole work, copy — appear where the reader points at it or reaches it by keyboard. */
+@media(hover:hover){
+  .rb-article .ps-fragment .ps-fragment-tools{opacity:0;transition:opacity .18s}
+  .rb-article .ps-fragment:is(:hover,:focus-within) .ps-fragment-tools{opacity:1}
+}
+@media(hover:hover) and (prefers-reduced-motion:reduce){.rb-article .ps-fragment .ps-fragment-tools{transition:none}}
+/* A place quoted above is a quiet reference back to it. */
+.rb-article .ps-fragment-repeat{margin:0;padding:0;font:var(--rb-meta)/1.4 var(--rb-sans);color:var(--rb-faint);text-align:left}
+.rb-article .rb-ground .ps-fragment-repeat{font-size:.78rem}
+.rb-article .ps-fragment-repeat:hover{color:var(--rb-gold-soft)}
+
+/* ── Parts of an article and the names of their fields, hanging in the left margin. */
+.rb-section{margin:2.8rem 0 0;padding-top:1.5rem;border-top:1px solid var(--rb-rule)}
+.rb-body>.rb-section:first-child{margin-top:1.2rem}
+.rb-section-title{margin:0 0 1.3rem;font:400 var(--rb-h2)/1.25 var(--rb-serif);letter-spacing:-.005em;color:var(--rb-ink)}
+.rb-field,.rb-article .ps-core-section{position:relative;margin:0 0 1.5rem}
+.rb-field-label,.rb-article .ps-core-section>h3.minor-title{position:absolute;left:calc(-1*(var(--rb-label) + var(--rb-gap)));width:var(--rb-label);margin:0;padding-top:.28rem;text-align:right;font:italic var(--rb-m)/1.35 var(--rb-serif);color:var(--rb-gold-soft);letter-spacing:0;text-transform:none}
+.rb-field-label:empty{display:none}
+/* A margin label keeps its words whole: a long word reaches further into the margin instead of breaking. */
+.rb-field-label,.rb-article .ps-core-section>h3.minor-title,.rb-step-role{left:auto;right:calc(100% + var(--rb-gap));width:max-content;max-width:calc(var(--rb-label) + 1.5rem);overflow-wrap:break-word}
+.rb-article .ps-core-section>p,.rb-article .ps-core-voice,.rb-article .muted,.rb-article :is(.rb-section-body,.rb-move,.rb-body,.ps-core-section)>.ps-fragment{max-width:var(--rb-measure)}
+.rb-article .ps-core-voice{font:var(--rb-meta)/1.45 var(--rb-sans);color:var(--rb-muted)}
+.rb-article .ps-core-status{display:block;margin:-.6rem 0 1rem;font:var(--rb-micro)/1.3 var(--rb-sans);color:var(--rb-faint)}
+.rb-article .ps-core-fold{max-width:calc(var(--rb-measure) + var(--rb-gap) + var(--rb-margin));margin:0;padding:0;border-bottom:1px solid var(--rb-rule)}
+/* A fold of the apparatus reads as a line of the text that opens in place. */
+.rb-article .ps-core-fold>summary{position:relative;list-style:none;padding:.55rem 0 .55rem 1.5rem;font:var(--rb-m)/1.5 var(--rb-serif);color:var(--rb-text);cursor:pointer}
+.rb-article .ps-core-fold>summary::-webkit-details-marker{display:none}
+.rb-article .ps-core-fold>summary::before{content:'+';position:absolute;left:.15rem;top:.55rem;font:1rem/1.5 var(--rb-sans);color:var(--rb-gold-soft)}
+.rb-article .ps-core-fold[open]>summary::before{content:'−'}
+.rb-article .ps-core-fold>summary:hover{color:var(--rb-ink)}
+.rb-article .ps-core-fold[open]>summary{color:var(--rb-gold-soft)}
+.rb-article .ps-core-fold>div{padding:.2rem 0 1rem 1.5rem}
+.rb-article .connection-target{display:inline;margin:0 .9rem .3rem 0;padding:0;color:var(--rb-gold-soft)!important;font:var(--rb-m)/1.5 var(--rb-serif)}
+.rb-article .connection-target:hover{color:var(--rb-gold)!important;text-decoration:underline}
+.rb-article .ps-kernel-action{margin:.2rem .6rem .6rem 0;padding:.35rem .7rem;border:1px solid var(--rb-edge);border-radius:.4rem;font:var(--rb-meta)/1.3 var(--rb-sans)}
+
+/* ── A branch or a path: its moves in order, the turns between them in the line and word of their kind. */
+.rb-moves,.rb-reasoning,.rb-asks{list-style:none;margin:0;padding:0}
+.rb-move{position:relative;margin:0 0 1.4rem}
+.rb-move-title{display:flex;align-items:baseline;gap:.7rem;margin:0 0 .3rem;font:500 var(--rb-h4)/1.35 var(--rb-serif);color:var(--rb-ink);max-width:var(--rb-measure)}
+.rb-move-n{position:absolute;left:calc(-1*(var(--rb-label) + var(--rb-gap)));width:var(--rb-label);text-align:right;font:var(--rb-lead)/1.25 var(--rb-serif);color:var(--rb-gold);font-variant-numeric:oldstyle-nums}
+.rb-move-span{font:var(--rb-meta)/1.3 var(--rb-sans);color:var(--rb-muted)}
+/* A transition of a route: its two subjects and the verb between them. */
+.rb-chain-step{flex-wrap:wrap;column-gap:.55rem}
+.rb-chain-end{display:inline-flex;align-items:baseline;gap:.4rem}
+.rb-chain-end>.ps-sign{display:inline-block;width:.85em;height:.85em;flex:none;align-self:center}
+.rb-chain-end>.ps-sign svg{display:block;width:100%;height:100%}
+.rb-chain-verb{font:italic var(--rb-m)/1.35 var(--rb-serif);color:var(--rb-muted)}
+button.rb-chain-verb:hover{color:var(--rb-ink);text-decoration:underline;text-decoration-color:var(--rb-gold-line)}
+.rb-move-source{display:block;margin:0 0 .6rem;font:var(--rb-meta)/1.4 var(--rb-sans);color:var(--rb-muted);max-width:var(--rb-measure)}
+/* Quotations of one source in a row keep close together. */
+.rb-article .ps-fragment.is-same-source{margin-bottom:0}
+.rb-article .ps-fragment.is-same-source+.ps-fragment{margin-top:.5rem}
+button:is(.rb-move-source,.rb-use-source):hover{color:var(--rb-ink);text-decoration:underline;text-decoration-color:var(--rb-gold-line);text-underline-offset:.2em}
+/* Where a branch stays open its question is where it arrives. */
+.rb-move.is-open .rb-move-question{padding-left:.9rem;border-left:2px solid #DCC69099}
+.rb-move-end{display:block;margin:0 0 .2rem;font:normal var(--rb-micro)/1.3 var(--rb-sans);color:var(--rb-gold)}
+.rb-move-question,.rb-step-question,.rb-open-question,.rb-course-question{max-width:var(--rb-measure);margin:.2rem 0 0;font:italic var(--rb-m)/1.55 var(--rb-serif);color:var(--rb-gold-soft)}
+.rb-course-question{margin-bottom:1.3rem;font-size:1.1rem}
+.rb-turn{margin:-.4rem 0 1.4rem;padding:.2rem 0 .2rem 0}
+.rb-turn-kind,.rb-link-kind{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem;margin:0 0 .4rem;font:var(--rb-meta)/1.35 var(--rb-sans);color:var(--link-color,#A5B7CF)}
+.rb-link-kind>span:last-child::first-letter{text-transform:uppercase}
+.rb-link-line{flex:none;width:2.2rem;border-top:2px solid var(--link-color,#A5B7CF)}
+:is(.rb-turn,.rb-link-group,.rb-page-how)[data-dash="dashed"] .rb-link-line{border-top-style:dashed}
+:is(.rb-turn,.rb-link-group,.rb-page-how)[data-dash="dotted"] .rb-link-line{border-top-style:dotted;border-top-width:3px}
+.rb-turn-label{font:italic var(--rb-m)/1.4 var(--rb-serif);color:var(--rb-text)}
+.rb-turn-text{max-width:var(--rb-measure);margin:0;font:var(--rb-m)/1.6 var(--rb-serif);color:var(--rb-muted)}
+.rb-ask{margin:0 0 .9rem;max-width:var(--rb-measure)}
+.rb-ask .rb-link{font:var(--rb-body)/1.4 var(--rb-serif)}
+.rb-ask-line{margin:.15rem 0 0;font:italic var(--rb-s)/1.5 var(--rb-serif);color:var(--rb-muted)}
+
+/* ── The steps of a reasoning: the role of each in the margin, its words in the measure. */
+.rb-step{position:relative;margin:0 0 1.3rem}
+.rb-step-role{position:absolute;left:calc(-1*(var(--rb-label) + var(--rb-gap)));width:var(--rb-label);margin:0;padding-top:.15rem;text-align:right;font:italic var(--rb-m)/1.35 var(--rb-serif);color:var(--rb-gold-soft)}
+.rb-step-title{margin:0 0 .3rem;font:500 var(--rb-body)/1.4 var(--rb-serif);color:var(--rb-ink);max-width:var(--rb-measure)}
+.rb-voice-answer{margin-bottom:2.4rem}
+.rb-voice-answer .rb-field-label{font-style:normal;color:var(--rb-text)}
+.rb-voice-answer .ps-authored{margin-bottom:.2rem}
+/* A use of a word: its form where it differs from the lemma, the place it is used in, then its words. */
+.rb-use{margin:0 0 1.8rem}
+.rb-use-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:.2rem .8rem;margin:0 0 .55rem;max-width:var(--rb-measure)}
+.rb-use-form{font:italic var(--rb-h4)/1.3 var(--rb-serif);color:var(--rb-gold)}
+.rb-use-source{font:var(--rb-meta)/1.4 var(--rb-sans);color:var(--rb-muted)}
+
+/* ── Names that lead on: concepts, related words, works, places. */
+.rb-chips{display:flex;flex-wrap:wrap;gap:.25rem 1.1rem;margin:0;max-width:calc(var(--rb-measure) + var(--rb-gap) + var(--rb-margin));font:var(--rb-m)/1.6 var(--rb-serif)}
+.rb-chip{color:var(--rb-gold-soft)!important}
+.rb-chip:hover{color:var(--rb-gold)!important;text-decoration:underline}
+.rb-place-link{display:inline-flex;align-items:baseline;gap:.4rem;margin-top:.1rem;font:var(--rb-meta)/1.4 var(--rb-sans);color:var(--rb-gold-soft)!important}
+.rb-place-link>.ps-sign{display:inline-block;width:.9em;height:.9em;flex:none;align-self:center}
+.rb-place-link>.ps-sign svg{display:block;width:100%;height:100%}
+.rb-places{display:flex;flex-wrap:wrap;gap:.2rem 1.4rem;margin:.3rem 0 0;max-width:var(--rb-measure)}
+
+/* ── Links, grouped by kind. */
+.rb-link-group{margin:0 0 1.4rem;max-width:calc(var(--rb-measure) + var(--rb-gap) + var(--rb-margin))}
+.rb-link-rows{list-style:none;margin:0;padding:0;columns:19rem;column-gap:var(--rb-gap)}
+.rb-link-row{display:grid;grid-template-columns:1rem minmax(0,1fr);column-gap:.4rem;break-inside:avoid;padding:.25rem 0}
+.rb-link-row>.rb-link-end,.rb-link-row>.rb-link-verb{grid-column:2}
+.rb-link-dir{grid-row:1;padding-top:.3rem;color:var(--rb-faint);font:var(--rb-micro)/1 var(--rb-sans)}
+.rb-link-end{display:inline-flex;align-items:flex-start;gap:.4rem;font:var(--rb-m)/1.4 var(--rb-serif)}
+.rb-link-end>.ps-sign{display:inline-block;width:.9em;height:.9em;flex:none;align-self:flex-start;margin:.3em 0 0}
+.rb-link-end>.ps-sign svg{display:block;width:100%;height:100%}
+.rb-link-verb{justify-self:start;font:italic var(--rb-s)/1.4 var(--rb-serif);color:var(--rb-muted)!important}
+button.rb-link-verb:hover{color:var(--rb-ink)!important;text-decoration:underline}
+
+/* ── The apparatus: witnesses, history, sources and where the subject is mentioned. */
+.rb-apparatus{margin-top:1rem}
+.rb-apparatus .rb-section-title{font-size:1.25rem}
+.rb-mention-list{margin:0;max-width:calc(var(--rb-measure) + var(--rb-gap) + var(--rb-margin));font:var(--rb-m)/1.7 var(--rb-serif);color:var(--rb-faint)}
+.rb-mention-list .rb-link{color:var(--rb-text)}
+.rb-source-link{display:block;margin:0 0 .3rem;color:var(--rb-gold-soft);font:var(--rb-ui)/1.45 var(--rb-sans)}
+.rb-apparatus .experience-reference-list{max-width:calc(var(--rb-measure) + var(--rb-gap) + var(--rb-margin));font-family:var(--rb-sans)}
+
+/* ── The way on: the article before, the part it belongs to, the article after. */
+.rb-pager{display:grid;grid-template-columns:1fr auto 1fr;align-items:start;gap:1.5rem;max-width:calc(var(--rb-measure) + var(--rb-gap) + var(--rb-margin));margin:3.5rem 0 1rem;padding-top:1.4rem;border-top:1px solid var(--rb-rule)}
+.rb-page{display:grid;gap:.25rem;text-decoration:none}
+.rb-page.is-next{text-align:right;justify-items:end}
+.rb-page-label{font:var(--rb-micro)/1.3 var(--rb-sans);color:var(--rb-muted)}
+.rb-page-title{font:var(--rb-body)/1.35 var(--rb-serif);color:var(--rb-ink)}
+.rb-page:hover .rb-page-title{text-decoration:underline;text-decoration-color:var(--rb-gold-line)}
+.rb-page.is-previous .rb-page-label::before{content:'‹ '}
+.rb-page.is-next .rb-page-label::after{content:' ›'}
+.rb-page-parent{padding-top:1.2rem;font:italic var(--rb-m)/1.35 var(--rb-serif);color:var(--rb-gold-soft);text-align:center}
+/* The link that leads to the article before or after, in the line and word of its kind. */
+.rb-page-how{display:flex;align-items:baseline;gap:.5rem;margin-top:.2rem;font:var(--rb-micro)/1.35 var(--rb-sans);color:var(--link-color,#A5B7CF)}
+.rb-page-how .rb-link-line{width:1.4rem;align-self:center}
+.rb-page-how>span:last-child{min-width:0}
+.rb-page.is-next .rb-page-how{justify-content:flex-end}
+
+/* ── The contents: the book's name, its parts, and the tree beside them. */
+.rb-cover{margin:.6rem 0 2.2rem}
+.rb-book-title{margin:0;font:400 clamp(2.7rem,5vw,3.9rem)/1.04 var(--rb-serif);letter-spacing:-.015em;color:var(--rb-ink);letter-spacing:-.01em}
+.rb-book-note{max-width:44rem;margin:.8rem 0 1.4rem;font:italic var(--rb-h4)/1.55 var(--rb-serif);color:var(--rb-muted)}
+.rb-tabs-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.6rem 1.5rem;border-bottom:1px solid var(--rb-rule)}
+.rb-tabs{display:flex;flex-wrap:wrap;gap:.2rem 1.6rem}
+.rb-tab{padding:.55rem 0!important;margin-bottom:-1px;border-bottom:2px solid transparent!important;font:var(--rb-ui)/1.3 var(--rb-sans)!important;color:var(--rb-muted)!important}
+.rb-tab:hover{color:var(--rb-ink)!important}
+.rb-tab[aria-current=true]{border-bottom-color:var(--rb-gold)!important;color:var(--rb-ink)!important}
+.rb-contents-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(16rem,25rem);column-gap:clamp(2rem,5vw,4.5rem);align-items:start}
+.rb-contents[data-tab="index"] .rb-contents-grid{grid-template-columns:minmax(0,1fr)}
+.rb-contents-main{min-width:0}
+.rb-frontispiece{position:sticky;top:calc(var(--rb-h,0px) + 1.5rem);margin:.5rem 0 0}
+.rb-frontispiece svg{display:block;width:100%;height:auto;max-height:calc(100vh - var(--rb-h,0px) - 3rem)}
+.rb-part{margin:0 0 3rem;scroll-margin-top:calc(var(--rb-h,0px) + 1rem)}
+.rb-part-title{margin:0 0 1.2rem;padding-top:1.4rem;border-top:1px solid var(--rb-rule);font:400 var(--rb-h1)/1.2 var(--rb-serif);letter-spacing:-.01em;color:var(--rb-ink)}
+.rb-part:first-child .rb-part-title{border-top:0;padding-top:.6rem}
+.rb-part-meta{margin:-.6rem 0 .4rem;font:var(--rb-meta)/1.4 var(--rb-sans);color:var(--rb-muted)}
+.rb-part-line{max-width:44rem;margin:0 0 1.4rem;font:italic var(--rb-body)/1.55 var(--rb-serif);color:var(--rb-muted)}
+.rb-region{margin:0 0 2rem;scroll-margin-top:calc(var(--rb-h,0px) + 1rem)}
+.rb-region-title{margin:0 0 .8rem;font:italic var(--rb-lead)/1.3 var(--rb-serif);color:var(--rb-gold-soft)}
+.rb-entries{list-style:none;margin:0;padding:0}
+.rb-entry{margin:0 0 1.15rem;scroll-margin-top:calc(var(--rb-h,0px) + 1rem)}
+.rb-entry-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:.1rem .8rem;margin:0}
+.rb-entry-title{font:var(--rb-h4)/1.35 var(--rb-serif)}
+.rb-entry-meta{font:var(--rb-meta)/1.4 var(--rb-sans);color:var(--rb-muted)}
+.rb-entry-line{max-width:44rem;margin:.2rem 0 0;font:italic var(--rb-m)/1.5 var(--rb-serif);color:var(--rb-muted);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.rb-names .rb-entry-line{-webkit-line-clamp:2;font-size:.95rem}
+.rb-entry-n{min-width:1.4rem;font:1rem/1.3 var(--rb-serif);color:var(--rb-gold);font-variant-numeric:oldstyle-nums}
+.rb-entry-more{margin:.35rem 0 0}
+.rb-entry-more>summary{display:inline-block;font:var(--rb-meta)/1.4 var(--rb-sans);color:var(--rb-gold-soft);cursor:pointer;list-style:none}
+.rb-entry-more>summary::-webkit-details-marker{display:none}
+.rb-entry-more>summary::before{content:'＋ ';color:var(--rb-faint)}
+.rb-entry-more[open]>summary::before{content:'－ '}
+.rb-steps{list-style:none;margin:.6rem 0 .4rem;padding:0 0 0 .2rem;border-left:1px solid var(--rb-rule)}
+.rb-steps .rb-entry{margin:0 0 .5rem;padding-left:.9rem}
+.rb-steps .rb-entry-title{font-size:1.02rem}
+.rb-steps .rb-entry-line{font-size:.92rem}
+.rb-steps-title{margin:.8rem 0 .2rem;font:var(--rb-micro)/1.3 var(--rb-sans);color:var(--rb-muted)}
+.rb-names{list-style:none;margin:0;padding:0;columns:15rem;column-gap:2.4rem}
+.rb-names .rb-entry{break-inside:avoid;margin:0 0 .55rem}
+.rb-names .rb-entry-title{font-size:1.04rem}
+.rb-roots{display:grid;gap:.7rem}
+.rb-root{margin:0;max-width:46rem;font:var(--rb-m)/1.6 var(--rb-serif);color:var(--rb-muted)}
+.rb-root-title{display:block;font:italic var(--rb-body)/1.4 var(--rb-serif);color:var(--rb-gold-soft)}
+.rb-root-names .rb-link{color:var(--rb-text)}
+.rb-more{justify-self:start;margin-top:.4rem;font:var(--rb-meta)/1.3 var(--rb-sans)!important;color:var(--rb-gold-soft)!important}
+.rb-more:hover{text-decoration:underline}
+
+/* ── The index: the kinds, the letters, the names under each letter. */
+.rb-kinds{display:flex;flex-wrap:wrap;gap:.4rem;margin:0 0 1rem}
+.rb-kind-chip{padding:.3rem .75rem!important;border:1px solid var(--rb-edge)!important;border-radius:99px;font:var(--rb-micro)/1.3 var(--rb-sans)!important;color:var(--rb-muted)!important}
+.rb-kinds .rb-kind-chip[aria-pressed=true]{border-color:#DCC690AA!important;color:var(--rb-ink)!important;background:var(--rb-gold-wash)}
+.rb-letters{position:sticky;top:calc(var(--rb-h,0px) + .5rem);z-index:4;display:flex;flex-wrap:wrap;gap:.1rem .5rem;margin:0 0 1.5rem;padding:.4rem .8rem;border:1px solid var(--rb-rule);border-radius:.6rem;background:var(--rb-veil);backdrop-filter:blur(10px)}
+.rb-letter{min-width:1.2rem;font:var(--rb-m)/1.3 var(--rb-serif)!important;color:var(--rb-gold-soft)!important;text-align:center!important}
+.rb-letter:hover{color:var(--rb-gold)!important}
+.rb-index-letter{margin:0 0 1.8rem;scroll-margin-top:calc(var(--rb-h,0px) + 3.6rem)}
+.rb-index-mark{margin:0 0 .5rem;font:400 var(--rb-h1)/1 var(--rb-serif);color:var(--rb-gold)}
+.rb-index-names{list-style:none;margin:0;padding:0;columns:17rem;column-gap:2.4rem}
+.rb-index-row{position:relative;display:block;break-inside:avoid;padding:.2rem 0 .2rem 1.5rem}
+.rb-index-name{font:var(--rb-m)/1.4 var(--rb-serif)}
+.rb-index-name>.ps-sign{position:absolute;left:0;top:.48em;width:.95em;height:.95em;margin:0}
+.rb-index-name>.ps-sign svg{display:block;width:100%;height:100%}
+.rb-index-kind{font:var(--rb-micro)/1.3 var(--rb-sans);color:var(--rb-faint);white-space:nowrap}
+
+/* ── The library: eras, authors, works and their places; the book's parts and chapters. */
+.rb-shelf-items{list-style:none;margin:0;padding:0}
+.rb-shelf-item{margin:0 0 1.6rem;scroll-margin-top:calc(var(--rb-h,0px) + 1rem)}
+.rb-shelf-item>.rb-entry-head .rb-entry-title{font-size:var(--rb-lead)}
+.rb-chapter{color:var(--rb-ink)!important;font:var(--rb-body)/1.4 var(--rb-serif)!important}
+.rb-chapter:hover{text-decoration:underline}
+.rb-shelf .rb-shelf-item{margin-bottom:1rem}
+.rb-shelf-subjects{margin:.15rem 0 0;max-width:46rem;font:var(--rb-m)/1.6 var(--rb-serif);color:var(--rb-faint)}
+.rb-shelf-subjects .rb-link{color:var(--rb-muted)}
+.rb-shelf-subjects .rb-link:hover{color:var(--rb-ink)}
+/* The subjects that run through the whole book, named once above its parts. */
+.rb-through{margin:0 0 2.6rem}
+.rb-through-title{margin:0 0 .5rem;font:italic var(--rb-lead)/1.3 var(--rb-serif);color:var(--rb-gold-soft)}
+.rb-through-names{margin:0;max-width:46rem;font:var(--rb-body)/1.65 var(--rb-serif);color:var(--rb-faint)}
+.rb-through-names .rb-link{color:var(--rb-ink)}
+.rb-works{list-style:none;margin:.5rem 0 0;padding:0 0 0 1.1rem;border-left:1px solid var(--rb-rule)}
+.rb-work{margin:0 0 .7rem}
+.rb-work-title{font:var(--rb-body)/1.4 var(--rb-serif)}
+
+/* Between the wide page and the narrow one the margins keep their proportion. */
+@media(min-width:1181px) and (max-width:1380px){
+  .rb-article,.experience-body:has(>.rb-article){--rb-label:7rem;--rb-gap:1.8rem;--rb-margin:15.5rem}
+}
+/* ── Narrower screens: the margins come into the text; the labels stand above, the grounds below. */
+@media(max-width:1180px){
+  .rb-article{--rb-margin:15rem}
+  .experience-article.rb-article{padding-left:0}
+  .rb-article>.experience-toc{margin-left:0;max-width:none}
+  .rb-field-label,.rb-article .ps-core-section>h3.minor-title,.rb-step-role{position:static;width:auto;max-width:none;margin:0 0 .3rem;padding:0;text-align:left;font-size:.95rem}
+  .rb-move-n{position:static;width:auto;text-align:left}
+  .rb-article .ps-authored.rb-claim{grid-template-columns:minmax(0,1fr);grid-template-rows:none;max-width:var(--rb-measure)}
+  .rb-article .rb-claim>.rb-grounds{grid-column:1;grid-row:auto;margin-top:.7rem;padding-top:0}
+}
+@media(max-width:900px){
+  .rb-head{grid-template-columns:minmax(0,1fr)}
+  .rb-place{grid-column:1;grid-row:auto;margin-top:1.4rem;grid-template-columns:minmax(0,13rem) minmax(0,1fr);align-items:start;column-gap:1.4rem}
+  .rb-place>.rb-grounds{grid-column:1/-1}
+  .rb-contents-grid{grid-template-columns:minmax(0,1fr)}
+  .rb-frontispiece{position:static;order:-1;max-width:22rem;margin:0 auto 1.5rem}
+  .rb-frontispiece svg{max-height:none}
+}
+@media(max-width:700px){
+  .rb-tools{flex:1 1 100%}
+  .rb-tabs-row{border-bottom:0}
+  .rb-tabs{width:100%;border-bottom:1px solid var(--rb-rule)}
+  .rb-tools .experience-search-results{left:0;right:auto}
+}
+@media(max-width:600px){
+  .rb-title{font-size:1.85rem}
+  .rb-lead .rb-lead-text,.rb-lead>.ps-authored>.body{font-size:1.15rem}
+  .rb-section-title{font-size:1.35rem}
+  .rb-pager{grid-template-columns:1fr 1fr}
+  .rb-page-parent{grid-column:1/-1;grid-row:1;padding-top:0}
+  .rb-place{grid-template-columns:minmax(0,10rem) 1fr}
+  .rb-epigraph{margin-left:1rem;max-width:none}
+  .rb-frontispiece{max-width:15rem}
+}
+/* A claim opened by its own address is marked where it stands in its article. */
+.rb-article .is-cited>.rb-claim-text,.rb-article .is-cited:not(.rb-claim){box-shadow:inset 2px 0 0 var(--rb-gold);padding-left:.9rem;margin-left:-.9rem}
+/* Under the strip of parts the first part opens without a second rule. */
+.rb-article>.experience-toc:not([hidden])+.rb-body>.rb-section:first-child,.rb-article>.experience-toc:not([hidden])+.rb-body>.rb-route:first-child>.rb-section:first-child{margin-top:2rem;padding-top:0;border-top:0}
+/* The roles of a figure are one short line under a long label: the field keeps the label's height. */
+@media(min-width:1181px){.rb-article .rb-roles{min-height:3.4rem}}
