@@ -9,6 +9,7 @@
 // chapter, original beside translation, and from there in the corpus reader.
 
 import {benchListens,layOnBench} from './bench/bridge.mjs';
+import {chapterTitle} from './chapter-title.mjs';
 import {readChapter,fragmentOf,displayText} from '../../../../bonsai/lib/witnesses.mjs';
 import {readCorpusFragmentRange} from './corpus-fragment-range.mjs';
 import {modernRussian,isPreReform} from './orthography.mjs';
@@ -52,15 +53,7 @@ export function readingLanguages(locale,original='de',available=['de','en','ru']
 }
 
 // Chapter titles as the witnesses print them, without numbering or a closing period.
-const SMALL=new Set(['a','an','and','as','at','by','for','from','in','of','on','or','the','to','with']);
-export function chapterTitle(chapter,language){
-  let value=(chapter?.titles?.[language]??'').replace(/\.$/,'').trim();
-  if(language==='en'){
-    value=value.replace(/^[IVXLC]+\.\s*/,'');
-    if(value===value.toUpperCase())value=value.toLowerCase().split(' ').map((word,index)=>index&&SMALL.has(word)?word:word.replace(/\p{L}/u,letter=>letter.toUpperCase())).join(' ');
-  }
-  return value;
-}
+export {chapterTitle};
 
 /** Text of a fragment in one witness: the cited part of each unit, verse keeping its lines. */
 // What a reader sees of a text in a language: Russian printed before 1918 in today's spelling. The place is cut

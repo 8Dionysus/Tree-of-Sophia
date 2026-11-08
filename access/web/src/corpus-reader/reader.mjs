@@ -1646,7 +1646,7 @@ export function mountCorpusReader({
     ? localeText({lay:'To the workbench',laid:'The fragment lies on the workbench',failed:'This place could not be laid on the workbench'}[key], uiLocale())
     : {lay:'На верстак',laid:'Фрагмент лежит на верстаке',failed:'Это место не удалось положить на верстак'}[key];
   const selectionMenu = createSelectionMenu({container:root,accept:value=>Boolean(value.element.closest?.('.cr-unit')),
-    actions:[{label:copyLocale(uiLocale())==='en'?localeText('Origin of the word',uiLocale()):'Происхождение слова',run:()=>showOrigin()},
+    actions:[{get label(){return copyLocale(uiLocale())==='en'?localeText('Origin of the word',uiLocale()):'Происхождение слова';},run:()=>showOrigin()},
       {get label(){return benchWord('lay');},phrases:true,when:()=>benchListens()&&Boolean(benchPassage()),
         run:()=>{const passage=benchPassage();return passage?layOnBench(passage).then(laid=>benchWord(laid?'laid':'failed')):null;}}]});
   const beforeUnload=event=>{if(noteDirty||noteFlushPromise){void flushNote();event.preventDefault();event.returnValue='';}};

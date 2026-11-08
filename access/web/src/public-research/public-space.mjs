@@ -2201,7 +2201,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(!target?.isConnected)return false;target.focus({preventScroll:true});return document.activeElement===target;
   }
   let collectionView=null,collectionRoot=null;
-  function refreshLocale(){setLocaleState();if(!personal.hidden)renderPersonalPanel();if(dialog.open){dialog.querySelector('.dialog-top .icon')?.setAttribute('aria-label',t('close'));}if(dialog.open&&collectionRoot?.isConnected){dialog.querySelector('.dialog-top h2').textContent=t('library');for(const b of dialog.querySelectorAll('[data-public-locale]'))b.setAttribute('aria-pressed',String(b.dataset.publicLocale===locale()));collectionView?.refresh();}}
+  function refreshLocale(){setLocaleState();benchView?.relocale?.();paintBenchButton();paintBenchAdd();if(!personal.hidden)renderPersonalPanel();if(dialog.open){dialog.querySelector('.dialog-top .icon')?.setAttribute('aria-label',t('close'));}if(dialog.open&&collectionRoot?.isConnected){dialog.querySelector('.dialog-top h2').textContent=t('library');for(const b of dialog.querySelectorAll('[data-public-locale]'))b.setAttribute('aria-pressed',String(b.dataset.publicLocale===locale()));collectionView?.refresh();}}
   function updateWorkspace(){personalState=workspace?.getState?.()??personalState;if(syncingOwner)return;reflect();if(!personal.hidden)renderPersonalPanel();}
   function syncManagedDrafts(next){
     const graphIds=new Set(next.nodes.map(node=>node.id)),ownerIds=new Set((workspace?.getState?.()?.hypotheses??[]).map(item=>item.id));let changed=false;syncingOwner=true;

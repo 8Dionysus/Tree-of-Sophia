@@ -34,7 +34,7 @@ export function mountBench({host,store,views,t,ctxBase,onOpenChange=()=>{}}){
 
   const live=new Map(); // windowId → {element, body, instance, view, history:[], scroll}
   const touched=new Map();
-  let shape='',pending=null,popover=null,ch=8.6,open=false,disposed=false,dragging=null;
+  let shape='',pending=null,popover=null,ch=8.6,open=false,disposed=false,dragging=null,reading=ctxBase.readingLanguage?.()??'de';
 
   const state=()=>store.state;
   const bench=()=>activeBench(state());
@@ -400,6 +400,19 @@ export function mountBench({host,store,views,t,ctxBase,onOpenChange=()=>{}}){
     isOpen:()=>open,show,hide,toggle:()=>open?hide():show(),
     count:()=>bench().tray.length+Object.keys(bench().windows).length,
     refresh(){if(open){shape='';draw();}},
+    /** The reader's language changed: every word of the bench is drawn again in it, windows included. */
+    relocale(){
+      root.setAttribute('aria-label',t('bench'));layoutButton.textContent=t('layouts');breathe.textContent=t('breathing');
+      for(const [button,key] of [[undoButton,'undo'],[redoButton,'redo'],[closeButton,'closeBench']]){button.setAttribute('aria-label',t(key));button.title=t(key);}
+      closePopover();layoutMenu.hidden=true;
+      // A text that reads in the reader's language by default (no witness chosen by hand) follows it to the new one.
+      const before=reading,next=ctxBase.readingLanguage?.()??before;reading=next;
+      if(next!==before)commit(s=>{let out=s;for(const [id,win]of Object.entries(activeBench(s).windows))
+        if(win.view==='text'&&!win.settings?.witness&&win.subject.language===before)out=setWindow(out,id,{subject:{...win.subject,language:next}});return out;},{history:false});
+      for(const entry of live.values()){entry.instance?.dispose?.();entry.element.remove();}
+      live.clear();shape='';
+      if(open)draw();
+    },
     dispose(){disposed=true;unsubscribe();resize?.disconnect();doc.removeEventListener('keydown',keys);for(const entry of live.values())entry.instance?.dispose?.();live.clear();root.remove();},
   };
 }

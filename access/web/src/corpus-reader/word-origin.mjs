@@ -5,6 +5,7 @@
 // when the reader asks for an origin.
 import witness from '../../../../bonsai/zarathustra/witnesses.json' with {type:'json'};
 import {copyLocale,localeText} from '../public-research/locale.mjs';
+import {chapterTitle} from '../public-research/chapter-title.mjs';
 import {languageName} from './language-names.mjs';
 
 // The origins live in R2 with the word layer (bonsai/zarathustra/layers.json); without them no word has one.
@@ -46,7 +47,8 @@ const words=locale=>{
 };
 const el=(tag,className,text)=>{const node=document.createElement(tag);if(className)node.className=className;if(text!=null)node.textContent=text;return node;};
 const plain=term=>String(term).normalize('NFD').replace(/[́̀]/gu,'').normalize('NFC');
-const chapterTitle=(key,language)=>witness.chapters?.find(item=>item.key===key)?.titles?.[language]??key;
+// The chapter as the word's witness titles it, else as the original does.
+const chapterName=(key,language)=>{const chapter=witness.chapters?.find(item=>item.key===key);return chapterTitle(chapter,language)||chapterTitle(chapter,ORIGINAL)||key;};
 
 /** One generation of the descent: the language, the form, and how it passed on where that is no plain inheritance. */
 function step(list,{language,term,relation}){
@@ -139,7 +141,7 @@ export async function renderOrigin(body,{locale='ru',form='',language='',context
   if(!shown)body.append(el('p','cr-philology-muted',copy.unknown));
   if(record?.first){
     const [chapter,unitId,start,end]=record.first,row=el('p','cr-origin-first');
-    row.append(document.createTextNode(`${copy.first}: ${chapterTitle(chapter,lang)} `));
+    row.append(document.createTextNode(`${copy.first}: ${chapterName(chapter,lang)} `));
     if(typeof onOpenPlace==='function'){const open=el('button','cr-origin-open',copy.open);open.type='button';open.addEventListener('click',()=>onOpenPlace({chapter,unitId,start,end,language:lang}));row.append(open);}
     body.append(row);
   }

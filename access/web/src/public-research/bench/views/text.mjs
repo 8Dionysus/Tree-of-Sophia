@@ -84,7 +84,7 @@ export function textView({root,windowId,ctx}){
     const witnesses=el('div','bn-witnesses');witnesses.setAttribute('role','group');witnesses.setAttribute('aria-label',t('witness'));
     for(const item of LANGUAGES){
       const info=manifest?.witnesses?.[item],label=localized(info?.short,ctx.locale)||item.toUpperCase();
-      const choice=btn(label,'bn-witness');choice.lang=item;choice.setAttribute('aria-pressed',String(item===lang));choice.title=localized(info?.label,ctx.locale)||label;
+      const choice=btn(label,'bn-witness');choice.lang=item;choice.setAttribute('aria-pressed',String(item===lang));choice.title=info?.label?.[String((typeof ctx.locale==='function'?ctx.locale():ctx.locale)||'ru')]??(localized(info?.short,ctx.locale)||label);
       choice.addEventListener('click',()=>ctx.settings(windowId,{witness:item}));witnesses.append(choice);
     }
     head.append(prev,select,next,witnesses);

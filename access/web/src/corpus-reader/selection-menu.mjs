@@ -78,7 +78,8 @@ export function createSelectionMenu({container,actions,accept=()=>true,ownerDocu
     const reveal=button=>{if(current!==value)return;button.hidden=false;menu.hidden=false;place(range.getBoundingClientRect());};
     actions.forEach((action,index)=>{
       const button=buttons[index];
-      button.hidden=true;
+      // A label may follow the reader's language: it is read again each time the menu shows.
+      button.textContent=action.label;button.hidden=true;
       if(!single&&!action.phrases)return;
       const answer=action.when?action.when(value):true;
       if(answer===true)button.hidden=false;

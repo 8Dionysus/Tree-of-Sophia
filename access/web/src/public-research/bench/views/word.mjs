@@ -2,16 +2,18 @@
 // (the original's word, the first place, the words of the translations and the Tree's own word), the senses the
 // bonsai gives its uses, and every place of the book where it stands.
 
-import {findInBook} from '../witnesses.mjs';
+import {findInBook,witnessManifest} from '../witnesses.mjs';
 import {measureOf} from '../breathing.mjs';
 import {btn,el,localized,section} from './dom.mjs';
 import {renderOrigin} from '../../../corpus-reader/word-origin.mjs';
 import {bonsaiWordByForm} from '../../../corpus-reader/bonsai-words.mjs';
+import {translationLanguage} from '../../renderings-view.mjs';
 
 export function wordView({root,windowId,ctx}){
   const {t}=ctx;
   const body=el('div','bn-word');root.append(body);
-  let win=null,search=null,allForms=false,drawn=0;
+  let win=null,search=null,allForms=false,drawn=0,manifest=null,disposed=false;
+  witnessManifest().then(value=>{manifest=value;if(win&&!disposed)render();}).catch(()=>{});
   const lang=()=>String((typeof ctx.locale==='function'?ctx.locale():ctx.locale)||'ru');
   const openPlace=(chapter,unit)=>ctx.open({kind:'chapter',chapter,language:win.subject.language,unit});
 
@@ -26,11 +28,14 @@ export function wordView({root,windowId,ctx}){
       box.append(first);
     }
     const rows=el('dl','bn-renderings');
-    for(const [language,rendering]of Object.entries(term.renderings??{})){
+    // A reader sees the original and their own translation (and the witness the word was read in), never a third tongue.
+    const readable=new Set([translationLanguage(lang()),win.subject.language]);
+    for(const [language,rendering]of Object.entries(term.renderings??{}).filter(([language])=>readable.has(language))){
       const witnesses=[].concat(rendering?.witness??[]).filter(Boolean);
       for(const witness of witnesses){
-        const edition=module?.editions?.[witness.edition];
-        rows.append(el('dt','',`${language.toUpperCase()} · ${localized(edition?.short??edition?.label,lang())||witness.edition||''}`));
+        // The edition is one of the stand's witnesses: its short name speaks every language of the stand.
+        const edition=module?.editions?.[witness.edition],short=manifest?.witnesses?.[edition?.lang??language]?.short;
+        rows.append(el('dt','',`${language.toUpperCase()} · ${localized(short??edition?.short??edition?.label,lang())||witness.edition||''}`));
         const dd=el('dd','',witness.term??'');dd.lang=language;rows.append(dd);
       }
       if(rendering?.tos?.term){rows.append(el('dt','',`${language.toUpperCase()} · ${t('treeWord')}`));const dd=el('dd','bn-tree-word',rendering.tos.term);dd.lang=language;rows.append(dd);if(rendering.tos.basis)rows.append(el('dd','bn-muted',localized(rendering.tos.basis,lang())));}
@@ -101,6 +106,6 @@ export function wordView({root,windowId,ctx}){
     title:w=>w.subject.form||t('view_word'),
     sign:()=>'term',
     measure:ch=>measureOf('word',{ch}),
-    dispose(){search?.abort();},
+    dispose(){disposed=true;search?.abort();},
   };
 }
