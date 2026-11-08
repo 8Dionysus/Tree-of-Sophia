@@ -12,7 +12,7 @@ import {readChapter,fragmentOf,displayText} from '../../../../bonsai/lib/witness
 import {readCorpusFragmentRange} from './corpus-fragment-range.mjs';
 import {modernRussian,isPreReform} from './orthography.mjs';
 import {createLatestFragmentRequest} from './fragment-request.mjs';
-import {copyLocale,localeValue,resolveLocale,shownLanguages} from './locale.mjs';
+import {copyLocale,localeText,localeValue,resolveLocale,shownLanguages} from './locale.mjs';
 
 const ZARATHUSTRA='also-sprach-zarathustra';
 const chapterFiles=import.meta.glob('../../../../bonsai/zarathustra/witnesses/*.json',{import:'default'});
@@ -59,6 +59,17 @@ export function chapterTitle(chapter,language){
     if(value===value.toUpperCase())value=value.toLowerCase().split(' ').map((word,index)=>index&&SMALL.has(word)?word:word.replace(/\p{L}/u,letter=>letter.toUpperCase())).join(' ');
   }
   return value;
+}
+/**
+ * A chapter's name for a reader: its title in the witness of the reader's language; where that witness omits the
+ * chapter, the stand's own name for it; in a language without a witness, the English title as the catalog renders it.
+ */
+export function chapterName(chapter,locale){
+  if(!chapter)return '';
+  const language=resolveLocale(locale);
+  if(language==='ru'||language==='de'||language==='en')return chapterTitle(chapter,language)||chapter.names?.[language]||chapterTitle(chapter,'en');
+  const raw=chapter.titles?.en??'',translated=localeText(raw,language);
+  return translated!==raw?translated.replace(/^[IVXLC]+\.\s*/,'').replace(/\.$/,'').trim():chapterTitle(chapter,'en');
 }
 
 /** Text of a fragment in one witness: the cited part of each unit, verse keeping its lines. */

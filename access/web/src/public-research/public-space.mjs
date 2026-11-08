@@ -36,7 +36,7 @@ import {layBench} from './space-bench.mjs';
 import {signElement,starKind} from './space-glyphs.mjs';
 import {controlsDismissed,controlsShouldOpen,mountControls} from './space-controls.mjs';
 import {besidePosition,disputes,ownTitle,readingsAround,restsOn,routeStars,routeWithRecords,threadsIntoDark,pathThrough} from './space-play.mjs';
-import {citesOf,createFragments} from './fragments.mjs';
+import {chapterName,citesOf,createFragments} from './fragments.mjs';
 import {createStandOrigin} from './word-origin-menu.mjs';
 import {coreContext} from './core-projection.mjs';
 import {createCoreView} from './core-view.mjs';
@@ -1517,7 +1517,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
         for(const reference of index.references(item.id)){const subject=reference.kind==='statement'?reference.parentId:reference.id;if(!subjects.has(subject))continue;if(!cited.has(item.record.c))cited.set(item.record.c,new Set());cited.get(item.record.c).add(subject);}
       }
       // The core's own routes are read under the subject they start from; the paths of the atlas stand in the crown.
-      bookOutline=zarathustraBook({core,routes:routes.filter(route=>!String(route.id).startsWith('core:')),questions:[...materials.values()].filter(item=>item.kind==='question'),chapters:zarathustraWitnesses.chapters??[],partTitles:PART_TITLES,idOf:id=>index?.resolveId?.(id)??id,citing:key=>[...(cited.get(key)??[])]});
+      bookOutline=zarathustraBook({core,routes:routes.filter(route=>!String(route.id).startsWith('core:')),questions:[...materials.values()].filter(item=>item.kind==='question'),chapters:(zarathustraWitnesses.chapters??[]).map(chapter=>({key:chapter.key,titles:Object.fromEntries(PUBLIC_LOCALES.map(language=>[language,chapterName(chapter,language)]))})),partTitles:PART_TITLES,idOf:id=>index?.resolveId?.(id)??id,citing:key=>[...(cited.get(key)??[])]});
     }
     return bookOutline;
   }

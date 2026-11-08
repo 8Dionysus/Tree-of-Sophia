@@ -16,6 +16,7 @@
 .experience-result{display:block;text-align:left;padding:.5rem .65rem;font-size:.85rem;line-height:1.35}
 .experience-body{max-width:76rem}.experience-article{min-width:0;max-width:72ch}
 .experience-comparison{border-top:1px solid #879eb62b;margin-top:1.5rem;padding-top:1rem}
+.experience-comparison:empty{display:none}
 .experience-pin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),1fr));gap:1rem}
 .experience-pin{min-width:0;padding:1rem;border:1px solid #879eb644;border-radius:.5rem;background:#101c29}
 .experience-version{font-size:.8rem;color:#d7c5a4;overflow-wrap:anywhere}

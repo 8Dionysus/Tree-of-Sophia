@@ -149,7 +149,7 @@ export function createReferenceBook(source){
       if(part.library){
         // The roots of the tree are told in full in the library; the contents name who stands there.
         const list=make('div','rb-roots');
-        for(const group of part.children){const row=make('p','rb-root');row.append(make('span','rb-root-title',tr(group.title)));const names=make('span','rb-root-names');for(const [at,item] of group.children.entries()){if(at)names.append(document.createTextNode(', '));names.append(item.id?link(item.id,tr(item.title)):make('span','',tr(item.title)));}if(group.children.length)row.append(names);list.append(row);}
+        for(const group of part.children){const row=make('p','rb-root');row.append(make('span','rb-root-title',tr(group.title)));if(group.children.length)row.append(nameList(make('span','rb-root-names'),group.children.map(item=>item.id?link(item.id,tr(item.title)):make('span','',tr(item.title)))));list.append(row);}
         list.append(action(w('library'),()=>setTab('library',host),'rb-more'));
         box.append(list);main.append(box);continue;
       }
@@ -212,8 +212,7 @@ export function createReferenceBook(source){
   }
   function renderLibrary(main){
     if(book.through?.length){
-      const box=make('section','rb-through'),names=plainNames(make('p','rb-through-names'));
-      for(const [at,entry] of book.through.entries()){if(at)names.append(document.createTextNode(', '));names.append(link(entry.id,tr(entry.title)));}
+      const box=make('section','rb-through'),names=nameList(plainNames(make('p','rb-through-names')),book.through.map(entry=>link(entry.id,tr(entry.title))));
       box.append(make('h2','rb-through-title',w('through')),names);main.append(box);
     }
     for(const group of book.library){
@@ -229,7 +228,7 @@ export function createReferenceBook(source){
         if(own(item.meta))head.append(make('span','rb-entry-meta',own(item.meta)));
         row.append(head);
         const works=item.children??[];
-        if(item.chapter&&works.length){const names=make('p','rb-shelf-subjects');for(const [at,subject] of works.entries()){if(at)names.append(document.createTextNode(', '));names.append(link(subject.id,tr(subject.title)));}row.append(names);}
+        if(item.chapter&&works.length){row.append(nameList(make('p','rb-shelf-subjects'),works.map(subject=>link(subject.id,tr(subject.title)))));}
         else if(works.length){
           const shelf=make('ul','rb-works');
           for(const work of works){
@@ -302,6 +301,8 @@ export function createReferenceBook(source){
     actions.append(action(w('continueWork'),event=>emit('public-research-action',{action:'continue',recordId:id},event.currentTarget),'rb-action'));
     return actions;
   }
+  // Names in a line, each keeping its comma when the line breaks after it.
+  const nameList=(target,nodes)=>{nodes.forEach((node,at)=>{if(at===nodes.length-1)return target.append(node);const keep=make('span','rb-keep');keep.append(node,',');target.append(keep,' ');});return target;};
   // What the head and the body of an article already lead to.
   const shownIn=target=>new Set([...target.querySelectorAll(':is(.rb-head,.rb-body) [data-open]')].map(node=>node.dataset.open));
   // Links of one kind stand together under the word, colour and line of that kind on the map. A subject the article
@@ -339,7 +340,7 @@ export function createReferenceBook(source){
     const refs=(source.sources?.(id)??[]).filter(ref=>ref.url);
     if(refs.length){const list=field(body,w('sources'));for(const ref of refs){const anchor=make('a','rb-source-link',ref.label);anchor.href=ref.url;anchor.target='_blank';anchor.rel='noopener noreferrer';list.append(anchor);}}
     const linked=new Set([...source.relations(id).map(relation=>relation.other),...shownIn(target)]),mentions=source.mentions(id).filter(other=>!linked.has(other));
-    if(mentions.length){const list=field(body,w('mentions')),names=plainNames(make('p','rb-mention-list'));for(const [at,other] of mentions.entries()){if(at)names.append(document.createTextNode(', '));names.append(link(other));}list.append(names);}
+    if(mentions.length){const list=field(body,w('mentions')),names=nameList(plainNames(make('p','rb-mention-list')),mentions.map(other=>link(other)));list.append(names);}
     done(body);
     if(box.childElementCount)target.append(box);
   }

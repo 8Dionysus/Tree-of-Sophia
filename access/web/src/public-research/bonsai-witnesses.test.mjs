@@ -4,6 +4,7 @@ import {describe,expect,it} from 'vitest';
 import {alignRun,alignSameLanguage,alignWitnesses,chapterRows,prepare,sentenceSpans,triangle} from '../../../../bonsai/lib/align.mjs';
 import {citeIssues,chapterIssues,displayText,fragmentOf,readChapter,readingText,witnessesIssues} from '../../../../bonsai/lib/witnesses.mjs';
 import {realignWitnesses} from '../../../../bonsai/lib/realign.mjs';
+import {chapterName} from './fragments.mjs';
 
 const root=new URL('../../../../',import.meta.url).pathname;
 const home=join(root,'bonsai','zarathustra');
@@ -20,6 +21,9 @@ describe('the witnesses of Zarathustra',()=>{
     for(const witness of Object.values(manifest.witnesses))expect(['public-domain','public-domain+licence']).toContain(witness.rights.basis);
     // The censored Russian edition of 1913 lacks three chapters; the alignment says so instead of inventing them.
     expect(manifest.chapters.filter(entry=>entry.omitted).map(entry=>entry.key)).toEqual(['II.04','IV.06','IV.18']);
+    // A reader of Russian finds each of them under the stand's own Russian name, and every other chapter under its edition's title.
+    expect(manifest.chapters.filter(entry=>entry.omitted).map(entry=>chapterName(entry,'ru'))).toEqual(['О священниках','Удалившийся от дел','Праздник осла']);
+    expect(manifest.chapters.map(entry=>chapterName(entry,'ru')).filter(name=>/[A-Z]/.test(name))).toEqual([]);
   });
   it('find a place of the original in every translation through the alignment, never by hand',()=>{
     const vision=chapter('III.02'),unit=vision.units.de.find(item=>item.raw.includes('Siehe diesen Thorweg'));

@@ -1,18 +1,13 @@
 import {keepQuotesOnce} from './quote-once.mjs';
-import {localeText,localeValue,resolveLocale,shownLanguages} from './locale.mjs';
-import {chapterTitle} from './fragments.mjs';
+import {localeValue,resolveLocale,shownLanguages} from './locale.mjs';
+import {chapterName as nameOfChapter} from './fragments.mjs';
 import witnessManifest from '../../../../bonsai/zarathustra/witnesses.json' with {type:'json'};
 import {conceptRenderings,renderRenderings,translationLanguage} from './renderings-view.mjs';
 import './kernel-cards.css';
 
 // A place of the book is named by its chapter, as the reader's edition titles it.
 const CHAPTERS=new Map((witnessManifest.chapters??[]).map(item=>[item.key,item]));
-function chapterName(key,locale){
-  const chapter=CHAPTERS.get(key),language=resolveLocale(locale);if(!chapter)return key;
-  if(language==='ru'||language==='de'||language==='en')return chapterTitle(chapter,language)||key;
-  const raw=chapter.titles?.en??'',translated=localeText(raw,language);
-  return translated!==raw?translated.replace(/^[IVXLC]+\.\s*/,'').replace(/\.$/,'').trim():chapterTitle(chapter,'en')||key;
-}
+const chapterName=(key,locale)=>nameOfChapter(CHAPTERS.get(key),locale)||key;
 
 const words={
   route:['Исследовательский маршрут','Research route','Ruta de investigación','Forschungsweg','研究路线'],states:['Состояния','States','Estados','Zustände','状态'],transitions:['Переходы','Transitions','Transiciones','Übergänge','过渡'],retiredTransitions:['Прежние переходы','Earlier transitions','Transiciones anteriores','Frühere Übergänge','先前过渡'],
@@ -57,9 +52,12 @@ export function createCoreView({core,renderings=null,locale,fragments,signOf,hin
   // A voice is named by its figure; a voice the core does not name speaks without a label.
   const speakerName=id=>tr(core.records[id]?.title)||(id==='narrator'?t('narrator'):'');
   const status=(parent,value)=>{if(value)parent.append(el('small','ps-core-status',t(value)));};
+  // The words an article of the book has already said: a claim made again in the same words stands once.
+  let said=null;
   function form(parent,value,seen=null){
     if(!value||filler(value))return;
     if(Array.isArray(value)){for(const item of value)form(parent,item,seen);return;}
+    if(said){const words=tr(value);if(words&&said.has(words))return;if(words)said.add(words);}
     let normalized=value?.cite&&!Array.isArray(value.cite)?{...value,cite:[value.cite]}:value;
     let shared=false;
     if(seen&&Array.isArray(normalized?.cite)){
@@ -77,7 +75,7 @@ export function createCoreView({core,renderings=null,locale,fragments,signOf,hin
   }
   function section(parent,key,value,seen=null){
     if(!value||(Array.isArray(value)&&!value.length)||filler(value))return;
-    const box=el('section','ps-core-section');box.append(el('h3','minor-title',t(key)));form(box,value,seen);parent.append(box);
+    const box=el('section','ps-core-section');box.append(el('h3','minor-title',t(key)));form(box,value,seen);if(box.childElementCount>1)parent.append(box);
   }
   function fold(parent,label,render){
     const box=el('details','ps-core-fold'),body=el('div');box.append(el('summary','',label),body);let loaded=false;
@@ -456,10 +454,12 @@ export function createCoreView({core,renderings=null,locale,fragments,signOf,hin
     const record=core.records[id];if(!record)return false;
     const essence=essenceOf(record),leadKey=essence.thesis?'thesis':essence.who?'who':null;
     if(record.work_scope?.roles?.length){const scope=el('section','ps-core-section');scope.append(el('h3','minor-title',t('figureScope')),el('p','',record.work_scope.roles.map(role=>t(role)).join(' · ')));parent.append(scope);}
+    said=new Set();
     for(const key of ['essence','development','dimensions']){
       const content=el('div','rb-section-body');sections(content,key,record,id,leadKey);if(!content.childElementCount)continue;
       const part=el('section','rb-section');part.dataset.part=key;part.append(el('h2','rb-section-title',t(key)),content);parent.append(part);
     }
+    said=null;
     return true;
   }
   function bookApparatus(parent,id){
