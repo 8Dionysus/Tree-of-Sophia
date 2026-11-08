@@ -344,7 +344,7 @@ fn observe_rijksmuseum(observer: &mut Observer, object: &str) -> Result<Found> {
 
     let mut makers = Vec::new();
     let mut production_statements = Vec::new();
-    let mut statement = None;
+    let mut statements: Vec<String> = Vec::new();
     let mut begin_year: Option<i64> = None;
     let mut end_year: Option<i64> = None;
     for production in items(&record, "produced_by") {
@@ -370,8 +370,10 @@ fn observe_rijksmuseum(observer: &mut Observer, object: &str) -> Result<Found> {
             }
         }
         for span in items(production, "timespan") {
-            if statement.is_none() {
-                statement = preferred_content(items(span, "identified_by"));
+            if let Some(name) = preferred_content(items(span, "identified_by")) {
+                if !statements.contains(&name) {
+                    statements.push(name);
+                }
             }
             if let Some(year) = nonempty(span, "begin_of_the_begin").and_then(year_of) {
                 begin_year = Some(begin_year.map_or(year, |known| known.min(year)));
@@ -381,6 +383,8 @@ fn observe_rijksmuseum(observer: &mut Observer, object: &str) -> Result<Found> {
             }
         }
     }
+    // A production dated by several timespans names each of them: a print of 1606 issued again in 1613 reads "1606; 1613".
+    let statement = (!statements.is_empty()).then(|| statements.join("; "));
     let dating = json!({"statement":statement,"begin_year":begin_year,"end_year":end_year});
 
     let mut classifications = Vec::new();
@@ -1438,7 +1442,11 @@ mod tests {
         let span = record["produced_by"]["timespan"].clone();
         let mut earlier = span.clone();
         earlier["begin_of_the_begin"] = json!("1640-01-01T00:00:00Z");
-        record["produced_by"]["timespan"] = json!([span, earlier]);
+        let mut later = span.clone();
+        later["begin_of_the_begin"] = json!("1645-01-01T00:00:00Z");
+        later["end_of_the_end"] = json!("1645-12-31T23:59:59Z");
+        later["identified_by"][0]["content"] = json!("1645");
+        record["produced_by"]["timespan"] = json!([span, earlier, later]);
         record["produced_by"] = json!([record["produced_by"].clone()]);
         record["shows"] = record["shows"][0].clone();
         responses[3].1["access_point"] = responses[3].1["access_point"][0].clone();
@@ -1447,7 +1455,7 @@ mod tests {
         assert_eq!(object["classifications"], json!(["painting"]));
         assert_eq!(
             object["dating"],
-            json!({"statement":"1642","begin_year":1640,"end_year":1642})
+            json!({"statement":"1642; 1645","begin_year":1640,"end_year":1645})
         );
         assert_eq!(object["makers"][0]["label"], "Rembrandt van Rijn");
         assert_eq!(result["observation"]["images"][0]["form"], "image_service");
