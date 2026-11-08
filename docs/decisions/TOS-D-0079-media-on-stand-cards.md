@@ -29,13 +29,14 @@ A bonsai keeps its media in a module of its own, `media.json`
 (`tos.bonsai.media.v1`), in three levels: the work its holder keeps, with the
 provider's titles, makers, dating, size and record word for word; the image,
 with its pixel size and the provider's rights statement, as one IIIF Image API
-3 service or as the provider's file and its smaller copy; and the use, which
+3 or 2 service or as the provider's file and its smaller copy; and the use, which
 binds an image to a subject of the stand in a role (an author's portrait, a
 response to the book, a shared motif, a material of the era, an object of
 analysis, a comparison). Every entry comes from a provider observation, and one command
 (`node bonsai/lib/cli.mjs media add`) attaches it to a card and names its Tree
 Artifact and representation in the graft map. A stand shows an image under the
-Public Domain Mark or CC0, or one its provider flags as public domain.
+Public Domain Mark or CC0, or one its provider flags as free to use (the Met's
+`isPublicDomain`, the National Gallery of Art's `openaccess`).
 
 A provider's files reach the page as the stand's own copies. The bridge
 fingerprints the file and its smaller copy (`"files": true`); the attach
@@ -83,8 +84,9 @@ single list of hosts ties what the check admits to what the page may load.
 
 A new provider joins with its bridge, its host in the list and its first
 medium, or with its files fingerprinted and copied. The first Zarathustra
-slice holds the registry's shared motifs with open images from the Met and the
-Rijksmuseum, 24 stars; the registry's looser comparisons wait for review. The viewer writes no style of its own: its
+slice holds the registry's shared motifs with open images from the Met, the
+Rijksmuseum and the National Gallery of Art, 32 stars; the registry's looser
+comparisons wait for review. The viewer writes no style of its own: its
 one touch-screen rule lives in the stand's stylesheet. Stars stay stars; an
 image belongs to the card.
 

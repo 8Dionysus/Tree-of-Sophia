@@ -150,6 +150,34 @@ describe('a file image the stand keeps a copy of',()=>{
   });
 });
 
+describe('an image of the National Gallery of Art',()=>{
+  // As the bridge reads it from the Gallery's open data release at one commit: the record from its objects table, the image from IIIF 2.
+  const release='https://raw.githubusercontent.com/NationalGalleryOfArt/opendata/9d3ba90ca8172c62c308a608373a957e9e4a1739';
+  const nga={
+    schema_version:'tos_media_provider_observation_v1',provider:'nga',requested_object:'1963.10.98',observed_at:'2026-11-08T06:55:40.416404721Z',
+    requests:[{role:'image-service-info',sha256:'d'.repeat(64)}],
+    datasets:[{path:'data/objects.csv',sha256:'0'.repeat(64)},{path:'data/published_images.csv',sha256:'1'.repeat(64)}],
+    object:{record_url:'https://www.nga.gov/collection/art-object-page.46573.html',repository:'National Gallery of Art, Washington',
+      identifiers:[{scheme:'NGA object ID',value:'46573'},{scheme:'NGA accession number',value:'1963.10.98'}],
+      titles:[{text:'Woman with a Sunflower',language:null,role:null}],makers:[],production_statements:[{text:'Mary Cassatt',language:null}],
+      dating:{statement:'c. 1905',begin_year:1905,end_year:1905},classifications:['Painting'],materials:['oil on canvas'],
+      dimensions:[{kind:'Overall height',value:'92.1',unit:'cm'},{kind:'Overall width',value:'73.7',unit:'cm'}],credit_lines:[{text:'Chester Dale Collection',language:null}],depicted:[]},
+    rights:[{scope:'image',provider_field:'openaccess',value:'1',statement_uri:null,label:null,stated_in:`${release}/data/published_images.csv`}],
+    images:[{role:'primary',form:'image_service',image_service:{api_version:'2',service_id:'https://api.nga.gov/iiif/6ee124da-972a-4f02-83b8-7dc09c33f17c',width_pixels:17513,height_pixels:21806,info_fingerprint:{sha256:'e'.repeat(64),checked_at:'2026-11-08T06:55:40Z'}}}],
+  };
+  it('reads the release\'s record and the IIIF 2 service, and shows the image under the Gallery\'s open access flag',()=>{
+    const {work,image,workId}=mediaFromObservation(nga);
+    expect(workId).toBe('nga:1963.10.98');
+    expect(work).toMatchObject({made:[{text:'Mary Cassatt',language:null}],size_mm:[921,737],observed:{record_sha256:'0'.repeat(64)}});
+    expect(work.dating).toMatchObject({kind:'date-assertion',value:'1905',certainty:'approximate'});
+    expect(image).toMatchObject({api:'iiif-image-2',service:'https://api.nga.gov/iiif/6ee124da-972a-4f02-83b8-7dc09c33f17c'});
+    expect(imageSources(image).src).toBe('https://api.nga.gov/iiif/6ee124da-972a-4f02-83b8-7dc09c33f17c/full/!480,480/0/default.jpg');
+    expect(captionLinks({work,image},{t:key=>({mediaOpenAccess:'Открытый доступ'})[key]??key})[1]).toEqual({part:'rights',text:'Открытый доступ',url:'https://www.nga.gov/collection/art-object-page.46573.html'});
+    const closed=structuredClone(nga);closed.rights[0].value='0';
+    expect(()=>mediaFromObservation(closed)).toThrow(/rights/);
+  });
+});
+
 describe('the Zarathustra media',()=>{
   const read=path=>JSON.parse(readFileSync(new URL(`../../../../bonsai/zarathustra/${path}`,import.meta.url),'utf8'));
   const media=read('media.json'),identities=read('identities.json'),layers=read('layers.json');
@@ -158,10 +186,15 @@ describe('the Zarathustra media',()=>{
   it('holds its contract, binds core records only, and has a copy of every file in the layer store',()=>{
     expect(mediaIssues(media,{subjects,identities,digest,layers})).toEqual([]);
   });
-  it('shows shared motifs from open images: CC0 files of the Met and a Rijksmuseum sheet in the public domain',()=>{
+  it('shows shared motifs from open images: files of the Met, a Rijksmuseum sheet and paintings of the National Gallery of Art',()=>{
     expect(new Set(media.uses.map(use=>use.role))).toEqual(new Set(['motif']));
-    expect(media.uses.length).toBe(24);
-    for(const image of Object.values(media.images))expect(image.api==='file'?image.rights:{statement:image.rights.statement}).toEqual(image.api==='file'?{statement:null,field:'isPublicDomain',value:'true',label:null,stated_in:image.rights.stated_in}:{statement:PDM});
+    expect(media.uses.length).toBe(32);
+    const terms=image=>({file:'met',['iiif-image-3']:'rijksmuseum',['iiif-image-2']:'nga'})[image.api];
+    const open={met:{statement:null,field:'isPublicDomain',value:'true'},rijksmuseum:{statement:PDM},nga:{statement:null,field:'openaccess',value:'1'}};
+    for(const image of Object.values(media.images)){
+      expect(media.works[image.work].provider).toBe(terms(image));
+      expect(image.rights).toMatchObject(open[terms(image)]);
+    }
   });
 });
 

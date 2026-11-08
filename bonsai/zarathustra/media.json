@@ -1070,6 +1070,113 @@
         "at": "2026-11-08T06:34:02.613438161Z",
         "record_sha256": "e898d30cfccb877dc71e4234379717fc65ada54286f9d6b2667d121a288c2e11"
       }
+    },
+    "nga:1942.9.1": {
+      "provider": "nga",
+      "record": "https://www.nga.gov/collection/art-object-page.1138.html",
+      "holder": "National Gallery of Art, Washington",
+      "inventory": "1942.9.1",
+      "titles": [
+        {
+          "text": "The Feast of the Gods",
+          "language": null,
+          "role": "title"
+        }
+      ],
+      "made": [
+        {
+          "text": "Giovanni Bellini and Titian",
+          "language": null
+        }
+      ],
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "exact",
+        "source_wording": {
+          "text": "1514/1529",
+          "language": null
+        },
+        "interval": {
+          "start": "1514",
+          "end": "1529"
+        }
+      },
+      "classification": [
+        "Painting"
+      ],
+      "materials": [
+        "oil on canvas"
+      ],
+      "size_mm": [
+        1702,
+        1880
+      ],
+      "credit": [
+        {
+          "text": "Widener Collection",
+          "language": null
+        }
+      ],
+      "depicts": [],
+      "observed": {
+        "at": "2026-11-08T06:55:34.091387564Z",
+        "record_sha256": "0cafa80e1dc3db32252f4fcecf67c917dc5286a2b84e6ec9a3a36b749a5b13eb"
+      }
+    },
+    "nga:1963.10.98": {
+      "provider": "nga",
+      "record": "https://www.nga.gov/collection/art-object-page.46573.html",
+      "holder": "National Gallery of Art, Washington",
+      "inventory": "1963.10.98",
+      "titles": [
+        {
+          "text": "Woman with a Sunflower",
+          "language": null,
+          "role": "title"
+        }
+      ],
+      "made": [
+        {
+          "text": "Mary Cassatt",
+          "language": null
+        }
+      ],
+      "dating": {
+        "kind": "date-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "source_wording": {
+          "text": "c. 1905",
+          "language": null
+        },
+        "value": "1905"
+      },
+      "classification": [
+        "Painting"
+      ],
+      "materials": [
+        "oil on canvas"
+      ],
+      "size_mm": [
+        921,
+        737
+      ],
+      "credit": [
+        {
+          "text": "Chester Dale Collection",
+          "language": null
+        }
+      ],
+      "depicts": [],
+      "observed": {
+        "at": "2026-11-08T06:55:40.416404721Z",
+        "record_sha256": "0cafa80e1dc3db32252f4fcecf67c917dc5286a2b84e6ec9a3a36b749a5b13eb"
+      }
     }
   },
   "images": {
@@ -1634,6 +1741,42 @@
       "observed": {
         "at": "2026-11-08T06:34:02.613438161Z"
       }
+    },
+    "nga:1942.9.1/whole": {
+      "work": "nga:1942.9.1",
+      "api": "iiif-image-2",
+      "service": "https://api.nga.gov/iiif/3a640014-a2f0-4cd4-b440-979f62316da2",
+      "width": 26900,
+      "height": 24642,
+      "rights": {
+        "statement": null,
+        "field": "openaccess",
+        "value": "1",
+        "label": null,
+        "stated_in": "https://raw.githubusercontent.com/NationalGalleryOfArt/opendata/9d3ba90ca8172c62c308a608373a957e9e4a1739/data/published_images.csv"
+      },
+      "observed": {
+        "at": "2026-11-08T06:55:38.835662144Z",
+        "info_sha256": "49aa88165ffd7ac5390bf54b3aa413879e7b41fa050ad51d66ea5a56c23b4d50"
+      }
+    },
+    "nga:1963.10.98/whole": {
+      "work": "nga:1963.10.98",
+      "api": "iiif-image-2",
+      "service": "https://api.nga.gov/iiif/6ee124da-972a-4f02-83b8-7dc09c33f17c",
+      "width": 17513,
+      "height": 21806,
+      "rights": {
+        "statement": null,
+        "field": "openaccess",
+        "value": "1",
+        "label": null,
+        "stated_in": "https://raw.githubusercontent.com/NationalGalleryOfArt/opendata/9d3ba90ca8172c62c308a608373a957e9e4a1739/data/published_images.csv"
+      },
+      "observed": {
+        "at": "2026-11-08T06:55:45.400427330Z",
+        "info_sha256": "6db33b64ecb1f58edcbd66f71a94149f5a6102617a3f29bf06a0903b894383ce"
+      }
     }
   },
   "uses": [
@@ -1755,6 +1898,46 @@
     {
       "subject": "rumination-echo#1",
       "image": "met:52.126.2/whole",
+      "role": "motif"
+    },
+    {
+      "subject": "ass-god#2",
+      "image": "nga:1942.9.1/whole",
+      "role": "motif"
+    },
+    {
+      "subject": "higher-men-recovery#1",
+      "image": "nga:1942.9.1/whole",
+      "role": "motif"
+    },
+    {
+      "subject": "kings-rank#4",
+      "image": "nga:1942.9.1/whole",
+      "role": "motif"
+    },
+    {
+      "subject": "soothsayer-dance#1",
+      "image": "nga:1942.9.1/whole",
+      "role": "motif"
+    },
+    {
+      "subject": "soothsayer-dance#2",
+      "image": "nga:1942.9.1/whole",
+      "role": "motif"
+    },
+    {
+      "subject": "child-mirror",
+      "image": "nga:1963.10.98/whole",
+      "role": "motif"
+    },
+    {
+      "subject": "mirror-return#0",
+      "image": "nga:1963.10.98/whole",
+      "role": "motif"
+    },
+    {
+      "subject": "mirror-return#1",
+      "image": "nga:1963.10.98/whole",
       "role": "motif"
     }
   ]

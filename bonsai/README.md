@@ -300,14 +300,15 @@ the object, the series), the statements of who made it, its dating as a Tree
 `historicalDate` in the provider's own words, its size, the holder's record
 and what it depicts. An image is one reproduction of a work, with its pixel
 size and the rights statement the provider gives for it, in one of two forms:
-an IIIF Image API 3 service on a host listed in
+an IIIF Image API 3 or 2 service on a host listed in
 [`lib/media-hosts.mjs`](lib/media-hosts.mjs), which the page reads from the
 provider; or the provider's file and its smaller copy, which the stand keeps
 as its own copies under `media/` in its layer store (`layers.json`, R2) and the
 page reads from the site (`/__research/layers/sha256/<hex>`). The second form
 serves providers whose files carry no CORS headers, such as the Met, and holds
 exactly the bytes the observation fingerprinted. A stand shows an image under
-the Public Domain Mark or CC0, or one its provider flags as public domain. A
+the Public Domain Mark or CC0, or one its provider flags as free to use (the
+Met's `isPublicDomain`, the National Gallery of Art's `openaccess`). A
 use binds an image to a subject of the stand in a role: `author-portrait`,
 `book-response` (a work made about the book), `motif` (a work of its own
 showing what the text names), `era-material`, `object-of-analysis` or

@@ -21,6 +21,7 @@ export const layerAddress=(sha256,base=BASE)=>`${base.endsWith('/')?base:`${base
 /** The card's copy of an image and, for the full view, the source the viewer reads. */
 export function imageSources(image,{base=BASE}={}){
   if(image.api==='file')return {src:layerAddress(image.preview.sha256,base),srcset:'',full:{type:'image',url:layerAddress(image.file.sha256,base)},crossOrigin:null};
+  // Version 2 and 3 of the IIIF Image API ask for a whole image fitted into a box in the same words.
   return {src:fittedImage(image.service,CARD_BOX),srcset:`${fittedImage(image.service,CARD_BOX)} 1x, ${fittedImage(image.service,CARD_BOX*2)} 2x`,full:`${image.service}/info.json`,crossOrigin:'anonymous'};
 }
 
@@ -59,8 +60,9 @@ export function captionLines({role,work},{t,locale}){
  */
 export function captionLinks({work,image},{t=key=>key}={}){
   const links=[{part:'record',text:`${work.holder} · ${work.inventory}`,url:work.record}];
-  const rights=image.rights,flag=rights.statement===null&&rights.field==='isPublicDomain'&&rights.value==='true';
-  links.push({part:'rights',text:rights.label??(flag?t('mediaPublicDomain'):rights.statement??rights.value),url:rights.statement??(flag?work.record:rights.stated_in)});
+  // A flag names no statement: the Met's isPublicDomain says public domain, the National Gallery of Art's openaccess open access.
+  const rights=image.rights,flag=rights.statement===null?({isPublicDomain:'mediaPublicDomain',openaccess:'mediaOpenAccess'})[rights.field]:null,set=flag&&rights.value===({isPublicDomain:'true',openaccess:'1'})[rights.field];
+  links.push({part:'rights',text:rights.label??(set?t(flag):rights.statement??rights.value),url:rights.statement??(set?work.record:rights.stated_in)});
   return links;
 }
 

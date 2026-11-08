@@ -242,6 +242,16 @@
       "tree": "tos.artifact.european-sculpture.metropolitan-museum-new-york.met-52-126-2",
       "path": "european-sculpture/metropolitan-museum-new-york/met-52-126-2",
       "status": "to-mint"
+    },
+    "nga:1942.9.1": {
+      "tree": "tos.artifact.european-painting.national-gallery-of-art-washington.nga-1942-9-1",
+      "path": "european-painting/national-gallery-of-art-washington/nga-1942-9-1",
+      "status": "to-mint"
+    },
+    "nga:1963.10.98": {
+      "tree": "tos.artifact.american-painting.national-gallery-of-art-washington.nga-1963-10-98",
+      "path": "american-painting/national-gallery-of-art-washington/nga-1963-10-98",
+      "status": "to-mint"
     }
   },
   "representations": {
@@ -315,6 +325,14 @@
     },
     "met:52.126.2/whole": {
       "tree": "tos.file.sha256.fcb3263ca80d014b73d91c8da0e2d422f5819af0bf06aba1bdd3941b27109282",
+      "status": "to-mint"
+    },
+    "nga:1942.9.1/whole": {
+      "tree": "tos.image-service.sha256.085119c2dce80815768fd3eefc0ca90c66a2a1063cff592fcac4dccea1457ec3",
+      "status": "to-mint"
+    },
+    "nga:1963.10.98/whole": {
+      "tree": "tos.image-service.sha256.c366fbc0e7daf67caa015506bb1a6b711075c8e6a82295c08812fa8be62cc603",
       "status": "to-mint"
     }
   }

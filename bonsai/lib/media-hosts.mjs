@@ -10,6 +10,7 @@
 /** HTTPS hosts of the image services the media modules name. */
 export const MEDIA_HOSTS=Object.freeze([
   'iiif.micr.io', // Rijksmuseum IIIF Image API
+  'api.nga.gov', // National Gallery of Art IIIF Image API
 ]);
 
 /** What a medium is for on a card, in the order a card shows them. */

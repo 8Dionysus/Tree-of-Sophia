@@ -27,8 +27,11 @@ export {MEDIA_HOSTS,MEDIA_ROLES};
 export const MEDIA_SCHEMA='tos.bonsai.media.v1';
 /** The kinds of title a provider gives: the preferred one, the one written on the object, the series. */
 export const TITLE_ROLES=Object.freeze(['title','inscribed','series']);
-/** The image APIs a card reads: a provider's IIIF Image API 3 service, or a file the stand keeps a copy of. */
-export const IMAGE_APIS=Object.freeze(['iiif-image-3','file']);
+/** The image APIs a card reads: a provider's IIIF Image API 3 or 2 service, or a file the stand keeps a copy of. */
+export const IMAGE_APIS=Object.freeze(['iiif-image-3','iiif-image-2','file']);
+const IIIF=new Set(['iiif-image-3','iiif-image-2']);
+/** Flags by which a provider marks an image free to use, where it names no statement: the Met's and the National Gallery of Art's. */
+export const OPEN_FLAGS=Object.freeze([{field:'isPublicDomain',value:'true'},{field:'openaccess',value:'1'}]);
 /** Where a stand keeps the copies of image files, inside its layer store. */
 export const MEDIA_LAYER_PATH='media/';
 const FILE_TYPES=Object.freeze({'image/jpeg':'jpg','image/png':'png'});
@@ -72,7 +75,7 @@ const fileIssues=(file,at)=>{
 };
 
 /** Whether a rights entry lets a stand show the image. */
-export const openRights=rights=>object(rights)&&(OPEN_STATEMENTS.includes(rights.statement)||rights.statement===null&&rights.field==='isPublicDomain'&&rights.value==='true');
+export const openRights=rights=>object(rights)&&(OPEN_STATEMENTS.includes(rights.statement)||rights.statement===null&&OPEN_FLAGS.some(flag=>flag.field===rights.field&&flag.value===rights.value));
 
 /**
  * Where a media module departs from its own contract; empty when it holds.
@@ -121,7 +124,7 @@ export function mediaIssues(module,{subjects=null,identities=null,digest=null,la
     if(!works[image.work])issues.push(`${at}: work ${image.work} is not a work of this module`);
     else shown.add(image.work);
     if(!IMAGE_APIS.includes(image.api))issues.push(`${at}: api`);
-    if(image.api==='iiif-image-3'){
+    if(IIIF.has(image.api)){
       if(!https(image.service))issues.push(`${at}: service`);
       else if(!MEDIA_HOSTS.includes(hostOf(image.service)))issues.push(`${at}: ${hostOf(image.service)} is not a media host; add it to bonsai/lib/media-hosts.mjs`);
       if(/\/$/.test(image.service??''))issues.push(`${at}: service ends with a slash`);
@@ -139,12 +142,12 @@ export function mediaIssues(module,{subjects=null,identities=null,digest=null,la
     const rights=image.rights;
     if(!object(rights)||!(rights.statement===null||https(rights.statement))||!text(rights.field)||!text(rights.value)||!(rights.label===null||text(rights.label))||!https(rights.stated_in))issues.push(`${at}: rights`);
     else if(!openRights(rights))issues.push(`${at}: its rights do not let a stand show it`);
-    if(!object(image.observed)||!instant(image.observed.at)||image.api==='iiif-image-3'&&!sha(image.observed.info_sha256))issues.push(`${at}: observed`);
+    if(!object(image.observed)||!instant(image.observed.at)||IIIF.has(image.api)&&!sha(image.observed.info_sha256))issues.push(`${at}: observed`);
     if(identities){
       const graft=identities.representations?.[id];
       if(!object(graft)||!REPRESENTATION.test(graft.tree??'')||!STATUSES.includes(graft.status))issues.push(`${at}: no Tree representation in the graft map`);
       // The Tree names an image service after its address and a file after its bytes.
-      else if(image.api==='iiif-image-3'&&digest&&https(image.service)&&graft.tree!==`tos.image-service.sha256.${digest(image.service)}`)issues.push(`${at}: the graft map's representation is not named after its service`);
+      else if(IIIF.has(image.api)&&digest&&https(image.service)&&graft.tree!==`tos.image-service.sha256.${digest(image.service)}`)issues.push(`${at}: the graft map's representation is not named after its service`);
       else if(image.api==='file'&&graft.tree!==`tos.file.sha256.${image.file?.sha256}`)issues.push(`${at}: the graft map's representation is not named after its file`);
     }
   }
@@ -221,11 +224,11 @@ function sizeOf(dimensions){
 export function mediaFromObservation(observation,{view='whole'}={}){
   if(observation?.schema_version!=='tos_media_provider_observation_v1')throw new Error('not a media provider observation');
   const record=observation.object??{},provider=observation.provider;
-  const inventory=(record.identifiers??[]).find(item=>/object number|accession/i.test(item?.scheme??''))?.value??observation.requested_object;
+  const inventory=(record.identifiers??[]).find(item=>/object number|accession number/i.test(item?.scheme??''))?.value??observation.requested_object;
   const primary=(observation.images??[]).find(item=>item?.role==='primary');
   const service=primary?.form==='image_service'?primary.image_service:null;
   if(!primary)throw new Error(`${provider} ${inventory}: the observation has no primary image`);
-  if(service&&service.api_version!=='3')throw new Error(`${provider} ${inventory}: IIIF Image API ${service.api_version} is not read by the cards`);
+  if(service&&!['2','3'].includes(service.api_version))throw new Error(`${provider} ${inventory}: IIIF Image API ${service.api_version} is not read by the cards`);
   if(!service&&!(primary.file_fingerprint&&primary.preview_fingerprint))throw new Error(`${provider} ${inventory}: a file image needs its file and its smaller copy fingerprinted; observe it with "files": true`);
   const right=(observation.rights??[]).find(item=>item?.scope==='image');
   const rights=right?{statement:right.statement_uri??null,field:right.provider_field,value:right.value,label:right.label??null,stated_in:right.stated_in}:null;
@@ -243,11 +246,12 @@ export function mediaFromObservation(observation,{view='whole'}={}){
     classification:record.classifications??[],materials:record.materials??[],size_mm:sizeOf(record.dimensions),
     credit:statements(record.credit_lines),
     depicts:[...new Set((record.depicted??[]).flatMap(item=>item?.authority_uris??[]))],
-    observed:{at:observation.observed_at,record_sha256:requestOf('object-record')?.sha256},
+    // A record read from a published release is its objects table at its commit.
+    observed:{at:observation.observed_at,record_sha256:requestOf('object-record')?.sha256??(observation.datasets??[]).find(item=>/\/objects\.csv$/.test(item?.path??''))?.sha256},
   };
   const fileOf=print=>({source:print.final_url??print.url,sha256:print.sha256,bytes:print.byte_size,width:print.width_pixels,height:print.height_pixels,media_type:print.media_type});
   const image=service?{
-    work:workId,api:'iiif-image-3',service:service.service_id.replace(/\/$/,''),width:service.width_pixels,height:service.height_pixels,
+    work:workId,api:`iiif-image-${service.api_version}`,service:service.service_id.replace(/\/$/,''),width:service.width_pixels,height:service.height_pixels,
     rights,observed:{at:service.info_fingerprint?.checked_at??observation.observed_at,info_sha256:service.info_fingerprint?.sha256},
   }:{
     work:workId,api:'file',file:fileOf(primary.file_fingerprint),preview:fileOf(primary.preview_fingerprint),
