@@ -157,10 +157,29 @@ word comes from:
   (сверхчеловек: Übermensch, of which it is a calque);
 - its first place in the book.
 
-In the reader and in the stand's quotations, a selected word shows a small
-menu beside it; *Origin of the word* opens its descent. For a translation's
-word the descent of the original's word comes first. Nothing loads until the
-reader asks.
+### Where a selected word offers its origin
+
+A single selected word of the book's three witnesses shows a small menu beside
+it, wherever the stand shows that text, once the word layer reads the word at
+that place:
+
+| Where the word stands | What the menu offers |
+| --- | --- |
+| a quotation on a node's card, in the original or the translation | *Origin of the word*; *Translations* for a word of a term |
+| a place under a word of the node's *Translations* tab | the same |
+| the parallel reading of a chapter (*Read in the whole work*), either column | the same, above the dialog |
+| a place in a sheet the menu opened (the origin's *Open*, a term's renderings) | the same, above the sheet |
+| the reader, in the first editions (DTA), Antonovsky or Common | the same; the origin opens in the reader's own *Origin* tab |
+
+The menu shows nothing for a phrase, for the stand's own text (titles,
+questions, explanations), for the reader's other editions and the front matter
+of an edition (the layer has no words there), and for a stand without a word
+layer (Antiquity). *Origin of the word* opens its descent; for a translation's
+word the descent of the original's word comes first. *Translations* opens the
+term's renderings in the translation shown beside the original (for a word of
+the original) or in the word's own translation. Nothing loads until the reader
+selects a word, and the menu stands in the top layer, inside the dialog that
+holds the word.
 
 ## How the translations render a term
 

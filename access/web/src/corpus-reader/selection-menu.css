@@ -1,4 +1,4 @@
-.tos-selection-menu{position:fixed;z-index:2147483000;display:flex;gap:4px;padding:4px;border:1px solid var(--cr-rule,#3a3a44);border-radius:9px;
+.tos-selection-menu{position:fixed;inset:auto;margin:0;overflow:visible;z-index:2147483000;display:flex;gap:4px;padding:4px;border:1px solid var(--cr-rule,#3a3a44);border-radius:9px;
   background:var(--cr-panel,#16161c);box-shadow:0 6px 22px #0007;font:12px/1.2 system-ui,sans-serif;animation:tos-selection-menu-in .14s ease-out}
 .tos-selection-menu[hidden],.tos-selection-menu-action[hidden]{display:none}
 .tos-selection-menu-action{border:0;border-radius:6px;padding:6px 10px;background:transparent;color:var(--cr-accent,#e2c27a);cursor:pointer;font:inherit}

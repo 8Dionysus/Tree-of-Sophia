@@ -1632,9 +1632,32 @@ export function mountCorpusReader({
   root.addEventListener('keydown', keydown);
   root.addEventListener('click', event => { if (event.target === root) close(); });
   document.addEventListener('selectionchange', onSelectionChange);
-  // A word selected in a pane offers its origin beside it.
-  const selectionMenu = createSelectionMenu({container:root,accept:value=>Boolean(value.element.closest?.('.cr-unit')),
-    actions:[{label:copyLocale(uiLocale())==='en'?localeText('Origin of the word',uiLocale()):'Происхождение слова',run:()=>showOrigin()}]});
+  // A word selected in a pane offers its origin beside it, where the stand's word layer reads that word; a host
+  // adds its own actions for the word (setSelectionActions), each told the word as {language, form, lemma, chapter}.
+  const knownWords = new WeakMap();
+  function knownWord(value) {
+    if (!knownWords.has(value)) knownWords.set(value, new Promise(resolve => {
+      const started = Date.now();
+      const check = () => {
+        if (disposed || !opened) return resolve(null);
+        const own = unitFromSelection(), reference = selected?.reference;
+        // The analysis answers this selection once the reader has selected it too.
+        const same = own && reference && reference.unitId === (own.unit.unitId || own.unit.id)
+          && reference.selector.start === codePointOffset(own.unit.text, own.start) && reference.selector.end === codePointOffset(own.unit.text, own.end);
+        if (!same || philology.busy) { if (Date.now() - started > 8000) return resolve(null); setTimeout(check, 60); return; }
+        const context = philology.result?.context, word = context?.words?.[0];
+        resolve(word?.lemma ? {language:context.language, chapter:context.chapter, form:word.form ?? value.text, lemma:word.lemma} : null);
+      };
+      check();
+    }));
+    return knownWords.get(value);
+  }
+  const originAction = {get label(){return copyLocale(uiLocale())==='en'?localeText('Origin of the word',uiLocale()):'Происхождение слова';},
+    when:value=>knownWord(value).then(Boolean),run:()=>showOrigin()};
+  const hostAction = action => ({get label(){return action.label;},
+    when:value=>knownWord(value).then(word=>word?(action.when?action.when(value,word):true):false),
+    run:value=>void knownWord(value).then(word=>{if(word)action.run(value,word);})});
+  const selectionMenu = createSelectionMenu({container:root,accept:value=>Boolean(value.element.closest?.('.cr-unit')),actions:[originAction]});
   const beforeUnload=event=>{if(noteDirty||noteFlushPromise){void flushNote();event.preventDefault();event.returnValue='';}};
   const visibilityChanged=()=>{if(document.visibilityState==='hidden')void flushNote();};
   window.addEventListener('beforeunload',beforeUnload);
@@ -1642,6 +1665,8 @@ export function mountCorpusReader({
 
   return {
     get element() { return root; },
+    /** The host's own actions for a selected word, shown after its origin. */
+    setSelectionActions(actions = []) { selectionMenu.setActions([originAction, ...actions.map(hostAction)]); },
     async open(args = {}) {
       if(disposed)return this;
       await model.ready?.();
