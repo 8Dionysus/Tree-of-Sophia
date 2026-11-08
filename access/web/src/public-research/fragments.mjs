@@ -8,6 +8,8 @@
 // work stays one step away: the place opens in the parallel reading of its
 // chapter, original beside translation, and from there in the corpus reader.
 
+import {benchListens,layOnBench} from './bench/bridge.mjs';
+import {chapterTitle} from './chapter-title.mjs';
 import {readChapter,fragmentOf,displayText} from '../../../../bonsai/lib/witnesses.mjs';
 import {readCorpusFragmentRange} from './corpus-fragment-range.mjs';
 import {modernRussian,isPreReform} from './orthography.mjs';
@@ -51,15 +53,7 @@ export function readingLanguages(locale,original='de',available=['de','en','ru']
 }
 
 // Chapter titles as the witnesses print them, without numbering or a closing period.
-const SMALL=new Set(['a','an','and','as','at','by','for','from','in','of','on','or','the','to','with']);
-export function chapterTitle(chapter,language){
-  let value=(chapter?.titles?.[language]??'').replace(/\.$/,'').trim();
-  if(language==='en'){
-    value=value.replace(/^[IVXLC]+\.\s*/,'');
-    if(value===value.toUpperCase())value=value.toLowerCase().split(' ').map((word,index)=>index&&SMALL.has(word)?word:word.replace(/\p{L}/u,letter=>letter.toUpperCase())).join(' ');
-  }
-  return value;
-}
+export {chapterTitle};
 
 /** Text of a fragment in one witness: the cited part of each unit, verse keeping its lines. */
 // What a reader sees of a text in a language: Russian printed before 1918 in today's spelling. The place is cut
@@ -161,6 +155,14 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       void clipboard.writeText(text).then(()=>{copy.textContent=words('fragmentCopied');setTimeout(()=>{copy.textContent=words('fragmentCopy');},1600);}).catch(()=>{});
     });
     tools.append(copy);
+  }
+  // A quotation of the book goes onto the workbench, read in the witness the reader sees, where the stand has a bench.
+  function benchTool(tools,cite,language){
+    if(!benchListens())return;
+    const lay=button(words('fragmentBench'),'text-button ps-fragment-bench');
+    lay.addEventListener('click',()=>void layOnBench({cite,language}).then(laid=>{
+      lay.textContent=words(laid?'fragmentBenched':'unavailable');setTimeout(()=>{lay.textContent=words('fragmentBench');},1600);}));
+    tools.append(lay);
   }
   const local=value=>localeValue(value,locale());
 
@@ -280,7 +282,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       if(omitted.length){const absent=el('span','ps-fragment-absent','∅');absent.setAttribute('aria-label',words('fragmentOmitted'));hint?.(absent,words('fragmentOmitted'));tools.append(absent);}
       const whole=button(`↗ ${words('fragmentWhole')}`,'text-button ps-fragment-whole');
       whole.addEventListener('click',()=>void showChapter(cite.c,cite).catch(error=>onError?.(error)));
-      tools.append(whole);copyTool(figure,tools);figure.append(tools);
+      tools.append(whole);benchTool(tools,cite,showing.find(language=>language!=='de')??'de');copyTool(figure,tools);figure.append(tools);
     };
     paint();
   }
