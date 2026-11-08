@@ -8,9 +8,11 @@
 // work stays one step away: the place opens in the parallel reading of its
 // chapter, original beside translation, and from there in the corpus reader.
 
+import {benchListens,layOnBench} from './bench/bridge.mjs';
+import {chapterTitle} from './chapter-title.mjs';
 import {readChapter,fragmentOf,displayText} from '../../../../bonsai/lib/witnesses.mjs';
 import {readCorpusFragmentRange} from './corpus-fragment-range.mjs';
-import {modernRussian,isPreReform} from './orthography.mjs';
+import {modernRussian,isPreReform,respell} from './orthography.mjs';
 import {createLatestFragmentRequest} from './fragment-request.mjs';
 import {copyLocale,localeText,localeValue,resolveLocale,shownLanguages} from './locale.mjs';
 
@@ -51,15 +53,7 @@ export function readingLanguages(locale,original='de',available=['de','en','ru']
 }
 
 // Chapter titles as the witnesses print them, without numbering or a closing period.
-const SMALL=new Set(['a','an','and','as','at','by','for','from','in','of','on','or','the','to','with']);
-export function chapterTitle(chapter,language){
-  let value=(chapter?.titles?.[language]??'').replace(/\.$/,'').trim();
-  if(language==='en'){
-    value=value.replace(/^[IVXLC]+\.\s*/,'');
-    if(value===value.toUpperCase())value=value.toLowerCase().split(' ').map((word,index)=>index&&SMALL.has(word)?word:word.replace(/\p{L}/u,letter=>letter.toUpperCase())).join(' ');
-  }
-  return value;
-}
+export {chapterTitle};
 /**
  * A chapter's name for a reader: its title in the witness of the reader's language; where that witness omits the
  * chapter, the stand's own name for it; in a language without a witness, the English title as the catalog renders it.
@@ -79,11 +73,13 @@ const shownIn=(language,text)=>language==='ru'?modernRussian(text):text;
 function fragmentNodes(fragment,language,chapterKey=null){
   const nodes=[];
   for(const unit of fragment.units){
-    const text=shownIn(language,unit.text.slice(unit.from,unit.to).trim());
+    const slice=unit.text.slice(unit.from,unit.to),source=slice.trim();
+    const map=language==='ru'?respell(source):null;
+    const text=map?.text??source;
     if(!text)continue;
     const node=el('p',unit.kind==='v'?'ps-fragment-line is-verse':'ps-fragment-line',text);
     // The witness unit a line shows, so that a selected word finds its reading in the word layer.
-    if(chapterKey&&unit.id){node.dataset.chapter=chapterKey;node.dataset.unit=unit.id;node.dataset.offset=String(unit.from);}
+    if(chapterKey&&unit.id){node.dataset.chapter=chapterKey;node.dataset.unit=unit.id;node.dataset.offset=String(unit.from+slice.length-slice.trimStart().length);node.witnessOffsets=map?.toSource;}
     nodes.push(node);
   }
   return nodes;
@@ -173,6 +169,14 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     });
     tools.append(copy);
   }
+  // A quotation of the book goes onto the workbench, read in the witness the reader sees, where the stand has a bench.
+  function benchTool(tools,cite,language){
+    if(!benchListens())return;
+    const lay=button(words('fragmentBench'),'text-button ps-fragment-bench');
+    lay.addEventListener('click',()=>void layOnBench({cite,language}).then(laid=>{
+      lay.textContent=words(laid?'fragmentBenched':'unavailable');setTimeout(()=>{lay.textContent=words('fragmentBench');},1600);}));
+    tools.append(lay);
+  }
   const local=value=>localeValue(value,locale());
 
   // ── The parallel reading: a chapter, original beside translation, row by row. ──
@@ -222,9 +226,12 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
         if(!indexes.length){cell.classList.add('is-absent');if(language!=='de')hint?.(cell,words('fragmentOmitted'));}
         for(const index of indexes){
           const unit=data.units[language][index],shown=displayText(unit.raw,unit.kind),p=el('p',unit.kind==='v'?'is-verse':'');p.dataset.chapter=key;p.dataset.unit=unit.id;p.dataset.offset='0';
-          const span=cited.get(`${language}:${index}`);
-          if(span&&span[1]>span[0]){p.append(shownIn(language,shown.text.slice(0,span[0])));const mark=el('mark','',shownIn(language,shown.text.slice(span[0],span[1])));p.append(mark,shownIn(language,shown.text.slice(span[1])));line.classList.add('is-cited');first??=line;}
-          else p.textContent=shownIn(language,shown.text);
+          const span=cited.get(`${language}:${index}`),map=language==='ru'?respell(shown.text):null,text=map?.text??shown.text;
+          p.witnessOffsets=map?.toSource;
+          if(span&&span[1]>span[0]){
+            const start=map?.toDisplay[span[0]]??span[0],end=map?.toDisplay[span[1]]??span[1];
+            p.append(text.slice(0,start),el('mark','',text.slice(start,end)),text.slice(end));line.classList.add('is-cited');first??=line;
+          }else p.textContent=text;
           cell.append(p);
         }
         line.append(cell);
@@ -291,7 +298,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       if(omitted.length){const absent=el('span','ps-fragment-absent','∅');absent.setAttribute('aria-label',words('fragmentOmitted'));hint?.(absent,words('fragmentOmitted'));tools.append(absent);}
       const whole=button(`↗ ${words('fragmentWhole')}`,'text-button ps-fragment-whole');
       whole.addEventListener('click',()=>void showChapter(cite.c,cite).catch(error=>onError?.(error)));
-      tools.append(whole);copyTool(figure,tools);figure.append(tools);painted(figure);
+      tools.append(whole);benchTool(tools,cite,showing.find(language=>language!=='de')??'de');copyTool(figure,tools);figure.append(tools);painted(figure);
     };
     paint();
   }

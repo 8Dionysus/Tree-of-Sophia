@@ -18,7 +18,8 @@ import {languageName,sourceLinkLabel,corpusWorkTitle,corpusSectionLabel} from '.
 import {bindPhilologyResult,philologyMarkIntervals,renderPhilology,selectedPhilologyForm,isSingleWordSelection} from './philology.mjs';
 import {renderOrigin} from './word-origin.mjs';
 import {createSelectionMenu} from './selection-menu.mjs';
-import {versionIdOf,witnessUnitText} from './bonsai-words.mjs';
+import {bonsaiLanguage,chapterOf,versionIdOf,witnessUnitText} from './bonsai-words.mjs';
+import {benchListens,layOnBench} from '../public-research/bench/bridge.mjs';
 import {createReference} from './model.mjs';
 import {editionRepresentationKind,groupEditionRepresentations} from './edition-groups.mjs';
 import {readableUnitLocator} from './location-label.mjs';
@@ -1663,6 +1664,18 @@ export function mountCorpusReader({
   root.addEventListener('keydown', keydown);
   root.addEventListener('click', event => { if (event.target === root) close(); });
   document.addEventListener('selectionchange', onSelectionChange);
+  // A word selected in a pane offers its origin beside it.
+  // A word or a passage of a stand's witness goes onto the workbench, cited in the original there.
+  const benchPassage = () => {
+    const value = unitFromSelection();
+    const language = value && bonsaiLanguage(value.versionId);
+    if (!language || !(value.end > value.start)) return null;
+    const unitId = value.unit.unitId || value.unit.id;
+    return {language, chapter:chapterOf(activeVersion(value.versionId), language, unitId), unitId, start:value.start, end:value.end};
+  };
+  const benchWord = key => copyLocale(uiLocale())==='en'
+    ? localeText({lay:'To the workbench',laid:'The fragment lies on the workbench',failed:'This place could not be laid on the workbench'}[key], uiLocale())
+    : {lay:'На верстак',laid:'Фрагмент лежит на верстаке',failed:'Это место не удалось положить на верстак'}[key];
   // A word selected in a pane offers its origin beside it, where the stand's word layer reads that word; a host
   // adds its own actions for the word (setSelectionActions), each told the word as {language, form, lemma, chapter}.
   const knownWords = new WeakMap();
@@ -1674,7 +1687,7 @@ export function mountCorpusReader({
         const own = unitFromSelection(), reference = selected?.reference;
         // The analysis answers this selection once the reader has selected it too: the same work, edition, unit and span.
         const same = own && reference && String(reference.versionId) === String(own.versionId)
-          && (!reference.target?.workId || reference.target.workId === state.document?.id)
+          && (!reference.target?.workId || reference.target.workId === modelState().document?.id)
           && reference.unitId === (own.unit.unitId || own.unit.id)
           && reference.selector.start === codePointOffset(own.unit.text, own.start) && reference.selector.end === codePointOffset(own.unit.text, own.end);
         if (!same || philology.busy) { if (Date.now() - started > 8000) return resolve(null); setTimeout(check, 60); return; }
@@ -1690,7 +1703,9 @@ export function mountCorpusReader({
   const hostAction = action => ({get label(){return action.label;},
     when:value=>knownWord(value).then(word=>word?(action.when?action.when(value,word):true):false),
     run:value=>void knownWord(value).then(word=>{if(word)action.run(value,word);})});
-  const selectionMenu = createSelectionMenu({container:root,accept:value=>Boolean(value.element.closest?.('.cr-unit')),actions:[originAction]});
+  const benchAction = {get label(){return benchWord('lay');},phrases:true,when:()=>benchListens()&&Boolean(benchPassage()),
+        run:()=>{const passage=benchPassage();return passage?layOnBench(passage).then(laid=>benchWord(laid?'laid':'failed')):null;}};
+  const selectionMenu = createSelectionMenu({container:root,accept:value=>Boolean(value.element.closest?.('.cr-unit')),actions:[originAction,benchAction]});
   const beforeUnload=event=>{if(noteDirty||noteFlushPromise){void flushNote();event.preventDefault();event.returnValue='';}};
   const visibilityChanged=()=>{if(document.visibilityState==='hidden')void flushNote();};
   window.addEventListener('beforeunload',beforeUnload);
@@ -1699,7 +1714,7 @@ export function mountCorpusReader({
   return {
     get element() { return root; },
     /** The host's own actions for a selected word, shown after its origin. */
-    setSelectionActions(actions = []) { selectionMenu.setActions([originAction, ...actions.map(hostAction)]); },
+    setSelectionActions(actions = []) { selectionMenu.setActions([originAction, benchAction, ...actions.map(hostAction)]); },
     async open(args = {}) {
       editionSwitch++;
       if(disposed)return this;
