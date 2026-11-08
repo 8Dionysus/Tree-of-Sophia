@@ -1,6 +1,8 @@
-// The stand's quotations and parallel reading offer the origin of a selected
-// word of the book: a small menu beside the word, then the origin in a sheet.
-// A word that belongs to a term also offers how the translations render it.
+// The stand's quotations, its parallel reading and the sheets they open offer the
+// origin of a selected word of the book, where the stand's word layer reads that
+// word: a small menu beside the word, then the origin in a sheet. A word that
+// belongs to a term also offers how the translations render it, here and, through
+// `readerActions`, in the reader.
 import {createSelectionMenu} from '../corpus-reader/selection-menu.mjs';
 import {renderOrigin} from '../corpus-reader/word-origin.mjs';
 import {bonsaiWordByForm} from '../corpus-reader/bonsai-words.mjs';
@@ -21,6 +23,7 @@ function displayPosition(element,range){
  * Offer the origin of words selected inside `root` in elements carrying `data-chapter` and `data-unit`
  * (a witness unit) within an element whose `lang` names the witness. `openPlace(place)` opens a place of the book.
  * With the stand's `renderings` and `terms`, a word of a term also offers its renderings; `fragment(cite)` shows their places.
+ * Each action is offered where the word layer reads the selected word.
  */
 export function createStandOrigin({root,locale,openPlace=null,renderings=null,terms=null,fragment=null}){
   let dialog=null;
@@ -60,21 +63,27 @@ export function createStandOrigin({root,locale,openPlace=null,renderings=null,te
     await renderOrigin(body,{locale:locale(),form:value.text,language:found.language,context:found.context,
       onOpenPlace:openPlace?place=>{view.close();openPlace(place);}:undefined});
   }
-  const translationOf=value=>{const language=value.element.closest('[lang]')?.lang;return language==='de'?translationLanguage(locale()):language;};
-  const termsOf=async value=>{
-    const found=await word(value);if(!found)return [];
-    return wordRenderings(renderings,terms,{language:found.language,form:value.text,lemma:found.context?.words?.[0]?.lemma});
-  };
-  async function showRenderings(value){
-    const found=await word(value),entries=await termsOf(value);if(!found||!entries.length)return;
-    const language=found.language==='de'?translationLanguage(locale()):found.language;
+  // The terms a word read by the layer belongs to, with a rendering in the translation shown beside it.
+  const translationFor=language=>language==='de'?translationLanguage(locale()):language;
+  const termsFor=found=>found?.language?wordRenderings(renderings,terms,found).filter(entry=>entry[translationFor(found.language)]):[];
+  const known=value=>word(value).then(found=>{
+    const lemma=found?.context?.words?.[0]?.lemma;
+    return lemma?{language:found.language,form:value.text,lemma}:null;
+  });
+  function showRenderingsFor(found){
+    const entries=termsFor(found);if(!entries.length)return;
     const {body}=open();
     body.append(Object.assign(document.createElement('h2'),{className:'cr-inspector-title',textContent:renderingsWord('translations',locale())}));
-    for(const entry of entries)renderRenderings(body,entry,{language,locale:locale(),fragment});
+    for(const entry of entries)renderRenderings(body,entry,{language:translationFor(found.language),locale:locale(),fragment});
   }
+  const translations=renderings&&fragment?{get label(){return renderingsWord('translations',locale());},
+    when:(value,found)=>Promise.resolve(found??known(value)).then(found=>termsFor(found).length>0),
+    run:(value,found)=>void Promise.resolve(found??known(value)).then(showRenderingsFor)}:null;
   const menu=createSelectionMenu({container:root,accept:value=>Boolean(value.element.closest('[data-unit][data-chapter]')),
-    actions:[{get label(){return label();},run:value=>void show(value)},
-      ...(renderings&&fragment?[{get label(){return renderingsWord('translations',locale());},run:value=>void showRenderings(value),
-        when:value=>termsOf(value).then(entries=>entries.some(entry=>entry[translationOf(value)]))}]:[])]});
-  return {dispose(){menu.dispose();dialog?.remove();dialog=null;}};
+    actions:[{get label(){return label();},when:value=>known(value).then(Boolean),run:value=>void show(value)},...(translations?[translations]:[])]});
+  return {
+    /** The actions the reader adds for a word its layer reads: how the translations render the word's term. */
+    readerActions:translations?[translations]:[],
+    dispose(){menu.dispose();dialog?.remove();dialog=null;},
+  };
 }
