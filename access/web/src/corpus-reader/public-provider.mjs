@@ -1,4 +1,5 @@
 import {PUBLIC_LOCALES,localeText} from '../public-research/locale.mjs';
+import {placeInEdition} from './edition-place.mjs';
 import {bindCorpusProvider,CorpusProviderError,CorpusProviderCursorError,CorpusProviderUnsupportedScopeError,throwIfAborted} from './provider.mjs';
 import {createReference,validateReference,referenceKey} from './model.mjs';
 import {findInParagraphs} from '../reader/occurrences-rust.mjs';
@@ -393,6 +394,13 @@ export function createPublicCorpusProvider({baseUrl='/static/public-corpus/',pro
     },
     async document(args){return documentView(await documentData(args.documentId,args.signal));},
     window,search,resolve,analyze,
+    async place(args){
+      const document=await documentData(args.documentId,args.signal),from=document.versions.find(item=>item.id===args.versionId),to=document.versions.find(item=>item.id===args.targetVersionId);
+      // A lookup this snapshot cannot read (an edition it lacks, a unit its edition lacks) rejects: it says nothing of a counterpart.
+      if(!from||!to||!(from.units??[]).some(unit=>(unit.id??unit.unitId)===args.unitId))
+        throw new CorpusProviderError('place-unit-unavailable','This snapshot does not hold the place to look up.','place');
+      return placeInEdition({document,from,to,unitId:args.unitId});
+    },
     async structure(args){
       const {document,version}=await versionData(args),binding={documentId:document.id,versionId:version.id};
       let values=version.structure??[];

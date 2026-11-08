@@ -67,7 +67,7 @@ const WORDING = {
     unknown: 'не указано', continuation: 'Есть продолжение', metadataOnly: 'Только метаданные', restricted: 'Доступ ограничен', unavailableVersion: 'Текст недоступен', availabilityUnknown: 'Доступность уточняется',
     untitled: 'Без названия', units: 'Единиц', passage: 'Фрагмент', characters: 'символов', location: 'Место',
     editionVersions: 'текстовых представления', sourceTextLayer: 'Текст из издания', retainedTextLayer: 'Сохранённый слой · старые привязки сохранены',
-    selectedEdition: 'выбрано', currentLocation: 'Текущее место', loadedPassage: 'Загруженный фрагмент', selectedPassage: 'Выбранный фрагмент', independentColumns: 'Колонки читаются независимо; соответствие мест не задано.', mobileEditions: 'Выбрать текстовое представление', jumpToText:'К тексту', searchEdition:'Искать в издании',
+    selectedEdition: 'выбрано', currentLocation: 'Текущее место', loadedPassage: 'Загруженный фрагмент', selectedPassage: 'Выбранный фрагмент', independentColumns: 'Колонки читаются независимо; соответствие мест не задано.', noCounterpart: 'В этом издании нет соответствующего места.', mobileEditions: 'Выбрать текстовое представление', jumpToText:'К тексту', searchEdition:'Искать в издании',
     font: 'Размер', leading: 'Интервал', width: 'Ширина', theme: 'Тема', paper: 'Бумага', night: 'Ночь',
     select: 'Выбрать фрагмент в тексте', noCatalog: 'Произведения не найдены', works: 'Произведений',
   },
@@ -89,7 +89,7 @@ const WORDING = {
     select: 'Select a passage in the text', noCatalog: 'No works found', works: 'Works', availabilityUnknown: 'Availability is being checked',
     untitled: 'Untitled', units: 'Units', passage: 'Passage', characters: 'characters', location: 'Location',
     editionVersions: 'saved text versions', sourceTextLayer: 'Edition source text', retainedTextLayer: 'Retained layer · older links remain valid',
-    selectedEdition: 'selected', currentLocation: 'Current location', loadedPassage: 'Loaded passage', selectedPassage: 'Selected passage', independentColumns: 'Each column keeps its own reading location; no alignment is implied.', mobileEditions: 'Choose a text representation', jumpToText:'Skip to text', searchEdition:'Search edition',
+    selectedEdition: 'selected', currentLocation: 'Current location', loadedPassage: 'Loaded passage', selectedPassage: 'Selected passage', independentColumns: 'Each column keeps its own reading location; no alignment is implied.', noCounterpart: 'This edition has no corresponding place.', mobileEditions: 'Choose a text representation', jumpToText:'Skip to text', searchEdition:'Search edition',
   },
 };
 
@@ -802,7 +802,10 @@ export function mountCorpusReader({
     await Promise.all(pending);
   }
 
+  // Every opening of a work or edition, and closing the reader, advances it from its first step; a pending edition switch then stands down.
+  let editionSwitch = 0;
   async function openDocument(documentId) {
+    editionSwitch++;
     if(!(await flushNote()) || disposed)return null;
     if(window.innerWidth<=850)libraryOpen=false;
     await capturePanePositions();
@@ -820,7 +823,8 @@ export function mountCorpusReader({
     return result;
   }
 
-  async function openVersion(documentId, versionId) {
+  async function openVersion(documentId, versionId, unitId = null) {
+    editionSwitch++;
     if(!(await flushNote()) || disposed)return null;
     if(window.innerWidth<=850){libraryOpen=false;inspectorOpen=false;}
     await capturePanePositions();
@@ -829,6 +833,7 @@ export function mountCorpusReader({
     searchCancel?.(); searchGeneration++;
     searchQuery = ''; searchVersionId = null;
     searchResult = {items: []};
+    if (unitId) { await loadInitial({documentId, versionId, unitId}); return modelState(); }
     const result = await model.open({documentId, versionId});
     if(disposed)return null;
     await ensureVisiblePanes();
@@ -861,11 +866,36 @@ export function mountCorpusReader({
     return [language, role, edition, status].filter(Boolean).join(' · ') || t('edition');
   }
 
+  // Another edition opens where the reader is: at the selected unit, else at the first unit in view, carried
+  // over as finely as the Tree aligns the two editions (edition-place.mjs); with no such place, at its beginning.
+  async function switchEdition(version) {
+    // Any navigation advances selectionSequence; a later choice of edition advances the ticket.
+    const ticket = ++editionSwitch, sequence = selectionSequence;
+    const state = modelState(), document = state.document, from = activeVersion(state.activeVersionId);
+    if (!document || !from || from.id === version.id) return openVersion(document?.id, version.id);
+    const pane = [...root.querySelectorAll('.cr-pane')].find(item => item.dataset.versionId === from.id);
+    const here = selected?.versionId === from.id ? selected.unit : visiblePaneRow(pane ?? root)?.__readerUnit;
+    const unitId = here?.unitId || here?.id;
+    // `answered`: the provider looked the place up; only its answer can say the edition has no counterpart.
+    let place = null, answered = false;
+    if (unitId && typeof provider?.place === 'function') {
+      try { place = await provider.place({documentId:document.id, versionId:from.id, targetVersionId:version.id, unitId}); answered = true; }
+      catch { place = null; }
+    }
+    // A later choice of edition, or another work opened meanwhile, supersedes this one.
+    const now = modelState();
+    if (disposed || !opened || ticket !== editionSwitch || sequence !== selectionSequence
+      || now.document?.id !== document.id || now.activeVersionId !== state.activeVersionId) return null;
+    const result = await openVersion(document.id, version.id, place?.unitId ?? null);
+    if (answered && !place) announce(t('noCounterpart'));
+    return result;
+  }
+
   function versionChoice(version) {
     const choice = button(versionLabel(version), () => {
       const picker = root.querySelector('.cr-edition-picker');
       if (picker) picker.open = false;
-      openVersion(modelState().document.id, version.id).catch(error => announce(friendlyError(error)));
+      switchEdition(version).catch(error => announce(friendlyError(error)));
     }, 'cr-version');
     choice.dataset.versionId = version.id;
     choice.dataset.focusKey = `version:${version.id}`;
@@ -1600,6 +1630,7 @@ export function mountCorpusReader({
   }
 
   async function close({notify = true} = {}) {
+    editionSwitch++;
     if (!opened || disposed) return true;
     if(!(await flushNote()))return false;
     if(disposed || !root)return true;
@@ -1632,9 +1663,34 @@ export function mountCorpusReader({
   root.addEventListener('keydown', keydown);
   root.addEventListener('click', event => { if (event.target === root) close(); });
   document.addEventListener('selectionchange', onSelectionChange);
-  // A word selected in a pane offers its origin beside it.
-  const selectionMenu = createSelectionMenu({container:root,accept:value=>Boolean(value.element.closest?.('.cr-unit')),
-    actions:[{label:copyLocale(uiLocale())==='en'?localeText('Origin of the word',uiLocale()):'Происхождение слова',run:()=>showOrigin()}]});
+  // A word selected in a pane offers its origin beside it, where the stand's word layer reads that word; a host
+  // adds its own actions for the word (setSelectionActions), each told the word as {language, form, lemma, chapter}.
+  const knownWords = new WeakMap();
+  function knownWord(value) {
+    if (!knownWords.has(value)) knownWords.set(value, new Promise(resolve => {
+      const started = Date.now();
+      const check = () => {
+        if (disposed || !opened) return resolve(null);
+        const own = unitFromSelection(), reference = selected?.reference;
+        // The analysis answers this selection once the reader has selected it too: the same work, edition, unit and span.
+        const same = own && reference && String(reference.versionId) === String(own.versionId)
+          && (!reference.target?.workId || reference.target.workId === state.document?.id)
+          && reference.unitId === (own.unit.unitId || own.unit.id)
+          && reference.selector.start === codePointOffset(own.unit.text, own.start) && reference.selector.end === codePointOffset(own.unit.text, own.end);
+        if (!same || philology.busy) { if (Date.now() - started > 8000) return resolve(null); setTimeout(check, 60); return; }
+        const context = philology.result?.context, word = context?.words?.[0];
+        resolve(word?.lemma ? {language:context.language, chapter:context.chapter, form:word.form ?? value.text, lemma:word.lemma} : null);
+      };
+      check();
+    }));
+    return knownWords.get(value);
+  }
+  const originAction = {get label(){return copyLocale(uiLocale())==='en'?localeText('Origin of the word',uiLocale()):'Происхождение слова';},
+    when:value=>knownWord(value).then(Boolean),run:()=>showOrigin()};
+  const hostAction = action => ({get label(){return action.label;},
+    when:value=>knownWord(value).then(word=>word?(action.when?action.when(value,word):true):false),
+    run:value=>void knownWord(value).then(word=>{if(word)action.run(value,word);})});
+  const selectionMenu = createSelectionMenu({container:root,accept:value=>Boolean(value.element.closest?.('.cr-unit')),actions:[originAction]});
   const beforeUnload=event=>{if(noteDirty||noteFlushPromise){void flushNote();event.preventDefault();event.returnValue='';}};
   const visibilityChanged=()=>{if(document.visibilityState==='hidden')void flushNote();};
   window.addEventListener('beforeunload',beforeUnload);
@@ -1642,7 +1698,10 @@ export function mountCorpusReader({
 
   return {
     get element() { return root; },
+    /** The host's own actions for a selected word, shown after its origin. */
+    setSelectionActions(actions = []) { selectionMenu.setActions([originAction, ...actions.map(hostAction)]); },
     async open(args = {}) {
+      editionSwitch++;
       if(disposed)return this;
       await model.ready?.();
       if(disposed || !(await flushNote()) || disposed || !root)return this;
