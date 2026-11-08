@@ -33,9 +33,31 @@
 @keyframes cosmos-dolly-stars{from{transform:none}to{transform:scale(1.22)}}
 .tos-cosmos[data-state=leaving] .cosmos-far{transform:scale(1.08)}
 .tos-cosmos[data-state=leaving] .cosmos-middle{transform:scale(1.2)}
+.tos-cosmos[data-state=leaving] .cosmos-drift{transform:scale(1.5)}
 .tos-cosmos[data-state=leaving] .cosmos-crowd{transform:scale(1.36)}
 .tos-cosmos[data-state=leaving] .cosmos-near{transform:scale(1.62)}
 .tos-cosmos[data-state=leaving] .cosmos-stars{transform:scale(2)}
+
+/* The small stars fly toward the reader: each sheet of them comes out of the depth faint and small, spreads from the
+   heart of the sky ever faster as it nears, in true perspective (its size goes as the inverse of its distance, and the
+   distance closes evenly), and fades as it passes by. Five sheets a fifth of a flight apart keep the flight even. */
+.cosmos-drift .cosmos-depth{animation:none}
+.cosmos-sheet{position:absolute;inset:0;transform-origin:50% 46%;opacity:0;will-change:transform,opacity;animation:cosmos-fly 34s linear infinite}
+.cosmos-sheet canvas{position:absolute;inset:0;width:100%;height:100%}
+@keyframes cosmos-fly{
+  0%{transform:scale(.4);opacity:0}
+  10%{transform:scale(.4386);opacity:.45}
+  20%{transform:scale(.4854);opacity:.85}
+  30%{transform:scale(.5435);opacity:1}
+  40%{transform:scale(.6173)}
+  50%{transform:scale(.7143)}
+  60%{transform:scale(.8475)}
+  70%{transform:scale(1.0417)}
+  80%{transform:scale(1.3514);opacity:1}
+  90%{transform:scale(1.9231);opacity:.75}
+  95%{transform:scale(2.439);opacity:.4}
+  100%{transform:scale(3.3333);opacity:0}
+}
 
 /* The crowd of small galaxies comes up softly once its atlas is ready. */
 .cosmos-crowd canvas{opacity:0}
@@ -101,4 +123,6 @@
 .tos-cosmos.is-still .cosmos-title{opacity:.94}
 .tos-cosmos.is-still .cosmos-rise.is-risen,.tos-cosmos.is-still .cosmos-crowd canvas.is-risen{opacity:1}
 .tos-cosmos.is-still .cosmos-plane{transition:none}
+.tos-cosmos.is-still .cosmos-sheet{opacity:.85}
+.tos-cosmos.is-still .cosmos-sheet+.cosmos-sheet{display:none}
 .tos-cosmos.is-still[data-state=leaving] .cosmos-plane,.tos-cosmos.is-still[data-state=leaving] .cosmos-heart{transform:none}

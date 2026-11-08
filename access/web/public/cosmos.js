@@ -99,14 +99,14 @@
     try{return canvas.toDataURL();}catch(error){return '';}
   }
 
-  // ── the sky itself: five depths, from the farthest field to the stars of our own sky. Each depth drifts forward at
+  // ── the sky itself: six depths, from the farthest field to the stars of our own sky. Each depth drifts forward at
   // its own pace (its depth), and is carried through on its own plane when the view flies into the tree.
   var host=make('div','tos-cosmos');host.setAttribute('aria-hidden','true');host.dataset.state=startOn?'on':'off';
   var field=make('div','cosmos-field',host);
   make('div','cosmos-ground',field);
   var deep=make('div','cosmos-deep',field);
   function depth(name){return make('div','cosmos-depth',make('div','cosmos-plane cosmos-'+name,deep));}
-  var far=depth('far'),middle=depth('middle'),crowd=depth('crowd'),near=depth('near'),stars=depth('stars'),DEPTHS=[far,middle,crowd,near,stars];
+  var far=depth('far'),middle=depth('middle'),drift=depth('drift'),crowd=depth('crowd'),near=depth('near'),stars=depth('stars'),DEPTHS=[far,middle,drift,crowd,near,stars];
   make('div','cosmos-veil',field);
   var heart=make('div','cosmos-heart',host);
   make('div','cosmos-hush',heart);
@@ -135,6 +135,28 @@
       small(g,next,x,y,size,palette,scale);
     }
     g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;
+  }
+  // The small stars between us and the field fly toward the reader. A few sheets of them, each drawn once, come out of the
+  // depth one after another and spread from the heart of the sky as they near, the faster the nearer, until they pass by;
+  // the flight is the clock's, so it goes on from one page into the next.
+  var SHEETS=5,FLIGHT=34;
+  function paintDrift(){
+    drift.textContent='';
+    var v=viewport(),scale=Math.min(1,Math.sqrt(1e6/(v.w*v.h))),s=spritesNow(),count=Math.round(175*v.w*v.h/1e6),hole=Math.min(v.w,v.h)*.07,now=Date.now()/1000;
+    var kinds=[s.point.white,s.point.white,s.point.white,s.point.pale,s.point.pale,s.point.gold];
+    for(var k=0;k<SHEETS;k++){
+      var sheet=make('i','cosmos-sheet',drift),canvas=make('canvas','',sheet);canvas.width=Math.round(v.w*scale);canvas.height=Math.round(v.h*scale);
+      sheet.style.animationDuration=FLIGHT+'s';sheet.style.animationDelay=(-((now+k*FLIGHT/SHEETS)%FLIGHT)).toFixed(2)+'s';
+      var g=canvas.getContext('2d');if(!g)continue;g.globalCompositeOperation='lighter';
+      var next=random(700+k*31);
+      for(var i=0;i<count;i++){
+        var x=next()*v.w,y=next()*v.h,bright=next()<.08,r=bright?1.6+next()*1.2:.55+Math.pow(next(),2)*1.35,alpha=bright?.95:.4+next()*.55,kind=kinds[Math.floor(next()*kinds.length)];
+        // The Tree's mark keeps a clear sky of its own: no flying star sets out from it.
+        if(Math.abs(x-v.w*.5)<hole&&Math.abs(y-v.h*.46)<hole)continue;
+        stamp(g,kind,x,y,r,r,0,alpha,scale);
+      }
+      g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;
+    }
   }
   function paintStars(){
     stars.textContent='';
@@ -210,7 +232,7 @@
   }
 
   function release(){
-    [far,middle,crowd].forEach(function(layer){layer.querySelectorAll('canvas').forEach(function(canvas){canvas.width=canvas.height=0;});});
+    [far,middle,drift,crowd].forEach(function(layer){layer.querySelectorAll('canvas').forEach(function(canvas){canvas.width=canvas.height=0;});});
     DEPTHS.forEach(function(layer){layer.textContent='';});
   }
   // The flight forward goes on from the moment the sky came up (`since`), on this page or on the one before it.
@@ -229,7 +251,7 @@
     var v=viewport(),area=v.w*v.h/1e6,scale=resolution();
     paintField(far,101,Math.round(620*area),[1.3,7],2.3,FAR,Math.round(220*area),scale);
     paintField(middle,202,Math.round(130*area),[3,15],2.1,NEAR,Math.round(60*area),scale);
-    paintStars();crowd.textContent='';near.textContent='';
+    paintDrift();paintStars();crowd.textContent='';near.textContent='';
     title.textContent=titleFor(id||stand);
     fly();phase(orbit,3.6);phase(halo,5.5,true);phase(mark,6,true);
     if(whole){paintHeroes();paintCrowd();}
