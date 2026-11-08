@@ -30,13 +30,13 @@ const sha256=path=>createHash('sha256').update(readFileSync(path)).digest('hex')
 const textDigest=text=>createHash('sha256').update(text,'utf8').digest('hex');
 
 /** A bonsai's manifest and its modules by id, read from `<root>/bonsai/<id>/`. */
-export function loadBonsai(root,id){
+export function loadBonsai(root,id,overrides={}){
   const home=join(root,'bonsai',id),manifest=json(join(home,'bonsai.json')),modules={},layers=readLayers(home);
   for(const module of manifest.modules??[]){
     if(!module.path||module.borrowed)continue;
     // A generated layer kept in R2 (bonsai/lib/layers.mjs) is read where a checkout has fetched it.
     if(isLayerPath(layers,module.path)&&!existsSync(join(home,module.path)))continue;
-    modules[module.id]=json(join(home,module.path));
+    modules[module.id]=Object.hasOwn(overrides,module.id)?overrides[module.id]:json(join(home,module.path));
   }
   return {home,manifest,modules,layers};
 }
@@ -166,8 +166,8 @@ export function termPlaceReader(root,alignment,fragments,{corpus=corpusOnDisk(ro
 }
 
 /** Problems that make a bonsai or its export unfit for the Tree, and what has moved since the graft. */
-export function checkBonsai(root,id,{validator=treeContracts(root),relations,identities=treeIdentities(root)}={}){
-  const {home,manifest,modules,layers}=loadBonsai(root,id),problems=[],drift=[];
+export function checkBonsai(root,id,{validator=treeContracts(root),relations,identities=treeIdentities(root),overrides}={}){
+  const {home,manifest,modules,layers}=loadBonsai(root,id,overrides),problems=[],drift=[];
   let corpus=null;
   // The layers kept in R2: their manifest always; their files, checked like any module, where all are present.
   let layerFiles=null;

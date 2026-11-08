@@ -174,10 +174,12 @@ export function mediaFromObservation(observation,{view='whole'}={}){
   if(observation?.schema_version!=='tos_media_provider_observation_v1')throw new Error('not a media provider observation');
   const record=observation.object??{},provider=observation.provider;
   const inventory=(record.identifiers??[]).find(item=>/object number|accession/i.test(item?.scheme??''))?.value??observation.requested_object;
-  const service=(observation.images??[]).find(item=>item?.role==='primary'&&item.form==='image_service')?.image_service;
+  const primary=(observation.images??[]).find(item=>item?.role==='primary'&&item.form==='image_service');
+  const service=primary?.image_service;
   if(!service)throw new Error(`${provider} ${inventory}: the observation has no image service; a card reads IIIF Image API 3 services only`);
   if(service.api_version!=='3')throw new Error(`${provider} ${inventory}: IIIF Image API ${service.api_version} is not read by the cards`);
-  const right=(observation.rights??[]).find(item=>item?.scope==='image');
+  const right=(observation.rights??[]).find(item=>item?.scope==='image'
+    &&(provider!=='rijksmuseum'||primary.rights_source&&item.stated_in===primary.rights_source));
   const rights=right?{statement:right.statement_uri??null,field:right.provider_field,value:right.value,label:right.label??null,stated_in:right.stated_in}:null;
   if(!openRights(rights))throw new Error(`${provider} ${inventory}: the provider's image rights do not let a stand show it`);
   const requestOf=role=>(observation.requests??[]).find(item=>item?.role===role);

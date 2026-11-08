@@ -119,11 +119,11 @@ if(command==='check'){
     subject:option('--subject'),role:option('--role'),artifact:option('--artifact'),view:option('--view')??'whole',
     digest:text=>createHash('sha256').update(text,'utf8').digest('hex'),
   });
+  const check=checkBonsai(root,stand,{overrides:{media:result.module,identities:result.identities}});
+  for(const problem of check.problems)console.error(`  problem: ${problem}`);
+  if(check.problems.length)process.exit(1);
   write(mediaPath,result.module);write(graftPath,result.identities);
   console.log(`${stand}: ${result.imageId} shows ${option('--subject')} as ${option('--role')}; work ${result.workId}`);
-  const check=checkBonsai(root,stand);
-  for(const problem of check.problems)console.log(`  problem: ${problem}`);
-  process.exit(check.problems.length?1:0);
 }else{
   console.error('usage: node bonsai/lib/cli.mjs check [<bonsai>...] | export <bonsai> [--out <file>] | export-philosophy <bonsai> [--out <file>] | align <bonsai> [--write] | align-corpus <bonsai> [--write] [--corpus <dir>] | media add <bonsai> <observation.json> --subject <id> --role <role> --artifact <tradition/site/identity> [--view <view>]');
   process.exit(2);

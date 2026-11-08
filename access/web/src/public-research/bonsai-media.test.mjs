@@ -31,7 +31,7 @@ const observation=(overrides={})=>({
     depicted:[{authority_uris:['http://www.wikidata.org/entity/Q1541']}],
   },
   rights:[{scope:'image',provider_field:'subject_to',value:PDM,statement_uri:PDM,label:'Public Domain',stated_in:'https://data.rijksmuseum.nl/202488935?_profile=la-framed'}],
-  images:[{role:'primary',form:'image_service',image_service:{api_version:'3',service_id:'https://iiif.micr.io/qnEHd',width_pixels:2748,height_pixels:4044,info_fingerprint:{sha256:'b'.repeat(64),checked_at:'2026-11-08T05:12:58.0Z'}}}],
+  images:[{role:'primary',form:'image_service',rights_source:'https://data.rijksmuseum.nl/202488935?_profile=la-framed',image_service:{api_version:'3',service_id:'https://iiif.micr.io/qnEHd',width_pixels:2748,height_pixels:4044,info_fingerprint:{sha256:'b'.repeat(64),checked_at:'2026-11-08T05:12:58.0Z'}}}],
   ...overrides,
 });
 const added=(extra={})=>addMedia({module:null,identities:{schema:'tos.bonsai.identities.v1'},observation:observation(),subject:'cicero',role:'author-portrait',artifact:'european-printmaking/rijksmuseum-amsterdam/rp-p-2007-362',digest,bonsai:'antiquity',...extra});
