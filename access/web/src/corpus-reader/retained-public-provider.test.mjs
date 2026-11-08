@@ -72,4 +72,6 @@ test('a place lookup reads the snapshot that holds the place, and a lookup no sn
  // `removed` stands only in the retained snapshot, beside `stable`: the lookup reads that snapshot, by section.
  expect(await provider.place({documentId:'work',versionId:'removed',targetVersionId:'stable',unitId:'removed-unit'})).toEqual({unitId:'same-unit',by:'section'});
  await expect(provider.place({documentId:'work',versionId:'nowhere',targetVersionId:'stable',unitId:'u'})).rejects.toMatchObject({code:'retained-version-unavailable'});
+ // A work the current snapshot no longer holds is looked up in the retained ones, and rejects where none holds it.
+ await expect(provider.place({documentId:'gone',versionId:'removed',targetVersionId:'stable',unitId:'removed-unit'})).rejects.toMatchObject({code:'retained-version-unavailable'});
 });

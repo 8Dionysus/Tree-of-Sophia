@@ -55,9 +55,11 @@ own: `unit` where a bonsai alignment carries the unit across (Zarathustra's
 editions through the first editions, an ancient work's cited units through its
 original), `section` where both editions label a section alike (a Stephanus
 page, a Bekker section, a chapter title the Zarathustra witnesses give in each
-language). The reader opens another edition at that unit, and at the edition's
-beginning when the answer is `null`. A place is a navigation aid, as the
-alignment it comes from is.
+language). The reader opens another edition at that unit; when the answer is
+`null` it says the edition has no corresponding place and opens it where it
+opens any edition (the saved reading, else its beginning). A lookup that
+cannot be read rejects, and the reader then makes no claim of a counterpart.
+A place is a navigation aid, as the alignment it comes from is.
 
 `analyze` is an optional, selected-occurrence operation. The caller passes the
 exact validated reference and the literal form sliced from its Unicode

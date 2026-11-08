@@ -95,7 +95,8 @@ export function createRetainedPublicCorpusProvider({baseUrl='/static/public-corp
       for(const next of [async()=>current,...(await retained(args.signal)).map(descriptor=>()=>snapshot(descriptor,args.signal))]){
         const candidate=await next();
         try{return (await candidate.place?.(args))??null;}
-        catch(error){if(error?.code!=='place-unit-unavailable')throw error;}
+        // A snapshot without the work, the edition or the unit hands the lookup on to the next one.
+        catch(error){if(!['place-unit-unavailable','document-unavailable','version-unavailable'].includes(error?.code))throw error;}
       }
       throw unavailable();
     },
