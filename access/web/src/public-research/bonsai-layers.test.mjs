@@ -114,7 +114,7 @@ describe('the layer store',()=>{
   it('keeps the Zarathustra word layer and the copies of its images in its manifest',()=>{
     const layers=readLayers(new URL('../../../../bonsai/zarathustra',import.meta.url).pathname);
     expect(layersIssues(layers)).toEqual([]);
-    expect(layers.paths).toEqual(['origins.json','origins/','renderings.json','spelling.json','tokens.json','tokens/','media/']);
+    expect(layers.paths).toEqual(['histories.json','histories/','origins.json','origins/','renderings.json','spelling.json','stories.json','tokens.json','tokens/','media/']);
     expect(layers.entries.filter(entry=>entry.path.startsWith('tokens/'))).toHaveLength(81);
     // Each image file the stand keeps: a provider's file and its smaller copy, named by their digest.
     for(const entry of layers.entries.filter(entry=>entry.path.startsWith('media/')))expect(entry.path).toBe(`media/${entry.sha256}.jpg`);
