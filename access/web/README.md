@@ -205,6 +205,41 @@ state and poses, not source packets or exploration cursors. The full local
 workspace export/import has a separate explicit replace flow; see the
 [research shelf guide](src/research-shelf/README.md).
 
+### The reference
+
+The reference mode reads the same stand as a book
+([`reference-book.mjs`](src/public-research/reference-book.mjs)). Its contents
+read the tree from the crown to the roots beside a figure of the tree; the index
+lists every subject by name and kind; the library holds the eras, authors,
+works and places of Antiquity and the parts and chapters of Zarathustra, the
+subjects that run through the whole book named once above them and the
+subjects resting on each chapter under it. The stand's outline
+([`reference-outline.mjs`](src/public-research/reference-outline.mjs)) gives
+every article its path and the articles before and after it.
+
+An article opens with its kind, name, source, dating and place, its question
+and its lead in the stand's own words, beside the place of its star on the
+tree; the figure opens the space at that star. The body follows the fields the
+stand authored for that kind of subject
+([`reference-articles.mjs`](src/public-research/reference-articles.mjs)): a
+branch reads as its moves and the turns between them with the moves where it
+stays open marked, a route of the core as its transitions, a move as its
+reading and the roles of its reasoning, a passage as its text and the readings
+resting on it, a question as the answers of its voices. A link of the core
+names the two subjects it joins and the family of the link under its title,
+then reads its question, its sense on the places it rests on, the way it passes
+through other subjects and its history; a link of two passages lays the two
+places side by side under their speakers; a claim opens in the article it
+belongs to, marked at its own words. The stand's words keep
+the reading measure and the names of their fields hang in the left margin; the
+places they rest on stand in the right margin with their source and first lines
+and open whole where they stand. A place the page quotes in full is quoted
+once and a later mention leads up or down to it; quotations of one source in a
+row name it once. Links stand grouped
+by kind in the word, colour and line of the map and list what the text does not
+already lead to; the link to the article before or after stands at the foot of
+the page beside its name.
+
 ### Public presentation languages
 
 The public adapter's [locale helper](src/public-research/locale.mjs) selects

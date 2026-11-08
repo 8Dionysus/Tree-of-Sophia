@@ -10,7 +10,9 @@ class Node{
   set textContent(value){this.text=value;}
   getAttribute(name){return this.attrs[name]??null;}
   addEventListener(type,fn){this.listeners[type]=fn;}
-  closest(selector){let node=this;while(node){if(selector==='[lang]'&&node.attrs.lang)return node;node=node.parent;}return null;}
+  closest(selector){let node=this;while(node){if(selector==='[lang]'&&node.attrs.lang)return node;if(selector.startsWith('.')&&node.className.split(' ').includes(selector.slice(1)))return node;node=node.parent;}return null;}
+  get previousElementSibling(){const siblings=this.parent?.children??[],at=siblings.indexOf(this);return at>0?siblings[at-1]:null;}
+  compareDocumentPosition(other){let root=this;while(root.parent)root=root.parent;const order=[root,...root.all()];return order.indexOf(other)>order.indexOf(this)?4:2;}
   matches(selector){return selector.split(',').some(part=>{part=part.trim().replace(':scope > ','');const [tag,cls]=part.split('.');return (!tag||tag==='*'||this.tagName===tag.toUpperCase())&&(!cls||this.className.split(' ').includes(cls));});}
   all(){return this.children.flatMap(child=>[child,...child.all()]);}
   querySelectorAll(selector){const direct=selector.includes(':scope >');return (direct?this.children:this.all()).filter(node=>node.matches(selector));}
@@ -39,5 +41,18 @@ it('opens every collapsed ancestor before scrolling to the first quotation',()=>
   first.scrollIntoView=vi.fn(()=>{expect(outer.open).toBe(true);expect(inner.open).toBe(true);});
   keepQuotesOnce(root);later.children[0].listeners.click();
   expect(first.scrollIntoView).toHaveBeenCalledOnce();
+  vi.unstubAllGlobals();
+});
+
+it('points a note in the margin down to the text it repeats, reads a cut-short line as the same line and keeps one of two ways back side by side',()=>{
+  vi.stubGlobal('document',{createElement:tag=>new Node(tag)});
+  const note=lines=>{const wrap=new Node('div');wrap.className='rb-ground';wrap.append(figure(lines,'Глава'));return wrap;};
+  const root=new Node('article'),margin=new Node('div'),first=note(['Одна строка. …']),second=note(['Одна строка.']),text=figure(['Одна строка.','Другая строка.'],'Глава');
+  margin.append(first,second);root.append(margin,text);
+  keepQuotesOnce(root,{later:'.rb-ground'});
+  const [lead]=first.children;
+  expect(lead.children[0].textContent).toBe('↓ Глава');
+  expect(second.hidden).toBe(true);
+  expect(text.children[0].children.some(line=>line.classList.contains('is-quoted-above'))).toBe(false);
   vi.unstubAllGlobals();
 });
