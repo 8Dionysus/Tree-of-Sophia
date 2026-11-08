@@ -5,6 +5,7 @@
 //   node bonsai/lib/cli.mjs export <bonsai> [--out <file>]
 //   node bonsai/lib/cli.mjs align <bonsai> [--write]
 //   node bonsai/lib/cli.mjs align-corpus <bonsai> [--write] [--corpus <dir>]
+//   node bonsai/lib/cli.mjs media add <bonsai> <observation.json> --subject <id> --role <role> --artifact <tradition/site/identity> [--view <view>]
 //
 // `check` exits non-zero when a module breaks its contract or the export does
 // not satisfy the Tree's contracts in this checkout; drift since the graft is
@@ -15,6 +16,11 @@
 // `align-corpus` aligns, with corpus-align.mjs, the public corpus works the
 // stand's content cites (its own modules and the modules it borrows) and
 // reports whether the stored alignment module still matches; `--write` stores it.
+// `media add` attaches a medium to a card: it reads a provider observation made by
+// the Tree's media bridge (`tos-native-owner-command acquisition`, `media.observe`),
+// stores its work and image in the bonsai's media module with a use for the
+// subject in the role, names their Tree Artifact and representation in the graft
+// map, and checks the bonsai.
 
 import {readFileSync,writeFileSync,readdirSync,existsSync} from 'node:fs';
 import {createHash} from 'node:crypto';
@@ -26,6 +32,7 @@ import {fileURLToPath,pathToFileURL} from 'node:url';
 import {alignCorpus,citedUnits,corpusReader,formatAlignment} from './corpus-align.mjs';
 import {bonsaiIds,checkBonsai,loadBonsai,loadWitnessChapters} from './graft.mjs';
 import {realignWitnesses} from './realign.mjs';
+import {addMedia} from './media.mjs';
 
 const root=join(dirname(fileURLToPath(import.meta.url)),'..','..');
 const [command,...rest]=process.argv.slice(2);
@@ -100,7 +107,24 @@ if(command==='check'){
   console.log(`${names[0]}: the stored corpus alignment ${same?'matches':'differs from'} the one the mechanism gives`);
   if(rest.includes('--write')){writeFileSync(path,text);console.log('stored');}
   else if(!same)process.exit(1);
+}else if(command==='media'&&names[0]==='add'&&names.length===3){
+  // The manifest is read alone: the media module it names may not exist before the first medium.
+  const [,stand,file]=names,home=join(root,'bonsai',stand),manifest=JSON.parse(readFileSync(join(home,'bonsai.json'),'utf8'));
+  const entry=(manifest.modules??[]).find(item=>item.id==='media'),graftEntry=(manifest.modules??[]).find(item=>item.id==='identities');
+  if(!entry||!graftEntry){console.error(`${stand}: its manifest names no ${entry?'identities':'media'} module; add it to bonsai/${stand}/bonsai.json first`);process.exit(1);}
+  const read=path=>existsSync(path)?JSON.parse(readFileSync(path,'utf8')):null,write=(path,value)=>writeFileSync(path,`${JSON.stringify(value,null,2)}\n`);
+  const mediaPath=join(home,entry.path),graftPath=join(home,graftEntry.path);
+  const result=addMedia({
+    module:read(mediaPath),identities:read(graftPath),observation:JSON.parse(readFileSync(file,'utf8')),bonsai:stand,
+    subject:option('--subject'),role:option('--role'),artifact:option('--artifact'),view:option('--view')??'whole',
+    digest:text=>createHash('sha256').update(text,'utf8').digest('hex'),
+  });
+  write(mediaPath,result.module);write(graftPath,result.identities);
+  console.log(`${stand}: ${result.imageId} shows ${option('--subject')} as ${option('--role')}; work ${result.workId}`);
+  const check=checkBonsai(root,stand);
+  for(const problem of check.problems)console.log(`  problem: ${problem}`);
+  process.exit(check.problems.length?1:0);
 }else{
-  console.error('usage: node bonsai/lib/cli.mjs check [<bonsai>...] | export <bonsai> [--out <file>] | export-philosophy <bonsai> [--out <file>] | align <bonsai> [--write] | align-corpus <bonsai> [--write] [--corpus <dir>]');
+  console.error('usage: node bonsai/lib/cli.mjs check [<bonsai>...] | export <bonsai> [--out <file>] | export-philosophy <bonsai> [--out <file>] | align <bonsai> [--write] | align-corpus <bonsai> [--write] [--corpus <dir>] | media add <bonsai> <observation.json> --subject <id> --role <role> --artifact <tradition/site/identity> [--view <view>]');
   process.exit(2);
 }
