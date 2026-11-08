@@ -1,6 +1,7 @@
 /* The choice of a bonsai: the night of the stands (and each light theme by the build's twins), the
    Tree's name, one line on what it grows, and each bonsai's own tree growing in: its ground, its wood from
-   the ground up, its foliage of star-dust, then its stars. */
+   the ground up, its pads of foliage one after another, then the stars that light them. The pads' colours,
+   by how far back each stands, are named here so each theme paints them in its own. */
 @font-face{font-family:Sophia;src:local('Noto Serif'),local('DejaVu Serif');font-display:swap}
 @view-transition{navigation:auto}
 :root{color-scheme:dark;--ground:#070f1b;--raised:#0b1626;--ink:#e4e6ea;--text:#b9c6d5;--muted:#93a5b9;--accent:#dcc690;--rule:#8296b22b;--branch:#8ea2ba}
@@ -25,10 +26,17 @@ body{display:flex;flex-direction:column;min-height:100dvh;font:16px/1.5 system-u
 .home-stand a:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-color:var(--rule);background:var(--raised)}
 .home-tree{display:block;width:min(220px,62vw);height:min(220px,62vw);margin-bottom:4px;transform-origin:50% 84%}
 .home-tree svg,.home-tree img{display:block;width:100%;height:100%;overflow:visible}
-.home-tree .tree-wood,.home-tree .tree-roots{fill:var(--branch);transition:fill .45s}
+.home-tree .tree-wood-lit{stop-color:color-mix(in srgb,var(--branch) 55%,var(--ink));transition:stop-color .45s}
+.home-tree .tree-wood-shade{stop-color:color-mix(in srgb,var(--branch) 72%,var(--ground));transition:stop-color .45s}
 .home-tree .tree-rock,.home-tree .tree-pot{fill:color-mix(in srgb,var(--muted) 24%,var(--ground))}
 .home-tree .tree-rock-lit,.home-tree .tree-pot-lip{fill:color-mix(in srgb,var(--muted) 38%,var(--ground))}
 .home-tree .tree-rock-shade,.home-tree .tree-pot-foot{fill:color-mix(in srgb,var(--muted) 13%,var(--ground))}
+.home-tree{--tree-glow-0:#4a5e88;--tree-glow-1:#42547b;--tree-glow-2:#3b4b6e;--tree-glow-3:#344261;--tree-glow-4:#2c3854;--tree-night-0:#1b2436;--tree-night-1:#192132;--tree-night-2:#161e2f;--tree-night-3:#141b2c;--tree-night-4:#121828;--tree-under:#121828}
+.home-tree .tree-glow-0{stop-color:var(--tree-glow-0)}.home-tree .tree-glow-1{stop-color:var(--tree-glow-1)}.home-tree .tree-glow-2{stop-color:var(--tree-glow-2)}.home-tree .tree-glow-3{stop-color:var(--tree-glow-3)}.home-tree .tree-glow-4{stop-color:var(--tree-glow-4)}
+.home-tree .tree-night-0{stop-color:var(--tree-night-0)}.home-tree .tree-night-1{stop-color:var(--tree-night-1)}.home-tree .tree-night-2{stop-color:var(--tree-night-2)}.home-tree .tree-night-3{stop-color:var(--tree-night-3)}.home-tree .tree-night-4{stop-color:var(--tree-night-4)}
+.home-tree .tree-under,.home-tree .tree-under-top{stop-color:var(--tree-under)}
+/* In daylight a pad set further back fades toward the page, as far trees do in air, and its star warms it. */
+:root[data-site-theme="noon"] .home-tree{--tree-night-0:color-mix(in srgb,var(--branch) 56%,var(--ground));--tree-night-1:color-mix(in srgb,var(--branch) 49%,var(--ground));--tree-night-2:color-mix(in srgb,var(--branch) 42%,var(--ground));--tree-night-3:color-mix(in srgb,var(--branch) 35%,var(--ground));--tree-night-4:color-mix(in srgb,var(--branch) 28%,var(--ground));--tree-glow-0:color-mix(in srgb,var(--accent) 34%,var(--tree-night-0));--tree-glow-1:color-mix(in srgb,var(--accent) 30%,var(--tree-night-1));--tree-glow-2:color-mix(in srgb,var(--accent) 26%,var(--tree-night-2));--tree-glow-3:color-mix(in srgb,var(--accent) 22%,var(--tree-night-3));--tree-glow-4:color-mix(in srgb,var(--accent) 18%,var(--tree-night-4));--tree-under:color-mix(in srgb,var(--branch) 82%,var(--ground))}
 .home-tree .tree-dust{fill:var(--accent)}
 .home-tree .tree-star{fill:var(--accent);transform-box:fill-box;transform-origin:center}
 .home-tree .tree-crown{filter:drop-shadow(0 0 5px var(--accent))}
@@ -36,7 +44,7 @@ body{display:flex;flex-direction:column;min-height:100dvh;font:16px/1.5 system-u
 .home-title{color:var(--ink);font:400 clamp(24px,3vw,28px)/1.2 Sophia,Georgia,'Times New Roman',serif}
 .home-meta{color:var(--muted);font-size:13px;line-height:1.45}
 .home-desc{max-width:36ch;color:var(--text);font:15px/1.6 Sophia,Georgia,'Times New Roman',serif}
-.home-stand a:hover .tree-wood,.home-stand a:focus-visible .tree-wood,.home-stand a:hover .tree-roots,.home-stand a:focus-visible .tree-roots{fill:color-mix(in srgb,var(--branch) 55%,var(--accent))}
+.home-stand a:hover .tree-wood-lit,.home-stand a:focus-visible .tree-wood-lit{stop-color:color-mix(in srgb,var(--branch) 45%,var(--accent))}
 .home-stand a:hover .home-title,.home-stand a:focus-visible .home-title{color:var(--accent)}
 .home-title{transition:color .45s}
 @media (prefers-reduced-motion:no-preference){
@@ -45,13 +53,14 @@ body{display:flex;flex-direction:column;min-height:100dvh;font:16px/1.5 system-u
   .home-stand{animation:home-rise .55s ease-out both;animation-delay:calc(.18s + var(--i,0) * .12s)}
   .home-tree .tree-rock,.home-tree .tree-rock-lit,.home-tree .tree-rock-shade,.home-tree .tree-pot,.home-tree .tree-pot-lip,.home-tree .tree-pot-foot{animation:home-fade .5s ease-out both;animation-delay:calc(.2s + var(--i,0) * .12s)}
   .home-tree .tree-wood,.home-tree .tree-roots{clip-path:inset(100% 0 0 0);animation:home-grow .9s cubic-bezier(.3,.7,.3,1) forwards;animation-delay:calc(.3s + var(--i,0) * .12s)}
-  .home-tree .tree-dust{animation:home-fade .9s ease-out both;animation-delay:calc(.75s + var(--i,0) * .12s)}
-  .home-tree .tree-star{transform:scale(0);animation:home-bloom .38s cubic-bezier(.3,1.5,.5,1) forwards,home-twinkle 3.4s ease-in-out infinite;animation-delay:calc(1s + var(--i,0) * .12s),calc(1.6s + var(--t,0) * 1s)}
+  .home-tree .tree-pad{transform-box:fill-box;transform-origin:50% 100%;animation:home-leaf .6s cubic-bezier(.3,1.25,.5,1) both;animation-delay:calc(.7s + var(--i,0) * .12s + var(--p,0) * .06s)}
+  .home-tree .tree-star{transform:scale(0);animation:home-bloom .38s cubic-bezier(.3,1.5,.5,1) forwards,home-twinkle 3.4s ease-in-out infinite;animation-delay:calc(1.3s + var(--i,0) * .12s),calc(1.9s + var(--t,0) * 1s)}
   .home-stand a:hover .home-tree,.home-stand a:focus-visible .home-tree{animation:home-sway 2.6s ease-in-out infinite}
 }
 @keyframes home-rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes home-grow{to{clip-path:inset(0 0 0 0)}}
 @keyframes home-fade{from{opacity:0}}
+@keyframes home-leaf{from{opacity:0;transform:scale(.55)}}
 @keyframes home-bloom{to{transform:scale(1)}}
 @keyframes home-twinkle{0%,100%{opacity:1}50%{opacity:.5}}
 @keyframes home-sway{0%,100%{transform:rotate(0)}50%{transform:rotate(1.4deg)}}

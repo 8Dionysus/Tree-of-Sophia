@@ -14,7 +14,8 @@ export function bonsaiTree(id,index){
       const tree=new DOMParser().parseFromString(text,'image/svg+xml').documentElement;
       if(tree.localName!=='svg')throw new Error('no tree');
       tree.setAttribute('aria-hidden','true');tree.setAttribute('focusable','false');
-      // Each star keeps its own time in the twinkle.
+      // The pads come in one after another, and each star keeps its own time in the twinkle.
+      [...tree.querySelectorAll('.tree-pad')].forEach((pad,at)=>pad.style.setProperty('--p',at));
       [...tree.querySelectorAll('.tree-star')].forEach((star,at)=>star.style.setProperty('--t',((at*.37)%1*3).toFixed(2)));
       holder.append(document.importNode(tree,true));
     })
