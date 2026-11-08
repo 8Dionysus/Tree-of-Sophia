@@ -33,7 +33,7 @@ const W={
   apparatus:{ru:'Источники и упоминания',en:'Sources and mentions'},sources:{ru:'Источники',en:'Sources'},mentions:{ru:'Где упоминается',en:'Where it is mentioned'},
   previous:{ru:'Предыдущая статья',en:'Previous article'},next:{ru:'Следующая статья',en:'Next article'},
   ofTotal:{ru:'{0} из {1}',en:'{0} of {1}'},
-  uses:{ru:'Употребления',en:'Uses'},otherForms:{ru:'Другие формы',en:'Other forms'},relatedWords:{ru:'Родственные слова',en:'Related words'},
+  uses:{ru:'Употребления',en:'Uses'},relatedWords:{ru:'Родственные слова',en:'Related words'},
   works:{ru:'Произведения',en:'Works'},places:{ru:'Места',en:'Places'},courseOfWork:{ru:'Ход произведения',en:'The course of the work'},
   concepts:{ru:'Понятия',en:'Concepts'},about:{ru:'О ком',en:'About whom'},
   argument:{ru:'Ход мысли',en:'The argument'},answer:{ru:'Ответ',en:'Answer'},otherReading:{ru:'Другое прочтение',en:'Another reading'},

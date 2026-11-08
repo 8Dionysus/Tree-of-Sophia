@@ -90,7 +90,6 @@ export function articleBody({head,body,id,item,claim,section,field,link,sign,don
         claim(entry,use.body);box.append(entry);
       }
     }
-    if(material.aliases?.length){const row=field(section(body,'forms',w('otherForms')),'');row.append(make('p','rb-forms',material.aliases.join(', ')));}
     links(body,(material.relatedIds??[]).map(data.catalogId),w('relatedWords'));
     return;
   }
@@ -113,7 +112,7 @@ export function articleBody({head,body,id,item,claim,section,field,link,sign,don
   }
   // A question of the dome: its line, then the answers the voices give, each with the place it rests on.
   if(material.kind==='question'&&material.positions?.length){
-    if(typeof material.prompt==='string'&&material.prompt.trim())ask(material.prompt);
+    ask(material.question);
     lead(material.body);
     const box=section(body,'voices',w('voices'));
     for(const position of material.positions){
