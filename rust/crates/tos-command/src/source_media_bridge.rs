@@ -45,7 +45,7 @@ const MET: Provider = Provider {
 /// release (CC0, GitHub, one commit a day), its images from its IIIF services.
 const NGA: Provider = Provider {
     id: "nga",
-    hosts: &["api.nga.gov"],
+    hosts: &["api.nga.gov", "api.github.com"],
     file_hosts: &[],
 };
 const PROVIDERS: &[&Provider] = &[&RIJKSMUSEUM, &MET, &NGA];
@@ -152,12 +152,14 @@ fn observe(request: &Value) -> Result<Value> {
             .warnings
             .push("the provider states no rights for this object or its images".into());
     }
+    let completed_at = utcnow()?;
     let mut observation = json!({
         "$schema":format!("https://tree-of-sophia.local/ToS/contracts/{OBSERVATION_SCHEMA}.schema.json"),
         "schema_version":"tos_media_provider_observation_v1",
         "provider":provider.id,
         "requested_object":object,
         "observed_at":observed_at,
+        "completed_at":completed_at,
         "requests":observer.requests,
         "object":found.object,
         "rights":found.rights,
@@ -253,8 +255,9 @@ impl Observer {
         self.requests.push(json!({
             "role":role,
             "url":url,
-            "final_url":response.final_url,
-            "http_status":200,
+            "final_url":(!self.callback).then_some(response.final_url.as_str()),
+            "http_status":if self.callback { None } else { Some(200) },
+            "transport":if self.callback { "operator-supplied-bytes" } else { "https" },
             "media_type":response.media_type,
             "byte_size":response.body.len(),
             "sha256":Digest256::of_bytes(&response.body).to_hex(),
@@ -318,8 +321,9 @@ impl Observer {
         self.requests.push(json!({
             "role":role,
             "url":url,
-            "final_url":response.final_url,
-            "http_status":200,
+            "final_url":(!self.callback).then_some(response.final_url.as_str()),
+            "http_status":if self.callback { None } else { Some(200) },
+            "transport":if self.callback { "operator-supplied-bytes" } else { "https" },
             "media_type":response.media_type,
             "byte_size":response.body.len(),
             "sha256":sha256,
@@ -328,7 +332,7 @@ impl Observer {
         }));
         Ok(json!({
             "url":url,
-            "final_url":response.final_url,
+            "final_url":(!self.callback).then_some(response.final_url.as_str()),
             "media_type":media_type,
             "byte_size":response.body.len(),
             "sha256":sha256,
@@ -588,6 +592,11 @@ fn observe_rijksmuseum(observer: &mut Observer, object: &str) -> Result<Found> {
             let url = rijks_data_url(digital_uri)
                 .ok_or_else(|| format!("not a Rijksmuseum DigitalObject URI: {digital_uri}"))?;
             let (digital, _) = observer.json("digital-object-record", &url)?;
+            if digital["id"] != digital_uri.as_str() || digital["type"] != "DigitalObject" {
+                return Err(format!(
+                    "Rijksmuseum DigitalObject does not describe {digital_uri}"
+                ));
+            }
             for access in items(&digital, "access_point") {
                 let Some(access_url) = nonempty(access, "id") else {
                     continue;
@@ -1077,6 +1086,12 @@ fn observe_nga(observer: &mut Observer, object: &str, request: &Value) -> Result
         return Err("dataset_commit must be the 40-hex commit of the open data checkout".into());
     }
     dataset_at_commit(&root, commit)?;
+    let release_url =
+        format!("https://api.github.com/repos/NationalGalleryOfArt/opendata/commits/{commit}");
+    let (release, _) = observer.json("dataset-release", &release_url)?;
+    if release["sha"] != commit {
+        return Err("the NGA repository did not confirm the requested dataset commit".into());
+    }
     let numeric = !object.is_empty() && object.bytes().all(|byte| byte.is_ascii_digit());
     let mut datasets = Vec::new();
 
@@ -1185,7 +1200,10 @@ fn observe_nga(observer: &mut Observer, object: &str, request: &Value) -> Result
     let mut rights = Vec::new();
     let mut image_values = Vec::new();
     for row in images.iter().take(1) {
-        let Some(service_id) = row.get("iiifurl").filter(|url| https_host(url).is_some()) else {
+        let Some(service_id) = row
+            .get("iiifurl")
+            .filter(|url| https_host(url) == Some("api.nga.gov"))
+        else {
             observer
                 .warnings
                 .push("the published image names no HTTPS IIIF service".into());
@@ -1219,6 +1237,17 @@ fn dataset_at_commit(root: &Path, commit: &str) -> Result<()> {
             .output()
             .map_err(|error| format!("cannot read the open data checkout with git: {error}"))
     };
+    let origin = git(&["remote", "get-url", "origin"])?;
+    if !origin.status.success()
+        || !matches!(
+            String::from_utf8_lossy(&origin.stdout).trim(),
+            NGA_REPOSITORY | "https://github.com/NationalGalleryOfArt/opendata.git"
+        )
+    {
+        return Err(
+            "the dataset checkout must name the NGA open data release as its HTTPS origin".into(),
+        );
+    }
     let head = git(&["rev-parse", "HEAD"])?;
     if !head.status.success() || String::from_utf8_lossy(&head.stdout).trim() != commit {
         return Err(format!("the open data checkout is not at {commit}"));
@@ -1240,8 +1269,14 @@ fn dataset_rows(
     keep: impl Fn(&HashMap<String, String>) -> bool,
 ) -> Result<Vec<HashMap<String, String>>> {
     use std::io::Read;
-    let file = std::fs::File::open(root.join(path))
+    let mut blob = std::process::Command::new("git")
+        .arg("-C")
+        .arg(root)
+        .args(["cat-file", "blob", &format!("{commit}:{path}")])
+        .stdout(std::process::Stdio::piped())
+        .spawn()
         .map_err(|error| format!("cannot read {path} of the open data release: {error}"))?;
+    let file = blob.stdout.take().ok_or("missing Git blob stream")?;
     let mut reader = std::io::BufReader::with_capacity(1 << 20, file);
     let mut digest = tos_foundation::Digest256Hasher::new();
     let mut size = 0usize;
@@ -1249,35 +1284,44 @@ fn dataset_rows(
     let mut header: Option<Vec<String>> = None;
     let mut kept = Vec::new();
     let mut buffer = vec![0u8; 1 << 20];
-    loop {
-        let read = reader
-            .read(&mut buffer)
-            .map_err(|error| format!("cannot read {path}: {error}"))?;
-        let chunk = &buffer[..read];
-        digest.update(chunk);
-        size += read;
-        for record in csv.feed(chunk, read == 0)? {
-            match &header {
-                None => header = Some(record),
-                Some(names) => {
-                    if record.len() != names.len() {
-                        return Err(format!(
-                            "{path}: a row holds {} fields where the header names {}",
-                            record.len(),
-                            names.len()
-                        ));
-                    }
-                    let row: HashMap<String, String> = names.iter().cloned().zip(record).collect();
-                    if keep(&row) {
-                        kept.push(row);
+    let parsed = (|| -> Result<()> {
+        loop {
+            let read = reader
+                .read(&mut buffer)
+                .map_err(|error| format!("cannot read {path}: {error}"))?;
+            let chunk = &buffer[..read];
+            digest.update(chunk);
+            size += read;
+            for record in csv.feed(chunk, read == 0)? {
+                match &header {
+                    None => header = Some(record),
+                    Some(names) => {
+                        if record.len() != names.len() {
+                            return Err(format!(
+                                "{path}: a row holds {} fields where the header names {}",
+                                record.len(),
+                                names.len()
+                            ));
+                        }
+                        let row: HashMap<String, String> =
+                            names.iter().cloned().zip(record).collect();
+                        if keep(&row) {
+                            kept.push(row);
+                        }
                     }
                 }
             }
+            if read == 0 {
+                break;
+            }
         }
-        if read == 0 {
-            break;
-        }
+        Ok(())
+    })();
+    drop(reader);
+    if !blob.wait().map_err(|error| error.to_string())?.success() && parsed.is_ok() {
+        return Err(format!("cannot read committed dataset blob {path}"));
     }
+    parsed?;
     datasets.push(json!({
         "repository":NGA_REPOSITORY,
         "commit":commit,
@@ -2237,6 +2281,7 @@ mod tests {
             String::from_utf8(status.stdout).unwrap()
         };
         git(&["init", "--quiet"]);
+        git(&["remote", "add", "origin", NGA_REPOSITORY]);
         git(&["add", "data"]);
         git(&["commit", "--quiet", "-m", "release"]);
         let commit = git(&["rev-parse", "HEAD"]).trim().to_owned();
@@ -2248,8 +2293,14 @@ mod tests {
         let (release, commit) = nga_release();
         let info = json!({"@context":"http://iiif.io/api/image/2/context.json","@id":"https://api.nga.gov/iiif/a","protocol":"http://iiif.io/api/image","width":26900,"height":24642,"tiles":[{"width":256,"height":256,"scaleFactors":[1,2,4]}],"profile":["http://iiif.io/api/image/2/level1.json",{"formats":["jpg"],"qualities":["native","color","gray"]}]});
         let request = json!({"operation":"media.observe","repo_root":repo_root(),"provider":"nga","object":"1942.9.1","max_requests":2,"dataset_root":release.path(),"dataset_commit":commit});
+        let release_url =
+            format!("https://api.github.com/repos/NationalGalleryOfArt/opendata/commits/{commit}");
+        let release_response = json!({"sha":commit});
         let result = with_responses(
-            vec![("https://api.nga.gov/iiif/a/info.json", info.clone())],
+            vec![
+                (&release_url, release_response.clone()),
+                ("https://api.nga.gov/iiif/a/info.json", info.clone()),
+            ],
             || invoke(&request),
         )
         .unwrap();
@@ -2300,7 +2351,10 @@ mod tests {
         // Italic marks come off a title; an object is found by its objectid too.
         let mut by_id = request.clone();
         by_id["object"] = json!("46573");
-        let cassatt = invoke(&by_id).unwrap();
+        let cassatt = with_responses(vec![(&release_url, release_response.clone())], || {
+            invoke(&by_id)
+        })
+        .unwrap();
         assert_eq!(
             cassatt["observation"]["object"]["titles"][0]["text"],
             "Woman with a Sunflower"
@@ -2315,7 +2369,11 @@ mod tests {
         // An unknown object is named as such; the release must be the named commit, its data unchanged.
         let mut unknown = by_id.clone();
         unknown["object"] = json!("1");
-        assert!(invoke(&unknown).unwrap_err().contains("names no object 1"));
+        assert!(
+            with_responses(vec![(&release_url, release_response)], || invoke(&unknown))
+                .unwrap_err()
+                .contains("names no object 1")
+        );
         let mut elsewhere = request.clone();
         elsewhere["dataset_commit"] = json!("0".repeat(40));
         assert!(invoke(&elsewhere).unwrap_err().contains("not at"));

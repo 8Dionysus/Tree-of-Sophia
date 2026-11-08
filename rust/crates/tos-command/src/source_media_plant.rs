@@ -222,6 +222,14 @@ pub(crate) fn plant_representation(request: &Value) -> Result<Value> {
     {
         return Err("the observation describes a different Artifact catalogue record".into());
     }
+    let retained = std::fs::read(path(&root, text(&witness, "research_ref")?)?)
+        .map_err(|error| format!("cannot read the Artifact's retained observation: {error}"))?;
+    let retained: Value = serde_json::from_slice(&retained).map_err(|error| error.to_string())?;
+    if observation != retained {
+        return Err(
+            "representation requires the exact observation retained by the Artifact".into(),
+        );
+    }
     let discovery_ref = text(&witness, "discovery_ref")?.to_owned();
     let base = format!("{}/representations/{view}", home.dir());
     let representation_ref = format!("{base}/representation.json");
@@ -462,9 +470,12 @@ fn discovery_run(
             "tos-discovery-result.media-{provider}-{}-{sequence}",
             home.identity
         );
-        let (channel_role, interface, machine) = match role {
-            "image-service-info" => ("digital-object-record", "iiif", "iiif"),
-            "digital-object-record" | "visual-item-record" => {
+        let transport = request["transport"].as_str().unwrap_or("https");
+        let (channel_role, interface, machine) = match (transport, role) {
+            ("local-git-blob", _) => ("originating-record", "bulk", "bulk-data"),
+            ("operator-supplied-bytes", _) => ("originating-record", "manual", "unknown"),
+            (_, "image-service-info") => ("digital-object-record", "iiif", "iiif"),
+            (_, "digital-object-record" | "visual-item-record") => {
                 ("digital-object-record", "api", "api")
             }
             _ => ("originating-record", "api", "api"),
@@ -477,8 +488,12 @@ fn discovery_run(
             "source_name":provider_name(provider),
             "endpoint_url":url,
             "interface_type":interface,
-            "interface_version":format!("{role} response observed {}", request["started_at"].as_str().unwrap_or("")),
-            "exact_query":format!("GET {url}"),
+            "interface_version":format!("{role} via {transport} at {}", request["started_at"].as_str().unwrap_or("")),
+            "exact_query":match transport {
+                "local-git-blob" => format!("Read committed CSV blob from the operator's NGA checkout: {url}"),
+                "operator-supplied-bytes" => format!("Receive operator-supplied bytes for {url}"),
+                _ => format!("GET {url}")
+            },
             "queried_at":request["started_at"],
             "elapsed_seconds":request["elapsed_seconds"],
             "result_order_preserved":true,
@@ -486,7 +501,7 @@ fn discovery_run(
                 "result_id":result_id,
                 "rank":1,
                 "title_as_displayed":title,
-                "result_url":request["final_url"],
+                "result_url":request["final_url"].as_str().unwrap_or(url),
                 "originating_record_url":record_url,
                 "identifiers":identifiers,
                 "available_formats":[request["media_type"].as_str().unwrap_or("JSON")],
@@ -511,21 +526,27 @@ fn discovery_run(
         .collect();
     let comparison: Vec<Value> = channels
         .iter()
-        .map(|channel| json!({
-            "channel_id":channel["channel_id"],
-            "completeness":"adequate",
-            "metadata_precision":"strong",
-            "rights_clarity":"adequate",
-            "machine_interface_quality":"strong",
-            "human_minutes":0,
-            "machine_seconds":channel["elapsed_seconds"],
-            "notes":"One response of the provider's own route for the observed object; the media bridge measured it."
-        }))
+        .map(|channel| {
+            json!({
+                "channel_id":channel["channel_id"],
+                "completeness":"unknown",
+                "metadata_precision":"unknown",
+                "rights_clarity":"unknown",
+                "machine_interface_quality":"unknown",
+                "human_minutes":0,
+                "machine_seconds":channel["elapsed_seconds"],
+                "notes":"Mechanical evidence only; channel quality was not assessed."
+            })
+        })
         .collect();
-    let ended = requests
-        .iter()
-        .filter_map(|request| request["started_at"].as_str())
-        .max()
+    let ended = observation["completed_at"]
+        .as_str()
+        .or_else(|| {
+            requests
+                .iter()
+                .filter_map(|request| request["started_at"].as_str())
+                .max()
+        })
         .ok_or("observation requests have no time")?;
     Ok(json!({
         "$schema":format!("{CONTRACTS}/material-discovery-record.schema.json"),
@@ -616,10 +637,18 @@ fn artifact_record(
             .and_then(|dimension| {
                 let centimetres = dimension["unit"] == "cm"
                     || dimension["unit_uri"] == "http://vocab.getty.edu/aat/300379098";
-                centimetres
-                    .then(|| dimension["value"].as_str())
-                    .flatten()
-                    .and_then(millimetres)
+                let value = dimension["value"].as_str()?;
+                if centimetres {
+                    millimetres(value)
+                } else if dimension["unit"] == "mm"
+                    || dimension["unit_uri"] == "http://vocab.getty.edu/aat/300379097"
+                {
+                    serde_json::from_str::<Value>(value)
+                        .ok()
+                        .filter(Value::is_number)
+                } else {
+                    None
+                }
             })
     };
     let statement = object["dating"]["statement"].as_str();
@@ -856,7 +885,7 @@ fn provider_name(provider: &str) -> &'static str {
 
 /// What an observation read, each as a request: its provider responses, and the published
 /// dataset files it read its record from (its objects table standing as the object record),
-/// each a GET of the file at its commit.
+/// each read as a local Git blob at its commit.
 fn evidence_requests(observation: &Value) -> Result<Vec<Value>> {
     let mut requests = observation["requests"]
         .as_array()
@@ -871,7 +900,7 @@ fn evidence_requests(observation: &Value) -> Result<Vec<Value>> {
             "dataset-file"
         };
         requests.push(json!({
-            "role":role,"url":dataset["url"],"final_url":dataset["url"],"http_status":200,"media_type":"text/csv",
+            "role":role,"url":dataset["url"],"final_url":dataset["url"],"transport":"local-git-blob","media_type":"text/csv",
             "byte_size":dataset["byte_size"],"sha256":dataset["sha256"],"started_at":read_at,"elapsed_seconds":0
         }));
     }
