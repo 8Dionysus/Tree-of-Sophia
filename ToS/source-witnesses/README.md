@@ -727,7 +727,7 @@ publication keep their owners.
 | `nga` | numeric `objectid` or accession number | the Gallery's open data release (CC0, [GitHub](https://github.com/NationalGalleryOfArt/opendata)) checked out at one commit: `objects.csv`, `published_images.csv` with its `openaccess` flag, `objects_dimensions.csv` | the primary view's IIIF Image API 2 service on `api.nga.gov`, observed through `info.json` |
 
 `media.describe` lists the providers and their hosts. Each bridge reads over
-HTTPS from its own hosts only. The native transport refuses redirects. Every
+HTTPS from its own hosts only. The native transport refuses redirects. Callback evidence labels caller-supplied bytes and leaves HTTP status and the final URL unknown. Every
 response stays within the deployment profile's acquisition record limit
 (`admission.acquisition.max_record_bytes`), and an observation makes at most
 the `max_requests` provider requests its request states: the Night Watch takes
@@ -743,8 +743,9 @@ and the media type and pixel size its own header states: a stand that keeps a
 copy of those files can show it holds exactly the bytes observed. The National
 Gallery of Art serves no records to automated readers and publishes them as a
 daily release instead: its bridge reads the object's rows from a checkout the
-operator names with `dataset_root` and `dataset_commit`, refuses a checkout at
-another commit or with changed data, and lists each file it read under
+operator names with `dataset_root` and `dataset_commit`, verifies the commit through
+the NGA repository API, refuses a checkout at another commit or with changed
+data, and lists each committed Git blob it read under
 `datasets` with the commit, its raw URL, size and SHA-256; that objects table
 is the record an Artifact rests on. Fixtures in
 [`examples/`](../contracts/examples/) hold one observation from each provider and
