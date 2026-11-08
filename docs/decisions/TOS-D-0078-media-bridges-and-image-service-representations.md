@@ -65,9 +65,13 @@ provider changes it.
 
 ## Consequences
 
-Planting an observation as an Artifact witness with a v2 representation, its
-rights record, discovery run and provenance event is the next route. Both
-foundation validators read the v2 form: an image-service representation is
+An observation is planted along the Artifact route: `media.prepare-artifact`
+writes the observation as research, an artifact-targeted discovery run,
+metadata-only rights and their provenance event, and returns the
+`native-artifact-create` request; the native owner creates the Artifact and its
+human forms under the operator's configuration; `media.plant-representation`
+writes the image-service representation with the operator's rights assessment
+and its provenance event. Both foundation validators read the v2 form: an image-service representation is
 identified by the digest of its service address, its rights cover the Artifact
 and the service at `public_metadata_only` with an authorized redistribution
 posture, and its provenance event closes over the record and its rights. A bonsai stand binds its stars to the Tree's

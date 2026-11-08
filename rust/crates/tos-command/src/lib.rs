@@ -225,6 +225,7 @@ pub mod source_acquisition_cli;
 pub mod source_acquisition_contract;
 pub mod source_acquisition_handoff;
 pub mod source_media_bridge;
+mod source_media_plant;
 pub mod source_payload_custody;
 pub mod source_payload_import;
 pub mod source_registry_acquisition;

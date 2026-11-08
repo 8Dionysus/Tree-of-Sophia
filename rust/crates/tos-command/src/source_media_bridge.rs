@@ -57,6 +57,10 @@ pub fn invoke(request: &Value) -> Result<Value> {
     match request.get("operation").and_then(Value::as_str) {
         Some("media.describe") => Ok(describe()),
         Some("media.observe") => observe(request),
+        Some("media.prepare-artifact") => crate::source_media_plant::prepare_artifact(request),
+        Some("media.plant-representation") => {
+            crate::source_media_plant::plant_representation(request)
+        }
         Some(_) => Err("unsupported media acquisition operation".into()),
         None => Err("media request operation is missing".into()),
     }
@@ -68,10 +72,15 @@ fn describe() -> Value {
         .map(|provider| json!({"provider":provider.id,"hosts":provider.hosts}))
         .collect();
     json!({
-        "operations":["media.describe","media.observe"],
+        "operations":["media.describe","media.observe","media.prepare-artifact","media.plant-representation"],
         "providers":providers,
         "observation_contract":format!("ToS/contracts/{OBSERVATION_SCHEMA}.schema.json"),
-        "writes":[],
+        "writes":{
+            "media.describe":[],
+            "media.observe":[],
+            "media.prepare-artifact":["ToS/research-packets/media-observations/","ToS/source-witnesses/discovery/runs/","ToS/source-witnesses/artifacts/<tradition>/<site>/<identity>/rights.json","ToS/source-witnesses/discovery/provenance.jsonl"],
+            "media.plant-representation":["ToS/source-witnesses/artifacts/<tradition>/<site>/<identity>/representations/<view>/","ToS/source-witnesses/discovery/provenance.jsonl"]
+        },
     })
 }
 
@@ -1633,7 +1642,7 @@ mod tests {
     fn describe_names_providers_and_writes_nothing() {
         let described = invoke(&json!({"operation":"media.describe"})).unwrap();
         assert_eq!(described["providers"][0]["provider"], "rijksmuseum");
-        assert_eq!(described["writes"], json!([]));
+        assert_eq!(described["writes"]["media.observe"], json!([]));
         assert!(invoke(&json!({"operation":"media.plant"})).is_err());
     }
 

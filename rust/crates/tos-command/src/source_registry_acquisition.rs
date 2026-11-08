@@ -76,7 +76,7 @@ fn u64_field(value: &Value, key: &str) -> Result<u64> {
         .as_u64()
         .ok_or_else(|| format!("{key} must be a nonnegative integer"))
 }
-fn json_bytes(value: &Value) -> Result<Vec<u8>> {
+pub(crate) fn json_bytes(value: &Value) -> Result<Vec<u8>> {
     let mut body = serde_json::to_vec_pretty(value).map_err(|error| error.to_string())?;
     body.push(b'\n');
     Ok(body)
@@ -106,7 +106,7 @@ fn payload_destination(root: &Path, item_root_ref: &str, relative: &str) -> Resu
     }
     path_ref(root, &format!("{item}/{relative}"))
 }
-fn publish_json(path: &Path, value: &Value) -> Result<()> {
+pub(crate) fn publish_json(path: &Path, value: &Value) -> Result<()> {
     custody::publish(path, &json_bytes(value)?, 0o644).map(|_| ())
 }
 
@@ -733,12 +733,26 @@ fn schema_probe(root: &Path) -> Result<Rc<tos_validation::SchemaBackendProbe>> {
 }
 
 pub(crate) fn validate_json(root: &Path, value: &Value, schema_name: &str) -> Result<()> {
+    validate_json_uri(
+        root,
+        value,
+        schema_name,
+        &format!("https://tree-of-sophia.local/ToS/contracts/{schema_name}.schema.json"),
+    )
+}
+
+/// Validate against the contract a schema URI names, for contracts whose `$id`
+/// differs from the common contract prefix.
+pub(crate) fn validate_json_uri(
+    root: &Path,
+    value: &Value,
+    schema_name: &str,
+    schema_uri: &str,
+) -> Result<()> {
     let probe = schema_probe(root)?;
-    let schema_uri =
-        format!("https://tree-of-sophia.local/ToS/contracts/{schema_name}.schema.json");
     let raw = serde_json::to_vec(value).map_err(|error| error.to_string())?;
     if !probe
-        .is_valid_raw(&schema_uri, &raw)
+        .is_valid_raw(schema_uri, &raw)
         .map_err(|error| format!("{schema_name} schema execution failed: {error:?}"))?
     {
         return Err(format!("{schema_name} schema validation failed"));
@@ -1210,7 +1224,7 @@ fn check_preparation_receipt(
     Ok(receipt)
 }
 
-fn append_jsonl(path: &Path, value: &Value) -> Result<()> {
+pub(crate) fn append_jsonl(path: &Path, value: &Value) -> Result<()> {
     let parent = path.parent().ok_or("JSONL path parent missing")?;
     let directory =
         tos_fd_open::open_absolute_directory(parent).map_err(|error| error.to_string())?;

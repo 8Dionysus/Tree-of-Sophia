@@ -737,6 +737,35 @@ carries the asked number exactly, and otherwise asks for the object's URI. With
 for an operator who fetches through their own transport. Fixtures in
 [`examples/`](../contracts/examples/) hold one observation from each provider and
 a v2 image-service representation built from the Rijksmuseum one.
+
+An observation enters the Tree along the Artifact route, with three owners in
+turn:
+
+1. `media.prepare-artifact` writes the evidence the Artifact rests on: the
+   observation itself under `ToS/research-packets/media-observations/`, an
+   artifact-targeted discovery run with one channel per provider response,
+   metadata-only rights beside the future Artifact, and their discovery
+   provenance event. It returns the `native-artifact-create` request (the v2
+   record, its name and source-note form selections and the exact source
+   bindings) and the derived part of the owner configuration. Before writing
+   it checks the record against its contract and runs the native form
+   preparation, so the request carries a ready name form.
+2. The operator creates the Artifact with that request under their owner
+   configuration (`source-commands`, handler `native-artifact-create`), which
+   writes the Artifact, its human forms and its creation evidence.
+3. `media.plant-representation` writes one image-service representation of
+   that Artifact, the rights record of the operator's assessment and their
+   acquisition provenance event. The assessment arrives in the request with its
+   rationale; the bridge adds the provider's statements as evidence and refuses
+   a redistribution posture that does not permit showing the image.
+
+```json
+{"family":"media","operation":"media.prepare-artifact","repo_root":"/absolute/Tree-of-Sophia","observation":{"…":"the media.observe packet"},"artifact_path":"dutch-painting/amsterdam/rijksmuseum-sk-c-5","owner":{"maker_type":"model","principal_id":"agent:…","provenance_event_id":"tos.event.creation.…"},"purpose":"why this object enters the Tree"}
+{"family":"media","operation":"media.plant-representation","repo_root":"/absolute/Tree-of-Sophia","observation":{"…":"the same packet"},"artifact_path":"dutch-painting/amsterdam/rijksmuseum-sk-c-5","view":"whole-iiif-service","operator_authorization_ref":"operator-directive:…","maker":{"maker_type":"model","agent_ref":"agent:…"},"rights":{"assessment_status":"public_domain_reviewed","rights_statement_uri":"https://creativecommons.org/publicdomain/mark/1.0/","license_uri":null,"jurisdictions_reviewed":["NL","US"],"permissions":["…"],"restrictions":["…"],"redistribution_posture":"authorized","derivative_posture":"allowed","assessed_by":{"maker_type":"model","agent_ref":"agent:…"},"rationale":"…"}}
+```
+
+Both operations write only new records and append their event last. A file
+image, such as the Met's, waits for the payload route.
 The bounded `plain_utf8_file_v1` profile adds one inert complete plain-text or
 Markdown file: exact raw-byte extent/fixity and UTF-8/BOM, code-point, newline
 and observed Unicode-form facts only. It neither rewrites bytes nor interprets
