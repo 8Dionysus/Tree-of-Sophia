@@ -331,7 +331,7 @@ A stand's generated layers live in R2, in `tos-public-layers` under
 `sha256/<hex>` ([storage](../docs/STORAGE.md)). Git keeps `layers.json`, the
 digest manifest: the declared paths, each file's SHA-256 and size, and the
 rights each group of files carries. The Zarathustra word layer is kept this way:
-its tokens, spelling, origins and renderings. So is the bulk of the public corpus
+its tokens, spelling, origins, histories and renderings. So is the bulk of the public corpus
 snapshot: `access/public-corpus/layers.json` names its pages, indexes, document
 manifests and analyses, and its `root` points to `access/web/public/public-corpus/`.
 
