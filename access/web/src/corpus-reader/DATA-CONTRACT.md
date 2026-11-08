@@ -9,7 +9,7 @@ surfaces remain authoritative for meaning and publication.
 ## Provider operations
 
 `createCorpusProvider()` returns a provider with five required asynchronous
-operations and optional `structure` and `analyze` operations. The real application
+operations and optional `structure`, `analyze` and `place` operations. The real application
 receives either an explicit provider or an explicit caller-owned transport
 adapter. No URL, HTTP verb, or backend route is inferred here.
 
@@ -37,6 +37,9 @@ if (provider.capabilities?.structure === true) {
 if (provider.capabilities?.analyze === true) {
   await provider.analyze({reference, form, language, signal});
 }
+if (provider.capabilities?.place === true) {
+  await provider.place({documentId, versionId, targetVersionId, unitId, signal});
+}
 ```
 
 Paged operations enforce a maximum page size of 100 at the provider boundary;
@@ -44,6 +47,17 @@ the reader requests at most 40 text units for each pane and keeps at most two
 version windows visible. Cursors are opaque to callers and become stale when
 the provider's representation revision changes. `AbortSignal` is passed
 through every operation and must be honoured by the eventual backend adapter.
+
+`place` is optional: where the unit `unitId` of edition `versionId` stands in
+edition `targetVersionId` of the same work. It answers `null` or
+`{unitId, by: 'unit' | 'section'}`, the unit being one of the target edition's
+own: `unit` where a bonsai alignment carries the unit across (Zarathustra's
+editions through the first editions, an ancient work's cited units through its
+original), `section` where both editions label a section alike (a Stephanus
+page, a Bekker section, a chapter title the Zarathustra witnesses give in each
+language). The reader opens another edition at that unit, and at the edition's
+beginning when the answer is `null`. A place is a navigation aid, as the
+alignment it comes from is.
 
 `analyze` is an optional, selected-occurrence operation. The caller passes the
 exact validated reference and the literal form sliced from its Unicode

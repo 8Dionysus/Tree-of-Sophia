@@ -90,6 +90,8 @@ export function createRetainedPublicCorpusProvider({baseUrl='/static/public-corp
       catch(error){if(error?.code==='retained-version-unavailable')return {status:'unavailable',reference:args.reference};throw error;}
     },
     analyze:async args=>(await select(args)).analyze(args),
+    // Where a place of one edition stands in another, by the current snapshot's editions.
+    place:args=>current.place?.(args)??null,
   };
   return Object.freeze({...bindCorpusProvider(provider),describe:args=>current.describe(args)});
 }
