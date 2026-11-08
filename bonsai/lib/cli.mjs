@@ -123,32 +123,54 @@ if(command==='check'){
     subject:option('--subject'),role:option('--role'),artifact:option('--artifact'),view:option('--view')??'whole',
     digest:text=>createHash('sha256').update(text,'utf8').digest('hex'),
   });
-  // A file image is read from the stand's own copies: bring each one, exactly the bytes observed, into the layer store.
+  let layers=null;
+  const copies=new Map();
   if(result.image.api==='file'){
-    const layers=readLayers(home);
-    if(!layers){console.error(`${stand}: a file image needs the stand's layer store; add bonsai/${stand}/layers.json first`);process.exit(1);}
-    if(layers.root){console.error(`${stand}: its layer store keeps its files elsewhere (${layers.root}); media copies live beside layers.json`);process.exit(1);}
-    if(!layers.paths.includes(MEDIA_LAYER_PATH))layers.paths=[...layers.paths,MEDIA_LAYER_PATH];
+    layers=readLayers(home);
+    if(!layers||layers.root)throw new Error(`${stand}: file media needs a layer store beside the manifest`);
+    if(!layers.paths.includes(MEDIA_LAYER_PATH))layers.paths.push(MEDIA_LAYER_PATH);
+    const profile=JSON.parse(readFileSync(join(root,'access/profiles/deployment-profile.default.v1.json'),'utf8'));
+    const limit=profile.admission.acquisition.max_record_bytes;
     for(const file of [result.image.preview,result.image.file]){
+      const url=new URL(file.source);
+      if(url.origin!=='https://images.metmuseum.org'||url.username||url.password
+        ||!Number.isSafeInteger(file.bytes)||file.bytes<=0||file.bytes>limit||!/^[a-f0-9]{64}$/.test(file.sha256))
+        throw new Error('invalid or out-of-bounds media file descriptor');
       const path=mediaFilePath(file),full=join(home,path);
-      let bytes=existsSync(full)?readFileSync(full):null;
-      if(!bytes||sha256(bytes)!==file.sha256){
-        // Ask as the bridge asked: an image host may answer another Accept with other bytes.
-        const response=await fetch(file.source,{headers:{'User-Agent':'Tree-of-Sophia-bonsai-media/1',Accept:'image/jpeg, image/png;q=0.9, image/*;q=0.8'}});
-        if(!response.ok){console.error(`${file.source}: HTTP ${response.status}`);process.exit(1);}
-        bytes=Buffer.from(await response.arrayBuffer());
-        if(bytes.length!==file.bytes||sha256(bytes)!==file.sha256){console.error(`${file.source}: the provider now serves other bytes than the observation fingerprinted; observe the object again`);process.exit(1);}
-        mkdirSync(dirname(full),{recursive:true});writeFileSync(full,bytes);
-      }
-      layers.entries=[...layers.entries.filter(entry=>entry.path!==path),{path,sha256:file.sha256,bytes:file.bytes}].sort((a,b)=>a.path<b.path?-1:a.path>b.path?1:0);
+      copies.set(full,file);
+      layers.entries=[...layers.entries.filter(entry=>entry.path!==path),{path,sha256:file.sha256,bytes:file.bytes}]
+        .sort((a,b)=>a.path<b.path?-1:a.path>b.path?1:0);
     }
-    writeFileSync(join(home,'layers.json'),formatLayers(layers));
   }
+  const check=checkBonsai(root,stand,{overrides:{media:result.module,identities:result.identities},mediaLayers:layers});
+  for(const problem of check.problems)console.error(`  problem: ${problem}`);
+  if(check.problems.length)process.exit(1);
+  const pending=[];
+  for(const [full,file] of copies){
+    if(existsSync(full)){
+      const bytes=readFileSync(full);
+      if(bytes.length===file.bytes&&sha256(bytes)===file.sha256)continue;
+      throw new Error(`${full}: existing media does not match its fingerprint`);
+    }
+    const response=await fetch(file.source,{redirect:'error',signal:AbortSignal.timeout(45000),
+      headers:{'User-Agent':'Tree-of-Sophia-bonsai-media/1',Accept:'image/jpeg, image/png;q=0.9, image/*;q=0.8'}});
+    if(!response.ok||!response.body)throw new Error(`${file.source}: HTTP ${response.status}`);
+    const chunks=[];let size=0;
+    for await(const chunk of response.body){
+      size+=chunk.length;
+      if(size>file.bytes)throw new Error(`${file.source}: response exceeds its fingerprinted size`);
+      chunks.push(chunk);
+    }
+    const bytes=Buffer.concat(chunks,size);
+    if(size!==file.bytes||sha256(bytes)!==file.sha256)throw new Error(`${file.source}: response differs from the observation`);
+    pending.push([full,bytes]);
+  }
+  for(const [full,bytes] of pending){
+    mkdirSync(dirname(full),{recursive:true});writeFileSync(full,bytes,{flag:'wx'});
+  }
+  if(layers)writeFileSync(join(home,'layers.json'),formatLayers(layers));
   write(mediaPath,result.module);write(graftPath,result.identities);
   console.log(`${stand}: ${result.imageId} shows ${option('--subject')} as ${option('--role')}; work ${result.workId}`);
-  const check=checkBonsai(root,stand);
-  for(const problem of check.problems)console.log(`  problem: ${problem}`);
-  process.exit(check.problems.length?1:0);
 }else{
   console.error('usage: node bonsai/lib/cli.mjs check [<bonsai>...] | export <bonsai> [--out <file>] | export-philosophy <bonsai> [--out <file>] | align <bonsai> [--write] | align-corpus <bonsai> [--write] [--corpus <dir>] | media add <bonsai> <observation.json> --subject <id> --role <role> --artifact <tradition/site/identity> [--view <view>]');
   process.exit(2);

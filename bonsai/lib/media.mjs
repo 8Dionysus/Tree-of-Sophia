@@ -230,7 +230,8 @@ export function mediaFromObservation(observation,{view='whole'}={}){
   if(!primary)throw new Error(`${provider} ${inventory}: the observation has no primary image`);
   if(service&&!['2','3'].includes(service.api_version))throw new Error(`${provider} ${inventory}: IIIF Image API ${service.api_version} is not read by the cards`);
   if(!service&&!(primary.file_fingerprint&&primary.preview_fingerprint))throw new Error(`${provider} ${inventory}: a file image needs its file and its smaller copy fingerprinted; observe it with "files": true`);
-  const right=(observation.rights??[]).find(item=>item?.scope==='image');
+  const right=(observation.rights??[]).find(item=>item?.scope==='image'
+    &&(provider!=='rijksmuseum'||primary.rights_source&&item.stated_in===primary.rights_source));
   const rights=right?{statement:right.statement_uri??null,field:right.provider_field,value:right.value,label:right.label??null,stated_in:right.stated_in}:null;
   if(!openRights(rights))throw new Error(`${provider} ${inventory}: the provider's image rights do not let a stand show it`);
   const requestOf=role=>(observation.requests??[]).find(item=>item?.role===role);
