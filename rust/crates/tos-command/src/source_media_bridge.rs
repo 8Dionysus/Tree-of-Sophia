@@ -342,11 +342,12 @@ fn observe_rijksmuseum(observer: &mut Observer, object: &str) -> Result<Found> {
         }
     }
 
-    let production = record.get("produced_by");
     let mut makers = Vec::new();
     let mut production_statements = Vec::new();
-    let mut dating = json!({"statement":null,"begin_year":null,"end_year":null});
-    if let Some(production) = production {
+    let mut statement = None;
+    let mut begin_year: Option<i64> = None;
+    let mut end_year: Option<i64> = None;
+    for production in items(&record, "produced_by") {
         let mut parts: Vec<&Value> = vec![production];
         parts.extend(items(production, "part"));
         for part in parts {
@@ -368,15 +369,19 @@ fn observe_rijksmuseum(observer: &mut Observer, object: &str) -> Result<Found> {
                 }
             }
         }
-        if let Some(span) = production.get("timespan") {
-            let statement = preferred_content(items(span, "identified_by"));
-            dating = json!({
-                "statement":statement,
-                "begin_year":nonempty(span,"begin_of_the_begin").and_then(year_of),
-                "end_year":nonempty(span,"end_of_the_end").and_then(year_of)
-            });
+        for span in items(production, "timespan") {
+            if statement.is_none() {
+                statement = preferred_content(items(span, "identified_by"));
+            }
+            if let Some(year) = nonempty(span, "begin_of_the_begin").and_then(year_of) {
+                begin_year = Some(begin_year.map_or(year, |known| known.min(year)));
+            }
+            if let Some(year) = nonempty(span, "end_of_the_end").and_then(year_of) {
+                end_year = Some(end_year.map_or(year, |known| known.max(year)));
+            }
         }
     }
+    let dating = json!({"statement":statement,"begin_year":begin_year,"end_year":end_year});
 
     let mut classifications = Vec::new();
     for kind in items(&record, "classified_as") {
@@ -599,7 +604,7 @@ fn rijks_data_url(uri: &str) -> Option<String> {
 // The Met: the Collection API object record and its image files.
 
 fn observe_met(observer: &mut Observer, object: &str) -> Result<Found> {
-    if !all_digits(object) || object.len() > 12 {
+    if !all_digits(object) {
         return Err(format!(
             "a Met object is named by its numeric objectID: {object}"
         ));
@@ -1034,12 +1039,14 @@ fn absolute_directory(value: &Value, key: &str) -> Result<PathBuf> {
     Ok(path)
 }
 
+/// The values of a Linked Art property: JSON-LD compaction gives one value as
+/// itself and several as an array, and the providers use both.
 fn items<'a>(value: &'a Value, key: &str) -> impl Iterator<Item = &'a Value> {
-    value
-        .get(key)
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
+    value.get(key).into_iter().flat_map(|value| match value {
+        Value::Array(values) => values.as_slice(),
+        Value::Null => &[],
+        value => std::slice::from_ref(value),
+    })
 }
 
 fn nonempty<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
@@ -1068,7 +1075,7 @@ fn push_unique(list: &mut Vec<Value>, value: Value) {
 }
 
 fn all_digits(value: &str) -> bool {
-    !value.is_empty() && value.len() <= 24 && value.bytes().all(|b| b.is_ascii_digit())
+    !value.is_empty() && value.bytes().all(|b| b.is_ascii_digit())
 }
 
 fn https_host(url: &str) -> Option<&str> {
@@ -1104,7 +1111,14 @@ fn notation(value: &Value) -> Option<String> {
         }
     }
     items(value, "notation")
-        .find_map(|entry| nonempty(entry, "@value"))
+        .find_map(|entry| {
+            nonempty(entry, "@value").or_else(|| {
+                entry
+                    .as_str()
+                    .map(str::trim)
+                    .filter(|text| !text.is_empty())
+            })
+        })
         .or_else(|| nonempty(value, "_label"))
         .map(str::to_owned)
 }
@@ -1403,6 +1417,40 @@ mod tests {
             5
         );
         assert_eq!(result["observation"]["images"].as_array().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn identifiers_keep_every_digit_the_provider_gives() {
+        let long = "5001031011048411411411248";
+        assert_eq!(
+            rijks_data_url(&format!("https://id.rijksmuseum.nl/{long}")).as_deref(),
+            Some("https://data.rijksmuseum.nl/5001031011048411411411248?_profile=la-framed")
+        );
+        assert!(rijks_data_url("https://id.rijksmuseum.nl/12a").is_none());
+    }
+
+    #[test]
+    fn single_values_read_like_lists() {
+        let request = json!({"operation":"media.observe","repo_root":repo_root(),"provider":"rijksmuseum","object":"SK-C-5","max_requests":8});
+        let mut responses = rijks_responses();
+        let record = &mut responses[1].1;
+        record["classified_as"][0]["notation"] = json!({"@language":"en","@value":"painting"});
+        let span = record["produced_by"]["timespan"].clone();
+        let mut earlier = span.clone();
+        earlier["begin_of_the_begin"] = json!("1640-01-01T00:00:00Z");
+        record["produced_by"]["timespan"] = json!([span, earlier]);
+        record["produced_by"] = json!([record["produced_by"].clone()]);
+        record["shows"] = record["shows"][0].clone();
+        responses[3].1["access_point"] = responses[3].1["access_point"][0].clone();
+        let result = with_responses(responses, || invoke(&request)).unwrap();
+        let object = &result["observation"]["object"];
+        assert_eq!(object["classifications"], json!(["painting"]));
+        assert_eq!(
+            object["dating"],
+            json!({"statement":"1642","begin_year":1640,"end_year":1642})
+        );
+        assert_eq!(object["makers"][0]["label"], "Rembrandt van Rijn");
+        assert_eq!(result["observation"]["images"][0]["form"], "image_service");
     }
 
     #[test]
