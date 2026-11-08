@@ -1,0 +1,388 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/media-provider-observation.schema.json",
+  "schema_version": "tos_media_provider_observation_v1",
+  "provider": "rijksmuseum",
+  "requested_object": "SK-C-5",
+  "observed_at": "2026-11-08T03:00:52.904275573Z",
+  "requests": [
+    {
+      "role": "search",
+      "url": "https://data.rijksmuseum.nl/search/collection?objectNumber=SK-C-5",
+      "final_url": "https://data.rijksmuseum.nl/search/collection?objectNumber=SK-C-5",
+      "http_status": 200,
+      "media_type": null,
+      "byte_size": 595,
+      "sha256": "d902e666fb97acea5a165223c76f17c49df5f35614c626145d511cd4c665bfc8",
+      "started_at": "2026-11-08T03:00:52.904385159Z",
+      "elapsed_seconds": 1.08907887
+    },
+    {
+      "role": "object-record",
+      "url": "https://data.rijksmuseum.nl/200107928?_profile=la-framed",
+      "final_url": "https://data.rijksmuseum.nl/200107928?_profile=la-framed",
+      "http_status": 200,
+      "media_type": null,
+      "byte_size": 173384,
+      "sha256": "323a2b896ce89ad5e1a9f6ae4bee311e453c7841cfeb48a068da9cbdfa9531b8",
+      "started_at": "2026-11-08T03:00:53.993756571Z",
+      "elapsed_seconds": 1.001585788
+    },
+    {
+      "role": "visual-item-record",
+      "url": "https://data.rijksmuseum.nl/202107928?_profile=la-framed",
+      "final_url": "https://data.rijksmuseum.nl/202107928?_profile=la-framed",
+      "http_status": 200,
+      "media_type": null,
+      "byte_size": 17614,
+      "sha256": "a1459084a1537bc9ef95129820b8b577cbce78d49f869c86749038d1251c110f",
+      "started_at": "2026-11-08T03:00:54.999838393Z",
+      "elapsed_seconds": 0.539655992
+    },
+    {
+      "role": "digital-object-record",
+      "url": "https://data.rijksmuseum.nl/500711199912110510799100?_profile=la-framed",
+      "final_url": "https://data.rijksmuseum.nl/500711199912110510799100?_profile=la-framed",
+      "http_status": 200,
+      "media_type": null,
+      "byte_size": 850,
+      "sha256": "6603bc531822110d468972c5154597165c8b7ca685e01890a221c11b7bc85556",
+      "started_at": "2026-11-08T03:00:55.540475790Z",
+      "elapsed_seconds": 0.679364847
+    },
+    {
+      "role": "image-service-info",
+      "url": "https://iiif.micr.io/PJEZO/info.json",
+      "final_url": "https://iiif.micr.io/PJEZO/info.json",
+      "http_status": 200,
+      "media_type": null,
+      "byte_size": 835,
+      "sha256": "ff297404d450a750af106f9e0793a055a46cc22565286a0c1643c525fcd963bd",
+      "started_at": "2026-11-08T03:00:56.220097448Z",
+      "elapsed_seconds": 0.230255131
+    }
+  ],
+  "object": {
+    "provider_object_uri": "https://id.rijksmuseum.nl/200107928",
+    "record_url": "https://id.rijksmuseum.nl/200107928",
+    "api_url": "https://data.rijksmuseum.nl/200107928?_profile=la-framed",
+    "identifiers": [
+      {
+        "scheme": "Rijksmuseum object number",
+        "value": "SK-C-5"
+      },
+      {
+        "scheme": "Rijksmuseum object URI",
+        "value": "https://id.rijksmuseum.nl/200107928"
+      },
+      {
+        "scheme": "Handle",
+        "value": "http://hdl.handle.net/10934/RM0001.COLLECT.5216"
+      }
+    ],
+    "titles": [
+      {
+        "text": "De Nachtwacht",
+        "language": "nl",
+        "language_uri": "http://vocab.getty.edu/aat/300388256",
+        "role": "http://vocab.getty.edu/aat/300404670"
+      },
+      {
+        "text": "The Night Watch Militia Company of District II under the Command of Captain Frans Banninck Cocq",
+        "language": "en",
+        "language_uri": "http://vocab.getty.edu/aat/300388277",
+        "role": "http://vocab.getty.edu/aat/300404670"
+      },
+      {
+        "text": "Officers and other civic guardsmen of District II in Amsterdam, under the command of Captain Frans Banninck Cocq and Lieutenant Willem van Ruytenburch, known as ‘The Night Watch’",
+        "language": "en",
+        "language_uri": "http://vocab.getty.edu/aat/300388277",
+        "role": "http://vocab.getty.edu/aat/300417200"
+      },
+      {
+        "text": "Officieren en andere schutters van wijk II in Amsterdam, onder leiding van kapitein Frans Banninck Cocq en luitenant Willem van Ruytenburch, bekend als ‘De Nachtwacht’",
+        "language": "nl",
+        "language_uri": "http://vocab.getty.edu/aat/300388256",
+        "role": "http://vocab.getty.edu/aat/300417200"
+      },
+      {
+        "text": "Het korporaalschap van kapitein Frans Banninck Cocq en luitenant Willem van Ruytenburch, bekend als de 'Nachtwacht'",
+        "language": "nl",
+        "language_uri": "http://vocab.getty.edu/aat/300388256",
+        "role": "former title"
+      },
+      {
+        "text": "The company of Captain Frans Banninck Cocq and Lieutenant Willem van Ruytenburch, known as 'The nightwatch'",
+        "language": "en",
+        "language_uri": "http://vocab.getty.edu/aat/300388277",
+        "role": "former title"
+      }
+    ],
+    "makers": [
+      {
+        "label": "Rembrandt van Rijn",
+        "role": "painter",
+        "provider_uri": "https://id.rijksmuseum.nl/2103429",
+        "authority_uris": [
+          "http://viaf.org/viaf/64013650",
+          "http://vocab.getty.edu/ulan/500011051",
+          "http://www.wikidata.org/entity/Q5598",
+          "https://rkd.nl/artists/66219"
+        ]
+      }
+    ],
+    "production_statements": [
+      {
+        "text": "Rembrandt van Rijn",
+        "language": "nl",
+        "language_uri": "http://vocab.getty.edu/aat/300388256"
+      },
+      {
+        "text": "Rembrandt van Rijn",
+        "language": "en",
+        "language_uri": "http://vocab.getty.edu/aat/300388277"
+      },
+      {
+        "text": "painter: Rembrandt van Rijn, Amsterdam",
+        "language": "en",
+        "language_uri": "http://vocab.getty.edu/aat/300388277"
+      },
+      {
+        "text": "schilder: Rembrandt van Rijn, Amsterdam",
+        "language": "nl",
+        "language_uri": "http://vocab.getty.edu/aat/300388256"
+      }
+    ],
+    "dating": {
+      "statement": "1642",
+      "begin_year": 1642,
+      "end_year": 1642
+    },
+    "classifications": [
+      "painting"
+    ],
+    "materials": [
+      "canvas",
+      "oil paint (paint)"
+    ],
+    "dimensions": [
+      {
+        "kind": "height",
+        "value": "379.5",
+        "unit": null,
+        "unit_uri": "http://vocab.getty.edu/aat/300379098",
+        "statement": "hoogte van het nog resterende originele doek is 363 cm"
+      },
+      {
+        "kind": "width",
+        "value": "453.5",
+        "unit": null,
+        "unit_uri": "http://vocab.getty.edu/aat/300379098",
+        "statement": "breedte van het nog resterende originele doek is 438 cm"
+      },
+      {
+        "kind": "weight",
+        "value": "337",
+        "unit": null,
+        "unit_uri": "http://vocab.getty.edu/aat/300379226",
+        "statement": "gewicht met lijst"
+      },
+      {
+        "kind": "weight",
+        "value": "170",
+        "unit": null,
+        "unit_uri": "http://vocab.getty.edu/aat/300379226",
+        "statement": "gewicht zonder lijst"
+      }
+    ],
+    "credit_lines": [
+      {
+        "text": "Bruikleen van de gemeente Amsterdam",
+        "language": "nl",
+        "language_uri": "http://vocab.getty.edu/aat/300388256"
+      },
+      {
+        "text": "On loan from the City of Amsterdam",
+        "language": "en",
+        "language_uri": "http://vocab.getty.edu/aat/300388277"
+      }
+    ],
+    "repository": "Rijksmuseum, Amsterdam",
+    "depicted": [
+      {
+        "label": null,
+        "kind": "Person",
+        "provider_uri": "https://id.rijksmuseum.nl/21051134",
+        "authority_uris": [
+          "http://viaf.org/viaf/285073730",
+          "http://vocab.getty.edu/ulan/500354696",
+          "http://www.wikidata.org/entity/Q935192"
+        ]
+      },
+      {
+        "label": null,
+        "kind": "Person",
+        "provider_uri": "https://id.rijksmuseum.nl/21059514",
+        "authority_uris": []
+      },
+      {
+        "label": null,
+        "kind": "Person",
+        "provider_uri": "https://id.rijksmuseum.nl/21072542",
+        "authority_uris": []
+      },
+      {
+        "label": null,
+        "kind": "Person",
+        "provider_uri": "https://id.rijksmuseum.nl/21074840",
+        "authority_uris": []
+      },
+      {
+        "label": null,
+        "kind": "Person",
+        "provider_uri": "https://id.rijksmuseum.nl/21074841",
+        "authority_uris": []
+      },
+      {
+        "label": null,
+        "kind": "Person",
+        "provider_uri": "https://id.rijksmuseum.nl/21074842",
+        "authority_uris": []
+      },
+      {
+        "label": null,
+        "kind": "Person",
+        "provider_uri": "https://id.rijksmuseum.nl/21074843",
+        "authority_uris": []
+      },
+      {
+        "label": null,
+        "kind": "Person",
+        "provider_uri": "https://id.rijksmuseum.nl/21074844",
+        "authority_uris": []
+      },
+      {
+        "label": null,
+        "kind": "Person",
+        "provider_uri": "https://id.rijksmuseum.nl/21074845",
+        "authority_uris": []
+      },
+      {
+        "label": null,
+        "kind": "Person",
+        "provider_uri": "https://id.rijksmuseum.nl/21074846",
+        "authority_uris": []
+      },
+      {
+        "label": null,
+        "kind": "Person",
+        "provider_uri": "https://id.rijksmuseum.nl/21074847",
+        "authority_uris": []
+      },
+      {
+        "label": null,
+        "kind": "Person",
+        "provider_uri": "https://id.rijksmuseum.nl/21074848",
+        "authority_uris": []
+      },
+      {
+        "label": null,
+        "kind": "Person",
+        "provider_uri": "https://id.rijksmuseum.nl/21074849",
+        "authority_uris": []
+      },
+      {
+        "label": null,
+        "kind": "Person",
+        "provider_uri": "https://id.rijksmuseum.nl/21074850",
+        "authority_uris": [
+          "http://www.wikidata.org/entity/Q2349798"
+        ]
+      },
+      {
+        "label": null,
+        "kind": "Place",
+        "provider_uri": "https://id.rijksmuseum.nl/23029985",
+        "authority_uris": [
+          "http://vocab.getty.edu/tgn/7006952",
+          "http://www.wikidata.org/entity/Q727",
+          "https://sws.geonames.org/2759794/"
+        ]
+      }
+    ],
+    "visual_item_uri": "https://id.rijksmuseum.nl/202107928"
+  },
+  "rights": [
+    {
+      "scope": "image",
+      "provider_field": "subject_to",
+      "value": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "statement_uri": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "label": "Public Domain",
+      "stated_in": "https://data.rijksmuseum.nl/202107928?_profile=la-framed"
+    }
+  ],
+  "images": [
+    {
+      "role": "primary",
+      "form": "image_service",
+      "access_url": "https://iiif.micr.io/PJEZO/full/max/0/default.jpg",
+      "image_service": {
+        "protocol": "http://iiif.io/api/image",
+        "api_version": "3",
+        "service_id": "https://iiif.micr.io/PJEZO",
+        "profile": "level2",
+        "width_pixels": 14645,
+        "height_pixels": 12158,
+        "max_area": 17550000,
+        "max_width": null,
+        "max_height": null,
+        "tiles": [
+          {
+            "width": 1024,
+            "height": 1024,
+            "scale_factors": [
+              1,
+              2,
+              4,
+              8,
+              16
+            ]
+          }
+        ],
+        "formats": [
+          "jpg",
+          "png",
+          "webp"
+        ],
+        "qualities": [
+          "default",
+          "gray",
+          "color"
+        ],
+        "info_fingerprint": {
+          "url": "https://iiif.micr.io/PJEZO/info.json",
+          "byte_size": 835,
+          "sha256": "ff297404d450a750af106f9e0793a055a46cc22565286a0c1643c525fcd963bd",
+          "checked_at": "2026-11-08T03:00:56.220083343Z"
+        }
+      },
+      "file_url": null
+    }
+  ],
+  "warnings": [],
+  "authority": {
+    "evidence_status": "provider_observation",
+    "review_status": "unreviewed",
+    "identity_admitted": false,
+    "rights_decided": false,
+    "source_text_admitted": false,
+    "semantic_authority": false,
+    "graph_authority": false,
+    "canon_authority": false,
+    "publication_authority": false
+  },
+  "maker": {
+    "maker_type": "software",
+    "agent_ref": "software:tos-native-owner-command/acquisition/media.observe"
+  }
+}

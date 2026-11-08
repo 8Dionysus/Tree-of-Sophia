@@ -340,6 +340,17 @@ require separately grounded records. An artifact with no honest
 backlog anchor remains unplanted rather than borrowing a neighboring source's
 identity.
 
+A visual representation under
+[`artifact-visual-representation-v2`](../contracts/artifact-visual-representation-v2.schema.json)
+takes one of two forms. The file form retains exact bytes as v1 does. The
+image-service form records a provider's IIIF Image API service as it was
+observed: its address, the full dimensions it serves, its tiles and size limits,
+and the exact fingerprint of its `info.json`. The image stays with the provider
+and is read through the service at every detail it offers; the representation's
+identity is the SHA-256 of the service address. Existing v1 records keep their
+contract, and the foundation check takes up the v2 form together with the first
+planted v2 record.
+
 Modern scholarly composites use the parallel `scholarly-composites/` spine.
 Their path follows composition and tradition rather than a current corpus or
 database. A composite identity may gather physical or textual member
@@ -685,6 +696,44 @@ explicit payload roots and manifest/inventory selectors. The Rust owner checks
 fixity, no-follow path custody and no-clobber publication, then writes an
 immutable metadata-only receipt; it does not change rights, source assessment or
 admission status.
+
+### Media bridges
+
+The `media` family of the same command reads one object from a museum provider
+and returns a [`media-provider-observation`](../contracts/media-provider-observation.schema.json)
+packet: every response it fetched with its size and SHA-256, the catalogue facts
+(identifiers, titles with their languages, makers with their authority URIs,
+dating, materials, dimensions, credit lines, depicted subjects), the rights
+statements exactly as the provider gives them with the response they were read
+from, and the images the provider serves. An IIIF image is described by its
+service's `info.json` in the shape of the v2 image-service form, so a later
+acquisition takes it over unchanged. The bridge writes nothing; the packet is
+evidence for acquisition, and Artifact identity, attribution, dating, rights and
+publication keep their owners.
+
+```json
+{"family":"media","operation":"media.observe","repo_root":"/absolute/Tree-of-Sophia","provider":"rijksmuseum","object":"SK-C-5","max_requests":8}
+{"family":"media","operation":"media.observe","repo_root":"/absolute/Tree-of-Sophia","provider":"met","object":"438417","max_requests":8}
+```
+
+| Provider | Object named by | Route | Images |
+| --- | --- | --- | --- |
+| `rijksmuseum` | object number, numeric id or `https://id.rijksmuseum.nl/…` URI | Linked Art records on `data.rijksmuseum.nl`: object, VisualItem (which carries the rights), DigitalObject | IIIF Image API 3 services on `iiif.micr.io`, observed through `info.json` |
+| `met` | numeric `objectID` | the Collection API record on `collectionapi.metmuseum.org`, with its `isPublicDomain` flag | image files named by the record |
+
+`media.describe` lists the providers and their hosts. Each bridge reads over
+HTTPS from its own hosts only and follows redirects only within them. Every
+response stays within the deployment profile's acquisition record limit
+(`admission.acquisition.max_record_bytes`), and an observation makes at most
+the `max_requests` provider requests its request states: the Night Watch takes
+five. The bridge refuses a record that describes another object than the one
+asked for. The Rijksmuseum search matches
+object numbers partially; the bridge takes a single match only when the record
+carries the asked number exactly, and otherwise asks for the object's URI. With
+`"fetch_callback": true` the command asks its caller for each URL over the wire,
+for an operator who fetches through their own transport. Fixtures in
+[`examples/`](../contracts/examples/) hold one observation from each provider and
+a v2 image-service representation built from the Rijksmuseum one.
 The bounded `plain_utf8_file_v1` profile adds one inert complete plain-text or
 Markdown file: exact raw-byte extent/fixity and UTF-8/BOM, code-point, newline
 and observed Unicode-form facts only. It neither rewrites bytes nor interprets

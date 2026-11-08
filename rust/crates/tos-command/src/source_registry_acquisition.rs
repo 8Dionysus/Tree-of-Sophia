@@ -732,7 +732,7 @@ fn schema_probe(root: &Path) -> Result<Rc<tos_validation::SchemaBackendProbe>> {
     Ok(probe)
 }
 
-fn validate_json(root: &Path, value: &Value, schema_name: &str) -> Result<()> {
+pub(crate) fn validate_json(root: &Path, value: &Value, schema_name: &str) -> Result<()> {
     let probe = schema_probe(root)?;
     let schema_uri =
         format!("https://tree-of-sophia.local/ToS/contracts/{schema_name}.schema.json");
