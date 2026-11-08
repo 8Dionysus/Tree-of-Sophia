@@ -1641,8 +1641,10 @@ export function mountCorpusReader({
       const check = () => {
         if (disposed || !opened) return resolve(null);
         const own = unitFromSelection(), reference = selected?.reference;
-        // The analysis answers this selection once the reader has selected it too.
-        const same = own && reference && reference.unitId === (own.unit.unitId || own.unit.id)
+        // The analysis answers this selection once the reader has selected it too: the same work, edition, unit and span.
+        const same = own && reference && String(reference.versionId) === String(own.versionId)
+          && (!reference.target?.workId || reference.target.workId === state.document?.id)
+          && reference.unitId === (own.unit.unitId || own.unit.id)
           && reference.selector.start === codePointOffset(own.unit.text, own.start) && reference.selector.end === codePointOffset(own.unit.text, own.end);
         if (!same || philology.busy) { if (Date.now() - started > 8000) return resolve(null); setTimeout(check, 60); return; }
         const context = philology.result?.context, word = context?.words?.[0];
