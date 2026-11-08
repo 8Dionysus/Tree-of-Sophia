@@ -962,7 +962,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(thread.grown<.995)layoutMoving=true;
     }
     nodes.forEach(n=>{
-      const p=n.screen,hot=n.id===selectedId||n.id===hover||(holdToMove>0&&n.dragging),own=colorOf(n),big=n.major,dim=(focused&&root.dataset.journey!=='true'&&!near.has(n.id)&&!kept.has(n.id)||n.dimmed||previewOut(n))&&!hot,radius=starRadius(n),warm=n.warm??(hot?1:0);
+      const p=n.screen,hot=n.id===selectedId||n.id===hover||(holdToMove>0&&n.dragging),own=colorOf(n),big=n.major,dim=(focused&&root.dataset.journey!=='true'&&!near.has(n.id)&&!kept.has(n.id)||n.dimmed)&&!hot,radius=starRadius(n),warm=n.warm??(hot?1:0);
       const near01=depthCue&&!measured?clamp((p.d-.86)/.3,0,1):1,fade=hot?1:daylight()?.3+.7*near01:.5+.5*near01;
       const color=daylight()&&!hot&&near01<1?mixHex(own,night('#B3B6C4'),(1-near01)*.6):own;
       // A measured layout draws only the stars inside its free area; every star still keeps its type, so its label is measured right.
