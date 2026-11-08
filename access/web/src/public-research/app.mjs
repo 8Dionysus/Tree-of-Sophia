@@ -322,7 +322,7 @@ function confirmDraftNavigation() {
 
 async function switchProfiles(event) {
   event.preventDefault();
-  const destination = event.currentTarget.href;
+  const link = event.currentTarget, destination = link.href;
   try {
     if (workspaceView?.hasUnsavedDraft?.() && !(await confirmDraftNavigation())) return;
     if (!(await persistQuestion())) return;
@@ -330,6 +330,9 @@ async function switchProfiles(event) {
     if (currentRoute) await notebook.setPreference(routeKey(profile), currentRoute);
     const next=new URL(destination,location.href);next.searchParams.set('lang',locale);
     allowProfileLeave = true;
+    // A bonsai is reached through the sky between pages (public/cosmos.js); the home page is reached at once.
+    const stand = spaceLinks.find(item => item.node === link)?.stand;
+    if (stand) await window.tosCosmos?.show({stand: stand.id, title: link.textContent.trim()});
     location.assign(next.toString());
   } catch {
     allowProfileLeave = false;
@@ -508,6 +511,8 @@ async function start() {
     entry.opener.disabled = true;
     readerRoot.querySelector('.corpus-open-narrow')?.setAttribute('disabled','');
   }
+  // The page is ready: the sky it waited in opens onto the tree (public/cosmos.js).
+  requestAnimationFrame(() => requestAnimationFrame(() => window.tosCosmos?.done()));
 }
 
 const onPublicSpaceLocale=event=>setLanguage(event.detail?.locale);
@@ -546,4 +551,5 @@ void start().catch(error => {
   console.error('Public reader startup failed',error);
   const message = h('p', 'pr-error', english ? localeText('The reader could not start. Reload the page to try again.',locale) : 'Не удалось запустить читатель. Перезагрузите страницу.');
   readerRoot.append(message);
+  window.tosCosmos?.done();
 });

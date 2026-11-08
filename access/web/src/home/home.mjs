@@ -68,6 +68,12 @@ const list=make('ul','home-stands');
 const cards=STANDS.map((stand,index)=>{
   const item=make('li','home-stand'),link=make('a'),title=make('span','home-title'),meta=make('span','home-meta'),description=make('span','home-desc');
   item.style.setProperty('--i',index);link.href=`${base}${stand.id}/`;link.append(bonsaiDrawing(stand.id,index,BONSAI[stand.id]?.grows),title,meta,description);item.append(link);list.append(item);
+  // The sky between pages (public/cosmos.js) comes up before the bonsai is reached, so the way there leads through it.
+  link.addEventListener('click',event=>{
+    if(event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey||!window.tosCosmos)return;
+    event.preventDefault();
+    void window.tosCosmos.show({stand:stand.id,title:title.textContent}).then(()=>location.assign(link.href));
+  });
   return {stand,title,meta,description};
 });
 choice.replaceChildren(choose,list);
