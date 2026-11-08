@@ -27,6 +27,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
   const design={atmosphere:'midnight',density:softwareRenderer?.34:.58};
   const FOCAL=1250;
+  // A star's ray in three steps from the star outwards: where each begins and ends along the ray, its light and its width.
+  const RAY_STEPS=[[0,.42,1,.85],[.42,.74,.5,.68],[.74,1,.18,.52]],RAY_DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
   let seed=7239;const rnd=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
   const smooth=(a,b,v)=>{const x=Math.max(0,Math.min(1,(v-a)/(b-a)));return x*x*(3-2*x)};
   const dust=Array.from({length:2200},(_,i)=>{
@@ -461,15 +463,34 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   }
   function strokeSegment(a,b,pattern='solid'){
     const dx=b.x-a.x,dy=b.y-a.y,length=Math.hypot(dx,dy);if(length<1)return;
-    const [on,period]=pattern===true||pattern==='dashed'?[7,13]:pattern==='dotted'?[2,6]:[0,0];
+    // A dotted link is a row of round dots, evenly spaced from end to end.
+    if(pattern==='dotted'){
+      const r=Math.max(.6,ctx.lineWidth*.7),count=Math.max(1,Math.round(length/Math.max(4.6,r*6))),step=length/count;ctx.fillStyle=ctx.strokeStyle;ctx.beginPath();
+      for(let i=0;i<count;i++){const at=(i+.5)*step,x=a.x+dx*at/length,y=a.y+dy*at/length;ctx.moveTo(x+r,y);ctx.arc(x,y,r,0,Math.PI*2);}
+      ctx.fill();return;
+    }
+    const [on,period]=pattern===true||pattern==='dashed'?[6,10.5]:[0,0];
     ctx.beginPath();
     if(on){for(let start=0;start<length;start+=period){const end=Math.min(start+on,length);ctx.moveTo(a.x+dx*start/length,a.y+dy*start/length);ctx.lineTo(a.x+dx*end/length,a.y+dy*end/length);}}
     else{ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);}ctx.stroke();
   }
-  function arrow(a,b){
-    const dx=b.x-a.x,dy=b.y-a.y,length=Math.hypot(dx,dy);if(length<35)return;
-    const ux=dx/length,uy=dy/length,x=b.x-ux*13,y=b.y-uy*13;
-    ctx.beginPath();ctx.moveTo(x-ux*8-uy*4,y-uy*8+ux*4);ctx.lineTo(x,y);ctx.lineTo(x-ux*8+uy*4,y-uy*8-ux*4);ctx.stroke();
+  // A link's head, smaller on a short link so that the line still shows behind it.
+  function arrow(a,b,offset=13){
+    const dx=b.x-a.x,dy=b.y-a.y,length=Math.hypot(dx,dy);if(length<offset+12)return;
+    const ux=dx/length,uy=dy/length,x=b.x-ux*offset,y=b.y-uy*offset,size=Math.min(7,(length-offset)*.36),wing=size*.52;
+    ctx.beginPath();ctx.moveTo(x-ux*size-uy*wing,y-uy*size+ux*wing);ctx.lineTo(x,y);ctx.lineTo(x-ux*size+uy*wing,y-uy*size-ux*wing);ctx.stroke();
+  }
+  // How large a star is drawn, and so how much room a link leaves round it.
+  function starRadius(n){return (n.id===selectedId||n.id===hover||(holdToMove>0&&n.dragging)?5.2:n.major?4.3:2.8)*Math.max(.7,Math.min(1.5,n.screen?.s??1));}
+  const gapOf=n=>n?starRadius(n)+(n.form==='source'?2.6:3.5):0;
+  // A route with its first point moved off its star by one gap and its last by the other; nothing where the stars touch.
+  function trimRoute(route,gapA,gapB){
+    const first=route[0],second=route[1],last=route[route.length-1],before=route[route.length-2];
+    const lengthA=Math.hypot(second.x-first.x,second.y-first.y),lengthB=Math.hypot(last.x-before.x,last.y-before.y);
+    if(route.length===2&&lengthA<=gapA+gapB+2)return null;if(lengthA<=gapA||lengthB<=gapB)return null;
+    const start={...first,x:first.x+(second.x-first.x)*gapA/lengthA,y:first.y+(second.y-first.y)*gapA/lengthA};
+    const end={...last,x:last.x+(before.x-last.x)*gapB/lengthB,y:last.y+(before.y-last.y)*gapB/lengthB};
+    return [start,...route.slice(1,-1),end];
   }
   function hitEdge(x,y){
     if(!inView(box(x,y,0,0)))return null;
@@ -583,8 +604,9 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(fade){c.el.style.width=(area.right-area.left).toFixed(1)+'px';c.el.style.transform=`translate3d(${area.left.toFixed(2)}px,${area.top.toFixed(2)}px,0)`;c.el.style.filter=fade<1?`opacity(${fade.toFixed(3)})`:'';}
       if(shown){scaleLabels.push(area);occupied.push(area);}
     }
-    // A star the view has stepped back lies under the names in front of it.
-    const nodeObstacles=nodes.filter(n=>!n.el.hidden&&!n.dimmed).map(n=>({id:n.id,...box(n.screen.x-9,n.screen.y-9,18,18)}));
+    // A star the view has stepped back lies under the names in front of it, and so does one a chosen star or link has
+    // sent back.
+    const nodeObstacles=nodes.filter(n=>!n.el.hidden&&!n.dimmed&&n.el.dataset.outside!=='true').map(n=>({id:n.id,...box(n.screen.x-9,n.screen.y-9,18,18)}));
     for(const c of clusters){
       if(c.variant)continue;
       const width=c.labelWidth??110,height=c.labelHeight??(c.subtitle.textContent?40:25);
@@ -652,7 +674,19 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       // The part of the link inside the free area carries its whole name, however short the link is.
       const cut=clipSegment(hit.a,hit.b);if(!cut)return;
       const [a,b]=cut,dx=b.x-a.x,dy=b.y-a.y,length=Math.max(1,Math.hypot(dx,dy)),hot=e.id===selectedEdgeId||e.id===hoverEdge,spots=[];
-      const along=(width,height)=>{const list=[];for(const offset of [0,16,-16,32,-32,48,-48,64,-64])for(const t of [.5,.38,.62,.26,.74,.15,.85]){const cx=a.x+dx*t-dy/length*offset,cy=a.y+dy*t+dx/length*offset;list.push(box(cx-width/2,cy-height/2,width,height));}return list;};
+      // A name rides on its link. A link too short to show past its name has the name beside it first, across or along
+      // the screen, whichever clears the line by the smaller step.
+      const along=(width,height)=>{
+        const list=[],put=(cx,cy)=>list.push(box(cx-width/2,cy-height/2,width,height));
+        if(Math.abs(dx)/length*width+Math.abs(dy)/length*height>length*.6){
+          const sx=Math.abs(dy)>1?width/2+8+Math.abs(dx/dy)*height/2:Infinity,sy=Math.abs(dx)>1?height/2+8+Math.abs(dy/dx)*width/2:Infinity;
+          // The nearer way first, each a little further out if the first place is taken; the other way only if not much further.
+          const near=Math.min(sx,sy),ways=[[1,0,sx],[0,1,sy]].filter(w=>w[2]<=near*1.6).sort((p,q)=>p[2]-q[2]);
+          for(const [ux,uy,reach] of ways)for(const more of [0,12,24])for(const sign of [1,-1])for(const t of [.5,.38,.62])put(a.x+dx*t+sign*ux*(reach+more),a.y+dy*t+sign*uy*(reach+more));
+        }
+        for(const offset of [0,16,-16,32,-32,48,-48,64,-64])for(const t of [.5,.38,.62,.26,.74,.15,.85])put(a.x+dx*t-dy/length*offset,a.y+dy*t+dx/length*offset);
+        return list;
+      };
       // Where links crowd round the chosen star and no free place is left for a whole name, a free place for the link's
       // kind is better than names laid over one another; the whole name stays in its title.
       const guarded=[nodes.find(n=>n.id===selectedId)?.labelBox].filter(Boolean);
@@ -800,8 +834,9 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     if(selectedId&&byId.has(selectedId)){kept.add(selectedId);for(const edge of edges)if(!edge.muted&&(edge.from===selectedId||edge.to===selectedId)&&byId.has(edge.from)&&byId.has(edge.to)){kept.add(edge.from);kept.add(edge.to);keptEdges.add(edge.id);}}
     if(selectedEdge&&!selectedEdge.muted&&byId.has(selectedEdge.from)&&byId.has(selectedEdge.to)){kept.add(selectedEdge.from);kept.add(selectedEdge.to);keptEdges.add(selectedEdge.id);}
     // A chosen star in a space read in depth gathers the view to itself: every star outside it and its neighbours steps
-    // back, nameless and out of reach, with the links and lines that do not touch it, until the star is let go.
-    const chosenFocus=depthCue&&!measured&&!!selectedId&&kept.size>0,focusTo=chosenFocus?1:0;
+    // back, nameless and out of reach, with the links and lines that do not touch it, until the star is let go. A chosen
+    // link does the same for its own two stars.
+    const chosenFocus=depthCue&&!measured&&(!!selectedId||!!selectedEdge)&&kept.size>0,focusTo=chosenFocus?1:0;
     focusMix=still||reduced.matches?focusTo:focusMix+(focusTo-focusMix)*(1-Math.exp(-dt*9));if(Math.abs(focusMix-focusTo)<.01)focusMix=focusTo;else layoutMoving=true;
     if(root.dataset.focus!==(chosenFocus?'chosen':''))root.dataset.focus=chosenFocus?'chosen':'';
     // An aspect names every link it stands in rows, and every star at their ends.
@@ -849,11 +884,18 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const rest=Number.isFinite(edge.baseAlpha)?edge.baseAlpha:.24,weight=Number.isFinite(edge.weight)?edge.weight:1;
       // In the day's air a link pales as it goes back, by the depth of its two ends; a pointed or chosen one stays clear.
       const air=depthCue&&!measured&&daylight()&&!hot?.22+.78*clamp(((from.d+to.d)/2-.84)/.34,0,1):1;
-      ctx.strokeStyle=air<1?mixHex(edge.color,night('#B3B6C4'),(1-air)*.8):edge.color;ctx.globalAlpha=Math.min(1,(hot?.85:neighbor?.57:focused?rest*.23:rest)*ink)*(1-awayEdge)*air;ctx.lineWidth=(hot?1.55:neighbor?1.1:.65)*weight*(1+(ink-1)*.35);
+      const alpha=Math.min(1,(hot?.85:neighbor?.57:focused?rest*.23:rest)*ink)*(1-awayEdge)*air,width=(hot?1.55:neighbor?1.1:.65)*weight*(1+(ink-1)*.35);
+      ctx.strokeStyle=air<1?mixHex(edge.color,night('#B3B6C4'),(1-air)*.8):edge.color;
+      // A link leaves a little room round each of its stars, so that the stars stand clear of the lines they join.
+      const path=trimRoute(route,gapOf(byId.get(edge.from)),gapOf(byId.get(edge.to)));if(!path)continue;
       const dash=edge.dash??(edge.kind==='questions'||edge.kind==='contrasts'?'dashed':'solid');let longest=null;
-      for(let i=1;i<route.length;i++){
-        let a=route[i-1],b=route[i],whole=true;if(measured){const cut=clipSegment(a,b);if(!cut)continue;[a,b,whole]=cut;}
-        strokeSegment(a,b,dash);if((hot||neighbor)&&whole&&i===route.length-1)arrow(a,b);
+      // A chosen or pointed unbroken link glows: two faint strokes under its line, the broader the fainter. A broken
+      // link keeps its gaps and is lit by its own marks.
+      if(hot&&dash!==true&&dash!=='dashed'&&dash!=='dotted')for(const [spread,light] of [[3.2,.06],[1.9,.1]]){ctx.globalAlpha=alpha*light*(daylight()?.7:1);ctx.lineWidth=width*spread;for(let i=1;i<path.length;i++){let a=path[i-1],b=path[i];if(measured){const cut=clipSegment(a,b);if(!cut)continue;[a,b]=cut;}strokeSegment(a,b);}}
+      ctx.globalAlpha=alpha;ctx.lineWidth=width;
+      for(let i=1;i<path.length;i++){
+        let a=path[i-1],b=path[i],whole=true;if(measured){const cut=clipSegment(a,b);if(!cut)continue;[a,b,whole]=cut;}
+        strokeSegment(a,b,dash);if((hot||neighbor)&&whole&&i===path.length-1)arrow(a,b,1.5);
         const length=Math.hypot(b.x-a.x,b.y-a.y);if(!longest||length>longest.length)longest={a,b,length};
       }
       if(longest)edgeHits.push({id:edge.id,a:longest.a,b:longest.b});
@@ -894,10 +936,16 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       else{ctx.globalAlpha=starAlpha;ctx.drawImage(sprite(color),p.x-glow/2,p.y-glow/2,glow,glow);}
       ctx.globalAlpha=starAlpha;
       // A source is a disc; an authored proposal a ring; a personal record a broken ring.
-      if(n.form==='source'){ctx.fillStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,radius,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff9ea';ctx.fillRect(p.x-1,p.y-1,2,2);}
+      if(n.form==='source'){ctx.fillStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,radius,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff9ea';ctx.beginPath();ctx.arc(p.x,p.y,Math.max(.75,radius*.32),0,Math.PI*2);ctx.fill();}
       else ring(p.x,p.y,radius+.9,color,n.form==='personal',hot);
-      const ray=hot?17:big?10:5;ctx.globalAlpha=(dim?.12:hot?.9:.38)*(1-.9*away);ctx.strokeStyle=color;ctx.lineWidth=.65;ctx.beginPath();ctx.moveTo(p.x-ray,p.y);ctx.lineTo(p.x+ray,p.y);ctx.moveTo(p.x,p.y-ray);ctx.lineTo(p.x,p.y+ray);ctx.stroke();
-      if(n.id===selectedId||n.id===linkFrom){ctx.globalAlpha=.65;ctx.beginPath();for(const [sx,sy] of [[-1,-1],[-1,1],[1,-1],[1,1]]){ctx.moveTo(p.x+sx*22,p.y+sy*16);ctx.lineTo(p.x+sx*22,p.y+sy*22);ctx.lineTo(p.x+sx*16,p.y+sy*22);}ctx.stroke();}
+      // Its four rays narrow and fade towards their tips, as a star's light does in the telescope; a faint star far
+      // back keeps only its point.
+      const ray=hot?19:big?12:6.5,rayAlpha=(dim?.12:hot?.92:big?.52:.34)*(1-.9*away);
+      if(rayAlpha>.03&&!(dim&&!big)){ctx.strokeStyle=color;const from=(radius+.6)/ray;
+        for(const [start,end,fade,width] of RAY_STEPS){const a=Math.max(start,from);if(a>=end)continue;ctx.globalAlpha=rayAlpha*fade;ctx.lineWidth=width*(hot?1.2:1);ctx.beginPath();for(const [ux,uy] of RAY_DIRS){ctx.moveTo(p.x+ux*ray*a,p.y+uy*ray*a);ctx.lineTo(p.x+ux*ray*end,p.y+uy*ray*end);}ctx.stroke();}}
+      // A chosen star is ringed by a halo of its own colour and a faint orbit beyond it; the star a link is being drawn
+      // from keeps its halo broken, waiting for the other end.
+      if(n.id===selectedId||n.id===linkFrom){ctx.strokeStyle=color;ctx.lineWidth=1.1;ctx.globalAlpha=.8;circle(p.x,p.y,radius+6.5,40,n.id!==selectedId);ctx.lineWidth=.75;ctx.globalAlpha=.3;circle(p.x,p.y,radius+11.5,56,true);}
       n.el.style.transform=`translate3d(${(p.x-22).toFixed(2)}px,${(p.y-22).toFixed(2)}px,0)`;
       // The nearer star lies over the farther, so that the pointer reaches the star it is over, and the chosen one over all.
       const layer=String(hot?3000:100+Math.round(clamp(p.d,0,2.4)*400));if(n.el.dataset.layer!==layer){n.el.dataset.layer=layer;n.el.style.zIndex=layer;}
@@ -936,9 +984,16 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   }
   // Both renderers fill full discs and stroke straight segments, so a ring is a dark core under a polygon outline.
   function ring(x,y,r,color,broken,hot){
-    const alpha=ctx.globalAlpha;ctx.fillStyle='#050b16';ctx.globalAlpha=Math.min(1,alpha+.2);ctx.beginPath();ctx.arc(x,y,Math.max(1.2,r-1.1),0,Math.PI*2);ctx.fill();ctx.globalAlpha=alpha;
-    ctx.strokeStyle=color;ctx.lineWidth=hot?1.6:1.25;const steps=broken?10:14;
-    for(let i=0;i<steps;i++){if(broken&&i%2)continue;const a=i/steps*Math.PI*2,b=(i+1)/steps*Math.PI*2;ctx.beginPath();ctx.moveTo(x+Math.cos(a)*r,y+Math.sin(a)*r);ctx.lineTo(x+Math.cos(b)*r,y+Math.sin(b)*r);ctx.stroke();}
+    const alpha=ctx.globalAlpha;ctx.fillStyle='#050b16';ctx.globalAlpha=Math.min(1,alpha+.2);ctx.beginPath();ctx.arc(x,y,Math.max(1.2,r-1),0,Math.PI*2);ctx.fill();ctx.globalAlpha=alpha;
+    ctx.strokeStyle=color;ctx.lineWidth=hot?1.5:1.1;circle(x,y,r,broken?12:hot?28:20,broken);
+  }
+  // A circle stroked as a polygon fine enough to read round (both renderers stroke only straight segments); a broken
+  // one keeps every other side.
+  function circle(x,y,r,steps,broken=false){
+    ctx.beginPath();
+    if(broken)for(let i=0;i<steps;i+=2){const a=i/steps*Math.PI*2,b=(i+1)/steps*Math.PI*2;ctx.moveTo(x+Math.cos(a)*r,y+Math.sin(a)*r);ctx.lineTo(x+Math.cos(b)*r,y+Math.sin(b)*r);}
+    else{ctx.moveTo(x+r,y);for(let i=1;i<=steps;i++){const a=i/steps*Math.PI*2;ctx.lineTo(x+Math.cos(a)*r,y+Math.sin(a)*r);}}
+    ctx.stroke();
   }
   // Where a star comes to rest once the camera and layout settle.
   function projectSettled(point){
@@ -961,8 +1016,10 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   function revealNeighbourhood(){
     const pending=neighbourhoodPending;neighbourhoodPending=null;if(measured||!pending)return;
     if(Array.isArray(pending)){revealSet(new Set(pending));return;}
-    const id=pending,ids=new Set([id]);
-    for(const e of edges)if(!e.muted&&(e.from===id||e.to===id)){ids.add(e.from);ids.add(e.to);}
+    // A chosen link brings its two stars in, as a chosen star brings its neighbours.
+    const link=pending.edge?edges.find(e=>e.id===pending.edge):null;if(pending.edge&&!link)return;
+    const id=link?null:pending,ids=new Set(link?[link.from,link.to]:[id]);
+    if(!link)for(const e of edges)if(!e.muted&&(e.from===id||e.to===id)){ids.add(e.from);ids.add(e.to);}
     const points=nodes.filter(n=>ids.has(n.id)).map(n=>projectSettled(n.target));if(points.length<2)return;
     const area=targetViewport,mx=Math.min(110,(area.right-area.left)*.16),my=Math.min(80,(area.bottom-area.top)*.16);
     const cx=(area.left+area.right)/2,cy=(area.top+area.bottom)/2;
@@ -979,7 +1036,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     const back=Math.min(1,roomX/Math.max(1,span.right-span.left),roomY/Math.max(1,span.bottom-span.top));
     // A crowded neighbourhood is drawn closer, so that its names have room to stand apart: the room its names need is
     // set against the room around its stars, never past what the free area holds or twice the present zoom.
-    const near=edges.filter(e=>!e.muted&&(e.from===id||e.to===id));
+    const near=link?[link]:edges.filter(e=>!e.muted&&(e.from===id||e.to===id));
     const demand=nodes.filter(n=>ids.has(n.id)).reduce((sum,n)=>sum+(n.fullWidth??n.labelWidth??120)*(n.fullHeight??n.labelHeight??18),0)+near.reduce((sum,e)=>sum+(e.labelWidth??120)*(e.labelHeight??30),0);
     const around=(span.right-span.left+120)*(span.bottom-span.top+120);
     const grow=back<1?1:Math.min(Math.sqrt(demand*2.4/Math.max(1,around)),roomX/Math.max(1,span.right-span.left),roomY/Math.max(1,span.bottom-span.top),2);
@@ -1135,7 +1192,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       // A pose restored before any framing turns about its own fit.
       if(!frontFit)frontFit=pose.fit;fittedFor='';kick();},
     select(id){const changed=id!==selectedId;selectedId=id;updateThreads();if(changed&&id)neighbourhoodPending=id;kick()},
-    selectEdge(id){selectedEdgeId=id;kick()},
+    selectEdge(id){const changed=id!==selectedEdgeId;selectedEdgeId=id;if(changed&&id)neighbourhoodPending={edge:id};kick()},
     link(id){linkFrom=id;kick()},
     zoomBy(factor){if(Number.isFinite(factor)&&factor>0)zoomTo(tzoom*factor);},
     frame({fill=false,x=null,y=null,plane=false}={}){
