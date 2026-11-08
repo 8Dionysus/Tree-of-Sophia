@@ -84,6 +84,23 @@ class Book:
         self.titles = {chapter['key']: chapter['titles'] for chapter in self.witnesses['chapters']}
         self.cache = {}
 
+    def form_lemmas(self):
+        """The lemmas the book's tokens give each surface form of the original, with their counts."""
+        if 'forms' not in self.cache:
+            table = {}
+            for key in self.order:
+                path = os.path.join(self.home, 'tokens', f'{key}.json')
+                if not os.path.exists(path):
+                    continue
+                layer, units = read(path), {unit[0]: unit[2] for unit in self.chapter(key)['units']['de']}
+                entries = layer['entries']
+                for unit_id, rows in layer['witnesses'].get('de', {}).get('units', {}).items():
+                    text = units.get(unit_id, '')
+                    for row in rows:
+                        table.setdefault(text[row[0]:row[1]], Counter())[entries[row[2]][0]] += 1
+            self.cache['forms'] = table
+        return self.cache['forms']
+
     def ordinary_words(self):
         """Every word the witnesses write in lowercase somewhere: an ordinary word of their languages, never a name."""
         if 'ordinary' not in self.cache:
@@ -264,8 +281,34 @@ def frequency_text(attested, periods):
     return ' '.join(parts) or None
 
 
-def packet(repo, home, term, book, names, renderings):
+def history_lemma(home, term, book):
+    """The lemma a term's word has its history under: its own, its modern spelling, or the lemma its forms take in the book."""
     lemma = term['original']['lemma']
+    candidates = [lemma]
+    modern = (read(os.path.join(home, 'spelling.json')).get('forms', {}).get(lemma) or {}).get('modern')
+    if modern:
+        candidates.append(modern)
+    counts = Counter()
+    for form in term['original'].get('forms') or [lemma]:
+        counts.update(book.form_lemmas().get(form, {}))
+    candidates.extend(name for name, _ in counts.most_common())
+    return next((name for name in candidates if record(home, 'histories', 'de', name)), None)
+
+
+def story_terms(home, terms, book):
+    """The terms a story is told for: every single-word term of the original whose word has a history, with that lemma."""
+    told, without = [], []
+    for term in terms:
+        original = term['original']
+        if ' ' in original['lemma'] or original.get('lang') != 'de':
+            continue
+        lemma = history_lemma(home, term, book)
+        (told if lemma else without).append((term, lemma))
+    return told, [term['id'] for term, _ in without]
+
+
+def packet(repo, home, term, book, names, renderings):
+    lemma = history_lemma(home, term, book) or term['original']['lemma']
     history = record(home, 'histories', 'de', lemma) or {}
     origin = record(home, 'origins', 'de', lemma) or {}
     sources = []
@@ -345,18 +388,16 @@ def packets(args):
     wanted = set(args.terms.split(',')) if args.terms else None
     os.makedirs(os.path.join(args.out, 'packets'), exist_ok=True)
     written = []
-    for term in terms:
-        lemma = term['original']['lemma']
-        if wanted and term['id'] not in wanted or ' ' in lemma or term['original'].get('lang') != 'de':
-            continue
-        if not record(home, 'histories', 'de', lemma):
+    told, without = story_terms(home, terms, book)
+    for term, _ in told:
+        if wanted and term['id'] not in wanted:
             continue
         body = packet(args.repo, home, term, book, names, renderings)
         with open(os.path.join(args.out, 'packets', f"{term['id']}.json"), 'w', encoding='utf-8') as fh:
             json.dump(body, fh, ensure_ascii=False, indent=1)
             fh.write('\n')
         written.append(term['id'])
-    print(json.dumps({'packets': len(written), 'terms': written}, ensure_ascii=False))
+    print(json.dumps({'packets': len(written), 'terms': written, 'without_history': without}, ensure_ascii=False))
 
 
 # ---------------------------------------------------------------- the check
@@ -541,6 +582,11 @@ def bundle(args):
     book = Book(home)
     ordinary = batch_ordinary(book, args.dir)
     stories, counts, refused = {}, Counter(), {}
+    packed = {os.path.splitext(os.path.basename(path))[0] for path in glob.glob(os.path.join(args.dir, 'packets', '*.json'))}
+    for term, _ in story_terms(home, list(terms.values()), book)[0]:
+        if term['id'] not in packed:
+            counts['without_packet'] += 1
+            refused[term['id']] = 'its word has a history but no packet'
     told = {os.path.splitext(os.path.basename(path))[0] for path in glob.glob(os.path.join(args.dir, 'stories', '*.json'))}
     for path in sorted(glob.glob(os.path.join(args.dir, 'packets', '*.json'))):
         term_id = os.path.splitext(os.path.basename(path))[0]

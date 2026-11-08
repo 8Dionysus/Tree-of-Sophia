@@ -204,9 +204,11 @@ history.
 ### The story of a word
 
 `bonsai/<stand>/stories.json` (`tos.bonsai.stories.v1`, written by
-`stories.py bundle`) holds, for each single-word term, a short story of its
-word in Russian and English, told by a writer model from the stand's own
-sources only. `stories.py packets` gathers each term's packet, every piece with
+`stories.py bundle`) holds, for each single-word term whose word has a
+history, a short story of its word in Russian and English, told by a writer
+model from the stand's own sources only. A term's word has its history under
+its own lemma, its modern spelling or the lemma its forms take in the book
+(Thier → Tier, Werthe → Wert); `packets` names the terms without one. `stories.py packets` gathers each term's packet, every piece with
 its id: the three Wiktionary tellings (`W.*`), the descent (`E`), the archive's
 frequency and earliest uses (`A`, `A1`…`A3`), Nietzsche's works there (`N`),
 the book's count (`B`) and first place in each part (`B1`…`B4`), the places by
@@ -218,8 +220,9 @@ sentence names the pieces it stands on. `stories.py check` reads each story
 against its packet: every number, quotation and name of a sentence stands in
 the pieces it cites, or among the names the story declares with their source
 form; a second model reads the stories against the packets for what the check
-leaves to reading (a chapter, the sense of a paraphrase). `bundle` keeps the
-stories that pass, each with every cited piece as the stand shows it.
+leaves to reading (a chapter, the sense of a paraphrase). `bundle` writes the
+layer only when every such term has a story that passes and stands on the
+current packet, each story with every cited piece as the stand shows it.
 
 The origin sheet tells the story at the top of the original's word, each
 sentence followed by its pieces' numbers. A number leads to its piece: the
