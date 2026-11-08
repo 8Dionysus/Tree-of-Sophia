@@ -132,6 +132,25 @@ def descent_text(origin, names, language):
     return text or None
 
 
+def frequency_text(attested, periods):
+    """The word's frequency in the archive in a few figures: its first use, its highest quarter century, before and after 1875."""
+    parts = []
+    if attested.get('first'):
+        parts.append(f"First use outside Nietzsche: {attested['first']}.")
+    used = [period for period in periods if period[2]]
+    if used:
+        peak = max(used, key=lambda period: period[3])
+        parts.append(f'Highest frequency: {peak[0]}–{peak[1]}, {peak[3]} per 10,000 nouns.')
+
+    def mean(rows):
+        return round(sum(row[3] for row in rows) / len(rows), 2) if rows else None
+    before = mean([period for period in periods if 1600 <= period[0] < 1875])
+    after = mean([period for period in periods if 1875 <= period[0] < 1925])
+    if before is not None and after is not None:
+        parts.append(f'Mean per 10,000 nouns: 1600–1874 {before}; 1875–1924 {after}.')
+    return ' '.join(parts) or None
+
+
 def packet(repo, home, term, book, names, renderings):
     lemma = term['original']['lemma']
     history = record(home, 'histories', 'de', lemma) or {}
@@ -159,10 +178,7 @@ def packet(repo, home, term, book, names, renderings):
             if size >= 30000:
                 periods.append([year, year + step - 1, n, round(n * 10000 / size, 2)])
         add({'id': 'A', 'kind': 'archive-frequency', 'about': lemma, 'first': attested.get('first'),
-             'first_period': attested.get('period'),
-             'text': 'Uses outside Nietzsche per quarter century [from, to, uses, per 10,000 nouns]: '
-                     + '; '.join(f'{a}–{b}: {n} ({rate})' for a, b, n, rate in periods),
-             'periods': periods})
+             'first_period': attested.get('period'), 'text': frequency_text(attested, periods), 'periods': periods})
     for index, (year, author, title, text, span, basename, page, *rest) in enumerate(attested.get('early') or [], 1):
         add({'id': f'A{index}', 'kind': 'archive-use', 'about': lemma, 'year': year, 'author': author, 'title': title,
              'text': text, 'word': text[span[0]:span[1]], 'url': DTA_BOOK.format(basename=basename, page=page or 1)})
@@ -179,16 +195,17 @@ def packet(repo, home, term, book, names, renderings):
              'title_ru': clean(book.titles[key].get('ru')), 'title_en': clean(book.titles[key].get('en')),
              'text': pair.get('de'), 'text_ru': pair.get('ru'), 'text_en': pair.get('en')})
     shown = renderings.get('terms', {}).get(term['id']) or {}
-    words = {language: ', '.join(f'{word} ({len(places)})' for word, places in (shown.get(language) or {}).get('words', [])[:4])
-             for language in ('ru', 'en')}
+    counted_words = {language: (shown.get(language) or {}).get('words', [])[:4] for language in ('ru', 'en')}
+    words = {language: ', '.join(f'{word} ({len(places)})' for word, places in counted_words[language]) for language in ('ru', 'en')}
     witness = {language: (term.get('renderings', {}).get(language, {}).get('witness') or {}) for language in ('ru', 'en')}
     tos = {language: (term.get('renderings', {}).get(language, {}).get('tos') or {}) for language in ('ru', 'en')}
     add({'id': 'T', 'kind': 'translations', 'about': lemma,
-         'text': f"Antonovsky 1913: {witness['ru'].get('term')}; Common 1909: {witness['en'].get('term')}; "
-                 f"the Tree's words: {tos['ru'].get('term')} (ru), {tos['en'].get('term')} (en)",
-         'words_ru': words['ru'], 'words_en': words['en'], 'gloss_ru': term.get('gloss', {}).get('ru'),
-         'gloss_en': term.get('gloss', {}).get('en'), 'basis_en': tos['en'].get('basis')})
-    russian = witness['ru'].get('term')
+         'text': f"Antonovsky 1913, his words for it across the book (places): {words['ru'] or witness['ru'].get('term')}; "
+                 f"at its first place: {witness['ru'].get('term')}. Common 1909: {words['en'] or witness['en'].get('term')}; "
+                 f"at its first place: {witness['en'].get('term')}. The Tree's words: {tos['ru'].get('term')} (ru), {tos['en'].get('term')} (en).",
+         'gloss_ru': term.get('gloss', {}).get('ru'), 'gloss_en': term.get('gloss', {}).get('en'), 'basis_en': tos['en'].get('basis')})
+    # The Russian word whose etymology the packet gives: Antonovsky's commonest word for the term.
+    russian = (counted_words['ru'][0][0] if counted_words['ru'] else None) or witness['ru'].get('term')
     if russian:
         told = (record(home, 'histories', 'ru', russian) or {}).get('told') or {}
         for edition, item in sorted(told.items()):
