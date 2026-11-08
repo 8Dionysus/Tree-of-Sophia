@@ -90,6 +90,16 @@ export function createRetainedPublicCorpusProvider({baseUrl='/static/public-corp
       catch(error){if(error?.code==='retained-version-unavailable')return {status:'unavailable',reference:args.reference};throw error;}
     },
     analyze:async args=>(await select(args)).analyze(args),
+    // Where a place of one edition stands in another: in the first snapshot, the current one first, that holds the place.
+    place:async args=>{
+      for(const next of [async()=>current,...(await retained(args.signal)).map(descriptor=>()=>snapshot(descriptor,args.signal))]){
+        const candidate=await next();
+        try{return (await candidate.place?.(args))??null;}
+        // A snapshot without the work, the edition or the unit hands the lookup on to the next one.
+        catch(error){if(!['place-unit-unavailable','document-unavailable','version-unavailable'].includes(error?.code))throw error;}
+      }
+      throw unavailable();
+    },
   };
   return Object.freeze({...bindCorpusProvider(provider),describe:args=>current.describe(args)});
 }

@@ -7,7 +7,7 @@ export const CORPUS_OPERATIONS = Object.freeze([
   'search',
   'resolve',
 ]);
-export const CORPUS_OPTIONAL_OPERATIONS = Object.freeze(['structure', 'analyze']);
+export const CORPUS_OPTIONAL_OPERATIONS = Object.freeze(['structure', 'analyze', 'place']);
 export const CORPUS_ALL_OPERATIONS = Object.freeze([...CORPUS_OPERATIONS, ...CORPUS_OPTIONAL_OPERATIONS]);
 
 export const CORPUS_LIMITS = Object.freeze({
@@ -525,7 +525,19 @@ export function assertCorpusProvider(provider) {
   if (provider.analyze !== undefined && typeof provider.analyze !== 'function') {
     throw new TypeError('provider.analyze must be a function when supplied');
   }
+  if (provider.place !== undefined && typeof provider.place !== 'function') {
+    throw new TypeError('provider.place must be a function when supplied');
+  }
   return provider;
+}
+
+/** A place in another edition: null, or the target edition's unit and how finely it was found. */
+function validatePlace(value, operation) {
+  if (value === null || value === undefined) return null;
+  if (!isRecord(value) || typeof value.unitId !== 'string' || !value.unitId || value.unitId.length > 2048 || !['unit', 'section'].includes(value.by)) {
+    throw new CorpusProviderError('invalid_response', 'place must be null or {unitId, by: unit|section}', operation);
+  }
+  return {unitId: value.unitId, by: value.by};
 }
 
 /**
@@ -556,11 +568,16 @@ export function bindCorpusProvider(provider) {
       return validateAnalysisPage(result, normalized);
     };
   }
+  if (typeof provider.place === 'function') {
+    bound.place = async (args = {}) => validatePlace(await provider.place(validateOperationArgs('place', args)), 'place');
+  }
   const capabilities = isRecord(provider.capabilities) ? {...provider.capabilities} : {};
   if (typeof provider.structure === 'function') capabilities.structure = true;
   else delete capabilities.structure;
   if (typeof provider.analyze === 'function') capabilities.analyze = true;
   else delete capabilities.analyze;
+  if (typeof provider.place === 'function') capabilities.place = true;
+  else delete capabilities.place;
   if (Object.keys(capabilities).length > 0) bound.capabilities = Object.freeze(capabilities);
   return Object.freeze(bound);
 }
@@ -569,7 +586,7 @@ export function bindCorpusProvider(provider) {
  * Adapt a caller-owned transport. The transport chooses how operation names
  * become HTTP, IPC, or another request; this module never invents a route.
  */
-export function createTransportProvider({request, structure = null, analyze = null, capabilities = null} = {}) {
+export function createTransportProvider({request, structure = null, analyze = null, place = null, capabilities = null} = {}) {
   if (typeof request !== 'function') {
     throw new TypeError('createTransportProvider requires caller-supplied request(operation, args)');
   }
@@ -578,6 +595,9 @@ export function createTransportProvider({request, structure = null, analyze = nu
   }
   if (analyze !== null && typeof analyze !== 'function') {
     throw new TypeError('createTransportProvider.analyze must be a function when supplied');
+  }
+  if (place !== null && typeof place !== 'function') {
+    throw new TypeError('createTransportProvider.place must be a function when supplied');
   }
   if (capabilities !== null && !isRecord(capabilities)) {
     throw new TypeError('createTransportProvider.capabilities must be an object when supplied');
@@ -588,6 +608,7 @@ export function createTransportProvider({request, structure = null, analyze = nu
   }
   if (structure !== null) provider.structure = structure;
   if (analyze !== null) provider.analyze = analyze;
+  if (place !== null) provider.place = place;
   if (capabilities !== null) provider.capabilities = capabilities;
   return bindCorpusProvider(provider);
 }
@@ -656,6 +677,11 @@ export function validateOperationArgs(operation, args = {}) {
     normalized.limit = pageLimit(args.limit, operation);
   } else if (operation === 'resolve') {
     normalized.reference = validateReference(args.reference);
+  } else if (operation === 'place') {
+    for (const field of ['documentId', 'versionId', 'targetVersionId', 'unitId']) {
+      normalized[field] = requiredString(args[field], `place.${field}`);
+      if (normalized[field].length > 2048) throw new CorpusProviderError('invalid_request', `place.${field} exceeds 2048 characters`, operation);
+    }
   } else if (operation === 'analyze') {
     normalized.reference = validateReference(args.reference);
     normalized.form = requiredString(args.form, 'analyze.form');
