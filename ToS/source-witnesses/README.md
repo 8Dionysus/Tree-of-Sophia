@@ -717,12 +717,14 @@ publication keep their owners.
 ```json
 {"family":"media","operation":"media.observe","repo_root":"/absolute/Tree-of-Sophia","provider":"rijksmuseum","object":"SK-C-5","max_requests":8}
 {"family":"media","operation":"media.observe","repo_root":"/absolute/Tree-of-Sophia","provider":"met","object":"438417","max_requests":8,"files":true}
+{"family":"media","operation":"media.observe","repo_root":"/absolute/Tree-of-Sophia","provider":"nga","object":"1942.9.1","max_requests":2,"dataset_root":"/absolute/opendata","dataset_commit":"<40-hex commit of that checkout>"}
 ```
 
 | Provider | Object named by | Route | Images |
 | --- | --- | --- | --- |
 | `rijksmuseum` | object number, numeric id or `https://id.rijksmuseum.nl/…` URI | Linked Art records on `data.rijksmuseum.nl`: object, VisualItem (which carries the rights), DigitalObject | IIIF Image API 3 services on `iiif.micr.io`, observed through `info.json` |
 | `met` | numeric `objectID` | the Collection API record on `collectionapi.metmuseum.org`, with its `isPublicDomain` flag | image files on `images.metmuseum.org` named by the record, the primary one with its smaller copy (`primaryImageSmall`) |
+| `nga` | numeric `objectid` or accession number | the Gallery's open data release (CC0, [GitHub](https://github.com/NationalGalleryOfArt/opendata)) checked out at one commit: `objects.csv`, `published_images.csv` with its `openaccess` flag, `objects_dimensions.csv` | the primary view's IIIF Image API 2 service on `api.nga.gov`, observed through `info.json` |
 
 `media.describe` lists the providers and their hosts. Each bridge reads over
 HTTPS from its own hosts only and follows redirects only within them. Every
@@ -738,7 +740,13 @@ for an operator who fetches through their own transport. With `"files": true` th
 bridge also reads the primary image's file and its smaller copy, each within the
 same record limit and request budget, and records for each its size, SHA-256,
 and the media type and pixel size its own header states: a stand that keeps a
-copy of those files can show it holds exactly the bytes observed. Fixtures in
+copy of those files can show it holds exactly the bytes observed. The National
+Gallery of Art serves no records to automated readers and publishes them as a
+daily release instead: its bridge reads the object's rows from a checkout the
+operator names with `dataset_root` and `dataset_commit`, refuses a checkout at
+another commit or with changed data, and lists each file it read under
+`datasets` with the commit, its raw URL, size and SHA-256; that objects table
+is the record an Artifact rests on. Fixtures in
 [`examples/`](../contracts/examples/) hold one observation from each provider and
 a v2 image-service representation built from the Rijksmuseum one.
 

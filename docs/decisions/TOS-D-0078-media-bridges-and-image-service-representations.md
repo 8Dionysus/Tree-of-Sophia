@@ -56,7 +56,11 @@ such as the Met, whose image route serves files without an `info.json` and
 without the CORS or resource-policy headers a cross-origin-isolated page needs.
 For them an observation reads the file and its smaller copy when asked
 (`"files": true`) and records each one's size, SHA-256, media type and pixel
-size, so a copy kept elsewhere is checked against the bytes observed.
+size, so a copy kept elsewhere is checked against the bytes observed. A
+provider that publishes its records as a release rather than serving them one
+by one, as the National Gallery of Art does with its daily CC0 open data, is
+read from a checkout at a named commit, each file recorded with its raw URL
+and digest.
 
 ## Rationale
 

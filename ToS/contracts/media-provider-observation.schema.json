@@ -5,6 +5,10 @@
   "description": "What one media bridge read from one provider about one object: every response it fetched with its fingerprint, the catalogue facts and rights statements in the provider's own terms, and the images the provider serves, each IIIF service with the dimensions and limits its info.json states. The observation is evidence for a later acquisition; identity, attribution, dating, rights and publication keep their own owners.",
   "type": "object",
   "additionalProperties": false,
+  "anyOf": [
+    {"properties": {"requests": {"minItems": 1}}},
+    {"required": ["datasets"]}
+  ],
   "required": [
     "$schema",
     "schema_version",
@@ -22,14 +26,32 @@
   "properties": {
     "$schema": {"const": "https://tree-of-sophia.local/ToS/contracts/media-provider-observation.schema.json"},
     "schema_version": {"const": "tos_media_provider_observation_v1"},
-    "provider": {"enum": ["rijksmuseum", "met"]},
+    "provider": {"enum": ["rijksmuseum", "met", "nga"]},
     "requested_object": {"type": "string", "minLength": 1, "maxLength": 512},
     "observed_at": {"type": "string", "format": "date-time"},
-    "requests": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/request"}},
+    "requests": {"type": "array", "items": {"$ref": "#/$defs/request"}},
     "object": {"$ref": "#/$defs/object"},
     "rights": {"type": "array", "items": {"$ref": "#/$defs/rightsStatement"}},
     "images": {"type": "array", "items": {"$ref": "#/$defs/image"}},
     "warnings": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "datasets": {
+      "description": "Published dataset files the record was read from, where a provider publishes its records as a release rather than serving them one by one (the National Gallery of Art's open data): each file at one commit, with its raw URL, size and SHA-256.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["repository", "commit", "path", "url", "byte_size", "sha256"],
+        "properties": {
+          "repository": {"$ref": "#/$defs/httpsUri"},
+          "commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+          "path": {"type": "string", "minLength": 1},
+          "url": {"$ref": "#/$defs/httpsUri"},
+          "byte_size": {"type": "integer", "minimum": 1},
+          "sha256": {"$ref": "#/$defs/sha256"}
+        }
+      }
+    },
     "authority": {
       "type": "object",
       "additionalProperties": false,

@@ -261,9 +261,7 @@ pub(crate) fn plant_representation(request: &Value) -> Result<Value> {
     });
     validate_json(&root, &rights, "rights-record")?;
 
-    let requests = observation["requests"]
-        .as_array()
-        .ok_or("observation requests")?;
+    let requests = evidence_requests(&observation)?;
     let object_request = requests
         .iter()
         .find(|request| request["role"] == "object-record")
@@ -389,9 +387,7 @@ fn discovery_run(
     let provider = text(observation, "provider")?;
     let object = field(observation, "object")?;
     let record_url = text(object, "record_url")?;
-    let requests = observation["requests"]
-        .as_array()
-        .ok_or("observation requests")?;
+    let requests = evidence_requests(observation)?;
     let identifiers: Vec<Value> = object["identifiers"]
         .as_array()
         .into_iter()
@@ -555,7 +551,7 @@ fn artifact_record(
         .find(|identifier| {
             matches!(
                 identifier["scheme"].as_str(),
-                Some("Rijksmuseum object number" | "Met object number")
+                Some("Rijksmuseum object number" | "Met object number" | "NGA accession number")
             )
         })
         .and_then(|identifier| identifier["value"].as_str())
@@ -596,17 +592,14 @@ fn artifact_record(
             })
     };
     let statement = object["dating"]["statement"].as_str();
-    let fingerprints: Vec<Value> = observation["requests"]
-        .as_array()
-        .into_iter()
-        .flatten()
+    let evidence = evidence_requests(observation)?;
+    let fingerprints: Vec<Value> = evidence
+        .iter()
         .filter(|request| request["role"] != "image-service-info")
         .map(|request| json!({"surface":request["final_url"],"byte_size":request["byte_size"],"sha256":request["sha256"],"captured":false}))
         .collect();
-    let checked_at = observation["requests"]
-        .as_array()
-        .into_iter()
-        .flatten()
+    let checked_at = evidence
+        .iter()
         .find(|request| request["role"] == "object-record")
         .and_then(|request| request["started_at"].as_str())
         .ok_or("the observation has no object record")?;
@@ -825,8 +818,33 @@ fn provider_name(provider: &str) -> &'static str {
     match provider {
         "rijksmuseum" => "Rijksmuseum",
         "met" => "The Metropolitan Museum of Art",
+        "nga" => "National Gallery of Art",
         _ => "media provider",
     }
+}
+
+/// What an observation read, each as a request: its provider responses, and the published
+/// dataset files it read its record from (its objects table standing as the object record),
+/// each a GET of the file at its commit.
+fn evidence_requests(observation: &Value) -> Result<Vec<Value>> {
+    let mut requests = observation["requests"]
+        .as_array()
+        .ok_or("observation requests")?
+        .clone();
+    let read_at = text(observation, "observed_at")?;
+    for dataset in observation["datasets"].as_array().into_iter().flatten() {
+        let path = text(dataset, "path")?;
+        let role = if path.ends_with("/objects.csv") {
+            "object-record"
+        } else {
+            "dataset-file"
+        };
+        requests.push(json!({
+            "role":role,"url":dataset["url"],"final_url":dataset["url"],"http_status":200,"media_type":"text/csv",
+            "byte_size":dataset["byte_size"],"sha256":dataset["sha256"],"started_at":read_at,"elapsed_seconds":0
+        }));
+    }
+    Ok(requests)
 }
 
 /// A centimetre value as written, in millimetres.
@@ -1198,6 +1216,42 @@ mod tests {
         let twice =
             plant_representation(&plant_request(root, observation, "authorized")).unwrap_err();
         assert!(twice.contains("exists"), "{twice}");
+    }
+
+    #[test]
+    fn an_observation_read_from_a_published_release_plants_with_its_files_as_evidence() {
+        let repo = scratch();
+        let root = repo.path();
+        let observation = example("media-provider-observation.v1.nga.json");
+        let home = "european-painting/national-gallery-of-art-washington/nga-1942-9-1";
+        let mut request = prepare_request(root, observation.clone());
+        request["artifact_path"] = json!(home);
+        request["owner"]["provenance_event_id"] = json!("tos.event.creation.artifact-nga-1942-9-1");
+        request["purpose"] = json!("The Feast of the Gods as visual material for the Tree.");
+        let prepared = prepare_artifact(&request).unwrap();
+        let record = &prepared["artifact_create"]["request"]["record"];
+        assert_eq!(
+            record["artifact_id"],
+            "tos.artifact.european-painting.national-gallery-of-art-washington.nga-1942-9-1"
+        );
+        assert_eq!(record["custody"]["inventory_numbers"], json!(["1942.9.1"]));
+        // The objects table at its commit is the record the Artifact rests on.
+        let run = prepared["written"][2].as_str().unwrap();
+        let discovery: Value = serde_json::from_slice(&fs::read(root.join(run)).unwrap()).unwrap();
+        let urls: Vec<&str> = discovery["channels"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|channel| channel["endpoint_url"].as_str().unwrap())
+            .collect();
+        assert!(
+            urls.iter().any(|url| url.ends_with("/data/objects.csv")),
+            "{urls:?}"
+        );
+        assert!(
+            urls.iter().any(|url| url.ends_with("/info.json")),
+            "{urls:?}"
+        );
     }
 
     #[test]

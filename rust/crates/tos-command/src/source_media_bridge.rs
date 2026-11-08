@@ -9,6 +9,7 @@
 use serde_json::{Map, Value, json};
 #[cfg(test)]
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
@@ -40,7 +41,14 @@ const MET: Provider = Provider {
     hosts: &["collectionapi.metmuseum.org"],
     file_hosts: &["images.metmuseum.org"],
 };
-const PROVIDERS: &[&Provider] = &[&RIJKSMUSEUM, &MET];
+/// The National Gallery of Art, Washington: its records come from its open data
+/// release (CC0, GitHub, one commit a day), its images from its IIIF services.
+const NGA: Provider = Provider {
+    id: "nga",
+    hosts: &["api.nga.gov"],
+    file_hosts: &[],
+};
+const PROVIDERS: &[&Provider] = &[&RIJKSMUSEUM, &MET, &NGA];
 
 struct Response {
     status: u16,
@@ -131,6 +139,7 @@ fn observe(request: &Value) -> Result<Value> {
     let found = match provider.id {
         "rijksmuseum" => observe_rijksmuseum(&mut observer, object)?,
         "met" => observe_met(&mut observer, object, files)?,
+        "nga" => observe_nga(&mut observer, object, request)?,
         _ => return Err("unsupported media provider".into()),
     };
     if found.images.is_empty() {
@@ -143,7 +152,7 @@ fn observe(request: &Value) -> Result<Value> {
             .warnings
             .push("the provider states no rights for this object or its images".into());
     }
-    let observation = json!({
+    let mut observation = json!({
         "$schema":format!("https://tree-of-sophia.local/ToS/contracts/{OBSERVATION_SCHEMA}.schema.json"),
         "schema_version":"tos_media_provider_observation_v1",
         "provider":provider.id,
@@ -167,6 +176,9 @@ fn observe(request: &Value) -> Result<Value> {
         },
         "maker":{"maker_type":"software","agent_ref":AGENT_REF}
     });
+    if !found.datasets.is_empty() {
+        observation["datasets"] = Value::Array(found.datasets);
+    }
     crate::source_registry_acquisition::validate_json(&root, &observation, OBSERVATION_SCHEMA)?;
     Ok(json!({"observation":observation}))
 }
@@ -175,6 +187,8 @@ struct Found {
     object: Value,
     rights: Vec<Value>,
     images: Vec<Value>,
+    /// Published dataset files the record was read from, each with its commit and digest.
+    datasets: Vec<Value>,
 }
 
 struct Observer {
@@ -210,9 +224,9 @@ impl Observer {
         let started_at = utcnow()?;
         let tick = Instant::now();
         let response = if self.callback {
-            callback_fetch(url, self.limit)?
+            callback_fetch(url, self.limit, ACCEPT_RECORD)?
         } else {
-            fetch(url, self.limit)?
+            fetch(url, self.limit, ACCEPT_RECORD)?
         };
         let elapsed = tick.elapsed().as_secs_f64();
         if response.status != 200 {
@@ -269,10 +283,11 @@ impl Observer {
         }
         let started_at = utcnow()?;
         let tick = Instant::now();
+        // An image host answers 406 to a request that accepts JSON only.
         let response = if self.callback {
-            callback_fetch(url, self.limit)?
+            callback_fetch(url, self.limit, ACCEPT_IMAGE)?
         } else {
-            fetch(url, self.limit)?
+            fetch(url, self.limit, ACCEPT_IMAGE)?
         };
         let elapsed = tick.elapsed().as_secs_f64();
         if response.status != 200 {
@@ -623,6 +638,7 @@ fn observe_rijksmuseum(observer: &mut Observer, object: &str) -> Result<Found> {
         object,
         rights,
         images,
+        datasets: Vec::new(),
     })
 }
 
@@ -871,6 +887,7 @@ fn observe_met(observer: &mut Observer, object: &str, files: bool) -> Result<Fou
         object,
         rights,
         images,
+        datasets: Vec::new(),
     })
 }
 
@@ -1037,15 +1054,330 @@ fn parse_image_service(
 }
 
 // ---------------------------------------------------------------------------
+// National Gallery of Art.
+
+const NGA_REPOSITORY: &str = "https://github.com/NationalGalleryOfArt/opendata";
+const NGA_RAW: &str = "https://raw.githubusercontent.com/NationalGalleryOfArt/opendata";
+
+/// One object of the National Gallery of Art. Its site serves no records to
+/// automated readers; the Gallery publishes them instead as its open data
+/// release (CSV, CC0), refreshed daily on GitHub. The operator checks that
+/// repository out at one commit and names it; the bridge reads the object's
+/// rows from that checkout, records each file it read with the commit, its
+/// raw URL and its SHA-256, and observes the image's IIIF service live.
+fn observe_nga(observer: &mut Observer, object: &str, request: &Value) -> Result<Found> {
+    let root = absolute_directory(request, "dataset_root")?;
+    let commit = text(request, "dataset_commit")?;
+    if commit.len() != 40
+        || !commit
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        return Err("dataset_commit must be the 40-hex commit of the open data checkout".into());
+    }
+    dataset_at_commit(&root, commit)?;
+    let numeric = !object.is_empty() && object.bytes().all(|byte| byte.is_ascii_digit());
+    let mut datasets = Vec::new();
+
+    let objects = dataset_rows(&root, commit, "data/objects.csv", &mut datasets, |row| {
+        if numeric {
+            row.get("objectid") == Some(&object.to_owned())
+        } else {
+            row.get("accessionnum") == Some(&object.to_owned())
+        }
+    })?;
+    let record = match objects.as_slice() {
+        [record] => record.clone(),
+        [] => return Err(format!("the open data release names no object {object}")),
+        _ => {
+            return Err(format!(
+                "the open data release names {} objects as {object}; name the objectid",
+                objects.len()
+            ));
+        }
+    };
+    let id = record.get("objectid").cloned().unwrap_or_default();
+    let mut images: Vec<HashMap<String, String>> = dataset_rows(
+        &root,
+        commit,
+        "data/published_images.csv",
+        &mut datasets,
+        |row| row.get("depictstmsobjectid") == Some(&id),
+    )?;
+    images.sort_by_key(|row| {
+        (
+            row.get("viewtype").map(String::as_str) != Some("primary"),
+            row.get("sequence")
+                .and_then(|value| value.parse::<u64>().ok())
+                .unwrap_or(u64::MAX),
+        )
+    });
+    let dimensions = dataset_rows(
+        &root,
+        commit,
+        "data/objects_dimensions.csv",
+        &mut datasets,
+        |row| row.get("objectid") == Some(&id),
+    )?;
+
+    let field = |key: &str| {
+        record
+            .get(key)
+            .map(|value| value.trim())
+            .filter(|value| !value.is_empty())
+            .map(str::to_owned)
+    };
+    // The release marks italics with underscores: _title_.
+    let plain = |value: String| value.replace('_', "");
+    let raw = |path: &str| format!("{NGA_RAW}/{commit}/{path}");
+    let record_url = format!("https://www.nga.gov/collection/art-object-page.{id}.html");
+    let mut identifiers = vec![json!({"scheme":"NGA object ID","value":id})];
+    if let Some(number) = field("accessionnum") {
+        identifiers.push(json!({"scheme":"NGA accession number","value":number}));
+    }
+    if let Some(wikidata) = field("wikidataid") {
+        identifiers.push(json!({"scheme":"Wikidata","value":format!("https://www.wikidata.org/wiki/{wikidata}")}));
+    }
+    let year = |key: &str| field(key).and_then(|value| value.parse::<i64>().ok());
+    let mut dimension_values = Vec::new();
+    if let Some(statement) = field("dimensions") {
+        dimension_values.push(
+            json!({"kind":null,"value":null,"unit":null,"unit_uri":null,"statement":statement}),
+        );
+    }
+    for row in &dimensions {
+        let (Some(element), Some(kind), Some(value)) = (
+            row.get("element"),
+            row.get("dimensiontype"),
+            row.get("dimension"),
+        ) else {
+            continue;
+        };
+        let value = value.trim_end_matches('0').trim_end_matches('.').to_owned();
+        let unit = match row.get("unitname").map(String::as_str) {
+            Some("centimeters") => Some("cm"),
+            Some("millimeters") => Some("mm"),
+            _ => None,
+        };
+        let kind = format!("{}{} {kind}", element[..1].to_uppercase(), &element[1..]);
+        dimension_values
+            .push(json!({"kind":kind,"value":value,"unit":unit,"unit_uri":null,"statement":null}));
+    }
+    let object_json = json!({
+        "provider_object_uri":record_url,
+        "record_url":record_url,
+        "api_url":raw("data/objects.csv"),
+        "identifiers":identifiers,
+        "titles":field("title").map(plain).map(|text| vec![json!({"text":text,"language":null,"language_uri":null,"role":null})]).unwrap_or_default(),
+        "makers":[],
+        "production_statements":field("attribution").map(|text| vec![json!({"text":text,"language":null,"language_uri":null})]).unwrap_or_default(),
+        "dating":{"statement":field("displaydate"),"begin_year":year("beginyear"),"end_year":year("endyear")},
+        "classifications":field("classification").into_iter().collect::<Vec<_>>(),
+        "materials":field("medium").into_iter().collect::<Vec<_>>(),
+        "dimensions":dimension_values,
+        "credit_lines":field("creditline").map(|text| vec![json!({"text":text,"language":null,"language_uri":null})]).unwrap_or_default(),
+        "repository":"National Gallery of Art, Washington",
+        "depicted":[],
+        "visual_item_uri":null
+    });
+
+    let mut rights = Vec::new();
+    let mut image_values = Vec::new();
+    for row in images.iter().take(1) {
+        let Some(service_id) = row.get("iiifurl").filter(|url| https_host(url).is_some()) else {
+            observer
+                .warnings
+                .push("the published image names no HTTPS IIIF service".into());
+            continue;
+        };
+        if let Some(access) = row.get("openaccess") {
+            rights.push(json!({"scope":"image","provider_field":"openaccess","value":access,"statement_uri":null,"label":null,"stated_in":raw("data/published_images.csv")}));
+        }
+        let access_url = format!("{service_id}/full/full/0/default.jpg");
+        match observer.image_service(service_id)? {
+            Some(service) => image_values.push(json!({"form":"image_service","access_url":access_url,"image_service":service,"file_url":null,"preview_url":null,"file_fingerprint":null,"preview_fingerprint":null})),
+            None => image_values.push(file_image(&access_url, None)),
+        }
+    }
+    assign_roles(&mut image_values);
+    Ok(Found {
+        object: object_json,
+        rights,
+        images: image_values,
+        datasets,
+    })
+}
+
+/// The checkout holds exactly the named commit, its data files as committed.
+fn dataset_at_commit(root: &Path, commit: &str) -> Result<()> {
+    let git = |args: &[&str]| {
+        std::process::Command::new("git")
+            .arg("-C")
+            .arg(root)
+            .args(args)
+            .output()
+            .map_err(|error| format!("cannot read the open data checkout with git: {error}"))
+    };
+    let head = git(&["rev-parse", "HEAD"])?;
+    if !head.status.success() || String::from_utf8_lossy(&head.stdout).trim() != commit {
+        return Err(format!("the open data checkout is not at {commit}"));
+    }
+    let dirty = git(&["status", "--porcelain", "--", "data"])?;
+    if !dirty.status.success() || !dirty.stdout.is_empty() {
+        return Err("the open data checkout's data files differ from its commit".into());
+    }
+    Ok(())
+}
+
+/// The rows of one release file that `keep` selects, read as a stream; the file
+/// is recorded with its commit, raw URL, size and SHA-256.
+fn dataset_rows(
+    root: &Path,
+    commit: &str,
+    path: &str,
+    datasets: &mut Vec<Value>,
+    keep: impl Fn(&HashMap<String, String>) -> bool,
+) -> Result<Vec<HashMap<String, String>>> {
+    use std::io::Read;
+    let file = std::fs::File::open(root.join(path))
+        .map_err(|error| format!("cannot read {path} of the open data release: {error}"))?;
+    let mut reader = std::io::BufReader::with_capacity(1 << 20, file);
+    let mut digest = tos_foundation::Digest256Hasher::new();
+    let mut size = 0usize;
+    let mut csv = CsvReader::default();
+    let mut header: Option<Vec<String>> = None;
+    let mut kept = Vec::new();
+    let mut buffer = vec![0u8; 1 << 20];
+    loop {
+        let read = reader
+            .read(&mut buffer)
+            .map_err(|error| format!("cannot read {path}: {error}"))?;
+        let chunk = &buffer[..read];
+        digest.update(chunk);
+        size += read;
+        for record in csv.feed(chunk, read == 0)? {
+            match &header {
+                None => header = Some(record),
+                Some(names) => {
+                    if record.len() != names.len() {
+                        return Err(format!(
+                            "{path}: a row holds {} fields where the header names {}",
+                            record.len(),
+                            names.len()
+                        ));
+                    }
+                    let row: HashMap<String, String> = names.iter().cloned().zip(record).collect();
+                    if keep(&row) {
+                        kept.push(row);
+                    }
+                }
+            }
+        }
+        if read == 0 {
+            break;
+        }
+    }
+    datasets.push(json!({
+        "repository":NGA_REPOSITORY,
+        "commit":commit,
+        "path":path,
+        "url":format!("{NGA_RAW}/{commit}/{path}"),
+        "byte_size":size,
+        "sha256":digest.finalize().to_hex()
+    }));
+    Ok(kept)
+}
+
+/// A streaming reader of RFC 4180 CSV: quoted fields may hold commas, doubled
+/// quotes and line breaks; records end at CRLF or LF.
+#[derive(Default)]
+struct CsvReader {
+    field: Vec<u8>,
+    record: Vec<String>,
+    quoted: bool,
+    quote_pending: bool,
+    started: bool,
+}
+
+impl CsvReader {
+    fn feed(&mut self, chunk: &[u8], end: bool) -> Result<Vec<Vec<String>>> {
+        let mut records = Vec::new();
+        for &byte in chunk {
+            if self.quoted {
+                if self.quote_pending {
+                    self.quote_pending = false;
+                    if byte == b'"' {
+                        self.field.push(b'"');
+                        continue;
+                    }
+                    self.quoted = false;
+                } else if byte == b'"' {
+                    self.quote_pending = true;
+                    continue;
+                } else {
+                    self.field.push(byte);
+                    continue;
+                }
+            }
+            match byte {
+                b'"' if self.field.is_empty() => {
+                    self.quoted = true;
+                    self.started = true;
+                }
+                b',' => {
+                    self.push_field()?;
+                    self.started = true;
+                }
+                b'\r' => {}
+                b'\n' => {
+                    if self.started || !self.field.is_empty() || !self.record.is_empty() {
+                        self.push_field()?;
+                        records.push(std::mem::take(&mut self.record));
+                    }
+                    self.started = false;
+                }
+                byte => {
+                    self.field.push(byte);
+                    self.started = true;
+                }
+            }
+        }
+        if end {
+            if self.quoted && !self.quote_pending {
+                return Err("a CSV field opens a quote that never closes".into());
+            }
+            self.quoted = false;
+            self.quote_pending = false;
+            if self.started || !self.field.is_empty() || !self.record.is_empty() {
+                self.push_field()?;
+                records.push(std::mem::take(&mut self.record));
+            }
+        }
+        Ok(records)
+    }
+
+    fn push_field(&mut self) -> Result<()> {
+        let field = String::from_utf8(std::mem::take(&mut self.field))
+            .map_err(|_| "a CSV field is not UTF-8".to_owned())?;
+        self.record.push(field);
+        Ok(())
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Transport.
 
-fn fetch(url: &str, limit: usize) -> Result<Response> {
+const ACCEPT_RECORD: &str = "application/ld+json, application/json;q=0.9";
+const ACCEPT_IMAGE: &str = "image/jpeg, image/png;q=0.9, image/*;q=0.8";
+
+fn fetch(url: &str, limit: usize, accept: &str) -> Result<Response> {
     #[cfg(test)]
     if let Some(result) = TEST_FETCH.with(|fetch| fetch.borrow().as_ref().map(|fetch| fetch(url))) {
         return result;
     }
     const MARKER: &[u8] = b"\n__TOS_MEDIA_META__";
     let write_out = "\n__TOS_MEDIA_META__%{http_code}\n%{url_effective}\n%{content_type}";
+    let accept = format!("Accept: {accept}");
     let args = [
         "-q",
         "--fail",
@@ -1063,7 +1395,7 @@ fn fetch(url: &str, limit: usize) -> Result<Response> {
         "--user-agent",
         "Tree-of-Sophia-media-bridge/1",
         "--header",
-        "Accept: application/ld+json, application/json;q=0.9",
+        &accept,
         "--write-out",
         write_out,
         "--url",
@@ -1110,9 +1442,10 @@ fn fetch(url: &str, limit: usize) -> Result<Response> {
 
 /// Bytes supplied by the caller over the acquisition wire, for operators who
 /// fetch through their own transport. The caller answers for the URL as asked.
-fn callback_fetch(url: &str, limit: usize) -> Result<Response> {
-    let body =
-        crate::source_acquisition_batch::fetch_request(&json!({"url":url,"max_bytes":limit}))?;
+fn callback_fetch(url: &str, limit: usize, accept: &str) -> Result<Response> {
+    let body = crate::source_acquisition_batch::fetch_request(
+        &json!({"url":url,"max_bytes":limit,"accept":accept}),
+    )?;
     Ok(Response {
         status: 200,
         final_url: url.to_owned(),
@@ -1862,6 +2195,147 @@ mod tests {
     }
 
     #[test]
+    fn csv_records_keep_quotes_commas_and_line_breaks_across_chunks() {
+        let text = "a,b,c\r\n1,\"x, \"\"y\"\"\",\"line\r\nbreak\"\r\n2,,last";
+        for size in [1, 2, 3, 7, text.len()] {
+            let mut reader = CsvReader::default();
+            let mut records = Vec::new();
+            for chunk in text.as_bytes().chunks(size) {
+                records.extend(reader.feed(chunk, false).unwrap());
+            }
+            records.extend(reader.feed(&[], true).unwrap());
+            assert_eq!(
+                records,
+                vec![
+                    vec!["a", "b", "c"],
+                    vec!["1", "x, \"y\"", "line\r\nbreak"],
+                    vec!["2", "", "last"]
+                ],
+                "chunk size {size}"
+            );
+        }
+        assert!(CsvReader::default().feed(b"\"open", true).is_err());
+    }
+
+    /// A checkout of the open data release reduced to the rows of two objects, committed.
+    fn nga_release() -> (tempfile::TempDir, String) {
+        let dir = tempfile::tempdir().unwrap();
+        let data = dir.path().join("data");
+        std::fs::create_dir(&data).unwrap();
+        std::fs::write(data.join("objects.csv"), "objectid,accessionnum,title,displaydate,beginyear,endyear,medium,dimensions,attribution,creditline,classification,wikidataid\r\n1138,1942.9.1,The Feast of the Gods,1514/1529,1514,1529,oil on canvas,\"overall: 170.2 x 188 cm (67 x 74 in.)\r\nframed: 203.8 x 218.4 x 7.6 cm\",Giovanni Bellini and Titian,Widener Collection,Painting,Q15008032\r\n46573,1963.10.98,_Woman with a Sunflower_,c. 1905,1905,1905,oil on canvas,,Mary Cassatt,Chester Dale Collection,Painting,\r\n").unwrap();
+        std::fs::write(data.join("published_images.csv"), "uuid,iiifurl,viewtype,sequence,openaccess,depictstmsobjectid\r\nb,https://api.nga.gov/iiif/b,alternate,1,1,1138\r\na,https://api.nga.gov/iiif/a,primary,0,1,1138\r\n").unwrap();
+        std::fs::write(data.join("objects_dimensions.csv"), "objectid,element,dimensiontype,dimension,unitname\r\n1138,overall,height,170.2000000000,centimeters\r\n1138,overall,width,188.0000000000,centimeters\r\n").unwrap();
+        let git = |args: &[&str]| {
+            let status = std::process::Command::new("git")
+                .arg("-C")
+                .arg(dir.path())
+                .args(["-c", "user.name=t", "-c", "user.email=t@example.org"])
+                .args(args)
+                .output()
+                .unwrap();
+            assert!(
+                status.status.success(),
+                "{}",
+                String::from_utf8_lossy(&status.stderr)
+            );
+            String::from_utf8(status.stdout).unwrap()
+        };
+        git(&["init", "--quiet"]);
+        git(&["add", "data"]);
+        git(&["commit", "--quiet", "-m", "release"]);
+        let commit = git(&["rev-parse", "HEAD"]).trim().to_owned();
+        (dir, commit)
+    }
+
+    #[test]
+    fn nga_objects_come_from_the_release_at_its_commit_and_images_from_iiif() {
+        let (release, commit) = nga_release();
+        let info = json!({"@context":"http://iiif.io/api/image/2/context.json","@id":"https://api.nga.gov/iiif/a","protocol":"http://iiif.io/api/image","width":26900,"height":24642,"tiles":[{"width":256,"height":256,"scaleFactors":[1,2,4]}],"profile":["http://iiif.io/api/image/2/level1.json",{"formats":["jpg"],"qualities":["native","color","gray"]}]});
+        let request = json!({"operation":"media.observe","repo_root":repo_root(),"provider":"nga","object":"1942.9.1","max_requests":2,"dataset_root":release.path(),"dataset_commit":commit});
+        let result = with_responses(
+            vec![("https://api.nga.gov/iiif/a/info.json", info.clone())],
+            || invoke(&request),
+        )
+        .unwrap();
+        let observation = &result["observation"];
+        let object = &observation["object"];
+        assert_eq!(
+            object["record_url"],
+            "https://www.nga.gov/collection/art-object-page.1138.html"
+        );
+        assert_eq!(object["titles"][0]["text"], "The Feast of the Gods");
+        assert_eq!(
+            object["production_statements"][0]["text"],
+            "Giovanni Bellini and Titian"
+        );
+        assert_eq!(
+            object["dating"],
+            json!({"statement":"1514/1529","begin_year":1514,"end_year":1529})
+        );
+        assert_eq!(
+            object["dimensions"][1],
+            json!({"kind":"Overall height","value":"170.2","unit":"cm","unit_uri":null,"statement":null})
+        );
+        assert_eq!(
+            object["identifiers"][2]["value"],
+            "https://www.wikidata.org/wiki/Q15008032"
+        );
+        // The primary view is the image, before an alternate listed first.
+        assert_eq!(
+            observation["images"][0]["image_service"]["service_id"],
+            "https://api.nga.gov/iiif/a"
+        );
+        assert_eq!(
+            observation["images"][0]["image_service"]["api_version"],
+            "2"
+        );
+        assert_eq!(
+            observation["rights"],
+            json!([{"scope":"image","provider_field":"openaccess","value":"1","statement_uri":null,"label":null,"stated_in":format!("{NGA_RAW}/{commit}/data/published_images.csv")}])
+        );
+        let datasets = observation["datasets"].as_array().unwrap();
+        assert_eq!(datasets.len(), 3);
+        let objects = std::fs::read(release.path().join("data/objects.csv")).unwrap();
+        assert_eq!(
+            datasets[0],
+            json!({"repository":NGA_REPOSITORY,"commit":commit,"path":"data/objects.csv","url":format!("{NGA_RAW}/{commit}/data/objects.csv"),"byte_size":objects.len(),"sha256":Digest256::of_bytes(&objects).to_hex()})
+        );
+
+        // Italic marks come off a title; an object is found by its objectid too.
+        let mut by_id = request.clone();
+        by_id["object"] = json!("46573");
+        let cassatt = invoke(&by_id).unwrap();
+        assert_eq!(
+            cassatt["observation"]["object"]["titles"][0]["text"],
+            "Woman with a Sunflower"
+        );
+        assert!(
+            cassatt["observation"]["images"]
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
+
+        // An unknown object is named as such; the release must be the named commit, its data unchanged.
+        let mut unknown = by_id.clone();
+        unknown["object"] = json!("1");
+        assert!(invoke(&unknown).unwrap_err().contains("names no object 1"));
+        let mut elsewhere = request.clone();
+        elsewhere["dataset_commit"] = json!("0".repeat(40));
+        assert!(invoke(&elsewhere).unwrap_err().contains("not at"));
+        std::fs::write(
+            release.path().join("data/objects_dimensions.csv"),
+            "objectid\r\n",
+        )
+        .unwrap();
+        assert!(
+            invoke(&request)
+                .unwrap_err()
+                .contains("differ from its commit")
+        );
+    }
+
+    #[test]
     fn met_object_must_be_numeric() {
         let request = json!({"operation":"media.observe","repo_root":repo_root(),"provider":"met","object":"2000.51","max_requests":8});
         assert!(invoke(&request).unwrap_err().contains("numeric objectID"));
@@ -1967,6 +2441,10 @@ mod tests {
             ),
             (
                 "media-provider-observation.v1.met.json",
+                "media-provider-observation",
+            ),
+            (
+                "media-provider-observation.v1.nga.json",
                 "media-provider-observation",
             ),
             (
