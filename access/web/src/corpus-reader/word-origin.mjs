@@ -296,14 +296,26 @@ function renderStory(parent,story,copy,locale){
 
 const pieceLanguage=locale=>copyLocale(locale)==='ru'?'ru':'en';
 
+const QUOTE_PAIRS={ru:['«','»'],de:['„','“'],en:['“','”']};
+/** A sentence cut from a speech keeps the speech's opening or closing mark alone; the sheet quotes the sentence itself. */
+export function paired(text,language){
+  const [open,close]=QUOTE_PAIRS[language]??QUOTE_PAIRS.ru;
+  let said=String(text??'').trim();
+  const count=mark=>[...said].filter(letter=>letter===mark).length;
+  if(said.startsWith(open)&&count(open)>count(close))said=said.slice(open.length).trimStart();
+  if(said.endsWith(close)&&count(close)>count(open))said=said.slice(0,-close.length).trimEnd();
+  return said;
+}
+
 /** A piece of the story the sheet shows nowhere else: a place of the book, the translators' words, a Wiktionary telling. */
 export function renderPiece(item,id,piece,{copy,locale,history=null,onOpenPlace=null}){
   const language=pieceLanguage(locale);
   if(piece?.kind==='book-place'||piece?.kind==='key-place'){
     item.append(el('p','cr-story-piece-title',piece.title?.[language]??piece.title?.de??piece.chapter));
-    const said=el('q','cr-origin-said',piece.text?.[language]??piece.text?.de??'');said.lang=piece.text?.[language]?language:ORIGINAL;
+    const saidLanguage=piece.text?.[language]?language:ORIGINAL;
+    const said=el('q','cr-origin-said',paired(piece.text?.[saidLanguage]??'',saidLanguage));said.lang=saidLanguage;
     item.append(said);
-    if(piece.text?.de&&language!==ORIGINAL){const original=el('p','cr-story-original',piece.text.de);original.lang=ORIGINAL;item.append(original);}
+    if(piece.text?.de&&language!==ORIGINAL){const original=el('p','cr-story-original',paired(piece.text.de,ORIGINAL));original.lang=ORIGINAL;item.append(original);}
     if(piece.why?.[language])item.append(el('p','cr-origin-source',`${copy.treeReads}: ${piece.why[language]}`));
     if(piece.unit&&typeof onOpenPlace==='function'){
       const open=el('button','cr-origin-open',copy.open);open.type='button';

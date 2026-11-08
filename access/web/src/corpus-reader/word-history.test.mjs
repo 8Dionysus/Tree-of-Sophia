@@ -2,7 +2,7 @@ import {readFileSync} from 'node:fs';
 import {beforeAll,describe,expect,it} from 'vitest';
 import {layerStatus} from '../../../../bonsai/lib/layers.mjs';
 import {existsSync} from 'node:fs';
-import {frequencyBins,historyRecord,renderAttested,renderInBook,renderStoryText,renderTold,shardOf,storyOrder,storyPiece,storyRecord,toldOrder} from './word-origin.mjs';
+import {frequencyBins,historyRecord,paired,renderAttested,renderInBook,renderStoryText,renderTold,shardOf,storyOrder,storyPiece,storyRecord,toldOrder} from './word-origin.mjs';
 
 // The history of a word: what Wiktionary's editions tell of it, where the German texts of the DTA use it, how often the book says it.
 const home=new URL('../../../../bonsai/zarathustra/',import.meta.url);
@@ -144,6 +144,17 @@ describe('the history of a word',()=>{
     const key=new Element('li');
     storyPiece(key,'K1',story.pieces.K1,{locale:'ru'});
     expect(find(key,'cr-origin-source')[0].text).toBe('Древо: Заратустра называет сверхчеловека смыслом земли.');
+  });
+  it('quotes a sentence cut from a speech without the speech\'s lone opening or closing mark',()=>{
+    expect(paired('«Я учу вас о сверхчеловеке.','ru')).toBe('Я учу вас о сверхчеловеке.');
+    expect(paired('Смех признал я священным; о. высшие люди, научитесь же у меня — смеяться!»','ru')).toBe('Смех признал я священным; о. высшие люди, научитесь же у меня — смеяться!');
+    expect(paired('Там же поднял я на дороге слово «сверхчеловек»,','ru')).toBe('Там же поднял я на дороге слово «сверхчеловек»,');
+    expect(paired('Dort war\'s, wo ich das Wort „Übermensch“ vom Wege auflas','de')).toBe('Dort war\'s, wo ich das Wort „Übermensch“ vom Wege auflas');
+    expect(paired('“I make hymns and sing them;','en')).toBe('I make hymns and sing them;');
+    const item=new Element('li');
+    storyPiece(item,'K9',{kind:'key-place',chapter:'I.01',title:{ru:'Предисловие Заратустры.'},text:{de:'„Ich lehre euch den Übermenschen.',ru:'«Я учу вас о сверхчеловеке.'}},{locale:'ru'});
+    expect(find(item,'cr-origin-said')[0].text).toBe('Я учу вас о сверхчеловеке.');
+    expect(find(item,'cr-story-original')[0].text).toBe('Ich lehre euch den Übermenschen.');
   });
   it('names the translators\' words by their places, the word at the first place apart',()=>{
     const item=new Element('li');
