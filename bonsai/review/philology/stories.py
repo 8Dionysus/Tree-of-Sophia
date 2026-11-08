@@ -427,13 +427,13 @@ def words_of(sentence):
 
 
 def ground_numbers(ground):
-    """Every whole number the pieces write, as written and with its separators dropped: a story's number matches one of them exactly."""
+    """Every number the pieces write, whole: as written and in its formatting variants, so that a story's number matches one exactly."""
+    # A thousands separator written as a space ("12 345") joins its digits before the numbers are read.
+    ground = re.sub(r'(?<![\d.,])\d{1,3}(?:[ \u00a0]\d{3})+(?![\d.,])', lambda match: re.sub(r'[ \u00a0]', '', match.group(0)), ground)
     numbers = set()
     for found in re.findall(r'\d+(?:[.,]\d+)*', ground):
-        numbers.update({found, found.replace(',', '.'), re.sub(r'[.,]', '', found)})
-        numbers.update(re.findall(r'\d+', found))
-    # A thousands separator written as a space ("12 345") joins its digits.
-    numbers.update(re.sub(r'\s', '', found) for found in re.findall(r'\d{1,3}(?:\s\d{3})+(?!\d)', ground))
+        # The whole value and its formatting variants only: 17.90 never vouches for 17, nor 10,000 for 10.
+        numbers.update({found, found.replace(',', '.'), found.replace('.', ','), re.sub(r'[.,]', '', found)})
     return numbers
 
 
