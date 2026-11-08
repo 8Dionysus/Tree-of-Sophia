@@ -8,10 +8,13 @@
 // on in the next where it stood. When the page is ready (tosCosmos.done()) and has a moment to spare, the view flies
 // through the depths into the tree. Everything moves by transforms and opacity alone, so the sky goes on while the
 // page's scripts load. The day (Noon) sees the same field as an astronomer's plate: the negative, in ink on paper.
+// On a bonsai's page this script stands in the head, after theme.js and the sky's own style, so the sky is in the
+// page's very first frame and the page that arrives never shows itself bare for a moment; the home page, which only
+// calls the sky up, keeps it in its body.
 (function(){
   'use strict';
   var script=document.currentScript,root=document.documentElement;
-  if(!script||!document.body||window.tosCosmos)return;
+  if(!script||window.tosCosmos)return;
   var startOn=script.getAttribute('data-cosmos')!=='off',stand=script.getAttribute('data-stand')||'';
   var reduced=false;try{reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(error){}
   var DPR=window.devicePixelRatio||1,plates=(script.src||'').replace(/cosmos\.js(?:[?#].*)?$/,'')+'cosmos/';
@@ -235,7 +238,8 @@
   // A sky that a page called up before leaving goes on here from where it stood.
   var CARRY='tos.cosmos.carry';
   try{var at=Number(sessionStorage.getItem(CARRY));sessionStorage.removeItem(CARRY);if(startOn&&at>0&&Date.now()-at<10000)since=at;}catch(error){}
-  document.body.insertBefore(host,script.nextSibling);
+  // In the head the body is not there yet: the sky stands beside it, as the root's own child.
+  if(document.body)document.body.insertBefore(host,script.nextSibling);else root.appendChild(host);
   if(startOn)light(stand,true);
 
   var leaving=0,waiting=null;
