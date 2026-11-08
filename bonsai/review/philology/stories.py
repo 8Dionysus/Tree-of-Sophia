@@ -20,7 +20,7 @@ and every proper name it writes in a form other than the source's own with that
 form beside it. `check` reads each story against its packet:
 
 - every sentence names pieces of its packet;
-- every number of a sentence stands in the pieces it names;
+- every number of a sentence stands, as a whole number, in the pieces it names;
 - every quotation stands word for word in the pieces it names;
 - every name a sentence writes stands in those pieces, among the names the story
   declares with their source form, or among the names the stand reads by itself
@@ -32,8 +32,10 @@ form beside it. `check` reads each story against its packet:
 It writes `<dir>/check.json` and prints a summary. The story is the writer's
 proposal; the check and a reviewing model stand between it and the stand.
 
-`bundle` gathers the stories that pass the check into the bonsai's
-`stories.json` (`tos.bonsai.stories.v1`), keyed by the original's lemma: each
+`bundle` writes the bonsai's `stories.json` (`tos.bonsai.stories.v1`) only
+when every packet has a story that passes the check and stands on the packet
+this checkout gives; otherwise it names the terms and writes nothing. The layer
+is keyed by the original's lemma: each
 story in both languages with its sentences' pieces, and every piece it cites in
 the form the stand shows it (a place of the book with its unit, so that the
 reader opens it).
@@ -383,6 +385,17 @@ def words_of(sentence):
     return re.findall(r"[\w’'-]+", sentence)
 
 
+def ground_numbers(ground):
+    """Every whole number the pieces write, as written and with its separators dropped: a story's number matches one of them exactly."""
+    numbers = set()
+    for found in re.findall(r'\d+(?:[.,]\d+)*', ground):
+        numbers.update({found, found.replace(',', '.'), re.sub(r'[.,]', '', found)})
+        numbers.update(re.findall(r'\d+', found))
+    # A thousands separator written as a space ("12 345") joins its digits.
+    numbers.update(re.sub(r'\s', '', found) for found in re.findall(r'\d{1,3}(?:\s\d{3})+(?!\d)', ground))
+    return numbers
+
+
 def batch_ordinary(book, directory):
     """The ordinary words a sentence may open with: the witnesses' lowercase words, those of the packets and those inside the stories."""
     words = set(book.ordinary_words())
@@ -430,10 +443,9 @@ def check_story(packet_body, story, names, ordinary=frozenset()):
                 problems.append(f'{where}: cites {unknown or "nothing"}')
                 continue
             ground = fold(' '.join(source_text(by_id[source]) for source in cited))
-            digits = re.sub(r'(?<=\d)[\s.,](?=\d)', '', ground)
+            numbers = ground_numbers(ground)
             for found in re.findall(r'\d+(?:[.,]\d+)?', text):
-                plain = re.sub(r'[.,]', '', found)
-                if plain not in digits and found not in ground and found.replace(',', '.') not in ground:
+                if not {found, found.replace(',', '.'), re.sub(r'[.,]', '', found)} & numbers:
                     problems.append(f'{where}: the number {found} stands in none of {cited}')
             quoted = []
             for match in QUOTES.finditer(text):
@@ -484,7 +496,7 @@ def check(args):
             for problem in item['problems']:
                 print(f'  - {problem}')
     print(json.dumps(dict(counts)))
-    return 0 if not counts['failed'] else 1
+    return 0 if not counts['failed'] and not counts['missing'] else 1
 
 
 def shown_piece(source, extra):
@@ -528,22 +540,31 @@ def bundle(args):
     renderings = read(os.path.join(home, 'renderings.json'))
     book = Book(home)
     ordinary = batch_ordinary(book, args.dir)
-    stories, counts = {}, Counter()
+    stories, counts, refused = {}, Counter(), {}
+    told = {os.path.splitext(os.path.basename(path))[0] for path in glob.glob(os.path.join(args.dir, 'stories', '*.json'))}
+    for path in sorted(glob.glob(os.path.join(args.dir, 'packets', '*.json'))):
+        term_id = os.path.splitext(os.path.basename(path))[0]
+        if term_id not in told:
+            counts['missing'] += 1
+            refused[term_id] = 'no story'
     for path in sorted(glob.glob(os.path.join(args.dir, 'stories', '*.json'))):
         term_id = os.path.splitext(os.path.basename(path))[0]
         packet_path = os.path.join(args.dir, 'packets', f'{term_id}.json')
         if not os.path.exists(packet_path) or term_id not in terms:
             counts['without_packet'] += 1
+            refused[term_id] = 'no packet or no term'
             continue
         packet_body, story = read(packet_path), read(path)
         problems, _ = check_story(packet_body, story, names, ordinary)
         if problems:
             counts['failed'] += 1
+            refused[term_id] = 'fails the check'
             continue
         # The pieces as this checkout gives them: a place of the book with its unit, the translators' words by count.
         current = packet(args.repo, home, terms[term_id], book, names, renderings)
         if current['digest'] != packet_body['digest']:
             counts['stale'] += 1
+            refused[term_id] = 'stands on an earlier packet'
             continue
         by_id = {source['id']: source for source in current['sources']}
         extra = display_extra(home, terms[term_id], book, renderings)
@@ -557,6 +578,12 @@ def bundle(args):
             'en': [{'text': item['text'], 'sources': item['sources']} for item in story['en']],
             'pieces': {source: shown_piece(by_id[source], extra) for source in cited}}
         counts['stories'] += 1
+    if refused:
+        # The layer holds every term's story or none: a partial layer would publish gaps as the stand's whole.
+        for term_id, reason in sorted(refused.items()):
+            print(f'{term_id}: {reason}')
+        print(json.dumps(dict(sorted(counts.items()))))
+        return 1
     witnesses = read(os.path.join(home, 'witnesses.json'))
     manifest = {
         'schema': 'tos.bonsai.stories.v1', 'work': witnesses.get('work'), 'original': 'de',
