@@ -1,0 +1,208 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/media-provider-observation.schema.json",
+  "schema_version": "tos_media_provider_observation_v1",
+  "provider": "met",
+  "requested_object": "438417",
+  "observed_at": "2026-11-08T06:21:22.262458018Z",
+  "requests": [
+    {
+      "role": "object-record",
+      "url": "https://collectionapi.metmuseum.org/public/collection/v1/objects/438417",
+      "final_url": "https://collectionapi.metmuseum.org/public/collection/v1/objects/438417",
+      "http_status": 200,
+      "media_type": null,
+      "byte_size": 2325,
+      "sha256": "e193c2636da9fb5dd1ab0fbfac119d263c79c1f57992d3ff51b2e32366760165",
+      "started_at": "2026-11-08T06:21:22.262730339Z",
+      "elapsed_seconds": 0.512681427
+    },
+    {
+      "role": "image-preview",
+      "url": "https://images.metmuseum.org/CRDImages/ep/web-large/DP-31997-001-NEW.jpg",
+      "final_url": "https://images.metmuseum.org/CRDImages/ep/web-large/DP-31997-001-NEW.jpg",
+      "http_status": 200,
+      "media_type": null,
+      "byte_size": 100691,
+      "sha256": "ef4f1dc729fc3d88464b31d36aa4a11dbd29b2ef82c062a91428fb649fde9363",
+      "started_at": "2026-11-08T06:21:22.776504219Z",
+      "elapsed_seconds": 0.235305145
+    },
+    {
+      "role": "image-file",
+      "url": "https://images.metmuseum.org/CRDImages/ep/original/DP-31997-001-NEW.jpg",
+      "final_url": "https://images.metmuseum.org/CRDImages/ep/original/DP-31997-001-NEW.jpg",
+      "http_status": 200,
+      "media_type": null,
+      "byte_size": 4542841,
+      "sha256": "1e7b7e24910662f12be1425adff9eb92d8cfc161036b24e5a52020be06801f1f",
+      "started_at": "2026-11-08T06:21:23.012058864Z",
+      "elapsed_seconds": 0.397710109
+    }
+  ],
+  "object": {
+    "provider_object_uri": "https://www.metmuseum.org/art/collection/search/438417",
+    "record_url": "https://www.metmuseum.org/art/collection/search/438417",
+    "api_url": "https://collectionapi.metmuseum.org/public/collection/v1/objects/438417",
+    "identifiers": [
+      {
+        "scheme": "Met object ID",
+        "value": "438417"
+      },
+      {
+        "scheme": "Met object number",
+        "value": "2000.51"
+      },
+      {
+        "scheme": "Wikidata",
+        "value": "https://www.wikidata.org/wiki/Q17281208"
+      }
+    ],
+    "titles": [
+      {
+        "text": "Two Men Contemplating the Moon",
+        "language": null,
+        "language_uri": null,
+        "role": null
+      }
+    ],
+    "makers": [
+      {
+        "label": "Caspar David Friedrich",
+        "role": "Artist",
+        "provider_uri": null,
+        "authority_uris": [
+          "http://vocab.getty.edu/page/ulan/500116242",
+          "https://www.wikidata.org/wiki/Q104884"
+        ]
+      }
+    ],
+    "production_statements": [],
+    "dating": {
+      "statement": "ca. 1825–30",
+      "begin_year": 1825,
+      "end_year": 1830
+    },
+    "classifications": [
+      "Paintings",
+      "Painting"
+    ],
+    "materials": [
+      "Oil on canvas"
+    ],
+    "dimensions": [
+      {
+        "kind": null,
+        "value": null,
+        "unit": null,
+        "unit_uri": null,
+        "statement": "13 3/4 x 17 1/4 in. (34.9 x 43.8 cm)"
+      },
+      {
+        "kind": "Overall height",
+        "value": "34.9",
+        "unit": "cm",
+        "unit_uri": null,
+        "statement": null
+      },
+      {
+        "kind": "Overall width",
+        "value": "43.8",
+        "unit": "cm",
+        "unit_uri": null,
+        "statement": null
+      }
+    ],
+    "credit_lines": [
+      {
+        "text": "Wrightsman Fund, 2000",
+        "language": null,
+        "language_uri": null
+      }
+    ],
+    "repository": "Metropolitan Museum of Art, New York, NY",
+    "depicted": [
+      {
+        "label": "Contemplation",
+        "kind": "tag",
+        "provider_uri": null,
+        "authority_uris": [
+          "http://vocab.getty.edu/page/aat/300264547",
+          "https://www.wikidata.org/wiki/Q1123855"
+        ]
+      },
+      {
+        "label": "Men",
+        "kind": "tag",
+        "provider_uri": null,
+        "authority_uris": [
+          "http://vocab.getty.edu/page/aat/300025928",
+          "https://www.wikidata.org/wiki/Q8441"
+        ]
+      },
+      {
+        "label": "Moon",
+        "kind": "tag",
+        "provider_uri": null,
+        "authority_uris": [
+          "http://vocab.getty.edu/page/aat/300386951",
+          "https://www.wikidata.org/wiki/Q405"
+        ]
+      }
+    ],
+    "visual_item_uri": null
+  },
+  "rights": [
+    {
+      "scope": "image",
+      "provider_field": "isPublicDomain",
+      "value": "true",
+      "statement_uri": null,
+      "label": null,
+      "stated_in": "https://collectionapi.metmuseum.org/public/collection/v1/objects/438417"
+    }
+  ],
+  "images": [
+    {
+      "role": "primary",
+      "form": "file",
+      "access_url": "https://images.metmuseum.org/CRDImages/ep/original/DP-31997-001-NEW.jpg",
+      "image_service": null,
+      "file_url": "https://images.metmuseum.org/CRDImages/ep/original/DP-31997-001-NEW.jpg",
+      "preview_url": "https://images.metmuseum.org/CRDImages/ep/web-large/DP-31997-001-NEW.jpg",
+      "file_fingerprint": {
+        "url": "https://images.metmuseum.org/CRDImages/ep/original/DP-31997-001-NEW.jpg",
+        "final_url": "https://images.metmuseum.org/CRDImages/ep/original/DP-31997-001-NEW.jpg",
+        "media_type": "image/jpeg",
+        "byte_size": 4542841,
+        "sha256": "1e7b7e24910662f12be1425adff9eb92d8cfc161036b24e5a52020be06801f1f",
+        "width_pixels": 4000,
+        "height_pixels": 3237
+      },
+      "preview_fingerprint": {
+        "url": "https://images.metmuseum.org/CRDImages/ep/web-large/DP-31997-001-NEW.jpg",
+        "final_url": "https://images.metmuseum.org/CRDImages/ep/web-large/DP-31997-001-NEW.jpg",
+        "media_type": "image/jpeg",
+        "byte_size": 100691,
+        "sha256": "ef4f1dc729fc3d88464b31d36aa4a11dbd29b2ef82c062a91428fb649fde9363",
+        "width_pixels": 599,
+        "height_pixels": 485
+      }
+    }
+  ],
+  "warnings": [],
+  "authority": {
+    "evidence_status": "provider_observation",
+    "review_status": "unreviewed",
+    "identity_admitted": false,
+    "rights_decided": false,
+    "source_text_admitted": false,
+    "semantic_authority": false,
+    "graph_authority": false,
+    "canon_authority": false,
+    "publication_authority": false
+  },
+  "maker": {
+    "maker_type": "software",
+    "agent_ref": "software:tos-native-owner-command/acquisition/media.observe"
+  }
+}

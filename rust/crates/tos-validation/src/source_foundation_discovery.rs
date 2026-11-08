@@ -65,6 +65,8 @@ const ARTIFACT_V2_SCHEMA: &str = "ToS/contracts/artifact-source-witness-v2.schem
 const HUMAN_FORM_SET_SCHEMA: &str = "ToS/contracts/human-form-set.schema.json";
 const ARTIFACT_REPRESENTATION_SCHEMA: &str =
     "ToS/contracts/artifact-visual-representation.schema.json";
+const ARTIFACT_REPRESENTATION_V2_SCHEMA: &str =
+    "ToS/contracts/artifact-visual-representation-v2.schema.json";
 const COMPOSITE_SCHEMA: &str = "ToS/contracts/scholarly-composite-witness.schema.json";
 const COMPOSITE_REPRESENTATION_SCHEMA: &str =
     "ToS/contracts/scholarly-composite-file-representation.schema.json";
@@ -9322,12 +9324,35 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         if !path.starts_with(ARTIFACTS) || !path.ends_with("/representation.json") {
             return Ok(());
         }
-        let Some((value, _, _)) = inspector.json(path, path, ARTIFACT_REPRESENTATION_SCHEMA)?
-        else {
+        let Some((value, _, size)) = inspector.json_unchecked(path, path)? else {
             return Ok(());
         };
+        let representation_v2 =
+            string(&value, "schema_version") == Some("tos_artifact_visual_representation_v2");
+        inspector.request_schema(
+            path,
+            if representation_v2 {
+                ARTIFACT_REPRESENTATION_V2_SCHEMA
+            } else {
+                ARTIFACT_REPRESENTATION_SCHEMA
+            },
+            &value,
+            size,
+        )?;
+        // An image-service representation keeps a provider's IIIF service, not bytes:
+        // its identity is the digest of the service address and it has no payload.
+        let image_service =
+            representation_v2 && string(&value, "representation_form") == Some("image_service");
         inspector.source_refs(&value, path)?;
-        let file_id = string(&value, "file_id").unwrap_or("");
+        let file_id = string(
+            &value,
+            if image_service {
+                "representation_id"
+            } else {
+                "file_id"
+            },
+        )
+        .unwrap_or("");
         if !file_id.is_empty()
             && !remember_discovery_id(
                 inspector,
@@ -9399,27 +9424,42 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             .map(|(parent, _)| parent)
             .unwrap_or("");
         let payload_path = format!("{parent}/{relative}");
-        let safe_payload = !relative.is_empty() && safe_relative_path(&payload_path);
-        if !safe_payload {
-            inspector.issue(path, "unsafe-artifact-payload-path", relative)?;
-        }
-        let expected_file_id = format!(
-            "tos.file.sha256.{}",
-            string(payload, "sha256").unwrap_or("")
-        );
-        if file_id != expected_file_id {
-            inspector.issue(
-                path,
-                "representation-file-id-not-content-addressed",
-                file_id,
-            )?;
+        let safe_payload =
+            !image_service && !relative.is_empty() && safe_relative_path(&payload_path);
+        if image_service {
+            let service_id = value
+                .get("image_service")
+                .and_then(|service| string(service, "service_id"))
+                .unwrap_or("");
+            if file_id != crate::layer_family_rules::image_service_id(service_id) {
+                inspector.issue(path, "image-service-id-not-content-addressed", file_id)?;
+            }
+        } else {
+            if !safe_payload {
+                inspector.issue(path, "unsafe-artifact-payload-path", relative)?;
+            }
+            let expected_file_id = format!(
+                "tos.file.sha256.{}",
+                string(payload, "sha256").unwrap_or("")
+            );
+            if file_id != expected_file_id {
+                inspector.issue(
+                    path,
+                    "representation-file-id-not-content-addressed",
+                    file_id,
+                )?;
+            }
         }
         let rights_ref = string(&value, "rights_ref").unwrap_or("");
         let _ = inspector.check_rights(
             path,
             rights_ref,
             &[artifact_id, file_id],
-            "public_payload",
+            if image_service {
+                "public_metadata_only"
+            } else {
+                "public_payload"
+            },
             PUBLIC_REPRESENTATION_POSTURES,
         )?;
         let discovery_ref = string(&value, "discovery_ref").unwrap_or("");
