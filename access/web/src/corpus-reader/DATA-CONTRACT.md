@@ -17,7 +17,7 @@ For a transport adapter, optional operations are supplied explicitly as
 caller-owned functions:
 
 ```js
-createTransportProvider({request, structure, analyze, capabilities});
+createTransportProvider({request, structure, analyze, place, capabilities});
 ```
 
 The generic `request` callback is never assumed to know an unadvertised

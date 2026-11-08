@@ -870,11 +870,15 @@ export function mountCorpusReader({
     const pane = [...root.querySelectorAll('.cr-pane')].find(item => item.dataset.versionId === from.id);
     const here = selected?.versionId === from.id ? selected.unit : visiblePaneRow(pane ?? root)?.__readerUnit;
     const unitId = here?.unitId || here?.id;
-    const place = unitId && typeof provider?.place === 'function'
-      ? await provider.place({documentId:document.id, versionId:from.id, targetVersionId:version.id, unitId}).catch(() => null) : null;
+    // `answered`: the provider looked the place up; only its answer can say the edition has no counterpart.
+    let place = null, answered = false;
+    if (unitId && typeof provider?.place === 'function') {
+      try { place = await provider.place({documentId:document.id, versionId:from.id, targetVersionId:version.id, unitId}); answered = true; }
+      catch { place = null; }
+    }
     if (disposed) return null;
     const result = await openVersion(document.id, version.id, place?.unitId ?? null);
-    if (unitId && !place) announce(t('noCounterpart'));
+    if (answered && !place) announce(t('noCounterpart'));
     return result;
   }
 

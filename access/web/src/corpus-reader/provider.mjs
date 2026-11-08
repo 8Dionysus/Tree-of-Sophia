@@ -586,7 +586,7 @@ export function bindCorpusProvider(provider) {
  * Adapt a caller-owned transport. The transport chooses how operation names
  * become HTTP, IPC, or another request; this module never invents a route.
  */
-export function createTransportProvider({request, structure = null, analyze = null, capabilities = null} = {}) {
+export function createTransportProvider({request, structure = null, analyze = null, place = null, capabilities = null} = {}) {
   if (typeof request !== 'function') {
     throw new TypeError('createTransportProvider requires caller-supplied request(operation, args)');
   }
@@ -595,6 +595,9 @@ export function createTransportProvider({request, structure = null, analyze = nu
   }
   if (analyze !== null && typeof analyze !== 'function') {
     throw new TypeError('createTransportProvider.analyze must be a function when supplied');
+  }
+  if (place !== null && typeof place !== 'function') {
+    throw new TypeError('createTransportProvider.place must be a function when supplied');
   }
   if (capabilities !== null && !isRecord(capabilities)) {
     throw new TypeError('createTransportProvider.capabilities must be an object when supplied');
@@ -605,6 +608,7 @@ export function createTransportProvider({request, structure = null, analyze = nu
   }
   if (structure !== null) provider.structure = structure;
   if (analyze !== null) provider.analyze = analyze;
+  if (place !== null) provider.place = place;
   if (capabilities !== null) provider.capabilities = capabilities;
   return bindCorpusProvider(provider);
 }
