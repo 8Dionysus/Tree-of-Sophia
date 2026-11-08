@@ -679,6 +679,8 @@
 .ps-authored>p:not(.ps-fragment-line){margin:10px 0 0}
 .ps-fragment{margin:10px 0 12px;padding:0}
 .ps-fragment+.ps-fragment{margin-top:14px}
+/* Quotations of one source in a row name it under the last of them. */
+.ps-fragment.is-same-source>.ps-fragment-cite{display:none}
 .ps-fragment-text{margin:0;padding:2px 0 2px 14px;border-left:2px solid var(--ps-gold-line,#c9ad7366);color:var(--ps-ink,#e4e6ea);font:15px/1.62 var(--ps-serif,Georgia,serif)}
 .ps-fragment-text+.ps-fragment-cite+.ps-fragment-text{margin-top:10px}
 .ps-fragment-line{margin:0 0 6px;color:inherit;font:inherit}
@@ -760,8 +762,9 @@
 
 /* ── active terms: a word of the stand's philological core opens on its origin ── */
 /* An active word is a link to a node of the stand; its small star is the star of that node on the map. */
-.ps-term{color:inherit;cursor:pointer;text-decoration:underline 1px solid #c9ad738c;text-underline-offset:.22em;text-decoration-skip-ink:auto;transition:color .15s,text-decoration-color .15s}
-.ps-term::after{content:'';display:inline-block;width:.42em;height:.42em;margin-left:.12em;vertical-align:.52em;background:#d7bd80;clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%);opacity:.8;transition:opacity .15s,transform .15s}
+/* The star stands in the word's own trailing space, so the punctuation after the word never parts from it at a line's end. */
+.ps-term{position:relative;padding-right:.54em;white-space:nowrap;color:inherit;cursor:pointer;text-decoration:underline 1px solid #c9ad738c;text-underline-offset:.22em;text-decoration-skip-ink:auto;transition:color .15s,text-decoration-color .15s}
+.ps-term::after{content:'';position:absolute;right:0;bottom:.62em;width:.42em;height:.42em;background:#d7bd80;clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%);opacity:.8;transition:opacity .15s,transform .15s}
 .ps-term:hover,.ps-term[data-shown=true]{color:#f3e6c6;text-decoration-color:#e4cb8b}
 .ps-term:hover::after,.ps-term[data-shown=true]::after{opacity:1;transform:scale(1.15)}
 .ps-term:focus-visible{outline:2px solid #e4cb8b;outline-offset:2px;border-radius:2px}
