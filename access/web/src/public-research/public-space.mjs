@@ -11,7 +11,8 @@ import {describeSourceLocator} from './source-address.mjs';
 import {personalKind,readPersonalKinds} from './personal-kind.mjs';
 import {isAuthoredTransition,ladderRung,nodeForm,partName,relationStyle,routeVoices,searchScore,sourceLine,stepWitness} from './space-legibility.mjs';
 import {antiquityTimeline,formatDating,formatYears,stepTimeline,trajectory,zarathustraTimeline} from './space-timeline.mjs';
-import {bonsaiFor,depthOf,lensPositions} from './bonsai.mjs';
+import {bonsaiFor,depthOf,lensPositions,loadMedia} from './bonsai.mjs';
+import {createMediaView} from './media-view.mjs';
 import {createTerms,termNodes} from './term-view.mjs';
 import {SYSTEM_NAME,SYSTEM_THEME,THEMES,applyTheme,currentTheme,paint,themeChoice} from './site-theme.mjs';
 import {hasIcon,iconElement} from './space-icons.mjs';
@@ -89,6 +90,9 @@ Object.assign(extraTranslations.en,{bench:'Workbench',openBench:'Open the card o
 // The kinds of stars every bonsai shares, the ways along a branch, the reader's trail and the quotation taken away.
 Object.assign(extraTranslations.ru,{kind_era:'Эпоха',kind_branch:'Ветвь',kind_path:'Путь',kind_step:'Ход',kind_author:'Мыслитель',kind_figure:'Фигура',kind_translator:'Переводчик',kind_school:'Традиция',kind_work:'Произведение',kind_version:'Издание',kind_chapter:'Глава',kind_passage:'Фрагмент',kind_concept:'Понятие',kind_term:'Термин',kind_image:'Образ',kind_question:'Вопрос',kind_personal:'Личная запись',previousMove:'Предыдущий ход',nextMove:'Следующий ход',trail:'След исследования',trailBack:'Назад по следу',trailForward:'Вперёд по следу',trailBackWord:'Назад',trailForwardWord:'Вперёд',benchWord:'Верстак',benchFoldWord:'Свернуть',fragmentCopy:'Копировать цитату',fragmentCopied:'Скопировано'});
 Object.assign(extraTranslations.en,{kind_era:'Era',kind_branch:'Branch',kind_path:'Path',kind_step:'Move',kind_author:'Thinker',kind_figure:'Figure',kind_translator:'Translator',kind_school:'Tradition',kind_work:'Work',kind_version:'Edition',kind_chapter:'Chapter',kind_passage:'Passage',kind_concept:'Concept',kind_term:'Term',kind_image:'Image',kind_question:'Question',kind_personal:'Personal record',previousMove:'Previous move',nextMove:'Next move',trail:'Research trail',trailBack:'Back along the trail',trailForward:'Forward along the trail',trailBackWord:'Back',trailForwardWord:'Forward',benchWord:'Workbench',benchFoldWord:'Fold',fragmentCopy:'Copy quotation',fragmentCopied:'Copied'});
+// The images on a card: what each is for, and the words of its caption and viewer.
+Object.assign(extraTranslations.ru,{'media_author-portrait':'Портрет автора','media_era-material':'Материал эпохи','media_object-of-analysis':'Предмет анализа',media_comparison:'Для сравнения',mediaOpen:'Открыть изображение во всех подробностях',mediaInscribed:'Надпись на предмете',mediaSeries:'Серия',mediaSize:'{0} × {1} мм',mediaMissing:'Изображение не загрузилось с сервиса держателя.',mediaZoomIn:'Приблизить',mediaZoomOut:'Отдалить',mediaWhole:'Показать целиком'});
+Object.assign(extraTranslations.en,{'media_author-portrait':'Portrait of the author','media_era-material':'Material of the era','media_object-of-analysis':'Object of analysis',media_comparison:'For comparison',mediaOpen:'Open the image in full detail',mediaInscribed:'Inscribed on the object',mediaSeries:'Series',mediaSize:'{0} × {1} mm',mediaMissing:'The image did not load from the holder’s service.',mediaZoomIn:'Zoom in',mediaZoomOut:'Zoom out',mediaWhole:'Show whole'});
 export function toggleResearchFullscreen(host,doc=document){
   if(doc.fullscreenElement)return doc.exitFullscreen().catch(()=>{});
   return host.requestFullscreen?.().catch(()=>{});
@@ -110,6 +114,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // The reader offers the same renderings for a word its layer reads.
   api.reader?.setSelectionActions?.(standOrigin?.readerActions??[]);
   const materials=materialMap(library),atlas=library.atlas??{},routes=library.space?.routes??atlas.routes??[];
+  const mediaView=createMediaView({t,locale,hint:(element,text)=>setHint(element,text)});
   const core=library.space?.core,coreView=core?createCoreView({core,renderings:bonsaiFor(profile)?.renderings,locale,fragments,signOf:materialId=>signOf(previewMaterials.get(materialId)),hint:(element,text)=>setHint(element,text),onNode:id=>previewMaterial(id),onRelation:id=>selectEdge(drawnRelation(id)),onAction:detail=>coreAction(detail),onRoute:id=>{const item=routeItems().find(item=>item.id===id);if(item)startRoute(item);}}):null;
   // The book reads the same core: its own words lead and the book's places stand beside them.
   const coreBook=core?createCoreView({core,renderings:bonsaiFor(profile)?.renderings,locale,fragments,signOf:materialId=>signOf(previewMaterials.get(materialId)),hint:(element,text)=>setHint(element,text),onNode:id=>openInBook(index?.resolveId?.(id)??id),onRelation:id=>openInBook(id),onAction:detail=>shell.dispatchEvent(new CustomEvent('public-research-action',{bubbles:true,detail})),onRoute:id=>openInBook(String(id).replace(/^core:/,'')),book:true}):null;
@@ -1321,6 +1326,20 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     for(const source of [...sources,...extra]){const link=document.createElement('a');link.href=source.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=`${source.short} ↗`;setHint(link,source.title??'');row.append(link);}
     if(row.childElementCount)parent.append(row);
   }
+  // A subject of the Antiquity collection may have images in its bonsai, on either stand that shows it. They come after the
+  // card has drawn, into the place kept for them; a card that has moved on by then takes none.
+  function mediaOwner(material){
+    const id=material?.id;if(typeof id!=='string'||!id.startsWith('antiquity:catalog:'))return null;
+    return {profile:'antiquity',subject:material.legacyId??id.slice('antiquity:catalog:'.length)};
+  }
+  function appendMedia(parent,material){
+    const owner=mediaOwner(material);if(!owner)return;
+    const slot=el('div','ps-media-slot');parent.append(slot);
+    void loadMedia(owner.profile).then(media=>{
+      const items=media?.forSubject(owner.subject)??[];
+      if(slot.isConnected&&items.length)mediaView.render(slot,items);else slot.remove();
+    }).catch(()=>slot.remove());
+  }
   function appendDating(parent,materialId){
     if(!materialId||!chronologyReader)return;
     const situationId=situationOf(materialId),words=situationId?datingWords(situationId):null;if(!words)return;
@@ -1409,6 +1428,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const nodeTitle=label(node.ownerType==='personal-hypothesis'?node:material??node),part=partName(profile,material,locale(),{moveIds});panelContent.append(kindLine(material,node),el('h1','',keepDots(node.ownerType==='personal-hypothesis'&&nodeTitle.length>120?kindName(node.kind):nodeTitle)));
     // A move names its author, work and place right under its title.
     const witness=part&&!material?.route?sourceLine(material,{materials:previewMaterials,entryByLegacyId:collectionByLegacyId,locale:locale()}):'';if(witness)panelContent.append(el('p','ps-source-line',witness));
+    // An author's portrait stands right under the name; every image a bonsai binds to this subject follows in the order of its role.
+    appendMedia(panelContent,material);
     // A star names when and where its text was written, in the bonsai's own kinds of dating and with their sources;
     // on the lens of proximity, how far it stands from the centre and by what.
     appendDating(panelContent,material?.id);appendPlace(panelContent,material?.id);
