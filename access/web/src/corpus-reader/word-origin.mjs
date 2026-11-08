@@ -223,11 +223,12 @@ function attested(parent,history,copy,locale){
   return true;
 }
 
-async function wordOrigin(parent,lemma,record,copy,locale,language,heading=null,history=null){
+async function wordOrigin(parent,lemma,record,copy,locale,language,heading=null,history=null,counted=false){
   const block=el('section','cr-origin-word');
   if(heading)block.append(el('h3','cr-origin-heading',heading));
   const shown=[told(block,history,copy,locale,language),descent(block,lemma,record,copy,locale,language),
-    await parts(block,record,copy,locale,language),kin(block,record,copy,locale),attested(block,history,copy,locale)];
+    await parts(block,record,copy,locale,language),kin(block,record,copy,locale),attested(block,history,copy,locale),
+    counted&&Boolean(inBook(block,history,copy,locale))];
   if(shown.some(Boolean))parent.append(block);
   return shown.some(Boolean);
 }
@@ -235,9 +236,11 @@ async function wordOrigin(parent,lemma,record,copy,locale,language,heading=null,
 /** How often the book says the word, part by part. */
 function inBook(parent,history,copy,locale){
   const book=history?.book;
-  if(!book?.n)return;
+  if(!book?.n)return null;
   const parts=Object.entries(book.parts??{}).map(([part,n])=>fill(copy.part,part,n));
-  parent.append(el('p','cr-origin-book',`${fill(copy.inBook,times(book.n,locale))}${parts.length>1?` · ${parts.join(' · ')}`:''}`));
+  const line=el('p','cr-origin-book',`${fill(copy.inBook,times(book.n,locale))}${parts.length>1?` · ${parts.join(' · ')}`:''}`);
+  parent.append(line);
+  return line;
 }
 
 /**
@@ -260,7 +263,8 @@ export async function renderOrigin(body,{locale='ru',form='',language='',context
   if(source){
     const heading=`${copy.renders} · ${source}`;
     const [sourceRecord,sourceHistory]=await Promise.all([originRecord(ORIGINAL,source).catch(()=>null),historyRecord(ORIGINAL,source).catch(()=>null)]);
-    if(!(await wordOrigin(body,source,sourceRecord,copy,locale,ORIGINAL,heading,sourceHistory)))body.append(el('h3','cr-origin-heading',heading));
+    // The original's word comes with its whole history, how often the book says it included.
+    if(!(await wordOrigin(body,source,sourceRecord,copy,locale,ORIGINAL,heading,sourceHistory,true)))body.append(el('h3','cr-origin-heading',heading));
     shown=true;
   }
   shown=(await wordOrigin(body,lemma,record,copy,locale,lang,source?lemma:null,history))||shown;
