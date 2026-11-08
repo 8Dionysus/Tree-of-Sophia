@@ -91,6 +91,9 @@
 .cosmos-halo{position:absolute;left:-120px;top:-123px;width:240px;height:240px;border-radius:50%;animation:cosmos-breathe 5.5s ease-in-out infinite alternate}
 @keyframes cosmos-breathe{from{transform:scale(.88);opacity:.65}to{transform:scale(1.08);opacity:1}}
 .cosmos-mark{position:absolute;left:-27px;top:-30px;width:54px;height:54px;background:url(tree-mark.svg) center/contain no-repeat;animation:cosmos-hover 6s ease-in-out infinite alternate}
+.tos-cosmos[data-tree] .cosmos-mark{left:-38px;top:-46px;width:76px;height:76px}
+.tos-cosmos[data-tree=zarathustra] .cosmos-mark{background-image:url(trees/zarathustra.svg)}
+.tos-cosmos[data-tree=antiquity] .cosmos-mark{background-image:url(trees/antiquity.svg)}
 @keyframes cosmos-hover{from{transform:translateY(2px)}to{transform:translateY(-3px)}}
 .cosmos-orbit{position:absolute;left:-68px;top:-71px;width:136px;height:136px;border-radius:50%;animation:cosmos-turn 3.6s linear infinite}
 .cosmos-orbit::before{content:'';position:absolute;inset:0;border-radius:50%;-webkit-mask:radial-gradient(circle,transparent 66.5px,#000 67.5px);mask:radial-gradient(circle,transparent 66.5px,#000 67.5px)}

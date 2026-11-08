@@ -1,5 +1,6 @@
 /* The choice of a bonsai: the night of the stands (and each light theme by the build's twins), the
-   Tree's name, one line on what it grows, and its bonsai growing in, branch by branch, star by star. */
+   Tree's name, one line on what it grows, and each bonsai's own tree growing in: its ground, its wood from
+   the ground up, its foliage of star-dust, then its stars. */
 @font-face{font-family:Sophia;src:local('Noto Serif'),local('DejaVu Serif');font-display:swap}
 @view-transition{navigation:auto}
 :root{color-scheme:dark;--ground:#070f1b;--raised:#0b1626;--ink:#e4e6ea;--text:#b9c6d5;--muted:#93a5b9;--accent:#dcc690;--rule:#8296b22b;--branch:#8ea2ba}
@@ -22,27 +23,35 @@ body{display:flex;flex-direction:column;min-height:100dvh;font:16px/1.5 system-u
 .home-stand a{box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;padding:8px 24px 28px;border:1px solid transparent;border-radius:18px;color:inherit;text-align:center;text-decoration:none;transition:border-color .35s,background-color .35s,transform .35s}
 .home-stand a:hover{border-color:var(--rule);background:var(--raised);transform:translateY(-3px)}
 .home-stand a:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-color:var(--rule);background:var(--raised)}
-.home-tree{display:block;width:min(220px,62vw);height:min(220px,62vw);margin-bottom:4px;overflow:visible;transform-origin:50% 84%}
-.home-tree .home-branch{fill:none;stroke:var(--branch);stroke-linecap:round;stroke-linejoin:round}
-.home-tree .home-pot{fill:none;stroke:var(--muted);stroke-width:1.2;stroke-linejoin:round;opacity:.75}
-.home-tree .home-star{fill:var(--accent);transform-box:fill-box;transform-origin:center}
-.home-tree .home-crown{filter:drop-shadow(0 0 5px var(--accent))}
+.home-tree{display:block;width:min(220px,62vw);height:min(220px,62vw);margin-bottom:4px;transform-origin:50% 84%}
+.home-tree svg,.home-tree img{display:block;width:100%;height:100%;overflow:visible}
+.home-tree .tree-wood,.home-tree .tree-roots{fill:var(--branch);transition:fill .45s}
+.home-tree .tree-rock,.home-tree .tree-pot{fill:color-mix(in srgb,var(--muted) 24%,var(--ground))}
+.home-tree .tree-rock-lit,.home-tree .tree-pot-lip{fill:color-mix(in srgb,var(--muted) 38%,var(--ground))}
+.home-tree .tree-rock-shade,.home-tree .tree-pot-foot{fill:color-mix(in srgb,var(--muted) 13%,var(--ground))}
+.home-tree .tree-dust{fill:var(--accent)}
+.home-tree .tree-star{fill:var(--accent);transform-box:fill-box;transform-origin:center}
+.home-tree .tree-crown{filter:drop-shadow(0 0 5px var(--accent))}
+:root[data-site-theme="noon"] .home-tree.is-mark img{filter:invert(1) hue-rotate(180deg) brightness(.6)}
 .home-title{color:var(--ink);font:400 clamp(24px,3vw,28px)/1.2 Sophia,Georgia,'Times New Roman',serif}
 .home-meta{color:var(--muted);font-size:13px;line-height:1.45}
 .home-desc{max-width:36ch;color:var(--text);font:15px/1.6 Sophia,Georgia,'Times New Roman',serif}
-.home-stand a:hover .home-branch,.home-stand a:focus-visible .home-branch{stroke:var(--accent)}
+.home-stand a:hover .tree-wood,.home-stand a:focus-visible .tree-wood,.home-stand a:hover .tree-roots,.home-stand a:focus-visible .tree-roots{fill:color-mix(in srgb,var(--branch) 55%,var(--accent))}
 .home-stand a:hover .home-title,.home-stand a:focus-visible .home-title{color:var(--accent)}
-.home-branch,.home-title{transition:stroke .45s,color .45s}
+.home-title{transition:color .45s}
 @media (prefers-reduced-motion:no-preference){
   .home-head{animation:home-rise .55s ease-out both}
   .home-choose{animation:home-rise .55s .12s ease-out both}
   .home-stand{animation:home-rise .55s ease-out both;animation-delay:calc(.18s + var(--i,0) * .12s)}
-  .home-tree .home-branch{stroke-dasharray:1;stroke-dashoffset:1;animation:home-grow .42s cubic-bezier(.3,.7,.3,1) forwards;animation-delay:calc(.22s + var(--i,0) * .12s + var(--d,0) * .075s)}
-  .home-tree .home-star{transform:scale(0);animation:home-bloom .38s cubic-bezier(.3,1.5,.5,1) forwards,home-twinkle 3.4s ease-in-out infinite;animation-delay:calc(.5s + var(--i,0) * .12s + var(--d,0) * .075s),calc(1.4s + var(--t,0) * 1s)}
+  .home-tree .tree-rock,.home-tree .tree-rock-lit,.home-tree .tree-rock-shade,.home-tree .tree-pot,.home-tree .tree-pot-lip,.home-tree .tree-pot-foot{animation:home-fade .5s ease-out both;animation-delay:calc(.2s + var(--i,0) * .12s)}
+  .home-tree .tree-wood,.home-tree .tree-roots{clip-path:inset(100% 0 0 0);animation:home-grow .9s cubic-bezier(.3,.7,.3,1) forwards;animation-delay:calc(.3s + var(--i,0) * .12s)}
+  .home-tree .tree-dust{animation:home-fade .9s ease-out both;animation-delay:calc(.75s + var(--i,0) * .12s)}
+  .home-tree .tree-star{transform:scale(0);animation:home-bloom .38s cubic-bezier(.3,1.5,.5,1) forwards,home-twinkle 3.4s ease-in-out infinite;animation-delay:calc(1s + var(--i,0) * .12s),calc(1.6s + var(--t,0) * 1s)}
   .home-stand a:hover .home-tree,.home-stand a:focus-visible .home-tree{animation:home-sway 2.6s ease-in-out infinite}
 }
 @keyframes home-rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-@keyframes home-grow{to{stroke-dashoffset:0}}
+@keyframes home-grow{to{clip-path:inset(0 0 0 0)}}
+@keyframes home-fade{from{opacity:0}}
 @keyframes home-bloom{to{transform:scale(1)}}
 @keyframes home-twinkle{0%,100%{opacity:1}50%{opacity:.5}}
 @keyframes home-sway{0%,100%{transform:rotate(0)}50%{transform:rotate(1.4deg)}}

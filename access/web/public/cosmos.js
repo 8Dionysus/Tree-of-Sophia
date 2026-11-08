@@ -115,6 +115,9 @@
 
   var TITLES={zarathustra:{ru:'Заратустра',en:'Zarathustra',es:'Zaratustra',de:'Zarathustra','zh-Hans':'查拉图斯特拉'},
     antiquity:{ru:'Античность',en:'Antiquity',es:'Antigüedad',de:'Antike','zh-Hans':'古代'}};
+  // The bonsai that have their own tree beside the sky (trees/<id>.svg): the heart of the sky shows it in place of
+  // the Tree's mark (cosmos.css).
+  var TREES=['zarathustra','antiquity'];
   function localeNow(){
     var value=null;try{value=new URLSearchParams(location.search).get('lang')||localStorage.getItem('tos.public-research.locale.v1');}catch(error){}
     value=value||navigator.language||'en';
@@ -253,6 +256,7 @@
     paintField(middle,202,Math.round(130*area),[3,15],2.1,NEAR,Math.round(60*area),scale);
     paintDrift();paintStars();crowd.textContent='';near.textContent='';
     title.textContent=titleFor(id||stand);
+    if(TREES.indexOf(id||stand)>=0)host.dataset.tree=id||stand;else delete host.dataset.tree;
     fly();phase(orbit,3.6);phase(halo,5.5,true);phase(mark,6,true);
     if(whole){paintHeroes();paintCrowd();}
   }
