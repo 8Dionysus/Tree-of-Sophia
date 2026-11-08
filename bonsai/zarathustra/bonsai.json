@@ -208,8 +208,8 @@
       "format": "tos.bonsai.layers.v1",
       "spec": "bonsai/README.md",
       "role": {
-        "ru": "Где лежит слой слов: хеш каждого файла разметки, написаний, происхождений, историй и переводов, которые хранятся в R2; рабочая копия получает их по этим хешам.",
-        "en": "Where the word layer lives: the digest of every file of the tokens, spelling, origins, histories and renderings, kept in R2; a checkout fetches them by these digests."
+        "ru": "Где лежит слой слов: хеш каждого файла разметки, написаний, происхождений, историй, рассказов о словах и переводов, которые хранятся в R2; рабочая копия получает их по этим хешам.",
+        "en": "Where the word layer lives: the digest of every file of the tokens, spelling, origins, histories, word stories and renderings, kept in R2; a checkout fetches them by these digests."
       }
     },
     {
@@ -253,6 +253,16 @@
       "role": {
         "ru": "История каждой леммы: что рассказывают о слове английский, немецкий и русский Викисловари, где его употребляют немецкие тексты XV — начала XX века в Немецком текстовом архиве (первые работы с предложением и страницей, частота по четвертям века, работы Ницше) и сколько раз его говорит каждая часть книги.",
         "en": "The history of every lemma: what the English, German and Russian Wiktionaries tell of the word, where the German texts of the 15th to the early 20th century in the German Text Archive use it (the earliest works with the sentence and page, its frequency by quarter century, Nietzsche's works), and how often each part of the book says it."
+      }
+    },
+    {
+      "id": "stories",
+      "path": "stories.json",
+      "format": "tos.bonsai.stories.v1",
+      "spec": "bonsai/review/philology/README.md",
+      "role": {
+        "ru": "Короткая история слова каждого термина, рассказанная моделью только по собранным источникам: каждое предложение несёт номера кусков, на которых стоит, — этимологий Викисловаря, фраз Немецкого текстового архива, мест книги и слов переводчиков; проверка сверила числа, цитаты и имена, вторая модель вычитала текст.",
+        "en": "The short story of each term's word, told by a model from its gathered sources only: every sentence carries the numbers of the pieces it stands on — Wiktionary's etymologies, the German Text Archive's sentences, places of the book and the translators' words; a check matched its numbers, quotations and names, and a second model read the text."
       }
     },
     {

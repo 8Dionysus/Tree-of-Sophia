@@ -220,9 +220,11 @@ def key_places(home, term, book, limit=4):
             if pair.get('de') in seen:
                 continue
             seen.add(pair.get('de'))
+            # `_unit` and `_start` open the place in the reader; the packet keeps them out of what the writer reads.
             out.append({'chapter': key, 'title_de': clean(book.titles[key].get('de')), 'title_ru': clean(book.titles[key].get('ru')),
                         'title_en': clean(book.titles[key].get('en')), 'text': pair.get('de'), 'text_ru': pair.get('ru'),
-                        'text_en': pair.get('en'), 'why_ru': why.get('ru'), 'why_en': why.get('en')})
+                        'text_en': pair.get('en'), 'why_ru': why.get('ru'), 'why_en': why.get('en'),
+                        '_unit': units[index][0], '_start': at})
             if len(out) == limit:
                 return out
     return out
@@ -292,7 +294,7 @@ def packet(repo, home, term, book, names, renderings):
              'text': pair.get('de'), 'text_ru': pair.get('ru'), 'text_en': pair.get('en')})
     places_seen = {source.get('text') for source in sources if source.get('kind') == 'book-place'}
     for index, place in enumerate((item for item in key_places(home, term, book) if item['text'] not in places_seen), 1):
-        add({'id': f'K{index}', 'kind': 'key-place', **place})
+        add({'id': f'K{index}', 'kind': 'key-place', **{key: value for key, value in place.items() if not key.startswith('_')}})
     shown = renderings.get('terms', {}).get(term['id']) or {}
     counted_words = {language: (shown.get(language) or {}).get('words', [])[:4] for language in ('ru', 'en')}
     words = {language: ', '.join(f'{word} ({len(places)})' for word, places in counted_words[language]) for language in ('ru', 'en')}
@@ -461,9 +463,12 @@ def shown_piece(source, extra):
     """A cited piece as the stand shows it; the archive's frequency and uses the origin sheet shows by itself."""
     kind = source['kind']
     if kind in ('book-place', 'key-place'):
-        return {'kind': kind, **extra.get(source['id'], {}),
-                'title': {'de': source.get('title_de'), 'ru': source.get('title_ru'), 'en': source.get('title_en')},
-                'text': {'de': source.get('text'), 'ru': source.get('text_ru'), 'en': source.get('text_en')}}
+        piece = {'kind': kind, **extra.get(source['id'], {}),
+                 'title': {'de': source.get('title_de'), 'ru': source.get('title_ru'), 'en': source.get('title_en')},
+                 'text': {'de': source.get('text'), 'ru': source.get('text_ru'), 'en': source.get('text_en')}}
+        if source.get('why_ru') or source.get('why_en'):
+            piece['why'] = {'ru': source.get('why_ru'), 'en': source.get('why_en')}
+        return piece
     if kind == 'translations':
         return {'kind': kind, **extra.get('T', {})}
     if kind == 'wiktionary':
@@ -473,9 +478,13 @@ def shown_piece(source, extra):
     return {'kind': kind}
 
 
-def display_extra(term, book, renderings):
+def display_extra(home, term, book, renderings):
     """What the stand needs to show a piece beyond the packet: a place's unit and offsets, the translators' words by count."""
     extra = {f'B{index}': place for index, place in enumerate(book.place_spans(term['original']['forms']), 1)}
+    places = book.place_spans(term['original']['forms'])
+    seen = {book.sentence(item['chapter'], [unit[0] for unit in book.chapter(item['chapter'])['units']['de']].index(item['unit']), item['start']).get('de') for item in places}
+    for index, place in enumerate((item for item in key_places(home, term, book) if item['text'] not in seen), 1):
+        extra[f'K{index}'] = {'chapter': place['chapter'], 'unit': place['_unit'], 'start': place['_start'], 'end': place['_start']}
     shown = renderings.get('terms', {}).get(term['id']) or {}
     extra['T'] = {
         'words': {language: [[word, len(places)] for word, places in (shown.get(language) or {}).get('words', [])[:4]] for language in ('ru', 'en')},
@@ -508,7 +517,7 @@ def bundle(args):
             counts['stale'] += 1
             continue
         by_id = {source['id']: source for source in current['sources']}
-        extra = display_extra(terms[term_id], book, renderings)
+        extra = display_extra(home, terms[term_id], book, renderings)
         cited = []
         for language in ('ru', 'en'):
             for sentence in story[language]:
