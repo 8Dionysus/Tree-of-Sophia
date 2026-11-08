@@ -112,7 +112,7 @@
 /* ── A claim: the stand's words in the measure, the places they rest on in the margin beside them. A place shows
    its source and its first lines; the places after the first show their source alone until they are opened. */
 .rb-article .ps-authored{max-width:var(--rb-measure);margin:0 0 1.1rem}
-.rb-article .ps-authored.rb-claim{display:grid;grid-template-columns:minmax(0,var(--rb-measure)) var(--rb-margin);column-gap:var(--rb-gap);max-width:none;align-items:start}
+.rb-article .ps-authored.rb-claim{display:grid;grid-template-columns:minmax(0,var(--rb-measure)) var(--rb-margin);grid-template-rows:auto 1fr;column-gap:var(--rb-gap);max-width:none;align-items:start}
 .rb-claim-text{grid-column:1;min-width:0}
 /* The grounds stand beside the words and the question they leave, which follows the words without waiting for them. */
 .rb-claim>.rb-grounds{grid-row:1/span 2}
@@ -375,7 +375,7 @@ button.rb-link-verb:hover{color:var(--rb-ink)!important;text-decoration:underlin
   .experience-body:has(>.rb-article)>.experience-toc{margin-left:0;max-width:none}
   .rb-field-label,.rb-article .ps-core-section>h3.minor-title,.rb-step-role{position:static;width:auto;max-width:none;margin:0 0 .3rem;padding:0;text-align:left;font-size:.95rem}
   .rb-move-n{position:static;width:auto;text-align:left}
-  .rb-article .ps-authored.rb-claim{grid-template-columns:minmax(0,1fr);max-width:var(--rb-measure)}
+  .rb-article .ps-authored.rb-claim{grid-template-columns:minmax(0,1fr);grid-template-rows:none;max-width:var(--rb-measure)}
   .rb-article .rb-claim>.rb-grounds{grid-column:1;grid-row:auto;margin-top:.7rem;padding-top:0}
 }
 @media(max-width:900px){
