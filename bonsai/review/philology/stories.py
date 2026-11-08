@@ -3,6 +3,7 @@
 
     python3 stories.py packets <repo> <bonsai> --out <dir> [--terms id,id,…]
     python3 stories.py check <dir>
+    python3 stories.py bundle <dir> <repo> <bonsai>
 
 `packets` gathers, for each single-word term of a bonsai, everything the stand
 already holds of its word into one packet, every piece with its own id: the
@@ -29,6 +30,12 @@ form beside it. `check` reads each story against its packet:
 
 It writes `<dir>/check.json` and prints a summary. The story is the writer's
 proposal; the check and a reviewing model stand between it and the stand.
+
+`bundle` gathers the stories that pass the check into the bonsai's
+`stories.json` (`tos.bonsai.stories.v1`), keyed by the original's lemma: each
+story in both languages with its sentences' pieces, and every piece it cites in
+the form the stand shows it (a place of the book with its unit, so that the
+reader opens it).
 """
 import argparse, glob, hashlib, json, os, re, sys, unicodedata
 from collections import Counter
@@ -100,6 +107,16 @@ class Book:
                     break
         return [found[part] for part in PARTS if part in found]
 
+    def place_spans(self, forms):
+        """The places of `places` with the unit's id and the matched word's offsets, for the reader to open."""
+        out = []
+        for key, index, at in self.places(forms):
+            unit = self.chapter(key)['units']['de'][index]
+            pattern = re.compile(r'(?:' + '|'.join(sorted(map(re.escape, forms), key=len, reverse=True)) + r')')
+            match = pattern.match(unit[2], at)
+            out.append({'chapter': key, 'unit': unit[0], 'start': at, 'end': match.end() if match else at})
+        return out
+
     def sentence(self, key, index, at):
         """The aligned sentence pair around a place of the original: the original's sentence and each translation's."""
         chapter = self.chapter(key)
@@ -130,6 +147,85 @@ def descent_text(origin, names, language):
         joined = ' + '.join(item['parts'])
         text = (text + '; ' if text else '') + ('сложено из ' if language == 'ru' else 'made of ') + joined
     return text or None
+
+
+def read_clean(text):
+    """A unit's text read whole (a line-end break joined, lines as spaces) with each character's offset in the unit."""
+    out, positions, index = [], [], 0
+    while index < len(text):
+        if text[index] == '¬':
+            index += 1
+            while index < len(text) and text[index] in '\n ':
+                index += 1
+            continue
+        char = text[index]
+        if char.isspace():
+            if out and out[-1] != ' ':
+                out.append(' ')
+                positions.append(index)
+        else:
+            out.append(char)
+            positions.append(index)
+        index += 1
+    positions.append(len(text))
+    return ''.join(out), positions
+
+
+def key_places(home, term, book, limit=4):
+    """The places by which the Tree reads the term: its concept's formulas by rank, or its figure's appearances, each
+    as the aligned sentence that holds the formula (or a form of the word) with the Tree's own line on it."""
+    concepts = {item['id']: item for item in read(os.path.join(home, 'core', 'concepts.json'))}
+    figures = {item['id']: item for item in read(os.path.join(home, 'core', 'figures.json'))}
+    forms = term['original']['forms']
+    pattern = re.compile(r'(?<![\w])(?:' + '|'.join(sorted(map(re.escape, forms), key=len, reverse=True)) + r')(?![\w])')
+    entity = concepts.get(term.get('concept')) or figures.get(term.get('concept')) or figures.get(term['id'])
+    if not entity:
+        return []
+    cited = []
+    for formula in sorted(entity.get('conception', {}).get('formulas', []), key=lambda item: item.get('rank', 99)):
+        cited.append((formula['cite'], formula['cite'].get('q'), formula.get('why') or {}))
+    for appearance in entity.get('appearances', []):
+        cited.append((appearance['cite'], None, appearance.get('line') or {}))
+    out, seen = [], set()
+    for cite, quote, why in cited:
+        key = cite.get('c')
+        if key not in book.titles:
+            continue
+        units = book.chapter(key)['units']['de']
+        ids = [unit[0] for unit in units]
+        first, last = cite['u'][0], cite['u'][-1]
+        if first not in ids:
+            continue
+        span = range(ids.index(first), (ids.index(last) if last in ids else ids.index(first)) + 1)
+        found = []
+        for index in span:
+            text, positions = read_clean(units[index][2])
+            if quote:
+                at = text.find(clean(quote))
+                if at >= 0:
+                    found.append((index, positions[at]))
+                    break
+                continue
+            found.extend((index, positions[match.start()]) for match in pattern.finditer(text))
+        if quote and not found:
+            # The formula's words broken otherwise than the quotation: the first form of the word in its units.
+            for index in span:
+                text, positions = read_clean(units[index][2])
+                match = pattern.search(text)
+                if match:
+                    found.append((index, positions[match.start()]))
+                    break
+        for index, at in found:
+            pair = book.sentence(key, index, at)
+            if pair.get('de') in seen:
+                continue
+            seen.add(pair.get('de'))
+            out.append({'chapter': key, 'title_de': clean(book.titles[key].get('de')), 'title_ru': clean(book.titles[key].get('ru')),
+                        'title_en': clean(book.titles[key].get('en')), 'text': pair.get('de'), 'text_ru': pair.get('ru'),
+                        'text_en': pair.get('en'), 'why_ru': why.get('ru'), 'why_en': why.get('en')})
+            if len(out) == limit:
+                return out
+    return out
 
 
 def frequency_text(attested, periods):
@@ -194,6 +290,9 @@ def packet(repo, home, term, book, names, renderings):
         add({'id': f'B{index}', 'kind': 'book-place', 'chapter': key, 'title_de': clean(book.titles[key].get('de')),
              'title_ru': clean(book.titles[key].get('ru')), 'title_en': clean(book.titles[key].get('en')),
              'text': pair.get('de'), 'text_ru': pair.get('ru'), 'text_en': pair.get('en')})
+    places_seen = {source.get('text') for source in sources if source.get('kind') == 'book-place'}
+    for index, place in enumerate((item for item in key_places(home, term, book) if item['text'] not in places_seen), 1):
+        add({'id': f'K{index}', 'kind': 'key-place', **place})
     shown = renderings.get('terms', {}).get(term['id']) or {}
     counted_words = {language: (shown.get(language) or {}).get('words', [])[:4] for language in ('ru', 'en')}
     words = {language: ', '.join(f'{word} ({len(places)})' for word, places in counted_words[language]) for language in ('ru', 'en')}
@@ -358,6 +457,85 @@ def check(args):
     return 0 if not counts['failed'] else 1
 
 
+def shown_piece(source, extra):
+    """A cited piece as the stand shows it; the archive's frequency and uses the origin sheet shows by itself."""
+    kind = source['kind']
+    if kind in ('book-place', 'key-place'):
+        return {'kind': kind, **extra.get(source['id'], {}),
+                'title': {'de': source.get('title_de'), 'ru': source.get('title_ru'), 'en': source.get('title_en')},
+                'text': {'de': source.get('text'), 'ru': source.get('text_ru'), 'en': source.get('text_en')}}
+    if kind == 'translations':
+        return {'kind': kind, **extra.get('T', {})}
+    if kind == 'wiktionary':
+        return {key: source.get(key) for key in ('kind', 'about', 'edition', 'entry', 'url', 'text', 'basis') if source.get(key)}
+    if kind == 'descent':
+        return {'kind': kind, 'text': {'ru': source.get('text_ru'), 'en': source.get('text_en')}}
+    return {'kind': kind}
+
+
+def display_extra(term, book, renderings):
+    """What the stand needs to show a piece beyond the packet: a place's unit and offsets, the translators' words by count."""
+    extra = {f'B{index}': place for index, place in enumerate(book.place_spans(term['original']['forms']), 1)}
+    shown = renderings.get('terms', {}).get(term['id']) or {}
+    extra['T'] = {
+        'words': {language: [[word, len(places)] for word, places in (shown.get(language) or {}).get('words', [])[:4]] for language in ('ru', 'en')},
+        'first': {language: (term.get('renderings', {}).get(language, {}).get('witness') or {}).get('term') for language in ('ru', 'en')},
+        'tree': {language: (term.get('renderings', {}).get(language, {}).get('tos') or {}).get('term') for language in ('ru', 'en')}}
+    return extra
+
+
+def bundle(args):
+    home = os.path.join(args.repo, 'bonsai', args.bonsai)
+    names = language_names(args.repo)
+    terms = {term['id']: term for term in read(os.path.join(home, 'terms.json'))['terms']}
+    renderings = read(os.path.join(home, 'renderings.json'))
+    book = Book(home)
+    stories, counts = {}, Counter()
+    for path in sorted(glob.glob(os.path.join(args.dir, 'stories', '*.json'))):
+        term_id = os.path.splitext(os.path.basename(path))[0]
+        packet_path = os.path.join(args.dir, 'packets', f'{term_id}.json')
+        if not os.path.exists(packet_path) or term_id not in terms:
+            counts['without_packet'] += 1
+            continue
+        packet_body, story = read(packet_path), read(path)
+        problems, _ = check_story(packet_body, story, names)
+        if problems:
+            counts['failed'] += 1
+            continue
+        # The pieces as this checkout gives them: a place of the book with its unit, the translators' words by count.
+        current = packet(args.repo, home, terms[term_id], book, names, renderings)
+        if current['digest'] != packet_body['digest']:
+            counts['stale'] += 1
+            continue
+        by_id = {source['id']: source for source in current['sources']}
+        extra = display_extra(terms[term_id], book, renderings)
+        cited = []
+        for language in ('ru', 'en'):
+            for sentence in story[language]:
+                cited.extend(source for source in sentence['sources'] if source not in cited)
+        stories[packet_body['lemma']] = {
+            'id': term_id, 'packet': packet_body['digest'],
+            'ru': [{'text': item['text'], 'sources': item['sources']} for item in story['ru']],
+            'en': [{'text': item['text'], 'sources': item['sources']} for item in story['en']],
+            'pieces': {source: shown_piece(by_id[source], extra) for source in cited}}
+        counts['stories'] += 1
+    witnesses = read(os.path.join(home, 'witnesses.json'))
+    manifest = {
+        'schema': 'tos.bonsai.stories.v1', 'work': witnesses.get('work'), 'original': 'de',
+        'posture': {
+            'ru': 'Короткая история слова каждого термина, рассказанная только по собранным источникам: каждое предложение несёт куски, на которых стоит; проверка сверила числа, цитаты и имена с этими кусками, вторая модель вычитала текст. Предложение стенда.',
+            'en': "The short story of each term's word, told from its gathered sources only: every sentence carries the pieces it stands on; the check matched its numbers, quotations and names against them, and a second model read the text. The stand's proposal."},
+        'writer': {'model': args.writer, 'brief': 'bonsai/review/philology/BRIEF-word-stories.md'},
+        'check': 'bonsai/review/philology/stories.py check', 'reviewer': args.reviewer,
+        'licence': 'CC BY-SA 4.0', 'licence_basis': "Told from Wiktionary's etymologies and the Deutsches Textarchiv's texts (CC BY-SA 4.0), with the witnesses' sentences under their own licences in witnesses.json.",
+        'counts': dict(sorted(counts.items())), 'stories': dict(sorted(stories.items()))}
+    with open(os.path.join(home, 'stories.json'), 'w', encoding='utf-8') as fh:
+        json.dump(manifest, fh, ensure_ascii=False, indent=1)
+        fh.write('\n')
+    print(json.dumps(manifest['counts']))
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest='command', required=True)
@@ -369,8 +547,14 @@ def main():
     two = sub.add_parser('check')
     two.add_argument('dir')
     two.add_argument('--repo', default=os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
+    three = sub.add_parser('bundle')
+    three.add_argument('dir')
+    three.add_argument('repo')
+    three.add_argument('bonsai')
+    three.add_argument('--writer', default='gpt-6.1-terra (high)')
+    three.add_argument('--reviewer', default='claude-opus-5-5')
     args = ap.parse_args()
-    return {'packets': packets, 'check': check}[args.command](args)
+    return {'packets': packets, 'check': check, 'bundle': bundle}[args.command](args)
 
 
 if __name__ == '__main__':
