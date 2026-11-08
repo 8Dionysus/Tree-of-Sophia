@@ -366,6 +366,9 @@ export function mountBench({host,store,views,t,ctxBase,onOpenChange=()=>{}}){
     const typing=event.target.closest?.('input,textarea,select,[contenteditable="true"]');
     if(event.key==='Escape'){
       if(popover){event.preventDefault();closePopover();return;}
+      // A selection's menu in a window leaves first, with the selection.
+      const selectionMenu=root.querySelector('.bn-select-menu:not([hidden])');
+      if(selectionMenu){event.preventDefault();selectionMenu.hidden=true;doc.getSelection()?.removeAllRanges();return;}
       if(!layoutMenu.hidden){event.preventDefault();layoutMenu.hidden=true;return;}
       if(typing){event.target.blur();return;}
       if(ctxBase.isBusy?.())return;

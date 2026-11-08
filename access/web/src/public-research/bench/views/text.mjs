@@ -75,7 +75,7 @@ export function textView({root,windowId,ctx}){
     marked=JSON.stringify(Object.values(ctx.state().fragments).filter(item=>item.cite.c===chapter.key).map(item=>[item.id,item.cite]));
     head.replaceChildren();body.replaceChildren();
     const select=el('select','bn-chapter');select.setAttribute('aria-label',t('chapter'));
-    for(const key of chapterKeys()){const info=manifest?.chapters?.find(item=>item.key===key);const option=el('option','',`${key} · ${chapterName(info?.titles,lang)}`);option.value=key;option.selected=key===chapter.key;select.append(option);}
+    for(const key of chapterKeys()){const info=manifest?.chapters?.find(item=>item.key===key);const absent=lang!==PIVOT&&!info?.titles?.[lang]&&(info?.omitted??[]).includes(lang);const option=el('option','',`${key} · ${chapterName(info?.titles,lang)}${absent?` — ${t('notInWitness')}`:''}`);option.value=key;option.selected=key===chapter.key;select.append(option);}
     select.addEventListener('change',()=>ctx.replace(windowId,{kind:'chapter',chapter:select.value,language:win.subject.language}));
     const keys=chapterKeys(),at=keys.indexOf(chapter.key);
     const prev=btn('‹','bn-step',t('prevChapter')),next=btn('›','bn-step',t('nextChapter'));prev.disabled=at<=0;next.disabled=at<0||at>=keys.length-1;
@@ -159,7 +159,7 @@ export function textView({root,windowId,ctx}){
     action(t('menuFragment'),()=>{const id=lay();if(id){ctx.open({kind:'fragment',id});ctx.say(t('savedFragment'));}hideMenu();},'bn-strong');
     action(t('menuTray'),()=>{const id=lay();if(id)ctx.tray({kind:'fragment',id},ctx.state().fragments[id]?.label);hideMenu();});
     if(selection.words.split(/\s+/).length>1||!isWord(selection.words))action(t('menuSentence'),()=>{const again=readSelection();if(again){const widened=applySelection(again,{sentence:true});if(widened)showMenu(widened);}});
-    if(isWord(selection.words))action(t('menuOrigin'),()=>{const subject={kind:'word',form:selection.words,language:selection.lang,chapter:chapter.key,unit:chapter.units[selection.lang][selection.a].id};if(!ctx.broadcast(subject))ctx.open(subject,{binding:'follow'});else{const [first]=ctx.windowsOf('word');if(first)ctx.open(first.win.subject);}hideMenu();});
+    if(isWord(selection.words))action(t('menuOrigin'),()=>{const subject={kind:'word',form:selection.words,language:selection.lang,chapter:chapter.key,unit:chapter.units[selection.lang][selection.a].id,at:selection.from.offset};if(!ctx.broadcast(subject))ctx.open(subject,{binding:'follow'});else{const [first]=ctx.windowsOf('word');if(first)ctx.open(first.win.subject);}hideMenu();});
     const thoughts=ctx.windowsOf('thought');
     if(thoughts.length)action(t('menuGround'),()=>{const id=lay();const target=thoughts.at(-1);if(id&&target?.win.subject.id){ctx.commit(s=>updateThought(s,target.win.subject.id,thought=>({grounds:[...thought.grounds,id]})));ctx.say(t('addedGround'));}hideMenu();});
     menu.hidden=false;
@@ -180,7 +180,7 @@ export function textView({root,windowId,ctx}){
       const pick=readSelection();if(!pick){hideMenu();return;}
       const snapped=applySelection(pick);if(!snapped){hideMenu();return;}
       // A single word reaches the word windows that follow the selection.
-      if(isWord(snapped.words))ctx.broadcast({kind:'word',form:snapped.words,language:snapped.lang,chapter:chapter.key,unit:chapter.units[snapped.lang][snapped.a].id});
+      if(isWord(snapped.words))ctx.broadcast({kind:'word',form:snapped.words,language:snapped.lang,chapter:chapter.key,unit:chapter.units[snapped.lang][snapped.a].id,at:snapped.from.offset});
       showMenu(snapped);
     });
   }

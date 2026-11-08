@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {activeBench,addBench,applyPreset,areas,closeWindow,emptyState,findArea,moveWindow,openSubject,putFragment,putThought,
+import {activeBench,addBench,applyPreset,areas,cleanSubject,closeWindow,emptyState,findArea,moveWindow,openSubject,putFragment,putThought,
   releaseSizes,removeBench,setCollapsed,setFocus,setSizes,subjectKey,trayAdd,trayRemove,updateFragment,validateState,MAX_DEPTH} from './model.mjs';
 
 const node=id=>({kind:'node',id});
@@ -128,3 +128,10 @@ test('an area is found by its path',()=>{
   const bench=activeBench(s),area=areas(bench.layout).find(item=>item.tabs.includes(w));
   expect(findArea(bench.layout,area.area)).toEqual([1]);
 });
+
+test('a word keeps the place it was read at, so the philological engine finds that very word',()=>{
+  expect(cleanSubject({kind:'word',form:'Übermenschen',language:'de',chapter:'I.01',unit:'u-12',at:41})).toEqual({kind:'word',form:'Übermenschen',language:'de',chapter:'I.01',unit:'u-12',at:41});
+  expect(cleanSubject({kind:'word',form:'Volk',at:-3})).toEqual({kind:'word',form:'Volk',language:'de'});
+  expect(cleanSubject({kind:'word',form:'Volk',at:'7'})).toEqual({kind:'word',form:'Volk',language:'de'});
+});
+

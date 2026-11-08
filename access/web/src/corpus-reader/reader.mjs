@@ -18,7 +18,8 @@ import {languageName,sourceLinkLabel,corpusWorkTitle,corpusSectionLabel} from '.
 import {bindPhilologyResult,philologyMarkIntervals,renderPhilology,selectedPhilologyForm,isSingleWordSelection} from './philology.mjs';
 import {renderOrigin} from './word-origin.mjs';
 import {createSelectionMenu} from './selection-menu.mjs';
-import {versionIdOf,witnessUnitText} from './bonsai-words.mjs';
+import {bonsaiLanguage,chapterOf,versionIdOf,witnessUnitText} from './bonsai-words.mjs';
+import {benchListens,layOnBench} from '../public-research/bench/bridge.mjs';
 import {createReference} from './model.mjs';
 import {editionRepresentationKind,groupEditionRepresentations} from './edition-groups.mjs';
 import {readableUnitLocator} from './location-label.mjs';
@@ -1633,8 +1634,21 @@ export function mountCorpusReader({
   root.addEventListener('click', event => { if (event.target === root) close(); });
   document.addEventListener('selectionchange', onSelectionChange);
   // A word selected in a pane offers its origin beside it.
+  // A word or a passage of a stand's witness goes onto the workbench, cited in the original there.
+  const benchPassage = () => {
+    const value = unitFromSelection();
+    const language = value && bonsaiLanguage(value.versionId);
+    if (!language || !(value.end > value.start)) return null;
+    const unitId = value.unit.unitId || value.unit.id;
+    return {language, chapter:chapterOf(activeVersion(value.versionId), language, unitId), unitId, start:value.start, end:value.end};
+  };
+  const benchWord = key => copyLocale(uiLocale())==='en'
+    ? localeText({lay:'To the workbench',laid:'The fragment lies on the workbench',failed:'This place could not be laid on the workbench'}[key], uiLocale())
+    : {lay:'На верстак',laid:'Фрагмент лежит на верстаке',failed:'Это место не удалось положить на верстак'}[key];
   const selectionMenu = createSelectionMenu({container:root,accept:value=>Boolean(value.element.closest?.('.cr-unit')),
-    actions:[{label:copyLocale(uiLocale())==='en'?localeText('Origin of the word',uiLocale()):'Происхождение слова',run:()=>showOrigin()}]});
+    actions:[{label:copyLocale(uiLocale())==='en'?localeText('Origin of the word',uiLocale()):'Происхождение слова',run:()=>showOrigin()},
+      {get label(){return benchWord('lay');},phrases:true,when:()=>benchListens()&&Boolean(benchPassage()),
+        run:()=>{const passage=benchPassage();return passage?layOnBench(passage).then(laid=>benchWord(laid?'laid':'failed')):null;}}]});
   const beforeUnload=event=>{if(noteDirty||noteFlushPromise){void flushNote();event.preventDefault();event.returnValue='';}};
   const visibilityChanged=()=>{if(document.visibilityState==='hidden')void flushNote();};
   window.addEventListener('beforeunload',beforeUnload);

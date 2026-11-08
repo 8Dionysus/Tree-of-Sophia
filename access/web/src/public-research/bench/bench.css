@@ -3,7 +3,7 @@
    the reader's own work; the window in which the work goes on carries the gold line at its tab. */
 
 #tree .bn{--bn-source:#8fb0d8;--bn-word:#9fc7b4;--bn-reading:var(--ps-gold);--bn-mine:#e3ab8f;--bn-panel:#0a1424c7;--bn-raise:#0c1829f2;
-  position:absolute;z-index:34;inset:var(--rb-h,64px) 0 0 0;display:grid;grid-template-rows:auto minmax(0,1fr) auto;
+  position:fixed;z-index:34;inset:var(--rb-h,64px) 0 0 0;display:grid;grid-template-rows:auto minmax(0,1fr) auto;
   background:linear-gradient(170deg,#08111e,#050b15);color:var(--ps-text);font-family:var(--ps-sans);outline:none}
 #tree .bn[hidden]{display:none}
 #tree .bn button{font-family:inherit;cursor:pointer}
@@ -144,7 +144,8 @@
 #tree .bn-select{max-width:100%;min-height:32px;padding:0 8px;border:1px solid var(--ps-line-strong);border-radius:6px;background:#0a1324;color:var(--ps-ink);font:13px/1 var(--ps-sans)}
 #tree .bn-quote{margin:0 0 10px;padding:0 0 0 12px;border-left:2px solid var(--ps-gold-line);color:#d5dce6;font:16px/1.65 var(--ps-serif)}
 #tree .bn-quote-main{color:var(--ps-ink);font-size:18px}
-#tree .bn-row-actions{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 6px}
+#tree .bn-row-actions{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 18px}
+#tree .bn-witness-row>.bn-label{color:#8ea2b9}
 
 /* ── the text ── */
 #tree .bn-text-head{position:sticky;top:-14px;z-index:2;display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:-14px -20px 12px;padding:10px 16px;border-bottom:1px solid #8296b21c;background:linear-gradient(var(--bn-panel),var(--bn-panel)) #07101c}
@@ -155,6 +156,10 @@
 #tree .bn-witness{min-height:26px;padding:0 10px;border:0;border-radius:999px;background:none;color:#93a5b9;font:12px/1 var(--ps-sans);white-space:nowrap}
 #tree .bn-witness[aria-pressed=true]{background:#dcc69014;color:var(--ps-gold)}
 #tree .bn-text{max-width:72ch;margin:0 auto;padding-left:3.4em;color:#d5dce6;font:17px/1.78 var(--ps-serif)}
+/* Every window keeps a reading measure: a wide window centres its column instead of stretching the lines. */
+#tree .bn-fragment,#tree .bn-word{max-width:min(100%,780px);margin-inline:auto}
+#tree .bn-card{max-width:min(100%,720px);margin-inline:auto}
+#tree .bn-thought{max-width:min(100%,920px);margin-inline:auto}
 #tree .bn-text ::selection{background:#dcc69052}
 #tree .bn-unit{position:relative;margin:0 0 .85em}
 #tree .bn-unit[data-kind=v] .bn-unit-text{white-space:pre-line}
@@ -183,6 +188,17 @@
 /* ── the word ── */
 #tree .bn-word-head{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
 #tree .bn-word-form{margin:0;color:var(--ps-ink);font:400 28px/1.2 var(--ps-serif)}
+/* The philological engine's descent, in the bench's own colours: the shared origin markup reads these. */
+#tree .bn-philo{--cr-ink:var(--ps-ink);--cr-muted:#8ea2b9;--cr-rule:#8296b233;--cr-accent:var(--bn-word);--cr-panel-soft:#0c1829}
+#tree .bn-philo-body>.cr-inspector-title,#tree .bn-philo-body>.cr-philology-form{display:none}
+#tree .bn-philo .cr-origin-word{margin:4px 0 12px}
+#tree .bn-philo .cr-origin-heading{font:12.5px/1.5 var(--ps-sans)}
+#tree .bn-philo .cr-origin-form{font:400 18px/1.35 var(--ps-serif)}
+#tree .bn-philo .cr-origin-line{font:13px/1.65 var(--ps-sans);color:#c3cedb}
+#tree .bn-philo .cr-origin-line em{font-family:var(--ps-serif)}
+#tree .bn-philo .cr-philology-muted{color:#8ea2b9;font:13px/1.5 var(--ps-sans)}
+#tree .bn-philo .cr-origin-first{font:12.5px/1.6 var(--ps-sans);color:#8ea2b9}
+#tree .bn-philo .cr-origin-open{margin-left:6px;padding:2px 9px;border:1px solid #9fc7b455;border-radius:999px;background:none;color:var(--bn-word);font:12px/1.5 var(--ps-sans);cursor:pointer}
 #tree .bn-origin-lemma{margin:0 0 4px;color:var(--bn-word);font:400 22px/1.3 var(--ps-serif)}
 #tree .bn-origin-first{margin:12px 0}
 #tree .bn-renderings{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0 0 12px;font:14px/1.5 var(--ps-sans)}
@@ -260,6 +276,8 @@
 #research-bar .rb-bench[aria-pressed=true]{border-color:#c9ad7399;color:var(--ps-gold);background:#dcc69012}
 #research-bar .rb-bench-count{min-width:18px;padding:2px 5px;border-radius:999px;background:#dcc69024;color:var(--ps-gold);font:600 10.5px/1 var(--ps-sans);text-align:center}
 #research-bar .rb-bench-count:empty{display:none}
+#research-bar .rb-bench-count.is-new{animation:bn-badge .7s cubic-bezier(.2,.8,.2,1)}
+@keyframes bn-badge{0%{transform:scale(1);box-shadow:0 0 0 0 #dcc69066}35%{transform:scale(1.35)}100%{transform:scale(1);box-shadow:0 0 0 9px #dcc69000}}
 
 @media (max-width:900px){
   #tree .bn-head{flex-wrap:wrap;gap:8px}
@@ -275,5 +293,5 @@
 }
 @media (prefers-reduced-motion:reduce){
   #tree .bn-cell,#tree .bn-toast,#tree .bn-drop{transition:none}
-  #tree .bn-breathe[aria-pressed=true]::before,#tree .bn-flash{animation:none}
+  #tree .bn-breathe[aria-pressed=true]::before,#tree .bn-flash,#research-bar .rb-bench-count.is-new{animation:none}
 }

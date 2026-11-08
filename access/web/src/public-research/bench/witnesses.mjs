@@ -30,3 +30,15 @@ export async function findInBook(language,needle,{limit=400,signal}={}){
   }
   return {hits:out,more:false};
 }
+/** The chapter whose witness holds a unit, read chapter after chapter where no index says it at once. */
+const unitChapters=new Map();
+export async function chapterOfUnit(language,unitId){
+  const key=`${language}|${unitId}`;if(unitChapters.has(key))return unitChapters.get(key);
+  for(const chapterKey of chapterKeys()){
+    const chapter=await loadChapter(chapterKey);
+    for(const unit of chapter.units[language]??[])unitChapters.set(`${language}|${unit.id}`,chapterKey);
+    if(unitChapters.has(key))return chapterKey;
+  }
+  return null;
+}
+

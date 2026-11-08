@@ -6,16 +6,29 @@ import {renderOrigin} from '../corpus-reader/word-origin.mjs';
 import {bonsaiWordByForm} from '../corpus-reader/bonsai-words.mjs';
 import {copyLocale,localeText} from './locale.mjs';
 import {renderRenderings,renderingsWord,translationLanguage,wordRenderings} from './renderings-view.mjs';
+import {benchListens,layOnBench} from './bench/bridge.mjs';
 import '../corpus-reader/philology.css';
 
 const LANGUAGES=new Set(['de','ru','en']);
 
-/** Where the selection starts in the unit's display text: the line's offset and the text before the selection. */
-function displayPosition(element,range){
+/** Where a point of the selection stands in the unit's display text: the line's offset and the text before it. */
+function displayPosition(element,range,{end=false}={}){
   const before=document.createRange();
-  before.selectNodeContents(element);before.setEnd(range.startContainer,range.startOffset);
+  before.selectNodeContents(element);
+  if(end)before.setEnd(range.endContainer,range.endOffset);else before.setEnd(range.startContainer,range.startOffset);
   return Number(element.dataset.offset||0)+Array.from(before.toString()).length;
 }
+/** A passage of a witness unit selected inside one unit, as the workbench receives it (display offsets). */
+function passageOf({range,element}){
+  const unitNode=element.closest('[data-unit][data-chapter]'),language=element.closest('[lang]')?.lang;
+  if(!unitNode||!LANGUAGES.has(language)||!unitNode.contains(range.startContainer)||!unitNode.contains(range.endContainer))return null;
+  return {language,chapter:unitNode.dataset.chapter,unitId:unitNode.dataset.unit,start:displayPosition(unitNode,range),end:displayPosition(unitNode,range,{end:true}),display:true};
+}
+const benchWord=(key,locale)=>{
+  const ru={lay:'На верстак',laid:'Фрагмент лежит на верстаке',failed:'Это место не удалось положить на верстак'}[key];
+  const en={lay:'To the workbench',laid:'The fragment lies on the workbench',failed:'This place could not be laid on the workbench'}[key];
+  return copyLocale(locale)==='en'?localeText(en,locale):ru;
+};
 
 /**
  * Offer the origin of words selected inside `root` in elements carrying `data-chapter` and `data-unit`
@@ -72,9 +85,12 @@ export function createStandOrigin({root,locale,openPlace=null,renderings=null,te
     body.append(Object.assign(document.createElement('h2'),{className:'cr-inspector-title',textContent:renderingsWord('translations',locale())}));
     for(const entry of entries)renderRenderings(body,entry,{language,locale:locale(),fragment});
   }
+  // A word or a whole passage goes onto the workbench, where the stand has one.
+  const layAction={get label(){return benchWord('lay',locale());},phrases:true,when:value=>benchListens()&&Boolean(passageOf(value)),
+    run:value=>{const passage=passageOf(value);return passage?layOnBench(passage).then(laid=>benchWord(laid?'laid':'failed',locale())):null;}};
   const menu=createSelectionMenu({container:root,accept:value=>Boolean(value.element.closest('[data-unit][data-chapter]')),
     actions:[{get label(){return label();},run:value=>void show(value)},
       ...(renderings&&fragment?[{get label(){return renderingsWord('translations',locale());},run:value=>void showRenderings(value),
-        when:value=>termsOf(value).then(entries=>entries.some(entry=>entry[translationOf(value)]))}]:[])]});
+        when:value=>termsOf(value).then(entries=>entries.some(entry=>entry[translationOf(value)]))}]:[]),layAction]});
   return {dispose(){menu.dispose();dialog?.remove();dialog=null;}};
 }

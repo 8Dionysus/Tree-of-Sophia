@@ -41,7 +41,8 @@ export function cleanSubject(value){
   }
   if(value.kind==='word'){
     const form=text(value.form,80).trim();if(!form)return null;
-    return {kind:'word',form,language:text(value.language,8)||'de',...(text(value.chapter,16)?{chapter:text(value.chapter,16)}:{}),...(text(value.unit,200)?{unit:text(value.unit,200)}:{})};
+    return {kind:'word',form,language:text(value.language,8)||'de',...(text(value.chapter,16)?{chapter:text(value.chapter,16)}:{}),...(text(value.unit,200)?{unit:text(value.unit,200)}:{}),
+      ...(Number.isSafeInteger(value.at)&&value.at>=0?{at:value.at}:{})};
   }
   const id=text(value.id,400);if(!id)return null;
   return {kind:value.kind,id};

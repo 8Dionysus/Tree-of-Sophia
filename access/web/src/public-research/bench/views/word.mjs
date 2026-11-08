@@ -5,11 +5,13 @@
 import {findInBook} from '../witnesses.mjs';
 import {measureOf} from '../breathing.mjs';
 import {btn,el,localized,section} from './dom.mjs';
+import {renderOrigin} from '../../../corpus-reader/word-origin.mjs';
+import {bonsaiWordByForm} from '../../../corpus-reader/bonsai-words.mjs';
 
 export function wordView({root,windowId,ctx}){
   const {t}=ctx;
   const body=el('div','bn-word');root.append(body);
-  let win=null,search=null,allForms=false;
+  let win=null,search=null,allForms=false,drawn=0;
   const lang=()=>String((typeof ctx.locale==='function'?ctx.locale():ctx.locale)||'ru');
   const openPlace=(chapter,unit)=>ctx.open({kind:'chapter',chapter,language:win.subject.language,unit});
 
@@ -38,6 +40,15 @@ export function wordView({root,windowId,ctx}){
     const node=ctx.termNode?.(term);
     if(node){const open=btn(`→ ${t('openNode')}`,'bn-action');open.addEventListener('click',()=>ctx.open(node));box.append(open);}
     return box;
+  }
+  // The word's descent as the philological engine reads it at its place: the word layer's lemma, then the origin
+  // records (the oldest form to the word in the book, its parts, its kin; for a translation, the original's word first).
+  async function descentInto(box){
+    const mine=++drawn,{form,language,chapter,unit,at}=win.subject,inner=el('div','bn-philo-body');box.append(inner);
+    const context=chapter&&unit?await bonsaiWordByForm({chapter,language,unitId:unit,form,near:Number.isFinite(at)?at:null}).catch(()=>null):null;
+    if(mine!==drawn)return;
+    await renderOrigin(inner,{locale:lang(),form,language,context,
+      onOpenPlace:place=>ctx.open({kind:'chapter',chapter:place.chapter,language:place.language,unit:place.unitId})}).catch(()=>inner.append(el('p','bn-failed',t('unavailable'))));
   }
   function usesOf(forms){
     const lower=new Set(forms.map(form=>form.toLocaleLowerCase('de')));
@@ -73,6 +84,7 @@ export function wordView({root,windowId,ctx}){
     const form=win.subject.form;
     if(!form){body.append(el('p','bn-placeholder',t('wordEmpty')));return;}
     const head=el('header','bn-word-head');const word=el('h2','bn-word-form',form);word.lang=win.subject.language;head.append(word,el('span','bn-label',win.subject.language.toUpperCase()));body.append(head);
+    const descent=section(t('descent'),'bn-philo');body.append(descent);void descentInto(descent);
     const found=ctx.termFor?.(form,win.subject.language);
     if(found)body.append(originOf(found));
     const forms=found&&allForms?[...new Set([form,...(found.term.original?.lang===win.subject.language?found.term.original.forms??[]:[])])]:[form];
@@ -85,7 +97,7 @@ export function wordView({root,windowId,ctx}){
     void find(list,forms);
   }
   return {
-    update(next){const same=win&&win.subject.form===next.subject.form&&win.subject.language===next.subject.language;win=next;if(!same){allForms=false;render();root.scrollTop=0;}},
+    update(next){const same=win&&win.subject.form===next.subject.form&&win.subject.language===next.subject.language&&win.subject.unit===next.subject.unit;win=next;if(!same){allForms=false;render();root.scrollTop=0;}},
     title:w=>w.subject.form||t('view_word'),
     sign:()=>'term',
     measure:ch=>measureOf('word',{ch}),

@@ -223,7 +223,8 @@ export function createTerms({module,locale=()=>DEFAULT_LOCALE,nodeOf=()=>null,de
     touch=false;touchPreview=null;follow(span);
   };
   const key=event=>{
-    if(event.key==='Escape'&&!card.hidden){hide(true);return;}
+    // Escape closes the card and only the card: whatever stands beneath it stays.
+    if(event.key==='Escape'&&!card.hidden){event.preventDefault();hide(true);return;}
     // A real link follows on Enter by itself, through its click.
     const span=termOf(event);if(!span||span.href)return;
     if(event.key==='Enter'){event.preventDefault();follow(span);}

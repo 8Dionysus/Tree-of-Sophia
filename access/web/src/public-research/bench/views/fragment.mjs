@@ -25,7 +25,7 @@ export function fragmentView({root,windowId,ctx}){
   function placeLayer(fragment){
     const box=section(t('place'),'bn-layer bn-layer-place');
     const language=fragment.witness?.language??PIVOT,words=witnessWords(fragment,chapter);
-    const where=el('p','bn-where',`${chapter.key} · ${chapterName(chapter.titles,language)} · ${witnessLabel(language)}`);
+    const where=el('p','bn-where',`${chapter.key} · ${chapterName(chapter.titles,language)} · ${witnessLabel(language)}`);where.dataset.terms='off';
     const quote=el('blockquote','bn-quote bn-quote-main',words);quote.lang=language;
     box.append(where,quote);
     if(fragment.fingerprint&&fragment.fingerprint!==fingerprintOf(words))box.append(el('p','bn-warning',t('sourceChanged')));
@@ -50,11 +50,14 @@ export function fragmentView({root,windowId,ctx}){
     const known=whatTreeKnows({fragment,chapter,index:ctx.index,core:ctx.core});
     if(known?.voices?.length){
       const line=el('p','bn-voices');line.append(el('span','bn-label',t('voice')));
-      for(const voice of known.voices){const v=el('span','bn-voice',[nameOf(voice.speaker),voice.addressee?`${t('to')} ${nameOf(voice.addressee)}`:'',t(`mode_${voice.mode}`)!==`mode_${voice.mode}`?`· ${t(`mode_${voice.mode}`)}`:''].filter(Boolean).join(' '));line.append(v);}
+      // Who speaks to whom: an arrow, so a name keeps the form the Tree gives it in any language.
+      for(const voice of known.voices){const v=el('span','bn-voice',[nameOf(voice.speaker),voice.addressee?`→ ${nameOf(voice.addressee)}`:'',t(`mode_${voice.mode}`)!==`mode_${voice.mode}`?`· ${t(`mode_${voice.mode}`)}`:''].filter(Boolean).join(' '));line.append(v);}
       box.append(line);
     }
     const group=(title,entries)=>{
       if(!entries?.length)return;
+      // One row for one star: records that the stand names alike stand once, at their nearest.
+      const seen=new Set();entries=entries.filter(entry=>{const key=`${ctx.kindOf?.(ctx.toSubject?.(entry.item.id))??entry.item.kind}|${localized(entry.item.title,lang())||entry.item.id}`;if(seen.has(key))return false;seen.add(key);return true;});
       const part=el('div','bn-known');part.append(el('h4','bn-known-title',title));
       for(const entry of entries.slice(0,24)){
         const subject=ctx.toSubject?.(entry.item.id);

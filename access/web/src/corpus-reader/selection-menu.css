@@ -1,10 +1,12 @@
 .tos-selection-menu{position:fixed;z-index:2147483000;display:flex;gap:4px;padding:4px;border:1px solid var(--cr-rule,#3a3a44);border-radius:9px;
   background:var(--cr-panel,#16161c);box-shadow:0 6px 22px #0007;font:12px/1.2 system-ui,sans-serif;animation:tos-selection-menu-in .14s ease-out}
-.tos-selection-menu[hidden],.tos-selection-menu-action[hidden]{display:none}
+.tos-selection-menu[hidden],.tos-selection-menu-action[hidden],.tos-selection-note[hidden]{display:none}
+.tos-selection-note{position:fixed;z-index:2147483000;padding:7px 12px;border:1px solid var(--cr-rule,#3a3a44);border-radius:9px;background:var(--cr-panel,#16161c);
+  color:var(--cr-ink,#ece5d8);box-shadow:0 6px 22px #0007;font:12px/1.2 system-ui,sans-serif;pointer-events:none;animation:tos-selection-menu-in .14s ease-out}
 .tos-selection-menu-action{border:0;border-radius:6px;padding:6px 10px;background:transparent;color:var(--cr-accent,#e2c27a);cursor:pointer;font:inherit}
 .tos-selection-menu-action:hover,.tos-selection-menu-action:focus-visible{background:var(--cr-rule,#2a2a33);outline:none}
 @keyframes tos-selection-menu-in{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){.tos-selection-menu{animation:none}}
+@media (prefers-reduced-motion:reduce){.tos-selection-menu,.tos-selection-note{animation:none}}
 
 .cr-word-context-word{margin:9px 0;padding:11px 12px;border:1px solid var(--cr-rule);border-radius:8px;background:var(--cr-panel-soft)}
 .cr-word-context-word p{margin:5px 0!important;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
@@ -15,6 +17,8 @@
 .ps-origin-sheet{--cr-bg:#10131b;--cr-panel:#171b24;--cr-panel-soft:#1d222d;--cr-ink:#ece5d8;--cr-muted:#a7a79e;--cr-rule:#ffffff18;--cr-accent:#d5b77b;
   width:min(560px,calc(100vw - 24px));max-height:min(86vh,900px);padding:0;border:1px solid #d6bd8d35;border-radius:16px;background:var(--cr-panel);
   color:var(--cr-ink);box-shadow:0 30px 120px #000b;color-scheme:dark;font:14px/1.5 system-ui,sans-serif;overflow:hidden}
+/* The sheet borrows the reader's inspector look; a closed sheet stays closed even once the reader's own styles say display:flex. */
+.ps-origin-sheet:not([open]){display:none}
 .ps-origin-sheet[open]{display:flex;flex-direction:column}
 .ps-origin-sheet::backdrop{background:#0008}
 .ps-origin-sheet a{color:var(--cr-accent)}

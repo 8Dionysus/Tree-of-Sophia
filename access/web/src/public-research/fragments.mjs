@@ -8,6 +8,7 @@
 // work stays one step away: the place opens in the parallel reading of its
 // chapter, original beside translation, and from there in the corpus reader.
 
+import {benchListens,layOnBench} from './bench/bridge.mjs';
 import {readChapter,fragmentOf,displayText} from '../../../../bonsai/lib/witnesses.mjs';
 import {readCorpusFragmentRange} from './corpus-fragment-range.mjs';
 import {modernRussian,isPreReform} from './orthography.mjs';
@@ -162,6 +163,14 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     });
     tools.append(copy);
   }
+  // A quotation of the book goes onto the workbench, read in the witness the reader sees, where the stand has a bench.
+  function benchTool(tools,cite,language){
+    if(!benchListens())return;
+    const lay=button(words('fragmentBench'),'text-button ps-fragment-bench');
+    lay.addEventListener('click',()=>void layOnBench({cite,language}).then(laid=>{
+      lay.textContent=words(laid?'fragmentBenched':'unavailable');setTimeout(()=>{lay.textContent=words('fragmentBench');},1600);}));
+    tools.append(lay);
+  }
   const local=value=>localeValue(value,locale());
 
   // ── The parallel reading: a chapter, original beside translation, row by row. ──
@@ -280,7 +289,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       if(omitted.length){const absent=el('span','ps-fragment-absent','∅');absent.setAttribute('aria-label',words('fragmentOmitted'));hint?.(absent,words('fragmentOmitted'));tools.append(absent);}
       const whole=button(`↗ ${words('fragmentWhole')}`,'text-button ps-fragment-whole');
       whole.addEventListener('click',()=>void showChapter(cite.c,cite).catch(error=>onError?.(error)));
-      tools.append(whole);copyTool(figure,tools);figure.append(tools);
+      tools.append(whole);benchTool(tools,cite,showing.find(language=>language!=='de')??'de');copyTool(figure,tools);figure.append(tools);
     };
     paint();
   }
