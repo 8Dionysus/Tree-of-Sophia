@@ -201,30 +201,31 @@ def key_places(home, term, book, limit=4):
         for index in span:
             text, positions = read_clean(units[index][2])
             if quote:
-                at = text.find(clean(quote))
+                said = clean(quote)
+                at = text.find(said)
                 if at >= 0:
-                    found.append((index, positions[at]))
+                    found.append((index, positions[at], positions[at + len(said) - 1] + 1))
                     break
                 continue
-            found.extend((index, positions[match.start()]) for match in pattern.finditer(text))
+            found.extend((index, positions[match.start()], positions[match.end() - 1] + 1) for match in pattern.finditer(text))
         if quote and not found:
             # The formula's words broken otherwise than the quotation: the first form of the word in its units.
             for index in span:
                 text, positions = read_clean(units[index][2])
                 match = pattern.search(text)
                 if match:
-                    found.append((index, positions[match.start()]))
+                    found.append((index, positions[match.start()], positions[match.end() - 1] + 1))
                     break
-        for index, at in found:
+        for index, at, end in found:
             pair = book.sentence(key, index, at)
             if pair.get('de') in seen:
                 continue
             seen.add(pair.get('de'))
-            # `_unit` and `_start` open the place in the reader; the packet keeps them out of what the writer reads.
+            # `_unit`, `_start` and `_end` open the place in the reader; the packet keeps them out of what the writer reads.
             out.append({'chapter': key, 'title_de': clean(book.titles[key].get('de')), 'title_ru': clean(book.titles[key].get('ru')),
                         'title_en': clean(book.titles[key].get('en')), 'text': pair.get('de'), 'text_ru': pair.get('ru'),
                         'text_en': pair.get('en'), 'why_ru': why.get('ru'), 'why_en': why.get('en'),
-                        '_unit': units[index][0], '_start': at})
+                        '_unit': units[index][0], '_start': at, '_end': end})
             if len(out) == limit:
                 return out
     return out
@@ -484,7 +485,7 @@ def display_extra(home, term, book, renderings):
     places = book.place_spans(term['original']['forms'])
     seen = {book.sentence(item['chapter'], [unit[0] for unit in book.chapter(item['chapter'])['units']['de']].index(item['unit']), item['start']).get('de') for item in places}
     for index, place in enumerate((item for item in key_places(home, term, book) if item['text'] not in seen), 1):
-        extra[f'K{index}'] = {'chapter': place['chapter'], 'unit': place['_unit'], 'start': place['_start'], 'end': place['_start']}
+        extra[f'K{index}'] = {'chapter': place['chapter'], 'unit': place['_unit'], 'start': place['_start'], 'end': place['_end']}
     shown = renderings.get('terms', {}).get(term['id']) or {}
     extra['T'] = {
         'words': {language: [[word, len(places)] for word, places in (shown.get(language) or {}).get('words', [])[:4]] for language in ('ru', 'en')},

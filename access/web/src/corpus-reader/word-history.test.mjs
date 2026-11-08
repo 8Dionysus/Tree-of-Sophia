@@ -169,6 +169,8 @@ describe('the history of a word',()=>{
         expect(item[language].length,`${lemma} ${language}`).toBeGreaterThan(0);
         for(const sentence of item[language])for(const id of sentence.sources)expect(item.pieces[id],`${lemma}: ${id}`).toBeTruthy();
       }
+      // A place the reader opens covers its words: an empty range opens nothing.
+      for(const [id,piece] of Object.entries(item.pieces))if(piece.unit)expect(piece.end,`${lemma}: ${id}`).toBeGreaterThan(piece.start);
     }
     expect(await storyRecord('Übermensch')).toEqual(book.stories['Übermensch']);
   });
