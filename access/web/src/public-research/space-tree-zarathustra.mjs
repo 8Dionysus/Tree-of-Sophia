@@ -13,7 +13,7 @@ import witnesses from '../../../../bonsai/zarathustra/witnesses.json' with {type
 import {TREE_GEOMETRY,treeRegion,treeVia,trunkLines} from './space-tree.mjs';
 
 const bi=(ru,en)=>({ru,en});
-const PART_TITLES=Object.freeze({I:bi('Часть первая','First part'),II:bi('Часть вторая','Second part'),III:bi('Часть третья','Third part'),IV:bi('Часть четвёртая','Fourth part')});
+export const PART_TITLES=Object.freeze({I:bi('Часть первая','First part'),II:bi('Часть вторая','Second part'),III:bi('Часть третья','Third part'),IV:bi('Часть четвёртая','Fourth part')});
 const PART_COLORS=Object.freeze({I:'#9fb7d9',II:'#93c2a8',III:'#c9b28a',IV:'#c7a6d6'});
 export const ZARATHUSTRA_STRATA=Object.freeze([['crown',bi('Пути и вопросы','Paths and questions')],['concepts',bi('Понятия','Concepts')],['images',bi('Образы','Images')],['figures',bi('Фигуры','The book’s figures')],['texts',bi('Книга','The book')]]);
 const PART_GAP=70,CHAPTER=18,FIGURE=30;

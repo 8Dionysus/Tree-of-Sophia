@@ -22,8 +22,12 @@ import {citedPlaces} from './research-index.mjs';
 import {readChronology} from '../../../../bonsai/lib/chronology.mjs';
 import {readPlaces} from '../../../../bonsai/lib/places.mjs';
 import {clipLinesRight,planeOfPlaces} from './space-geography.mjs';
-import {TREE_LABEL_FROM,antiquityTree} from './space-tree.mjs';
-import {zarathustraTree} from './space-tree-zarathustra.mjs';
+import {AREA_TITLES,SCHOOL_ERA,TREE_LABEL_FROM,antiquityTree,treeVia} from './space-tree.mjs';
+import {PART_TITLES,zarathustraTree} from './space-tree-zarathustra.mjs';
+import {antiquityBook,zarathustraBook} from './reference-outline.mjs';
+import {createReferenceBook} from './reference-book.mjs';
+import {articleBody} from './reference-articles.mjs';
+import zarathustraWitnesses from '../../../../bonsai/zarathustra/witnesses.json' with {type:'json'};
 import {proximityCriteria,proximityLayout} from './space-proximity.mjs';
 import {datingKind,measureAntiquity,measureZarathustra} from './space-measure.mjs';
 import {depthLayout} from './space-depth.mjs';
@@ -33,7 +37,7 @@ import {layBench} from './space-bench.mjs';
 import {signElement,starKind} from './space-glyphs.mjs';
 import {controlsDismissed,controlsShouldOpen,mountControls} from './space-controls.mjs';
 import {besidePosition,disputes,ownTitle,readingsAround,restsOn,routeStars,routeWithRecords,threadsIntoDark,pathThrough} from './space-play.mjs';
-import {citesOf,createFragments} from './fragments.mjs';
+import {chapterName,citesOf,createFragments} from './fragments.mjs';
 import {createStandOrigin} from './word-origin-menu.mjs';
 import {coreContext} from './core-projection.mjs';
 import {createCoreView} from './core-view.mjs';
@@ -66,8 +70,8 @@ Object.assign(extraTranslations.ru,{dating_medium:'опора — обзор и�
 Object.assign(extraTranslations.en,{dating_medium:'rests on a summary of scholarship',dating_low:'rests on a source that cites no study',lifeLine:'Author’s years',journeys:'Reading routes',researchActions:'Research',orientation:'Where you are in the tree',mapTools:'Map controls',openColumn:'Panel',collapseColumn:'Collapse panel',toOverview:'To the whole space',backToRoute:'back to the route',onMap:'On the map',selectedLink:'Selected link',lensWord:'lens',statusTitle:'Status',formSource:'Source',formSourceHint:'A work, passage, author or tradition: what readings rest on',formProposal:'Reading',formProposalHint:'An authored reading, concept, question or branch: proposed for inquiry, not canon',formPersonal:'Personal',formPersonalHint:'Your own thought or link, saved in this browser',
   ladderLabel:'Step of interpretation',ladderHint:'The tree tells a source, its reading and a comparison of readings apart; each step returns to the source.',rung_source:'Source',rung_reading:'Reading',rung_comparison:'Comparison',rungPersonal:'Personal record',ownPlaceholder:'How do you read it? One line',ownWrite:'Write it down',ownMine:'Your reading',ownAround:'Readings nearby',ownNearest:'Nearest to yours',ownNone:'None of them',ownRestsOn:'Rests on',ownDisputed:'Disputed by',ownWritten:'Your reading has taken its place in the space',threadNote:'not yet in the space',threadAdded:'The star has entered the space',
   basisContains:'Structure: a part and its whole.',basisGround:'The reading rests on this place in the source.',basisEditorial:'An editorial comparison of two readings · proposed, not canon · not a claim of historical influence.',basisProposed:'A relation proposed for inquiry · not canon · similarity is not influence.',basisPersonal:'A personal link from your research.'});
-Object.assign(extraTranslations.ru,{modernSpelling:'в современной орфографии',fragmentOriginal:'Оригинал',fragmentTranslation:'Перевод',fragmentWhole:'Читать в целом произведении',refBook:'Книга {n}',refChapter:'Глава {n}',refSection:'Раздел {n}',refFragment:'Фрагмент {n}',refLines:'Строки от {n}',refArrian:'Предисловие Арриана',fragmentQuoted:'Откуда взята цитата',fragmentBook:'Об издании книги',fragmentEdition:'Открыть в читателе',fragmentOmitted:'В этом издании перевода места нет',fragmentUnavailable:'Текст этого места сейчас недоступен',parallelPrevious:'Предыдущая глава',parallelNext:'Следующая глава'});
-Object.assign(extraTranslations.en,{modernSpelling:'in modern spelling',fragmentOriginal:'Original',fragmentTranslation:'Translation',fragmentWhole:'Read in the whole work',refBook:'Book {n}',refChapter:'Chapter {n}',refSection:'Section {n}',refFragment:'Fragment {n}',refLines:'Lines from {n}',refArrian:'Arrian’s preface',fragmentQuoted:'Where the quotation is taken from',fragmentBook:'About the book’s edition',fragmentEdition:'Open in the reader',fragmentOmitted:'This edition of the translation lacks the place',fragmentUnavailable:'The text of this place is unavailable now',parallelPrevious:'Previous chapter',parallelNext:'Next chapter'});
+Object.assign(extraTranslations.ru,{modernSpelling:'в современной орфографии',groundOpen:'Открыть место целиком',groundClose:'Свернуть место',routeOne:'путь',routeFew:'пути',routeMany:'путей',fragmentOriginal:'Оригинал',fragmentTranslation:'Перевод',fragmentWhole:'Читать в целом произведении',refBook:'Книга {n}',refChapter:'Глава {n}',refSection:'Раздел {n}',refFragment:'Фрагмент {n}',refLines:'Строки от {n}',refArrian:'Предисловие Арриана',fragmentQuoted:'Откуда взята цитата',fragmentBook:'Об издании книги',fragmentEdition:'Открыть в читателе',fragmentOmitted:'В этом издании перевода места нет',fragmentUnavailable:'Текст этого места сейчас недоступен',parallelPrevious:'Предыдущая глава',parallelNext:'Следующая глава'});
+Object.assign(extraTranslations.en,{modernSpelling:'in modern spelling',groundOpen:'Open the whole passage',groundClose:'Fold the passage',routeOne:'route',routeMany:'routes',fragmentOriginal:'Original',fragmentTranslation:'Translation',fragmentWhole:'Read in the whole work',refBook:'Book {n}',refChapter:'Chapter {n}',refSection:'Section {n}',refFragment:'Fragment {n}',refLines:'Lines from {n}',refArrian:'Arrian’s preface',fragmentQuoted:'Where the quotation is taken from',fragmentBook:'About the book’s edition',fragmentEdition:'Open in the reader',fragmentOmitted:'This edition of the translation lacks the place',fragmentUnavailable:'The text of this place is unavailable now',parallelPrevious:'Previous chapter',parallelNext:'Next chapter'});
 Object.assign(extraTranslations.en,{excerpt:'Excerpt',proposalGrounds:'Grounds of this proposal',manualOrigin:'Manual entry',agentOrigin:'External agent response',personalOrigin:'Personal proposal',pending:'Pending review',notCanon:'Not canon',postureShort:'Readings · not canon'});
 // The measuring lenses and the measure panel speak in few words; the map shows the rest.
 Object.assign(extraTranslations.ru,{"traceTitle": "Понятие во времени", "traceLink": "след понятия", "traceLabel": "Понятие", "nearTitle": "Близость по", "nearIsCenter": "центр", "nearClosest": "ближе всех", "nearFrom": "от", "nearNotMeasured": "не измеряется", "nearSharedConcepts": "общих понятий", "nearSharedGrounds": "общих оснований", "dateUnknown": "дата неизвестна", "duringLifeShort": "в пределах жизни автора", "duringActivityShort": "в годы деятельности автора", "placeUnknown": "место не установлено", "placeActivityShort": "здесь жил автор", "certainty_exact": "точно", "certainty_approximate": "приблизительно", "certainty_uncertain": "под вопросом", "certainty_unknown": "неизвестно", "certainty_none": "без датировки", "measureKind_date-assertion": "своя дата", "measureKind_interval-assertion": "свой интервал", "measureKind_relative-phase": "внутри периода", "measureKind_relative-life": "в пределах жизни автора", "measureKind_relative-activity": "в годы деятельности автора", "measureKind_relative-order": "относительно другого события", "measureKind_unknown-date": "дата неизвестна", "measureKind_none": "без датировки", "footing_high": "исследование", "footing_medium": "обзор исследований", "footing_low": "без ссылок на исследования", "placeBasis_composition": "место написания", "placeBasis_event": "место события", "placeBasis_activity": "место жизни автора", "placeBasis_unknown": "не установлено", "measureAction": "Мера и полнота", "measureDating": "Датировки", "measureCertainty": "Точность", "measureFooting": "Опора", "measurePlaces": "Места", "measureEras": "Эпохи", "measureConcepts": "Понятия", "measureBranches": "Ветви во времени", "measureLifeOnly": "Без собственной датировки", "measurePlaceless": "Без места", "measureGrounding": "Опора звёзд", "measureInBook": "главы книги", "measureOutside": "другие тексты", "measureChapters": "Главы", "measureOutsideTexts": "Тексты вне книги", "measureRoutes": "Маршруты по книге"});
@@ -112,6 +116,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const materials=materialMap(library),atlas=library.atlas??{},routes=library.space?.routes??atlas.routes??[];
   const mediaView=createMediaView({t,locale,hint:(element,text)=>setHint(element,text)});
   const core=library.space?.core,coreView=core?createCoreView({core,renderings:bonsaiFor(profile)?.renderings,locale,fragments,signOf:materialId=>signOf(previewMaterials.get(materialId)),hint:(element,text)=>setHint(element,text),onNode:id=>previewMaterial(id),onRelation:id=>selectEdge(drawnRelation(id)),onAction:detail=>coreAction(detail),onRoute:id=>{const item=routeItems().find(item=>item.id===id);if(item)startRoute(item);}}):null;
+  // The book reads the same core: its own words lead and the book's places stand beside them.
+  const coreBook=core?createCoreView({core,renderings:bonsaiFor(profile)?.renderings,locale,fragments,signOf:materialId=>signOf(previewMaterials.get(materialId)),hint:(element,text)=>setHint(element,text),onNode:id=>openInBook(index?.resolveId?.(id)??id),onRelation:id=>openInBook(id),onAction:detail=>shell.dispatchEvent(new CustomEvent('public-research-action',{bubbles:true,detail})),onRoute:id=>openInBook(String(id).replace(/^core:/,'')),book:true}):null;
   const collectionMaterials=new Map((library.space?.collection??[]).map(item=>[item.materialId??item.id,{...item,id:item.materialId??item.id,kind:({author:'figure',school:'tradition'})[item.kind]??item.kind}]));
   const previewMaterials=new Map([...collectionMaterials,...materials]);
   const entryByLegacyId=new Map([...previewMaterials.values()].map(item=>[item.legacyId??item.id,item]));
@@ -1515,29 +1521,133 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(item.kind==='passage'){panelContent.replaceChildren(fragments.fragment(item.record));columnOpen=true;reading.hidden=false;return true;}
     return false;
   }
+  // ------------------------------------------------------------ the reference as a book
+  // The book reads the stand's own outline (reference-outline.mjs): its contents from the crown to the roots and its
+  // library. An article opens where the reader is: in the reference when it holds the page.
+  function openInBook(id){if(id)shell.dispatchEvent(new CustomEvent('public-research-open',{bubbles:true,cancelable:true,detail:{id}}));}
+  let bookOutline=null,book=null;
+  const has=id=>!!(id&&index?.get?.(id));
+  const catalogId=legacy=>{if(!legacy)return null;const own=collectionByLegacyId.get(legacy)?.materialId;if(has(own))return own;for(const id of [`antiquity:catalog:${legacy}`,`antiquity:reading:${legacy}`])if(has(id))return id;return null;};
+  // A place of a work opens at its reading where a branch reads it, and at the passage itself otherwise.
+  const passageId=legacy=>{if(!legacy)return null;for(const id of [`antiquity:reading:${legacy}`,`antiquity:source:${legacy}`])if(has(id))return id;return catalogId(legacy);};
+  function outline(){
+    if(bookOutline)return bookOutline;
+    if(profile==='antiquity'&&bonsai?.collection){
+      const chronology=bonsai.chronology,lifeStart=id=>{const year=parseInt(chronology?.situations?.[chronology?.lives?.[id]]?.dating?.interval?.start,10);return Number.isFinite(year)?year:null;};
+      const passages=new Set((bonsai.collection.passages??[]).map(item=>item.id));
+      bookOutline=antiquityBook({routes,collection:bonsai.collection,materialOf:legacy=>passages.has(legacy)?passageId(legacy):catalogId(legacy),areaTitles:AREA_TITLES,schoolEra:SCHOOL_ERA,lifeStart});
+    }else if(profile==='zarathustra'&&core){
+      const cited=new Map(),subjects=new Set([...(core.concepts??[]),...(core.figures??[]),...(core.proposed??[])].map(record=>record.id));
+      for(const item of index?.items?.values?.()??[]){
+        if(item.kind!=='passage'||item.record?.w!=='also-sprach-zarathustra'||!item.record?.c)continue;
+        for(const reference of index.references(item.id)){const subject=reference.kind==='statement'?reference.parentId:reference.id;if(!subjects.has(subject))continue;if(!cited.has(item.record.c))cited.set(item.record.c,new Set());cited.get(item.record.c).add(subject);}
+      }
+      // The core's own routes are read under the subject they start from; the paths of the atlas stand in the crown.
+      bookOutline=zarathustraBook({core,routes:routes.filter(route=>!String(route.id).startsWith('core:')),questions:[...materials.values()].filter(item=>item.kind==='question'),chapters:(zarathustraWitnesses.chapters??[]).map(chapter=>({key:chapter.key,titles:Object.fromEntries(PUBLIC_LOCALES.map(language=>[language,chapterName(chapter,language)]))})),partTitles:PART_TITLES,idOf:id=>index?.resolveId?.(id)??id,citing:key=>[...(cited.get(key)??[])]});
+    }
+    return bookOutline;
+  }
+  // A work bound to its public record is read in the book by the collection's own description: its line, the places
+  // it opens on and its concepts.
+  let collectionByMaterial=null;
+  const bookMaterial=id=>{
+    const item=index?.get?.(id),material=previewMaterials.get(item?.materialId??id)??previewMaterials.get(id)??null;if(material?.kind!=='work')return material;
+    collectionByMaterial??=new Map([...collectionByLegacyId.values()].map(entry=>[entry.materialId,entry]));
+    const entry=collectionByMaterial.get(material.id);
+    return entry?{...material,author:entry.author??material.author,meta:entry.meta??material.meta,body:entry.body??material.body,concepts:entry.concepts??material.concepts}:material;
+  };
+  const bookBranch=id=>bonsai?.collection?.branches?.find(branch=>`antiquity:route:${branch.id}`===id)??null;
+  const bookRoute=id=>profile==='antiquity'?routes.find(route=>`antiquity:route:${route.id}`===id)??null:null;
+  function bookTitle(id){const item=index?.get?.(id);return (item?.owner==='bonsai/core'&&coreBook?.title(id))||tr(item?.title,locale())||label(bookMaterial(id))||'';}
+  function bookKind(id){
+    const item=index?.get?.(id),material=bookMaterial(id);
+    if(item?.owner==='bonsai/core'&&coreBook)return {word:coreBook.kindWord(id)||kindWord(material),sign:()=>material?signOf(material):null};
+    if(material)return {word:kindWord(material),sign:()=>signOf(material)};
+    return {word:item?.kind==='passage'?t('fragment'):item?.kind==='bibliographic-pointer'?t('source'):'',sign:()=>null};
+  }
+  function bookSourceLine(id){
+    const material=bookMaterial(id);if(!material||material.lexical)return '';
+    const branch=bookBranch(material.id);if(branch)return tr(branch.title,locale());
+    if(profile==='antiquity'&&(String(material.id).startsWith('antiquity:reading:')||material.kind==='fragment')){const line=sourceLine(material,{materials:previewMaterials,entryByLegacyId:collectionByLegacyId,locale:locale()});if(line)return line;}
+    if(material.kind==='work'){const author=collectionByLegacyId.get(material.author)?.title;return [tr(author,locale()),tr(material.meta,locale())].filter(Boolean).join(' · ');}
+    return tr(material.meta,locale());
+  }
+  // The links of a subject: the core's own links with the book's verbs, and the map's links with their kind.
+  function bookRelations(id){
+    const out=[],record=core?.records?.[id],materialId=index?.get?.(id)?.materialId??id;
+    if(record){
+      for(const item of core.links??[]){
+        if(item.admission==='rejected'||(item.from!==id&&item.to!==id))continue;
+        const other=item.from===id?item.to:item.from;if(!has(other))continue;
+        const family=tr(item.relation_family?.family_label,locale())||relationWord('relates');
+        out.push({group:`family:${family}`,word:family,color:paint(styleOf('relates').color??'#a5b7cf'),dash:'solid',direction:item.from===id?'out':'in',other,verb:tr(item.verb,locale()),relationId:item.id});
+      }
+    }
+    for(const edge of atlas.edges??[]){
+      if(edge.from!==materialId&&edge.to!==materialId)continue;
+      const otherMaterial=edge.from===materialId?edge.to:edge.from,other=index?.resolveId?.(otherMaterial)??otherMaterial;if(!has(other)||other===id)continue;
+      const based=isBasedOn(edge),inverse=edge.to===materialId,style=styleOf(edge.kind);
+      const word=based?t(inverse?'groundsFor':'basedOn'):relationWord(edge.kind)||t('relation');
+      const said=humanEdgeLabel(edge);
+      out.push({group:based?`based:${inverse}`:`kind:${edge.kind}`,word,hint:tr(style.hint,locale()),color:paint(style.color??'#a5b7cf'),dash:style.dash??'solid',direction:inverse?'in':'out',other,verb:said&&said!==word?said:''});
+    }
+    return out;
+  }
+  // Where a subject is mentioned beyond its own article: one entry per name, without the routes that start from it,
+  // which its article already reads.
+  function bookMentions(id){
+    const seen=new Set([id]),names=new Set(),out=[];
+    for(const reference of index?.references?.(id)??[]){
+      const subject=reference.kind==='statement'?reference.parentId:reference.kind==='relation'?null:reference.id;
+      if(!subject||seen.has(subject)||!has(subject)||(reference.kind==='chain'&&reference.record?.from===id))continue;seen.add(subject);
+      const name=bookTitle(subject);if(names.has(name))continue;names.add(name);out.push(subject);if(out.length>=40)break;
+    }
+    return out;
+  }
+  function bookSources(id){
+    const material=bookMaterial(id);
+    return (material?.sourceRefs??[]).map(ref=>{const address=typeof ref==='string'?ref:ref.url??ref.ref;const name=typeof ref==='string'?ref:tr(ref.label,locale())||ref.title||address;return {label:name,url:typeof address==='string'&&/^https:\/\//.test(address)?address:null};}).filter(ref=>ref.label);
+  }
+  const countRoutes=value=>{const n=Math.abs(Number(value)||0),mod100=n%100,mod10=n%10;return `${n} ${copyLocale(locale())==='en'?(n===1?t('routeOne'):t('routeMany')):mod100>=11&&mod100<=14?t('routeMany'):mod10===1?t('routeOne'):mod10>=2&&mod10<=4?t('routeFew'):t('routeMany')}`;};
+  function referenceBook(){
+    if(book)return book;
+    const shape=outline();if(!shape)return null;
+    const data={locale,profile,fragments,coreBook,coreRecord:id=>core?.records?.[id]??null,material:bookMaterial,route:bookRoute,branch:bookBranch,has,idOf:id=>index?.resolveId?.(id)??id,
+      sourceLine:bookSourceLine,glimpse:id=>glimpse(bookMaterial(id))||coreView?.glimpse?.(id)||'',
+      turnStyle:turn=>{const kind=turn.kind??atlasEdgeFor(turn.edgeId)?.kind??'supports',style=styleOf(kind);return {word:relationWord(kind),color:paint(style.color??'#a5b7cf'),dash:style.dash};},
+      passageOf:passageId,catalogId:legacy=>catalogId(String(legacy??'').replace(/^lexical:/,'lexical:')),
+      questionsOf:id=>shape.home(id)?.entry?.questions??[],
+      readingsOf:id=>[...materials.values()].filter(item=>item.sourceNodeId===id).map(item=>item.id),
+      workTitle:slug=>tr(collectionByLegacyId.get(slug)?.title,locale()),
+      worksOf:material=>{const authorId=material.legacyId??material.id;return [...previewMaterials.values()].filter(item=>item.kind==='work'&&((material.works??[]).includes(item.legacyId??item.id)||(authorId&&item.author===authorId))).map(item=>item.id).filter(has);},
+      placesOf:id=>(shape.home(id)?.entry?.children??[]).map(entry=>entry.id).filter(Boolean),
+      // An era of the library is read by who wrote in it and the schools of its time.
+      eraOf:id=>(shape.library?.find(entry=>`antiquity:catalog:${entry.key}`===id)?.children??[]).map(entry=>entry.id).filter(has)};
+    book=createReferenceBook({profile,index,book:shape,locale,intro:{title:library.space?.title},
+      layout:treeLayout,lineColor:line=>paint(line.color??TREE_LINES[line.tone]?.color??'#8ea2ba'),via:treeVia,treeId:id=>index?.get?.(id)?.materialId??id,
+      fragments,markTerms:node=>terms.mark(node),showChapter:key=>fragments.showChapter(key).catch(()=>notify(t('unavailable'))),
+      title:bookTitle,kind:bookKind,glimpse:data.glimpse,sourceLine:bookSourceLine,status:id=>{const item=index?.get?.(id);if(item?.owner==='bonsai/core')return coreBook?.statusWord(id)??'';if(item?.kind==='bibliographic-pointer')return t('linkOnly');const material=bookMaterial(id);if(!material)return '';const rung=ladderRung({material});return rung&&rung!=='personal'?t(`rung_${rung}`):'';},
+      facts:(parent,id)=>{const materialId=index?.get?.(id)?.materialId??id;appendDating(parent,materialId);appendPlace(parent,materialId);},
+      ends:id=>{const ends=coreBook?.ends(id);if(!ends||!has(ends.from)||!has(ends.to))return null;return {...ends,word:ends.family,color:paint(styleOf('relates').color??'#a5b7cf'),dash:'solid'};},
+      relations:bookRelations,mentions:bookMentions,sources:bookSources,apparatus:(parent,id)=>coreBook?.bookApparatus(parent,id),
+      countSteps:value=>profile==='antiquity'?countMoves(value):countSteps(value),countRoutes,
+      body:context=>articleBody(context,data)});
+    return book;
+  }
+  function renderContents(parent,options={}){const own=referenceBook();if(!own)return false;own.contents(parent,options);return true;}
   function renderResearch(parent,id){
     const item=index?.get(id);if(!item)return false;
+    // A claim is read in the article it belongs to, at its own words.
+    if(item.kind==='statement'&&has(item.parentId)){const done=renderResearch(parent,item.parentId);if(done)markClaim(parent,tr(item.record,locale()));return done;}
     if(profile==='antiquity')parent.dataset.termWorks=termWorks(item.record);
     parent.dataset.termNode=item.materialId??(previewMaterials.has(item.id)?item.id:'');
-    if(item.owner==='bonsai/core'&&coreView?.renderReference(parent,{kind:item.kind==='relation'?'relation':'node',id:item.id}))return true;
-    parent.append(el('h2','',tr(item.title,locale())||item.id));
-    if(item.kind==='passage')parent.append(fragments.fragment(item.record));
-    else if(item.kind==='statement')fragments.render(parent,item.record);
-    else if(item.record?.body)fragments.render(parent,item.record.body);
-    else if(item.record?.reading?.reading)fragments.render(parent,item.record.reading.reading);
-    else if(item.kind==='fragment')appendSourcePassage(parent,item.id);
-    appendResearchReferences(parent,item.id);return true;
+    return !!referenceBook()?.article(parent,item.id);
   }
-  // A place of a source shows the passage itself, in the original and in translation, as the reading grounded in it cites it,
-  // and leads on to that reading.
-  function appendSourcePassage(parent,id){
-    const reading=[...materials.values()].find(node=>node.sourceNodeId===id);
-    if(!reading)return;
-    if(reading.body?.cite?.length)fragments.render(parent,{cite:reading.body.cite});
-    const line=el('p','ps-source-reading',`${copyLocale(locale())==='en'?'The reading of this passage':'Прочтение этого места'}: `);
-    const open=button(tr(reading.title,locale())||reading.id,'text-button');
-    open.addEventListener('click',()=>shell.dispatchEvent(new CustomEvent('public-research-open',{bubbles:true,detail:{id:reading.id}})));
-    line.append(open);parent.append(line);
+  function markClaim(parent,words){
+    const said=String(words??'').replace(/\s+/g,' ').trim();if(!said)return;
+    const node=[...parent.querySelectorAll('.rb-claim-text,.rb-lead-text,.ps-authored,p')].find(item=>item.textContent.replace(/\s+/g,' ').includes(said));if(!node)return;
+    const claim=node.closest('.rb-claim')??node;claim.classList.add('is-cited');
+    requestAnimationFrame(()=>requestAnimationFrame(()=>claim.scrollIntoView({block:'center'})));
   }
   function appendResearchReferences(parent,id){
     const item=index?.get(id);if(!item)return;
@@ -2260,6 +2370,6 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const localeEvent=event=>{if(event.detail?.locale&&event.detail.locale!==locale()){};refreshLocale();};header?.addEventListener('public-space-locale',localeEvent);
   // A new theme repaints what is coloured from code: the relation chips and the links of a route.
   const themeEvent=()=>{if(destroyed)return;inkTheme();setLocaleState();reflect();};window.addEventListener('site-theme',themeEvent);
-  return {root:shell,index,selection:researchSelection,setTrail,openResearch,renderResearch,markTerms:node=>terms.mark(node),readingPrompt,fragments,coreView,timeOf:id=>timeline?.spanOf?.(index?.get(id)?.materialId??id)??null,placeOf:id=>placeOf(index?.get(id)?.materialId??id),openPersonal:()=>{if(personal.hidden)togglePersonal();},compare:id=>beginCompare(graphIdForMaterial(index?.get(id)?.materialId??id)),pristineGraphs,openCollection,personalRoot:personalContent,workspaceRoot,agentRoot,refreshLocale,restoreFocus,refreshJourneys(items){journeyList=Array.isArray(items)?items:[];if(route)renderRoutes();},renderJourneys:renderRoutes,model,
+  return {root:shell,index,selection:researchSelection,setTrail,openResearch,renderResearch,renderContents,markTerms:node=>terms.mark(node),readingPrompt,fragments,coreView,timeOf:id=>timeline?.spanOf?.(index?.get(id)?.materialId??id)??null,placeOf:id=>placeOf(index?.get(id)?.materialId??id),openPersonal:()=>{if(personal.hidden)togglePersonal();},compare:id=>beginCompare(graphIdForMaterial(index?.get(id)?.materialId??id)),pristineGraphs,openCollection,personalRoot:personalContent,workspaceRoot,agentRoot,refreshLocale,restoreFocus,refreshJourneys(items){journeyList=Array.isArray(items)?items:[];if(route)renderRoutes();},renderJourneys:renderRoutes,model,
     destroy(){if(destroyed)return;destroyed=true;window.removeEventListener('site-theme',themeEvent);window.removeEventListener('resize',refitScale);cancelAnimationFrame(refitFrame);shell.removeEventListener('click',openLane);shell.removeEventListener('keydown',openLaneByKey);unsubscribeModel?.();unsubscribeWorkspace?.();workspaceRoot.removeEventListener('public-research-import-result',showImportResult);workspaceRoot.removeEventListener('public-research-workspace-history',researchHistory);document.removeEventListener('keydown',keyboard);document.removeEventListener('pointerdown',notePress,{capture:true});clearTimeout(controlsTimer);shell.removeEventListener('pointerdown',notePointer,{capture:true});hints?.dispose();controls?.dispose();fragments.dispose();standOrigin?.dispose();api.reader?.setSelectionActions?.([]);desktopMode.removeEventListener('change',syncInitialRouteDock);header?.removeEventListener('public-space-locale',localeEvent);sky?.dispose();model.dispose();shell.remove();header?.remove();terms.dispose();}};
 }

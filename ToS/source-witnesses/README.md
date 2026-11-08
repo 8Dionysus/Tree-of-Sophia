@@ -340,6 +340,20 @@ require separately grounded records. An artifact with no honest
 backlog anchor remains unplanted rather than borrowing a neighboring source's
 identity.
 
+A visual representation under
+[`artifact-visual-representation-v2`](../contracts/artifact-visual-representation-v2.schema.json)
+takes one of two forms. The file form retains exact bytes as v1 does. The
+image-service form records a provider's IIIF Image API service as it was
+observed: its address, the full dimensions it serves, its tiles and size limits,
+and the exact fingerprint of its `info.json`. The image stays with the provider
+and is read through the service at every detail it offers; the representation's
+identity is the SHA-256 of the service address. Existing v1 records keep their
+contract. The foundation check reads both v2 forms: a file representation as v1,
+and an image-service representation with a content-addressed identity, rights
+scoped to the Artifact and the service at `public_metadata_only` with an
+authorized redistribution posture, and a provenance event that closes over the
+record and its rights.
+
 Modern scholarly composites use the parallel `scholarly-composites/` spine.
 Their path follows composition and tradition rather than a current corpus or
 database. A composite identity may gather physical or textual member
@@ -685,6 +699,85 @@ explicit payload roots and manifest/inventory selectors. The Rust owner checks
 fixity, no-follow path custody and no-clobber publication, then writes an
 immutable metadata-only receipt; it does not change rights, source assessment or
 admission status.
+
+### Media bridges
+
+The `media` family of the same command reads one object from a museum provider
+and returns a [`media-provider-observation`](../contracts/media-provider-observation.schema.json)
+packet: every response it fetched with its size and SHA-256, the catalogue facts
+(identifiers, titles with their languages, makers with their authority URIs,
+dating, materials, dimensions, credit lines, depicted subjects), the rights
+statements exactly as the provider gives them with the response they were read
+from, and the images the provider serves. An IIIF image is described by its
+service's `info.json` in the shape of the v2 image-service form, so a later
+acquisition takes it over unchanged. The bridge writes nothing; the packet is
+evidence for acquisition, and Artifact identity, attribution, dating, rights and
+publication keep their owners.
+
+```json
+{"family":"media","operation":"media.observe","repo_root":"/absolute/Tree-of-Sophia","provider":"rijksmuseum","object":"SK-C-5","max_requests":8}
+{"family":"media","operation":"media.observe","repo_root":"/absolute/Tree-of-Sophia","provider":"met","object":"438417","max_requests":8,"files":true}
+{"family":"media","operation":"media.observe","repo_root":"/absolute/Tree-of-Sophia","provider":"nga","object":"1942.9.1","max_requests":2,"dataset_root":"/absolute/opendata","dataset_commit":"<40-hex commit of that checkout>"}
+```
+
+| Provider | Object named by | Route | Images |
+| --- | --- | --- | --- |
+| `rijksmuseum` | object number, numeric id or `https://id.rijksmuseum.nl/…` URI | Linked Art records on `data.rijksmuseum.nl`: object, VisualItem (which carries the rights), DigitalObject | IIIF Image API 3 services on `iiif.micr.io`, observed through `info.json` |
+| `met` | numeric `objectID` | the Collection API record on `collectionapi.metmuseum.org`, with its `isPublicDomain` flag | image files on `images.metmuseum.org` named by the record, the primary one with its smaller copy (`primaryImageSmall`) |
+| `nga` | numeric `objectid` or accession number | the Gallery's open data release (CC0, [GitHub](https://github.com/NationalGalleryOfArt/opendata)) checked out at one commit: `objects.csv`, `published_images.csv` with its `openaccess` flag, `objects_dimensions.csv` | the primary view's IIIF Image API 2 service on `api.nga.gov`, observed through `info.json` |
+
+`media.describe` lists the providers and their hosts. Each bridge reads over
+HTTPS from its own hosts only. The native transport refuses redirects. Every
+response stays within the deployment profile's acquisition record limit
+(`admission.acquisition.max_record_bytes`), and an observation makes at most
+the `max_requests` provider requests its request states: the Night Watch takes
+five. The bridge refuses a record that describes another object than the one
+asked for. The Rijksmuseum search matches
+object numbers partially; the bridge takes a single match only when the record
+carries the asked number exactly, and otherwise asks for the object's URI. With
+`"fetch_callback": true` the command asks its caller for each URL over the wire,
+for an operator who fetches through their own transport. With `"files": true` the
+bridge also reads the primary image's file and its smaller copy, each within the
+same record limit and request budget, and records for each its size, SHA-256,
+and the media type and pixel size its own header states: a stand that keeps a
+copy of those files can show it holds exactly the bytes observed. The National
+Gallery of Art serves no records to automated readers and publishes them as a
+daily release instead: its bridge reads the object's rows from a checkout the
+operator names with `dataset_root` and `dataset_commit`, refuses a checkout at
+another commit or with changed data, and lists each file it read under
+`datasets` with the commit, its raw URL, size and SHA-256; that objects table
+is the record an Artifact rests on. Fixtures in
+[`examples/`](../contracts/examples/) hold one observation from each provider and
+a v2 image-service representation built from the Rijksmuseum one.
+
+An observation enters the Tree along the Artifact route, with three owners in
+turn:
+
+1. `media.prepare-artifact` writes the evidence the Artifact rests on: the
+   observation itself under `ToS/research-packets/media-observations/`, an
+   artifact-targeted discovery run with one channel per provider response,
+   metadata-only rights beside the future Artifact, and their discovery
+   provenance event. It returns the `native-artifact-create` request (the v2
+   record, its name and source-note form selections and the exact source
+   bindings) and the derived part of the owner configuration. Before writing
+   it checks the record against its contract and runs the native form
+   preparation, so the request carries a ready name form.
+2. The operator creates the Artifact with that request under their owner
+   configuration (`source-commands`, handler `native-artifact-create`), which
+   writes the Artifact, its human forms and its creation evidence.
+3. `media.plant-representation` writes one image-service representation of
+   that Artifact, the rights record of the operator's assessment and their
+   acquisition provenance event. The assessment arrives in the request with its
+   rationale; the bridge adds the provider's statements as evidence and refuses
+   a redistribution posture that does not permit showing the image.
+
+```json
+{"family":"media","operation":"media.prepare-artifact","repo_root":"/absolute/Tree-of-Sophia","observation":{"…":"the media.observe packet"},"artifact_path":"dutch-painting/amsterdam/rijksmuseum-sk-c-5","owner":{"maker_type":"model","principal_id":"agent:…","provenance_event_id":"tos.event.creation.…"},"purpose":"why this object enters the Tree"}
+{"family":"media","operation":"media.plant-representation","repo_root":"/absolute/Tree-of-Sophia","observation":{"…":"the same packet"},"artifact_path":"dutch-painting/amsterdam/rijksmuseum-sk-c-5","view":"whole-iiif-service","operator_authorization_ref":"operator-directive:…","maker":{"maker_type":"model","agent_ref":"agent:…"},"rights":{"assessment_status":"public_domain_reviewed","rights_statement_uri":"https://creativecommons.org/publicdomain/mark/1.0/","license_uri":null,"jurisdictions_reviewed":["NL","US"],"permissions":["…"],"restrictions":["…"],"redistribution_posture":"authorized","derivative_posture":"allowed","assessed_by":{"maker_type":"model","agent_ref":"agent:…"},"rationale":"…"}}
+```
+
+Both operations write only new records and append their event last. A file
+image, such as the Met's, waits for the payload route.
 The bounded `plain_utf8_file_v1` profile adds one inert complete plain-text or
 Markdown file: exact raw-byte extent/fixity and UTF-8/BOM, code-point, newline
 and observed Unicode-form facts only. It neither rewrites bytes nor interprets

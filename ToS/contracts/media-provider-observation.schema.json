@@ -1,0 +1,301 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/media-provider-observation.schema.json",
+  "title": "Tree of Sophia media provider observation",
+  "description": "What one media bridge read from one provider about one object: every response it fetched with its fingerprint, the catalogue facts and rights statements in the provider's own terms, and the images the provider serves, each IIIF service with the dimensions and limits its info.json states. The observation is evidence for a later acquisition; identity, attribution, dating, rights and publication keep their own owners.",
+  "type": "object",
+  "additionalProperties": false,
+  "anyOf": [
+    {"properties": {"requests": {"minItems": 1}}},
+    {"required": ["datasets"]}
+  ],
+  "required": [
+    "$schema",
+    "schema_version",
+    "provider",
+    "requested_object",
+    "observed_at",
+    "requests",
+    "object",
+    "rights",
+    "images",
+    "warnings",
+    "authority",
+    "maker"
+  ],
+  "properties": {
+    "$schema": {"const": "https://tree-of-sophia.local/ToS/contracts/media-provider-observation.schema.json"},
+    "schema_version": {"const": "tos_media_provider_observation_v1"},
+    "provider": {"enum": ["rijksmuseum", "met", "nga"]},
+    "requested_object": {"type": "string", "minLength": 1, "maxLength": 512},
+    "observed_at": {"type": "string", "format": "date-time"},
+    "requests": {"type": "array", "items": {"$ref": "#/$defs/request"}},
+    "object": {"$ref": "#/$defs/object"},
+    "rights": {"type": "array", "items": {"$ref": "#/$defs/rightsStatement"}},
+    "images": {"type": "array", "items": {"$ref": "#/$defs/image"}},
+    "warnings": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "datasets": {
+      "description": "Published dataset files the record was read from, where a provider publishes its records as a release rather than serving them one by one (the National Gallery of Art's open data): each file at one commit, with its raw URL, size and SHA-256.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["repository", "commit", "path", "url", "byte_size", "sha256"],
+        "properties": {
+          "repository": {"$ref": "#/$defs/httpsUri"},
+          "commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+          "path": {"type": "string", "minLength": 1},
+          "url": {"$ref": "#/$defs/httpsUri"},
+          "byte_size": {"type": "integer", "minimum": 1},
+          "sha256": {"$ref": "#/$defs/sha256"}
+        }
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_status",
+        "review_status",
+        "identity_admitted",
+        "rights_decided",
+        "source_text_admitted",
+        "semantic_authority",
+        "graph_authority",
+        "canon_authority",
+        "publication_authority"
+      ],
+      "properties": {
+        "evidence_status": {"const": "provider_observation"},
+        "review_status": {"const": "unreviewed"},
+        "identity_admitted": {"const": false},
+        "rights_decided": {"const": false},
+        "source_text_admitted": {"const": false},
+        "semantic_authority": {"const": false},
+        "graph_authority": {"const": false},
+        "canon_authority": {"const": false},
+        "publication_authority": {"const": false}
+      }
+    },
+    "maker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maker_type", "agent_ref"],
+      "properties": {
+        "maker_type": {"const": "software"},
+        "agent_ref": {"type": "string", "minLength": 1}
+      }
+    }
+  },
+  "$defs": {
+    "httpsUri": {"type": "string", "format": "uri", "pattern": "^https://[^/@:\\s]+(?:/[^\\s]*)?$"},
+    "uri": {"type": "string", "format": "uri", "pattern": "^https?://\\S+$"},
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "url", "final_url", "http_status", "media_type", "byte_size", "sha256", "started_at", "elapsed_seconds"],
+      "properties": {
+        "role": {"enum": ["search", "object-record", "visual-item-record", "digital-object-record", "image-service-info", "image-preview", "image-file"]},
+        "url": {"$ref": "#/$defs/httpsUri"},
+        "final_url": {"$ref": "#/$defs/httpsUri"},
+        "http_status": {"const": 200},
+        "media_type": {"type": ["string", "null"], "minLength": 1},
+        "byte_size": {"type": "integer", "minimum": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "started_at": {"type": "string", "format": "date-time"},
+        "elapsed_seconds": {"type": "number", "minimum": 0}
+      }
+    },
+    "languageText": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "language", "language_uri"],
+      "properties": {
+        "text": {"type": "string", "minLength": 1},
+        "language": {"type": ["string", "null"], "pattern": "^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$"},
+        "language_uri": {"oneOf": [{"$ref": "#/$defs/uri"}, {"type": "null"}]}
+      }
+    },
+    "agentReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "role", "provider_uri", "authority_uris"],
+      "properties": {
+        "label": {"type": ["string", "null"], "minLength": 1},
+        "role": {"type": ["string", "null"], "minLength": 1},
+        "provider_uri": {"oneOf": [{"$ref": "#/$defs/uri"}, {"type": "null"}]},
+        "authority_uris": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/uri"}}
+      }
+    },
+    "object": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider_object_uri",
+        "record_url",
+        "api_url",
+        "identifiers",
+        "titles",
+        "makers",
+        "production_statements",
+        "dating",
+        "classifications",
+        "materials",
+        "dimensions",
+        "credit_lines",
+        "repository",
+        "depicted",
+        "visual_item_uri"
+      ],
+      "properties": {
+        "provider_object_uri": {"$ref": "#/$defs/uri"},
+        "record_url": {"$ref": "#/$defs/uri"},
+        "api_url": {"oneOf": [{"$ref": "#/$defs/httpsUri"}, {"type": "null"}]},
+        "identifiers": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["scheme", "value"],
+            "properties": {
+              "scheme": {"type": "string", "minLength": 1},
+              "value": {"type": "string", "minLength": 1}
+            }
+          }
+        },
+        "titles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["text", "language", "language_uri", "role"],
+            "properties": {
+              "text": {"type": "string", "minLength": 1},
+              "language": {"type": ["string", "null"], "pattern": "^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$"},
+              "language_uri": {"oneOf": [{"$ref": "#/$defs/uri"}, {"type": "null"}]},
+              "role": {"type": ["string", "null"], "minLength": 1}
+            }
+          }
+        },
+        "makers": {"type": "array", "items": {"$ref": "#/$defs/agentReference"}},
+        "production_statements": {"type": "array", "items": {"$ref": "#/$defs/languageText"}},
+        "dating": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["statement", "begin_year", "end_year"],
+          "properties": {
+            "statement": {"type": ["string", "null"], "minLength": 1},
+            "begin_year": {"type": ["integer", "null"]},
+            "end_year": {"type": ["integer", "null"]}
+          }
+        },
+        "classifications": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "materials": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "dimensions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "value", "unit", "unit_uri", "statement"],
+            "properties": {
+              "kind": {"type": ["string", "null"], "minLength": 1},
+              "value": {"type": ["string", "null"], "pattern": "^-?[0-9]+(?:\\.[0-9]+)?$"},
+              "unit": {"type": ["string", "null"], "minLength": 1},
+              "unit_uri": {"oneOf": [{"$ref": "#/$defs/uri"}, {"type": "null"}]},
+              "statement": {"type": ["string", "null"], "minLength": 1}
+            }
+          }
+        },
+        "credit_lines": {"type": "array", "items": {"$ref": "#/$defs/languageText"}},
+        "repository": {"type": ["string", "null"], "minLength": 1},
+        "depicted": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["label", "kind", "provider_uri", "authority_uris"],
+            "properties": {
+              "label": {"type": ["string", "null"], "minLength": 1},
+              "kind": {"type": ["string", "null"], "minLength": 1},
+              "provider_uri": {"oneOf": [{"$ref": "#/$defs/uri"}, {"type": "null"}]},
+              "authority_uris": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/uri"}}
+            }
+          }
+        },
+        "visual_item_uri": {"oneOf": [{"$ref": "#/$defs/uri"}, {"type": "null"}]}
+      }
+    },
+    "rightsStatement": {
+      "description": "One rights statement exactly as the provider gave it, with the response it was read from. The Tree's rights owner decides what it permits.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope", "provider_field", "value", "statement_uri", "label", "stated_in"],
+      "properties": {
+        "scope": {"enum": ["image", "object"]},
+        "provider_field": {"type": "string", "minLength": 1},
+        "value": {"type": "string", "minLength": 1},
+        "statement_uri": {"oneOf": [{"$ref": "#/$defs/uri"}, {"type": "null"}]},
+        "label": {"type": ["string", "null"], "minLength": 1},
+        "stated_in": {"$ref": "#/$defs/httpsUri"}
+      }
+    },
+    "fileFingerprint": {
+      "description": "One image file as the bridge read it: its address, its bytes' size and digest, and the media type and pixel size its own header states.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "final_url", "media_type", "byte_size", "sha256", "width_pixels", "height_pixels"],
+      "properties": {
+        "url": {"$ref": "#/$defs/httpsUri"},
+        "final_url": {"$ref": "#/$defs/httpsUri"},
+        "media_type": {"enum": ["image/jpeg", "image/png"]},
+        "byte_size": {"type": "integer", "minimum": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "width_pixels": {"type": "integer", "minimum": 1},
+        "height_pixels": {"type": "integer", "minimum": 1}
+      }
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "form", "access_url", "image_service", "file_url", "preview_url", "file_fingerprint", "preview_fingerprint"],
+      "properties": {
+        "role": {"enum": ["primary", "additional"]},
+        "form": {"enum": ["image_service", "file"]},
+        "rights_source": {"$ref": "#/$defs/httpsUri", "description": "VisualItem response from which this image inherits its scoped rights statements."},
+        "access_url": {"$ref": "#/$defs/httpsUri"},
+        "image_service": {
+          "oneOf": [
+            {"$ref": "https://tree-of-sophia.local/ToS/contracts/artifact-visual-representation-v2.schema.json#/$defs/imageService"},
+            {"type": "null"}
+          ]
+        },
+        "file_url": {"oneOf": [{"$ref": "#/$defs/httpsUri"}, {"type": "null"}]},
+        "preview_url": {
+          "description": "The provider's own smaller copy of a file image, such as the Met's primaryImageSmall; null where it names none.",
+          "oneOf": [{"$ref": "#/$defs/httpsUri"}, {"type": "null"}]
+        },
+        "file_fingerprint": {
+          "description": "The file as read when the observation asked for files; null where it was not read.",
+          "oneOf": [{"$ref": "#/$defs/fileFingerprint"}, {"type": "null"}]
+        },
+        "preview_fingerprint": {
+          "description": "The smaller copy as read when the observation asked for files; null where it was not read.",
+          "oneOf": [{"$ref": "#/$defs/fileFingerprint"}, {"type": "null"}]
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"form": {"const": "image_service"}}, "required": ["form"]},
+          "then": {"properties": {"image_service": {"type": "object"}, "file_url": {"type": "null"}, "preview_url": {"type": "null"}, "file_fingerprint": {"type": "null"}, "preview_fingerprint": {"type": "null"}}}
+        },
+        {
+          "if": {"properties": {"form": {"const": "file"}}, "required": ["form"]},
+          "then": {"properties": {"image_service": {"type": "null"}, "file_url": {"type": "string"}}}
+        }
+      ]
+    }
+  }
+}
