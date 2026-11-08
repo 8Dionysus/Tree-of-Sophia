@@ -65,11 +65,15 @@ export function chapterTitle(chapter,language){
 // What a reader sees of a text in a language: Russian printed before 1918 in today's spelling. The place is cut
 // from the source first, so citation offsets keep counting the source's own characters.
 const shownIn=(language,text)=>language==='ru'?modernRussian(text):text;
-function fragmentNodes(fragment,language){
+function fragmentNodes(fragment,language,chapterKey=null){
   const nodes=[];
   for(const unit of fragment.units){
     const text=shownIn(language,unit.text.slice(unit.from,unit.to).trim());
-    if(text)nodes.push(el('p',unit.kind==='v'?'ps-fragment-line is-verse':'ps-fragment-line',text));
+    if(!text)continue;
+    const node=el('p',unit.kind==='v'?'ps-fragment-line is-verse':'ps-fragment-line',text);
+    // The witness unit a line shows, so that a selected word finds its reading in the word layer.
+    if(chapterKey&&unit.id){node.dataset.chapter=chapterKey;node.dataset.unit=unit.id;node.dataset.offset=String(unit.from);}
+    nodes.push(node);
   }
   return nodes;
 }
@@ -206,7 +210,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
         const indexes=row[language]??[];
         if(!indexes.length){cell.classList.add('is-absent');if(language!=='de')hint?.(cell,words('fragmentOmitted'));}
         for(const index of indexes){
-          const unit=data.units[language][index],shown=displayText(unit.raw,unit.kind),p=el('p',unit.kind==='v'?'is-verse':'');
+          const unit=data.units[language][index],shown=displayText(unit.raw,unit.kind),p=el('p',unit.kind==='v'?'is-verse':'');p.dataset.chapter=key;p.dataset.unit=unit.id;p.dataset.offset='0';
           const span=cited.get(`${language}:${index}`);
           if(span&&span[1]>span[0]){p.append(shownIn(language,shown.text.slice(0,span[0])));const mark=el('mark','',shownIn(language,shown.text.slice(span[0],span[1])));p.append(mark,shownIn(language,shown.text.slice(span[1])));line.classList.add('is-cited');first??=line;}
           else p.textContent=shownIn(language,shown.text);
@@ -261,7 +265,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       for(const language of showing){
         const fragment=fragmentOf(cite,data,language);if(!fragment)continue;
         const quote=el('blockquote','ps-fragment-text');quote.lang=language;
-        const {nodes}=clip(fragmentNodes(fragment,language));quote.append(...nodes);
+        const {nodes}=clip(fragmentNodes(fragment,language,cite.c));quote.append(...nodes);
         const caption=el('figcaption','ps-fragment-cite');caption.append(el('span','ps-fragment-source',captionFor(data,language,info)));
         figure.append(quote,caption);
       }

@@ -1,0 +1,4 @@
+# The word layer's runtime (annotate.py). lexicon.py and origins.py need only Python 3.
+# Install into an environment outside the checkout; torch from the CPU index:
+#   pip install --index-url https://download.pytorch.org/whl/cpu torch==2.15.0
+stanza==1.15.0

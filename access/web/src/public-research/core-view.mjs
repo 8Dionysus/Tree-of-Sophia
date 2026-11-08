@@ -2,6 +2,7 @@ import {keepQuotesOnce} from './quote-once.mjs';
 import {localeText,localeValue,resolveLocale,shownLanguages} from './locale.mjs';
 import {chapterTitle} from './fragments.mjs';
 import witnessManifest from '../../../../bonsai/zarathustra/witnesses.json' with {type:'json'};
+import {conceptRenderings,renderRenderings,translationLanguage} from './renderings-view.mjs';
 import './kernel-cards.css';
 
 // A place of the book is named by its chapter, as the reader's edition titles it.
@@ -16,7 +17,7 @@ function chapterName(key,locale){
 const words={
   route:['Исследовательский маршрут','Research route','Ruta de investigación','Forschungsweg','研究路线'],states:['Состояния','States','Estados','Zustände','状态'],transitions:['Переходы','Transitions','Transiciones','Übergänge','过渡'],retiredTransitions:['Прежние переходы','Earlier transitions','Transiciones anteriores','Frühere Übergänge','先前过渡'],
   'source-visible-stand-proposal':['Прочтение Древа','The Tree’s reading','Lectura del Árbol','Lesart des Baumes','智慧之树的解读'],
-  essence:['Суть','Essence','Esencia','Wesen','本质'],development:['Развитие','Development','Desarrollo','Entwicklung','发展'],dimensions:['Измерения','Dimensions','Dimensiones','Dimensionen','维度'],links:['Связи','Links','Vínculos','Verbindungen','联系'],witnesses:['Свидетельства','Witnesses','Testimonios','Zeugnisse','文本见证'],
+  essence:['Суть','Essence','Esencia','Wesen','本质'],development:['Развитие','Development','Desarrollo','Entwicklung','发展'],dimensions:['Измерения','Dimensions','Dimensiones','Dimensionen','维度'],links:['Связи','Links','Vínculos','Verbindungen','联系'],witnesses:['Свидетельства','Witnesses','Testimonios','Zeugnisse','文本见证'],translations:['Переводы','Translations','Traducciones','Übersetzungen','译本'],
   thesis:['Тезис','Thesis','Tesis','These','论点'],question:['Вопрос','Question','Pregunta','Frage','问题'],answer:['Ответ','Answer','Respuesta','Antwort','回答'],grounds:['Основания','Grounds','Fundamentos','Grundlagen','依据'],consequences:['Следствия','Consequences','Consecuencias','Folgen','后果'],function:['Роль в книге','Role in the book','Papel en el libro','Rolle im Buch','在书中的作用'],
   emergence:['Возникновение','Emergence','Aparición','Entstehung','出现'],movement:['Движение','Movement','Movimiento','Bewegung','演变'],transformation:['Преображение','Transformation','Transformación','Verwandlung','转变'],
   counter:['Другой голос','Another voice','Otra voz','Eine andere Stimme','另一种声音'],reply:['Ответ этому голосу','Reply to this voice','Respuesta a esta voz','Antwort auf diese Stimme','回应'],path:['Путь связи','Path of the link','Camino del vínculo','Weg der Verbindung','联系路径'],review:['Проверка и происхождение','Review and provenance','Revisión y procedencia','Prüfung und Herkunft','审核与来源'],original:['Первоначальное предложение','Original proposal','Propuesta original','Ursprünglicher Vorschlag','原始提议'],
@@ -48,7 +49,7 @@ const occurrenceFiles=import.meta.glob('../../../../bonsai/zarathustra/core/occu
 const HERE={speaks:'hereSpeaks',acts:'hereActs','spoken-of':'hereSpokenOf',addressed:'hereAddressed'};
 
 /** Every quoted word is rendered by the existing aligned-witness reader. */
-export function createCoreView({core,locale,fragments,signOf,hint,onNode,onRoute,onRelation,onAction,book=false}){
+export function createCoreView({core,renderings=null,locale,fragments,signOf,hint,onNode,onRoute,onRelation,onAction,book=false}){
   let serial=0;
   const tr=value=>localeValue(value,locale());
   const t=key=>words[key]?.[Math.max(0,langs.indexOf(resolveLocale(locale())))]??key;
@@ -101,6 +102,11 @@ export function createCoreView({core,locale,fragments,signOf,hint,onNode,onRoute
     const anchors=new Set(item.cite?.u??[]);
     const segments=(core.voices?.[item.cite?.c]??[]).filter(segment=>segment.voice_descriptor&&segment.u?.some(unit=>anchors.has(unit))&&(segment.speaker===record.id||segment.addressee===record.id||segment.actors?.includes(record.id)));
     for(const segment of segments)voiceDescriptor(parent,segment.voice_descriptor);
+  }
+  // How the translation the reader reads renders the node's term, place by place.
+  function translations(parent,record){
+    const language=translationLanguage(locale());
+    for(const entry of conceptRenderings(renderings,record.id))renderRenderings(parent,entry,{language,locale:locale(),fragment:cite=>fragments.fragment(cite)});
   }
   function relationFamily(parent,record){
     const family=record.relation_family;if(!family)return;
@@ -319,6 +325,7 @@ export function createCoreView({core,locale,fragments,signOf,hint,onNode,onRoute
       });
     }
     if(key==='witnesses')witnesses(body,record);
+    if(key==='translations')translations(body,record);
   }
   // A part of the card speaks only when it has something to say: an empty part is left out, its tab and its heading too.
   const filledKeys=(keys,record,id,lead)=>keys.filter(key=>{if(key==='essence')return true;const probe=el('div');sections(probe,key,record,id,lead);return probe.childElementCount>0;});
@@ -345,7 +352,7 @@ export function createCoreView({core,locale,fragments,signOf,hint,onNode,onRoute
     if(record.reading?.reading||record.reading?.ru||record.reading?.en){status(kindLine,'familyStatus');status(kindLine,record.reading.independent_review?.verdict??record.independent_review?.verdict);}
     else if(!record.conception&&!record.essence&&!record.chainId)status(kindLine,'held');
     else status(kindLine,essence.thesis?.status??essence.formula?.status??record.status);
-    const keys=['essence','development','dimensions','links','witnesses'];let showLinks;
+    const keys=['essence','development','dimensions','links','witnesses','translations'];let showLinks;
     actions(root,record,'node',reference?null:()=>showLinks?.(),{bench});
     formula(root,essence.formula??essence.formulas?.[0],tr(short));
     if(reference||bench){

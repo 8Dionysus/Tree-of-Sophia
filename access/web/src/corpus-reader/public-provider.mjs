@@ -7,6 +7,7 @@ import {corpusWorkTitle} from '../observatory/human-presentation.mjs';
 import {editorialKindForMatch} from './editorial.mjs';
 import bonsaiWitnesses from '../../../../bonsai/zarathustra/witnesses.json';
 import {bonsaiCorrespondences} from './bonsai-correspondence.mjs';
+import {bonsaiWords} from './bonsai-words.mjs';
 
 // A delivery adapter for an explicitly selected, immutable public export.
 // Source identities, order, rights, wording and structure come from the native
@@ -283,6 +284,11 @@ export function createPublicCorpusProvider({baseUrl='/static/public-corpus/',pro
       }});
       mappingFields={mappings,mappingStatus:mappings.length?'available':'none'};
     }
+    // The stand's word layer reads the word in its sentence; it is absent where the unit differs from its witness.
+    let context=null;
+    try { context=await bonsaiWords({version,reference:checked,unitText:unit.text}); }
+    catch(error) { if(signal?.aborted)throw error; }
+    if(context)mappingFields={...mappingFields,context};
     if(version.analysis){
       const key=version.analysis.sha256;let data=cacheGet(analyses,key);
       if(!data){data=await read(version.analysis.path,version.analysis,INDEX_BYTES,signal);if(data.schema_version!=='tos_public_morphology_candidates_v1'||data.textLayerSha256!==version.revision||data.language!==language||!object(data.forms))fail('invalid_response','The analysis carrier does not match the source.');cacheSet(analyses,key,data,2);}

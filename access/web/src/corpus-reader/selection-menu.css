@@ -1,0 +1,43 @@
+.tos-selection-menu{position:fixed;z-index:2147483000;display:flex;gap:4px;padding:4px;border:1px solid var(--cr-rule,#3a3a44);border-radius:9px;
+  background:var(--cr-panel,#16161c);box-shadow:0 6px 22px #0007;font:12px/1.2 system-ui,sans-serif;animation:tos-selection-menu-in .14s ease-out}
+.tos-selection-menu[hidden],.tos-selection-menu-action[hidden]{display:none}
+.tos-selection-menu-action{border:0;border-radius:6px;padding:6px 10px;background:transparent;color:var(--cr-accent,#e2c27a);cursor:pointer;font:inherit}
+.tos-selection-menu-action:hover,.tos-selection-menu-action:focus-visible{background:var(--cr-rule,#2a2a33);outline:none}
+@keyframes tos-selection-menu-in{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.tos-selection-menu{animation:none}}
+
+.cr-word-context-word{margin:9px 0;padding:11px 12px;border:1px solid var(--cr-rule);border-radius:8px;background:var(--cr-panel-soft)}
+.cr-word-context-word p{margin:5px 0!important;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+.cr-word-context-lemma strong{font:18px/1.4 Georgia,serif;color:var(--cr-ink)}
+.cr-word-origin-open,.cr-origin-open{margin-top:6px;border:1px solid var(--cr-rule);border-radius:6px;padding:4px 9px;background:transparent;color:var(--cr-accent);font-size:11px;cursor:pointer}
+
+/* The origin sheet of a stand takes the reader's palette. */
+.ps-origin-sheet{--cr-bg:#10131b;--cr-panel:#171b24;--cr-panel-soft:#1d222d;--cr-ink:#ece5d8;--cr-muted:#a7a79e;--cr-rule:#ffffff18;--cr-accent:#d5b77b;
+  width:min(560px,calc(100vw - 24px));max-height:min(86vh,900px);padding:0;border:1px solid #d6bd8d35;border-radius:16px;background:var(--cr-panel);
+  color:var(--cr-ink);box-shadow:0 30px 120px #000b;color-scheme:dark;font:14px/1.5 system-ui,sans-serif;overflow:hidden}
+.ps-origin-sheet[open]{display:flex;flex-direction:column}
+.ps-origin-sheet::backdrop{background:#0008}
+.ps-origin-sheet a{color:var(--cr-accent)}
+.ps-origin-sheet h2,.ps-origin-sheet h3,.ps-origin-sheet p{margin:0}
+.ps-origin-close{align-self:flex-end;margin:8px 10px 0;border:0;border-radius:7px;background:transparent;color:var(--cr-muted);font-size:22px;cursor:pointer;padding:2px 10px}
+.ps-origin-body{overflow:auto;padding:4px 22px 22px}
+
+/* The inspector's tabs wrap rather than hide one when the reader adds the origin. */
+.cr-inspector-tabs{flex-wrap:wrap}
+.cr-inspector-tabs .cr-tab{flex:1 1 auto;padding-inline:8px}
+
+/* The descent of a word: oldest form at the top, the word of the book at the foot. */
+.cr-origin-word{margin:14px 0 18px}
+.cr-origin-heading{margin:0 0 8px!important;font:13px/1.5 system-ui,sans-serif;color:var(--cr-accent)}
+.cr-origin-descent{position:relative;margin:4px 0 10px;padding:0;list-style:none}
+.cr-origin-descent::before{content:'';position:absolute;inset-block:10px 10px;inset-inline-start:5px;border-inline-start:1px solid var(--cr-rule)}
+.cr-origin-step{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:5px 0 5px 20px}
+.cr-origin-step::before{content:'';position:absolute;inset-inline-start:2px;top:12px;width:7px;height:7px;border-radius:50%;background:var(--cr-muted)}
+.cr-origin-step:last-child::before{background:var(--cr-accent)}
+.cr-origin-language{color:var(--cr-muted);font-size:11px}
+.cr-origin-form{grid-column:1/-1;font:17px/1.4 Georgia,serif;color:var(--cr-ink)}
+.cr-origin-step:last-child .cr-origin-form{color:var(--cr-accent)}
+.cr-origin-relation{grid-row:1;grid-column:2;color:var(--cr-accent);font-size:11px}
+.cr-origin-line{margin:6px 0!important;font-size:13px;line-height:1.65}
+.cr-origin-line em{font-style:normal;font-family:Georgia,serif;color:var(--cr-ink)}
+.cr-origin-first{margin-top:16px!important;font-size:12px;color:var(--cr-muted)}

@@ -1,0 +1,8 @@
+# The word layer lives in R2; layers.json is its digest manifest.
+# `node bonsai/lib/layers.mjs fetch bonsai/zarathustra` brings these files into a checkout.
+/origins.json
+/origins/
+/renderings.json
+/spelling.json
+/tokens.json
+/tokens/
