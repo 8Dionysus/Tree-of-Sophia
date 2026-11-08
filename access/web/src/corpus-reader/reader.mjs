@@ -864,7 +864,9 @@ export function mountCorpusReader({
 
   // Another edition opens where the reader is: at the selected unit, else at the first unit in view, carried
   // over as finely as the Tree aligns the two editions (edition-place.mjs); with no such place, at its beginning.
+  let editionSwitch = 0;
   async function switchEdition(version) {
+    const ticket = ++editionSwitch;
     const state = modelState(), document = state.document, from = activeVersion(state.activeVersionId);
     if (!document || !from || from.id === version.id) return openVersion(document?.id, version.id);
     const pane = [...root.querySelectorAll('.cr-pane')].find(item => item.dataset.versionId === from.id);
@@ -876,7 +878,9 @@ export function mountCorpusReader({
       try { place = await provider.place({documentId:document.id, versionId:from.id, targetVersionId:version.id, unitId}); answered = true; }
       catch { place = null; }
     }
-    if (disposed) return null;
+    // A later choice of edition, or another work opened meanwhile, supersedes this one.
+    const now = modelState();
+    if (disposed || ticket !== editionSwitch || now.document?.id !== document.id || now.activeVersionId !== state.activeVersionId) return null;
     const result = await openVersion(document.id, version.id, place?.unitId ?? null);
     if (answered && !place) announce(t('noCounterpart'));
     return result;
