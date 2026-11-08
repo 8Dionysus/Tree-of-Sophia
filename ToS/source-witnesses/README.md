@@ -716,13 +716,13 @@ publication keep their owners.
 
 ```json
 {"family":"media","operation":"media.observe","repo_root":"/absolute/Tree-of-Sophia","provider":"rijksmuseum","object":"SK-C-5","max_requests":8}
-{"family":"media","operation":"media.observe","repo_root":"/absolute/Tree-of-Sophia","provider":"met","object":"438417","max_requests":8}
+{"family":"media","operation":"media.observe","repo_root":"/absolute/Tree-of-Sophia","provider":"met","object":"438417","max_requests":8,"files":true}
 ```
 
 | Provider | Object named by | Route | Images |
 | --- | --- | --- | --- |
 | `rijksmuseum` | object number, numeric id or `https://id.rijksmuseum.nl/…` URI | Linked Art records on `data.rijksmuseum.nl`: object, VisualItem (which carries the rights), DigitalObject | IIIF Image API 3 services on `iiif.micr.io`, observed through `info.json` |
-| `met` | numeric `objectID` | the Collection API record on `collectionapi.metmuseum.org`, with its `isPublicDomain` flag | image files named by the record |
+| `met` | numeric `objectID` | the Collection API record on `collectionapi.metmuseum.org`, with its `isPublicDomain` flag | image files on `images.metmuseum.org` named by the record, the primary one with its smaller copy (`primaryImageSmall`) |
 
 `media.describe` lists the providers and their hosts. Each bridge reads over
 HTTPS from its own hosts only and follows redirects only within them. Every
@@ -734,7 +734,11 @@ asked for. The Rijksmuseum search matches
 object numbers partially; the bridge takes a single match only when the record
 carries the asked number exactly, and otherwise asks for the object's URI. With
 `"fetch_callback": true` the command asks its caller for each URL over the wire,
-for an operator who fetches through their own transport. Fixtures in
+for an operator who fetches through their own transport. With `"files": true` the
+bridge also reads the primary image's file and its smaller copy, each within the
+same record limit and request budget, and records for each its size, SHA-256,
+and the media type and pixel size its own header states: a stand that keeps a
+copy of those files can show it holds exactly the bytes observed. Fixtures in
 [`examples/`](../contracts/examples/) hold one observation from each provider and
 a v2 image-service representation built from the Rijksmuseum one.
 

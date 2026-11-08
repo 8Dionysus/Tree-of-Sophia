@@ -25,15 +25,20 @@ const IIIF_IMAGE_3: &str = "http://iiif.io/api/image/3/context.json";
 struct Provider {
     id: &'static str,
     hosts: &'static [&'static str],
+    /// Hosts the provider serves its image files from, read only when an
+    /// observation asks for the files themselves.
+    file_hosts: &'static [&'static str],
 }
 
 const RIJKSMUSEUM: Provider = Provider {
     id: "rijksmuseum",
     hosts: &["data.rijksmuseum.nl", "iiif.micr.io"],
+    file_hosts: &[],
 };
 const MET: Provider = Provider {
     id: "met",
     hosts: &["collectionapi.metmuseum.org"],
+    file_hosts: &["images.metmuseum.org"],
 };
 const PROVIDERS: &[&Provider] = &[&RIJKSMUSEUM, &MET];
 
@@ -69,7 +74,7 @@ pub fn invoke(request: &Value) -> Result<Value> {
 fn describe() -> Value {
     let providers: Vec<Value> = PROVIDERS
         .iter()
-        .map(|provider| json!({"provider":provider.id,"hosts":provider.hosts}))
+        .map(|provider| json!({"provider":provider.id,"hosts":provider.hosts,"file_hosts":provider.file_hosts}))
         .collect();
     json!({
         "operations":["media.describe","media.observe","media.prepare-artifact","media.plant-representation"],
@@ -107,6 +112,13 @@ fn observe(request: &Value) -> Result<Value> {
         Some(Value::Bool(value)) => *value,
         Some(_) => return Err("fetch_callback must be a boolean".into()),
     };
+    // A primary image served as files is read whole when asked: the observation then fingerprints the
+    // provider's file and its smaller copy, so a stand that keeps them can show it holds the bytes observed.
+    let files = match request.get("files") {
+        None => false,
+        Some(Value::Bool(value)) => *value,
+        Some(_) => return Err("files must be a boolean".into()),
+    };
     let observed_at = utcnow()?;
     let mut observer = Observer {
         provider,
@@ -118,7 +130,7 @@ fn observe(request: &Value) -> Result<Value> {
     };
     let found = match provider.id {
         "rijksmuseum" => observe_rijksmuseum(&mut observer, object)?,
-        "met" => observe_met(&mut observer, object)?,
+        "met" => observe_met(&mut observer, object, files)?,
         _ => return Err("unsupported media provider".into()),
     };
     if found.images.is_empty() {
@@ -236,6 +248,78 @@ impl Observer {
             "elapsed_seconds":elapsed
         }));
         Ok((value, response.final_url))
+    }
+
+    /// One image file of the provider, fingerprinted: its bytes, digest, media type and pixel size.
+    fn file(&mut self, role: &str, url: &str) -> Result<Value> {
+        if self.requests.len() >= self.budget {
+            return Err(format!(
+                "the observation needs more than its {} requests; raise max_requests",
+                self.budget
+            ));
+        }
+        let file_host = |url: &str| {
+            https_host(url).is_some_and(|host| self.provider.file_hosts.contains(&host))
+        };
+        if !file_host(url) {
+            return Err(format!(
+                "{} bridge refuses a file outside its file hosts: {url}",
+                self.provider.id
+            ));
+        }
+        let started_at = utcnow()?;
+        let tick = Instant::now();
+        let response = if self.callback {
+            callback_fetch(url, self.limit)?
+        } else {
+            fetch(url, self.limit)?
+        };
+        let elapsed = tick.elapsed().as_secs_f64();
+        if response.status != 200 {
+            return Err(format!(
+                "{} answered HTTP {} for {url}",
+                self.provider.id, response.status
+            ));
+        }
+        if !file_host(&response.final_url) {
+            return Err(format!(
+                "{} redirected outside its file hosts: {}",
+                self.provider.id, response.final_url
+            ));
+        }
+        if response.body.is_empty() || response.body.len() > self.limit {
+            return Err(format!(
+                "{} file size is out of bounds: {url}",
+                self.provider.id
+            ));
+        }
+        let (media_type, width, height) = image_header(&response.body).ok_or_else(|| {
+            format!(
+                "{} file is not a JPEG or PNG image: {url}",
+                self.provider.id
+            )
+        })?;
+        let sha256 = Digest256::of_bytes(&response.body).to_hex();
+        self.requests.push(json!({
+            "role":role,
+            "url":url,
+            "final_url":response.final_url,
+            "http_status":200,
+            "media_type":response.media_type,
+            "byte_size":response.body.len(),
+            "sha256":sha256,
+            "started_at":started_at,
+            "elapsed_seconds":elapsed
+        }));
+        Ok(json!({
+            "url":url,
+            "final_url":response.final_url,
+            "media_type":media_type,
+            "byte_size":response.body.len(),
+            "sha256":sha256,
+            "width_pixels":width,
+            "height_pixels":height
+        }))
     }
 
     /// The service an IIIF image URL belongs to, observed through its info.json.
@@ -500,15 +584,11 @@ fn observe_rijksmuseum(observer: &mut Observer, object: &str) -> Result<Found> {
                 let image = match iiif_service_of(access_url) {
                     Some(service_id) => match observer.image_service(&service_id)? {
                         Some(service) => {
-                            json!({"form":"image_service","access_url":access_url,"image_service":service,"file_url":null})
+                            json!({"form":"image_service","access_url":access_url,"image_service":service,"file_url":null,"preview_url":null,"file_fingerprint":null,"preview_fingerprint":null})
                         }
-                        None => {
-                            json!({"form":"file","access_url":access_url,"image_service":null,"file_url":access_url})
-                        }
+                        None => file_image(access_url, None),
                     },
-                    None if https_host(access_url).is_some() => {
-                        json!({"form":"file","access_url":access_url,"image_service":null,"file_url":access_url})
-                    }
+                    None if https_host(access_url).is_some() => file_image(access_url, None),
                     None => {
                         observer.warnings.push(format!(
                             "access point is not an HTTPS image address: {access_url}"
@@ -607,7 +687,7 @@ fn rijks_data_url(uri: &str) -> Option<String> {
 // ---------------------------------------------------------------------------
 // The Met: the Collection API object record and its image files.
 
-fn observe_met(observer: &mut Observer, object: &str) -> Result<Found> {
+fn observe_met(observer: &mut Observer, object: &str, files: bool) -> Result<Found> {
     if !all_digits(object) {
         return Err(format!(
             "a Met object is named by its numeric objectID: {object}"
@@ -750,7 +830,23 @@ fn observe_met(observer: &mut Observer, object: &str) -> Result<Found> {
                 .push(format!("image address is not HTTPS: {url}"));
             continue;
         }
-        images.push(json!({"form":"file","access_url":url,"image_service":null,"file_url":url}));
+        images.push(file_image(&url, None));
+    }
+    // The Met names a smaller copy of its primary image; it belongs to the first file.
+    if let (Some(first), Some(small)) = (
+        images.first_mut(),
+        nonempty(&record, "primaryImageSmall").filter(|url| https_host(url).is_some()),
+    ) {
+        first["preview_url"] = Value::String(small.to_owned());
+    }
+    if files {
+        if let Some(first) = images.first_mut() {
+            if let Some(preview) = first["preview_url"].as_str().map(str::to_owned) {
+                first["preview_fingerprint"] = observer.file("image-preview", &preview)?;
+            }
+            let file = first["file_url"].as_str().unwrap_or_default().to_owned();
+            first["file_fingerprint"] = observer.file("image-file", &file)?;
+        }
     }
     assign_roles(&mut images);
 
@@ -1080,6 +1176,61 @@ fn push_unique(list: &mut Vec<Value>, value: Value) {
 
 fn all_digits(value: &str) -> bool {
     !value.is_empty() && value.bytes().all(|b| b.is_ascii_digit())
+}
+
+/// An image the provider serves as a file, its smaller copy and fingerprints not yet read.
+fn file_image(url: &str, preview: Option<&str>) -> Value {
+    json!({"form":"file","access_url":url,"image_service":null,"file_url":url,"preview_url":preview,"file_fingerprint":null,"preview_fingerprint":null})
+}
+
+/// The media type and pixel size a JPEG or PNG file states in its own header.
+fn image_header(bytes: &[u8]) -> Option<(&'static str, u64, u64)> {
+    if bytes.len() >= 24 && bytes.starts_with(b"\x89PNG\r\n\x1a\n") && &bytes[12..16] == b"IHDR" {
+        let read = |at: usize| {
+            u64::from(u32::from_be_bytes([
+                bytes[at],
+                bytes[at + 1],
+                bytes[at + 2],
+                bytes[at + 3],
+            ]))
+        };
+        let (width, height) = (read(16), read(20));
+        return (width > 0 && height > 0).then_some(("image/png", width, height));
+    }
+    if !bytes.starts_with(&[0xFF, 0xD8]) {
+        return None;
+    }
+    // Walk the JPEG segments to the first start-of-frame, which states the image's height and width.
+    let mut at = 2;
+    while at + 4 <= bytes.len() {
+        if bytes[at] != 0xFF {
+            return None;
+        }
+        let marker = bytes[at + 1];
+        if marker == 0xFF {
+            at += 1;
+            continue;
+        }
+        if matches!(marker, 0x01 | 0xD0..=0xD7) {
+            at += 2;
+            continue;
+        }
+        let length = usize::from(u16::from_be_bytes([bytes[at + 2], bytes[at + 3]]));
+        let frame = matches!(marker, 0xC0..=0xCF) && !matches!(marker, 0xC4 | 0xC8 | 0xCC);
+        if frame {
+            if at + 9 > bytes.len() || length < 7 {
+                return None;
+            }
+            let height = u64::from(u16::from_be_bytes([bytes[at + 5], bytes[at + 6]]));
+            let width = u64::from(u16::from_be_bytes([bytes[at + 7], bytes[at + 8]]));
+            return (width > 0 && height > 0).then_some(("image/jpeg", width, height));
+        }
+        if length < 2 {
+            return None;
+        }
+        at += 2 + length;
+    }
+    None
 }
 
 fn https_host(url: &str) -> Option<&str> {
@@ -1602,8 +1753,112 @@ mod tests {
         );
         assert_eq!(
             observation["images"],
-            json!([{"role":"primary","form":"file","access_url":"https://images.metmuseum.org/CRDImages/ep/original/DP-31997-001-NEW.jpg","image_service":null,"file_url":"https://images.metmuseum.org/CRDImages/ep/original/DP-31997-001-NEW.jpg"}])
+            json!([{"role":"primary","form":"file","access_url":"https://images.metmuseum.org/CRDImages/ep/original/DP-31997-001-NEW.jpg","image_service":null,"file_url":"https://images.metmuseum.org/CRDImages/ep/original/DP-31997-001-NEW.jpg","preview_url":null,"file_fingerprint":null,"preview_fingerprint":null}])
         );
+    }
+
+    /// A JPEG reduced to the segments its header walk reads: an APP0 segment, then a baseline frame.
+    fn tiny_jpeg(width: u16, height: u16) -> Vec<u8> {
+        let mut bytes = vec![0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10];
+        bytes.extend_from_slice(b"JFIF\0\x01\x01\0\0\x01\0\x01\0\0");
+        bytes.extend_from_slice(&[0xFF, 0xC0, 0x00, 0x11, 0x08]);
+        bytes.extend_from_slice(&height.to_be_bytes());
+        bytes.extend_from_slice(&width.to_be_bytes());
+        bytes.extend_from_slice(&[0x03, 1, 0x22, 0, 2, 0x11, 1, 3, 0x11, 1, 0xFF, 0xD9]);
+        bytes
+    }
+
+    #[test]
+    fn image_headers_state_type_and_pixel_size() {
+        assert_eq!(
+            image_header(&tiny_jpeg(4000, 3237)),
+            Some(("image/jpeg", 4000, 3237))
+        );
+        let mut png = b"\x89PNG\r\n\x1a\n\0\0\0\x0dIHDR".to_vec();
+        png.extend_from_slice(&1759u32.to_be_bytes());
+        png.extend_from_slice(&2160u32.to_be_bytes());
+        assert_eq!(image_header(&png), Some(("image/png", 1759, 2160)));
+        assert_eq!(image_header(b"<html>not an image</html>"), None);
+        assert_eq!(image_header(&[0xFF, 0xD8, 0xFF, 0xD9]), None);
+    }
+
+    #[test]
+    fn met_files_are_read_and_fingerprinted_when_asked() {
+        const RECORD: &str =
+            "https://collectionapi.metmuseum.org/public/collection/v1/objects/438417";
+        const FILE: &str =
+            "https://images.metmuseum.org/CRDImages/ep/original/DP-31997-001-NEW.jpg";
+        const SMALL: &str =
+            "https://images.metmuseum.org/CRDImages/ep/web-large/DP-31997-001-NEW.jpg";
+        let record = json!({
+            "objectID":438417,"isPublicDomain":true,"primaryImage":FILE,"primaryImageSmall":SMALL,
+            "additionalImages":[],"accessionNumber":"2000.51","title":"Two Men Contemplating the Moon",
+            "objectURL":"https://www.metmuseum.org/art/collection/search/438417"
+        });
+        let (file, small) = (tiny_jpeg(4000, 3237), tiny_jpeg(599, 485));
+        let serve = move |record: Value, file: Vec<u8>, small: Vec<u8>| {
+            TEST_FETCH.with(|fetch| {
+                *fetch.borrow_mut() = Some(Box::new(move |url: &str| {
+                    let body = match url {
+                        RECORD => serde_json::to_vec(&record).unwrap(),
+                        FILE => file.clone(),
+                        SMALL => small.clone(),
+                        _ => return Err(format!("unexpected fixture request: {url}")),
+                    };
+                    Ok(Response {
+                        status: 200,
+                        final_url: url.to_owned(),
+                        media_type: Some("image/jpeg".into()),
+                        body,
+                    })
+                }));
+            });
+        };
+        let mut request = json!({"operation":"media.observe","repo_root":repo_root(),"provider":"met","object":"438417","max_requests":8});
+
+        // Without `files`, the observation names the smaller copy and reads neither file.
+        serve(record.clone(), file.clone(), small.clone());
+        let light = invoke(&request);
+        TEST_FETCH.with(|fetch| *fetch.borrow_mut() = None);
+        let light = light.unwrap();
+        let image = &light["observation"]["images"][0];
+        assert_eq!(image["preview_url"], SMALL);
+        assert_eq!(image["file_fingerprint"], Value::Null);
+        assert_eq!(
+            light["observation"]["requests"].as_array().unwrap().len(),
+            1
+        );
+
+        request["files"] = json!(true);
+        serve(record.clone(), file.clone(), small.clone());
+        let full = invoke(&request);
+        TEST_FETCH.with(|fetch| *fetch.borrow_mut() = None);
+        let full = full.unwrap();
+        let image = &full["observation"]["images"][0];
+        assert_eq!(
+            image["file_fingerprint"],
+            json!({"url":FILE,"final_url":FILE,"media_type":"image/jpeg","byte_size":file.len(),"sha256":Digest256::of_bytes(&file).to_hex(),"width_pixels":4000,"height_pixels":3237})
+        );
+        assert_eq!(image["preview_fingerprint"]["width_pixels"], 599);
+        let roles: Vec<&str> = full["observation"]["requests"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|request| request["role"].as_str().unwrap())
+            .collect();
+        assert_eq!(roles, ["object-record", "image-preview", "image-file"]);
+
+        // A file the provider names on another host, or bytes that are no image, are refused.
+        let mut elsewhere = record.clone();
+        elsewhere["primaryImageSmall"] = json!("https://example.org/small.jpg");
+        serve(elsewhere, file.clone(), small.clone());
+        let error = invoke(&request);
+        TEST_FETCH.with(|fetch| *fetch.borrow_mut() = None);
+        assert!(error.unwrap_err().contains("outside its file hosts"));
+        serve(record, b"<html></html>".to_vec(), small);
+        let error = invoke(&request);
+        TEST_FETCH.with(|fetch| *fetch.borrow_mut() = None);
+        assert!(error.unwrap_err().contains("not a JPEG or PNG image"));
     }
 
     #[test]

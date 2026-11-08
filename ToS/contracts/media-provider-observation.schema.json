@@ -75,7 +75,7 @@
       "additionalProperties": false,
       "required": ["role", "url", "final_url", "http_status", "media_type", "byte_size", "sha256", "started_at", "elapsed_seconds"],
       "properties": {
-        "role": {"enum": ["search", "object-record", "visual-item-record", "digital-object-record", "image-service-info"]},
+        "role": {"enum": ["search", "object-record", "visual-item-record", "digital-object-record", "image-service-info", "image-preview", "image-file"]},
         "url": {"$ref": "#/$defs/httpsUri"},
         "final_url": {"$ref": "#/$defs/httpsUri"},
         "http_status": {"const": 200},
@@ -220,10 +220,25 @@
         "stated_in": {"$ref": "#/$defs/httpsUri"}
       }
     },
+    "fileFingerprint": {
+      "description": "One image file as the bridge read it: its address, its bytes' size and digest, and the media type and pixel size its own header states.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "final_url", "media_type", "byte_size", "sha256", "width_pixels", "height_pixels"],
+      "properties": {
+        "url": {"$ref": "#/$defs/httpsUri"},
+        "final_url": {"$ref": "#/$defs/httpsUri"},
+        "media_type": {"enum": ["image/jpeg", "image/png"]},
+        "byte_size": {"type": "integer", "minimum": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "width_pixels": {"type": "integer", "minimum": 1},
+        "height_pixels": {"type": "integer", "minimum": 1}
+      }
+    },
     "image": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["role", "form", "access_url", "image_service", "file_url"],
+      "required": ["role", "form", "access_url", "image_service", "file_url", "preview_url", "file_fingerprint", "preview_fingerprint"],
       "properties": {
         "role": {"enum": ["primary", "additional"]},
         "form": {"enum": ["image_service", "file"]},
@@ -234,12 +249,24 @@
             {"type": "null"}
           ]
         },
-        "file_url": {"oneOf": [{"$ref": "#/$defs/httpsUri"}, {"type": "null"}]}
+        "file_url": {"oneOf": [{"$ref": "#/$defs/httpsUri"}, {"type": "null"}]},
+        "preview_url": {
+          "description": "The provider's own smaller copy of a file image, such as the Met's primaryImageSmall; null where it names none.",
+          "oneOf": [{"$ref": "#/$defs/httpsUri"}, {"type": "null"}]
+        },
+        "file_fingerprint": {
+          "description": "The file as read when the observation asked for files; null where it was not read.",
+          "oneOf": [{"$ref": "#/$defs/fileFingerprint"}, {"type": "null"}]
+        },
+        "preview_fingerprint": {
+          "description": "The smaller copy as read when the observation asked for files; null where it was not read.",
+          "oneOf": [{"$ref": "#/$defs/fileFingerprint"}, {"type": "null"}]
+        }
       },
       "allOf": [
         {
           "if": {"properties": {"form": {"const": "image_service"}}, "required": ["form"]},
-          "then": {"properties": {"image_service": {"type": "object"}, "file_url": {"type": "null"}}}
+          "then": {"properties": {"image_service": {"type": "object"}, "file_url": {"type": "null"}, "preview_url": {"type": "null"}, "file_fingerprint": {"type": "null"}, "preview_fingerprint": {"type": "null"}}}
         },
         {
           "if": {"properties": {"form": {"const": "file"}}, "required": ["form"]},

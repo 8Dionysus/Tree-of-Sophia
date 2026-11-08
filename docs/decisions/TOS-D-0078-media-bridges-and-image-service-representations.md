@@ -52,7 +52,11 @@ fixtures pin its digest.
   and the record keeps exactly what was seen.
 
 The third option comes first. The second remains open for file-only providers
-such as the Met, whose image route serves files without an `info.json`.
+such as the Met, whose image route serves files without an `info.json` and
+without the CORS or resource-policy headers a cross-origin-isolated page needs.
+For them an observation reads the file and its smaller copy when asked
+(`"files": true`) and records each one's size, SHA-256, media type and pixel
+size, so a copy kept elsewhere is checked against the bytes observed.
 
 ## Rationale
 

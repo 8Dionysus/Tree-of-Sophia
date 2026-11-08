@@ -3,7 +3,7 @@
   "schema_version": "tos_media_provider_observation_v1",
   "provider": "met",
   "requested_object": "438417",
-  "observed_at": "2026-11-08T03:00:57.113365675Z",
+  "observed_at": "2026-11-08T06:21:22.262458018Z",
   "requests": [
     {
       "role": "object-record",
@@ -13,8 +13,30 @@
       "media_type": null,
       "byte_size": 2325,
       "sha256": "e193c2636da9fb5dd1ab0fbfac119d263c79c1f57992d3ff51b2e32366760165",
-      "started_at": "2026-11-08T03:00:57.113464655Z",
-      "elapsed_seconds": 0.379850601
+      "started_at": "2026-11-08T06:21:22.262730339Z",
+      "elapsed_seconds": 0.512681427
+    },
+    {
+      "role": "image-preview",
+      "url": "https://images.metmuseum.org/CRDImages/ep/web-large/DP-31997-001-NEW.jpg",
+      "final_url": "https://images.metmuseum.org/CRDImages/ep/web-large/DP-31997-001-NEW.jpg",
+      "http_status": 200,
+      "media_type": null,
+      "byte_size": 100691,
+      "sha256": "ef4f1dc729fc3d88464b31d36aa4a11dbd29b2ef82c062a91428fb649fde9363",
+      "started_at": "2026-11-08T06:21:22.776504219Z",
+      "elapsed_seconds": 0.235305145
+    },
+    {
+      "role": "image-file",
+      "url": "https://images.metmuseum.org/CRDImages/ep/original/DP-31997-001-NEW.jpg",
+      "final_url": "https://images.metmuseum.org/CRDImages/ep/original/DP-31997-001-NEW.jpg",
+      "http_status": 200,
+      "media_type": null,
+      "byte_size": 4542841,
+      "sha256": "1e7b7e24910662f12be1425adff9eb92d8cfc161036b24e5a52020be06801f1f",
+      "started_at": "2026-11-08T06:21:23.012058864Z",
+      "elapsed_seconds": 0.397710109
     }
   ],
   "object": {
@@ -145,7 +167,26 @@
       "form": "file",
       "access_url": "https://images.metmuseum.org/CRDImages/ep/original/DP-31997-001-NEW.jpg",
       "image_service": null,
-      "file_url": "https://images.metmuseum.org/CRDImages/ep/original/DP-31997-001-NEW.jpg"
+      "file_url": "https://images.metmuseum.org/CRDImages/ep/original/DP-31997-001-NEW.jpg",
+      "preview_url": "https://images.metmuseum.org/CRDImages/ep/web-large/DP-31997-001-NEW.jpg",
+      "file_fingerprint": {
+        "url": "https://images.metmuseum.org/CRDImages/ep/original/DP-31997-001-NEW.jpg",
+        "final_url": "https://images.metmuseum.org/CRDImages/ep/original/DP-31997-001-NEW.jpg",
+        "media_type": "image/jpeg",
+        "byte_size": 4542841,
+        "sha256": "1e7b7e24910662f12be1425adff9eb92d8cfc161036b24e5a52020be06801f1f",
+        "width_pixels": 4000,
+        "height_pixels": 3237
+      },
+      "preview_fingerprint": {
+        "url": "https://images.metmuseum.org/CRDImages/ep/web-large/DP-31997-001-NEW.jpg",
+        "final_url": "https://images.metmuseum.org/CRDImages/ep/web-large/DP-31997-001-NEW.jpg",
+        "media_type": "image/jpeg",
+        "byte_size": 100691,
+        "sha256": "ef4f1dc729fc3d88464b31d36aa4a11dbd29b2ef82c062a91428fb649fde9363",
+        "width_pixels": 599,
+        "height_pixels": 485
+      }
     }
   ],
   "warnings": [],
