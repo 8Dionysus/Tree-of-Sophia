@@ -15,6 +15,7 @@
 .ps-origin-sheet{--cr-bg:#10131b;--cr-panel:#171b24;--cr-panel-soft:#1d222d;--cr-ink:#ece5d8;--cr-muted:#a7a79e;--cr-rule:#ffffff18;--cr-accent:#d5b77b;
   width:min(560px,calc(100vw - 24px));max-height:min(86vh,900px);padding:0;border:1px solid #d6bd8d35;border-radius:16px;background:var(--cr-panel);
   color:var(--cr-ink);box-shadow:0 30px 120px #000b;color-scheme:dark;font:14px/1.5 system-ui,sans-serif;overflow:hidden}
+.ps-origin-sheet:not([open]){display:none}
 .ps-origin-sheet[open]{display:flex;flex-direction:column}
 .ps-origin-sheet::backdrop{background:#0008}
 .ps-origin-sheet a{color:var(--cr-accent)}
