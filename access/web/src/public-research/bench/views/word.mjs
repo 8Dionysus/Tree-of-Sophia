@@ -102,7 +102,7 @@ export function wordView({root,windowId,ctx}){
     void find(list,forms);
   }
   return {
-    update(next){const same=win&&win.subject.form===next.subject.form&&win.subject.language===next.subject.language&&win.subject.unit===next.subject.unit;win=next;if(!same){allForms=false;render();root.scrollTop=0;}},
+    update(next){const same=win&&win.subject.form===next.subject.form&&win.subject.language===next.subject.language&&win.subject.unit===next.subject.unit&&win.subject.chapter===next.subject.chapter&&win.subject.at===next.subject.at;win=next;if(!same){allForms=false;render();root.scrollTop=0;}},
     title:w=>w.subject.form||t('view_word'),
     sign:()=>'term',
     measure:ch=>measureOf('word',{ch}),

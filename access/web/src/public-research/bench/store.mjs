@@ -10,7 +10,7 @@ const HISTORY=40;
 
 export function benchKey(profile){return `${BENCH_KEY}.${profile}`;}
 
-export function createBenchStore({profile,storage=globalThis.localStorage,locks=globalThis.navigator?.locks}={}){
+export function createBenchStore({profile,locks=globalThis.navigator?.locks,storage=locks?globalThis.localStorage:globalThis.sessionStorage}={}){
   const key=benchKey(profile),listeners=new Set();
   let state,error='',undo=[],redo=[];
   const read=()=>{try{const raw=storage?.getItem(key);return raw?validateState(JSON.parse(raw)):null;}catch(failure){error=failure?.message??String(failure);return null;}};
@@ -20,6 +20,7 @@ export function createBenchStore({profile,storage=globalThis.localStorage,locks=
     if(!storage){error='storage-unavailable';return;}
     try{storage.setItem(key,JSON.stringify(next));error='';}catch(failure){error=failure?.message??String(failure);}
   };
+  // Browsers without Web Locks use per-tab session storage to avoid concurrent writes.
   const serialize=operation=>locks?locks.request(key,operation):operation();
   function refresh(){
     const stored=read();

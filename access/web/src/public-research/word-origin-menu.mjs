@@ -18,7 +18,8 @@ function displayPosition(element,range,{end=false}={}){
   const before=document.createRange();
   before.selectNodeContents(element);
   if(end)before.setEnd(range.endContainer,range.endOffset);else before.setEnd(range.startContainer,range.startOffset);
-  return Number(element.dataset.offset||0)+Array.from(before.toString()).length;
+  const offset=before.toString().length;
+  return Number(element.dataset.offset||0)+(element.witnessOffsets?.[offset]??offset);
 }
 /** A passage of a witness unit selected inside one unit, as the workbench receives it (display offsets). */
 function passageOf({range,element}){

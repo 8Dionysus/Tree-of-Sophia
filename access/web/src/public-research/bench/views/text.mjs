@@ -111,10 +111,12 @@ export function textView({root,windowId,ctx}){
   function reveal(){
     const unit=win?.subject.unit;if(!unit||lastFlash===`${chapter.key}:${unit}:${language()}`)return;
     lastFlash=`${chapter.key}:${unit}:${language()}`;
-    const pivotIndex=chapter.index[PIVOT].get(unit),lang=language();
-    let target=null;
-    if(lang===PIVOT||settings().parallel)target=body.querySelector(`.bn-unit[data-lang="${PIVOT}"][data-i="${pivotIndex}"]`);
-    else{const row=chapter.rows.find(item=>(item[PIVOT]??[]).includes(pivotIndex));const i=row?.[lang]?.[0];if(i!==undefined)target=body.querySelector(`.bn-unit[data-lang="${lang}"][data-i="${i}"]`);}
+    const source=win.subject.language,index=chapter.index[source]?.get(unit);
+    if(index===undefined)return;
+    const row=chapter.rows.find(item=>item[source]?.includes(index));
+    const lang=settings().parallel&&body.querySelector(`.bn-unit[data-lang="${source}"]`)?source:language();
+    const targetIndex=lang===source?index:row?.[lang]?.[0];
+    const target=targetIndex===undefined?null:body.querySelector(`.bn-unit[data-lang="${lang}"][data-i="${targetIndex}"]`);
     if(target)requestAnimationFrame(()=>{target.scrollIntoView({block:'center'});target.classList.add('bn-flash');setTimeout(()=>target.classList.remove('bn-flash'),2400);});
   }
   async function load(){

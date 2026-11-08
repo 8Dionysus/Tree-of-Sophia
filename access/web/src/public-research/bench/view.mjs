@@ -57,7 +57,7 @@ export function mountBench({host,store,views,t,ctxBase,onOpenChange=()=>{}}){
     // A selection made in one window reaches the windows that follow it.
     broadcast(subject){
       const key=viewOf(subject);let any=false;
-      for(const [id,win]of Object.entries(bench().windows))if(win.view===key&&win.binding==='follow'){any=true;if(subjectKey(win.subject)!==subjectKey(subject))commit(s=>setWindow(s,id,{subject}),{history:false});}
+      for(const [id,win]of Object.entries(bench().windows))if(win.view===key&&win.binding==='follow'){any=true;if(JSON.stringify(win.subject)!==JSON.stringify(subject))commit(s=>setWindow(s,id,{subject}),{history:false});}
       return any;
     },
     windowsOf(view){return Object.entries(bench().windows).filter(([,win])=>win.view===view).map(([id,win])=>({id,win}));},

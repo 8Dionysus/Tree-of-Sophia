@@ -158,7 +158,7 @@ export function openSubject(state,subject,{place='auto',benchId=null,binding='pi
   let windowId=null;
   const next=withBench(state,benchId,bench=>{
     const key=subjectKey(clean),existing=Object.entries(bench.windows).find(([,win])=>subjectKey(win.subject)===key)?.[0];
-    if(existing&&place==='auto'){const area=areaOfWindow(bench,existing);area.active=existing;area.collapsed=false;bench.activeWindow=existing;windowId=existing;return;}
+    if(existing&&place==='auto'){if(clean.unit)bench.windows[existing].subject=clean;const area=areaOfWindow(bench,existing);area.active=existing;area.collapsed=false;bench.activeWindow=existing;windowId=existing;return;}
     if(Object.keys(bench.windows).length>=MAX_WINDOWS)return;
     windowId=makeId('win');bench.windows[windowId]={view,subject:clean,binding:binding==='follow'?'follow':'pinned',settings:object(settings)?clone(settings):{}};
     bench.activeWindow=windowId;bench.focus=null;

@@ -51,7 +51,7 @@ export function thoughtView({root,windowId,ctx}){
       const current=record(),fragments=current.grounds.map(id=>ctx.state().fragments[id]).filter(Boolean);
       if(!fragments.length){need.textContent=t('groundsNeed');return;}
       const id=ctx.saveThought?.({...current,question:question.value,thesis:thesis.value},fragments);
-      if(id)change(()=>({question:question.value,thesis:thesis.value,saved:id}),true);
+      if(id){clearTimeout(timer);keep.disabled=true;change(()=>({question:question.value,thesis:thesis.value,saved:id}),true);}
     });
     body.append(keep,need);
   }

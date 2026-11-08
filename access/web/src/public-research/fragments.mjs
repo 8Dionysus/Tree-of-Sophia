@@ -12,7 +12,7 @@ import {benchListens,layOnBench} from './bench/bridge.mjs';
 import {chapterTitle} from './chapter-title.mjs';
 import {readChapter,fragmentOf,displayText} from '../../../../bonsai/lib/witnesses.mjs';
 import {readCorpusFragmentRange} from './corpus-fragment-range.mjs';
-import {modernRussian,isPreReform} from './orthography.mjs';
+import {modernRussian,isPreReform,respell} from './orthography.mjs';
 import {createLatestFragmentRequest} from './fragment-request.mjs';
 import {copyLocale,localeText,localeValue,resolveLocale,shownLanguages} from './locale.mjs';
 
@@ -73,11 +73,13 @@ const shownIn=(language,text)=>language==='ru'?modernRussian(text):text;
 function fragmentNodes(fragment,language,chapterKey=null){
   const nodes=[];
   for(const unit of fragment.units){
-    const text=shownIn(language,unit.text.slice(unit.from,unit.to).trim());
+    const slice=unit.text.slice(unit.from,unit.to),source=slice.trim();
+    const map=language==='ru'?respell(source):null;
+    const text=map?.text??source;
     if(!text)continue;
     const node=el('p',unit.kind==='v'?'ps-fragment-line is-verse':'ps-fragment-line',text);
     // The witness unit a line shows, so that a selected word finds its reading in the word layer.
-    if(chapterKey&&unit.id){node.dataset.chapter=chapterKey;node.dataset.unit=unit.id;node.dataset.offset=String(unit.from);}
+    if(chapterKey&&unit.id){node.dataset.chapter=chapterKey;node.dataset.unit=unit.id;node.dataset.offset=String(unit.from+slice.length-slice.trimStart().length);node.witnessOffsets=map?.toSource;}
     nodes.push(node);
   }
   return nodes;
@@ -224,9 +226,12 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
         if(!indexes.length){cell.classList.add('is-absent');if(language!=='de')hint?.(cell,words('fragmentOmitted'));}
         for(const index of indexes){
           const unit=data.units[language][index],shown=displayText(unit.raw,unit.kind),p=el('p',unit.kind==='v'?'is-verse':'');p.dataset.chapter=key;p.dataset.unit=unit.id;p.dataset.offset='0';
-          const span=cited.get(`${language}:${index}`);
-          if(span&&span[1]>span[0]){p.append(shownIn(language,shown.text.slice(0,span[0])));const mark=el('mark','',shownIn(language,shown.text.slice(span[0],span[1])));p.append(mark,shownIn(language,shown.text.slice(span[1])));line.classList.add('is-cited');first??=line;}
-          else p.textContent=shownIn(language,shown.text);
+          const span=cited.get(`${language}:${index}`),map=language==='ru'?respell(shown.text):null,text=map?.text??shown.text;
+          p.witnessOffsets=map?.toSource;
+          if(span&&span[1]>span[0]){
+            const start=map?.toDisplay[span[0]]??span[0],end=map?.toDisplay[span[1]]??span[1];
+            p.append(text.slice(0,start),el('mark','',text.slice(start,end)),text.slice(end));line.classList.add('is-cited');first??=line;
+          }else p.textContent=text;
           cell.append(p);
         }
         line.append(cell);
