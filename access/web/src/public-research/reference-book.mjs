@@ -95,13 +95,18 @@ export function createReferenceBook(source){
   }
 
   // ── The contents, the index and the library.
-  let tab=new URL(location.href).searchParams.get('book');if(!['contents','index','library'].includes(tab))tab='contents';
+  function readTab(){
+    const requested=new URL(location.href).searchParams.get('book');
+    return ['contents','index','library'].includes(requested)?requested:'contents';
+  }
+  let tab=readTab();
   function setTab(next,target){
     tab=next;const url=new URL(location.href);if(tab==='contents')url.searchParams.delete('book');else url.searchParams.set('book',tab);
     window.history.replaceState(window.history.state,'',url);contents(target,{onTab});
   }
   let host=null,onTab=null;
   function contents(target,{focus=null,onTab:placed=null}={}){
+    tab=readTab();
     host=target;onTab=placed??onTab;target.replaceChildren();
     const root=make('div','rb-contents');root.dataset.tab=tab;target.append(root);
     const cover=make('header','rb-cover'),name=make('h1','rb-book-title',tr(source.intro?.title)),tabs=make('nav','rb-tabs');
