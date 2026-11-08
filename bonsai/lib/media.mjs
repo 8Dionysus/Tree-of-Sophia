@@ -133,7 +133,8 @@ export function mediaIssues(module,{subjects=null,identities=null,digest=null,la
       issues.push(...fileIssues(image.file,`${at}: file`),...fileIssues(image.preview,`${at}: preview`));
       if(image.file&&(image.width!==image.file.width||image.height!==image.file.height))issues.push(`${at}: its size is not its file's`);
       // The page reads the stand's own copies: the layer store holds each one, with its digest and size.
-      if(layers)for(const [name,file] of [['file',image.file],['preview',image.preview]]){
+      if(!layers)issues.push(`${at}: file media requires a layer store`);
+      else for(const [name,file] of [['file',image.file],['preview',image.preview]]){
         const entry=object(file)&&(layers.entries??[]).find(item=>item.path===mediaFilePath(file));
         if(object(file)&&!(entry&&entry.sha256===file.sha256&&entry.bytes===file.bytes))issues.push(`${at}: the layer store holds no copy of its ${name} (${object(file)?mediaFilePath(file):'?'})`);
       }

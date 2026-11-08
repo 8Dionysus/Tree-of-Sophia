@@ -130,6 +130,7 @@ describe('a file image the stand keeps a copy of',()=>{
     const {module,identities,imageId}=attach();
     expect(identities.representations[imageId].tree).toBe(`tos.file.sha256.${'3'.repeat(64)}`);
     expect(mediaIssues(module,{identities,digest,layers})).toEqual([]);
+    expect(mediaIssues(module,{identities,digest})).toContain(`image ${imageId}: file media requires a layer store`);
     const without={...layers,entries:layers.entries.slice(0,1)};
     expect(mediaIssues(module,{identities,digest,layers:without})).toContain(`image ${imageId}: the layer store holds no copy of its file (media/${'3'.repeat(64)}.jpg)`);
   });
