@@ -73,5 +73,7 @@
 .cr-story-piece::marker{color:var(--cr-accent);font-size:11px}
 .cr-story-piece-title{margin:0!important;font-size:11px;color:var(--cr-muted)}
 .cr-story-original{margin:1px 0 2px!important;font:12px/1.5 Georgia,serif;color:var(--cr-muted)}
+.cr-story-witness{margin:0 0 4px!important;font-size:11px;line-height:1.4;color:var(--cr-muted)}
+.cr-story-credits{margin:6px 0 10px!important;font-size:11px;line-height:1.5;color:var(--cr-muted)}
 .cr-story-lit{background:color-mix(in srgb,var(--cr-accent) 16%,transparent);border-radius:6px;transition:background .6s ease}
 [data-story-source]{transition:background .6s ease}

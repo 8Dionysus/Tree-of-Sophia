@@ -60,7 +60,7 @@ const COPY={
     frequency:'Частота в архиве по четвертям века, {0}–{1}; отмечена четверть «Заратустры»',per:'{0}–{1}: употреблений — {2}; на 10 000 существительных — {3}',
     nietzsche:'У Ницше в архиве',page:'с. {0}',inBook:'В книге — {0}',part:'часть {0}: {1}',archive:'Немецкий текстовый архив',
     storyNote:'История собрана моделью из источников этого листа; проверка сверила её числа, цитаты и имена, вторая модель её вычитала. Номер у предложения ведёт к его источнику.',
-    storyMark:'Источник {0}',storyPieces:'Места книги и слова переводчиков',antonovsky:'Антоновский',common:'Коммон',tree:'Древо',firstPlace:'на первом месте',treeReads:'Древо'},
+    storyMark:'Источник {0}',storyPieces:'Места книги и слова переводчиков',storyCredits:'Тексты свидетелей',antonovsky:'Антоновский',common:'Коммон',tree:'Древо',firstPlace:'на первом месте',treeReads:'Древо'},
   en:{title:'Origin of the word',choose:'Select a single word.',loading:'Looking for the origin…',unknown:'The stand does not yet know where this word comes from.',
     renders:'Translates the word of the original',made:'Made of',kin:'Kindred words',first:'First in the book',open:'Open',
     editions:'in the first editions',today:'today',calque:'calque',borrowed:'borrowed',derived:'formed',semantic:'semantic loan',
@@ -69,7 +69,7 @@ const COPY={
     frequency:'Frequency in the archive by quarter century, {0}–{1}; the quarter of Zarathustra marked',per:'{0}–{1}: {2} uses, {3} per 10,000 nouns',
     nietzsche:"Nietzsche's works in the archive",page:'p. {0}',inBook:'In the book: {0}',part:'part {0}: {1}',archive:'German Text Archive',
     storyNote:'A model told this story from the sources of this sheet; a check matched its numbers, quotations and names, and a second model read it. A sentence’s number leads to its source.',
-    storyMark:'Source {0}',storyPieces:'Places of the book and the translators’ words',antonovsky:'Antonovsky',common:'Common',tree:'the Tree',firstPlace:'at the first place',treeReads:'The Tree'},
+    storyMark:'Source {0}',storyPieces:'Places of the book and the translators’ words',storyCredits:'Witness texts',antonovsky:'Antonovsky',common:'Common',tree:'the Tree',firstPlace:'at the first place',treeReads:'The Tree'},
 };
 const TIMES={ru:{one:'{0} раз',few:'{0} раза',many:'{0} раз',other:'{0} раза'},en:{one:'once',other:'{0} times'}};
 const RELATION=new Map([['calque','calque'],['borrowed','borrowed'],['derived','derived'],['semantic loan','semantic']]);
@@ -296,6 +296,13 @@ function renderStory(parent,story,copy,locale){
 
 const pieceLanguage=locale=>copyLocale(locale)==='ru'?'ru':'en';
 
+/** A witness's short name in the reader's language with its licence: the attribution its sentence carries in a story's pieces. */
+function witnessLine(language,locale){
+  const held=witness.witnesses?.[language];if(!held)return '';
+  const short=held.short?.[resolveLocale(locale)]??held.short?.[pieceLanguage(locale)]??held.short?.en??language;
+  return [short,held.licence].filter(Boolean).join(' · ');
+}
+
 const QUOTE_PAIRS={ru:['«','»'],de:['„','“'],en:['“','”']};
 /** A sentence cut from a speech keeps the speech's opening or closing mark alone; the sheet quotes the sentence itself. */
 export function paired(text,language){
@@ -314,8 +321,13 @@ export function renderPiece(item,id,piece,{copy,locale,history=null,onOpenPlace=
     item.append(el('p','cr-story-piece-title',piece.title?.[language]??piece.title?.de??piece.chapter));
     const saidLanguage=piece.text?.[language]?language:ORIGINAL;
     const said=el('q','cr-origin-said',paired(piece.text?.[saidLanguage]??'',saidLanguage));said.lang=saidLanguage;
-    item.append(said);
-    if(piece.text?.de&&language!==ORIGINAL){const original=el('p','cr-story-original',paired(piece.text.de,ORIGINAL));original.lang=ORIGINAL;item.append(original);}
+    item.append(said,el('p','cr-story-witness',witnessLine(saidLanguage,locale)));
+    const shown=[saidLanguage];
+    if(piece.text?.de&&saidLanguage!==ORIGINAL){
+      const original=el('p','cr-story-original',paired(piece.text.de,ORIGINAL));original.lang=ORIGINAL;
+      item.append(original,el('p','cr-story-witness',witnessLine(ORIGINAL,locale)));shown.push(ORIGINAL);
+    }
+    item.dataset.witnesses=shown.join(' ');
     if(piece.why?.[language])item.append(el('p','cr-origin-source',`${copy.treeReads}: ${piece.why[language]}`));
     if(piece.unit&&typeof onOpenPlace==='function'){
       const open=el('button','cr-origin-open',copy.open);open.type='button';
@@ -354,7 +366,13 @@ function linkStory(body,shown,story,{copy,locale,history,onOpenPlace}){
     const item=el('li','cr-story-piece');item.dataset.storySource=id;item.value=index+1;
     if(renderPiece(item,id,story.pieces?.[id],{copy,locale,history,onOpenPlace})){shown.pieces.append(item);shown.pieces.hidden=false;}
   }
-  if(!shown.pieces.hidden)shown.pieces.before(el('p','cr-origin-subhead',copy.storyPieces));
+  if(!shown.pieces.hidden){
+    shown.pieces.before(el('p','cr-origin-subhead',copy.storyPieces));
+    // Each witness whose sentences the pieces quote, with its full attribution, once.
+    const quoted=[...new Set([...shown.pieces.children].flatMap(item=>(item.dataset?.witnesses??'').split(' ').filter(Boolean)))];
+    const credits=quoted.map(language=>witness.witnesses?.[language]?.attribution).filter(Boolean);
+    if(credits.length)shown.pieces.after(el('p','cr-story-credits',`${copy.storyCredits}: ${credits.join('; ')}`));
+  }
   shown.block.addEventListener('click',event=>{
     const mark=event.target?.closest?.('.cr-story-mark');if(!mark)return;
     const found=target(mark.dataset.target);if(!found)return;

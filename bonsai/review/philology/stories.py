@@ -25,7 +25,8 @@ form beside it. `check` reads each story against its packet:
 - every name a sentence writes stands in those pieces, among the names the story
   declares with their source form, or among the names the stand reads by itself
   (languages, Wiktionary, the archive, Nietzsche, Zarathustra, the book's
-  chapters, the translators);
+  chapters, the translators); a sentence's first word passes as an ordinary
+  word when the witnesses, the packets or the stories write it in lowercase;
 - a story keeps its length and its language to affirmation.
 
 It writes `<dir>/check.json` and prints a summary. The story is the writer's
@@ -80,6 +81,17 @@ class Book:
         self.order = [chapter['key'] for chapter in self.witnesses['chapters']]
         self.titles = {chapter['key']: chapter['titles'] for chapter in self.witnesses['chapters']}
         self.cache = {}
+
+    def ordinary_words(self):
+        """Every word the witnesses write in lowercase somewhere: an ordinary word of their languages, never a name."""
+        if 'ordinary' not in self.cache:
+            words = set()
+            for key in self.order:
+                for units in self.chapter(key)['units'].values():
+                    for unit in units:
+                        words.update(word for word in re.findall(r"[\w’'-]+", unit[2]) if word[:1].islower())
+            self.cache['ordinary'] = words
+        return self.cache['ordinary']
 
     def chapter(self, key):
         if key not in self.cache:
@@ -371,7 +383,23 @@ def words_of(sentence):
     return re.findall(r"[\w’'-]+", sentence)
 
 
-def check_story(packet_body, story, names):
+def batch_ordinary(book, directory):
+    """The ordinary words a sentence may open with: the witnesses' lowercase words, those of the packets and those inside the stories."""
+    words = set(book.ordinary_words())
+    for path in glob.glob(os.path.join(directory, 'packets', '*.json')):
+        for source in read(path)['sources']:
+            for value in source.values():
+                if isinstance(value, str):
+                    words.update(word for word in words_of(value) if word[:1].islower())
+    for path in glob.glob(os.path.join(directory, 'stories', '*.json')):
+        story = read(path)
+        for language in ('ru', 'en'):
+            for item in story.get(language) or []:
+                words.update(word for word in words_of(item.get('text', ''))[1:] if word[:1].islower())
+    return words
+
+
+def check_story(packet_body, story, names, ordinary=frozenset()):
     problems, warnings = [], []
     by_id = {source['id']: source for source in packet_body['sources']}
     allowed = set(STAND_NAMES)
@@ -423,12 +451,10 @@ def check_story(packet_body, story, names):
                 word = token.group(0).strip("’'-")
                 if not word or not word[0].isupper():
                     continue
-                before = outside[:token.start()].rstrip()
-                if index == 0 or before.endswith(('.', '!', '?', ':', '—', '(')) and language == 'en' and index == 0:
-                    continue
-                if index == 0:
-                    continue
                 if word in allowed or word in ground or any(source and fold(source) in ground for source in declared.get(word, [])):
+                    continue
+                # A sentence opens with a capital: its first word stands as an ordinary word when the witnesses write it in lowercase.
+                if index == 0 and word.lower() in ordinary:
                     continue
                 problems.append(f'{where}: the name {word} stands in none of {cited} and the story does not declare it')
             if HEDGES.search(text):
@@ -438,6 +464,7 @@ def check_story(packet_body, story, names):
 
 def check(args):
     names = language_names(args.repo)
+    ordinary = batch_ordinary(Book(os.path.join(args.repo, 'bonsai', args.bonsai)), args.dir)
     report, counts = {}, Counter()
     for path in sorted(glob.glob(os.path.join(args.dir, 'packets', '*.json'))):
         term = os.path.splitext(os.path.basename(path))[0]
@@ -445,7 +472,7 @@ def check(args):
         if not os.path.exists(story_path):
             counts['missing'] += 1
             continue
-        problems, warnings = check_story(read(path), read(story_path), names)
+        problems, warnings = check_story(read(path), read(story_path), names, ordinary)
         report[term] = {'ok': not problems, 'problems': problems, 'warnings': warnings}
         counts['passed' if not problems else 'failed'] += 1
     with open(os.path.join(args.dir, 'check.json'), 'w', encoding='utf-8') as fh:
@@ -500,6 +527,7 @@ def bundle(args):
     terms = {term['id']: term for term in read(os.path.join(home, 'terms.json'))['terms']}
     renderings = read(os.path.join(home, 'renderings.json'))
     book = Book(home)
+    ordinary = batch_ordinary(book, args.dir)
     stories, counts = {}, Counter()
     for path in sorted(glob.glob(os.path.join(args.dir, 'stories', '*.json'))):
         term_id = os.path.splitext(os.path.basename(path))[0]
@@ -508,7 +536,7 @@ def bundle(args):
             counts['without_packet'] += 1
             continue
         packet_body, story = read(packet_path), read(path)
-        problems, _ = check_story(packet_body, story, names)
+        problems, _ = check_story(packet_body, story, names, ordinary)
         if problems:
             counts['failed'] += 1
             continue
@@ -557,6 +585,7 @@ def main():
     two = sub.add_parser('check')
     two.add_argument('dir')
     two.add_argument('--repo', default=os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
+    two.add_argument('--bonsai', default='zarathustra')
     three = sub.add_parser('bundle')
     three.add_argument('dir')
     three.add_argument('repo')

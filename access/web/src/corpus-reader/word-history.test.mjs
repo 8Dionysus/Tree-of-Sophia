@@ -156,6 +156,16 @@ describe('the history of a word',()=>{
     expect(find(item,'cr-origin-said')[0].text).toBe('Я учу вас о сверхчеловеке.');
     expect(find(item,'cr-story-original')[0].text).toBe('Ich lehre euch den Übermenschen.');
   });
+  it('names the witness and licence of every sentence a piece quotes',()=>{
+    const item=new Element('li');
+    storyPiece(item,'B3',story.pieces.B3,{locale:'ru'});
+    expect(find(item,'cr-story-witness').map(line=>line.text)).toEqual(['пер. Ю. М. Антоновского, 1913 · CC BY-SA 4.0','первое издание · CC BY-SA 4.0']);
+    expect(item.dataset.witnesses).toBe('ru de');
+    const english=new Element('li');
+    storyPiece(english,'B3',{...story.pieces.B3,text:{...story.pieces.B3.text,en:'There was it also where I picked up from the path the word “Superman,”'}},{locale:'es'});
+    expect(find(english,'cr-story-witness')[0].text).toBe('trad. de Thomas Common, 1909 · Public domain');
+    expect(english.dataset.witnesses).toBe('en de');
+  });
   it('names the translators\' words by their places, the word at the first place apart',()=>{
     const item=new Element('li');
     storyPiece(item,'T',story.pieces.T,{locale:'ru'});
