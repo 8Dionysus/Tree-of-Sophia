@@ -3,7 +3,6 @@ import postcss from 'postcss';
 import {expect,it} from 'vitest';
 import {THEMES,THEME_KEY,parseColor,themeColor,themePostcss,themeSelector,themeValue} from './themes.mjs';
 import {STANDS} from './stands.mjs';
-import {growBonsai} from '../home/home-bonsai.mjs';
 
 const luminance=color=>{const [r,g,b]=parseColor(color).map(channel=>channel<=0.04045?channel/12.92:((channel+0.055)/1.055)**2.4);return 0.2126*r+0.7152*g+0.0722*b;};
 const contrast=(a,b)=>{const [x,y]=[luminance(a),luminance(b)].sort((p,q)=>q-p);return (x+0.05)/(y+0.05);};
@@ -79,11 +78,16 @@ it('sets the saved theme before the first paint, from the same names',()=>{
   for(const page of ['zarathustra','antiquity','home','not-found'])expect(readFileSync(new URL(`../../${page}/index.html`,import.meta.url),'utf8')).toContain('<script src="/theme.js"></script>');
 });
 
-it('grows each bonsai the same way from its seed, with its own star at the crown',()=>{
-  const first=growBonsai({seed:1883}),again=growBonsai({seed:1883}),other=growBonsai({seed:347});
-  expect(again).toEqual(first);expect(other).not.toEqual(first);
-  expect(first.stars.filter(star=>star.crown)).toHaveLength(1);
-  expect(Math.min(...first.stars.map(star=>star.y))).toBe(first.stars.find(star=>star.crown).y);
-  // Every stand of the site has its page.
-  for(const stand of STANDS)expect(readFileSync(new URL(`../../${stand.id}/index.html`,import.meta.url),'utf8')).toContain(`data-profile="${stand.id}"`);
+it('gives each bonsai its own tree with one crown star, the tree its card and the sky both show',()=>{
+  const sky=readFileSync(new URL('../../public/cosmos.css',import.meta.url),'utf8');
+  const named=/var TREES=\[([^\]]*)\]/.exec(readFileSync(new URL('../../public/cosmos.js',import.meta.url),'utf8'))[1];
+  expect(named.split(',').map(id=>id.trim().slice(1,-1)).sort()).toEqual(STANDS.map(stand=>stand.id).sort());
+  for(const stand of STANDS){
+    const tree=readFileSync(new URL(`../../public/trees/${stand.id}.svg`,import.meta.url),'utf8');
+    expect(tree).toContain('class="tree-wood"');
+    expect(tree.match(/tree-crown/g)).toHaveLength(1);
+    expect(sky).toContain(`[data-tree=${stand.id}] .cosmos-mark{background-image:url(trees/${stand.id}.svg)}`);
+    // Every stand of the site has its page.
+    expect(readFileSync(new URL(`../../${stand.id}/index.html`,import.meta.url),'utf8')).toContain(`data-profile="${stand.id}"`);
+  }
 });

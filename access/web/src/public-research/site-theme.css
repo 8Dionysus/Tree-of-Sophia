@@ -7,8 +7,6 @@
 :root[data-site-theme="noon"] #tree{background:radial-gradient(ellipse 62% 58% at 54% 46%,#FDFBF6 0%,#F8F4EC 45%,#F0E9DD 80%,#E9E0D1 100%) #F4EFE4}
 /* A depth plane's name is coloured from code for the night; on a light page it takes the page's ink. */
 :root[data-site-theme="noon"] .tree-plane{color:inherit!important}
-/* The tree's mark is drawn light for the night; on a light page it is drawn in ink. */
-:root[data-site-theme="noon"] #research-bar .pr-wordmark::before{filter:invert(1) hue-rotate(180deg) brightness(.6)}
 /* "Утренняя заря" is the longest name of a theme; its whole name shows. */
 #research-bar .ps-theme-select{max-width:156px}
 /* The tree's own names stand on the page without the night's dark halo. */

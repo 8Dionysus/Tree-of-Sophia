@@ -1,0 +1,133 @@
+/* The cosmos between pages (cosmos.js): a deep field. Its two skies are written here each in its own colours, the
+   night's and the great noon's (the noon sees the field as an astronomer's plate, its negative in ink on paper), so the
+   file is served as it is. Everything that moves moves by transform and opacity, so the sky goes on while the page's
+   scripts load. */
+
+/* From one page of the site to the next the view dissolves, so the sky a page called up passes into the sky of the
+   page that arrives without a seam. */
+@media (prefers-reduced-motion:no-preference){@view-transition{navigation:auto}}
+
+.tos-cosmos{position:fixed;inset:0;z-index:2147483000;overflow:hidden;pointer-events:none;contain:strict;opacity:1;visibility:visible;transition:opacity .5s cubic-bezier(.3,0,.2,1)}
+.tos-cosmos[data-state=off]{opacity:0;visibility:hidden;transition:none}
+.tos-cosmos[data-state=off] *{animation-play-state:paused!important}
+.tos-cosmos[data-state=rising]{opacity:0;transition:none}
+.tos-cosmos[data-state=leaving]{opacity:0;transition:opacity 1.15s cubic-bezier(.45,0,.3,1) .2s}
+.cosmos-field,.cosmos-ground,.cosmos-deep,.cosmos-veil{position:absolute;inset:0}
+
+/* The depths of the field. The whole time the sky is up, the view drifts forward into it, fastest at first and
+   settling, the nearer depths faster than the far ones, as in a real depth. When the page is ready the view flies
+   through: each depth is carried past on its own plane, the nearest the most, and the sky dissolves into the tree. */
+.cosmos-plane,.cosmos-depth{position:absolute;inset:0;transform-origin:50% 46%}
+.cosmos-plane{transition:transform 1.5s cubic-bezier(.5,0,.8,.4)}
+.tos-cosmos[data-state=off] .cosmos-plane,.tos-cosmos[data-state=rising] .cosmos-plane{transition:none}
+.cosmos-depth{will-change:transform;animation:cosmos-dolly-far 60s cubic-bezier(.2,.5,.45,1) both}
+.cosmos-depth canvas{position:absolute;inset:0;width:100%;height:100%}
+.cosmos-middle .cosmos-depth{animation-name:cosmos-dolly-middle}
+.cosmos-crowd .cosmos-depth{animation-name:cosmos-dolly-crowd}
+.cosmos-near .cosmos-depth{animation-name:cosmos-dolly-near}
+.cosmos-stars .cosmos-depth{animation-name:cosmos-dolly-stars}
+@keyframes cosmos-dolly-far{from{transform:none}to{transform:scale(1.03)}}
+@keyframes cosmos-dolly-middle{from{transform:none}to{transform:scale(1.07)}}
+@keyframes cosmos-dolly-crowd{from{transform:none}to{transform:scale(1.1)}}
+@keyframes cosmos-dolly-near{from{transform:none}to{transform:scale(1.15)}}
+@keyframes cosmos-dolly-stars{from{transform:none}to{transform:scale(1.22)}}
+.tos-cosmos[data-state=leaving] .cosmos-far{transform:scale(1.08)}
+.tos-cosmos[data-state=leaving] .cosmos-middle{transform:scale(1.2)}
+.tos-cosmos[data-state=leaving] .cosmos-drift{transform:scale(1.5)}
+.tos-cosmos[data-state=leaving] .cosmos-crowd{transform:scale(1.36)}
+.tos-cosmos[data-state=leaving] .cosmos-near{transform:scale(1.62)}
+.tos-cosmos[data-state=leaving] .cosmos-stars{transform:scale(2)}
+
+/* The small stars fly toward the reader: each sheet of them comes out of the depth faint and small, spreads from the
+   heart of the sky ever faster as it nears, in true perspective (its size goes as the inverse of its distance, and the
+   distance closes evenly), and fades as it passes by. Five sheets a fifth of a flight apart keep the flight even. */
+.cosmos-drift .cosmos-depth{animation:none}
+.cosmos-sheet{position:absolute;inset:0;transform-origin:50% 46%;opacity:0;will-change:transform,opacity;animation:cosmos-fly 34s linear infinite}
+.cosmos-sheet canvas{position:absolute;inset:0;width:100%;height:100%}
+@keyframes cosmos-fly{
+  0%{transform:scale(.4);opacity:0}
+  10%{transform:scale(.4386);opacity:.45}
+  20%{transform:scale(.4854);opacity:.85}
+  30%{transform:scale(.5435);opacity:1}
+  40%{transform:scale(.6173)}
+  50%{transform:scale(.7143)}
+  60%{transform:scale(.8475)}
+  70%{transform:scale(1.0417)}
+  80%{transform:scale(1.3514);opacity:1}
+  90%{transform:scale(1.9231);opacity:.75}
+  95%{transform:scale(2.439);opacity:.4}
+  100%{transform:scale(3.3333);opacity:0}
+}
+
+/* The crowd of small galaxies comes up softly once its atlas is ready. */
+.cosmos-crowd canvas{opacity:0}
+.cosmos-crowd canvas.is-risen{animation:cosmos-appear 2.4s ease both}
+@keyframes cosmos-appear{from{opacity:0}to{opacity:1}}
+
+/* The near galaxies: each comes up out of the depth when its image is ready, turns slowly about its core in its own
+   plane, and drifts a little. */
+.cosmos-hero{position:absolute;animation:cosmos-drift 50s ease-in-out infinite alternate}
+.cosmos-rise,.cosmos-tilt,.cosmos-spin{width:100%;height:100%}
+.cosmos-rise{opacity:0}
+.cosmos-rise.is-risen{animation:cosmos-rise 1.9s cubic-bezier(.2,.65,.3,1) both}
+@keyframes cosmos-rise{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
+.cosmos-spin{animation:cosmos-turn 360s linear infinite}
+.cosmos-spin.is-back{animation-direction:reverse}
+.cosmos-spin.is-fixed{animation:none}
+.cosmos-spin img{display:block;width:100%;height:100%;-webkit-user-select:none;user-select:none}
+@keyframes cosmos-turn{to{transform:rotate(360deg)}}
+@keyframes cosmos-drift{from{transform:translate3d(-.7vmin,-.45vmin,0)}to{transform:translate3d(.7vmin,.55vmin,0)}}
+
+/* The stars of our own sky, with their four rays; their light breathes a little in the air between us and the depth. */
+.cosmos-star{position:absolute;background-position:center;background-size:contain;background-repeat:no-repeat;animation:cosmos-twinkle 6s ease-in-out infinite alternate}
+@keyframes cosmos-twinkle{from{opacity:.62}to{opacity:1}}
+
+/* The heart of the sky: a hush of darkness round the Tree's mark, its light, and an orbit that says the page is on its
+   way. */
+.cosmos-heart{position:absolute;left:50%;top:46%;width:0;height:0;transition:transform .9s cubic-bezier(.3,0,.2,1),opacity .6s ease}
+.tos-cosmos[data-state=off] .cosmos-heart,.tos-cosmos[data-state=rising] .cosmos-heart{transition:none}
+.tos-cosmos[data-state=leaving] .cosmos-heart{transform:scale(1.35);opacity:0}
+.cosmos-hush{position:absolute;left:-260px;top:-230px;width:520px;height:520px;border-radius:50%}
+.cosmos-halo{position:absolute;left:-120px;top:-123px;width:240px;height:240px;border-radius:50%;animation:cosmos-breathe 5.5s ease-in-out infinite alternate}
+@keyframes cosmos-breathe{from{transform:scale(.88);opacity:.65}to{transform:scale(1.08);opacity:1}}
+.cosmos-mark{position:absolute;left:-27px;top:-30px;width:54px;height:54px;background:url(tree-mark.svg) center/contain no-repeat;animation:cosmos-hover 6s ease-in-out infinite alternate}
+.tos-cosmos[data-tree] .cosmos-mark{left:-38px;top:-46px;width:76px;height:76px}
+.tos-cosmos[data-tree=zarathustra] .cosmos-mark{background-image:url(trees/zarathustra.svg)}
+.tos-cosmos[data-tree=antiquity] .cosmos-mark{background-image:url(trees/antiquity.svg)}
+@keyframes cosmos-hover{from{transform:translateY(2px)}to{transform:translateY(-3px)}}
+.cosmos-orbit{position:absolute;left:-68px;top:-71px;width:136px;height:136px;border-radius:50%;animation:cosmos-turn 3.6s linear infinite}
+.cosmos-orbit::before{content:'';position:absolute;inset:0;border-radius:50%;-webkit-mask:radial-gradient(circle,transparent 66.5px,#000 67.5px);mask:radial-gradient(circle,transparent 66.5px,#000 67.5px)}
+.cosmos-orbit i{position:absolute;left:50%;top:-2.5px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%}
+.cosmos-title{position:absolute;left:-320px;top:84px;width:640px;text-align:center;font:400 26px/1.25 Sophia,Georgia,'Times New Roman',serif;letter-spacing:.06em;animation:cosmos-title 1.6s ease .3s both}
+@keyframes cosmos-title{from{opacity:0;transform:translateY(8px)}to{opacity:.94;transform:none}}
+
+/* ── Midnight: the depth itself, black, its light the galaxies' own. */
+:root:not([data-site-theme=noon]) .tos-cosmos .cosmos-ground{background:radial-gradient(ellipse 110% 90% at 50% 46%,#070a12 0%,#030409 55%,#010103 100%)}
+:root:not([data-site-theme=noon]) .tos-cosmos .cosmos-veil{background:radial-gradient(ellipse 90% 80% at 50% 46%,transparent 60%,rgba(0,0,0,.5) 100%)}
+:root:not([data-site-theme=noon]) .tos-cosmos .cosmos-hush{background:radial-gradient(circle,rgba(1,2,5,.5) 0,rgba(1,2,5,.22) 40%,transparent 72%)}
+:root:not([data-site-theme=noon]) .tos-cosmos .cosmos-halo{background:radial-gradient(circle,rgba(240,220,176,.2) 0,rgba(198,174,124,.07) 34%,transparent 66%)}
+:root:not([data-site-theme=noon]) .tos-cosmos .cosmos-orbit::before{background:conic-gradient(from 0deg,rgba(214,190,140,.1) 0 62%,rgba(243,223,169,.6) 100%)}
+:root:not([data-site-theme=noon]) .tos-cosmos .cosmos-orbit i{background:#fbecc4;box-shadow:0 0 10px 3px rgba(243,223,169,.75)}
+:root:not([data-site-theme=noon]) .tos-cosmos .cosmos-title{color:#eee4cc;text-shadow:0 0 22px rgba(0,0,0,.9),0 0 30px rgba(233,213,173,.25)}
+
+/* ── Noon: the great noon reads the same field as a plate, its negative in ink on warm paper. */
+:root[data-site-theme=noon] .tos-cosmos .cosmos-ground{background:radial-gradient(ellipse 110% 90% at 50% 46%,#fdf8ee 0%,#f5eedf 55%,#ebe1cc 100%)}
+:root[data-site-theme=noon] .tos-cosmos .cosmos-deep{filter:invert(1) hue-rotate(180deg) sepia(.35) saturate(.75) brightness(.92)}
+:root[data-site-theme=noon] .tos-cosmos .cosmos-veil{background:radial-gradient(ellipse 90% 80% at 50% 46%,transparent 62%,rgba(140,108,56,.14) 100%)}
+:root[data-site-theme=noon] .tos-cosmos .cosmos-hush{background:radial-gradient(circle,rgba(253,248,238,.85) 0,rgba(253,248,238,.5) 36%,transparent 68%)}
+:root[data-site-theme=noon] .tos-cosmos .cosmos-halo{background:radial-gradient(circle,rgba(255,232,170,.75) 0,rgba(244,206,128,.25) 34%,transparent 68%)}
+:root[data-site-theme=noon] .tos-cosmos .cosmos-mark{filter:invert(1) hue-rotate(180deg) brightness(.55)}
+/* The Tree's own mark has a drawing of its own for the noon, in ink with gold stars; a bonsai's tree is turned as the plate is. */
+:root[data-site-theme=noon] .tos-cosmos:not([data-tree]) .cosmos-mark{filter:none;background-image:url(tree-mark-noon.svg)}
+:root[data-site-theme=noon] .tos-cosmos .cosmos-orbit::before{background:conic-gradient(from 0deg,rgba(131,96,31,.1) 0 62%,rgba(131,96,31,.55) 100%)}
+:root[data-site-theme=noon] .tos-cosmos .cosmos-orbit i{background:#83601f;box-shadow:0 0 8px 2px rgba(196,150,62,.55)}
+:root[data-site-theme=noon] .tos-cosmos .cosmos-title{color:#3b3122;text-shadow:0 0 18px rgba(253,248,238,1)}
+
+/* A reader who asked for stillness has the sky without its motion. */
+.tos-cosmos.is-still *{animation:none!important}
+.tos-cosmos.is-still .cosmos-title{opacity:.94}
+.tos-cosmos.is-still .cosmos-rise.is-risen,.tos-cosmos.is-still .cosmos-crowd canvas.is-risen{opacity:1}
+.tos-cosmos.is-still .cosmos-plane{transition:none}
+.tos-cosmos.is-still .cosmos-sheet{opacity:.85}
+.tos-cosmos.is-still .cosmos-sheet+.cosmos-sheet{display:none}
+.tos-cosmos.is-still[data-state=leaving] .cosmos-plane,.tos-cosmos.is-still[data-state=leaving] .cosmos-heart{transform:none}

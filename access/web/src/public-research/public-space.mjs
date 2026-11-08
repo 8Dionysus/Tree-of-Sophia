@@ -15,7 +15,7 @@ import {bonsaiFor,depthOf,lensPositions,loadMedia} from './bonsai.mjs';
 import {createMediaView} from './media-view.mjs';
 import {createTerms,termForms,termMatcher,termNodes} from './term-view.mjs';
 import {SYSTEM_NAME,SYSTEM_THEME,THEMES,applyTheme,currentTheme,paint,themeChoice} from './site-theme.mjs';
-import {hasIcon,iconElement} from './space-icons.mjs';
+import {hasIcon,iconElement,iconMarkup} from './space-icons.mjs';
 import {VOLUME_REST,proximityVolume,spaceVolume,timeVolume} from './space-volumes.mjs';
 import {bookSpiral,colonnade,imageDome,meaningTiers,tensionScales} from './space-gatherings.mjs';
 import {citationId,citedPlaces} from './research-index.mjs';
@@ -44,6 +44,7 @@ import {coreContext} from './core-projection.mjs';
 import {createCoreView} from './core-view.mjs';
 import '../../constructor/style.css';
 import './public-space.css';
+import './space-icons.css';
 
 const el=(tag,cls='',value)=>{const node=document.createElement(tag);if(cls)node.className=cls;if(value!==undefined)node.textContent=value;return node;};
 const button=(value,cls='')=>{const node=el('button',cls,value);node.type='button';return node;};
@@ -347,15 +348,6 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     paintTurn(lastPose);
     return svg;
   }
-  // The controls tool is drawn as a mouse beside a finger: how the space is held.
-  function controlsSign(){
-    const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');
-    const add=(tag,attrs)=>{const node=document.createElementNS(ns,tag);for(const [key,value]of Object.entries(attrs))node.setAttribute(key,value);svg.append(node);};
-    const line={fill:'none',stroke:'currentColor','stroke-width':'1.3','stroke-linecap':'round','stroke-linejoin':'round'};
-    add('rect',{x:'3.5',y:'5',width:'9',height:'14',rx:'4.5',...line});add('path',{d:'M8 5v5',...line});
-    add('path',{d:'M16.5 19.5v-6.6a1.4 1.4 0 0 1 2.8 0v3.4l1.2.3a1.6 1.6 0 0 1 1.2 1.8l-.4 2.6',...line,opacity:'.8'});
-    return svg;
-  }
   // The globe shows the space's turn: its meridian and equator open as the space turns, its dot is the space's front.
   function paintTurn(pose){
     lastPose=pose;if(!turnGlobe||!pose)return;
@@ -369,7 +361,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function paintTool({button:b,key,label}){
     // The globe is named by what pressing it does; its title says how the space turns.
     if(key==='turn'){b.replaceChildren(globe());setHint(b,t(key),['←','↑','→','↓'],{note:t('turnRestNote')});b.setAttribute('aria-label',t('turnRest'));return;}
-    if(key==='controls'){b.replaceChildren(controlsSign());setHint(b,t(key));b.setAttribute('aria-label',t(key));return;}
+    if(key==='controls'){b.replaceChildren(iconElement(document,'controls','ps-tool-symbol',18));setHint(b,t(key));b.setAttribute('aria-label',t(key));return;}
     b.replaceChildren(hasIcon(key)?iconElement(document,key,'ps-tool-symbol',18):el('span','ps-tool-symbol',label));
     if(key==='routes'||key==='research')b.append(el('span','ps-tool-label',t(key)));
     // A tool names its key; the overview also says how the map is moved.
@@ -1894,8 +1886,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // The card of a chosen star or link expands over the whole space (space-bench.mjs): the source, its reading and its
   // comparison side by side, the reader's own work with the comparison. The workbench itself lives in bench/.
   let bench=false;
-  const BENCH_PATHS={open:'M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5',close:'M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5'};
-  const benchIcon=open=>`<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="${BENCH_PATHS[open?'close':'open']}"/></svg>`;
+  // The open card folds back to the sky; the folded one spreads over the whole space.
+  const benchIcon=open=>iconMarkup(open?'benchClose':'benchOpen',18);
   function toggleBench(open=!bench){bench=open;renderColumn();panelBench.focus({preventScroll:true});sky?.refresh();}
   // A card drawn again for the same star keeps each tray where the reader left it.
   const benchTrays=()=>new Map([...panelContent.querySelectorAll('.ps-bench-tray')].map(tray=>[tray.parentElement.dataset.step,tray.scrollTop]));

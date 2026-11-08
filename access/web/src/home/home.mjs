@@ -4,7 +4,7 @@
 import {BONSAI_LOCALES,initialLocale,resolveLocale} from '../../../../bonsai/lib/locale-choice.mjs';
 import {SYSTEM_NAME,SYSTEM_THEME,THEMES,applyTheme,currentTheme,themeChoice} from '../public-research/site-theme.mjs';
 import {STANDS} from '../public-research/stands.mjs';
-import {bonsaiDrawing} from './home-bonsai.mjs';
+import {bonsaiTree} from './home-bonsai.mjs';
 import './home.css';
 
 const LOCALE_KEY='tos.public-research.locale.v1';
@@ -17,8 +17,7 @@ const COPY={
   'zh-Hans':{site:'智慧之树',tagline:'从文本本身生长出的思想。每一株盆景都是一部作品或一个完整的世界：原文、译本，以及它的关联地图。',choose:'选择一株盆景',language:'语言',theme:'主题'},
 };
 const THEME_NAMES={es:{system:'Sistema',midnight:'Medianoche',noon:'Mediodía'},de:{system:'System',midnight:'Mitternacht',noon:'Mittag'},'zh-Hans':{system:'跟随系统',midnight:'午夜',noon:'正午'}};
-// What each bonsai holds, and how it grows on this page: a seed, its height, how wide its branches
-// reach, how its trunk leans. A stand without its own words here still shows, by its title.
+// What each bonsai holds. A stand without its own words here still shows, by its title.
 const BONSAI={
   zarathustra:{
     title:{es:'Zaratustra',de:'Zarathustra','zh-Hans':'查拉图斯特拉'},
@@ -30,7 +29,6 @@ const BONSAI={
       de:'Das deutsche Original, die Übersetzungen von Antonowski und Common und eine Karte des Buches: seine Begriffe, Gestalten, Verbindungen und Lesewege.',
       'zh-Hans':'德文原文、安东诺夫斯基与科蒙的译本，以及全书的地图：它的概念、形象、关联与阅读路线。',
     },
-    grows:{seed:1883,height:1.12,spread:.82,tilt:-5},
   },
   antiquity:{
     title:{es:'Antigüedad',de:'Antike','zh-Hans':'古代'},
@@ -42,7 +40,6 @@ const BONSAI={
       de:'Fragen, die durch Texte und Stimmen gehen: Stellen im Original, ihre Übersetzungen und Lesarten.',
       'zh-Hans':'贯穿诸多文本与声音的问题：原文段落、译本及其解读。',
     },
-    grows:{seed:347,height:.94,spread:1.22,tilt:4},
   },
 };
 
@@ -67,7 +64,13 @@ head.replaceChildren(mark,tagline);
 const list=make('ul','home-stands');
 const cards=STANDS.map((stand,index)=>{
   const item=make('li','home-stand'),link=make('a'),title=make('span','home-title'),meta=make('span','home-meta'),description=make('span','home-desc');
-  item.style.setProperty('--i',index);link.href=`${base}${stand.id}/`;link.append(bonsaiDrawing(stand.id,index,BONSAI[stand.id]?.grows),title,meta,description);item.append(link);list.append(item);
+  item.style.setProperty('--i',index);link.href=`${base}${stand.id}/`;link.append(bonsaiTree(stand.id,index),title,meta,description);item.append(link);list.append(item);
+  // The sky between pages (public/cosmos.js) comes up before the bonsai is reached, so the way there leads through it.
+  link.addEventListener('click',event=>{
+    if(event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey||!window.tosCosmos)return;
+    event.preventDefault();
+    void window.tosCosmos.show({stand:stand.id,title:title.textContent}).then(()=>location.assign(link.href));
+  });
   return {stand,title,meta,description};
 });
 choice.replaceChildren(choose,list);
