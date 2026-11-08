@@ -29,8 +29,8 @@ test("public page paths map to their MPA HTML and receive security headers", asy
     assert.match(response.headers.get("Content-Security-Policy") ?? "", /default-src 'self'/);
     assert.match(response.headers.get("Content-Security-Policy") ?? "", /'wasm-unsafe-eval'/);
     // A card loads its images and their IIIF descriptions from the media hosts the bonsai name, and from no other host.
-    assert.match(response.headers.get("Content-Security-Policy") ?? "", /img-src 'self' data: https:\/\/iiif\.micr\.io;/);
-    assert.match(response.headers.get("Content-Security-Policy") ?? "", /connect-src 'self' https:\/\/iiif\.micr\.io https:\/\/cloudflareinsights\.com;/);
+    assert.match(response.headers.get("Content-Security-Policy") ?? "", /img-src 'self' data: https:\/\/iiif\.micr\.io https:\/\/api\.nga\.gov;/);
+    assert.match(response.headers.get("Content-Security-Policy") ?? "", /connect-src 'self' https:\/\/iiif\.micr\.io https:\/\/api\.nga\.gov https:\/\/cloudflareinsights\.com;/);
     assert.doesNotMatch(response.headers.get("Content-Security-Policy") ?? "", /(?:^|\s)'unsafe-eval'(?:\s|;|$)/);
   }
 });

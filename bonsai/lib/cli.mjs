@@ -20,9 +20,12 @@
 // the Tree's media bridge (`tos-native-owner-command acquisition`, `media.observe`),
 // stores its work and image in the bonsai's media module with a use for the
 // subject in the role, names their Tree Artifact and representation in the graft
-// map, and checks the bonsai.
+// map, and checks the bonsai. A file image's file and smaller copy are fetched
+// from the provider, checked against the observation's fingerprints, kept under
+// the stand's layer store (`media/`) and entered in its layers.json; `layers.mjs
+// send` or the Publish Bonsai workflow takes them on to R2.
 
-import {readFileSync,writeFileSync,readdirSync,existsSync} from 'node:fs';
+import {readFileSync,writeFileSync,readdirSync,existsSync,mkdirSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {loadCore} from './core.mjs';
@@ -32,7 +35,8 @@ import {fileURLToPath,pathToFileURL} from 'node:url';
 import {alignCorpus,citedUnits,corpusReader,formatAlignment} from './corpus-align.mjs';
 import {bonsaiIds,checkBonsai,loadBonsai,loadWitnessChapters} from './graft.mjs';
 import {realignWitnesses} from './realign.mjs';
-import {addMedia} from './media.mjs';
+import {addMedia,MEDIA_LAYER_PATH,mediaFilePath} from './media.mjs';
+import {formatLayers,readLayers,sha256} from './layers.mjs';
 
 const root=join(dirname(fileURLToPath(import.meta.url)),'..','..');
 const [command,...rest]=process.argv.slice(2);
@@ -119,9 +123,52 @@ if(command==='check'){
     subject:option('--subject'),role:option('--role'),artifact:option('--artifact'),view:option('--view')??'whole',
     digest:text=>createHash('sha256').update(text,'utf8').digest('hex'),
   });
-  const check=checkBonsai(root,stand,{overrides:{media:result.module,identities:result.identities}});
+  let layers=null;
+  const copies=new Map();
+  if(result.image.api==='file'){
+    layers=readLayers(home);
+    if(!layers||layers.root)throw new Error(`${stand}: file media needs a layer store beside the manifest`);
+    if(!layers.paths.includes(MEDIA_LAYER_PATH))layers.paths.push(MEDIA_LAYER_PATH);
+    const profile=JSON.parse(readFileSync(join(root,'access/profiles/deployment-profile.default.v1.json'),'utf8'));
+    const limit=profile.admission.acquisition.max_record_bytes;
+    for(const file of [result.image.preview,result.image.file]){
+      const url=new URL(file.source);
+      if(url.origin!=='https://images.metmuseum.org'||url.username||url.password
+        ||!Number.isSafeInteger(file.bytes)||file.bytes<=0||file.bytes>limit||!/^[a-f0-9]{64}$/.test(file.sha256))
+        throw new Error('invalid or out-of-bounds media file descriptor');
+      const path=mediaFilePath(file),full=join(home,path);
+      copies.set(full,file);
+      layers.entries=[...layers.entries.filter(entry=>entry.path!==path),{path,sha256:file.sha256,bytes:file.bytes}]
+        .sort((a,b)=>a.path<b.path?-1:a.path>b.path?1:0);
+    }
+  }
+  const check=checkBonsai(root,stand,{overrides:{media:result.module,identities:result.identities},mediaLayers:layers});
   for(const problem of check.problems)console.error(`  problem: ${problem}`);
   if(check.problems.length)process.exit(1);
+  const pending=[];
+  for(const [full,file] of copies){
+    if(existsSync(full)){
+      const bytes=readFileSync(full);
+      if(bytes.length===file.bytes&&sha256(bytes)===file.sha256)continue;
+      throw new Error(`${full}: existing media does not match its fingerprint`);
+    }
+    const response=await fetch(file.source,{redirect:'error',signal:AbortSignal.timeout(45000),
+      headers:{'User-Agent':'Tree-of-Sophia-bonsai-media/1',Accept:'image/jpeg, image/png;q=0.9, image/*;q=0.8'}});
+    if(!response.ok||!response.body)throw new Error(`${file.source}: HTTP ${response.status}`);
+    const chunks=[];let size=0;
+    for await(const chunk of response.body){
+      size+=chunk.length;
+      if(size>file.bytes)throw new Error(`${file.source}: response exceeds its fingerprinted size`);
+      chunks.push(chunk);
+    }
+    const bytes=Buffer.concat(chunks,size);
+    if(size!==file.bytes||sha256(bytes)!==file.sha256)throw new Error(`${file.source}: response differs from the observation`);
+    pending.push([full,bytes]);
+  }
+  for(const [full,bytes] of pending){
+    mkdirSync(dirname(full),{recursive:true});writeFileSync(full,bytes,{flag:'wx'});
+  }
+  if(layers)writeFileSync(join(home,'layers.json'),formatLayers(layers));
   write(mediaPath,result.module);write(graftPath,result.identities);
   console.log(`${stand}: ${result.imageId} shows ${option('--subject')} as ${option('--role')}; work ${result.workId}`);
 }else{

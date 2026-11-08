@@ -1,7 +1,9 @@
 // The images on a card: works bound to the card's subject in the stand's bonsai (bonsai/<stand>/media.json).
 //
-// A card shows each image whole, in its own proportions, as a small copy from
-// the provider's IIIF image service; under it, the caption says what the image
+// A card shows each image whole, in its own proportions, as a small copy: from
+// the provider's IIIF image service, or the stand's own copy of the provider's
+// smaller file, which the site serves from its layer store (layers/sha256/<hex>,
+// the same-origin copy of R2). Under it, the caption says what the image
 // is for on this card and when the work was made, then the provider's own
 // title, the inscription on the object, the series, who made it, its size, and
 // the holder's record and rights statement as links. Choosing the image opens
@@ -11,6 +13,17 @@
 import {formatDating} from '../../../../bonsai/lib/time.mjs';
 
 const CARD_BOX=480;
+const BASE=import.meta.env?.BASE_URL??'/';
+
+/** Where the site serves a file the stand keeps in its layer store. */
+export const layerAddress=(sha256,base=BASE)=>`${base.endsWith('/')?base:`${base}/`}layers/sha256/${sha256}`;
+
+/** The card's copy of an image and, for the full view, the source the viewer reads. */
+export function imageSources(image,{base=BASE}={}){
+  if(image.api==='file')return {src:layerAddress(image.preview.sha256,base),srcset:'',full:{type:'image',url:layerAddress(image.file.sha256,base)},crossOrigin:null};
+  // Version 2 and 3 of the IIIF Image API ask for a whole image fitted into a box in the same words.
+  return {src:fittedImage(image.service,CARD_BOX),srcset:`${fittedImage(image.service,CARD_BOX)} 1x, ${fittedImage(image.service,CARD_BOX*2)} 2x`,full:`${image.service}/info.json`,crossOrigin:'anonymous'};
+}
 
 /** A IIIF Image API 3 request for the whole image fitted into a square of `box` pixels. */
 export const fittedImage=(service,box)=>`${service}/full/!${box},${box}/0/default.jpg`;
@@ -41,11 +54,15 @@ export function captionLines({role,work},{t,locale}){
   return lines;
 }
 
-/** Where the caption's sources lead: the holder's record of the work and the rights statement of the image. */
-export function captionLinks({work,image}){
+/**
+ * Where the caption's sources lead: the holder's record of the work and the rights statement of the image.
+ * A provider that marks an image public domain by a flag (the Met's isPublicDomain) says so on its record.
+ */
+export function captionLinks({work,image},{t=key=>key}={}){
   const links=[{part:'record',text:`${work.holder} · ${work.inventory}`,url:work.record}];
-  const rights=image.rights;
-  links.push({part:'rights',text:rights.label??rights.statement??rights.value,url:rights.statement??rights.stated_in});
+  // A flag names no statement: the Met's isPublicDomain says public domain, the National Gallery of Art's openaccess open access.
+  const rights=image.rights,flag=rights.statement===null?({isPublicDomain:'mediaPublicDomain',openaccess:'mediaOpenAccess'})[rights.field]:null,set=flag&&rights.value===({isPublicDomain:'true',openaccess:'1'})[rights.field];
+  links.push({part:'rights',text:rights.label??(set?t(flag):rights.statement??rights.value),url:rights.statement??(set?work.record:rights.stated_in)});
   return links;
 }
 
@@ -69,12 +86,13 @@ export function createMediaView({t,locale,hint=()=>{}}){
     const {image,work,role}=item,size=fittedSize(image);
     const box=el('figure','ps-media');box.dataset.role=role;
     const open=el('button','ps-media-open');open.type='button';open.setAttribute('aria-label',t('mediaOpen'));hint(open,t('mediaOpen'));
-    const picture=el('img');
-    // The page is cross-origin isolated: an image from the provider is requested in CORS mode, which its service answers.
-    picture.crossOrigin='anonymous';picture.decoding='async';picture.loading='lazy';
+    const picture=el('img'),sources=imageSources(image);
+    // The page is cross-origin isolated: an image from the provider's service is requested in CORS mode, which the
+    // service answers; the stand's own copies come from the site itself.
+    if(sources.crossOrigin)picture.crossOrigin=sources.crossOrigin;
+    picture.decoding='async';picture.loading='lazy';
     picture.width=size.width;picture.height=size.height;
-    picture.src=fittedImage(image.service,CARD_BOX);
-    picture.srcset=`${fittedImage(image.service,CARD_BOX)} 1x, ${fittedImage(image.service,CARD_BOX*2)} 2x`;
+    picture.src=sources.src;if(sources.srcset)picture.srcset=sources.srcset;
     picture.alt=titleOf(work,'title')[0]?.text??'';
     picture.addEventListener('error',()=>{open.replaceWith(el('p','ps-media-missing',t('mediaMissing')));},{once:true});
     open.append(picture);open.addEventListener('click',()=>void openViewer(item,open));
@@ -85,9 +103,9 @@ export function createMediaView({t,locale,hint=()=>{}}){
       const words=el('span','',line.text);if(line.lang)words.lang=line.lang;row.append(words);
       caption.append(row);
     }
-    const sources=el('p','ps-media-sources');
-    for(const link of captionLinks(item)){const anchor=el('a','',`${link.text} ↗`);anchor.href=link.url;anchor.target='_blank';anchor.rel='noopener noreferrer';anchor.dataset.part=link.part;sources.append(anchor);}
-    caption.append(sources);
+    const links=el('p','ps-media-sources');
+    for(const link of captionLinks(item,{t})){const anchor=el('a','',`${link.text} ↗`);anchor.href=link.url;anchor.target='_blank';anchor.rel='noopener noreferrer';anchor.dataset.part=link.part;links.append(anchor);}
+    caption.append(links);
     box.append(open,caption);
     return box;
   }
@@ -115,8 +133,9 @@ export function createMediaView({t,locale,hint=()=>{}}){
     try{
       const {default:OpenSeadragon}=await import('openseadragon');
       if(viewer!==state)return;
+      const sources=imageSources(image);
       state.osd=withoutWrittenStyle(()=>OpenSeadragon({
-        element:stage,tileSources:`${image.service}/info.json`,crossOriginPolicy:'Anonymous',
+        element:stage,tileSources:sources.full,crossOriginPolicy:sources.crossOrigin?'Anonymous':false,
         showNavigationControl:false,visibilityRatio:1,minZoomImageRatio:0.9,maxZoomPixelRatio:2,
         animationTime:0.6,gestureSettingsMouse:{clickToZoom:false,dblClickToZoom:true},
       }));

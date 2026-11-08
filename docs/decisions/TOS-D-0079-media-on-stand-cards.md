@@ -12,25 +12,38 @@
 
 ## Context
 
-The stands are to show media on their cards, first a portrait beside each
-author's name. A later printed or painted portrait shows how a later age
+The stands are to show media on their cards: a portrait beside each author's
+name, and on the Zarathustra stand works that share a motif with a star, from
+a curated media registry. A later printed or painted portrait shows how a later age
 imagined the author, so its card has to say who made it and when. The images
 come from museums' IIIF Image API services, which the Tree's media bridges
-observe (TOS-D-0078). The stands' pages are cross-origin isolated and admit
-images and connections from their own origin alone.
+observe (TOS-D-0078); the Met serves files instead, with neither CORS nor a
+resource policy. The stands' pages are cross-origin isolated and admit images
+and connections from their own origin alone. In a check of 7–8 November 2026,
+Chrome blocked a Met file on such a page under `require-corp`, and loaded the
+Rijksmuseum's and the National Gallery of Art's IIIF images in CORS mode.
 
 ## Decision
 
 A bonsai keeps its media in a module of its own, `media.json`
 (`tos.bonsai.media.v1`), in three levels: the work its holder keeps, with the
 provider's titles, makers, dating, size and record word for word; the image,
-one IIIF Image API 3 service with its pixel size and the provider's rights
-statement; and the use, which binds an image to a subject of the stand in a
-role (an author's portrait, a material of the era, an object of analysis, a
-comparison). Every entry comes from a provider observation, and one command
+with its pixel size and the provider's rights statement, as one IIIF Image API
+3 or 2 service or as the provider's file and its smaller copy; and the use, which
+binds an image to a subject of the stand in a role (an author's portrait, a
+response to the book, a shared motif, a material of the era, an object of
+analysis, a comparison). Every entry comes from a provider observation, and one command
 (`node bonsai/lib/cli.mjs media add`) attaches it to a card and names its Tree
 Artifact and representation in the graft map. A stand shows an image under the
-Public Domain Mark or CC0.
+Public Domain Mark or CC0, or one its provider flags as free to use (the Met's
+`isPublicDomain`, the National Gallery of Art's `openaccess`).
+
+A provider's files reach the page as the stand's own copies. The bridge
+fingerprints the file and its smaller copy (`"files": true`); the attach
+command keeps them only when their bytes match, under `media/` in the stand's
+layer store; R2 holds them under their digest (TOS-D-0076), the Publish Bonsai
+workflow writes them from main, and the site serves them at
+`/__research/layers/sha256/<hex>`, from its own origin.
 
 The hosts of the image services are one list, `bonsai/lib/media-hosts.mjs`.
 The bonsai check refuses a medium on any other host, and the site Worker adds
@@ -50,9 +63,12 @@ use, and closing it returns focus to the image on the card.
 
 - Put the images into the stand's manifest or the collection: they would load
   with the space and mix provider facts with the stand's own words.
-- Proxy the images through the site Worker: the services already answer CORS
-  requests and serve tiles at every detail; a proxy would add a route without
-  adding a fact.
+- Proxy the images through the site Worker: the IIIF services already answer
+  CORS requests and serve tiles at every detail. For the Met's files a proxy
+  resolving the current file by object number would follow a moved address,
+  but it would show whatever the provider serves that day; in the first
+  observations two Met originals came back as other bytes ten minutes later.
+  A copy under its digest shows the file that was observed.
 - Admit any `https:` image source in the CSP: one list of named hosts keeps the
   pages' policy as narrow as the media they show.
 
@@ -67,8 +83,10 @@ single list of hosts ties what the check admits to what the page may load.
 ## Consequences
 
 A new provider joins with its bridge, its host in the list and its first
-medium. A file-only provider such as the Met needs a small preview from its
-bridge before a card can show it. The viewer writes no style of its own: its
+medium, or with its files fingerprinted and copied. The first Zarathustra
+slice holds the registry's shared motifs with open images from the Met, the
+Rijksmuseum and the National Gallery of Art, 32 stars; the registry's looser
+comparisons wait for review. The viewer writes no style of its own: its
 one touch-screen rule lives in the stand's stylesheet. Stars stay stars; an
 image belongs to the card.
 
@@ -76,6 +94,7 @@ image belongs to the card.
 
 - `bonsai/lib/media.mjs`, `bonsai/lib/media-hosts.mjs`, `bonsai/lib/cli.mjs`
 - `bonsai/antiquity/media.json`, `bonsai/antiquity/identities.json`
+- `bonsai/zarathustra/media.json`, `bonsai/zarathustra/layers.json`
 - `access/web/src/public-research/media-view.mjs`
 - `access/web/src/public-research/public-space.mjs`
 - `access/deploy/cloudflare-worker/src/public-prototypes.ts`

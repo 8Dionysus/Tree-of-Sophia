@@ -107,7 +107,7 @@ export function treeIdentities(root){
     if(!existsSync(dir))return;
     for(const name of readdirSync(dir)){
       const path=join(dir,name);
-      if(name===file){try{const record=json(path),id=record.record_id??record.artifact_id??record.representation_id;if(typeof id==='string')ids.add(id);}catch{}}
+      if(name===file){try{const record=json(path),id=record.record_id??record.artifact_id??record.representation_id??record.file_id;if(typeof id==='string')ids.add(id);}catch{}}
       else if(depth>0&&statSync(path).isDirectory())walk(path,file,depth-1);
     }
   };
@@ -166,7 +166,7 @@ export function termPlaceReader(root,alignment,fragments,{corpus=corpusOnDisk(ro
 }
 
 /** Problems that make a bonsai or its export unfit for the Tree, and what has moved since the graft. */
-export function checkBonsai(root,id,{validator=treeContracts(root),relations,identities=treeIdentities(root),overrides}={}){
+export function checkBonsai(root,id,{validator=treeContracts(root),relations,identities=treeIdentities(root),overrides,mediaLayers}={}){
   const {home,manifest,modules,layers}=loadBonsai(root,id,overrides),problems=[],drift=[];
   let corpus=null;
   // The layers kept in R2: their manifest always; their files, checked like any module, where all are present.
@@ -209,8 +209,11 @@ export function checkBonsai(root,id,{validator=treeContracts(root),relations,ide
   if(modules.fragments)problems.push(...externalPlacesIssues(modules.fragments).map(issue=>`fragments: ${issue}`));
   if(modules.alignment)problems.push(...corpusAlignmentIssues(modules.alignment).map(issue=>`alignment: ${issue}`));
   if(modules.media){
-    const subjects=Array.isArray(modules.collection?.entities)?new Set(modules.collection.entities.map(entry=>entry.id)):null;
-    problems.push(...mediaIssues(modules.media,{subjects,identities:modules.identities??{},digest:textDigest}).map(issue=>`media: ${issue}`));
+    // A medium's subject is a collection entry where the stand keeps a collection, and a core record where it keeps a core.
+    const coreModule=(manifest.modules??[]).find(module=>module.id==='core'),core=coreModule?loadCore(join(home,dirname(coreModule.path))):null;
+    const subjects=Array.isArray(modules.collection?.entities)?new Set(modules.collection.entities.map(entry=>entry.id))
+      :core?new Set([...core.concepts,...core.figures,...core.proposed,...core.chains.flatMap(chain=>chain.states??[])].map(record=>record.id)):null;
+    problems.push(...mediaIssues(modules.media,{subjects,identities:modules.identities??{},digest:textDigest,layers:mediaLayers??layers}).map(issue=>`media: ${issue}`));
   }
   let registry=null;
   if(modules.objects||modules.core){try{registry=semanticRegistry(root);}catch(error){problems.push(`entity registry: ${error.message}`);}}
