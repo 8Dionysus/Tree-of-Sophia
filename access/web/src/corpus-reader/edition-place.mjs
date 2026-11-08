@@ -79,13 +79,14 @@ async function zarathustraPlace(document,from,to,unitId){
 // A corpus alignment maps each cited unit of an original onto units of its translations.
 let alignments=null;
 async function loadAlignments(){
-  alignments??=Promise.all(Object.values(alignmentFiles).map(load=>load().catch(()=>null))).then(list=>list.filter(Boolean).map(data=>{
+  // A file that fails to load fails the lookup, which a later lookup tries again; only a lookup that read them answers none.
+  alignments??=Promise.all(Object.values(alignmentFiles).map(load=>load())).then(list=>list.filter(Boolean).map(data=>{
     const back=new Map();
     for(const [original,entry] of Object.entries(data.units??{}))for(const [versionId,target] of Object.entries(entry.t??{}))
       for(const unit of target.u??[])back.set(`${versionId}\u0000${unit}`,original);
     const originals=new Set(Object.values(data.works??{}).map(work=>work.original?.versionId).filter(Boolean));
     return {units:data.units??{},back,originals};
-  }));
+  })).catch(error=>{alignments=null;throw error;});
   return alignments;
 }
 
@@ -118,12 +119,13 @@ export function sectionPlace(from,to,unitId){
 
 /**
  * Where the place `unitId` of edition `from` stands in edition `to` of `document`: {unitId, by:'unit'|'section'},
- * or null where the Tree knows no such place. The unit found is always one of `to`'s own units.
+ * or null where the Tree knows no such place. The unit found is always one of `to`'s own units. A witness or
+ * alignment file that fails to load rejects the lookup: a failed lookup says nothing about the counterpart.
  */
 export async function placeInEdition({document,from,to,unitId}){
   if(!document||!from||!to||!unitId||from.id===to.id)return null;
   const own=id=>id&&orderOf(to).has(id)?id:null;
-  const unit=own(await zarathustraPlace(document,from,to,unitId).catch(()=>null))??own(await alignedPlace(from,to,unitId).catch(()=>null));
+  const unit=own(await zarathustraPlace(document,from,to,unitId))??own(await alignedPlace(from,to,unitId));
   if(unit)return {unitId:unit,by:'unit'};
   const section=own(sectionPlace(from,to,unitId));
   return section?{unitId:section,by:'section'}:null;
