@@ -162,7 +162,9 @@ export function mountResearchExperience({root,header,profile,locale=()=> 'ru',in
     toc.setAttribute('aria-label',t('onThisPage'));toc.replaceChildren(make('p','experience-toc-title',t('onThisPage')),...tocItems.map(([,link])=>link));toc.hidden=false;markContents();
   }
   function markContents(){
-    tocFrame=0;if(!tocItems.length)return;const line=(parseFloat(getComputedStyle(root).getPropertyValue('--rb-h'))||64)+120;
+    tocFrame=0;if(!tocItems.length)return;const bar=parseFloat(getComputedStyle(root).getPropertyValue('--rb-h'))||64,line=bar+120;
+    // Held under the bar, the strip of parts becomes the bar's second row.
+    const strip=tocItems[0][1].parentElement;strip?.classList?.toggle('is-stuck',strip.getBoundingClientRect().top<=bar+0.5);
     let current=tocItems[0][1];for(const [target,link] of tocItems)if(target.getBoundingClientRect().top<=line)current=link;
     if(current.getAttribute('aria-current')==='true')return;
     for(const [,link] of tocItems)link.setAttribute('aria-current',String(link===current));
