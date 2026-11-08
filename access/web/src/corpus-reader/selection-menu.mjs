@@ -16,27 +16,46 @@ export function isSingleWord(text){
 /**
  * Show `actions` ([{label, run(selection), when?(selection)}]) beside a single-word selection inside `container`.
  * `accept(selection)` may refuse a selection (return false); `when(selection)` may keep an action back for it,
- * returning false or a promise of false. Returns {element, hide(), dispose()}.
+ * returning false or a promise of false. Returns {element, hide(), setActions(actions), dispose()}.
+ *
+ * The menu stands in the top layer, in the open dialog that holds the selection when there is one: above the
+ * parallel reading or a sheet, and reachable while that dialog leaves the rest of the page inert.
  */
 export function createSelectionMenu({container,actions,accept=()=>true,ownerDocument=document}){
   const view=ownerDocument.defaultView;
   const menu=ownerDocument.createElement('div');
   menu.className='tos-selection-menu';
   menu.setAttribute('role','toolbar');
+  const popover=typeof menu.showPopover==='function';
+  if(popover)menu.setAttribute('popover','manual');
   menu.hidden=true;
-  let current=null,timer=0;
-  const buttons=actions.map(action=>{
-    const button=ownerDocument.createElement('button');
-    button.type='button';button.className='tos-selection-menu-action';button.textContent=action.label;
-    // Keep the selection: a pointer press on the menu does not collapse it.
-    button.addEventListener('pointerdown',event=>event.preventDefault());
-    button.addEventListener('mousedown',event=>event.preventDefault());
-    button.addEventListener('click',()=>{const value=current;hide();if(value)action.run(value);});
-    menu.append(button);
-    return button;
-  });
+  let current=null,timer=0,list=[],buttons=[];
+  const open=()=>popover&&menu.isConnected&&menu.matches(':popover-open');
+  function setActions(next){
+    list=[...(next??[])];
+    for(const button of buttons)button.remove();
+    buttons=list.map(action=>{
+      const button=ownerDocument.createElement('button');
+      button.type='button';button.className='tos-selection-menu-action';button.textContent=action.label;
+      // Keep the selection: a pointer press on the menu does not collapse it.
+      button.addEventListener('pointerdown',event=>event.preventDefault());
+      button.addEventListener('mousedown',event=>event.preventDefault());
+      button.addEventListener('click',()=>{const value=current;hide();if(value)action.run(value);});
+      menu.append(button);
+      return button;
+    });
+    hide();
+  }
+  setActions(actions);
   ownerDocument.body.append(menu);
-  function hide(){menu.hidden=true;current=null;}
+  function hide(){current=null;menu.hidden=true;if(open())menu.hidePopover();}
+  function show(element){
+    const layer=element.closest?.('dialog[open]')??ownerDocument.body;
+    if(menu.parentElement!==layer){if(open())menu.hidePopover();layer.append(menu);}
+    menu.hidden=false;
+    // Shown again each time, so it stands above a dialog opened since.
+    if(popover){if(open())menu.hidePopover();menu.showPopover();}
+  }
   function place(rect){
     const width=menu.offsetWidth||160,height=menu.offsetHeight||34,margin=8;
     let top=rect.top-height-margin;if(top<margin)top=rect.bottom+margin;
@@ -51,17 +70,17 @@ export function createSelectionMenu({container,actions,accept=()=>true,ownerDocu
     if(!element||!container.contains(element)||!isSingleWord(text)){hide();return;}
     const value={text:text.replace(/¬\s*/gu,'').trim(),range,element};
     if(accept(value)===false){hide();return;}
+    hide();
     current=value;
     // An action that is still deciding joins the menu when it says yes for this same selection.
-    const reveal=button=>{if(current!==value)return;button.hidden=false;menu.hidden=false;place(range.getBoundingClientRect());};
-    actions.forEach((action,index)=>{
+    const reveal=button=>{if(current!==value)return;button.hidden=false;show(element);place(range.getBoundingClientRect());};
+    list.forEach((action,index)=>{
       const button=buttons[index],answer=action.when?action.when(value):true;
       button.hidden=true;
       if(answer===true)button.hidden=false;
       else if(typeof answer?.then==='function')answer.then(yes=>{if(yes)reveal(button);},()=>{});
     });
-    menu.hidden=buttons.every(button=>button.hidden);
-    if(!menu.hidden)place(range.getBoundingClientRect());
+    if(buttons.some(button=>!button.hidden)){show(element);place(range.getBoundingClientRect());}
   }
   const onSelection=()=>{view.clearTimeout(timer);timer=view.setTimeout(update,120);};
   const onKey=event=>{if(event.key==='Escape'&&!menu.hidden){hide();}};
@@ -70,8 +89,8 @@ export function createSelectionMenu({container,actions,accept=()=>true,ownerDocu
   ownerDocument.addEventListener('keydown',onKey);
   view.addEventListener('scroll',onScroll,true);
   return {
-    element:menu,hide,
+    element:menu,hide,setActions,
     dispose(){view.clearTimeout(timer);ownerDocument.removeEventListener('selectionchange',onSelection);ownerDocument.removeEventListener('keydown',onKey);
-      view.removeEventListener('scroll',onScroll,true);menu.remove();},
+      view.removeEventListener('scroll',onScroll,true);hide();menu.remove();},
   };
 }
