@@ -66,9 +66,11 @@ provider changes it.
 ## Consequences
 
 Planting an observation as an Artifact witness with a v2 representation, its
-rights record, discovery run and provenance event is the next route. The
-foundation check reads v1 representations and takes up the v2 form together
-with the first planted v2 record. A bonsai stand binds its stars to the Tree's
+rights record, discovery run and provenance event is the next route. Both
+foundation validators read the v2 form: an image-service representation is
+identified by the digest of its service address, its rights cover the Artifact
+and the service at `public_metadata_only` with an authorized redistribution
+posture, and its provenance event closes over the record and its rights. A bonsai stand binds its stars to the Tree's
 artifact and representation identities through its graft map and reads them;
 it authors no media. New providers join the family as bridges with their own
 hosts. An observation decides no rights: the provider's statement and the

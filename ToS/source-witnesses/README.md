@@ -348,8 +348,11 @@ observed: its address, the full dimensions it serves, its tiles and size limits,
 and the exact fingerprint of its `info.json`. The image stays with the provider
 and is read through the service at every detail it offers; the representation's
 identity is the SHA-256 of the service address. Existing v1 records keep their
-contract, and the foundation check takes up the v2 form together with the first
-planted v2 record.
+contract. The foundation check reads both v2 forms: a file representation as v1,
+and an image-service representation with a content-addressed identity, rights
+scoped to the Artifact and the service at `public_metadata_only` with an
+authorized redistribution posture, and a provenance event that closes over the
+record and its rights.
 
 Modern scholarly composites use the parallel `scholarly-composites/` spine.
 Their path follows composition and tradition rather than a current corpus or
