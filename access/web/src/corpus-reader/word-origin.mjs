@@ -135,8 +135,7 @@ const link=(href,text)=>{const a=el('a','cr-origin-link',text);a.href=href;a.tar
 
 /** The editions of Wiktionary in the order the reader reads them: the reader's language, the word's, then English. */
 export function toldOrder(told,locale,language){
-  const own=resolveLocale(locale);
-  return [...new Set([own,copyLocale(locale),language,'en','ru','de'])].filter(edition=>told?.[edition]?.text);
+  return [...new Set([resolveLocale(locale),language,'en','ru','de'])].filter(edition=>told?.[edition]?.text);
 }
 
 function telling(parent,edition,item,copy,language){

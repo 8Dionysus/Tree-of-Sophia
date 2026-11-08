@@ -52,6 +52,17 @@ LATIN_ABBREVIATIONS = {'vgl', 'lat', 'gr', 'griech', 'ahd', 'mhd', 'got', 'engl'
                        'v', 's', 'bzw', 'etc', 'jh', 'jhd', 'jahrh', 'z', 'b', 'u', 'a', 'e', 'g', 'i', 'lit', 'ff', 'f'}
 
 
+RUSSIAN_ABBREVIATIONS = {
+    'праслав', 'прагерм', 'праиндоевр', 'др', 'ст', 'слав', 'лат', 'греч', 'нем', 'англ', 'франц', 'фр', 'ср', 'см', 'гл',
+    'прил', 'сущ', 'род', 'вин', 'дат', 'твор', 'предл', 'мн', 'ед', 'ч', 'п', 'ж', 'м', 'укр', 'белор', 'болг', 'польск',
+    'чешск', 'словацк', 'сербохорв', 'словенск', 'лит', 'латышск', 'прусск', 'инд', 'авест', 'арм', 'готск', 'исл',
+    'норв', 'шведск', 'датск', 'нидерл', 'итал', 'исп', 'тур', 'араб', 'перс', 'тадж', 'санскр', 'диал', 'устар',
+    'разг', 'т', 'д', 'е', 'г', 'гг', 'в', 'вв', 'н', 'э', 'русск', 'рус', 'церк', 'цслав', 'луж', 'нов', 'алб', 'ирл',
+    'валлийск', 'сакс', 'хетт', 'напр', 'букв', 'перен', 'обл', 'собир', 'сокр', 'уменьш', 'ласк', 'книжн', 'поэт',
+    'др.-русск', 'ст.-слав', 'в.-луж', 'н.-луж', 'и.-е', 'общеслав', 'вост', 'зап', 'южн', 'сев', 'древн', 'совр', 'эол',
+    'с.-х', 'кашуб', 'полаб', 'стар', 'произв', 'суфф', 'преф', 'корн', 'знач', 'ок', 'пр'}
+
+
 def ends_sentence(before):
     """Whether the stop that ends `before` ends a sentence: an abbreviation (лат., др.-греч., vgl.) or an ordinal (8.) does not."""
     word = re.search(r'(\S+)$', before[:-1])
@@ -60,9 +71,20 @@ def ends_sentence(before):
     word = word.group(1).lstrip('(„"«')
     if word.isdigit() or re.search(r'\.-?\w{1,7}$', word):
         return False
-    if re.fullmatch(r'[а-яёА-ЯЁ][а-яё]{0,6}', word):
+    if word.lower() in RUSSIAN_ABBREVIATIONS or re.fullmatch(r'[а-яё]', word):
         return False
     return word.lower() not in LATIN_ABBREVIATIONS
+
+
+def clipped(sentence, limit):
+    """A sentence longer than `limit`, cut at its last comma, semicolon or word before the limit."""
+    if len(sentence) <= limit:
+        return sentence
+    head = sentence[:limit]
+    cut = max(head.rfind(', '), head.rfind('; '), head.rfind(' — '))
+    if cut < limit // 2:
+        cut = head.rfind(' ')
+    return head[:cut].rstrip(' ,;—') + ' …'
 
 
 def sentences(text):
@@ -130,7 +152,7 @@ def told_text(texts, edition, limit=420):
             continue
         if kept and size + len(sentence) > limit:
             break
-        kept.append(sentence)
+        kept.append(clipped(sentence, limit))
         size += len(sentence) + 1
         if len(kept) == 3:
             break
@@ -339,35 +361,45 @@ def attest(args):
     print(json.dumps({'lemmas': len(asked), 'used': len(todo), 'asked': corpus.asked}))
 
 
-def used_lemmas(corpus, asked, offline=False):
-    """Per lemma, its uses per quarter century outside Nietzsche, from the batched answers in the cache."""
+def batched_answers(corpus, marker):
+    """The cached answers to the batched count questions of one kind, however they were batched."""
+    for (query, _), item in corpus.answers.items():
+        if query.startswith('count(') and query.endswith(marker) and 'counts' in item:
+            yield query, item
+
+
+def name_table(asked):
     by_name = defaultdict(set)
     for lemma, names in asked.items():
         for name in names:
             by_name[name].add(lemma)
-    periods = defaultdict(Counter)
-    for kind, query in count_queries(batches(sorted(asked.items()), BATCH)):
-        if kind != 'periods':
+    return by_name
+
+
+def used_lemmas(corpus, asked, offline=False):
+    """Per lemma, its uses per quarter century outside Nietzsche, from the batched answers in the cache.
+
+    Each answer gives a name's whole count, so an answer read twice (another batching) sets the same values again."""
+    by_name, per_name = name_table(asked), defaultdict(dict)
+    for query, item in batched_answers(corpus, f'#by[$l,date/{STEP}]'):
+        if f'!{NIETZSCHE}' not in query:
             continue
-        answer = corpus.ask(query, 100000, offline=offline)
-        for n, name, start in (answer or {}).get('counts', []):
-            for lemma in by_name.get(name, ()):
-                periods[lemma][int(start)] += int(n)
+        for n, name, start in item['counts']:
+            per_name[name][int(start)] = int(n)
+    periods = defaultdict(Counter)
+    for name, table in per_name.items():
+        for lemma in by_name.get(name, ()):
+            periods[lemma].update(table)
     return periods
 
 
 def nietzsche_works(corpus, asked):
-    by_name = defaultdict(set)
-    for lemma, names in asked.items():
-        for name in names:
-            by_name[name].add(lemma)
-    works = defaultdict(dict)
-    for kind, query in count_queries(batches(sorted(asked.items()), BATCH)):
-        if kind != 'nietzsche':
+    by_name, works = name_table(asked), defaultdict(dict)
+    for query, item in batched_answers(corpus, '#by[$l,date,title]'):
+        if f'!{NIETZSCHE}' in query:
             continue
-        for n, name, date, title in (corpus.ask(query, 100000, offline=True) or {}).get('counts', []):
-            year = int(str(date)[:4])
-            title = short_title(title)
+        for n, name, date, title in item['counts']:
+            year, title = int(str(date)[:4]), short_title(title)
             for lemma in by_name.get(name, ()):
                 works[lemma][title] = min(year, works[lemma].get(title, year))
     return {lemma: sorted([[year, title] for title, year in table.items()]) for lemma, table in works.items()}

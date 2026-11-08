@@ -33,6 +33,9 @@ describe('the history of a word',()=>{
     expect(toldOrder(told,'ru','de')).toEqual(['de','en']);
     expect(toldOrder(told,'en','de')).toEqual(['en','de']);
     expect(toldOrder(told,'de','de')).toEqual(['de','en']);
+    // A reader whose language has no edition reads the word's own edition first.
+    expect(toldOrder(told,'es','de')).toEqual(['de','en']);
+    expect(toldOrder(told,'zh-Hans','de')).toEqual(['de','en']);
     expect(toldOrder({},'ru','de')).toEqual([]);
   });
   it('shows one telling with its entry, the other editions folded beneath',()=>{
