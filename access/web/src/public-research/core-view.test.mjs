@@ -95,3 +95,22 @@ it('lays every part of a subject open at its step on the workbench and keeps the
   const end=new Element('div');expect(view.brief(end,'recurrence')).toBe(true);
   expect(text(end)).toContain('Всё возвращается.');expect(text(end)).toContain('Источник III.13');
 });
+
+it('reads a link in the book: its kind and status, the question without filler, its sense on its places, a way through more than its ends and its history',()=>{
+  const cite={w:'also-sprach-zarathustra',c:'I.17',u:['u1','u1']},other={w:'also-sprach-zarathustra',c:'I.18',u:['u2','u2']};
+  const link={id:'l',from:'a',to:'b',verb:{ru:'ведёт к'},sense:{ru:'А ведёт к Б.'},answer:{ru:'А ведёт к Б.',cite:[cite]},grounds:[cite],question:{ru:'Как встречаются «А» и «Б» в этом месте?'},status:'text',path:[{id:'a',cite},{id:'b',cite}],assessment:{verdict:'confirmed',reason:{ru:'Проверено по главе.'}}};
+  const through={...link,id:'t',question:{ru:'Куда ведёт А?'},answer:{ru:'Через В.',cite:[other]},path:[{id:'a',cite},{id:'c',cite:other},{id:'b',cite}]};
+  const place={id:'place:x',verb:'answer',from:{cite,speaker:'a'},to:{cite:other,speaker:'b'},sense:{ru:'Б отвечает А.'},limit:{ru:'Только в этой сцене.'}};
+  const core={records:{a:{title:{ru:'А'}},b:{title:{ru:'Б'}},c:{title:{ru:'В'}}},materialIds:{a:'a',b:'b',c:'c'},links:[link,through],chains:[],placeRelations:{relations:[place]}};
+  const fragments={render(parent,value){const box=new Element('div');box.textContent=[value?.ru,...(value?.cite??[]).map(item=>`место ${item.c}`)].filter(Boolean).join(' ');parent.append(box);return box;},fragment(value){return Object.assign(new Element('p'),{textContent:`место ${value.c}`});}};
+  const view=createCoreView({core,locale:()=> 'ru',fragments,book:true});
+  expect([view.kindWord('l'),view.statusWord('l'),view.question('l'),view.question('t')]).toEqual(['Связь','По тексту','','Куда ведёт А?']);
+  expect(view.ends('l')).toEqual({from:'a',to:'b',family:''});
+  const lead=new Element('div');expect(view.lead(lead,'l')).toBe(true);expect(text(lead).trim()).toBe('А ведёт к Б. место I.17');
+  // The answer that repeats the sense and a way that passes only the two ends are not said again.
+  const body=new Element('div');view.bookBody(body,'l');expect(body.children).toHaveLength(0);
+  const long=new Element('div');view.bookBody(long,'t');expect(text(long)).toContain('Через В.');expect(all(long).filter(item=>item.className==='rb-move')).toHaveLength(3);
+  const apparatus=new Element('div');expect(view.bookApparatus(apparatus,'l')).toBe(true);expect(apparatus.children[0].dataset.part).toBe('history');
+  expect([view.kindWord('place:x'),view.title('place:x')]).toEqual(['Связь мест','Ответ']);
+  const places=new Element('div');view.bookBody(places,'place:x');expect(text(places)).toContain('место I.18');expect(text(places)).toContain('Только в этой сцене.');
+});
