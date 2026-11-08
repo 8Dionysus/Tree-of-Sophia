@@ -15,7 +15,7 @@ routes.
 | Bonsai | Stand | Holds |
 | --- | --- | --- |
 | [`antiquity/`](antiquity/bonsai.json) | `/antiquity/` | the collection and its fifteen branches, the first six branches, the alignment of the corpus works they cite and the places of other works, the Tree's object types of its own words, the chronology of lives, phases and writings, places, the graft map, the authors' portraits |
-| [`zarathustra/`](zarathustra/bonsai.json) | `/zarathustra/` | the book's witnesses (German first editions, Common's English, Antonovsky's Russian of 1913) aligned paragraph by paragraph and sentence by sentence, the places of other works its map cites, the alignment of the corpus works it cites, the Tree's object types of its own words, the [philosophical core](CORE.md) of the book, the [word layer, today's spelling and the origin of every lemma](review/philology/README.md#the-word-layer), the chronology of the book's four parts, of the texts its map rests on and of the thought of eternal recurrence, their places, the graft map; the map itself is grafted from the [constructor atlas](../access/web/constructor/README.md) |
+| [`zarathustra/`](zarathustra/bonsai.json) | `/zarathustra/` | the book's witnesses (German first editions, Common's English, Antonovsky's Russian of 1913) aligned paragraph by paragraph and sentence by sentence, the places of other works its map cites, the alignment of the corpus works it cites, the Tree's object types of its own words, the [philosophical core](CORE.md) of the book, the [word layer, today's spelling and the origin of every lemma](review/philology/README.md#the-word-layer), the chronology of the book's four parts, of the texts its map rests on and of the thought of eternal recurrence, their places, the graft map, images of works sharing its motifs; the map itself is grafted from the [constructor atlas](../access/web/constructor/README.md) |
 | [`shared/`](shared/coastlines.json) | both | Natural Earth coastlines under the map of places |
 
 [`zarathustra/held.json`](zarathustra/held.json) keeps whole the stars and links removed by the strict rebuild of 1 November 2026, together with their texts, verdicts, reasons and places, and the earlier texts of what stays. The audit found 19 of the 128 earlier links grounded in a named place in the book; the remaining readings and comparisons are held to grow together with the operator, and the stand neither shows nor binds them.
@@ -298,12 +298,21 @@ work is the object its holder keeps (an engraving, a painting, a manuscript
 leaf), with the provider's own titles (the preferred one, the one written on
 the object, the series), the statements of who made it, its dating as a Tree
 `historicalDate` in the provider's own words, its size, the holder's record
-and what it depicts. An image is one reproduction of a work, served by an IIIF
-Image API 3 service on a host listed in [`lib/media-hosts.mjs`](lib/media-hosts.mjs),
-with its pixel size and the rights statement the provider gives for it; a
-stand shows an image under the Public Domain Mark or CC0. A use binds an image
-to a subject of the stand in a role: `author-portrait`, `era-material`,
-`object-of-analysis` or `comparison`. Provider texts are kept word for word,
+and what it depicts. An image is one reproduction of a work, with its pixel
+size and the rights statement the provider gives for it, in one of two forms:
+an IIIF Image API 3 service on a host listed in
+[`lib/media-hosts.mjs`](lib/media-hosts.mjs), which the page reads from the
+provider; or the provider's file and its smaller copy, which the stand keeps
+as its own copies under `media/` in its layer store (`layers.json`, R2) and the
+page reads from the site (`/__research/layers/sha256/<hex>`). The second form
+serves providers whose files carry no CORS headers, such as the Met, and holds
+exactly the bytes the observation fingerprinted. A stand shows an image under
+the Public Domain Mark or CC0, or one its provider flags as public domain. A
+use binds an image to a subject of the stand in a role: `author-portrait`,
+`book-response` (a work made about the book), `motif` (a work of its own
+showing what the text names), `era-material`, `object-of-analysis` or
+`comparison`. A subject is a collection entry where the stand keeps a
+collection, and a core record where it keeps a core. Provider texts are kept word for word,
 with their language; the module holds no words of the stand's own about a
 medium. A card shows the image whole and small, with its caption from these
 facts and links to the record and the rights statement, and opens it over the
@@ -321,7 +330,12 @@ node bonsai/lib/cli.mjs media add antiquity observation.json \
 
 It stores the work, the image and the use, names their Tree Artifact and
 representation in the graft map (`to-mint` until the Tree's media planting
-holds them) and checks the bonsai. A new provider's host joins
+holds them) and checks the bonsai. For a file image it fetches the file and
+its smaller copy, keeps them only if their bytes match the observation's
+fingerprints (`media.observe` with `"files": true`), and enters them in the
+stand's layers.json; the stand's other layers must be fetched first, and
+`node bonsai/lib/layers.mjs send <stand>` or the Publish Bonsai workflow takes
+the new copies on to R2. A new provider's host joins
 `lib/media-hosts.mjs` with its first medium: the site's Content-Security-Policy
 admits images from those hosts alone.
 

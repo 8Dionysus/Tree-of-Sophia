@@ -3,8 +3,11 @@
 // The module keeps three levels, as the Tree does. A work is the object its
 // holder keeps (an engraving, a painting, a manuscript leaf), with the
 // provider's own titles, makers, dating, size and record. An image is one
-// reproduction of a work served by an image service, with its pixel size and
-// the rights statement the provider gives for it. A use binds an image to a
+// reproduction of a work, with its pixel size and the rights statement the
+// provider gives for it: either the provider's IIIF image service, which the
+// page reads from the provider, or the provider's file and its smaller copy,
+// which the stand keeps as its own copies in its layer store
+// (`layers.json`, R2) and the page reads from the site. A use binds an image to a
 // subject of the stand in a role: an author's portrait, a material of an era,
 // an object of analysis, a comparison. Provider texts are kept word for word,
 // with their language. A card shows the image and a caption built from these
@@ -24,8 +27,11 @@ export {MEDIA_HOSTS,MEDIA_ROLES};
 export const MEDIA_SCHEMA='tos.bonsai.media.v1';
 /** The kinds of title a provider gives: the preferred one, the one written on the object, the series. */
 export const TITLE_ROLES=Object.freeze(['title','inscribed','series']);
-/** The image APIs a card reads. */
-export const IMAGE_APIS=Object.freeze(['iiif-image-3']);
+/** The image APIs a card reads: a provider's IIIF Image API 3 service, or a file the stand keeps a copy of. */
+export const IMAGE_APIS=Object.freeze(['iiif-image-3','file']);
+/** Where a stand keeps the copies of image files, inside its layer store. */
+export const MEDIA_LAYER_PATH='media/';
+const FILE_TYPES=Object.freeze({'image/jpeg':'jpg','image/png':'png'});
 /** Rights statements under which a stand shows an image. */
 export const OPEN_STATEMENTS=Object.freeze([
   'https://creativecommons.org/publicdomain/mark/1.0/',
@@ -40,7 +46,7 @@ const TITLE_ROLE_URIS=Object.freeze({
 const MILLIMETRES='http://vocab.getty.edu/aat/300379097';
 const ARTIFACT=/^tos\.artifact\.[a-z0-9]+(?:-[a-z0-9]+)*\.[a-z0-9]+(?:-[a-z0-9]+)*\.[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const ARTIFACT_PATH=/^[a-z0-9]+(?:-[a-z0-9]+)*\/[a-z0-9]+(?:-[a-z0-9]+)*\/[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const REPRESENTATION=/^tos\.image-service\.sha256\.[0-9a-f]{64}$/;
+const REPRESENTATION=/^tos\.(?:image-service|file)\.sha256\.[0-9a-f]{64}$/;
 const STATUSES=Object.freeze(['to-mint','resolved']);
 
 const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
@@ -52,6 +58,19 @@ const instant=value=>typeof value==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d
 const worded=value=>object(value)&&text(value.text)&&(value.language===null||text(value.language))&&Object.keys(value).every(key=>key==='text'||key==='language');
 const hostOf=value=>{try{return new URL(value).host;}catch{return null;}};
 
+/** Where in a stand's layer store the copy of a file stands. */
+export const mediaFilePath=file=>`${MEDIA_LAYER_PATH}${file.sha256}.${FILE_TYPES[file.media_type]??'bin'}`;
+const fileIssues=(file,at)=>{
+  if(!object(file))return [`${at}: missing`];
+  const issues=[];
+  if(!https(file.source))issues.push(`${at}: source`);
+  if(!sha(file.sha256))issues.push(`${at}: sha256`);
+  if(!Number.isInteger(file.bytes)||file.bytes<=0)issues.push(`${at}: bytes`);
+  for(const key of ['width','height'])if(!Number.isInteger(file[key])||file[key]<=0)issues.push(`${at}: ${key}`);
+  if(!FILE_TYPES[file.media_type])issues.push(`${at}: media_type`);
+  return issues;
+};
+
 /** Whether a rights entry lets a stand show the image. */
 export const openRights=rights=>object(rights)&&(OPEN_STATEMENTS.includes(rights.statement)||rights.statement===null&&rights.field==='isPublicDomain'&&rights.value==='true');
 
@@ -60,9 +79,10 @@ export const openRights=rights=>object(rights)&&(OPEN_STATEMENTS.includes(rights
  * `subjects` (a Set) are the stand's subject ids a use may name; `identities`
  * is the graft map, which must name a Tree identity for every work and image;
  * `digest(text)` (hex SHA-256) checks that a representation is named after
- * its image service, as the Tree names it.
+ * its image service, as the Tree names it; `layers` (the stand's layer
+ * manifest) must hold every file copy with its digest and size.
  */
-export function mediaIssues(module,{subjects=null,identities=null,digest=null}={}){
+export function mediaIssues(module,{subjects=null,identities=null,digest=null,layers=null}={}){
   if(!object(module))return ['not an object'];
   const issues=[];
   if(module.schema!==MEDIA_SCHEMA)issues.push('schema');
@@ -101,18 +121,31 @@ export function mediaIssues(module,{subjects=null,identities=null,digest=null}={
     if(!works[image.work])issues.push(`${at}: work ${image.work} is not a work of this module`);
     else shown.add(image.work);
     if(!IMAGE_APIS.includes(image.api))issues.push(`${at}: api`);
-    if(!https(image.service))issues.push(`${at}: service`);
-    else if(!MEDIA_HOSTS.includes(hostOf(image.service)))issues.push(`${at}: ${hostOf(image.service)} is not a media host; add it to bonsai/lib/media-hosts.mjs`);
-    if(/\/$/.test(image.service??''))issues.push(`${at}: service ends with a slash`);
+    if(image.api==='iiif-image-3'){
+      if(!https(image.service))issues.push(`${at}: service`);
+      else if(!MEDIA_HOSTS.includes(hostOf(image.service)))issues.push(`${at}: ${hostOf(image.service)} is not a media host; add it to bonsai/lib/media-hosts.mjs`);
+      if(/\/$/.test(image.service??''))issues.push(`${at}: service ends with a slash`);
+    }
+    if(image.api==='file'){
+      issues.push(...fileIssues(image.file,`${at}: file`),...fileIssues(image.preview,`${at}: preview`));
+      if(image.file&&(image.width!==image.file.width||image.height!==image.file.height))issues.push(`${at}: its size is not its file's`);
+      // The page reads the stand's own copies: the layer store holds each one, with its digest and size.
+      if(layers)for(const [name,file] of [['file',image.file],['preview',image.preview]]){
+        const entry=object(file)&&(layers.entries??[]).find(item=>item.path===mediaFilePath(file));
+        if(object(file)&&!(entry&&entry.sha256===file.sha256&&entry.bytes===file.bytes))issues.push(`${at}: the layer store holds no copy of its ${name} (${object(file)?mediaFilePath(file):'?'})`);
+      }
+    }
     for(const key of ['width','height'])if(!Number.isInteger(image[key])||image[key]<=0)issues.push(`${at}: ${key}`);
     const rights=image.rights;
     if(!object(rights)||!(rights.statement===null||https(rights.statement))||!text(rights.field)||!text(rights.value)||!(rights.label===null||text(rights.label))||!https(rights.stated_in))issues.push(`${at}: rights`);
     else if(!openRights(rights))issues.push(`${at}: its rights do not let a stand show it`);
-    if(!object(image.observed)||!instant(image.observed.at)||!sha(image.observed.info_sha256))issues.push(`${at}: observed`);
+    if(!object(image.observed)||!instant(image.observed.at)||image.api==='iiif-image-3'&&!sha(image.observed.info_sha256))issues.push(`${at}: observed`);
     if(identities){
       const graft=identities.representations?.[id];
       if(!object(graft)||!REPRESENTATION.test(graft.tree??'')||!STATUSES.includes(graft.status))issues.push(`${at}: no Tree representation in the graft map`);
-      else if(digest&&https(image.service)&&graft.tree!==`tos.image-service.sha256.${digest(image.service)}`)issues.push(`${at}: the graft map's representation is not named after its service`);
+      // The Tree names an image service after its address and a file after its bytes.
+      else if(image.api==='iiif-image-3'&&digest&&https(image.service)&&graft.tree!==`tos.image-service.sha256.${digest(image.service)}`)issues.push(`${at}: the graft map's representation is not named after its service`);
+      else if(image.api==='file'&&graft.tree!==`tos.file.sha256.${image.file?.sha256}`)issues.push(`${at}: the graft map's representation is not named after its file`);
     }
   }
   for(const id of Object.keys(works))if(!shown.has(id))issues.push(`work ${id}: no image shows it`);
@@ -150,18 +183,33 @@ function statements(entries){
 // A provider dating as a Tree historicalDate in the provider's own words: one year, or the years of every
 // timespan it names. Where the provider gives no dating or no words for it, the work has none: a gap stays a gap.
 function datingOf(dating){
-  const {statement=null,begin_year:begin=null,end_year:end=null}=dating??{};
+  let {statement=null,begin_year:begin=null,end_year:end=null}=dating??{};
   if(!text(statement)||!Number.isInteger(begin)&&!Number.isInteger(end))return null;
   const certainty=/\b(?:c|ca|circa)\b\.?|\?/i.test(statement)?'approximate':'exact';
   const base={role:'historical-time',calendar:null,year_numbering:'astronomical',certainty,source_wording:{text:statement,language:null}};
+  // "In or after 1868" opens the interval forward, "in or before 1868" backward, whatever years the record states with it.
+  if(/\b(?:in )?or (?:after|later)\b|\bafter\b/i.test(statement)&&Number.isInteger(begin))return {kind:'interval-assertion',...base,interval:{start:yearLexeme(begin)}};
+  if(/\b(?:in )?or (?:before|earlier)\b|\bbefore\b/i.test(statement)&&Number.isInteger(end))return {kind:'interval-assertion',...base,interval:{end:yearLexeme(end)}};
+  // An approximate dating keeps the years its words state ("ca. 1819–23"), where the record widens them (1814–1828).
+  const stated=certainty==='approximate'?/(\d{3,4})(?:\s*[–-]\s*(\d{1,4}))?/.exec(statement):null;
+  if(stated){
+    const first=Number(stated[1]),tail=stated[2],last=tail?Number(tail.length<stated[1].length?stated[1].slice(0,stated[1].length-tail.length)+tail:tail):first;
+    if(first<=last&&(!Number.isInteger(begin)||begin<=first)&&(!Number.isInteger(end)||last<=end)){begin=first;end=last;}
+  }
   if(begin===end)return {kind:'date-assertion',...base,value:yearLexeme(begin)};
   return {kind:'interval-assertion',...base,interval:{...(Number.isInteger(begin)?{start:yearLexeme(begin)}:{}),...(Number.isInteger(end)?{end:yearLexeme(end)}:{})}};
 }
 
+// The height and width a provider states in millimetres or centimetres (to the millimetre): the whole object's,
+// else the sheet's, else the image's.
 function sizeOf(dimensions){
-  const value=kind=>{const found=(dimensions??[]).find(item=>item?.kind===kind&&item.unit_uri===MILLIMETRES);const number=Number(found?.value);return Number.isFinite(number)&&number>0?number:null;};
-  const height=value('height'),width=value('width');
-  return height&&width?[height,width]:null;
+  const millimetres=item=>{const number=Number(item?.value);if(!Number.isFinite(number)||number<=0)return null;return item.unit_uri===MILLIMETRES||item.unit==='mm'?number:item.unit==='cm'?Math.round(number*10):null;};
+  const pick=(axis,prefix)=>(dimensions??[]).find(item=>typeof item?.kind==='string'&&item.kind.toLowerCase()===`${prefix}${axis}`&&millimetres(item)!==null);
+  for(const prefix of ['','overall ','sheet ','image ']){
+    const height=pick('height',prefix),width=pick('width',prefix);
+    if(height&&width)return [millimetres(height),millimetres(width)];
+  }
+  return null;
 }
 
 /**
@@ -174,26 +222,37 @@ export function mediaFromObservation(observation,{view='whole'}={}){
   if(observation?.schema_version!=='tos_media_provider_observation_v1')throw new Error('not a media provider observation');
   const record=observation.object??{},provider=observation.provider;
   const inventory=(record.identifiers??[]).find(item=>/object number|accession/i.test(item?.scheme??''))?.value??observation.requested_object;
-  const service=(observation.images??[]).find(item=>item?.role==='primary'&&item.form==='image_service')?.image_service;
-  if(!service)throw new Error(`${provider} ${inventory}: the observation has no image service; a card reads IIIF Image API 3 services only`);
-  if(service.api_version!=='3')throw new Error(`${provider} ${inventory}: IIIF Image API ${service.api_version} is not read by the cards`);
+  const primary=(observation.images??[]).find(item=>item?.role==='primary');
+  const service=primary?.form==='image_service'?primary.image_service:null;
+  if(!primary)throw new Error(`${provider} ${inventory}: the observation has no primary image`);
+  if(service&&service.api_version!=='3')throw new Error(`${provider} ${inventory}: IIIF Image API ${service.api_version} is not read by the cards`);
+  if(!service&&!(primary.file_fingerprint&&primary.preview_fingerprint))throw new Error(`${provider} ${inventory}: a file image needs its file and its smaller copy fingerprinted; observe it with "files": true`);
   const right=(observation.rights??[]).find(item=>item?.scope==='image');
   const rights=right?{statement:right.statement_uri??null,field:right.provider_field,value:right.value,label:right.label??null,stated_in:right.stated_in}:null;
   if(!openRights(rights))throw new Error(`${provider} ${inventory}: the provider's image rights do not let a stand show it`);
   const requestOf=role=>(observation.requests??[]).find(item=>item?.role===role);
   const workId=`${provider}:${inventory}`,imageId=`${workId}/${view}`;
-  const titles=(record.titles??[]).map(title=>({text:title.text,language:title.language??null,role:TITLE_ROLE_URIS[title.role]??null})).filter(title=>title.role&&text(title.text));
+  // A provider that gives one title without a kind (the Met) gives its own title.
+  const titles=(record.titles??[]).map(title=>({text:title.text,language:title.language??null,role:title.role===null||title.role===undefined?'title':TITLE_ROLE_URIS[title.role]??null})).filter(title=>title.role&&text(title.text));
+  // Where the provider writes no production statement, its makers speak: "Artist: Eugène Delacroix".
+  const made=statements(record.production_statements);
+  if(!made.length)for(const maker of record.makers??[])if(text(maker?.label))made.push({text:text(maker.role)?`${maker.role}: ${maker.label}`:maker.label,language:null});
   const work={
     provider,record:record.record_url,holder:record.repository,inventory,
-    titles,made:statements(record.production_statements),dating:datingOf(record.dating),
+    titles,made,dating:datingOf(record.dating),
     classification:record.classifications??[],materials:record.materials??[],size_mm:sizeOf(record.dimensions),
     credit:statements(record.credit_lines),
     depicts:[...new Set((record.depicted??[]).flatMap(item=>item?.authority_uris??[]))],
     observed:{at:observation.observed_at,record_sha256:requestOf('object-record')?.sha256},
   };
-  const image={
+  const fileOf=print=>({source:print.final_url??print.url,sha256:print.sha256,bytes:print.byte_size,width:print.width_pixels,height:print.height_pixels,media_type:print.media_type});
+  const image=service?{
     work:workId,api:'iiif-image-3',service:service.service_id.replace(/\/$/,''),width:service.width_pixels,height:service.height_pixels,
     rights,observed:{at:service.info_fingerprint?.checked_at??observation.observed_at,info_sha256:service.info_fingerprint?.sha256},
+  }:{
+    work:workId,api:'file',file:fileOf(primary.file_fingerprint),preview:fileOf(primary.preview_fingerprint),
+    width:primary.file_fingerprint.width_pixels,height:primary.file_fingerprint.height_pixels,
+    rights,observed:{at:observation.observed_at},
   };
   return {workId,work,imageId,image};
 }
@@ -219,8 +278,8 @@ export function addMedia({module,identities,observation,subject,role,artifact,vi
     graft[section]={...(graft[section]??{}),[id]:{tree,...extra,status:earlier?.tree===tree?earlier.status:'to-mint'}};
   };
   keep('artifacts',workId,`tos.artifact.${artifact.replaceAll('/','.')}`,{path:artifact});
-  keep('representations',imageId,`tos.image-service.sha256.${digest(image.service)}`);
-  return {module:next,identities:graft,workId,imageId};
+  keep('representations',imageId,image.api==='file'?`tos.file.sha256.${image.file.sha256}`:`tos.image-service.sha256.${digest(image.service)}`);
+  return {module:next,identities:graft,workId,imageId,image};
 }
 
 /** Read a media module: what a subject's card shows, in the order of the roles. */

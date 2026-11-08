@@ -20,9 +20,12 @@
 // the Tree's media bridge (`tos-native-owner-command acquisition`, `media.observe`),
 // stores its work and image in the bonsai's media module with a use for the
 // subject in the role, names their Tree Artifact and representation in the graft
-// map, and checks the bonsai.
+// map, and checks the bonsai. A file image's file and smaller copy are fetched
+// from the provider, checked against the observation's fingerprints, kept under
+// the stand's layer store (`media/`) and entered in its layers.json; `layers.mjs
+// send` or the Publish Bonsai workflow takes them on to R2.
 
-import {readFileSync,writeFileSync,readdirSync,existsSync} from 'node:fs';
+import {readFileSync,writeFileSync,readdirSync,existsSync,mkdirSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {loadCore} from './core.mjs';
@@ -32,7 +35,8 @@ import {fileURLToPath,pathToFileURL} from 'node:url';
 import {alignCorpus,citedUnits,corpusReader,formatAlignment} from './corpus-align.mjs';
 import {bonsaiIds,checkBonsai,loadBonsai,loadWitnessChapters} from './graft.mjs';
 import {realignWitnesses} from './realign.mjs';
-import {addMedia} from './media.mjs';
+import {addMedia,MEDIA_LAYER_PATH,mediaFilePath} from './media.mjs';
+import {formatLayers,readLayers,sha256} from './layers.mjs';
 
 const root=join(dirname(fileURLToPath(import.meta.url)),'..','..');
 const [command,...rest]=process.argv.slice(2);
@@ -119,6 +123,27 @@ if(command==='check'){
     subject:option('--subject'),role:option('--role'),artifact:option('--artifact'),view:option('--view')??'whole',
     digest:text=>createHash('sha256').update(text,'utf8').digest('hex'),
   });
+  // A file image is read from the stand's own copies: bring each one, exactly the bytes observed, into the layer store.
+  if(result.image.api==='file'){
+    const layers=readLayers(home);
+    if(!layers){console.error(`${stand}: a file image needs the stand's layer store; add bonsai/${stand}/layers.json first`);process.exit(1);}
+    if(layers.root){console.error(`${stand}: its layer store keeps its files elsewhere (${layers.root}); media copies live beside layers.json`);process.exit(1);}
+    if(!layers.paths.includes(MEDIA_LAYER_PATH))layers.paths=[...layers.paths,MEDIA_LAYER_PATH];
+    for(const file of [result.image.preview,result.image.file]){
+      const path=mediaFilePath(file),full=join(home,path);
+      let bytes=existsSync(full)?readFileSync(full):null;
+      if(!bytes||sha256(bytes)!==file.sha256){
+        // Ask as the bridge asked: an image host may answer another Accept with other bytes.
+        const response=await fetch(file.source,{headers:{'User-Agent':'Tree-of-Sophia-bonsai-media/1',Accept:'image/jpeg, image/png;q=0.9, image/*;q=0.8'}});
+        if(!response.ok){console.error(`${file.source}: HTTP ${response.status}`);process.exit(1);}
+        bytes=Buffer.from(await response.arrayBuffer());
+        if(bytes.length!==file.bytes||sha256(bytes)!==file.sha256){console.error(`${file.source}: the provider now serves other bytes than the observation fingerprinted; observe the object again`);process.exit(1);}
+        mkdirSync(dirname(full),{recursive:true});writeFileSync(full,bytes);
+      }
+      layers.entries=[...layers.entries.filter(entry=>entry.path!==path),{path,sha256:file.sha256,bytes:file.bytes}].sort((a,b)=>a.path<b.path?-1:a.path>b.path?1:0);
+    }
+    writeFileSync(join(home,'layers.json'),formatLayers(layers));
+  }
   write(mediaPath,result.module);write(graftPath,result.identities);
   console.log(`${stand}: ${result.imageId} shows ${option('--subject')} as ${option('--role')}; work ${result.workId}`);
   const check=checkBonsai(root,stand);
