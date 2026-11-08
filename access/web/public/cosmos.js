@@ -1,20 +1,20 @@
 // The cosmos between pages: a deep field. While a bonsai's page gathers itself, the reader looks into the depth of the
-// universe, hundreds of galaxies of every kind, the far ones reddened by their distance, a few near ones large enough
-// to show their arms, their bulges, their dust and the blue knots where stars are born, and in front of them the
-// stars of our own sky with their four rays. The view drifts slowly forward into the depth; when the page is ready it
-// flies through and opens onto the tree (tosCosmos.done()); a page leaving for a bonsai calls the sky up first
-// (tosCosmos.show()). A classic script in the body, like theme.js in the head, so the sky is in the page's first
-// paint. The field is stamped from a few galaxies drawn once; the near spirals are computed in a worker
-// (cosmos-worker.js), away from the page's own work; and everything moves by transforms and opacity alone, so the
-// sky goes on while the page's scripts load. The day (Noon) sees the same field as an astronomer's plate: the
-// negative, in ink on warm paper.
+// universe: hundreds of far galaxies reddened by their distance, a crowd of nearer ones of every kind, the stars of our
+// own sky with their four rays, and a few near galaxies, each its own: the Whirlpool with its companion, a barred
+// spiral, the flocculent Sunflower, the Sombrero with its ring of dust, Hoag's ring. The near ones and the crowd were
+// drawn once by hand (public/cosmos/*.webp, by tools/cosmos_galaxies.py) and come up out of the depth one after another as
+// their images are ready; the far field is stamped here before the first paint. The view drifts forward the whole
+// time, each depth at its own pace, and the drift is the clock's: a sky called up on one page (tosCosmos.show()) goes
+// on in the next where it stood. When the page is ready (tosCosmos.done()) and has a moment to spare, the view flies
+// through the depths into the tree. Everything moves by transforms and opacity alone, so the sky goes on while the
+// page's scripts load. The day (Noon) sees the same field as an astronomer's plate: the negative, in ink on paper.
 (function(){
   'use strict';
   var script=document.currentScript,root=document.documentElement;
   if(!script||!document.body||window.tosCosmos)return;
   var startOn=script.getAttribute('data-cosmos')!=='off',stand=script.getAttribute('data-stand')||'';
   var reduced=false;try{reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(error){}
-  var DPR=window.devicePixelRatio||1,workerUrl=(script.src||'').replace(/cosmos\.js(?:[?#].*)?$/,'cosmos-worker.js');
+  var DPR=window.devicePixelRatio||1,plates=(script.src||'').replace(/cosmos\.js(?:[?#].*)?$/,'')+'cosmos/';
 
   function random(seed){var state=seed>>>0;return function(){state=(state+0x6D2B79F5)>>>0;var t=state;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296;};}
   function make(tag,name,parent){var node=document.createElement(tag);if(name)node.className=name;if(parent)parent.appendChild(node);return node;}
@@ -22,8 +22,18 @@
   function mix(a,b,t){return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];}
   function pick(next,table){var r=next(),sum=0;for(var i=0;i<table.length;i++){sum+=table[i][1];if(r<=sum)return table[i][0];}return table[table.length-1][0];}
   function canvasOf(width,height){var canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(width));canvas.height=Math.max(1,Math.round(height));return canvas;}
-  // A loop of `period` seconds stands where it stood on the last page: its phase is the clock's.
-  function phase(node,period){var now=Date.now()/1000;node.style.animationDuration=period+'s';node.style.animationDelay=(-(now%period)).toFixed(2)+'s';}
+  function viewport(){return {w:window.innerWidth||1280,h:window.innerHeight||800};}
+  // A canvas the size of the sky is drawn finer on a fine screen, within a budget the GPU keeps easily.
+  function resolution(){var v=viewport();return Math.min(DPR,1.5,Math.sqrt(7e6/(v.w*v.h)));}
+  // A loop stands where it stood on the last page: its phase is the clock's. A loop that goes there and back takes two
+  // of its periods to come round.
+  function phase(node,period,alternate){var now=Date.now()/1000,cycle=alternate?period*2:period;node.style.animationDuration=period+'s';node.style.animationDelay=(-(now%cycle)).toFixed(2)+'s';}
+  function decoded(image){
+    if(image.decode)return image.decode().then(function(){return true;},function(){return false;});
+    return new Promise(function(done){if(image.complete&&image.naturalWidth)done(true);else{image.onload=function(){done(true);};image.onerror=function(){done(false);};}});
+  }
+  function idle(work,wait){return window.requestIdleCallback?{idle:requestIdleCallback(work,{timeout:wait})}:{timer:setTimeout(work,Math.min(wait,200))};}
+  function unidle(handle){if(!handle)return;if(handle.idle&&window.cancelIdleCallback)cancelIdleCallback(handle.idle);if(handle.timer)clearTimeout(handle.timer);}
 
   // ── the colours of a deep field: old stars burn orange and gold, young ones white and blue; the farthest are reddened
   var C={red:[255,104,58],orange:[255,140,52],amber:[255,178,86],gold:[255,214,150],white:[255,244,230],pale:[196,216,255],blue:[118,168,255],pink:[255,150,180]};
@@ -40,7 +50,7 @@
   }
   function glow(g,x,y,radius,color){var light=g.createRadialGradient(x,y,0,x,y,radius);light.addColorStop(0,rgba(C.white,1));light.addColorStop(.16,rgba(color,.6));light.addColorStop(1,rgba(color,0));g.fillStyle=light;g.fillRect(x-radius,y-radius,radius*2,radius*2);}
 
-  // ── the field is stamped from a few galaxies drawn once
+  // ── the far field is stamped from a few galaxies drawn once
   var HALF=32,sprites=null;
   function sprite(draw){var canvas=canvasOf(HALF*2,HALF*2),g=canvas.getContext('2d');if(g){g.globalCompositeOperation='lighter';draw(g,HALF);}return canvas;}
   function spritesNow(){
@@ -72,40 +82,6 @@
   // The heart of the sky is kept clear for the Tree's mark.
   function clear(x,y,w,h){return Math.abs(x/w-.5)<.13&&Math.abs(y/h-.46)<.15;}
 
-  // ── the near galaxies that are cheap to draw here: a disc edge on, a merging pair, a starburst
-  function edgeOn(width,height,seed){
-    var canvas=canvasOf(width,height),g=canvas.getContext('2d');if(!g)return canvas;
-    var next=random(seed),cx=width/2,cy=height/2;g.globalCompositeOperation='lighter';
-    smooth(g,cx,cy,width*.48,.11,0,C.pale,C.white,.95);smooth(g,cx,cy,width*.2,.45,0,C.gold,C.white,.9);
-    for(var k=0;k<14;k++)glow(g,cx+(next()-.5)*width*.8,cy+(next()-.5)*height*.08,1.4+next()*2,C.pale);
-    // A dark lane of dust along its middle.
-    g.globalCompositeOperation='destination-out';smooth(g,cx,cy+height*.012,width*.42,.022,0,[0,0,0],[0,0,0],.75);
-    return canvas;
-  }
-  function pair(size,seed){
-    var canvas=canvasOf(size,size),g=canvas.getContext('2d');if(!g)return canvas;
-    var next=random(seed),c=size/2;g.globalCompositeOperation='lighter';
-    smooth(g,c,c,size*.5,.85,.4,C.orange,C.amber,.55);
-    smooth(g,c-size*.12,c-size*.05,size*.2,.8,.2,C.amber,C.white,.95);smooth(g,c+size*.11,c+size*.06,size*.15,.75,1.1,C.orange,C.white,.9);
-    for(var k=0;k<6;k++)glow(g,c+(next()-.5)*size*.7,c+(next()-.5)*size*.6,1.4+next()*1.8,C.amber);
-    return canvas;
-  }
-  function burst(size,seed){
-    var canvas=canvasOf(size,size),g=canvas.getContext('2d');if(!g)return canvas;
-    var next=random(seed),c=size/2;g.globalCompositeOperation='lighter';
-    smooth(g,c,c,size*.5,1,0,C.blue,C.pale,.5);smooth(g,c,c,size*.16,1,0,C.pale,C.white,1);
-    for(var k=0;k<10;k++)glow(g,c+(next()-.5)*size*.5,c+(next()-.5)*size*.5,1.6+next()*2,C.blue);
-    return canvas;
-  }
-  // Resolved stars along a near spiral's arms: the speckle that makes it sharp.
-  function speckle(g,px,o){
-    var s=spritesNow(),next=random(o.seed+9),c=px/2,R=px*.48,wind=1/Math.tan(o.pitch*Math.PI/180);g.globalCompositeOperation='lighter';
-    for(var i=0;i<px*.9;i++){
-      var rr=.12+next()*.75,tt=next()*6.2832,on=Math.pow((Math.cos(o.arms*(tt-wind*Math.log(rr+.03)))+1)/2,3);if(on<.45)continue;
-      var r=1+next()*2;stamp(g,next()<.8?s.point.pale:s.point.pink,c+Math.cos(tt)*rr*R,c+Math.sin(tt)*rr*R,r,r,0,(.25+.5*next())*on,1);
-    }
-    g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;
-  }
   // A star of our own sky, with the four rays of the telescope (and of the Tree's own stars).
   function starSprite(color){
     var size=96,canvas=canvasOf(size,size),g=canvas.getContext('2d');if(!g)return '';
@@ -120,27 +96,19 @@
     try{return canvas.toDataURL();}catch(error){return '';}
   }
 
-  // ── the worker that computes the near spirals
-  var worker=null,jobs=0,pending={};
-  function galaxyWorker(){
-    if(worker!==null)return worker;
-    try{worker=new Worker(workerUrl);worker.onmessage=function(event){var done=pending[event.data.id];delete pending[event.data.id];if(done)done(event.data);};worker.onerror=function(){worker=false;};}
-    catch(error){worker=false;}
-    return worker;
-  }
-
-  // ── the sky itself
+  // ── the sky itself: five depths, from the farthest field to the stars of our own sky. Each depth drifts forward at
+  // its own pace (its depth), and is carried through on its own plane when the view flies into the tree.
   var host=make('div','tos-cosmos');host.setAttribute('aria-hidden','true');host.dataset.state=startOn?'on':'off';
   var field=make('div','cosmos-field',host);
   make('div','cosmos-ground',field);
   var deep=make('div','cosmos-deep',field);
-  var far=make('div','cosmos-depth cosmos-far',deep),middle=make('div','cosmos-depth cosmos-middle',deep),near=make('div','cosmos-depth cosmos-near',deep),stars=make('div','cosmos-depth cosmos-stars',deep);
+  function depth(name){return make('div','cosmos-depth',make('div','cosmos-plane cosmos-'+name,deep));}
+  var far=depth('far'),middle=depth('middle'),crowd=depth('crowd'),near=depth('near'),stars=depth('stars'),DEPTHS=[far,middle,crowd,near,stars];
   make('div','cosmos-veil',field);
   var heart=make('div','cosmos-heart',host);
-  make('div','cosmos-hush',heart);make('div','cosmos-halo',heart);
-  var orbit=make('div','cosmos-orbit',heart);make('i','',orbit);
-  make('div','cosmos-mark',heart);
-  var title=make('div','cosmos-title',heart);
+  make('div','cosmos-hush',heart);
+  var halo=make('div','cosmos-halo',heart),orbit=make('div','cosmos-orbit',heart);make('i','',orbit);
+  var mark=make('div','cosmos-mark',heart),title=make('div','cosmos-title',heart);
 
   var TITLES={zarathustra:{ru:'Заратустра',en:'Zarathustra',es:'Zaratustra',de:'Zarathustra','zh-Hans':'查拉图斯特拉'},
     antiquity:{ru:'Античность',en:'Antiquity',es:'Antigüedad',de:'Antike','zh-Hans':'古代'}};
@@ -154,50 +122,16 @@
   // The far field and the middle one: hundreds of galaxies, stamped at once, before the first paint.
   function paintField(layer,seed,count,sizes,skew,palette,points,scale){
     layer.textContent='';
-    var w=window.innerWidth||1280,h=window.innerHeight||800,canvas=make('canvas','',layer);canvas.width=Math.round(w*scale);canvas.height=Math.round(h*scale);
+    var v=viewport(),canvas=make('canvas','',layer);canvas.width=Math.round(v.w*scale);canvas.height=Math.round(v.h*scale);
     var g=canvas.getContext('2d');if(!g)return;
     var s=spritesNow(),next=random(seed);g.globalCompositeOperation='lighter';
-    for(var i=0;i<points;i++){var r=.7+next()*1.2;stamp(g,next()<.6?s.point.white:s.point.pale,next()*w,next()*h,r,r,0,.2+next()*.6,scale);}
+    for(var i=0;i<points;i++){var r=.7+next()*1.2;stamp(g,next()<.6?s.point.white:s.point.pale,next()*v.w,next()*v.h,r,r,0,.2+next()*.6,scale);}
     for(var j=0;j<count;j++){
-      var x=next()*w,y=next()*h,size=sizes[0]+Math.pow(next(),skew)*(sizes[1]-sizes[0]);
-      if(size>sizes[0]*2.5&&clear(x,y,w,h))continue;
+      var x=next()*v.w,y=next()*v.h,size=sizes[0]+Math.pow(next(),skew)*(sizes[1]-sizes[0]);
+      if(size>sizes[0]*2.5&&clear(x,y,v.w,v.h))continue;
       small(g,next,x,y,size,palette,scale);
     }
     g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;
-  }
-  var HEROES=[
-    {kind:'spiral',x:.74,y:.6,size:.44,tilt:-18,flat:.74,spin:210,arms:2,pitch:17,bulge:.24,disk:.42,exposure:3,seed:11,
-      bulgeColor:[1,.8,.52],armColor:[.55,.72,1],knotColor:[.42,.62,1],hiiColor:[1,.45,.62]},
-    {kind:'spiral',x:.2,y:.3,size:.26,tilt:28,flat:.46,spin:170,reverse:true,arms:2,pitch:22,bulge:.26,disk:.38,exposure:3.2,seed:23,
-      bulgeColor:[1,.84,.6],armColor:[.62,.76,1],knotColor:[.5,.66,1],hiiColor:[1,.5,.66]},
-    {kind:'spiral',x:.9,y:.17,size:.14,tilt:-50,flat:.6,spin:150,arms:3,pitch:25,bulge:.26,disk:.38,exposure:3.3,seed:37,
-      bulgeColor:[1,.82,.58],armColor:[.6,.74,1],knotColor:[.5,.66,1],hiiColor:[1,.5,.66]},
-    {kind:'pair',x:.61,y:.22,size:.17,seed:41},
-    {kind:'burst',x:.23,y:.76,size:.12,seed:53},
-    {kind:'edge',x:.42,y:.86,size:.22,tilt:-24,seed:61},
-    {kind:'edge',x:.08,y:.55,size:.12,tilt:62,seed:67}
-  ];
-  function lit(wrap){requestAnimationFrame(function(){wrap.classList.add('is-lit');});}
-  function paintHero(spec){
-    var vmin=Math.min(window.innerWidth||1280,window.innerHeight||800),size=Math.round(vmin*spec.size),edge=spec.kind==='edge';
-    var wrap=make('div','cosmos-hero',near);wrap.style.left=(spec.x*100).toFixed(1)+'%';wrap.style.top=(spec.y*100).toFixed(1)+'%';
-    wrap.style.width=size+'px';wrap.style.height=(edge?Math.round(size*.3):size)+'px';wrap.style.margin=(-(edge?size*.15:size/2)).toFixed(0)+'px 0 0 '+(-size/2).toFixed(0)+'px';
-    var tilt=make('div','cosmos-tilt',wrap),spin=make('div','cosmos-spin',tilt);phase(wrap,40+spec.seed);
-    if(spec.kind!=='spiral'){
-      var res=Math.min(DPR,1.5);spin.classList.add('is-fixed');
-      if(edge)tilt.style.transform='rotate('+spec.tilt+'deg)';
-      spin.appendChild(edge?edgeOn(size*res,size*.3*res,spec.seed):spec.kind==='pair'?pair(size*res,spec.seed):burst(size*res,spec.seed));lit(wrap);return;
-    }
-    tilt.style.transform='rotate('+spec.tilt+'deg) scaleY('+spec.flat+')';if(spec.reverse)spin.classList.add('is-reverse');phase(spin,spec.spin);
-    var compute=galaxyWorker();if(!compute){wrap.remove();return;}
-    var id=++jobs,px=Math.round(size*Math.min(DPR,1.5));
-    pending[id]=function(result){
-      if(!wrap.isConnected)return;
-      var canvas=canvasOf(result.px,result.px),g=canvas.getContext('2d');if(!g)return;
-      g.putImageData(new ImageData(new Uint8ClampedArray(result.data),result.px,result.px),0,0);speckle(g,result.px,spec);
-      spin.appendChild(canvas);lit(wrap);
-    };
-    compute.postMessage({id:id,px:px,o:spec});
   }
   function paintStars(){
     stars.textContent='';
@@ -207,55 +141,138 @@
       var star=make('i','cosmos-star',stars),size=14+Math.pow(next(),1.6)*40;
       star.style.left=x.toFixed(2)+'%';star.style.top=y.toFixed(2)+'%';star.style.width=star.style.height=size.toFixed(0)+'px';
       star.style.margin=(-size/2).toFixed(0)+'px 0 0 '+(-size/2).toFixed(0)+'px';star.style.backgroundImage='url('+images[next()<.65?0:1]+')';
-      phase(star,4+next()*5);
+      phase(star,3.5+next()*4.5,true);
     }
   }
-  function release(){
-    [far,middle,near].forEach(function(layer){layer.querySelectorAll('canvas').forEach(function(canvas){canvas.width=canvas.height=0;});layer.textContent='';});
-    stars.textContent='';pending={};if(worker){worker.terminate();worker=null;}
+
+  // ── the near galaxies, each its own, placed and turned by hand. A disc turns slowly in its own plane (its tilt and
+  // the foreshortening of its plane stay); the Sombrero, seen edge on, only drifts.
+  var HEROES=[
+    {name:'whirlpool',x:.765,y:.61,tall:[.7,.71],size:.5,tilt:-16,flat:.86,turn:420,drift:56},
+    {name:'barred',x:.165,y:.27,tall:[.26,.24],size:.36,tilt:34,flat:.56,turn:340,back:true,drift:47},
+    {name:'sunflower',x:.885,y:.155,tall:[.84,.1],size:.23,tilt:-48,flat:.66,turn:300,drift:43},
+    {name:'sombrero',x:.355,y:.875,tall:[.36,.9],size:.4,ratio:.5,tilt:-7,drift:52},
+    {name:'hoag',x:.09,y:.67,tall:[.13,.6],size:.16,flat:.92,turn:380,back:true,drift:39}
+  ];
+  // They come up out of the depth one after another, each once its image is ready, so none appears at a jump.
+  function paintHeroes(){
+    near.textContent='';
+    // A tall screen (a phone held upright) has them placed for its own shape, clear of the title.
+    var v=viewport(),vmin=Math.min(v.w,v.h),tall=v.h>v.w*1.1,order=Promise.resolve(),slot=0;
+    HEROES.forEach(function(spec){
+      var width=Math.round(vmin*spec.size),height=Math.round(width*(spec.ratio||1)),at=tall?spec.tall:[spec.x,spec.y];
+      var hero=make('div','cosmos-hero',near);
+      hero.style.left=(at[0]*100).toFixed(1)+'%';hero.style.top=(at[1]*100).toFixed(1)+'%';hero.style.width=width+'px';hero.style.height=height+'px';
+      hero.style.margin=(-height/2).toFixed(0)+'px 0 0 '+(-width/2).toFixed(0)+'px';phase(hero,spec.drift,true);
+      var rise=make('div','cosmos-rise',hero),tilt=make('div','cosmos-tilt',rise),spin=make('div','cosmos-spin',tilt);
+      tilt.style.transform='rotate('+(spec.tilt||0)+'deg)'+(spec.flat?' scaleY('+spec.flat+')':'');
+      if(spec.turn){phase(spin,spec.turn);if(spec.back)spin.classList.add('is-back');}else spin.classList.add('is-fixed');
+      var image=make('img','',spin);image.alt='';image.decoding='async';image.draggable=false;image.src=plates+spec.name+'.webp';
+      var ready=decoded(image);
+      order=order.then(function(){return ready;}).then(function(ok){
+        if(!hero.isConnected)return;
+        if(!ok){hero.remove();return;}
+        var now=performance.now();slot=Math.max(now,slot+280);
+        rise.style.animationDelay=((slot-now)/1000).toFixed(2)+'s';rise.classList.add('is-risen');
+      });
+    });
   }
-  function light(id){
+  // The crowd: the twenty-five small galaxies of the atlas, each laid down once or twice at its own size, angle and
+  // foreshortening, between the far field and the near galaxies.
+  var ATLAS=5;
+  function paintCrowd(){
+    crowd.textContent='';
+    var atlas=new Image();atlas.decoding='async';atlas.src=plates+'atlas.webp';
+    decoded(atlas).then(function(ok){
+      if(!ok||!crowd.isConnected||host.dataset.state==='off')return;
+      var v=viewport(),scale=resolution(),canvas=make('canvas','',crowd);canvas.width=Math.round(v.w*scale);canvas.height=Math.round(v.h*scale);
+      var g=canvas.getContext('2d');if(!g)return;
+      if('imageSmoothingQuality' in g)g.imageSmoothingQuality='high';
+      // They keep their size to the screen's, as the near galaxies do, within bounds.
+      var next=random(303),cell=atlas.naturalWidth/ATLAS,count=Math.round(Math.max(18,Math.min(46,30*v.w*v.h/1.4e6))),deck=[];
+      var zoom=Math.max(.55,Math.min(1.2,Math.min(v.w,v.h)/950));
+      for(var k=0;k<ATLAS*ATLAS;k++)deck.push(k);
+      for(var n=deck.length-1;n>0;n--){var m=Math.floor(next()*(n+1)),swap=deck[n];deck[n]=deck[m];deck[m]=swap;}
+      for(var i=0,tries=0;i<count&&tries<count*4;tries++){
+        var x=next()*v.w,y=next()*v.h,size=(24+Math.pow(next(),2.4)*72)*zoom,angle=next()*6.2832,flat=.5+next()*.5,alpha=.62+next()*.38;
+        if(clear(x,y,v.w,v.h))continue;
+        var index=deck[i%deck.length],cos=Math.cos(angle),sin=Math.sin(angle);
+        g.globalAlpha=alpha;g.setTransform(cos*scale,sin*scale,-sin*flat*scale,cos*flat*scale,x*scale,y*scale);
+        g.drawImage(atlas,(index%ATLAS)*cell,Math.floor(index/ATLAS)*cell,cell,cell,-size/2,-size/2,size,size);
+        i++;
+      }
+      g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;
+      canvas.classList.add('is-risen');
+    });
+  }
+
+  function release(){
+    [far,middle,crowd].forEach(function(layer){layer.querySelectorAll('canvas').forEach(function(canvas){canvas.width=canvas.height=0;});});
+    DEPTHS.forEach(function(layer){layer.textContent='';});
+  }
+  // The flight forward goes on from the moment the sky came up (`since`), on this page or on the one before it.
+  var since=Date.now();
+  function fly(){
+    var elapsed=Math.max(0,Date.now()-since)/1000,moving=DEPTHS.concat(title);
+    moving.forEach(function(node){node.style.animation='none';});void host.offsetWidth;
+    moving.forEach(function(node){node.style.animation='';});
+    DEPTHS.forEach(function(layer){layer.style.animationDelay=(-elapsed).toFixed(2)+'s';});
+    title.style.animationDelay=(.3-elapsed).toFixed(2)+'s';
+  }
+  // `whole`: the near galaxies and the crowd come up too. A page that calls the sky up on its way out shows the field
+  // alone, since a page loading behind the sky would lose them for a moment; the page that arrives raises them.
+  function light(id,whole){
     host.dataset.sky=root.getAttribute('data-site-theme')==='noon'?'noon':'midnight';
-    // Each time the sky comes up the flight begins again from where the view stands.
-    [far,middle,near,stars].forEach(function(layer){layer.style.animation='none';void layer.offsetWidth;layer.style.animation='';});
-    var area=(window.innerWidth||1280)*(window.innerHeight||800)/1e6;
-    paintField(far,101,Math.round(620*area),[1.3,7],2.3,FAR,Math.round(220*area),Math.min(DPR,1.5));
-    paintField(middle,202,Math.round(150*area),[3.5,24],2.1,NEAR,Math.round(60*area),Math.min(DPR,2));
-    paintStars();near.textContent='';HEROES.forEach(paintHero);
+    var v=viewport(),area=v.w*v.h/1e6,scale=resolution();
+    paintField(far,101,Math.round(620*area),[1.3,7],2.3,FAR,Math.round(220*area),scale);
+    paintField(middle,202,Math.round(130*area),[3,15],2.1,NEAR,Math.round(60*area),scale);
+    paintStars();crowd.textContent='';near.textContent='';
     title.textContent=titleFor(id||stand);
-    phase(orbit,3.6);
+    fly();phase(orbit,3.6);phase(halo,5.5,true);phase(mark,6,true);
+    if(whole){paintHeroes();paintCrowd();}
   }
   if(reduced)host.classList.add('is-still');
-  // A sky that a page called up before leaving goes on here without coming up again.
-  var CARRY='tos.cosmos.carry',carried=false;
-  try{var at=Number(sessionStorage.getItem(CARRY));sessionStorage.removeItem(CARRY);carried=startOn&&at>0&&Date.now()-at<10000;}catch(error){}
-  if(carried)host.classList.add('is-carried');
+  // A sky that a page called up before leaving goes on here from where it stood.
+  var CARRY='tos.cosmos.carry';
+  try{var at=Number(sessionStorage.getItem(CARRY));sessionStorage.removeItem(CARRY);if(startOn&&at>0&&Date.now()-at<10000)since=at;}catch(error){}
   document.body.insertBefore(host,script.nextSibling);
-  if(startOn)light(stand);
+  if(startOn)light(stand,true);
 
-  var leaving=0;
+  var leaving=0,waiting=null;
+  function stay(){clearTimeout(leaving);unidle(waiting);waiting=null;}
   var api={
     /** Call the sky up before leaving for a bonsai; resolves once it covers the page. */
     show:function(options){
-      options=options||{};clearTimeout(leaving);
+      options=options||{};stay();
       var was=host.dataset.state;
-      if(was!=='on'){host.dataset.state='rising';light(options.stand);void host.offsetWidth;host.dataset.state='on';}
+      if(was!=='on'){since=Date.now();host.dataset.state='rising';light(options.stand,false);void host.offsetWidth;host.dataset.state='on';}
       if(options.title)title.textContent=options.title;
-      try{sessionStorage.setItem(CARRY,String(Date.now()));}catch(error){}
+      try{sessionStorage.setItem(CARRY,String(since));}catch(error){}
       return new Promise(function(resolve){setTimeout(resolve,was==='on'?0:reduced?120:520);});
     },
-    /** The page is ready: the view flies through the field and opens onto the tree. */
+    /** The page is ready: at its first quiet moment the view flies through the depths and opens onto the tree. */
     done:function(){
-      if(host.dataset.state!=='on')return;
-      host.dataset.state='leaving';
-      leaving=setTimeout(function(){host.dataset.state='off';release();},reduced?500:1700);
+      if(host.dataset.state!=='on'||waiting)return;
+      waiting=idle(function(){
+        waiting=null;if(host.dataset.state!=='on')return;
+        host.dataset.state='leaving';
+        leaving=setTimeout(function(){host.dataset.state='off';release();},reduced?500:1700);
+      },800);
     },
     /** Put the sky away at once (a page brought back from the history). */
-    reset:function(){clearTimeout(leaving);host.dataset.state='off';release();}
+    reset:function(){stay();host.dataset.state='off';release();}
   };
   window.tosCosmos=api;
   // A page restored from the history is already itself: the sky that led away from it is not left standing over it.
   window.addEventListener('pageshow',function(event){if(event.persisted)api.reset();});
   // A sky that waited too long gives way all the same: the page shows its own state, an error included.
   if(startOn)setTimeout(function(){api.done();},45000);
+  // The page that only calls the sky up (the home page) fetches the near galaxies while the reader looks round, so the
+  // page the reader goes to finds them at hand.
+  if(!startOn){
+    var kept=[];
+    var fetchPlates=function(){HEROES.map(function(spec){return spec.name;}).concat('atlas').forEach(function(name){var image=new Image();image.decoding='async';if('fetchPriority' in image)image.fetchPriority='low';image.src=plates+name+'.webp';kept.push(image);});};
+    var whenQuiet=function(){idle(fetchPlates,4000);};
+    if(document.readyState==='complete')whenQuiet();else window.addEventListener('load',whenQuiet,{once:true});
+  }
 })();
