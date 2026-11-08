@@ -802,7 +802,7 @@ export function mountCorpusReader({
     await Promise.all(pending);
   }
 
-  // Every opening of a work or edition advances it, from its first step; a pending edition switch then stands down.
+  // Every opening of a work or edition, and closing the reader, advances it from its first step; a pending edition switch then stands down.
   let editionSwitch = 0;
   async function openDocument(documentId) {
     editionSwitch++;
@@ -884,7 +884,7 @@ export function mountCorpusReader({
     }
     // A later choice of edition, or another work opened meanwhile, supersedes this one.
     const now = modelState();
-    if (disposed || ticket !== editionSwitch || sequence !== selectionSequence
+    if (disposed || !opened || ticket !== editionSwitch || sequence !== selectionSequence
       || now.document?.id !== document.id || now.activeVersionId !== state.activeVersionId) return null;
     const result = await openVersion(document.id, version.id, place?.unitId ?? null);
     if (answered && !place) announce(t('noCounterpart'));
@@ -1630,6 +1630,7 @@ export function mountCorpusReader({
   }
 
   async function close({notify = true} = {}) {
+    editionSwitch++;
     if (!opened || disposed) return true;
     if(!(await flushNote()))return false;
     if(disposed || !root)return true;
