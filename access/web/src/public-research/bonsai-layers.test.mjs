@@ -114,7 +114,7 @@ describe('the layer store',()=>{
   it('keeps the Zarathustra word layer in its manifest',()=>{
     const layers=readLayers(new URL('../../../../bonsai/zarathustra',import.meta.url).pathname);
     expect(layersIssues(layers)).toEqual([]);
-    expect(layers.paths).toEqual(['histories.json','histories/','origins.json','origins/','renderings.json','spelling.json','tokens.json','tokens/']);
+    expect(layers.paths).toEqual(['histories.json','histories/','origins.json','origins/','renderings.json','spelling.json','stories.json','tokens.json','tokens/']);
     expect(layers.entries.filter(entry=>entry.path.startsWith('tokens/'))).toHaveLength(81);
   });
 });

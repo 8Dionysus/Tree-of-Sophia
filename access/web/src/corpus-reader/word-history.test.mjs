@@ -1,7 +1,8 @@
 import {readFileSync} from 'node:fs';
 import {beforeAll,describe,expect,it} from 'vitest';
 import {layerStatus} from '../../../../bonsai/lib/layers.mjs';
-import {frequencyBins,historyRecord,renderAttested,renderInBook,renderTold,shardOf,toldOrder} from './word-origin.mjs';
+import {existsSync} from 'node:fs';
+import {frequencyBins,historyRecord,paired,renderAttested,renderInBook,renderStoryText,renderTold,shardOf,storyOrder,storyPiece,storyRecord,toldOrder} from './word-origin.mjs';
 
 // The history of a word: what Wiktionary's editions tell of it, where the German texts of the DTA use it, how often the book says it.
 const home=new URL('../../../../bonsai/zarathustra/',import.meta.url);
@@ -10,7 +11,8 @@ const read=path=>JSON.parse(readFileSync(new URL(path,home),'utf8'));
 const fetched=layerStatus(home.pathname).every(entry=>entry.state==='present');
 
 class Element {
-  constructor(tag){this.tagName=tag;this.children=[];this.attributes={};this.className='';this.textContent='';}
+  constructor(tag){this.tagName=tag;this.children=[];this.attributes={};this.dataset={};this.listeners={};this.className='';this.textContent='';this.hidden=false;}
+  addEventListener(name,fn){this.listeners[name]=fn;}
   append(...items){for(const item of items)this.children.push(typeof item==='string'?new Text(item):item);}
   setAttribute(name,value){this.attributes[name]=String(value);}
   get text(){return this.textContent+this.children.map(child=>child.text).join('');}
@@ -105,5 +107,81 @@ describe('the history of a word',()=>{
     expect(calque.told.ru.text).toMatch(/Übermensch/);
     expect(calque.told.ru.basis).toContain('словаря М. Фасмера');
     expect(await historyRecord('de','Übermensch')).toEqual(overman);
+  });
+
+  const story={ru:[{text:'Übermensch сложено из über «над, сверх» и Mensch «человек».',sources:['W.ru']},
+      {text:'Заратустра говорит, что поднял слово на дороге.',sources:['B3','W.ru']},{text:'Сверхчеловек — смысл земли.',sources:['K1']}],
+    en:[{text:'Übermensch is made of über- and Mensch.',sources:['W.en']}],
+    pieces:{'W.ru':{kind:'wiktionary',edition:'ru',entry:'Übermensch',text:'Образовано из über.'},
+      B3:{kind:'book-place',chapter:'III.12',unit:'u-3',start:20,end:31,title:{de:'Von alten und neuen Tafeln.',ru:'О старых и новых скрижалях.',en:'LVI. OLD AND NEW TABLES.'},
+        text:{de:'Dort war\'s auch, wo ich das Wort „Übermensch“ vom Wege auflas,',ru:'Там же поднял я на дороге слово «сверхчеловек»,',en:'There was it also where I picked up from the path the word “Superman,”'}},
+      K1:{kind:'key-place',chapter:'I.01',unit:'u-1',start:4,end:14,title:{ru:'Предисловие Заратустры.'},text:{de:'Der Übermensch ist der Sinn der Erde.',ru:'Сверхчеловек — смысл земли.'},why:{ru:'Заратустра называет сверхчеловека смыслом земли.'}},
+      T:{kind:'translations',words:{ru:[['сострадание',36],['жалость',9]],en:[['pity',41]]},first:{ru:'жалость',en:'pity'},tree:{ru:'сострадание',en:'pity'}}}};
+  it('numbers a story\'s pieces in the order it first cites them',()=>{
+    expect(storyOrder(story.ru)).toEqual(['W.ru','B3','K1']);
+    expect(storyOrder([])).toEqual([]);
+  });
+  it('tells the story in the reader\'s language with each sentence\'s numbers after it',()=>{
+    const parent=new Element('section');
+    const shown=renderStoryText(parent,story,{locale:'ru'});
+    expect(shown.order).toEqual(['W.ru','B3','K1']);
+    const marks=find(parent,'cr-story-mark');
+    expect(marks.map(mark=>[mark.textContent,mark.dataset.target])).toEqual([['1','W.ru'],['2','B3'],['1','W.ru'],['3','K1']]);
+    expect(find(parent,'cr-story-text')[0].lang).toBe('ru');
+    const english=new Element('section');
+    renderStoryText(english,story,{locale:'es'});
+    expect(find(english,'cr-story-text')[0].lang).toBe('en');
+    expect(renderStoryText(new Element('section'),{ru:[],en:[]},{locale:'ru'})).toBe(null);
+  });
+  it('draws a cited place of the book with the reader\'s translation, the original and its opening',()=>{
+    const item=new Element('li'),opened=[];
+    expect(storyPiece(item,'B3',story.pieces.B3,{locale:'ru',onOpenPlace:place=>opened.push(place)})).toBe(true);
+    expect(find(item,'cr-story-piece-title')[0].text).toBe('О старых и новых скрижалях.');
+    expect(find(item,'cr-origin-said')[0].text).toBe('Там же поднял я на дороге слово «сверхчеловек»,');
+    expect(find(item,'cr-story-original')[0].lang).toBe('de');
+    find(item,'cr-origin-open')[0].listeners.click();
+    expect(opened).toEqual([{chapter:'III.12',unitId:'u-3',start:20,end:31,language:'de'}]);
+    const key=new Element('li');
+    storyPiece(key,'K1',story.pieces.K1,{locale:'ru'});
+    expect(find(key,'cr-origin-source')[0].text).toBe('Древо: Заратустра называет сверхчеловека смыслом земли.');
+  });
+  it('quotes a sentence cut from a speech without the speech\'s lone opening or closing mark',()=>{
+    expect(paired('«Я учу вас о сверхчеловеке.','ru')).toBe('Я учу вас о сверхчеловеке.');
+    expect(paired('Смех признал я священным; о. высшие люди, научитесь же у меня — смеяться!»','ru')).toBe('Смех признал я священным; о. высшие люди, научитесь же у меня — смеяться!');
+    expect(paired('Там же поднял я на дороге слово «сверхчеловек»,','ru')).toBe('Там же поднял я на дороге слово «сверхчеловек»,');
+    expect(paired('Dort war\'s, wo ich das Wort „Übermensch“ vom Wege auflas','de')).toBe('Dort war\'s, wo ich das Wort „Übermensch“ vom Wege auflas');
+    expect(paired('“I make hymns and sing them;','en')).toBe('I make hymns and sing them;');
+    const item=new Element('li');
+    storyPiece(item,'K9',{kind:'key-place',chapter:'I.01',title:{ru:'Предисловие Заратустры.'},text:{de:'„Ich lehre euch den Übermenschen.',ru:'«Я учу вас о сверхчеловеке.'}},{locale:'ru'});
+    expect(find(item,'cr-origin-said')[0].text).toBe('Я учу вас о сверхчеловеке.');
+    expect(find(item,'cr-story-original')[0].text).toBe('Ich lehre euch den Übermenschen.');
+  });
+  it('names the witness and licence of every sentence a piece quotes',()=>{
+    const item=new Element('li');
+    storyPiece(item,'B3',story.pieces.B3,{locale:'ru'});
+    expect(find(item,'cr-story-witness').map(line=>line.text)).toEqual(['пер. Ю. М. Антоновского, 1913 · CC BY-SA 4.0','первое издание · CC BY-SA 4.0']);
+    expect(item.dataset.witnesses).toBe('ru de');
+    const english=new Element('li');
+    storyPiece(english,'B3',{...story.pieces.B3,text:{...story.pieces.B3.text,en:'There was it also where I picked up from the path the word “Superman,”'}},{locale:'es'});
+    expect(find(english,'cr-story-witness')[0].text).toBe('trad. de Thomas Common, 1909 · Public domain');
+    expect(english.dataset.witnesses).toBe('en de');
+  });
+  it('names the translators\' words by their places, the word at the first place apart',()=>{
+    const item=new Element('li');
+    storyPiece(item,'T',story.pieces.T,{locale:'ru'});
+    expect(find(item,'cr-origin-line').map(line=>line.text)).toEqual(['Антоновский: сострадание (36), жалость (9) · на первом месте: жалость','Коммон: pity (41)','Древо: сострадание / pity']);
+  });
+  it.skipIf(!fetched||!existsSync(new URL('stories.json',home)))('holds each story with every piece it cites',async()=>{
+    const book=read('stories.json');
+    expect(book.schema).toBe('tos.bonsai.stories.v1');
+    for(const [lemma,item] of Object.entries(book.stories)){
+      for(const language of ['ru','en']){
+        expect(item[language].length,`${lemma} ${language}`).toBeGreaterThan(0);
+        for(const sentence of item[language])for(const id of sentence.sources)expect(item.pieces[id],`${lemma}: ${id}`).toBeTruthy();
+      }
+      // A place the reader opens covers its words: an empty range opens nothing.
+      for(const [id,piece] of Object.entries(item.pieces))if(piece.unit)expect(piece.end,`${lemma}: ${id}`).toBeGreaterThan(piece.start);
+    }
+    expect(await storyRecord('Übermensch')).toEqual(book.stories['Übermensch']);
   });
 });
