@@ -145,6 +145,9 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   // On a light page depth is the day's air: what lies further back pales into the paper, and a near star
   // stands over the page with a soft shadow. 0 on the night, 1 on a light page.
   const daylight=()=>ink>1?1:0;
+  // The stars a lens pointed at in the rail would show; the rest of the sky waits in the dark until the pointer leaves.
+  let previewIds=null;
+  const previewOut=n=>!!previewIds&&!previewIds.has(n.id);
   let nodes=[],edges=[],clusters=[],backdrop=[],planes=[],threads=[],lit=null,litGlow=0,selectedId=null,selectedEdgeId=null,hoverEdge=null,linkFrom=null,center=[0,0,0],targetCenter=[0,0,0],fitScale=1,targetFit=1,edgeHits=[],measureLabels=true,aspectIds=null;
   let viewport={left:0,right:1,top:0,bottom:1},targetViewport={...viewport},uiObstacles=[];
   const colorOf=n=>hex(n.color,({work:'#a8cde5',part:'#88aaca',chapter:'#b2aedc',fragment:'#dac697',dossier:'#c7a5e6',concept:'#f4cf87',interpretation:'#ba9be5',question:'#83cec7',note:'#b9c7d5',excerpt:'#dfc18e',figure:'#b9c9e5',symbol:'#91ccc5',tradition:'#b5abd3'}[n.kind]||'#bdcfdf'));
@@ -697,7 +700,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const hot=n.id===selectedId||n.id===hover;
       if(focusMix>.3&&!hot){showLabel(n,null,false);continue;}
       // A star the view has stepped back keeps its light and gives its name's room to the stars in front.
-      if((n.dimmed||n.quiet)&&!hot){showLabel(n,null,false);continue;}
+      if((n.dimmed||n.quiet||previewOut(n))&&!hot){showLabel(n,null,false);continue;}
       // In a space read in depth the stars far behind give their names' room to the ones in front.
       // A name already standing waits a little longer before it goes than a new one waits to come.
       const was=!!n.labelShown;
@@ -842,7 +845,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const hot=edge.id===hoverEdge||edge.id===selectedEdgeId||edge.highlight,neighbor=focusEdges.has(edge.id)||keptEdges.has(edge.id);
       // A latent link is drawn only while one of its stars is pointed at or chosen.
       if(edge.latent&&!hot&&!neighbor)continue;
-      const awayEdge=!hot&&!keptEdges.has(edge.id)&&!focusEdges.has(edge.id)?focusMix:0;if(awayEdge>.98)continue;
+      const awayEdge=Math.max(!hot&&!keptEdges.has(edge.id)&&!focusEdges.has(edge.id)?focusMix:0,previewIds&&!hot&&!(previewIds.has(edge.from)&&previewIds.has(edge.to))?.88:0);if(awayEdge>.98)continue;
       // A link may run through points of its own, so the links between distant parts of a layout gather on their way.
       const route=Array.isArray(edge.via)&&edge.via.length?[from,...edge.via.map(project),to]:[from,to];
       if(edge.muted){ctx.strokeStyle=edge.color;ctx.globalAlpha=.05;ctx.lineWidth=.6;for(let i=1;i<route.length;i++){let a=route[i-1],b=route[i];if(measured){const cut=clipSegment(a,b);if(!cut)continue;[a,b]=cut;}strokeSegment(a,b,edge.dash);}continue;}
@@ -880,7 +883,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(thread.grown<.995)layoutMoving=true;
     }
     nodes.forEach(n=>{
-      const p=n.screen,hot=n.id===selectedId||n.id===hover||(holdToMove>0&&n.dragging),own=colorOf(n),big=n.major,dim=(focused&&root.dataset.journey!=='true'&&!near.has(n.id)&&!kept.has(n.id)||n.dimmed)&&!hot,radius=(hot?5.2:big?4.3:2.8)*Math.max(.70,Math.min(1.5,p.s));
+      const p=n.screen,hot=n.id===selectedId||n.id===hover||(holdToMove>0&&n.dragging),own=colorOf(n),big=n.major,dim=(focused&&root.dataset.journey!=='true'&&!near.has(n.id)&&!kept.has(n.id)||n.dimmed||previewOut(n))&&!hot,radius=(hot?5.2:big?4.3:2.8)*Math.max(.70,Math.min(1.5,p.s));
       const near01=depthCue&&!measured?clamp((p.d-.86)/.3,0,1):1,fade=hot?1:daylight()?.3+.7*near01:.5+.5*near01;
       const color=daylight()&&!hot&&near01<1?mixHex(own,night('#B3B6C4'),(1-near01)*.6):own;
       // A measured layout draws only the stars inside its free area; every star still keeps its type, so its label is measured right.
@@ -1180,6 +1183,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     revealAll(ids){if(Array.isArray(ids)&&ids.length>1){neighbourhoodPending=[...ids];kick();}},
     /** Light a way through the given stars, in order (null puts it out). */
     light(ids){lit=Array.isArray(ids)&&ids.length>1?[...ids]:null;kick();},
+    /** Light the stars a lens would show and let the rest wait (null lights them all again). */
+    preview(ids){previewIds=ids instanceof Set?ids:null;kick();},
     refresh:resize,
     motion(value){playing=value;kick()},
     moving(){return playing;},

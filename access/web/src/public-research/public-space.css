@@ -9,7 +9,7 @@
   --ps-line:#8296b22b;--ps-line-strong:#8aa0b84a;--ps-surface:#0b1626a8;
   --ps-glass:linear-gradient(170deg,#0a1526f2,#070f1bf7);
   --ps-serif:Sophia,Georgia,'Times New Roman',serif;--ps-sans:system-ui,-apple-system,'Segoe UI',sans-serif;
-  --ps-edge:20px;--ps-top:78px;--ps-rail-w:176px;--ps-column-w:clamp(360px,30vw,440px);--ps-personal-w:min(540px,42vw);
+  --ps-edge:20px;--ps-top:78px;--ps-rail-w:200px;--ps-column-w:clamp(360px,30vw,440px);--ps-personal-w:min(540px,42vw);
   --ps-map-left:calc(var(--ps-edge) + var(--ps-rail-w) + 28px);
   --ps-map-right:calc(var(--ps-column-w) + 16px + 28px);
   width:100%;height:100dvh;min-height:560px;position:relative;overflow:hidden;isolation:isolate;background:#04070e;font-family:var(--ps-sans)}
@@ -473,7 +473,7 @@
 
 /* ── mid widths: a narrower rail and column ── */
 @media(min-width:761px) and (max-width:1180px){
-  #tree.pr-public-space{--ps-rail-w:160px;--ps-column-w:clamp(320px,33vw,380px)}
+  #tree.pr-public-space{--ps-rail-w:184px;--ps-column-w:clamp(320px,33vw,380px)}
   #tree .ps-top-action{font-size:12px}
 }
 @media(min-width:761px) and (max-width:980px){
@@ -908,3 +908,63 @@
 #tree :is(.lens-icon,.ps-action-icon,.ps-tool-symbol) svg{width:18px;height:18px;overflow:visible}
 #tree .ps-icon-star{fill:#d9bd7f;stroke:none;transition:fill .18s ease,filter .18s ease}
 #tree :is(.lens,.ps-top-action,button):is(:hover,[aria-pressed=true]) .ps-icon-star{fill:#f1d79c;filter:drop-shadow(0 0 2.5px #e9c97f99)}
+
+/* ── the rail: lenses in the tree's serif, the chosen one with its question; research as two lines, each with what it
+   lets one do at once; the measure stands with the measuring lenses; the rail folds to its icons ── */
+#tree .ps-rail-rule{display:block;height:1px;margin:0 10px 12px;background:linear-gradient(90deg,#8ea2ba33,#8ea2ba00)}
+#tree .ps-lens-rail .lens-list{margin-bottom:18px}
+#tree .ps-action-count{margin-left:auto;padding-left:8px;color:#5d7391;font:11px/1 var(--ps-sans);font-variant-numeric:tabular-nums}
+#tree .ps-rail-route{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:5px 8px;width:100%;margin:0 0 6px;padding:1px 10px 4px 40px;border:0;background:none;color:#d9c79f;text-align:left;cursor:pointer}
+#tree .ps-rail-route[hidden]{display:none}
+#tree .ps-rail-route-name{overflow:hidden;font:italic 13px/1.3 var(--ps-serif);white-space:nowrap;text-overflow:ellipsis}
+#tree .ps-rail-route-step{color:#9c8a63;font:11px/1 var(--ps-sans);font-variant-numeric:tabular-nums}
+#tree .ps-rail-route-line{grid-column:1/-1;height:1px;background:linear-gradient(90deg,#c6ae7c calc(var(--route-done,0) * 100%),#8ea2ba26 0)}
+#tree .ps-rail-route:is(:hover,:focus-visible) .ps-rail-route-name{color:#f0dfb8}
+#tree .ps-rail-make{display:flex;flex-wrap:wrap;gap:3px;margin:0 0 6px;padding-left:38px}
+#tree .ps-rail-make-item{display:inline-flex;align-items:center;gap:5px;min-height:24px;padding:2px 7px;border:1px solid #8196b326;border-radius:5px;background:none;color:#a9b8c9;font:11.5px/1.2 var(--ps-sans);cursor:pointer;transition:color .2s,border-color .2s,background .2s}
+#tree .ps-rail-make-item:is(:hover,:focus-visible){color:#f0dfb8;border-color:#c6ae7c66;background:#d0b77b0a}
+#tree .ps-make-icon{display:none;color:#cdb98f;line-height:0}
+#tree .ps-make-icon svg{width:16px;height:16px;overflow:visible}
+#tree .ps-rail-fold{display:flex;align-items:center;justify-content:center;width:28px;height:24px;margin:10px 0 0 6px;padding:0;border:0;border-radius:4px;background:none;color:#5d7391;font:16px/1 var(--ps-sans);cursor:pointer;transition:color .2s,background .2s}
+#tree .ps-rail-fold:is(:hover,:focus-visible){color:#e9d5ad;background:#d0b77b10}
+#tree .ps-lens-rail .ps-lens-measure{min-height:32px;margin-top:2px;color:#8193a9;font-size:12px}
+@media(min-width:761px){
+  #tree .ps-lens-row{position:relative}
+  #tree.pr-public-space .ps-lens-rail .lens{width:100%}
+  #tree .ps-lens-rail .lens-name{font:15px/1.25 var(--ps-serif);letter-spacing:.005em}
+  #tree.pr-public-space .ps-lens-rail .lens[aria-pressed=true]{padding-right:34px}
+  #tree .ps-lens-rail .lens.ps-lens-away:not(:hover){color:#6f8299}
+  #tree .ps-lens-rail .lens.ps-lens-away:not(:hover) .lens-icon{opacity:.5}
+  #tree .ps-lens-ask{position:absolute;right:8px;top:50%;width:20px;height:20px;margin-top:-10px;padding:0;border:1px solid #c6ae7c4d;border-radius:50%;background:none;color:#c6ae7c;font:11px/18px var(--ps-sans);text-align:center;cursor:pointer;opacity:.8;transition:opacity .2s,border-color .2s,color .2s}
+  #tree .ps-lens-ask:is(:hover,:focus-visible){opacity:1;color:#f0dfb8;border-color:#e9d5ad}
+}
+@media(min-width:981px) and (max-width:1180px){
+  #tree .ps-rail-make{padding-left:10px}
+}
+/* Where the rail keeps only its icons, by the width or by the reader's fold, research keeps its ways in as icons too. */
+@media(min-width:761px) and (max-width:980px){
+  #tree :is(.ps-rail-route,.ps-action-count,.ps-lens-ask,.ps-make-label,.ps-rail-fold){display:none}
+  #tree.pr-public-space .ps-lens-rail .lens[aria-pressed=true]{padding-right:0}
+  #tree .ps-rail-make{flex-direction:column;align-items:stretch;gap:0;padding:0}
+  #tree .ps-rail-make-item{justify-content:center;min-height:32px;border-color:transparent}
+  #tree .ps-make-icon{display:inline-flex}
+  #tree .ps-rail-rule{margin:0 8px 10px}
+}
+@media(min-width:981px){
+  #tree.pr-public-space[data-rail=folded]{--ps-rail-w:46px}
+  #tree[data-rail=folded] .ps-rail-title{visibility:hidden;height:4px;margin:0;padding:0}
+  #tree[data-rail=folded] .ps-lens-rail .lens>span:not(.lens-icon),#tree[data-rail=folded] .ps-action-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+  #tree[data-rail=folded] .ps-lens-rail .lens,#tree[data-rail=folded] .ps-top-action{justify-content:center;padding:8px 0}
+  #tree.pr-public-space[data-rail=folded] .ps-lens-rail .lens[aria-pressed=true]{padding-right:0}
+  #tree[data-rail=folded] :is(.ps-rail-route,.ps-action-count,.ps-lens-ask,.ps-make-label){display:none}
+  #tree[data-rail=folded] .ps-rail-make{flex-direction:column;align-items:stretch;gap:0;padding:0}
+  #tree[data-rail=folded] .ps-rail-make-item{justify-content:center;min-height:32px;border-color:transparent}
+  #tree[data-rail=folded] .ps-make-icon{display:inline-flex}
+  #tree[data-rail=folded] .ps-rail-rule{margin:0 8px 10px}
+  #tree[data-rail=folded] .ps-rail-fold{margin-left:9px}
+}
+@media(max-width:760px){
+  #tree .ps-lens-row{display:contents}
+  #tree :is(.ps-lens-ask,.ps-lens-measure,.ps-rail-rule,.ps-rail-fold){display:none}
+  #tree .ps-lens-rail .lens-name{font:12px/1.2 var(--ps-serif)}
+}

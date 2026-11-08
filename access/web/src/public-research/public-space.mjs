@@ -48,7 +48,7 @@ const el=(tag,cls='',value)=>{const node=document.createElement(tag);if(cls)node
 const button=(value,cls='')=>{const node=el('button',cls,value);node.type='button';return node;};
 const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
 const translations={
-  ru:{space:'Пространство исследования',profiles:'Профили',kickerZarathustra:'ЗАРАТУСТРА · ПУБЛИЧНЫЕ ИЗДАНИЯ',kickerAntiquity:'АНТИЧНЫЙ МИР · ПУБЛИЧНЫЕ ИЗДАНИЯ',search:'Искать тексты, понятия и вопросы…',lenses:'ЛИНЗЫ',tree:'Древо',read:'Читать',library:'Библиотека',routes:'Маршруты',grow:'Вырастить ветвь',research:'Моё исследование',new:'Новая мысль',connect:'Связать мысли',compare:'Сравнить',fit:'Вписать всё',undo:'Отменить',redo:'Вернуть',fullscreen:'На весь экран',filter:'Связи',all:'Все связи',sources:'Источники',readings:'Прочтения',question:'Вопрос исследования',searchResults:'Найдено',emptySearch:'Совпадений нет.',select:'Выберите звезду или линию, чтобы открыть её основание и точный источник.',selected:'Выбрано',kind:'Тип',posture:'Статус',demo:'Предложенное прочтение для исследования · не канон',personal:'Личная гипотеза · сохранена в общем исследовании',sourceExact:'Точная версия и место доступны в публичном чтении.',sourceWork:'Публичная запись произведения; точный фрагмент не закреплён.',sourceMissing:'Для этой ссылки полный текст здесь не представлен.',openExact:'Открыть точное место',openWork:'Открыть произведение',sourceRefs:'Указатели на источник',body:'Прочтение',questionLabel:'Вопрос',connections:'Связи',related:'Перейти к узлу',relation:'Тип связи',edgeBody:'Обоснование связи',readRoute:'Начать чтение',routeStart:'Маршрут исследования',routeNext:'Следующий шаг',routePrevious:'Предыдущий шаг',step:'Шаг',noRoutes:'Для этого профиля ещё нет маршрутов.',growTitle:'Ветви исследования',growIntro:'Добавьте подготовленную линию в личное пространство или начните собственную.',createBranch:'Создать свою мысль',save:'Сохранить',cancel:'Отмена',title:'Название',text:'Текст мысли',newNode:'Новая мысль',newEdge:'Связать две мысли',chooseFirst:'Выберите первую звезду, затем вторую.',chooseSecond:'Теперь выберите вторую звезду.',edgeLabel:'Коротко объясните, что связывает мысли',chooseRelation:'Вид связи',connected:'Связь добавлена.',saved:'Сохранено в личном исследовании и графе.',saveError:'Не удалось сохранить мысль в общем исследовании.',comparePick:'Выберите две звезды для сопоставления.',comparison:'Сопоставление',start:'Открыть',empty:'В этом пространстве пока нет узлов.',countNodes:'узлов',countEdges:'связей',record:'Записано в этом браузере',close:'Закрыть',linkOnly:'Только библиографическая ссылка',resetRoute:'Закрыть маршрут',imagine:'Линза задаёт способ чтения; она не меняет исходное Древо.',unavailable:'Источник не удалось открыть.',export:'Экспорт пространства',import:'Импорт пространства',source:'Источник',work:'Произведение',part:'Часть',fragment:'Фрагмент',chapter:'Глава',concept:'Понятие',interpretation:'Прочтение',question:'Вопрос',note:'Заметка',dossier:'Досье',figure:'Мыслитель',tradition:'Традиция',symbol:'Образ'},
+  ru:{space:'Пространство исследования',profiles:'Профили',kickerZarathustra:'ЗАРАТУСТРА · ПУБЛИЧНЫЕ ИЗДАНИЯ',kickerAntiquity:'АНТИЧНЫЙ МИР · ПУБЛИЧНЫЕ ИЗДАНИЯ',search:'Искать тексты, понятия и вопросы…',lenses:'ЛИНЗЫ',tree:'Древо',read:'Читать',library:'Библиотека',routes:'Маршруты',grow:'Вырастить ветвь',research:'Моё исследование',new:'Новая мысль',connect:'Связать мысли',compare:'Сопоставить',fit:'Вписать всё',undo:'Отменить',redo:'Вернуть',fullscreen:'На весь экран',filter:'Связи',all:'Все связи',sources:'Источники',readings:'Прочтения',question:'Вопрос исследования',searchResults:'Найдено',emptySearch:'Совпадений нет.',select:'Выберите звезду или линию, чтобы открыть её основание и точный источник.',selected:'Выбрано',kind:'Тип',posture:'Статус',demo:'Предложенное прочтение для исследования · не канон',personal:'Личная гипотеза · сохранена в общем исследовании',sourceExact:'Точная версия и место доступны в публичном чтении.',sourceWork:'Публичная запись произведения; точный фрагмент не закреплён.',sourceMissing:'Для этой ссылки полный текст здесь не представлен.',openExact:'Открыть точное место',openWork:'Открыть произведение',sourceRefs:'Указатели на источник',body:'Прочтение',questionLabel:'Вопрос',connections:'Связи',related:'Перейти к узлу',relation:'Тип связи',edgeBody:'Обоснование связи',readRoute:'Начать чтение',routeStart:'Маршрут исследования',routeNext:'Следующий шаг',routePrevious:'Предыдущий шаг',step:'Шаг',noRoutes:'Для этого профиля ещё нет маршрутов.',growTitle:'Ветви исследования',growIntro:'Добавьте подготовленную линию в личное пространство или начните собственную.',createBranch:'Создать свою мысль',save:'Сохранить',cancel:'Отмена',title:'Название',text:'Текст мысли',newNode:'Новая мысль',newEdge:'Связать две мысли',chooseFirst:'Выберите первую звезду, затем вторую.',chooseSecond:'Теперь выберите вторую звезду.',edgeLabel:'Коротко объясните, что связывает мысли',chooseRelation:'Вид связи',connected:'Связь добавлена.',saved:'Сохранено в личном исследовании и графе.',saveError:'Не удалось сохранить мысль в общем исследовании.',comparePick:'Выберите две звезды для сопоставления.',comparison:'Сопоставление',start:'Открыть',empty:'В этом пространстве пока нет узлов.',countNodes:'узлов',countEdges:'связей',record:'Записано в этом браузере',close:'Закрыть',linkOnly:'Только библиографическая ссылка',resetRoute:'Закрыть маршрут',imagine:'Линза задаёт способ чтения; она не меняет исходное Древо.',unavailable:'Источник не удалось открыть.',export:'Экспорт пространства',import:'Импорт пространства',source:'Источник',work:'Произведение',part:'Часть',fragment:'Фрагмент',chapter:'Глава',concept:'Понятие',interpretation:'Прочтение',question:'Вопрос',note:'Заметка',dossier:'Досье',figure:'Мыслитель',tradition:'Традиция',symbol:'Образ'},
   en:{space:'Research space',profiles:'Profiles',kickerZarathustra:'ZARATHUSTRA · PUBLIC EDITIONS',kickerAntiquity:'ANCIENT WORLDS · PUBLIC EDITIONS',search:'Search texts, concepts and questions…',lenses:'LENSES',tree:'The tree',read:'Read',library:'Library',routes:'Routes',grow:'Grow a branch',research:'My research',new:'New thought',connect:'Connect thoughts',compare:'Compare',fit:'Fit all',undo:'Undo',redo:'Redo',fullscreen:'Fullscreen',filter:'Relations',all:'All relations',sources:'Sources',readings:'Readings',question:'Research question',searchResults:'Results',emptySearch:'No matches.',select:'Select a star or line to open its reading and source.',selected:'Selected',kind:'Type',posture:'Status',demo:'Proposed reading for exploration · not canon',personal:'Personal hypothesis · saved in shared research',sourceExact:'The exact version and place are available in the public reader.',sourceWork:'Public work record; no exact passage is bound.',sourceMissing:'Full text for this reference is not supplied here.',openExact:'Open exact passage',openWork:'Open work',sourceRefs:'Source references',body:'Reading',questionLabel:'Question',connections:'Connections',related:'Open node',relation:'Relation type',edgeBody:'Why these thoughts are connected',readRoute:'Start reading',routeStart:'Research paths',routeNext:'Next step',routePrevious:'Previous step',step:'Step',noRoutes:'No routes are available for this profile yet.',growTitle:'Research branches',growIntro:'Add a prepared line to your space or begin your own.',createBranch:'Create your own thought',save:'Save',cancel:'Cancel',title:'Title',text:'Thought',newNode:'New thought',newEdge:'Connect two thoughts',chooseFirst:'Choose the first star, then the second.',chooseSecond:'Now choose the second star.',edgeLabel:'Briefly explain what connects these thoughts',chooseRelation:'Relation type',connected:'Connection added.',saved:'Saved in personal research and the graph.',saveError:'Could not save this thought in shared research.',comparePick:'Choose two stars to compare.',comparison:'Comparison',start:'Open',empty:'This space has no nodes yet.',countNodes:'nodes',countEdges:'relations',record:'Saved in this browser',close:'Close',linkOnly:'Bibliographic link only',resetRoute:'Close route',imagine:'A lens offers a way to read; it does not change the source tree.',unavailable:'The source could not be opened.',export:'Export space',import:'Import space',source:'Source',work:'Work',part:'Part',fragment:'Passage',chapter:'Chapter',concept:'Concept',interpretation:'Interpretation',question:'Question',note:'Note',dossier:'Dossier',figure:'Thinker',tradition:'Tradition',symbol:'Image'},
 };
 const tr=localeValue;
@@ -64,10 +64,10 @@ Object.assign(extraTranslations.en,{zoomIn:'Zoom in on the tree',zoomOut:'Zoom o
 Object.assign(extraTranslations.ru,{excerpt:'Выдержка',proposalGrounds:'Основания этого предложения',manualOrigin:'Ручной ввод',agentOrigin:'Ответ внешнего агента',personalOrigin:'Личное предложение',pending:'Ожидает проверки',notCanon:'Не канон',postureShort:'Прочтения · не канон'});
 Object.assign(extraTranslations.ru,{turn:'Повернуть пространство',turnRest:'Вернуть пространство к исходному повороту',turnRestNote:'Нажатие возвращает исходный поворот',controls:'Управление',transition:'Переход',branch:'Ветвь',journey:'Маршрут',chooseBranch:'Выберите ветвь или маршрут',walkBranch:'Пройти ветвь',openSection:'Открыть раздел издания',sectionSource:'Открывается раздел издания, где стоит это место; точная фраза не размечена.',moveOne:'ход',moveFew:'хода',moveMany:'ходов'});
 Object.assign(extraTranslations.en,{turn:'Turn the space',turnRest:'Bring the space back to its resting turn',turnRestNote:'Pressing it brings back the resting turn',controls:'Controls',transition:'Link',branch:'Branch',journey:'Route',chooseBranch:'Choose a branch or a route',walkBranch:'Walk this branch',openSection:'Open the edition section',sectionSource:'Opens the edition section that contains this passage; the exact sentence is not marked.',moveOne:'move',moveFew:'moves',moveMany:'moves'});
-Object.assign(extraTranslations.ru,{dating_medium:'опора — обзор исследований',dating_low:'опора — источник без ссылок на исследования',lifeLine:'Годы автора',journeys:'Маршруты чтения',researchActions:'Исследование',orientation:'Где вы в Древе',mapTools:'Управление картой',openColumn:'Панель',collapseColumn:'Свернуть панель',toOverview:'Ко всему пространству',backToRoute:'назад к маршруту',onMap:'На карте',selectedLink:'Выбрана связь',lensWord:'линза',statusTitle:'Статус',formSource:'Источник',formSourceHint:'Произведение, место, автор или традиция — то, на что опираются прочтения',formProposal:'Прочтение',formProposalHint:'Авторское прочтение, понятие, вопрос или ветвь — предложено для исследования, не канон',formPersonal:'Личное',formPersonalHint:'Ваша мысль или связь, сохранённая в этом браузере',
+Object.assign(extraTranslations.ru,{dating_medium:'опора — обзор исследований',dating_low:'опора — источник без ссылок на исследования',lifeLine:'Годы автора',journeys:'Маршруты чтения',researchActions:'Исследование',newShort:'Мысль',connectShort:'Связь',growShort:'Ветвь',orientation:'Где вы в Древе',mapTools:'Управление картой',openColumn:'Панель',collapseColumn:'Свернуть панель',toOverview:'Ко всему пространству',backToRoute:'назад к маршруту',onMap:'На карте',selectedLink:'Выбрана связь',lensWord:'линза',statusTitle:'Статус',formSource:'Источник',formSourceHint:'Произведение, место, автор или традиция — то, на что опираются прочтения',formProposal:'Прочтение',formProposalHint:'Авторское прочтение, понятие, вопрос или ветвь — предложено для исследования, не канон',formPersonal:'Личное',formPersonalHint:'Ваша мысль или связь, сохранённая в этом браузере',
   ladderLabel:'Ступень толкования',ladderHint:'Древо различает источник, его прочтение и сопоставление прочтений; каждая ступень возвращается к источнику.',rung_source:'Источник',rung_reading:'Прочтение',rung_comparison:'Сопоставление',rungPersonal:'Личная запись',ownPlaceholder:'Как вы это читаете? Одной строкой',ownWrite:'Записать',ownMine:'Ваше прочтение',ownAround:'Прочтения рядом',ownNearest:'Ближе всего к вашему',ownNone:'Ни к одному',ownRestsOn:'Опирается на',ownDisputed:'С этим спорит',ownWritten:'Ваше прочтение встало в пространство',threadNote:'ещё не в пространстве',threadAdded:'Звезда вошла в пространство',
   basisContains:'Структура: часть и целое.',basisGround:'Прочтение опирается на это место источника.',basisEditorial:'Редакторское сопоставление двух прочтений · предложено, не канон · не утверждает исторического влияния.',basisProposed:'Связь предложена для исследования · не канон · сходство не означает влияния.',basisPersonal:'Личная связь из вашего исследования.'});
-Object.assign(extraTranslations.en,{dating_medium:'rests on a summary of scholarship',dating_low:'rests on a source that cites no study',lifeLine:'Author’s years',journeys:'Reading routes',researchActions:'Research',orientation:'Where you are in the tree',mapTools:'Map controls',openColumn:'Panel',collapseColumn:'Collapse panel',toOverview:'To the whole space',backToRoute:'back to the route',onMap:'On the map',selectedLink:'Selected link',lensWord:'lens',statusTitle:'Status',formSource:'Source',formSourceHint:'A work, passage, author or tradition: what readings rest on',formProposal:'Reading',formProposalHint:'An authored reading, concept, question or branch: proposed for inquiry, not canon',formPersonal:'Personal',formPersonalHint:'Your own thought or link, saved in this browser',
+Object.assign(extraTranslations.en,{dating_medium:'rests on a summary of scholarship',dating_low:'rests on a source that cites no study',lifeLine:'Author’s years',journeys:'Reading routes',researchActions:'Research',newShort:'Thought',connectShort:'Link',growShort:'Branch',orientation:'Where you are in the tree',mapTools:'Map controls',openColumn:'Panel',collapseColumn:'Collapse panel',toOverview:'To the whole space',backToRoute:'back to the route',onMap:'On the map',selectedLink:'Selected link',lensWord:'lens',statusTitle:'Status',formSource:'Source',formSourceHint:'A work, passage, author or tradition: what readings rest on',formProposal:'Reading',formProposalHint:'An authored reading, concept, question or branch: proposed for inquiry, not canon',formPersonal:'Personal',formPersonalHint:'Your own thought or link, saved in this browser',
   ladderLabel:'Step of interpretation',ladderHint:'The tree tells a source, its reading and a comparison of readings apart; each step returns to the source.',rung_source:'Source',rung_reading:'Reading',rung_comparison:'Comparison',rungPersonal:'Personal record',ownPlaceholder:'How do you read it? One line',ownWrite:'Write it down',ownMine:'Your reading',ownAround:'Readings nearby',ownNearest:'Nearest to yours',ownNone:'None of them',ownRestsOn:'Rests on',ownDisputed:'Disputed by',ownWritten:'Your reading has taken its place in the space',threadNote:'not yet in the space',threadAdded:'The star has entered the space',
   basisContains:'Structure: a part and its whole.',basisGround:'The reading rests on this place in the source.',basisEditorial:'An editorial comparison of two readings · proposed, not canon · not a claim of historical influence.',basisProposed:'A relation proposed for inquiry · not canon · similarity is not influence.',basisPersonal:'A personal link from your research.'});
 Object.assign(extraTranslations.ru,{modernSpelling:'в современной орфографии',groundOpen:'Открыть место целиком',groundClose:'Свернуть место',routeOne:'путь',routeFew:'пути',routeMany:'путей',fragmentOriginal:'Оригинал',fragmentTranslation:'Перевод',fragmentWhole:'Читать в целом произведении',refBook:'Книга {n}',refChapter:'Глава {n}',refSection:'Раздел {n}',refFragment:'Фрагмент {n}',refLines:'Строки от {n}',refArrian:'Предисловие Арриана',fragmentQuoted:'Откуда взята цитата',fragmentBook:'Об издании книги',fragmentEdition:'Открыть в читателе',fragmentOmitted:'В этом издании перевода места нет',fragmentUnavailable:'Текст этого места сейчас недоступен',parallelPrevious:'Предыдущая глава',parallelNext:'Следующая глава'});
@@ -242,11 +242,22 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const searchResults=el('div','ps-search-results');searchResults.hidden=true;
   searchBox.append(search,searchKey,searchResults);
   // The left rail holds the two ways into the tree: lenses say how to look, research actions what to do.
+  // A lens is a way of seeing and speaks in the tree's serif; an action is a tool and speaks in the interface's sans.
   const lensRail=el('nav','lens-rail ps-lens-rail');lensRail.setAttribute('aria-label',t('lenses'));
   const lensTitle=el('p','eyebrow ps-rail-title',t('lenses')),lensList=el('div','lens-list');
   const actionsTitle=el('p','eyebrow ps-rail-title',t('researchActions')),mainActions=el('div','ps-main-actions');mainActions.setAttribute('role','group');mainActions.setAttribute('aria-label',t('researchActions'));
-  lensRail.append(lensTitle,lensList,actionsTitle,mainActions);
-  for(const [key,icon,action] of [['routes','⌁',()=>toggleRoutes()],['lensInquiry','?',()=>showInquiry()],['grow','✣',()=>openGrow()],['research','◎',()=>togglePersonal()],['new','＋',()=>openNewThought()],['connect','↗',()=>beginConnect()],['compare','⇄',()=>beginCompare()],['measureAction','∑',()=>openMeasure()]]){const b=button('','ps-top-action');b.dataset.spaceAction=key;setHint(b,t(key));b.append(hasIcon(key)?iconElement(document,key,'ps-action-icon',18):el('span','ps-action-icon',icon),el('span','ps-action-label',t(key)));b.addEventListener('click',action);mainActions.append(b);}
+  const RAIL_KEY='tos.public-research.rail',railFold=button('','ps-rail-fold');railFold.addEventListener('click',()=>foldRail());
+  try{if(localStorage.getItem(RAIL_KEY)==='folded')shell.dataset.rail='folded';}catch{}
+  lensRail.append(lensTitle,lensList,el('span','ps-rail-rule'),mainActions,railFold);
+  // Research is two lines, each with what it holds; under each, what it lets one do at once.
+  // Comparing and linking a chosen star live on its card; the rail keeps the ways in.
+  const railAction=(key,icon,action)=>{const b=button('','ps-top-action');b.dataset.spaceAction=key;setHint(b,t(key));b.append(hasIcon(key)?iconElement(document,key,'ps-action-icon',18):el('span','ps-action-icon',icon),el('span','ps-action-label',t(key)),el('span','ps-action-count'));b.addEventListener('click',action);return b;};
+  const routesAction=railAction('routes','⌁',()=>toggleRoutes()),routeNow=button('','ps-rail-route');routeNow.hidden=true;routeNow.addEventListener('click',()=>returnToStep());
+  const researchAction=railAction('research','◎',()=>togglePersonal()),makeRow=el('div','ps-rail-make');makeRow.setAttribute('role','group');makeRow.setAttribute('aria-label',t('research'));
+  for(const [key,short,icon,action] of [['new','newShort','+',()=>openNewThought()],['connect','connectShort','↗',()=>beginConnect()],['grow','growShort','✣',()=>openGrow()]]){const b=button('','ps-rail-make-item');b.dataset.spaceAction=key;b.dataset.short=short;setHint(b,t(key));b.setAttribute('aria-label',t(key));b.append(hasIcon(key)?iconElement(document,key,'ps-make-icon',16):el('span','ps-make-icon',icon),el('span','ps-make-label',t(short)));b.addEventListener('click',action);makeRow.append(b);}
+  mainActions.append(routesAction,routeNow,researchAction,makeRow);
+  // Measure and completeness says how far the measuring lenses reach, so it stands with them.
+  const measureAction=railAction('measureAction','∑',()=>openMeasure());measureAction.classList.add('ps-lens-measure');
   // Orientation: where in the tree the reader stands, from the whole space down to the chosen star.
   const heading=el('header','view-heading ps-orientation');
   const kicker=el('p','view-kicker');
@@ -321,7 +332,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     search.placeholder=t(narrowBar.matches?'mapSearchShort':'mapSearch');search.setAttribute('aria-label',t('mapSearch'));searchResults.setAttribute('aria-label',t('searchResults'));
     lensTitle.textContent=t('lenses');actionsTitle.textContent=t('researchActions');lensRail.setAttribute('aria-label',t('lenses'));mainActions.setAttribute('aria-label',t('researchActions'));importInput.setAttribute('aria-label',t('import'));
     crumbNav.setAttribute('aria-label',t('orientation'));mapTools.setAttribute('aria-label',t('mapTools'));
-    for(const b of mainActions.querySelectorAll('[data-space-action]')){b.querySelector('.ps-action-label').textContent=t(b.dataset.spaceAction);setHint(b,t(b.dataset.spaceAction));}
+    for(const b of lensRail.querySelectorAll('[data-space-action]')){const label=b.querySelector('.ps-action-label,.ps-make-label');if(label)label.textContent=t(b.dataset.short??b.dataset.spaceAction);setHint(b,t(b.dataset.spaceAction));if(b.dataset.short)b.setAttribute('aria-label',t(b.dataset.spaceAction));}
     relationToggle.textContent=t('filter');relationToggle.setAttribute('aria-label',t('filter'));canvas.setAttribute('aria-label',t('space'));
     for(const item of uiActions)paintTool(item);
     clearTimeout(notify.timer);notify.timer=null;statusLabel.textContent=savedStatus();
@@ -379,7 +390,6 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   addTool('research','◎',()=>togglePersonal(),'icon');
   addTool('new','＋',()=>openNewThought(),'icon');
   addTool('connect','↗',()=>beginConnect(),'icon');
-  addTool('compare','⇄',()=>beginCompare(),'icon');
   // Moving the map is its own small group at the map's corner; the globe turns the space and brings it back to rest.
   // The click that ends a drag of the globe belongs to the drag; a new press starts clean, and the keyboard always brings the space back.
   let turnDragged=false;
@@ -1173,29 +1183,86 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     undoButton.disabled=!model.canUndo();redoButton.disabled=!model.canRedo();
     if(!notify.timer)statusLabel.textContent=savedStatus();
     if(personal.hidden)renderColumn();
-    renderOrientation();renderSearch();renderInteraction();
+    renderOrientation();renderSearch();renderInteraction();paintRail();
   }
   function paintLenses(){
     lensList.replaceChildren();
     // Lenses that only group come first; those that measure follow apart, and show their scale on the map.
+    // Each keeps its digit on the keyboard; the chosen one carries the question of how to look through it.
     let previous=null;
-    for(const item of lenses){
+    lenses.forEach((item,index)=>{
       const kind=item.positions?.positions==='measure'?'measure':'group';
       if(previous==='group'&&kind==='measure')lensList.append(el('span','ps-lens-divider'));previous=kind;
-      const b=button('', 'lens');b.setAttribute('aria-pressed',String(lens===item.id));b.dataset.positions=kind;
+      const row=el('div','ps-lens-row'),b=button('', 'lens');b.setAttribute('aria-pressed',String(lens===item.id));b.dataset.positions=kind;b.dataset.lens=item.id;
       b.append(hasIcon(item.id)?iconElement(document,item.id,'lens-icon',18):el('span','lens-icon',item.icon),el('span','lens-name',tr(item.title,locale())));
-      setHint(b,tr(item.description,locale()));
-      b.addEventListener('click',event=>{lens=item.id;const refocus=event.detail===0||lensList.contains(document.activeElement);
-      // An open branch reads on the tree, on the scale of time and on the map of places; other lenses look at the whole space.
-      if(route&&!['tree','time','space'].includes(lens)){route=null;routeStepNode=null;shell.dataset.journey='false';}browsingRoutes=false;persistView();paintLenses();reflect();frameSky();
-      // A chosen star the new lens does not show is let go, so its card does not speak of a star that is gone;
-      // one it shows is brought into the free area.
-      if(selected&&!shownView?.nodes?.some(node=>node.id===selected))closePanel();else if(selected)sky?.reveal(selected);
-      // The lenses are drawn again; the keyboard stays on the one it chose.
-      if(refocus)lensList.querySelector('[aria-pressed="true"]')?.focus({preventScroll:true});});lensList.append(b);}
+      setHint(b,tr(item.description,locale()),index<9?String(index+1):undefined);
+      b.addEventListener('click',event=>chooseLens(item.id,event.detail===0||lensList.contains(document.activeElement)));
+      // Pointing at a lens lights in the space the stars it would show.
+      b.addEventListener('pointerenter',()=>previewLens(item.id));b.addEventListener('pointerleave',()=>previewLens(null));
+      row.append(b);
+      if(lens===item.id){const ask=button('?','ps-lens-ask');setHint(ask,t('lensInquiry'));ask.setAttribute('aria-label',t('lensInquiry'));ask.addEventListener('click',()=>showInquiry());row.append(ask);}
+      lensList.append(row);
+    });
+    lensList.append(measureAction);markLenses();
     // On a phone the lenses scroll in one row; the chosen one stays in sight, also when a link opened it.
-    const chosen=lensList.querySelector('[aria-pressed="true"]');
+    const chosen=lensList.querySelector('.lens[aria-pressed="true"]');
     if(chosen&&lensList.scrollWidth>lensList.clientWidth&&(chosen.offsetLeft<lensList.scrollLeft||chosen.offsetLeft+chosen.offsetWidth>lensList.scrollLeft+lensList.clientWidth))lensList.scrollLeft=chosen.offsetLeft-(lensList.clientWidth-chosen.offsetWidth)/2;
+  }
+  function chooseLens(id,refocus=false){
+    if(!lenses.some(item=>item.id===id))return;
+    previewLens(null);lens=id;
+    // An open branch reads on the tree, on the scale of time and on the map of places; other lenses look at the whole space.
+    if(route&&!['tree','time','space'].includes(lens)){route=null;routeStepNode=null;shell.dataset.journey='false';}browsingRoutes=false;persistView();paintLenses();reflect();frameSky();
+    // A chosen star the new lens does not show is let go, so its card does not speak of a star that is gone;
+    // one it shows is brought into the free area.
+    if(selected&&!shownView?.nodes?.some(node=>node.id===selected))closePanel();else if(selected)sky?.reveal(selected);
+    // The lenses are drawn again; the keyboard stays on the one it chose.
+    if(refocus)lensList.querySelector('.lens[aria-pressed="true"]')?.focus({preventScroll:true});
+  }
+  // Which stars a lens shows, by the measure its own layout keeps; the tree shows them all.
+  const memberCache=new Map();let memberState=null;
+  function lensMembers(id){
+    if(id==='tree')return null;
+    if(memberState!==state){memberCache.clear();memberState=state;}
+    const key=`${id}:${locale()}`;if(memberCache.has(key))return memberCache.get(key);
+    const current=graphState(),has=(map,node)=>!!(node.materialId&&map?.get?.(node.materialId)),own=node=>node.ownerType==='personal-hypothesis'||String(node.id).startsWith('personal:');
+    let keep;
+    if(id==='time'&&timeline)keep=node=>has(timeline.positions,node);
+    else if(id==='space'&&geography)keep=node=>has(geography.positions,node);
+    else if(id==='proximity'){const stars=new Set(starIds);keep=node=>stars.has(node.materialId)||stars.has(node.id);}
+    else if(treeLayout&&GATHERING.has(id)&&gatheringNow(id)){const gathering=gatheringNow(id);keep=node=>has(gathering.positions,node)||own(node);}
+    else{const ids=new Set(makeLensView(current,library,{lens:id}).nodes.map(node=>node.id));keep=node=>ids.has(node.id);}
+    const members=new Set(current.nodes.filter(keep).map(node=>node.id));memberCache.set(key,members);return members;
+  }
+  let previewing=null;
+  function previewLens(id){
+    const next=id&&id!==lens?id:null;if(next===previewing)return;previewing=next;
+    try{sky?.preview?.(next?lensMembers(next):null);}catch{sky?.preview?.(null);}
+  }
+  // With a star chosen, a lens that does not hold it stands quieter: choosing it would let the star go.
+  let markPending=false;
+  function markLenses(){
+    if(markPending)return;markPending=true;
+    const later=window.requestIdleCallback?fn=>window.requestIdleCallback(fn,{timeout:300}):fn=>setTimeout(fn,60);
+    later(()=>{markPending=false;if(destroyed)return;
+      for(const b of lensList.querySelectorAll('.lens[data-lens]')){const id=b.dataset.lens;let away=false;try{const members=selected&&id!==lens?lensMembers(id):null;away=!!(members&&!members.has(selected));}catch{}b.classList.toggle('ps-lens-away',away);}});
+  }
+  // The rail says where the reader stands: the route under way and its step, how many thoughts are the reader's own.
+  function paintRail(){
+    const item=route?currentRouteItem():null,shown=item?shownRoute(item):null,total=shown?.steps?.length??0;
+    routeNow.hidden=!shown;
+    if(shown){const name=tr(shown.title,locale()),step=Math.min(routeIndex+1,total);routeNow.replaceChildren(el('span','ps-rail-route-name',name),el('span','ps-rail-route-step',`${step}/${total}`),el('span','ps-rail-route-line'));routeNow.style.setProperty('--route-done',String(total?step/total:0));setHint(routeNow,`${name} · ${t('backToRoute')}`);}
+    const own=graphState().nodes.filter(node=>node.ownerType==='personal-hypothesis'||String(node.id).startsWith('personal:')).length;
+    researchAction.querySelector('.ps-action-count').textContent=own?String(own):'';
+    const folded=shell.dataset.rail==='folded',word=t(folded?'openColumn':'collapseColumn');
+    railFold.textContent=folded?'›':'‹';setHint(railFold,word,'[');railFold.setAttribute('aria-label',word);railFold.setAttribute('aria-expanded',String(!folded));
+    markLenses();
+  }
+  // The rail folds to its icons and gives the space its width; this browser remembers the fold.
+  function foldRail(next=shell.dataset.rail!=='folded'){
+    if(next)shell.dataset.rail='folded';else delete shell.dataset.rail;
+    try{localStorage.setItem(RAIL_KEY,next?'folded':'open');}catch{}
+    paintRail();sky?.refresh();frameSky();
   }
   function paintRelations(){
     relationChips.replaceChildren();
@@ -1929,6 +1996,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     trailBar.append(step('←',t('trailBackWord'),t('trailBack'),-1),crumbs,step('→',t('trailForwardWord'),t('trailForward'),1));
   }
   function renderColumn(){
+    paintRail();
     if(destroyed)return;
     const mode=columnMode(),wide=desktop();shell.dataset.column=mode;reading.dataset.mode=mode;
     // A card for another star or link opens at its top, however it was chosen: from the map, a search, a route or a card.
@@ -2278,6 +2346,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       if(key==='escape'&&bench){event.preventDefault();if(!personal.hidden)closePersonal();else toggleBench(false);return;}
       if(key==='escape'&&(selected||selectedEdge)&&!route){event.preventDefault();closePanel();}
       if(key==='/'){event.preventDefault();search.focus();}
+      // The digits choose the lenses in the rail's order; [ folds the rail and gives the space its width.
+      if(/^Digit[1-9]$/.test(event.code)&&!event.shiftKey){const item=lenses[Number(event.code.slice(5))-1];if(item){event.preventDefault();chooseLens(item.id);return;}}
+      if(event.code==='BracketLeft'&&desktop()){event.preventDefault();foldRail();return;}
       // B lays the open card on the workbench, or opens the workbench when no card is open (Shift+B always opens it);
       // F spreads the card over the whole screen and folds it back. Both in any keyboard layout.
       if(event.code==='KeyB'){event.preventDefault();if(!event.shiftKey&&!panelAdd.hidden)layOnBench();else benchView?.show();return;}
@@ -2313,7 +2384,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   workspaceRoot.addEventListener('public-research-workspace-history',researchHistory);
   if(question)question.classList.add('ps-question-input');
   searchResults.hidden=true;deck.hidden=true;personal.hidden=true;reading.hidden=true;
-  paintLenses();paintRelations();desktopMode.addEventListener('change',syncInitialRouteDock);syncInitialRouteDock();
+  paintLenses();paintRelations();paintRail();desktopMode.addEventListener('change',syncInitialRouteDock);syncInitialRouteDock();
   try{if(!model.getState().nodes.length)model.seedAtlas();}catch{}
   checkGraphPersistence();
   state=model.getState();
