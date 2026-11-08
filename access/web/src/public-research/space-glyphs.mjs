@@ -13,15 +13,15 @@ const SIGNS={
   text:'M3.5 3.5v9M6 4h6.5M6 6.7h6.5M6 9.4h6.5M6 12h4',
   concept:'M8 2l6 6-6 6-6-6z',
   term:'M2.5 8.5l5.5-6h5.5v5.5l-6 5.5z',
-  image:'M8 2v3M8 11v3M2 8h3M11 8h3M3.8 3.8l2.1 2.1M10.1 10.1l2.1 2.1M12.2 3.8l-2.1 2.1M5.9 10.1l-2.1 2.1',
+  image:'M1.8 8c1.7-2.8 3.8-4.2 6.2-4.2s4.5 1.4 6.2 4.2c-1.7 2.8-3.8 4.2-6.2 4.2S3.5 10.8 1.8 8zM10.3 8a2.3 2.3 0 1 1-4.6 0a2.3 2.3 0 1 1 4.6 0',
   question:'M5.6 5.6a2.5 2.5 0 1 1 3.6 2.2c-.8.4-1.2 1-1.2 1.8v.6',
   personal:'M3 13l.8-3L10.6 3.2a1.4 1.4 0 0 1 2 2L5.8 12z',
 };
 // Each sign carries the stars of the Tree's icons (space-icons.mjs): small filled points in the theme's gold where its
-// sense gathers — a person's head, a concept's heart, the ends of a way.
+// sense gathers — a person's head, a concept's heart, the ends of a way, the pupil of the eye that an image is seen by.
 const STARS={
   era:[[8,8,1.15]],way:[[5,2.6,1.25],[11.5,2.6,1.25],[5,13.4,1.1]],step:[[12.1,9,1.1]],person:[[8,4.9,2.15]],school:[[8,2.4,1.15]],
-  book:[[8,14,1]],text:[[3.5,3.4,1.15]],concept:[[8,8,2]],term:[[10.5,5.5,1.2]],image:[[8,8,1.55]],question:[[8,12.9,1.15]],personal:[[3.1,13,1.1]],
+  book:[[8,14,1]],text:[[3.5,3.4,1.15]],concept:[[8,8,2]],term:[[10.5,5.5,1.2]],image:[[8,8,1.15]],question:[[8,12.9,1.15]],personal:[[3.1,13,1.1]],
 };
 // The kinds of stars and the family of signs each belongs to.
 const FAMILY={era:'era',branch:'way',path:'way',step:'step',author:'person',figure:'person',translator:'person',school:'school',work:'book',version:'book',chapter:'text',passage:'text',concept:'concept',term:'term',image:'image',question:'question',personal:'personal'};
