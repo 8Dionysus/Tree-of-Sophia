@@ -168,7 +168,10 @@ sky behind them is composited once per frame.
 The GPU painter ([`gpu-canvas.js`](src/observatory/gpu-canvas.js)) speaks
 WebGL2 itself: one program, one buffer of quads with four corners each, and one
 atlas texture to which an image travels alone when it is first drawn or
-changes. A space's first view carries what it shows. Spanish, German and
+changes. A dashed link's whole dashes and a dotted link's dots lie in one quad
+whose shader repeats them. While the reader's opaque page covers the whole sky
+(on a narrow screen), the sky rests as in a hidden tab. A space's first view
+carries what it shows. Spanish, German and
 Chinese catalogs come when a reader picks the language; the retained library's
 map and the editorial annotations come with the first opened text, the first
 search or Antiquity's collection; the Zarathustra occurrence sets come with the

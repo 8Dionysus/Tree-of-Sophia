@@ -71,12 +71,22 @@ void main() {
       float sx=stripCoverage(vLocal.x,vShape.z,dx),sy=stripCoverage(vLocal.y,vShape.z,dy);
       coverage=stripCoverage(vLocal.x,vShape.y,dx)*sy
         +sx*stripCoverage(vLocal.y,vShape.y,dy)-sx*sy;
-    } else {
+    } else if(vShape.x<5.5) {
       // A ring of radius y and half width z: the coverage across its band, integrated over the pixel as a strip's is.
       float across=length(vLocal)-vShape.y;
       vec2 n=normalize(vLocal+vec2(1e-6));
       vec2 d=vec2(dot(vec2(dFdx(vLocal.x),dFdx(vLocal.y)),n),dot(vec2(dFdy(vLocal.x),dFdy(vLocal.y)),n));
       coverage=stripCoverage(across,vShape.z,d);
+    } else if(vShape.x<7.5) {
+      // A run of dashes along x, one every z from 0, each the fraction x-6 of z long, y across: the nearest dash, as a
+      // quad of its own would draw it.
+      float period=vShape.z,dash=(vShape.x-6.)*period*.5,k=floor((vLocal.x-dash)/period+.5);
+      coverage=stripCoverage(vLocal.x-k*period-dash,dash,vec2(dFdx(vLocal.x),dFdy(vLocal.x)))
+        *stripCoverage(vLocal.y,vShape.y,vec2(dFdx(vLocal.y),dFdy(vLocal.y)));
+    } else {
+      // A row of round dots along x, one every z from 0, of radius y: the nearest dot, as a disc of its own would draw it.
+      float k=floor(vLocal.x/vShape.z+.5);
+      coverage=clamp(.5-(length(vec2(vLocal.x-k*vShape.z,vLocal.y))-vShape.y),0.,1.);
     }
     outColor=vColor*coverage;
   }
@@ -331,6 +341,48 @@ export class SophiaGpuCanvas {
     for(let i=0;i<4;i++){const lx=i===1||i===2?extent:-extent,ly=i>=2?extent:-extent;locals[i][0]=lx;locals[i][1]=ly;points[i][0]=cx+lx;points[i][1]=cy+ly;}
     shape[0]=5;shape[1]=radius;shape[2]=half;
     this.quad(points,locals,shape,this.strokeStyle);
+  }
+  // A dashed line from a to b with dashes `on` long every `period` from a, drawn between `from` and `to` along it, in the
+  // current transform, line width and stroke style: what stroke() draws for those dashes, the whole ones in one quad
+  // whose shader repeats them and a dash cut by either end in a quad of its own.
+  dashes(ax,ay,bx,by,from,to,on,period) {
+    const A=this.point(ax,ay),B=this.point(bx,by),reach=Math.hypot(bx-ax,by-ay),dx=B[0]-A[0],dy=B[1]-A[1],length=Math.hypot(dx,dy);
+    if(!(reach>0)||!(length>0)||!(on>0)||!(period>on))return;
+    const ux=dx/length,uy=dy/length,scale=length/reach,halfWidth=this.lineWidth*Math.hypot(this.matrix[0],this.matrix[1])/2;
+    const piece=(begin,end)=>{const at=(begin+end)/2*scale;this.rectAt(A[0]+ux*at,A[1]+uy*at,ux,uy,(end-begin)*scale/2,halfWidth,this.strokeStyle);};
+    let first=-1,last=-1;
+    for(let start=0;start<to;start+=period){
+      const begin=Math.max(start,from),end=Math.min(start+on,to);if(end<=begin)continue;
+      if(begin===start&&end===start+on){if(first<0)first=start;last=start;}else piece(begin,end);
+    }
+    if(first<0)return;
+    if(first===last){piece(first,first+on);return;}
+    const origin=first*scale,run=(last-first+on)*scale,points=this.quadPoints,locals=this.quadLocals,shape=this.quadShape;
+    for(let i=0;i<4;i++){
+      const x=i===1||i===2?run+1:-1,y=i>=2?halfWidth+1:-halfWidth-1;
+      locals[i][0]=x;locals[i][1]=y;points[i][0]=A[0]+ux*(origin+x)-uy*y;points[i][1]=A[1]+uy*(origin+x)+ux*y;
+    }
+    shape[0]=6+on/period;shape[1]=halfWidth;shape[2]=period*scale;
+    this.quad(points,locals,shape,this.strokeStyle);
+  }
+  // A row of `count` round dots of radius r from a to b, their centres evenly spaced from half a space in, drawn where a
+  // centre lies between `from` and `to`, in the current transform and fill style: what fill() draws for those discs, a
+  // row of them in one quad.
+  dots(ax,ay,bx,by,r,count,from,to) {
+    const reach=Math.hypot(bx-ax,by-ay),step=reach/count;if(!(reach>0)||!(count>=1))return;
+    let first=-1,last=-1;
+    for(let i=0;i<count;i++){const at=(i+.5)*step;if(at<from||at>to)continue;if(first<0)first=i;last=i;}
+    if(first<0)return;
+    if(first===last){this.beginPath();const at=(first+.5)*step;this.arc(ax+(bx-ax)*at/reach,ay+(by-ay)*at/reach,r,0,Math.PI*2);this.fill();this.beginPath();return;}
+    const A=this.point(ax,ay),B=this.point(bx,by),dx=B[0]-A[0],dy=B[1]-A[1],length=Math.hypot(dx,dy);if(!(length>0))return;
+    const ux=dx/length,uy=dy/length,scale=length/reach,radius=r*Math.hypot(this.matrix[0],this.matrix[1]),spacing=step*scale;
+    const origin=(first+.5)*step*scale,run=(last-first)*spacing,points=this.quadPoints,locals=this.quadLocals,shape=this.quadShape;
+    for(let i=0;i<4;i++){
+      const x=i===1||i===2?run+radius+1:-radius-1,y=i>=2?radius+1:-radius-1;
+      locals[i][0]=x;locals[i][1]=y;points[i][0]=A[0]+ux*(origin+x)-uy*y;points[i][1]=A[1]+uy*(origin+x)+ux*y;
+    }
+    shape[0]=8;shape[1]=radius;shape[2]=spacing;
+    this.quad(points,locals,shape,this.fillStyle);
   }
   beginPath() {this.path=[];this.current=null;}
   moveTo(x,y) {this.current=this.point(x,y);}
