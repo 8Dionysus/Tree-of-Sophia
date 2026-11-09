@@ -148,7 +148,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   let layered=null,keptRun=null,turningStars=[],spark=null;
   const AMBIENT_FRAME=1000/22,TOUCHED=new WeakMap();
   // The interval between frames of a moving view, from what its frames have cost on this device.
-  const motionFrame=()=>softwareRenderer?1000/28:motionCost<=7?1000/62:motionCost<=15?1000/32:1000/22;
+  const motionFrame=()=>softwareRenderer?1000/28:motionCost<=7?1000/62:motionCost<=20?1000/32:1000/22;
   // A style or attribute is written only when it changes, so a frame that leaves a button where it was costs it nothing.
   const put=(el,key,value)=>{let had=TOUCHED.get(el);if(!had){had={};TOUCHED.set(el,had);}if(had[key]===value)return false;had[key]=value;return true;};
   const setStyle=(el,name,value)=>{if(put(el,name,value))el.style[name]=value;};
