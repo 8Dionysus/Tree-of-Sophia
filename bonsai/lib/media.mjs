@@ -9,9 +9,13 @@
 // which the stand keeps as its own copies in its layer store
 // (`layers.json`, R2) and the page reads from the site. A use binds an image to a
 // subject of the stand in a role: an author's portrait, a material of an era,
-// an object of analysis, a comparison. Provider texts are kept word for word,
-// with their language. A card shows the image and a caption built from these
-// facts and their sources.
+// an object of analysis, a comparison. A note says of a subject's images as a
+// whole why they fit it and where they part from it, and which works the source
+// binds to the subject that the card does not show, in the words of a source
+// the module names with the digest of its file (the stand's media registry).
+// Provider texts and a source's words are kept word for word, with their
+// language. A card shows the images, a caption for each built from these facts
+// and their sources, and the note under them.
 //
 // Each work stands for a Tree Artifact and each image for a Tree
 // representation; the graft map (`identities.json`, sections `artifacts` and
@@ -51,6 +55,8 @@ const ARTIFACT=/^tos\.artifact\.[a-z0-9]+(?:-[a-z0-9]+)*\.[a-z0-9]+(?:-[a-z0-9]+
 const ARTIFACT_PATH=/^[a-z0-9]+(?:-[a-z0-9]+)*\/[a-z0-9]+(?:-[a-z0-9]+)*\/[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const REPRESENTATION=/^tos\.(?:image-service|file)\.sha256\.[0-9a-f]{64}$/;
 const STATUSES=Object.freeze(['to-mint','resolved']);
+
+const SOURCE_ID=/^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
 const text=value=>typeof value==='string'&&/\S/.test(value);
@@ -168,10 +174,51 @@ export function mediaIssues(module,{subjects=null,identities=null,digest=null,la
     seen.add(key);
   });
   for(const id of Object.keys(images))if(!used.has(id))issues.push(`image ${id}: no use shows it`);
+  issues.push(...noteIssues(module,{subjects,shownSubjects:new Set(uses.filter(object).map(use=>use.subject))}));
   if(identities){
     for(const id of Object.keys(identities.artifacts??{}))if(!works[id])issues.push(`graft map artifact ${id}: not a work of the media module`);
     for(const id of Object.keys(identities.representations??{}))if(!images[id])issues.push(`graft map representation ${id}: not an image of the media module`);
   }
+  return issues;
+}
+
+// A work the source binds to the subject that the card does not show, in the source's words: its id there,
+// who made it, its title and its holder.
+const alsoHolds=item=>object(item)&&Object.keys(item).every(key=>['work','maker','title','holder','language'].includes(key))
+  &&text(item.work)&&text(item.maker)&&text(item.title)&&(item.holder===null||text(item.holder))&&text(item.language);
+
+// A module's sources and notes: every source a note cites, its title, file name and the file's digest;
+// every note on a subject the module shows, from a source it names, at a place in it, with both of its texts.
+function noteIssues(module,{subjects,shownSubjects}){
+  const issues=[];
+  if(module.sources===undefined&&module.notes===undefined)return issues;
+  const sources=object(module.sources)?module.sources:{},notes=object(module.notes)?module.notes:{};
+  if(!object(module.sources))issues.push('sources');
+  if(!object(module.notes))issues.push('notes');
+  for(const [id,source] of Object.entries(sources)){
+    const at=`source ${id}`;
+    if(!SOURCE_ID.test(id))issues.push(`${at}: its id is not lowercase words`);
+    if(!object(source)){issues.push(`${at}: not an object`);continue;}
+    if(Object.keys(source).some(key=>!['title','file','sha256'].includes(key)))issues.push(`${at}: unknown field`);
+    if(!worded(source.title))issues.push(`${at}: title`);
+    if(!text(source.file)||/[\\/]/.test(source.file))issues.push(`${at}: file`);
+    if(!sha(source.sha256))issues.push(`${at}: sha256`);
+  }
+  const cited=new Set();
+  for(const [subject,note] of Object.entries(notes)){
+    const at=`note ${subject}`;
+    if(!object(note)){issues.push(`${at}: not an object`);continue;}
+    if(Object.keys(note).some(key=>!['source','at','why','limit','also'].includes(key)))issues.push(`${at}: unknown field`);
+    if(subjects&&!subjects.has(subject))issues.push(`${at}: ${subject} is not a subject of the stand`);
+    // A note speaks of the images a card shows; a subject without images has none.
+    if(!shownSubjects.has(subject))issues.push(`${at}: no use shows an image of ${subject}`);
+    if(!sources[note.source])issues.push(`${at}: source ${note.source} is not a source of this module`);
+    else cited.add(note.source);
+    if(!text(note.at))issues.push(`${at}: at`);
+    for(const key of ['why','limit'])if(!worded(note[key]))issues.push(`${at}: ${key}`);
+    if(note.also!==undefined&&!(Array.isArray(note.also)&&note.also.length&&note.also.every(alsoHolds)))issues.push(`${at}: also`);
+  }
+  for(const id of Object.keys(sources))if(!cited.has(id))issues.push(`source ${id}: no note cites it`);
   return issues;
 }
 
@@ -288,7 +335,39 @@ export function addMedia({module,identities,observation,subject,role,artifact,vi
   return {module:next,identities:graft,workId,imageId,image};
 }
 
-/** Read a media module: what a subject's card shows, in the order of the roles. */
+/**
+ * A media module with a source its notes cite: `id` in lowercase words, its `title` in its `language`,
+ * the name of its `file` and the file's `sha256`. A source of the same id is replaced.
+ */
+export function addSource({module,id,title,language,file,sha256}){
+  if(!SOURCE_ID.test(id??''))throw new Error(`source ${id}: an id in lowercase words`);
+  if(!text(title)||!text(language))throw new Error(`source ${id}: its title and the title's language`);
+  if(!text(file)||/[\\/]/.test(file))throw new Error(`source ${id}: the file's name without its folder`);
+  if(!sha(sha256))throw new Error(`source ${id}: the file's sha256`);
+  const next=structuredClone(module);
+  next.sources={...(next.sources??{}),[id]:{title:{text:title,language},file,sha256}};
+  next.notes??={};
+  return next;
+}
+
+/**
+ * A media module with a note on `subject`: why its images fit it and where they part from it, in the words
+ * of `source` at the place `at` in it, in `language`; `also` names, in the source's words, the works it binds
+ * to the subject that the card does not show (`{work,maker,title,holder}`). A note on the same subject is replaced.
+ */
+export function addNote({module,subject,source,at,why,limit,language,also=[]}){
+  if(!text(subject))throw new Error('subject');
+  if(!object(module?.sources?.[source]))throw new Error(`source ${source}: add it to the module first`);
+  if(!(module.uses??[]).some(use=>use?.subject===subject))throw new Error(`${subject}: no use shows an image of it`);
+  if(!text(at)||!text(why)||!text(limit)||!text(language))throw new Error(`${subject}: the note's place, both texts and their language`);
+  const next=structuredClone(module);
+  const others=(also??[]).map(item=>({work:item?.work,maker:item?.maker,title:item?.title,holder:item?.holder??null,language}));
+  if(!others.every(alsoHolds))throw new Error(`${subject}: every other work needs its id in the source, its maker and its title`);
+  next.notes={...(next.notes??{}),[subject]:{source,at,why:{text:why,language},limit:{text:limit,language},...(others.length?{also:others}:{})}};
+  return next;
+}
+
+/** Read a media module: what a subject's card shows, in the order of the roles, and the note under it. */
 export function readMedia(module){
   const works=object(module?.works)?module.works:{},images=object(module?.images)?module.images:{},uses=Array.isArray(module?.uses)?module.uses:[];
   return {
@@ -297,5 +376,9 @@ export function readMedia(module){
       .filter(use=>use.subject===subject&&images[use.image]&&works[images[use.image].work])
       .map(use=>({role:use.role,image:{id:use.image,...images[use.image]},work:{id:images[use.image].work,...works[images[use.image].work]}}))
       .sort((a,b)=>MEDIA_ROLES.indexOf(a.role)-MEDIA_ROLES.indexOf(b.role)),
+    noteFor:subject=>{
+      const note=object(module?.notes)?module.notes[subject]:null,source=object(module?.sources)&&object(note)?module.sources[note.source]:null;
+      return note&&source?{why:note.why,limit:note.limit,also:note.also??[],at:note.at,source:{id:note.source,...source}}:null;
+    },
   };
 }
