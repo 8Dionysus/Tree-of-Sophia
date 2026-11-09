@@ -155,8 +155,13 @@ device's own frame cost allows, up to the display's rate. Once only the sky
 moves (its dust, fog and light, a chosen star's orbit, a chosen link's spark),
 the resting middle of the scene is laid again as the last full frame drew it,
 the names and buttons stay where they stand, and the sky goes on at about
-twenty frames a second. Every style and attribute is written only when it
-changes. Panels whose ground is at least 93% opaque carry the same ground made
+twenty frames a second. While the scene moves, a star's button follows its
+star when the star shows (its name stands or fades, it is pointed at, chosen,
+held, focused or aimed at); the other buttons are clear and come to their stars
+once the scene rests, and until then a click on the sky beside such a star
+chooses it. Every style and attribute is written only when it changes. The GPU
+painter draws a whole ring in one quad, at the weight of the polygon the
+Canvas2D painter draws. Panels whose ground is at least 93% opaque carry the same ground made
 opaque in place of a backdrop blur: the picture stays the same, and the moving
 sky behind them is composited once per frame.
 

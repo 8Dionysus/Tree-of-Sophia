@@ -200,7 +200,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
         const pickUp=(pointerId,x,y)=>{n.dragging=true;nodeDrag={id:pointerId,x,y,p:[...n.p],moved:false};};
         // The click that ends a drag or a pinch belongs to it; a new press starts clean, and the keyboard (detail 0) always chooses.
         const swallow=()=>{swallowed=true;};
-        el.addEventListener('click',e=>{if(e.detail!==0&&swallowed){swallowed=false;return;}onSelect(item.id)});
+        el.addEventListener('click',e=>{if(e.detail!==0&&swallowed){swallowed=false;return;}if(e.detail!==0&&n.stale)return;onSelect(item.id)});
         // A star held still is picked up and moves; a quick drag from it turns the view, as the sky around it does.
         el.addEventListener('contextmenu',e=>{if(holdToMove||secondaryPan)e.preventDefault();});
         // What a press began ends without a trace: on a pinch the view goes back and a picked-up star returns;
@@ -254,7 +254,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
           press=null;kick();
         };
         el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);el.addEventListener('lostpointercapture',end);
-        el.addEventListener('pointerenter',()=>{hover=item.id;kick()});el.addEventListener('pointerleave',()=>{hover=null;kick()});
+        el.addEventListener('pointerenter',()=>{if(n.stale)return;hover=item.id;kick()});el.addEventListener('pointerleave',()=>{if(hover===item.id){hover=null;kick();}});
         el.addEventListener('focus',()=>{hover=item.id;kick()});el.addEventListener('blur',()=>{hover=null;kick()});
       }
       n.target=[...item.position];n.kind=item.kind;n.color=item.color;n.own=colorOf(n);n.prominent=!!item.prominent;n.dimmed=!!item.dim;n.labelSide=['left','right','above','below'].includes(item.labelSide)?item.labelSide:null;n.quiet=!!item.quiet;n.form=item.form==='proposal'||item.form==='personal'?item.form:'source';n.el.dataset.form=n.form;n.major=item.major??['work','concept','dossier','figure'].includes(item.kind);n.labelFrom=Number.isFinite(item.labelFrom)?item.labelFrom:0;
@@ -671,7 +671,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       n.labelBox=visible?chosen:null;setData(n.el,'quiet',String(!visible));setStyle(n.label,'opacity',visible?'1':'0');setStyle(n.label,'pointerEvents',visible?'auto':'none');
       // A name already standing slides to its new side; a name coming into view takes its place before it shows.
       if(chosen){const glide=!!n.labelShown&&visible&&!instant;if(glide!==n.labelGlide){n.labelGlide=glide;setStyle(n.label,'transition',glide?GLIDE:'');}}
-      n.labelShown=visible;n.labelSeen=true;if(visible){n.labelSideNow=chosen.side??null;n.wantSince=null;}
+      if(n.labelShown&&!visible)n.labelGone=now;n.labelShown=visible;n.labelSeen=true;if(visible){n.labelSideNow=chosen.side??null;n.wantSince=null;}
       if(chosen){const fit=chosen.right-chosen.left,style=n.label;setStyle(style,'left',(chosen.left-x+22)+'px');setStyle(style,'top',(chosen.top-y+22)+'px');setStyle(style,'bottom','auto');setStyle(style,'transform','none');setStyle(style,'width',fit+'px');setStyle(style,'maxWidth',fit+'px');setStyle(style,'minWidth','0');if(visible)occupied.push(chosen);}
     };
     // Below, above, right and left of the star, and further out for a name that must be shown.
@@ -805,7 +805,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(!chosen&&hot&&e.tag&&e.compactWidth){const area=box((a.x+b.x)/2-e.compactWidth/2,(a.y+b.y)/2-e.compactHeight/2,e.compactWidth,e.compactHeight);if(inView(area)&&!uiObstacles.some(o=>overlaps(area,o)))[chosen,compact]=[area,true];}
       if(!chosen)continue;
       // A hovered link's name may cover another name, never a kept one.
-      if(hot)for(const n of nodes)if(n.labelBox&&!kept.has(n.id)&&overlaps(chosen,n.labelBox)){n.labelBox=null;n.labelShown=false;setData(n.el,'quiet','true');setStyle(n.label,'opacity','0');setStyle(n.label,'pointerEvents','none');}
+      if(hot)for(const n of nodes)if(n.labelBox&&!kept.has(n.id)&&overlaps(chosen,n.labelBox)){n.labelBox=null;if(n.labelShown)n.labelGone=now;n.labelShown=false;setData(n.el,'quiet','true');setStyle(n.label,'opacity','0');setStyle(n.label,'pointerEvents','none');}
       showEdge(e,chosen,compact,hot);shown++;
     }
     for(const e of edges)setHidden(e.el,!visibleEdges.has(e.id));
@@ -1027,14 +1027,16 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       }
       // The star's button follows it only on a full frame; on a frame of the sky alone it stands where it was laid.
       if(!domFrame)return;
-      setStyle(n.el,'transform',`translate3d(${(p.x-22).toFixed(2)}px,${(p.y-22).toFixed(2)}px,0)`);
-      // The nearer star lies over the farther, so that the pointer reaches the star it is over, and the chosen one over all.
-      const layer=String(hot?3000:100+Math.round(clamp(p.d,0,2.4)*400));if(n.el.dataset.layer!==layer){n.el.dataset.layer=layer;n.el.style.zIndex=layer;}
+      // What the page reads of a star (its state, its reach, whether it is in view) is written at once. Where its
+      // button stands, how it lies over the others and how bright its name is wait for placeStars.
       const outside=String(away>.5);if(n.el.dataset.outside!==outside){n.el.dataset.outside=outside;n.el.tabIndex=away>.5?-1:0;}
-      const active=String(n.id===selectedId);setData(n.el,'active',active);setData(n.el,'prominent',String(n.prominent));setData(n.el,'dim',String(dim));setStyle(n.el,'opacity',dim?'.35':fade<1?(.62+.38*near01).toFixed(2):'1');if(put(n.el,'aria-pressed',active))n.el.setAttribute('aria-pressed',active);setVar(n.el,'--star-color',color);
+      const active=String(n.id===selectedId);setData(n.el,'active',active);setData(n.el,'prominent',String(n.prominent));setData(n.el,'dim',String(dim));if(put(n.el,'aria-pressed',active))n.el.setAttribute('aria-pressed',active);setVar(n.el,'--star-color',color);
       setHidden(n.el,!pointInView(p));
+      // The nearer star lies over the farther, so that the pointer reaches the star it is over, and the chosen one over all.
+      n.place={transform:`translate3d(${(p.x-22).toFixed(2)}px,${(p.y-22).toFixed(2)}px,0)`,layer:String(hot?3000:100+Math.round(clamp(p.d,0,2.4)*400)),opacity:dim?'.35':fade<1?(.62+.38*near01).toFixed(2):'1'};
     });
     const taken=domFrame?labelsForScene(near,focusEdges,kept,keptEdges,now,dt,still||reduced.matches):null;if(domFrame&&labelsSettling)layoutMoving=true;
+    if(domFrame)placeStars(now,false);
     // A plane's name keeps to one of its corners or edges where no other name stands.
     if(domFrame)for(const plane of planes){
       if(reveal<.05||!plane.el.textContent||!plane.corners){plane.el.hidden=true;continue;}
@@ -1058,6 +1060,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     const unsettled=Math.abs(yaw-tyaw)+Math.abs(pitch-tpitch)+Math.abs(zoom-tzoom)+Math.abs(pan.x-tpan.x)+Math.abs(pan.y-tpan.y)>.005;
     // The next frame is a full one while anything but the sky itself is still on its way.
     domActive=domFrame&&(!resting||shifted||layoutMoving||!!drag||!!velocity||reveal>0||litGlow!==(lit?1:0)||now<introUntil||now<turnShownUntil||nodes.some(n=>n.dragging||n.turningView));
+    // Once the scene rests, every star's button stands at its star again.
+    if(domFrame&&!domActive)placeStars(now,true);
     // The middle of a frame after which only the sky moves is kept, to be laid again until something changes.
     if(keptRun)layered=domActive?null:ctx.keep(...keptRun);
     if(!still&&(playing||unsettled||layoutMoving||drag||velocity||reveal>0||litGlow!==(lit?1:0)))schedule();else last=0;
@@ -1073,6 +1077,18 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const t=q/p;if(p<0){if(t>t1)return null;if(t>t0)t0=t;}else{if(t<t0)return null;if(t<t1)t1=t;}
     }
     return [{...a,x:a.x+dx*t0,y:a.y+dy*t0},{...b,x:a.x+dx*t1,y:a.y+dy*t1},t1>=1];
+  }
+  // While the scene moves, a star's button follows it when the star shows: its name stands or is fading, it is pointed
+  // at, chosen, held, in the keyboard's focus or the one the pointer aims at. The other buttons are clear and their names
+  // hidden, so they wait where they stood and come to their stars once the scene rests (`all`). A waiting button is
+  // `stale`: it takes no hover and no pointer's click until it stands at its star again.
+  function placeStars(now,all){
+    const focused=document.activeElement;
+    for(const n of nodes){
+      const place=n.place;if(!place)continue;
+      if(!all&&!n.labelShown&&!(now-(n.labelGone??-Infinity)<450)&&n.id!==selectedId&&n.id!==hover&&n.id!==aimed&&!n.dragging&&!n.turningView&&n.el!==focused&&!n.el.dataset.held){if(!n.el.hidden)n.stale=true;continue;}
+      setStyle(n.el,'transform',place.transform);if(put(n.el,'zIndex',place.layer)){n.el.dataset.layer=place.layer;n.el.style.zIndex=place.layer;}setStyle(n.el,'opacity',place.opacity);n.stale=false;
+    }
   }
   // A chosen star's orbit turns slowly while it stays chosen; the star a link is being drawn from keeps its halo broken and
   // turning, waiting for the other end; while a link stays chosen, a spark runs along it now and then, from its source
@@ -1101,6 +1117,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   // The corners of a polygon of each fineness are worked out once; a turned one is turned by its phase.
   const corners=new Map(),cornersOf=steps=>{let list=corners.get(steps);if(!list){list=new Float64Array(2*(steps+1));for(let i=0;i<=steps;i++){const a=i/steps*Math.PI*2;list[2*i]=Math.cos(a);list[2*i+1]=Math.sin(a);}corners.set(steps,list);}return list;};
   function circle(x,y,r,steps,broken=false,phase=0){
+    // The GPU painter draws a whole ring round in one piece; Canvas2D draws the polygon.
+    if(!broken&&ctx.ring){ctx.ring(x,y,r);return;}
     const list=cornersOf(steps),c=broken&&phase?Math.cos(phase):1,s=broken&&phase?Math.sin(phase):0,at=i=>[x+(list[2*i]*c-list[2*i+1]*s)*r,y+(list[2*i+1]*c+list[2*i]*s)*r];
     ctx.beginPath();
     if(broken)for(let i=0;i<steps;i+=2){const a=at(i),b=at(i+1);ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);}
@@ -1281,6 +1299,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     if(!touch||!star||e.target!==star||performance.now()-touch.at>900||Math.hypot(e.clientX-touch.cx,e.clientY-touch.cy)>10)return;
     let best=null,reach=26;for(const n of nodes){if(n.el.hidden||!n.screen||n.el.dataset.outside==='true')continue;const d=Math.hypot(n.screen.x-touch.x,n.screen.y-touch.y);if(d<reach){reach=d;best=n;}}
     if(best&&best.el!==star){e.stopPropagation();e.preventDefault();best.el.click();}
+    else if(!best&&nodes.some(n=>n.el===star&&n.stale)){e.stopPropagation();e.preventDefault();}
   },{capture:true});
   canvas.addEventListener('pointermove',e=>{
     if(pinching(e))return;
@@ -1289,8 +1308,10 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   });
   const release=e=>{
     if(!drag||e.pointerId!==drag.id)return;const click=e.type==='pointerup'&&!drag.moved&&!drag.forcePan;drag=null;canvas.classList.remove('dragging');letGo();
-    if(click){const p=pointer(e),id=hitEdge(p.x,p.y);if(id)onEdgeSelect(id);else onBackground?.();}kick();
+    if(click){const p=pointer(e),star=staleStarAt(p.x,p.y),id=star?null:hitEdge(p.x,p.y);if(star)onSelect(star.id);else if(id)onEdgeSelect(id);else onBackground?.();}kick();
   };canvas.addEventListener('pointerup',release);canvas.addEventListener('pointercancel',release);canvas.addEventListener('lostpointercapture',release);
+  // A star within reach of the point whose button has not come to it yet.
+  function staleStarAt(x,y){let best=null,reach=14;for(const n of nodes){if(!n.stale||n.el.hidden||!n.screen||n.el.dataset.outside==='true')continue;const d=Math.hypot(n.screen.x-x,n.screen.y-y);if(d<reach){reach=d;best=n;}}return best;}
   canvas.addEventListener('pointerleave',()=>{if(!drag){if(hoverEdge)onEdgeHover?.(null);hoverEdge=null;canvas.style.cursor='';kick();}});
   const visibility=()=>{last=0;if(document.hidden){cancelAnimationFrame(raf);raf=0}else kick()};document.addEventListener('visibilitychange',visibility);
   canvas.addEventListener('sophia-renderer-restored',kick);

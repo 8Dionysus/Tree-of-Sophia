@@ -63,17 +63,26 @@ void main() {
       float sx=stripCoverage(vLocal.x,hw,dx),sy=stripCoverage(vLocal.y,hw,dy);
       coverage=stripCoverage(vLocal.x-center,extent,dx)*sy
         +sx*stripCoverage(vLocal.y-center,extent,dy)-sx*sy;
-    } else {
+    } else if(vShape.x<4.5) {
       vec2 dx=vec2(dFdx(vLocal.x),dFdy(vLocal.x));
       vec2 dy=vec2(dFdx(vLocal.y),dFdy(vLocal.y));
       float sx=stripCoverage(vLocal.x,vShape.z,dx),sy=stripCoverage(vLocal.y,vShape.z,dy);
       coverage=stripCoverage(vLocal.x,vShape.y,dx)*sy
         +sx*stripCoverage(vLocal.y,vShape.y,dy)-sx*sy;
+    } else {
+      // A ring of radius y and half width z: the coverage across its band, integrated over the pixel as a strip's is.
+      float across=length(vLocal)-vShape.y;
+      vec2 n=normalize(vLocal+vec2(1e-6));
+      vec2 d=vec2(dot(vec2(dFdx(vLocal.x),dFdx(vLocal.y)),n),dot(vec2(dFdy(vLocal.x),dFdy(vLocal.y)),n));
+      coverage=stripCoverage(across,vShape.z,d);
     }
     outColor=vColor*coverage;
   }
 }`;
 
+// A round ring of the same width as a many-sided one carries a little more ink than it: its band is whole where the
+// polygon's sides leave their joints. It is drawn this much finer, so a ring weighs what the polygon weighed.
+const RING_WEIGHT=.92;
 const colorCache = new Map();
 // Quads in a row mostly share their colour: the last one is at hand without a lookup.
 let lastColor='',lastRgba=null;
@@ -286,6 +295,14 @@ export class SophiaGpuCanvas {
     const m=this.matrix,sx=Math.hypot(m[0],m[1]),sy=Math.hypot(m[2],m[3]);
     const px=x+w/2,py=y+h/2;
     this.rectAt(m[0]*px+m[2]*py+m[4],m[1]*px+m[3]*py+m[5],m[0]/sx,m[1]/sx,Math.abs(w*sx/2),Math.abs(h*sy/2),this.fillStyle);
+  }
+  // A whole ring in one quad, stroked with the current line width and style: what a polygon of many sides draws, round.
+  ring(x,y,r) {
+    const m=this.matrix,scale=Math.hypot(m[0],m[1]),cx=m[0]*x+m[2]*y+m[4],cy=m[1]*x+m[3]*y+m[5];
+    const radius=r*scale,half=this.lineWidth*scale/2*RING_WEIGHT,extent=radius+half+1.5,points=this.quadPoints,locals=this.quadLocals,shape=this.quadShape;
+    for(let i=0;i<4;i++){const lx=i===1||i===2?extent:-extent,ly=i>=2?extent:-extent;locals[i][0]=lx;locals[i][1]=ly;points[i][0]=cx+lx;points[i][1]=cy+ly;}
+    shape[0]=5;shape[1]=radius;shape[2]=half;
+    this.quad(points,locals,shape,this.strokeStyle);
   }
   beginPath() {this.path=[];this.current=null;}
   moveTo(x,y) {this.current=this.point(x,y);}
