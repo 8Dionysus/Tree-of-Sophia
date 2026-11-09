@@ -1,10 +1,12 @@
-import * as THREE from 'three';
-
-// A deliberately small painter port for the accepted observatory, not a general
+// A deliberately small painter for the accepted observatory, not a general
 // Canvas implementation. Camera, gestures, texture authorship and DOM stay owned
 // by the reference scene. Draw order and encoded-sRGB compositing are explicit.
+// It speaks WebGL2 directly: one program, one buffer of quads, one atlas texture.
 const STRIDE = 11;
-const CORNERS = [0,2,1,0,3,2];
+// Each quad has four corners and two triangles, (0,2,1) and (0,3,2): the screen's Y is inverted by the vertex shader,
+// so this winding faces the viewer.
+const TRIANGLES = [0,2,1,0,3,2];
+const ATLAS = 2048;
 const VERTEX = `
 precision highp float;
 in vec2 aPosition;
@@ -112,31 +114,15 @@ class SceneGradient {
 export class SophiaGpuCanvas {
   constructor(canvas) {
     this.canvas=canvas;
-    this.renderer=new THREE.WebGLRenderer({canvas,alpha:false,antialias:false,depth:false,stencil:false,premultipliedAlpha:true});
-    this.renderer.setClearColor(0x000000,1);
-    this.renderer.outputColorSpace=THREE.LinearSRGBColorSpace;
-    this.renderer.toneMapping=THREE.NoToneMapping;
-    this.renderer.sortObjects=false;
+    const gl=canvas.getContext('webgl2',{alpha:false,antialias:false,depth:false,stencil:false,premultipliedAlpha:true,preserveDrawingBuffer:false,powerPreference:'default',failIfMajorPerformanceCaveat:false});
+    if(!gl)throw new Error('WebGL2 unavailable');
+    this.gl=gl;
     this.measure=document.createElement('canvas').getContext('2d');
-    this.atlas=document.createElement('canvas');this.atlas.width=this.atlas.height=2048;
-    this.atlasContext=this.atlas.getContext('2d');
-    this.atlasTexture=new THREE.CanvasTexture(this.atlas);
-    this.atlasTexture.colorSpace=THREE.NoColorSpace;
-    this.atlasTexture.premultiplyAlpha=true;
-    this.atlasTexture.generateMipmaps=false;
-    this.atlasTexture.minFilter=this.atlasTexture.magFilter=THREE.LinearFilter;
+    // An image enters the atlas through a small canvas of its own size and a one-pixel border, uploaded to its place on
+    // the texture: only what changed travels to the GPU, and no copy of the whole atlas is kept beside it.
+    this.staging=document.createElement('canvas');this.stagingContext=this.staging.getContext('2d');
     this.images=new Map();this.shelfX=2;this.shelfY=2;this.shelfHeight=0;
-    this.resolution=new THREE.Vector2(1,1);
-    this.materials=['source-over','screen'].map(mode=>new THREE.RawShaderMaterial({
-      name:'Sophia '+mode,vertexShader:VERTEX,fragmentShader:FRAGMENT,glslVersion:THREE.GLSL3,
-      uniforms:{uResolution:{value:this.resolution},uAtlas:{value:this.atlasTexture}},
-      transparent:true,depthTest:false,depthWrite:false,toneMapped:false,
-      blending:THREE.CustomBlending,blendEquation:THREE.AddEquation,
-      blendSrc:THREE.OneFactor,blendDst:mode==='screen'?THREE.OneMinusSrcColorFactor:THREE.OneMinusSrcAlphaFactor,
-      blendSrcAlpha:THREE.OneFactor,blendDstAlpha:THREE.OneMinusSrcAlphaFactor,
-    }));
-    this.scene=new THREE.Scene();this.camera=new THREE.Camera();
-    this.capacity=0;this.mesh=null;this.allocate(16384);
+    this.capacity=0;this.allocate(16384);
     this.matrix=[1,0,0,1,0,0];this.stack=[];this.path=[];
     // Immediate painter: one reusable quad is sufficient between submissions.
     // Avoid allocating point/UV arrays for every background star each frame.
@@ -146,13 +132,48 @@ export class SophiaGpuCanvas {
     this.globalAlpha=1;this.globalCompositeOperation='source-over';
     this.fillStyle='#000000';this.strokeStyle='#000000';this.lineWidth=1;
     this.lost=false;this.disposed=false;
+    this.setup();
     canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();this.lost=true;canvas.dataset.context='lost';});
     canvas.addEventListener('webglcontextrestored',()=>{
-      this.lost=false;this.atlasTexture.needsUpdate=true;canvas.dataset.context='restored';
+      if(this.disposed)return;
+      this.lost=false;this.setup();this.clearAtlas();canvas.dataset.context='restored';
       canvas.dispatchEvent(new CustomEvent('sophia-renderer-restored'));
     });
     this.pagehide=e=>{if(!e.persisted)this.dispose();};
     addEventListener('pagehide',this.pagehide);
+  }
+  // Program, buffers, atlas and fixed state: made once, and again when a lost context is restored.
+  setup() {
+    const gl=this.gl;
+    const shader=(type,source)=>{
+      const value=gl.createShader(type);gl.shaderSource(value,'#version 300 es\n'+source);gl.compileShader(value);
+      if(!gl.getShaderParameter(value,gl.COMPILE_STATUS)&&!gl.isContextLost())throw new Error('Sophia shader: '+gl.getShaderInfoLog(value));
+      return value;
+    };
+    const program=gl.createProgram(),vertex=shader(gl.VERTEX_SHADER,VERTEX),fragment=shader(gl.FRAGMENT_SHADER,FRAGMENT);
+    gl.attachShader(program,vertex);gl.attachShader(program,fragment);
+    ['aPosition','aLocal','aColor','aShape'].forEach((name,index)=>gl.bindAttribLocation(program,index,name));
+    gl.linkProgram(program);
+    if(!gl.getProgramParameter(program,gl.LINK_STATUS)&&!gl.isContextLost())throw new Error('Sophia program: '+gl.getProgramInfoLog(program));
+    gl.deleteShader(vertex);gl.deleteShader(fragment);
+    gl.useProgram(program);this.program=program;
+    this.uResolution=gl.getUniformLocation(program,'uResolution');
+    gl.uniform1i(gl.getUniformLocation(program,'uAtlas'),0);
+    this.vao=gl.createVertexArray();gl.bindVertexArray(this.vao);
+    this.vertexBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,this.vertexBuffer);
+    for(const [index,size,offset] of [[0,2,0],[1,2,2],[2,4,4],[3,3,8]]){gl.enableVertexAttribArray(index);gl.vertexAttribPointer(index,size,gl.FLOAT,false,STRIDE*4,offset*4);}
+    this.indexBuffer=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,this.indexBuffer);
+    this.bufferCapacity=0;this.indexQuads=0;
+    this.texture=gl.createTexture();gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,this.texture);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,ATLAS,ATLAS,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
+    // Atlas texels stay encoded sRGB and premultiplied, as the Canvas painter composes them.
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,true);
+    gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL,gl.NONE);gl.pixelStorei(gl.UNPACK_ALIGNMENT,4);
+    gl.disable(gl.DEPTH_TEST);gl.enable(gl.CULL_FACE);gl.cullFace(gl.BACK);gl.frontFace(gl.CCW);
+    gl.enable(gl.BLEND);gl.blendEquation(gl.FUNC_ADD);gl.clearColor(0,0,0,1);
+    this.width=this.height=0;
   }
   get font() {return this.measure.font;}
   set font(value) {this.measure.font=value;}
@@ -167,50 +188,52 @@ export class SophiaGpuCanvas {
   save() {this.stack.push({matrix:this.matrix.slice(),globalAlpha:this.globalAlpha,globalCompositeOperation:this.globalCompositeOperation,fillStyle:this.fillStyle,strokeStyle:this.strokeStyle,lineWidth:this.lineWidth});}
   restore() {const s=this.stack.pop();if(s)Object.assign(this,s);}
   createLinearGradient(x1,y1,x2,y2) {return new SceneGradient(this.point(x1,y1),this.point(x2,y2));}
+  // Capacity counts corners, four to a quad.
   allocate(capacity) {
     const old=this.data;
-    this.geometry?.dispose();
     this.capacity=capacity;this.data=new Float32Array(capacity*STRIDE);
     if(old)this.data.set(old);
-    this.buffer=new THREE.InterleavedBuffer(this.data,STRIDE).setUsage(THREE.DynamicDrawUsage);
-    this.geometry=new THREE.BufferGeometry();
-    for(const [name,size,offset] of [['aPosition',2,0],['aLocal',2,2],['aColor',4,4],['aShape',3,8]]) {
-      this.geometry.setAttribute(name,new THREE.InterleavedBufferAttribute(this.buffer,size,offset));
-    }
-    if(this.mesh)this.mesh.geometry=this.geometry;
-    else {this.mesh=new THREE.Mesh(this.geometry,this.materials);this.mesh.frustumCulled=false;this.scene.add(this.mesh);}
   }
   beginFrame() {
     this.used=0;this.groups=[];
     if(this.atlasFull)this.clearAtlas();
-    if(this.resolution.x!==this.canvas.width||this.resolution.y!==this.canvas.height) {
-      this.resolution.set(this.canvas.width,this.canvas.height);
-      this.renderer.setSize(this.canvas.width,this.canvas.height,false);
+    if(this.lost||this.disposed)return;
+    if(this.width!==this.canvas.width||this.height!==this.canvas.height) {
+      this.width=this.canvas.width;this.height=this.canvas.height;
+      this.gl.viewport(0,0,this.width,this.height);this.gl.uniform2f(this.uResolution,this.width,this.height);
     }
   }
   endFrame() {
     if(this.lost||this.disposed)return;
-    this.geometry.clearGroups();
-    this.groups.forEach(g=>this.geometry.addGroup(g.start,g.count,g.material));
-    this.geometry.setDrawRange(0,this.used);
-    this.buffer.clearUpdateRanges();this.buffer.addUpdateRange(0,this.used*STRIDE);this.buffer.needsUpdate=true;
-    this.renderer.render(this.scene,this.camera);
+    const gl=this.gl,quads=this.used/4;
+    if(this.bufferCapacity<this.capacity){gl.bufferData(gl.ARRAY_BUFFER,this.data.byteLength,gl.DYNAMIC_DRAW);this.bufferCapacity=this.capacity;}
+    if(this.used)gl.bufferSubData(gl.ARRAY_BUFFER,0,this.data,0,this.used*STRIDE);
+    if(this.indexQuads<quads) {
+      const count=this.capacity/4,indices=new Uint32Array(count*6);
+      for(let q=0;q<count;q++)for(let i=0;i<6;i++)indices[q*6+i]=q*4+TRIANGLES[i];
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,indices,gl.STATIC_DRAW);this.indexQuads=count;
+    }
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    let mode=-1;
+    for(const g of this.groups) {
+      if(g.material!==mode){mode=g.material;gl.blendFuncSeparate(gl.ONE,mode===1?gl.ONE_MINUS_SRC_COLOR:gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);}
+      gl.drawElements(gl.TRIANGLES,g.count/4*6,gl.UNSIGNED_INT,g.start/4*6*4);
+    }
     // The counts are told every thirtieth frame: an attribute written each frame is a page mutation each frame.
     if((this.frames=(this.frames||0)+1)%30===1){
-      this.canvas.dataset.drawCalls=String(this.renderer.info.render.calls);
+      this.canvas.dataset.drawCalls=String(this.groups.length);
       this.canvas.dataset.gpuVertices=String(this.used);
-      this.canvas.dataset.gpuTextures=String(this.renderer.info.memory.textures);
+      this.canvas.dataset.gpuTextures='1';
     }
   }
   quad(points,locals,shape,style,alpha=this.globalAlpha) {
-    if(this.used+6>this.capacity)this.allocate(this.capacity*2);
+    if(this.used+4>this.capacity)this.allocate(this.capacity*2);
     const material=this.globalCompositeOperation==='screen'?1:0;
     let group=this.groups.at(-1);
     if(!group||group.material!==material){group={start:this.used,count:0,material};this.groups.push(group);}
-    group.count+=6;
-    // Screen Y is inverted by the vertex shader, so reverse the winding.
+    group.count+=4;
     const solid=style instanceof SceneGradient?null:color(style);
-    for(const corner of CORNERS) {
+    for(let corner=0;corner<4;corner++) {
       const p=points[corner],uv=locals[corner];
       const c=solid||style.at(...p);
       const a=c[3]*alpha;
@@ -247,36 +270,41 @@ export class SophiaGpuCanvas {
   atlasEntry(image) {
     if(this.images.has(image))return this.images.get(image);
     const width=image.width,height=image.height;
-    if(width+4>2048||height+4>2048)return null;
-    if(this.shelfX+width+2>2048){this.shelfX=2;this.shelfY+=this.shelfHeight+4;this.shelfHeight=0;}
-    if(this.shelfY+height+2>2048){this.atlasFull=true;return null;}
+    if(width+4>ATLAS||height+4>ATLAS)return null;
+    if(this.shelfX+width+2>ATLAS){this.shelfX=2;this.shelfY+=this.shelfHeight+4;this.shelfHeight=0;}
+    if(this.shelfY+height+2>ATLAS){this.atlasFull=true;return null;}
     const entry={x:this.shelfX,y:this.shelfY,width,height};
     this.shelfX+=width+4;this.shelfHeight=Math.max(this.shelfHeight,height);
     this.images.set(image,entry);this.invalidateImage(image);return entry;
   }
   clearAtlas() {
-    this.images.clear();this.atlasContext.clearRect(0,0,2048,2048);
-    this.shelfX=2;this.shelfY=2;this.shelfHeight=0;this.atlasFull=false;this.atlasTexture.needsUpdate=true;this.atlasEpoch=(this.atlasEpoch|0)+1;
+    this.images.clear();
+    this.shelfX=2;this.shelfY=2;this.shelfHeight=0;this.atlasFull=false;this.atlasEpoch=(this.atlasEpoch|0)+1;
+    if(!this.lost&&!this.disposed){const gl=this.gl;gl.bindTexture(gl.TEXTURE_2D,this.texture);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,ATLAS,ATLAS,0,gl.RGBA,gl.UNSIGNED_BYTE,null);}
     this.canvas.dataset.atlasResets=String((Number(this.canvas.dataset.atlasResets)||0)+1);
   }
   invalidateImage(image) {
     const e=this.images.get(image);if(!e)return;
-    const g=this.atlasContext,{x,y,width:w,height:h}=e;
-    g.clearRect(x-1,y-1,w+2,h+2);g.drawImage(image,x,y);
+    const s=this.staging,g=this.stagingContext,{x,y,width:w,height:h}=e;
+    if(s.width!==w+2||s.height!==h+2){s.width=w+2;s.height=h+2;}else g.clearRect(0,0,w+2,h+2);
+    g.drawImage(image,1,1);
     // Border extrusion retains clamp-to-edge behavior inside the shared atlas.
-    g.drawImage(image,0,0,w,1,x,y-1,w,1);g.drawImage(image,0,h-1,w,1,x,y+h,w,1);
-    g.drawImage(image,0,0,1,h,x-1,y,1,h);g.drawImage(image,w-1,0,1,h,x+w,y,1,h);
-    for(const [sx,sy,dx,dy] of [[0,0,x-1,y-1],[w-1,0,x+w,y-1],[0,h-1,x-1,y+h],[w-1,h-1,x+w,y+h]])g.drawImage(image,sx,sy,1,1,dx,dy,1,1);
-    this.atlasTexture.needsUpdate=true;
+    g.drawImage(image,0,0,w,1,1,0,w,1);g.drawImage(image,0,h-1,w,1,1,h+1,w,1);
+    g.drawImage(image,0,0,1,h,0,1,1,h);g.drawImage(image,w-1,0,1,h,w+1,1,1,h);
+    for(const [sx,sy,dx,dy] of [[0,0,0,0],[w-1,0,w+1,0],[0,h-1,0,h+1],[w-1,h-1,w+1,h+1]])g.drawImage(image,sx,sy,1,1,dx,dy,1,1);
+    if(this.lost||this.disposed)return;
+    const gl=this.gl;gl.bindTexture(gl.TEXTURE_2D,this.texture);
+    gl.texSubImage2D(gl.TEXTURE_2D,0,x-1,y-1,gl.RGBA,gl.UNSIGNED_BYTE,s);
   }
   drawImage(image,x,y,w,h) {
     const e=this.atlasEntry(image);if(!e)return;
-    const u=e.x/2048,v=1-e.y/2048,uw=e.width/2048,vh=e.height/2048;
+    // The atlas's rows lie as the images' do, top first.
+    const u=e.x/ATLAS,v=e.y/ATLAS,uw=e.width/ATLAS,vh=e.height/ATLAS;
     const m=this.matrix,points=this.quadPoints,locals=this.quadLocals,shape=this.quadShape;
     for(let i=0;i<4;i++) {
       const right=i===1||i===2,bottom=i>=2,px=right?x+w:x,py=bottom?y+h:y;
       points[i][0]=m[0]*px+m[2]*py+m[4];points[i][1]=m[1]*px+m[3]*py+m[5];
-      locals[i][0]=right?u+uw:u;locals[i][1]=bottom?v-vh:v;
+      locals[i][0]=right?u+uw:u;locals[i][1]=bottom?v+vh:v;
     }
     shape[0]=shape[1]=shape[2]=0;
     this.quad(points,locals,shape,'#ffffff');
@@ -353,7 +381,7 @@ export class SophiaGpuCanvas {
   dispose() {
     if(this.disposed)return;this.disposed=true;
     removeEventListener('pagehide',this.pagehide);
-    this.geometry.dispose();this.materials.forEach(m=>m.dispose());
-    this.atlasTexture.dispose();this.images.clear();this.renderer.dispose();
+    const gl=this.gl;this.images.clear();
+    if(!gl.isContextLost()){gl.deleteBuffer(this.vertexBuffer);gl.deleteBuffer(this.indexBuffer);gl.deleteVertexArray(this.vao);gl.deleteTexture(this.texture);gl.deleteProgram(this.program);}
   }
 }

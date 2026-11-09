@@ -15,10 +15,10 @@ import {validateSkyPose} from './sky-pose.mjs';
 // stars on named planes of depth (state.planes), shown while it turns.
 export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}, onBackground=null, getViewport=null, rotate=true, dragNodes=true, rest=null, intro=false, holdToMove=0, turnFromStars=false, touch=false, secondaryPan=false, inertia=false, depthCue=false, planarMoves=false, onPose=null, nativeTitles=true, onEdgeHover=null, onThreadSelect=null, threadsFor=null, obstacles=null}) {
   let canvas=root.querySelector('canvas'),ctx;
-  try {ctx=new SophiaGpuCanvas(canvas);root.dataset.renderer='three-webgl2';}
+  try {ctx=new SophiaGpuCanvas(canvas);root.dataset.renderer='webgl2';}
   catch {const next=canvas.cloneNode();canvas.replaceWith(next);canvas=next;ctx=canvas.getContext('2d',{alpha:false});root.dataset.renderer='canvas-fallback';}
   if(!ctx)throw new Error('Canvas unavailable');
-  let rendererName='';try{const gl=ctx.renderer?.getContext?.(),debug=gl?.getExtension('WEBGL_debug_renderer_info');if(debug)rendererName=gl.getParameter(debug.UNMASKED_RENDERER_WEBGL)||'';}catch{}
+  let rendererName='';try{const gl=ctx.gl,debug=gl?.getExtension('WEBGL_debug_renderer_info');if(debug)rendererName=gl.getParameter(debug.UNMASKED_RENDERER_WEBGL)||'';}catch{}
   const softwareRenderer=!rendererName||/swiftshader|llvmpipe|softpipe|lavapipe|software rasterizer/i.test(rendererName);
   if(ctx instanceof SophiaGpuCanvas&&softwareRenderer){
     ctx.dispose();const next=canvas.cloneNode();canvas.replaceWith(next);canvas=next;ctx=canvas.getContext('2d',{alpha:false});root.dataset.renderer='canvas2d-fallback';
