@@ -63,20 +63,33 @@ void main() {
       float sx=stripCoverage(vLocal.x,hw,dx),sy=stripCoverage(vLocal.y,hw,dy);
       coverage=stripCoverage(vLocal.x-center,extent,dx)*sy
         +sx*stripCoverage(vLocal.y-center,extent,dy)-sx*sy;
-    } else {
+    } else if(vShape.x<4.5) {
       vec2 dx=vec2(dFdx(vLocal.x),dFdy(vLocal.x));
       vec2 dy=vec2(dFdx(vLocal.y),dFdy(vLocal.y));
       float sx=stripCoverage(vLocal.x,vShape.z,dx),sy=stripCoverage(vLocal.y,vShape.z,dy);
       coverage=stripCoverage(vLocal.x,vShape.y,dx)*sy
         +sx*stripCoverage(vLocal.y,vShape.y,dy)-sx*sy;
+    } else {
+      // A ring of radius y and half width z: the coverage across its band, integrated over the pixel as a strip's is.
+      float across=length(vLocal)-vShape.y;
+      vec2 n=normalize(vLocal+vec2(1e-6));
+      vec2 d=vec2(dot(vec2(dFdx(vLocal.x),dFdx(vLocal.y)),n),dot(vec2(dFdy(vLocal.x),dFdy(vLocal.y)),n));
+      coverage=stripCoverage(across,vShape.z,d);
     }
     outColor=vColor*coverage;
   }
 }`;
 
+// A round ring of the same width as a many-sided one carries a little more ink than it: its band is whole where the
+// polygon's sides leave their joints. It is drawn this much finer, so a ring weighs what the polygon weighed.
+const RING_WEIGHT=.92;
 const colorCache = new Map();
+// Quads in a row mostly share their colour: the last one is at hand without a lookup.
+let lastColor='',lastRgba=null;
 function color(value) {
-  if (colorCache.has(value)) return colorCache.get(value);
+  if (value===lastColor) return lastRgba;
+  const known=colorCache.get(value);
+  if (known) {lastColor=value;lastRgba=known;return known;}
   const h=value.replace('#','');
   if (![3,4,6,8].includes(h.length) || !/^[a-f0-9]+$/i.test(h)) throw new Error('Unsupported scene color: '+value);
   const full=h.length<5?[...h].map(c=>c+c).join(''):h;
@@ -182,9 +195,12 @@ export class SophiaGpuCanvas {
     this.geometry.setDrawRange(0,this.used);
     this.buffer.clearUpdateRanges();this.buffer.addUpdateRange(0,this.used*STRIDE);this.buffer.needsUpdate=true;
     this.renderer.render(this.scene,this.camera);
-    this.canvas.dataset.drawCalls=String(this.renderer.info.render.calls);
-    this.canvas.dataset.gpuVertices=String(this.used);
-    this.canvas.dataset.gpuTextures=String(this.renderer.info.memory.textures);
+    // The counts are told every thirtieth frame: an attribute written each frame is a page mutation each frame.
+    if((this.frames=(this.frames||0)+1)%30===1){
+      this.canvas.dataset.drawCalls=String(this.renderer.info.render.calls);
+      this.canvas.dataset.gpuVertices=String(this.used);
+      this.canvas.dataset.gpuTextures=String(this.renderer.info.memory.textures);
+    }
   }
   quad(points,locals,shape,style,alpha=this.globalAlpha) {
     if(this.used+6>this.capacity)this.allocate(this.capacity*2);
@@ -205,6 +221,27 @@ export class SophiaGpuCanvas {
       this.data[offset+8]=shape[0];this.data[offset+9]=shape[1];this.data[offset+10]=shape[2];
     }
   }
+  // A run of a frame's quads can be kept and laid again, unchanged, into a later frame: the part of a scene that rests
+  // while the sky around it moves. What is kept refers to the atlas as it stood, so a reset atlas or a new size of the
+  // canvas lets it go and the scene is drawn whole again.
+  mark() {return this.used;}
+  keep(from,to=this.used) {
+    const count=to-from;if(count<0||to>this.used)return null;
+    if(!this.kept||this.kept.length<count*STRIDE)this.kept=new Float32Array(Math.max(count,1024)*STRIDE*1.25|0);
+    this.kept.set(this.data.subarray(from*STRIDE,to*STRIDE));
+    const groups=[];for(const g of this.groups){const start=Math.max(g.start,from),end=Math.min(g.start+g.count,to);if(end>start)groups.push({start:start-from,count:end-start,material:g.material});}
+    return {count,groups,epoch:this.atlasEpoch|0,width:this.canvas.width,height:this.canvas.height,data:this.kept};
+  }
+  replay(kept) {
+    if(!kept||kept.data!==this.kept||kept.epoch!==(this.atlasEpoch|0)||kept.width!==this.canvas.width||kept.height!==this.canvas.height)return false;
+    while(this.used+kept.count>this.capacity)this.allocate(this.capacity*2);
+    this.data.set(this.kept.subarray(0,kept.count*STRIDE),this.used*STRIDE);
+    for(const g of kept.groups){
+      const start=this.used+g.start,last=this.groups.at(-1);
+      if(last&&last.material===g.material&&last.start+last.count===start)last.count+=g.count;else this.groups.push({start,count:g.count,material:g.material});
+    }
+    this.used+=kept.count;return true;
+  }
   // The atlas packs images on shelves as they are first drawn. When it is full, the image waits and the next frame starts
   // the atlas over with only the images it draws, so a scene that changes its images (a theme, a lens) never runs out.
   atlasEntry(image) {
@@ -219,7 +256,7 @@ export class SophiaGpuCanvas {
   }
   clearAtlas() {
     this.images.clear();this.atlasContext.clearRect(0,0,2048,2048);
-    this.shelfX=2;this.shelfY=2;this.shelfHeight=0;this.atlasFull=false;this.atlasTexture.needsUpdate=true;
+    this.shelfX=2;this.shelfY=2;this.shelfHeight=0;this.atlasFull=false;this.atlasTexture.needsUpdate=true;this.atlasEpoch=(this.atlasEpoch|0)+1;
     this.canvas.dataset.atlasResets=String((Number(this.canvas.dataset.atlasResets)||0)+1);
   }
   invalidateImage(image) {
@@ -258,6 +295,14 @@ export class SophiaGpuCanvas {
     const m=this.matrix,sx=Math.hypot(m[0],m[1]),sy=Math.hypot(m[2],m[3]);
     const px=x+w/2,py=y+h/2;
     this.rectAt(m[0]*px+m[2]*py+m[4],m[1]*px+m[3]*py+m[5],m[0]/sx,m[1]/sx,Math.abs(w*sx/2),Math.abs(h*sy/2),this.fillStyle);
+  }
+  // A whole ring in one quad, stroked with the current line width and style: what a polygon of many sides draws, round.
+  ring(x,y,r) {
+    const m=this.matrix,scale=Math.hypot(m[0],m[1]),cx=m[0]*x+m[2]*y+m[4],cy=m[1]*x+m[3]*y+m[5];
+    const radius=r*scale,half=this.lineWidth*scale/2*RING_WEIGHT,extent=radius+half+1.5,points=this.quadPoints,locals=this.quadLocals,shape=this.quadShape;
+    for(let i=0;i<4;i++){const lx=i===1||i===2?extent:-extent,ly=i>=2?extent:-extent;locals[i][0]=lx;locals[i][1]=ly;points[i][0]=cx+lx;points[i][1]=cy+ly;}
+    shape[0]=5;shape[1]=radius;shape[2]=half;
+    this.quad(points,locals,shape,this.strokeStyle);
   }
   beginPath() {this.path=[];this.current=null;}
   moveTo(x,y) {this.current=this.point(x,y);}
