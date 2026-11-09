@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "build:public-research": "vite build --mode public-research",
+    "budget": "node tools/first-view-budget.mjs dist",
+    "budget:public-research": "node tools/first-view-budget.mjs ../deploy/cloudflare-worker/dist-public-research",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "prebuild:public-research": "node ../../bonsai/lib/history.mjs capture ../..",

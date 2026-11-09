@@ -340,6 +340,13 @@ Browser asset output uses a stable bootstrap at `/static/assets/tos-graph.js`
 and `tos-graph.css`; imported JS/CSS use content hashes. The build does not
 require a CDN, inline script, iframe or relaxed CSP.
 
+`npm run budget` (and `npm run budget:public-research` for the public build)
+weighs what each space carries before its first view: the scripts and styles
+its page names, with the modules Vite preloads for them. The limits live in
+[`tools/first-view-budget.json`](tools/first-view-budget.json) with the
+measurement they come from; the release check and the public publication run
+it after their builds.
+
 ## Owner guides
 
 | Area | Maintained detail |
