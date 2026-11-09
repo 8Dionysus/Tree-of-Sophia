@@ -39,9 +39,11 @@ it. A register's words are a paraphrase, never the work's text.
 - [`readings/`](readings/) holds the readers' records: one file for each pass
   in which a reader opened places in the works themselves. A record names its
   reader, the works it read with their Tree identities, and for each place the
-  conception it bears out: the concepts, the locator, the words that open and
-  close the formula, the thesis, the verdict and the registers' readings it
-  grew from.
+  conception it bears out: the concepts, the locator, the formula, the thesis,
+  the verdict and the registers' readings it grew from. For a work of the
+  public corpus the formula is named by the words that open and close it; for
+  a work the corpus does not hold, by a place of
+  [`bonsai/aesthetics/fragments.json`](../../aesthetics/fragments.json).
 - [`provenance.json`](provenance.json) names the workbooks read, with their
   sizes and SHA-256. The workbooks are not kept here.
 
@@ -111,15 +113,31 @@ node bonsai/lib/cli.mjs check aesthetics
 `plant.mjs` writes the areas and concepts from the layer and `inputs/`, and a
 conception from a record under `readings/` alone. It finds each formula in its
 corpus unit by the words that open and close it and refuses a span that opens
-or closes inside a sentence. `--check` says whether the stored modules are
-what the records give.
+or closes inside a sentence. Where the record keeps a work in the places
+module, it takes the place the record names and refuses one the module does
+not hold or one that does not run over whole sentences. `--check` says whether
+the stored modules are what the records give.
+
+A work outside the public corpus enters through `fragments.json`: the exact
+text of each cited place in the original and in the translations whose rights
+allow it, every witness with its edition, source, licence and rights, and the
+way the texts were gathered and corrected under `provenance`. The first such
+work is the *Kritik der Urtheilskraft*: its places are read in volume V of the
+Akademie edition and compared with the page images of the scan, with
+Bernard's English of 1914 beside them. The module holds a place only as the
+formula of a conception.
 
 A reader's pass over places: read the registers' readings of a place in
 `layer/readings.json`, open the place in the work, decide what the place
 itself says, and write the record. Readings of one place from different
-registers meet in one conception. The verdict is `confirmed` where the
-register's reading stands as it is, `revise` where the place bears out a
-different placing, verb or concept, with a note of what changed.
+registers meet in one conception, and a register's reading of several
+sections grows into the conception of each section it bears out. The verdict
+is `confirmed` where the register's reading stands as it is, `revise` where
+the place bears out a different placing, verb or concept, with a note of what
+changed, and `reconstruction` where a link holds through two sentences of the
+place taken together. A conception or a link the reader makes from the text
+with no register behind it is `undecided`: the stand holds it back until
+another reader has read the place.
 
 ## Rebuilding the layer
 

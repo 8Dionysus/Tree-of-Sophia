@@ -124,6 +124,18 @@ read the same place. Their readings meet in one conception, which names all of
 them under `grew_from`; where they place it differently, the reader's note says
 which placing the text bears out.
 
+**What the reader makes.** A conception or a link the reader draws from the
+text with no register behind it has its maker and no reviewer yet. Its verdict
+is `undecided` and the stand holds it back until another reader has read the
+place. A link stands on the map only where at least one of the conceptions it
+rests on stands there.
+
+**A work outside the public corpus.** Its cited places stand in the bonsai's
+`fragments.json`, in the original and in the translations whose rights allow
+it, each witness with its edition, source and rights. A place is the formula
+of a conception: whole sentences of the work, read on the printed page where a
+transcription and the page differ.
+
 ## Subject, claim and representation
 
 - **The place** is what the work says: the witness's text at a stable address.

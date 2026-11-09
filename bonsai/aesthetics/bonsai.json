@@ -54,6 +54,15 @@
       }
     },
     {
+      "id": "fragments",
+      "path": "fragments.json",
+      "format": "tos.bonsai.fragments.v1",
+      "role": {
+        "ru": "Точный текст мест произведений, которых нет в публичном корпусе Древа и на которые опираются трактовки (сейчас — «Критика способности суждения»), в оригинале и переводах, с изданием, источником, лицензией и основанием показа.",
+        "en": "The exact text of the places the conceptions rest on in works the Tree’s public corpus does not hold (for now the Critique of Judgment), in the original and in translations, with edition, source, licence and the basis for showing it."
+      }
+    },
+    {
       "id": "alignment",
       "path": "alignment.json",
       "format": "tos.bonsai.corpus-alignment.v1",

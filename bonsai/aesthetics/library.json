@@ -41,6 +41,18 @@
     "B:B-A001",
     "C:A-A002"
    ]
+  },
+  "immanuel-kant": {
+   "name": {
+    "ru": "Иммануил Кант",
+    "en": "Immanuel Kant"
+   },
+   "grew_from": [
+    "A:P008",
+    "B:A-A001",
+    "C:A-A003",
+    "D:B-A013"
+   ]
   }
  },
  "works": {
@@ -88,6 +100,23 @@
     "A:W002",
     "B:D-W001",
     "C:A-W003"
+   ]
+  },
+  "immanuel-kant.kritik-der-urteilskraft": {
+   "title": {
+    "ru": "Критика способности суждения",
+    "en": "Critique of Judgment",
+    "original": "Kritik der Urteilskraft"
+   },
+   "agents": [
+    "immanuel-kant"
+   ],
+   "original": "de",
+   "grew_from": [
+    "A:W009",
+    "B:A-W001",
+    "C:A-W004",
+    "D:B-W014"
    ]
   }
  }
