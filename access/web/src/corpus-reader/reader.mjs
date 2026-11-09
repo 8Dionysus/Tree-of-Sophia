@@ -26,28 +26,35 @@ import {readableUnitLocator} from './location-label.mjs';
 import {editorialRanges,editorialLabel,editorialKindForMatch,hasEditorialProjection,quotationWithEditorialRoles,sourceLayerKind} from './editorial.mjs';
 import {selectedSourceContext} from './source-context.mjs';
 import {isPreReform,respell} from '../public-research/orthography.mjs';
-import retained from '../../../public-corpus/retained-library-map.v1.json' with {type:'json'};
+import {retainedLibrary,loadRetainedLibrary} from './retained-library.mjs';
 import variants from '../../../public-corpus/reader-textual-variants.v1.json' with {type:'json'};
 
-const retainedApparatus=new Map(retained.books.flatMap(book=>book.versions.flatMap(version=>[
-  ...(version.bookNotesUnitIds??[]).map(id=>[id,{key:'workNotes',versionId:version.versionId,revision:version.revision}]),
-  ...(version.adjustmentUnitIds??[]).map(id=>[id,{key:'textualAdjustments',versionId:version.versionId,revision:version.revision}]),
-])));
-const apparatusLabel=(unit,locale)=>{const item=retainedApparatus.get(unit?.unitId??unit?.id),reference=unit?.reference;
+// The retained library's apparatus and earlier markers, read once the library has come (retained-library.mjs).
+let retainedIndexes=null;
+const retainedIndex=()=>{
+  const library=retainedLibrary();if(!library)return null;
+  return retainedIndexes??={
+    apparatus:new Map(library.map.books.flatMap(book=>book.versions.flatMap(version=>[
+      ...(version.bookNotesUnitIds??[]).map(id=>[id,{key:'workNotes',versionId:version.versionId,revision:version.revision}]),
+      ...(version.adjustmentUnitIds??[]).map(id=>[id,{key:'textualAdjustments',versionId:version.versionId,revision:version.revision}]),
+    ]))),
+    // Structural section IDs can include an earlier scholarly marker. Show the
+    // range supplied by the retained navigation metadata without changing the
+    // unit's identity or claiming an offset for an individual marker.
+    earlierMarkers:new Map(library.map.books.flatMap(book=>book.versions.flatMap(version=>
+      version.structure.flatMap(section=>{
+        const first=section.markers?.[0],last=section.markers?.at(-1);
+        const sectionNumber=/^\d+$/.test(section.sectionId??'')?Number(section.sectionId):null;
+        const firstNumber=typeof first==='string'?Number(first.match(/^\d+/)?.[0]):NaN;
+        return sectionNumber!==null && Number.isFinite(firstNumber) && firstNumber<sectionNumber && last
+          ? [[`${version.versionId}\u0000${version.revision}\u0000${section.unitId}`,`${first}–${last}`]] : [];
+      })))),
+  };
+};
+const apparatusLabel=(unit,locale)=>{const item=retainedIndex()?.apparatus.get(unit?.unitId??unit?.id),reference=unit?.reference;
   return item && reference?.versionId===item.versionId && reference?.target?.textLayerSha256===item.revision
     ? localeText(WORDING[copyLocale(locale)][item.key],locale) : '';};
-// Structural section IDs can include an earlier scholarly marker. Show the
-// range supplied by the retained navigation metadata without changing the
-// unit's identity or claiming an offset for an individual marker.
-const retainedEarlierMarkers=new Map(retained.books.flatMap(book=>book.versions.flatMap(version=>
-  version.structure.flatMap(section=>{
-    const first=section.markers?.[0],last=section.markers?.at(-1);
-    const sectionNumber=/^\d+$/.test(section.sectionId??'')?Number(section.sectionId):null;
-    const firstNumber=typeof first==='string'?Number(first.match(/^\d+/)?.[0]):NaN;
-    return sectionNumber!==null && Number.isFinite(firstNumber) && firstNumber<sectionNumber && last
-      ? [[`${version.versionId}\u0000${version.revision}\u0000${section.unitId}`,`${first}–${last}`]] : [];
-  }))));
-const earlierMarkerRange=(unit,versionId)=>retainedEarlierMarkers.get(`${versionId}\u0000${unit?.reference?.target?.textLayerSha256}\u0000${unit?.unitId??unit?.id}`) || '';
+const earlierMarkerRange=(unit,versionId)=>retainedIndex()?.earlierMarkers.get(`${versionId}\u0000${unit?.reference?.target?.textLayerSha256}\u0000${unit?.unitId??unit?.id}`) || '';
 const withMarkerRange=(label,unit,versionId)=>{const range=earlierMarkerRange(unit,versionId);return range?`${label} (${range})`:label;};
 
 const WORDING = {
@@ -1718,7 +1725,8 @@ export function mountCorpusReader({
     async open(args = {}) {
       editionSwitch++;
       if(disposed)return this;
-      await model.ready?.();
+      // The retained apparatus and editorial ranges come with the first opening, before any unit is shown.
+      await Promise.all([model.ready?.(),loadRetainedLibrary().catch(()=>null)]);
       if(disposed || !(await flushNote()) || disposed || !root)return this;
       if(opened)await capturePanePositions();
       if(disposed || !root)return this;

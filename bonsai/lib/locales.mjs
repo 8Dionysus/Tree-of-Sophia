@@ -1,10 +1,18 @@
-import es from '../locales/es.json' with {type:'json'};
-import de from '../locales/de.json' with {type:'json'};
-import zh from '../locales/zh-Hans.json' with {type:'json'};
-
 import {BONSAI_LOCALES,DEFAULT_LOCALE,resolveLocale,copyLocale,initialLocale} from './locale-choice.mjs';
 export {BONSAI_LOCALES,DEFAULT_LOCALE,resolveLocale,copyLocale,initialLocale};
-const catalogs=Object.freeze({es,de,'zh-Hans':zh});
+// A language with a catalog of its own comes when a reader first chooses it (loadBonsaiCatalog), so a page carries the
+// words of its reader's language alone. English and Russian are the bonsais' own languages and have no catalog.
+const sources={
+  es:()=>import('../locales/es.json',{with:{type:'json'}}),
+  de:()=>import('../locales/de.json',{with:{type:'json'}}),
+  'zh-Hans':()=>import('../locales/zh-Hans.json',{with:{type:'json'}}),
+};
+const catalogs={},loading={};
+export function loadBonsaiCatalog(locale){
+  const language=resolveLocale(locale);
+  if(catalogs[language]||!sources[language])return Promise.resolve();
+  return loading[language]??=sources[language]().then(module=>{catalogs[language]=Object.freeze(module.default);},error=>{delete loading[language];throw error;});
+}
 
 /**
  * The one translation a reader of `locale` sees: one in a language the interface itself speaks to
