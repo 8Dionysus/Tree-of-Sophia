@@ -165,6 +165,19 @@ Canvas2D painter draws. Panels whose ground is at least 93% opaque carry the sam
 opaque in place of a backdrop blur: the picture stays the same, and the moving
 sky behind them is composited once per frame.
 
+The GPU painter ([`gpu-canvas.js`](src/observatory/gpu-canvas.js)) speaks
+WebGL2 itself: one program, one buffer of quads with four corners each, and one
+atlas texture to which an image travels alone when it is first drawn or
+changes. A space's first view carries what it shows. Spanish, German and
+Chinese catalogs come when a reader picks the language; the retained library's
+map and the editorial annotations come with the first opened text, the first
+search or Antiquity's collection; the Zarathustra occurrence sets come with the
+research panel. The build knows the research core's revision, the digest the
+history capture records for it, and an identity of everything it writes; a
+built page remembers the library's fingerprint for its build, corpus snapshot,
+library before its core and core revision, so a later visit reads it instead of
+hashing the whole library before the first view.
+
 The complete research export contains saved notebook, workspace, shelf and graph
 records. An open thought form has its own guarded export/import. The temporary
 exact-source basket survives profile changes in the same tab; saving a thought
