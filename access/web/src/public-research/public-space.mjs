@@ -226,7 +226,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   let criterion=criteria.some(item=>item.id===linkedCriterion)?linkedCriterion:criteria[0]?.id??null,traceConcept=linkedConcept||null,measureOpen=false,nearCenter=null;
   const desktopMode=window.matchMedia('(min-width: 761px)');
   // A narrow bar gives the search a short word, so it is read whole.
-  const narrowBar=window.matchMedia('(max-width: 900px)');narrowBar.addEventListener?.('change',()=>{search.placeholder=t(narrowBar.matches?'mapSearchShort':'mapSearch');});
+  const narrowBar=window.matchMedia('(max-width: 900px)');narrowBar.addEventListener?.('change',()=>{placeSearch();});
+  // The search names its whole scope when the bar gives it the room, and only "Search" when it does not.
+  const placeSearch=()=>{search.placeholder=t(narrowBar.matches||(searchBox.isConnected&&searchBox.getBoundingClientRect().width<205)?'mapSearchShort':'mapSearch');};
   let browsingRoutes=false,columnOpen=true,routeStepNode=null;
   const routeDetailState=new Map();
   const personalPositions=new Map();
@@ -245,10 +247,11 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   shell.append(canvas);
   // One search for the whole space sits in the header row; '/' opens it.
   const searchBox=el('div','ps-search-box');
-  const search=document.createElement('input');search.type='search';search.className='ps-search';search.autocomplete='off';search.placeholder=t(narrowBar.matches?'mapSearchShort':'mapSearch');search.setAttribute('aria-label',t('mapSearch'));
+  const search=document.createElement('input');search.type='search';search.className='ps-search';search.autocomplete='off';placeSearch();search.setAttribute('aria-label',t('mapSearch'));
   const searchKey=el('kbd','ps-search-key','/');searchKey.setAttribute('aria-hidden','true');
   const searchResults=el('div','ps-search-results');searchResults.hidden=true;
   searchBox.append(search,searchKey,searchResults);
+  if(typeof ResizeObserver==='function')new ResizeObserver(()=>placeSearch()).observe(searchBox);
   // The left rail holds the two ways into the tree: lenses say how to look, research actions what to do.
   const lensRail=el('nav','lens-rail ps-lens-rail');lensRail.setAttribute('aria-label',t('lenses'));
   const lensTitle=el('p','eyebrow ps-rail-title',t('lenses')),lensList=el('div','lens-list');
@@ -326,7 +329,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     shell.dataset.locale=value;document.documentElement.lang=value;
     for(const select of document.querySelectorAll('.ps-locale-select:not(.ps-theme-select)')){select.value=value;select.setAttribute('aria-label',localeText('Interface language',locale));}
     for(const select of document.querySelectorAll('.ps-theme-select')){select.setAttribute('aria-label',t('theme'));for(const option of select.options)option.textContent=tr(THEMES.find(theme=>theme.id===option.value)?.name??SYSTEM_NAME,locale());select.value=themeChoice();}
-    search.placeholder=t(narrowBar.matches?'mapSearchShort':'mapSearch');search.setAttribute('aria-label',t('mapSearch'));searchResults.setAttribute('aria-label',t('searchResults'));
+    placeSearch();search.setAttribute('aria-label',t('mapSearch'));searchResults.setAttribute('aria-label',t('searchResults'));
     lensTitle.textContent=t('lenses');actionsTitle.textContent=t('researchActions');lensRail.setAttribute('aria-label',t('lenses'));mainActions.setAttribute('aria-label',t('researchActions'));importInput.setAttribute('aria-label',t('import'));
     crumbNav.setAttribute('aria-label',t('orientation'));mapTools.setAttribute('aria-label',t('mapTools'));
     for(const b of mainActions.querySelectorAll('[data-space-action]')){b.querySelector('.ps-action-label').textContent=t(b.dataset.spaceAction);setHint(b,t(b.dataset.spaceAction));}
