@@ -1,7 +1,7 @@
 import {readFileSync,readdirSync} from 'node:fs';
-import {expect,test} from 'vitest';
+import {beforeAll,expect,test} from 'vitest';
 import ts from 'typescript';
-import {PUBLIC_LOCALES,LOCALE_NAMES,initialLocale,resolveLocale,shownLanguages,translationLanguage,localeText,localeValue} from './locale.mjs';
+import {PUBLIC_LOCALES,LOCALE_NAMES,initialLocale,resolveLocale,shownLanguages,translationLanguage,localeText,localeValue,loadLocale} from './locale.mjs';
 import {formatDating,formatYears} from '../../../../bonsai/lib/time.mjs';
 import {localizePublicJourney} from './journey-i18n.mjs';
 import {hypothesisTitle,workspaceConflictLabel} from './presentation-i18n.mjs';
@@ -9,6 +9,9 @@ import {corpusWorkTitle} from '../observatory/human-presentation.mjs';
 import {morphologyLabel} from '../corpus-reader/philology.mjs';
 import {collectionPeriodKey} from './collection-view.mjs';
 import {loadBonsai} from './bonsai.mjs';
+
+// The languages beyond Russian and English come on demand; these tests speak them all.
+beforeAll(()=>Promise.all(['es','de','zh-Hans'].map(loadLocale)));
 
 const added=['es','de','zh-Hans'];
 const read=url=>JSON.parse(readFileSync(url,'utf8'));

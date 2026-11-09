@@ -6,6 +6,7 @@ import {findInParagraphs} from '../reader/occurrences-rust.mjs';
 import {readBoundedJSON,withAbort} from '../observatory/bounded-response.mjs';
 import {corpusWorkTitle} from '../observatory/human-presentation.mjs';
 import {editorialKindForMatch} from './editorial.mjs';
+import {loadRetainedLibrary} from './retained-library.mjs';
 import bonsaiWitnesses from '../../../../bonsai/zarathustra/witnesses.json';
 import {bonsaiCorrespondences} from './bonsai-correspondence.mjs';
 import {bonsaiWords} from './bonsai-words.mjs';
@@ -310,7 +311,9 @@ export function createPublicCorpusProvider({baseUrl='/static/public-corpus/',pro
   }
   async function search(args){
     if(!['document','version'].includes(args.scope))throw new CorpusProviderUnsupportedScopeError(args.scope);
-    const {document,version}=await versionData(args),binding={documentId:document.id,versionId:version.id,query:args.query,scope:args.scope};
+    // Matches carry their editorial role, so the retained library comes with the first search.
+    const [{document,version}]=await Promise.all([versionData(args),loadRetainedLibrary().catch(()=>null)]);
+    const binding={documentId:document.id,versionId:version.id,query:args.query,scope:args.scope};
     // A word-form index is a compact source-derived carrier, not source text.
     // Prove the literal query fits inside an indexed form before using the
     // optimization. Otherwise scan a bounded page without duplicating the

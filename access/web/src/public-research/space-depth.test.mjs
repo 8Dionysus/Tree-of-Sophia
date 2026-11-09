@@ -1,7 +1,11 @@
-import {describe,expect,it} from 'vitest';
+import {beforeAll,describe,expect,it} from 'vitest';
+import {loadLocale} from './locale.mjs';
 import {depthLayout} from './space-depth.mjs';
 import {bonsaiFor,depthOf} from './bonsai.mjs';
 import {ladderRung} from './space-legibility.mjs';
+
+// The languages beyond Russian and English come on demand; these tests speak them all.
+beforeAll(()=>Promise.all(['es','de','zh-Hans'].map(loadLocale)));
 
 describe('depth on the lenses that group',()=>{
   const depth=depthOf('zarathustra');

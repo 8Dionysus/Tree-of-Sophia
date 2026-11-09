@@ -1,5 +1,8 @@
-import {describe, expect, it} from 'vitest';
+import {beforeAll, describe, expect, it} from 'vitest';
 import {selectedSourceContext} from './source-context.mjs';
+import {loadRetainedLibrary} from './retained-library.mjs';
+
+beforeAll(() => loadRetainedLibrary());
 
 const revision = '48d5e7c0cbd364402d2e8d70a3bd1e30eaf1bb9e44c7dd2458d174da743a3652';
 const version = {id:'retained-athenian-constitution-grc2-6e0c298a511e',revision,source:{textLayerSha256:revision}};
