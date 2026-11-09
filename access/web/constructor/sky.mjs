@@ -1,5 +1,6 @@
 import { SophiaGpuCanvas } from '../src/observatory/gpu-canvas.js';
 import {validateSkyPose} from './sky-pose.mjs';
+import {readPaper} from './sky-paper.mjs';
 
 // Spatial view over a session-local graph; preserves the observatory atmosphere.
 // Options are opt-in so the constructor keeps its own behaviour: rotate:false
@@ -351,9 +352,18 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     }
     targetFit=fit;
   }
+  // The day's paper (sky-paper.mjs): the GPU painter turns the scene over and lays it on the page's paper itself, and the
+  // canvas is marked so that the page's own filter and blend step aside; what it cannot read stays with the page.
+  function choosePaper(){
+    if(!ctx.setPaper)return;
+    delete canvas.dataset.paper;
+    const paper=ink>1?readPaper(canvas,root):null;
+    if(ctx.setPaper(paper)&&paper)canvas.dataset.paper='true';
+  }
   function resize(){
     const first=w===1;w=Math.max(1,root.clientWidth);h=Math.max(1,root.clientHeight);dpr=Math.min(devicePixelRatio||1,softwareRenderer?1:1.25);
     const cw=Math.round(w*dpr),ch=Math.round(h*dpr);if(canvas.width!==cw)canvas.width=cw;if(canvas.height!==ch)canvas.height=ch;
+    if(ink>1)choosePaper();
     const desktop=w>760,cinema=root.dataset.cinema==='true',reading=!cinema&&root.dataset.reading==='true',deck=!cinema&&root.dataset.deck==='true',journey=!cinema&&root.dataset.journey==='true';
     targetViewport={left:desktop?166:24,right:w-(desktop?(reading?350:30):24),top:desktop?185:145,bottom:h-(desktop?(journey?260:deck?225:90):(reading?Math.max(180,Math.min(h*.44,420)+112):deck?150:65))};
     targetViewport.right=Math.max(targetViewport.left+120,targetViewport.right);targetViewport.bottom=Math.max(targetViewport.top+130,targetViewport.bottom);
@@ -1337,7 +1347,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     update:refresh,
     setCloseIn(on){closeIn=!!on;},
     setZoomCeiling(value){if(Number.isFinite(value)&&value>=1)zoomCeiling=value;},
-    setInk(value){const next=clamp(Number(value)||1,1,2.5);if(next!==ink){ink=next;kick();}},
+    setInk(value){const next=clamp(Number(value)||1,1,2.5);if(next!==ink){ink=next;choosePaper();kick();}},
     capturePose(){return validateSkyPose({v:1,yaw:tyaw,pitch:tpitch,zoom:tzoom,pan:[tpan.x,tpan.y],center:[...targetCenter],fit:targetFit});},
     restorePose(value){const pose=validateSkyPose(value);yaw=tyaw=pose.yaw;pitch=tpitch=pose.pitch;zoom=tzoom=pose.zoom;
       pan={x:pose.pan[0],y:pose.pan[1]};tpan={...pan};center=[...pose.center];targetCenter=[...pose.center];fitScale=targetFit=pose.fit;
