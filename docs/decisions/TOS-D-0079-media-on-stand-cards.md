@@ -59,6 +59,13 @@ dialog over the stand, where OpenSeadragon reads the service's `info.json` and
 its tiles down to full detail; the viewer is a separate chunk loaded on first
 use, and closing it returns focus to the image on the card.
 
+A link's card shows images right under its sentence, as a strip of small
+copies that open in the same viewer. A link of the core is a subject of the
+media module like a star; where the module binds images to the link, the strip
+shows those. Elsewhere it shows the images of the link's two ends, each group
+under its end's name, an image both ends share once. A link folded into
+another card shows none.
+
 ## Options Considered
 
 - Put the images into the stand's manifest or the collection: they would load
@@ -89,7 +96,10 @@ Rijksmuseum and the National Gallery of Art, 32 stars. The second holds the
 registry's partial correspondences and meaning comparisons under the role
 `comparison`, from the images already on the stand and 31 more files of the
 Met: 192 stars with images in all. A card shows the images and their captions
-alone; the registry's reasons stay with the registry. Its works under closed or
+alone; the registry's reasons stay with the registry. Of the registry's 784
+link selections, 697 join the images of the two ends and so read from the
+stars themselves; the 87 made for a link's own meaning stand on the link where
+their images are open, 60 links. Its works under closed or
 unchecked terms wait for bridges and a decision on their rights. The viewer writes no style of its own: its
 one touch-screen rule lives in the stand's stylesheet. Stars stay stars; an
 image belongs to the card.

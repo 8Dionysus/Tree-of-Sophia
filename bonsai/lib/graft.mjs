@@ -209,10 +209,11 @@ export function checkBonsai(root,id,{validator=treeContracts(root),relations,ide
   if(modules.fragments)problems.push(...externalPlacesIssues(modules.fragments).map(issue=>`fragments: ${issue}`));
   if(modules.alignment)problems.push(...corpusAlignmentIssues(modules.alignment).map(issue=>`alignment: ${issue}`));
   if(modules.media){
-    // A medium's subject is a collection entry where the stand keeps a collection, and a core record where it keeps a core.
+    // A medium's subject is a collection entry where the stand keeps a collection, and a core record where it keeps a
+    // core: a concept, a figure, a proposed node, a state of a chain, or a link between two of them.
     const coreModule=(manifest.modules??[]).find(module=>module.id==='core'),core=coreModule?loadCore(join(home,dirname(coreModule.path))):null;
     const subjects=Array.isArray(modules.collection?.entities)?new Set(modules.collection.entities.map(entry=>entry.id))
-      :core?new Set([...core.concepts,...core.figures,...core.proposed,...core.chains.flatMap(chain=>chain.states??[])].map(record=>record.id)):null;
+      :core?new Set([...core.concepts,...core.figures,...core.proposed,...core.chains.flatMap(chain=>chain.states??[]),...core.links].map(record=>record.id)):null;
     problems.push(...mediaIssues(modules.media,{subjects,identities:modules.identities??{},digest:textDigest,layers:mediaLayers??layers}).map(issue=>`media: ${issue}`));
   }
   let registry=null;

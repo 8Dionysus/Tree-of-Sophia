@@ -3,7 +3,7 @@ import {readFileSync} from 'node:fs';
 import {describe,expect,it} from 'vitest';
 import {addMedia,mediaFromObservation,mediaIssues,readMedia} from '../../../../bonsai/lib/media.mjs';
 import {MEDIA_HOSTS} from '../../../../bonsai/lib/media-hosts.mjs';
-import {captionLines,captionLinks,fittedImage,fittedSize,imageSources,layerAddress} from './media-view.mjs';
+import {captionLines,captionLinks,fittedImage,fittedSize,imageSources,layerAddress,linkGroups} from './media-view.mjs';
 
 const read=path=>JSON.parse(readFileSync(new URL(`../../../../bonsai/antiquity/${path}`,import.meta.url),'utf8'));
 const digest=text=>createHash('sha256').update(text,'utf8').digest('hex');
@@ -182,15 +182,18 @@ describe('an image of the National Gallery of Art',()=>{
 describe('the Zarathustra media',()=>{
   const read=path=>JSON.parse(readFileSync(new URL(`../../../../bonsai/zarathustra/${path}`,import.meta.url),'utf8'));
   const media=read('media.json'),identities=read('identities.json'),layers=read('layers.json');
-  const core=['concepts','figures','proposed'].flatMap(name=>read(`core/${name}.json`)),chains=read('core/chains.json');
+  const core=['concepts','figures','proposed','links'].flatMap(name=>read(`core/${name}.json`)),chains=read('core/chains.json');
   const subjects=new Set([...core,...chains.flatMap(chain=>chain.states??[])].map(record=>record.id));
   it('holds its contract, binds core records only, and has a copy of every file in the layer store',()=>{
     expect(mediaIssues(media,{subjects,identities,digest,layers})).toEqual([]);
   });
   it('shows shared motifs and comparisons from open images: files of the Met, a Rijksmuseum sheet and paintings of the National Gallery of Art',()=>{
     expect(new Set(media.uses.map(use=>use.role))).toEqual(new Set(['motif','comparison']));
-    expect(media.uses.length).toBe(227);
-    expect(new Set(media.uses.map(use=>use.subject)).size).toBe(192);
+    expect(media.uses.length).toBe(320);
+    // 192 stars and 60 links, each link with the registry's own selection for its meaning.
+    const links=new Set(read('core/links.json').map(link=>link.id)),shown=new Set(media.uses.map(use=>use.subject));
+    expect([...shown].filter(id=>!links.has(id)).length).toBe(192);
+    expect([...shown].filter(id=>links.has(id)).length).toBe(60);
     expect(Object.keys(media.works).length).toBe(51);
     const terms=image=>({file:'met',['iiif-image-3']:'rijksmuseum',['iiif-image-2']:'nga'})[image.api];
     const open={met:{statement:null,field:'isPublicDomain',value:'true'},rijksmuseum:{statement:PDM},nga:{statement:null,field:'openaccess',value:'1'}};
@@ -214,6 +217,23 @@ describe('the Antiquity media',()=>{
       expect(MEDIA_HOSTS).toContain(new URL(image.service).host);
       expect(image.rights.statement).toBe(PDM);
     }
+  });
+});
+
+describe('the images on a link\'s card',()=>{
+  const item=(id)=>({role:'comparison',image:{id},work:{id:id.split('/')[0]}});
+  it('are the link\'s own where the bonsai binds images to the link',()=>{
+    expect(linkGroups({own:[item('met:1/whole')],ends:[{label:'Лев',items:[item('met:2/whole')]}]})).toEqual([{label:null,items:[item('met:1/whole')]}]);
+  });
+  it('are else each end\'s under its name, an image both ends share once, an end without images left out',()=>{
+    expect(linkGroups({ends:[{label:'Лев',items:[item('met:2/whole'),item('met:3/whole')]},{label:'Дитя',items:[item('met:3/whole'),item('met:4/whole')]},{label:'Осёл',items:[]}]})).toEqual([
+      {label:'Лев',items:[item('met:2/whole'),item('met:3/whole')]},{label:'Дитя',items:[item('met:4/whole')]},
+    ]);
+    expect(linkGroups({ends:[{label:'Лев',items:[item('met:2/whole')]},{label:'Дитя',items:[item('met:2/whole')]}]})).toEqual([{label:'Лев',items:[item('met:2/whole')]}]);
+    expect(linkGroups({ends:[]})).toEqual([]);
+  });
+  it('ask the image service for a copy fitted into the strip\'s box',()=>{
+    expect(imageSources({api:'iiif-image-3',service:'https://iiif.micr.io/qnEHd'},{box:160}).src).toBe('https://iiif.micr.io/qnEHd/full/!160,160/0/default.jpg');
   });
 });
 

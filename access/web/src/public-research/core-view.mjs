@@ -165,13 +165,15 @@ export function createCoreView({core,renderings=null,locale,fragments,signOf,hin
     if(item.why&&item.assessment?.reason!==item.why.ru&&!alike(tr(item.why),lead))form(box,item.why);
     parent.append(box);
   }
-  function link(parent,record,{bench=false}={}){
+  function link(parent,record,{bench=false,media=null}={}){
     // The link reads as a sentence of the book: subject, the book's verb, object. Its registry family and type are provenance.
     const box=el('section','ps-core-link'),ends=el('div','edge-endpoints ps-link-sentence');
     ends.append(button(name(record.from),()=>onNode?.(core.materialIds[record.from]),'ps-link-end'),el('span','ps-link-verb',tr(record.verb)),button(name(record.to),()=>onNode?.(core.materialIds[record.to]),'ps-link-end'));
     // Each end of the sentence bears the sign of its kind.
     for(const [index,id] of [[0,record.from],[2,record.to]]){const mark=signOf?.(core.materialIds[id]);if(mark)ends.children[index].prepend(mark);}
     const kindLine=el('p','ps-core-kind',t('relation'));status(kindLine,record.admission==='rejected'?'rejected':record.status);box.append(kindLine,ends);
+    // The link's own card shows its images right under its sentence; a link folded into another card shows none.
+    media?.(box);
     voice(box,record.voice);
     const seen=new Set(),sense=tr(record.sense);
     form(box,{...record.sense,cite:[...new Map([...(record.cite?[record.cite]:[]),...(record.grounds??[])].map(cite=>[JSON.stringify(cite),cite])).values()]},seen);

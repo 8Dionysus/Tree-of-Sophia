@@ -313,11 +313,14 @@ use binds an image to a subject of the stand in a role: `author-portrait`,
 `book-response` (a work made about the book), `motif` (a work of its own
 showing what the text names), `era-material`, `object-of-analysis` or
 `comparison`. A subject is a collection entry where the stand keeps a
-collection, and a core record where it keeps a core. Provider texts are kept word for word,
+collection, and a core record where it keeps a core: a concept, a figure, a
+proposed node, a state of a chain or a link. Provider texts are kept word for word,
 with their language; the module holds no words of the stand's own about a
 medium. A card shows the image whole and small, with its caption from these
 facts and links to the record and the rights statement, and opens it over the
-stand at the full detail its service serves.
+stand at the full detail its service serves. A link's card shows its images as
+a strip of small copies: the link's own where the module binds images to the
+link, else those of its two ends under each end's name.
 
 Every entry comes from a provider observation made by the Tree's media bridges
 (`tos-native-owner-command acquisition`, operation `media.observe`); one command

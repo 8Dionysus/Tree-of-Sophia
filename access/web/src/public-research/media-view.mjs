@@ -8,21 +8,35 @@
 // title, the inscription on the object, the series, who made it, its size, and
 // the holder's record and rights statement as links. Choosing the image opens
 // it at the full detail its service serves, in a viewer that lies over the
-// stand; closing the viewer leaves the space and the card as they were.
+// stand; closing the viewer leaves the space and the card as they were. A
+// link's card shows its images as a strip of small copies, in groups: the
+// link's own, or those of each of its two ends under the end's name; each
+// opens in the same viewer, whose bar names the work.
 
 import {formatDating} from '../../../../bonsai/lib/time.mjs';
 
 const CARD_BOX=480;
+const STRIP_BOX=160;
 const BASE=import.meta.env?.BASE_URL??'/';
 
 /** Where the site serves a file the stand keeps in its layer store. */
 export const layerAddress=(sha256,base=BASE)=>`${base.endsWith('/')?base:`${base}/`}layers/sha256/${sha256}`;
 
 /** The card's copy of an image and, for the full view, the source the viewer reads. */
-export function imageSources(image,{base=BASE}={}){
+export function imageSources(image,{base=BASE,box=CARD_BOX}={}){
   if(image.api==='file')return {src:layerAddress(image.preview.sha256,base),srcset:'',full:{type:'image',url:layerAddress(image.file.sha256,base)},crossOrigin:null};
   // Version 2 and 3 of the IIIF Image API ask for a whole image fitted into a box in the same words.
-  return {src:fittedImage(image.service,CARD_BOX),srcset:`${fittedImage(image.service,CARD_BOX)} 1x, ${fittedImage(image.service,CARD_BOX*2)} 2x`,full:`${image.service}/info.json`,crossOrigin:'anonymous'};
+  return {src:fittedImage(image.service,box),srcset:`${fittedImage(image.service,box)} 1x, ${fittedImage(image.service,box*2)} 2x`,full:`${image.service}/info.json`,crossOrigin:'anonymous'};
+}
+
+/**
+ * The groups a link's card shows: the link's own images, else the images of each end under its name,
+ * an image both ends share only once. `own` and each end's `items` come from `readMedia(...).forSubject`.
+ */
+export function linkGroups({own=[],ends=[]}){
+  if(own.length)return [{label:null,items:own}];
+  const seen=new Set();
+  return ends.map(end=>({label:end.label,items:(end.items??[]).filter(item=>!seen.has(item.image.id)&&seen.add(item.image.id))})).filter(group=>group.items.length);
 }
 
 /** A IIIF Image API 3 request for the whole image fitted into a square of `box` pixels. */
@@ -110,6 +124,19 @@ export function createMediaView({t,locale,hint=()=>{}}){
     return box;
   }
 
+  // A small copy in a link's strip: the work's title and date as its hint, the viewer on a click.
+  function thumb(item){
+    const {image,work}=item,size=fittedSize(image,STRIP_BOX),sources=imageSources(image,{box:STRIP_BOX});
+    const name=titleOf(work,'title')[0]?.text??work.inventory,when=work.dating?formatDating(work.dating,locale()):'';
+    const open=el('button','ps-media-thumb');open.type='button';open.setAttribute('aria-label',`${t('mediaOpen')}: ${name}`);hint(open,[name,when].filter(Boolean).join(' · '));
+    const picture=el('img');if(sources.crossOrigin)picture.crossOrigin=sources.crossOrigin;
+    picture.decoding='async';picture.loading='lazy';picture.width=size.width;picture.height=size.height;
+    picture.src=sources.src;if(sources.srcset)picture.srcset=sources.srcset;picture.alt=name;
+    picture.addEventListener('error',()=>open.remove(),{once:true});
+    open.append(picture);open.addEventListener('click',()=>void openViewer(item,open));
+    return open;
+  }
+
   async function openViewer(item,opener){
     closeViewer();
     const {image,work}=item,host=document.fullscreenElement??document.body;
@@ -157,6 +184,18 @@ export function createMediaView({t,locale,hint=()=>{}}){
       const section=el('div','ps-media-list');
       for(const item of items)section.append(figure(item));
       parent.append(section);
+    },
+    /** Put a link's media `groups` (from `linkGroups`) into `parent` as a strip of small copies. */
+    renderStrip(parent,groups){
+      if(!groups?.length)return;
+      const strip=el('div','ps-media-strip');
+      for(const group of groups){
+        const box=el('div','ps-media-group');
+        if(group.label)box.append(el('p','ps-media-end',group.label));
+        const row=el('div','ps-media-thumbs');for(const item of group.items)row.append(thumb(item));
+        box.append(row);strip.append(box);
+      }
+      parent.append(strip);
     },
     close:closeViewer,
   };
