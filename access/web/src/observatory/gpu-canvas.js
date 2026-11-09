@@ -92,6 +92,37 @@ void main() {
   }
 }`;
 
+// The day's paper: the scene as the night drew it, turned over by the page's colour filter one step at a time, each
+// step clamped as the page's filter clamps it, then laid on the page's paper as a multiply blend lays it.
+const PAPER_VERTEX = `
+void main() {
+  gl_Position = vec4(gl_VertexID==1?3.:-1., gl_VertexID==2?3.:-1., 0., 1.);
+}`;
+const PAPER_FRAGMENT = `
+precision highp float;
+uniform sampler2D uScene;
+uniform mat3 uMatrix[6];
+uniform vec3 uOffset[6];
+uniform int uSteps;
+uniform vec4 uStops[8];
+uniform int uStopCount;
+uniform vec2 uCenter;
+uniform vec2 uRadii;
+uniform float uHeight;
+out vec4 outColor;
+void main() {
+  vec3 c=texelFetch(uScene,ivec2(gl_FragCoord.xy),0).rgb;
+  for(int i=0;i<6;i++){if(i>=uSteps)break;c=clamp(uMatrix[i]*c+uOffset[i],0.,1.);}
+  float t=length((vec2(gl_FragCoord.x,uHeight-gl_FragCoord.y)-uCenter)/uRadii);
+  vec3 paper=uStops[0].rgb;
+  for(int i=1;i<8;i++){
+    if(i>=uStopCount)break;
+    vec4 a=uStops[i-1],b=uStops[i];
+    if(t>=b.w)paper=b.rgb;else if(t>a.w)paper=mix(a.rgb,b.rgb,(t-a.w)/(b.w-a.w));
+  }
+  outColor=vec4(c*(floor(paper*255.+.5)/255.),1.);
+}`;
+
 // A round ring of the same width as a many-sided one carries a little more ink than it: its band is whole where the
 // polygon's sides leave their joints. It is drawn this much finer, so a ring weighs what the polygon weighed.
 const RING_WEIGHT=.92;
@@ -183,7 +214,7 @@ export class SophiaGpuCanvas {
     gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL,gl.NONE);gl.pixelStorei(gl.UNPACK_ALIGNMENT,4);
     gl.disable(gl.DEPTH_TEST);gl.enable(gl.CULL_FACE);gl.cullFace(gl.BACK);gl.frontFace(gl.CCW);
     gl.enable(gl.BLEND);gl.blendEquation(gl.FUNC_ADD);gl.clearColor(0,0,0,1);
-    this.width=this.height=0;
+    this.width=this.height=0;this.paperShader=null;this.paperScene=null;
   }
   get font() {return this.measure.font;}
   set font(value) {this.measure.font=value;}
@@ -223,12 +254,15 @@ export class SophiaGpuCanvas {
       for(let q=0;q<count;q++)for(let i=0;i<6;i++)indices[q*6+i]=q*4+TRIANGLES[i];
       gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,indices,gl.STATIC_DRAW);this.indexQuads=count;
     }
+    const paper=this.paper&&this.paperTarget();
+    if(paper){gl.bindFramebuffer(gl.FRAMEBUFFER,paper.framebuffer);gl.useProgram(this.program);gl.enable(gl.BLEND);}
     gl.clear(gl.COLOR_BUFFER_BIT);
     let mode=-1;
     for(const g of this.groups) {
       if(g.material!==mode){mode=g.material;gl.blendFuncSeparate(gl.ONE,mode===1?gl.ONE_MINUS_SRC_COLOR:gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);}
       gl.drawElements(gl.TRIANGLES,g.count/4*6,gl.UNSIGNED_INT,g.start/4*6*4);
     }
+    if(paper)this.layOnPaper(paper);
     // The counts are told every thirtieth frame: an attribute written each frame is a page mutation each frame.
     if((this.frames=(this.frames||0)+1)%30===1){
       this.canvas.dataset.drawCalls=String(this.groups.length);
@@ -429,6 +463,59 @@ export class SophiaGpuCanvas {
       }
       if(length>0)this.rectAt((p.a[0]+p.b[0])/2,(p.a[1]+p.b[1])/2,dx/length,dy/length,length/2,halfWidth,this.strokeStyle);
     }
+  }
+  // The day's paper, or null for the night: {steps:[{matrix:[9 numbers, row by row],offset:[3]}], stops:[[r,g,b,at]],
+  // center:[x,y], radii:[x,y]} in canvas pixels, as the sky reads them from the page (sky.mjs). It answers whether the
+  // painter lays the scene on the paper itself.
+  setPaper(paper) {
+    if(!paper){this.paper=null;return true;}
+    if(!Array.isArray(paper.steps)||paper.steps.length>6||!Array.isArray(paper.stops)||!paper.stops.length||paper.stops.length>8)return false;
+    if(!this.lost&&!this.paperProgram()){this.paper=null;return false;}
+    this.paper=paper;return true;
+  }
+  paperProgram() {
+    if(this.paperShader)return this.paperShader;
+    const gl=this.gl;
+    try{
+      const shader=(type,source)=>{const value=gl.createShader(type);gl.shaderSource(value,'#version 300 es\n'+source);gl.compileShader(value);if(!gl.getShaderParameter(value,gl.COMPILE_STATUS)&&!gl.isContextLost())throw new Error(gl.getShaderInfoLog(value));return value;};
+      const program=gl.createProgram(),vertex=shader(gl.VERTEX_SHADER,PAPER_VERTEX),fragment=shader(gl.FRAGMENT_SHADER,PAPER_FRAGMENT);
+      gl.attachShader(program,vertex);gl.attachShader(program,fragment);gl.linkProgram(program);
+      if(!gl.getProgramParameter(program,gl.LINK_STATUS)&&!gl.isContextLost())throw new Error(gl.getProgramInfoLog(program));
+      gl.deleteShader(vertex);gl.deleteShader(fragment);
+      const at=name=>gl.getUniformLocation(program,name);
+      this.paperShader={program,vao:gl.createVertexArray(),scene:at('uScene'),matrix:at('uMatrix'),offset:at('uOffset'),steps:at('uSteps'),stops:at('uStops'),stopCount:at('uStopCount'),center:at('uCenter'),radii:at('uRadii'),height:at('uHeight')};
+      gl.useProgram(this.program);
+    }catch{this.paperShader=null;}
+    return this.paperShader;
+  }
+  // The texture the scene is drawn to before it is laid on the paper, as large as the canvas.
+  paperTarget() {
+    const gl=this.gl,width=this.canvas.width,height=this.canvas.height;
+    if(!this.paperProgram())return null;
+    let target=this.paperScene;
+    if(!target||target.width!==width||target.height!==height){
+      if(target){gl.deleteFramebuffer(target.framebuffer);gl.deleteTexture(target.texture);}
+      const texture=gl.createTexture();gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,texture);
+      gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+      gl.texStorage2D(gl.TEXTURE_2D,1,gl.RGBA8,width,height);gl.activeTexture(gl.TEXTURE0);
+      const framebuffer=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,framebuffer);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,texture,0);gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+      target=this.paperScene={texture,framebuffer,width,height};
+    }
+    return target;
+  }
+  layOnPaper(target) {
+    const gl=this.gl,shader=this.paperShader,paper=this.paper,matrices=new Float32Array(54),offsets=new Float32Array(18),stops=new Float32Array(32);
+    paper.steps.forEach((step,i)=>{const m=step.matrix;matrices.set([m[0],m[3],m[6],m[1],m[4],m[7],m[2],m[5],m[8]],i*9);offsets.set(step.offset,i*3);});
+    paper.stops.forEach((stop,i)=>stops.set(stop,i*4));
+    gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.disable(gl.BLEND);
+    gl.useProgram(shader.program);gl.bindVertexArray(shader.vao);
+    gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,target.texture);gl.activeTexture(gl.TEXTURE0);
+    gl.uniform1i(shader.scene,1);gl.uniformMatrix3fv(shader.matrix,false,matrices);gl.uniform3fv(shader.offset,offsets);gl.uniform1i(shader.steps,paper.steps.length);
+    gl.uniform4fv(shader.stops,stops);gl.uniform1i(shader.stopCount,paper.stops.length);
+    gl.uniform2f(shader.center,paper.center[0],paper.center[1]);gl.uniform2f(shader.radii,paper.radii[0],paper.radii[1]);gl.uniform1f(shader.height,target.height);
+    gl.drawArrays(gl.TRIANGLES,0,3);
+    gl.useProgram(this.program);gl.bindVertexArray(this.vao);gl.enable(gl.BLEND);
   }
   dispose() {
     if(this.disposed)return;this.disposed=true;
