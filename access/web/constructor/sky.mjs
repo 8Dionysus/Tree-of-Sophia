@@ -147,8 +147,15 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   // a chosen star's orbit, a waiting star's broken halo and a chosen link's spark, drawn over it each frame.
   let layered=null,keptRun=null,turningStars=[],spark=null;
   const AMBIENT_FRAME=1000/22,TOUCHED=new WeakMap();
-  // The interval between frames of a moving view, from what its frames have cost on this device.
-  const motionFrame=()=>softwareRenderer?1000/28:motionCost<=7?1000/62:motionCost<=20?1000/32:1000/22;
+  // The interval between frames of a moving view, from what its full frames have cost on this device: at the display's
+  // rate while a frame's script takes under about nine and a half milliseconds, thirty frames a second under thirteen,
+  // twenty above. A pace steps only once the cost is clearly past its limit, so it never flickers between two.
+  const MOTION_LIMITS=[9.5,13],MOTION_FRAMES=[1000/62,1000/32,1000/22];let pace=1;
+  const motionFrame=()=>{
+    if(softwareRenderer)return 1000/28;
+    if(pace>0&&motionCost<MOTION_LIMITS[pace-1]-.75)pace--;else if(pace<2&&motionCost>MOTION_LIMITS[pace]+.75)pace++;
+    return MOTION_FRAMES[pace];
+  };
   // A style or attribute is written only when it changes, so a frame that leaves a button where it was costs it nothing.
   const put=(el,key,value)=>{let had=TOUCHED.get(el);if(!had){had={};TOUCHED.set(el,had);}if(had[key]===value)return false;had[key]=value;return true;};
   const setStyle=(el,name,value)=>{if(put(el,name,value))el.style[name]=value;};
