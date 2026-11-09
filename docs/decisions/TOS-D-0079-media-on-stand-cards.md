@@ -45,17 +45,6 @@ layer store; R2 holds them under their digest (TOS-D-0076), the Publish Bonsai
 workflow writes them from main, and the site serves them at
 `/__research/layers/sha256/<hex>`, from its own origin.
 
-Under a subject's images a note says of them as a whole why they fit the
-subject and where they part from it, and names the works the source binds to
-the subject that the card does not show, so that the note and the images on
-the card read together. Its words are a source's, kept word for
-word with their language and the place they stand at; the module names the
-source in `sources` with its title, its file's name and the file's SHA-256. On
-the Zarathustra stand the source is the stand's media registry of 7 November
-2026, and every subject with images carries its note. `media note` writes one,
-and the bonsai check refuses a note on a subject without images, a note from a
-source the module does not name, and a source no note cites.
-
 The hosts of the image services are one list, `bonsai/lib/media-hosts.mjs`.
 The bonsai check refuses a medium on any other host, and the site Worker adds
 exactly these hosts to `img-src` and `connect-src` of the stands' pages.
@@ -65,9 +54,7 @@ shows each image whole, in its own proportions, as a copy fitted into 480
 pixels (960 on dense screens) requested from the service in CORS mode, with
 its caption: the role and the dating, then the provider's title, the
 inscription on the object, the series, the makers and the size, and links to
-the holder's record and the rights statement. Under the images stands the note:
-why they fit, where they part, the source's other works for the subject, and
-the title of its source, each text in its own language. The image opens in a modal
+the holder's record and the rights statement. The image opens in a modal
 dialog over the stand, where OpenSeadragon reads the service's `info.json` and
 its tiles down to full detail; the viewer is a separate chunk loaded on first
 use, and closing it returns focus to the image on the card.
@@ -100,11 +87,10 @@ medium, or with its files fingerprinted and copied. The first Zarathustra
 slice held the registry's shared motifs with open images from the Met, the
 Rijksmuseum and the National Gallery of Art, 32 stars. The second holds the
 registry's partial correspondences and meaning comparisons under the role
-`comparison`, each with the registry's note, from the images already on the
-stand and 31 more files of the Met: 192 stars with images in all. The
-registry's works under closed or unchecked terms wait for bridges and a
-decision on their rights. The notes are in Russian, the registry's language,
-and show so in every interface language until the stand carries translations. The viewer writes no style of its own: its
+`comparison`, from the images already on the stand and 31 more files of the
+Met: 192 stars with images in all. A card shows the images and their captions
+alone; the registry's reasons stay with the registry. Its works under closed or
+unchecked terms wait for bridges and a decision on their rights. The viewer writes no style of its own: its
 one touch-screen rule lives in the stand's stylesheet. Stars stay stars; an
 image belongs to the card.
 
@@ -120,8 +106,8 @@ image belongs to the card.
 ## Validation
 
 `bonsai-media.test.mjs` covers the module's contract, the attach command's
-entries and graft names, the refusals, the notes and their sources, the
-Antiquity portraits, the Zarathustra slices and the caption. The Worker test checks the stands' Content-Security-Policy. A built
+entries and graft names, the refusals, the Antiquity portraits, the Zarathustra
+slices and the caption. The Worker test checks the stands' Content-Security-Policy. A built
 site served through the Worker entry was checked in headless Chrome with the
 real policy: the portraits of Cicero, Seneca, Plato, Aristotle and Socrates on
 both stands, in Russian, English, German and Chinese, light and dark, on a

@@ -6,7 +6,6 @@
 //   node bonsai/lib/cli.mjs align <bonsai> [--write]
 //   node bonsai/lib/cli.mjs align-corpus <bonsai> [--write] [--corpus <dir>]
 //   node bonsai/lib/cli.mjs media add <bonsai> <observation.json> --subject <id> --role <role> --artifact <tradition/site/identity> [--view <view>]
-//   node bonsai/lib/cli.mjs media note <bonsai> <subject> --source <id> --at <place> --why <text> --limit <text> --language <tag> [--also <json>] [--source-file <path> --source-title <text>]
 //
 // `check` exits non-zero when a module breaks its contract or the export does
 // not satisfy the Tree's contracts in this checkout; drift since the graft is
@@ -24,24 +23,19 @@
 // map, and checks the bonsai. A file image's file and smaller copy are fetched
 // from the provider, checked against the observation's fingerprints, kept under
 // the stand's layer store (`media/`) and entered in its layers.json; `layers.mjs
-// send` or the Publish Bonsai workflow takes them on to R2. `media note` writes
-// under a subject's images why they fit it and where they part from it, in the
-// words of a source at a place in it, and with `--also` (a JSON list of
-// {work, maker, title, holder}) the works the source binds to the subject that
-// the card does not show; `--source-file` names the source anew,
-// with the file's name and digest and `--source-title` in the note's language.
+// send` or the Publish Bonsai workflow takes them on to R2.
 
 import {readFileSync,writeFileSync,readdirSync,existsSync,mkdirSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {loadCore} from './core.mjs';
 import {exportPhilosophy} from './export.mjs';
-import {basename,dirname,join} from 'node:path';
+import {dirname,join} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {alignCorpus,citedUnits,corpusReader,formatAlignment} from './corpus-align.mjs';
 import {bonsaiIds,checkBonsai,loadBonsai,loadWitnessChapters} from './graft.mjs';
 import {realignWitnesses} from './realign.mjs';
-import {addMedia,addNote,addSource,MEDIA_LAYER_PATH,mediaFilePath} from './media.mjs';
+import {addMedia,MEDIA_LAYER_PATH,mediaFilePath} from './media.mjs';
 import {formatLayers,readLayers,sha256} from './layers.mjs';
 
 const root=join(dirname(fileURLToPath(import.meta.url)),'..','..');
@@ -177,21 +171,7 @@ if(command==='check'){
   if(layers)writeFileSync(join(home,'layers.json'),formatLayers(layers));
   write(mediaPath,result.module);write(graftPath,result.identities);
   console.log(`${stand}: ${result.imageId} shows ${option('--subject')} as ${option('--role')}; work ${result.workId}`);
-}else if(command==='media'&&names[0]==='note'&&names.length===3){
-  const [,stand,subject]=names,home=join(root,'bonsai',stand),manifest=JSON.parse(readFileSync(join(home,'bonsai.json'),'utf8'));
-  const entry=(manifest.modules??[]).find(item=>item.id==='media');
-  if(!entry){console.error(`${stand}: its manifest names no media module`);process.exit(1);}
-  const mediaPath=join(home,entry.path),language=option('--language');
-  let module=JSON.parse(readFileSync(mediaPath,'utf8'));
-  const sourceFile=option('--source-file');
-  if(sourceFile)module=addSource({module,id:option('--source'),title:option('--source-title'),language,file:basename(sourceFile),sha256:sha256(readFileSync(sourceFile))});
-  module=addNote({module,subject,source:option('--source'),at:option('--at'),why:option('--why'),limit:option('--limit'),language,also:JSON.parse(option('--also')??'[]')});
-  const check=checkBonsai(root,stand,{overrides:{media:module}});
-  for(const problem of check.problems)console.error(`  problem: ${problem}`);
-  if(check.problems.length)process.exit(1);
-  writeFileSync(mediaPath,`${JSON.stringify(module,null,2)}\n`);
-  console.log(`${stand}: a note from ${option('--source')} stands under the images of ${subject}`);
 }else{
-  console.error('usage: node bonsai/lib/cli.mjs check [<bonsai>...] | export <bonsai> [--out <file>] | export-philosophy <bonsai> [--out <file>] | align <bonsai> [--write] | align-corpus <bonsai> [--write] [--corpus <dir>] | media add <bonsai> <observation.json> --subject <id> --role <role> --artifact <tradition/site/identity> [--view <view>] | media note <bonsai> <subject> --source <id> --at <place> --why <text> --limit <text> --language <tag> [--also <json>] [--source-file <path> --source-title <text>]');
+  console.error('usage: node bonsai/lib/cli.mjs check [<bonsai>...] | export <bonsai> [--out <file>] | export-philosophy <bonsai> [--out <file>] | align <bonsai> [--write] | align-corpus <bonsai> [--write] [--corpus <dir>] | media add <bonsai> <observation.json> --subject <id> --role <role> --artifact <tradition/site/identity> [--view <view>]');
   process.exit(2);
 }

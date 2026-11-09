@@ -1,9 +1,9 @@
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {describe,expect,it} from 'vitest';
-import {addMedia,addNote,addSource,mediaFromObservation,mediaIssues,readMedia} from '../../../../bonsai/lib/media.mjs';
+import {addMedia,mediaFromObservation,mediaIssues,readMedia} from '../../../../bonsai/lib/media.mjs';
 import {MEDIA_HOSTS} from '../../../../bonsai/lib/media-hosts.mjs';
-import {captionLines,captionLinks,fittedImage,fittedSize,imageSources,layerAddress,noteLines} from './media-view.mjs';
+import {captionLines,captionLinks,fittedImage,fittedSize,imageSources,layerAddress} from './media-view.mjs';
 
 const read=path=>JSON.parse(readFileSync(new URL(`../../../../bonsai/antiquity/${path}`,import.meta.url),'utf8'));
 const digest=text=>createHash('sha256').update(text,'utf8').digest('hex');
@@ -114,51 +114,6 @@ describe('a media module',()=>{
   });
 });
 
-describe('a note under a subject\'s images',()=>{
-  const registry={id:'portrait-registry',title:'Реестр портретов',language:'ru',file:'portraits.xlsx',sha256:'f'.repeat(64)};
-  const noted=()=>{
-    const {module,identities}=added();
-    const sourced=addSource({module,...registry});
-    return {identities,module:addNote({module:sourced,subject:'cicero',source:'portrait-registry',at:'Узлы/cicero',why:'Гравюра даёт лицо, которым Ренессанс знал Цицерона.',limit:'Это образ XVI века, каким Ренессанс представлял Рим.',language:'ru',
-      also:[{work:'A007',maker:'Неизвестный мастер',title:'Бюст Цицерона',holder:'Капитолийские музеи'}]})};
-  };
-  it('keeps why the images fit and where they part, in a source\'s words and language, and reads them with the source',()=>{
-    const {module,identities}=noted();
-    expect(mediaIssues(module,{subjects:new Set(['cicero']),identities,digest})).toEqual([]);
-    expect(module.sources['portrait-registry']).toEqual({title:{text:'Реестр портретов',language:'ru'},file:'portraits.xlsx',sha256:'f'.repeat(64)});
-    expect(readMedia(module).noteFor('cicero')).toEqual({
-      why:{text:'Гравюра даёт лицо, которым Ренессанс знал Цицерона.',language:'ru'},limit:{text:'Это образ XVI века, каким Ренессанс представлял Рим.',language:'ru'},
-      also:[{work:'A007',maker:'Неизвестный мастер',title:'Бюст Цицерона',holder:'Капитолийские музеи',language:'ru'}],at:'Узлы/cicero',source:{id:'portrait-registry',title:{text:'Реестр портретов',language:'ru'},file:'portraits.xlsx',sha256:'f'.repeat(64)},
-    });
-    expect(readMedia(module).noteFor('plato')).toBeNull();
-  });
-  it('refuses a note on a subject without images, from a source the module does not name, or without both texts',()=>{
-    const {module}=noted();
-    expect(()=>addNote({module,subject:'plato',source:'portrait-registry',at:'x',why:'a',limit:'b',language:'ru'})).toThrow(/no use shows/);
-    expect(()=>addNote({module,subject:'cicero',source:'elsewhere',at:'x',why:'a',limit:'b',language:'ru'})).toThrow(/add it to the module first/);
-    expect(()=>addSource({module,...registry,file:'dir/portraits.xlsx'})).toThrow(/without its folder/);
-    expect(()=>addNote({module,subject:'cicero',source:'portrait-registry',at:'x',why:'a',limit:'b',language:'ru',also:[{work:'A007',maker:'',title:'t'}]})).toThrow(/its maker and its title/);
-    const broken=structuredClone(module);
-    broken.notes.plato={source:'elsewhere',at:'',why:{text:'a',language:'ru'},also:[]};
-    broken.sources.unused={title:{text:'Ничей',language:'ru'},file:'unused.xlsx',sha256:'0'.repeat(64)};
-    const issues=mediaIssues(broken,{subjects:new Set(['cicero'])});
-    expect(issues).toEqual(expect.arrayContaining([
-      'note plato: plato is not a subject of the stand','note plato: no use shows an image of plato',
-      'note plato: source elsewhere is not a source of this module','note plato: at','note plato: limit','note plato: also','source unused: no note cites it',
-    ]));
-  });
-  it('stands under the images on the card as its two texts, the works the card does not show, and the source\'s title',()=>{
-    const {module}=noted(),t=key=>({mediaWhy:'Why it fits',mediaLimit:'Where it departs',mediaAlso:'Also in the source',mediaNoteSource:'Source'})[key]??key;
-    expect(noteLines(readMedia(module).noteFor('cicero'),{t})).toEqual([
-      {part:'why',label:'Why it fits',text:'Гравюра даёт лицо, которым Ренессанс знал Цицерона.',lang:'ru'},
-      {part:'limit',label:'Where it departs',text:'Это образ XVI века, каким Ренессанс представлял Рим.',lang:'ru'},
-      {part:'also',label:'Also in the source',text:'Неизвестный мастер, «Бюст Цицерона» (Капитолийские музеи)',lang:'ru'},
-      {part:'source',label:'Source',text:'Реестр портретов',lang:'ru'},
-    ]);
-    expect(noteLines(null,{t})).toEqual([]);
-  });
-});
-
 describe('a file image the stand keeps a copy of',()=>{
   const layers={schema:'tos.bonsai.layers.v1',paths:['media/'],entries:[{path:`media/${'2'.repeat(64)}.jpg`,sha256:'2'.repeat(64),bytes:57083},{path:`media/${'3'.repeat(64)}.jpg`,sha256:'3'.repeat(64),bytes:1374838}]};
   const attach=()=>addMedia({module:null,identities:{},observation:metObservation(),subject:'dwarf-weight#1',role:'motif',artifact:'european-drawing/metropolitan-museum-new-york/met-19-27',digest,bonsai:'zarathustra'});
@@ -236,31 +191,13 @@ describe('the Zarathustra media',()=>{
     expect(new Set(media.uses.map(use=>use.role))).toEqual(new Set(['motif','comparison']));
     expect(media.uses.length).toBe(227);
     expect(new Set(media.uses.map(use=>use.subject)).size).toBe(192);
+    expect(Object.keys(media.works).length).toBe(51);
     const terms=image=>({file:'met',['iiif-image-3']:'rijksmuseum',['iiif-image-2']:'nga'})[image.api];
     const open={met:{statement:null,field:'isPublicDomain',value:'true'},rijksmuseum:{statement:PDM},nga:{statement:null,field:'openaccess',value:'1'}};
     for(const image of Object.values(media.images)){
       expect(media.works[image.work].provider).toBe(terms(image));
       expect(image.rights).toMatchObject(open[terms(image)]);
     }
-  });
-});
-
-describe('the Zarathustra media registry\'s notes',()=>{
-  const media=JSON.parse(readFileSync(new URL('../../../../bonsai/zarathustra/media.json',import.meta.url),'utf8'));
-  const registry='zarathustra-media-registry-2026-11-07';
-  it('stand under the images of every subject that has them, in the registry\'s words and language, at their place in it',()=>{
-    expect(new Set(Object.keys(media.notes))).toEqual(new Set(media.uses.map(use=>use.subject)));
-    expect(media.sources).toEqual({[registry]:{title:{text:'Заратустра · медиареестр бонсая',language:'ru'},file:'ToS_Zarathustra_media_registry_2026-11-07.xlsx',sha256:'95cfcdfb593646d34d9147c858404033be3b3093a6a6c2b054873abb39e896af'}});
-    for(const note of Object.values(media.notes))expect(note).toMatchObject({source:registry,at:expect.stringMatching(/^Узлы\/\S+$/),why:{language:'ru'},limit:{language:'ru'}});
-    expect(media.notes.courage.why.text).toBe('Сопротивление питону и рискованный прыжок перед быком дают видимые действия перед опасностью.');
-  });
-  it('name the registry\'s works the card does not show yet, as the registry names them',()=>{
-    const shown=new Set(Object.values(media.works).map(work=>work.inventory));
-    const also=Object.values(media.notes).flatMap(note=>note.also??[]);
-    expect(Object.values(media.notes).filter(note=>note.also).length).toBe(64);
-    for(const item of also)expect(item).toMatchObject({work:expect.stringMatching(/^[AMX]\d+$/),language:'ru'});
-    expect(media.notes.courage.also).toEqual([{work:'X001',maker:'Фредерик Лейтон',title:'Атлет, борющийся с питоном',holder:'Saint Louis Art Museum',language:'ru'}]);
-    expect(shown.size).toBe(51);
   });
 });
 

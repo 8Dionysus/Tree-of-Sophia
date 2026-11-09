@@ -180,10 +180,6 @@
 #tree .ps-media-sources{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px!important}
 #tree .ps-media-sources a{color:#d9c391;text-decoration:none}
 #tree .ps-media-sources a:hover{text-decoration:underline}
-/* The note under a card's images: why they fit its subject, where they part from it, and whose words these are. */
-#tree .ps-media-note{margin:-4px 0 14px;padding:8px 0 0 10px;border-left:1px solid #d9c39140;color:#a9b8c9;font:12.5px/1.55 var(--ps-sans)}
-#tree .ps-media-note p{margin:0 0 5px}
-#tree .ps-media-note-source{color:#8ea2ba;font-size:11.5px}
 #tree .ps-media-missing,.ps-media-viewer .ps-media-missing{margin:0 0 8px;color:#8ea2ba;font:12.5px/1.55 var(--ps-sans)}
 .ps-media-viewer{position:fixed;inset:0;box-sizing:border-box;width:100%;height:100%;max-width:none;max-height:none;margin:0;padding:0;border:0;background:#04070e;color:#e4e6ea;font:13px/1.5 system-ui,-apple-system,'Segoe UI',sans-serif}
 .ps-media-viewer[open]{display:flex;flex-direction:column}

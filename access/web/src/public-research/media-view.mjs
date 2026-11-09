@@ -6,10 +6,7 @@
 // the same-origin copy of R2). Under it, the caption says what the image
 // is for on this card and when the work was made, then the provider's own
 // title, the inscription on the object, the series, who made it, its size, and
-// the holder's record and rights statement as links. Under the images, a note
-// says why they fit the card's subject and where they part from it, and which
-// works the source binds here that the card does not show, in the words of the
-// source the stand names, in their own language. Choosing the image opens
+// the holder's record and rights statement as links. Choosing the image opens
 // it at the full detail its service serves, in a viewer that lies over the
 // stand; closing the viewer leaves the space and the card as they were.
 
@@ -69,27 +66,6 @@ export function captionLinks({work,image},{t=key=>key}={}){
   return links;
 }
 
-// A title in the words of a source stands in the quotation marks of the source's language.
-const QUOTES=Object.freeze({ru:['«','»'],uk:['«','»'],fr:['«','»'],es:['«','»'],de:['„','“'],en:['“','”']});
-
-/**
- * The note under a card's images as lines of text: why they fit, where they part, and the source the words come
- * from; each line names its `part`, its `label` and the `lang` of its words. `t(key)` gives the stand's words.
- */
-export function noteLines(note,{t}){
-  if(!note)return [];
-  const lines=[
-    {part:'why',label:t('mediaWhy'),text:note.why.text,lang:note.why.language},
-    {part:'limit',label:t('mediaLimit'),text:note.limit.text,lang:note.limit.language},
-  ];
-  // The works the source binds here that the card does not show, as the source names them.
-  const also=note.also??[];
-  const [open,close]=QUOTES[also[0]?.language]??['“','”'];
-  if(also.length)lines.push({part:'also',label:t('mediaAlso'),text:also.map(item=>`${item.maker}, ${open}${item.title}${close}${item.holder?` (${item.holder})`:''}`).join('; '),lang:also[0].language});
-  lines.push({part:'source',label:t('mediaNoteSource'),text:note.source.title.text,lang:note.source.title.language});
-  return lines;
-}
-
 // The viewer writes one style element of its own for touch screens; the page admits no style written by a script,
 // so that element stays unattached while the viewer is made, and the stand's stylesheet carries its rule.
 function withoutWrittenStyle(make){
@@ -106,13 +82,6 @@ export function createMediaView({t,locale,hint=()=>{}}){
   let viewer=null;
   const el=(tag,className='',text='')=>{const node=document.createElement(tag);if(className)node.className=className;if(text)node.textContent=text;return node;};
 
-  const row=(className,line)=>{
-    const node=el('p',className);
-    if(line.label)node.append(el('span','ps-media-label',`${line.label}: `));
-    const words=el('span','',line.text);if(line.lang)words.lang=line.lang;node.append(words);
-    return node;
-  };
-
   function figure(item){
     const {image,work,role}=item,size=fittedSize(image);
     const box=el('figure','ps-media');box.dataset.role=role;
@@ -128,7 +97,12 @@ export function createMediaView({t,locale,hint=()=>{}}){
     picture.addEventListener('error',()=>{open.replaceWith(el('p','ps-media-missing',t('mediaMissing')));},{once:true});
     open.append(picture);open.addEventListener('click',()=>void openViewer(item,open));
     const caption=el('figcaption');
-    for(const line of captionLines(item,{t,locale:locale()}))caption.append(row(`ps-media-${line.part}`,line));
+    for(const line of captionLines(item,{t,locale:locale()})){
+      const row=el('p',`ps-media-${line.part}`);
+      if(line.label)row.append(el('span','ps-media-label',`${line.label}: `));
+      const words=el('span','',line.text);if(line.lang)words.lang=line.lang;row.append(words);
+      caption.append(row);
+    }
     const links=el('p','ps-media-sources');
     for(const link of captionLinks(item,{t})){const anchor=el('a','',`${link.text} ↗`);anchor.href=link.url;anchor.target='_blank';anchor.rel='noopener noreferrer';anchor.dataset.part=link.part;links.append(anchor);}
     caption.append(links);
@@ -177,19 +151,12 @@ export function createMediaView({t,locale,hint=()=>{}}){
   }
 
   return {
-    /** Put the media `items` (from `readMedia(...).forSubject`) into `parent`, and under them their `note` (`noteFor`). */
-    render(parent,items,note=null){
+    /** Put the media `items` (from `readMedia(...).forSubject`) into `parent`. */
+    render(parent,items){
       if(!items?.length)return;
       const section=el('div','ps-media-list');
       for(const item of items)section.append(figure(item));
       parent.append(section);
-      const lines=noteLines(note,{t});
-      if(lines.length){
-        const box=el('div','ps-media-note');
-        // The source's title and the titles of its works are names: the stand's terms are not read in them.
-        for(const line of lines){const node=row(`ps-media-note-${line.part}`,line);if(['also','source'].includes(line.part))node.dataset.terms='off';box.append(node);}
-        parent.append(box);
-      }
     },
     close:closeViewer,
   };

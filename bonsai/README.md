@@ -313,17 +313,11 @@ use binds an image to a subject of the stand in a role: `author-portrait`,
 `book-response` (a work made about the book), `motif` (a work of its own
 showing what the text names), `era-material`, `object-of-analysis` or
 `comparison`. A subject is a collection entry where the stand keeps a
-collection, and a core record where it keeps a core. A note stands under a
-subject's images as a whole: why they fit it and where they part from it, and
-in `also` the works the source binds to the subject that the card does not
-show, in the words of a source the module names in `sources` with its title,
-its file's name and the file's SHA-256 (the stand's media registry), and the
-place in it.
-Provider texts and a source's words are kept word for word, with their
-language; the module holds no words of the stand's own about a medium. A card
-shows each image whole and small, with its caption from these facts and links
-to the record and the rights statement, then the note, and opens an image over
-the stand at the full detail its service serves.
+collection, and a core record where it keeps a core. Provider texts are kept word for word,
+with their language; the module holds no words of the stand's own about a
+medium. A card shows the image whole and small, with its caption from these
+facts and links to the record and the rights statement, and opens it over the
+stand at the full detail its service serves.
 
 Every entry comes from a provider observation made by the Tree's media bridges
 (`tos-native-owner-command acquisition`, operation `media.observe`); one command
@@ -345,17 +339,6 @@ stand's layers.json; the stand's other layers must be fetched first, and
 the new copies on to R2. A new provider's host joins
 `lib/media-hosts.mjs` with its first medium: the site's Content-Security-Policy
 admits images from those hosts alone.
-
-A second command writes the note under a subject's images; `--also` takes the
-works the card does not show as a JSON list of `{work, maker, title, holder}`,
-and `--source-file` names the source anew, with its file's name and digest:
-
-```sh
-node bonsai/lib/cli.mjs media note zarathustra courage \
-  --source zarathustra-media-registry-2026-11-07 --at 'Узлы/courage' --language ru \
-  --why 'Сопротивление питону и рискованный прыжок …' --limit 'Опасность сама по себе …' \
-  [--source-file ToS_Zarathustra_media_registry_2026-11-07.xlsx --source-title '…']
-```
 
 ### Layers kept in R2 (`tos.bonsai.layers.v1`)
 
