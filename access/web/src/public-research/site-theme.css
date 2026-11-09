@@ -9,14 +9,20 @@
 :root[data-site-theme="noon"] .tree-plane{color:inherit!important}
 /* "Утренняя заря" is the longest name of a theme; its whole name shows. */
 #research-bar .ps-theme-select{max-width:156px}
+/* Over the space the day's bar is paper that thins into the page, as the night's bar is night. */
+:root[data-site-theme="noon"] #research-bar[id]{background:linear-gradient(180deg,#f4efe4f5 0%,#f4efe4c4 64%,#f4efe400 100%)}
+:root[data-site-theme="noon"] #research-bar[id]:not([data-mode=original]){background:#f6f2e9f7}
+/* On paper a far name keeps more of its ink than at night, where the dark itself carries it. */
+:root[data-site-theme="noon"] #tree .tree-cluster:not([data-variant]) .cluster-title{opacity:calc(.3 + .7 * var(--depth-alpha,1))}
 /* The tree's own names stand on the page without the night's dark halo. */
 :root[data-site-theme="noon"] #tree .tree-cluster[data-tone]{text-shadow:none}
 /* A star's name on the day's paper clears the lines behind it with the paper itself, as on the night it does with the dark. */
 :root[data-site-theme="noon"] #tree .tree-star span{text-shadow:0 0 2px #f4efe4,0 0 5px #f4efe4,0 0 9px #f4efe4d0}
 /* A group's name clears the stars behind it with a glow of the page itself: the night's dark veil on the night, the
    page's own ground on a light page. */
-:root[data-site-theme="noon"] #tree .tree-cluster.tree-cluster:not([data-variant])::before{background:radial-gradient(closest-side,#f4efe4e0,#f4efe400)}
+:root[data-site-theme="noon"] #tree .tree-cluster.tree-cluster:not([data-variant])::before{background:radial-gradient(closest-side,#f4efe4ec 55%,#f4efe400)}
 :root[data-site-theme="noon"] #tree .tree-cluster.tree-cluster:not([data-variant])[data-crowded]::before{background:radial-gradient(closest-side,#f4efe499,#f4efe400)}
+:root[data-site-theme="noon"] #tree .tree-cluster.tree-cluster[data-tone=area][data-crowded]::before{background:radial-gradient(closest-side,#f4efe4d6 55%,#f4efe400)}
 /* On the day's paper the icons' stars are gold ink. */
 :root[data-site-theme="noon"] #tree .ps-icon-star{fill:#9a7124}
 :root[data-site-theme="noon"] #tree :is(.lens,.ps-top-action,button):is(:hover,[aria-pressed=true]) .ps-icon-star{fill:#7d5a14;filter:none}
