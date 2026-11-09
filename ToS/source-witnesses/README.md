@@ -718,6 +718,9 @@ publication keep their owners.
 {"family":"media","operation":"media.observe","repo_root":"/absolute/Tree-of-Sophia","provider":"rijksmuseum","object":"SK-C-5","max_requests":8}
 {"family":"media","operation":"media.observe","repo_root":"/absolute/Tree-of-Sophia","provider":"met","object":"438417","max_requests":8,"files":true}
 {"family":"media","operation":"media.observe","repo_root":"/absolute/Tree-of-Sophia","provider":"nga","object":"1942.9.1","max_requests":2,"dataset_root":"/absolute/opendata","dataset_commit":"<40-hex commit of that checkout>"}
+{"family":"media","operation":"media.observe","repo_root":"/absolute/Tree-of-Sophia","provider":"commons","object":"File:Rembrandt - The laughing man.jpg","max_requests":8,"files":true}
+{"family":"media","operation":"media.observe","repo_root":"/absolute/Tree-of-Sophia","provider":"slam","object":"36470","max_requests":4,"files":true}
+{"family":"media","operation":"media.observe","repo_root":"/absolute/Tree-of-Sophia","provider":"smb","object":"obj-965972","max_requests":4,"files":true}
 ```
 
 | Provider | Object named by | Route | Images |
@@ -725,6 +728,9 @@ publication keep their owners.
 | `rijksmuseum` | object number, numeric id or `https://id.rijksmuseum.nl/…` URI | Linked Art records on `data.rijksmuseum.nl`: object, VisualItem (which carries the rights), DigitalObject | IIIF Image API 3 services on `iiif.micr.io`, observed through `info.json` |
 | `met` | numeric `objectID` | the Collection API record on `collectionapi.metmuseum.org`, with its `isPublicDomain` flag | image files on `images.metmuseum.org` named by the record, the primary one with its smaller copy (`primaryImageSmall`) |
 | `nga` | numeric `objectid` or accession number | the Gallery's open data release (CC0, [GitHub](https://github.com/NationalGalleryOfArt/opendata)) checked out at one commit: `objects.csv`, `published_images.csv` with its `openaccess` flag, `objects_dimensions.csv` | the primary view's IIIF Image API 2 service on `api.nga.gov`, observed through `info.json` |
+| `commons` | a Wikimedia Commons file title | the file's page on `commons.wikimedia.org` (`imageinfo` with its extended metadata), its structured data (`P6243` names the artwork it reproduces, `P6216` its copyright status), the artwork's Wikidata item and the labels of its collection, creators, materials and kind | Commons' standard copies on `thumb.wikimedia.org`: the file is the largest standard width (3840, 1920 or 1280 pixels) the original holds, the smaller copy its 960-pixel one |
+| `slam` | the number of the object's page | the object page on `www.slam.org`: its fields (Artist, Date, Medium, Dimensions, Credit Line, Object Number) and its `Rights` statement | the viewer's original file on the museum's CDN with its 1600-pixel copy |
+| `smb` | the ObjID (`obj-965972` or `965972`) | the object page on `search.smb.museum`: title, inventory number, institution, its fields (Beteiligte, Datierung, Systematik/Art, Material / Technik, Abmessungen) and each photograph's credit with its rights statement | each slide's original file with its 1200-pixel copy; an original larger than the record limit stays at the museum and its 1200-pixel copy is the file |
 
 `media.describe` lists the providers and their hosts. Each bridge reads over
 HTTPS from its own hosts only. The native transport refuses redirects. Callback evidence labels caller-supplied bytes and leaves HTTP status and the final URL unknown. Every
@@ -747,7 +753,13 @@ operator names with `dataset_root` and `dataset_commit`, verifies the commit thr
 the NGA repository API, refuses a checkout at another commit or with changed
 data, and lists each committed Git blob it read under
 `datasets` with the commit, its raw URL, size and SHA-256; that objects table
-is the record an Artifact rests on. Fixtures in
+is the record an Artifact rests on. Wikimedia refuses originals to automated
+readers and serves them its standard thumbnail widths, so the Commons bridge
+reads the standard copy and says so in a warning; it reads the artwork's
+inventory number from the statement its current collection qualifies. The
+Saint Louis Art Museum and the Staatliche Museen zu Berlin serve no record API
+for open reuse: their bridges read the object page the museum publishes and
+keep it as the record, with its size and SHA-256. Fixtures in
 [`examples/`](../contracts/examples/) hold one observation from each provider and
 a v2 image-service representation built from the Rijksmuseum one.
 

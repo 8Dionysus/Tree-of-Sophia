@@ -879,6 +879,9 @@ fn provider_name(provider: &str) -> &'static str {
         "rijksmuseum" => "Rijksmuseum",
         "met" => "The Metropolitan Museum of Art",
         "nga" => "National Gallery of Art",
+        "commons" => "Wikimedia Commons",
+        "slam" => "Saint Louis Art Museum",
+        "smb" => "Staatliche Museen zu Berlin",
         _ => "media provider",
     }
 }

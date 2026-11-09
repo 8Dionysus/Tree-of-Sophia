@@ -62,6 +62,19 @@ by one, as the National Gallery of Art does with its daily CC0 open data, is
 read from a checkout at a named commit, each file recorded with its raw URL
 and digest.
 
+A museum that keeps closed terms is reached through another publisher where
+one carries its works openly. Wikimedia Commons does so for flat public-domain
+works: its bridge reads a file named by its title, the artwork it reproduces
+(`P6243`) and the file's copyright status (`P6216`) from its structured data,
+the licence its page states, and the artwork's Wikidata item with the holder's
+inventory number. Wikimedia serves automated readers its standard thumbnail
+widths only, so the file is the largest standard copy the original holds. The
+Saint Louis Art Museum and the Staatliche Museen zu Berlin state their rights
+on object pages and offer no record API for reuse; their bridges read the page
+the museum publishes as the record, keep its size and SHA-256, and read the
+rights statement from the page: the Saint Louis `Rights` field, the Berlin
+photo credit with its Public Domain Mark.
+
 ## Rationale
 
 A bridge separates reading a provider from admitting anything into the Tree.
@@ -102,6 +115,12 @@ Tree's rights decision stay distinct.
 The `source_media_bridge` tests read fixtures shaped after the live records:
 the Rijksmuseum route from object number to IIIF service and rights, refusals
 outside a provider's hosts, partial search matches, records of another object,
-the request budget, IIIF 2 and 3 limits, and the contract examples. Live runs of the native command
+the request budget, IIIF 2 and 3 limits, and the contract examples; the Commons
+route from file to artwork, holder number, status and standard copy, its refusal
+of a file that names no artwork, the dating of the artwork against a camera's
+timestamp, the Saint Louis and Berlin page fields, rights and files, and a
+Berlin original over the record limit. Live runs of the native command
 against the Rijksmuseum (SK-C-5, SK-A-4050) and the Met (438417, 436535, 1)
-produced conforming observations.
+produced conforming observations, as did runs against Commons (the Laughing Man
+of the Mauritshuis and 21 other works), the Saint Louis Art Museum (36470) and
+the Staatliche Museen zu Berlin (965972, 871387) on 9 November 2026.

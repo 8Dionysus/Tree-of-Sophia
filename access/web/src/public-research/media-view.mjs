@@ -74,9 +74,14 @@ export function captionLines({role,work},{t,locale}){
  */
 export function captionLinks({work,image},{t=key=>key}={}){
   const links=[{part:'record',text:`${work.holder} · ${work.inventory}`,url:work.record}];
-  // A flag names no statement: the Met's isPublicDomain says public domain, the National Gallery of Art's openaccess open access.
-  const rights=image.rights,flag=rights.statement===null?({isPublicDomain:'mediaPublicDomain',openaccess:'mediaOpenAccess'})[rights.field]:null,set=flag&&rights.value===({isPublicDomain:'true',openaccess:'1'})[rights.field];
-  links.push({part:'rights',text:rights.label??(set?t(flag):rights.statement??rights.value),url:rights.statement??(set?work.record:rights.stated_in)});
+  const rights=image.rights;
+  // A Commons file's copyright status, or its page's licence, says public domain on the file's own page.
+  if(rights.field==='P6216'&&rights.value==='Q19652'||rights.field==='License'&&rights.value==='pd')return [...links,{part:'rights',text:t('mediaCommonsPublicDomain'),url:rights.stated_in}];
+  // A flag names no statement: the Met's isPublicDomain and the Saint Louis Art Museum's Rights say public domain, the
+  // National Gallery of Art's openaccess open access; their records state it.
+  const flag=rights.statement===null?({isPublicDomain:'mediaPublicDomain',openaccess:'mediaOpenAccess',Rights:'mediaPublicDomain'})[rights.field]:null;
+  const set=flag&&rights.value===({isPublicDomain:'true',openaccess:'1',Rights:'Public Domain'})[rights.field];
+  links.push({part:'rights',text:set?t(flag):rights.label??rights.statement??rights.value,url:rights.statement??(set?work.record:rights.stated_in)});
   return links;
 }
 
