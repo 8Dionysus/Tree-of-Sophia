@@ -119,8 +119,8 @@ test('the space is given the reader’s trail of cards and walks it back and for
   view.destroy();
 });
 
-test('a bar narrower than all it holds folds the language and the theme under "more", and unfolds them when it widens',async()=>{
-  // Elements that know their parent and find a class among their descendants, as the bar's fold needs.
+test('on a wide screen the language and the theme stand first under "more" on every page; on a phone they stand in the bar\'s list',async()=>{
+  // Elements that know their parent and find a class among their descendants, as the move under "more" needs.
   class Node extends Element{
     constructor(tag){super(tag);this.parentNode=null;}
     detach(item){if(item.parentNode)item.parentNode.children=item.parentNode.children.filter(child=>child!==item);item.parentNode=this;}
@@ -129,22 +129,22 @@ test('a bar narrower than all it holds folds the language and the theme under "m
     insertBefore(item,other){this.detach(item);const at=this.children.indexOf(other);this.children.splice(at<0?this.children.length:at,0,item);}
     querySelector(selector){const name=selector.slice(1);for(const child of this.children){if(String(child.className??'').split(' ').includes(name))return child;const deep=child.querySelector?.(selector);if(deep)return deep;}return null;}
   }
-  const observers=[];
+  const phone={matches:false,listeners:[],addEventListener(type,listener){this.listeners.push(listener);},removeEventListener(type,listener){this.listeners=this.listeners.filter(item=>item!==listener);}};
+  const quiet={matches:false,addEventListener(){},removeEventListener(){}};
   vi.stubGlobal('document',{createElement:tag=>new Node(tag)});
-  vi.stubGlobal('window',{history:{replaceState:vi.fn(),pushState:vi.fn(),state:null},addEventListener(){},removeEventListener(){},scrollTo(){},scrollY:0,matchMedia:()=>({matches:false})});
+  vi.stubGlobal('window',{history:{replaceState:vi.fn(),pushState:vi.fn(),state:null},addEventListener(){},removeEventListener(){},scrollTo(){},scrollY:0,matchMedia:query=>query==='(max-width: 900px)'?phone:quiet});
   vi.stubGlobal('location',{href:'http://localhost/'});vi.stubGlobal('requestAnimationFrame',fn=>fn());
-  vi.stubGlobal('ResizeObserver',class{constructor(callback){this.callback=callback;observers.push(this);}observe(){}disconnect(){}});
   const entries=new Map(),index={revision:'current',items:entries,get:id=>entries.get(id),resolveId:id=>id,search:()=>[],references:()=>[]};
   const root=new Node('root'),spaceroot=new Node('space'),space={root:spaceroot,renderResearch:vi.fn(),openResearch:vi.fn(),fragments:{},selection:()=>null};root.append(spaceroot);
   const notebook={getPreference:vi.fn(async()=>undefined),setPreference:vi.fn(async()=>{})};
   const header=new Node('header'),bar=new Node('nav'),language=new Node('div');bar.className='pr-toolbar';language.className='language ps-language';bar.append(language);header.append(bar);
-  header.clientWidth=1280;header.scrollWidth=1410;
   const view=mountResearchExperience({root,header,profile:'test',locale:()=> 'en',index,space,notebook,api:{getQuestion:()=>''}});
-  const resize=()=>observers.forEach(observer=>observer.callback());
-  resize();
+  const turn=matches=>{phone.matches=matches;phone.listeners.forEach(listener=>listener());};
   expect(language.parentNode.className).toBe('rb-menu');expect(language.parentNode.children[0]).toBe(language);
-  header.scrollWidth=1280;resize();
+  turn(true);
   expect(language.parentNode).toBe(bar);expect(bar.children.indexOf(language)).toBeLessThan(bar.children.findIndex(node=>node.className==='experience-tools'));
-  header.scrollWidth=1410;resize();view.destroy();
-  expect(language.parentNode).toBe(bar);
+  turn(false);
+  expect(language.parentNode.className).toBe('rb-menu');
+  view.destroy();
+  expect(language.parentNode).toBe(bar);expect(phone.listeners).toHaveLength(0);
 });
