@@ -31,10 +31,17 @@ it. A register's words are a paraphrase, never the work's text.
 - [`layer/`](layer/) holds the same content in one shape. It is what the bonsai
   is grown from and what an independent reading of a place starts from.
 - [`inputs/`](inputs/) holds the decisions made by hand: the 36 areas with their
-  groups and questions as the assignment states them, the author records that
+  groups and questions as the assignment states them and their English titles
+  and questions, the English title of every concept, the author records that
   are one person under two spellings, the work records that are one work under
   two titles, and the names and IDs of authors and works whose registers give
   none in Latin script.
+- [`readings/`](readings/) holds the readers' records: one file for each pass
+  in which a reader opened places in the works themselves. A record names its
+  reader, the works it read with their Tree identities, and for each place the
+  conception it bears out: the concepts, the locator, the words that open and
+  close the formula, the thesis, the verdict and the registers' readings it
+  grew from.
 - [`provenance.json`](provenance.json) names the workbooks read, with their
   sizes and SHA-256. The workbooks are not kept here.
 
@@ -92,7 +99,29 @@ of register C were rewritten in the media workbook; the layer takes the later
 reading. For register B the pass also recorded, reading by reading, whether it
 reached the digital place of the text (`place_check`): 122 of 229 reached.
 
-## Rebuilding
+## Planting
+
+```sh
+node bonsai/lib/layers.mjs fetch access/public-corpus     # the corpus texts the formulas are found in
+node bonsai/review/aesthetics/plant.mjs                   # write bonsai/aesthetics/{field,library,identities}.json
+node bonsai/lib/cli.mjs align-corpus aesthetics --write   # the cited places in the corpus translations
+node bonsai/lib/cli.mjs check aesthetics
+```
+
+`plant.mjs` writes the areas and concepts from the layer and `inputs/`, and a
+conception from a record under `readings/` alone. It finds each formula in its
+corpus unit by the words that open and close it and refuses a span that opens
+or closes inside a sentence. `--check` says whether the stored modules are
+what the records give.
+
+A reader's pass over places: read the registers' readings of a place in
+`layer/readings.json`, open the place in the work, decide what the place
+itself says, and write the record. Readings of one place from different
+registers meet in one conception. The verdict is `confirmed` where the
+register's reading stands as it is, `revise` where the place bears out a
+different placing, verb or concept, with a note of what changed.
+
+## Rebuilding the layer
 
 ```sh
 pip install openpyxl

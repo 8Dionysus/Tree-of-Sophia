@@ -23,6 +23,7 @@ import {isLayerPath,layerStatus,layersIssues,layersOnDisk,readLayers} from './la
 import {renderingsIssues,spellingIssues,termFormGaps,tokenChapterIssues,TOKENS_SCHEMA} from './tokens.mjs';
 import {corpusReader} from './corpus-align.mjs';
 import {mediaIssues} from './media.mjs';
+import {fieldCites,fieldIssues,fieldSubjects,libraryIssues} from './field.mjs';
 
 export const MANIFEST_SCHEMA='tos.bonsai.v1';
 const json=path=>JSON.parse(readFileSync(path,'utf8'));
@@ -212,12 +213,27 @@ export function checkBonsai(root,id,{validator=treeContracts(root),relations,ide
     // A medium's subject is a collection entry where the stand keeps a collection, and a core record where it keeps a core.
     const coreModule=(manifest.modules??[]).find(module=>module.id==='core'),core=coreModule?loadCore(join(home,dirname(coreModule.path))):null;
     const subjects=Array.isArray(modules.collection?.entities)?new Set(modules.collection.entities.map(entry=>entry.id))
-      :core?new Set([...core.concepts,...core.figures,...core.proposed,...core.chains.flatMap(chain=>chain.states??[])].map(record=>record.id)):null;
+      :core?new Set([...core.concepts,...core.figures,...core.proposed,...core.chains.flatMap(chain=>chain.states??[])].map(record=>record.id))
+      :modules.field?fieldSubjects(modules.field,modules.library??null):null;
     problems.push(...mediaIssues(modules.media,{subjects,identities:modules.identities??{},digest:textDigest,layers:mediaLayers??layers}).map(issue=>`media: ${issue}`));
   }
   let registry=null;
-  if(modules.objects||modules.core){try{registry=semanticRegistry(root);}catch(error){problems.push(`entity registry: ${error.message}`);}}
+  if(modules.objects||modules.core||modules.field){try{registry=semanticRegistry(root);}catch(error){problems.push(`entity registry: ${error.message}`);}}
   if(modules.objects&&registry)problems.push(...objectsIssues(modules.objects,registry,placeChecker(chapters,modules.fragments??null)).map(issue=>`objects: ${issue}`));
+  // The core of a field (bonsai/CORE.md, "A core across works"): its areas, concepts, conceptions and links.
+  if(modules.library)problems.push(...libraryIssues(modules.library).map(issue=>`library: ${issue}`));
+  if(modules.field){
+    const cited=new Set([...Object.keys(modules.identities?.works??{}),...Object.keys(modules.fragments?.works??{})]);
+    problems.push(...fieldIssues(modules.field,{registry,library:modules.library??null,works:cited,placeIssues:placeChecker(chapters,modules.fragments??null)}).map(issue=>`field: ${issue}`));
+    // The exact words of every formula are read in the original; a corpus place stays unchecked where the corpus is not fetched.
+    corpus??=corpusOnDisk(root);
+    const read=termPlaceReader(root,modules.alignment??null,modules.fragments??null,{corpus});
+    for(const {conception,cite} of fieldCites(modules.field)){
+      const language=cite.loc?modules.fragments?.works?.[cite.w]?.original:modules.alignment?.works?.[cite.w]?.original?.language;
+      const place=read(cite,language);
+      if(place.error)problems.push(`field: conception ${conception}: ${place.error}`);
+    }
+  }
   // The philosophical core (bonsai/CORE.md): its places, claims, registry relations and control vectors.
   const coreModule=(manifest.modules??[]).find(module=>module.id==='core');
   if(coreModule)problems.push(...coreIssues(loadCore(join(home,dirname(coreModule.path))),chapters,registry).map(issue=>`core: ${issue}`));

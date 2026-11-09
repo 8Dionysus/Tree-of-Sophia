@@ -1,0 +1,94 @@
+{
+ "schema": "tos.bonsai.library.v1",
+ "bonsai": "aesthetics",
+ "posture": {
+  "ru": "Произведения и авторы, на места которых опираются трактовки бонсая. Запись появляется здесь вместе с первой трактовкой, прочитанной в самом произведении.",
+  "en": "The works and authors whose places the bonsai’s conceptions rest on. A record enters with the first conception read in the work itself."
+ },
+ "agents": {
+  "plato": {
+   "name": {
+    "ru": "Платон",
+    "en": "Plato",
+    "original": "Πλάτων"
+   },
+   "grew_from": [
+    "A:P001",
+    "B:D-A013",
+    "C:A-A001",
+    "D:B-A012"
+   ]
+  },
+  "plotinus": {
+   "name": {
+    "ru": "Плотин",
+    "en": "Plotinus",
+    "original": "Πλωτῖνος"
+   },
+   "grew_from": [
+    "A:P003",
+    "C:A-A018"
+   ]
+  },
+  "aristotle": {
+   "name": {
+    "ru": "Аристотель",
+    "en": "Aristotle",
+    "original": "Ἀριστοτέλης"
+   },
+   "grew_from": [
+    "A:P002",
+    "B:B-A001",
+    "C:A-A002"
+   ]
+  }
+ },
+ "works": {
+  "plato.symposium": {
+   "title": {
+    "ru": "Пир",
+    "en": "Symposium",
+    "original": "Συμπόσιον"
+   },
+   "agents": [
+    "plato"
+   ],
+   "original": "grc",
+   "grew_from": [
+    "A:W001",
+    "D:B-W013"
+   ]
+  },
+  "plotinus.enneads": {
+   "title": {
+    "ru": "Эннеады",
+    "en": "Enneads",
+    "original": "Ἐννεάδες I.6 [1], Περὶ τοῦ καλοῦ"
+   },
+   "agents": [
+    "plotinus"
+   ],
+   "original": "grc",
+   "grew_from": [
+    "A:W003",
+    "C:A-W020"
+   ]
+  },
+  "aristotle.poetics": {
+   "title": {
+    "ru": "Поэтика",
+    "en": "Poetics",
+    "original": "Περὶ ποιητικῆς"
+   },
+   "agents": [
+    "aristotle"
+   ],
+   "original": "grc",
+   "grew_from": [
+    "A:W002",
+    "B:D-W001",
+    "C:A-W003"
+   ]
+  }
+ }
+}

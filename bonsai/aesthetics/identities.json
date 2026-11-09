@@ -1,0 +1,42 @@
+{
+ "schema": "tos.bonsai.identities.v1",
+ "bonsai": "aesthetics",
+ "checked": {
+  "tree_revision": "2db670adcd2cd49a47d32bd15cb3ccb1f4bc3b42",
+  "date": "2026-11-09",
+  "basis": {
+   "ru": "Записи ToS/source-witnesses на этой ревизии: «resolved» — Древо уже держит эту идентичность, «to-mint» — её пришлось бы создать маршрутом владельца источника.",
+   "en": "ToS/source-witnesses records at this revision: resolved means the Tree already holds the identity; to-mint means its source-owner route would have to create it."
+  }
+ },
+ "works": {
+  "plato.symposium": {
+   "tree": "tos.work.retained-antiquity.symposium",
+   "status": "resolved"
+  },
+  "plotinus.enneads": {
+   "tree": "tos.work.retained-antiquity.enneads",
+   "status": "resolved"
+  },
+  "aristotle.poetics": {
+   "tree": "tos.work.retained-antiquity.poetics",
+   "status": "resolved"
+  }
+ },
+ "agents": {
+  "plato": {
+   "tree": "tos.agent.plato",
+   "status": "to-mint"
+  },
+  "plotinus": {
+   "tree": "tos.agent.plotinus",
+   "status": "to-mint"
+  },
+  "aristotle": {
+   "tree": "tos.agent.aristotle",
+   "status": "to-mint"
+  }
+ },
+ "places": {},
+ "situations": {}
+}
