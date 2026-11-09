@@ -136,6 +136,9 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   // A turn keeps its last speed when let go and coasts to rest; a pose heard last is not told again.
   let velocity=null,lastTurn=null,introDone=false,introPending=false,introUntil=0,turnShownUntil=0,reveal=0,heardPose='',framedOnce=false;
   let skyCos=1,skySin=0,skyPitchCos=1,skyPitchSin=0,last=0,lastFrame=0,raf=0,hover=null,playing=!reduced.matches&&!softwareRenderer,drag=null,disposed=false;
+  // While an opaque page covers the whole sky (setCovered), the sky rests as it does in a hidden tab, and comes back with
+  // a full frame when any of it shows again.
+  let covered=false;
   let frameCount=0,drawSum=0,frameSum=0;
   // Two kinds of frame. While the view, a layout, a chosen star or a name is on its way, a frame lays the names out and
   // moves the stars' buttons with the drawing. Once all of that rests, the sky alone goes on (its dust, fog and light,
@@ -494,11 +497,15 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     const dx=b.x-a.x,dy=b.y-a.y,length=Math.hypot(dx,dy);if(length<1)return;to=Math.min(to,length);if(to<=from)return;
     // A dotted link is a row of round dots, evenly spaced from end to end.
     if(pattern==='dotted'){
-      const r=Math.max(.6,ctx.lineWidth*.7),count=Math.max(1,Math.round(length/Math.max(4.6,r*6))),step=length/count;ctx.fillStyle=ctx.strokeStyle;ctx.beginPath();
+      const r=Math.max(.6,ctx.lineWidth*.7),count=Math.max(1,Math.round(length/Math.max(4.6,r*6))),step=length/count;ctx.fillStyle=ctx.strokeStyle;
+      // The GPU painter lays a row of them in one quad (gpu-canvas.js).
+      if(ctx.dots){ctx.dots(a.x,a.y,b.x,b.y,r,count,from,to);return;}
+      ctx.beginPath();
       for(let i=0;i<count;i++){const at=(i+.5)*step;if(at<from||at>to)continue;const x=a.x+dx*at/length,y=a.y+dy*at/length;ctx.moveTo(x+r,y);ctx.arc(x,y,r,0,Math.PI*2);}
       ctx.fill();return;
     }
     const [on,period]=pattern===true||pattern==='dashed'?[6,10.5]:[0,0];
+    if(on&&ctx.dashes){ctx.dashes(a.x,a.y,b.x,b.y,from,to,on,period);return;}
     ctx.beginPath();
     if(on){for(let start=0;start<to;start+=period){const begin=Math.max(start,from),end=Math.min(start+on,to);if(end<=begin)continue;ctx.moveTo(a.x+dx*begin/length,a.y+dy*begin/length);ctx.lineTo(a.x+dx*end/length,a.y+dy*end/length);}}
     else{ctx.moveTo(a.x+dx*from/length,a.y+dy*from/length);ctx.lineTo(a.x+dx*to/length,a.y+dy*to/length);}ctx.stroke();
@@ -826,7 +833,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     catch(error){raf=0;const said=String(error?.message??error);if(said!==failed){failed=said;console.error(error);}if(!still)kick();}
   }
   function drawFrame(now,still){
-    raf=0;if(disposed||(document.hidden&&!still))return;
+    raf=0;if(disposed||((document.hidden||covered)&&!still))return;
     // A chosen link's spark runs fast along it, so it keeps the pace of a moving view.
     const full=still||domDirty||domActive,sparking=!!selectedEdgeId&&playing&&!measured&&!reduced.matches;
     const frameInterval=full||sparking?motionFrame():AMBIENT_FRAME;if(!still&&lastFrame&&now-lastFrame<frameInterval){raf=requestAnimationFrame(draw);return;}lastFrame=now;
@@ -1075,7 +1082,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   }
   // `kick` is anything that changes what the frame shows; `schedule` only keeps the sky going.
   function kick(){domDirty=true;schedule();}
-  function schedule(){if(disposed||document.hidden)return;if(!raf)raf=requestAnimationFrame(draw)}
+  function schedule(){if(disposed||document.hidden||covered)return;if(!raf)raf=requestAnimationFrame(draw)}
   // The part of a segment inside the free area, and whether its end is the segment's own.
   function clipSegment(a,b){
     const r=targetViewport,dx=b.x-a.x,dy=b.y-a.y;let t0=0,t1=1;
@@ -1321,6 +1328,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   function staleStarAt(x,y){let best=null,reach=14;for(const n of nodes){if(!n.stale||n.el.hidden||!n.screen||n.el.dataset.outside==='true')continue;const d=Math.hypot(n.screen.x-x,n.screen.y-y);if(d<reach){reach=d;best=n;}}return best;}
   canvas.addEventListener('pointerleave',()=>{if(!drag){if(hoverEdge)onEdgeHover?.(null);hoverEdge=null;canvas.style.cursor='';kick();}});
   const visibility=()=>{last=0;if(document.hidden){cancelAnimationFrame(raf);raf=0}else kick()};document.addEventListener('visibilitychange',visibility);
+
   canvas.addEventListener('sophia-renderer-restored',kick);
   const ro=new ResizeObserver(resize);ro.observe(root);paintNebula();resize();
   // Labels are measured in their type; once the page's fonts are ready they are measured again.
@@ -1382,6 +1390,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     /** Light a way through the given stars, in order (null puts it out). */
     light(ids){lit=Array.isArray(ids)&&ids.length>1?[...ids]:null;kick();},
     refresh:resize,
+    setCovered(value){value=!!value;if(value===covered)return;covered=value;if(covered){cancelAnimationFrame(raf);raf=0;}else{last=0;kick();}},
     motion(value){playing=value;kick()},
     moving(){return playing;},
     dispose(){disposed=true;cancelAnimationFrame(raf);ro.disconnect();document.removeEventListener('visibilitychange',visibility);for(const target of [canvas,layer,edgeLayer,clusterLayer])target.removeEventListener('wheel',wheel);canvas.removeEventListener('sophia-renderer-restored',kick);nodes.forEach(n=>n.el.remove());edges.forEach(e=>e.el.remove());clusters.forEach(c=>c.el.remove());planes.forEach(plane=>plane.el.remove());threads.forEach(thread=>thread.el.remove());ctx.dispose?.()}
