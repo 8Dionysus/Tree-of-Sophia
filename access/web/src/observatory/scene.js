@@ -12,7 +12,7 @@ export function mountScene(root, {client,onChange=()=>{}, initialFocus,initialLe
   const q = s => root.querySelector(s);root.dataset.rendererBuild='c8d4575cf448b8707cdf55ae779d2743482a02f7348ae5e66f4972983bfe18cb';
 
   let canvas=q('.sc-sky'),ctx;
-  try {ctx=new SophiaGpuCanvas(canvas);root.dataset.renderer='three-webgl2';}
+  try {ctx=new SophiaGpuCanvas(canvas);root.dataset.renderer='webgl2';}
   catch(error) {
     const fallback=canvas.cloneNode(true);canvas.replaceWith(fallback);canvas=fallback;
     ctx=canvas.getContext('2d',{alpha:false});root.dataset.renderer='canvas-fallback';
