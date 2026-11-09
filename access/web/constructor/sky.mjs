@@ -91,7 +91,12 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     return '#'+c.map(v=>Math.round(Math.max(0,Math.min(1,1-v))*255).toString(16).padStart(2,'0')).join('');
   }
   const nightCache=new Map(),night=hex=>{let v=nightCache.get(hex);if(!v){v=nightOf(hex);nightCache.set(hex,v);}return v;};
-  const mixHex=(a,b,t)=>{if(t<=0)return a;const p=x=>[1,3,5].map(i=>parseInt(x.slice(i,i+2),16)),A=p(a),B=p(b);return '#'+A.map((v,i)=>Math.round(v+(B[i]-v)*Math.min(1,t)).toString(16).padStart(2,'0')).join('');};
+  // The day mixes every star, link and line toward its air each frame; a mix is worked out once per 1/128 of the way,
+  // finer than one step of a colour channel between any two of the scene's colours.
+  const mixes=new Map();
+  const mixHex=(a,b,t)=>{if(t<=0)return a;const step=Math.round(Math.min(1,t)*128),key=a+b+step;let mixed=mixes.get(key);if(mixed)return mixed;
+    const p=x=>[1,3,5].map(i=>parseInt(x.slice(i,i+2),16)),A=p(a),B=p(b);mixed='#'+A.map((v,i)=>Math.round(v+(B[i]-v)*step/128).toString(16).padStart(2,'0')).join('');
+    if(mixes.size>4096)mixes.clear();mixes.set(key,mixed);return mixed;};
   // The paper is a shade under white, so the noon light can stand brighter than it; washes of warm umber, lilac and
   // sage lie toward the edges as the day's coloured shadow, never round the tree.
   // The day's textures are soft, so they are kept small: they share one atlas with the night's on the GPU.
@@ -132,6 +137,24 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   let velocity=null,lastTurn=null,introDone=false,introPending=false,introUntil=0,turnShownUntil=0,reveal=0,heardPose='',framedOnce=false;
   let skyCos=1,skySin=0,skyPitchCos=1,skyPitchSin=0,last=0,lastFrame=0,raf=0,hover=null,playing=!reduced.matches&&!softwareRenderer,drag=null,disposed=false;
   let frameCount=0,drawSum=0,frameSum=0;
+  // Two kinds of frame. While the view, a layout, a chosen star or a name is on its way, a frame lays the names out and
+  // moves the stars' buttons with the drawing. Once all of that rests, the sky alone goes on (its dust, fog and light,
+  // a chosen star's orbit) and the names and buttons stand where they were laid until something changes: `kick` asks
+  // for the next full frame. A resting sky moves so slowly that a frame a vsync or three apart shows the same motion,
+  // so it is drawn less often; a moving view is drawn as often as the device keeps up with, up to the display's rate.
+  let domDirty=true,domActive=true,motionCost=10;
+  // The resting middle of the scene, kept from the last full frame (`layered`), and what turns in it with the sky's time:
+  // a chosen star's orbit, a waiting star's broken halo and a chosen link's spark, drawn over it each frame.
+  let layered=null,keptRun=null,turningStars=[],spark=null;
+  const AMBIENT_FRAME=1000/22,TOUCHED=new WeakMap();
+  // The interval between frames of a moving view, from what its frames have cost on this device.
+  const motionFrame=()=>softwareRenderer?1000/28:motionCost<=7?1000/62:motionCost<=15?1000/32:1000/22;
+  // A style or attribute is written only when it changes, so a frame that leaves a button where it was costs it nothing.
+  const put=(el,key,value)=>{let had=TOUCHED.get(el);if(!had){had={};TOUCHED.set(el,had);}if(had[key]===value)return false;had[key]=value;return true;};
+  const setStyle=(el,name,value)=>{if(put(el,name,value))el.style[name]=value;};
+  const setVar=(el,name,value)=>{if(put(el,name,value))el.style.setProperty(name,value);};
+  const setData=(el,name,value)=>{if(put(el,'data-'+name,value))el.dataset[name]=value;};
+  const setHidden=(el,value)=>{if(el.hidden!==value)el.hidden=value;};
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const makeLayer=className=>{let el=root.querySelector('.'+className);if(!el){el=document.createElement('div');el.className=className;root.append(el);}Object.assign(el.style,{position:'absolute',inset:'0',pointerEvents:'none'});return el;};
   const layer=makeLayer('tree-stars'),clusterLayer=makeLayer('tree-clusters'),edgeLayer=makeLayer('edge-labels');
@@ -234,7 +257,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
         el.addEventListener('pointerenter',()=>{hover=item.id;kick()});el.addEventListener('pointerleave',()=>{hover=null;kick()});
         el.addEventListener('focus',()=>{hover=item.id;kick()});el.addEventListener('blur',()=>{hover=null;kick()});
       }
-      n.target=[...item.position];n.kind=item.kind;n.color=item.color;n.prominent=!!item.prominent;n.dimmed=!!item.dim;n.labelSide=['left','right','above','below'].includes(item.labelSide)?item.labelSide:null;n.quiet=!!item.quiet;n.form=item.form==='proposal'||item.form==='personal'?item.form:'source';n.el.dataset.form=n.form;n.major=item.major??['work','concept','dossier','figure'].includes(item.kind);n.labelFrom=Number.isFinite(item.labelFrom)?item.labelFrom:0;
+      n.target=[...item.position];n.kind=item.kind;n.color=item.color;n.own=colorOf(n);n.prominent=!!item.prominent;n.dimmed=!!item.dim;n.labelSide=['left','right','above','below'].includes(item.labelSide)?item.labelSide:null;n.quiet=!!item.quiet;n.form=item.form==='proposal'||item.form==='personal'?item.form:'source';n.el.dataset.form=n.form;n.major=item.major??['work','concept','dossier','figure'].includes(item.kind);n.labelFrom=Number.isFinite(item.labelFrom)?item.labelFrom:0;
       n.titleText=labels[item.id]??item.title??item.id;n.subtitle=typeof item.subtitle==='string'?item.subtitle:'';
       n.labelMaxWidth=Number.isFinite(item.labelMaxWidth)?Math.max(80,Math.min(320,item.labelMaxWidth)):null;n.labelLines=item.labelLines===2?2:1;
       const clampStyle={whiteSpace:n.labelLines>1?'normal':'',display:n.labelLines>1?'-webkit-box':'',webkitBoxOrient:n.labelLines>1?'vertical':'',webkitLineClamp:n.labelLines>1?String(n.labelLines):''};
@@ -384,7 +407,6 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(layer===2){const haze=17+size*8;ctx.drawImage(sprite(color),px-haze/2,py-haze/2,haze,haze);ctx.globalAlpha=alpha*.7;ctx.beginPath();ctx.arc(px,py,size*.62,0,Math.PI*2);ctx.fill()}
       else{ctx.fillRect(px-size/2,py-size/2,size,size);if(s.flare||size>1.5){const glow=12+size*5+flare*17;ctx.globalAlpha=alpha*.6;ctx.drawImage(sprite(color),px-glow/2,py-glow/2,glow,glow)}}
       if(s.flare&&flare>.25&&layer!==0){ctx.globalAlpha=alpha*flare*.52;const ray=3+flare*7;ctx.lineWidth=.6;ctx.strokeStyle=color;ctx.beginPath();ctx.moveTo(px-ray,py);ctx.lineTo(px+ray,py);ctx.moveTo(px,py-ray);ctx.lineTo(px,py+ray);ctx.stroke()}
-      if(i===25)root.dataset.starProbe=[px.toFixed(2),py.toFixed(2),alpha.toFixed(3)].join(',');
     }
     ctx.globalAlpha=1;
   }
@@ -643,14 +665,14 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     // first, their links' names next, and only then do the other names look for the room that is left.
     const priority=n=>n.id===selectedId?100:kept.has(n.id)?95:n.id===hover?90:n.prominent?80:near.has(n.id)?70:n.major?50:10;
     const showLabel=(n,chosen,short,full=false)=>{
-      const {x,y}=n.screen;n.el.dataset.short=String(short);const visible=!!chosen&&!n.el.hidden;
+      const {x,y}=n.screen;setData(n.el,'short',String(short));const visible=!!chosen&&!n.el.hidden;
       // A whole name wraps over up to three lines; another keeps its own clamp.
       if(full!==n.fullShown){n.fullShown=full;const target=n.subtitle&&n.titleEl?n.titleEl:n.label;Object.assign(target.style,full?{whiteSpace:'normal',display:'-webkit-box',webkitBoxOrient:'vertical',webkitLineClamp:'3',overflow:'hidden'}:{...n.clampStyle,overflow:'',...(n.subtitle&&n.titleEl?{display:n.labelLines>1?'-webkit-box':'block',overflow:'hidden'}:{})});}
-      n.labelBox=visible?chosen:null;n.el.dataset.quiet=String(!visible);n.label.style.opacity=visible?'1':'0';n.label.style.pointerEvents=visible?'auto':'none';
+      n.labelBox=visible?chosen:null;setData(n.el,'quiet',String(!visible));setStyle(n.label,'opacity',visible?'1':'0');setStyle(n.label,'pointerEvents',visible?'auto':'none');
       // A name already standing slides to its new side; a name coming into view takes its place before it shows.
-      if(chosen){const glide=!!n.labelShown&&visible&&!instant;if(glide!==n.labelGlide){n.labelGlide=glide;n.label.style.transition=glide?GLIDE:'';}}
+      if(chosen){const glide=!!n.labelShown&&visible&&!instant;if(glide!==n.labelGlide){n.labelGlide=glide;setStyle(n.label,'transition',glide?GLIDE:'');}}
       n.labelShown=visible;n.labelSeen=true;if(visible){n.labelSideNow=chosen.side??null;n.wantSince=null;}
-      if(chosen){const fit=chosen.right-chosen.left;Object.assign(n.label.style,{left:(chosen.left-x+22)+'px',top:(chosen.top-y+22)+'px',bottom:'auto',transform:'none',width:fit+'px',maxWidth:fit+'px',minWidth:'0'});if(visible)occupied.push(chosen);}
+      if(chosen){const fit=chosen.right-chosen.left,style=n.label;setStyle(style,'left',(chosen.left-x+22)+'px');setStyle(style,'top',(chosen.top-y+22)+'px');setStyle(style,'bottom','auto');setStyle(style,'transform','none');setStyle(style,'width',fit+'px');setStyle(style,'maxWidth',fit+'px');setStyle(style,'minWidth','0');if(visible)occupied.push(chosen);}
     };
     // Below, above, right and left of the star, and further out for a name that must be shown.
     // A star in an aspect's row names itself on its outer side first, the chosen star above itself.
@@ -665,7 +687,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       return [below,above,right,left,...narrowRight,...narrowLeft];
     };
     const visibleEdges=new Set();
-    const showEdge=(e,chosen,compact,hot)=>{visibleEdges.add(e.id);e.el.dataset.active=String(hot);e.el.dataset.kind=e.kind;e.el.dataset.compact=String(compact);e.el.style.setProperty('--edge-color',e.color);e.el.style.color=e.color;e.el.style.width=(compact?e.compactWidth:e.labelWidth)+'px';e.el.style.transform=`translate3d(${chosen.left.toFixed(2)}px,${chosen.top.toFixed(2)}px,0)`;if(nativeTitles)e.el.title=e.el.getAttribute('aria-label');occupied.push(chosen);};
+    const showEdge=(e,chosen,compact,hot)=>{visibleEdges.add(e.id);setData(e.el,'active',String(hot));setData(e.el,'kind',e.kind);setData(e.el,'compact',String(compact));setVar(e.el,'--edge-color',e.color);setStyle(e.el,'color',e.color);setStyle(e.el,'width',(compact?e.compactWidth:e.labelWidth)+'px');setStyle(e.el,'transform',`translate3d(${chosen.left.toFixed(2)}px,${chosen.top.toFixed(2)}px,0)`);if(nativeTitles){const title=e.el.getAttribute('aria-label');if(e.el.title!==title)e.el.title=title;}occupied.push(chosen);};
     // Within its rank a name already standing goes first, so that it keeps its room.
     // Among equals the nearer star names itself first.
     const rank=n=>priority(n)+(n.labelShown?4:0),ordered=[...nodes].sort((a,b)=>rank(b)-rank(a)||(b.screen?.d??1)-(a.screen?.d??1));
@@ -783,10 +805,10 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(!chosen&&hot&&e.tag&&e.compactWidth){const area=box((a.x+b.x)/2-e.compactWidth/2,(a.y+b.y)/2-e.compactHeight/2,e.compactWidth,e.compactHeight);if(inView(area)&&!uiObstacles.some(o=>overlaps(area,o)))[chosen,compact]=[area,true];}
       if(!chosen)continue;
       // A hovered link's name may cover another name, never a kept one.
-      if(hot)for(const n of nodes)if(n.labelBox&&!kept.has(n.id)&&overlaps(chosen,n.labelBox)){n.labelBox=null;n.labelShown=false;n.el.dataset.quiet='true';n.label.style.opacity='0';n.label.style.pointerEvents='none';}
+      if(hot)for(const n of nodes)if(n.labelBox&&!kept.has(n.id)&&overlaps(chosen,n.labelBox)){n.labelBox=null;n.labelShown=false;setData(n.el,'quiet','true');setStyle(n.label,'opacity','0');setStyle(n.label,'pointerEvents','none');}
       showEdge(e,chosen,compact,hot);shown++;
     }
-    for(const e of edges)e.el.hidden=!visibleEdges.has(e.id);
+    for(const e of edges)setHidden(e.el,!visibleEdges.has(e.id));
     return occupied;
   }
 
@@ -798,7 +820,10 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   }
   function drawFrame(now,still){
     raf=0;if(disposed||(document.hidden&&!still))return;
-    const frameInterval=softwareRenderer?1000/28:1000/36;if(!still&&lastFrame&&now-lastFrame<frameInterval){raf=requestAnimationFrame(draw);return;}lastFrame=now;
+    // A chosen link's spark runs fast along it, so it keeps the pace of a moving view.
+    const full=still||domDirty||domActive,sparking=!!selectedEdgeId&&playing&&!measured&&!reduced.matches;
+    const frameInterval=full||sparking?motionFrame():AMBIENT_FRAME;if(!still&&lastFrame&&now-lastFrame<frameInterval){raf=requestAnimationFrame(draw);return;}lastFrame=now;
+    const domFrame=full;domDirty=false;let shifted=false;
     const started=performance.now(),elapsed=last?(now-last)/1000:1/60,dt=Math.min(elapsed,.05),ease=(reduced.matches||still)?1:1-Math.exp(-dt*5);last=now;
     if(playing&&!still)skyTime+=dt*.60;
     if(velocity&&!drag&&!still&&!nodes.some(n=>n.turningView)){
@@ -812,8 +837,12 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     turnFit();
     const turnEase=now<introUntil&&!drag?1-Math.exp(-dt*1.5):ease;
     yaw+=(tyaw-yaw)*turnEase;pitch+=(tpitch-pitch)*turnEase;zoom+=(tzoom-zoom)*ease;pan.x+=(tpan.x-pan.x)*ease;pan.y+=(tpan.y-pan.y)*ease;
+    // A view that has all but come to rest stands exactly at rest (a few hundredths of a point away), so the names and
+    // buttons laid for it stay true to the drawing while the sky goes on alone.
+    if(!drag&&!velocity&&now>=introUntil&&Math.abs(yaw-tyaw)+Math.abs(pitch-tpitch)+Math.abs(zoom-tzoom)<.0006&&Math.abs(pan.x-tpan.x)+Math.abs(pan.y-tpan.y)<.06){yaw=tyaw;pitch=tpitch;zoom=tzoom;pan.x=tpan.x;pan.y=tpan.y;}
+    const resting=yaw===tyaw&&pitch===tpitch&&zoom===tzoom&&pan.x===tpan.x&&pan.y===tpan.y;
     let layoutMoving=false;
-    const approach=(current,target)=>{if(Math.abs(current-target)>.015)layoutMoving=true;return Math.abs(current-target)<.002?target:current+(target-current)*ease;};
+    const approach=(current,target)=>{if(Math.abs(current-target)>.015)layoutMoving=true;const next=Math.abs(current-target)<.002?target:current+(target-current)*ease;if(next!==current)shifted=true;return next;};
     center=center.map((v,i)=>approach(v,targetCenter[i]));fitScale=approach(fitScale,targetFit);stretchY=approach(stretchY,tstretchY);
     // A measured scale pans no further than its own overhang at the zoom it is heading to.
     if(measured){
@@ -832,6 +861,11 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     // The night's nebula is the night's own; turned over for the day it would lie on the paper as a cold stain.
     if(daylight())paintDay();else ctx.drawImage(nebula,0,0,w,h);
     const count=Math.round(dust.length*design.density);paintStars(0,count);paintFog(fogBack,.2,.85);paintStars(1,count);paintFog(fogFront,2.4,.46);
+    // On a frame of the sky alone the middle of the scene (the ground's shade, the planes, lines, links and stars) is laid
+    // again as the last full frame drew it; a full frame draws it and keeps it.
+    keptRun=null;
+    if(domFrame||!ctx.replay?.(layered)){
+    const keptFrom=ctx.mark?.();turningStars=[];spark=null;
     nodes.forEach(n=>n.screen=project(n.p));
     paintShade();
     if(revealId&&!drag)revealPending();
@@ -931,12 +965,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
           const length=Math.hypot(b.x-a.x,b.y-a.y);if(!longest||length>longest.length)longest={a,b,length};
         }
         // While a link stays chosen, a spark runs along it now and then, from its source to its target.
-        if(edge.id===selectedEdgeId&&playing&&!settle&&!measured){
-          const t=(now/1000%3.6)/1.5;
-          if(t<1){const total=routeLength(path),at=pointAlong(path,total*t*t*(3-2*t)),shine=Math.sin(Math.PI*t),spark=!daylight()&&/^#[0-9a-f]{6}$/i.test(edge.color)?mixHex(edge.color,'#ffffff',.78):edge.color;
-            ctx.fillStyle=spark;ctx.globalAlpha=level(1)*.3*shine;ctx.beginPath();ctx.arc(at.x,at.y,4.4,0,Math.PI*2);ctx.fill();
-            ctx.globalAlpha=Math.min(1,level(1)*1.15)*shine;ctx.beginPath();ctx.arc(at.x,at.y,2,0,Math.PI*2);ctx.fill();}
-        }
+        if(edge.id===selectedEdgeId&&playing&&!settle&&!measured)spark={path,total:routeLength(path),light:level(1),color:!daylight()&&/^#[0-9a-f]{6}$/i.test(edge.color)?mixHex(edge.color,'#ffffff',.78):edge.color};
       }
       if(longest)edgeHits.push({id:edge.id,a:longest.a,b:longest.b});
     }
@@ -952,27 +981,30 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     // A thread grows out of its star and fades into the dark; its door sits where it fades.
     for(const thread of threads){
       const from=byId.get(thread.from);thread.grown+=(1-thread.grown)*(1-Math.exp(-dt*4));
-      if(!from||from.el.hidden){thread.el.hidden=true;continue;}
+      if(!from||from.el.hidden){if(domFrame)setHidden(thread.el,true);continue;}
       const a=from.screen,ahead=project([from.p[0]+thread.direction[0]*60,from.p[1]+thread.direction[1]*60,from.p[2]]);
-      let dx=ahead.x-a.x,dy=ahead.y-a.y;const length=Math.hypot(dx,dy);if(length<.5){thread.el.hidden=true;continue;}dx/=length;dy/=length;
+      let dx=ahead.x-a.x,dy=ahead.y-a.y;const length=Math.hypot(dx,dy);if(length<.5){if(domFrame)setHidden(thread.el,true);continue;}dx/=length;dy/=length;
       const start=11,reach=start+68*thread.grown,steps=6;ctx.strokeStyle=thread.color;ctx.lineWidth=1.1;
       for(let i=0;i<steps;i++){const t0=start+(reach-start)*i/steps,t1=start+(reach-start)*(i+1)/steps;ctx.globalAlpha=.62*(1-i/steps)*thread.grown;ctx.beginPath();ctx.moveTo(a.x+dx*t0,a.y+dy*t0);ctx.lineTo(a.x+dx*t1,a.y+dy*t1);ctx.stroke();}
       const ex=a.x+dx*(reach+7),ey=a.y+dy*(reach+7);ctx.globalAlpha=.55*thread.grown;ctx.fillStyle=thread.color;ctx.beginPath();ctx.arc(ex,ey,1.8,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
-      thread.el.hidden=!inView(box(ex-4,ey-4,8,8));thread.el.style.transform=`translate3d(${(ex-12).toFixed(2)}px,${(ey-12).toFixed(2)}px,0)`;
+      if(domFrame){setHidden(thread.el,!inView(box(ex-4,ey-4,8,8)));setStyle(thread.el,'transform',`translate3d(${(ex-12).toFixed(2)}px,${(ey-12).toFixed(2)}px,0)`);}
       if(thread.grown<.995)layoutMoving=true;
     }
+    const journey=root.dataset.journey==='true',day=!!daylight(),dayAir=day?night('#B3B6C4'):'',vl=targetViewport.left,vr=targetViewport.right,vt=targetViewport.top,vb=targetViewport.bottom;
+    // A star's point lies inside the free area (as the box of ten points round it does).
+    const pointInView=p=>p.x-5>=vl&&p.x+5<=vr&&p.y-5>=vt&&p.y+5<=vb;
     nodes.forEach(n=>{
-      const p=n.screen,hot=n.id===selectedId||n.id===hover||(holdToMove>0&&n.dragging),own=colorOf(n),big=n.major,dim=(focused&&root.dataset.journey!=='true'&&!near.has(n.id)&&!kept.has(n.id)||n.dimmed)&&!hot,radius=starRadius(n),warm=n.warm??(hot?1:0);
-      const near01=depthCue&&!measured?clamp((p.d-.86)/.3,0,1):1,fade=hot?1:daylight()?.3+.7*near01:.5+.5*near01;
-      const color=daylight()&&!hot&&near01<1?mixHex(own,night('#B3B6C4'),(1-near01)*.6):own;
+      const p=n.screen,hot=n.id===selectedId||n.id===hover||(holdToMove>0&&n.dragging),own=n.own,big=n.major,dim=(focused&&!journey&&!near.has(n.id)&&!kept.has(n.id)||n.dimmed)&&!hot,radius=starRadius(n),warm=n.warm??(hot?1:0);
+      const near01=depthCue&&!measured?clamp((p.d-.86)/.3,0,1):1,fade=hot?1:day?.3+.7*near01:.5+.5*near01;
+      const color=day&&!hot&&near01<1?mixHex(own,dayAir,(1-near01)*.6):own;
       // A measured layout draws only the stars inside its free area; every star still keeps its type, so its label is measured right.
-      if(n.el.dataset.major!==String(!!big)){n.el.dataset.major=String(!!big);measureLabels=true;}
-      if(measured&&!inView(box(p.x-5,p.y-5,10,10))){n.el.hidden=true;return;}
+      if(domFrame&&setData(n.el,'major',String(!!big)))measureLabels=true;
+      if(measured&&!pointInView(p)){if(domFrame)setHidden(n.el,true);return;}
       // On a light page a star's glow turns to a shadow, so there it keeps only a trace of it and its ink stays clear.
       const away=!kept.has(n.id)&&!hot?focusMix:0,starAlpha=(dim?.28:hot?1:.9)*fade*(1-.86*away),glow=((big?86:46)+(125-(big?86:46))*warm)*Math.max(.65,Math.min(1.4,p.s));
       // On a light page the glow turns to a shadow: the light falls from above, so a near star casts its shadow
       // below and aside and stands over the page; a far one lies flat in the air.
-      if(daylight()){const lift=hot?1:near01,size=glow*.5,dx=1.5+4.5*lift,dy=2.5+7*lift;ctx.globalAlpha=starAlpha*(hot?.55:.06+.32*lift*lift);ctx.drawImage(dayShadow,p.x+dx-size/2,p.y+dy-size/2,size,size);}
+      if(day){const lift=hot?1:near01,size=glow*.5,dx=1.5+4.5*lift,dy=2.5+7*lift;ctx.globalAlpha=starAlpha*(hot?.55:.06+.32*lift*lift);ctx.drawImage(dayShadow,p.x+dx-size/2,p.y+dy-size/2,size,size);}
       else{ctx.globalAlpha=starAlpha;ctx.drawImage(sprite(color),p.x-glow/2,p.y-glow/2,glow,glow);}
       ctx.globalAlpha=starAlpha;
       // A source is a disc; an authored proposal a ring; a personal record a broken ring.
@@ -982,26 +1014,29 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       // back keeps only its point.
       const restRay=big?12:6.5,restLight=dim?.12:big?.52:.34,ray=restRay+(19-restRay)*warm,rayAlpha=(restLight+(.92-restLight)*warm)*(1-.9*away);
       if(rayAlpha>.03&&!(dim&&!big)){ctx.strokeStyle=color;const from=(radius+.6)/ray;
-        for(const [start,end,fade,width] of RAY_STEPS){const a=Math.max(start,from);if(a>=end)continue;ctx.globalAlpha=rayAlpha*fade;ctx.lineWidth=width*(1+.2*warm);ctx.beginPath();for(const [ux,uy] of RAY_DIRS){ctx.moveTo(p.x+ux*ray*a,p.y+uy*ray*a);ctx.lineTo(p.x+ux*ray*end,p.y+uy*ray*end);}ctx.stroke();}}
+        for(let k=0;k<RAY_STEPS.length;k++){const step=RAY_STEPS[k],end=step[1],a=Math.max(step[0],from);if(a>=end)continue;ctx.globalAlpha=rayAlpha*step[2];ctx.lineWidth=step[3]*(1+.2*warm);ctx.beginPath();for(let d=0;d<4;d++){const ux=RAY_DIRS[d][0],uy=RAY_DIRS[d][1];ctx.moveTo(p.x+ux*ray*a,p.y+uy*ray*a);ctx.lineTo(p.x+ux*ray*end,p.y+uy*ray*end);}ctx.stroke();}}
       // A chosen star is ringed by a halo of its own colour and a faint orbit beyond it. The halo opens out from the star
       // as it is chosen and the orbit follows a moment later, turning slowly while the star stays chosen. The star a link
       // is being drawn from keeps its halo broken and turning, waiting for the other end.
+      // What of it turns with the sky's time is drawn over the scene (paintTurning).
       const halo=n.halo??0,orbit=n.orbit??0;
       if(halo>.01||orbit>.01){
-        const open=1-Math.pow(1-halo,3),wide=1-Math.pow(1-orbit,3),waiting=n.id===linkFrom&&n.id!==selectedId,turn=playing&&!reduced.matches?skyTime*(waiting?.5:.12):0;ctx.strokeStyle=color;
-        if(halo>.01){ctx.lineWidth=1.1;ctx.globalAlpha=.8*halo;circle(p.x,p.y,radius+2+4.5*open,40,waiting,turn);}
-        if(orbit>.01){ctx.lineWidth=.75;ctx.globalAlpha=.3*orbit;circle(p.x,p.y,radius+7+4.5*wide,56,true,turn);}
+        const open=1-Math.pow(1-halo,3),waiting=n.id===linkFrom&&n.id!==selectedId;
+        if(halo>.01&&!waiting){ctx.strokeStyle=color;ctx.lineWidth=1.1;ctx.globalAlpha=.8*halo;circle(p.x,p.y,radius+2+4.5*open,40,false);}
+        turningStars.push({x:p.x,y:p.y,color,radius,halo:waiting?halo:0,open,orbit,waiting});
       }
-      n.el.style.transform=`translate3d(${(p.x-22).toFixed(2)}px,${(p.y-22).toFixed(2)}px,0)`;
+      // The star's button follows it only on a full frame; on a frame of the sky alone it stands where it was laid.
+      if(!domFrame)return;
+      setStyle(n.el,'transform',`translate3d(${(p.x-22).toFixed(2)}px,${(p.y-22).toFixed(2)}px,0)`);
       // The nearer star lies over the farther, so that the pointer reaches the star it is over, and the chosen one over all.
       const layer=String(hot?3000:100+Math.round(clamp(p.d,0,2.4)*400));if(n.el.dataset.layer!==layer){n.el.dataset.layer=layer;n.el.style.zIndex=layer;}
       const outside=String(away>.5);if(n.el.dataset.outside!==outside){n.el.dataset.outside=outside;n.el.tabIndex=away>.5?-1:0;}
-      n.el.dataset.active=String(n.id===selectedId);n.el.dataset.prominent=String(n.prominent);n.el.dataset.dim=String(dim);n.el.style.opacity=dim?'.35':fade<1?(.62+.38*near01).toFixed(2):'1';n.el.setAttribute('aria-pressed',String(n.id===selectedId));n.el.style.setProperty('--star-color',color);
-      n.el.hidden=!inView(box(p.x-5,p.y-5,10,10));
+      const active=String(n.id===selectedId);setData(n.el,'active',active);setData(n.el,'prominent',String(n.prominent));setData(n.el,'dim',String(dim));setStyle(n.el,'opacity',dim?'.35':fade<1?(.62+.38*near01).toFixed(2):'1');if(put(n.el,'aria-pressed',active))n.el.setAttribute('aria-pressed',active);setVar(n.el,'--star-color',color);
+      setHidden(n.el,!pointInView(p));
     });
-    const taken=labelsForScene(near,focusEdges,kept,keptEdges,now,dt,still||reduced.matches);if(labelsSettling)layoutMoving=true;
+    const taken=domFrame?labelsForScene(near,focusEdges,kept,keptEdges,now,dt,still||reduced.matches):null;if(domFrame&&labelsSettling)layoutMoving=true;
     // A plane's name keeps to one of its corners or edges where no other name stands.
-    for(const plane of planes){
+    if(domFrame)for(const plane of planes){
       if(reveal<.05||!plane.el.textContent||!plane.corners){plane.el.hidden=true;continue;}
       if(plane.measuredText!==plane.el.textContent){ng.font='600 9px system-ui, sans-serif';plane.measuredText=plane.el.textContent;plane.textWidth=Math.ceil(ng.measureText(plane.measuredText.toLocaleUpperCase()).width+plane.measuredText.length*2+4);}
       const [tl,tr,br,bl]=plane.corners,width=plane.textWidth,height=12;
@@ -1010,15 +1045,26 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       plane.el.hidden=!chosen;
       if(chosen){taken.push(chosen);plane.el.style.opacity=(.8*reveal).toFixed(3);plane.el.style.transform=`translate3d(${chosen.left.toFixed(2)}px,${chosen.top.toFixed(2)}px,0)`;}
     }
+    keptRun=keptFrom==null?null:[keptFrom,ctx.mark()];
+    }
+    paintTurning(now);
     paintStars(2,count);ctx.globalAlpha=1;ctx.endFrame?.();
-    frameCount++;drawSum+=performance.now()-started;frameSum+=elapsed*1000;
+    const spent=performance.now()-started;frameCount++;drawSum+=spent;frameSum+=elapsed*1000;
+    // What a full frame costs here decides how often a moving view is drawn.
+    if(domFrame&&!still)motionCost+=(spent-motionCost)*.15;
     if(frameCount%90===0){root.dataset.drawMs=(drawSum/90).toFixed(2);root.dataset.frameMs=(frameSum/90).toFixed(2);root.dataset.frames=String(frameCount);drawSum=frameSum=0;}
-    root.dataset.camera=[yaw,pitch,zoom,pan.x,pan.y].map(x=>x.toFixed(3)).join(',');
+    const camera=[yaw,pitch,zoom,pan.x,pan.y].map(x=>x.toFixed(3)).join(',');if(root.dataset.camera!==camera)root.dataset.camera=camera;
     if(onPose){const heard=`${yaw.toFixed(3)},${pitch.toFixed(3)},${!!measured}`;if(heard!==heardPose){heardPose=heard;onPose({yaw,pitch,restYaw,restPitch,measured:!!measured});}}
     const unsettled=Math.abs(yaw-tyaw)+Math.abs(pitch-tpitch)+Math.abs(zoom-tzoom)+Math.abs(pan.x-tpan.x)+Math.abs(pan.y-tpan.y)>.005;
-    if(!still&&(playing||unsettled||layoutMoving||drag||velocity||reveal>0||litGlow!==(lit?1:0)))kick();else last=0;
+    // The next frame is a full one while anything but the sky itself is still on its way.
+    domActive=domFrame&&(!resting||shifted||layoutMoving||!!drag||!!velocity||reveal>0||litGlow!==(lit?1:0)||now<introUntil||now<turnShownUntil||nodes.some(n=>n.dragging||n.turningView));
+    // The middle of a frame after which only the sky moves is kept, to be laid again until something changes.
+    if(keptRun)layered=domActive?null:ctx.keep(...keptRun);
+    if(!still&&(playing||unsettled||layoutMoving||drag||velocity||reveal>0||litGlow!==(lit?1:0)))schedule();else last=0;
   }
-  function kick(){if(disposed||document.hidden)return;if(!raf)raf=requestAnimationFrame(draw)}
+  // `kick` is anything that changes what the frame shows; `schedule` only keeps the sky going.
+  function kick(){domDirty=true;schedule();}
+  function schedule(){if(disposed||document.hidden)return;if(!raf)raf=requestAnimationFrame(draw)}
   // The part of a segment inside the free area, and whether its end is the segment's own.
   function clipSegment(a,b){
     const r=targetViewport,dx=b.x-a.x,dy=b.y-a.y;let t0=0,t1=1;
@@ -1028,6 +1074,23 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     }
     return [{...a,x:a.x+dx*t0,y:a.y+dy*t0},{...b,x:a.x+dx*t1,y:a.y+dy*t1},t1>=1];
   }
+  // A chosen star's orbit turns slowly while it stays chosen; the star a link is being drawn from keeps its halo broken and
+  // turning, waiting for the other end; while a link stays chosen, a spark runs along it now and then, from its source
+  // to its target.
+  function paintTurning(now){
+    for(const t of turningStars){
+      const turn=playing&&!reduced.matches?skyTime*(t.waiting?.5:.12):0;ctx.strokeStyle=t.color;
+      if(t.halo>.01){ctx.lineWidth=1.1;ctx.globalAlpha=.8*t.halo;circle(t.x,t.y,t.radius+2+4.5*t.open,40,true,turn);}
+      if(t.orbit>.01){const wide=1-Math.pow(1-t.orbit,3);ctx.lineWidth=.75;ctx.globalAlpha=.3*t.orbit;circle(t.x,t.y,t.radius+7+4.5*wide,56,true,turn);}
+    }
+    if(spark){
+      const t=(now/1000%3.6)/1.5;
+      if(t<1){const at=pointAlong(spark.path,spark.total*t*t*(3-2*t)),shine=Math.sin(Math.PI*t);
+        ctx.fillStyle=spark.color;ctx.globalAlpha=spark.light*.3*shine;ctx.beginPath();ctx.arc(at.x,at.y,4.4,0,Math.PI*2);ctx.fill();
+        ctx.globalAlpha=Math.min(1,spark.light*1.15)*shine;ctx.beginPath();ctx.arc(at.x,at.y,2,0,Math.PI*2);ctx.fill();}
+    }
+    ctx.globalAlpha=1;
+  }
   // Both renderers fill full discs and stroke straight segments, so a ring is a dark core under a polygon outline.
   function ring(x,y,r,color,broken,hot){
     const alpha=ctx.globalAlpha;ctx.fillStyle='#050b16';ctx.globalAlpha=Math.min(1,alpha+.2);ctx.beginPath();ctx.arc(x,y,Math.max(1.2,r-1),0,Math.PI*2);ctx.fill();ctx.globalAlpha=alpha;
@@ -1035,10 +1098,13 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   }
   // A circle stroked as a polygon fine enough to read round (both renderers stroke only straight segments); a broken
   // one keeps every other side.
+  // The corners of a polygon of each fineness are worked out once; a turned one is turned by its phase.
+  const corners=new Map(),cornersOf=steps=>{let list=corners.get(steps);if(!list){list=new Float64Array(2*(steps+1));for(let i=0;i<=steps;i++){const a=i/steps*Math.PI*2;list[2*i]=Math.cos(a);list[2*i+1]=Math.sin(a);}corners.set(steps,list);}return list;};
   function circle(x,y,r,steps,broken=false,phase=0){
+    const list=cornersOf(steps),c=broken&&phase?Math.cos(phase):1,s=broken&&phase?Math.sin(phase):0,at=i=>[x+(list[2*i]*c-list[2*i+1]*s)*r,y+(list[2*i+1]*c+list[2*i]*s)*r];
     ctx.beginPath();
-    if(broken)for(let i=0;i<steps;i+=2){const a=i/steps*Math.PI*2+phase,b=(i+1)/steps*Math.PI*2+phase;ctx.moveTo(x+Math.cos(a)*r,y+Math.sin(a)*r);ctx.lineTo(x+Math.cos(b)*r,y+Math.sin(b)*r);}
-    else{ctx.moveTo(x+r,y);for(let i=1;i<=steps;i++){const a=i/steps*Math.PI*2;ctx.lineTo(x+Math.cos(a)*r,y+Math.sin(a)*r);}}
+    if(broken)for(let i=0;i<steps;i+=2){const a=at(i),b=at(i+1);ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);}
+    else{ctx.moveTo(x+r,y);for(let i=1;i<=steps;i++)ctx.lineTo(x+list[2*i]*r,y+list[2*i+1]*r);}
     ctx.stroke();
   }
   // Where a star comes to rest once the camera and layout settle.

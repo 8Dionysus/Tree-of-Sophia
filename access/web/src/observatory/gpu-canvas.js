@@ -75,8 +75,12 @@ void main() {
 }`;
 
 const colorCache = new Map();
+// Quads in a row mostly share their colour: the last one is at hand without a lookup.
+let lastColor='',lastRgba=null;
 function color(value) {
-  if (colorCache.has(value)) return colorCache.get(value);
+  if (value===lastColor) return lastRgba;
+  const known=colorCache.get(value);
+  if (known) {lastColor=value;lastRgba=known;return known;}
   const h=value.replace('#','');
   if (![3,4,6,8].includes(h.length) || !/^[a-f0-9]+$/i.test(h)) throw new Error('Unsupported scene color: '+value);
   const full=h.length<5?[...h].map(c=>c+c).join(''):h;
@@ -182,9 +186,12 @@ export class SophiaGpuCanvas {
     this.geometry.setDrawRange(0,this.used);
     this.buffer.clearUpdateRanges();this.buffer.addUpdateRange(0,this.used*STRIDE);this.buffer.needsUpdate=true;
     this.renderer.render(this.scene,this.camera);
-    this.canvas.dataset.drawCalls=String(this.renderer.info.render.calls);
-    this.canvas.dataset.gpuVertices=String(this.used);
-    this.canvas.dataset.gpuTextures=String(this.renderer.info.memory.textures);
+    // The counts are told every thirtieth frame: an attribute written each frame is a page mutation each frame.
+    if((this.frames=(this.frames||0)+1)%30===1){
+      this.canvas.dataset.drawCalls=String(this.renderer.info.render.calls);
+      this.canvas.dataset.gpuVertices=String(this.used);
+      this.canvas.dataset.gpuTextures=String(this.renderer.info.memory.textures);
+    }
   }
   quad(points,locals,shape,style,alpha=this.globalAlpha) {
     if(this.used+6>this.capacity)this.allocate(this.capacity*2);
@@ -205,6 +212,27 @@ export class SophiaGpuCanvas {
       this.data[offset+8]=shape[0];this.data[offset+9]=shape[1];this.data[offset+10]=shape[2];
     }
   }
+  // A run of a frame's quads can be kept and laid again, unchanged, into a later frame: the part of a scene that rests
+  // while the sky around it moves. What is kept refers to the atlas as it stood, so a reset atlas or a new size of the
+  // canvas lets it go and the scene is drawn whole again.
+  mark() {return this.used;}
+  keep(from,to=this.used) {
+    const count=to-from;if(count<0||to>this.used)return null;
+    if(!this.kept||this.kept.length<count*STRIDE)this.kept=new Float32Array(Math.max(count,1024)*STRIDE*1.25|0);
+    this.kept.set(this.data.subarray(from*STRIDE,to*STRIDE));
+    const groups=[];for(const g of this.groups){const start=Math.max(g.start,from),end=Math.min(g.start+g.count,to);if(end>start)groups.push({start:start-from,count:end-start,material:g.material});}
+    return {count,groups,epoch:this.atlasEpoch|0,width:this.canvas.width,height:this.canvas.height,data:this.kept};
+  }
+  replay(kept) {
+    if(!kept||kept.data!==this.kept||kept.epoch!==(this.atlasEpoch|0)||kept.width!==this.canvas.width||kept.height!==this.canvas.height)return false;
+    while(this.used+kept.count>this.capacity)this.allocate(this.capacity*2);
+    this.data.set(this.kept.subarray(0,kept.count*STRIDE),this.used*STRIDE);
+    for(const g of kept.groups){
+      const start=this.used+g.start,last=this.groups.at(-1);
+      if(last&&last.material===g.material&&last.start+last.count===start)last.count+=g.count;else this.groups.push({start,count:g.count,material:g.material});
+    }
+    this.used+=kept.count;return true;
+  }
   // The atlas packs images on shelves as they are first drawn. When it is full, the image waits and the next frame starts
   // the atlas over with only the images it draws, so a scene that changes its images (a theme, a lens) never runs out.
   atlasEntry(image) {
@@ -219,7 +247,7 @@ export class SophiaGpuCanvas {
   }
   clearAtlas() {
     this.images.clear();this.atlasContext.clearRect(0,0,2048,2048);
-    this.shelfX=2;this.shelfY=2;this.shelfHeight=0;this.atlasFull=false;this.atlasTexture.needsUpdate=true;
+    this.shelfX=2;this.shelfY=2;this.shelfHeight=0;this.atlasFull=false;this.atlasTexture.needsUpdate=true;this.atlasEpoch=(this.atlasEpoch|0)+1;
     this.canvas.dataset.atlasResets=String((Number(this.canvas.dataset.atlasResets)||0)+1);
   }
   invalidateImage(image) {

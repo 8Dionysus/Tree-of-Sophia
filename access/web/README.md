@@ -148,6 +148,18 @@ The scene uses Canvas2D when only a software WebGL renderer is available;
 the same graph and actions remain available. Browser-local graph exports and
 the complete research transfer preserve personal work without source admission.
 
+The sky ([`sky.mjs`](constructor/sky.mjs)) draws two kinds of frame. While the
+view, a layout, a chosen star or a name is on its way, a full frame lays out
+the names and moves the stars' buttons with the drawing, as often as the
+device's own frame cost allows, up to the display's rate. Once only the sky
+moves (its dust, fog and light, a chosen star's orbit, a chosen link's spark),
+the resting middle of the scene is laid again as the last full frame drew it,
+the names and buttons stay where they stand, and the sky goes on at about
+twenty frames a second. Every style and attribute is written only when it
+changes. Panels whose ground is at least 93% opaque carry the same ground made
+opaque in place of a backdrop blur: the picture stays the same, and the moving
+sky behind them is composited once per frame.
+
 The complete research export contains saved notebook, workspace, shelf and graph
 records. An open thought form has its own guarded export/import. The temporary
 exact-source basket survives profile changes in the same tab; saving a thought
