@@ -20,7 +20,7 @@
 :root[data-site-theme="noon"] #tree .tree-star span{text-shadow:0 0 2px #f4efe4,0 0 5px #f4efe4,0 0 9px #f4efe4d0}
 /* A group's name clears the stars behind it with a glow of the page itself: the night's dark veil on the night, the
    page's own ground on a light page. */
-:root[data-site-theme="noon"] #tree .tree-cluster.tree-cluster:not([data-variant])::before{background:radial-gradient(closest-side,#f4efe4ec 55%,#f4efe400)}
+:root[data-site-theme="noon"] #tree .tree-cluster.tree-cluster:not([data-variant])::before{background:radial-gradient(closest-side,#f4efe4e0,#f4efe400)}
 :root[data-site-theme="noon"] #tree .tree-cluster.tree-cluster:not([data-variant])[data-crowded]::before{background:radial-gradient(closest-side,#f4efe499,#f4efe400)}
 :root[data-site-theme="noon"] #tree .tree-cluster.tree-cluster[data-tone=area][data-crowded]::before{background:radial-gradient(closest-side,#f4efe4d6 55%,#f4efe400)}
 /* On the day's paper the icons' stars are gold ink. */

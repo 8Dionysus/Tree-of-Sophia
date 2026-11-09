@@ -638,7 +638,7 @@
 #tree .ps-map-tools .ps-globe[hidden]{display:none}
 
 /* ── a group's name lies on a soft dark ground, so the lines under it do not cut through its letters ── */
-#tree .tree-cluster:not([data-variant])::before{content:'';position:absolute;inset:-7px -14px;z-index:-1;background:radial-gradient(closest-side,#050a14d9 55%,#050a1400);pointer-events:none}
+#tree .tree-cluster:not([data-variant])::before{content:'';position:absolute;inset:-6px -12px;z-index:-1;background:radial-gradient(closest-side,#050a14d0,#050a1400);pointer-events:none}
 /* A group's name stands centred over its group, its ground under its letters. */
 #tree .tree-cluster:not([data-variant]) .cluster-title{opacity:var(--depth-alpha,1);text-align:center}
 #tree .tree-cluster:not([data-variant]) .cluster-subtitle{opacity:calc(.75 * var(--depth-alpha,1))}
