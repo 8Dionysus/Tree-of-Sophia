@@ -1,0 +1,77 @@
+{
+  "schema": "tos.bonsai.v1",
+  "id": "aesthetics",
+  "title": {
+    "ru": "Эстетика",
+    "en": "Aesthetics"
+  },
+  "stand": {
+    "path": "/aesthetics/",
+    "profile": "aesthetics",
+    "consumer": "access/web/src/public-research/"
+  },
+  "posture": {
+    "ru": "Мини-Древо стенда «Эстетика»: тридцать шесть областей с их вопросами, сквозные понятия и трактовки произведений, которые на эти вопросы отвечают, в формах Древа. Всё здесь — предложение стенда; в Древо оно попадает только через экспорт кандидатов и маршруты владельцев источников.",
+    "en": "The Aesthetics stand’s mini-Tree: thirty-six areas with their questions, the crosscutting concepts and the works’ conceptions that answer those questions, in the Tree’s shapes. Everything here is the stand’s proposal; it reaches the Tree only as exported candidates through the source owners’ routes."
+  },
+  "graft": {
+    "tree_revision": "2db670adcd2cd49a47d32bd15cb3ccb1f4bc3b42",
+    "grafted": "2026-11-09",
+    "note": {
+      "ru": "Ревизия Древа и дайджесты реестров, по которым бонсай сложен. Изменение реестра сообщается как сдвиг.",
+      "en": "The Tree revision and the digests of the registries the bonsai was shaped by. A changed registry is reported as drift."
+    },
+    "contracts": {
+      "relation_types": {
+        "path": "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+        "sha256": "15a865261f47d0369923ad921eaa6baac23b109e80f6ed2f39b5fd127ff30fc7"
+      },
+      "entity_types": {
+        "path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+        "sha256": "11963383a99b2ff1f86de963c84b301a9a8ac39a2a7e4ca5981221968f2d89ef"
+      }
+    }
+  },
+  "modules": [
+    {
+      "id": "field",
+      "path": "field.json",
+      "format": "tos.bonsai.field.v1",
+      "spec": "bonsai/CORE.md",
+      "role": {
+        "ru": "Ядро области: тридцать шесть областей, каждая со своим вопросом; сквозные понятия; трактовки — ответ одного произведения в названном месте, в голосе, который его даёт, с нашим тезисом рядом со словами произведения, с решением читавшего место и допуском стенда; связи, названные глаголами и опирающиеся на трактовки.",
+        "en": "The core of the field: thirty-six areas, each with its question; the crosscutting concepts; conceptions — one work’s answer at a named place, in the voice that gives it, with our thesis beside the work’s own words, the verdict of the reader of the place and the stand’s admission; links named by verbs and resting on conceptions."
+      },
+      "identities": "concept IDs are slugs of their English titles; a conception’s ID is its work’s library ID and a name of its own; every record names under grew_from the research records it grew from (bonsai/review/aesthetics/layer/)"
+    },
+    {
+      "id": "library",
+      "path": "library.json",
+      "format": "tos.bonsai.library.v1",
+      "role": {
+        "ru": "Произведения и авторы, на места которых опираются трактовки.",
+        "en": "The works and authors whose places the conceptions rest on."
+      }
+    },
+    {
+      "id": "alignment",
+      "path": "alignment.json",
+      "format": "tos.bonsai.corpus-alignment.v1",
+      "role": {
+        "ru": "Выравнивание произведений публичного корпуса, которые цитируют трактовки: для каждого цитируемого места оригинала — его соответствия в переводах корпуса и пары предложений внутри них; только идентификаторы и смещения, без текста.",
+        "en": "The alignment of the public corpus works the conceptions cite: for every cited place of the original, its counterparts in the corpus translations and the sentence pairs inside them; ids and offsets only, never text."
+      },
+      "mechanism": "bonsai/lib/corpus-align.mjs"
+    },
+    {
+      "id": "identities",
+      "path": "identities.json",
+      "format": "tos.bonsai.identities.v1",
+      "role": {
+        "ru": "Карта прививки: какой идентичности Древа соответствует каждое произведение и каждый автор бонсая и держит ли её Древо.",
+        "en": "The graft map: which Tree identity each work and author of the bonsai stands for, and whether the Tree holds it."
+      }
+    }
+  ],
+  "lenses": {}
+}

@@ -1,0 +1,8397 @@
+{
+ "schema": "tos.bonsai.field.v1",
+ "spec": "bonsai/CORE.md",
+ "title": {
+  "ru": "Эстетика",
+  "en": "Aesthetics"
+ },
+ "posture": {
+  "ru": "Предложение стенда: области с их вопросами, сквозные понятия и трактовки произведений. Читается стендом, экспортируется кандидатами, в ToS не записывается.",
+  "en": "The stand’s proposal: the areas with their questions, the crosscutting concepts and the works’ conceptions. Read by the stand, exported as candidates, never written into ToS."
+ },
+ "grown_from": {
+  "layer": "bonsai/review/aesthetics/layer/",
+  "readings": "bonsai/review/aesthetics/readings/",
+  "tool": "bonsai/review/aesthetics/plant.mjs"
+ },
+ "makers": [
+  {
+   "id": "registers-2026-11",
+   "date": "2026-11-07",
+   "made": [
+    "the areas and their questions",
+    "the concepts and their terms",
+    "the readings every conception grew from"
+   ],
+   "record": "bonsai/review/aesthetics/README.md"
+  },
+  {
+   "id": "claude-2026-11-09",
+   "model": "claude-fable-5-2",
+   "date": "2026-11-09",
+   "made": [
+    "the English titles of areas and concepts",
+    "the English questions of the areas"
+   ],
+   "record": "bonsai/review/aesthetics/inputs/"
+  }
+ ],
+ "readers": [
+  {
+   "id": "claude-2026-11-09",
+   "model": "claude-fable-5-2",
+   "date": "2026-11-09",
+   "reads": "The Greek of each place in the public corpus, beside the registers' readings of that place. A register's reasoning is no ground: the place is.",
+   "record": "bonsai/review/aesthetics/readings/2026-11-09-corpus.json"
+  }
+ ],
+ "groups": [
+  {
+   "id": "A",
+   "areas": [
+    "area-beautiful",
+    "area-sublime",
+    "area-ugly",
+    "area-base",
+    "area-tragic",
+    "area-comic",
+    "area-grotesque",
+    "area-uncanny-and-the-horrible",
+    "area-absurd",
+    "area-picturesque",
+    "area-cute",
+    "area-interesting"
+   ]
+  },
+  {
+   "id": "B",
+   "areas": [
+    "area-perception-and-attention",
+    "area-experience-and-affect",
+    "area-embodiment-and-presence",
+    "area-taste-and-judgment",
+    "area-value-norm-and-ideal",
+    "area-knowledge-and-truth",
+    "area-imagination-and-fiction",
+    "area-atmosphere-and-mood"
+   ]
+  },
+  {
+   "id": "C",
+   "areas": [
+    "area-form-and-composition",
+    "area-image-and-mimesis",
+    "area-expression-and-meaning",
+    "area-style-and-artistic-language",
+    "area-creation-and-mastery",
+    "area-play-performance-and-participation",
+    "area-work-material-and-medium",
+    "area-authenticity-repetition-and-simulation"
+   ]
+  },
+  {
+   "id": "D",
+   "areas": [
+    "area-nature-and-environment",
+    "area-everyday-the-thing-and-design",
+    "area-sacred-myth-and-ritual",
+    "area-aesthetic-and-the-ethical",
+    "area-power-society-and-identity",
+    "area-institutions-the-canon-and-mass-culture",
+    "area-education-practice-of-the-self-and-transformation",
+    "area-art-and-the-boundaries-of-the-aesthetic"
+   ]
+  }
+ ],
+ "areas": [
+  {
+   "id": "area-beautiful",
+   "n": 1,
+   "group": "A",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Прекрасное",
+    "en": "The Beautiful"
+   },
+   "question": {
+    "ru": "Что и на каком основании переживается и оценивается как красивое?",
+    "en": "What is experienced and judged as beautiful, and on what ground?"
+   },
+   "grew_from": "AE01"
+  },
+  {
+   "id": "area-sublime",
+   "n": 2,
+   "group": "A",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Возвышенное",
+    "en": "The Sublime"
+   },
+   "question": {
+    "ru": "Как осмысляется опыт величия, мощи и предела представления?",
+    "en": "How is the experience of greatness, might and the limit of presentation understood?"
+   },
+   "grew_from": "AE02"
+  },
+  {
+   "id": "area-ugly",
+   "n": 3,
+   "group": "A",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Безобразное",
+    "en": "The Ugly"
+   },
+   "question": {
+    "ru": "Как эстетически осмысляется то, что нарушает ожидания красоты или отталкивает?",
+    "en": "How is that which breaks the expectation of beauty or repels understood aesthetically?"
+   },
+   "grew_from": "AE03"
+  },
+  {
+   "id": "area-base",
+   "n": 4,
+   "group": "A",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Низменное",
+    "en": "The Base"
+   },
+   "question": {
+    "ru": "Как изображаются и оцениваются низость, унижение и утрата достоинства?",
+    "en": "How are baseness, humiliation and the loss of dignity depicted and judged?"
+   },
+   "grew_from": "AE04"
+  },
+  {
+   "id": "area-tragic",
+   "n": 5,
+   "group": "A",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Трагическое",
+    "en": "The Tragic"
+   },
+   "question": {
+    "ru": "Что делает конфликт, действие и переживание трагическими?",
+    "en": "What makes a conflict, an action and an experience tragic?"
+   },
+   "grew_from": "AE05"
+  },
+  {
+   "id": "area-comic",
+   "n": 6,
+   "group": "A",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Комическое",
+    "en": "The Comic"
+   },
+   "question": {
+    "ru": "Как возникают смех, комическое несоответствие и изменение перспективы?",
+    "en": "How do laughter, comic incongruity and a change of perspective arise?"
+   },
+   "grew_from": "AE06"
+  },
+  {
+   "id": "area-grotesque",
+   "n": 7,
+   "group": "A",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Гротескное",
+    "en": "The Grotesque"
+   },
+   "question": {
+    "ru": "Как работают невозможное соединение, деформация и нарушение привычных границ?",
+    "en": "How do impossible combination, deformation and the breaking of familiar boundaries work?"
+   },
+   "grew_from": "AE07"
+  },
+  {
+   "id": "area-uncanny-and-the-horrible",
+   "n": 8,
+   "group": "A",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Жуткое и ужасное",
+    "en": "The Uncanny and the Horrible"
+   },
+   "question": {
+    "ru": "Как эстетически действуют тревожная знакомость, страх и нарушение границ существования?",
+    "en": "How do disquieting familiarity, fear and the violation of the boundaries of existence act aesthetically?"
+   },
+   "grew_from": "AE08"
+  },
+  {
+   "id": "area-absurd",
+   "n": 9,
+   "group": "A",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Абсурдное",
+    "en": "The Absurd"
+   },
+   "question": {
+    "ru": "Как произведение строится на распаде ожидаемой логики, смысла или коммуникации?",
+    "en": "How is a work built on the breakdown of expected logic, meaning or communication?"
+   },
+   "grew_from": "AE09"
+  },
+  {
+   "id": "area-picturesque",
+   "n": 10,
+   "group": "A",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Живописное",
+    "en": "The Picturesque"
+   },
+   "question": {
+    "ru": "Как предмет или пейзаж воспринимается через возможность его изображения?",
+    "en": "How is an object or a landscape perceived through the possibility of depicting it?"
+   },
+   "grew_from": "AE10"
+  },
+  {
+   "id": "area-cute",
+   "n": 11,
+   "group": "A",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Милое",
+    "en": "The Cute"
+   },
+   "question": {
+    "ru": "Как устроена привлекательность малого, уязвимого и вызывающего заботу?",
+    "en": "How is the appeal of the small, the vulnerable and the care-evoking made up?"
+   },
+   "grew_from": "AE11"
+  },
+  {
+   "id": "area-interesting",
+   "n": 12,
+   "group": "A",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Интересное",
+    "en": "The Interesting"
+   },
+   "question": {
+    "ru": "Как новизна, различие, ожидание и скука организуют эстетическое внимание?",
+    "en": "How do novelty, difference, expectation and boredom organize aesthetic attention?"
+   },
+   "grew_from": "AE12"
+  },
+  {
+   "id": "area-perception-and-attention",
+   "n": 13,
+   "group": "B",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Восприятие и внимание",
+    "en": "Perception and Attention"
+   },
+   "question": {
+    "ru": "Как мы замечаем, чувствуем и различаем эстетически значимое?",
+    "en": "How do we notice, feel and discern what is aesthetically significant?"
+   },
+   "grew_from": "AE13"
+  },
+  {
+   "id": "area-experience-and-affect",
+   "n": 14,
+   "group": "B",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Переживание и аффект",
+    "en": "Experience and Affect"
+   },
+   "question": {
+    "ru": "Что происходит с чувствами при встрече с произведением или эстетической ситуацией?",
+    "en": "What happens to the feelings in an encounter with a work or an aesthetic situation?"
+   },
+   "grew_from": "AE14"
+  },
+  {
+   "id": "area-embodiment-and-presence",
+   "n": 15,
+   "group": "B",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Телесность и присутствие",
+    "en": "Embodiment and Presence"
+   },
+   "question": {
+    "ru": "Как тело, движение и телесное присутствие участвуют в эстетическом опыте?",
+    "en": "How do the body, movement and bodily presence take part in aesthetic experience?"
+   },
+   "grew_from": "AE15"
+  },
+  {
+   "id": "area-taste-and-judgment",
+   "n": 16,
+   "group": "B",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Вкус и суждение",
+    "en": "Taste and Judgment"
+   },
+   "question": {
+    "ru": "На каком основании оценивают и обсуждают эстетическое качество?",
+    "en": "On what ground is aesthetic quality judged and discussed?"
+   },
+   "grew_from": "AE16"
+  },
+  {
+   "id": "area-value-norm-and-ideal",
+   "n": 17,
+   "group": "B",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Ценность, норма и идеал",
+    "en": "Value, Norm and Ideal"
+   },
+   "question": {
+    "ru": "Что признаётся эстетически ценным и как обосновывают нормы?",
+    "en": "What is held aesthetically valuable, and how are norms justified?"
+   },
+   "grew_from": "AE17"
+  },
+  {
+   "id": "area-knowledge-and-truth",
+   "n": 18,
+   "group": "B",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Познание и истина",
+    "en": "Knowledge and Truth"
+   },
+   "question": {
+    "ru": "Что искусство и эстетический опыт позволяют узнать и понять?",
+    "en": "What do art and aesthetic experience let us know and understand?"
+   },
+   "grew_from": "AE18"
+  },
+  {
+   "id": "area-imagination-and-fiction",
+   "n": 19,
+   "group": "B",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Воображение и вымысел",
+    "en": "Imagination and Fiction"
+   },
+   "question": {
+    "ru": "Как возникают и воспринимаются возможные, вымышленные и фантастические миры?",
+    "en": "How do possible, fictional and fantastic worlds arise, and how are they received?"
+   },
+   "grew_from": "AE19"
+  },
+  {
+   "id": "area-atmosphere-and-mood",
+   "n": 20,
+   "group": "B",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Атмосфера и настроение",
+    "en": "Atmosphere and Mood"
+   },
+   "question": {
+    "ru": "Как эстетически переживается целостная настроенность пространства или ситуации?",
+    "en": "How is the whole attunement of a space or a situation experienced aesthetically?"
+   },
+   "grew_from": "AE20"
+  },
+  {
+   "id": "area-form-and-composition",
+   "n": 21,
+   "group": "C",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Форма и композиция",
+    "en": "Form and Composition"
+   },
+   "question": {
+    "ru": "Как организованы элементы, части и целое?",
+    "en": "How are elements, parts and the whole organized?"
+   },
+   "grew_from": "AE21"
+  },
+  {
+   "id": "area-image-and-mimesis",
+   "n": 22,
+   "group": "C",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Образ и мимесис",
+    "en": "Image and Mimesis"
+   },
+   "question": {
+    "ru": "Как нечто изображается, представляется и становится образом?",
+    "en": "How is something depicted, represented and made an image?"
+   },
+   "grew_from": "AE22"
+  },
+  {
+   "id": "area-expression-and-meaning",
+   "n": 23,
+   "group": "C",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Выражение и смысл",
+    "en": "Expression and Meaning"
+   },
+   "question": {
+    "ru": "Как произведение выражает, означает и допускает интерпретацию?",
+    "en": "How does a work express, signify and admit interpretation?"
+   },
+   "grew_from": "AE23"
+  },
+  {
+   "id": "area-style-and-artistic-language",
+   "n": 24,
+   "group": "C",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Стиль и художественный язык",
+    "en": "Style and Artistic Language"
+   },
+   "question": {
+    "ru": "Как узнаётся способ выражения и как он передаётся или изменяется?",
+    "en": "How is a way of expression recognized, and how is it handed on or changed?"
+   },
+   "grew_from": "AE24"
+  },
+  {
+   "id": "area-creation-and-mastery",
+   "n": 25,
+   "group": "C",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Творчество и мастерство",
+    "en": "Creation and Mastery"
+   },
+   "question": {
+    "ru": "Как создаётся новое и какую роль играют замысел, навык и ограничения?",
+    "en": "How is the new made, and what part do intention, skill and constraint play?"
+   },
+   "grew_from": "AE25"
+  },
+  {
+   "id": "area-play-performance-and-participation",
+   "n": 26,
+   "group": "C",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Игра, исполнение и участие",
+    "en": "Play, Performance and Participation"
+   },
+   "question": {
+    "ru": "Как эстетическое осуществляется действием и участием?",
+    "en": "How is the aesthetic carried out in action and participation?"
+   },
+   "grew_from": "AE26"
+  },
+  {
+   "id": "area-work-material-and-medium",
+   "n": 27,
+   "group": "C",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Произведение, материал и медиум",
+    "en": "Work, Material and Medium"
+   },
+   "question": {
+    "ru": "Что является произведением и как оно существует в материале, исполнении или цифровой форме?",
+    "en": "What is a work, and how does it exist in material, performance or digital form?"
+   },
+   "grew_from": "AE27"
+  },
+  {
+   "id": "area-authenticity-repetition-and-simulation",
+   "n": 28,
+   "group": "C",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Подлинность, повторение и симуляция",
+    "en": "Authenticity, Repetition and Simulation"
+   },
+   "question": {
+    "ru": "Как различаются оригинал, повторение, подделка, воспроизведение и симуляция?",
+    "en": "How do the original, repetition, forgery, reproduction and simulation differ?"
+   },
+   "grew_from": "AE28"
+  },
+  {
+   "id": "area-nature-and-environment",
+   "n": 29,
+   "group": "D",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Природа и среда",
+    "en": "Nature and Environment"
+   },
+   "question": {
+    "ru": "Как эстетически воспринимаются природа, ландшафт и окружающий мир?",
+    "en": "How are nature, landscape and the surrounding world perceived aesthetically?"
+   },
+   "grew_from": "AE29"
+  },
+  {
+   "id": "area-everyday-the-thing-and-design",
+   "n": 30,
+   "group": "D",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Повседневность, вещь и дизайн",
+    "en": "The Everyday, the Thing and Design"
+   },
+   "question": {
+    "ru": "Как эстетическое действует в обыденных вещах, действиях и устроении жизни?",
+    "en": "How does the aesthetic act in ordinary things, actions and the ordering of life?"
+   },
+   "grew_from": "AE30"
+  },
+  {
+   "id": "area-sacred-myth-and-ritual",
+   "n": 31,
+   "group": "D",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Сакральное, миф и ритуал",
+    "en": "The Sacred, Myth and Ritual"
+   },
+   "question": {
+    "ru": "Как эстетические формы участвуют в священном, мифическом и ритуальном?",
+    "en": "How do aesthetic forms take part in the sacred, the mythical and the ritual?"
+   },
+   "grew_from": "AE31"
+  },
+  {
+   "id": "area-aesthetic-and-the-ethical",
+   "n": 32,
+   "group": "D",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Эстетическое и этическое",
+    "en": "The Aesthetic and the Ethical"
+   },
+   "question": {
+    "ru": "Как эстетическая и моральная оценки связаны и могут расходиться?",
+    "en": "How are aesthetic and moral judgment bound together, and how do they part?"
+   },
+   "grew_from": "AE32"
+  },
+  {
+   "id": "area-power-society-and-identity",
+   "n": 33,
+   "group": "D",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Власть, общество и идентичность",
+    "en": "Power, Society and Identity"
+   },
+   "question": {
+    "ru": "Как эстетическое распределяет видимость, признание и возможности участия?",
+    "en": "How does the aesthetic distribute visibility, recognition and the chances of taking part?"
+   },
+   "grew_from": "AE33"
+  },
+  {
+   "id": "area-institutions-the-canon-and-mass-culture",
+   "n": 34,
+   "group": "D",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Институты, канон и массовая культура",
+    "en": "Institutions, the Canon and Mass Culture"
+   },
+   "question": {
+    "ru": "Кто и что определяет признание, обращение и культурную ценность искусства?",
+    "en": "Who and what decides the recognition, circulation and cultural value of art?"
+   },
+   "grew_from": "AE34"
+  },
+  {
+   "id": "area-education-practice-of-the-self-and-transformation",
+   "n": 35,
+   "group": "D",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Воспитание, практика себя и преобразование",
+    "en": "Education, Practice of the Self and Transformation"
+   },
+   "question": {
+    "ru": "Как эстетический опыт и практика участвуют в становлении человека?",
+    "en": "How do aesthetic experience and practice take part in the becoming of a person?"
+   },
+   "grew_from": "AE35"
+  },
+  {
+   "id": "area-art-and-the-boundaries-of-the-aesthetic",
+   "n": 36,
+   "group": "D",
+   "type": "tos.entity.navigation-region",
+   "title": {
+    "ru": "Искусство и границы эстетического",
+    "en": "Art and the Boundaries of the Aesthetic"
+   },
+   "question": {
+    "ru": "Что относится к искусству и эстетическому и как исследуются их границы?",
+    "en": "What belongs to art and the aesthetic, and how are their boundaries examined?"
+   },
+   "grew_from": "AE36"
+  }
+ ],
+ "concepts": [
+  {
+   "id": "the-beautiful",
+   "type": "tos.entity.philosophical-category",
+   "title": {
+    "ru": "Прекрасное",
+    "en": "The Beautiful"
+   },
+   "terms": [
+    "τὸ καλόν",
+    "pulchrum",
+    "das Schöne",
+    "beauty"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C001"
+   ]
+  },
+  {
+   "id": "the-sublime",
+   "type": "tos.entity.philosophical-category",
+   "title": {
+    "ru": "Возвышенное",
+    "en": "The Sublime"
+   },
+   "terms": [
+    "ὕψος",
+    "das Erhabene",
+    "sublime"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "grew_from": [
+    "A:C002"
+   ]
+  },
+  {
+   "id": "the-ugly",
+   "type": "tos.entity.philosophical-category",
+   "title": {
+    "ru": "Безобразное",
+    "en": "The Ugly"
+   },
+   "terms": [
+    "das Hässliche",
+    "ugliness"
+   ],
+   "areas": [
+    "area-ugly"
+   ],
+   "grew_from": [
+    "A:C003"
+   ]
+  },
+  {
+   "id": "the-base",
+   "type": "tos.entity.philosophical-category",
+   "title": {
+    "ru": "Низменное",
+    "en": "The Base"
+   },
+   "terms": [
+    "das Niedrige",
+    "das Gemeine",
+    "baseness"
+   ],
+   "areas": [
+    "area-base"
+   ],
+   "grew_from": [
+    "A:C004"
+   ]
+  },
+  {
+   "id": "the-tragic",
+   "type": "tos.entity.philosophical-category",
+   "title": {
+    "ru": "Трагическое",
+    "en": "The Tragic"
+   },
+   "terms": [
+    "τραγῳδία",
+    "das Tragische",
+    "tragic"
+   ],
+   "areas": [
+    "area-tragic"
+   ],
+   "grew_from": [
+    "A:C005"
+   ]
+  },
+  {
+   "id": "the-comic",
+   "type": "tos.entity.philosophical-category",
+   "title": {
+    "ru": "Комическое",
+    "en": "The Comic"
+   },
+   "terms": [
+    "τὸ γελοῖον",
+    "das Komische",
+    "comic"
+   ],
+   "areas": [
+    "area-comic"
+   ],
+   "grew_from": [
+    "A:C006"
+   ]
+  },
+  {
+   "id": "the-grotesque",
+   "type": "tos.entity.philosophical-category",
+   "title": {
+    "ru": "Гротескное",
+    "en": "The Grotesque"
+   },
+   "terms": [
+    "grottesco",
+    "grotesque",
+    "Groteske"
+   ],
+   "areas": [
+    "area-grotesque"
+   ],
+   "grew_from": [
+    "A:C007"
+   ]
+  },
+  {
+   "id": "the-uncanny-and-the-horrible",
+   "type": "tos.entity.philosophical-category",
+   "title": {
+    "ru": "Жуткое и ужасное",
+    "en": "The Uncanny and the Horrible"
+   },
+   "terms": [
+    "uncanny",
+    "horror",
+    "unheimlich"
+   ],
+   "areas": [
+    "area-uncanny-and-the-horrible"
+   ],
+   "grew_from": [
+    "A:C008"
+   ]
+  },
+  {
+   "id": "the-absurd",
+   "type": "tos.entity.philosophical-category",
+   "title": {
+    "ru": "Абсурдное",
+    "en": "The Absurd"
+   },
+   "terms": [
+    "absurde",
+    "absurd",
+    "absurdity"
+   ],
+   "areas": [
+    "area-absurd"
+   ],
+   "grew_from": [
+    "A:C009"
+   ]
+  },
+  {
+   "id": "the-picturesque",
+   "type": "tos.entity.philosophical-category",
+   "title": {
+    "ru": "Живописное",
+    "en": "The Picturesque"
+   },
+   "terms": [
+    "picturesque",
+    "pittoresco",
+    "pittoresque"
+   ],
+   "areas": [
+    "area-picturesque"
+   ],
+   "grew_from": [
+    "A:C010"
+   ]
+  },
+  {
+   "id": "the-cute",
+   "type": "tos.entity.philosophical-category",
+   "title": {
+    "ru": "Милое",
+    "en": "The Cute"
+   },
+   "terms": [
+    "cute",
+    "das Niedliche",
+    "可愛い"
+   ],
+   "areas": [
+    "area-cute"
+   ],
+   "grew_from": [
+    "A:C011"
+   ]
+  },
+  {
+   "id": "the-interesting",
+   "type": "tos.entity.philosophical-category",
+   "title": {
+    "ru": "Интересное",
+    "en": "The Interesting"
+   },
+   "terms": [
+    "das Interessante",
+    "interesting"
+   ],
+   "areas": [
+    "area-interesting"
+   ],
+   "grew_from": [
+    "A:C012"
+   ]
+  },
+  {
+   "id": "natural-beauty",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Природная красота",
+    "en": "Natural Beauty"
+   },
+   "terms": [
+    "Naturschönheit",
+    "natural beauty"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C013"
+   ]
+  },
+  {
+   "id": "artistic-beauty",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Художественная красота",
+    "en": "Artistic Beauty"
+   },
+   "terms": [
+    "Kunstschönheit",
+    "artistic beauty"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C014"
+   ]
+  },
+  {
+   "id": "free-beauty",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Свободная красота",
+    "en": "Free Beauty"
+   },
+   "terms": [
+    "freie Schönheit",
+    "pulchritudo vaga"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C015"
+   ]
+  },
+  {
+   "id": "adherent-beauty",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Привходящая красота",
+    "en": "Adherent Beauty"
+   },
+   "terms": [
+    "anhängende Schönheit",
+    "pulchritudo adhaerens"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C016"
+   ]
+  },
+  {
+   "id": "grace",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Грация",
+    "en": "Grace"
+   },
+   "terms": [
+    "Anmut",
+    "grace",
+    "grâce"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C017"
+   ]
+  },
+  {
+   "id": "elegance",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Изящество",
+    "en": "Elegance"
+   },
+   "terms": [
+    "elegance",
+    "Zierlichkeit"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C018"
+   ]
+  },
+  {
+   "id": "harmony",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Гармония",
+    "en": "Harmony"
+   },
+   "terms": [
+    "ἁρμονία",
+    "consonantia",
+    "harmony"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C019"
+   ]
+  },
+  {
+   "id": "the-ideal-of-beauty",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Идеал красоты",
+    "en": "The Ideal of Beauty"
+   },
+   "terms": [
+    "Ideal der Schönheit"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C020"
+   ]
+  },
+  {
+   "id": "greatness",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Величие",
+    "en": "Greatness"
+   },
+   "terms": [
+    "greatness",
+    "Größe"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "grew_from": [
+    "A:C021"
+   ]
+  },
+  {
+   "id": "might",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Мощь",
+    "en": "Might"
+   },
+   "terms": [
+    "Macht",
+    "power"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "grew_from": [
+    "A:C022"
+   ]
+  },
+  {
+   "id": "unboundedness",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Беспредельное",
+    "en": "Unboundedness"
+   },
+   "terms": [
+    "Unbegrenztheit",
+    "infinity"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "grew_from": [
+    "A:C023"
+   ]
+  },
+  {
+   "id": "awe",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Трепет",
+    "en": "Awe"
+   },
+   "terms": [
+    "awe",
+    "Schauer"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "grew_from": [
+    "A:C024"
+   ]
+  },
+  {
+   "id": "the-limit-of-presentation",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Предел представления",
+    "en": "The Limit of Presentation"
+   },
+   "terms": [
+    "Darstellung",
+    "comprehension"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "grew_from": [
+    "A:C025"
+   ]
+  },
+  {
+   "id": "the-mathematically-sublime",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Математически возвышенное",
+    "en": "The Mathematically Sublime"
+   },
+   "terms": [
+    "das Mathematisch-Erhabene"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "grew_from": [
+    "A:C026"
+   ]
+  },
+  {
+   "id": "the-dynamically-sublime",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Динамически возвышенное",
+    "en": "The Dynamically Sublime"
+   },
+   "terms": [
+    "das Dynamisch-Erhabene"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "grew_from": [
+    "A:C027"
+   ]
+  },
+  {
+   "id": "formlessness",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Бесформенное",
+    "en": "Formlessness"
+   },
+   "terms": [
+    "Formlosigkeit",
+    "informe"
+   ],
+   "areas": [
+    "area-ugly"
+   ],
+   "grew_from": [
+    "A:C028"
+   ]
+  },
+  {
+   "id": "deformation",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Деформация",
+    "en": "Deformation"
+   },
+   "terms": [
+    "Defiguration",
+    "deformation"
+   ],
+   "areas": [
+    "area-ugly"
+   ],
+   "grew_from": [
+    "A:C029"
+   ]
+  },
+  {
+   "id": "disharmony",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Дисгармония",
+    "en": "Disharmony"
+   },
+   "terms": [
+    "Disharmonie"
+   ],
+   "areas": [
+    "area-ugly"
+   ],
+   "grew_from": [
+    "A:C030"
+   ]
+  },
+  {
+   "id": "the-repulsive",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Отталкивающее",
+    "en": "The Repulsive"
+   },
+   "terms": [
+    "das Widrige",
+    "repulsive"
+   ],
+   "areas": [
+    "area-ugly"
+   ],
+   "grew_from": [
+    "A:C031"
+   ]
+  },
+  {
+   "id": "disgust",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Отвращение",
+    "en": "Disgust"
+   },
+   "terms": [
+    "Ekel",
+    "disgust",
+    "dégoût"
+   ],
+   "areas": [
+    "area-ugly"
+   ],
+   "grew_from": [
+    "A:C032"
+   ]
+  },
+  {
+   "id": "aestheticization-of-the-ugly",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Эстетизация безобразного",
+    "en": "Aestheticization of the Ugly"
+   },
+   "terms": [
+    "aestheticization of ugliness"
+   ],
+   "areas": [
+    "area-ugly"
+   ],
+   "grew_from": [
+    "A:C033"
+   ]
+  },
+  {
+   "id": "the-ugly-object-and-its-depiction",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Безобразный предмет и художественное изображение",
+    "en": "The Ugly Object and Its Depiction"
+   },
+   "terms": [
+    "object / representation"
+   ],
+   "areas": [
+    "area-ugly"
+   ],
+   "grew_from": [
+    "A:C034"
+   ]
+  },
+  {
+   "id": "the-vulgar",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Пошлое",
+    "en": "The Vulgar"
+   },
+   "terms": [
+    "das Gemeine",
+    "poshlost",
+    "vulgar"
+   ],
+   "areas": [
+    "area-base"
+   ],
+   "grew_from": [
+    "A:C035"
+   ]
+  },
+  {
+   "id": "the-trivial",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Ничтожное",
+    "en": "The Trivial"
+   },
+   "terms": [
+    "trivial",
+    "mean",
+    "unbedeutend"
+   ],
+   "areas": [
+    "area-base"
+   ],
+   "grew_from": [
+    "A:C036"
+   ]
+  },
+  {
+   "id": "degradation",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Унижение",
+    "en": "Degradation"
+   },
+   "terms": [
+    "degradation",
+    "Erniedrigung"
+   ],
+   "areas": [
+    "area-base"
+   ],
+   "grew_from": [
+    "A:C037"
+   ]
+  },
+  {
+   "id": "the-fall",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Падение",
+    "en": "The Fall"
+   },
+   "terms": [
+    "chute",
+    "fallen humanity"
+   ],
+   "areas": [
+    "area-base"
+   ],
+   "grew_from": [
+    "A:C038"
+   ]
+  },
+  {
+   "id": "lowness",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Низость",
+    "en": "Lowness"
+   },
+   "terms": [
+    "das Niedrige",
+    "low"
+   ],
+   "areas": [
+    "area-base"
+   ],
+   "grew_from": [
+    "A:C039"
+   ]
+  },
+  {
+   "id": "aestheticization-of-cruelty",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Эстетизация жестокости",
+    "en": "Aestheticization of Cruelty"
+   },
+   "terms": [
+    "cruelty / artistic representation"
+   ],
+   "areas": [
+    "area-base"
+   ],
+   "grew_from": [
+    "A:C040"
+   ]
+  },
+  {
+   "id": "tragic-collision",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Трагический конфликт",
+    "en": "Tragic Collision"
+   },
+   "terms": [
+    "tragic collision",
+    "Kollision"
+   ],
+   "areas": [
+    "area-tragic"
+   ],
+   "grew_from": [
+    "A:C041"
+   ]
+  },
+  {
+   "id": "fate",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Судьба",
+    "en": "Fate"
+   },
+   "terms": [
+    "μοῖρα",
+    "Schicksal",
+    "fate"
+   ],
+   "areas": [
+    "area-tragic"
+   ],
+   "grew_from": [
+    "A:C042"
+   ]
+  },
+  {
+   "id": "guilt",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Вина",
+    "en": "Guilt"
+   },
+   "terms": [
+    "Schuld",
+    "guilt"
+   ],
+   "areas": [
+    "area-tragic"
+   ],
+   "grew_from": [
+    "A:C043"
+   ]
+  },
+  {
+   "id": "hamartia",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Ошибка",
+    "en": "Hamartia"
+   },
+   "terms": [
+    "ἁμαρτία",
+    "hamartia"
+   ],
+   "areas": [
+    "area-tragic"
+   ],
+   "grew_from": [
+    "A:C044"
+   ]
+  },
+  {
+   "id": "necessity",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Неотвратимость",
+    "en": "Necessity"
+   },
+   "terms": [
+    "ἀνάγκη",
+    "necessity"
+   ],
+   "areas": [
+    "area-tragic"
+   ],
+   "grew_from": [
+    "A:C045"
+   ]
+  },
+  {
+   "id": "suffering",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Страдание",
+    "en": "Suffering"
+   },
+   "terms": [
+    "πάθος",
+    "suffering",
+    "Leiden"
+   ],
+   "areas": [
+    "area-tragic"
+   ],
+   "grew_from": [
+    "A:C046"
+   ]
+  },
+  {
+   "id": "catharsis",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Катарсис",
+    "en": "Catharsis"
+   },
+   "terms": [
+    "κάθαρσις",
+    "katharsis",
+    "κάθαρσις (katharsis)"
+   ],
+   "areas": [
+    "area-tragic",
+    "area-experience-and-affect"
+   ],
+   "grew_from": [
+    "A:C047",
+    "B:B-C008"
+   ]
+  },
+  {
+   "id": "the-tragic-hero",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Трагический герой",
+    "en": "The Tragic Hero"
+   },
+   "terms": [
+    "tragic agent",
+    "tragic hero"
+   ],
+   "areas": [
+    "area-tragic"
+   ],
+   "grew_from": [
+    "A:C048"
+   ]
+  },
+  {
+   "id": "humour",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Юмор",
+    "en": "Humour"
+   },
+   "terms": [
+    "humour",
+    "Humor"
+   ],
+   "areas": [
+    "area-comic"
+   ],
+   "grew_from": [
+    "A:C049"
+   ]
+  },
+  {
+   "id": "irony",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Ирония",
+    "en": "Irony"
+   },
+   "terms": [
+    "εἰρωνεία",
+    "Ironie",
+    "irony"
+   ],
+   "areas": [
+    "area-comic"
+   ],
+   "grew_from": [
+    "A:C050"
+   ]
+  },
+  {
+   "id": "satire",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Сатира",
+    "en": "Satire"
+   },
+   "terms": [
+    "satire",
+    "Satire"
+   ],
+   "areas": [
+    "area-comic"
+   ],
+   "grew_from": [
+    "A:C051"
+   ]
+  },
+  {
+   "id": "parody",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Пародия",
+    "en": "Parody"
+   },
+   "terms": [
+    "parody",
+    "Parodie",
+    "parōidia"
+   ],
+   "areas": [
+    "area-comic",
+    "area-style-and-artistic-language"
+   ],
+   "grew_from": [
+    "A:C052",
+    "C:A-C034"
+   ]
+  },
+  {
+   "id": "wit",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Остроумие",
+    "en": "Wit"
+   },
+   "terms": [
+    "Witz",
+    "wit"
+   ],
+   "areas": [
+    "area-comic"
+   ],
+   "grew_from": [
+    "A:C053"
+   ]
+  },
+  {
+   "id": "incongruity",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Несоответствие",
+    "en": "Incongruity"
+   },
+   "terms": [
+    "incongruity",
+    "Inkongruenz"
+   ],
+   "areas": [
+    "area-comic"
+   ],
+   "grew_from": [
+    "A:C054"
+   ]
+  },
+  {
+   "id": "laughter",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Смех",
+    "en": "Laughter"
+   },
+   "terms": [
+    "γέλως",
+    "rire",
+    "laughter"
+   ],
+   "areas": [
+    "area-comic"
+   ],
+   "grew_from": [
+    "A:C055"
+   ]
+  },
+  {
+   "id": "comic-relief",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Комическая разрядка",
+    "en": "Comic Relief"
+   },
+   "terms": [
+    "relief",
+    "discharge"
+   ],
+   "areas": [
+    "area-comic"
+   ],
+   "grew_from": [
+    "A:C056"
+   ]
+  },
+  {
+   "id": "the-play-mode",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Игровая установка",
+    "en": "The Play Mode"
+   },
+   "terms": [
+    "play",
+    "play mode"
+   ],
+   "areas": [
+    "area-comic"
+   ],
+   "grew_from": [
+    "A:C057"
+   ]
+  },
+  {
+   "id": "the-monstrous",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Чудовищное",
+    "en": "The Monstrous"
+   },
+   "terms": [
+    "monstrous",
+    "monstruoso"
+   ],
+   "areas": [
+    "area-grotesque"
+   ],
+   "grew_from": [
+    "A:C058"
+   ]
+  },
+  {
+   "id": "hybridity",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Гибридность",
+    "en": "Hybridity"
+   },
+   "terms": [
+    "hybridity",
+    "hybrid"
+   ],
+   "areas": [
+    "area-grotesque"
+   ],
+   "grew_from": [
+    "A:C059"
+   ]
+  },
+  {
+   "id": "exaggeration",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Преувеличение",
+    "en": "Exaggeration"
+   },
+   "terms": [
+    "hyperbole",
+    "exaggeration"
+   ],
+   "areas": [
+    "area-grotesque"
+   ],
+   "grew_from": [
+    "A:C060"
+   ]
+  },
+  {
+   "id": "carnival",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Карнавал",
+    "en": "Carnival"
+   },
+   "terms": [
+    "carnival",
+    "карнавализация"
+   ],
+   "areas": [
+    "area-grotesque"
+   ],
+   "grew_from": [
+    "A:C061"
+   ]
+  },
+  {
+   "id": "the-mask",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Маска",
+    "en": "The Mask"
+   },
+   "terms": [
+    "mask",
+    "masque"
+   ],
+   "areas": [
+    "area-grotesque"
+   ],
+   "grew_from": [
+    "A:C062"
+   ]
+  },
+  {
+   "id": "inversion",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Инверсия",
+    "en": "Inversion"
+   },
+   "terms": [
+    "inversion",
+    "reversal"
+   ],
+   "areas": [
+    "area-grotesque"
+   ],
+   "grew_from": [
+    "A:C063"
+   ]
+  },
+  {
+   "id": "the-grotesque-body",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Гротескное тело",
+    "en": "The Grotesque Body"
+   },
+   "terms": [
+    "grotesque body"
+   ],
+   "areas": [
+    "area-grotesque"
+   ],
+   "grew_from": [
+    "A:C064"
+   ]
+  },
+  {
+   "id": "violation-of-familiar-boundaries",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Нарушение привычных границ",
+    "en": "Violation of Familiar Boundaries"
+   },
+   "terms": [
+    "category violation",
+    "transgression"
+   ],
+   "areas": [
+    "area-grotesque"
+   ],
+   "grew_from": [
+    "A:C065"
+   ]
+  },
+  {
+   "id": "the-uncanny",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Жуткое",
+    "en": "The Uncanny"
+   },
+   "terms": [
+    "das Unheimliche",
+    "uncanny"
+   ],
+   "areas": [
+    "area-uncanny-and-the-horrible"
+   ],
+   "grew_from": [
+    "A:C066"
+   ]
+  },
+  {
+   "id": "the-double",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Двойник",
+    "en": "The Double"
+   },
+   "terms": [
+    "Doppelgänger",
+    "double"
+   ],
+   "areas": [
+    "area-uncanny-and-the-horrible"
+   ],
+   "grew_from": [
+    "A:C067"
+   ]
+  },
+  {
+   "id": "disquieting-familiarity",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Тревожная знакомость",
+    "en": "Disquieting Familiarity"
+   },
+   "terms": [
+    "heimlich / unheimlich"
+   ],
+   "areas": [
+    "area-uncanny-and-the-horrible"
+   ],
+   "grew_from": [
+    "A:C068"
+   ]
+  },
+  {
+   "id": "horror",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Ужас",
+    "en": "Horror"
+   },
+   "terms": [
+    "horror",
+    "art-horror"
+   ],
+   "areas": [
+    "area-uncanny-and-the-horrible"
+   ],
+   "grew_from": [
+    "A:C069"
+   ]
+  },
+  {
+   "id": "abjection",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Абъекция",
+    "en": "Abjection"
+   },
+   "terms": [
+    "abjection"
+   ],
+   "areas": [
+    "area-uncanny-and-the-horrible"
+   ],
+   "grew_from": [
+    "A:C070"
+   ]
+  },
+  {
+   "id": "suspense",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Саспенс",
+    "en": "Suspense"
+   },
+   "terms": [
+    "suspense"
+   ],
+   "areas": [
+    "area-uncanny-and-the-horrible"
+   ],
+   "grew_from": [
+    "A:C071"
+   ]
+  },
+  {
+   "id": "the-paradox-of-horror",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Парадокс удовольствия от ужаса",
+    "en": "The Paradox of Horror"
+   },
+   "terms": [
+    "paradox of horror"
+   ],
+   "areas": [
+    "area-uncanny-and-the-horrible"
+   ],
+   "grew_from": [
+    "A:C072"
+   ]
+  },
+  {
+   "id": "nonsense",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Нонсенс",
+    "en": "Nonsense"
+   },
+   "terms": [
+    "nonsense"
+   ],
+   "areas": [
+    "area-absurd"
+   ],
+   "grew_from": [
+    "A:C073"
+   ]
+  },
+  {
+   "id": "alogism",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Алогизм",
+    "en": "Alogism"
+   },
+   "terms": [
+    "alogism",
+    "illogicality"
+   ],
+   "areas": [
+    "area-absurd"
+   ],
+   "grew_from": [
+    "A:C074"
+   ]
+  },
+  {
+   "id": "paradox",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Парадокс",
+    "en": "Paradox"
+   },
+   "terms": [
+    "paradox"
+   ],
+   "areas": [
+    "area-absurd"
+   ],
+   "grew_from": [
+    "A:C075"
+   ]
+  },
+  {
+   "id": "senseless-repetition",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Бессмысленное повторение",
+    "en": "Senseless Repetition"
+   },
+   "terms": [
+    "repetition"
+   ],
+   "areas": [
+    "area-absurd"
+   ],
+   "grew_from": [
+    "A:C076"
+   ]
+  },
+  {
+   "id": "breakdown-of-dialogue",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Распад диалога",
+    "en": "Breakdown of Dialogue"
+   },
+   "terms": [
+    "breakdown of communication"
+   ],
+   "areas": [
+    "area-absurd"
+   ],
+   "grew_from": [
+    "A:C077"
+   ]
+  },
+  {
+   "id": "absurd-discrepancy",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Нелепость",
+    "en": "Absurd Discrepancy"
+   },
+   "terms": [
+    "absurd discrepancy"
+   ],
+   "areas": [
+    "area-absurd"
+   ],
+   "grew_from": [
+    "A:C078"
+   ]
+  },
+  {
+   "id": "the-absurd-situation",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Абсурдная ситуация",
+    "en": "The Absurd Situation"
+   },
+   "terms": [
+    "absurd situation"
+   ],
+   "areas": [
+    "area-absurd"
+   ],
+   "grew_from": [
+    "A:C079"
+   ]
+  },
+  {
+   "id": "the-landscape-scene",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Пейзажная сцена",
+    "en": "The Landscape Scene"
+   },
+   "terms": [
+    "landscape",
+    "scene"
+   ],
+   "areas": [
+    "area-picturesque"
+   ],
+   "grew_from": [
+    "A:C080"
+   ]
+  },
+  {
+   "id": "roughness",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Шероховатость",
+    "en": "Roughness"
+   },
+   "terms": [
+    "roughness"
+   ],
+   "areas": [
+    "area-picturesque"
+   ],
+   "grew_from": [
+    "A:C081"
+   ]
+  },
+  {
+   "id": "irregularity",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Нерегулярность",
+    "en": "Irregularity"
+   },
+   "terms": [
+    "irregularity"
+   ],
+   "areas": [
+    "area-picturesque"
+   ],
+   "grew_from": [
+    "A:C082"
+   ]
+  },
+  {
+   "id": "the-ruin",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Руина",
+    "en": "The Ruin"
+   },
+   "terms": [
+    "ruin"
+   ],
+   "areas": [
+    "area-picturesque"
+   ],
+   "grew_from": [
+    "A:C083"
+   ]
+  },
+  {
+   "id": "framing",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Кадрирование",
+    "en": "Framing"
+   },
+   "terms": [
+    "framing",
+    "selection"
+   ],
+   "areas": [
+    "area-picturesque"
+   ],
+   "grew_from": [
+    "A:C084"
+   ]
+  },
+  {
+   "id": "the-viewing-station",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Видовая точка",
+    "en": "The Viewing Station"
+   },
+   "terms": [
+    "point of view",
+    "station"
+   ],
+   "areas": [
+    "area-picturesque"
+   ],
+   "grew_from": [
+    "A:C085"
+   ]
+  },
+  {
+   "id": "cuteness",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Миловидность",
+    "en": "Cuteness"
+   },
+   "terms": [
+    "cuteness"
+   ],
+   "areas": [
+    "area-cute"
+   ],
+   "grew_from": [
+    "A:C086"
+   ]
+  },
+  {
+   "id": "smallness",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Миниатюрность",
+    "en": "Smallness"
+   },
+   "terms": [
+    "smallness",
+    "miniature"
+   ],
+   "areas": [
+    "area-cute"
+   ],
+   "grew_from": [
+    "A:C087"
+   ]
+  },
+  {
+   "id": "tenderness",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Нежность",
+    "en": "Tenderness"
+   },
+   "terms": [
+    "tenderness"
+   ],
+   "areas": [
+    "area-cute"
+   ],
+   "grew_from": [
+    "A:C088"
+   ]
+  },
+  {
+   "id": "vulnerability",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Уязвимость",
+    "en": "Vulnerability"
+   },
+   "terms": [
+    "vulnerability"
+   ],
+   "areas": [
+    "area-cute"
+   ],
+   "grew_from": [
+    "A:C089"
+   ]
+  },
+  {
+   "id": "endearment",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Умиление",
+    "en": "Endearment"
+   },
+   "terms": [
+    "endearment",
+    "affectionate response"
+   ],
+   "areas": [
+    "area-cute"
+   ],
+   "grew_from": [
+    "A:C090"
+   ]
+  },
+  {
+   "id": "cute",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Cute",
+    "en": "Cute"
+   },
+   "terms": [
+    "cute"
+   ],
+   "areas": [
+    "area-cute"
+   ],
+   "grew_from": [
+    "A:C091"
+   ]
+  },
+  {
+   "id": "kawaii",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Kawaii",
+    "en": "Kawaii"
+   },
+   "terms": [
+    "可愛い",
+    "かわいい",
+    "kawaii"
+   ],
+   "areas": [
+    "area-cute"
+   ],
+   "grew_from": [
+    "A:C092"
+   ]
+  },
+  {
+   "id": "novelty",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Новизна",
+    "en": "Novelty"
+   },
+   "terms": [
+    "novelty"
+   ],
+   "areas": [
+    "area-interesting"
+   ],
+   "grew_from": [
+    "A:C093"
+   ]
+  },
+  {
+   "id": "curiosity",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Любопытство",
+    "en": "Curiosity"
+   },
+   "terms": [
+    "curiosity"
+   ],
+   "areas": [
+    "area-interesting"
+   ],
+   "grew_from": [
+    "A:C094"
+   ]
+  },
+  {
+   "id": "surprise",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Неожиданность",
+    "en": "Surprise"
+   },
+   "terms": [
+    "surprise"
+   ],
+   "areas": [
+    "area-interesting"
+   ],
+   "grew_from": [
+    "A:C095"
+   ]
+  },
+  {
+   "id": "boredom",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Скука",
+    "en": "Boredom"
+   },
+   "terms": [
+    "ennui",
+    "Langeweile",
+    "boredom"
+   ],
+   "areas": [
+    "area-interesting"
+   ],
+   "grew_from": [
+    "A:C096"
+   ]
+  },
+  {
+   "id": "seriality",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Серийность",
+    "en": "Seriality"
+   },
+   "terms": [
+    "seriality"
+   ],
+   "areas": [
+    "area-interesting"
+   ],
+   "grew_from": [
+    "A:C097"
+   ]
+  },
+  {
+   "id": "the-entertaining",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Занимательность",
+    "en": "The Entertaining"
+   },
+   "terms": [
+    "entertaining",
+    "engaging"
+   ],
+   "areas": [
+    "area-interesting"
+   ],
+   "grew_from": [
+    "A:C098"
+   ]
+  },
+  {
+   "id": "sensationalism",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Сенсационность",
+    "en": "Sensationalism"
+   },
+   "terms": [
+    "sensationalism"
+   ],
+   "areas": [
+    "area-interesting"
+   ],
+   "grew_from": [
+    "A:C099"
+   ]
+  },
+  {
+   "id": "eros",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Эрос",
+    "en": "Eros"
+   },
+   "terms": [
+    "ἔρως"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C100"
+   ]
+  },
+  {
+   "id": "the-ascent-to-the-beautiful",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Восхождение к прекрасному",
+    "en": "The Ascent to the Beautiful"
+   },
+   "terms": [
+    "ascent",
+    "210a–212a"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C101"
+   ]
+  },
+  {
+   "id": "the-beautiful-itself",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Прекрасное само по себе",
+    "en": "The Beautiful Itself"
+   },
+   "terms": [
+    "αὐτὸ τὸ καλόν"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C102"
+   ]
+  },
+  {
+   "id": "due-proportion",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Соразмерность",
+    "en": "Due Proportion"
+   },
+   "terms": [
+    "proportio",
+    "proportion"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C103"
+   ]
+  },
+  {
+   "id": "symmetry",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Симметрия",
+    "en": "Symmetry"
+   },
+   "terms": [
+    "συμμετρία",
+    "symmetry",
+    "symmetria"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-form-and-composition"
+   ],
+   "grew_from": [
+    "A:C104",
+    "C:A-C005"
+   ]
+  },
+  {
+   "id": "integrity",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Целостность",
+    "en": "Integrity"
+   },
+   "terms": [
+    "integritas"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C105"
+   ]
+  },
+  {
+   "id": "clarity-and-radiance",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Ясность / сияние",
+    "en": "Clarity and Radiance"
+   },
+   "terms": [
+    "claritas"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C106"
+   ]
+  },
+  {
+   "id": "perfection",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Совершенство",
+    "en": "Perfection"
+   },
+   "terms": [
+    "perfectio",
+    "Vollkommenheit",
+    "perfection",
+    "perfection"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-value-norm-and-ideal"
+   ],
+   "grew_from": [
+    "A:C107",
+    "B:C-C012"
+   ]
+  },
+  {
+   "id": "uniformity-amidst-variety",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Единство в многообразии",
+    "en": "Uniformity amidst Variety"
+   },
+   "terms": [
+    "uniformity amidst variety"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C108"
+   ]
+  },
+  {
+   "id": "the-internal-sense-of-beauty",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Внутреннее чувство прекрасного",
+    "en": "The Internal Sense of Beauty"
+   },
+   "terms": [
+    "internal sense"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C109"
+   ]
+  },
+  {
+   "id": "disinterestedness",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Незаинтересованность",
+    "en": "Disinterestedness"
+   },
+   "terms": [
+    "Interesselosigkeit",
+    "disinterestedness"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C110"
+   ]
+  },
+  {
+   "id": "the-free-play-of-the-faculties",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Свободная игра способностей",
+    "en": "The Free Play of the Faculties"
+   },
+   "terms": [
+    "freies Spiel"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C111"
+   ]
+  },
+  {
+   "id": "the-judgment-of-taste",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Суждение вкуса",
+    "en": "The Judgment of Taste"
+   },
+   "terms": [
+    "Geschmacksurteil",
+    "judgment of taste"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-taste-and-judgment"
+   ],
+   "grew_from": [
+    "A:C112",
+    "B:C-C004"
+   ]
+  },
+  {
+   "id": "sensus-communis",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Общее чувство",
+    "en": "Sensus Communis"
+   },
+   "terms": [
+    "Gemeinsinn",
+    "sensus communis"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C113"
+   ]
+  },
+  {
+   "id": "the-aesthetic-normal-idea",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Нормальная эстетическая идея",
+    "en": "The Aesthetic Normal Idea"
+   },
+   "terms": [
+    "ästhetische Normalidee"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C114"
+   ]
+  },
+  {
+   "id": "delicacy-of-taste",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Тонкость вкуса",
+    "en": "Delicacy of Taste"
+   },
+   "terms": [
+    "delicacy of taste"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C115"
+   ]
+  },
+  {
+   "id": "the-standard-of-taste",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Норма вкуса",
+    "en": "The Standard of Taste"
+   },
+   "terms": [
+    "standard of taste"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C116"
+   ]
+  },
+  {
+   "id": "the-beautiful-soul",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Прекрасная душа",
+    "en": "The Beautiful Soul"
+   },
+   "terms": [
+    "schöne Seele"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C117"
+   ]
+  },
+  {
+   "id": "dignity",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Достоинство",
+    "en": "Dignity"
+   },
+   "terms": [
+    "Würde"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C118"
+   ]
+  },
+  {
+   "id": "the-line-of-grace",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Линия грации",
+    "en": "The Line of Grace"
+   },
+   "terms": [
+    "serpentine line"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C119"
+   ]
+  },
+  {
+   "id": "variety",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Разнообразие",
+    "en": "Variety"
+   },
+   "terms": [
+    "variety"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C120"
+   ]
+  },
+  {
+   "id": "intricacy",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Сложность переплетения",
+    "en": "Intricacy"
+   },
+   "terms": [
+    "intricacy"
+   ],
+   "areas": [
+    "area-picturesque"
+   ],
+   "grew_from": [
+    "A:C121"
+   ]
+  },
+  {
+   "id": "fitness",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Пригодность формы",
+    "en": "Fitness"
+   },
+   "terms": [
+    "fitness"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C122"
+   ]
+  },
+  {
+   "id": "objectified-pleasure",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Объективированное удовольствие",
+    "en": "Objectified Pleasure"
+   },
+   "terms": [
+    "objectified pleasure"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C123"
+   ]
+  },
+  {
+   "id": "the-beautiful-as-life",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Прекрасное как жизнь",
+    "en": "The Beautiful as Life"
+   },
+   "terms": [
+    "прекрасное есть жизнь"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C124"
+   ]
+  },
+  {
+   "id": "the-embodied-idea",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Воплощённая идея",
+    "en": "The Embodied Idea"
+   },
+   "terms": [
+    "идея воплощенная"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C125"
+   ]
+  },
+  {
+   "id": "rhetorical-sublimity",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Риторическая высота",
+    "en": "Rhetorical Sublimity"
+   },
+   "terms": [
+    "ὕψος"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "grew_from": [
+    "A:C126"
+   ]
+  },
+  {
+   "id": "transport",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Восхищение / выход из обычного состояния",
+    "en": "Transport"
+   },
+   "terms": [
+    "ἔκστασις",
+    "transport"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "grew_from": [
+    "A:C127"
+   ]
+  },
+  {
+   "id": "grandeur-of-thought",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Величие мысли",
+    "en": "Grandeur of Thought"
+   },
+   "terms": [
+    "grandeur of thought"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "grew_from": [
+    "A:C128"
+   ]
+  },
+  {
+   "id": "astonishment",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Изумление",
+    "en": "Astonishment"
+   },
+   "terms": [
+    "astonishment"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "grew_from": [
+    "A:C129"
+   ]
+  },
+  {
+   "id": "terror",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Террор / сильный страх",
+    "en": "Terror"
+   },
+   "terms": [
+    "terror"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "grew_from": [
+    "A:C130"
+   ]
+  },
+  {
+   "id": "safe-distance",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Безопасная дистанция",
+    "en": "Safe Distance"
+   },
+   "terms": [
+    "distance",
+    "safety"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "grew_from": [
+    "A:C131"
+   ]
+  },
+  {
+   "id": "negative-pleasure",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Отрицательное удовольствие",
+    "en": "Negative Pleasure"
+   },
+   "terms": [
+    "delight",
+    "negative pleasure"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "grew_from": [
+    "A:C132"
+   ]
+  },
+  {
+   "id": "obscurity",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Неясность",
+    "en": "Obscurity"
+   },
+   "terms": [
+    "obscurity"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "grew_from": [
+    "A:C133"
+   ]
+  },
+  {
+   "id": "privation",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Лишённость",
+    "en": "Privation"
+   },
+   "terms": [
+    "privation"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "grew_from": [
+    "A:C134"
+   ]
+  },
+  {
+   "id": "succession-and-uniformity",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Последовательность и единообразие",
+    "en": "Succession and Uniformity"
+   },
+   "terms": [
+    "succession and uniformity"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "grew_from": [
+    "A:C135"
+   ]
+  },
+  {
+   "id": "aesthetic-comprehension",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Эстетическое объединение",
+    "en": "Aesthetic Comprehension"
+   },
+   "terms": [
+    "Zusammenfassung",
+    "comprehensio aesthetica"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "grew_from": [
+    "A:C136"
+   ]
+  },
+  {
+   "id": "apprehension",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Схватывание",
+    "en": "Apprehension"
+   },
+   "terms": [
+    "Auffassung",
+    "apprehensio"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "grew_from": [
+    "A:C137"
+   ]
+  },
+  {
+   "id": "moral-elevation",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Нравственное возвышение",
+    "en": "Moral Elevation"
+   },
+   "terms": [
+    "moral vocation",
+    "freedom"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "grew_from": [
+    "A:C138"
+   ]
+  },
+  {
+   "id": "amorphousness",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Аморфность",
+    "en": "Amorphousness"
+   },
+   "terms": [
+    "Amorphie"
+   ],
+   "areas": [
+    "area-ugly"
+   ],
+   "grew_from": [
+    "A:C139"
+   ]
+  },
+  {
+   "id": "asymmetry",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Асимметрия",
+    "en": "Asymmetry"
+   },
+   "terms": [
+    "Asymmetrie"
+   ],
+   "areas": [
+    "area-ugly"
+   ],
+   "grew_from": [
+    "A:C140"
+   ]
+  },
+  {
+   "id": "incorrectness",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Неправильность",
+    "en": "Incorrectness"
+   },
+   "terms": [
+    "Incorrectheit"
+   ],
+   "areas": [
+    "area-ugly"
+   ],
+   "grew_from": [
+    "A:C141"
+   ]
+  },
+  {
+   "id": "the-formless-as-operation",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Бесформенное как операция",
+    "en": "The Formless as Operation"
+   },
+   "terms": [
+    "informe"
+   ],
+   "areas": [
+    "area-ugly"
+   ],
+   "grew_from": [
+    "A:C142"
+   ]
+  },
+  {
+   "id": "negative-emotions-in-art-reception",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Отрицательные эстетические эмоции",
+    "en": "Negative Emotions in Art Reception"
+   },
+   "terms": [
+    "negative emotions in art reception"
+   ],
+   "areas": [
+    "area-ugly"
+   ],
+   "grew_from": [
+    "A:C143"
+   ]
+  },
+  {
+   "id": "aesthetic-distancing",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Эстетическое дистанцирование",
+    "en": "Aesthetic Distancing"
+   },
+   "terms": [
+    "distancing"
+   ],
+   "areas": [
+    "area-uncanny-and-the-horrible"
+   ],
+   "grew_from": [
+    "A:C144"
+   ]
+  },
+  {
+   "id": "embracing-the-negative-emotion",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Принятие отрицательной эмоции",
+    "en": "Embracing the Negative Emotion"
+   },
+   "terms": [
+    "embracing"
+   ],
+   "areas": [
+    "area-uncanny-and-the-horrible"
+   ],
+   "grew_from": [
+    "A:C145"
+   ]
+  },
+  {
+   "id": "pity",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Сострадание",
+    "en": "Pity"
+   },
+   "terms": [
+    "ἔλεος",
+    "pity"
+   ],
+   "areas": [
+    "area-tragic"
+   ],
+   "grew_from": [
+    "A:C146"
+   ]
+  },
+  {
+   "id": "fear",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Страх",
+    "en": "Fear"
+   },
+   "terms": [
+    "φόβος",
+    "fear"
+   ],
+   "areas": [
+    "area-tragic"
+   ],
+   "grew_from": [
+    "A:C147"
+   ]
+  },
+  {
+   "id": "peripeteia",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Перипетия",
+    "en": "Peripeteia"
+   },
+   "terms": [
+    "περιπέτεια"
+   ],
+   "areas": [
+    "area-tragic"
+   ],
+   "grew_from": [
+    "A:C148"
+   ]
+  },
+  {
+   "id": "recognition",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Узнавание",
+    "en": "Recognition"
+   },
+   "terms": [
+    "ἀναγνώρισις",
+    "recognition",
+    "anagnōrisis"
+   ],
+   "areas": [
+    "area-tragic",
+    "area-knowledge-and-truth"
+   ],
+   "grew_from": [
+    "A:C149",
+    "B:D-C001"
+   ]
+  },
+  {
+   "id": "plot",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Фабула",
+    "en": "Plot"
+   },
+   "terms": [
+    "μῦθος",
+    "plot"
+   ],
+   "areas": [
+    "area-tragic"
+   ],
+   "grew_from": [
+    "A:C150"
+   ]
+  },
+  {
+   "id": "unity-of-action",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Единство действия",
+    "en": "Unity of Action"
+   },
+   "terms": [
+    "unity of action"
+   ],
+   "areas": [
+    "area-tragic"
+   ],
+   "grew_from": [
+    "A:C151"
+   ]
+  },
+  {
+   "id": "mimesis",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Мимесис",
+    "en": "Mimesis"
+   },
+   "terms": [
+    "μίμησις",
+    "mimēsis",
+    "imitation"
+   ],
+   "areas": [
+    "area-tragic",
+    "area-image-and-mimesis"
+   ],
+   "grew_from": [
+    "A:C152",
+    "C:A-C012"
+   ]
+  },
+  {
+   "id": "likelihood",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Вероятность",
+    "en": "Likelihood"
+   },
+   "terms": [
+    "εἰκός"
+   ],
+   "areas": [
+    "area-tragic"
+   ],
+   "grew_from": [
+    "A:C153"
+   ]
+  },
+  {
+   "id": "tragic-pleasure",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Трагическое удовольствие",
+    "en": "Tragic Pleasure"
+   },
+   "terms": [
+    "pleasure of tragedy"
+   ],
+   "areas": [
+    "area-tragic"
+   ],
+   "grew_from": [
+    "A:C154"
+   ]
+  },
+  {
+   "id": "collision-of-ethical-powers",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Столкновение этических сил",
+    "en": "Collision of Ethical Powers"
+   },
+   "terms": [
+    "ethical powers",
+    "sittliche Mächte"
+   ],
+   "areas": [
+    "area-tragic"
+   ],
+   "grew_from": [
+    "A:C155"
+   ]
+  },
+  {
+   "id": "the-apollonian",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Аполлоническое",
+    "en": "The Apollonian"
+   },
+   "terms": [
+    "das Apollinische"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C156"
+   ]
+  },
+  {
+   "id": "the-dionysian",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Дионисическое",
+    "en": "The Dionysian"
+   },
+   "terms": [
+    "das Dionysische"
+   ],
+   "areas": [
+    "area-tragic"
+   ],
+   "grew_from": [
+    "A:C157"
+   ]
+  },
+  {
+   "id": "tragic-affirmation",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Трагическое утверждение",
+    "en": "Tragic Affirmation"
+   },
+   "terms": [
+    "tragic affirmation"
+   ],
+   "areas": [
+    "area-tragic"
+   ],
+   "grew_from": [
+    "A:C158"
+   ]
+  },
+  {
+   "id": "the-tragic-chorus",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Трагический хор",
+    "en": "The Tragic Chorus"
+   },
+   "terms": [
+    "χορός"
+   ],
+   "areas": [
+    "area-tragic"
+   ],
+   "grew_from": [
+    "A:C159"
+   ]
+  },
+  {
+   "id": "superiority",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Превосходство",
+    "en": "Superiority"
+   },
+   "terms": [
+    "superiority"
+   ],
+   "areas": [
+    "area-comic"
+   ],
+   "grew_from": [
+    "A:C160"
+   ]
+  },
+  {
+   "id": "sudden-glory",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Внезапная слава",
+    "en": "Sudden Glory"
+   },
+   "terms": [
+    "sudden glory"
+   ],
+   "areas": [
+    "area-comic"
+   ],
+   "grew_from": [
+    "A:C161"
+   ]
+  },
+  {
+   "id": "the-mechanical-encrusted-on-the-living",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Механическое на живом",
+    "en": "The Mechanical Encrusted on the Living"
+   },
+   "terms": [
+    "du mécanique plaqué sur du vivant"
+   ],
+   "areas": [
+    "area-comic"
+   ],
+   "grew_from": [
+    "A:C162"
+   ]
+  },
+  {
+   "id": "rigidity",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Ригидность",
+    "en": "Rigidity"
+   },
+   "terms": [
+    "raideur"
+   ],
+   "areas": [
+    "area-comic"
+   ],
+   "grew_from": [
+    "A:C163"
+   ]
+  },
+  {
+   "id": "social-correction-by-laughter",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Социальная коррекция смехом",
+    "en": "Social Correction by Laughter"
+   },
+   "terms": [
+    "social function of laughter"
+   ],
+   "areas": [
+    "area-comic"
+   ],
+   "grew_from": [
+    "A:C164"
+   ]
+  },
+  {
+   "id": "interference-of-series",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Интерференция рядов",
+    "en": "Interference of Series"
+   },
+   "terms": [
+    "interférence des séries"
+   ],
+   "areas": [
+    "area-comic"
+   ],
+   "grew_from": [
+    "A:C165"
+   ]
+  },
+  {
+   "id": "wordplay",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Игра слов",
+    "en": "Wordplay"
+   },
+   "terms": [
+    "pun",
+    "wordplay"
+   ],
+   "areas": [
+    "area-comic"
+   ],
+   "grew_from": [
+    "A:C166"
+   ]
+  },
+  {
+   "id": "the-absolute-comic",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Абсолютно комическое",
+    "en": "The Absolute Comic"
+   },
+   "terms": [
+    "comique absolu"
+   ],
+   "areas": [
+    "area-grotesque"
+   ],
+   "grew_from": [
+    "A:C167"
+   ]
+  },
+  {
+   "id": "the-significative-comic",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Значаще-комическое",
+    "en": "The Significative Comic"
+   },
+   "terms": [
+    "comique significatif"
+   ],
+   "areas": [
+    "area-comic"
+   ],
+   "grew_from": [
+    "A:C168"
+   ]
+  },
+  {
+   "id": "bathos",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Батос",
+    "en": "Bathos"
+   },
+   "terms": [
+    "bathos",
+    "βάθος"
+   ],
+   "areas": [
+    "area-base"
+   ],
+   "grew_from": [
+    "A:C169"
+   ]
+  },
+  {
+   "id": "grottesche",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Гротески-орнаменты",
+    "en": "Grottesche"
+   },
+   "terms": [
+    "grottesche"
+   ],
+   "areas": [
+    "area-grotesque"
+   ],
+   "grew_from": [
+    "A:C170"
+   ]
+  },
+  {
+   "id": "the-estranged-world",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Отчуждённый мир",
+    "en": "The Estranged World"
+   },
+   "terms": [
+    "die entfremdete Welt"
+   ],
+   "areas": [
+    "area-grotesque"
+   ],
+   "grew_from": [
+    "A:C171"
+   ]
+  },
+  {
+   "id": "ambivalence",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Амбивалентность",
+    "en": "Ambivalence"
+   },
+   "terms": [
+    "ambivalence"
+   ],
+   "areas": [
+    "area-grotesque"
+   ],
+   "grew_from": [
+    "A:C172"
+   ]
+  },
+  {
+   "id": "the-material-bodily-lower-stratum",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Материально-телесный низ",
+    "en": "The Material Bodily Lower Stratum"
+   },
+   "terms": [
+    "material bodily lower stratum"
+   ],
+   "areas": [
+    "area-grotesque"
+   ],
+   "grew_from": [
+    "A:C173"
+   ]
+  },
+  {
+   "id": "the-two-bodied-image",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Двутелое тело",
+    "en": "The Two-Bodied Image"
+   },
+   "terms": [
+    "two-bodied image"
+   ],
+   "areas": [
+    "area-grotesque"
+   ],
+   "grew_from": [
+    "A:C174"
+   ]
+  },
+  {
+   "id": "death-and-renewal",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Смерть и возрождение",
+    "en": "Death and Renewal"
+   },
+   "terms": [
+    "death and renewal"
+   ],
+   "areas": [
+    "area-grotesque"
+   ],
+   "grew_from": [
+    "A:C175"
+   ]
+  },
+  {
+   "id": "intellectual-uncertainty",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Интеллектуальная неопределённость",
+    "en": "Intellectual Uncertainty"
+   },
+   "terms": [
+    "intellektuelle Unsicherheit"
+   ],
+   "areas": [
+    "area-uncanny-and-the-horrible"
+   ],
+   "grew_from": [
+    "A:C176"
+   ]
+  },
+  {
+   "id": "uncertain-animateness",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Неопределённая одушевлённость",
+    "en": "Uncertain Animateness"
+   },
+   "terms": [
+    "animate / inanimate uncertainty"
+   ],
+   "areas": [
+    "area-uncanny-and-the-horrible"
+   ],
+   "grew_from": [
+    "A:C177"
+   ]
+  },
+  {
+   "id": "the-return-of-the-repressed",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Возвращение вытесненного",
+    "en": "The Return of the Repressed"
+   },
+   "terms": [
+    "return of the repressed"
+   ],
+   "areas": [
+    "area-uncanny-and-the-horrible"
+   ],
+   "grew_from": [
+    "A:C178"
+   ]
+  },
+  {
+   "id": "repetition-compulsion",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Навязчивое повторение",
+    "en": "Repetition Compulsion"
+   },
+   "terms": [
+    "repetition compulsion"
+   ],
+   "areas": [
+    "area-uncanny-and-the-horrible"
+   ],
+   "grew_from": [
+    "A:C179"
+   ]
+  },
+  {
+   "id": "art-horror",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Художественный ужас",
+    "en": "Art-Horror"
+   },
+   "terms": [
+    "art-horror"
+   ],
+   "areas": [
+    "area-uncanny-and-the-horrible"
+   ],
+   "grew_from": [
+    "A:C180"
+   ]
+  },
+  {
+   "id": "impurity",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Нечистота / категориальная примесь",
+    "en": "Impurity"
+   },
+   "terms": [
+    "impurity"
+   ],
+   "areas": [
+    "area-uncanny-and-the-horrible"
+   ],
+   "grew_from": [
+    "A:C181"
+   ]
+  },
+  {
+   "id": "cosmic-fear",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Космический страх",
+    "en": "Cosmic Fear"
+   },
+   "terms": [
+    "cosmic fear"
+   ],
+   "areas": [
+    "area-uncanny-and-the-horrible"
+   ],
+   "grew_from": [
+    "A:C182"
+   ]
+  },
+  {
+   "id": "atmosphere-of-horror",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Атмосфера ужаса",
+    "en": "Atmosphere of Horror"
+   },
+   "terms": [
+    "atmosphere"
+   ],
+   "areas": [
+    "area-uncanny-and-the-horrible"
+   ],
+   "grew_from": [
+    "A:C183"
+   ]
+  },
+  {
+   "id": "the-paradox-of-suspense",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Парадокс саспенса",
+    "en": "The Paradox of Suspense"
+   },
+   "terms": [
+    "paradox of suspense"
+   ],
+   "areas": [
+    "area-uncanny-and-the-horrible"
+   ],
+   "grew_from": [
+    "A:C184"
+   ]
+  },
+  {
+   "id": "entertained-uncertainty",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Мысленно допускаемая неопределённость",
+    "en": "Entertained Uncertainty"
+   },
+   "terms": [
+    "entertained uncertainty"
+   ],
+   "areas": [
+    "area-uncanny-and-the-horrible"
+   ],
+   "grew_from": [
+    "A:C185"
+   ]
+  },
+  {
+   "id": "frustrated-desire-to-intervene",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Фрустрация желания вмешаться",
+    "en": "Frustrated Desire to Intervene"
+   },
+   "terms": [
+    "desire-frustration"
+   ],
+   "areas": [
+    "area-uncanny-and-the-horrible"
+   ],
+   "grew_from": [
+    "A:C186"
+   ]
+  },
+  {
+   "id": "the-demand-for-meaning",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Требование смысла",
+    "en": "The Demand for Meaning"
+   },
+   "terms": [
+    "human demand for meaning"
+   ],
+   "areas": [
+    "area-absurd"
+   ],
+   "grew_from": [
+    "A:C187"
+   ]
+  },
+  {
+   "id": "the-silence-of-the-world",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Молчание мира",
+    "en": "The Silence of the World"
+   },
+   "terms": [
+    "silence of the world"
+   ],
+   "areas": [
+    "area-absurd"
+   ],
+   "grew_from": [
+    "A:C188"
+   ]
+  },
+  {
+   "id": "revolt-before-the-absurd",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Бунт перед абсурдом",
+    "en": "Revolt before the Absurd"
+   },
+   "terms": [
+    "révolte"
+   ],
+   "areas": [
+    "area-absurd"
+   ],
+   "grew_from": [
+    "A:C189"
+   ]
+  },
+  {
+   "id": "the-detached-view-of-ones-own-life",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Внешняя перспектива на собственную жизнь",
+    "en": "The Detached View of One’s Own Life"
+   },
+   "terms": [
+    "detached standpoint"
+   ],
+   "areas": [
+    "area-absurd"
+   ],
+   "grew_from": [
+    "A:C190"
+   ]
+  },
+  {
+   "id": "portmanteau-word",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Слово-бумажник",
+    "en": "Portmanteau Word"
+   },
+   "terms": [
+    "portmanteau word"
+   ],
+   "areas": [
+    "area-absurd"
+   ],
+   "grew_from": [
+    "A:C191"
+   ]
+  },
+  {
+   "id": "circular-action",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Круговое действие",
+    "en": "Circular Action"
+   },
+   "terms": [
+    "circularity"
+   ],
+   "areas": [
+    "area-absurd"
+   ],
+   "grew_from": [
+    "A:C192"
+   ]
+  },
+  {
+   "id": "waiting-without-resolution",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Ожидание без развязки",
+    "en": "Waiting without Resolution"
+   },
+   "terms": [
+    "waiting"
+   ],
+   "areas": [
+    "area-absurd"
+   ],
+   "grew_from": [
+    "A:C193"
+   ]
+  },
+  {
+   "id": "smoothness",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Гладкость",
+    "en": "Smoothness"
+   },
+   "terms": [
+    "smoothness"
+   ],
+   "areas": [
+    "area-picturesque"
+   ],
+   "grew_from": [
+    "A:C194"
+   ]
+  },
+  {
+   "id": "composition",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Композиция",
+    "en": "Composition"
+   },
+   "terms": [
+    "composition",
+    "compositio",
+    "σύνθεσις"
+   ],
+   "areas": [
+    "area-picturesque",
+    "area-form-and-composition"
+   ],
+   "grew_from": [
+    "A:C195",
+    "C:A-C003"
+   ]
+  },
+  {
+   "id": "association-of-ideas",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Ассоциация идей",
+    "en": "Association of Ideas"
+   },
+   "terms": [
+    "association of ideas"
+   ],
+   "areas": [
+    "area-picturesque"
+   ],
+   "grew_from": [
+    "A:C196"
+   ]
+  },
+  {
+   "id": "the-baby-schema",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Детская схема",
+    "en": "The Baby Schema"
+   },
+   "terms": [
+    "Kindchenschema",
+    "baby schema"
+   ],
+   "areas": [
+    "area-cute"
+   ],
+   "grew_from": [
+    "A:C197"
+   ]
+  },
+  {
+   "id": "caretaking-motivation",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Побуждение к заботе",
+    "en": "Caretaking Motivation"
+   },
+   "terms": [
+    "caretaking motivation"
+   ],
+   "areas": [
+    "area-cute"
+   ],
+   "grew_from": [
+    "A:C198"
+   ]
+  },
+  {
+   "id": "kawaii-as-emotion",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Kawaii как эмоция",
+    "en": "Kawaii as Emotion"
+   },
+   "terms": [
+    "kawaii emotion"
+   ],
+   "areas": [
+    "area-cute"
+   ],
+   "grew_from": [
+    "A:C199"
+   ]
+  },
+  {
+   "id": "kawaii-as-social-value",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Kawaii как социальная ценность",
+    "en": "Kawaii as Social Value"
+   },
+   "terms": [
+    "social value of kawaii"
+   ],
+   "areas": [
+    "area-cute"
+   ],
+   "grew_from": [
+    "A:C200"
+   ]
+  },
+  {
+   "id": "the-held-object",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Удерживаемый предмет",
+    "en": "The Held Object"
+   },
+   "terms": [
+    "held object"
+   ],
+   "areas": [
+    "area-cute"
+   ],
+   "grew_from": [
+    "A:C201"
+   ]
+  },
+  {
+   "id": "ambivalence-of-the-cute",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Амбивалентность милого",
+    "en": "Ambivalence of the Cute"
+   },
+   "terms": [
+    "cute ambivalence"
+   ],
+   "areas": [
+    "area-cute"
+   ],
+   "grew_from": [
+    "A:C202"
+   ]
+  },
+  {
+   "id": "coping-potential",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Понятность / способность справиться",
+    "en": "Coping Potential"
+   },
+   "terms": [
+    "coping potential",
+    "comprehensibility"
+   ],
+   "areas": [
+    "area-interesting"
+   ],
+   "grew_from": [
+    "A:C203"
+   ]
+  },
+  {
+   "id": "complexity",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Сложность",
+    "en": "Complexity"
+   },
+   "terms": [
+    "complexity",
+    "variety",
+    "complexity of form"
+   ],
+   "areas": [
+    "area-interesting",
+    "area-form-and-composition"
+   ],
+   "grew_from": [
+    "A:C204",
+    "C:A-C009"
+   ]
+  },
+  {
+   "id": "arousal",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Активация",
+    "en": "Arousal"
+   },
+   "terms": [
+    "arousal"
+   ],
+   "areas": [
+    "area-interesting"
+   ],
+   "grew_from": [
+    "A:C205"
+   ]
+  },
+  {
+   "id": "circulation-of-information",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Циркуляция информации",
+    "en": "Circulation of Information"
+   },
+   "terms": [
+    "circulation"
+   ],
+   "areas": [
+    "area-interesting"
+   ],
+   "grew_from": [
+    "A:C206"
+   ]
+  },
+  {
+   "id": "the-zany",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Чудаковатое / zany",
+    "en": "The Zany"
+   },
+   "terms": [
+    "zany"
+   ],
+   "areas": [
+    "area-interesting"
+   ],
+   "grew_from": [
+    "A:C207"
+   ]
+  },
+  {
+   "id": "the-play-drive",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Игровое влечение",
+    "en": "The Play Drive"
+   },
+   "terms": [
+    "Spieltrieb"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-comic"
+   ],
+   "grew_from": [
+    "A:C208"
+   ]
+  },
+  {
+   "id": "living-form",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Живая форма",
+    "en": "Living Form"
+   },
+   "terms": [
+    "lebende Gestalt"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C209"
+   ]
+  },
+  {
+   "id": "the-sensuous-drive",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Чувственное влечение",
+    "en": "The Sensuous Drive"
+   },
+   "terms": [
+    "sinnlicher Trieb / Stofftrieb"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C210"
+   ]
+  },
+  {
+   "id": "the-form-drive",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Формальное влечение",
+    "en": "The Form Drive"
+   },
+   "terms": [
+    "Formtrieb"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "grew_from": [
+    "A:C211"
+   ]
+  },
+  {
+   "id": "aesthetic-perception",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Эстетическое восприятие",
+    "en": "Aesthetic Perception"
+   },
+   "terms": [
+    "aesthetic perception"
+   ],
+   "areas": [
+    "area-perception-and-attention"
+   ],
+   "grew_from": [
+    "B:A-C001"
+   ]
+  },
+  {
+   "id": "contemplation",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Созерцание",
+    "en": "Contemplation"
+   },
+   "terms": [
+    "contemplation"
+   ],
+   "areas": [
+    "area-perception-and-attention"
+   ],
+   "grew_from": [
+    "B:A-C002"
+   ]
+  },
+  {
+   "id": "the-aesthetic-attitude",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Эстетическая установка",
+    "en": "The Aesthetic Attitude"
+   },
+   "terms": [
+    "aesthetic attitude"
+   ],
+   "areas": [
+    "area-perception-and-attention"
+   ],
+   "grew_from": [
+    "B:A-C003"
+   ]
+  },
+  {
+   "id": "attention",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Внимание",
+    "en": "Attention"
+   },
+   "terms": [
+    "attention"
+   ],
+   "areas": [
+    "area-perception-and-attention"
+   ],
+   "grew_from": [
+    "B:A-C004"
+   ]
+  },
+  {
+   "id": "psychical-distance",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Дистанция",
+    "en": "Psychical Distance"
+   },
+   "terms": [
+    "psychical distance"
+   ],
+   "areas": [
+    "area-perception-and-attention"
+   ],
+   "grew_from": [
+    "B:A-C005"
+   ]
+  },
+  {
+   "id": "immersion",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Погружение",
+    "en": "Immersion"
+   },
+   "terms": [
+    "immersion",
+    "absorption",
+    "transportation",
+    "presence (сопоставляемое понятие)"
+   ],
+   "areas": [
+    "area-perception-and-attention",
+    "area-atmosphere-and-mood"
+   ],
+   "grew_from": [
+    "B:A-C006"
+   ]
+  },
+  {
+   "id": "synaesthesia",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Синестезия",
+    "en": "Synaesthesia"
+   },
+   "terms": [
+    "synesthesia"
+   ],
+   "areas": [
+    "area-perception-and-attention"
+   ],
+   "grew_from": [
+    "B:A-C007"
+   ]
+  },
+  {
+   "id": "multisensory-integration",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Многосенсорность",
+    "en": "Multisensory Integration"
+   },
+   "terms": [
+    "multisensory integration"
+   ],
+   "areas": [
+    "area-perception-and-attention"
+   ],
+   "grew_from": [
+    "B:A-C008"
+   ]
+  },
+  {
+   "id": "the-lived-body",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Живое тело",
+    "en": "The Lived Body"
+   },
+   "terms": [
+    "Leib"
+   ],
+   "areas": [
+    "area-embodiment-and-presence"
+   ],
+   "grew_from": [
+    "B:A-C009"
+   ]
+  },
+  {
+   "id": "gesture",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Жест",
+    "en": "Gesture"
+   },
+   "terms": [
+    "gesture"
+   ],
+   "areas": [
+    "area-embodiment-and-presence"
+   ],
+   "grew_from": [
+    "B:A-C010"
+   ]
+  },
+  {
+   "id": "kinaesthesia",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Кинестезия",
+    "en": "Kinaesthesia"
+   },
+   "terms": [
+    "kinesthesia"
+   ],
+   "areas": [
+    "area-embodiment-and-presence"
+   ],
+   "grew_from": [
+    "B:A-C011"
+   ]
+  },
+  {
+   "id": "embodiment",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Воплощение",
+    "en": "Embodiment"
+   },
+   "terms": [
+    "embodiment"
+   ],
+   "areas": [
+    "area-embodiment-and-presence"
+   ],
+   "grew_from": [
+    "B:A-C012"
+   ]
+  },
+  {
+   "id": "sensuousness",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Чувственность",
+    "en": "Sensuousness"
+   },
+   "terms": [
+    "aisthesis"
+   ],
+   "areas": [
+    "area-embodiment-and-presence"
+   ],
+   "grew_from": [
+    "B:A-C013"
+   ]
+  },
+  {
+   "id": "the-erotic",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Эротическое",
+    "en": "The Erotic"
+   },
+   "terms": [
+    "the erotic"
+   ],
+   "areas": [
+    "area-embodiment-and-presence"
+   ],
+   "grew_from": [
+    "B:A-C014"
+   ]
+  },
+  {
+   "id": "movement",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Движение",
+    "en": "Movement"
+   },
+   "terms": [
+    "motricity"
+   ],
+   "areas": [
+    "area-embodiment-and-presence"
+   ],
+   "grew_from": [
+    "B:A-C015"
+   ]
+  },
+  {
+   "id": "bodily-presence",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Телесное присутствие",
+    "en": "Bodily Presence"
+   },
+   "terms": [
+    "presence effect"
+   ],
+   "areas": [
+    "area-embodiment-and-presence"
+   ],
+   "grew_from": [
+    "B:A-C016"
+   ]
+  },
+  {
+   "id": "pleasure",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Удовольствие",
+    "en": "Pleasure"
+   },
+   "terms": [
+    "ἡδονή (hēdonē)",
+    "pleasure"
+   ],
+   "areas": [
+    "area-experience-and-affect"
+   ],
+   "grew_from": [
+    "B:B-C001"
+   ]
+  },
+  {
+   "id": "delight",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Наслаждение",
+    "en": "Delight"
+   },
+   "terms": [
+    "delight",
+    "rasa-āsvādana/rasanā"
+   ],
+   "areas": [
+    "area-experience-and-affect"
+   ],
+   "grew_from": [
+    "B:B-C002"
+   ]
+  },
+  {
+   "id": "affect",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Аффект",
+    "en": "Affect"
+   },
+   "terms": [
+    "affectus (Спиноза)",
+    "impressions of reflection (Юм)"
+   ],
+   "areas": [
+    "area-experience-and-affect"
+   ],
+   "grew_from": [
+    "B:B-C003"
+   ]
+  },
+  {
+   "id": "empathy",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Эмпатия",
+    "en": "Empathy"
+   },
+   "terms": [
+    "Einfühlung",
+    "sympathy",
+    "empathic presentation"
+   ],
+   "areas": [
+    "area-experience-and-affect"
+   ],
+   "grew_from": [
+    "B:B-C004"
+   ]
+  },
+  {
+   "id": "the-moving-and-being-moved",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Трогательное и переживание «быть тронутым»",
+    "en": "The Moving and Being Moved"
+   },
+   "terms": [
+    "das Pathetische",
+    "being moved/touched",
+    "kama muta"
+   ],
+   "areas": [
+    "area-experience-and-affect"
+   ],
+   "grew_from": [
+    "B:B-C005"
+   ]
+  },
+  {
+   "id": "melancholy",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Меланхолическое / меланхолия",
+    "en": "Melancholy"
+   },
+   "terms": [
+    "μελαγχολία",
+    "melancholia",
+    "Melancholie"
+   ],
+   "areas": [
+    "area-experience-and-affect"
+   ],
+   "grew_from": [
+    "B:B-C006"
+   ]
+  },
+  {
+   "id": "nostalgia",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Ностальгия",
+    "en": "Nostalgia"
+   },
+   "terms": [
+    "nostalgia"
+   ],
+   "areas": [
+    "area-experience-and-affect"
+   ],
+   "grew_from": [
+    "B:B-C007"
+   ]
+  },
+  {
+   "id": "rasa",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Раса",
+    "en": "Rasa"
+   },
+   "terms": [
+    "रस (rasa)",
+    "भाव (bhāva)",
+    "vibhāva/anubhāva/vyabhicāribhāva"
+   ],
+   "areas": [
+    "area-experience-and-affect"
+   ],
+   "grew_from": [
+    "B:B-C009"
+   ]
+  },
+  {
+   "id": "atmosphere",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Атмосфера",
+    "en": "Atmosphere"
+   },
+   "terms": [
+    "Atmosphäre",
+    "atmosphere"
+   ],
+   "areas": [
+    "area-atmosphere-and-mood"
+   ],
+   "grew_from": [
+    "B:B-C010"
+   ]
+  },
+  {
+   "id": "stimmung",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Stimmung",
+    "en": "Stimmung"
+   },
+   "terms": [
+    "Stimmung",
+    "Gestimmtsein",
+    "Gestimmtheit"
+   ],
+   "areas": [
+    "area-atmosphere-and-mood"
+   ],
+   "grew_from": [
+    "B:B-C011"
+   ]
+  },
+  {
+   "id": "mood-and-attunement",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Настроение и настрой",
+    "en": "Mood and Attunement"
+   },
+   "terms": [
+    "mood",
+    "attunement",
+    "настроение/настроенность"
+   ],
+   "areas": [
+    "area-atmosphere-and-mood"
+   ],
+   "grew_from": [
+    "B:B-C012"
+   ]
+  },
+  {
+   "id": "tonality",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Тональность",
+    "en": "Tonality"
+   },
+   "terms": [
+    "tonality",
+    "Stimmung (musical tuning, metaphorical transfer)"
+   ],
+   "areas": [
+    "area-atmosphere-and-mood"
+   ],
+   "grew_from": [
+    "B:B-C013"
+   ]
+  },
+  {
+   "id": "the-mood-of-a-place",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Настроение места",
+    "en": "The Mood of a Place"
+   },
+   "terms": [
+    "Stimmung der Landschaft",
+    "atmosphere of place",
+    "genius loci"
+   ],
+   "areas": [
+    "area-atmosphere-and-mood"
+   ],
+   "grew_from": [
+    "B:B-C014"
+   ]
+  },
+  {
+   "id": "intimacy",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Интимность",
+    "en": "Intimacy"
+   },
+   "terms": [
+    "intimité",
+    "intimate space"
+   ],
+   "areas": [
+    "area-atmosphere-and-mood"
+   ],
+   "grew_from": [
+    "B:B-C015"
+   ]
+  },
+  {
+   "id": "tension-and-suspense",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Напряжённость и саспенс",
+    "en": "Tension and Suspense"
+   },
+   "terms": [
+    "suspense",
+    "tension"
+   ],
+   "areas": [
+    "area-atmosphere-and-mood"
+   ],
+   "grew_from": [
+    "B:B-C016"
+   ]
+  },
+  {
+   "id": "taste",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Эстетический вкус",
+    "en": "Taste"
+   },
+   "terms": [
+    "taste",
+    "goût",
+    "Geschmack"
+   ],
+   "areas": [
+    "area-taste-and-judgment"
+   ],
+   "grew_from": [
+    "B:C-C001"
+   ]
+  },
+  {
+   "id": "preference",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Предпочтение",
+    "en": "Preference"
+   },
+   "terms": [
+    "preference",
+    "goût particulier",
+    "personal taste"
+   ],
+   "areas": [
+    "area-taste-and-judgment"
+   ],
+   "grew_from": [
+    "B:C-C002"
+   ]
+  },
+  {
+   "id": "evaluation",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Оценка",
+    "en": "Evaluation"
+   },
+   "terms": [
+    "evaluation",
+    "appraisal",
+    "aesthetic evaluation"
+   ],
+   "areas": [
+    "area-taste-and-judgment"
+   ],
+   "grew_from": [
+    "B:C-C003"
+   ]
+  },
+  {
+   "id": "criticism",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Критика",
+    "en": "Criticism"
+   },
+   "terms": [
+    "criticism",
+    "critique",
+    "Kritik"
+   ],
+   "areas": [
+    "area-taste-and-judgment"
+   ],
+   "grew_from": [
+    "B:C-C005"
+   ]
+  },
+  {
+   "id": "competence-and-expertise",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Компетентность и экспертность",
+    "en": "Competence and Expertise"
+   },
+   "terms": [
+    "competence",
+    "expertise",
+    "delicacy",
+    "aesthetic understanding"
+   ],
+   "areas": [
+    "area-taste-and-judgment"
+   ],
+   "grew_from": [
+    "B:C-C006"
+   ]
+  },
+  {
+   "id": "universal-validity",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Общезначимость",
+    "en": "Universal Validity"
+   },
+   "terms": [
+    "universal validity",
+    "Allgemeingültigkeit",
+    "common sense"
+   ],
+   "areas": [
+    "area-taste-and-judgment"
+   ],
+   "grew_from": [
+    "B:C-C007"
+   ]
+  },
+  {
+   "id": "aesthetic-disagreement",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Эстетическое разногласие",
+    "en": "Aesthetic Disagreement"
+   },
+   "terms": [
+    "aesthetic disagreement",
+    "disagreement in taste"
+   ],
+   "areas": [
+    "area-taste-and-judgment"
+   ],
+   "grew_from": [
+    "B:C-C008"
+   ]
+  },
+  {
+   "id": "aesthetic-value",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Эстетическая ценность",
+    "en": "Aesthetic Value"
+   },
+   "terms": [
+    "aesthetic value",
+    "aesthetic merit"
+   ],
+   "areas": [
+    "area-value-norm-and-ideal"
+   ],
+   "grew_from": [
+    "B:C-C009"
+   ]
+  },
+  {
+   "id": "artistic-value",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Художественная ценность",
+    "en": "Artistic Value"
+   },
+   "terms": [
+    "artistic value",
+    "artistic merit"
+   ],
+   "areas": [
+    "area-value-norm-and-ideal"
+   ],
+   "grew_from": [
+    "B:C-C010"
+   ]
+  },
+  {
+   "id": "the-ideal",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Идеал",
+    "en": "The Ideal"
+   },
+   "terms": [
+    "ideal",
+    "Ideal",
+    "ideal of beauty",
+    "das Ideal"
+   ],
+   "areas": [
+    "area-value-norm-and-ideal"
+   ],
+   "grew_from": [
+    "B:C-C011"
+   ]
+  },
+  {
+   "id": "norm",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Норма",
+    "en": "Norm"
+   },
+   "terms": [
+    "norm",
+    "normativity",
+    "standard"
+   ],
+   "areas": [
+    "area-value-norm-and-ideal"
+   ],
+   "grew_from": [
+    "B:C-C013"
+   ]
+  },
+  {
+   "id": "autonomy",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Автономия",
+    "en": "Autonomy"
+   },
+   "terms": [
+    "autonomy",
+    "autonomy of taste",
+    "aesthetic autonomy"
+   ],
+   "areas": [
+    "area-value-norm-and-ideal"
+   ],
+   "grew_from": [
+    "B:C-C014"
+   ]
+  },
+  {
+   "id": "objectivity-of-value",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Объективность ценности",
+    "en": "Objectivity of Value"
+   },
+   "terms": [
+    "objectivity of value",
+    "mind-independence",
+    "objectivity"
+   ],
+   "areas": [
+    "area-value-norm-and-ideal"
+   ],
+   "grew_from": [
+    "B:C-C015"
+   ]
+  },
+  {
+   "id": "relativism",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Релятивизм",
+    "en": "Relativism"
+   },
+   "terms": [
+    "relativism",
+    "response-dependence",
+    "judge-dependence"
+   ],
+   "areas": [
+    "area-value-norm-and-ideal"
+   ],
+   "grew_from": [
+    "B:C-C016"
+   ]
+  },
+  {
+   "id": "understanding",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Понимание",
+    "en": "Understanding"
+   },
+   "terms": [
+    "understanding",
+    "Verstehen"
+   ],
+   "areas": [
+    "area-knowledge-and-truth"
+   ],
+   "grew_from": [
+    "B:D-C002"
+   ]
+  },
+  {
+   "id": "artistic-truth",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Художественная истина",
+    "en": "Artistic Truth"
+   },
+   "terms": [
+    "artistic truth",
+    "truth in art",
+    "Unverborgenheit"
+   ],
+   "areas": [
+    "area-knowledge-and-truth"
+   ],
+   "grew_from": [
+    "B:D-C003"
+   ]
+  },
+  {
+   "id": "cognitive-value",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Когнитивная ценность",
+    "en": "Cognitive Value"
+   },
+   "terms": [
+    "cognitive value"
+   ],
+   "areas": [
+    "area-knowledge-and-truth"
+   ],
+   "grew_from": [
+    "B:D-C004"
+   ]
+  },
+  {
+   "id": "illusion",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Иллюзия",
+    "en": "Illusion"
+   },
+   "terms": [
+    "illusion",
+    "Schein"
+   ],
+   "areas": [
+    "area-knowledge-and-truth"
+   ],
+   "grew_from": [
+    "B:D-C005"
+   ]
+  },
+  {
+   "id": "expressive-accuracy",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Выразительная точность",
+    "en": "Expressive Accuracy"
+   },
+   "terms": [
+    "expressive accuracy",
+    "articulation"
+   ],
+   "areas": [
+    "area-knowledge-and-truth"
+   ],
+   "grew_from": [
+    "B:D-C006"
+   ]
+  },
+  {
+   "id": "the-aesthetic-in-scientific-explanation",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Эстетическое значение научного объяснения",
+    "en": "The Aesthetic in Scientific Explanation"
+   },
+   "terms": [
+    "aesthetic values in science"
+   ],
+   "areas": [
+    "area-knowledge-and-truth"
+   ],
+   "grew_from": [
+    "B:D-C007"
+   ]
+  },
+  {
+   "id": "the-aesthetic-in-proof",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Эстетическое значение доказательства",
+    "en": "The Aesthetic in Proof"
+   },
+   "terms": [
+    "mathematical beauty",
+    "elegance"
+   ],
+   "areas": [
+    "area-knowledge-and-truth"
+   ],
+   "grew_from": [
+    "B:D-C008"
+   ]
+  },
+  {
+   "id": "imagination",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Воображение",
+    "en": "Imagination"
+   },
+   "terms": [
+    "imagination",
+    "Einbildungskraft",
+    "phantasia"
+   ],
+   "areas": [
+    "area-imagination-and-fiction"
+   ],
+   "grew_from": [
+    "B:D-C009"
+   ]
+  },
+  {
+   "id": "fancy",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Фантазия",
+    "en": "Fancy"
+   },
+   "terms": [
+    "fancy",
+    "fantasy",
+    "Phantasie"
+   ],
+   "areas": [
+    "area-imagination-and-fiction"
+   ],
+   "grew_from": [
+    "B:D-C010"
+   ]
+  },
+  {
+   "id": "possible-world",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Возможный мир",
+    "en": "Possible World"
+   },
+   "terms": [
+    "possible world",
+    "fictional world"
+   ],
+   "areas": [
+    "area-imagination-and-fiction"
+   ],
+   "grew_from": [
+    "B:D-C011"
+   ]
+  },
+  {
+   "id": "fiction",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Художественный вымысел",
+    "en": "Fiction"
+   },
+   "terms": [
+    "fiction",
+    "fictional discourse"
+   ],
+   "areas": [
+    "area-imagination-and-fiction"
+   ],
+   "grew_from": [
+    "B:D-C012"
+   ]
+  },
+  {
+   "id": "the-fantastic",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Фантастическое",
+    "en": "The Fantastic"
+   },
+   "terms": [
+    "the fantastic",
+    "le fantastique"
+   ],
+   "areas": [
+    "area-imagination-and-fiction"
+   ],
+   "grew_from": [
+    "B:D-C013"
+   ]
+  },
+  {
+   "id": "make-believe",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Игра понарошку",
+    "en": "Make-Believe"
+   },
+   "terms": [
+    "make-believe",
+    "pretense",
+    "Spiel"
+   ],
+   "areas": [
+    "area-imagination-and-fiction"
+   ],
+   "grew_from": [
+    "B:D-C014"
+   ]
+  },
+  {
+   "id": "the-paradox-of-fiction",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Парадокс эмоционального отклика на вымышленное",
+    "en": "The Paradox of Fiction"
+   },
+   "terms": [
+    "paradox of fiction"
+   ],
+   "areas": [
+    "area-imagination-and-fiction"
+   ],
+   "grew_from": [
+    "B:D-C015"
+   ]
+  },
+  {
+   "id": "form",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Форма",
+    "en": "Form"
+   },
+   "terms": [
+    "form",
+    "Form",
+    "significant form"
+   ],
+   "areas": [
+    "area-form-and-composition"
+   ],
+   "grew_from": [
+    "C:A-C001"
+   ]
+  },
+  {
+   "id": "content",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Содержание",
+    "en": "Content"
+   },
+   "terms": [
+    "content",
+    "Inhalt"
+   ],
+   "areas": [
+    "area-form-and-composition"
+   ],
+   "grew_from": [
+    "C:A-C002"
+   ]
+  },
+  {
+   "id": "rhythm",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Ритм",
+    "en": "Rhythm"
+   },
+   "terms": [
+    "rhythm",
+    "ῥυθμός"
+   ],
+   "areas": [
+    "area-form-and-composition"
+   ],
+   "grew_from": [
+    "C:A-C004"
+   ]
+  },
+  {
+   "id": "proportion",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Пропорция",
+    "en": "Proportion"
+   },
+   "terms": [
+    "proportion",
+    "analogia",
+    "ἀναλογία"
+   ],
+   "areas": [
+    "area-form-and-composition"
+   ],
+   "grew_from": [
+    "C:A-C006"
+   ]
+  },
+  {
+   "id": "unity",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Единство",
+    "en": "Unity"
+   },
+   "terms": [
+    "unity",
+    "whole",
+    "Einheit"
+   ],
+   "areas": [
+    "area-form-and-composition"
+   ],
+   "grew_from": [
+    "C:A-C007"
+   ]
+  },
+  {
+   "id": "contrast",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Контраст",
+    "en": "Contrast"
+   },
+   "terms": [
+    "contrast",
+    "opposition"
+   ],
+   "areas": [
+    "area-form-and-composition"
+   ],
+   "grew_from": [
+    "C:A-C008"
+   ]
+  },
+  {
+   "id": "the-unfinished",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Незавершённость",
+    "en": "The Unfinished"
+   },
+   "terms": [
+    "unfinished",
+    "non finito",
+    "incompleteness"
+   ],
+   "areas": [
+    "area-form-and-composition"
+   ],
+   "grew_from": [
+    "C:A-C010"
+   ]
+  },
+  {
+   "id": "the-artistic-image",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Художественный образ",
+    "en": "The Artistic Image"
+   },
+   "terms": [
+    "image",
+    "Bild",
+    "artistic image"
+   ],
+   "areas": [
+    "area-image-and-mimesis"
+   ],
+   "grew_from": [
+    "C:A-C011"
+   ]
+  },
+  {
+   "id": "depiction",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Изображение",
+    "en": "Depiction"
+   },
+   "terms": [
+    "depiction",
+    "pictorial representation"
+   ],
+   "areas": [
+    "area-image-and-mimesis"
+   ],
+   "grew_from": [
+    "C:A-C013"
+   ]
+  },
+  {
+   "id": "resemblance",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Сходство",
+    "en": "Resemblance"
+   },
+   "terms": [
+    "resemblance",
+    "likeness"
+   ],
+   "areas": [
+    "area-image-and-mimesis"
+   ],
+   "grew_from": [
+    "C:A-C014"
+   ]
+  },
+  {
+   "id": "representation",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Репрезентация",
+    "en": "Representation"
+   },
+   "terms": [
+    "representation",
+    "Darstellung"
+   ],
+   "areas": [
+    "area-image-and-mimesis"
+   ],
+   "grew_from": [
+    "C:A-C015"
+   ]
+  },
+  {
+   "id": "abstraction",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Абстракция",
+    "en": "Abstraction"
+   },
+   "terms": [
+    "abstraction",
+    "abstract form"
+   ],
+   "areas": [
+    "area-image-and-mimesis"
+   ],
+   "grew_from": [
+    "C:A-C016"
+   ]
+  },
+  {
+   "id": "anti-mimesis",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Антимимесис",
+    "en": "Anti-Mimesis"
+   },
+   "terms": [
+    "anti-mimesis",
+    "anti-naturalism"
+   ],
+   "areas": [
+    "area-image-and-mimesis"
+   ],
+   "grew_from": [
+    "C:A-C017"
+   ]
+  },
+  {
+   "id": "the-relation-of-image-to-object",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Отношение образа к предмету",
+    "en": "The Relation of Image to Object"
+   },
+   "terms": [
+    "image–object relation",
+    "reference"
+   ],
+   "areas": [
+    "area-image-and-mimesis"
+   ],
+   "grew_from": [
+    "C:A-C018"
+   ]
+  },
+  {
+   "id": "expression",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Выражение",
+    "en": "Expression"
+   },
+   "terms": [
+    "expression",
+    "Ausdruck",
+    "espressione"
+   ],
+   "areas": [
+    "area-expression-and-meaning"
+   ],
+   "grew_from": [
+    "C:A-C019"
+   ]
+  },
+  {
+   "id": "expressiveness",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Выразительность",
+    "en": "Expressiveness"
+   },
+   "terms": [
+    "expressiveness",
+    "expressive character"
+   ],
+   "areas": [
+    "area-expression-and-meaning"
+   ],
+   "grew_from": [
+    "C:A-C020"
+   ]
+  },
+  {
+   "id": "symbol",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Символ",
+    "en": "Symbol"
+   },
+   "terms": [
+    "symbol",
+    "Symbol",
+    "σύμβολον"
+   ],
+   "areas": [
+    "area-expression-and-meaning"
+   ],
+   "grew_from": [
+    "C:A-C021"
+   ]
+  },
+  {
+   "id": "sign",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Знак",
+    "en": "Sign"
+   },
+   "terms": [
+    "sign",
+    "Zeichen"
+   ],
+   "areas": [
+    "area-expression-and-meaning"
+   ],
+   "grew_from": [
+    "C:A-C022"
+   ]
+  },
+  {
+   "id": "metaphor",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Метафора",
+    "en": "Metaphor"
+   },
+   "terms": [
+    "metaphor",
+    "μεταφορά"
+   ],
+   "areas": [
+    "area-expression-and-meaning"
+   ],
+   "grew_from": [
+    "C:A-C023"
+   ]
+  },
+  {
+   "id": "allegory",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Аллегория",
+    "en": "Allegory"
+   },
+   "terms": [
+    "allegory",
+    "Allegorie"
+   ],
+   "areas": [
+    "area-expression-and-meaning"
+   ],
+   "grew_from": [
+    "C:A-C024"
+   ]
+  },
+  {
+   "id": "interpretation",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Интерпретация",
+    "en": "Interpretation"
+   },
+   "terms": [
+    "interpretation",
+    "Auslegung"
+   ],
+   "areas": [
+    "area-expression-and-meaning"
+   ],
+   "grew_from": [
+    "C:A-C025"
+   ]
+  },
+  {
+   "id": "ambiguity",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Многозначность",
+    "en": "Ambiguity"
+   },
+   "terms": [
+    "ambiguity",
+    "polysemy",
+    "openness"
+   ],
+   "areas": [
+    "area-expression-and-meaning"
+   ],
+   "grew_from": [
+    "C:A-C026"
+   ]
+  },
+  {
+   "id": "dhvani",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Dhvani",
+    "en": "Dhvani"
+   },
+   "terms": [
+    "ध्वनि",
+    "dhvani",
+    "vyañjanā"
+   ],
+   "areas": [
+    "area-expression-and-meaning"
+   ],
+   "grew_from": [
+    "C:A-C027"
+   ]
+  },
+  {
+   "id": "style",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Стиль",
+    "en": "Style"
+   },
+   "terms": [
+    "style",
+    "Stil",
+    "Styl"
+   ],
+   "areas": [
+    "area-style-and-artistic-language"
+   ],
+   "grew_from": [
+    "C:A-C028"
+   ]
+  },
+  {
+   "id": "manner",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Манера",
+    "en": "Manner"
+   },
+   "terms": [
+    "manner",
+    "Manier"
+   ],
+   "areas": [
+    "area-style-and-artistic-language"
+   ],
+   "grew_from": [
+    "C:A-C029"
+   ]
+  },
+  {
+   "id": "artistic-language",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Художественный язык",
+    "en": "Artistic Language"
+   },
+   "terms": [
+    "artistic language",
+    "language of art"
+   ],
+   "areas": [
+    "area-style-and-artistic-language"
+   ],
+   "grew_from": [
+    "C:A-C030"
+   ]
+  },
+  {
+   "id": "genre-convention",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Жанровая условность",
+    "en": "Genre Convention"
+   },
+   "terms": [
+    "genre convention"
+   ],
+   "areas": [
+    "area-style-and-artistic-language"
+   ],
+   "grew_from": [
+    "C:A-C031"
+   ]
+  },
+  {
+   "id": "stylization",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Стилизация",
+    "en": "Stylization"
+   },
+   "terms": [
+    "stylization",
+    "стилизация"
+   ],
+   "areas": [
+    "area-style-and-artistic-language"
+   ],
+   "grew_from": [
+    "C:A-C032"
+   ]
+  },
+  {
+   "id": "pastiche",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Пастиш",
+    "en": "Pastiche"
+   },
+   "terms": [
+    "pastiche"
+   ],
+   "areas": [
+    "area-style-and-artistic-language"
+   ],
+   "grew_from": [
+    "C:A-C033"
+   ]
+  },
+  {
+   "id": "individual-style",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Индивидуальный почерк",
+    "en": "Individual Style"
+   },
+   "terms": [
+    "individual style",
+    "signature"
+   ],
+   "areas": [
+    "area-style-and-artistic-language"
+   ],
+   "grew_from": [
+    "C:A-C035"
+   ]
+  },
+  {
+   "id": "school",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Школа",
+    "en": "School"
+   },
+   "terms": [
+    "school",
+    "Schule"
+   ],
+   "areas": [
+    "area-style-and-artistic-language"
+   ],
+   "grew_from": [
+    "C:A-C036"
+   ]
+  },
+  {
+   "id": "artistic-movement",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Направление",
+    "en": "Artistic Movement"
+   },
+   "terms": [
+    "movement",
+    "artistic movement"
+   ],
+   "areas": [
+    "area-style-and-artistic-language"
+   ],
+   "grew_from": [
+    "C:A-C037"
+   ]
+  },
+  {
+   "id": "intention",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Замысел",
+    "en": "Intention"
+   },
+   "terms": [
+    "intention",
+    "plan",
+    "purpose",
+    "представление цели"
+   ],
+   "areas": [
+    "area-creation-and-mastery"
+   ],
+   "grew_from": [
+    "C:B-C001"
+   ]
+  },
+  {
+   "id": "inspiration",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Вдохновение",
+    "en": "Inspiration"
+   },
+   "terms": [
+    "inspiration",
+    "enthousiasmos",
+    "ingenium"
+   ],
+   "areas": [
+    "area-creation-and-mastery"
+   ],
+   "grew_from": [
+    "C:B-C002"
+   ]
+  },
+  {
+   "id": "genius",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Гений",
+    "en": "Genius"
+   },
+   "terms": [
+    "Genie",
+    "ingenium",
+    "genius"
+   ],
+   "areas": [
+    "area-creation-and-mastery"
+   ],
+   "grew_from": [
+    "C:B-C003"
+   ]
+  },
+  {
+   "id": "skill",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Навык",
+    "en": "Skill"
+   },
+   "terms": [
+    "skill",
+    "technē",
+    "Können",
+    "technica"
+   ],
+   "areas": [
+    "area-creation-and-mastery"
+   ],
+   "grew_from": [
+    "C:B-C004"
+   ]
+  },
+  {
+   "id": "mastery",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Мастерство",
+    "en": "Mastery"
+   },
+   "terms": [
+    "mastery",
+    "Meisterschaft",
+    "craft"
+   ],
+   "areas": [
+    "area-creation-and-mastery"
+   ],
+   "grew_from": [
+    "C:B-C005"
+   ]
+  },
+  {
+   "id": "originality",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Оригинальность",
+    "en": "Originality"
+   },
+   "terms": [
+    "originality",
+    "originality of genius",
+    "chuan yi / mo xie"
+   ],
+   "areas": [
+    "area-creation-and-mastery"
+   ],
+   "grew_from": [
+    "C:B-C006"
+   ]
+  },
+  {
+   "id": "improvisation",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Импровизация",
+    "en": "Improvisation"
+   },
+   "terms": [
+    "improvisation",
+    "improvisus"
+   ],
+   "areas": [
+    "area-creation-and-mastery",
+    "area-play-performance-and-participation"
+   ],
+   "grew_from": [
+    "C:B-C007"
+   ]
+  },
+  {
+   "id": "authorship",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Авторство",
+    "en": "Authorship"
+   },
+   "terms": [
+    "authorship",
+    "author",
+    "Urheber"
+   ],
+   "areas": [
+    "area-creation-and-mastery"
+   ],
+   "grew_from": [
+    "C:B-C008"
+   ]
+  },
+  {
+   "id": "co-authorship",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Соавторство",
+    "en": "Co-Authorship"
+   },
+   "terms": [
+    "co-authorship",
+    "collaboration",
+    "joint authorship"
+   ],
+   "areas": [
+    "area-creation-and-mastery"
+   ],
+   "grew_from": [
+    "C:B-C009"
+   ]
+  },
+  {
+   "id": "play",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Игра",
+    "en": "Play"
+   },
+   "terms": [
+    "Spiel",
+    "play",
+    "ludus",
+    "Spieltrieb",
+    "līlā"
+   ],
+   "areas": [
+    "area-play-performance-and-participation"
+   ],
+   "grew_from": [
+    "C:B-C010"
+   ]
+  },
+  {
+   "id": "rule",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Правило",
+    "en": "Rule"
+   },
+   "terms": [
+    "rule",
+    "Regel",
+    "niyama",
+    "score"
+   ],
+   "areas": [
+    "area-play-performance-and-participation"
+   ],
+   "grew_from": [
+    "C:B-C011"
+   ]
+  },
+  {
+   "id": "performance",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Исполнение",
+    "en": "Performance"
+   },
+   "terms": [
+    "performance",
+    "Aufführung",
+    "Darstellung",
+    "abhinaya"
+   ],
+   "areas": [
+    "area-play-performance-and-participation"
+   ],
+   "grew_from": [
+    "C:B-C012"
+   ]
+  },
+  {
+   "id": "performativity",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Перформативность",
+    "en": "Performativity"
+   },
+   "terms": [
+    "performativity",
+    "Performativität"
+   ],
+   "areas": [
+    "area-play-performance-and-participation"
+   ],
+   "grew_from": [
+    "C:B-C013"
+   ]
+  },
+  {
+   "id": "participation",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Соучастие",
+    "en": "Participation"
+   },
+   "terms": [
+    "participation",
+    "Teilhabe",
+    "sahṛdaya / prekṣaka"
+   ],
+   "areas": [
+    "area-play-performance-and-participation"
+   ],
+   "grew_from": [
+    "C:B-C014"
+   ]
+  },
+  {
+   "id": "interactivity",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Интерактивность",
+    "en": "Interactivity"
+   },
+   "terms": [
+    "interactivity",
+    "interaction",
+    "Rückkopplung"
+   ],
+   "areas": [
+    "area-play-performance-and-participation"
+   ],
+   "grew_from": [
+    "C:B-C015"
+   ]
+  },
+  {
+   "id": "the-spectator",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Зритель",
+    "en": "The Spectator"
+   },
+   "terms": [
+    "spectator",
+    "beholder",
+    "rasika",
+    "prekṣaka"
+   ],
+   "areas": [
+    "area-play-performance-and-participation"
+   ],
+   "grew_from": [
+    "C:B-C016"
+   ]
+  },
+  {
+   "id": "aesthetic-agency",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Эстетическая агентность",
+    "en": "Aesthetic Agency"
+   },
+   "terms": [
+    "aesthetic agency",
+    "agency",
+    "Handlungsmacht"
+   ],
+   "areas": [
+    "area-play-performance-and-participation"
+   ],
+   "grew_from": [
+    "C:B-C017"
+   ]
+  },
+  {
+   "id": "the-work",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Произведение",
+    "en": "The Work"
+   },
+   "terms": [
+    "work",
+    "Werk",
+    "opera"
+   ],
+   "areas": [
+    "area-work-material-and-medium"
+   ],
+   "grew_from": [
+    "C:B-C018"
+   ]
+  },
+  {
+   "id": "object",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Объект",
+    "en": "Object"
+   },
+   "terms": [
+    "object",
+    "Gegenstand",
+    "thing"
+   ],
+   "areas": [
+    "area-work-material-and-medium"
+   ],
+   "grew_from": [
+    "C:B-C019"
+   ]
+  },
+  {
+   "id": "event",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Событие",
+    "en": "Event"
+   },
+   "terms": [
+    "event",
+    "Ereignis",
+    "experience"
+   ],
+   "areas": [
+    "area-work-material-and-medium"
+   ],
+   "grew_from": [
+    "C:B-C020"
+   ]
+  },
+  {
+   "id": "material",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Материал",
+    "en": "Material"
+   },
+   "terms": [
+    "material",
+    "Stoff",
+    "earth"
+   ],
+   "areas": [
+    "area-work-material-and-medium"
+   ],
+   "grew_from": [
+    "C:B-C021"
+   ]
+  },
+  {
+   "id": "texture",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Фактура",
+    "en": "Texture"
+   },
+   "terms": [
+    "texture",
+    "exemplification",
+    "haptic"
+   ],
+   "areas": [
+    "area-work-material-and-medium"
+   ],
+   "grew_from": [
+    "C:B-C022"
+   ]
+  },
+  {
+   "id": "medium",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Медиум",
+    "en": "Medium"
+   },
+   "terms": [
+    "medium",
+    "medium",
+    "medium-specificity"
+   ],
+   "areas": [
+    "area-work-material-and-medium"
+   ],
+   "grew_from": [
+    "C:B-C023"
+   ]
+  },
+  {
+   "id": "version",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Версия",
+    "en": "Version"
+   },
+   "terms": [
+    "version",
+    "variability",
+    "versioning"
+   ],
+   "areas": [
+    "area-work-material-and-medium"
+   ],
+   "grew_from": [
+    "C:B-C024"
+   ]
+  },
+  {
+   "id": "instance",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Экземпляр",
+    "en": "Instance"
+   },
+   "terms": [
+    "instance",
+    "token",
+    "performance instance"
+   ],
+   "areas": [
+    "area-work-material-and-medium"
+   ],
+   "grew_from": [
+    "C:B-C025"
+   ]
+  },
+  {
+   "id": "intermediality",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Интермедиальность",
+    "en": "Intermediality"
+   },
+   "terms": [
+    "intermedia",
+    "intermediality",
+    "межмедиальность"
+   ],
+   "areas": [
+    "area-work-material-and-medium"
+   ],
+   "grew_from": [
+    "C:B-C026"
+   ]
+  },
+  {
+   "id": "digital-form",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Цифровая форма",
+    "en": "Digital Form"
+   },
+   "terms": [
+    "digital form",
+    "digital object",
+    "variability"
+   ],
+   "areas": [
+    "area-work-material-and-medium"
+   ],
+   "grew_from": [
+    "C:B-C027"
+   ]
+  },
+  {
+   "id": "the-original",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Оригинал",
+    "en": "The Original"
+   },
+   "terms": [
+    "original",
+    "Urbild",
+    "autograph"
+   ],
+   "areas": [
+    "area-authenticity-repetition-and-simulation"
+   ],
+   "grew_from": [
+    "C:B-C028"
+   ]
+  },
+  {
+   "id": "copy",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Копия",
+    "en": "Copy"
+   },
+   "terms": [
+    "copy",
+    "reproduction",
+    "moxie"
+   ],
+   "areas": [
+    "area-authenticity-repetition-and-simulation"
+   ],
+   "grew_from": [
+    "C:B-C029"
+   ]
+  },
+  {
+   "id": "forgery",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Подделка",
+    "en": "Forgery"
+   },
+   "terms": [
+    "forgery",
+    "Fälschung"
+   ],
+   "areas": [
+    "area-authenticity-repetition-and-simulation"
+   ],
+   "grew_from": [
+    "C:B-C030"
+   ]
+  },
+  {
+   "id": "reproduction",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Репродукция",
+    "en": "Reproduction"
+   },
+   "terms": [
+    "reproduction",
+    "technical reproducibility"
+   ],
+   "areas": [
+    "area-authenticity-repetition-and-simulation"
+   ],
+   "grew_from": [
+    "C:B-C031"
+   ]
+  },
+  {
+   "id": "authenticity",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Подлинность",
+    "en": "Authenticity"
+   },
+   "terms": [
+    "authenticity",
+    "Echtheit"
+   ],
+   "areas": [
+    "area-authenticity-repetition-and-simulation"
+   ],
+   "grew_from": [
+    "C:B-C032"
+   ]
+  },
+  {
+   "id": "aura",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Аура",
+    "en": "Aura"
+   },
+   "terms": [
+    "aura"
+   ],
+   "areas": [
+    "area-authenticity-repetition-and-simulation"
+   ],
+   "grew_from": [
+    "C:B-C033"
+   ]
+  },
+  {
+   "id": "repetition",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Повторение",
+    "en": "Repetition"
+   },
+   "terms": [
+    "repetition",
+    "Wiederholung",
+    "répétition"
+   ],
+   "areas": [
+    "area-authenticity-repetition-and-simulation"
+   ],
+   "grew_from": [
+    "C:B-C034"
+   ]
+  },
+  {
+   "id": "appropriation",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Апроприация",
+    "en": "Appropriation"
+   },
+   "terms": [
+    "appropriation",
+    "appropriation art",
+    "copying"
+   ],
+   "areas": [
+    "area-authenticity-repetition-and-simulation"
+   ],
+   "grew_from": [
+    "C:B-C035"
+   ]
+  },
+  {
+   "id": "simulacrum",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Симулякр",
+    "en": "Simulacrum"
+   },
+   "terms": [
+    "simulacrum",
+    "simulacre"
+   ],
+   "areas": [
+    "area-authenticity-repetition-and-simulation"
+   ],
+   "grew_from": [
+    "C:B-C036"
+   ]
+  },
+  {
+   "id": "simulation",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Симуляция",
+    "en": "Simulation"
+   },
+   "terms": [
+    "simulation",
+    "simulation"
+   ],
+   "areas": [
+    "area-authenticity-repetition-and-simulation"
+   ],
+   "grew_from": [
+    "C:B-C037"
+   ]
+  },
+  {
+   "id": "the-natural",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Природное",
+    "en": "The Natural"
+   },
+   "terms": [
+    "nature",
+    "natural environment"
+   ],
+   "areas": [
+    "area-nature-and-environment"
+   ],
+   "grew_from": [
+    "D:A-029-C01"
+   ]
+  },
+  {
+   "id": "landscape",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Ландшафт",
+    "en": "Landscape"
+   },
+   "terms": [
+    "landscape",
+    "Landschaft"
+   ],
+   "areas": [
+    "area-nature-and-environment"
+   ],
+   "grew_from": [
+    "D:A-029-C02"
+   ]
+  },
+  {
+   "id": "the-wild",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Дикое",
+    "en": "The Wild"
+   },
+   "terms": [
+    "wilderness",
+    "wildness"
+   ],
+   "areas": [
+    "area-nature-and-environment"
+   ],
+   "grew_from": [
+    "D:A-029-C03"
+   ]
+  },
+  {
+   "id": "place",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Место",
+    "en": "Place"
+   },
+   "terms": [
+    "place",
+    "place attachment"
+   ],
+   "areas": [
+    "area-nature-and-environment"
+   ],
+   "grew_from": [
+    "D:A-029-C04"
+   ]
+  },
+  {
+   "id": "the-garden",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Сад",
+    "en": "The Garden"
+   },
+   "terms": [
+    "garden",
+    "Sakuteiki"
+   ],
+   "areas": [
+    "area-nature-and-environment"
+   ],
+   "grew_from": [
+    "D:A-029-C05"
+   ]
+  },
+  {
+   "id": "environment",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Окружающая среда",
+    "en": "Environment"
+   },
+   "terms": [
+    "environment",
+    "milieu"
+   ],
+   "areas": [
+    "area-nature-and-environment"
+   ],
+   "grew_from": [
+    "D:A-029-C06"
+   ]
+  },
+  {
+   "id": "ecological-appropriateness",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Экологическая уместность",
+    "en": "Ecological Appropriateness"
+   },
+   "terms": [
+    "ecological appropriateness",
+    "ecological knowledge"
+   ],
+   "areas": [
+    "area-nature-and-environment"
+   ],
+   "grew_from": [
+    "D:A-029-C07"
+   ]
+  },
+  {
+   "id": "the-aesthetic-relation-to-the-more-than-human-world",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Эстетическое отношение к нечеловеческому миру",
+    "en": "The Aesthetic Relation to the More-than-Human World"
+   },
+   "terms": [
+    "aesthetic appreciation of nature",
+    "more-than-human"
+   ],
+   "areas": [
+    "area-nature-and-environment"
+   ],
+   "grew_from": [
+    "D:A-029-C08"
+   ]
+  },
+  {
+   "id": "the-everyday",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Повседневное",
+    "en": "The Everyday"
+   },
+   "terms": [
+    "everyday",
+    "ordinary"
+   ],
+   "areas": [
+    "area-everyday-the-thing-and-design"
+   ],
+   "grew_from": [
+    "D:A-030-C01"
+   ]
+  },
+  {
+   "id": "the-thing",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Вещь",
+    "en": "The Thing"
+   },
+   "terms": [
+    "thing",
+    "equipment",
+    "ready-to-hand"
+   ],
+   "areas": [
+    "area-everyday-the-thing-and-design"
+   ],
+   "grew_from": [
+    "D:A-030-C02"
+   ]
+  },
+  {
+   "id": "functional-beauty",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Функциональная красота",
+    "en": "Functional Beauty"
+   },
+   "terms": [
+    "functional beauty",
+    "fitness for function"
+   ],
+   "areas": [
+    "area-everyday-the-thing-and-design"
+   ],
+   "grew_from": [
+    "D:A-030-C03"
+   ]
+  },
+  {
+   "id": "design",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Дизайн",
+    "en": "Design"
+   },
+   "terms": [
+    "design",
+    "human-centered design"
+   ],
+   "areas": [
+    "area-everyday-the-thing-and-design"
+   ],
+   "grew_from": [
+    "D:A-030-C04"
+   ]
+  },
+  {
+   "id": "coziness",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Уют",
+    "en": "Coziness"
+   },
+   "terms": [
+    "coziness",
+    "hygge",
+    "homeyness"
+   ],
+   "areas": [
+    "area-everyday-the-thing-and-design"
+   ],
+   "grew_from": [
+    "D:A-030-C05"
+   ]
+  },
+  {
+   "id": "neatness",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Опрятность",
+    "en": "Neatness"
+   },
+   "terms": [
+    "neatness",
+    "cleanliness"
+   ],
+   "areas": [
+    "area-everyday-the-thing-and-design"
+   ],
+   "grew_from": [
+    "D:A-030-C06"
+   ]
+  },
+  {
+   "id": "messiness",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Беспорядок",
+    "en": "Messiness"
+   },
+   "terms": [
+    "messiness",
+    "disorder",
+    "clutter"
+   ],
+   "areas": [
+    "area-everyday-the-thing-and-design"
+   ],
+   "grew_from": [
+    "D:A-030-C07"
+   ]
+  },
+  {
+   "id": "fashion",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Мода",
+    "en": "Fashion"
+   },
+   "terms": [
+    "fashion",
+    "form of life"
+   ],
+   "areas": [
+    "area-everyday-the-thing-and-design"
+   ],
+   "grew_from": [
+    "D:A-030-C08"
+   ]
+  },
+  {
+   "id": "food",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Еда",
+    "en": "Food"
+   },
+   "terms": [
+    "food",
+    "cuisine",
+    "gustatory taste"
+   ],
+   "areas": [
+    "area-everyday-the-thing-and-design"
+   ],
+   "grew_from": [
+    "D:A-030-C09"
+   ]
+  },
+  {
+   "id": "dwelling",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Жилище",
+    "en": "Dwelling"
+   },
+   "terms": [
+    "dwelling",
+    "home",
+    "dwelling-place"
+   ],
+   "areas": [
+    "area-everyday-the-thing-and-design"
+   ],
+   "grew_from": [
+    "D:A-030-C10"
+   ]
+  },
+  {
+   "id": "interface",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Интерфейс",
+    "en": "Interface"
+   },
+   "terms": [
+    "interface",
+    "apparent usability"
+   ],
+   "areas": [
+    "area-everyday-the-thing-and-design"
+   ],
+   "grew_from": [
+    "D:A-030-C11"
+   ]
+  },
+  {
+   "id": "aesthetic-education",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Эстетическое воспитание",
+    "en": "Aesthetic Education"
+   },
+   "terms": [
+    "aesthetic education",
+    "aesthetic education of humanity"
+   ],
+   "areas": [
+    "area-education-practice-of-the-self-and-transformation"
+   ],
+   "grew_from": [
+    "D:A-035-C01"
+   ]
+  },
+  {
+   "id": "the-education-of-taste",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Образование вкуса",
+    "en": "The Education of Taste"
+   },
+   "terms": [
+    "education of taste",
+    "delicacy of taste"
+   ],
+   "areas": [
+    "area-education-practice-of-the-self-and-transformation"
+   ],
+   "grew_from": [
+    "D:A-035-C02"
+   ]
+  },
+  {
+   "id": "self-formation",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Самоформирование",
+    "en": "Self-Formation"
+   },
+   "terms": [
+    "self-formation",
+    "styling of character",
+    "self-fashioning"
+   ],
+   "areas": [
+    "area-education-practice-of-the-self-and-transformation"
+   ],
+   "grew_from": [
+    "D:A-035-C03"
+   ]
+  },
+  {
+   "id": "sensibility",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Чувствительность",
+    "en": "Sensibility"
+   },
+   "terms": [
+    "sensibility",
+    "delicacy",
+    "somaesthetic awareness"
+   ],
+   "areas": [
+    "area-education-practice-of-the-self-and-transformation"
+   ],
+   "grew_from": [
+    "D:A-035-C04"
+   ]
+  },
+  {
+   "id": "practices-of-the-self",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Практика себя",
+    "en": "Practices of the Self"
+   },
+   "terms": [
+    "practices of the self",
+    "spiritual exercises",
+    "somaesthetics"
+   ],
+   "areas": [
+    "area-education-practice-of-the-self-and-transformation"
+   ],
+   "grew_from": [
+    "D:A-035-C05"
+   ]
+  },
+  {
+   "id": "transformative-experience",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Преобразующий опыт",
+    "en": "Transformative Experience"
+   },
+   "terms": [
+    "transformative experience",
+    "becoming someone new"
+   ],
+   "areas": [
+    "area-education-practice-of-the-self-and-transformation"
+   ],
+   "grew_from": [
+    "D:A-035-C06"
+   ]
+  },
+  {
+   "id": "aesthetic-freedom",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Эстетическая свобода",
+    "en": "Aesthetic Freedom"
+   },
+   "terms": [
+    "aesthetic freedom",
+    "Spieltrieb",
+    "aesthetic state"
+   ],
+   "areas": [
+    "area-education-practice-of-the-self-and-transformation"
+   ],
+   "grew_from": [
+    "D:A-035-C07"
+   ]
+  },
+  {
+   "id": "the-sacred",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Сакральное",
+    "en": "The Sacred"
+   },
+   "terms": [
+    "sacred",
+    "heilig",
+    "numinous"
+   ],
+   "areas": [
+    "area-sacred-myth-and-ritual"
+   ],
+   "grew_from": [
+    "D:B-C3101"
+   ]
+  },
+  {
+   "id": "myth",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Миф",
+    "en": "Myth"
+   },
+   "terms": [
+    "myth",
+    "mythos",
+    "mythe"
+   ],
+   "areas": [
+    "area-sacred-myth-and-ritual"
+   ],
+   "grew_from": [
+    "D:B-C3102"
+   ]
+  },
+  {
+   "id": "ritual",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Ритуал",
+    "en": "Ritual"
+   },
+   "terms": [
+    "ritual",
+    "rite",
+    "ritualization"
+   ],
+   "areas": [
+    "area-sacred-myth-and-ritual"
+   ],
+   "grew_from": [
+    "D:B-C3103"
+   ]
+  },
+  {
+   "id": "veneration",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Почитание",
+    "en": "Veneration"
+   },
+   "terms": [
+    "veneration",
+    "proskynesis"
+   ],
+   "areas": [
+    "area-sacred-myth-and-ritual"
+   ],
+   "grew_from": [
+    "D:B-C3104"
+   ]
+  },
+  {
+   "id": "iconic-presence",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Иконическое присутствие",
+    "en": "Iconic Presence"
+   },
+   "terms": [
+    "iconic presence",
+    "cult image"
+   ],
+   "areas": [
+    "area-sacred-myth-and-ritual"
+   ],
+   "grew_from": [
+    "D:B-C3105"
+   ]
+  },
+  {
+   "id": "symbolic-action",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Символическое действие",
+    "en": "Symbolic Action"
+   },
+   "terms": [
+    "symbolic action",
+    "cultural performance"
+   ],
+   "areas": [
+    "area-sacred-myth-and-ritual"
+   ],
+   "grew_from": [
+    "D:B-C3106"
+   ]
+  },
+  {
+   "id": "profanation",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Профанация",
+    "en": "Profanation"
+   },
+   "terms": [
+    "profanation",
+    "profanare"
+   ],
+   "areas": [
+    "area-sacred-myth-and-ritual"
+   ],
+   "grew_from": [
+    "D:B-C3107"
+   ]
+  },
+  {
+   "id": "beauty-and-the-good",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Красота и благо",
+    "en": "Beauty and the Good"
+   },
+   "terms": [
+    "beauty and goodness",
+    "kalon",
+    "agathon"
+   ],
+   "areas": [
+    "area-aesthetic-and-the-ethical"
+   ],
+   "grew_from": [
+    "D:B-C3201"
+   ]
+  },
+  {
+   "id": "the-autonomy-of-art",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Автономия искусства",
+    "en": "The Autonomy of Art"
+   },
+   "terms": [
+    "autonomy of art",
+    "autonomism"
+   ],
+   "areas": [
+    "area-aesthetic-and-the-ethical"
+   ],
+   "grew_from": [
+    "D:B-C3202"
+   ]
+  },
+  {
+   "id": "moralism",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Морализм",
+    "en": "Moralism"
+   },
+   "terms": [
+    "moralism",
+    "ethicism"
+   ],
+   "areas": [
+    "area-aesthetic-and-the-ethical"
+   ],
+   "grew_from": [
+    "D:B-C3203"
+   ]
+  },
+  {
+   "id": "immoralism",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Аморализм",
+    "en": "Immoralism"
+   },
+   "terms": [
+    "immoralism"
+   ],
+   "areas": [
+    "area-aesthetic-and-the-ethical"
+   ],
+   "grew_from": [
+    "D:B-C3204"
+   ]
+  },
+  {
+   "id": "the-artists-responsibility",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Ответственность художника",
+    "en": "The Artist’s Responsibility"
+   },
+   "terms": [
+    "artist’s responsibility"
+   ],
+   "areas": [
+    "area-aesthetic-and-the-ethical"
+   ],
+   "grew_from": [
+    "D:B-C3205"
+   ]
+  },
+  {
+   "id": "the-depiction-of-violence",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Изображение насилия",
+    "en": "The Depiction of Violence"
+   },
+   "terms": [
+    "representation of violence"
+   ],
+   "areas": [
+    "area-aesthetic-and-the-ethical"
+   ],
+   "grew_from": [
+    "D:B-C3206"
+   ]
+  },
+  {
+   "id": "the-ethics-of-spectatorship",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Этика восприятия",
+    "en": "The Ethics of Spectatorship"
+   },
+   "terms": [
+    "ethics of spectatorship",
+    "ethical attention"
+   ],
+   "areas": [
+    "area-aesthetic-and-the-ethical"
+   ],
+   "grew_from": [
+    "D:B-C3207"
+   ]
+  },
+  {
+   "id": "art-and-empathy",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Искусство и эмпатия",
+    "en": "Art and Empathy"
+   },
+   "terms": [
+    "art and empathy",
+    "narrative empathy"
+   ],
+   "areas": [
+    "area-aesthetic-and-the-ethical"
+   ],
+   "grew_from": [
+    "D:B-C3208"
+   ]
+  },
+  {
+   "id": "the-aestheticization-of-politics",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Эстетизация политики",
+    "en": "The Aestheticization of Politics"
+   },
+   "terms": [
+    "aestheticization of politics"
+   ],
+   "areas": [
+    "area-power-society-and-identity"
+   ],
+   "grew_from": [
+    "D:B-C3301"
+   ]
+  },
+  {
+   "id": "the-politicization-of-art",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Политизация искусства",
+    "en": "The Politicization of Art"
+   },
+   "terms": [
+    "politicization of art"
+   ],
+   "areas": [
+    "area-power-society-and-identity"
+   ],
+   "grew_from": [
+    "D:B-C3302"
+   ]
+  },
+  {
+   "id": "ideology",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Идеология",
+    "en": "Ideology"
+   },
+   "terms": [
+    "ideology"
+   ],
+   "areas": [
+    "area-power-society-and-identity"
+   ],
+   "grew_from": [
+    "D:B-C3303"
+   ]
+  },
+  {
+   "id": "propaganda",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Пропаганда",
+    "en": "Propaganda"
+   },
+   "terms": [
+    "propaganda"
+   ],
+   "areas": [
+    "area-power-society-and-identity"
+   ],
+   "grew_from": [
+    "D:B-C3304"
+   ]
+  },
+  {
+   "id": "the-representation-of-identity",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Репрезентация идентичности",
+    "en": "The Representation of Identity"
+   },
+   "terms": [
+    "representation of identity"
+   ],
+   "areas": [
+    "area-power-society-and-identity"
+   ],
+   "grew_from": [
+    "D:B-C3305"
+   ]
+  },
+  {
+   "id": "gender",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Гендер",
+    "en": "Gender"
+   },
+   "terms": [
+    "gender",
+    "performativity",
+    "gaze"
+   ],
+   "areas": [
+    "area-power-society-and-identity"
+   ],
+   "grew_from": [
+    "D:B-C3306"
+   ]
+  },
+  {
+   "id": "racialization",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Расизация",
+    "en": "Racialization"
+   },
+   "terms": [
+    "racialization",
+    "racialised gaze"
+   ],
+   "areas": [
+    "area-power-society-and-identity"
+   ],
+   "grew_from": [
+    "D:B-C3307"
+   ]
+  },
+  {
+   "id": "coloniality",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Колониальность",
+    "en": "Coloniality"
+   },
+   "terms": [
+    "coloniality",
+    "colonial difference"
+   ],
+   "areas": [
+    "area-power-society-and-identity"
+   ],
+   "grew_from": [
+    "D:B-C3308"
+   ]
+  },
+  {
+   "id": "protest",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Протест",
+    "en": "Protest"
+   },
+   "terms": [
+    "protest",
+    "dissensus",
+    "resistance"
+   ],
+   "areas": [
+    "area-power-society-and-identity"
+   ],
+   "grew_from": [
+    "D:B-C3309"
+   ]
+  },
+  {
+   "id": "the-artworld",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Мир искусства",
+    "en": "The Artworld"
+   },
+   "terms": [
+    "artworld",
+    "art world"
+   ],
+   "areas": [
+    "area-institutions-the-canon-and-mass-culture"
+   ],
+   "grew_from": [
+    "D:B-C3401"
+   ]
+  },
+  {
+   "id": "the-canon",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Канон",
+    "en": "The Canon"
+   },
+   "terms": [
+    "canon"
+   ],
+   "areas": [
+    "area-institutions-the-canon-and-mass-culture"
+   ],
+   "grew_from": [
+    "D:B-C3402"
+   ]
+  },
+  {
+   "id": "the-museum",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Музей",
+    "en": "The Museum"
+   },
+   "terms": [
+    "museum"
+   ],
+   "areas": [
+    "area-institutions-the-canon-and-mass-culture"
+   ],
+   "grew_from": [
+    "D:B-C3403"
+   ]
+  },
+  {
+   "id": "the-exhibition",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Выставка",
+    "en": "The Exhibition"
+   },
+   "terms": [
+    "exhibition",
+    "display"
+   ],
+   "areas": [
+    "area-institutions-the-canon-and-mass-culture"
+   ],
+   "grew_from": [
+    "D:B-C3404"
+   ]
+  },
+  {
+   "id": "the-market",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Рынок",
+    "en": "The Market"
+   },
+   "terms": [
+    "art market",
+    "valuation",
+    "price"
+   ],
+   "areas": [
+    "area-institutions-the-canon-and-mass-culture"
+   ],
+   "grew_from": [
+    "D:B-C3405"
+   ]
+  },
+  {
+   "id": "the-culture-industry",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Культурная индустрия",
+    "en": "The Culture Industry"
+   },
+   "terms": [
+    "culture industry",
+    "Kulturindustrie"
+   ],
+   "areas": [
+    "area-institutions-the-canon-and-mass-culture"
+   ],
+   "grew_from": [
+    "D:B-C3406"
+   ]
+  },
+  {
+   "id": "mass-culture",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Массовая культура",
+    "en": "Mass Culture"
+   },
+   "terms": [
+    "mass culture",
+    "popular culture"
+   ],
+   "areas": [
+    "area-institutions-the-canon-and-mass-culture"
+   ],
+   "grew_from": [
+    "D:B-C3407"
+   ]
+  },
+  {
+   "id": "folk-art",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Народное искусство",
+    "en": "Folk Art"
+   },
+   "terms": [
+    "folk art",
+    "vernacular art"
+   ],
+   "areas": [
+    "area-institutions-the-canon-and-mass-culture"
+   ],
+   "grew_from": [
+    "D:B-C3408"
+   ]
+  },
+  {
+   "id": "kitsch",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Китч",
+    "en": "Kitsch"
+   },
+   "terms": [
+    "kitsch"
+   ],
+   "areas": [
+    "area-institutions-the-canon-and-mass-culture"
+   ],
+   "grew_from": [
+    "D:B-C3409"
+   ]
+  },
+  {
+   "id": "camp",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Кэмп",
+    "en": "Camp"
+   },
+   "terms": [
+    "camp"
+   ],
+   "areas": [
+    "area-institutions-the-canon-and-mass-culture"
+   ],
+   "grew_from": [
+    "D:B-C3410"
+   ]
+  },
+  {
+   "id": "the-aesthetic",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Эстетическое",
+    "en": "The Aesthetic"
+   },
+   "terms": [
+    "aesthetic",
+    "aisthesis"
+   ],
+   "areas": [
+    "area-art-and-the-boundaries-of-the-aesthetic"
+   ],
+   "grew_from": [
+    "D:B-C3601"
+   ]
+  },
+  {
+   "id": "the-artistic",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Художественное",
+    "en": "The Artistic"
+   },
+   "terms": [
+    "artistic",
+    "artistic value"
+   ],
+   "areas": [
+    "area-art-and-the-boundaries-of-the-aesthetic"
+   ],
+   "grew_from": [
+    "D:B-C3602"
+   ]
+  },
+  {
+   "id": "the-definition-of-art",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Определение искусства",
+    "en": "The Definition of Art"
+   },
+   "terms": [
+    "definition of art"
+   ],
+   "areas": [
+    "area-art-and-the-boundaries-of-the-aesthetic"
+   ],
+   "grew_from": [
+    "D:B-C3603"
+   ]
+  },
+  {
+   "id": "the-anti-aesthetic",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Антиэстетика",
+    "en": "The Anti-Aesthetic"
+   },
+   "terms": [
+    "anti-aesthetic"
+   ],
+   "areas": [
+    "area-art-and-the-boundaries-of-the-aesthetic"
+   ],
+   "grew_from": [
+    "D:B-C3604"
+   ]
+  },
+  {
+   "id": "the-anaesthetic",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Анестетическое",
+    "en": "The Anaesthetic"
+   },
+   "terms": [
+    "anaesthetic",
+    "anaesthetics"
+   ],
+   "areas": [
+    "area-art-and-the-boundaries-of-the-aesthetic"
+   ],
+   "grew_from": [
+    "D:B-C3605"
+   ]
+  },
+  {
+   "id": "conceptual-art",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Концептуальное искусство",
+    "en": "Conceptual Art"
+   },
+   "terms": [
+    "conceptual art"
+   ],
+   "areas": [
+    "area-art-and-the-boundaries-of-the-aesthetic"
+   ],
+   "grew_from": [
+    "D:B-C3606"
+   ]
+  },
+  {
+   "id": "aesthetic-property",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Эстетическое свойство",
+    "en": "Aesthetic Property"
+   },
+   "terms": [
+    "aesthetic property"
+   ],
+   "areas": [
+    "area-art-and-the-boundaries-of-the-aesthetic"
+   ],
+   "grew_from": [
+    "D:B-C3607"
+   ]
+  },
+  {
+   "id": "the-methods-of-aesthetics",
+   "type": "tos.entity.concept",
+   "title": {
+    "ru": "Методы эстетики",
+    "en": "The Methods of Aesthetics"
+   },
+   "terms": [
+    "methods of aesthetics",
+    "experimental aesthetics"
+   ],
+   "areas": [
+    "area-art-and-the-boundaries-of-the-aesthetic"
+   ],
+   "grew_from": [
+    "D:B-C3608"
+   ]
+  }
+ ],
+ "conceptions": [
+  {
+   "id": "plato.symposium:ascent",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-ascent-to-the-beautiful",
+    "eros",
+    "the-beautiful"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "work": "plato.symposium",
+   "agents": [
+    "plato"
+   ],
+   "voice": {
+    "ru": "Диотима в пересказе Сократа",
+    "en": "Diotima, as Socrates relates her speech"
+   },
+   "locus": "211b–d",
+   "formula": {
+    "cite": [
+     {
+      "w": "plato.symposium",
+      "u": [
+       "tos.text-unit.sid-9156acf77238412ebef307a1000bad93",
+       "tos.text-unit.sid-9156acf77238412ebef307a1000bad93"
+      ],
+      "s": 1075,
+      "e": 1541
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Верный путь любви — восхождение по ступеням: от одного прекрасного тела к двум и ко всем, от тел к прекрасным занятиям, от занятий к прекрасным знаниям, а от них к знанию самого прекрасного.",
+    "en": "The right way of love is an ascent as by steps: from one beautiful body to two and to all, from bodies to beautiful practices, from practices to beautiful studies, and from these to the study of the beautiful itself."
+   },
+   "distinction": {
+    "ru": "Речь принадлежит Диотиме; её передаёт Сократ, а записывает Платон.",
+    "en": "The speech is Diotima’s; Socrates relates it, and Plato writes it."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09",
+    "verdict": "confirmed",
+    "note": "The registers list bodies, souls, practices, laws and knowledge from 210a–e. The sentence at 211b–d gathers the same way into its steps and names bodies, practices and studies; the thesis follows that sentence."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E001",
+    "D:B-I021"
+   ]
+  },
+  {
+   "id": "plato.symposium:beautiful-itself",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-beautiful-itself",
+    "the-ascent-to-the-beautiful"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "work": "plato.symposium",
+   "agents": [
+    "plato"
+   ],
+   "voice": {
+    "ru": "Диотима в пересказе Сократа",
+    "en": "Diotima, as Socrates relates her speech"
+   },
+   "locus": "210e–211b",
+   "formula": {
+    "cite": [
+     {
+      "w": "plato.symposium",
+      "u": [
+       "tos.text-unit.sid-9156acf77238412ebef307a1000bad93",
+       "tos.text-unit.sid-9156acf77238412ebef307a1000bad93"
+      ],
+      "s": 2,
+      "e": 952
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Прекрасное само по себе всегда есть, единовидно и пребывает само с собою; всё остальное прекрасно причастностью ему.",
+    "en": "The beautiful itself always is, of one form, itself by itself with itself; everything else is beautiful by partaking of it."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09",
+    "verdict": "confirmed",
+    "note": "The register's locator 211a–212a holds the place; the sentence that describes the beautiful itself runs from 210e to 211b."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E002"
+   ]
+  },
+  {
+   "id": "plato.symposium:true-virtue",
+   "type": "tos.entity.conception",
+   "of": [
+    "beauty-and-the-good"
+   ],
+   "areas": [
+    "area-aesthetic-and-the-ethical"
+   ],
+   "work": "plato.symposium",
+   "agents": [
+    "plato"
+   ],
+   "voice": {
+    "ru": "Диотима в пересказе Сократа",
+    "en": "Diotima, as Socrates relates her speech"
+   },
+   "locus": "212a",
+   "formula": {
+    "cite": [
+     {
+      "w": "plato.symposium",
+      "u": [
+       "tos.text-unit.sid-5b4c0039360c4ce59e087cfb2e67076b",
+       "tos.text-unit.sid-5b4c0039360c4ce59e087cfb2e67076b"
+      ],
+      "s": 110,
+      "e": 397
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Видящий прекрасное тем, чем оно зримо, рождает истинную добродетель, потому что касается истины.",
+    "en": "One who sees the beautiful by that by which it is seen begets true virtue, because he touches the truth."
+   },
+   "distinction": {
+    "ru": "Добродетель рождается от созерцания прекрасного самого по себе — последней ступени восхождения.",
+    "en": "Virtue is born of beholding the beautiful itself, the last step of the ascent."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "D:B-I021"
+   ]
+  },
+  {
+   "id": "plotinus.enneads:beauty-and-symmetry",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-beautiful",
+    "symmetry"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-form-and-composition"
+   ],
+   "work": "plotinus.enneads",
+   "agents": [
+    "plotinus"
+   ],
+   "locus": "I.6.1",
+   "formula": {
+    "cite": [
+     {
+      "w": "plotinus.enneads",
+      "u": [
+       "tos.text-unit.sid-115764814bcc4084850cce65fd13bfb9",
+       "tos.text-unit.sid-115764814bcc4084850cce65fd13bfb9"
+      ],
+      "s": 1640,
+      "e": 1771
+     },
+     {
+      "w": "plotinus.enneads",
+      "u": [
+       "tos.text-unit.sid-115764814bcc4084850cce65fd13bfb9",
+       "tos.text-unit.sid-115764814bcc4084850cce65fd13bfb9"
+      ],
+      "s": 1964,
+      "e": 2154
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Прекрасны и простые вещи — цвета, свет солнца; а одно и то же лицо при той же соразмерности бывает то прекрасным, то нет. Прекрасное в соразмерном — иное, чем сама соразмерность.",
+    "en": "Simple things are beautiful too: colours, the light of the sun; and one face with the same symmetry appears now beautiful and now not. The beautiful in what is symmetrical is other than the symmetry itself."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09",
+    "verdict": "revise",
+    "note": "The thesis stands at the place. Register A sets the reading under both «Соразмерность» (proportio) and «Симметрия»; the place has one word, συμμετρία, and the conception is of symmetry."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E003",
+    "C:A-I045"
+   ]
+  },
+  {
+   "id": "plotinus.enneads:beauty-by-form",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-beautiful",
+    "form"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-form-and-composition"
+   ],
+   "work": "plotinus.enneads",
+   "agents": [
+    "plotinus"
+   ],
+   "locus": "I.6.2",
+   "formula": {
+    "cite": [
+     {
+      "w": "plotinus.enneads",
+      "u": [
+       "tos.text-unit.sid-115764814bcc4084850cce65fd13bfb9",
+       "tos.text-unit.sid-115764814bcc4084850cce65fd13bfb9"
+      ],
+      "s": 3536,
+      "e": 3562
+     },
+     {
+      "w": "plotinus.enneads",
+      "u": [
+       "tos.text-unit.sid-115764814bcc4084850cce65fd13bfb9",
+       "tos.text-unit.sid-115764814bcc4084850cce65fd13bfb9"
+      ],
+      "s": 3816,
+      "e": 4035
+     },
+     {
+      "w": "plotinus.enneads",
+      "u": [
+       "tos.text-unit.sid-115764814bcc4084850cce65fd13bfb9",
+       "tos.text-unit.sid-115764814bcc4084850cce65fd13bfb9"
+      ],
+      "s": 4036,
+      "e": 4130
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Тела прекрасны причастностью эйдосу: эйдос, приходя, собирает многие части в одно и делает их единым по согласию; на собранном в одно и водворяется красота.",
+    "en": "Bodies are beautiful by partaking of form: form, on coming, gathers many parts into one and makes them one by agreement; beauty settles on what has been gathered into one."
+   },
+   "distinction": {
+    "ru": "Форма здесь — эйдос, от которого тело получает единство.",
+    "en": "Form here is eidos, from which a body receives its unity."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09",
+    "verdict": "revise",
+    "note": "The thesis stands at the place. Register A sets the reading under «Гармония»; that concept goes with the soul's recognition in I.6.3, where the fitting together is named."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E004",
+    "C:A-I046"
+   ]
+  },
+  {
+   "id": "plotinus.enneads:soul-recognises-beauty",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-beautiful",
+    "harmony"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "work": "plotinus.enneads",
+   "agents": [
+    "plotinus"
+   ],
+   "locus": "I.6.3",
+   "formula": {
+    "cite": [
+     {
+      "w": "plotinus.enneads",
+      "u": [
+       "tos.text-unit.sid-115764814bcc4084850cce65fd13bfb9",
+       "tos.text-unit.sid-115764814bcc4084850cce65fd13bfb9"
+      ],
+      "s": 4365,
+      "e": 4600
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Прекрасное узнаёт сила души, поставленная над ним: она прилаживает его к эйдосу в себе и судит им, как линейкой судят о прямом.",
+    "en": "The beautiful is known by the power of the soul set over it: she fits it to the form within her and judges by that form, as one judges the straight by a ruler."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E004",
+    "C:A-I046"
+   ]
+  },
+  {
+   "id": "aristotle.poetics:magnitude-and-order",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-beautiful",
+    "plot",
+    "composition"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-tragic",
+    "area-form-and-composition"
+   ],
+   "work": "aristotle.poetics",
+   "agents": [
+    "aristotle"
+   ],
+   "locus": "7, 1450b–1451a",
+   "formula": {
+    "cite": [
+     {
+      "w": "aristotle.poetics",
+      "u": [
+       "tos.text-unit.sid-e73a347a1cbe4250bc3d3b3cdcd60bc7",
+       "tos.text-unit.sid-e73a347a1cbe4250bc3d3b3cdcd60bc7"
+      ],
+      "s": 729,
+      "e": 1322
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Прекрасное состоит в величине и порядке: у целого из частей части упорядочены, а величина легко обозрима; так и у фабулы — длина, легко удерживаемая памятью.",
+    "en": "The beautiful lies in magnitude and order: a whole made of parts has its parts in order and a magnitude easily seen at one view; so a plot has a length easily held in memory."
+   },
+   "distinction": {
+    "ru": "Аристотель говорит о сложении событий трагедии и берёт живое существо как пример.",
+    "en": "Aristotle speaks of the arrangement of a tragedy’s incidents and takes the living creature as his example."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09",
+    "verdict": "revise",
+    "note": "The thesis stands at the place. Register A sets the reading also under the Picturesque; the place speaks of plots and of living wholes, and register C reads it under Form and Composition."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E009",
+    "C:A-I004"
+   ]
+  }
+ ],
+ "links": [
+  {
+   "id": "eros:leads-up-to:the-beautiful-itself",
+   "from": "eros",
+   "to": "the-beautiful-itself",
+   "verb": {
+    "ru": "при верной любви возводит к",
+    "en": "through right loving leads up to"
+   },
+   "grounds": [
+    "plato.symposium:ascent",
+    "plato.symposium:beautiful-itself"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09",
+    "verdict": "revise",
+    "note": "Register A: «направляет восхождение к». The verb follows 211b, διὰ τὸ ὀρθῶς παιδεραστεῖν ἐπανιών."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R001"
+   ]
+  },
+  {
+   "id": "the-ascent:ends-in:the-beautiful-itself",
+   "from": "the-ascent-to-the-beautiful",
+   "to": "the-beautiful-itself",
+   "verb": {
+    "ru": "завершается знанием",
+    "en": "ends in the study of"
+   },
+   "grounds": [
+    "plato.symposium:ascent"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09",
+    "verdict": "revise",
+    "note": "Register A: «переходит от отдельных воплощений к». The verb follows 211c, ἐπ’ ἐκεῖνο τὸ μάθημα τελευτῆσαι."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R002"
+   ]
+  },
+  {
+   "id": "the-beautiful:is-other-than:symmetry",
+   "from": "the-beautiful",
+   "to": "symmetry",
+   "verb": {
+    "ru": "есть иное, чем",
+    "en": "is other than"
+   },
+   "grounds": [
+    "plotinus.enneads:beauty-and-symmetry"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09",
+    "verdict": "revise",
+    "note": "Register A keeps two links, to «Соразмерность» and to «Симметрия»; the place has one word, συμμετρία, and says ἄλλο."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R003",
+    "A:R004"
+   ]
+  }
+ ]
+}
