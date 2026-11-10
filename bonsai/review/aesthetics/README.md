@@ -144,6 +144,34 @@ place taken together. A conception or a link the reader makes from the text
 with no register behind it is `undecided`: the stand holds it back until
 another reader has read the place.
 
+### The planting line
+
+Works outside the corpus are planted many at a time by `planting/`: one work
+is one packet under `planting/packets/<work id>/`, made by one reader and read
+again by a second. [planting/AGENTS.md](planting/AGENTS.md) holds the laws of
+the line, `planting/MAKER.md` and `planting/SECOND-READER.md` each reader's
+route.
+
+```sh
+python3 bonsai/review/aesthetics/planting/kit.py queue        # what waits, by wave (queue.json, not tracked)
+python3 bonsai/review/aesthetics/planting/drive.py line --max 2 --count 3   # run readers on the next works
+python3 bonsai/review/aesthetics/planting/kit.py status
+node bonsai/review/aesthetics/plant.mjs                       # plant the accepted packets
+```
+
+`kit.py` writes the text of a place out of a fetched transcription, sets it
+beside the page-indexed OCR of the scan and keeps the reader's judgment of
+every difference; its gate recomputes that comparison from the fetched files
+and checks the rights by their dates, that every waiting register reading is
+grown or left with a reason, that a thesis hedges or negates only where the
+place does, and that the planting goes through. A packet is planted when its
+gate is open and the second reader confirms every conception and link; what
+the second reader does not confirm after one return to the maker leaves the
+reading and stays under `left`, marked disputed, for a reader to take up. The
+first wave takes works printed by 1929 whose every hand died by 1942; the
+later ones wait for the locator and short-quotation form of the places
+module. Fetched files stay outside the checkout (`~/.cache/tos-planting`).
+
 ## Rebuilding the layer
 
 ```sh

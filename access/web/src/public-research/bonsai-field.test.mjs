@@ -1,5 +1,5 @@
 import {execFileSync} from 'node:child_process';
-import {readFileSync} from 'node:fs';
+import {existsSync,readFileSync,readdirSync} from 'node:fs';
 import {join} from 'node:path';
 import {describe,expect,it} from 'vitest';
 import {ADMITTED,FIELD_SCHEMA,fieldCites,fieldIssues,fieldSubjects,libraryIssues,readField} from '../../../../bonsai/lib/field.mjs';
@@ -75,7 +75,7 @@ describe('the Aesthetics field',()=>{
     const read=readField(field);
     expect(read.conceptsOf('area-beautiful').length).toBe(39);
     expect(read.conceptionsOf('the-beautiful').map(conception=>conception.work)).toEqual(expect.arrayContaining(['plato.symposium','plotinus.enneads','aristotle.poetics']));
-    expect(read.linksOf('symmetry').map(link=>link.id)).toEqual(['the-beautiful:is-other-than:symmetry','symmetry:pleases-as-it-gives-the-idea-of:fitness','the-viewing-station:shifted-takes-away:symmetry']);
+    expect(read.linksOf('symmetry').map(link=>link.id)).toEqual(expect.arrayContaining(['the-beautiful:is-other-than:symmetry','symmetry:pleases-as-it-gives-the-idea-of:fitness','the-viewing-station:shifted-takes-away:symmetry']));
     const subjects=fieldSubjects(field,library);
     for(const id of ['area-beautiful','the-beautiful','plato.symposium:ascent','plato','plato.symposium'])expect(subjects.has(id),id).toBe(true);
   });
@@ -92,13 +92,14 @@ describe('the Aesthetics field',()=>{
     }
     // Every place the module holds is the formula of a conception: the bonsai keeps no text it does not cite.
     for(const work of Object.keys(fragments.places))expect(new Set(cites.filter(({cite})=>cite.w===work).map(({cite})=>cite.loc)),work).toEqual(new Set(Object.keys(fragments.places[work])));
-    expect(Object.keys(fragments.places)).toEqual([KANT,'edmund-burke.a-philosophical-enquiry-into-the-origin-of-our','william-hogarth.the-analysis-of-beauty']);
+    expect(Object.keys(fragments.places)).toEqual(expect.arrayContaining([KANT,'edmund-burke.a-philosophical-enquiry-into-the-origin-of-our','william-hogarth.the-analysis-of-beauty']));
+    expect(Object.keys(fragments.places).sort()).toEqual(Object.keys(fragments.works).sort());
     const broken=structuredClone(field),kant=broken.conceptions.find(conception=>conception.work===KANT);
     kant.formula.cite[0].loc='§1 no such lines';
     expect(checkBonsai(root,'aesthetics',{overrides:{field:broken}}).problems).toContain(`field: conception ${kant.id}: no place ${KANT} §1 no such lines among the places of other works`);
   });
   it('keeps the words of the printed page where a transcription differs from it',()=>{
-    expect(fragments.provenance.corrections.map(correction=>correction.to)).toEqual(['unterliegen müßte. Auf solche Weise','Angenehm heißt Jemandem das','smoothness; a quality so essential']);
+    expect(fragments.provenance.corrections.map(correction=>correction.to)).toEqual(expect.arrayContaining(['unterliegen müßte. Auf solche Weise','Angenehm heißt Jemandem das','smoothness; a quality so essential']));
     for(const {from,to,lang,place} of fragments.provenance.corrections){
       const work=Object.keys(fragments.places).find(id=>place.startsWith(`${id} `)),text=fragments.places[work][place.slice(work.length+1)].texts[lang];
       expect(text,place).toContain(to);expect(text,place).not.toContain(from);
@@ -112,7 +113,7 @@ describe('the Aesthetics field',()=>{
     expect(read.conceptionsOf('the-sublime').map(conception=>conception.id)).toContain(`${KANT}:absolutely-great`);
     expect(read.linksOf('the-mathematically-sublime').map(link=>link.id)).toEqual(['the-mathematically-sublime:is-absolute:greatness']);
     const held=field.links.filter(link=>link.admission==='held');
-    expect(held.map(link=>link.id)).toEqual(['the-sublime:divides-into:the-mathematically-sublime','the-sublime:divides-into:the-dynamically-sublime','terror:is-the-ruling-principle-of:the-sublime']);
+    expect(held.map(link=>link.id)).toEqual(expect.arrayContaining(['the-sublime:divides-into:the-mathematically-sublime','the-sublime:divides-into:the-dynamically-sublime','terror:is-the-ruling-principle-of:the-sublime']));
     expect(new Set(held.map(link=>link.reading.verdict))).toEqual(new Set(['undecided']));
   });
   it.skipIf(!corpusFetched)('cites formulas that run over whole sentences of the original',()=>{
@@ -134,7 +135,7 @@ describe('the Aesthetics field',()=>{
   });
   it.skipIf(!corpusFetched)('is what the planting tool gives from the layer and the readers\' records',()=>{
     const out=execFileSync(process.execPath,[join(root,'bonsai/review/aesthetics/plant.mjs'),'--check'],{encoding:'utf8'});
-    expect(out).toBe('field.json: matches what the records give\nlibrary.json: matches what the records give\nidentities.json: matches what the records give\n');
+    expect(out).toBe(['field','library','identities','fragments'].map(name=>`${name}.json: matches what the records give\n`).join(''));
   });
   it('keeps every concept and conception traceable to the research layer',()=>{
     const layer=name=>JSON.parse(readFileSync(join(root,'bonsai/review/aesthetics/layer',`${name}.json`),'utf8'));
@@ -142,4 +143,12 @@ describe('the Aesthetics field',()=>{
     for(const concept of field.concepts)for(const key of concept.grew_from)expect(concepts.has(key),`${concept.id} ${key}`).toBe(true);
     for(const record of [...field.conceptions,...field.links])for(const key of record.grew_from)expect(records.has(key),`${record.id} ${key}`).toBe(true);
   });
+  it('plants a packet of the planting line only while its gate stays open',()=>{
+    const line=join(root,'bonsai/review/aesthetics/planting'),packets=join(line,'packets');
+    const accepted=existsSync(packets)?readdirSync(packets).filter(name=>existsSync(join(packets,name,'accepted.json'))):[];
+    for(const name of accepted){
+      expect(Object.keys(fragments.places),name).toContain(name);
+      expect(()=>execFileSync('python3',[join(line,'kit.py'),'gate',join(packets,name),'--offline'],{encoding:'utf8',stdio:'pipe'}),name).not.toThrow();
+    }
+  },60000);
 });
