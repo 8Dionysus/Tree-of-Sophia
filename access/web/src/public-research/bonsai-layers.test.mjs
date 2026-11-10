@@ -1,8 +1,9 @@
 import {execFileSync} from 'node:child_process';
-import {mkdirSync,mkdtempSync,readFileSync,rmSync,writeFileSync} from 'node:fs';
+import {existsSync,mkdirSync,mkdtempSync,readFileSync,rmSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {afterEach,describe,expect,it} from 'vitest';
+import {afterEach,describe,expect,it,vi} from 'vitest';
+import {siteLayers} from '../../site-layers.mjs';
 import {fetchLayers,layerHomes,layerStatus,placeLayers,layersIssues,layersOnDisk,mirrorLayers,objectKey,pruneTransfer,readLayers,sendLayers,sha256,signS3,transferSource,uploadLayers,writeManifest} from '../../../../bonsai/lib/layers.mjs';
 
 // A stand's generated layers live in R2; git keeps their digest manifest.
@@ -89,6 +90,19 @@ describe('the layer store',()=>{
     for(const entry of layers.entries)expect(sha256(readFileSync(join(dir,objectKey(entry.sha256))))).toBe(entry.sha256);
     rmSync(join(home,'spelling.json'));
     await expect(placeLayers(root,join(root,'other'),{sources:[memory('empty')]})).rejects.toThrow(/bonsai\/x: layer files no store holds:\nspelling\.json/);
+  });
+  it('writes the site\'s copy into a public-research build\'s output, and into no other build',async()=>{
+    const {root,home}=stand();const layers=writeManifest(home);git(root,'init','--quiet');
+    const log=vi.spyOn(console,'log').mockImplementation(()=>{});
+    try{
+      for(const mode of ['development','public-research']){
+        const plugin=siteLayers({repo:root});
+        plugin.configResolved({mode,root,build:{outDir:`out-${mode}`}});
+        await plugin.closeBundle();
+      }
+    }finally{log.mockRestore();}
+    expect(existsSync(join(root,'out-development','layers'))).toBe(false);
+    for(const entry of layers.entries)expect(sha256(readFileSync(join(root,'out-public-research','layers',objectKey(entry.sha256))))).toBe(entry.sha256);
   });
   it('carries files no store holds on the transfer branch, and drops them once R2 has them',async()=>{
     const {root,home}=stand();
