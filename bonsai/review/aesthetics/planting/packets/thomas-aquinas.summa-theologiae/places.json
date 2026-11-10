@@ -1,0 +1,116 @@
+{
+  "work": "thomas-aquinas.summa-theologiae",
+  "entry": {
+    "author": {
+      "ru": "Фома Аквинский",
+      "en": "Thomas Aquinas"
+    },
+    "title": {
+      "ru": "Сумма теологии",
+      "en": "Summa Theologiae"
+    },
+    "original": "la",
+    "witnesses": {
+      "la": {
+        "edition": "Summa theologica, editio altera Romana, pars prima (Rome, 1894); Internet Archive volume 1, Trent University collection.",
+        "year": 1894,
+        "url": "https://archive.org/details/summatheologicae0001thom",
+        "sources": [
+          "https://archive.org/details/summatheologicae0001thom",
+          "https://la.wikisource.org/wiki/Summa_Theologiae/Prima_pars/Quaestio_XXXIX"
+        ],
+        "licence": "Public domain historical Latin book; Wikisource transcription available under CC BY-SA 4.0.",
+        "attribution": "Thomas Aquinas, Summa theologica, pars prima (Rome, 1894), p. 318; Latin Wikisource transcription compared with Internet Archive scan.",
+        "rights": {
+          "basis": "public-domain",
+          "russia": "Общественное достояние: Фома Аквинский (автор) — год смерти 1274 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
+          "usa": "Public domain: this printing was published in 1894 (before 1930).",
+          "eu": "Public domain: Thomas Aquinas (author) died 1274, more than 70 years ago (Directive 2006/116/EC art. 1).",
+          "reasoning": "Thomas Aquinas wrote the Latin text. Latin Wikisource supplies a transcription of an unknown edition and source; it was compared against the 1894 Roman edition scan, with differences corrected to the printed page. Whitespace and line breaks are normalized."
+        }
+      }
+    },
+    "absent": [
+      {
+        "language": "ru",
+        "reason": "No Russian text is taken in this pass: the line plants the original first."
+      },
+      {
+        "language": "en",
+        "reason": "No English text is taken in this pass: the line plants the original first."
+      }
+    ]
+  },
+  "places": {
+    "I q39 a8 p318a": {
+      "label": {
+        "ru": "Ч. I, вопр. 39, ст. 8, с. 318",
+        "en": "Part I, q. 39, art. 8, p. 318"
+      },
+      "texts": {
+        "la": "Nam ad pulchritudinem tria requiruntur. Primo quidem integritas, sive perfectio. Quae enim diminuta sunt, hoc ipso turpia sunt. Et debita proportio, sive consonantia. Et iterum claritas. Unde quae habent colorem nitidum, pulchra esse dicuntur."
+      },
+      "links": {
+        "la": "https://archive.org/details/summatheologicae0001thom/page/n331/mode/1up"
+      },
+      "refs": [
+        [
+          "la",
+          "Editio altera Romana (Rome 1894), p. 318"
+        ]
+      ]
+    },
+    "I q39 a8 p318b": {
+      "label": {
+        "ru": "Ч. I, вопр. 39, ст. 8, с. 318",
+        "en": "Part I, q. 39, art. 8, p. 318"
+      },
+      "texts": {
+        "la": "Unde videmus, quod aliqua imago dicitur esse pulchra, si perfecte repraesentat rem, quamvis turpem."
+      },
+      "links": {
+        "la": "https://archive.org/details/summatheologicae0001thom/page/n331/mode/1up"
+      },
+      "refs": [
+        [
+          "la",
+          "Editio altera Romana (Rome 1894), p. 318"
+        ]
+      ]
+    }
+  },
+  "corrections": [
+    {
+      "lang": "la",
+      "from": "Primo quidem, integritas sive perfectio, quae",
+      "to": "Primo quidem integritas, sive perfectio. Quae",
+      "evidence": "1894 scan p. 318, Internet Archive n331",
+      "place": "thomas-aquinas.summa-theologiae I q39 a8 p318a"
+    },
+    {
+      "lang": "la",
+      "from": "debita proportio sive consonantia",
+      "to": "debita proportio, sive consonantia",
+      "evidence": "1894 scan p. 318, Internet Archive n331",
+      "place": "thomas-aquinas.summa-theologiae I q39 a8 p318a"
+    },
+    {
+      "lang": "la",
+      "from": "claritas, unde",
+      "to": "claritas. Unde",
+      "evidence": "1894 scan p. 318, Internet Archive n331",
+      "place": "thomas-aquinas.summa-theologiae I q39 a8 p318a"
+    },
+    {
+      "lang": "la",
+      "from": "videmus quod",
+      "to": "videmus, quod",
+      "evidence": "1894 scan p. 318, Internet Archive n331",
+      "place": "thomas-aquinas.summa-theologiae I q39 a8 p318b"
+    }
+  ],
+  "checked_on_the_page_image": [
+    "p. 318 (passages on beauty and the image; Internet Archive n331)",
+    "p. 319 (offset verified against OCR leaf 332)"
+  ]
+}

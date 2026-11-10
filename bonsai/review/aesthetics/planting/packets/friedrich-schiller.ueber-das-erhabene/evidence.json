@@ -1,0 +1,206 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/schillersphilosp01schi/schillersphilosp01schi_hocr_searchtext.txt.gz",
+   "file": "schillersphilosp01schi.ocr.txt",
+   "sha256": "e4d11b3abc097f45eef9e1da9057e446f6b7e3b7e9c80177c37992643cfdc964",
+   "bytes": 1195642,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/schillersphilosp01schi/schillersphilosp01schi_hocr_pageindex.json.gz",
+   "file": "schillersphilosp01schi.index.json",
+   "sha256": "75d9e39fb30ec65cae72b786bf08991f4b6ada5bac376c5a434fe01d61234f6e",
+   "bytes": 17943,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/schillersphilosp01schi/schillersphilosp01schi_page_numbers.json",
+   "file": "schillersphilosp01schi.pages.json",
+   "sha256": "7a0c349e95000ffaaa0e923e42fdea04a65b9764596c85a7d1b4b7e76720309b",
+   "bytes": 81484,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "transcription",
+   "url": "https://projekt-gutenberg.org/authors/friedrich-schiller/books/friedrich-schiller-ueber-das-erhabene/",
+   "file": "friedrich-schiller-ueber-das-erhabene",
+   "sha256": "ee57428886ce4933e76553118cf087c0b5782681ae07e12cfd2ddb5794b820d2",
+   "bytes": 172081,
+   "fetched": "2026-11-10",
+   "text": "friedrich-schiller-ueber-das-erhabene.txt"
+  },
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/11000676bsb/11000676bsb_hocr_searchtext.txt.gz",
+   "file": "11000676bsb.ocr.txt",
+   "sha256": "052723c0a2ab5678fcac4620d1c9bdfd9b4e918499a996ab9c8a3a996abee4f4",
+   "bytes": 730700,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/11000676bsb/11000676bsb_hocr_pageindex.json.gz",
+   "file": "11000676bsb.index.json",
+   "sha256": "ac83bc856b2e9fcc100d8a8f46e91423b5366284254910f8eda78f75528bc200",
+   "bytes": 14380,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/11000676bsb/11000676bsb_page_numbers.json",
+   "file": "11000676bsb.pages.json",
+   "sha256": "f7c5365b81e1f3df7e7233e66a69c6164cf351bfd7cfe4ae9d3498cfe44c6e65",
+   "bytes": 67180,
+   "fetched": "2026-11-10"
+  }
+ ],
+ "scan": {
+  "item": "11000676bsb",
+  "ocr": true,
+  "long_s": true,
+  "image_offset": 0
+ },
+ "persons": [
+  {
+   "qid": "Q22670",
+   "name": {
+    "en": "Friedrich Schiller",
+    "ru": "Фридрих Шиллер"
+   },
+   "role": "author",
+   "died": 1805,
+   "source": "https://www.wikidata.org/wiki/Q22670"
+  }
+ ],
+ "published": 1858,
+ "images": [
+  {
+   "n": 304,
+   "file": "11000676bsb-n304.jpg",
+   "sha256": "057ba2b5638523e93f45f5be611031bf730dc82f65ea6ebc0bf960da2c0ad258",
+   "by": "maker"
+  },
+  {
+   "n": 291,
+   "file": "11000676bsb-n291.jpg",
+   "sha256": "045984fb848d3d3be27131d7c70c92bcddbf0bca5f41829e679858966e5fc0e2",
+   "by": "maker"
+  },
+  {
+   "n": 305,
+   "file": "11000676bsb-n305.jpg",
+   "sha256": "6bd64ab54314647cf120dcd668b1cd2417e74b4a2840654204beeeab0c9366a0",
+   "by": "maker"
+  },
+  {
+   "n": 291,
+   "file": "11000676bsb-n291.jpg",
+   "sha256": "045984fb848d3d3be27131d7c70c92bcddbf0bca5f41829e679858966e5fc0e2",
+   "by": "second",
+   "loc": "Essay p286b"
+  },
+  {
+   "n": 304,
+   "file": "11000676bsb-n304.jpg",
+   "sha256": "057ba2b5638523e93f45f5be611031bf730dc82f65ea6ebc0bf960da2c0ad258",
+   "by": "second",
+   "loc": "Essay p299"
+  },
+  {
+   "n": 305,
+   "file": "11000676bsb-n305.jpg",
+   "sha256": "6bd64ab54314647cf120dcd668b1cd2417e74b4a2840654204beeeab0c9366a0",
+   "by": "second",
+   "loc": "Essay p299"
+  }
+ ],
+ "places": {
+  "Essay p286a": {
+   "transcription": "friedrich-schiller-ueber-das-erhabene",
+   "method": "ocr",
+   "share": 0.933,
+   "leaves": [
+    291
+   ],
+   "printed": [
+    "286"
+   ],
+   "differences": [
+    {
+     "transcription": "Gefühl",
+     "ocr": "Gefu ͤ hl",
+     "leaf": 291,
+     "stands": "transcription",
+     "note": "Compared each difference on image n291, p. 286; printed spellings and feinen corrected."
+    },
+    {
+     "transcription": "höchsten",
+     "ocr": "ho ͤ chſten",
+     "leaf": 291,
+     "stands": "transcription",
+     "note": "Compared each difference on image n291, p. 286; printed spellings and feinen corrected."
+    },
+    {
+     "transcription": "Frohseyn",
+     "ocr": "Froh ſeyn",
+     "leaf": 291,
+     "stands": "transcription",
+     "note": "Compared each difference on image n291, p. 286; printed spellings and feinen corrected."
+    },
+    {
+     "transcription": "moralische Selbstständigkeit",
+     "ocr": "1 5 Selbſiſtändigkeit",
+     "leaf": 291,
+     "stands": "transcription",
+     "note": "Compared each difference on image n291, p. 286; printed spellings and feinen corrected."
+    }
+   ]
+  },
+  "Essay p286b": {
+   "transcription": "friedrich-schiller-ueber-das-erhabene",
+   "method": "ocr",
+   "share": 0.982,
+   "leaves": [
+    291
+   ],
+   "printed": [
+    "286"
+   ],
+   "differences": [
+    {
+     "transcription": "Einfluß",
+     "ocr": "Einſtuß",
+     "leaf": 291,
+     "stands": "transcription",
+     "note": "Read image n291, p. 286; OCR Einſtuß is Einfluß."
+    }
+   ]
+  },
+  "Essay p299": {
+   "transcription": "friedrich-schiller-ueber-das-erhabene",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    304,
+    305
+   ],
+   "printed": [
+    "299",
+    "300"
+   ],
+   "differences": [
+    {
+     "transcription": "",
+     "ocr": "x 300",
+     "leaf": 304,
+     "stands": "transcription",
+     "note": "Read p. 299 ending and p. 300 opening on images n304–305; x and page number are OCR artifacts."
+    }
+   ]
+  }
+ }
+}

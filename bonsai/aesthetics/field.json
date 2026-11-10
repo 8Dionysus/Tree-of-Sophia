@@ -64,6 +64,86 @@
    "date": "2026-11-10",
    "reads": "The English of each place on the pages of the first edition of 1753, beside the registers’ readings of that place. A register’s reasoning is no ground: the place is.",
    "record": "bonsai/review/aesthetics/readings/2026-11-10-hogarth.json"
+  },
+  {
+   "id": "terra-2026-11-10-ueber-anmut-und-wuerde",
+   "model": "gpt-6.1-terra",
+   "date": "2026-11-10",
+   "reads": "German text of the 1793 Göschen printing beside the Aesthetics register readings and links.",
+   "effort": "high",
+   "record": "bonsai/review/aesthetics/planting/packets/friedrich-schiller.ueber-anmut-und-wuerde/reading.json"
+  },
+  {
+   "id": "terra-2026-11-10-ueber-das-erhabene",
+   "model": "gpt-6.1-terra",
+   "date": "2026-11-10",
+   "reads": "Read Schiller’s German text in the 1858 Cotta edition, compared on the page with the register reading.",
+   "effort": "high",
+   "record": "bonsai/review/aesthetics/planting/packets/friedrich-schiller.ueber-das-erhabene/reading.json"
+  },
+  {
+   "id": "terra-2026-11-10-ueber-die-aesthetische-erziehung-des-men",
+   "model": "gpt-6.1-terra",
+   "date": "2026-11-10",
+   "reads": "I read the German 1801 printing alongside the waiting register readings, comparing each selected sentence with the page images.",
+   "effort": "high",
+   "record": "bonsai/review/aesthetics/planting/packets/friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen/reading.json"
+  },
+  {
+   "id": "terra-2026-11-10-the-pleasures-of-the-imagination",
+   "model": "gpt-6.1-terra",
+   "date": "2026-11-10",
+   "reads": "Read the English text of The Spectator no. 412 in Henry Morley’s 1891 edition against the register readings, comparing the transcription with the scanned page.",
+   "effort": "high",
+   "record": "bonsai/review/aesthetics/planting/packets/joseph-addison.the-pleasures-of-the-imagination/reading.json"
+  },
+  {
+   "id": "terra-2026-11-10-summa-theologiae",
+   "model": "gpt-6.1-terra",
+   "date": "2026-11-10",
+   "reads": "The Latin of the Roman edition of 1894, page 318, compared with the register readings of I, question 39, article 8.",
+   "effort": "high",
+   "record": "bonsai/review/aesthetics/planting/packets/thomas-aquinas.summa-theologiae/reading.json"
+  },
+  {
+   "id": "codex-2026-11-10-schiller-second",
+   "model": "gpt-6.1-terra",
+   "date": "2026-11-10",
+   "reads": "Every place in German, each thesis in Russian and English and each link against its grounds; all three places on four scanned pages.",
+   "effort": "high",
+   "record": "bonsai/review/aesthetics/planting/packets/friedrich-schiller.ueber-anmut-und-wuerde/review.json"
+  },
+  {
+   "id": "codex-2026-11-10-schiller-erhabene-second",
+   "model": "gpt-6.1-terra",
+   "date": "2026-11-10",
+   "reads": "Every place in German and each thesis in Russian and English; all three places against the page images.",
+   "effort": "high",
+   "record": "bonsai/review/aesthetics/planting/packets/friedrich-schiller.ueber-das-erhabene/review.json"
+  },
+  {
+   "id": "codex-gpt6-2026-11-10-schiller-second",
+   "model": "gpt-6.1-terra",
+   "date": "2026-11-10",
+   "reads": "Every German place, each Russian and English thesis and each link against its grounds; four places on six scan pages.",
+   "effort": "high",
+   "record": "bonsai/review/aesthetics/planting/packets/friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen/review.json"
+  },
+  {
+   "id": "codex-2026-11-10-addison-second",
+   "model": "gpt-6.1-terra",
+   "date": "2026-11-10",
+   "reads": "Every place in English, each thesis in both languages and each link against its grounds; three places on the scanned page.",
+   "effort": "high",
+   "record": "bonsai/review/aesthetics/planting/packets/joseph-addison.the-pleasures-of-the-imagination/review.json"
+  },
+  {
+   "id": "codex-2026-11-10-summa-theologiae-second",
+   "model": "gpt-6.1-terra",
+   "date": "2026-11-10",
+   "reads": "Both Latin places, each Russian and English thesis and each link against its grounds; both places on the scan of page 318.",
+   "effort": "high",
+   "record": "bonsai/review/aesthetics/planting/packets/thomas-aquinas.summa-theologiae/review.json"
   }
  ],
  "groups": [
@@ -10189,6 +10269,706 @@
    "grew_from": [
     "A:E015"
    ]
+  },
+  {
+   "id": "friedrich-schiller.ueber-anmut-und-wuerde:grace-expresses-the-beautiful-soul",
+   "type": "tos.entity.conception",
+   "of": [
+    "grace",
+    "the-beautiful-soul",
+    "harmony"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "work": "friedrich-schiller.ueber-anmut-und-wuerde",
+   "agents": [
+    "friedrich-schiller"
+   ],
+   "locus": "II p187",
+   "formula": {
+    "cite": [
+     {
+      "w": "friedrich-schiller.ueber-anmut-und-wuerde",
+      "loc": "II p187"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "В прекрасной душе чувственность и разум, долг и склонность гармонируют; грация есть её выражение в явлении.",
+    "en": "In a beautiful soul sensibility and reason, duty and inclination harmonize; grace is its expression in appearance."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-ueber-anmut-und-wuerde",
+    "verdict": "revise",
+    "note": "The sentence identifies harmony and its expression; it does not itself state that expression is involuntary."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E025"
+   ]
+  },
+  {
+   "id": "friedrich-schiller.ueber-anmut-und-wuerde:dignity-expresses-freedom-of-spirit",
+   "type": "tos.entity.conception",
+   "of": [
+    "dignity"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-tragic"
+   ],
+   "work": "friedrich-schiller.ueber-anmut-und-wuerde",
+   "agents": [
+    "friedrich-schiller"
+   ],
+   "locus": "II p201",
+   "formula": {
+    "cite": [
+     {
+      "w": "friedrich-schiller.ueber-anmut-und-wuerde",
+      "loc": "II p201"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Власть нравственной силы над влечениями есть свобода духа, а достоинство — её выражение в явлении.",
+    "en": "Mastery of the impulses by moral power is freedom of spirit, and dignity is its expression in appearance."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-ueber-anmut-und-wuerde",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E026"
+   ]
+  },
+  {
+   "id": "friedrich-schiller.ueber-anmut-und-wuerde:dignity-in-suffering-grace-in-conduct",
+   "type": "tos.entity.conception",
+   "of": [
+    "dignity",
+    "grace",
+    "suffering"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-tragic"
+   ],
+   "work": "friedrich-schiller.ueber-anmut-und-wuerde",
+   "agents": [
+    "friedrich-schiller"
+   ],
+   "locus": "II p206",
+   "formula": {
+    "cite": [
+     {
+      "w": "friedrich-schiller.ueber-anmut-und-wuerde",
+      "loc": "II p206"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Достоинство более требуется и проявляется в страдании, грация — в поведении: только в страдании может обнаружиться свобода духа, и только в действии — свобода тела.",
+    "en": "Dignity is demanded and shown more in suffering, grace more in conduct: only in suffering can freedom of spirit reveal itself, and only in action can freedom of the body reveal itself."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-ueber-anmut-und-wuerde",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E026"
+   ]
+  },
+  {
+   "id": "friedrich-schiller.ueber-das-erhabene:moral-self-sufficiency",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-sublime",
+    "moral-elevation"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-sublime"
+   ],
+   "work": "friedrich-schiller.ueber-das-erhabene",
+   "agents": [
+    "friedrich-schiller"
+   ],
+   "locus": "Über das Erhabene",
+   "formula": {
+    "cite": [
+     {
+      "w": "friedrich-schiller.ueber-das-erhabene",
+      "loc": "Essay p286a"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Чувство возвышенного соединяет страдание и радость; соединение противоположных чувств доказывает нашу нравственную самостоятельность.",
+    "en": "The feeling of the sublime combines suffering and joy; the union of contrary feelings proves our moral independence."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-ueber-das-erhabene",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E053"
+   ]
+  },
+  {
+   "id": "friedrich-schiller.ueber-das-erhabene:freedom-in-the-sublime",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-sublime",
+    "moral-elevation"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-sublime"
+   ],
+   "work": "friedrich-schiller.ueber-das-erhabene",
+   "agents": [
+    "friedrich-schiller"
+   ],
+   "locus": "Über das Erhabene",
+   "formula": {
+    "cite": [
+     {
+      "w": "friedrich-schiller.ueber-das-erhabene",
+      "loc": "Essay p286b"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "При возвышенном мы чувствуем себя свободными: чувственные влечения не влияют на законодательство разума, и дух действует словно под собственными законами.",
+    "en": "In the sublime we feel free: the sensuous drives have no influence on the legislation of reason, and the spirit acts as if under its own laws."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-ueber-das-erhabene",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E053"
+   ]
+  },
+  {
+   "id": "friedrich-schiller.ueber-das-erhabene:sublime-and-dignity",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-sublime",
+    "dignity"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-sublime"
+   ],
+   "work": "friedrich-schiller.ueber-das-erhabene",
+   "agents": [
+    "friedrich-schiller"
+   ],
+   "locus": "Über das Erhabene",
+   "formula": {
+    "cite": [
+     {
+      "w": "friedrich-schiller.ueber-das-erhabene",
+      "loc": "Essay p299"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Без возвышенного красота заставила бы нас забыть о нашем достоинстве.",
+    "en": "Without the sublime, beauty would make us forget our dignity."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-ueber-das-erhabene",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E053"
+   ]
+  },
+  {
+   "id": "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen:play-drive-unites-drives",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-play-drive",
+    "the-sensuous-drive",
+    "the-form-drive"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "work": "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen",
+   "agents": [
+    "friedrich-schiller"
+   ],
+   "locus": "XIV",
+   "formula": {
+    "cite": [
+     {
+      "w": "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen",
+      "loc": "XIV p160"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Игровое влечение — влечение, в котором чувственное и формальное влечения действуют совместно; оно было бы направлено на согласование становления с абсолютным бытием, изменения с тождеством.",
+    "en": "The play drive is the drive in which the sensuous and form drives act together; it would be directed toward reconciling becoming with absolute being and change with identity."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-ueber-die-aesthetische-erziehung-des-men",
+    "verdict": "revise",
+    "note": "The register describes the joint activity; the text states the direction of the play drive conditionally: «würde dahin gerichtet seyn»."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E175"
+   ]
+  },
+  {
+   "id": "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen:living-form",
+   "type": "tos.entity.conception",
+   "of": [
+    "living-form",
+    "the-play-drive",
+    "the-beautiful"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "work": "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen",
+   "agents": [
+    "friedrich-schiller"
+   ],
+   "locus": "XV",
+   "formula": {
+    "cite": [
+     {
+      "w": "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen",
+      "loc": "XV p164"
+     },
+     {
+      "w": "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen",
+      "loc": "XV p165b"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Предмет игрового влечения, представленный в общей схеме, может называться живой формой; это понятие обозначает эстетические свойства явлений и красоту в самом широком смысле. Мрамор может стать живой формой; чтобы человек был живой формой, его форма должна быть жизнью, а его жизнь — формой.",
+    "en": "The object of the play drive, presented in a general schema, may be called living form, a term denoting the aesthetic qualities of appearances and beauty in the widest sense. Marble can become living form; for a person to be living form, their form must be life and their life form."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-ueber-die-aesthetische-erziehung-des-men",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E176"
+   ]
+  },
+  {
+   "id": "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen:ideal-of-the-play-drive",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-ideal"
+   ],
+   "areas": [
+    "area-value-norm-and-ideal"
+   ],
+   "work": "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen",
+   "agents": [
+    "friedrich-schiller"
+   ],
+   "locus": "XV",
+   "formula": {
+    "cite": [
+     {
+      "w": "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen",
+      "loc": "XV p171"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Идеал красоты, который устанавливает разум, задаёт и идеал игрового влечения, который человек должен иметь перед глазами во всех своих играх.",
+    "en": "The ideal of beauty established by reason also sets an ideal of the play drive, which the person should keep before their eyes in all their games."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-ueber-die-aesthetische-erziehung-des-men",
+    "verdict": "revise",
+    "note": "The register treats the ideal together with autonomy; this place states the ideal of the play drive through the ideal of beauty."
+   },
+   "admission": "map",
+   "grew_from": [
+    "B:C-I054",
+    "B:C-I043"
+   ]
+  },
+  {
+   "id": "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen:aesthetic-middle-state",
+   "type": "tos.entity.conception",
+   "of": [
+    "aesthetic-freedom",
+    "transformative-experience"
+   ],
+   "areas": [
+    "area-education-practice-of-the-self-and-transformation"
+   ],
+   "work": "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen",
+   "agents": [
+    "friedrich-schiller"
+   ],
+   "locus": "XX; XXIII",
+   "formula": {
+    "cite": [
+     {
+      "w": "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen",
+      "loc": "XX p215a"
+     },
+     {
+      "w": "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen",
+      "loc": "XXIII p236a"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "В среднем эстетическом состоянии чувственность и разум действуют одновременно; переход от ощущения к мышлению и волению совершается через состояние эстетической свободы.",
+    "en": "In the intermediate aesthetic state sensibility and reason act together; the transition from sensation to thinking and willing takes place through a state of aesthetic freedom."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-ueber-die-aesthetische-erziehung-des-men",
+    "verdict": "revise",
+    "note": "The register describes transformative possibility and aesthetic freedom. These passages describe the middle state and transition; education is addressed in the sibling conception."
+   },
+   "admission": "map",
+   "grew_from": [
+    "D:A-035-I01",
+    "D:A-035-I17"
+   ]
+  },
+  {
+   "id": "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen:play-and-humanity",
+   "type": "tos.entity.conception",
+   "of": [
+    "play"
+   ],
+   "areas": [
+    "area-play-performance-and-participation"
+   ],
+   "work": "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen",
+   "agents": [
+    "friedrich-schiller"
+   ],
+   "locus": "XV",
+   "formula": {
+    "cite": [
+     {
+      "w": "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen",
+      "loc": "XV p172a"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Разум утверждает, что с красотой человек должен только играть, и играть он должен только с красотой: человек играет лишь там, где он в полном значении слова человек, и вполне человек лишь там, где он играет.",
+    "en": "Reason declares that a person should only play with beauty and should play only with beauty: a person plays only where they are human in the full sense of the word, and is fully human only where they play."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-ueber-die-aesthetische-erziehung-des-men",
+    "verdict": "revise",
+    "note": "The register describes play as a connecting impulse; the passage states the relation of play and being fully human as the reason for the preceding declaration about beauty."
+   },
+   "admission": "map",
+   "grew_from": [
+    "C:B-I019"
+   ]
+  },
+  {
+   "id": "joseph-addison.the-pleasures-of-the-imagination:greatness-of-a-whole-view",
+   "type": "tos.entity.conception",
+   "of": [
+    "greatness"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-sublime"
+   ],
+   "work": "joseph-addison.the-pleasures-of-the-imagination",
+   "agents": [
+    "joseph-addison"
+   ],
+   "locus": "The Spectator, no. 412",
+   "formula": {
+    "cite": [
+     {
+      "w": "joseph-addison.the-pleasures-of-the-imagination",
+      "loc": "No. 412 p717a"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Величие означает также обширность целого вида, рассматриваемого как единое целое.",
+    "en": "Greatness means also the largeness of a whole view, considered as one entire piece."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-the-pleasures-of-the-imagination",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E178"
+   ]
+  },
+  {
+   "id": "joseph-addison.the-pleasures-of-the-imagination:beauty-and-uncommonness-joined-with-grandeur",
+   "type": "tos.entity.conception",
+   "of": [
+    "greatness",
+    "the-landscape-scene",
+    "the-beautiful",
+    "novelty"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-sublime",
+    "area-picturesque",
+    "area-interesting"
+   ],
+   "work": "joseph-addison.the-pleasures-of-the-imagination",
+   "agents": [
+    "joseph-addison"
+   ],
+   "locus": "The Spectator, no. 412",
+   "formula": {
+    "cite": [
+     {
+      "w": "joseph-addison.the-pleasures-of-the-imagination",
+      "loc": "No. 412 p717b"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Когда к величию присоединяется красота или необычность, как в просторном пейзаже с реками, лесами, скалами и лугами, удовольствие растёт, исходя более чем из одного начала.",
+    "en": "When beauty or uncommonness joins grandeur, as in a spacious landscape with rivers, woods, rocks and meadows, pleasure grows as it arises from more than one principle."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-the-pleasures-of-the-imagination",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E178"
+   ]
+  },
+  {
+   "id": "joseph-addison.the-pleasures-of-the-imagination:novelty-surprise-and-curiosity",
+   "type": "tos.entity.conception",
+   "of": [
+    "novelty",
+    "surprise",
+    "curiosity"
+   ],
+   "areas": [
+    "area-grotesque",
+    "area-interesting"
+   ],
+   "work": "joseph-addison.the-pleasures-of-the-imagination",
+   "agents": [
+    "joseph-addison"
+   ],
+   "locus": "The Spectator, no. 412",
+   "formula": {
+    "cite": [
+     {
+      "w": "joseph-addison.the-pleasures-of-the-imagination",
+      "loc": "No. 412 p717d"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Новое или необычное доставляет удовольствие воображению, наполняя душу приятным удивлением, удовлетворяя любопытство и давая ей прежде не имевшуюся идею.",
+    "en": "What is new or uncommon raises pleasure in the imagination by filling the soul with agreeable surprise, gratifying its curiosity and giving it an idea it did not have before."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-the-pleasures-of-the-imagination",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E177"
+   ]
+  },
+  {
+   "id": "joseph-addison.the-pleasures-of-the-imagination:novelty-refreshes",
+   "type": "tos.entity.conception",
+   "of": [
+    "novelty",
+    "boredom"
+   ],
+   "areas": [
+    "area-grotesque",
+    "area-interesting"
+   ],
+   "work": "joseph-addison.the-pleasures-of-the-imagination",
+   "agents": [
+    "joseph-addison"
+   ],
+   "locus": "The Spectator, no. 412",
+   "formula": {
+    "cite": [
+     {
+      "w": "joseph-addison.the-pleasures-of-the-imagination",
+      "loc": "No. 412 p717e"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Новое или необычное немного разнообразит человеческую жизнь и на время отвлекает ум странностью своего вида; оно освежает и ослабляет пресыщение, на которое мы склонны жаловаться в обычных развлечениях.",
+    "en": "What is new or uncommon contributes a little to vary human life and divert our minds for a while with the strangeness of its appearance; it refreshes us and takes off from the satiety we are apt to complain of in our usual entertainments."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-the-pleasures-of-the-imagination",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E177"
+   ]
+  },
+  {
+   "id": "joseph-addison.the-pleasures-of-the-imagination:novelty-charms-a-monster",
+   "type": "tos.entity.conception",
+   "of": [
+    "novelty",
+    "the-monstrous"
+   ],
+   "areas": [
+    "area-grotesque",
+    "area-interesting"
+   ],
+   "work": "joseph-addison.the-pleasures-of-the-imagination",
+   "agents": [
+    "joseph-addison"
+   ],
+   "locus": "The Spectator, no. 412",
+   "formula": {
+    "cite": [
+     {
+      "w": "joseph-addison.the-pleasures-of-the-imagination",
+      "loc": "No. 412 p717c"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Новое или необычное придаёт прелесть чудовищу и делает приятными даже несовершенства природы.",
+    "en": "What is new or uncommon bestows charms on a monster and makes even the imperfections of nature please us."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-the-pleasures-of-the-imagination",
+    "verdict": "confirmed",
+    "note": "The previously confirmed page remains intact; its first sentence supplies the context for the novelty that the monster sentence refers to."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E177"
+   ]
+  },
+  {
+   "id": "thomas-aquinas.summa-theologiae:three-requisites-of-beauty",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-beautiful",
+    "integrity",
+    "due-proportion",
+    "clarity-and-radiance"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "work": "thomas-aquinas.summa-theologiae",
+   "agents": [
+    "thomas-aquinas"
+   ],
+   "locus": "I, q. 39, a. 8, corpus",
+   "formula": {
+    "cite": [
+     {
+      "w": "thomas-aquinas.summa-theologiae",
+      "loc": "I q39 a8 p318a"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Для красоты требуются три вещи: целостность, или совершенство, должная соразмерность, или созвучие, и ясность.",
+    "en": "Beauty requires three things: integrity or perfection, due proportion or harmony, and clarity."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-summa-theologiae",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E006"
+   ]
+  },
+  {
+   "id": "thomas-aquinas.summa-theologiae:beautiful-image-of-an-ugly-thing",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-beautiful",
+    "the-ugly-object-and-its-depiction"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-ugly"
+   ],
+   "work": "thomas-aquinas.summa-theologiae",
+   "agents": [
+    "thomas-aquinas"
+   ],
+   "locus": "I, q. 39, a. 8, corpus",
+   "formula": {
+    "cite": [
+     {
+      "w": "thomas-aquinas.summa-theologiae",
+      "loc": "I q39 a8 p318b"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Изображение называется прекрасным, если оно совершенно представляет вещь, хотя бы и безобразную.",
+    "en": "An image is called beautiful if it perfectly represents a thing, even if that thing is ugly."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-summa-theologiae",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E007"
+   ]
   }
  ],
  "links": [
@@ -11000,6 +11780,264 @@
    "admission": "map",
    "grew_from": [
     "A:R015"
+   ]
+  },
+  {
+   "id": "grace:expresses:the-beautiful-soul",
+   "from": "grace",
+   "to": "the-beautiful-soul",
+   "verb": {
+    "ru": "выражает в явлении",
+    "en": "expresses in appearance"
+   },
+   "grounds": [
+    "friedrich-schiller.ueber-anmut-und-wuerde:grace-expresses-the-beautiful-soul"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-ueber-anmut-und-wuerde",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R024"
+   ]
+  },
+  {
+   "id": "dignity:differs-in-its-sphere-of-manifestation-from:grace",
+   "from": "dignity",
+   "to": "grace",
+   "verb": {
+    "ru": "отличается областью своего проявления от",
+    "en": "differs in its sphere of manifestation from"
+   },
+   "grounds": [
+    "friedrich-schiller.ueber-anmut-und-wuerde:dignity-in-suffering-grace-in-conduct"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-ueber-anmut-und-wuerde",
+    "verdict": "revise",
+    "note": "The passage says dignity is shown more in suffering and grace more in conduct; it does not compare their manifestation within suffering."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R025"
+   ]
+  },
+  {
+   "id": "the-play-drive:contains-the-joint-activity-of:the-sensuous-drive",
+   "from": "the-play-drive",
+   "to": "the-sensuous-drive",
+   "verb": {
+    "ru": "содержит совместную деятельность",
+    "en": "contains the joint activity of"
+   },
+   "grounds": [
+    "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen:play-drive-unites-drives"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-ueber-die-aesthetische-erziehung-des-men",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R180"
+   ]
+  },
+  {
+   "id": "the-play-drive:contains-the-joint-activity-of:the-form-drive",
+   "from": "the-play-drive",
+   "to": "the-form-drive",
+   "verb": {
+    "ru": "содержит совместную деятельность",
+    "en": "contains the joint activity of"
+   },
+   "grounds": [
+    "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen:play-drive-unites-drives"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-ueber-die-aesthetische-erziehung-des-men",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R181"
+   ]
+  },
+  {
+   "id": "living-form:designates:the-beautiful",
+   "from": "living-form",
+   "to": "the-beautiful",
+   "verb": {
+    "ru": "обозначает",
+    "en": "designates"
+   },
+   "grounds": [
+    "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen:living-form"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-ueber-die-aesthetische-erziehung-des-men",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R183"
+   ]
+  },
+  {
+   "id": "the-play-drive:has-an-object-which-in-a-general-schema-may-be-called:living-form",
+   "from": "the-play-drive",
+   "to": "living-form",
+   "verb": {
+    "ru": "имеет предмет, который в общей схеме может называться",
+    "en": "has an object which, presented in a general schema, may be called"
+   },
+   "grounds": [
+    "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen:living-form"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-ueber-die-aesthetische-erziehung-des-men",
+    "verdict": "revise",
+    "note": "The register states a direction to living form; the place gives a possible name for the object as presented in a general schema."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R182"
+   ]
+  },
+  {
+   "id": "novelty:gratifies:curiosity",
+   "from": "novelty",
+   "to": "curiosity",
+   "verb": {
+    "ru": "удовлетворяет",
+    "en": "gratifies"
+   },
+   "grounds": [
+    "joseph-addison.the-pleasures-of-the-imagination:novelty-surprise-and-curiosity"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-the-pleasures-of-the-imagination",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R184"
+   ]
+  },
+  {
+   "id": "novelty:fills-the-soul-with:surprise",
+   "from": "novelty",
+   "to": "surprise",
+   "verb": {
+    "ru": "наполняет душу приятным удивлением",
+    "en": "fills the soul with agreeable surprise"
+   },
+   "grounds": [
+    "joseph-addison.the-pleasures-of-the-imagination:novelty-surprise-and-curiosity"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-the-pleasures-of-the-imagination",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R185"
+   ]
+  },
+  {
+   "id": "the-beautiful:requires:integrity",
+   "from": "the-beautiful",
+   "to": "integrity",
+   "verb": {
+    "ru": "требует",
+    "en": "requires"
+   },
+   "grounds": [
+    "thomas-aquinas.summa-theologiae:three-requisites-of-beauty"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-summa-theologiae",
+    "verdict": "revise",
+    "note": "The verb follows the specific relation stated in the Latin passage rather than the broader register wording."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R005"
+   ]
+  },
+  {
+   "id": "the-beautiful:requires:clarity-and-radiance",
+   "from": "the-beautiful",
+   "to": "clarity-and-radiance",
+   "verb": {
+    "ru": "требует",
+    "en": "requires"
+   },
+   "grounds": [
+    "thomas-aquinas.summa-theologiae:three-requisites-of-beauty"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-summa-theologiae",
+    "verdict": "revise",
+    "note": "The verb follows the specific relation stated in the Latin passage rather than the broader register wording."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R006"
+   ]
+  },
+  {
+   "id": "the-beautiful:requires:due-proportion",
+   "from": "the-beautiful",
+   "to": "due-proportion",
+   "verb": {
+    "ru": "требует",
+    "en": "requires"
+   },
+   "grounds": [
+    "thomas-aquinas.summa-theologiae:three-requisites-of-beauty"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-summa-theologiae",
+    "verdict": "revise",
+    "note": "The verb follows the specific relation stated in the Latin passage rather than the broader register wording."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R007"
+   ]
+  },
+  {
+   "id": "the-ugly-object-and-its-depiction:can-be-called:the-beautiful",
+   "from": "the-ugly-object-and-its-depiction",
+   "to": "the-beautiful",
+   "verb": {
+    "ru": "называется прекрасным при совершенном представлении вещи",
+    "en": "is called beautiful when it perfectly represents the thing"
+   },
+   "grounds": [
+    "thomas-aquinas.summa-theologiae:beautiful-image-of-an-ugly-thing"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-summa-theologiae",
+    "verdict": "revise",
+    "note": "The verb follows the specific relation stated in the Latin passage rather than the broader register wording."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R008"
    ]
   }
  ]
