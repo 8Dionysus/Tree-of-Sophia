@@ -57,6 +57,13 @@
    "date": "2026-11-10",
    "reads": "The English of each place on the pages of the Boston edition of 1865, beside the registers’ readings of that place. A register’s reasoning is no ground: the place is.",
    "record": "bonsai/review/aesthetics/readings/2026-11-10-burke.json"
+  },
+  {
+   "id": "claude-2026-11-10-hogarth",
+   "model": "claude-fable-5-2",
+   "date": "2026-11-10",
+   "reads": "The English of each place on the pages of the first edition of 1753, beside the registers’ readings of that place. A register’s reasoning is no ground: the place is.",
+   "record": "bonsai/review/aesthetics/readings/2026-11-10-hogarth.json"
   }
  ],
  "groups": [
@@ -9903,6 +9910,285 @@
    "grew_from": [
     "A:E044"
    ]
+  },
+  {
+   "id": "william-hogarth.the-analysis-of-beauty:composed-variety",
+   "type": "tos.entity.conception",
+   "of": [
+    "variety",
+    "the-beautiful",
+    "disharmony"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-ugly"
+   ],
+   "work": "william-hogarth.the-analysis-of-beauty",
+   "agents": [
+    "william-hogarth"
+   ],
+   "locus": "Ch. II",
+   "formula": {
+    "cite": [
+     {
+      "w": "william-hogarth.the-analysis-of-beauty",
+      "loc": "II p16a"
+     },
+     {
+      "w": "william-hogarth.the-analysis-of-beauty",
+      "loc": "II p16b"
+     },
+     {
+      "w": "william-hogarth.the-analysis-of-beauty",
+      "loc": "II p16c"
+     },
+     {
+      "w": "william-hogarth.the-analysis-of-beauty",
+      "loc": "II p17"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Разнообразие имеет великую долю в создании красоты: все чувства находят в нём удовольствие и равно отвращаются от однообразия. Глаз, пресыщенный чередой разнообразия, находит отдых в некоторой доле однообразия. Речь идёт о разнообразии сочинённом: разнообразие несочинённое и без замысла есть путаница и уродство.",
+    "en": "Variety has a great share in producing beauty: all the senses delight in it and are equally averse to sameness. The eye glutted with a succession of variety finds relief in a certain degree of sameness. What is meant is a composed variety: variety uncomposed and without design is confusion and deformity."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-hogarth",
+    "verdict": "confirmed",
+    "note": "Register A sets the reading also under «Дисгармония»; the words of the place are confusion and deformity, and the conception stands under that concept with these words."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E011"
+   ]
+  },
+  {
+   "id": "william-hogarth.the-analysis-of-beauty:symmetry-serves-fitness",
+   "type": "tos.entity.conception",
+   "of": [
+    "symmetry",
+    "fitness",
+    "the-viewing-station"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-picturesque"
+   ],
+   "work": "william-hogarth.the-analysis-of-beauty",
+   "agents": [
+    "william-hogarth"
+   ],
+   "locus": "Ch. III",
+   "formula": {
+    "cite": [
+     {
+      "w": "william-hogarth.the-analysis-of-beauty",
+      "loc": "III p18-19"
+     },
+     {
+      "w": "william-hogarth.the-analysis-of-beauty",
+      "loc": "III p19"
+     },
+     {
+      "w": "william-hogarth.the-analysis-of-beauty",
+      "loc": "III p19-20"
+     },
+     {
+      "w": "william-hogarth.the-analysis-of-beauty",
+      "loc": "III p20"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Правильность, единообразие и симметрия нравятся лишь постольку, поскольку дают идею пригодности: удовольствие возникает из знания, что стороны отвечают друг другу ради пригодности, с замыслом и для пользы. Убедившись в этом, глаз радуется, когда предмет повёрнут и его единообразные виды изменены. Мы сами, меняя место, берём тот вид здания, который нравится больше, и живописец берёт его с угла: правильность линий снимается их уходом в перспективу, а идея пригодности остаётся.",
+    "en": "Regularity, uniformity and symmetry please only as they serve to give the idea of fitness: the pleasure arises from knowing that the sides answer one another on account of fitness, with design and for use. Once satisfied of this, the eye is rejoiced to see the object turned and its uniform appearances varied. By shifting the ground we take the view of a building that pleases us best, and the painter takes it on the angle: the regularity of the lines is taken away by their running into perspective, and the idea of fitness stays."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-hogarth",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E012"
+   ]
+  },
+  {
+   "id": "william-hogarth.the-analysis-of-beauty:simplicity-with-variety",
+   "type": "tos.entity.conception",
+   "of": [
+    "variety",
+    "the-beautiful"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "work": "william-hogarth.the-analysis-of-beauty",
+   "agents": [
+    "william-hogarth"
+   ],
+   "locus": "Ch. IV",
+   "formula": {
+    "cite": [
+     {
+      "w": "william-hogarth.the-analysis-of-beauty",
+      "loc": "IV p21"
+     },
+     {
+      "w": "william-hogarth.the-analysis-of-beauty",
+      "loc": "IV p23"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Простота без разнообразия совершенно пресна; соединённая с разнообразием, она нравится, потому что усиливает удовольствие от него, давая глазу силу наслаждаться им с лёгкостью. Простота придаёт красоту самому разнообразию, делая его понятнее, и хранит изящные формы от запутанности.",
+    "en": "Simplicity without variety is wholly insipid; joined to variety it pleases, because it enhances the pleasure of variety by giving the eye the power of enjoying it with ease. Simplicity gives beauty even to variety by making it more easily understood, and it keeps forms of elegance from perplexity."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-hogarth",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E013"
+   ]
+  },
+  {
+   "id": "william-hogarth.the-analysis-of-beauty:intricacy",
+   "type": "tos.entity.conception",
+   "of": [
+    "intricacy",
+    "grace",
+    "curiosity",
+    "the-beautiful"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-picturesque",
+    "area-interesting"
+   ],
+   "work": "william-hogarth.the-analysis-of-beauty",
+   "agents": [
+    "william-hogarth"
+   ],
+   "locus": "Ch. V",
+   "formula": {
+    "cite": [
+     {
+      "w": "william-hogarth.the-analysis-of-beauty",
+      "loc": "V p24"
+     },
+     {
+      "w": "william-hogarth.the-analysis-of-beauty",
+      "loc": "V p25"
+     },
+     {
+      "w": "william-hogarth.the-analysis-of-beauty",
+      "loc": "V p28-29"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Деятельный ум всегда ищет занятия: преследование — дело нашей жизни и само по себе доставляет удовольствие. Сложность формы — та особенность составляющих её линий, которая ведёт глаз в своего рода резвую погоню; удовольствие, которое она даёт уму, даёт ей имя прекрасной, и причина идеи грации заключена в этом начале ближе, чем в остальных, кроме разнообразия. Излишек вредит и здесь: спутанные и несочинённые линии сбивают глаз, и он теряет их след.",
+    "en": "The active mind is ever bent to be employed: pursuing is the business of our lives and of itself gives pleasure. Intricacy in form is that peculiarity of its lines which leads the eye a wanton kind of chase; the pleasure this gives the mind entitles it to the name of beautiful, and the cause of the idea of grace resides in this principle more immediately than in the others, variety excepted. Excess harms here too: confused and uncomposed lines perplex the eye, and it loses their trace."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-hogarth",
+    "verdict": "confirmed",
+    "note": "Register A sets the reading also under «Любопытство»; the word of chapter V is the love of pursuit (curiosity is the word of chapter VI, where the same principle is shown in dress), and the conception stands under that concept with this word."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E014"
+   ]
+  },
+  {
+   "id": "william-hogarth.the-analysis-of-beauty:quantity",
+   "type": "tos.entity.conception",
+   "of": [
+    "greatness",
+    "awe"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "work": "william-hogarth.the-analysis-of-beauty",
+   "agents": [
+    "william-hogarth"
+   ],
+   "locus": "Ch. VI",
+   "formula": {
+    "cite": [
+     {
+      "w": "william-hogarth.the-analysis-of-beauty",
+      "loc": "VI p29"
+     },
+     {
+      "w": "william-hogarth.the-analysis-of-beauty",
+      "loc": "VI p30"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Формы большой величины, даже дурно очерченные, привлекают внимание и вызывают восхищение самой своей огромностью. В громадных бесформенных скалах есть род приятного ужаса, и широкий океан внушает трепет своим необъятным содержанием; когда же в больших количествах глазу предстают формы красоты, удовольствие растёт и ужас смягчается в благоговение. Количество прибавляет к грации величие; избыток делает его неуклюжим, тяжёлым или смешным.",
+    "en": "Forms of magnitude, even ill-shaped, draw attention and raise admiration by their vastness. Huge shapeless rocks have a pleasing kind of horror in them, and the wide ocean awes us with its vast contents; when forms of beauty are presented in large quantities, the pleasure increases and horror is softened into reverence. Quantity adds greatness to grace; excess makes it clumsy, heavy or ridiculous."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-hogarth",
+    "verdict": "revise",
+    "note": "The thesis stands at the place. Register A sets the reading also under «Возвышенное»; the words of the chapter are quantity, greatness, horror and reverence, the word sublime does not stand in it, and that concept is left out."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E058"
+   ]
+  },
+  {
+   "id": "william-hogarth.the-analysis-of-beauty:lines-of-beauty-and-grace",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-line-of-grace",
+    "grace",
+    "the-beautiful"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "work": "william-hogarth.the-analysis-of-beauty",
+   "agents": [
+    "william-hogarth"
+   ],
+   "locus": "Ch. VII",
+   "formula": {
+    "cite": [
+     {
+      "w": "william-hogarth.the-analysis-of-beauty",
+      "loc": "VII p38a"
+     },
+     {
+      "w": "william-hogarth.the-analysis-of-beauty",
+      "loc": "VII p38b"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Волнообразная линия производит красоту больше всех прежних, как в цветах и других формах украшающего рода: Хогарт называет её линией красоты. Змеевидная линия, как в человеческой фигуре, имеет силу прибавлять к красоте грацию; в формах наибольшей грации прямой линии меньше всего.",
+    "en": "The waving line is more productive of beauty than any of the former, as in flowers and other forms of the ornamental kind: Hogarth calls it the line of beauty. The serpentine line, as in the human form, has the power of superadding grace to beauty; forms of most grace have least of the straight line in them."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-hogarth",
+    "verdict": "confirmed",
+    "note": "Register A names chapters VII and XI; the two lines are set apart in chapter VII, at the close of which the serpentine line is named the line of grace."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E015"
+   ]
   }
  ],
  "links": [
@@ -10626,6 +10912,94 @@
    "admission": "map",
    "grew_from": [
     "A:R040"
+   ]
+  },
+  {
+   "id": "symmetry:pleases-as-it-gives-the-idea-of:fitness",
+   "from": "symmetry",
+   "to": "fitness",
+   "verb": {
+    "ru": "нравится лишь постольку, поскольку даёт идею того, что есть",
+    "en": "pleases only as it serves to give the idea of"
+   },
+   "grounds": [
+    "william-hogarth.the-analysis-of-beauty:symmetry-serves-fitness"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-hogarth",
+    "verdict": "revise",
+    "note": "Register A: «оценивается с учётом». The verb follows the last sentence of chapter III."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R011"
+   ]
+  },
+  {
+   "id": "the-viewing-station:shifted-takes-away:symmetry",
+   "from": "the-viewing-station",
+   "to": "symmetry",
+   "verb": {
+    "ru": "при смене места снимает",
+    "en": "when shifted, takes away"
+   },
+   "grounds": [
+    "william-hogarth.the-analysis-of-beauty:symmetry-serves-fitness"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-hogarth",
+    "verdict": "revise",
+    "note": "Register A: «изменяет воспринимаемую». The verb follows chapter III: by shifting the ground the painter takes the building on the angle, and the regularity of the lines is taken away by their running into perspective."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R012"
+   ]
+  },
+  {
+   "id": "intricacy:holds-the-cause-of-the-idea-of:grace",
+   "from": "intricacy",
+   "to": "grace",
+   "verb": {
+    "ru": "ближе прочих начал, кроме разнообразия, заключает причину идеи, имя которой —",
+    "en": "holds, more immediately than the other principles except variety, the cause of the idea of"
+   },
+   "grounds": [
+    "william-hogarth.the-analysis-of-beauty:intricacy"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-hogarth",
+    "verdict": "revise",
+    "note": "Register A: «участвует в объяснении». The verb follows the definition of intricacy in chapter V."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R013"
+   ]
+  },
+  {
+   "id": "the-line-of-grace:superadds-to-beauty:grace",
+   "from": "the-line-of-grace",
+   "to": "grace",
+   "verb": {
+    "ru": "имеет силу прибавлять к красоте то, что есть",
+    "en": "has the power of superadding to beauty"
+   },
+   "grounds": [
+    "william-hogarth.the-analysis-of-beauty:lines-of-beauty-and-grace"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-hogarth",
+    "verdict": "revise",
+    "note": "Register A: «характеризует». The verb follows chapter VII: the serpentine line hath the power of super-adding grace to beauty."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R015"
    ]
   }
  ]

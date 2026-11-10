@@ -6,7 +6,7 @@
  },
  "provenance": {
   "gathered": "2026-11-09",
-  "method": "Each place was cut from a transcription by the words that open and close it and compared word by word with an independent reading of the printed page; where the two differ beyond OCR noise the page image decides, and each change stands under corrections. Whitespace and line-end hyphenation normalised; emphasis dropped; footnote marks left out; NFC Unicode; paragraph breaks inside a place as \\n\\n. Kant, Kritik der Urtheilskraft: German: the words of each place were taken from the Bonn Kant-Korpus transcription of volume V of the Akademie-Ausgabe (korpora.org, pages fetched one a second) and compared word by word, punctuation included, with a fresh OCR (tesseract 5.3.4, model deu_latf) of the page images of the Internet Archive scan of the 1913 printing; every difference beyond OCR noise was read on the page image, and the page image decides (each change under corrections). The line references are those of the Akademie pages. English: the sentences of each section of Bernard’s translation (Project Gutenberg #48433) were paired with the German sentences by length and every pair was read; each English text is the smallest run of whole sentences that renders the German place. Whitespace and line-end hyphenation normalised; the Fraktur double hyphen written as \"-\"; letter-spaced, bold and italic emphasis dropped; footnote marks left out; NFC Unicode; paragraph breaks inside a place as \\n\\n. Section numbers are not part of the texts. Burke, Inquiry: the words from Project Gutenberg #15043 (the London edition of 1887), compared with the page-indexed OCR of the Internet Archive scan of the Boston edition of 1865 (hOCR search text and page index of item cu31924081205100), from which the page numbers are read.",
+  "method": "Each place was cut from a transcription by the words that open and close it and compared word by word with an independent reading of the printed page; where the two differ beyond OCR noise the page image decides, and each change stands under corrections. Whitespace and line-end hyphenation normalised; emphasis dropped; footnote marks left out; NFC Unicode; paragraph breaks inside a place as \\n\\n. Kant, Kritik der Urtheilskraft: German: the words of each place were taken from the Bonn Kant-Korpus transcription of volume V of the Akademie-Ausgabe (korpora.org, pages fetched one a second) and compared word by word, punctuation included, with a fresh OCR (tesseract 5.3.4, model deu_latf) of the page images of the Internet Archive scan of the 1913 printing; every difference beyond OCR noise was read on the page image, and the page image decides (each change under corrections). The line references are those of the Akademie pages. English: the sentences of each section of Bernard’s translation (Project Gutenberg #48433) were paired with the German sentences by length and every pair was read; each English text is the smallest run of whole sentences that renders the German place. Whitespace and line-end hyphenation normalised; the Fraktur double hyphen written as \"-\"; letter-spaced, bold and italic emphasis dropped; footnote marks left out; NFC Unicode; paragraph breaks inside a place as \\n\\n. Section numbers are not part of the texts. Burke, Inquiry: the words from Project Gutenberg #15043 (the London edition of 1887), compared with the page-indexed OCR of the Internet Archive scan of the Boston edition of 1865 (hOCR search text and page index of item cu31924081205100), from which the page numbers are read. Hogarth, The Analysis of Beauty: the words from Project Gutenberg #51459 (the first edition, 1753), compared with the page-indexed OCR of the Internet Archive scan of the same edition (item analysisofbeauty00hoga), with f and s counted as one letter; the bracketed figure references of the transcription left out.",
   "corrections": [
    {
     "lang": "de",
@@ -45,6 +45,9 @@
     "p. 138 (upper half)",
     "p. 139 (middle)",
     "p. 193 (upper and middle)"
+   ],
+   "william-hogarth.the-analysis-of-beauty": [
+    "p. 18 (head of the page, to fix the leaf numbers)"
    ]
   }
  },
@@ -147,6 +150,47 @@
     {
      "language": "ru",
      "reason": "No Russian text was taken. The Russian translation of E. S. Lagutin (Moscow: Iskusstvo, 1979) is under copyright; an earlier Russian translation was not looked for."
+    }
+   ]
+  },
+  "william-hogarth.the-analysis-of-beauty": {
+   "author": {
+    "ru": "Уильям Хогарт",
+    "en": "William Hogarth"
+   },
+   "title": {
+    "ru": "Анализ красоты",
+    "en": "The Analysis of Beauty"
+   },
+   "original": "en",
+   "witnesses": {
+    "en": {
+     "edition": "William Hogarth, The Analysis of Beauty. Written with a view of fixing the fluctuating Ideas of Taste. London: Printed by J. Reeves for the Author, and sold by him at his house in Leicester-Fields, 1753. First edition. Scan of the Getty Research Institute copy in the Internet Archive.",
+     "year": 1753,
+     "url": "https://archive.org/details/analysisofbeauty00hoga",
+     "sources": [
+      "https://archive.org/details/analysisofbeauty00hoga",
+      "https://www.gutenberg.org/ebooks/51459"
+     ],
+     "licence": "Public domain book; scan in the Internet Archive. Project Gutenberg License for the transcription the words were taken from (public domain in the USA).",
+     "attribution": "William Hogarth, The Analysis of Beauty (London: J. Reeves for the Author, 1753); scan: Internet Archive item analysisofbeauty00hoga (Getty Research Institute); transcription: Project Gutenberg eBook #51459 (produced by Clare Graham and Marc D’Hooghe from images made available by the HathiTrust).",
+     "rights": {
+      "basis": "public-domain",
+      "russia": "Общественное достояние: Хогарт умер в 1764 г. — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: если 50-летний срок истёк до 1 января 1993 г. (автор умер до 1943 г.), произведение в общественном достоянии.",
+      "usa": "Public domain: published 1753 (before 1930).",
+      "eu": "Public domain: Hogarth died 1764.",
+      "reasoning": "Hogarth (1697–1764). The words of each place were taken from Project Gutenberg #51459, a transcription of the first edition, and compared word by word, punctuation included, with the page-indexed OCR of the Internet Archive scan of the same edition; the page numbers are read from the scan. The long s of the print, which the OCR reads as f, was counted as s on both sides, so the comparison does not tell f from s. The two agree at every cited place apart from OCR noise. The transcriber’s bracketed figure references, which stand in the margin of the book, are left out. The spelling and apostrophes of 1753 are kept (chace, intitles, turn’d as the transcription writes them)."
+     },
+     "short": {
+      "ru": "Первое изд., 1753",
+      "en": "First edition, 1753"
+     }
+    }
+   },
+   "absent": [
+    {
+     "language": "ru",
+     "reason": "No Russian text was taken. The Russian translation this reader knows of (P. V. Melkova, Leningrad–Moscow: Iskusstvo, 1958) was not examined for rights and was not used."
     }
    ]
   }
@@ -1841,6 +1885,314 @@
      [
       "en",
       "Works, rev. ed., vol. I (Boston 1865), p. 200"
+     ]
+    ]
+   }
+  },
+  "william-hogarth.the-analysis-of-beauty": {
+   "II p16a": {
+    "label": {
+     "ru": "Гл. II, с. 16",
+     "en": "Ch. II, p. 16"
+    },
+    "texts": {
+     "en": "How great a share variety has in producing beauty may be seen in the ornamental part of nature."
+    },
+    "links": {
+     "en": "https://archive.org/details/analysisofbeauty00hoga/page/n43/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "First edition (London 1753), p. 16"
+     ]
+    ]
+   },
+   "II p16b": {
+    "label": {
+     "ru": "Гл. II, с. 16",
+     "en": "Ch. II, p. 16"
+    },
+    "texts": {
+     "en": "All the senses delight in it, and equally are averse to sameness."
+    },
+    "links": {
+     "en": "https://archive.org/details/analysisofbeauty00hoga/page/n43/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "First edition (London 1753), p. 16"
+     ]
+    ]
+   },
+   "II p16c": {
+    "label": {
+     "ru": "Гл. II, с. 16",
+     "en": "Ch. II, p. 16"
+    },
+    "texts": {
+     "en": "Yet when the eye is glutted with a succession of variety, it finds relief in a certain degree of sameness; and even plain space becomes agreeable, and properly introduced, and contrasted with variety, adds to it more variety."
+    },
+    "links": {
+     "en": "https://archive.org/details/analysisofbeauty00hoga/page/n43/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "First edition (London 1753), p. 16"
+     ]
+    ]
+   },
+   "II p17": {
+    "label": {
+     "ru": "Гл. II, с. 17",
+     "en": "Ch. II, p. 17"
+    },
+    "texts": {
+     "en": "I mean here, and every where indeed, a composed variety; for variety uncomposed, and without design, is confusion and deformity."
+    },
+    "links": {
+     "en": "https://archive.org/details/analysisofbeauty00hoga/page/n44/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "First edition (London 1753), p. 17"
+     ]
+    ]
+   },
+   "III p18-19": {
+    "label": {
+     "ru": "Гл. III, с. 18–19",
+     "en": "Ch. III, p. 18–19"
+    },
+    "texts": {
+     "en": "If the uniformity of figures, parts, or lines were truly the chief cause of beauty, the more exactly uniform their appearances were kept, the more pleasure the eye would receive: but this is so far from being the case, that when the mind has been once satisfied, that the parts answer one another, with so exact an uniformity, as to preserve to the whole the character of fitness to stand, to move, to sink, to swim, to fly, &c. without losing the balance: the eye is rejoiced to see the object turn'd, and shifted, so as to vary these uniform appearances."
+    },
+    "links": {
+     "en": "https://archive.org/details/analysisofbeauty00hoga/page/n45/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "First edition (London 1753), p. 18–19"
+     ]
+    ]
+   },
+   "III p19": {
+    "label": {
+     "ru": "Гл. III, с. 19",
+     "en": "Ch. III, p. 19"
+    },
+    "texts": {
+     "en": "Whence it is clear, the pleasure does not arise from seeing the exact resemblance, which one side bears the other, but from the knowledge that they do so on account of fitness, with design, and for use."
+    },
+    "links": {
+     "en": "https://archive.org/details/analysisofbeauty00hoga/page/n46/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "First edition (London 1753), p. 19"
+     ]
+    ]
+   },
+   "III p19-20": {
+    "label": {
+     "ru": "Гл. III, с. 19–20",
+     "en": "Ch. III, p. 19–20"
+    },
+    "texts": {
+     "en": "It is a constant rule in composition in painting to avoid regularity. When we view a building, or any other object in life, we have it in our power, by shifting the ground, to take that view of it which pleases us best; and in consequence of this, the painter if he is left to his choice, takes it on the angle rather than in front, as most agreeable to the eye; because the regularity of the lines is taken away by their running into perspective, without losing the idea of fitness: and when he is of necessity obliged to give the front of a building, with all its equalities and parallelisms, he generally breaks (as it is term'd) such disagreeable appearances, by throwing a tree before it, or the shadow of an imaginary cloud, or some other object that may answer the same purpose of adding variety, which is the same with taking away uniformity."
+    },
+    "links": {
+     "en": "https://archive.org/details/analysisofbeauty00hoga/page/n46/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "First edition (London 1753), p. 19–20"
+     ]
+    ]
+   },
+   "III p20": {
+    "label": {
+     "ru": "Гл. III, с. 20",
+     "en": "Ch. III, p. 20"
+    },
+    "texts": {
+     "en": "Thus you see regularity, uniformity, or symmetry, please only as they serve to give the idea of fitness."
+    },
+    "links": {
+     "en": "https://archive.org/details/analysisofbeauty00hoga/page/n47/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "First edition (London 1753), p. 20"
+     ]
+    ]
+   },
+   "IV p21": {
+    "label": {
+     "ru": "Гл. IV, с. 21",
+     "en": "Ch. IV, p. 21"
+    },
+    "texts": {
+     "en": "Simplicity, without variety, is wholly insipid, and at best does only not displease; but when variety is join'd to it, then it pleases, because it enhances the pleasure of variety, by giving the eye the power of enjoying it with ease."
+    },
+    "links": {
+     "en": "https://archive.org/details/analysisofbeauty00hoga/page/n48/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "First edition (London 1753), p. 21"
+     ]
+    ]
+   },
+   "IV p23": {
+    "label": {
+     "ru": "Гл. IV, с. 23",
+     "en": "Ch. IV, p. 23"
+    },
+    "texts": {
+     "en": "Thus we see simplicity gives beauty even to variety, as it makes it more easily understood, and should be ever studied in the works of art, as it serves to prevent perplexity in forms of elegance; as will be shewn in the next chapter."
+    },
+    "links": {
+     "en": "https://archive.org/details/analysisofbeauty00hoga/page/n50/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "First edition (London 1753), p. 23"
+     ]
+    ]
+   },
+   "V p24": {
+    "label": {
+     "ru": "Гл. V, с. 24",
+     "en": "Ch. V, p. 24"
+    },
+    "texts": {
+     "en": "The active mind is ever bent to be employ'd. Pursuing is the business of our lives; and even abstracted from any other view, gives pleasure."
+    },
+    "links": {
+     "en": "https://archive.org/details/analysisofbeauty00hoga/page/n51/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "First edition (London 1753), p. 24"
+     ]
+    ]
+   },
+   "V p25": {
+    "label": {
+     "ru": "Гл. V, с. 25",
+     "en": "Ch. V, p. 25"
+    },
+    "texts": {
+     "en": "Intricacy in form, therefore, I shall define to be that peculiarity in the lines, which compose it, that leads the eye a wanton kind of chace, and from the pleasure that gives the mind, intitles it to the name of beautiful: and it may be justly said, that the cause of the idea of grace more immediately resides in this principle, than in the other five, except variety; which indeed includes this, and all the others."
+    },
+    "links": {
+     "en": "https://archive.org/details/analysisofbeauty00hoga/page/n52/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "First edition (London 1753), p. 25"
+     ]
+    ]
+   },
+   "V p28-29": {
+    "label": {
+     "ru": "Гл. V, с. 28–29",
+     "en": "Ch. V, p. 28–29"
+    },
+    "texts": {
+     "en": "And yet to shew how excess ought to be avoided in intricacy, as well as in every other principle, the very same head of hair, wisp'd, and matted together, would make the most disagreeable figure; because the eye would be perplex'd, and at a fault, and unable to trace such a confused number of uncomposed and entangled lines; and yet notwithstanding this, the present fashion the ladies have gone into, of wearing a part of the hair of their heads braided together from behind, like intertwisted serpents, arising thickest from the bottom, lessening as it is brought forward, and naturally conforming to the shape of the rest of the hair it is pin'd over, is extremely picturesque."
+    },
+    "links": {
+     "en": "https://archive.org/details/analysisofbeauty00hoga/page/n55/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "First edition (London 1753), p. 28–29"
+     ]
+    ]
+   },
+   "VI p29": {
+    "label": {
+     "ru": "Гл. VI, с. 29",
+     "en": "Ch. VI, p. 29"
+    },
+    "texts": {
+     "en": "Forms of magnitude, although ill-shaped, will however, on account of their vastness, draw our attention and raise our admiration.\n\nHuge shapeless rocks have a pleasing kind of horror in them, and the wide ocean awes us with its vast contents; but when forms of beauty are presented to the eye in large quantities, the pleasure increases on the mind, and horror is soften'd into reverence."
+    },
+    "links": {
+     "en": "https://archive.org/details/analysisofbeauty00hoga/page/n56/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "First edition (London 1753), p. 29"
+     ]
+    ]
+   },
+   "VI p30": {
+    "label": {
+     "ru": "Гл. VI, с. 30",
+     "en": "Ch. VI, p. 30"
+    },
+    "texts": {
+     "en": "In a word, it is quantity which adds greatness to grace. But then excess is to be avoided, or quantity will become clumsy, heavy, or ridiculous."
+    },
+    "links": {
+     "en": "https://archive.org/details/analysisofbeauty00hoga/page/n57/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "First edition (London 1753), p. 30"
+     ]
+    ]
+   },
+   "VII p38a": {
+    "label": {
+     "ru": "Гл. VII, с. 38",
+     "en": "Ch. VII, p. 38"
+    },
+    "texts": {
+     "en": "Thirdly, those composed of all the former together with an addition of the waving line, which is a line more productive of beauty than any of the former, as in flowers, and other forms of the ornamental kind: for which reason we shall call it the line of beauty."
+    },
+    "links": {
+     "en": "https://archive.org/details/analysisofbeauty00hoga/page/n65/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "First edition (London 1753), p. 38"
+     ]
+    ]
+   },
+   "VII p38b": {
+    "label": {
+     "ru": "Гл. VII, с. 38",
+     "en": "Ch. VII, p. 38"
+    },
+    "texts": {
+     "en": "Fourthly, those composed of all the former together with the serpentine line, as the human form, which line hath the power of super-adding grace to beauty. Note, forms of most grace have least of the straight line in them."
+    },
+    "links": {
+     "en": "https://archive.org/details/analysisofbeauty00hoga/page/n65/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "First edition (London 1753), p. 38"
      ]
     ]
    }

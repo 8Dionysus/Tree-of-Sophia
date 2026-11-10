@@ -128,8 +128,9 @@ work is the *Kritik der Urtheilskraft*: its places are read in volume V of the
 Akademie edition and compared with the page images of the scan, with
 Bernard's English of 1914 beside them. Burke's *Inquiry* follows in its
 English: the words of the transcription the registers read, compared with the
-scan of the Boston edition of 1865, whose pages the places name. The module
-holds a place only as the formula of a conception.
+scan of the Boston edition of 1865, whose pages the places name. Hogarth's
+*Analysis of Beauty* is read the same way against a scan of its first edition
+of 1753. The module holds a place only as the formula of a conception.
 
 A reader's pass over places: read the registers' readings of a place in
 `layer/readings.json`, open the place in the work, decide what the place
