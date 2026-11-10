@@ -131,8 +131,9 @@ python3 bonsai/review/aesthetics/check_layer.py
 
 The folder holds the four `Estetika_*_Reestr.xlsx` workbooks and `media/` with
 the four `m_*.xlsx`. The tool stops on a sheet it does not know and on an
-author or a work it cannot name. The check reads the layer against the
-register rows: every row is in the layer once and every reference resolves.
+author or a work it cannot name. The check compares the readings, links,
+sources, concepts, authors and works with the register rows, and checks the
+references it traverses in those records and in the keys index.
 
 ## What the layer does not claim
 
