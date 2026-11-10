@@ -303,7 +303,9 @@ under `grew_from` the research records it grew from.
 `aesthetics/library.json` names the works and authors the conceptions cite. A
 citation names a work by its library ID (`plato.symposium`); the graft map says
 which Tree work that is, and the corpus alignment is made from the cited units
-as for the other stands.
+as for the other stands. A work the public corpus does not hold is cited by
+places of `aesthetics/fragments.json` (`{w, loc}`), each place the formula of
+a conception in the original with the translations beside it.
 
 The modules are written by
 [`review/aesthetics/plant.mjs`](review/aesthetics/plant.mjs) from the research

@@ -3,13 +3,15 @@ import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {describe,expect,it} from 'vitest';
 import {ADMITTED,FIELD_SCHEMA,fieldCites,fieldIssues,fieldSubjects,libraryIssues,readField} from '../../../../bonsai/lib/field.mjs';
+import {externalPlacesIssues} from '../../../../bonsai/lib/fragments.mjs';
 import {checkBonsai,corpusOnDisk,loadBonsai,termPlaceReader} from '../../../../bonsai/lib/graft.mjs';
 import {semanticRegistry} from '../../../../bonsai/lib/objects.mjs';
 import {corpusReader} from '../../../../bonsai/lib/corpus-align.mjs';
 import {formulaSpan} from '../../../../bonsai/review/aesthetics/formula-span.mjs';
 
 const root=new URL('../../../../',import.meta.url).pathname;
-const {modules}=loadBonsai(root,'aesthetics'),{field,library,identities,alignment}=modules;
+const {modules}=loadBonsai(root,'aesthetics'),{field,library,identities,alignment,fragments}=modules;
+const KANT='immanuel-kant.kritik-der-urteilskraft';
 const registry=semanticRegistry(root),works=new Set(Object.keys(identities.works));
 const issues=module=>fieldIssues(module,{registry,library,works});
 const changed=change=>{const copy=structuredClone(field);change(copy);return issues(copy);};
@@ -62,6 +64,7 @@ describe('the Aesthetics field',()=>{
     expect(changed(copy=>{copy.links[0].to='nowhere';})).toContain('link eros:leads-up-to:the-beautiful-itself: unknown end nowhere');
     expect(changed(copy=>{delete copy.links[0].verb.ru;})).toContain('link eros:leads-up-to:the-beautiful-itself: no verb in both languages');
     expect(changed(copy=>{copy.links[0].relation='tos.relation.conception-of';})).toContain('link eros:leads-up-to:the-beautiful-itself: tos.entity.concept is outside the domain of tos.relation.conception-of');
+    expect(changed(copy=>{copy.conceptions[0].reading.verdict='undecided';copy.conceptions[0].admission='held';})).toContain('link the-ascent:ends-in:the-beautiful-itself: is on the map while none of its grounds is');
   });
   it('refuses an area without a question and a concept outside every area',()=>{
     expect(changed(copy=>{delete copy.areas[0].question;})).toContain('area area-beautiful: no question in both languages');
@@ -76,10 +79,46 @@ describe('the Aesthetics field',()=>{
     const subjects=fieldSubjects(field,library);
     for(const id of ['area-beautiful','the-beautiful','plato.symposium:ascent','plato','plato.symposium'])expect(subjects.has(id),id).toBe(true);
   });
+  it('cites a work the corpus does not hold by places with sentence-like outer punctuation',()=>{
+    expect(externalPlacesIssues(fragments)).toEqual([]);
+    const read=termPlaceReader(root,alignment,fragments,{corpus:'absent'}),cites=fieldCites(field).filter(({cite})=>cite.loc);
+    expect(cites.length).toBeGreaterThan(40);
+    for(const {conception,cite} of cites){
+      const place=read(cite,fragments.works[cite.w].original);
+      expect(place.error,`${conception} ${cite.loc}`).toBeUndefined();
+      const texts=fragments.places[cite.w][cite.loc].texts;
+      expect(texts[fragments.works[cite.w].original],cite.loc).toMatch(/^\p{Lu}[^]*[.!?]$/u);
+      for(const text of Object.values(texts))expect(text,cite.loc).toMatch(/^\p{Lu}/u);
+    }
+    // Every place the module holds is the formula of a conception: the bonsai keeps no text it does not cite.
+    for(const work of Object.keys(fragments.places))expect(new Set(cites.filter(({cite})=>cite.w===work).map(({cite})=>cite.loc)),work).toEqual(new Set(Object.keys(fragments.places[work])));
+    expect(Object.keys(fragments.places)).toEqual([KANT,'edmund-burke.a-philosophical-enquiry-into-the-origin-of-our']);
+    const broken=structuredClone(field),kant=broken.conceptions.find(conception=>conception.work===KANT);
+    kant.formula.cite[0].loc='§1 no such lines';
+    expect(checkBonsai(root,'aesthetics',{overrides:{field:broken}}).problems).toContain(`field: conception ${kant.id}: no place ${KANT} §1 no such lines among the places of other works`);
+  });
+  it('keeps the words of the printed page where a transcription differs from it',()=>{
+    expect(fragments.provenance.corrections.map(correction=>correction.to)).toEqual(['unterliegen müßte. Auf solche Weise','Angenehm heißt Jemandem das','smoothness; a quality so essential']);
+    for(const {from,to,lang,place} of fragments.provenance.corrections){
+      const work=Object.keys(fragments.places).find(id=>place.startsWith(`${id} `)),text=fragments.places[work][place.slice(work.length+1)].texts[lang];
+      expect(text,place).toContain(to);expect(text,place).not.toContain(from);
+    }
+    for(const work of Object.values(fragments.works))for(const witness of Object.values(work.witnesses))expect(witness.rights.basis).toBe('public-domain');
+  });
+  it('holds back what its own reader made until another reader has read the place',()=>{
+    const read=readField(field),division=field.conceptions.find(conception=>conception.id===`${KANT}:division-of-the-sublime`);
+    expect([division.reading.verdict,division.admission]).toEqual(['undecided','held']);
+    expect(read.conceptionsOf('the-sublime').map(conception=>conception.id)).not.toContain(division.id);
+    expect(read.conceptionsOf('the-sublime').map(conception=>conception.id)).toContain(`${KANT}:absolutely-great`);
+    expect(read.linksOf('the-mathematically-sublime').map(link=>link.id)).toEqual(['the-mathematically-sublime:is-absolute:greatness']);
+    const held=field.links.filter(link=>link.admission==='held');
+    expect(held.map(link=>link.id)).toEqual(['the-sublime:divides-into:the-mathematically-sublime','the-sublime:divides-into:the-dynamically-sublime','terror:is-the-ruling-principle-of:the-sublime']);
+    expect(new Set(held.map(link=>link.reading.verdict))).toEqual(new Set(['undecided']));
+  });
   it.skipIf(!corpusFetched)('cites formulas that run over whole sentences of the original',()=>{
     const read=termPlaceReader(root,alignment,null,{corpus:'present'});
     const readCorpus=corpusReader(join(root,'access/web/public/public-corpus'));
-    for(const {conception,cite} of fieldCites(field)){
+    for(const {conception,cite} of fieldCites(field).filter(({cite})=>cite.u)){
       const work=alignment.works[cite.w],place=read(cite,work.original.language);
       expect(place.error,conception).toBeUndefined();
       expect(place.text.trim(),conception).toMatch(/[.;]$/u);

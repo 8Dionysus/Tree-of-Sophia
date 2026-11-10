@@ -43,6 +43,20 @@
    "date": "2026-11-09",
    "reads": "The Greek of each place in the public corpus, beside the registers' readings of that place. A register's reasoning is no ground: the place is.",
    "record": "bonsai/review/aesthetics/readings/2026-11-09-corpus.json"
+  },
+  {
+   "id": "claude-2026-11-09-kant",
+   "model": "claude-fable-5-2",
+   "date": "2026-11-09",
+   "reads": "The German of each place in volume V of the Akademie edition, beside the registers’ readings of that place, which were made from Bernard’s English. A register’s reasoning is no ground: the place is.",
+   "record": "bonsai/review/aesthetics/readings/2026-11-09-kant.json"
+  },
+  {
+   "id": "claude-2026-11-10-burke",
+   "model": "claude-fable-5-2",
+   "date": "2026-11-10",
+   "reads": "The English of each place on the pages of the Boston edition of 1865, beside the registers’ readings of that place. A register’s reasoning is no ground: the place is.",
+   "record": "bonsai/review/aesthetics/readings/2026-11-10-burke.json"
   }
  ],
  "groups": [
@@ -8322,6 +8336,1573 @@
     "A:E009",
     "C:A-I004"
    ]
+  },
+  {
+   "id": "immanuel-kant.kritik-der-urteilskraft:aesthetic-judgment",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-judgment-of-taste",
+    "the-aesthetic",
+    "the-beautiful"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-taste-and-judgment",
+    "area-art-and-the-boundaries-of-the-aesthetic"
+   ],
+   "work": "immanuel-kant.kritik-der-urteilskraft",
+   "agents": [
+    "immanuel-kant"
+   ],
+   "locus": "§ 1",
+   "formula": {
+    "cite": [
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§1 203.09-15"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Суждение вкуса эстетическое: решая, прекрасно ли нечто, мы относим представление через воображение к субъекту и к его чувству удовольствия или неудовольствия; определяющее основание такого суждения субъективно.",
+    "en": "The judgment of taste is aesthetic: deciding whether something is beautiful, we refer the representation through the imagination to the subject and to its feeling of pleasure or displeasure; the determining ground of such a judgment is subjective."
+   },
+   "distinction": {
+    "ru": "Эстетическим Кант называет суждение, определяющее основание которого — чувство субъекта.",
+    "en": "Kant calls aesthetic a judgment whose determining ground is the subject’s feeling."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "D:B-I113"
+   ]
+  },
+  {
+   "id": "immanuel-kant.kritik-der-urteilskraft:without-interest",
+   "type": "tos.entity.conception",
+   "of": [
+    "disinterestedness",
+    "the-judgment-of-taste",
+    "the-beautiful"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-taste-and-judgment"
+   ],
+   "work": "immanuel-kant.kritik-der-urteilskraft",
+   "agents": [
+    "immanuel-kant"
+   ],
+   "locus": "§§ 2, 5",
+   "formula": {
+    "cite": [
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§2 204.20-21"
+     },
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§2 204.22-23"
+     },
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§2 205.07-09"
+     },
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§5 211.02-04"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Интерес — благорасположение, связанное с представлением о существовании предмета. Благорасположение, которое определяет суждение вкуса, свободно от всякого интереса: довольно одного представления предмета. Предмет такого благорасположения называется прекрасным.",
+    "en": "Interest is the satisfaction bound to the representation of an object’s existence. The satisfaction that determines the judgment of taste is free of all interest: the mere representation of the object suffices. The object of such a satisfaction is called beautiful."
+   },
+   "distinction": {
+    "ru": "Безразличие касается существования предмета; представление предмета сопровождается благорасположением.",
+    "en": "The indifference concerns the object’s existence; the representation of the object is accompanied by satisfaction."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "revise",
+    "note": "The thesis stands at the place. Register B sets its readings also under «эстетическое восприятие» (A-I001) and «Эстетическая ценность» (C-I012); the place speaks of the satisfaction that determines the judgment of taste, and the conception stands under disinterestedness and that judgment."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E018",
+    "B:C-I012",
+    "B:A-I001"
+   ]
+  },
+  {
+   "id": "immanuel-kant.kritik-der-urteilskraft:agreeable-beautiful-good",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-beautiful",
+    "disinterestedness",
+    "the-judgment-of-taste",
+    "pleasure",
+    "delight"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-experience-and-affect",
+    "area-taste-and-judgment"
+   ],
+   "work": "immanuel-kant.kritik-der-urteilskraft",
+   "agents": [
+    "immanuel-kant"
+   ],
+   "locus": "§ 5",
+   "formula": {
+    "cite": [
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§5 209.29-210.06"
+     },
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§5 210.11-17"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Приятное, прекрасное и доброе — три разных отношения представлений к чувству удовольствия и неудовольствия: приятное доставляет наслаждение, прекрасное просто нравится, доброе ценят и одобряют. Им отвечают склонность, благосклонность и уважение; благосклонность — единственное свободное благорасположение.",
+    "en": "The agreeable, the beautiful and the good are three different relations of representations to the feeling of pleasure and displeasure: the agreeable gratifies, the beautiful simply pleases, the good is esteemed and approved. To them answer inclination, favour and respect; favour is the only free satisfaction."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "confirmed",
+    "note": "Register B (C-I006) reads §§1–7 under «Предпочтение»; the taste of sense has its sentence in §7 and its own conception there."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E018",
+    "B:B-I030",
+    "B:C-I006"
+   ]
+  },
+  {
+   "id": "immanuel-kant.kritik-der-urteilskraft:subjective-universality",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-beautiful",
+    "the-judgment-of-taste",
+    "universal-validity"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-taste-and-judgment"
+   ],
+   "work": "immanuel-kant.kritik-der-urteilskraft",
+   "agents": [
+    "immanuel-kant"
+   ],
+   "locus": "§§ 6, 9",
+   "formula": {
+    "cite": [
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§6 211.08-09"
+     },
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§6 212.01-05"
+     },
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§9 219.25"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Прекрасное представляется без понятий как предмет всеобщего благорасположения. С суждением вкуса связано притязание на значимость для каждого — субъективная всеобщность. Прекрасно то, что нравится всем без понятия.",
+    "en": "The beautiful is represented without concepts as the object of a universal satisfaction. The judgment of taste carries a claim to validity for everyone: a subjective universality. Beautiful is what pleases universally without a concept."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "confirmed",
+    "note": "Register A reads §§6–9 together with §§20–22; the common sense has its own conceptions at §20 and §22."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E019",
+    "B:C-I013"
+   ]
+  },
+  {
+   "id": "immanuel-kant.kritik-der-urteilskraft:taste-of-sense-and-beauty",
+   "type": "tos.entity.conception",
+   "of": [
+    "preference",
+    "the-judgment-of-taste",
+    "the-beautiful",
+    "universal-validity",
+    "objectivity-of-value"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-taste-and-judgment"
+   ],
+   "work": "immanuel-kant.kritik-der-urteilskraft",
+   "agents": [
+    "immanuel-kant"
+   ],
+   "locus": "§ 7",
+   "formula": {
+    "cite": [
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§7 212.19-23"
+     },
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§7 212.30-34"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "О приятном действует положение: у каждого свой вкус чувств. Кто объявляет нечто прекрасным, ждёт того же благорасположения от других: он судит за каждого и говорит о красоте так, как если бы она была свойством вещей.",
+    "en": "For the agreeable the principle holds: everyone has his own taste of sense. He who declares something beautiful expects the same satisfaction of others: he judges for everyone and speaks of beauty as if it were a property of things."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "confirmed",
+    "note": "Register B (C-I006) words its reading by inclination and disinterested pleasure; those words stand in §5 and in the conception of the three satisfactions."
+   },
+   "admission": "map",
+   "grew_from": [
+    "B:C-I006",
+    "B:C-I013"
+   ]
+  },
+  {
+   "id": "immanuel-kant.kritik-der-urteilskraft:universal-voice",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-judgment-of-taste",
+    "universal-validity",
+    "the-beautiful"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-taste-and-judgment"
+   ],
+   "work": "immanuel-kant.kritik-der-urteilskraft",
+   "agents": [
+    "immanuel-kant"
+   ],
+   "locus": "§ 8",
+   "formula": {
+    "cite": [
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§8 216.09-18"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Суждение вкуса постулирует только всеобщий голос о благорасположении без посредства понятий: возможность эстетического суждения, значимого для каждого. Согласие оно вменяет каждому как случай правила и подтверждения ждёт от присоединения других. Всеобщий голос — идея.",
+    "en": "The judgment of taste postulates only a universal voice about the satisfaction without the mediation of concepts: the possibility of an aesthetic judgment valid for everyone. It imputes agreement to everyone as a case of the rule and awaits confirmation from the assent of others. The universal voice is an idea."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E019",
+    "B:C-I013"
+   ]
+  },
+  {
+   "id": "immanuel-kant.kritik-der-urteilskraft:free-play",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-free-play-of-the-faculties",
+    "harmony",
+    "the-beautiful"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "work": "immanuel-kant.kritik-der-urteilskraft",
+   "agents": [
+    "immanuel-kant"
+   ],
+   "locus": "§ 9",
+   "formula": {
+    "cite": [
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§9 217.21-29"
+     },
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§9 218.08-14"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Познавательные силы, которые данное представление приводит в игру, — воображение и рассудок — находятся в свободной игре, потому что никакое определённое понятие не ограничивает их особым правилом познания. Эстетическая оценка предмета предшествует удовольствию от него и служит его основанием: это удовольствие от гармонии познавательных способностей.",
+    "en": "The cognitive powers set in play by the given representation, imagination and understanding, are in a free play, because no determinate concept restricts them to a particular rule of cognition. The aesthetic judging of the object precedes the pleasure in it and is its ground: a pleasure in the harmony of the cognitive faculties."
+   },
+   "distinction": {
+    "ru": "Гармония здесь — согласие познавательных способностей субъекта.",
+    "en": "Harmony here is the accord of the subject’s cognitive faculties."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "revise",
+    "note": "The thesis stands at the place. Register B (A-I049) reads §§5–9 under «эстетическое восприятие» and «внимание» and words it by purposiveness without a definite purpose, which is the language of §§10–11; register D (A-035-I19) sets §9 under «эстетическая свобода». The place speaks of the free play of the cognitive powers and of the harmony of the faculties, and the conception stands under these."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E020",
+    "B:A-I049",
+    "D:A-035-I19"
+   ]
+  },
+  {
+   "id": "immanuel-kant.kritik-der-urteilskraft:independent-of-perfection",
+   "type": "tos.entity.conception",
+   "of": [
+    "perfection",
+    "the-judgment-of-taste",
+    "the-beautiful"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "work": "immanuel-kant.kritik-der-urteilskraft",
+   "agents": [
+    "immanuel-kant"
+   ],
+   "locus": "§ 15",
+   "formula": {
+    "cite": [
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§15 226.22-23"
+     },
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§15 227.14-20"
+     },
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§15 228.06-08"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Совершенство вещи — согласие многообразного в ней с понятием того, чем она должна быть. Суждение вкуса — эстетическое суждение на субъективных основаниях, и от понятия совершенства оно всецело независимо.",
+    "en": "The perfection of a thing is the agreement of its manifold with the concept of what the thing is to be. The judgment of taste is an aesthetic judgment resting on subjective grounds, and it is wholly independent of the concept of perfection."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E021"
+   ]
+  },
+  {
+   "id": "immanuel-kant.kritik-der-urteilskraft:free-and-adherent-beauty",
+   "type": "tos.entity.conception",
+   "of": [
+    "free-beauty",
+    "adherent-beauty",
+    "perfection",
+    "the-beautiful"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-taste-and-judgment"
+   ],
+   "work": "immanuel-kant.kritik-der-urteilskraft",
+   "agents": [
+    "immanuel-kant"
+   ],
+   "locus": "§ 16",
+   "formula": {
+    "cite": [
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§16 229.10-14"
+     },
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§16 229.33-34"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Есть два вида красоты. Свободная красота обходится без понятия о том, чем предмет должен быть, и в суждении о ней суждение вкуса чисто. Привходящая красота предполагает такое понятие и совершенство предмета по нему.",
+    "en": "There are two kinds of beauty. Free beauty presupposes no concept of what the object is to be, and in judging it the judgment of taste is pure. Adherent beauty presupposes such a concept and the perfection of the object according to it."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "revise",
+    "note": "The thesis stands at the place. Register B (C-I010) sets the reading under «Оценка» and «Эстетическая ценность»; the place names the two kinds of beauty, the concept of what the object is to be, and perfection."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E022",
+    "B:C-I010"
+   ]
+  },
+  {
+   "id": "immanuel-kant.kritik-der-urteilskraft:ideal-of-beauty",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-ideal-of-beauty",
+    "the-aesthetic-normal-idea",
+    "the-beautiful"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "work": "immanuel-kant.kritik-der-urteilskraft",
+   "agents": [
+    "immanuel-kant"
+   ],
+   "locus": "§ 17",
+   "formula": {
+    "cite": [
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§17 233.19-25"
+     },
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§17 235.12-17"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Идеал красоты требует двух вещей: эстетической нормальной идеи — единичного созерцания, дающего мерило оценки человека как существа особого животного вида, — и идеи разума, которая делает цели человечества принципом оценки его облика. Идеал отличён от нормальной идеи: его ждут только от человеческого облика, и состоит он в выражении нравственного.",
+    "en": "The ideal of beauty requires two things: the aesthetic normal idea, a single intuition that presents the standard for judging man as a thing of a particular animal species, and the idea of reason, which makes the ends of humanity the principle for judging his figure. The ideal is distinguished from the normal idea: it is expected of the human figure alone and consists in the expression of the moral."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E023"
+   ]
+  },
+  {
+   "id": "immanuel-kant.kritik-der-urteilskraft:common-sense",
+   "type": "tos.entity.conception",
+   "of": [
+    "sensus-communis",
+    "the-judgment-of-taste",
+    "the-free-play-of-the-faculties",
+    "the-beautiful"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-taste-and-judgment"
+   ],
+   "work": "immanuel-kant.kritik-der-urteilskraft",
+   "agents": [
+    "immanuel-kant"
+   ],
+   "locus": "§ 20",
+   "formula": {
+    "cite": [
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§20 237.32-33"
+     },
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§20 238.12-16"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Условие необходимости, на которую притязает суждение вкуса, — идея общего чувства. Общее чувство — действие свободной игры наших познавательных сил; только при предположении такого чувства суждение вкуса может быть вынесено.",
+    "en": "The condition of the necessity that a judgment of taste lays claim to is the idea of a common sense. The common sense is the effect of the free play of our cognitive powers; only under the presupposition of such a sense can the judgment of taste be made."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E019"
+   ]
+  },
+  {
+   "id": "immanuel-kant.kritik-der-urteilskraft:necessity-and-norm",
+   "type": "tos.entity.conception",
+   "of": [
+    "sensus-communis",
+    "norm",
+    "universal-validity",
+    "the-judgment-of-taste",
+    "the-beautiful"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-taste-and-judgment"
+   ],
+   "work": "immanuel-kant.kritik-der-urteilskraft",
+   "agents": [
+    "immanuel-kant"
+   ],
+   "locus": "§ 22",
+   "formula": {
+    "cite": [
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§22 239.16-19"
+     },
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§22 239.34-35"
+     },
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§22 240.18-19"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Объявляя нечто прекрасным, мы ждём согласия от каждого и основываем суждение на чувстве, которое полагаем общим. Неопределённую норму общего чувства мы действительно предполагаем. Прекрасно то, что без понятия познаётся как предмет необходимого благорасположения.",
+    "en": "Declaring something beautiful, we expect everyone’s agreement and ground the judgment on a feeling we take to be common. We do in fact presuppose the indeterminate norm of a common sense. Beautiful is what is cognised without a concept as the object of a necessary satisfaction."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E019",
+    "B:C-I014"
+   ]
+  },
+  {
+   "id": "immanuel-kant.kritik-der-urteilskraft:beautiful-and-sublime",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-sublime",
+    "the-beautiful",
+    "formlessness",
+    "unboundedness"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-sublime",
+    "area-ugly"
+   ],
+   "work": "immanuel-kant.kritik-der-urteilskraft",
+   "agents": [
+    "immanuel-kant"
+   ],
+   "locus": "§ 23",
+   "formula": {
+    "cite": [
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§23 244.08-09"
+     },
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§23 244.23-29"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Прекрасное и возвышенное сходятся в том, что нравятся сами по себе. Прекрасное в природе касается формы предмета, состоящей в ограничении; возвышенное находится и в бесформенном предмете, когда в нём или по его поводу представляется безграничность и к ней примысливается целокупность.",
+    "en": "The beautiful and the sublime agree in pleasing for their own sake. The beautiful in nature concerns the form of the object, which consists in limitation; the sublime is found also in a formless object, when unboundedness is represented in it or by occasion of it and totality is thought with it."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E046"
+   ]
+  },
+  {
+   "id": "immanuel-kant.kritik-der-urteilskraft:sublimity-in-the-mind",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-sublime",
+    "the-limit-of-presentation"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "work": "immanuel-kant.kritik-der-urteilskraft",
+   "agents": [
+    "immanuel-kant"
+   ],
+   "locus": "§§ 23, 25",
+   "formula": {
+    "cite": [
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§23 245.29-35"
+     },
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§25 250.30-32"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Предмет пригоден для изображения возвышенности, которая находится в душе. Подлинно возвышенное касается идей разума: соразмерное им изображение невозможно, и сама эта несоразмерность, изобразимая чувственно, пробуждает их и вызывает в душе. Возвышенным называется настроение духа, вызванное представлением, которое занимает рефлектирующую способность суждения.",
+    "en": "The object is fit for the presentation of a sublimity found in the mind. The sublime proper concerns ideas of reason: no presentation adequate to them is possible, and this very inadequacy, which can be presented sensibly, rouses them and calls them into the mind. What is called sublime is the disposition of the spirit brought about by a representation that occupies the reflecting judgment."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E046",
+    "A:E047"
+   ]
+  },
+  {
+   "id": "immanuel-kant.kritik-der-urteilskraft:division-of-the-sublime",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-sublime",
+    "the-mathematically-sublime",
+    "the-dynamically-sublime"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "work": "immanuel-kant.kritik-der-urteilskraft",
+   "agents": [
+    "immanuel-kant"
+   ],
+   "locus": "§ 24",
+   "formula": {
+    "cite": [
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§24 247.20-22"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Анализ возвышенного требует деления на математически возвышенное и динамически возвышенное; анализ прекрасного обходится без такого деления.",
+    "en": "The analysis of the sublime needs a division into the mathematically and the dynamically sublime; the analysis of the beautiful does without it."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "undecided",
+    "note": "Made by this reader: no register cites §24. The registers read the two kinds apart (§§25–26 and §28), and this sentence states their division. It waits for an independent reading."
+   },
+   "admission": "held",
+   "grew_from": [
+    "A:E047",
+    "A:E050"
+   ]
+  },
+  {
+   "id": "immanuel-kant.kritik-der-urteilskraft:absolutely-great",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-mathematically-sublime",
+    "greatness",
+    "the-sublime"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "work": "immanuel-kant.kritik-der-urteilskraft",
+   "agents": [
+    "immanuel-kant"
+   ],
+   "locus": "§ 25",
+   "formula": {
+    "cite": [
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§25 248.05"
+     },
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§25 250.12-13"
+     },
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§25 250.33-36"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Возвышенным мы называем то, что безусловно велико: в сравнении с ним всё остальное мало. Возвышенно то, одна возможность мыслить которое доказывает способность души, превосходящую всякий масштаб чувств.",
+    "en": "We call sublime what is absolutely great: in comparison with it everything else is small. Sublime is that, the mere ability to think which proves a faculty of the mind surpassing every standard of sense."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E047"
+   ]
+  },
+  {
+   "id": "immanuel-kant.kritik-der-urteilskraft:apprehension-and-comprehension",
+   "type": "tos.entity.conception",
+   "of": [
+    "apprehension",
+    "aesthetic-comprehension",
+    "the-limit-of-presentation",
+    "the-sublime"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "work": "immanuel-kant.kritik-der-urteilskraft",
+   "agents": [
+    "immanuel-kant"
+   ],
+   "locus": "§ 26",
+   "formula": {
+    "cite": [
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§26 251.32-252.03"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Чтобы наглядно принять величину в воображение как меру, нужны два действия этой способности: схватывание и объединение. Схватывание может идти до бесконечности; объединение становится тем труднее, чем дальше продвигается схватывание, и скоро достигает своего максимума — эстетически наибольшей основной меры оценки величины.",
+    "en": "To take a quantum intuitively into the imagination as a measure, two acts of this faculty are needed: apprehension and comprehension. Apprehension can go on to infinity; comprehension grows harder the further apprehension advances and soon reaches its maximum, the aesthetically greatest basic measure for the estimation of magnitude."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E048"
+   ]
+  },
+  {
+   "id": "immanuel-kant.kritik-der-urteilskraft:the-infinite-as-a-whole",
+   "type": "tos.entity.conception",
+   "of": [
+    "unboundedness",
+    "the-mathematically-sublime",
+    "the-sublime"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "work": "immanuel-kant.kritik-der-urteilskraft",
+   "agents": [
+    "immanuel-kant"
+   ],
+   "locus": "§ 26",
+   "formula": {
+    "cite": [
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§26 254.28-32"
+     },
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§26 255.14-15"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Бесконечное безусловно велико, и в сравнении с ним всё остальное мало. Способность хотя бы мыслить его как целое указывает на способность души, превосходящую всякий масштаб чувств. Природа возвышенна в тех своих явлениях, созерцание которых несёт с собой идею её бесконечности.",
+    "en": "The infinite is absolutely great, and compared with it everything else is small. To be able even to think it as a whole indicates a faculty of the mind that surpasses every standard of sense. Nature is sublime in those of its appearances whose intuition carries with it the idea of its infinity."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E047"
+   ]
+  },
+  {
+   "id": "immanuel-kant.kritik-der-urteilskraft:displeasure-and-pleasure",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-sublime",
+    "the-limit-of-presentation",
+    "awe"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "work": "immanuel-kant.kritik-der-urteilskraft",
+   "agents": [
+    "immanuel-kant"
+   ],
+   "locus": "§ 27",
+   "formula": {
+    "cite": [
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§27 257.09-10"
+     },
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§27 257.27-32"
+     },
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§27 258.10-14"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Чувство несоразмерности нашей способности идее, которая для нас закон, есть уважение. Чувство возвышенного — неудовольствие от несоразмерности воображения оценке величины разумом и вместе с ним удовольствие от согласия этого суждения с идеями разума. Душа при этом взволнована: её движение подобно потрясению — быстрой смене отталкивания и притяжения одним и тем же предметом.",
+    "en": "The feeling of the inadequacy of our faculty to an idea that is a law for us is respect. The feeling of the sublime is a displeasure from the inadequacy of the imagination to reason’s estimation of magnitude, and with it a pleasure from the agreement of this very judgment with ideas of reason. The mind is moved here: its movement is like a tremor, a rapid alternation of repulsion from and attraction to one and the same object."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "confirmed",
+    "note": "Register A sets the reading under «Трепет» (awe, Schauer). The words of the place are Achtung and Erschütterung; the conception stands under that concept with these words."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E049"
+   ]
+  },
+  {
+   "id": "immanuel-kant.kritik-der-urteilskraft:nature-as-might",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-dynamically-sublime",
+    "might",
+    "safe-distance",
+    "the-sublime"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "work": "immanuel-kant.kritik-der-urteilskraft",
+   "agents": [
+    "immanuel-kant"
+   ],
+   "locus": "§ 28",
+   "formula": {
+    "cite": [
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§28 260.12-15"
+     },
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§28 260.27-30"
+     },
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§28 261.19-24"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Мощь — способность превосходить большие препятствия. Природа, рассматриваемая в эстетическом суждении как мощь, которая не имеет над нами власти, динамически возвышенна. Предмет можно видеть страшным и быть свободным от страха перед ним; вид грозной природы тем притягательнее, чем он страшнее, если только мы в безопасности.",
+    "en": "Might is a power superior to great hindrances. Nature regarded in the aesthetic judgment as a might that has no dominion over us is dynamically sublime. An object can be regarded as fearful while one is free of fear before it; the sight of threatening nature is the more attractive the more fearful it is, provided only that we are in safety."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E050"
+   ]
+  },
+  {
+   "id": "immanuel-kant.kritik-der-urteilskraft:superiority-over-nature",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-dynamically-sublime",
+    "moral-elevation",
+    "the-sublime"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "work": "immanuel-kant.kritik-der-urteilskraft",
+   "agents": [
+    "immanuel-kant"
+   ],
+   "locus": "§ 28",
+   "formula": {
+    "cite": [
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§28 261.25-262.13"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Неодолимость мощи природы даёт нам, как природным существам, познать нашу физическую немощь и вместе с тем открывает в нас способность судить о себе как о независимых от неё и превосходство над природой. На нём основано самосохранение совсем иного рода, при котором человечество в нашем лице остаётся неуниженным. Природа называется здесь возвышенной потому, что возвышает воображение до изображения случаев, в которых душа может ощутить возвышенность своего назначения.",
+    "en": "The irresistibility of nature’s might makes us, as beings of nature, know our physical powerlessness and at once discloses in us a faculty of judging ourselves independent of it and a superiority over nature. On it rests a self-preservation of quite another kind, in which humanity in our person remains unhumiliated. Nature is here called sublime because it raises the imagination to the presentation of cases in which the mind can feel the sublimity of its own vocation."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "revise",
+    "note": "The thesis stands at the place. Register A sets the reading also under «Достоинство» (Würde) and in the area of the Beautiful. The place says that humanity in our person remains unhumiliated; the word Würde does not stand in §28, and the conception stands in the area of the Sublime under the dynamically sublime and moral elevation."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E051"
+   ]
+  },
+  {
+   "id": "immanuel-kant.kritik-der-urteilskraft:natural-and-artistic-beauty",
+   "type": "tos.entity.conception",
+   "of": [
+    "natural-beauty",
+    "artistic-beauty",
+    "perfection",
+    "the-beautiful"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "work": "immanuel-kant.kritik-der-urteilskraft",
+   "agents": [
+    "immanuel-kant"
+   ],
+   "locus": "§ 48",
+   "formula": {
+    "cite": [
+     {
+      "w": "immanuel-kant.kritik-der-urteilskraft",
+      "loc": "§48 311.14-29"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Красота природы — прекрасная вещь; красота искусства — прекрасное представление о вещи. Чтобы судить о красоте природы, довольно одной формы: она нравится сама по себе. В основу суждения о красоте искусства кладётся понятие о том, чем вещь должна быть, и с ним учитывается совершенство вещи.",
+    "en": "A beauty of nature is a beautiful thing; the beauty of art is a beautiful representation of a thing. To judge a beauty of nature the mere form suffices: it pleases for itself. The judging of a beauty of art rests on a concept of what the thing is to be, and with it the perfection of the thing is taken into account."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "confirmed",
+    "note": "Register A names §§42–43 with §48; the sentence that sets the two beauties apart stands in §48."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E024"
+   ]
+  },
+  {
+   "id": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:taste-common-and-unequal",
+   "type": "tos.entity.conception",
+   "of": [
+    "taste",
+    "competence-and-expertise"
+   ],
+   "areas": [
+    "area-taste-and-judgment"
+   ],
+   "work": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+   "agents": [
+    "edmund-burke"
+   ],
+   "locus": "Introduction, On Taste",
+   "formula": {
+    "cite": [
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "Taste p79"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "Taste p81"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "Taste p95"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "Taste p99"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Вкус — способность души, на которую действуют произведения воображения и изящных искусств и которая судит о них. Мерило разума и вкуса, вероятно, одно у всех людей; по своей природе и виду вкус имеет вполне единые начала. Различна степень, в какой эти начала действуют в отдельных людях: чувствительность и суждение, составляющие вкус, у разных людей весьма различны. Вкус совершенствуется так же, как суждение: расширением знаний, постоянным вниманием к предмету и частым упражнением.",
+    "en": "Taste is the faculty of the mind that is affected by the works of imagination and the elegant arts and that forms a judgment of them. The standard of reason and taste is probably the same in all human creatures; in its nature and species taste has entirely uniform principles. What differs is the degree in which these principles prevail in individuals: sensibility and judgment, which compose taste, vary exceedingly in various people. Taste is improved exactly as judgment is: by extending our knowledge, by steady attention to the object and by frequent exercise."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "B:C-I003"
+   ]
+  },
+  {
+   "id": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:novelty-and-curiosity",
+   "type": "tos.entity.conception",
+   "of": [
+    "novelty",
+    "curiosity"
+   ],
+   "areas": [
+    "area-interesting"
+   ],
+   "work": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+   "agents": [
+    "edmund-burke"
+   ],
+   "locus": "Part I, sect. 1",
+   "formula": {
+    "cite": [
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "I.1 p101a"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "I.1 p101b"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "I.1 p102"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Любопытство — первое и простейшее движение души: желание нового и удовольствие от него. Это самый поверхностный из аффектов: его аппетит остёр и легко насыщается. Некоторая доля новизны входит в состав всего, что действует на душу, и любопытство примешивается ко всем нашим страстям.",
+    "en": "Curiosity is the first and simplest emotion of the mind: the desire for novelty and the pleasure taken in it. It is the most superficial of the affections: its appetite is sharp and easily satisfied. Some degree of novelty is among the materials of everything that works upon the mind, and curiosity blends itself with all our passions."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E037"
+   ]
+  },
+  {
+   "id": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:delight-and-pleasure",
+   "type": "tos.entity.conception",
+   "of": [
+    "pleasure",
+    "delight",
+    "negative-pleasure"
+   ],
+   "areas": [
+    "area-sublime",
+    "area-experience-and-affect"
+   ],
+   "work": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+   "agents": [
+    "edmund-burke"
+   ],
+   "locus": "Part I, sects. 3–4",
+   "formula": {
+    "cite": [
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "I.3 p106"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "I.4 p107a"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "I.4 p107b"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "I.4 p108"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Удовольствие никогда не происходит из устранения боли или опасности. Есть удовольствие простое, вне всякого отношения, и удовольствие, существующее только в отношении к боли. Это относительное удовольствие — чувство, сопровождающее устранение боли или опасности, — Бёрк называет наслаждением (delight); положительное удовольствие он называет просто удовольствием.",
+    "en": "Pleasure never has its origin in the removal of pain or danger. There is a pleasure that is such simply, without any relation, and a pleasure that exists only in relation to pain. This relative pleasure, the sensation that accompanies the removal of pain or danger, Burke calls delight; positive pleasure he calls simply pleasure."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "confirmed",
+    "note": "Register A sets the reading under «Отрицательное удовольствие»; Burke’s own words are relative pleasure and delight, and the conception stands under that concept with these words. Register A reads sects. 3–4 with sect. 7; terror and distance have their conception at sect. 7."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E038",
+    "B:B-I003"
+   ]
+  },
+  {
+   "id": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:source-of-the-sublime",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-sublime",
+    "terror",
+    "safe-distance",
+    "negative-pleasure"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "work": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+   "agents": [
+    "edmund-burke"
+   ],
+   "locus": "Part I, sect. 7",
+   "formula": {
+    "cite": [
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "I.7 p110"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "I.7 p111"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Всё, что способно возбуждать идеи боли и опасности, — всё ужасное, всё связанное с ужасными предметами или действующее подобно ужасу — источник возвышенного: оно производит сильнейшее волнение, на какое способна душа. Слишком близкие опасность и боль просто ужасны; на известном расстоянии и с известными изменениями они доставляют наслаждение.",
+    "en": "Whatever is fitted to excite the ideas of pain and danger, whatever is terrible, is conversant about terrible objects or operates like terror, is a source of the sublime: it produces the strongest emotion the mind is capable of feeling. Danger and pain that press too nearly are simply terrible; at certain distances and with certain modifications they are delightful."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E038"
+   ]
+  },
+  {
+   "id": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:astonishment",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-sublime",
+    "astonishment",
+    "awe"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "work": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+   "agents": [
+    "edmund-burke"
+   ],
+   "locus": "Part II, sect. 1",
+   "formula": {
+    "cite": [
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "II.1 p130"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Страсть, которую вызывает великое и возвышенное в природе, когда эти причины действуют всего сильнее, — изумление: состояние души, в котором все её движения приостановлены, с некоторой долей ужаса. Душа целиком заполнена своим предметом; возвышенное предваряет наши рассуждения и увлекает нас неодолимой силой. Низшие его действия — восхищение, благоговение и уважение.",
+    "en": "The passion caused by the great and sublime in nature, when those causes operate most powerfully, is astonishment: the state of the soul in which all its motions are suspended, with some degree of horror. The mind is entirely filled with its object; the sublime anticipates our reasonings and hurries us on by an irresistible force. Its inferior effects are admiration, reverence and respect."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "revise",
+    "note": "The thesis stands at the place. Register A sets the reading also under «Трепет» (awe); the words of the place are horror and reverence, and the conception stands under that concept with these words. Register B (B-I028) reads II.1–2 under «напряжённость и саспенс» and says itself that Burke’s sublime is no narrative suspense; the place names astonishment, and that concept is left out."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E039",
+    "B:B-I028"
+   ]
+  },
+  {
+   "id": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:terror-the-ruling-principle",
+   "type": "tos.entity.conception",
+   "of": [
+    "terror",
+    "the-sublime"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "work": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+   "agents": [
+    "edmund-burke"
+   ],
+   "locus": "Part II, sect. 2",
+   "formula": {
+    "cite": [
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "II.2 p130-131"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "II.2 p131"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Страх — предчувствие боли или смерти — действует подобно настоящей боли и отнимает у души все её силы действовать и рассуждать. Всё страшное для зрения возвышенно, велик ли его предмет или мал. Ужас во всех случаях, явно или скрыто, — господствующий принцип возвышенного.",
+    "en": "Fear, an apprehension of pain or death, operates like actual pain and robs the mind of all its powers of acting and reasoning. Whatever is terrible to sight is sublime too, whether its cause be great in dimensions or small. Terror is in all cases, openly or latently, the ruling principle of the sublime."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "revise",
+    "note": "The thesis stands at the place. Register B (B-I028) reads II.1–2 under «напряжённость и саспенс» and «удовольствие»; sect. 2 speaks of fear, terror and the sublime, and the conception stands under terror and the sublime."
+   },
+   "admission": "map",
+   "grew_from": [
+    "B:B-I028"
+   ]
+  },
+  {
+   "id": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:obscurity",
+   "type": "tos.entity.conception",
+   "of": [
+    "obscurity",
+    "terror",
+    "the-sublime"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "work": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+   "agents": [
+    "edmund-burke"
+   ],
+   "locus": "Part II, sects. 3–4",
+   "formula": {
+    "cite": [
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "II.3 p132"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "II.4 p133"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "II.4 p134"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Чтобы сделать что-либо очень страшным, обычно нужна неясность: когда нам известны все размеры опасности и глаз к ней привыкает, большая часть опасения исчезает. Сделать идею ясной — одно, сделать её волнующей воображение — другое; большая ясность мало помогает действию на страсти и в некотором роде враждебна всякому воодушевлению.",
+    "en": "To make anything very terrible, obscurity is in general necessary: when we know the full extent of a danger and can accustom our eyes to it, a great deal of the apprehension vanishes. To make an idea clear is one thing, to make it affecting to the imagination another; a great clearness helps little towards affecting the passions and is in some sort an enemy to all enthusiasms."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E040"
+   ]
+  },
+  {
+   "id": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:power",
+   "type": "tos.entity.conception",
+   "of": [
+    "might",
+    "terror",
+    "the-sublime"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "work": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+   "agents": [
+    "edmund-burke"
+   ],
+   "locus": "Part II, sect. 5",
+   "formula": {
+    "cite": [
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "II.5 p138"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "II.5 p139"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "II.5 p145"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Кроме того, что прямо внушает идею опасности, и того, что действует сходно по механической причине, всё возвышенное есть видоизменение мощи; и эта ветвь растёт из ужаса — общего ствола всего возвышенного. Всю свою возвышенность мощь берёт от ужаса, который её обычно сопровождает: лишённая способности вредить, она утрачивает всё возвышенное и становится презренной. Мощь — главный источник возвышенного.",
+    "en": "Besides what directly suggests the idea of danger and what works a like effect from a mechanical cause, everything sublime is some modification of power; and this branch rises from terror, the common stock of everything sublime. Power derives all its sublimity from the terror that generally accompanies it: stripped of its ability to hurt, it loses everything sublime and becomes contemptible. Power is a capital source of the sublime."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E041"
+   ]
+  },
+  {
+   "id": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:privation",
+   "type": "tos.entity.conception",
+   "of": [
+    "privation",
+    "terror",
+    "the-sublime"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "work": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+   "agents": [
+    "edmund-burke"
+   ],
+   "locus": "Part II, sect. 6",
+   "formula": {
+    "cite": [
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "II.6 p146"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Все общие лишённости велики, потому что все они страшны: пустота, темнота, одиночество и безмолвие.",
+    "en": "All general privations are great, because they are all terrible: vacuity, darkness, solitude and silence."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E042"
+   ]
+  },
+  {
+   "id": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:vastness-and-infinity",
+   "type": "tos.entity.conception",
+   "of": [
+    "greatness",
+    "unboundedness",
+    "the-sublime"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "work": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+   "agents": [
+    "edmund-burke"
+   ],
+   "locus": "Part II, sects. 7–8",
+   "formula": {
+    "cite": [
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "II.7 p147"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "II.8 p148a"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "II.8 p148b"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Величина размеров — мощная причина возвышенного. Другой его источник — бесконечность: она наполняет душу тем ужасом, дающим наслаждение, который есть самое подлинное действие и вернейший признак возвышенного. Когда глаз не воспринимает границ вещей, они кажутся бесконечными и действуют так же, как если бы были бесконечны.",
+    "en": "Greatness of dimension is a powerful cause of the sublime. Another source is infinity: it fills the mind with that delightful horror which is the most genuine effect and truest test of the sublime. Where the eye cannot perceive the bounds of things, they seem infinite and produce the same effects as if they really were so."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "confirmed",
+    "note": "Register A reads sects. 7–9 together; succession and uniformity have their conception at sect. 9."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E043"
+   ]
+  },
+  {
+   "id": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:artificial-infinite",
+   "type": "tos.entity.conception",
+   "of": [
+    "succession-and-uniformity",
+    "unboundedness"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "work": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+   "agents": [
+    "edmund-burke"
+   ],
+   "locus": "Part II, sect. 9",
+   "formula": {
+    "cite": [
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "II.9 p149-150"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Последовательность и единообразие частей составляют искусственную бесконечность. Последовательность нужна, чтобы части, продолжаясь достаточно долго и в одном направлении, частыми толчками в чувство внушили воображению идею их продолжения за их действительные пределы. Единообразие нужно, чтобы воображение шло без остановки: только непрерывное продвижение придаёт ограниченным предметам характер бесконечности.",
+    "en": "Succession and uniformity of parts constitute the artificial infinite. Succession is needed so that the parts, continued long enough and in one direction, impress the imagination by their frequent impulses on the sense with an idea of their progress beyond their actual limits. Uniformity is needed so that the imagination meets no check: only an uninterrupted progression stamps on bounded objects the character of infinity."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E043"
+   ]
+  },
+  {
+   "id": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:small-smooth-delicate",
+   "type": "tos.entity.conception",
+   "of": [
+    "smallness",
+    "tenderness",
+    "the-beautiful"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-cute"
+   ],
+   "work": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+   "agents": [
+    "edmund-burke"
+   ],
+   "locus": "Part III, sects. 13–14, 16",
+   "formula": {
+    "cite": [
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "III.13 p192"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "III.14 p193"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "III.16 p195"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Восхищение и любовь далеко отстоят друг от друга. Возвышенное, причина восхищения, пребывает в предметах больших и страшных; любовь — в малых и приятных: мы подчиняемся тому, чем восхищаемся, и любим то, что подчиняется нам. Прекрасные предметы сравнительно малы и гладки; вид нежности и даже хрупкости почти существен для красоты, вид крепости и силы ей вредит.",
+    "en": "Admiration and love lie far apart. The sublime, the cause of admiration, dwells on great objects and terrible; love on small ones and pleasing: we submit to what we admire and love what submits to us. Beautiful objects are comparatively small and smooth; an appearance of delicacy, even of fragility, is almost essential to beauty, and an air of robustness and strength is prejudicial to it."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "confirmed",
+    "note": "Register A names sects. 13–16; the sentences stand in sects. 13, 14 and 16. Its remark that this is Burke’s account and no definition of the cute of today stands in the layer."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E045"
+   ]
+  },
+  {
+   "id": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:grace-and-elegance",
+   "type": "tos.entity.conception",
+   "of": [
+    "grace",
+    "elegance",
+    "the-beautiful"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "work": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+   "agents": [
+    "edmund-burke"
+   ],
+   "locus": "Part III, sects. 22–23",
+   "formula": {
+    "cite": [
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "III.22 p200"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "III.23 p200"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Грациозность близка красоте и принадлежит позе и движению: в них нет видимости затруднения, тело слегка изогнуто, части расположены свободно, без острых и внезапных углов. Изящным Бёрк называет тело, составленное из гладких и отполированных частей и притом правильной формы; изящное близко прекрасному и отличается от него только этой правильностью.",
+    "en": "Gracefulness is close to beauty and belongs to posture and motion: there is no appearance of difficulty in them, a small inflection of the body, and parts composed so as not to encumber each other or to appear divided by sharp and sudden angles. Elegant Burke calls a body composed of smooth and polished parts that affects some regular shape; the elegant is closely allied to the beautiful and differs from it only in this regularity."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E044"
+   ]
   }
  ],
  "links": [
@@ -8391,6 +9972,660 @@
    "grew_from": [
     "A:R003",
     "A:R004"
+   ]
+  },
+  {
+   "id": "disinterestedness:marks-the-satisfaction-of:the-judgment-of-taste",
+   "from": "disinterestedness",
+   "to": "the-judgment-of-taste",
+   "verb": {
+    "ru": "отличает благорасположение, которое определяет",
+    "en": "marks the satisfaction that determines"
+   },
+   "grounds": [
+    "immanuel-kant.kritik-der-urteilskraft:without-interest"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "revise",
+    "note": "Register A: «отличает чистое». The verb follows the title of §2: the satisfaction that determines the judgment of taste is without all interest."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R017"
+   ]
+  },
+  {
+   "id": "preference:is-distinguished-from:the-judgment-of-taste",
+   "from": "preference",
+   "to": "the-judgment-of-taste",
+   "verb": {
+    "ru": "различается с",
+    "en": "is distinguished from"
+   },
+   "grounds": [
+    "immanuel-kant.kritik-der-urteilskraft:taste-of-sense-and-beauty"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "B:C-R003"
+   ]
+  },
+  {
+   "id": "the-judgment-of-taste:carries-a-claim-to:universal-validity",
+   "from": "the-judgment-of-taste",
+   "to": "universal-validity",
+   "verb": {
+    "ru": "несёт притязание на",
+    "en": "carries a claim to"
+   },
+   "grounds": [
+    "immanuel-kant.kritik-der-urteilskraft:subjective-universality",
+    "immanuel-kant.kritik-der-urteilskraft:necessity-and-norm"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "confirmed",
+    "note": "Register B: «claims». The words of §6: ein Anspruch auf Gültigkeit für jedermann."
+   },
+   "admission": "map",
+   "grew_from": [
+    "B:C-R002"
+   ]
+  },
+  {
+   "id": "the-free-play-of-the-faculties:grounds-the-pleasure-in:the-beautiful",
+   "from": "the-free-play-of-the-faculties",
+   "to": "the-beautiful",
+   "verb": {
+    "ru": "служит основанием удовольствия от",
+    "en": "is the ground of the pleasure in"
+   },
+   "grounds": [
+    "immanuel-kant.kritik-der-urteilskraft:free-play"
+   ],
+   "status": "reconstruction",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "reconstruction",
+    "note": "Register A: «объясняет удовольствие от». The place says that the merely subjective judging is the ground of the pleasure (218.08–10) and that the state of mind in this judging is the free play (217.23–26); the link joins the two sentences."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R019"
+   ]
+  },
+  {
+   "id": "the-judgment-of-taste:is-independent-of:perfection",
+   "from": "the-judgment-of-taste",
+   "to": "perfection",
+   "verb": {
+    "ru": "всецело независимо от понятия",
+    "en": "is wholly independent of the concept of"
+   },
+   "grounds": [
+    "immanuel-kant.kritik-der-urteilskraft:independent-of-perfection"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "revise",
+    "note": "Register A: «Прекрасное не выводится из Совершенства». The title of §15 speaks of the judgment of taste, and the link starts from it."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R020"
+   ]
+  },
+  {
+   "id": "free-beauty:is-distinguished-from:adherent-beauty",
+   "from": "free-beauty",
+   "to": "adherent-beauty",
+   "verb": {
+    "ru": "различается с",
+    "en": "is distinguished from"
+   },
+   "grounds": [
+    "immanuel-kant.kritik-der-urteilskraft:free-and-adherent-beauty"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R021"
+   ]
+  },
+  {
+   "id": "adherent-beauty:presupposes:perfection",
+   "from": "adherent-beauty",
+   "to": "perfection",
+   "verb": {
+    "ru": "предполагает",
+    "en": "presupposes"
+   },
+   "grounds": [
+    "immanuel-kant.kritik-der-urteilskraft:free-and-adherent-beauty"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "revise",
+    "note": "Register B: «Совершенство conditions Суждение вкуса». At §16 it is adherent beauty that presupposes a concept of the object and its perfection according to it."
+   },
+   "admission": "map",
+   "grew_from": [
+    "B:C-R004"
+   ]
+  },
+  {
+   "id": "the-aesthetic-normal-idea:is-distinguished-from:the-ideal-of-beauty",
+   "from": "the-aesthetic-normal-idea",
+   "to": "the-ideal-of-beauty",
+   "verb": {
+    "ru": "различается с",
+    "en": "is distinguished from"
+   },
+   "grounds": [
+    "immanuel-kant.kritik-der-urteilskraft:ideal-of-beauty"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R022"
+   ]
+  },
+  {
+   "id": "the-judgment-of-taste:presupposes:sensus-communis",
+   "from": "the-judgment-of-taste",
+   "to": "sensus-communis",
+   "verb": {
+    "ru": "выносится только при предположении",
+    "en": "is made only under the presupposition of"
+   },
+   "grounds": [
+    "immanuel-kant.kritik-der-urteilskraft:common-sense"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "revise",
+    "note": "Register A: «предполагает притязание на». The verb follows §20: only under the presupposition of a common sense can the judgment of taste be made."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R018"
+   ]
+  },
+  {
+   "id": "natural-beauty:is-distinguished-from:artistic-beauty",
+   "from": "natural-beauty",
+   "to": "artistic-beauty",
+   "verb": {
+    "ru": "различается с",
+    "en": "is distinguished from"
+   },
+   "grounds": [
+    "immanuel-kant.kritik-der-urteilskraft:natural-and-artistic-beauty"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R023"
+   ]
+  },
+  {
+   "id": "the-sublime:is-distinguished-from:the-beautiful",
+   "from": "the-sublime",
+   "to": "the-beautiful",
+   "verb": {
+    "ru": "различается с",
+    "en": "is distinguished from"
+   },
+   "grounds": [
+    "immanuel-kant.kritik-der-urteilskraft:beautiful-and-sublime"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R043"
+   ]
+  },
+  {
+   "id": "the-sublime:is-found-also-in:formlessness",
+   "from": "the-sublime",
+   "to": "formlessness",
+   "verb": {
+    "ru": "находится и в",
+    "en": "is found also in"
+   },
+   "grounds": [
+    "immanuel-kant.kritik-der-urteilskraft:beautiful-and-sublime"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "revise",
+    "note": "Register A: «может быть вызвано». The verb follows 244.24–25, auch an einem formlosen Gegenstande zu finden."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R042"
+   ]
+  },
+  {
+   "id": "the-sublime:divides-into:the-mathematically-sublime",
+   "from": "the-sublime",
+   "to": "the-mathematically-sublime",
+   "verb": {
+    "ru": "делится на",
+    "en": "divides into"
+   },
+   "grounds": [
+    "immanuel-kant.kritik-der-urteilskraft:division-of-the-sublime"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "undecided",
+    "note": "Made by this reader from §24; no register holds this link. It waits for an independent reading."
+   },
+   "admission": "held",
+   "grew_from": [
+    "A:E047"
+   ]
+  },
+  {
+   "id": "the-sublime:divides-into:the-dynamically-sublime",
+   "from": "the-sublime",
+   "to": "the-dynamically-sublime",
+   "verb": {
+    "ru": "делится на",
+    "en": "divides into"
+   },
+   "grounds": [
+    "immanuel-kant.kritik-der-urteilskraft:division-of-the-sublime"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "undecided",
+    "note": "Made by this reader from §24; no register holds this link. It waits for an independent reading."
+   },
+   "admission": "held",
+   "grew_from": [
+    "A:E050"
+   ]
+  },
+  {
+   "id": "the-mathematically-sublime:is-absolute:greatness",
+   "from": "the-mathematically-sublime",
+   "to": "greatness",
+   "verb": {
+    "ru": "есть безусловное",
+    "en": "is absolute"
+   },
+   "grounds": [
+    "immanuel-kant.kritik-der-urteilskraft:absolutely-great"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "revise",
+    "note": "Register A: «относится к эстетической оценке». The verb follows §25: sublime is what is absolutely great."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R044"
+   ]
+  },
+  {
+   "id": "apprehension:is-distinguished-from:aesthetic-comprehension",
+   "from": "apprehension",
+   "to": "aesthetic-comprehension",
+   "verb": {
+    "ru": "различается с",
+    "en": "is distinguished from"
+   },
+   "grounds": [
+    "immanuel-kant.kritik-der-urteilskraft:apprehension-and-comprehension"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R045"
+   ]
+  },
+  {
+   "id": "aesthetic-comprehension:soon-reaches:the-limit-of-presentation",
+   "from": "aesthetic-comprehension",
+   "to": "the-limit-of-presentation",
+   "verb": {
+    "ru": "скоро достигает",
+    "en": "soon reaches"
+   },
+   "grounds": [
+    "immanuel-kant.kritik-der-urteilskraft:apprehension-and-comprehension"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "revise",
+    "note": "Register A: «обнаруживает». The verb follows 252.02, gelangt bald zu ihrem Maximum."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R046"
+   ]
+  },
+  {
+   "id": "the-dynamically-sublime:is-nature-as:might",
+   "from": "the-dynamically-sublime",
+   "to": "might",
+   "verb": {
+    "ru": "есть природа, рассматриваемая как не имеющая над нами власти",
+    "en": "is nature regarded, without dominion over us, as"
+   },
+   "grounds": [
+    "immanuel-kant.kritik-der-urteilskraft:nature-as-might"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "revise",
+    "note": "Register A: «соотнесено с». The verb follows 260.14–15: nature regarded in the aesthetic judgment as a might that has no dominion over us is dynamically sublime."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R047"
+   ]
+  },
+  {
+   "id": "the-dynamically-sublime:attracts-given:safe-distance",
+   "from": "the-dynamically-sublime",
+   "to": "safe-distance",
+   "verb": {
+    "ru": "тем притягательнее, чем страшнее, если есть",
+    "en": "is the more attractive the more fearful it is, given"
+   },
+   "grounds": [
+    "immanuel-kant.kritik-der-urteilskraft:nature-as-might"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "revise",
+    "note": "Register A: «предполагает дистанцию от реальной угрозы через». The verb follows 261.19–20, wenn wir uns nur in Sicherheit befinden."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R048"
+   ]
+  },
+  {
+   "id": "the-dynamically-sublime:lets-the-mind-feel:moral-elevation",
+   "from": "the-dynamically-sublime",
+   "to": "moral-elevation",
+   "verb": {
+    "ru": "даёт душе ощутить",
+    "en": "lets the mind feel"
+   },
+   "grounds": [
+    "immanuel-kant.kritik-der-urteilskraft:superiority-over-nature"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-09-kant",
+    "verdict": "revise",
+    "note": "Register A: «связано с». The verb follows 262.10–13: nature raises the imagination to cases in which the mind can feel the sublimity of its own vocation."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R049"
+   ]
+  },
+  {
+   "id": "curiosity:is-the-desire-for:novelty",
+   "from": "curiosity",
+   "to": "novelty",
+   "verb": {
+    "ru": "есть желание и удовольствие, чей предмет —",
+    "en": "is the desire and the pleasure whose object is"
+   },
+   "grounds": [
+    "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:novelty-and-curiosity"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "revise",
+    "note": "Register A: «Новизна возбуждает Любопытство». The place defines curiosity as the desire for novelty and the pleasure taken in it, and the link starts from curiosity."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R032"
+   ]
+  },
+  {
+   "id": "delight:is-distinguished-from:pleasure",
+   "from": "delight",
+   "to": "pleasure",
+   "verb": {
+    "ru": "различается с",
+    "en": "is distinguished from"
+   },
+   "grounds": [
+    "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:delight-and-pleasure"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "revise",
+    "note": "Register B holds this as its compiler’s comparison across three works. Burke’s sect. 4 makes the distinction itself, and the link rests on that place alone."
+   },
+   "admission": "map",
+   "grew_from": [
+    "B:B-R010"
+   ]
+  },
+  {
+   "id": "safe-distance:turns-into-delight:terror",
+   "from": "safe-distance",
+   "to": "terror",
+   "verb": {
+    "ru": "обращает в наслаждение то, что вблизи есть лишь",
+    "en": "turns into delight what, pressing near, is only"
+   },
+   "grounds": [
+    "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:source-of-the-sublime"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "revise",
+    "note": "Register A: «делает возможным эстетическое отношение к». The verb follows sect. 7: danger and pain that press too nearly are simply terrible; at certain distances they are delightful."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R034"
+   ]
+  },
+  {
+   "id": "the-sublime:causes:astonishment",
+   "from": "the-sublime",
+   "to": "astonishment",
+   "verb": {
+    "ru": "вызывает",
+    "en": "causes"
+   },
+   "grounds": [
+    "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:astonishment"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R035"
+   ]
+  },
+  {
+   "id": "terror:is-the-ruling-principle-of:the-sublime",
+   "from": "terror",
+   "to": "the-sublime",
+   "verb": {
+    "ru": "есть господствующий принцип того, что есть",
+    "en": "is the ruling principle of"
+   },
+   "grounds": [
+    "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:terror-the-ruling-principle"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "undecided",
+    "note": "Made by this reader from sect. 2; no register holds this link. It waits for an independent reading."
+   },
+   "admission": "held",
+   "grew_from": [
+    "B:B-I028"
+   ]
+  },
+  {
+   "id": "obscurity:is-necessary-to:terror",
+   "from": "obscurity",
+   "to": "terror",
+   "verb": {
+    "ru": "обычно необходима, чтобы возник",
+    "en": "is in general necessary to"
+   },
+   "grounds": [
+    "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:obscurity"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "revise",
+    "note": "Register A: «усиливает». The verb follows sect. 3: to make anything very terrible, obscurity seems in general to be necessary."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R036"
+   ]
+  },
+  {
+   "id": "might:is-a-capital-source-of:the-sublime",
+   "from": "might",
+   "to": "the-sublime",
+   "verb": {
+    "ru": "есть главный источник того, что есть",
+    "en": "is a capital source of"
+   },
+   "grounds": [
+    "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:power"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "revise",
+    "note": "Register A: «связана с». The verb follows the close of sect. 5: power is undoubtedly a capital source of the sublime."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R037"
+   ]
+  },
+  {
+   "id": "succession-and-uniformity:constitute-the-artificial:unboundedness",
+   "from": "succession-and-uniformity",
+   "to": "unboundedness",
+   "verb": {
+    "ru": "составляют искусственное",
+    "en": "constitute the artificial"
+   },
+   "grounds": [
+    "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:artificial-infinite"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "revise",
+    "note": "Register A: «создаёт впечатление». The verb follows the first sentence of sect. 9."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R039"
+   ]
+  },
+  {
+   "id": "smallness:belongs-to-the-objects-of:the-beautiful",
+   "from": "smallness",
+   "to": "the-beautiful",
+   "verb": {
+    "ru": "присуща предметам, в которых есть",
+    "en": "belongs to the objects that have"
+   },
+   "grounds": [
+    "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:small-smooth-delicate"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "revise",
+    "note": "Register A: «участвует в авторском объяснении». The verb follows sect. 13: beautiful objects are comparatively small."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R041"
+   ]
+  },
+  {
+   "id": "elegance:differs-only-by-regularity-from:the-beautiful",
+   "from": "elegance",
+   "to": "the-beautiful",
+   "verb": {
+    "ru": "отличается только правильностью от того, что есть",
+    "en": "differs only in its regularity from"
+   },
+   "grounds": [
+    "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:grace-and-elegance"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "revise",
+    "note": "Register A: «Грация различается с Изяществом». The place sets grace and elegance each beside beauty and does not set them against each other; the link the text makes runs from elegance to the beautiful."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R040"
    ]
   }
  ]

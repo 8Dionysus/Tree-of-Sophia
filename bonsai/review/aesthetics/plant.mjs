@@ -5,9 +5,12 @@
 //   node bonsai/review/aesthetics/plant.mjs --check    # say whether the stored modules are what the records give
 //
 // The areas and concepts come from layer/ and inputs/. A conception comes only from a record under readings/:
-// a reader's account of one place, read in the work itself. The record names the formula by the words that open
-// and close it in a unit of the public corpus; this tool finds the span, refuses one that does not run over whole
-// sentences, and writes the citation. Fetch the corpus first: node bonsai/lib/layers.mjs fetch access/public-corpus
+// a reader's account of one place, read in the work itself. For a work of the public corpus the record names the
+// formula by the words that open and close it in a corpus unit; this tool finds the span, refuses one that does
+// not run over whole sentences, and writes the citation. Fetch the corpus first:
+// node bonsai/lib/layers.mjs fetch access/public-corpus. For a work the corpus does not hold, the record names a
+// place of bonsai/aesthetics/fragments.json, whose text in the original is the formula; this tool refuses a place
+// the module does not hold or one lacking sentence-like outer punctuation; a reader must verify boundaries against the source.
 
 import {readFileSync,writeFileSync,readdirSync,existsSync} from 'node:fs';
 import {dirname,join} from 'node:path';
@@ -31,10 +34,19 @@ const CATEGORY=/^(категория \/ навигационный предме�
 
 const records=readdirSync(join(here,'readings')).filter(name=>name.endsWith('.json')).sort().map(name=>({name,...json(join(here,'readings',name))}));
 const corpusDir=join(root,'access/web/public/public-corpus'),read=existsSync(join(corpusDir,'manifest.json'))?corpusReader(corpusDir):null;
+const fragments=existsSync(join(home,'fragments.json'))?json(join(home,'fragments.json')):null;
 
 /** The citation of a formula: the unit a record names by its reference and the span between the opening and closing words. */
 function cite(record,conception,formula,libraryWork){
   const at=`${record.name} ${conception.id}`;
+  if(libraryWork.places==='fragments'){
+    const text=fragments?.places?.[conception.work]?.[formula.place]?.texts?.[libraryWork.original];
+    if(fragments?.works?.[conception.work]?.original!==libraryWork.original)fail(`${at}: fragments.json does not hold ${conception.work} in ${libraryWork.original}`);
+    if(typeof text!=='string')fail(`${at}: fragments.json holds no place ${JSON.stringify(formula.place)} of ${conception.work} in the original`);
+    if(!/^[\p{Lu}„“"(]/u.test(text)||!/[.!?][)”"]?$/u.test(text.trimEnd()))fail(`${at}: the place ${formula.place} does not run over whole sentences`);
+    return {w:conception.work,loc:formula.place};
+  }
+  if(formula.place)fail(`${at}: a place is named for a work the record keeps in the corpus`);
   const work=read?.(libraryWork.tree);
   if(!work)fail(`${at}: the corpus does not hold ${libraryWork.tree}; fetch it (node bonsai/lib/layers.mjs fetch access/public-corpus)`);
   const original=work.versions.find(version=>version.language===libraryWork.original);

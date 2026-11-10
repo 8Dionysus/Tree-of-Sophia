@@ -1,0 +1,1849 @@
+{
+ "schema": "tos.bonsai.fragments.v1",
+ "posture": {
+  "ru": "Точный текст мест произведений, на которые опираются трактовки бонсая и которых нет в публичном корпусе Древа, в оригинале и переводах; у каждого свидетеля — издание, источник, лицензия и основание показа. Каждое место — формула трактовки: целые предложения произведения.",
+  "en": "The exact text of the places the bonsai’s conceptions rest on in works the Tree’s public corpus does not hold, in the original and in translations; every witness with its edition, source, licence and basis for showing it. Each place is the formula of a conception: whole sentences of the work."
+ },
+ "provenance": {
+  "gathered": "2026-11-09",
+  "method": "Each place was cut from a transcription by the words that open and close it and compared word by word with an independent reading of the printed page; where the two differ beyond OCR noise the page image decides, and each change stands under corrections. Whitespace and line-end hyphenation normalised; emphasis dropped; footnote marks left out; NFC Unicode; paragraph breaks inside a place as \\n\\n. Kant, Kritik der Urtheilskraft: German: the words of each place were taken from the Bonn Kant-Korpus transcription of volume V of the Akademie-Ausgabe (korpora.org, pages fetched one a second) and compared word by word, punctuation included, with a fresh OCR (tesseract 5.3.4, model deu_latf) of the page images of the Internet Archive scan of the 1913 printing; every difference beyond OCR noise was read on the page image, and the page image decides (each change under corrections). The line references are those of the Akademie pages. English: the sentences of each section of Bernard’s translation (Project Gutenberg #48433) were paired with the German sentences by length and every pair was read; each English text is the smallest run of whole sentences that renders the German place. Whitespace and line-end hyphenation normalised; the Fraktur double hyphen written as \"-\"; letter-spaced, bold and italic emphasis dropped; footnote marks left out; NFC Unicode; paragraph breaks inside a place as \\n\\n. Section numbers are not part of the texts. Burke, Inquiry: the words from Project Gutenberg #15043 (the London edition of 1887), compared with the page-indexed OCR of the Internet Archive scan of the Boston edition of 1865 (hOCR search text and page index of item cu31924081205100), from which the page numbers are read.",
+  "corrections": [
+   {
+    "lang": "de",
+    "from": "unterliegen müßte, auf solche Weise",
+    "to": "unterliegen müßte. Auf solche Weise",
+    "evidence": "scan p. 262, line 2 (Internet Archive kantsgesammeltes05imma, leaf n277)",
+    "place": "immanuel-kant.kritik-der-urteilskraft §28 261.25-262.13"
+   },
+   {
+    "lang": "de",
+    "from": "Angenehm heißt jemandem das",
+    "to": "Angenehm heißt Jemandem das",
+    "evidence": "scan p. 210, line 4 (Internet Archive kantsgesammeltes05imma, leaf n225)",
+    "place": "immanuel-kant.kritik-der-urteilskraft §5 209.29-210.06"
+   },
+   {
+    "lang": "en",
+    "from": "smoothness; a qualify so essential",
+    "to": "smoothness; a quality so essential",
+    "evidence": "scan p. 193 (Internet Archive cu31924081205100, leaf n220)",
+    "place": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our III.14 p193"
+   }
+  ],
+  "checked_on_the_page_image": {
+   "immanuel-kant.kritik-der-urteilskraft": [
+    "S. 204 (whole page)",
+    "S. 210, Z. 3–6",
+    "S. 212, Z. 30–34",
+    "S. 227, Z. 14–17",
+    "S. 239, Z. 16–17",
+    "S. 245, Z. 29–35",
+    "S. 252, Z. 1–3",
+    "S. 262, Z. 1–5"
+   ],
+   "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our": [
+    "p. 138 (upper half)",
+    "p. 139 (middle)",
+    "p. 193 (upper and middle)"
+   ]
+  }
+ },
+ "works": {
+  "immanuel-kant.kritik-der-urteilskraft": {
+   "author": {
+    "ru": "Иммануил Кант",
+    "en": "Immanuel Kant"
+   },
+   "title": {
+    "ru": "Критика способности суждения",
+    "en": "Critique of Judgment"
+   },
+   "original": "de",
+   "witnesses": {
+    "de": {
+     "edition": "Kant’s gesammelte Schriften. Herausgegeben von der Königlich Preußischen Akademie der Wissenschaften. Band V (Erste Abtheilung: Werke, fünfter Band): Kritik der praktischen Vernunft. Kritik der Urtheilskraft. Berlin: Druck und Verlag von Georg Reimer, 1913. The Kritik der Urtheilskraft is edited there by Wilhelm Windelband; the apparatus gives the readings of the three printings of Kant’s lifetime (1790, 1793, 1799). Scan of the Gumberg Library copy (Duquesne University), digitized by the Internet Archive in 2010.",
+     "year": 1913,
+     "url": "https://archive.org/details/kantsgesammeltes05imma",
+     "sources": [
+      "https://archive.org/details/kantsgesammeltes05imma",
+      "https://korpora.org/kant/aa05/"
+     ],
+     "licence": "Public domain book; scan in the Internet Archive. No licence attaches to the transcribed words. The Bonn Kant-Korpus, whose transcription was compared, allows scholarly, non-commercial use with a reference to the source and forbids redistributing the corpus (korpora.org, Nutzungsbedingungen); the bonsai shows the cited places only.",
+     "attribution": "Immanuel Kant, Kritik der Urtheilskraft, hrsg. von Wilhelm Windelband, in: Kant’s gesammelte Schriften, hrsg. von der Königlich Preußischen Akademie der Wissenschaften, Bd. V, Berlin: Georg Reimer, 1913; scan: Internet Archive item kantsgesammeltes05imma; transcription compared: Das Bonner Kant-Korpus, korpora.org.",
+     "rights": {
+      "basis": "public-domain",
+      "russia": "Общественное достояние: Кант умер в 1804 г., редактор текста В. Виндельбанд — в 1915 г. — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: если 50-летний срок истёк до 1 января 1993 г. (автор умер до 1943 г.), произведение в общественном достоянии.",
+      "usa": "Public domain: published 1913 (before 1930).",
+      "eu": "Public domain: Kant died 1804 and the editor Wilhelm Windelband 1915, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "reasoning": "Kant (1724–1804); text of the Akademie edition, edited by Wilhelm Windelband (1848–1915), named as editor in the volume’s own apparatus. The Internet Archive’s OCR of this Fraktur volume is unusable, so the words come from the Bonn transcription and are checked against the page images as provenance.method says. The first edition of 1790 in the Deutsches Textarchiv was not used: its download addresses answer with a JavaScript cookie challenge and its robots.txt disallows them; we did not get around it."
+     },
+     "short": {
+      "ru": "Академическое изд., т. V, 1913",
+      "en": "Akademie edition, vol. V, 1913"
+     }
+    },
+    "en": {
+     "edition": "Kant’s Critique of Judgement, translated with Introduction and Notes by J. H. Bernard. Second edition, revised. London: Macmillan and Co., 1914 (first edition 1892). Project Gutenberg eBook #48433.",
+     "translator": "John Henry Bernard",
+     "year": 1914,
+     "url": "https://www.gutenberg.org/ebooks/48433",
+     "licence": "Project Gutenberg License (public domain in the USA); the words of the 1914 translation are public domain.",
+     "attribution": "Immanuel Kant, Critique of Judgement, tr. J. H. Bernard, 2nd ed. (London: Macmillan, 1914); text from Project Gutenberg eBook #48433 (produced by Charlie Howard and the Online Distributed Proofreading Team from images made available by the Internet Archive).",
+     "rights": {
+      "basis": "public-domain",
+      "russia": "Общественное достояние: переводчик Дж. Г. Бернард умер в 1927 г. — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: если 50-летний срок истёк до 1 января 1993 г. (автор умер до 1943 г.), произведение в общественном достоянии.",
+      "usa": "Public domain: published 1914 (before 1930).",
+      "eu": "Public domain: translator died 1927, more than 70 years ago.",
+      "reasoning": "Kant (d. 1804) and John Henry Bernard (1860–1927). Page numbers from the page marks of the Gutenberg HTML edition (pg48433-images.html). Gutenberg sets the book’s small capitals as capital letters; they are kept. Italics are dropped; square brackets are Bernard’s own additions. The registers of the research read the Critique in this translation; the bonsai reads it in the German and shows Bernard beside it."
+     },
+     "short": {
+      "ru": "пер. Дж. Г. Бернарда, 1914",
+      "en": "tr. J. H. Bernard, 1914"
+     }
+    }
+   },
+   "absent": [
+    {
+     "language": "ru",
+     "reason": "No Russian text was taken. МЭСБЕ (art. «Кант») lists a translation by N. Sokolov, 1898; Russian Wikisource holds no text of it and a search of the Internet Archive found no scan (2026-11-09). The rights of the later Russian translations were not examined, and none was used. To add Sokolov, transcribe the cited places from a scan of the 1898 book and check the translator’s dates."
+    }
+   ]
+  },
+  "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our": {
+   "author": {
+    "ru": "Эдмунд Бёрк",
+    "en": "Edmund Burke"
+   },
+   "title": {
+    "ru": "Философское исследование о происхождении наших идей возвышенного и прекрасного",
+    "en": "A Philosophical Enquiry into the Origin of Our Ideas of the Sublime and Beautiful"
+   },
+   "original": "en",
+   "witnesses": {
+    "en": {
+     "edition": "The Works of the Right Honorable Edmund Burke. Revised edition. Vol. I. Boston: Little, Brown, and Company, 1865. It holds “A Philosophical Inquiry into the Origin of our Ideas of the Sublime and Beautiful, with an Introductory Discourse concerning Taste”. Scan of the Cornell University Library copy in the Internet Archive.",
+     "year": 1865,
+     "url": "https://archive.org/details/cu31924081205100",
+     "sources": [
+      "https://archive.org/details/cu31924081205100",
+      "https://www.gutenberg.org/ebooks/15043"
+     ],
+     "licence": "Public domain book; scan in the Internet Archive. Project Gutenberg License for the transcription the words were taken from (public domain in the USA).",
+     "attribution": "Edmund Burke, A Philosophical Inquiry into the Origin of our Ideas of the Sublime and Beautiful, in: The Works of the Right Honorable Edmund Burke, revised edition, vol. I (Boston: Little, Brown, and Company, 1865); scan: Internet Archive item cu31924081205100 (Cornell University Library); transcription: Project Gutenberg eBook #15043 (produced by Paul Murray, Michael Punch and the PG Online Distributed Proofreading Team from images made available by the Bibliothèque nationale de France).",
+     "rights": {
+      "basis": "public-domain",
+      "russia": "Общественное достояние: Бёрк умер в 1797 г. — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: если 50-летний срок истёк до 1 января 1993 г. (автор умер до 1943 г.), произведение в общественном достоянии.",
+      "usa": "Public domain: published 1865 (before 1930).",
+      "eu": "Public domain: Burke died 1797.",
+      "reasoning": "Burke (1729–1797). The registers of the research read the Inquiry in Project Gutenberg #15043, which transcribes the London edition of John C. Nimmo (1887). The words of each place were taken from that transcription and compared word by word, punctuation included, with the page-indexed OCR of the Internet Archive scan of the Boston edition of 1865; the page numbers are read from the scan. The two agree at every cited place apart from OCR noise, with one exception, where the printed page stands (provenance.corrections). The capital and small capitals that open a section are written as an ordinary word; italics are dropped; footnote marks are left out."
+     },
+     "short": {
+      "ru": "Бостонское изд., т. I, 1865",
+      "en": "Boston edition, vol. I, 1865"
+     }
+    }
+   },
+   "absent": [
+    {
+     "language": "ru",
+     "reason": "No Russian text was taken. The Russian translation of E. S. Lagutin (Moscow: Iskusstvo, 1979) is under copyright; an earlier Russian translation was not looked for."
+    }
+   ]
+  }
+ },
+ "places": {
+  "immanuel-kant.kritik-der-urteilskraft": {
+   "§1 203.09-15": {
+    "label": {
+     "ru": "§ 1, AA V 203.09–15",
+     "en": "§ 1, AA 5:203.09–15"
+    },
+    "texts": {
+     "de": "Um zu unterscheiden, ob etwas schön sei oder nicht, beziehen wir die Vorstellung nicht durch den Verstand auf das Object zum Erkenntnisse, sondern durch die Einbildungskraft (vielleicht mit dem Verstande verbunden) auf das Subject und das Gefühl der Lust oder Unlust desselben. Das Geschmacksurtheil ist also kein Erkenntnißurtheil, mithin nicht logisch, sondern ästhetisch, worunter man dasjenige versteht, dessen Bestimmungsgrund nicht anders als subjectiv sein kann.",
+     "en": "In order to decide whether anything is beautiful or not, we refer the representation, not by the Understanding to the Object for cognition but, by the Imagination (perhaps in conjunction with the Understanding) to the subject, and its feeling of pleasure or pain. The judgement of taste is therefore not a judgement of cognition, and is consequently not logical but aesthetical, by which we understand that whose determining ground can be no other than subjective."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n218/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_45"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 203, Z. 9–15"
+     ],
+     [
+      "en",
+      "Bernard 1914, pp. 45–46"
+     ]
+    ]
+   },
+   "§2 204.20-21": {
+    "label": {
+     "ru": "§ 2, AA V 204.20–21",
+     "en": "§ 2, AA 5:204.20–21"
+    },
+    "texts": {
+     "de": "Das Wohlgefallen, welches das Geschmacksurtheil bestimmt, ist ohne alles Interesse.",
+     "en": "The satisfaction which determines the judgement of taste is disinterested"
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n219/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_46"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 204, Z. 20–21"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 46"
+     ]
+    ],
+    "note": "The title of the section. Bernard’s title carries no full stop."
+   },
+   "§2 204.22-23": {
+    "label": {
+     "ru": "§ 2, AA V 204.22–23",
+     "en": "§ 2, AA 5:204.22–23"
+    },
+    "texts": {
+     "de": "Interesse wird das Wohlgefallen genannt, was wir mit der Vorstellung der Existenz eines Gegenstandes verbinden.",
+     "en": "The satisfaction which we combine with the representation of the existence of an object is called interest."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n219/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_46"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 204, Z. 22–23"
+     ],
+     [
+      "en",
+      "Bernard 1914, pp. 46–47"
+     ]
+    ]
+   },
+   "§2 205.07-09": {
+    "label": {
+     "ru": "§ 2, AA V 205.07–09",
+     "en": "§ 2, AA 5:205.07–09"
+    },
+    "texts": {
+     "de": "Man will nur wissen, ob die bloße Vorstellung des Gegenstandes in mir mit Wohlgefallen begleitet sei, so gleichgültig ich auch immer in Ansehung der Existenz des Gegenstandes dieser Vorstellung sein mag.",
+     "en": "We wish only to know if this mere representation of the object is accompanied in me with satisfaction, however indifferent I may be as regards the existence of the object of this representation."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n220/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_47"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 205, Z. 7–9"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 47"
+     ]
+    ]
+   },
+   "§5 209.29-210.06": {
+    "label": {
+     "ru": "§ 5, AA V 209.29–210.06",
+     "en": "§ 5, AA 5:209.29–210.06"
+    },
+    "texts": {
+     "de": "Das Angenehme, das Schöne, das Gute bezeichnen also drei verschiedene Verhältnisse der Vorstellungen zum Gefühl der Lust und Unlust, in Beziehung auf welches wir Gegenstände oder Vorstellungsarten von einander unterscheiden. Auch sind die jedem angemessenen Ausdrücke, womit man die Complacenz in denselben bezeichnet, nicht einerlei. Angenehm heißt Jemandem das, was ihn vergnügt; schön, was ihm blos gefällt; gut, was geschätzt, gebilligt, d. i. worin von ihm ein objectiver Werth gesetzt wird.",
+     "en": "The Pleasant, the Beautiful, and the Good, designate then, three different relations of representations to the feeling of pleasure and pain, in reference to which we distinguish from each other objects or methods of representing them. And the expressions corresponding to each, by which we mark our complacency in them, are not the same. That which GRATIFIES a man is called pleasant; that which merely PLEASES him is beautiful; that which is ESTEEMED [or approved] by him, i.e. that to which he accords an objective worth, is good."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n224/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_53"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 209, Z. 29 – S. 210, Z. 6"
+     ],
+     [
+      "en",
+      "Bernard 1914, pp. 53–54"
+     ]
+    ],
+    "note": "German: the Bonn transcription reads „jemandem“; the printed page (S. 210, Z. 4) has „Jemandem“. English: the capitals of GRATIFIES, PLEASES and ESTEEMED are Gutenberg’s rendering of the book’s small capitals; the square brackets are Bernard’s."
+   },
+   "§5 210.11-17": {
+    "label": {
+     "ru": "§ 5, AA V 210.11–17",
+     "en": "§ 5, AA 5:210.11–17"
+    },
+    "texts": {
+     "de": "Man kann sagen: daß unter allen diesen drei Arten des Wohlgefallens das des Geschmacks am Schönen einzig und allein ein uninteressirtes und freies Wohlgefallen sei; denn kein Interesse, weder das der Sinne, noch das der Vernunft, zwingt den Beifall ab. Daher könnte man von dem Wohlgefallen sagen: es beziehe sich in den drei genannten Fällen auf Neigung, oder Gunst, oder Achtung. Denn Gunst ist das einzige freie Wohlgefallen.",
+     "en": "We may say that of all these three kinds of satisfaction, that of taste in the Beautiful is alone a disinterested and free satisfaction; for no interest, either of Sense or of Reason, here forces our assent. Hence we may say of satisfaction that it is related in the three aforesaid cases to inclination, to favour, or to respect. Now favour is the only free satisfaction."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n225/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_54"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 210, Z. 11–17"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 54"
+     ]
+    ]
+   },
+   "§5 211.02-04": {
+    "label": {
+     "ru": "§ 5, AA V 211.02–04",
+     "en": "§ 5, AA 5:211.02–04"
+    },
+    "texts": {
+     "de": "Geschmack ist das Beurtheilungsvermögen eines Gegenstandes oder einer Vorstellungsart durch ein Wohlgefallen oder Mißfallen ohne alles Interesse. Der Gegenstand eines solchen Wohlgefallens heißt schön.",
+     "en": "Taste is the faculty of judging of an object or a method of representing it by an entirely disinterested satisfaction or dissatisfaction. The object of such satisfaction is called beautiful."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n226/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_55"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 211, Z. 2–4"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 55"
+     ]
+    ]
+   },
+   "§6 211.08-09": {
+    "label": {
+     "ru": "§ 6, AA V 211.08–09",
+     "en": "§ 6, AA 5:211.08–09"
+    },
+    "texts": {
+     "de": "Das Schöne ist das, was ohne Begriffe als Object eines allgemeinen Wohlgefallens vorgestellt wird.",
+     "en": "The beautiful is that which apart from concepts is represented as the object of a universal satisfaction"
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n226/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_55"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 211, Z. 8–9"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 55"
+     ]
+    ],
+    "note": "The title of the section. Bernard’s title carries no full stop."
+   },
+   "§6 212.01-05": {
+    "label": {
+     "ru": "§ 6, AA V 212.01–05",
+     "en": "§ 6, AA 5:212.01–05"
+    },
+    "texts": {
+     "de": "Folglich muß dem Geschmacksurtheile mit dem Bewußtsein der Absonderung in demselben von allem Interesse ein Anspruch auf Gültigkeit für jedermann ohne auf Objecte gestellte Allgemeinheit anhängen, d. i. es muß damit ein Anspruch auf subjective Allgemeinheit verbunden sein.",
+     "en": "Consequently the judgement of taste, accompanied with the consciousness of separation from all interest, must claim validity for every one, without this universality depending on Objects. That is, there must be bound up with it a title to subjective universality."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n227/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_56"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 212, Z. 1–5"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 56"
+     ]
+    ]
+   },
+   "§7 212.19-23": {
+    "label": {
+     "ru": "§ 7, AA V 212.19–23",
+     "en": "§ 7, AA 5:212.19–23"
+    },
+    "texts": {
+     "de": "Darüber in der Absicht zu streiten, um das Urtheil anderer, welches von dem unsrigen verschieden ist, gleich als ob es diesem logisch entgegen gesetzt wäre, für unrichtig zu schelten, wäre Thorheit; in Ansehung des Angenehmen gilt also der Grundsatz: ein jeder hat seinen eigenen Geschmack (der Sinne).",
+     "en": "To strive here with the design of reproving as incorrect another man’s judgement which is different from our own, as if the judgements were logically opposed, would be folly. As regards the pleasant therefore the fundamental proposition is valid, every one has his own taste (the taste of Sense)."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n227/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_57"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 212, Z. 19–23"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 57"
+     ]
+    ]
+   },
+   "§7 212.30-34": {
+    "label": {
+     "ru": "§ 7, AA V 212.30–34",
+     "en": "§ 7, AA 5:212.30–34"
+    },
+    "texts": {
+     "de": "Reiz und Annehmlichkeit mag für ihn vieles haben, darum bekümmert sich niemand; wenn er aber etwas für schön ausgiebt, so muthet er andern eben dasselbe Wohlgefallen zu: er urtheilt nicht bloß für sich, sondern für jedermann und spricht alsdann von der Schönheit, als wäre sie eine Eigenschaft der Dinge.",
+     "en": "Many things may have for him charm and pleasantness; no one troubles himself at that; but if he gives out anything as beautiful, he supposes in others the same satisfaction—he judges not merely for himself, but for every one, and speaks of beauty as if it were a property of things."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n227/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_57"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 212, Z. 30–34"
+     ],
+     [
+      "en",
+      "Bernard 1914, pp. 57–58"
+     ]
+    ]
+   },
+   "§8 216.09-18": {
+    "label": {
+     "ru": "§ 8, AA V 216.09–18",
+     "en": "§ 8, AA 5:216.09–18"
+    },
+    "texts": {
+     "de": "Hier ist nun zu sehen, daß in dem Urtheile des Geschmacks nichts postulirt wird, als eine solche allgemeine Stimme in Ansehung des Wohlgefallens ohne Vermittelung der Begriffe; mithin die Möglichkeit eines ästhetischen Urtheils, welches zugleich als für jedermann gültig betrachtet werden könne. Das Geschmacksurtheil selber postulirt nicht jedermanns Einstimmung (denn das kann nur ein logisch allgemeines, weil es Gründe anführen kann, thun); es sinnt nur jedermann diese Einstimmung an, als einen Fall der Regel, in Ansehung dessen es die Bestätigung nicht von Begriffen, sondern von anderer Beitritt erwartet. Die allgemeine Stimme ist also nur eine Idee (worauf sie beruhe, wird hier noch nicht untersucht).",
+     "en": "We may see now that in the judgement of taste nothing is postulated but such a universal voice, in respect of the satisfaction without the intervention of concepts; and thus the possibility of an aesthetical judgement that can, at the same time, be regarded as valid for every one. The judgement of taste itself does not postulate the agreement of every one (for that can only be done by a logically universal judgement because it can adduce reasons); it only imputes this agreement to every one, as a case of the rule in respect of which it expects, not confirmation by concepts, but assent from others. The universal voice is, therefore, only an Idea (we do not yet inquire upon what it rests)."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n231/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_62"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 216, Z. 9–18"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 62"
+     ]
+    ]
+   },
+   "§9 217.21-29": {
+    "label": {
+     "ru": "§ 9, AA V 217.21–29",
+     "en": "§ 9, AA 5:217.21–29"
+    },
+    "texts": {
+     "de": "Die Erkenntnißkräfte, die durch diese Vorstellung ins Spiel gesetzt werden, sind hiebei in einem freien Spiele, weil kein bestimmter Begriff sie auf eine besondere Erkenntnißregel einschränkt. Also muß der Gemüthszustand in dieser Vorstellung der eines Gefühls des freien Spiels der Vorstellungskräfte an einer gegebenen Vorstellung zu einem Erkenntnisse überhaupt sein. Nun gehören zu einer Vorstellung, wodurch ein Gegenstand gegeben wird, damit überhaupt daraus Erkenntniß werde, Einbildungskraft für die Zusammensetzung des Mannigfaltigen der Anschauung und Verstand für die Einheit des Begriffs, der die Vorstellungen vereinigt.",
+     "en": "The cognitive powers, which are involved by this representation, are here in free play, because no definite concept limits them to a particular rule of cognition. Hence, the state of mind in this representation must be a feeling of the free play of the representative powers in a given representation with reference to a cognition in general. Now a representation by which an object is given, that is to become a cognition in general, requires Imagination, for the gathering together the manifold of intuition, and Understanding, for the unity of the concept uniting the representations."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n232/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_64"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 217, Z. 21–29"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 64"
+     ]
+    ]
+   },
+   "§9 218.08-14": {
+    "label": {
+     "ru": "§ 9, AA V 218.08–14",
+     "en": "§ 9, AA 5:218.08–14"
+    },
+    "texts": {
+     "de": "Diese bloß subjective (ästhetische) Beurtheilung des Gegenstandes, oder der Vorstellung, wodurch er gegeben wird, geht nun vor der Lust an demselben vorher und ist der Grund dieser Lust an der Harmonie der Erkenntnißvermögen; auf jener Allgemeinheit aber der subjectiven Bedingungen der Beurtheilung der Gegenstände gründet sich allein diese allgemeine subjective Gültigkeit des Wohlgefallens, welches wir mit der Vorstellung des Gegenstandes, den wir schön nennen, verbinden.",
+     "en": "This merely subjective (aesthetical) judging of the object, or of the representation by which it is given, precedes the pleasure in it, and is the ground of this pleasure in the harmony of the cognitive faculties; but on the universality of the subjective conditions for judging of objects is alone based the universal subjective validity of the satisfaction bound up by us with the representation of the object that we call beautiful."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n233/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_65"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 218, Z. 8–14"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 65"
+     ]
+    ]
+   },
+   "§9 219.25": {
+    "label": {
+     "ru": "§ 9, AA V 219.25",
+     "en": "§ 9, AA 5:219.25"
+    },
+    "texts": {
+     "de": "Schön ist das, was ohne Begriff allgemein gefällt.",
+     "en": "The beautiful is that which pleases universally, without a concept."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n234/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_67"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 219, Z. 25"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 67"
+     ]
+    ]
+   },
+   "§15 226.22-23": {
+    "label": {
+     "ru": "§ 15, AA V 226.22–23",
+     "en": "§ 15, AA 5:226.22–23"
+    },
+    "texts": {
+     "de": "Das Geschmacksurtheil ist von dem Begriffe der Vollkommenheit gänzlich unabhängig.",
+     "en": "The judgement of taste is quite independent of the concept of perfection"
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n241/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_77"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 226, Z. 22–23"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 77"
+     ]
+    ],
+    "note": "The title of the section. Bernard’s title carries no full stop."
+   },
+   "§15 227.14-20": {
+    "label": {
+     "ru": "§ 15, AA V 227.14–20",
+     "en": "§ 15, AA 5:227.14–20"
+    },
+    "texts": {
+     "de": "So wie nun Zweck überhaupt dasjenige ist, dessen Begriff als der Grund der Möglichkeit des Gegenstandes selbst angesehen werden kann: so wird, um sich eine objective Zweckmäßigkeit an einem Dinge vorzustellen, der Begriff von diesem, was es für ein Ding sein solle, voran gehen; und die Zusammenstimmung des Mannigfaltigen in demselben zu diesem Begriffe (welcher die Regel der Verbindung desselben an ihm giebt) ist die qualitative Vollkommenheit eines Dinges.",
+     "en": "Now as a purpose in general is that whose concept can be regarded as the ground of the possibility of the object itself; so, in order to represent objective purposiveness in a thing, the concept of what sort of thing it is to be must come first. The agreement of the manifold in it with this concept (which furnishes the rule for combining the manifold) is the qualitative perfection of the thing."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n242/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_78"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 227, Z. 14–20"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 78"
+     ]
+    ]
+   },
+   "§15 228.06-08": {
+    "label": {
+     "ru": "§ 15, AA V 228.06–08",
+     "en": "§ 15, AA 5:228.06–08"
+    },
+    "texts": {
+     "de": "Nun ist das Geschmacksurtheil ein ästhetisches Urtheil, d. i. ein solches, was auf subjectiven Gründen beruht, und dessen Bestimmungsgrund kein Begriff, mithin auch nicht der eines bestimmten Zwecks sein kann.",
+     "en": "Now the judgement of taste is an aesthetical judgement, i.e. such as rests on subjective grounds, the determining ground of which cannot be a concept, and consequently cannot be the concept of a definite purpose."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n243/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_79"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 228, Z. 6–8"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 79"
+     ]
+    ]
+   },
+   "§16 229.10-14": {
+    "label": {
+     "ru": "§ 16, AA V 229.10–14",
+     "en": "§ 16, AA 5:229.10–14"
+    },
+    "texts": {
+     "de": "Es giebt zweierlei Arten von Schönheit: freie Schönheit (pulchritudo vaga), oder die bloß anhängende Schönheit (pulchritudo adhaerens). Die erstere setzt keinen Begriff von dem voraus, was der Gegenstand sein soll; die zweite setzt einen solchen und die Vollkommenheit des Gegenstandes nach demselben voraus.",
+     "en": "There are two kinds of beauty; free beauty (pulchritudo vaga) or merely dependent beauty (pulchritudo adhaerens). The first presupposes no concept of what the object ought to be; the second does presuppose such a concept and the perfection of the object in accordance therewith."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n244/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_81"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 229, Z. 10–14"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 81"
+     ]
+    ]
+   },
+   "§16 229.33-34": {
+    "label": {
+     "ru": "§ 16, AA V 229.33–34",
+     "en": "§ 16, AA 5:229.33–34"
+    },
+    "texts": {
+     "de": "In der Beurtheilung einer freien Schönheit (der bloßen Form nach) ist das Geschmacksurtheil rein.",
+     "en": "In the judging of a free beauty (according to the mere form) the judgement of taste is pure."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n244/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_82"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 229, Z. 33–34"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 82"
+     ]
+    ]
+   },
+   "§17 233.19-25": {
+    "label": {
+     "ru": "§ 17, AA V 233.19–25",
+     "en": "§ 17, AA 5:233.19–25"
+    },
+    "texts": {
+     "de": "Hiezu gehören aber zwei Stücke: erstlich die ästhetische Normalidee, welche eine einzelne Anschauung (der Einbildungskraft) ist, die das Richtmaß seiner Beurtheilung, als eines zu einer besonderen Thierspecies gehörigen Dinges, vorstellt; zweitens die Vernunftidee, welche die Zwecke der Menschheit, sofern sie nicht sinnlich vorgestellt werden können, zum Princip der Beurtheilung seiner Gestalt macht, durch welche als ihre Wirkung in der Erscheinung sich jene offenbaren.",
+     "en": "But there are here two elements. First, there is the aesthetical normal Idea, which is an individual intuition (of the Imagination), representing the standard of our judgement [upon man] as a thing belonging to a particular animal species. Secondly, there is the rational Idea which makes the purposes of humanity, so far as they cannot be sensibly represented, the principle for judging of a figure through which, as their phenomenal effect, those purposes are revealed."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n248/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_86"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 233, Z. 19–25"
+     ],
+     [
+      "en",
+      "Bernard 1914, pp. 86–87"
+     ]
+    ]
+   },
+   "§17 235.12-17": {
+    "label": {
+     "ru": "§ 17, AA V 235.12–17",
+     "en": "§ 17, AA 5:235.12–17"
+    },
+    "texts": {
+     "de": "Von der Normalidee des Schönen ist doch noch das Ideal desselben unterschieden, welches man lediglich an der menschlichen Gestalt aus schon angeführten Gründen erwarten darf. An dieser nun besteht das Ideal in dem Ausdrucke des Sittlichen, ohne welches der Gegenstand nicht allgemein und dazu positiv (nicht bloß negativ in einer schulgerechten Darstellung) gefallen würde.",
+     "en": "We must yet distinguish the normal Idea of the beautiful from the Ideal, which latter, on grounds already alleged, we can only expect in the human figure. In this the Ideal consists in the expression of the moral, without which the object would not please universally and thus positively (not merely negatively in a correct presentation)."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n250/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_89"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 235, Z. 12–17"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 89"
+     ]
+    ]
+   },
+   "§20 237.32-33": {
+    "label": {
+     "ru": "§ 20, AA V 237.32–33",
+     "en": "§ 20, AA 5:237.32–33"
+    },
+    "texts": {
+     "de": "Die Bedingung der Nothwendigkeit, die ein Geschmacksurtheil vorgiebt, ist die Idee eines Gemeinsinnes.",
+     "en": "The condition of necessity which a judgement of taste asserts is the Idea of a common sense"
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n252/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_92"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 237, Z. 32–33"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 92"
+     ]
+    ],
+    "note": "The title of the section. Bernard’s title carries no full stop."
+   },
+   "§20 238.12-16": {
+    "label": {
+     "ru": "§ 20, AA V 238.12–16",
+     "en": "§ 20, AA 5:238.12–16"
+    },
+    "texts": {
+     "de": "Also nur unter der Voraussetzung, daß es einen Gemeinsinn gebe (wodurch wir aber keinen äußern Sinn, sondern die Wirkung aus dem freien Spiel unserer Erkenntnißkräfte verstehen), nur unter Voraussetzung, sage ich, eines solchen Gemeinsinns kann das Geschmacksurtheil gefällt werden.",
+     "en": "Hence it is only under the presupposition that there is a common sense (by which we do not understand an external sense, but the effect resulting from the free play of our cognitive powers)—it is only under this presupposition, I say, that the judgement of taste can be laid down."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n253/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_93"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 238, Z. 12–16"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 93"
+     ]
+    ]
+   },
+   "§22 239.16-19": {
+    "label": {
+     "ru": "§ 22, AA V 239.16–19",
+     "en": "§ 22, AA 5:239.16–19"
+    },
+    "texts": {
+     "de": "In allen Urtheilen, wodurch wir etwas für schön erklären, verstatten wir keinem anderer Meinung zu sein; ohne gleichwohl unser Urtheil auf Begriffe, sondern nur auf unser Gefühl zu gründen: welches wir also nicht als Privatgefühl, sondern als ein gemeinschaftliches zum Grunde legen.",
+     "en": "In all judgements by which we describe anything as beautiful, we allow no one to be of another opinion; without however grounding our judgement on concepts but only on our feeling, which we therefore place at its basis not as a private, but as a communal feeling."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n254/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_94"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 239, Z. 16–19"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 94"
+     ]
+    ]
+   },
+   "§22 239.34-35": {
+    "label": {
+     "ru": "§ 22, AA V 239.34–35",
+     "en": "§ 22, AA 5:239.34–35"
+    },
+    "texts": {
+     "de": "Diese unbestimmte Norm eines Gemeinsinns wird von uns wirklich vorausgesetzt: das beweiset unsere Anmaßung Geschmacksurtheile zu fällen.",
+     "en": "This indeterminate norm of a common sense is actually presupposed by us; as is shown by our claim to lay down judgements of taste."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n254/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_95"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 239, Z. 34–35"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 95"
+     ]
+    ]
+   },
+   "§22 240.18-19": {
+    "label": {
+     "ru": "§ 22, AA V 240.18–19",
+     "en": "§ 22, AA 5:240.18–19"
+    },
+    "texts": {
+     "de": "Schön ist, was ohne Begriff als Gegenstand eines nothwendigen Wohlgefallens erkannt wird.",
+     "en": "The beautiful is that which without any concept is cognised as the object of a necessary satisfaction."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n255/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_96"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 240, Z. 18–19"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 96"
+     ]
+    ]
+   },
+   "§23 244.08-09": {
+    "label": {
+     "ru": "§ 23, AA V 244.08–09",
+     "en": "§ 23, AA 5:244.08–09"
+    },
+    "texts": {
+     "de": "Das Schöne kommt darin mit dem Erhabenen überein, daß beides für sich selbst gefällt.",
+     "en": "The Beautiful and the Sublime agree in this, that both please in themselves."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n259/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_101"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 244, Z. 8–9"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 101"
+     ]
+    ]
+   },
+   "§23 244.23-29": {
+    "label": {
+     "ru": "§ 23, AA V 244.23–29",
+     "en": "§ 23, AA 5:244.23–29"
+    },
+    "texts": {
+     "de": "Das Schöne der Natur betrifft die Form des Gegenstandes, die in der Begränzung besteht; das Erhabene ist dagegen auch an einem formlosen Gegenstande zu finden, sofern Unbegränztheit an ihm oder durch dessen Veranlassung vorgestellt und doch Totalität derselben hinzugedacht wird: so daß das Schöne für die Darstellung eines unbestimmten Verstandesbegriffs, das Erhabene aber eines dergleichen Vernunftbegriffs genommen zu werden scheint.",
+     "en": "The Beautiful in nature is connected with the form of the object, which consists in having boundaries. The Sublime, on the other hand, is to be found in a formless object, so far as in it or by occasion of it boundlessness is represented, and yet its totality is also present to thought. Thus the Beautiful seems to be regarded as the presentation of an indefinite concept of Understanding; the Sublime as that of a like concept of Reason."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n259/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_101"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 244, Z. 23–29"
+     ],
+     [
+      "en",
+      "Bernard 1914, pp. 101–102"
+     ]
+    ]
+   },
+   "§23 245.29-35": {
+    "label": {
+     "ru": "§ 23, AA V 245.29–35",
+     "en": "§ 23, AA 5:245.29–35"
+    },
+    "texts": {
+     "de": "Wir können nicht mehr sagen, als daß der Gegenstand zur Darstellung einer Erhabenheit tauglich sei, die im Gemüthe angetroffen werden kann; denn das eigentliche Erhabene kann in keiner sinnlichen Form enthalten sein, sondern trifft nur Ideen der Vernunft: welche, obgleich keine ihnen angemessene Darstellung möglich ist, eben durch diese Unangemessenheit, welche sich sinnlich darstellen läßt, rege gemacht und ins Gemüth gerufen werden.",
+     "en": "All that we can say is that the object is fit for the presentation of a sublimity which can be found in the mind; for no sensible form can contain the sublime properly so-called. This concerns only Ideas of the Reason, which, although no adequate presentation is possible for them, by this inadequacy that admits of sensible presentation, are aroused and summoned into the mind."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n260/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_103"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 245, Z. 29–35"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 103"
+     ]
+    ]
+   },
+   "§24 247.20-22": {
+    "label": {
+     "ru": "§ 24, AA V 247.20–22",
+     "en": "§ 24, AA 5:247.20–22"
+    },
+    "texts": {
+     "de": "Aber eine Eintheilung hat die Analysis des Erhabenen nöthig, welche die des Schönen nicht bedarf, nämlich die in das Mathematisch- und in das Dynamisch-Erhabene.",
+     "en": "But the analysis of the Sublime involves a division not needed in the case of the Beautiful, viz. a division into the mathematically and the dynamically sublime."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n262/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_105"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 247, Z. 20–22"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 105"
+     ]
+    ]
+   },
+   "§25 248.05": {
+    "label": {
+     "ru": "§ 25, AA V 248.05",
+     "en": "§ 25, AA 5:248.05"
+    },
+    "texts": {
+     "de": "Erhaben nennen wir das, was schlechthin groß ist.",
+     "en": "We call that sublime which is absolutely great."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n263/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_106"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 248, Z. 5"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 106"
+     ]
+    ]
+   },
+   "§25 250.12-13": {
+    "label": {
+     "ru": "§ 25, AA V 250.12–13",
+     "en": "§ 25, AA 5:250.12–13"
+    },
+    "texts": {
+     "de": "Die obige Erklärung kann auch so ausgedrückt werden: Erhaben ist das, mit welchem in Vergleichung alles andere klein ist.",
+     "en": "The foregoing explanation can be thus expressed: the sublime is that in comparison with which everything else is small."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n265/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_109"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 250, Z. 12–13"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 109"
+     ]
+    ]
+   },
+   "§25 250.30-32": {
+    "label": {
+     "ru": "§ 25, AA V 250.30–32",
+     "en": "§ 25, AA 5:250.30–32"
+    },
+    "texts": {
+     "de": "Mithin ist die Geistesstimmung durch eine gewisse die reflectirende Urtheilskraft beschäftigende Vorstellung, nicht aber das Object erhaben zu nennen.",
+     "en": "Consequently it is the state of mind produced by a certain representation with which the reflective Judgement is occupied, and not the Object, that is to be called sublime."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n265/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_110"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 250, Z. 30–32"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 110"
+     ]
+    ]
+   },
+   "§25 250.33-36": {
+    "label": {
+     "ru": "§ 25, AA V 250.33–36",
+     "en": "§ 25, AA 5:250.33–36"
+    },
+    "texts": {
+     "de": "Wir können also zu den vorigen Formeln der Erklärung des Erhabenen noch diese hinzuthun: Erhaben ist, was auch nur denken zu können ein Vermögen des Gemüths beweiset, das jeden Maßstab der Sinne übertrifft.",
+     "en": "We may therefore append to the preceding formulas explaining the sublime this other: the sublime is that, the mere ability to think which, shows a faculty of the mind surpassing every standard of Sense."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n265/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_110"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 250, Z. 33–36"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 110"
+     ]
+    ]
+   },
+   "§26 251.32-252.03": {
+    "label": {
+     "ru": "§ 26, AA V 251.32–252.03",
+     "en": "§ 26, AA 5:251.32–252.03"
+    },
+    "texts": {
+     "de": "Anschaulich ein Quantum in die Einbildungskraft aufzunehmen, um es zum Maße oder als Einheit zur Größenschätzung durch Zahlen brauchen zu können, dazu gehören zwei Handlungen dieses Vermögens: Auffassung (apprehensio) und Zusammenfassung (comprehensio aesthetica). Mit der Auffassung hat es keine Noth: denn damit kann es ins Unendliche gehen; aber die Zusammenfassung wird immer schwerer, je weiter die Auffassung fortrückt, und gelangt bald zu ihrem Maximum, nämlich dem ästhetisch-größten Grundmaße der Größenschätzung.",
+     "en": "In receiving a quantum into the Imagination by intuition, in order to be able to use it for a measure or as a unit for the estimation of magnitude by means of numbers, there are two operations of the Imagination involved: apprehension (apprehensio) and comprehension (comprehensio aesthetica). As to apprehension there is no difficulty, for it can go on ad infinitum; but comprehension becomes harder the further apprehension advances, and soon attains to its maximum, viz. the aesthetically greatest fundamental measure for the estimation of magnitude."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n266/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_111"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 251, Z. 32 – S. 252, Z. 3"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 111"
+     ]
+    ]
+   },
+   "§26 254.28-32": {
+    "label": {
+     "ru": "§ 26, AA V 254.28–32",
+     "en": "§ 26, AA 5:254.28–32"
+    },
+    "texts": {
+     "de": "Das Unendliche aber ist schlechthin (nicht bloß comparativ) groß. Mit diesem verglichen, ist alles andere (von derselben Art Größen) klein. Aber, was das Vornehmste ist, es als ein Ganzes auch nur denken zu können, zeigt ein Vermögen des Gemüths an, welches allen Maßstab der Sinne übertrifft.",
+     "en": "But the infinite is absolutely (not merely comparatively) great. Compared with it everything else (of the same kind of magnitudes) is small. And what is most important is that to be able only to think it as a whole indicates a faculty of mind which surpasses every standard of Sense."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n269/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_115"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 254, Z. 28–32"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 115"
+     ]
+    ]
+   },
+   "§26 255.14-15": {
+    "label": {
+     "ru": "§ 26, AA V 255.14–15",
+     "en": "§ 26, AA 5:255.14–15"
+    },
+    "texts": {
+     "de": "Erhaben ist also die Natur in derjenigen ihrer Erscheinungen, deren Anschauung die Idee ihrer Unendlichkeit bei sich führt.",
+     "en": "Nature is therefore sublime in those of its phenomena, whose intuition brings with it the Idea of their infinity."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n270/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_116"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 255, Z. 14–15"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 116"
+     ]
+    ]
+   },
+   "§27 257.09-10": {
+    "label": {
+     "ru": "§ 27, AA V 257.09–10",
+     "en": "§ 27, AA 5:257.09–10"
+    },
+    "texts": {
+     "de": "Das Gefühl der Unangemessenheit unseres Vermögens zur Erreichung einer Idee, die für uns Gesetz ist, ist Achtung.",
+     "en": "The feeling of our incapacity to attain to an Idea, which is a law for us, is RESPECT."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n272/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_119"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 257, Z. 9–10"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 119"
+     ]
+    ]
+   },
+   "§27 257.27-32": {
+    "label": {
+     "ru": "§ 27, AA V 257.27–32",
+     "en": "§ 27, AA 5:257.27–32"
+    },
+    "texts": {
+     "de": "Das Gefühl des Erhabenen ist also ein Gefühl der Unlust aus der Unangemessenheit der Einbildungskraft in der ästhetischen Größenschätzung zu der Schätzung durch die Vernunft und eine dabei zugleich erweckte Lust aus der Übereinstimmung eben dieses Urtheils der Unangemessenheit des größten sinnlichen Vermögens mit Vernunftideen, sofern die Bestrebung zu denselben doch für uns Gesetz ist.",
+     "en": "The feeling of the Sublime is therefore a feeling of pain, arising from the want of accordance between the aesthetical estimation of magnitude formed by the Imagination and the estimation of the same formed by Reason. There is at the same time a pleasure thus excited, arising from the correspondence with rational Ideas of this very judgement of the inadequacy of our greatest faculty of Sense; in so far as it is a law for us to strive after these Ideas."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n272/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_119"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 257, Z. 27–32"
+     ],
+     [
+      "en",
+      "Bernard 1914, pp. 119–120"
+     ]
+    ]
+   },
+   "§27 258.10-14": {
+    "label": {
+     "ru": "§ 27, AA V 258.10–14",
+     "en": "§ 27, AA 5:258.10–14"
+    },
+    "texts": {
+     "de": "Das Gemüth fühlt sich in der Vorstellung des Erhabenen in der Natur bewegt: da es in dem ästhetischen Urtheile über das Schöne derselben in ruhiger Contemplation ist. Diese Bewegung kann (vornehmlich in ihrem Anfange) mit einer Erschütterung verglichen werden, d. i. mit einem schnellwechselnden Abstoßen und Anziehen eben desselben Objects.",
+     "en": "The mind feels itself moved in the representation of the Sublime in nature; whilst in aesthetical judgements about the Beautiful it is in restful contemplation. This movement may (especially in its beginnings) be compared to a vibration, i.e. to a quickly alternating attraction towards, and repulsion from, the same Object."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n273/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_120"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 258, Z. 10–14"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 120"
+     ]
+    ]
+   },
+   "§28 260.12-15": {
+    "label": {
+     "ru": "§ 28, AA V 260.12–15",
+     "en": "§ 28, AA 5:260.12–15"
+    },
+    "texts": {
+     "de": "Macht ist ein Vermögen, welches großen Hindernissen überlegen ist. Eben dieselbe heißt eine Gewalt, wenn sie auch dem Widerstande dessen, was selbst Macht besitzt, überlegen ist. Die Natur, im ästhetischen Urtheile als Macht, die über uns keine Gewalt hat, betrachtet, ist dynamisch-erhaben.",
+     "en": "Might is that which is superior to great hindrances. It is called dominion if it is superior to the resistance of that which itself possesses might. Nature considered in an aesthetical judgement as might that has no dominion over us, is dynamically sublime."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n275/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_123"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 260, Z. 12–15"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 123"
+     ]
+    ]
+   },
+   "§28 260.27-30": {
+    "label": {
+     "ru": "§ 28, AA V 260.27–30",
+     "en": "§ 28, AA 5:260.27–30"
+    },
+    "texts": {
+     "de": "Man kann aber einen Gegenstand als furchtbar betrachten, ohne sich vor ihm zu fürchten, wenn wir ihn nämlich so beurtheilen, daß wir uns bloß den Fall denken, da wir ihm etwa Widerstand thun wollten, und daß alsdann aller Widerstand bei weitem vergeblich sein würde.",
+     "en": "But we can regard an object as fearful, without being afraid of it; viz. if we judge of it in such a way that we merely think a case in which we would wish to resist it, and yet in which all resistance would be altogether vain."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n275/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_124"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 260, Z. 27–30"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 124"
+     ]
+    ]
+   },
+   "§28 261.19-24": {
+    "label": {
+     "ru": "§ 28, AA V 261.19–24",
+     "en": "§ 28, AA 5:261.19–24"
+    },
+    "texts": {
+     "de": "Aber ihr Anblick wird nur um desto anziehender, je furchtbarer er ist, wenn wir uns nur in Sicherheit befinden; und wir nennen diese Gegenstände gern erhaben, weil sie die Seelenstärke über ihr gewöhnliches Mittelmaß erhöhen und ein Vermögen zu widerstehen von ganz anderer Art in uns entdecken lassen, welches uns Muth macht, uns mit der scheinbaren Allgewalt der Natur messen zu können.",
+     "en": "But the sight of them is the more attractive, the more fearful it is, provided only that we are in security; and we readily call these objects sublime, because they raise the energies of the soul above their accustomed height, and discover in us a faculty of resistance of a quite different kind, which gives us courage to measure ourselves against the apparent almightiness of nature."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n276/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_125"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 261, Z. 19–24"
+     ],
+     [
+      "en",
+      "Bernard 1914, p. 125"
+     ]
+    ]
+   },
+   "§28 261.25-262.13": {
+    "label": {
+     "ru": "§ 28, AA V 261.25–262.13",
+     "en": "§ 28, AA 5:261.25–262.13"
+    },
+    "texts": {
+     "de": "Denn so wie wir zwar an der Unermeßlichkeit der Natur und der Unzulänglichkeit unseres Vermögens einen der ästhetischen Größenschätzung ihres Gebiets proportionirten Maßstab zu nehmen unsere eigene Einschränkung, gleichwohl aber doch auch an unserm Vernunftvermögen zugleich einen andern, nicht-sinnlichen Maßstab, welcher jene Unendlichkeit selbst als Einheit unter sich hat, gegen den alles in der Natur klein ist, mithin in unserm Gemüthe eine Überlegenheit über die Natur selbst in ihrer Unermeßlichkeit fanden: so giebt auch die Unwiderstehlichkeit ihrer Macht uns, als Naturwesen betrachtet, zwar unsere physische Ohnmacht zu erkennen, aber entdeckt zugleich ein Vermögen, uns als von ihr unabhängig zu beurtheilen, und eine Überlegenheit über die Natur, worauf sich eine Selbsterhaltung von ganz andrer Art gründet, als diejenige ist, die von der Natur außer uns angefochten und in Gefahr gebracht werden kann, wobei die Menschheit in unserer Person unerniedrigt bleibt, obgleich der Mensch jener Gewalt unterliegen müßte. Auf solche Weise wird die Natur in unserm ästhetischen Urtheile nicht, sofern sie furchterregend ist, als erhaben beurtheilt, sondern weil sie unsere Kraft (die nicht Natur ist) in uns aufruft, um das, wofür wir besorgt sind, (Güter, Gesundheit und Leben) als klein und daher ihre Macht (der wir in Ansehung dieser Stücke allerdings unterworfen sind) für uns und unsere Persönlichkeit demungeachtet doch für keine solche Gewalt anzusehen, unter die wir uns zu beugen hätten, wenn es auf unsre höchste Grundsätze und deren Behauptung oder Verlassung ankäme. Also heißt die Natur hier erhaben, bloß weil sie die Einbildungskraft zu Darstellung derjenigen Fälle erhebt, in welchen das Gemüth die eigene Erhabenheit seiner Bestimmung selbst über die Natur sich fühlbar machen kann.",
+     "en": "Now, in the immensity of nature, and in the inadequacy of our faculties for adopting a standard proportionate to the aesthetical estimation of the magnitude of its realm, we find our own limitation; although at the same time in our rational faculty we find a different, non-sensuous standard, which has that infinity itself under it as a unit, and in comparison with which everything in nature is small. Thus in our mind we find a superiority to nature even in its immensity. And so also the irresistibility of its might, while making us recognise our own [physical] impotence, considered as beings of nature, discloses to us a faculty of judging independently of, and a superiority over, nature; on which is based a kind of self-preservation, entirely different from that which can be attacked and brought into danger by external nature. Thus, humanity in our person remains unhumiliated, though the individual might have to submit to this dominion. In this way nature is not judged to be sublime in our aesthetical judgements, in so far as it excites fear; but because it calls up that power in us (which is not nature) of regarding as small the things about which we are solicitous (goods, health, and life), and of regarding its might (to which we are no doubt subjected in respect of these things), as nevertheless without any dominion over us and our personality to which we must bow where our highest fundamental propositions, and their assertion or abandonment, are concerned. Therefore nature is here called sublime merely because it elevates the Imagination to a presentation of those cases in which the mind can make felt the proper sublimity of its destination, in comparison with nature itself."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n276/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_125"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 261, Z. 25 – S. 262, Z. 13"
+     ],
+     [
+      "en",
+      "Bernard 1914, pp. 125–126"
+     ]
+    ],
+    "note": "German: the Bonn transcription reads „unterliegen müßte, auf solche Weise“; the printed page (S. 262, Z. 2) has a full stop and a new sentence, „unterliegen müßte. Auf solche Weise“, and Bernard translates two sentences."
+   },
+   "§48 311.14-29": {
+    "label": {
+     "ru": "§ 48, AA V 311.14–29",
+     "en": "§ 48, AA 5:311.14–29"
+    },
+    "texts": {
+     "de": "Eine Naturschönheit ist ein schönes Ding; die Kunstschönheit ist eine schöne Vorstellung von einem Dinge.\n\nUm eine Naturschönheit als eine solche zu beurtheilen, brauche ich nicht vorher einen Begriff davon zu haben, was der Gegenstand für ein Ding sein solle; d. i. ich habe nicht nöthig, die materiale Zweckmäßigkeit (den Zweck) zu kennen, sondern die bloße Form ohne Kenntniß des Zwecks gefällt in der Beurtheilung für sich selbst. Wenn aber der Gegenstand für ein Product der Kunst gegeben ist und als solches für schön erklärt werden soll: so muß, weil Kunst immer einen Zweck in der Ursache (und deren Causalität) voraussetzt, zuerst ein Begriff von dem zum Grunde gelegt werden, was das Ding sein soll; und da die Zusammenstimmung des Mannigfaltigen in einem Dinge zu einer innern Bestimmung desselben als Zweck die Vollkommenheit des Dinges ist, so wird in der Beurtheilung der Kunstschönheit zugleich die Vollkommenheit des Dinges in Anschlag gebracht werden müssen, wornach in der Beurtheilung einer Naturschönheit (als einer solchen) gar nicht die Frage ist.",
+     "en": "A natural beauty is a beautiful thing; artificial beauty is a beautiful representation of a thing.\n\nIn order to judge of a natural beauty as such I need not have beforehand a concept of what sort of thing the object is to be; i.e. I need not know its material purposiveness (the purpose), but its mere form pleases by itself in the act of judging it without any knowledge of the purpose. But if the object is given as a product of art, and as such is to be declared beautiful, then, because art always supposes a purpose in the cause (and its causality), there must be at bottom in the first instance a concept of what the thing is to be. And as the agreement of the manifold in a thing with its inner destination, its purpose, constitutes the perfection of the thing, it follows that in judging of artificial beauty the perfection of the thing must be taken into account; but in judging of natural beauty (as such) there is no question at all about this."
+    },
+    "links": {
+     "de": "https://archive.org/details/kantsgesammeltes05imma/page/n326/mode/1up",
+     "en": "https://www.gutenberg.org/cache/epub/48433/pg48433-images.html#Page_193"
+    },
+    "refs": [
+     [
+      "de",
+      "AA V, S. 311, Z. 14–29"
+     ],
+     [
+      "en",
+      "Bernard 1914, pp. 193–194"
+     ]
+    ],
+    "note": "The first sentence is a paragraph of its own in both editions. Bernard’s sentence runs on after a dash („about this.—It is true …“); the English stops at the full stop, where the German place ends."
+   }
+  },
+  "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our": {
+   "Taste p79": {
+    "label": {
+     "ru": "Введение «О вкусе», с. 79",
+     "en": "Introduction, On Taste, p. 79"
+    },
+    "texts": {
+     "en": "On a superficial view we may seem to differ very widely from each other in our reasonings, and no less in our pleasures: but, notwithstanding this difference, which I think to be rather apparent than real, it is probable that the standard both of reason and taste is the same in all human creatures."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n106/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 79"
+     ]
+    ]
+   },
+   "Taste p81": {
+    "label": {
+     "ru": "Введение «О вкусе», с. 81",
+     "en": "Introduction, On Taste, p. 81"
+    },
+    "texts": {
+     "en": "But to cut off all pretence for cavilling, I mean by the word taste, no more than that faculty or those faculties of the mind, which are affected with, or which form a judgment of, the works of imagination and the elegant arts."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n108/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 81"
+     ]
+    ]
+   },
+   "Taste p95": {
+    "label": {
+     "ru": "Введение «О вкусе», с. 95",
+     "en": "Introduction, On Taste, p. 95"
+    },
+    "texts": {
+     "en": "Whilst we consider taste merely according to its nature and species, we shall find its principles entirely uniform; but the degree in which these principles prevail, in the several individuals of mankind, is altogether as different as the principles themselves are similar. For sensibility and judgment, which are the qualities that compose what we commonly call a taste, vary exceedingly in various people. From a defect in the former of these qualities arises a want of taste; a weakness in the latter constitutes a wrong or a bad one."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n122/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 95"
+     ]
+    ]
+   },
+   "Taste p99": {
+    "label": {
+     "ru": "Введение «О вкусе», с. 99",
+     "en": "Introduction, On Taste, p. 99"
+    },
+    "texts": {
+     "en": "It is known that the taste (whatever it is) is improved exactly as we improve our judgment, by extending our knowledge, by a steady attention to our object, and by frequent exercise."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n126/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 99"
+     ]
+    ]
+   },
+   "I.1 p101a": {
+    "label": {
+     "ru": "Часть I, разд. 1, с. 101",
+     "en": "Part I, sect. 1, p. 101"
+    },
+    "texts": {
+     "en": "The first and the simplest emotion which we discover in the human mind is curiosity. By curiosity I mean whatever desire we have for, or whatever pleasure we take in, novelty."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n128/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 101"
+     ]
+    ]
+   },
+   "I.1 p101b": {
+    "label": {
+     "ru": "Часть I, разд. 1, с. 101",
+     "en": "Part I, sect. 1, p. 101"
+    },
+    "texts": {
+     "en": "But as those things, which engage us merely by their novelty, cannot attach us for any length of time, curiosity is the most superficial of all the affections; it changes its object perpetually; it has an appetite which is very sharp, but very easily satisfied; and it has always an appearance of giddiness, restlessness, and anxiety."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n128/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 101"
+     ]
+    ]
+   },
+   "I.1 p102": {
+    "label": {
+     "ru": "Часть I, разд. 1, с. 102",
+     "en": "Part I, sect. 1, p. 102"
+    },
+    "texts": {
+     "en": "Some degree of novelty must be one of the materials in every instrument which works upon the mind; and curiosity blends itself more or less with all our passions."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n129/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 102"
+     ]
+    ]
+   },
+   "I.3 p106": {
+    "label": {
+     "ru": "Часть I, разд. 3, с. 106",
+     "en": "Part I, sect. 3, p. 106"
+    },
+    "texts": {
+     "en": "In short, pleasure (I mean anything either in the inward sensation, or in the outward appearance, like pleasure from a positive cause) has never, I imagine, its origin from the removal of pain or danger."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n133/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 106"
+     ]
+    ]
+   },
+   "I.4 p107a": {
+    "label": {
+     "ru": "Часть I, разд. 4, с. 107",
+     "en": "Part I, sect. 4, p. 107"
+    },
+    "texts": {
+     "en": "And it is very reasonable that we should distinguish by some term two things so distinct in nature, as a pleasure that is such simply, and without any relation, from that pleasure which cannot exist without a relation, and that, too, a relation to pain."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n134/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 107"
+     ]
+    ]
+   },
+   "I.4 p107b": {
+    "label": {
+     "ru": "Часть I, разд. 4, с. 107",
+     "en": "Part I, sect. 4, p. 107"
+    },
+    "texts": {
+     "en": "Whenever I have occasion to speak of this species of relative pleasure, I call it delight; and I shall take the best care I can to use that word in no other sense."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n134/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 107"
+     ]
+    ]
+   },
+   "I.4 p108": {
+    "label": {
+     "ru": "Часть I, разд. 4, с. 108",
+     "en": "Part I, sect. 4, p. 108"
+    },
+    "texts": {
+     "en": "As I make use of the word delight to express the sensation which accompanies the removal of pain or danger, so, when I speak of positive pleasure, I shall for the most part call it simply pleasure."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n135/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 108"
+     ]
+    ]
+   },
+   "I.7 p110": {
+    "label": {
+     "ru": "Часть I, разд. 7, с. 110",
+     "en": "Part I, sect. 7, p. 110"
+    },
+    "texts": {
+     "en": "Whatever is fitted in any sort to excite the ideas of pain and danger, that is to say, whatever is in any sort terrible, or is conversant about terrible objects, or operates in a manner analogous to terror, is a source of the sublime; that is, it is productive of the strongest emotion which the mind is capable of feeling."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n137/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 110"
+     ]
+    ]
+   },
+   "I.7 p111": {
+    "label": {
+     "ru": "Часть I, разд. 7, с. 111",
+     "en": "Part I, sect. 7, p. 111"
+    },
+    "texts": {
+     "en": "When danger or pain press too nearly, they are incapable of giving any delight, and are simply terrible; but at certain distances, and with certain modifications, they may be, and they are, delightful, as we every day experience."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n138/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 111"
+     ]
+    ]
+   },
+   "II.1 p130": {
+    "label": {
+     "ru": "Часть II, разд. 1, с. 130",
+     "en": "Part II, sect. 1, p. 130"
+    },
+    "texts": {
+     "en": "The passion caused by the great and sublime in nature, when those causes operate most powerfully, is astonishment: and astonishment is that state of the soul in which all its motions are suspended, with some degree of horror. In this case the mind is so entirely filled with its object, that it cannot entertain any other, nor by consequence reason on that object which employs it. Hence arises the great power of the sublime, that, far from being produced by them, it anticipates our reasonings, and hurries us on by an irresistible force. Astonishment, as I have said, is the effect of the sublime in its highest degree; the inferior effects are admiration, reverence, and respect."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n157/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 130"
+     ]
+    ]
+   },
+   "II.2 p130-131": {
+    "label": {
+     "ru": "Часть II, разд. 2, с. 130–131",
+     "en": "Part II, sect. 2, p. 130–131"
+    },
+    "texts": {
+     "en": "No passion so effectually robs the mind of all its powers of acting and reasoning as fear. For fear being an apprehension of pain or death, it operates in a manner that resembles actual pain. Whatever therefore is terrible, with regard to sight, is sublime too, whether this cause of terror be endued with greatness of dimensions or not; for it is impossible to look on anything as trifling, or contemptible, that may be dangerous."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n157/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 130–131"
+     ]
+    ]
+   },
+   "II.2 p131": {
+    "label": {
+     "ru": "Часть II, разд. 2, с. 131",
+     "en": "Part II, sect. 2, p. 131"
+    },
+    "texts": {
+     "en": "Indeed terror is in all cases whatsoever, either more openly or latently, the ruling principle of the sublime."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n158/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 131"
+     ]
+    ]
+   },
+   "II.3 p132": {
+    "label": {
+     "ru": "Часть II, разд. 3, с. 132",
+     "en": "Part II, sect. 3, p. 132"
+    },
+    "texts": {
+     "en": "To make anything very terrible, obscurity seems in general to be necessary. When we know the full extent of any danger, when we can accustom our eyes to it, a great deal of the apprehension vanishes."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n159/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 132"
+     ]
+    ]
+   },
+   "II.4 p133": {
+    "label": {
+     "ru": "Часть II, разд. 4, с. 133",
+     "en": "Part II, sect. 4, p. 133"
+    },
+    "texts": {
+     "en": "It is one thing to make an idea clear, and another to make it affecting to the imagination."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n160/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 133"
+     ]
+    ]
+   },
+   "II.4 p134": {
+    "label": {
+     "ru": "Часть II, разд. 4, с. 134",
+     "en": "Part II, sect. 4, p. 134"
+    },
+    "texts": {
+     "en": "In reality, a great clearness helps but little towards affecting the passions, as it is in some sort an enemy to all enthusiasms whatsoever."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n161/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 134"
+     ]
+    ]
+   },
+   "II.5 p138": {
+    "label": {
+     "ru": "Часть II, разд. 5, с. 138",
+     "en": "Part II, sect. 5, p. 138"
+    },
+    "texts": {
+     "en": "Besides those things which directly suggest the idea of danger, and those which produce a similar effect from a mechanical cause, I know of nothing sublime, which is not some modification of power. And this branch rises, as naturally as the other two branches, from terror, the common stock of everything that is sublime."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n165/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 138"
+     ]
+    ]
+   },
+   "II.5 p139": {
+    "label": {
+     "ru": "Часть II, разд. 5, с. 139",
+     "en": "Part II, sect. 5, p. 139"
+    },
+    "texts": {
+     "en": "That power derives all its sublimity from the terror with which it is generally accompanied, will appear evidently from its effect in the very few cases, in which it may be possible to strip a considerable degree of strength of its ability to hurt. When you do this, you spoil it of everything sublime, and it immediately becomes contemptible."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n166/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 139"
+     ]
+    ],
+    "note": "The scan’s OCR reads a comma after “terror”; the page image shows a speck there and no comma."
+   },
+   "II.5 p145": {
+    "label": {
+     "ru": "Часть II, разд. 5, с. 145",
+     "en": "Part II, sect. 5, p. 145"
+    },
+    "texts": {
+     "en": "Now, as power is undoubtedly a capital source of the sublime, this will point out evidently from whence its energy is derived, and to what class of ideas we ought to unite it."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n172/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 145"
+     ]
+    ]
+   },
+   "II.6 p146": {
+    "label": {
+     "ru": "Часть II, разд. 6, с. 146",
+     "en": "Part II, sect. 6, p. 146"
+    },
+    "texts": {
+     "en": "All general privations are great, because they are all terrible; vacuity, darkness, solitude, and silence."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n173/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 146"
+     ]
+    ]
+   },
+   "II.7 p147": {
+    "label": {
+     "ru": "Часть II, разд. 7, с. 147",
+     "en": "Part II, sect. 7, p. 147"
+    },
+    "texts": {
+     "en": "Greatness of dimension is a powerful cause of the sublime."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n174/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 147"
+     ]
+    ]
+   },
+   "II.8 p148a": {
+    "label": {
+     "ru": "Часть II, разд. 8, с. 148",
+     "en": "Part II, sect. 8, p. 148"
+    },
+    "texts": {
+     "en": "Another source of the sublime is infinity; if it does not rather belong to the last. Infinity has a tendency to fill the mind with that sort of delightful horror, which is the most genuine effect, and truest test of the sublime."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n175/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 148"
+     ]
+    ]
+   },
+   "II.8 p148b": {
+    "label": {
+     "ru": "Часть II, разд. 8, с. 148",
+     "en": "Part II, sect. 8, p. 148"
+    },
+    "texts": {
+     "en": "But the eye not being able to perceive the bounds of many things, they seem to be infinite, and they produce the same effects as if they were really so."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n175/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 148"
+     ]
+    ]
+   },
+   "II.9 p149-150": {
+    "label": {
+     "ru": "Часть II, разд. 9, с. 149–150",
+     "en": "Part II, sect. 9, p. 149–150"
+    },
+    "texts": {
+     "en": "Succession and uniformity of parts are what constitute the artificial infinite. 1. Succession; which is requisite that the parts may be continued so long and in such a direction, as by their frequent impulses on the sense to impress the imagination with an idea of their progress beyond their actual limits. 2. Uniformity; because, if the figures of the parts should be changed, the imagination at every change finds a check; you are presented at every alteration with the termination of one idea, and the beginning of another; by which means it becomes impossible to continue that uninterrupted progression, which alone can stamp on bounded objects the character of infinity."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n176/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 149–150"
+     ]
+    ]
+   },
+   "III.13 p192": {
+    "label": {
+     "ru": "Часть III, разд. 13, с. 192",
+     "en": "Part III, sect. 13, p. 192"
+    },
+    "texts": {
+     "en": "There is a wide difference between admiration and love. The sublime, which is the cause of the former, always dwells on great objects, and terrible; the latter on small ones, and pleasing; we submit to what we admire, but we love what submits to us; in one case we are forced, in the other we are flattered, into compliance. In short, the ideas of the sublime and the beautiful stand on foundations so different, that it is hard, I had almost said impossible, to think of reconciling them in the same subject, without considerably lessening the effect of the one or the other upon the passions. So that, attending to their quantity, beautiful objects are comparatively small."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n219/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 192"
+     ]
+    ]
+   },
+   "III.14 p193": {
+    "label": {
+     "ru": "Часть III, разд. 14, с. 193",
+     "en": "Part III, sect. 14, p. 193"
+    },
+    "texts": {
+     "en": "The next property constantly observable in such objects is smoothness; a quality so essential to beauty, that I do not now recollect anything beautiful that is not smooth."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n220/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 193"
+     ]
+    ],
+    "note": "The Gutenberg transcription reads “a qualify so essential”; the printed page has “a quality so essential”."
+   },
+   "III.16 p195": {
+    "label": {
+     "ru": "Часть III, разд. 16, с. 195",
+     "en": "Part III, sect. 16, p. 195"
+    },
+    "texts": {
+     "en": "An air of robustness and strength is very prejudicial to beauty. An appearance of delicacy, and even of fragility, is almost essential to it."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n222/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 195"
+     ]
+    ]
+   },
+   "III.22 p200": {
+    "label": {
+     "ru": "Часть III, разд. 22, с. 200",
+     "en": "Part III, sect. 22, p. 200"
+    },
+    "texts": {
+     "en": "Gracefulness is an idea not very different from beauty; it consists in much the same things. Gracefulness is an idea belonging to posture and motion. In both these, to be graceful, it is requisite that there be no appearance of difficulty; there is required a small inflection of the body; and a composure of the parts in such a manner, as not to incumber each other, not to appear divided by sharp and sudden angles."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n227/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 200"
+     ]
+    ]
+   },
+   "III.23 p200": {
+    "label": {
+     "ru": "Часть III, разд. 23, с. 200",
+     "en": "Part III, sect. 23, p. 200"
+    },
+    "texts": {
+     "en": "When any body is composed of parts smooth and polished, without pressing upon each other, without showing any ruggedness or confusion, and at the same time affecting some regular shape, I call it elegant. It is closely allied to the beautiful, differing from it only in this regularity; which, however, as it makes a very material difference in the affection produced, may very well constitute another species."
+    },
+    "links": {
+     "en": "https://archive.org/details/cu31924081205100/page/n227/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Works, rev. ed., vol. I (Boston 1865), p. 200"
+     ]
+    ]
+   }
+  }
+ }
+}
