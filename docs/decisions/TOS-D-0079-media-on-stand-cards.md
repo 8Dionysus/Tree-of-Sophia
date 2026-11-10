@@ -114,7 +114,18 @@ has its images. A Commons file whose structured data names the photograph
 copyrighted stays out, and the registry's works without an open copy (a
 fragment of a triptych yet to be marked, drawings of the Louvre and Weimar,
 prints of the Museum of Modern Art, a Munch drawing the Met keeps closed, a
-painting of the Hungarian National Gallery) wait. The viewer writes no style of its own: its
+painting of the Hungarian National Gallery) wait. Antiquity's cards carry art
+of their own: a portrait for twelve of its eighteen authors (the Met's marble
+head of Epicurus, the Nuremberg Chronicle's woodcuts of Xenophon and Plotinus,
+Galle's Zeno, Marcus Aurelius among the emperors), the responses its works
+received (David's Death of Socrates for the Phaedo, Testa's Symposium,
+Saenredam's Cave for the Republic, Raphael's School of Athens for the Timaeus
+and the Ethics Plato and Aristotle hold, the Tree of Porphyry, title pages of
+Lucretius and Epictetus, the Choice of Hercules for the Memorabilia, Diogenes
+with his lantern for the Lives), and motifs of its schools and concepts; it
+keeps the copies of its file images in a layer store of its own. Plutarch,
+Porphyry, Lucretius, Sextus Empiricus and Diogenes Laertius have no portrait
+yet. The viewer writes no style of its own: its
 one touch-screen rule lives in the stand's stylesheet. Stars stay stars; an
 image belongs to the card.
 
