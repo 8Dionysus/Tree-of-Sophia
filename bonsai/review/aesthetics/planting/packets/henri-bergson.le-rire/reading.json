@@ -1,0 +1,431 @@
+{
+ "reader": {
+  "id": "terra-2026-11-10-le-rire",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-10",
+  "reads": "Read Bergson’s French Le Rire in the 1900 Alcan edition against the register readings, using the Wikisource transcription and the Internet Archive scan.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "henri-bergson": {
+    "tree": "tos.agent.henri-bergson"
+   }
+  },
+  "works": {
+   "henri-bergson.le-rire": {
+    "title": {
+     "ru": "Смех. Очерк о значении комического",
+     "en": "Laughter: An Essay on the Meaning of the Comic"
+    },
+    "original": "fr",
+    "tree": "tos.work.henri-bergson.le-rire",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "henri-bergson.le-rire:human-comic",
+   "of": [
+    "A:C006"
+   ],
+   "areas": [
+    "AE06"
+   ],
+   "work": "henri-bergson.le-rire",
+   "locus": "I",
+   "formula": [
+    {
+     "place": "I p3a"
+    }
+   ],
+   "thesis": {
+    "ru": "Комического нет за пределами собственно человеческого.",
+    "en": "There is no comic outside what is properly human."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E092"
+   ],
+   "note": "This sentence grounds the human scope; the sibling conceptions address laughter and correction.",
+   "negation": "Il n’y a pas de comique en dehors de ce qui est proprement humain."
+  },
+  {
+   "id": "henri-bergson.le-rire:indifference",
+   "of": [
+    "A:C006",
+    "A:C055"
+   ],
+   "areas": [
+    "AE06"
+   ],
+   "work": "henri-bergson.le-rire",
+   "locus": "I",
+   "formula": [
+    {
+     "place": "I p4a"
+    }
+   ],
+   "thesis": {
+    "ru": "Смех обычно сопровождается бесчувственностью; естественная среда комического — безразличие.",
+    "en": "Laughter is ordinarily accompanied by insensibility; indifference is the natural medium of the comic."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E092"
+   ]
+  },
+  {
+   "id": "henri-bergson.le-rire:mechanical-image",
+   "of": [
+    "A:C162"
+   ],
+   "areas": [
+    "AE06"
+   ],
+   "work": "henri-bergson.le-rire",
+   "locus": "I",
+   "formula": [
+    {
+     "place": "I p39a"
+    }
+   ],
+   "thesis": {
+    "ru": "Механическое, наложенное на живое, — центральный образ, от которого воображение расходится в разные стороны.",
+    "en": "The mechanical encrusted on the living is a central image from which imagination radiates in divergent directions."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E093"
+   ],
+   "note": "The central image itself names the mechanical on the living; rigidity and its relation to the comic appear in the sibling conception grounded at p. 50."
+  },
+  {
+   "id": "henri-bergson.le-rire:comic-correction",
+   "of": [
+    "A:C006",
+    "A:C164"
+   ],
+   "areas": [
+    "AE06"
+   ],
+   "work": "henri-bergson.le-rire",
+   "locus": "II",
+   "formula": [
+    {
+     "place": "II p89a"
+    }
+   ],
+   "thesis": {
+    "ru": "Комическое выражает несовершенство, требующее немедленного исправления; смех есть это исправление и общественный жест, который подчёркивает и подавляет особую рассеянность людей и событий.",
+    "en": "The comic expresses an imperfection calling for immediate correction; laughter is that correction and a social gesture that marks and represses a particular absent-mindedness of people and events."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E093",
+    "A:E092"
+   ],
+   "note": "The definition of the comic and its mechanical rigidity are stated separately in the sibling conception."
+  },
+  {
+   "id": "henri-bergson.le-rire:inversion",
+   "of": [
+    "A:C063",
+    "A:C006"
+   ],
+   "areas": [
+    "AE06",
+    "AE07"
+   ],
+   "work": "henri-bergson.le-rire",
+   "locus": "II",
+   "formula": [
+    {
+     "place": "II p95a"
+    }
+   ],
+   "thesis": {
+    "ru": "Комическая сцена получается, когда положение переворачивается и роли меняются местами.",
+    "en": "A comic scene results when a situation is reversed and the roles are exchanged."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E094"
+   ]
+  },
+  {
+   "id": "henri-bergson.le-rire:interference",
+   "of": [
+    "A:C165",
+    "A:C006"
+   ],
+   "areas": [
+    "AE06",
+    "AE07"
+   ],
+   "work": "henri-bergson.le-rire",
+   "locus": "II",
+   "formula": [
+    {
+     "place": "II p98a"
+    }
+   ],
+   "thesis": {
+    "ru": "Ситуация комична, когда одновременно принадлежит двум независимым рядам событий и допускает два различных толкования.",
+    "en": "A situation is comic when it belongs at once to two independent series of events and can be interpreted in two different senses."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E094"
+   ]
+  },
+  {
+   "id": "henri-bergson.le-rire:wordplay-distraction",
+   "of": [
+    "A:C166"
+   ],
+   "areas": [
+    "AE06"
+   ],
+   "work": "henri-bergson.le-rire",
+   "locus": "II",
+   "formula": [
+    {
+     "place": "II p124a"
+    }
+   ],
+   "thesis": {
+    "ru": "Игра слов выдаёт мгновенное отвлечение языка и потому забавляет.",
+    "en": "Wordplay reveals a momentary distraction of language and is amusing for that reason."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E095"
+   ],
+   "note": "The sentence treats wordplay; related conceptions cite the author on wit and parody. The register’s literal and figurative collision is not asserted here."
+  },
+  {
+   "id": "henri-bergson.le-rire:social-correction",
+   "of": [
+    "A:C163",
+    "A:C164"
+   ],
+   "areas": [
+    "AE06"
+   ],
+   "work": "henri-bergson.le-rire",
+   "locus": "III",
+   "formula": [
+    {
+     "place": "III p181a"
+    }
+   ],
+   "thesis": {
+    "ru": "Смех исправляет негибкость гибкостью, вновь приспосабливает каждого ко всем и подавляет сепаратистские стремления.",
+    "en": "Laughter corrects rigidity into flexibility, readapts each person to all, and represses separatist tendencies."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E096"
+   ],
+   "note": "This passage states the social correction of rigidity; the comic is addressed in the sibling conception."
+  },
+  {
+   "id": "henri-bergson.le-rire:comic-mechanism",
+   "of": [
+    "A:C006",
+    "A:C163"
+   ],
+   "areas": [
+    "AE06"
+   ],
+   "work": "henri-bergson.le-rire",
+   "locus": "II",
+   "formula": [
+    {
+     "place": "II p89b"
+    }
+   ],
+   "thesis": {
+    "ru": "Комическое — сторона человека, которой он похож на вещь, и сторона человеческих событий, чья особая негибкость подражает механизму, автоматизму и движению без жизни.",
+    "en": "The comic is the side of a person that resembles a thing and the aspect of human events whose particular rigidity imitates mechanism, automatism and movement without life."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E093",
+    "A:E092"
+   ],
+   "note": "The distinct correction of the imperfection is stated in the sibling conception."
+  },
+  {
+   "id": "henri-bergson.le-rire:body-stiffens",
+   "of": [
+    "A:C162",
+    "A:C163",
+    "A:C006"
+   ],
+   "areas": [
+    "AE06"
+   ],
+   "work": "henri-bergson.le-rire",
+   "locus": "I",
+   "formula": [
+    {
+     "place": "I p50a"
+    }
+   ],
+   "thesis": {
+    "ru": "Механическое, наложенное на живое, служит исходным образом: здесь комическое происходит от того, что живое тело закостеневает в машину.",
+    "en": "The mechanical encrusted on the living is the starting image: here the comic comes from the living body stiffening into a machine."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E093"
+   ],
+   "note": "The statement concerns the case discussed here, not an unrestricted formula for every comic effect."
+  },
+  {
+   "id": "henri-bergson.le-rire:parody-transposition",
+   "of": [
+    "A:C052"
+   ],
+   "areas": [
+    "AE06"
+   ],
+   "work": "henri-bergson.le-rire",
+   "locus": "II",
+   "formula": [
+    {
+     "place": "II p126a"
+    }
+   ],
+   "thesis": {
+    "ru": "Пародия возникает при переводе торжественного в фамильный тон.",
+    "en": "Parody arises from transposing the solemn into a familiar tone."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E095"
+   ],
+   "note": "The sentence specifies parody by transposition; the other aspects of the register reading are addressed separately."
+  },
+  {
+   "id": "henri-bergson.le-rire:wit-and-wordplay",
+   "of": [
+    "A:C053",
+    "A:C166"
+   ],
+   "areas": [
+    "AE06"
+   ],
+   "work": "henri-bergson.le-rire",
+   "locus": "II",
+   "formula": [
+    {
+     "place": "II p124b"
+    }
+   ],
+   "thesis": {
+    "ru": "Инверсия и интерференция — игры ума, приводящие к играм слов.",
+    "en": "Inversion and interference are plays of wit that lead to wordplay."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E095"
+   ],
+   "note": "The passage relates wit and wordplay through inversion and interference."
+  }
+ ],
+ "links": [
+  {
+   "id": "the-mechanical-encrusted-on-the-living:is-the-starting-image-for-an-account-of:the-comic",
+   "from_concept": "A:C162",
+   "to_concept": "A:C006",
+   "verb": {
+    "ru": "служит исходным образом для объяснения",
+    "en": "is the starting image for an account of"
+   },
+   "grounds": [
+    "henri-bergson.le-rire:body-stiffens"
+   ],
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:R086"
+   ],
+   "note": "At p. 50 the image is the starting point and the comic in the case discussed comes from the living body stiffening into a machine."
+  },
+  {
+   "id": "rigidity:is-corrected-by:social-correction-by-laughter",
+   "from_concept": "A:C163",
+   "to_concept": "A:C164",
+   "verb": {
+    "ru": "исправляется посредством",
+    "en": "is corrected by"
+   },
+   "grounds": [
+    "henri-bergson.le-rire:social-correction"
+   ],
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:R087"
+   ],
+   "note": "The page describes correction rather than an unconditional causal claim."
+  },
+  {
+   "id": "inversion:produces-a-scene-of:the-comic",
+   "from_concept": "A:C063",
+   "to_concept": "A:C006",
+   "verb": {
+    "ru": "создаёт сцену",
+    "en": "produces a scene of"
+   },
+   "grounds": [
+    "henri-bergson.le-rire:inversion"
+   ],
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:R088"
+   ]
+  },
+  {
+   "id": "interference-of-series:produces-a-situation-of:the-comic",
+   "from_concept": "A:C165",
+   "to_concept": "A:C006",
+   "verb": {
+    "ru": "создаёт ситуацию",
+    "en": "produces a situation of"
+   },
+   "grounds": [
+    "henri-bergson.le-rire:interference"
+   ],
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:R089"
+   ]
+  }
+ ],
+ "left": [
+  {
+   "key": "A:R090",
+   "reason": "The research comparison claims that wordplay creates incongruity; the sentence on wordplay instead describes momentary distraction of language and does not state this relation."
+  }
+ ]
+}

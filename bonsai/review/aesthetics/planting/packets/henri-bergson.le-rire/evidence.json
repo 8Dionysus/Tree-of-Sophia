@@ -1,0 +1,649 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/b21270545/b21270545_hocr_searchtext.txt.gz",
+   "file": "b21270545.ocr.txt",
+   "sha256": "48e223df5cb6c4091397435df67bc538925465f11a47b388ad3414588698368c",
+   "bytes": 270927,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/b21270545/b21270545_hocr_pageindex.json.gz",
+   "file": "b21270545.index.json",
+   "sha256": "3c1615e49580c872e70c3b338c1637198d29c69edb97be5f946a302cc0d4b216",
+   "bytes": 7807,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/b21270545/b21270545_page_numbers.json",
+   "file": "b21270545.pages.json",
+   "sha256": "8b95dfdbc146d4df1a0b2f5322794ff4af4911bce3a2041e2d655acd926ba534",
+   "bytes": 38797,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "transcription",
+   "url": "https://fr.wikisource.org/api/rest_v1/page/html/Le_Rire._Essai_sur_la_signification_du_comique%2FTexte_entier",
+   "file": "le-rire.html",
+   "sha256": "6a2ec2758a7825b3d4289fde42f62844aaaf37d2400bb2b0b7a047b15d1b5ef2",
+   "bytes": 433859,
+   "fetched": "2026-11-10",
+   "text": "le-rire.html.txt"
+  }
+ ],
+ "scan": {
+  "item": "b21270545",
+  "ocr": true,
+  "long_s": false,
+  "image_offset": -1
+ },
+ "persons": [
+  {
+   "qid": "Q42156",
+   "name": {
+    "en": "Henri Bergson",
+    "ru": "Анри Бергсон"
+   },
+   "role": "author",
+   "died": 1941,
+   "source": "https://www.wikidata.org/wiki/Q42156"
+  }
+ ],
+ "published": 1900,
+ "images": [
+  {
+   "n": 20,
+   "file": "b21270545-n20.jpg",
+   "sha256": "401212050ca9b189b795b157b8b6c5379329b15b11da0f8283933da7a42b0ca8",
+   "by": "maker"
+  },
+  {
+   "n": 16,
+   "file": "b21270545-n16.jpg",
+   "sha256": "589bcba732d997778e7d67054d49015f88a593e4957ae6a4dcd6cd9a9076b8ed",
+   "by": "maker"
+  },
+  {
+   "n": 23,
+   "file": "b21270545-n23.jpg",
+   "sha256": "ccef85fbef3c6d4d0b564c54ede15343cb4c4f786d4a3115bf3ddf3674820d56",
+   "by": "maker"
+  },
+  {
+   "n": 108,
+   "file": "b21270545-n108.jpg",
+   "sha256": "0c541e2836b3b4b41d86921b000620ece32f654bb2ec6dc61c09d19d65d71c42",
+   "by": "maker"
+  },
+  {
+   "n": 109,
+   "file": "b21270545-n109.jpg",
+   "sha256": "e2ae01e6f98a69216d5bee439fc5aca6ad5bdc03b0bf1d075ac56cb25b2ccfd3",
+   "by": "maker"
+  },
+  {
+   "n": 102,
+   "file": "b21270545-n102.jpg",
+   "sha256": "03aa26dff98ca74a68aaa5b851236958fce210b9783a63b6cb114c2449e65071",
+   "by": "maker"
+  },
+  {
+   "n": 17,
+   "file": "b21270545-n17.jpg",
+   "sha256": "88ad23dd00f301ae3cc68dbc121e8430cf117e86fde7dd15d82c8e9487f26091",
+   "by": "maker",
+   "loc": "I p4a"
+  },
+  {
+   "n": 52,
+   "file": "b21270545-n52.jpg",
+   "sha256": "0af0a077f89f557449916e9693070bf45100fbcb0bff13d39914d7af2b7065a6",
+   "by": "maker",
+   "loc": "I p39a"
+  },
+  {
+   "n": 111,
+   "file": "b21270545-n111.jpg",
+   "sha256": "e5a85d9d6e517550f2e193942f1ae5b30a549c947f61b0fa1c3c2db0877e21e8",
+   "by": "maker",
+   "loc": "II p98a"
+  },
+  {
+   "n": 137,
+   "file": "b21270545-n137.jpg",
+   "sha256": "45c64392bdfe6ceff93240b3fec811b22095710e80cd17e8e1ef1393d946ce7e",
+   "by": "maker",
+   "loc": "II p124a"
+  },
+  {
+   "n": 194,
+   "file": "b21270545-n194.jpg",
+   "sha256": "10da58f2c78baa2c9cc6a337bde413f6c69a17e2723073c52718b0469fde7071",
+   "by": "maker",
+   "loc": "III p181a"
+  },
+  {
+   "n": 63,
+   "file": "b21270545-n63.jpg",
+   "sha256": "2436fd0c58186acf99b147c8a5c8f4efb235395afb79585aa7a9878a84c4e50c",
+   "by": "maker"
+  },
+  {
+   "n": 139,
+   "file": "b21270545-n139.jpg",
+   "sha256": "700467960c0feb30b7493243d7f807b3696fd01b7d176535d5daba58832856d2",
+   "by": "maker"
+  },
+  {
+   "n": 17,
+   "file": "b21270545-n17.jpg",
+   "sha256": "88ad23dd00f301ae3cc68dbc121e8430cf117e86fde7dd15d82c8e9487f26091",
+   "by": "second",
+   "loc": "I p4a"
+  },
+  {
+   "n": 52,
+   "file": "b21270545-n52.jpg",
+   "sha256": "0af0a077f89f557449916e9693070bf45100fbcb0bff13d39914d7af2b7065a6",
+   "by": "second",
+   "loc": "I p39a"
+  },
+  {
+   "n": 111,
+   "file": "b21270545-n111.jpg",
+   "sha256": "e5a85d9d6e517550f2e193942f1ae5b30a549c947f61b0fa1c3c2db0877e21e8",
+   "by": "second",
+   "loc": "II p98a"
+  },
+  {
+   "n": 137,
+   "file": "b21270545-n137.jpg",
+   "sha256": "45c64392bdfe6ceff93240b3fec811b22095710e80cd17e8e1ef1393d946ce7e",
+   "by": "second",
+   "loc": "II p124a"
+  },
+  {
+   "n": 194,
+   "file": "b21270545-n194.jpg",
+   "sha256": "10da58f2c78baa2c9cc6a337bde413f6c69a17e2723073c52718b0469fde7071",
+   "by": "second",
+   "loc": "III p181a"
+  },
+  {
+   "n": 102,
+   "file": "b21270545-n102.jpg",
+   "sha256": "03aa26dff98ca74a68aaa5b851236958fce210b9783a63b6cb114c2449e65071",
+   "by": "second",
+   "loc": "II p89a"
+  },
+  {
+   "n": 63,
+   "file": "b21270545-n63.jpg",
+   "sha256": "2436fd0c58186acf99b147c8a5c8f4efb235395afb79585aa7a9878a84c4e50c",
+   "by": "second",
+   "loc": "I p50a"
+  }
+ ],
+ "places": {
+  "I p3a": {
+   "transcription": "le-rire.html",
+   "method": "ocr",
+   "share": 0.933,
+   "leaves": [
+    17
+   ],
+   "printed": [
+    "3"
+   ],
+   "differences": [
+    {
+     "transcription": "",
+     "ocr": "faut le cherclier . I Yoici le premier point sur lequel j'appellerai rattention . II",
+     "leaf": 17,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "dehors",
+     "ocr": "deliors",
+     "leaf": 17,
+     "stands": "transcription"
+    }
+   ]
+  },
+  "I p4a": {
+   "transcription": "le-rire.html",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read all three sentences at p. 4, n17, after correction."
+   },
+   "images": [
+    17
+   ],
+   "method": "image",
+   "share": 0.712
+  },
+  "II p95a": {
+   "transcription": "le-rire.html",
+   "method": "ocr",
+   "share": 0.815,
+   "leaves": [
+    109,
+    110
+   ],
+   "printed": [
+    "95",
+    "96"
+   ],
+   "differences": [
+    {
+     "transcription": "",
+     "ocr": "gU LE RIRE",
+     "leaf": 110,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "vous obtiendrez",
+     "ocr": "a ^ ous obticndrez",
+     "leaf": 110,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "scène",
+     "ocr": "scene",
+     "leaf": 110,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "se",
+     "ocr": "sc",
+     "leaf": 110,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "rôles",
+     "ocr": "roles",
+     "leaf": 110,
+     "stands": "transcription"
+    }
+   ]
+  },
+  "II p98a": {
+   "transcription": "le-rire.html",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read complete sentence at p. 98, n111."
+   },
+   "images": [
+    111
+   ],
+   "method": "image",
+   "share": 0.613
+  },
+  "II p89a": {
+   "transcription": "le-rire.html",
+   "method": "ocr",
+   "share": 0.82,
+   "leaves": [
+    103
+   ],
+   "printed": [
+    "89"
+   ],
+   "differences": [
+    {
+     "transcription": "côté",
+     "ocr": "cote",
+     "leaf": 103,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "elle",
+     "ocr": "cllc",
+     "leaf": 103,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "à",
+     "ocr": "a",
+     "leaf": 103,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "événements",
+     "ocr": "evenements",
+     "leaf": 103,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "d'un",
+     "ocr": "d un",
+     "leaf": 103,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "mécanisme",
+     "ocr": "mecanisme",
+     "leaf": 103,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "l'automatisme",
+     "ocr": "rautomatisme",
+     "leaf": 103,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "mouvement",
+     "ocr": "mouA ^ ement",
+     "leaf": 103,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Il",
+     "ocr": "II",
+     "leaf": 103,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "donc",
+     "ocr": "done",
+     "leaf": 103,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "immédiate",
+     "ocr": "immediate",
+     "leaf": 103,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "même",
+     "ocr": "meme",
+     "leaf": 103,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "réprime",
+     "ocr": "reprime",
+     "leaf": 103,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "spéciale",
+     "ocr": "speciale",
+     "leaf": 103,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "hommes",
+     "ocr": "liommes",
+     "leaf": 103,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "événements",
+     "ocr": "evenements",
+     "leaf": 103,
+     "stands": "transcription"
+    }
+   ]
+  },
+  "I p39a": {
+   "transcription": "le-rire.html",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read complete sentence at p. 39, n52."
+   },
+   "images": [
+    52
+   ],
+   "method": "image",
+   "share": 0.6
+  },
+  "II p124a": {
+   "transcription": "le-rire.html",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read complete sentence at p. 124, n137, after correction."
+   },
+   "images": [
+    137
+   ],
+   "method": "image",
+   "share": 0.636
+  },
+  "III p181a": {
+   "transcription": "le-rire.html",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read both sentences on p. 181 n194, with the two corrections to the 1938 text."
+   },
+   "images": [
+    194
+   ],
+   "method": "ocr",
+   "share": 0.8,
+   "leaves": [
+    195
+   ],
+   "printed": [
+    "181"
+   ],
+   "differences": [
+    {
+     "transcription": "réprimer",
+     "ocr": "reprimer",
+     "leaf": 195,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "séparatiste",
+     "ocr": "separatiste",
+     "leaf": 195,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "rôle",
+     "ocr": "role",
+     "leaf": 195,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "réadapter chacun à tous",
+     "ocr": "readapter cliacun a tons",
+     "leaf": 195,
+     "stands": "transcription"
+    }
+   ]
+  },
+  "I p50a": {
+   "transcription": "le-rire.html",
+   "dropped": [
+    "II\\s*—\\s*"
+   ],
+   "method": "ocr",
+   "share": 0.77,
+   "leaves": [
+    64
+   ],
+   "printed": [
+    "50"
+   ],
+   "differences": [
+    {
+     "transcription": "où",
+     "ocr": "oi ^ i",
+     "leaf": 64,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "devions",
+     "ocr": "devious",
+     "leaf": 64,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "suivi maintenant",
+     "ocr": "suivimaintenant",
+     "leaf": 64,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "première",
+     "ocr": "premiere",
+     "leaf": 64,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "à",
+     "ocr": "a",
+     "leaf": 64,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "où",
+     "ocr": "ori",
+     "leaf": 64,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "",
+     "ocr": "II . -",
+     "leaf": 64,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "mécanique plaqué",
+     "ocr": "mecanique plaque",
+     "leaf": 64,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "voilà",
+     "ocr": "voila",
+     "leaf": 64,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "départ",
+     "ocr": "depart",
+     "leaf": 64,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "D'où venait",
+     "ocr": "D'ou venail",
+     "leaf": 64,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "?",
+     "ocr": ". ^",
+     "leaf": 64,
+     "stands": "transcription"
+    }
+   ]
+  },
+  "II p126a": {
+   "transcription": "le-rire.html",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    140
+   ],
+   "printed": [
+    "126"
+   ],
+   "differences": []
+  },
+  "II p89b": {
+   "transcription": "le-rire.html",
+   "method": "ocr",
+   "share": 0.826,
+   "leaves": [
+    103
+   ],
+   "printed": [
+    "89"
+   ],
+   "differences": [
+    {
+     "transcription": "côté",
+     "ocr": "cote",
+     "leaf": 103,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "elle",
+     "ocr": "cllc",
+     "leaf": 103,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "à",
+     "ocr": "a",
+     "leaf": 103,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "événements",
+     "ocr": "evenements",
+     "leaf": 103,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "d'un",
+     "ocr": "d un",
+     "leaf": 103,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "mécanisme",
+     "ocr": "mecanisme",
+     "leaf": 103,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "l'automatisme",
+     "ocr": "rautomatisme",
+     "leaf": 103,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "mouvement",
+     "ocr": "mouA ^ ement",
+     "leaf": 103,
+     "stands": "transcription"
+    }
+   ]
+  },
+  "II p124b": {
+   "transcription": "le-rire.html",
+   "method": "ocr",
+   "share": 0.9,
+   "leaves": [
+    138
+   ],
+   "printed": [
+    "124"
+   ],
+   "differences": [
+    {
+     "transcription": "interférence",
+     "ocr": "interference",
+     "leaf": 138,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "à",
+     "ocr": "a",
+     "leaf": 138,
+     "stands": "transcription"
+    }
+   ]
+  }
+ }
+}
