@@ -117,6 +117,9 @@ export function fieldIssues(module,{registry=null,library=null,works=null,placeI
       if(!work)problems.push(`${at}: its work ${conception.work} is not in the library`);
       if(!Array.isArray(conception.agents)||!conception.agents.length)problems.push(`${at}: names no author`);
       for(const agent of conception.agents??[])if(!library.agents?.[agent])problems.push(`${at}: unknown author ${agent}`);
+      if(work&&Array.isArray(conception.agents)&&Array.isArray(work.agents)&&
+        (conception.agents.length!==work.agents.length||new Set(conception.agents).size!==work.agents.length||work.agents.some(agent=>!conception.agents.includes(agent))))
+        problems.push(`${at}: authors differ from its work ${conception.work}`);
     }
     if(conception.voice!==undefined&&!bilingual(conception.voice))problems.push(`${at}: voice in one language`);
     if(typeof conception.locus!=='string'||!conception.locus.trim())problems.push(`${at}: no locator`);

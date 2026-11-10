@@ -47,6 +47,7 @@ describe('the Aesthetics field',()=>{
     expect(changed(copy=>{copy.conceptions[0].of=['no-such-concept'];})).toContain('conception plato.symposium:ascent: unknown concept no-such-concept');
     expect(changed(copy=>{delete copy.conceptions[0].thesis.en;})).toContain('conception plato.symposium:ascent: no thesis in both languages');
     expect(changed(copy=>{copy.conceptions[0].work='plato.phaedrus';})).toContain('conception plato.symposium:ascent: its work plato.phaedrus is not in the library');
+    expect(changed(copy=>{copy.conceptions[0].agents=['aristotle'];})).toContain('conception plato.symposium:ascent: authors differ from its work plato.symposium');
   });
   it('rests every link on conceptions it holds and names it by a verb',()=>{
     for(const link of field.links)expect(link.grounds.every(ground=>field.conceptions.some(conception=>conception.id===ground)),link.id).toBe(true);
