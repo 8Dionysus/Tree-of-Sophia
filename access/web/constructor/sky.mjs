@@ -98,9 +98,9 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   const mixHex=(a,b,t)=>{if(t<=0)return a;const step=Math.round(Math.min(1,t)*128),key=a+b+step;let mixed=mixes.get(key);if(mixed)return mixed;
     const p=x=>[1,3,5].map(i=>parseInt(x.slice(i,i+2),16)),A=p(a),B=p(b);mixed='#'+A.map((v,i)=>Math.round(v+(B[i]-v)*step/128).toString(16).padStart(2,'0')).join('');
     if(mixes.size>4096)mixes.clear();mixes.set(key,mixed);return mixed;};
-  // A star or a link keeps the tint it took last, so a frame that leaves its step of depth where it was mixes nothing.
-  const tint=(holder,a,b,t)=>{if(t<=0)return a;const step=Math.round(Math.min(1,t)*128);
-    if(holder.tintA!==a||holder.tintB!==b||holder.tintStep!==step){holder.tintA=a;holder.tintB=b;holder.tintStep=step;holder.tinted=mixHex(a,b,t);}return holder.tinted;};
+  // A star or a link keeps the tints it has taken, one for each step of depth, so a step it has stood at mixes nothing again.
+  const tint=(holder,a,b,t)=>{if(t<=0)return a;if(holder.tintA!==a||holder.tintB!==b){holder.tintA=a;holder.tintB=b;holder.tints=[];}
+    return holder.tints[Math.round(Math.min(1,t)*128)]??=mixHex(a,b,t);};
   // The paper is a shade under white, so the noon light can stand brighter than it; washes of warm umber, lilac and
   // sage lie toward the edges as the day's coloured shadow, never round the tree.
   // The day's textures are soft, so they are kept small: they share one atlas with the night's on the GPU.
@@ -153,7 +153,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   // The resting middle of the scene, kept from the last full frame (`layered`), and what turns in it with the sky's time:
   // a chosen star's orbit, a waiting star's broken halo and a chosen link's spark, drawn over it each frame.
   let layered=null,keptRun=null,turningStars=[],spark=null;
-  const AMBIENT_FRAME=1000/22,TOUCHED=new WeakMap();
+  const AMBIENT_FRAME=1000/22,WRITTEN=Symbol('written');
   // The interval between frames of a moving view, from what its full frames have cost on this device: at the display's
   // rate while a frame's script takes under about nine and a half milliseconds, thirty frames a second under thirteen,
   // twenty above. A pace steps only once the cost is clearly past its limit, so it never flickers between two.
@@ -164,7 +164,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     return MOTION_FRAMES[pace];
   };
   // A style or attribute is written only when it changes, so a frame that leaves a button where it was costs it nothing.
-  const put=(el,key,value)=>{let had=TOUCHED.get(el);if(!had){had={};TOUCHED.set(el,had);}if(had[key]===value)return false;had[key]=value;return true;};
+  const put=(el,key,value)=>{const had=el[WRITTEN]??(el[WRITTEN]={});if(had[key]===value)return false;had[key]=value;return true;};
   const setStyle=(el,name,value)=>{if(put(el,name,value))el.style[name]=value;};
   const setVar=(el,name,value)=>{if(put(el,name,value))el.style.setProperty(name,value);};
   const setData=(el,name,value)=>{if(put(el,'data-'+name,value))el.dataset[name]=value;};
