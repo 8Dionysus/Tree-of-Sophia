@@ -157,17 +157,21 @@ the resting middle of the scene is laid again as the last full frame drew it,
 the names and buttons stay where they stand, and the sky goes on at about
 twenty frames a second. While the scene moves, a star's button follows its
 star when the star shows (its name stands or fades, it is pointed at, chosen,
-held, focused or aimed at); the other buttons are clear and come to their stars
-once the scene rests, and until then a click on the sky beside such a star
-chooses it. Every style and attribute is written only when it changes. The GPU
+held, focused or aimed at) and moves in a layer of its own; the other buttons
+are clear, lie in the page's layer and come to their stars once the scene
+rests, and until then a click on the sky beside such a star chooses it. Every
+style and attribute is written only when it changes. A name's place is tested
+against the stars near it, which the frame finds by cells of the screen
+([`star-cells.mjs`](constructor/star-cells.mjs)). The GPU
 painter draws a whole ring in one quad, at the weight of the polygon the
 Canvas2D painter draws. Panels whose ground is at least 93% opaque carry the same ground made
 opaque in place of a backdrop blur: the picture stays the same, and the moving
 sky behind them is composited once per frame.
 
 The GPU painter ([`gpu-canvas.js`](src/observatory/gpu-canvas.js)) speaks
-WebGL2 itself: one program, one buffer of quads with four corners each, and one
-atlas texture to which an image travels alone when it is first drawn or
+WebGL2 itself: one program for a buffer of quads with four corners each, one
+for stars, each laid from a single record (its glow, disc, ring and rays), and
+one atlas texture to which an image travels alone when it is first drawn or
 changes. A dashed link's whole dashes and a dotted link's dots lie in one quad
 whose shader repeats them. In the day the painter turns the scene over with
 the page's own colour filter and lays it on the page's paper in one pass of its
