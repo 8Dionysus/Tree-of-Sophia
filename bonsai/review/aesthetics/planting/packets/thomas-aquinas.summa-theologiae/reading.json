@@ -1,0 +1,160 @@
+{
+ "reader": {
+  "id": "terra-2026-11-10-summa-theologiae",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-10",
+  "reads": "The Latin of the Roman edition of 1894, page 318, compared with the register readings of I, question 39, article 8.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "thomas-aquinas": {
+    "tree": "tos.agent.thomas-aquinas"
+   }
+  },
+  "works": {
+   "thomas-aquinas.summa-theologiae": {
+    "title": {
+     "ru": "Сумма теологии",
+     "en": "Summa Theologiae"
+    },
+    "original": "la",
+    "tree": "tos.work.thomas-aquinas.summa-theologiae",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "thomas-aquinas.summa-theologiae:three-requisites-of-beauty",
+   "of": [
+    "A:C001",
+    "A:C105",
+    "A:C103",
+    "A:C106"
+   ],
+   "areas": [
+    "AE01"
+   ],
+   "work": "thomas-aquinas.summa-theologiae",
+   "locus": "I, q. 39, a. 8, corpus",
+   "formula": [
+    {
+     "place": "I q39 a8 p318a"
+    }
+   ],
+   "thesis": {
+    "ru": "Для красоты требуются три вещи: целостность, или совершенство, должная соразмерность, или созвучие, и ясность.",
+    "en": "Beauty requires three things: integrity or perfection, due proportion or harmony, and clarity."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E006"
+   ]
+  },
+  {
+   "id": "thomas-aquinas.summa-theologiae:beautiful-image-of-an-ugly-thing",
+   "of": [
+    "A:C001",
+    "A:C034"
+   ],
+   "areas": [
+    "AE01",
+    "AE03"
+   ],
+   "work": "thomas-aquinas.summa-theologiae",
+   "locus": "I, q. 39, a. 8, corpus",
+   "formula": [
+    {
+     "place": "I q39 a8 p318b"
+    }
+   ],
+   "thesis": {
+    "ru": "Изображение называется прекрасным, если оно совершенно представляет вещь, хотя бы и безобразную.",
+    "en": "An image is called beautiful if it perfectly represents a thing, even if that thing is ugly."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E007"
+   ]
+  }
+ ],
+ "links": [
+  {
+   "id": "the-beautiful:requires:integrity",
+   "from_concept": "A:C001",
+   "to_concept": "A:C105",
+   "verb": {
+    "ru": "требует",
+    "en": "requires"
+   },
+   "grounds": [
+    "thomas-aquinas.summa-theologiae:three-requisites-of-beauty"
+   ],
+   "status": "text",
+   "verdict": "revise",
+   "note": "The verb follows the specific relation stated in the Latin passage rather than the broader register wording.",
+   "from": [
+    "A:R005"
+   ]
+  },
+  {
+   "id": "the-beautiful:requires:clarity-and-radiance",
+   "from_concept": "A:C001",
+   "to_concept": "A:C106",
+   "verb": {
+    "ru": "требует",
+    "en": "requires"
+   },
+   "grounds": [
+    "thomas-aquinas.summa-theologiae:three-requisites-of-beauty"
+   ],
+   "status": "text",
+   "verdict": "revise",
+   "note": "The verb follows the specific relation stated in the Latin passage rather than the broader register wording.",
+   "from": [
+    "A:R006"
+   ]
+  },
+  {
+   "id": "the-beautiful:requires:due-proportion",
+   "from_concept": "A:C001",
+   "to_concept": "A:C103",
+   "verb": {
+    "ru": "требует",
+    "en": "requires"
+   },
+   "grounds": [
+    "thomas-aquinas.summa-theologiae:three-requisites-of-beauty"
+   ],
+   "status": "text",
+   "verdict": "revise",
+   "note": "The verb follows the specific relation stated in the Latin passage rather than the broader register wording.",
+   "from": [
+    "A:R007"
+   ]
+  },
+  {
+   "id": "the-ugly-object-and-its-depiction:can-be-called:the-beautiful",
+   "from_concept": "A:C034",
+   "to_concept": "A:C001",
+   "verb": {
+    "ru": "называется прекрасным при совершенном представлении вещи",
+    "en": "is called beautiful when it perfectly represents the thing"
+   },
+   "grounds": [
+    "thomas-aquinas.summa-theologiae:beautiful-image-of-an-ugly-thing"
+   ],
+   "status": "text",
+   "verdict": "revise",
+   "note": "The verb follows the specific relation stated in the Latin passage rather than the broader register wording.",
+   "from": [
+    "A:R008"
+   ]
+  }
+ ],
+ "left": []
+}

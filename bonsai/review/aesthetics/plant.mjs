@@ -11,12 +11,15 @@
 // node bonsai/lib/layers.mjs fetch access/public-corpus. For a work the corpus does not hold, the record names a
 // place of bonsai/aesthetics/fragments.json, whose text in the original is the formula; this tool refuses a place
 // the module does not hold or one lacking sentence-like outer punctuation; a reader must verify boundaries against the source.
+// An accepted packet of the planting line (planting/packets/<work>/) brings its reading as one more record and
+// its places into fragments.json; `--dry [--packet NAME]` builds everything, checks it and writes nothing.
 
 import {readFileSync,writeFileSync,readdirSync,existsSync} from 'node:fs';
 import {dirname,join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {corpusReader} from '../../lib/corpus-align.mjs';
-import {FIELD_SCHEMA,LIBRARY_SCHEMA} from '../../lib/field.mjs';
+import {FIELD_SCHEMA,LIBRARY_SCHEMA,fieldIssues,libraryIssues} from '../../lib/field.mjs';
+import {externalPlacesIssues} from '../../lib/fragments.mjs';
 import {formulaSpan} from './formula-span.mjs';
 
 const here=dirname(fileURLToPath(import.meta.url)),root=join(here,'..','..','..'),home=join(root,'bonsai','aesthetics');
@@ -35,6 +38,25 @@ const CATEGORY=/^(категория \/ навигационный предме�
 const records=readdirSync(join(here,'readings')).filter(name=>name.endsWith('.json')).sort().map(name=>({name,...json(join(here,'readings',name))}));
 const corpusDir=join(root,'access/web/public/public-corpus'),read=existsSync(join(corpusDir,'manifest.json'))?corpusReader(corpusDir):null;
 const fragments=existsSync(join(home,'fragments.json'))?json(join(home,'fragments.json')):null;
+
+/** The planting line (planting/AGENTS.md): one work made by one reader and read by a second, kept as a packet. An accepted
+ *  packet is planted: its reading joins the records, its places and their provenance join the places module. `--packet NAME`
+ *  reads one more packet as if it were accepted, so that a reader can try the planting before anyone accepts it. */
+const packetsDir=join(here,'planting','packets'),tried=process.argv.includes('--packet')?process.argv[process.argv.indexOf('--packet')+1]:null;
+const packets=(existsSync(packetsDir)?readdirSync(packetsDir,{withFileTypes:true}).filter(entry=>entry.isDirectory()).map(entry=>entry.name).sort():[])
+  .filter(name=>existsSync(join(packetsDir,name,'accepted.json'))||name===tried);
+const seconds=[];
+for(const name of packets){
+  const at=join(packetsDir,name),path=`bonsai/review/aesthetics/planting/packets/${name}`,places=json(join(at,'places.json'));
+  records.push({name:`planting/packets/${name}/reading.json`,path:`${path}/reading.json`,...json(join(at,'reading.json'))});
+  if(existsSync(join(at,'review.json'))){const {reader}=json(join(at,'review.json'));seconds.push({...reader,record:`${path}/review.json`});}
+  if(places.entry)fragments.works[name]=places.entry;
+  if(!fragments.works[name])fail(`packet ${name}: no entry for a work the places module does not hold`);
+  fragments.places[name]={...(places.entry?{}:fragments.places[name]),...places.places};
+  const own=new Set(Object.keys(places.places).map(loc=>`${name} ${loc}`)),seen=fragments.provenance.checked_on_the_page_image;
+  fragments.provenance.corrections=[...fragments.provenance.corrections.filter(correction=>!own.has(correction.place)),...(places.corrections??[])];
+  if(places.checked_on_the_page_image?.length)seen[name]=[...new Set([...(places.entry?[]:seen[name]??[]),...places.checked_on_the_page_image])];
+}
 
 /** The citation of a formula: the unit a record names by its reference and the span between the opening and closing words. */
 function cite(record,conception,formula,libraryWork){
@@ -67,7 +89,7 @@ const field={schema:FIELD_SCHEMA,spec:'bonsai/CORE.md',title:{ru:'Эстетик
     {id:'registers-2026-11',date:'2026-11-07',made:['the areas and their questions','the concepts and their terms','the readings every conception grew from'],record:'bonsai/review/aesthetics/README.md'},
     {id:'claude-2026-11-09',model:'claude-fable-5-2',date:'2026-11-09',made:['the English titles of areas and concepts','the English questions of the areas'],record:'bonsai/review/aesthetics/inputs/'},
   ],
-  readers:records.map(record=>({...record.reader,record:`bonsai/review/aesthetics/readings/${record.name}`})),
+  readers:[...records.map(record=>({...record.reader,record:record.path??`bonsai/review/aesthetics/readings/${record.name}`})),...seconds],
   groups:['A','B','C','D'].map(id=>({id,areas:areasIn.filter(area=>area.group===id).map(area=>areaId[area.id])})),
   areas:areasIn.map(area=>({id:areaId[area.id],n:Number(area.id.slice(2)),group:area.group,type:'tos.entity.navigation-region',title:area.title,question:area.question,grew_from:area.id})),
   concepts:concepts.map(concept=>({id:conceptId[concept.key],type:concept.kinds.some(kind=>CATEGORY.test(kind))?'tos.entity.philosophical-category':'tos.entity.concept',
@@ -112,7 +134,13 @@ function treePath(tree){
 const stored=existsSync(join(home,'identities.json'))?json(join(home,'identities.json')).checked:null;
 identities.checked=stored??{tree_revision:null,date:null,basis:{ru:'Записи ToS/source-witnesses на этой ревизии: «resolved» — Древо уже держит эту идентичность, «to-mint» — её пришлось бы создать маршрутом владельца источника.',en:'ToS/source-witnesses records at this revision: resolved means the Tree already holds the identity; to-mint means its source-owner route would have to create it.'}};
 
-const files={'field.json':field,'library.json':library,'identities.json':identities};
+const files={'field.json':field,'library.json':library,'identities.json':identities,'fragments.json':fragments};
+if(process.argv.includes('--dry')){
+  const problems=[...fieldIssues(field,{library}).map(issue=>`field: ${issue}`),...libraryIssues(library).map(issue=>`library: ${issue}`),...externalPlacesIssues(fragments).map(issue=>`places: ${issue}`)];
+  for(const problem of problems)console.log(problem);
+  console.log(`dry: ${field.conceptions.length} conceptions, ${field.links.length} links, ${Object.keys(fragments.places).length} works with places${tried?`; packet ${tried} read as accepted`:''}`);
+  process.exit(problems.length?1:0);
+}
 const text=value=>`${JSON.stringify(value,null,1)}\n`;
 if(process.argv.includes('--check')){
   let differs=false;

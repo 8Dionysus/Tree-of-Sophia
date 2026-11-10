@@ -1,0 +1,683 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/10119231bsb/10119231bsb_hocr_searchtext.txt.gz",
+   "file": "10119231bsb.ocr.txt",
+   "sha256": "a92a8bea5db97311fe4ccf3c6a23490b526e408fe62e20048b599db9d9e18cda",
+   "bytes": 355711,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/10119231bsb/10119231bsb_hocr_pageindex.json.gz",
+   "file": "10119231bsb.index.json",
+   "sha256": "6ed195051b6287c9f04c8257661ab1ac8d8a34a78bbc2b4fed45191eeecf0a88",
+   "bytes": 13551,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/10119231bsb/10119231bsb_page_numbers.json",
+   "file": "10119231bsb.pages.json",
+   "sha256": "f37b518065e92ce3ab924b31fdb7e3fe847395def2a76a3dd7afa4c35f7b4d39",
+   "bytes": 66741,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "transcription",
+   "url": "https://www.friedrich-schiller-archiv.de/die-horen/die-horen-1795-stueck-2/iii-ueber-aesthetische-erziehung-menschen/",
+   "file": "iii-ueber-aesthetische-erziehung-menschen",
+   "sha256": "f44d0fdd2e0ab3f5c7dc78d7c757e920dee7f758d7ee2f882a99bf8363fe3aac",
+   "bytes": 168035,
+   "fetched": "2026-11-10",
+   "text": "iii-ueber-aesthetische-erziehung-menschen.txt",
+   "why": "DTA https://www.deutschestextarchiv.de/book/show/schiller_erziehung02_1795 offers the 1795 Horen text and identifies Friedrich Schiller Archiv as its transcription provider; Projekt Gutenberg-DE https://projekt-gutenberg.org/authors/friedrich-schiller/books/friedrich-schiller-ueber-die-aesthetische-erziehung-des-menschen/ offers an 1879 text. Neither supplies the selected 1801 printing. These existing cuts retain their Schiller Archiv 1795 provenance and have been corrected against the 1801 scan."
+  },
+  {
+   "role": "transcription",
+   "url": "https://www.friedrich-schiller-archiv.de/die-horen/die-horen-1795-stueck-6/ii-schmelzende-schoenheit/",
+   "file": "ii-schmelzende-schoenheit",
+   "sha256": "2d8ca3a3cdd7535d23837cd2481838b26fa64d51f76519d6e0e360588635dd00",
+   "bytes": 216506,
+   "fetched": "2026-11-10",
+   "text": "ii-schmelzende-schoenheit.txt",
+   "why": "DTA https://www.deutschestextarchiv.de/book/show/schiller_erziehung03_1795 offers the 1795 Horen text from the Friedrich Schiller Archiv transcription; Projekt Gutenberg-DE https://projekt-gutenberg.org/authors/friedrich-schiller/books/friedrich-schiller-ueber-die-aesthetische-erziehung-des-menschen/ offers an 1879 text. Neither supplies the selected 1801 printing. These existing cuts retain their Schiller Archiv 1795 provenance and have been corrected against the 1801 scan."
+  },
+  {
+   "role": "transcription",
+   "url": "https://projekt-gutenberg.org/authors/friedrich-schiller/books/friedrich-schiller-ueber-die-aesthetische-erziehung-des-menschen/chapter/3/",
+   "file": "3",
+   "sha256": "8d75690ee2d81a6d1e713f4f4acb40705b7855283744d75720fd5da381a1561a",
+   "bytes": 201341,
+   "fetched": "2026-11-10",
+   "text": "3.txt"
+  }
+ ],
+ "scan": {
+  "item": "10119231bsb",
+  "ocr": true,
+  "long_s": true,
+  "image_offset": 0
+ },
+ "persons": [
+  {
+   "qid": "Q22670",
+   "name": {
+    "en": "Friedrich Schiller",
+    "ru": "Фридрих Шиллер"
+   },
+   "role": "author",
+   "died": 1805,
+   "source": "https://www.wikidata.org/wiki/Q22670"
+  }
+ ],
+ "published": 1801,
+ "images": [
+  {
+   "n": 130,
+   "file": "briefeberdiesth00junggoog-n130.jpg",
+   "sha256": "c42d9f95493a364e34b340a8c546b197f13ef5fad7cf7a60fff208a60dd43701",
+   "by": "maker"
+  },
+  {
+   "n": 173,
+   "file": "10119231bsb-n173.jpg",
+   "sha256": "fe7a8a643907577a4f80194aabd8595e62b1c955898676ca5b19f9e481889977",
+   "by": "maker",
+   "loc": "XV"
+  },
+  {
+   "n": 174,
+   "file": "10119231bsb-n174.jpg",
+   "sha256": "f82462ab911677e119b1e76cc755bb679754229aa7a3f194c3c2d00a504425b1",
+   "by": "maker",
+   "loc": "XV p165b"
+  },
+  {
+   "n": 168,
+   "file": "10119231bsb-n168.jpg",
+   "sha256": "aaa0378fcb29919c07c7f58ecbe12c2dea23c66e55328854f9261ec2685e9ef1",
+   "by": "maker",
+   "loc": "XIV p159"
+  },
+  {
+   "n": 180,
+   "file": "10119231bsb-n180.jpg",
+   "sha256": "15fb75e101c3b7eae476f6961c2725b60b64e5d4595ea294e779388cb55d8df4",
+   "by": "maker",
+   "loc": "XV p171"
+  },
+  {
+   "n": 245,
+   "file": "10119231bsb-n245.jpg",
+   "sha256": "1287eca36b4ed5900b68cc266663ee1697e7c2310744d302807c6e87ea260a8d",
+   "by": "maker",
+   "loc": "XXIII p236"
+  },
+  {
+   "n": 246,
+   "file": "10119231bsb-n246.jpg",
+   "sha256": "e531fea14844bb06a026a194a1a0f46953638861c5e8878ea6249e528a647a5d",
+   "by": "maker",
+   "loc": "XXIII p236"
+  },
+  {
+   "n": 169,
+   "file": "10119231bsb-n169.jpg",
+   "sha256": "019e00b4fc14480fc17c74350b0cba40f204178ea8ef9190861ddd6e2666cb70",
+   "by": "maker",
+   "loc": "XIV p160"
+  },
+  {
+   "n": 246,
+   "file": "10119231bsb-n246.jpg",
+   "sha256": "e531fea14844bb06a026a194a1a0f46953638861c5e8878ea6249e528a647a5d",
+   "by": "second",
+   "loc": "XXIII p236"
+  },
+  {
+   "n": 181,
+   "file": "10119231bsb-n181.jpg",
+   "sha256": "37b27e8bb79aa5cc86e9ad9258461be0b89de968f04a94a6d6bac785d5c43a66",
+   "by": "maker",
+   "loc": "XV p172a"
+  },
+  {
+   "n": 182,
+   "file": "10119231bsb-n182.jpg",
+   "sha256": "e905193a3c1fb9cb3c055c9b938f2284dfe7e06bceab995a0ce399900a40da5f",
+   "by": "maker",
+   "loc": "XV p172a"
+  },
+  {
+   "n": 225,
+   "file": "10119231bsb-n225.jpg",
+   "sha256": "64cb53fd2c6b0008eeb375adf1213f195f5911101df5f9923139b7c1613b1504",
+   "by": "second",
+   "loc": "XX p216"
+  },
+  {
+   "n": 224,
+   "file": "10119231bsb-n224.jpg",
+   "sha256": "b7c1ba6c208363958804c56cccfb9ee0f4984a1302a2b1a865d54efd261075ba",
+   "by": "maker",
+   "loc": "XX p215b"
+  },
+  {
+   "n": 225,
+   "file": "10119231bsb-n225.jpg",
+   "sha256": "64cb53fd2c6b0008eeb375adf1213f195f5911101df5f9923139b7c1613b1504",
+   "by": "maker",
+   "loc": "XX p215b"
+  },
+  {
+   "n": 170,
+   "file": "10119231bsb-n170.jpg",
+   "sha256": "38e7dbb0116ea1eeff58d8d80e04ae1eebc499f51ee000f07a3202a2b9729dee",
+   "by": "maker",
+   "loc": "XIV p160"
+  },
+  {
+   "n": 169,
+   "file": "10119231bsb-n169.jpg",
+   "sha256": "eb90135417091eae6549e5e72605d5d897d650d6a15fefe97cd37db35f17eeb0",
+   "by": "second",
+   "loc": "XIV p160"
+  },
+  {
+   "n": 170,
+   "file": "10119231bsb-n170.jpg",
+   "sha256": "38e7dbb0116ea1eeff58d8d80e04ae1eebc499f51ee000f07a3202a2b9729dee",
+   "by": "second",
+   "loc": "XIV p160"
+  },
+  {
+   "n": 174,
+   "file": "10119231bsb-n174.jpg",
+   "sha256": "fb2d3b598141d76a562fa4e6e8713e6c9a9c47ca72ef7f0a8e75a9cb1defdcf3",
+   "by": "second",
+   "loc": "XV p165b"
+  },
+  {
+   "n": 245,
+   "file": "10119231bsb-n245.jpg",
+   "sha256": "101bcfbed2589e7e41babba9ae37486f2a657ba7cc4ce59d2cd17a6f844eb345",
+   "by": "second",
+   "loc": "XXIII p236a"
+  },
+  {
+   "n": 181,
+   "file": "10119231bsb-n181.jpg",
+   "sha256": "8f8d423a1e430f819339a68b63ac93fd09de4045eef265351ba1770c3ce2d595",
+   "by": "second",
+   "loc": "XV p172a"
+  },
+  {
+   "n": 182,
+   "file": "10119231bsb-n182.jpg",
+   "sha256": "5fddce4edc56395054f1b5357e58bc60f6cd419ed068dbd0025cfc2f30254caa",
+   "by": "second",
+   "loc": "XV p172a"
+  }
+ ],
+ "places": {
+  "XIV p160": {
+   "transcription": "iii-ueber-aesthetische-erziehung-menschen",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read both complete sentences on pp. 160–161, leaves n169–170: the 1801 print has sinnliche Trieb and Inhalt, and the play-drive sentence continues onto p. 161."
+   },
+   "images": [
+    169,
+    170
+   ],
+   "method": "image",
+   "share": 0.667
+  },
+  "XV p165b": {
+   "transcription": "iii-ueber-aesthetische-erziehung-menschen",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read both complete sentences on p. 165, n174; the example and the final clause match the print."
+   },
+   "images": [
+    174
+   ],
+   "method": "image",
+   "share": 0.655
+  },
+  "XV p171": {
+   "transcription": "iii-ueber-aesthetische-erziehung-menschen",
+   "method": "ocr",
+   "share": 0.791,
+   "leaves": [
+    180,
+    181
+   ],
+   "printed": [
+    "171",
+    "172"
+   ],
+   "differences": [
+    {
+     "transcription": "Schönheit ist",
+     "ocr": ", een",
+     "leaf": 180,
+     "stands": "transcription",
+     "note": "Read the complete sentence on pp. 171–172, n180–181; differences are OCR errors and the page break."
+    },
+    {
+     "transcription": "wirklich",
+     "ocr": "Bear",
+     "leaf": 180,
+     "stands": "transcription",
+     "note": "Read the complete sentence on pp. 171–172, n180–181; differences are OCR errors and the page break."
+    },
+    {
+     "transcription": "werth ;",
+     "ocr": "",
+     "leaf": 180,
+     "stands": "transcription",
+     "note": "Read the complete sentence on pp. 171–172, n180–181; differences are OCR errors and the page break."
+    },
+    {
+     "transcription": "",
+     "ocr": "\"",
+     "leaf": 180,
+     "stands": "transcription",
+     "note": "Read the complete sentence on pp. 171–172, n180–181; differences are OCR errors and the page break."
+    },
+    {
+     "transcription": "",
+     "ocr": "'",
+     "leaf": 180,
+     "stands": "transcription",
+     "note": "Read the complete sentence on pp. 171–172, n180–181; differences are OCR errors and the page break."
+    },
+    {
+     "transcription": "",
+     "ocr": ":",
+     "leaf": 180,
+     "stands": "transcription",
+     "note": "Read the complete sentence on pp. 171–172, n180–181; differences are OCR errors and the page break."
+    },
+    {
+     "transcription": "Schönheit",
+     "ocr": "Sehönh . it",
+     "leaf": 180,
+     "stands": "transcription",
+     "note": "Read the complete sentence on pp. 171–172, n180–181; differences are OCR errors and the page break."
+    },
+    {
+     "transcription": "welches",
+     "ocr": "Malete 172 II . Ueber dia älihetifche Erziehung",
+     "leaf": 180,
+     "stands": "transcription",
+     "note": "Read the complete sentence on pp. 171–172, n180–181; differences are OCR errors and the page break."
+    },
+    {
+     "transcription": "",
+     "ocr": "-",
+     "leaf": 181,
+     "stands": "transcription",
+     "note": "Read the complete sentence on pp. 171–172, n180–181; differences are OCR errors and the page break."
+    },
+    {
+     "transcription": "Augen haben",
+     "ocr": ". Aus Rn en",
+     "leaf": 181,
+     "stands": "transcription",
+     "note": "Read the complete sentence on pp. 171–172, n180–181; differences are OCR errors and the page break."
+    }
+   ]
+  },
+  "XV p164": {
+   "transcription": "iii-ueber-aesthetische-erziehung-menschen",
+   "method": "ocr",
+   "share": 0.804,
+   "leaves": [
+    174
+   ],
+   "printed": [
+    "165"
+   ],
+   "differences": [
+    {
+     "transcription": "Der Gegenstand",
+     "ocr": "Menfchen . 1 . 7 . * ı 365",
+     "leaf": 174,
+     "stands": "transcription",
+     "note": "Read pp. 164–165, n173–174, including the opening missed by OCR; heissen corrected against the print."
+    },
+    {
+     "transcription": "",
+     "ocr": "' 5",
+     "leaf": 174,
+     "stands": "transcription",
+     "note": "Read pp. 164–165, n173–174, including the opening missed by OCR; heissen corrected against the print."
+    },
+    {
+     "transcription": ",",
+     "ocr": "' '",
+     "leaf": 174,
+     "stands": "transcription",
+     "note": "Read pp. 164–165, n173–174, including the opening missed by OCR; heissen corrected against the print."
+    },
+    {
+     "transcription": "vorgestellt",
+     "ocr": ": vorgeltellt",
+     "leaf": 174,
+     "stands": "transcription",
+     "note": "Read pp. 164–165, n173–174, including the opening missed by OCR; heissen corrected against the print."
+    },
+    {
+     "transcription": "",
+     "ocr": "!",
+     "leaf": 174,
+     "stands": "transcription",
+     "note": "Read pp. 164–165, n173–174, including the opening missed by OCR; heissen corrected against the print."
+    },
+    {
+     "transcription": "",
+     "ocr": ".",
+     "leaf": 174,
+     "stands": "transcription",
+     "note": "Read pp. 164–165, n173–174, including the opening missed by OCR; heissen corrected against the print."
+    },
+    {
+     "transcription": "Begriff",
+     "ocr": "' Begrift",
+     "leaf": 174,
+     "stands": "transcription",
+     "note": "Read pp. 164–165, n173–174, including the opening missed by OCR; heissen corrected against the print."
+    },
+    {
+     "transcription": "",
+     "ocr": "'",
+     "leaf": 174,
+     "stands": "transcription",
+     "note": "Read pp. 164–165, n173–174, including the opening missed by OCR; heissen corrected against the print."
+    },
+    {
+     "transcription": "",
+     "ocr": "'",
+     "leaf": 174,
+     "stands": "transcription",
+     "note": "Read pp. 164–165, n173–174, including the opening missed by OCR; heissen corrected against the print."
+    },
+    {
+     "transcription": "",
+     "ocr": ":",
+     "leaf": 174,
+     "stands": "transcription",
+     "note": "Read pp. 164–165, n173–174, including the opening missed by OCR; heissen corrected against the print."
+    },
+    {
+     "transcription": "",
+     "ocr": "'",
+     "leaf": 174,
+     "stands": "transcription",
+     "note": "Read pp. 164–165, n173–174, including the opening missed by OCR; heissen corrected against the print."
+    },
+    {
+     "transcription": "Worte",
+     "ocr": "Wor : te",
+     "leaf": 174,
+     "stands": "transcription",
+     "note": "Read pp. 164–165, n173–174, including the opening missed by OCR; heissen corrected against the print."
+    },
+    {
+     "transcription": "Bedeutung",
+     "ocr": "Bedentung",
+     "leaf": 174,
+     "stands": "transcription",
+     "note": "Read pp. 164–165, n173–174, including the opening missed by OCR; heissen corrected against the print."
+    },
+    {
+     "transcription": "Bezeichnung dient",
+     "ocr": ", Bezeichhe Be re ist ' s Dürchi ( Aiele , Eklkengk wenn es Pe wäre , wird \" die Schönheit weder auf ' das ' ganze Gebiet : des Lebendigen : ausgedehnt , ' noch blofs in diefeg Gebiet eingelchlollen",
+     "leaf": 174,
+     "stands": "transcription",
+     "note": "Read pp. 164–165, n173–174, including the opening missed by OCR; heissen corrected against the print."
+    }
+   ]
+  },
+  "XXIII p236a": {
+   "transcription": "ii-schmelzende-schoenheit",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the entire sentence on p. 236, n245, including its qualification; Uebergang corrected to print."
+   },
+   "images": [
+    245
+   ],
+   "method": "image",
+   "share": 0.203
+  },
+  "XV p172a": {
+   "transcription": "3",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the complete passage on pp. 172–173, n181–182: Nun begins at the foot of p. 172; the remainder is on p. 173. Corrected das ist, seyn and diktirt to the print."
+   },
+   "images": [
+    181,
+    182
+   ],
+   "method": "image",
+   "share": 0.457
+  },
+  "XX p215a": {
+   "transcription": "ii-schmelzende-schoenheit",
+   "method": "ocr",
+   "share": 0.83,
+   "leaves": [
+    224,
+    225
+   ],
+   "printed": [
+    "215",
+    "216"
+   ],
+   "differences": [
+    {
+     "transcription": "also",
+     "ocr": "allo",
+     "leaf": 224,
+     "stands": "transcription",
+     "note": "Read both complete sentences on pp. 215–216, n224–225; the differences are OCR misreadings and page or line breaks, and thätig and genöthigt were corrected to the print."
+    },
+    {
+     "transcription": "Empfindung",
+     "ocr": "Em - \" pfindung",
+     "leaf": 224,
+     "stands": "transcription",
+     "note": "Read both complete sentences on pp. 215–216, n224–225; the differences are OCR misreadings and page or line breaks, and thätig and genöthigt were corrected to the print."
+    },
+    {
+     "transcription": "",
+     "ocr": ".",
+     "leaf": 224,
+     "stands": "transcription",
+     "note": "Read both complete sentences on pp. 215–216, n224–225; the differences are OCR misreadings and page or line breaks, and thätig and genöthigt were corrected to the print."
+    },
+    {
+     "transcription": "",
+     "ocr": "- 216 - IT . Ueber die äfthetifche Erzichung",
+     "leaf": 225,
+     "stands": "transcription",
+     "note": "Read both complete sentences on pp. 215–216, n224–225; the differences are OCR misreadings and page or line breaks, and thätig and genöthigt were corrected to the print."
+    },
+    {
+     "transcription": "",
+     "ocr": ".",
+     "leaf": 225,
+     "stands": "transcription",
+     "note": "Read both complete sentences on pp. 215–216, n224–225; the differences are OCR misreadings and page or line breaks, and thätig and genöthigt were corrected to the print."
+    },
+    {
+     "transcription": "",
+     "ocr": "|",
+     "leaf": 225,
+     "stands": "transcription",
+     "note": "Read both complete sentences on pp. 215–216, n224–225; the differences are OCR misreadings and page or line breaks, and thätig and genöthigt were corrected to the print."
+    },
+    {
+     "transcription": "",
+     "ocr": ".",
+     "leaf": 225,
+     "stands": "transcription",
+     "note": "Read both complete sentences on pp. 215–216, n224–225; the differences are OCR misreadings and page or line breaks, and thätig and genöthigt were corrected to the print."
+    },
+    {
+     "transcription": "",
+     "ocr": "-",
+     "leaf": 225,
+     "stands": "transcription",
+     "note": "Read both complete sentences on pp. 215–216, n224–225; the differences are OCR misreadings and page or line breaks, and thätig and genöthigt were corrected to the print."
+    },
+    {
+     "transcription": "",
+     "ocr": "al",
+     "leaf": 225,
+     "stands": "transcription",
+     "note": "Read both complete sentences on pp. 215–216, n224–225; the differences are OCR misreadings and page or line breaks, and thätig and genöthigt were corrected to the print."
+    },
+    {
+     "transcription": "bestimmende",
+     "ocr": "be ftimmende",
+     "leaf": 225,
+     "stands": "transcription",
+     "note": "Read both complete sentences on pp. 215–216, n224–225; the differences are OCR misreadings and page or line breaks, and thätig and genöthigt were corrected to the print."
+    },
+    {
+     "transcription": "",
+     "ocr": "ER",
+     "leaf": 225,
+     "stands": "transcription",
+     "note": "Read both complete sentences on pp. 215–216, n224–225; the differences are OCR misreadings and page or line breaks, and thätig and genöthigt were corrected to the print."
+    },
+    {
+     "transcription": "",
+     "ocr": "'",
+     "leaf": 225,
+     "stands": "transcription",
+     "note": "Read both complete sentences on pp. 215–216, n224–225; the differences are OCR misreadings and page or line breaks, and thätig and genöthigt were corrected to the print."
+    },
+    {
+     "transcription": "",
+     "ocr": ". Be",
+     "leaf": 225,
+     "stands": "transcription",
+     "note": "Read both complete sentences on pp. 215–216, n224–225; the differences are OCR misreadings and page or line breaks, and thätig and genöthigt were corrected to the print."
+    },
+    {
+     "transcription": "physisch",
+     "ocr": "= ' phyfilch",
+     "leaf": 225,
+     "stands": "transcription",
+     "note": "Read both complete sentences on pp. 215–216, n224–225; the differences are OCR misreadings and page or line breaks, and thätig and genöthigt were corrected to the print."
+    },
+    {
+     "transcription": ",",
+     "ocr": "'",
+     "leaf": 225,
+     "stands": "transcription",
+     "note": "Read both complete sentences on pp. 215–216, n224–225; the differences are OCR misreadings and page or line breaks, and thätig and genöthigt were corrected to the print."
+    },
+    {
+     "transcription": "",
+     "ocr": "N M",
+     "leaf": 225,
+     "stands": "transcription",
+     "note": "Read both complete sentences on pp. 215–216, n224–225; the differences are OCR misreadings and page or line breaks, and thätig and genöthigt were corrected to the print."
+    },
+    {
+     "transcription": "ist",
+     "ocr": "it",
+     "leaf": 225,
+     "stands": "transcription",
+     "note": "Read both complete sentences on pp. 215–216, n224–225; the differences are OCR misreadings and page or line breaks, and thätig and genöthigt were corrected to the print."
+    },
+    {
+     "transcription": "verdient vorzugsweise",
+     "ocr": "verdieng ke . vorzugsweile",
+     "leaf": 225,
+     "stands": "transcription",
+     "note": "Read both complete sentences on pp. 215–216, n224–225; the differences are OCR misreadings and page or line breaks, and thätig and genöthigt were corrected to the print."
+    },
+    {
+     "transcription": "heißen",
+     "ocr": "heilsen",
+     "leaf": 225,
+     "stands": "transcription",
+     "note": "Read both complete sentences on pp. 215–216, n224–225; the differences are OCR misreadings and page or line breaks, and thätig and genöthigt were corrected to the print."
+    },
+    {
+     "transcription": "Zustand",
+     "ocr": "Zufand",
+     "leaf": 225,
+     "stands": "transcription",
+     "note": "Read both complete sentences on pp. 215–216, n224–225; the differences are OCR misreadings and page or line breaks, and thätig and genöthigt were corrected to the print."
+    },
+    {
+     "transcription": "Bestimmung",
+     "ocr": "Befimmung",
+     "leaf": 225,
+     "stands": "transcription",
+     "note": "Read both complete sentences on pp. 215–216, n224–225; the differences are OCR misreadings and page or line breaks, and thätig and genöthigt were corrected to the print."
+    },
+    {
+     "transcription": "physischen",
+     "ocr": "phylifchen",
+     "leaf": 225,
+     "stands": "transcription",
+     "note": "Read both complete sentences on pp. 215–216, n224–225; the differences are OCR misreadings and page or line breaks, and thätig and genöthigt were corrected to the print."
+    },
+    {
+     "transcription": "Zustand",
+     "ocr": "Zufland",
+     "leaf": 225,
+     "stands": "transcription",
+     "note": "Read both complete sentences on pp. 215–216, n224–225; the differences are OCR misreadings and page or line breaks, and thätig and genöthigt were corrected to the print."
+    },
+    {
+     "transcription": "Bestimmung",
+     "ocr": "Beltimmung",
+     "leaf": 225,
+     "stands": "transcription",
+     "note": "Read both complete sentences on pp. 215–216, n224–225; the differences are OCR misreadings and page or line breaks, and thätig and genöthigt were corrected to the print."
+    },
+    {
+     "transcription": "logischen",
+     "ocr": "logilchen",
+     "leaf": 225,
+     "stands": "transcription",
+     "note": "Read both complete sentences on pp. 215–216, n224–225; the differences are OCR misreadings and page or line breaks, and thätig and genöthigt were corrected to the print."
+    },
+    {
+     "transcription": "",
+     "ocr": "_",
+     "leaf": 225,
+     "stands": "transcription",
+     "note": "Read both complete sentences on pp. 215–216, n224–225; the differences are OCR misreadings and page or line breaks, and thätig and genöthigt were corrected to the print."
+    },
+    {
+     "transcription": "muß",
+     "ocr": "muls",
+     "leaf": 225,
+     "stands": "transcription",
+     "note": "Read both complete sentences on pp. 215–216, n224–225; the differences are OCR misreadings and page or line breaks, and thätig and genöthigt were corrected to the print."
+    },
+    {
+     "transcription": "ästhetischen heißen",
+     "ocr": "äh",
+     "leaf": 225,
+     "stands": "transcription",
+     "note": "Read both complete sentences on pp. 215–216, n224–225; the differences are OCR misreadings and page or line breaks, and thätig and genöthigt were corrected to the print."
+    }
+   ]
+  }
+ }
+}

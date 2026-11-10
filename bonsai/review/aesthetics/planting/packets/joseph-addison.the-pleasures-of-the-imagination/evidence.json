@@ -1,0 +1,159 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/cu31924064948734/cu31924064948734_hocr_searchtext.txt.gz",
+   "file": "cu31924064948734.ocr.txt",
+   "sha256": "a34f4d5fc852e5500c98c728318dc81ff0ea665292dbfd267fb23e0f56d4a780",
+   "bytes": 2089941,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/cu31924064948734/cu31924064948734_hocr_pageindex.json.gz",
+   "file": "cu31924064948734.index.json",
+   "sha256": "fc05d670e49fd50f9b99b1c42c6843b6928c0d5fa84e2f9cb4c0581d654bbfa2",
+   "bytes": 28647,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/cu31924064948734/cu31924064948734_page_numbers.json",
+   "file": "cu31924064948734.pages.json",
+   "sha256": "1ecf0cb99b43ab64413bef7e9a0e1996fbc9b7e48d03fc3ef41a67cae61802e5",
+   "bytes": 127644,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "transcription",
+   "url": "https://www.gutenberg.org/files/12030/12030-h/12030-h.htm",
+   "file": "12030-h.htm",
+   "sha256": "282705d68f812cfdf703e2c7eb7e8e2735dca2e4a6998255c355777795f8c766",
+   "bytes": 6767817,
+   "fetched": "2026-11-10",
+   "text": "12030-h.htm.txt"
+  }
+ ],
+ "scan": {
+  "item": "cu31924064948734",
+  "ocr": true,
+  "long_s": false,
+  "image_offset": 0
+ },
+ "persons": [
+  {
+   "qid": "Q206384",
+   "name": {
+    "en": "Joseph Addison",
+    "ru": "Джозеф Аддисон"
+   },
+   "role": "author",
+   "died": 1719,
+   "source": "https://www.wikidata.org/wiki/Q206384"
+  },
+  {
+   "qid": "Q2401379",
+   "name": {
+    "en": "Henry Morley",
+    "ru": "Henry Morley"
+   },
+   "role": "editor",
+   "died": 1894,
+   "source": "https://www.wikidata.org/wiki/Q2401379"
+  }
+ ],
+ "published": 1891,
+ "images": [
+  {
+   "n": 726,
+   "file": "cu31924064948734-n726.jpg",
+   "sha256": "d90d9bd154cec1956e9edae7b4f57e72220232cc898bb080ba051f4ec655a4ed",
+   "by": "maker"
+  },
+  {
+   "n": 726,
+   "file": "cu31924064948734-n726.jpg",
+   "sha256": "d90d9bd154cec1956e9edae7b4f57e72220232cc898bb080ba051f4ec655a4ed",
+   "by": "second",
+   "loc": "No. 412 p717c"
+  }
+ ],
+ "places": {
+  "No. 412 p717a": {
+   "transcription": "12030-h.htm",
+   "method": "ocr",
+   "share": 0.966,
+   "leaves": [
+    726
+   ],
+   "printed": [
+    "717"
+   ],
+   "differences": [
+    {
+     "transcription": ".",
+     "ocr": "^ SudrarCfthe Prospects of an open Champain Country , a vast uncultivated Desart , of huge Heaps of Mountains , high Rocks and Precipices , or a wide Expanse of Waters , where we are not struck with the Novelty or Beauty of the Sight ,",
+     "leaf": 726,
+     "stands": "transcription",
+     "note": "Page 717 ends the sentence with Piece.; the OCR has included the following sentence and misread the period."
+    }
+   ]
+  },
+  "No. 412 p717b": {
+   "transcription": "12030-h.htm",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    726
+   ],
+   "printed": [
+    "717"
+   ],
+   "differences": []
+  },
+  "No. 412 p717c": {
+   "transcription": "12030-h.htm",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    726
+   ],
+   "printed": [
+    "717"
+   ],
+   "differences": [
+    {
+     "transcription": "",
+     "ocr": "^",
+     "leaf": 726,
+     "stands": "transcription",
+     "note": "Page 717 shows [please] with a superscript footnote 1; the superscript marker is omitted from the place."
+    }
+   ]
+  },
+  "No. 412 p717d": {
+   "transcription": "12030-h.htm",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    726
+   ],
+   "printed": [
+    "717"
+   ],
+   "differences": []
+  },
+  "No. 412 p717e": {
+   "transcription": "12030-h.htm",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    726
+   ],
+   "printed": [
+    "717"
+   ],
+   "differences": []
+  }
+ }
+}
