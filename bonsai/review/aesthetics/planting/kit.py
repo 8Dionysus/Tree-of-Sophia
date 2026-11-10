@@ -92,7 +92,8 @@ def cmd_queue(args):
     for work in w['works']:
         t=task(w,work)
         if not t['readings']:continue
-        rows.append({'work':work,'wave':'held' if work in hold else wave(w,work),'year':t['year'],'readings':len(t['readings']),'primary':sum(r['basis']=='primary' for r in t['readings']),
+        unread=all(r['basis']=='bibliography' for r in t['readings'])      # a catalogue stands behind every waiting reading: the work itself is still to be read
+        rows.append({'work':work,'wave':'held' if work in hold else 'unread' if unread else wave(w,work),'year':t['year'],'readings':len(t['readings']),'primary':sum(r['basis']=='primary' for r in t['readings']),
                      'links':len(t['links']),'areas':sorted({area for r in t['readings'] for area in r['areas']})})
     first=lambda row:sum(area in('AE01','AE02') for area in row['areas'])
     rows.sort(key=lambda row:(row['wave']!='first',-first(row),-row['readings'],row['work']))
@@ -317,13 +318,24 @@ def squeeze(text):
     text=re.sub(r'(?<!\w)_|_(?!\w)','',text)
     return unicodedata.normalize('NFC','\n\n'.join(' '.join(chunk.split()) for chunk in re.split(r'\n\s*\n',text) if chunk.strip()))
 
+def page_text(raw):
+    """The OCR of a scan as running text: words divided at line ends joined, ſ written s."""
+    return re.sub(r'(?<=[^\W\d_])[-¬⸗]\s+(?=[a-zß-ÿ])','',raw.replace('ſ','s'))
+
 def transcription(path,ev,name=None):
+    if name and name.endswith('.ocr.txt') and any(source['file']==name and source['role']=='scan-ocr' for source in ev['sources']):
+        return next(source for source in ev['sources'] if source['file']==name),page_text(open(cache(path,name),encoding='utf-8',errors='replace').read())
     sources=[source for source in ev['sources'] if source['role']=='transcription' and (name is None or name in(source['file'],source.get('text')))]
     if not sources:die('no fetched transcription'+(f' named {name}' if name else ''))
     return sources[0],open(cache(path,sources[0]['text']),encoding='utf-8').read()
 
 def cmd_cut(args):
-    path=packet(args.packet);ev=evidence(path);source,text=transcription(path,ev,args.file)
+    path=packet(args.packet);ev=evidence(path)
+    if args.file=='ocr':
+        scan=ev.get('scan') or {}
+        if not scan.get('ocr'):die('this packet has no page-indexed OCR to cut from (kit.py ia)')
+        args.file=f"{scan['item']}.ocr.txt"
+    source,text=transcription(path,ev,args.file)
     words=lambda phrase:re.compile(r'\s+'.join(re.escape(word) for word in phrase.split()))
     opens=list(words(args.open).finditer(text))
     if not opens:die(f'the opening words are not in {source["text"]} (give them exactly as the file has them; kit.py find … --in helps)')
@@ -337,7 +349,8 @@ def cmd_cut(args):
     lang=args.lang or original
     if not lang:die('places.json names no original language yet (entry.original)')
     place=places['places'].setdefault(args.loc,{'label':{'ru':'','en':''},'texts':{},'links':{},'refs':[]});place['texts'][lang]=run
-    save(os.path.join(path,'places.json'),places);entry=ev['places'].setdefault(args.loc,{});entry['transcription']=source['file'];entry.pop('dropped',None)
+    save(os.path.join(path,'places.json'),places);entry=ev['places'].setdefault(args.loc,{});entry['transcription']=source['file'];entry.pop('dropped',None);entry.pop('from_scan',None)
+    if source['role']=='scan-ocr':entry['from_scan']=True;print('cut from the scan’s own OCR: there is no second text behind this place, so it is read whole on the page image (image N --loc, correct, judge … whole)')
     if args.drop:entry['dropped']=args.drop
     save(os.path.join(path,'evidence.json'),ev)
     print(f'{args.loc} [{lang}] {len(run)} characters:\n{run}')
@@ -452,9 +465,11 @@ def compare(path,ev,places,original):
     """Every place of the original beside the OCR; a judgment already given stays with the difference it was given to."""
     o=ocr(path,ev);out={};scan=ev.get('scan') or {}
     for loc,place in places['places'].items():
-        text=place.get('texts',{}).get(original);old=ev['places'].get(loc,{});entry={key_:old[key_] for key_ in('transcription','dropped','whole','images') if key_ in old}
+        text=place.get('texts',{}).get(original);old=ev['places'].get(loc,{});entry={key_:old[key_] for key_ in('transcription','dropped','from_scan','whole','images') if key_ in old}
         if not text:out[loc]=entry;continue
         got=against_ocr(text,o) if o else None
+        if entry.get('from_scan') and got and 'leaves' in got:               # the OCR beside itself proves nothing: the page is read instead
+            entry.update({'method':'image','leaves':got['leaves'],'printed':got['printed']});out[loc]=entry;continue
         if not got or 'leaves' not in got:
             entry.update({'method':'image','share':(got or {}).get('share')});out[loc]=entry;continue
         judged={(d['transcription'],d['ocr'],d['leaf']):d for d in old.get('differences',[])}
@@ -468,10 +483,11 @@ def cmd_compare(args):
     path=packet(args.packet);ev=evidence(path);places=part(path,'places.json');original=original_of(places)
     ev['places']=compare(path,ev,places,original);scan=ev.get('scan') or {};offset=scan.get('image_offset')
     for loc,entry in ev['places'].items():
-        if entry.get('method')=='ocr' and offset is not None:places['places'][loc].setdefault('links',{})[original]=f"https://archive.org/details/{scan['item']}/page/n{entry['leaves'][0]+offset}/mode/1up"
+        if entry.get('leaves') and offset is not None:places['places'][loc].setdefault('links',{})[original]=f"https://archive.org/details/{scan['item']}/page/n{entry['leaves'][0]+offset}/mode/1up"
         if entry.get('method')=='ocr':
             print(f"{loc}: leaves {entry['leaves']} printed {entry['printed']} {round(entry['share']*100)}% the same; "+('no difference' if not entry['differences'] else f"{len(entry['differences'])} differences"))
             for n,d in enumerate(entry['differences'],1):print(f"   {n}. leaf {d['leaf']}: transcription «{d['transcription']}» | OCR «{d['ocr']}»"+(f"  → {d['stands']} stands" if d.get('stands') else ''))
+        elif entry.get('from_scan') and entry.get('leaves'):print(f"{loc}: cut from the scan’s own OCR, leaves {entry['leaves']} printed {entry['printed']}: read it whole on the page image of every leaf (image N --loc, correct what the OCR misread, then judge … whole)")
         else:print(f"{loc}: the OCR does not hold this place"+(f" ({round((entry.get('share') or 0)*100)}% found)" if entry.get('share') is not None else '')+': read it whole on the page image (image … --loc, then judge … whole)')
     save(os.path.join(path,'evidence.json'),ev);save(os.path.join(path,'places.json'),places)
     if offset is None:print('the image offset is not fixed yet: look at one image, then kit.py offset')
@@ -556,7 +572,8 @@ def gate(path,second=False,offline=False):
             if not isinstance(witness.get(name),str) or len(witness.get(name,''))<20:add(f'witness.{name} is missing or too short to name the book')
         if not isinstance(witness.get('year'),int):add('witness.year wants the year of the printing as a number')
         if not str(witness.get('url','')).startswith('https://'):add('witness.url wants the https address of the scan')
-        if len([s for s in witness.get('sources') or [] if str(s).startswith('https://')])<2:add('witness.sources wants the scan and the transcription (two https addresses)')
+        from_scan=bool(ev.get('places')) and all(entry.get('from_scan') for entry in ev['places'].values())
+        if len([s for s in witness.get('sources') or [] if str(s).startswith('https://')])<(1 if from_scan else 2):add('witness.sources wants the scan and the transcription (two https addresses; the scan alone where every place is cut from its OCR)')
         rights=witness.get('rights') or {}
         if rights.get('basis')!='public-domain':add('witness.rights.basis must be public-domain in the first wave')
         if len(str(rights.get('reasoning','')))<60:add('witness.rights.reasoning wants its sentences: whose text, which transcription (and which edition it follows), which scan, what was normalised')
@@ -598,8 +615,12 @@ def gate(path,second=False,offline=False):
         elif (ev.get('scan') or {}).get('long_s') and correction['from'].replace('ß','ss')==correction['to'].replace('ß','ss'):add(f'correction {correction["place"]}: «{correction["from"]}» → «{correction["to"]}» only trades ß and ss. In a print with the long s, ſs is the print’s ß and stays ß; ſſ is ss. Put the text back with kit.py cut and take this out of corrections')
     # the evidence, recomputed from the fetched files
     scan=ev.get('scan') or {};fetched={image['n'] for image in ev.get('images',[]) if image.get('by','maker')=='maker'};live=not offline and bool(ev.get('sources')) and all(os.path.exists(cache(path,source['file'])) for source in ev['sources'])
-    if not any(source['role']=='transcription' for source in ev.get('sources',[])):add('no transcription was fetched (kit.py fetch … transcription URL)')
+    ocr_files={source['file'] for source in ev.get('sources',[]) if source['role']=='scan-ocr'}
+    all_from_scan=bool(locs) and all((ev.get('places',{}).get(loc) or {}).get('from_scan') and (ev['places'][loc].get('transcription') in ocr_files) for loc in locs)
+    if not any(source['role']=='transcription' for source in ev.get('sources',[])) and not all_from_scan:add('no transcription was fetched (kit.py fetch … transcription URL)')
     for source in ev.get('sources',[]):
+        if source['role']=='scan-ocr' and any(entry.get('from_scan') for entry in (ev.get('places') or {}).values()) and len(str(source.get('why','')))<60:
+            add(f"places are cut from the scan’s own OCR: say with kit.py why {source['file']} \"…\" which proofreading projects were searched on their own sites, for what words, and that none holds the passage")
         if source['role']=='transcription' and source['file'] in {entry.get('transcription') for entry in (ev.get('places') or {}).values()} and not proofread(source['url']) and len(str(source.get('why','')))<60:
             add(f"the words are cut from {source['url']}, which no proofreading project keeps: cut them from Wikisource, Project Gutenberg, the Deutsches Textarchiv, Zeno, Gallica or the like, or say with kit.py why {source['file']} \"…\" what was looked at and why none of them gives this text")
     if not scan.get('item'):add('no scan is named (kit.py ia)')
@@ -633,6 +654,7 @@ def gate(path,second=False,offline=False):
             else:
                 if (mine.get('whole') or {}).get('stands')!='transcription':add(f'{at}: the OCR does not hold it; read it whole on the page image and record judge {loc} whole transcription "what you read" (or correct the text)')
                 if not mine.get('images') or not set(mine.get('images',[]))<=fetched:add(f'{at}: fetch the image of every page it runs over with image N --loc "{loc}"')
+                elif now.get('leaves') and offset is not None and not {n+offset for n in now['leaves']}<=set(mine['images']):add(f"{at}: it runs over leaves {now['leaves']}; the images n{', n'.join(str(n+offset) for n in now['leaves'])} are wanted with --loc \"{loc}\"")
     # the reading
     ids=set();cited=set();covered=set();of_reading={}
     conceptions=reading.get('conceptions') or [];links=reading.get('links') or [];left=reading.get('left') or []

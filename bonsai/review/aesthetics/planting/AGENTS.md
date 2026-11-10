@@ -23,7 +23,8 @@ read again by another (the second reader). `kit.py` is the line's one tool;
 ## Laws
 
 1. **Words come from files.** The text of a place is written by `kit.py cut`
-   out of a transcription fetched by `kit.py fetch`. It is never typed,
+   out of a transcription fetched by `kit.py fetch`, or, where no
+   transcription holds the passage, out of the scan's own OCR. It is never typed,
    recalled, translated, modernised or mended by hand. Where the printed page
    reads otherwise, `kit.py correct` changes the text and records the change.
    In a print with the long s, ſ is s and ſs is the print's ß.

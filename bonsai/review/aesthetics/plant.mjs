@@ -45,18 +45,24 @@ const fragments=existsSync(join(home,'fragments.json'))?json(join(home,'fragment
 const packetsDir=join(here,'planting','packets'),tried=process.argv.includes('--packet')?process.argv[process.argv.indexOf('--packet')+1]:null;
 const packets=(existsSync(packetsDir)?readdirSync(packetsDir,{withFileTypes:true}).filter(entry=>entry.isDirectory()).map(entry=>entry.name).sort():[])
   .filter(name=>existsSync(join(packetsDir,name,'accepted.json'))||name===tried);
-const seconds=[];
+const seconds=[],whole=[];
+// A work a packet brought whole leaves the places module again when that packet is no longer accepted.
+for(const name of fragments.provenance.packets??[])if(!packets.includes(name)){
+  delete fragments.works[name];delete fragments.places[name];delete fragments.provenance.checked_on_the_page_image[name];
+  fragments.provenance.corrections=fragments.provenance.corrections.filter(correction=>!correction.place.startsWith(`${name} `));
+}
 for(const name of packets){
   const at=join(packetsDir,name),path=`bonsai/review/aesthetics/planting/packets/${name}`,places=json(join(at,'places.json'));
   records.push({name:`planting/packets/${name}/reading.json`,path:`${path}/reading.json`,...json(join(at,'reading.json'))});
   if(existsSync(join(at,'review.json'))){const {reader}=json(join(at,'review.json'));seconds.push({...reader,record:`${path}/review.json`});}
-  if(places.entry)fragments.works[name]=places.entry;
+  if(places.entry){fragments.works[name]=places.entry;whole.push(name);}
   if(!fragments.works[name])fail(`packet ${name}: no entry for a work the places module does not hold`);
   fragments.places[name]={...(places.entry?{}:fragments.places[name]),...places.places};
   const own=new Set(Object.keys(places.places).map(loc=>`${name} ${loc}`)),seen=fragments.provenance.checked_on_the_page_image;
   fragments.provenance.corrections=[...fragments.provenance.corrections.filter(correction=>!own.has(correction.place)),...(places.corrections??[])];
   if(places.checked_on_the_page_image?.length)seen[name]=[...new Set([...(places.entry?[]:seen[name]??[]),...places.checked_on_the_page_image])];
 }
+if(whole.length||fragments.provenance.packets)fragments.provenance.packets=whole;
 
 /** The citation of a formula: the unit a record names by its reference and the span between the opening and closing words. */
 function cite(record,conception,formula,libraryWork){
