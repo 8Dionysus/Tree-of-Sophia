@@ -94,13 +94,16 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     return '#'+c.map(v=>Math.round(Math.max(0,Math.min(1,1-v))*255).toString(16).padStart(2,'0')).join('');
   }
   const nightCache=new Map(),night=hex=>{let v=nightCache.get(hex);if(!v){v=nightOf(hex);nightCache.set(hex,v);}return v;};
+  // The day's air, toward which what lies back pales.
+  const AIR=night('#B3B6C4');
   // The day mixes every star, link and line toward its air each frame; a mix is worked out once per 1/128 of the way,
   // finer than one step of a colour channel between any two of the scene's colours.
   const mixes=new Map();
   const mixHex=(a,b,t)=>{if(t<=0)return a;const step=Math.round(Math.min(1,t)*128),key=a+b+step;let mixed=mixes.get(key);if(mixed)return mixed;
     const p=x=>[1,3,5].map(i=>parseInt(x.slice(i,i+2),16)),A=p(a),B=p(b);mixed='#'+A.map((v,i)=>Math.round(v+(B[i]-v)*step/128).toString(16).padStart(2,'0')).join('');
     if(mixes.size>4096)mixes.clear();mixes.set(key,mixed);return mixed;};
-  // A star or a link keeps the tints it has taken, one for each step of depth, so a step it has stood at mixes nothing again.
+  // A star, a link or a line keeps the tints it has taken, one for each step of depth, so a step it has stood at mixes
+  // nothing again.
   const tint=(holder,a,b,t)=>{if(t<=0)return a;if(holder.tintA!==a||holder.tintB!==b){holder.tintA=a;holder.tintB=b;holder.tints=[];}
     return holder.tints[Math.round(Math.min(1,t)*128)]??=mixHex(a,b,t);};
   // The paper is a shade under white, so the noon light can stand brighter than it; washes of warm umber, lilac and
@@ -190,7 +193,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   // On a light page depth is the day's air: what lies further back pales into the paper, and a near star
   // stands over the page with a soft shadow. 0 on the night, 1 on a light page.
   const daylight=()=>ink>1?1:0;
-  let nodes=[],edges=[],clusters=[],backdrop=[],planes=[],threads=[],lit=null,litGlow=0,selectedId=null,selectedEdgeId=null,hoverEdge=null,linkFrom=null,center=[0,0,0],targetCenter=[0,0,0],fitScale=1,targetFit=1,edgeHits=[],measureLabels=true,aspectIds=null;
+  let nodes=[],edges=[],clusters=[],backdrop=[],backdropTints=[],planes=[],threads=[],lit=null,litGlow=0,selectedId=null,selectedEdgeId=null,hoverEdge=null,linkFrom=null,center=[0,0,0],targetCenter=[0,0,0],fitScale=1,targetFit=1,edgeHits=[],measureLabels=true,aspectIds=null;
   let viewport={left:0,right:1,top:0,bottom:1},targetViewport={...viewport},uiObstacles=[];
   const colorOf=n=>hex(n.color,({work:'#a8cde5',part:'#88aaca',chapter:'#b2aedc',fragment:'#dac697',dossier:'#c7a5e6',concept:'#f4cf87',interpretation:'#ba9be5',question:'#83cec7',note:'#b9c7d5',excerpt:'#dfc18e',figure:'#b9c9e5',symbol:'#91ccc5',tradition:'#b5abd3'}[n.kind]||'#bdcfdf'));
   function refresh(state,labels={}){
@@ -299,7 +302,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     // A measured plane may lie on a backdrop of lines in its own units, such as coastlines.
     // A backdrop line is its points, or its points with a colour, an alpha and a weight in the layout's units.
     shade=state.shade&&Array.isArray(state.shade.center)&&Number.isFinite(state.shade.radius)?state.shade:null;
-    backdrop=Array.isArray(state.backdrop)?state.backdrop.filter(line=>(Array.isArray(line)?line:line?.points)?.length>1):[];
+    backdrop=Array.isArray(state.backdrop)?state.backdrop.filter(line=>(Array.isArray(line)?line:line?.points)?.length>1):[];backdropTints=backdrop.map(()=>({}));
     // A space read in depth may lay its stars on planes, each at its own depth and named at a corner.
     const oldPlanes=new Map(planes.map(plane=>[plane.id,plane]));
     planes=(Array.isArray(state.planes)?state.planes:[]).filter(item=>typeof item?.id==='string'&&Number.isFinite(item.z)&&[item.x,item.y].every(range=>Array.isArray(range)&&range.length===2&&range.every(Number.isFinite))).map(item=>{
@@ -677,7 +680,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     }
     // A star the view has stepped back lies under the names in front of it, and so does one a chosen star or link has
     // sent back.
-    const nodeObstacles=starCells(nodes.filter(n=>!n.el.hidden&&!n.dimmed&&n.el.dataset.outside!=='true').map(n=>({id:n.id,...box(n.screen.x-9,n.screen.y-9,18,18)})));
+    const nodeObstacles=starCells(nodes.filter(n=>!n.el.hidden&&!n.dimmed&&!n.outside).map(n=>{const left=n.screen.x-9,top=n.screen.y-9;return {id:n.id,left,top,right:left+18,bottom:top+18};}));
     for(const c of clusters){
       if(c.variant)continue;
       const width=c.labelWidth??110,height=c.labelHeight??(c.subtitle.textContent?40:25);
@@ -943,14 +946,14 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       // The lines under a chosen or pointed star step back with the stars it does not reach; in a space read in depth
       // a line also dims as it goes back, as the stars do.
       const fade=(focused?.42:1)*(1-.72*focusMix);
-      for(const line of backdrop){
-        const points=Array.isArray(line)?line:line.points,style=Array.isArray(line)?{}:line;
+      for(let index=0;index<backdrop.length;index++){
+        const line=backdrop[index],points=Array.isArray(line)?line:line.points,style=Array.isArray(line)?{}:line;
         ctx.beginPath();
         let previous=null,depth=0,count=0;
         for(const [x,y,z=0] of points){const point=project([x,y,z]);depth+=point.d;count++;if(previous){const cut=measured?clipSegment(previous,point):[previous,point];if(cut){ctx.moveTo(cut[0].x,cut[0].y);ctx.lineTo(cut[1].x,cut[1].y);}}previous=point;}
         const back=depthCue&&!measured&&count?.35+.65*clamp((depth/count-.82)/.34,0,1):1;
         // In the day what lies back takes the cool of the air as well as its paleness.
-        ctx.strokeStyle=daylight()&&back<1?mixHex(style.color??'#8fa8c4',night('#B3B6C4'),(1-back)*.75):style.color??'#8fa8c4';
+        ctx.strokeStyle=daylight()&&back<1?tint(backdropTints[index],style.color??'#8fa8c4',AIR,(1-back)*.75):style.color??'#8fa8c4';
         ctx.globalAlpha=Math.min(1,(style.alpha??.3)*fade*ink)*(daylight()&&back<1?.2+.8*back*back:back);ctx.lineWidth=Number.isFinite(style.weight)?clamp(style.weight*(previous?.s??1),.6,7):.9;ctx.stroke();
       }
       ctx.globalAlpha=1;
@@ -978,7 +981,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       // A link's light and weight run from its calm measure to its hot one as it warms.
       const calm=neighbor?.57:focused?rest*.23:rest,calmWidth=neighbor?1.1:.65,heat=edge.id===selectedEdgeId?1:edge.warm??(hot?1:0);
       const level=on=>Math.min(1,(calm+(.85-calm)*on)*ink)*(1-awayEdge)*air,girth=on=>(calmWidth+(1.55-calmWidth)*on)*weight*(1+(ink-1)*.35),alpha=level(heat),width=girth(heat);
-      ctx.strokeStyle=air<1?tint(edge,edge.color,night('#B3B6C4'),(1-air)*.8):edge.color;
+      ctx.strokeStyle=air<1?tint(edge,edge.color,AIR,(1-air)*.8):edge.color;
       // A link leaves a little room round each of its stars, so that the stars stand clear of the lines they join.
       const path=trimRoute(route,gapOf(byId.get(edge.from)),gapOf(byId.get(edge.to)));if(!path)continue;
       const dash=edge.dash??(edge.kind==='questions'||edge.kind==='contrasts'?'dashed':'solid');let longest=null;
@@ -1027,13 +1030,13 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(domFrame){setHidden(thread.el,!inView(box(ex-4,ey-4,8,8)));setStyle(thread.el,'transform',`translate3d(${(ex-12).toFixed(2)}px,${(ey-12).toFixed(2)}px,0)`);}
       if(thread.grown<.995)layoutMoving=true;
     }
-    const journey=root.dataset.journey==='true',day=!!daylight(),dayAir=day?night('#B3B6C4'):'',vl=targetViewport.left,vr=targetViewport.right,vt=targetViewport.top,vb=targetViewport.bottom;
+    const journey=root.dataset.journey==='true',day=!!daylight(),vl=targetViewport.left,vr=targetViewport.right,vt=targetViewport.top,vb=targetViewport.bottom;
     // A star's point lies inside the free area (as the box of ten points round it does).
     const pointInView=p=>p.x-5>=vl&&p.x+5<=vr&&p.y-5>=vt&&p.y+5<=vb;
     nodes.forEach(n=>{
       const p=n.screen,hot=n.id===selectedId||n.id===hover||(holdToMove>0&&n.dragging),own=n.own,big=n.major,dim=(focused&&!journey&&!near.has(n.id)&&!kept.has(n.id)||n.dimmed)&&!hot,radius=starRadius(n),warm=n.warm??(hot?1:0);
       const near01=depthCue&&!measured?clamp((p.d-.86)/.3,0,1):1,fade=hot?1:day?.3+.7*near01:.5+.5*near01;
-      const color=day&&!hot&&near01<1?tint(n,own,dayAir,(1-near01)*.6):own;
+      const color=day&&!hot&&near01<1?tint(n,own,AIR,(1-near01)*.6):own;
       // A measured layout draws only the stars inside its free area; every star still keeps its type, so its label is measured right.
       if(domFrame&&setData(n.el,'major',String(!!big)))measureLabels=true;
       if(measured&&!pointInView(p)){if(domFrame)setHidden(n.el,true);return;}
@@ -1076,7 +1079,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(!domFrame)return;
       // What the page reads of a star (its state, its reach, whether it is in view) is written at once. Where its
       // button stands, how it lies over the others and how bright its name is wait for placeStars.
-      const outside=String(away>.5);if(n.el.dataset.outside!==outside){n.el.dataset.outside=outside;n.el.tabIndex=away>.5?-1:0;}
+      n.outside=away>.5;if(put(n.el,'data-outside',String(n.outside))){n.el.dataset.outside=String(n.outside);n.el.tabIndex=n.outside?-1:0;}
       const active=String(n.id===selectedId);setData(n.el,'active',active);setData(n.el,'prominent',String(n.prominent));setData(n.el,'dim',String(dim));if(put(n.el,'aria-pressed',active))n.el.setAttribute('aria-pressed',active);
       setHidden(n.el,!pointInView(p));
       // The nearer star lies over the farther, so that the pointer reaches the star it is over, and the chosen one over all.

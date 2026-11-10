@@ -32,3 +32,17 @@ test('a kept stretch of the scene lays its stars again with its strokes',()=>{
   expect(Array.from(p.data.subarray(4*11,8*11))).toEqual(quads);
   expect(Array.from(p.starData.subarray(0,2*24))).toEqual(stars);
 });
+
+test("the paper's uniforms travel once, until the paper or the canvas changes",()=>{
+  const calls=[];
+  const counting=new Proxy({},{get:(_,key)=>key==='getShaderParameter'||key==='getProgramParameter'?()=>true:key==='isContextLost'?()=>false:/^[A-Z0-9_]+$/.test(String(key))?0:()=>{calls.push(String(key));return {};}});
+  const canvas={width:800,height:600,getContext:()=>counting,addEventListener(){},dataset:{}};
+  const p=new SophiaGpuCanvas(canvas);
+  const paper={steps:[{matrix:[1,0,0,0,1,0,0,0,1],offset:[0,0,0]}],stops:[[1,1,1,0]],center:[400,300],radii:[500,400]};
+  expect(p.setPaper(paper)).toBe(true);
+  const frame=()=>{calls.length=0;p.beginFrame();disc(p,10,10);p.endFrame();return [calls.filter(name=>name==='uniformMatrix3fv').length,calls.filter(name=>name==='drawArrays').length];};
+  expect(frame()).toEqual([1,1]);
+  expect(frame()).toEqual([0,1]);
+  canvas.height=640;expect(frame()).toEqual([1,1]);
+  p.setPaper({...paper});expect(frame()).toEqual([1,1]);
+});
