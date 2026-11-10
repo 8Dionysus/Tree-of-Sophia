@@ -75,7 +75,7 @@ describe('the Aesthetics field',()=>{
     const read=readField(field);
     expect(read.conceptsOf('area-beautiful').length).toBe(39);
     expect(read.conceptionsOf('the-beautiful').map(conception=>conception.work)).toEqual(expect.arrayContaining(['plato.symposium','plotinus.enneads','aristotle.poetics']));
-    expect(read.linksOf('symmetry').map(link=>link.id)).toEqual(['the-beautiful:is-other-than:symmetry']);
+    expect(read.linksOf('symmetry').map(link=>link.id)).toEqual(['the-beautiful:is-other-than:symmetry','symmetry:pleases-as-it-gives-the-idea-of:fitness','the-viewing-station:shifted-takes-away:symmetry']);
     const subjects=fieldSubjects(field,library);
     for(const id of ['area-beautiful','the-beautiful','plato.symposium:ascent','plato','plato.symposium'])expect(subjects.has(id),id).toBe(true);
   });
@@ -92,7 +92,7 @@ describe('the Aesthetics field',()=>{
     }
     // Every place the module holds is the formula of a conception: the bonsai keeps no text it does not cite.
     for(const work of Object.keys(fragments.places))expect(new Set(cites.filter(({cite})=>cite.w===work).map(({cite})=>cite.loc)),work).toEqual(new Set(Object.keys(fragments.places[work])));
-    expect(Object.keys(fragments.places)).toEqual([KANT,'edmund-burke.a-philosophical-enquiry-into-the-origin-of-our']);
+    expect(Object.keys(fragments.places)).toEqual([KANT,'edmund-burke.a-philosophical-enquiry-into-the-origin-of-our','william-hogarth.the-analysis-of-beauty']);
     const broken=structuredClone(field),kant=broken.conceptions.find(conception=>conception.work===KANT);
     kant.formula.cite[0].loc='§1 no such lines';
     expect(checkBonsai(root,'aesthetics',{overrides:{field:broken}}).problems).toContain(`field: conception ${kant.id}: no place ${KANT} §1 no such lines among the places of other works`);
