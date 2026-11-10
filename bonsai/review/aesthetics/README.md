@@ -115,8 +115,10 @@ conception from a record under `readings/` alone. It finds each formula in its
 corpus unit by the words that open and close it and refuses a span that opens
 or closes inside a sentence. Where the record keeps a work in the places
 module, it takes the place the record names and refuses one the module does
-not hold or one that does not run over whole sentences. `--check` says whether
-the stored modules are what the records give.
+not hold or one without sentence-like outer punctuation. This punctuation
+check cannot establish sentence boundaries in the source; the reader must
+verify those against the printed page. `--check` says whether the stored
+modules are what the records give.
 
 A work outside the public corpus enters through `fragments.json`: the exact
 text of each cited place in the original and in the translations whose rights

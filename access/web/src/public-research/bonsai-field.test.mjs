@@ -79,7 +79,7 @@ describe('the Aesthetics field',()=>{
     const subjects=fieldSubjects(field,library);
     for(const id of ['area-beautiful','the-beautiful','plato.symposium:ascent','plato','plato.symposium'])expect(subjects.has(id),id).toBe(true);
   });
-  it('cites a work the corpus does not hold by places of its own module, each a run of whole sentences in the original',()=>{
+  it('cites a work the corpus does not hold by places with sentence-like outer punctuation',()=>{
     expect(externalPlacesIssues(fragments)).toEqual([]);
     const read=termPlaceReader(root,alignment,fragments,{corpus:'absent'}),cites=fieldCites(field).filter(({cite})=>cite.loc);
     expect(cites.length).toBeGreaterThan(40);

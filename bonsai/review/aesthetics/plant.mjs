@@ -10,7 +10,7 @@
 // not run over whole sentences, and writes the citation. Fetch the corpus first:
 // node bonsai/lib/layers.mjs fetch access/public-corpus. For a work the corpus does not hold, the record names a
 // place of bonsai/aesthetics/fragments.json, whose text in the original is the formula; this tool refuses a place
-// the module does not hold or one that does not run over whole sentences.
+// the module does not hold or one lacking sentence-like outer punctuation; a reader must verify boundaries against the source.
 
 import {readFileSync,writeFileSync,readdirSync,existsSync} from 'node:fs';
 import {dirname,join} from 'node:path';
