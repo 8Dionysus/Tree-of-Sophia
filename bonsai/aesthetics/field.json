@@ -50,6 +50,13 @@
    "date": "2026-11-09",
    "reads": "The German of each place in volume V of the Akademie edition, beside the registers’ readings of that place, which were made from Bernard’s English. A register’s reasoning is no ground: the place is.",
    "record": "bonsai/review/aesthetics/readings/2026-11-09-kant.json"
+  },
+  {
+   "id": "claude-2026-11-10-burke",
+   "model": "claude-fable-5-2",
+   "date": "2026-11-10",
+   "reads": "The English of each place on the pages of the Boston edition of 1865, beside the registers’ readings of that place. A register’s reasoning is no ground: the place is.",
+   "record": "bonsai/review/aesthetics/readings/2026-11-10-burke.json"
   }
  ],
  "groups": [
@@ -9320,6 +9327,582 @@
    "grew_from": [
     "A:E024"
    ]
+  },
+  {
+   "id": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:taste-common-and-unequal",
+   "type": "tos.entity.conception",
+   "of": [
+    "taste",
+    "competence-and-expertise"
+   ],
+   "areas": [
+    "area-taste-and-judgment"
+   ],
+   "work": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+   "agents": [
+    "edmund-burke"
+   ],
+   "locus": "Introduction, On Taste",
+   "formula": {
+    "cite": [
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "Taste p79"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "Taste p81"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "Taste p95"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "Taste p99"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Вкус — способность души, на которую действуют произведения воображения и изящных искусств и которая судит о них. Мерило разума и вкуса, вероятно, одно у всех людей; по своей природе и виду вкус имеет вполне единые начала. Различна степень, в какой эти начала действуют в отдельных людях: чувствительность и суждение, составляющие вкус, у разных людей весьма различны. Вкус совершенствуется так же, как суждение: расширением знаний, постоянным вниманием к предмету и частым упражнением.",
+    "en": "Taste is the faculty of the mind that is affected by the works of imagination and the elegant arts and that forms a judgment of them. The standard of reason and taste is probably the same in all human creatures; in its nature and species taste has entirely uniform principles. What differs is the degree in which these principles prevail in individuals: sensibility and judgment, which compose taste, vary exceedingly in various people. Taste is improved exactly as judgment is: by extending our knowledge, by steady attention to the object and by frequent exercise."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "B:C-I003"
+   ]
+  },
+  {
+   "id": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:novelty-and-curiosity",
+   "type": "tos.entity.conception",
+   "of": [
+    "novelty",
+    "curiosity"
+   ],
+   "areas": [
+    "area-interesting"
+   ],
+   "work": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+   "agents": [
+    "edmund-burke"
+   ],
+   "locus": "Part I, sect. 1",
+   "formula": {
+    "cite": [
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "I.1 p101a"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "I.1 p101b"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "I.1 p102"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Любопытство — первое и простейшее движение души: желание нового и удовольствие от него. Это самый поверхностный из аффектов: его аппетит остёр и легко насыщается. Некоторая доля новизны входит в состав всего, что действует на душу, и любопытство примешивается ко всем нашим страстям.",
+    "en": "Curiosity is the first and simplest emotion of the mind: the desire for novelty and the pleasure taken in it. It is the most superficial of the affections: its appetite is sharp and easily satisfied. Some degree of novelty is among the materials of everything that works upon the mind, and curiosity blends itself with all our passions."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E037"
+   ]
+  },
+  {
+   "id": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:delight-and-pleasure",
+   "type": "tos.entity.conception",
+   "of": [
+    "pleasure",
+    "delight",
+    "negative-pleasure"
+   ],
+   "areas": [
+    "area-sublime",
+    "area-experience-and-affect"
+   ],
+   "work": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+   "agents": [
+    "edmund-burke"
+   ],
+   "locus": "Part I, sects. 3–4",
+   "formula": {
+    "cite": [
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "I.3 p106"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "I.4 p107a"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "I.4 p107b"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "I.4 p108"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Удовольствие никогда не происходит из устранения боли или опасности. Есть удовольствие простое, вне всякого отношения, и удовольствие, существующее только в отношении к боли. Это относительное удовольствие — чувство, сопровождающее устранение боли или опасности, — Бёрк называет наслаждением (delight); положительное удовольствие он называет просто удовольствием.",
+    "en": "Pleasure never has its origin in the removal of pain or danger. There is a pleasure that is such simply, without any relation, and a pleasure that exists only in relation to pain. This relative pleasure, the sensation that accompanies the removal of pain or danger, Burke calls delight; positive pleasure he calls simply pleasure."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "confirmed",
+    "note": "Register A sets the reading under «Отрицательное удовольствие»; Burke’s own words are relative pleasure and delight, and the conception stands under that concept with these words. Register A reads sects. 3–4 with sect. 7; terror and distance have their conception at sect. 7."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E038",
+    "B:B-I003"
+   ]
+  },
+  {
+   "id": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:source-of-the-sublime",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-sublime",
+    "terror",
+    "safe-distance",
+    "negative-pleasure"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "work": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+   "agents": [
+    "edmund-burke"
+   ],
+   "locus": "Part I, sect. 7",
+   "formula": {
+    "cite": [
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "I.7 p110"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "I.7 p111"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Всё, что способно возбуждать идеи боли и опасности, — всё ужасное, всё связанное с ужасными предметами или действующее подобно ужасу — источник возвышенного: оно производит сильнейшее волнение, на какое способна душа. Слишком близкие опасность и боль просто ужасны; на известном расстоянии и с известными изменениями они доставляют наслаждение.",
+    "en": "Whatever is fitted to excite the ideas of pain and danger, whatever is terrible, is conversant about terrible objects or operates like terror, is a source of the sublime: it produces the strongest emotion the mind is capable of feeling. Danger and pain that press too nearly are simply terrible; at certain distances and with certain modifications they are delightful."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E038"
+   ]
+  },
+  {
+   "id": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:astonishment",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-sublime",
+    "astonishment",
+    "awe"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "work": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+   "agents": [
+    "edmund-burke"
+   ],
+   "locus": "Part II, sect. 1",
+   "formula": {
+    "cite": [
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "II.1 p130"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Страсть, которую вызывает великое и возвышенное в природе, когда эти причины действуют всего сильнее, — изумление: состояние души, в котором все её движения приостановлены, с некоторой долей ужаса. Душа целиком заполнена своим предметом; возвышенное предваряет наши рассуждения и увлекает нас неодолимой силой. Низшие его действия — восхищение, благоговение и уважение.",
+    "en": "The passion caused by the great and sublime in nature, when those causes operate most powerfully, is astonishment: the state of the soul in which all its motions are suspended, with some degree of horror. The mind is entirely filled with its object; the sublime anticipates our reasonings and hurries us on by an irresistible force. Its inferior effects are admiration, reverence and respect."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "revise",
+    "note": "The thesis stands at the place. Register A sets the reading also under «Трепет» (awe); the words of the place are horror and reverence, and the conception stands under that concept with these words. Register B (B-I028) reads II.1–2 under «напряжённость и саспенс» and says itself that Burke’s sublime is no narrative suspense; the place names astonishment, and that concept is left out."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E039",
+    "B:B-I028"
+   ]
+  },
+  {
+   "id": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:terror-the-ruling-principle",
+   "type": "tos.entity.conception",
+   "of": [
+    "terror",
+    "the-sublime"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "work": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+   "agents": [
+    "edmund-burke"
+   ],
+   "locus": "Part II, sect. 2",
+   "formula": {
+    "cite": [
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "II.2 p130-131"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "II.2 p131"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Страх — предчувствие боли или смерти — действует подобно настоящей боли и отнимает у души все её силы действовать и рассуждать. Всё страшное для зрения возвышенно, велик ли его предмет или мал. Ужас во всех случаях, явно или скрыто, — господствующий принцип возвышенного.",
+    "en": "Fear, an apprehension of pain or death, operates like actual pain and robs the mind of all its powers of acting and reasoning. Whatever is terrible to sight is sublime too, whether its cause be great in dimensions or small. Terror is in all cases, openly or latently, the ruling principle of the sublime."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "revise",
+    "note": "The thesis stands at the place. Register B (B-I028) reads II.1–2 under «напряжённость и саспенс» and «удовольствие»; sect. 2 speaks of fear, terror and the sublime, and the conception stands under terror and the sublime."
+   },
+   "admission": "map",
+   "grew_from": [
+    "B:B-I028"
+   ]
+  },
+  {
+   "id": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:obscurity",
+   "type": "tos.entity.conception",
+   "of": [
+    "obscurity",
+    "terror",
+    "the-sublime"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "work": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+   "agents": [
+    "edmund-burke"
+   ],
+   "locus": "Part II, sects. 3–4",
+   "formula": {
+    "cite": [
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "II.3 p132"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "II.4 p133"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "II.4 p134"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Чтобы сделать что-либо очень страшным, обычно нужна неясность: когда нам известны все размеры опасности и глаз к ней привыкает, большая часть опасения исчезает. Сделать идею ясной — одно, сделать её волнующей воображение — другое; большая ясность мало помогает действию на страсти и в некотором роде враждебна всякому воодушевлению.",
+    "en": "To make anything very terrible, obscurity is in general necessary: when we know the full extent of a danger and can accustom our eyes to it, a great deal of the apprehension vanishes. To make an idea clear is one thing, to make it affecting to the imagination another; a great clearness helps little towards affecting the passions and is in some sort an enemy to all enthusiasms."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E040"
+   ]
+  },
+  {
+   "id": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:power",
+   "type": "tos.entity.conception",
+   "of": [
+    "might",
+    "terror",
+    "the-sublime"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "work": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+   "agents": [
+    "edmund-burke"
+   ],
+   "locus": "Part II, sect. 5",
+   "formula": {
+    "cite": [
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "II.5 p138"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "II.5 p139"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "II.5 p145"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Кроме того, что прямо внушает идею опасности, и того, что действует сходно по механической причине, всё возвышенное есть видоизменение мощи; и эта ветвь растёт из ужаса — общего ствола всего возвышенного. Всю свою возвышенность мощь берёт от ужаса, который её обычно сопровождает: лишённая способности вредить, она утрачивает всё возвышенное и становится презренной. Мощь — главный источник возвышенного.",
+    "en": "Besides what directly suggests the idea of danger and what works a like effect from a mechanical cause, everything sublime is some modification of power; and this branch rises from terror, the common stock of everything sublime. Power derives all its sublimity from the terror that generally accompanies it: stripped of its ability to hurt, it loses everything sublime and becomes contemptible. Power is a capital source of the sublime."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E041"
+   ]
+  },
+  {
+   "id": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:privation",
+   "type": "tos.entity.conception",
+   "of": [
+    "privation",
+    "terror",
+    "the-sublime"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "work": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+   "agents": [
+    "edmund-burke"
+   ],
+   "locus": "Part II, sect. 6",
+   "formula": {
+    "cite": [
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "II.6 p146"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Все общие лишённости велики, потому что все они страшны: пустота, темнота, одиночество и безмолвие.",
+    "en": "All general privations are great, because they are all terrible: vacuity, darkness, solitude and silence."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E042"
+   ]
+  },
+  {
+   "id": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:vastness-and-infinity",
+   "type": "tos.entity.conception",
+   "of": [
+    "greatness",
+    "unboundedness",
+    "the-sublime"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "work": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+   "agents": [
+    "edmund-burke"
+   ],
+   "locus": "Part II, sects. 7–8",
+   "formula": {
+    "cite": [
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "II.7 p147"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "II.8 p148a"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "II.8 p148b"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Величина размеров — мощная причина возвышенного. Другой его источник — бесконечность: она наполняет душу тем ужасом, дающим наслаждение, который есть самое подлинное действие и вернейший признак возвышенного. Когда глаз не воспринимает границ вещей, они кажутся бесконечными и действуют так же, как если бы были бесконечны.",
+    "en": "Greatness of dimension is a powerful cause of the sublime. Another source is infinity: it fills the mind with that delightful horror which is the most genuine effect and truest test of the sublime. Where the eye cannot perceive the bounds of things, they seem infinite and produce the same effects as if they really were so."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "confirmed",
+    "note": "Register A reads sects. 7–9 together; succession and uniformity have their conception at sect. 9."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E043"
+   ]
+  },
+  {
+   "id": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:artificial-infinite",
+   "type": "tos.entity.conception",
+   "of": [
+    "succession-and-uniformity",
+    "unboundedness"
+   ],
+   "areas": [
+    "area-sublime"
+   ],
+   "work": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+   "agents": [
+    "edmund-burke"
+   ],
+   "locus": "Part II, sect. 9",
+   "formula": {
+    "cite": [
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "II.9 p149-150"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Последовательность и единообразие частей составляют искусственную бесконечность. Последовательность нужна, чтобы части, продолжаясь достаточно долго и в одном направлении, частыми толчками в чувство внушили воображению идею их продолжения за их действительные пределы. Единообразие нужно, чтобы воображение шло без остановки: только непрерывное продвижение придаёт ограниченным предметам характер бесконечности.",
+    "en": "Succession and uniformity of parts constitute the artificial infinite. Succession is needed so that the parts, continued long enough and in one direction, impress the imagination by their frequent impulses on the sense with an idea of their progress beyond their actual limits. Uniformity is needed so that the imagination meets no check: only an uninterrupted progression stamps on bounded objects the character of infinity."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E043"
+   ]
+  },
+  {
+   "id": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:small-smooth-delicate",
+   "type": "tos.entity.conception",
+   "of": [
+    "smallness",
+    "tenderness",
+    "the-beautiful"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-cute"
+   ],
+   "work": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+   "agents": [
+    "edmund-burke"
+   ],
+   "locus": "Part III, sects. 13–14, 16",
+   "formula": {
+    "cite": [
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "III.13 p192"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "III.14 p193"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "III.16 p195"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Восхищение и любовь далеко отстоят друг от друга. Возвышенное, причина восхищения, пребывает в предметах больших и страшных; любовь — в малых и приятных: мы подчиняемся тому, чем восхищаемся, и любим то, что подчиняется нам. Прекрасные предметы сравнительно малы и гладки; вид нежности и даже хрупкости почти существен для красоты, вид крепости и силы ей вредит.",
+    "en": "Admiration and love lie far apart. The sublime, the cause of admiration, dwells on great objects and terrible; love on small ones and pleasing: we submit to what we admire and love what submits to us. Beautiful objects are comparatively small and smooth; an appearance of delicacy, even of fragility, is almost essential to beauty, and an air of robustness and strength is prejudicial to it."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "confirmed",
+    "note": "Register A names sects. 13–16; the sentences stand in sects. 13, 14 and 16. Its remark that this is Burke’s account and no definition of the cute of today stands in the layer."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E045"
+   ]
+  },
+  {
+   "id": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:grace-and-elegance",
+   "type": "tos.entity.conception",
+   "of": [
+    "grace",
+    "elegance",
+    "the-beautiful"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "work": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+   "agents": [
+    "edmund-burke"
+   ],
+   "locus": "Part III, sects. 22–23",
+   "formula": {
+    "cite": [
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "III.22 p200"
+     },
+     {
+      "w": "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our",
+      "loc": "III.23 p200"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Грациозность близка красоте и принадлежит позе и движению: в них нет видимости затруднения, тело слегка изогнуто, части расположены свободно, без острых и внезапных углов. Изящным Бёрк называет тело, составленное из гладких и отполированных частей и притом правильной формы; изящное близко прекрасному и отличается от него только этой правильностью.",
+    "en": "Gracefulness is close to beauty and belongs to posture and motion: there is no appearance of difficulty in them, a small inflection of the body, and parts composed so as not to encumber each other or to appear divided by sharp and sudden angles. Elegant Burke calls a body composed of smooth and polished parts that affects some regular shape; the elegant is closely allied to the beautiful and differs from it only in this regularity."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E044"
+   ]
   }
  ],
  "links": [
@@ -9824,6 +10407,225 @@
    "admission": "map",
    "grew_from": [
     "A:R049"
+   ]
+  },
+  {
+   "id": "curiosity:is-the-desire-for:novelty",
+   "from": "curiosity",
+   "to": "novelty",
+   "verb": {
+    "ru": "есть желание и удовольствие, чей предмет —",
+    "en": "is the desire and the pleasure whose object is"
+   },
+   "grounds": [
+    "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:novelty-and-curiosity"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "revise",
+    "note": "Register A: «Новизна возбуждает Любопытство». The place defines curiosity as the desire for novelty and the pleasure taken in it, and the link starts from curiosity."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R032"
+   ]
+  },
+  {
+   "id": "delight:is-distinguished-from:pleasure",
+   "from": "delight",
+   "to": "pleasure",
+   "verb": {
+    "ru": "различается с",
+    "en": "is distinguished from"
+   },
+   "grounds": [
+    "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:delight-and-pleasure"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "revise",
+    "note": "Register B holds this as its compiler’s comparison across three works. Burke’s sect. 4 makes the distinction itself, and the link rests on that place alone."
+   },
+   "admission": "map",
+   "grew_from": [
+    "B:B-R010"
+   ]
+  },
+  {
+   "id": "safe-distance:turns-into-delight:terror",
+   "from": "safe-distance",
+   "to": "terror",
+   "verb": {
+    "ru": "обращает в наслаждение то, что вблизи есть лишь",
+    "en": "turns into delight what, pressing near, is only"
+   },
+   "grounds": [
+    "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:source-of-the-sublime"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "revise",
+    "note": "Register A: «делает возможным эстетическое отношение к». The verb follows sect. 7: danger and pain that press too nearly are simply terrible; at certain distances they are delightful."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R034"
+   ]
+  },
+  {
+   "id": "the-sublime:causes:astonishment",
+   "from": "the-sublime",
+   "to": "astonishment",
+   "verb": {
+    "ru": "вызывает",
+    "en": "causes"
+   },
+   "grounds": [
+    "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:astonishment"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R035"
+   ]
+  },
+  {
+   "id": "terror:is-the-ruling-principle-of:the-sublime",
+   "from": "terror",
+   "to": "the-sublime",
+   "verb": {
+    "ru": "есть господствующий принцип того, что есть",
+    "en": "is the ruling principle of"
+   },
+   "grounds": [
+    "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:terror-the-ruling-principle"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "undecided",
+    "note": "Made by this reader from sect. 2; no register holds this link. It waits for an independent reading."
+   },
+   "admission": "held",
+   "grew_from": [
+    "B:B-I028"
+   ]
+  },
+  {
+   "id": "obscurity:is-necessary-to:terror",
+   "from": "obscurity",
+   "to": "terror",
+   "verb": {
+    "ru": "обычно необходима, чтобы возник",
+    "en": "is in general necessary to"
+   },
+   "grounds": [
+    "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:obscurity"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "revise",
+    "note": "Register A: «усиливает». The verb follows sect. 3: to make anything very terrible, obscurity seems in general to be necessary."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R036"
+   ]
+  },
+  {
+   "id": "might:is-a-capital-source-of:the-sublime",
+   "from": "might",
+   "to": "the-sublime",
+   "verb": {
+    "ru": "есть главный источник того, что есть",
+    "en": "is a capital source of"
+   },
+   "grounds": [
+    "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:power"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "revise",
+    "note": "Register A: «связана с». The verb follows the close of sect. 5: power is undoubtedly a capital source of the sublime."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R037"
+   ]
+  },
+  {
+   "id": "succession-and-uniformity:constitute-the-artificial:unboundedness",
+   "from": "succession-and-uniformity",
+   "to": "unboundedness",
+   "verb": {
+    "ru": "составляют искусственное",
+    "en": "constitute the artificial"
+   },
+   "grounds": [
+    "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:artificial-infinite"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "revise",
+    "note": "Register A: «создаёт впечатление». The verb follows the first sentence of sect. 9."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R039"
+   ]
+  },
+  {
+   "id": "smallness:belongs-to-the-objects-of:the-beautiful",
+   "from": "smallness",
+   "to": "the-beautiful",
+   "verb": {
+    "ru": "присуща предметам, в которых есть",
+    "en": "belongs to the objects that have"
+   },
+   "grounds": [
+    "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:small-smooth-delicate"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "revise",
+    "note": "Register A: «участвует в авторском объяснении». The verb follows sect. 13: beautiful objects are comparatively small."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R041"
+   ]
+  },
+  {
+   "id": "elegance:differs-only-by-regularity-from:the-beautiful",
+   "from": "elegance",
+   "to": "the-beautiful",
+   "verb": {
+    "ru": "отличается только правильностью от того, что есть",
+    "en": "differs only in its regularity from"
+   },
+   "grounds": [
+    "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our:grace-and-elegance"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "claude-2026-11-10-burke",
+    "verdict": "revise",
+    "note": "Register A: «Грация различается с Изяществом». The place sets grace and elegance each beside beauty and does not set them against each other; the link the text makes runs from elegance to the beautiful."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R040"
    ]
   }
  ]

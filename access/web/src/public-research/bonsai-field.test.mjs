@@ -86,20 +86,24 @@ describe('the Aesthetics field',()=>{
     for(const {conception,cite} of cites){
       const place=read(cite,fragments.works[cite.w].original);
       expect(place.error,`${conception} ${cite.loc}`).toBeUndefined();
-      expect(fragments.places[cite.w][cite.loc].texts.de,cite.loc).toMatch(/^\p{Lu}[^]*[.!?]$/u);
-      expect(fragments.places[cite.w][cite.loc].texts.en,cite.loc).toMatch(/^\p{Lu}/u);
+      const texts=fragments.places[cite.w][cite.loc].texts;
+      expect(texts[fragments.works[cite.w].original],cite.loc).toMatch(/^\p{Lu}[^]*[.!?]$/u);
+      for(const text of Object.values(texts))expect(text,cite.loc).toMatch(/^\p{Lu}/u);
     }
     // Every place the module holds is the formula of a conception: the bonsai keeps no text it does not cite.
-    expect(new Set(cites.map(({cite})=>cite.loc))).toEqual(new Set(Object.keys(fragments.places[KANT])));
+    for(const work of Object.keys(fragments.places))expect(new Set(cites.filter(({cite})=>cite.w===work).map(({cite})=>cite.loc)),work).toEqual(new Set(Object.keys(fragments.places[work])));
+    expect(Object.keys(fragments.places)).toEqual([KANT,'edmund-burke.a-philosophical-enquiry-into-the-origin-of-our']);
     const broken=structuredClone(field),kant=broken.conceptions.find(conception=>conception.work===KANT);
     kant.formula.cite[0].loc='§1 no such lines';
     expect(checkBonsai(root,'aesthetics',{overrides:{field:broken}}).problems).toContain(`field: conception ${kant.id}: no place ${KANT} §1 no such lines among the places of other works`);
   });
   it('keeps the words of the printed page where a transcription differs from it',()=>{
-    expect(fragments.provenance.corrections.map(correction=>correction.to)).toEqual(['unterliegen müßte. Auf solche Weise','Angenehm heißt Jemandem das']);
-    const texts=Object.values(fragments.places[KANT]).map(place=>place.texts.de).join('\n');
-    for(const {from,to} of fragments.provenance.corrections){expect(texts,to).toContain(to);expect(texts,from).not.toContain(from);}
-    for(const witness of Object.values(fragments.works[KANT].witnesses))expect(witness.rights.basis).toBe('public-domain');
+    expect(fragments.provenance.corrections.map(correction=>correction.to)).toEqual(['unterliegen müßte. Auf solche Weise','Angenehm heißt Jemandem das','smoothness; a quality so essential']);
+    for(const {from,to,lang,place} of fragments.provenance.corrections){
+      const work=Object.keys(fragments.places).find(id=>place.startsWith(`${id} `)),text=fragments.places[work][place.slice(work.length+1)].texts[lang];
+      expect(text,place).toContain(to);expect(text,place).not.toContain(from);
+    }
+    for(const work of Object.values(fragments.works))for(const witness of Object.values(work.witnesses))expect(witness.rights.basis).toBe('public-domain');
   });
   it('holds back what its own reader made until another reader has read the place',()=>{
     const read=readField(field),division=field.conceptions.find(conception=>conception.id===`${KANT}:division-of-the-sublime`);
@@ -107,7 +111,9 @@ describe('the Aesthetics field',()=>{
     expect(read.conceptionsOf('the-sublime').map(conception=>conception.id)).not.toContain(division.id);
     expect(read.conceptionsOf('the-sublime').map(conception=>conception.id)).toContain(`${KANT}:absolutely-great`);
     expect(read.linksOf('the-mathematically-sublime').map(link=>link.id)).toEqual(['the-mathematically-sublime:is-absolute:greatness']);
-    expect(field.links.filter(link=>link.admission==='held').map(link=>link.id)).toEqual(['the-sublime:divides-into:the-mathematically-sublime','the-sublime:divides-into:the-dynamically-sublime']);
+    const held=field.links.filter(link=>link.admission==='held');
+    expect(held.map(link=>link.id)).toEqual(['the-sublime:divides-into:the-mathematically-sublime','the-sublime:divides-into:the-dynamically-sublime','terror:is-the-ruling-principle-of:the-sublime']);
+    expect(new Set(held.map(link=>link.reading.verdict))).toEqual(new Set(['undecided']));
   });
   it.skipIf(!corpusFetched)('cites formulas that run over whole sentences of the original',()=>{
     const read=termPlaceReader(root,alignment,null,{corpus:'present'});
