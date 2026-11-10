@@ -1,6 +1,7 @@
 import { SophiaGpuCanvas } from '../src/observatory/gpu-canvas.js';
 import {validateSkyPose} from './sky-pose.mjs';
 import {readPaper} from './sky-paper.mjs';
+import {meetsStar,starCells} from './star-cells.mjs';
 
 // Spatial view over a session-local graph; preserves the observatory atmosphere.
 // Options are opt-in so the constructor keeps its own behaviour: rotate:false
@@ -573,7 +574,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   const intoView=r=>{const width=r.right-r.left,height=r.bottom-r.top,v=targetViewport;return box(clamp(r.left,v.left,Math.max(v.left,v.right-width)),clamp(r.top,v.top,Math.max(v.top,v.bottom-height)),width,height);};
   // Of the given places, the first clear one; else the one that covers the least of what is already named, never a panel.
   function placeAlways(possibilities,occupied,stars,ownId=null,guarded=[]){
-    const within=possibilities.map(intoView),clear=within.find(rect=>!occupied.some(o=>overlaps(rect,o))&&!stars.some(o=>o.id!==ownId&&overlaps(rect,o,2)));
+    const within=possibilities.map(intoView),clear=within.find(rect=>!occupied.some(o=>overlaps(rect,o))&&!meetsStar(stars,rect,2,ownId));
     if(clear)return {area:clear,clear:true};
     let best=null,cost=Infinity;
     // The chosen star's own name is guarded: covering it costs as much as covering a panel.
@@ -676,7 +677,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     }
     // A star the view has stepped back lies under the names in front of it, and so does one a chosen star or link has
     // sent back.
-    const nodeObstacles=nodes.filter(n=>!n.el.hidden&&!n.dimmed&&n.el.dataset.outside!=='true').map(n=>({id:n.id,...box(n.screen.x-9,n.screen.y-9,18,18)}));
+    const nodeObstacles=starCells(nodes.filter(n=>!n.el.hidden&&!n.dimmed&&n.el.dataset.outside!=='true').map(n=>({id:n.id,...box(n.screen.x-9,n.screen.y-9,18,18)})));
     for(const c of clusters){
       if(c.variant)continue;
       const width=c.labelWidth??110,height=c.labelHeight??(c.subtitle.textContent?40:25);
@@ -684,7 +685,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const sticky=c.present?c.slot:null,candidates=places.filter(inView).sort((a,b)=>(b.slot===sticky)-(a.slot===sticky));
       // A group's name keeps the place it stands in while that stays clear; else it takes the first place clear of the
       // stars, and never one over another name.
-      const clear=candidates.find(candidate=>!occupied.some(o=>overlaps(candidate,o))&&!nodeObstacles.some(o=>overlaps(candidate,o,2)));
+      const clear=candidates.find(candidate=>!occupied.some(o=>overlaps(candidate,o))&&!meetsStar(nodeObstacles,candidate,2));
       const area=clear??candidates.find(candidate=>!occupied.some(o=>overlaps(candidate,o)))??null;
       setFlag(c.el,'crowded',!!(area&&!clear));
       // A group that recedes is quieter further back in a space read in depth, as its stars are.
@@ -815,7 +816,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
         const within=around(n,height).filter(inView).sort((a,b)=>was?(b.side===n.labelSideNow)-(a.side===n.labelSideNow):0);
         const own=was?within.find(rect=>rect.side===n.labelSideNow):null,size=rect=>(rect.right-rect.left)*(rect.bottom-rect.top);
         if(own&&!occupied.some(o=>overlapArea(own,o)>size(own)*.12))return own;
-        const clear=within.find(rect=>!occupied.some(o=>overlaps(rect,o))&&!nodeObstacles.some(o=>o.id!==n.id&&overlaps(rect,o,2)));
+        const clear=within.find(rect=>!occupied.some(o=>overlaps(rect,o))&&!meetsStar(nodeObstacles,rect,2,n.id));
         return clear||(hot?within[0]:n.prominent?within.find(rect=>!occupied.some(o=>overlaps(rect,o))):null);
       };
       // Without room for its source line, a star keeps its name rather than losing both.
@@ -833,10 +834,10 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(shown>=6)break;const hit=edgeHits.find(hit=>hit.id===e.id);if(!hit)continue;
       const {a,b}=hit,dx=b.x-a.x,dy=b.y-a.y,length=Math.hypot(dx,dy),hot=e.id===hoverEdge||e.id===selectedEdgeId;if(length<70&&!hot)continue;
       let chosen=null,compact=false;
-      for(const t of [.5,.35,.65]){const x=a.x+dx*t,y=a.y+dy*t,area=box(x-e.labelWidth/2,y-e.labelHeight/2,e.labelWidth,e.labelHeight);if(inView(area)&&!occupied.some(o=>overlaps(area,o))&&!nodeObstacles.some(o=>overlaps(area,o))){chosen=area;break;}}
-      if(!chosen&&e.tag&&e.compactWidth)for(const t of [.5,.4,.6,.3,.7]){const x=a.x+dx*t,y=a.y+dy*t,area=box(x-e.compactWidth/2,y-e.compactHeight/2,e.compactWidth,e.compactHeight);if(inView(area)&&!occupied.some(o=>overlaps(area,o,2))&&!nodeObstacles.some(o=>overlaps(area,o,2))){chosen=area;compact=true;break;}}
-      if(!chosen&&hot){for(const offset of [0,24,-24]){const area=box((a.x+b.x)/2-dy/Math.max(1,length)*offset-e.labelWidth/2,(a.y+b.y)/2+dx/Math.max(1,length)*offset-e.labelHeight/2,e.labelWidth,e.labelHeight);if(inView(area)&&!uiObstacles.some(o=>overlaps(area,o))&&!nodeObstacles.some(o=>overlaps(area,o))&&!nodes.some(n=>(n.id===selectedId||n.id===hover)&&n.labelBox&&overlaps(area,n.labelBox))){chosen=area;break;}}}
-      if(!chosen&&hot&&e.tag&&e.compactWidth)for(const offset of [16,-16,30,-30]){const cx=(a.x+b.x)/2-dy/Math.max(1,length)*offset,cy=(a.y+b.y)/2+dx/Math.max(1,length)*offset,area=box(cx-e.compactWidth/2,cy-e.compactHeight/2,e.compactWidth,e.compactHeight);if(inView(area)&&!uiObstacles.some(o=>overlaps(area,o))&&!nodeObstacles.some(o=>overlaps(area,o,2))){chosen=area;compact=true;break;}}
+      for(const t of [.5,.35,.65]){const x=a.x+dx*t,y=a.y+dy*t,area=box(x-e.labelWidth/2,y-e.labelHeight/2,e.labelWidth,e.labelHeight);if(inView(area)&&!occupied.some(o=>overlaps(area,o))&&!meetsStar(nodeObstacles,area,5)){chosen=area;break;}}
+      if(!chosen&&e.tag&&e.compactWidth)for(const t of [.5,.4,.6,.3,.7]){const x=a.x+dx*t,y=a.y+dy*t,area=box(x-e.compactWidth/2,y-e.compactHeight/2,e.compactWidth,e.compactHeight);if(inView(area)&&!occupied.some(o=>overlaps(area,o,2))&&!meetsStar(nodeObstacles,area,2)){chosen=area;compact=true;break;}}
+      if(!chosen&&hot){for(const offset of [0,24,-24]){const area=box((a.x+b.x)/2-dy/Math.max(1,length)*offset-e.labelWidth/2,(a.y+b.y)/2+dx/Math.max(1,length)*offset-e.labelHeight/2,e.labelWidth,e.labelHeight);if(inView(area)&&!uiObstacles.some(o=>overlaps(area,o))&&!meetsStar(nodeObstacles,area,5)&&!nodes.some(n=>(n.id===selectedId||n.id===hover)&&n.labelBox&&overlaps(area,n.labelBox))){chosen=area;break;}}}
+      if(!chosen&&hot&&e.tag&&e.compactWidth)for(const offset of [16,-16,30,-30]){const cx=(a.x+b.x)/2-dy/Math.max(1,length)*offset,cy=(a.y+b.y)/2+dx/Math.max(1,length)*offset,area=box(cx-e.compactWidth/2,cy-e.compactHeight/2,e.compactWidth,e.compactHeight);if(inView(area)&&!uiObstacles.some(o=>overlaps(area,o))&&!meetsStar(nodeObstacles,area,2)){chosen=area;compact=true;break;}}
       // A hovered or chosen link always names its kind, even where the stars leave no free gap.
       if(!chosen&&hot&&e.tag&&e.compactWidth){const area=box((a.x+b.x)/2-e.compactWidth/2,(a.y+b.y)/2-e.compactHeight/2,e.compactWidth,e.compactHeight);if(inView(area)&&!uiObstacles.some(o=>overlaps(area,o)))[chosen,compact]=[area,true];}
       if(!chosen)continue;
