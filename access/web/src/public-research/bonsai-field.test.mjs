@@ -5,6 +5,7 @@ import {describe,expect,it} from 'vitest';
 import {ADMITTED,FIELD_SCHEMA,fieldCites,fieldIssues,fieldSubjects,libraryIssues,readField} from '../../../../bonsai/lib/field.mjs';
 import {checkBonsai,corpusOnDisk,loadBonsai,termPlaceReader} from '../../../../bonsai/lib/graft.mjs';
 import {semanticRegistry} from '../../../../bonsai/lib/objects.mjs';
+import {corpusReader} from '../../../../bonsai/lib/corpus-align.mjs';
 import {formulaSpan} from '../../../../bonsai/review/aesthetics/formula-span.mjs';
 
 const root=new URL('../../../../',import.meta.url).pathname;
@@ -77,11 +78,15 @@ describe('the Aesthetics field',()=>{
   });
   it.skipIf(!corpusFetched)('cites formulas that run over whole sentences of the original',()=>{
     const read=termPlaceReader(root,alignment,null,{corpus:'present'});
+    const readCorpus=corpusReader(join(root,'access/web/public/public-corpus'));
     for(const {conception,cite} of fieldCites(field)){
-      const place=read(cite,alignment.works[cite.w].original.language);
+      const work=alignment.works[cite.w],place=read(cite,work.original.language);
       expect(place.error,conception).toBeUndefined();
       expect(place.text.trim(),conception).toMatch(/[.;]$/u);
-      expect(place.before.trim()===''||/[.;]/u.test(place.before),conception).toBe(true);
+      const version=readCorpus(work.documentId).versions.find(item=>item.id===work.original.versionId);
+      const unit=version.units.find(item=>item.id===cite.u[0]);
+      const before=Array.from(unit.text).slice(0,cite.s??0).join('').trimEnd();
+      expect(before===''||/[.;!?]$/u.test(before),conception).toBe(true);
     }
     const ascent=field.conceptions.find(conception=>conception.id==='plato.symposium:ascent');
     expect(read(ascent.formula.cite[0],'grc').text).toMatch(/^τοῦτο γὰρ δή ἐστι τὸ ὀρθῶς ἐπὶ τὰ ἐρωτικὰ ἰέναι.*ὃ ἔστι καλόν\.$/u);
