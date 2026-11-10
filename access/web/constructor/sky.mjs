@@ -1066,7 +1066,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const active=String(n.id===selectedId);setData(n.el,'active',active);setData(n.el,'prominent',String(n.prominent));setData(n.el,'dim',String(dim));if(put(n.el,'aria-pressed',active))n.el.setAttribute('aria-pressed',active);
       setHidden(n.el,!pointInView(p));
       // The nearer star lies over the farther, so that the pointer reaches the star it is over, and the chosen one over all.
-      n.place={color,transform:`translate3d(${(p.x-22).toFixed(2)}px,${(p.y-22).toFixed(2)}px,0)`,layer:String(hot?3000:100+Math.round(clamp(p.d,0,2.4)*400)),opacity:dim?'.35':fade<1?(.62+.38*near01).toFixed(2):'1'};
+      n.place={color,x:(p.x-22).toFixed(2),y:(p.y-22).toFixed(2),layer:String(hot?3000:100+Math.round(clamp(p.d,0,2.4)*400)),opacity:dim?'.35':fade<1?(.62+.38*near01).toFixed(2):'1'};
     });
     const taken=domFrame?labelsForScene(near,focusEdges,kept,keptEdges,now,dt,still||reduced.matches):null;if(domFrame&&labelsSettling)layoutMoving=true;
     if(domFrame)placeStars(now,false);
@@ -1116,12 +1116,15 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   // hidden, so they wait where they stood and come to their stars once the scene rests (`all`). A waiting button is
   // `stale`: it takes no hover and no pointer's click until it stands at its star again. A name takes its star's colour
   // with its button, so a hidden name's colour waits with it (in the day the colour moves with the depth).
+  // A button that follows its star has a layer of its own, so its name glides with the star; a clear button lies in the
+  // page's own layer, where it draws nothing and asks nothing of the compositor.
   function placeStars(now,all){
     const focused=document.activeElement;
     for(const n of nodes){
       const place=n.place;if(!place)continue;
-      if(!all&&!n.labelShown&&!(now-(n.labelGone??-Infinity)<450)&&n.id!==selectedId&&n.id!==hover&&n.id!==aimed&&!n.dragging&&!n.turningView&&n.el!==focused&&!n.el.dataset.held){if(!n.el.hidden)n.stale=true;continue;}
-      setStyle(n.el,'transform',place.transform);setVar(n.el,'--star-color',place.color);if(put(n.el,'zIndex',place.layer)){n.el.dataset.layer=place.layer;n.el.style.zIndex=place.layer;}setStyle(n.el,'opacity',place.opacity);n.stale=false;
+      const follows=n.labelShown||now-(n.labelGone??-Infinity)<450||n.id===selectedId||n.id===hover||n.id===aimed||n.dragging||n.turningView||n.el===focused||!!n.el.dataset.held;
+      if(!all&&!follows){if(!n.el.hidden)n.stale=true;continue;}
+      setStyle(n.el,'transform',follows?`translate3d(${place.x}px,${place.y}px,0)`:`translate(${place.x}px,${place.y}px)`);setVar(n.el,'--star-color',place.color);if(put(n.el,'zIndex',place.layer)){n.el.dataset.layer=place.layer;n.el.style.zIndex=place.layer;}setStyle(n.el,'opacity',place.opacity);n.stale=false;
     }
   }
   // A chosen star's orbit turns slowly while it stays chosen; the star a link is being drawn from keeps its halo broken and
