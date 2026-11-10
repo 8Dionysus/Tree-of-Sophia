@@ -624,15 +624,20 @@ export class SophiaGpuCanvas {
     return target;
   }
   layOnPaper(target) {
-    const gl=this.gl,shader=this.paperShader,paper=this.paper,matrices=new Float32Array(54),offsets=new Float32Array(18),stops=new Float32Array(32);
-    paper.steps.forEach((step,i)=>{const m=step.matrix;matrices.set([m[0],m[3],m[6],m[1],m[4],m[7],m[2],m[5],m[8]],i*9);offsets.set(step.offset,i*3);});
-    paper.stops.forEach((stop,i)=>stops.set(stop,i*4));
+    const gl=this.gl,shader=this.paperShader,paper=this.paper;
     gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.disable(gl.BLEND);
     gl.useProgram(shader.program);gl.bindVertexArray(shader.vao);
     gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,target.texture);gl.activeTexture(gl.TEXTURE0);
-    gl.uniform1i(shader.scene,1);gl.uniformMatrix3fv(shader.matrix,false,matrices);gl.uniform3fv(shader.offset,offsets);gl.uniform1i(shader.steps,paper.steps.length);
-    gl.uniform4fv(shader.stops,stops);gl.uniform1i(shader.stopCount,paper.stops.length);
-    gl.uniform2f(shader.center,paper.center[0],paper.center[1]);gl.uniform2f(shader.radii,paper.radii[0],paper.radii[1]);gl.uniform1f(shader.height,target.height);
+    // The program keeps its uniforms, so the paper's travel when the paper or the canvas's height changes.
+    if(shader.paper!==paper||shader.height!==target.height){
+      const matrices=new Float32Array(54),offsets=new Float32Array(18),stops=new Float32Array(32);
+      paper.steps.forEach((step,i)=>{const m=step.matrix;matrices.set([m[0],m[3],m[6],m[1],m[4],m[7],m[2],m[5],m[8]],i*9);offsets.set(step.offset,i*3);});
+      paper.stops.forEach((stop,i)=>stops.set(stop,i*4));
+      gl.uniform1i(shader.scene,1);gl.uniformMatrix3fv(shader.matrix,false,matrices);gl.uniform3fv(shader.offset,offsets);gl.uniform1i(shader.steps,paper.steps.length);
+      gl.uniform4fv(shader.stops,stops);gl.uniform1i(shader.stopCount,paper.stops.length);
+      gl.uniform2f(shader.center,paper.center[0],paper.center[1]);gl.uniform2f(shader.radii,paper.radii[0],paper.radii[1]);gl.uniform1f(shader.height,target.height);
+      shader.paper=paper;shader.height=target.height;
+    }
     gl.drawArrays(gl.TRIANGLES,0,3);
     gl.useProgram(this.program);gl.bindVertexArray(this.vao);gl.enable(gl.BLEND);
   }
