@@ -338,7 +338,7 @@ def cmd_cut(args):
     source,text=transcription(path,ev,args.file)
     words=lambda phrase:re.compile(r'\s+'.join(re.escape(word) for word in phrase.split()))
     opens=list(words(args.open).finditer(text))
-    if not opens:die(f'the opening words are not in {source["text"]} (give them exactly as the file has them; kit.py find … --in helps)')
+    if not opens:die(f'the opening words are not in {source.get("text",source["file"])} (give them exactly as the file has them; kit.py find … --in helps)')
     if len(opens)>1 and not args.nth:print(f'note: the opening words stand {len(opens)} times; the first is taken (--nth N takes another)')
     if (args.nth or 1)>len(opens):die(f'the opening words stand {len(opens)} times only')
     start=opens[(args.nth or 1)-1].start();close=words(args.close).search(text,start)
@@ -751,6 +751,11 @@ def second_gate(path,reading,ev,locs):
     if len({item.get('loc') for item in looked})<need:add(f'review.images: the second reader looks at the pages of at least {need} places; {len(looked)} are recorded')
     for loc in whole:
         if loc not in {item.get('loc') for item in looked}:add(f'review.images: {loc} was read from the image alone and wants the second reader’s look')
+        entry=ev['places'][loc]
+        if entry.get('from_scan') and entry.get('leaves') and (ev.get('scan') or {}).get('image_offset') is not None:
+            needed={n+offset for n in entry['leaves']}
+            read={item.get('n') for item in looked if item.get('loc')==loc and item.get('n') in seen and item.get('reads') in ('as the packet','differs')}
+            if not needed<=read:add(f'review.images: {loc} was cut from the scan OCR and wants the second reader’s look at every page: '+', '.join('n'+str(n) for n in sorted(needed-read)))
     for item in looked:
         if item.get('loc') not in locs or item.get('n') not in seen or item.get('reads') not in('as the packet','differs') or (item.get('reads')=='differs' and len(str(item.get('note','')))<20):add(f"review.images {item.get('loc')}: loc, n (fetched with image N --by second), reads ('as the packet' or 'differs' with a note)")
     clean=all((review.get(kind) or {}).get(record['id'],{}).get('says')=='yes' for kind in('conceptions','links') for record in reading.get(kind) or []) and all(item.get('reads')=='as the packet' for item in looked) and all((answers.get(key_) or {}).get('holds') is True for key_ in waits)
