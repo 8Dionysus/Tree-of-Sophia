@@ -30,6 +30,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   const FOCAL=1250;
   // A star's ray in three steps from the star outwards: where each begins and ends along the ray, its light and its width.
   const RAY_STEPS=[[0,.42,1,.85],[.42,.74,.5,.68],[.74,1,.18,.52]],RAY_DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
+  ctx.setStarRays?.(RAY_STEPS);
   let seed=7239;const rnd=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
   const smooth=(a,b,v)=>{const x=Math.max(0,Math.min(1,(v-a)/(b-a)));return x*x*(3-2*x)};
   const dust=Array.from({length:2200},(_,i)=>{
@@ -153,6 +154,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   // The resting middle of the scene, kept from the last full frame (`layered`), and what turns in it with the sky's time:
   // a chosen star's orbit, a waiting star's broken halo and a chosen link's spark, drawn over it each frame.
   let layered=null,keptRun=null,turningStars=[],spark=null;
+  // The record a star goes to the GPU painter in, reused from star to star.
+  const STAR={};
   const AMBIENT_FRAME=1000/22,WRITTEN=Symbol('written');
   // The interval between frames of a moving view, from what its full frames have cost on this device: at the display's
   // rate while a frame's script takes under about nine and a half milliseconds, thirty frames a second under thirteen,
@@ -1037,17 +1040,27 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const away=!kept.has(n.id)&&!hot?focusMix:0,starAlpha=(dim?.28:hot?1:.9)*fade*(1-.86*away),glow=((big?86:46)+(125-(big?86:46))*warm)*Math.max(.65,Math.min(1.4,p.s));
       // On a light page the glow turns to a shadow: the light falls from above, so a near star casts its shadow
       // below and aside and stands over the page; a far one lies flat in the air.
-      if(day){const lift=hot?1:near01,size=glow*.5,dx=1.5+4.5*lift,dy=2.5+7*lift;ctx.globalAlpha=starAlpha*(hot?.55:.06+.32*lift*lift);ctx.drawImage(dayShadow,p.x+dx-size/2,p.y+dy-size/2,size,size);}
-      else{ctx.globalAlpha=starAlpha;ctx.drawImage(sprite(color),p.x-glow/2,p.y-glow/2,glow,glow);}
-      ctx.globalAlpha=starAlpha;
-      // A source is a disc; an authored proposal a ring; a personal record a broken ring.
-      if(n.form==='source'){ctx.fillStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,radius,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff9ea';ctx.beginPath();ctx.arc(p.x,p.y,Math.max(.75,radius*.32),0,Math.PI*2);ctx.fill();}
-      else ring(p.x,p.y,radius+.9,color,n.form==='personal',warm);
+      const lift=hot?1:near01,shadow=glow*.5,shadowX=1.5+4.5*lift,shadowY=2.5+7*lift,shadowAlpha=starAlpha*(hot?.55:.06+.32*lift*lift);
       // Its four rays narrow and fade towards their tips, as a star's light does in the telescope; a faint star far
       // back keeps only its point.
-      const restRay=big?12:6.5,restLight=dim?.12:big?.52:.34,ray=restRay+(19-restRay)*warm,rayAlpha=(restLight+(.92-restLight)*warm)*(1-.9*away);
-      if(rayAlpha>.03&&!(dim&&!big)){ctx.strokeStyle=color;const from=(radius+.6)/ray;
-        for(let k=0;k<RAY_STEPS.length;k++){const step=RAY_STEPS[k],end=step[1],a=Math.max(step[0],from);if(a>=end)continue;ctx.globalAlpha=rayAlpha*step[2];ctx.lineWidth=step[3]*(1+.2*warm);ctx.beginPath();for(let d=0;d<4;d++){const ux=RAY_DIRS[d][0],uy=RAY_DIRS[d][1];ctx.moveTo(p.x+ux*ray*a,p.y+uy*ray*a);ctx.lineTo(p.x+ux*ray*end,p.y+uy*ray*end);}ctx.stroke();}}
+      const restRay=big?12:6.5,restLight=dim?.12:big?.52:.34,ray=restRay+(19-restRay)*warm,rayAlpha=(restLight+(.92-restLight)*warm)*(1-.9*away),rays=rayAlpha>.03&&!(dim&&!big);
+      // A source is a disc; an authored proposal a ring; a personal record a broken ring. The GPU painter lays a source's
+      // glow, disc, core and rays from one record (gpu-canvas.js), as the strokes below lay them.
+      if(ctx.star&&n.form==='source'){
+        const s=STAR;s.x=p.x;s.y=p.y;s.color=color;s.alpha=starAlpha;s.radius=radius;s.core=Math.max(.75,radius*.32);
+        if(day){s.image=dayShadow;s.glowX=shadowX-shadow/2;s.glowY=shadowY-shadow/2;s.glowSize=shadow;s.glowAlpha=shadowAlpha;}
+        else{s.image=sprite(color);s.glowX=s.glowY=-glow/2;s.glowSize=glow;s.glowAlpha=starAlpha;}
+        s.ray=ray;s.from=(radius+.6)/ray;s.rayLight=rays?rayAlpha:0;s.lineScale=1+.2*warm;
+        ctx.star(s);
+      }else{
+        if(day){ctx.globalAlpha=shadowAlpha;ctx.drawImage(dayShadow,p.x+shadowX-shadow/2,p.y+shadowY-shadow/2,shadow,shadow);}
+        else{ctx.globalAlpha=starAlpha;ctx.drawImage(sprite(color),p.x-glow/2,p.y-glow/2,glow,glow);}
+        ctx.globalAlpha=starAlpha;
+        if(n.form==='source'){ctx.fillStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,radius,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff9ea';ctx.beginPath();ctx.arc(p.x,p.y,Math.max(.75,radius*.32),0,Math.PI*2);ctx.fill();}
+        else ring(p.x,p.y,radius+.9,color,n.form==='personal',warm);
+        if(rays){ctx.strokeStyle=color;const from=(radius+.6)/ray;
+          for(let k=0;k<RAY_STEPS.length;k++){const step=RAY_STEPS[k],end=step[1],a=Math.max(step[0],from);if(a>=end)continue;ctx.globalAlpha=rayAlpha*step[2];ctx.lineWidth=step[3]*(1+.2*warm);ctx.beginPath();for(let d=0;d<4;d++){const ux=RAY_DIRS[d][0],uy=RAY_DIRS[d][1];ctx.moveTo(p.x+ux*ray*a,p.y+uy*ray*a);ctx.lineTo(p.x+ux*ray*end,p.y+uy*ray*end);}ctx.stroke();}}
+      }
       // A chosen star is ringed by a halo of its own colour and a faint orbit beyond it. The halo opens out from the star
       // as it is chosen and the orbit follows a moment later, turning slowly while the star stays chosen. The star a link
       // is being drawn from keeps its halo broken and turning, waiting for the other end.
