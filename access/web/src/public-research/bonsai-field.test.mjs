@@ -5,6 +5,7 @@ import {describe,expect,it} from 'vitest';
 import {ADMITTED,FIELD_SCHEMA,fieldCites,fieldIssues,fieldSubjects,libraryIssues,readField} from '../../../../bonsai/lib/field.mjs';
 import {checkBonsai,corpusOnDisk,loadBonsai,termPlaceReader} from '../../../../bonsai/lib/graft.mjs';
 import {semanticRegistry} from '../../../../bonsai/lib/objects.mjs';
+import {formulaSpan} from '../../../../bonsai/review/aesthetics/formula-span.mjs';
 
 const root=new URL('../../../../',import.meta.url).pathname;
 const {modules}=loadBonsai(root,'aesthetics'),{field,library,identities,alignment}=modules;
@@ -14,6 +15,11 @@ const changed=change=>{const copy=structuredClone(field);change(copy);return iss
 const corpusFetched=corpusOnDisk(root)==='present';
 
 describe('the Aesthetics field',()=>{
+  it('refuses formula spans that start inside a sentence or end before their opening words',()=>{
+    expect(()=>formulaSpan('A partial sentence.',{from:'partial',to:'sentence.'})).toThrow('opens inside a sentence');
+    expect(()=>formulaSpan('First. Second sentence.',{from:'First. Second',to:'First.'})).toThrow('end before the opening words');
+    expect(formulaSpan('😀 First. Second sentence.',{from:'Second',to:'sentence.'})).toEqual({s:9,e:25});
+  });
   it('keeps its contract against the Tree\'s registries',()=>{
     expect(field.schema).toBe(FIELD_SCHEMA);
     expect(issues(field)).toEqual([]);

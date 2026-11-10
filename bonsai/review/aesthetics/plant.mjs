@@ -14,6 +14,7 @@ import {dirname,join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {corpusReader} from '../../lib/corpus-align.mjs';
 import {FIELD_SCHEMA,LIBRARY_SCHEMA} from '../../lib/field.mjs';
+import {formulaSpan} from './formula-span.mjs';
 
 const here=dirname(fileURLToPath(import.meta.url)),root=join(here,'..','..','..'),home=join(root,'bonsai','aesthetics');
 const json=path=>JSON.parse(readFileSync(path,'utf8'));
@@ -30,9 +31,6 @@ const CATEGORY=/^(категория \/ навигационный предме�
 
 const records=readdirSync(join(here,'readings')).filter(name=>name.endsWith('.json')).sort().map(name=>({name,...json(join(here,'readings',name))}));
 const corpusDir=join(root,'access/web/public/public-corpus'),read=existsSync(join(corpusDir,'manifest.json'))?corpusReader(corpusDir):null;
-const chars=text=>Array.from(text);
-// A sentence of the original ends on a full stop or a question mark; Greek asks with ";".
-const ENDS=/[.;!?]/u;
 
 /** The citation of a formula: the unit a record names by its reference and the span between the opening and closing words. */
 function cite(record,conception,formula,libraryWork){
@@ -42,13 +40,8 @@ function cite(record,conception,formula,libraryWork){
   const original=work.versions.find(version=>version.language===libraryWork.original);
   const units=original.units.filter(unit=>unit.reference===formula.unit);
   if(units.length!==1)fail(`${at}: ${units.length} units of the original are named ${formula.unit}`);
-  const text=units[0].text,start=text.indexOf(formula.from),close=start<0?-1:text.indexOf(formula.to,start);
-  if(start<0||close<0)fail(`${at}: the words of the formula are not in ${formula.unit}`);
-  if(text.indexOf(formula.from,start+1)>=0&&text.indexOf(formula.from,start+1)<close)fail(`${at}: the opening words occur twice before the closing ones`);
-  const end=close+formula.to.length,before=text.slice(0,start).trimEnd(),last=text.slice(0,end).trimEnd().slice(-1);
-  if(before&&!ENDS.test(before.slice(-1))&&!/[A-ZΑ-Ω]$/u.test(before))fail(`${at}: the formula opens inside a sentence (${JSON.stringify(before.slice(-20))})`);
-  if(!ENDS.test(last))fail(`${at}: the formula closes inside a sentence`);
-  return {w:conception.work,u:[units[0].id,units[0].id],s:chars(text.slice(0,start)).length,e:chars(text.slice(0,end)).length};
+  let span;try{span=formulaSpan(units[0].text,formula);}catch(error){fail(`${at}: ${error.message}`);}
+  return {w:conception.work,u:[units[0].id,units[0].id],...span};
 }
 
 const library={schema:LIBRARY_SCHEMA,bonsai:'aesthetics',
