@@ -98,6 +98,9 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   const mixHex=(a,b,t)=>{if(t<=0)return a;const step=Math.round(Math.min(1,t)*128),key=a+b+step;let mixed=mixes.get(key);if(mixed)return mixed;
     const p=x=>[1,3,5].map(i=>parseInt(x.slice(i,i+2),16)),A=p(a),B=p(b);mixed='#'+A.map((v,i)=>Math.round(v+(B[i]-v)*step/128).toString(16).padStart(2,'0')).join('');
     if(mixes.size>4096)mixes.clear();mixes.set(key,mixed);return mixed;};
+  // A star or a link keeps the tint it took last, so a frame that leaves its step of depth where it was mixes nothing.
+  const tint=(holder,a,b,t)=>{if(t<=0)return a;const step=Math.round(Math.min(1,t)*128);
+    if(holder.tintA!==a||holder.tintB!==b||holder.tintStep!==step){holder.tintA=a;holder.tintB=b;holder.tintStep=step;holder.tinted=mixHex(a,b,t);}return holder.tinted;};
   // The paper is a shade under white, so the noon light can stand brighter than it; washes of warm umber, lilac and
   // sage lie toward the edges as the day's coloured shadow, never round the tree.
   // The day's textures are soft, so they are kept small: they share one atlas with the night's on the GPU.
@@ -166,6 +169,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   const setVar=(el,name,value)=>{if(put(el,name,value))el.style.setProperty(name,value);};
   const setData=(el,name,value)=>{if(put(el,'data-'+name,value))el.dataset[name]=value;};
   const setHidden=(el,value)=>{if(el.hidden!==value)el.hidden=value;};
+  const setStyles=(el,styles)=>{for(const name in styles)setStyle(el,name,styles[name]);};
+  const setFlag=(el,name,on)=>{if(put(el,'data-'+name,on?'true':null)){if(on)el.dataset[name]='true';else delete el.dataset[name];}};
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const makeLayer=className=>{let el=root.querySelector('.'+className);if(!el){el=document.createElement('div');el.className=className;root.append(el);}Object.assign(el.style,{position:'absolute',inset:'0',pointerEvents:'none'});return el;};
   const layer=makeLayer('tree-stars'),clusterLayer=makeLayer('tree-clusters'),edgeLayer=makeLayer('edge-labels');
@@ -318,8 +323,12 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   // How much wider than the atlas's own proportion the free area is. A plane measures both axes in one unit,
   // so it is never widened; other layouts fill a wide viewport.
   const widen=(area=viewport)=>measured?.axes==='xy'?1:clamp(((area.right-area.left)/Math.max(1,area.bottom-area.top))/(880/540),1,2.1);
+  // The turn's sines and cosines are worked out once for each pose, not for each point.
+  let poseYaw=NaN,posePitch=NaN,yawCos=1,yawSin=0,pitchCos=1,pitchSin=0;
   function project([x,y,z]) {
-    const c=Math.cos(yaw),s=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch),stretchX=widen();
+    if(yaw!==poseYaw){poseYaw=yaw;yawCos=Math.cos(yaw);yawSin=Math.sin(yaw);}
+    if(pitch!==posePitch){posePitch=pitch;pitchCos=Math.cos(pitch);pitchSin=Math.sin(pitch);}
+    const c=yawCos,s=yawSin,cp=pitchCos,sp=pitchSin,stretchX=widen();
     // The space is widened in its own coordinates, before it turns, so that a turn moves it as one rigid body
     // and never stretches what comes round from the depth.
     x=(x-center[0])*fitScale*stretchX;y=(y-center[1])*fitScale*stretchY;z=(z-center[2])*fitScale;
@@ -589,19 +598,19 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     // above the map at the x of their value, its rows' names to a strip at its left, and its rules and rows'
     // threads lie under the stars. Its labels give way only to one another; a band's name keeps to the band in view.
     const scaleLabels=[],vl=targetViewport.left,vr=targetViewport.right,vt=targetViewport.top,vb=targetViewport.bottom;
-    ringLayer.style.clipPath=`inset(${vt.toFixed(1)}px ${Math.max(0,w-vr).toFixed(1)}px ${Math.max(0,h-vb).toFixed(1)}px ${vl.toFixed(1)}px)`;
+    setStyle(ringLayer,'clipPath',`inset(${vt.toFixed(1)}px ${Math.max(0,w-vr).toFixed(1)}px ${Math.max(0,h-vb).toFixed(1)}px ${vl.toFixed(1)}px)`);
     for(const c of clusters.filter(c=>c.variant).sort((a,b)=>(b.variant==='span')-(a.variant==='span'))){
       const p=project(c.p),xs=c.span?c.span.map(x=>project([x,c.p[1],c.p[2]]).x).sort((a,b)=>a-b):null;
       if(c.variant==='ring'){
         // A ring keeps its radius in the layout's units, so it grows and shrinks with the zoom.
         const r=Math.abs(project([c.p[0]+(c.radius??0),c.p[1],c.p[2]]).x-p.x),shown=r>=2;
-        c.el.hidden=!shown;
-        if(shown)Object.assign(c.el.style,{width:(2*r).toFixed(1)+'px',height:(2*r).toFixed(1)+'px',transform:`translate3d(${(p.x-r).toFixed(2)}px,${(p.y-r).toFixed(2)}px,0)`});
+        setHidden(c.el,!shown);
+        if(shown)setStyles(c.el,{width:(2*r).toFixed(1)+'px',height:(2*r).toFixed(1)+'px',transform:`translate3d(${(p.x-r).toFixed(2)}px,${(p.y-r).toFixed(2)}px,0)`});
         continue;
       }
       if(c.variant==='hrule'){
-        const shown=p.y>=vt-1&&p.y<=vb+1;c.el.hidden=!shown;
-        if(shown)Object.assign(c.el.style,{width:Math.max(0,vr-vl).toFixed(1)+'px',height:'1px',transform:`translate3d(${vl.toFixed(2)}px,${p.y.toFixed(2)}px,0)`});
+        const shown=p.y>=vt-1&&p.y<=vb+1;setHidden(c.el,!shown);
+        if(shown)setStyles(c.el,{width:Math.max(0,vr-vl).toFixed(1)+'px',height:'1px',transform:`translate3d(${vl.toFixed(2)}px,${p.y.toFixed(2)}px,0)`});
         continue;
       }
       if(c.variant==='facet'){
@@ -609,15 +618,15 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
         const room=c.align==='end'?p.x-14-vl:vr-(p.x+14),width=Math.max(56,Math.min(c.maxWidth??250,Math.ceil(c.textWidth??c.title.textContent.length*7)+48,room)),height=24;
         // Headers too close to stand apart give way to the one above, as the area is too low for them all.
         const area=box(c.align==='end'?p.x-width-14:p.x+14,p.y-height/2,width,height),shown=inView(area)&&!uiObstacles.some(o=>overlaps(area,o,0))&&!occupied.some(o=>overlaps(area,o,1));
-        c.el.hidden=!shown;
-        if(shown){c.el.style.width=width+'px';c.el.style.transform=`translate3d(${area.left.toFixed(2)}px,${area.top.toFixed(2)}px,0)`;occupied.push(area);}
+        setHidden(c.el,!shown);
+        if(shown){setStyle(c.el,'width',width+'px');setStyle(c.el,'transform',`translate3d(${area.left.toFixed(2)}px,${area.top.toFixed(2)}px,0)`);occupied.push(area);}
         continue;
       }
       if(underStars.has(c.variant)){
         const rule=c.variant==='rule',from=rule?p.x:Math.max(vl,xs?.[0]??p.x),to=rule?p.x:Math.min(vr,xs?.[1]??p.x),top=rule?vt-(c.strip??4):p.y;
         const shown=rule?p.x>=vl-1&&p.x<=vr+1:to-from>=2&&p.y>=vt-2&&p.y<=vb+2;
-        c.el.hidden=!shown;
-        if(shown)Object.assign(c.el.style,{width:(rule?1:to-from).toFixed(1)+'px',height:(rule?Math.max(0,vb-top):1).toFixed(1)+'px',transform:`translate3d(${from.toFixed(2)}px,${top.toFixed(2)}px,0)`});
+        setHidden(c.el,!shown);
+        if(shown)setStyles(c.el,{width:(rule?1:to-from).toFixed(1)+'px',height:(rule?Math.max(0,vb-top):1).toFixed(1)+'px',transform:`translate3d(${from.toFixed(2)}px,${top.toFixed(2)}px,0)`});
         continue;
       }
       const height=16,width=Math.min(c.maxWidth??260,Math.max(24,Math.ceil(c.textWidth??c.title.textContent.length*7.4)+(c.variant==='lane'?4:12)));
@@ -634,12 +643,12 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
           :[['',c.align==='end'?p.x-width-6:c.align==='start'?p.x+6:p.x-width/2,p.y-height/2]];
         let chosen=null;
         for(const [side,left,top] of candidates){const candidate=box(left,top,side==='above'||side==='below'?width:wide,height);if(inView(candidate)&&!scaleLabels.some(o=>overlaps(candidate,o,2))&&!uiObstacles.some(o=>overlaps(candidate,o,0))){chosen={side,area:candidate};break;}}
-        c.el.hidden=!chosen;
-        if(chosen){area=chosen.area;if(chosen.side)c.el.dataset.side=chosen.side;c.el.style.width=(area.right-area.left).toFixed(1)+'px';c.el.style.transform=`translate3d(${area.left.toFixed(2)}px,${area.top.toFixed(2)}px,0)`;scaleLabels.push(area);occupied.push(area);}
+        setHidden(c.el,!chosen);
+        if(chosen){area=chosen.area;if(chosen.side)setData(c.el,'side',chosen.side);setStyle(c.el,'width',(area.right-area.left).toFixed(1)+'px');setStyle(c.el,'transform',`translate3d(${area.left.toFixed(2)}px,${area.top.toFixed(2)}px,0)`);scaleLabels.push(area);occupied.push(area);}
         continue;
       }
       else{
-        if(xs&&(xs[1]<vl-8||xs[0]>vr+8)){c.el.hidden=true;continue;}
+        if(xs&&(xs[1]<vl-8||xs[0]>vr+8)){setHidden(c.el,true);continue;}
         // A band keeps a visible width however short its span; its name keeps to the part in view.
         let band=xs?[Math.max(xs[0],vl-8),Math.min(xs[1],vr+8)]:null;
         if(band&&band[1]-band[0]<12){const mid=(band[0]+band[1])/2;band=[mid-6,mid+6];}
@@ -650,16 +659,16 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
         const top=vt-(c.strip??22);text=box(middle-width/2,top,width,height);
         const left=Math.min(text.left,band?.[0]??Infinity),right=Math.max(text.right,band?.[1]??-Infinity);
         area=box(left,top,right-left,height+(band?6:0));
-        c.el.style.setProperty('--text-left',(text.left-left).toFixed(1)+'px');c.el.style.setProperty('--text-width',width.toFixed(1)+'px');
-        c.el.style.setProperty('--band-left',band?(band[0]-left).toFixed(1)+'px':'0px');c.el.style.setProperty('--band-width',band?(band[1]-band[0]).toFixed(1)+'px':'0px');
-        if(band)c.el.dataset.band='true';else delete c.el.dataset.band;
+        setVar(c.el,'--text-left',(text.left-left).toFixed(1)+'px');setVar(c.el,'--text-width',width.toFixed(1)+'px');
+        setVar(c.el,'--band-left',band?(band[0]-left).toFixed(1)+'px':'0px');setVar(c.el,'--band-width',band?(band[1]-band[0]).toFixed(1)+'px':'0px');
+        setFlag(c.el,'band',!!band);
       }
       // A name at the edge of the view needs a view wide enough to leave the stars their room beside it.
       const fits=c.variant==='lane'||c.variant==='ytick'||c.variant==='edge'?area.right-area.left>=24&&area.top>=vt-2&&area.bottom<=vb+2&&(c.variant!=='edge'||vr-vl>=600):text.left>=vl-12&&text.right<=vr+12;
       // A scale never writes over the page's own panels, even when the map is squeezed under a sheet.
       const shown=fits&&!scaleLabels.some(o=>overlaps(area,o,2))&&!uiObstacles.some(o=>overlaps(area,o,0)),fade=presence(c,shown,now,dt,instant);
-      c.el.hidden=!fade;
-      if(fade){c.el.style.width=(area.right-area.left).toFixed(1)+'px';c.el.style.transform=`translate3d(${area.left.toFixed(2)}px,${area.top.toFixed(2)}px,0)`;c.el.style.filter=fade<1?`opacity(${fade.toFixed(3)})`:'';}
+      setHidden(c.el,!fade);
+      if(fade){setStyle(c.el,'width',(area.right-area.left).toFixed(1)+'px');setStyle(c.el,'transform',`translate3d(${area.left.toFixed(2)}px,${area.top.toFixed(2)}px,0)`);setStyle(c.el,'filter',fade<1?`opacity(${fade.toFixed(3)})`:'');}
       if(shown){scaleLabels.push(area);occupied.push(area);}
     }
     // A star the view has stepped back lies under the names in front of it, and so does one a chosen star or link has
@@ -674,16 +683,16 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       // stars, and never one over another name.
       const clear=candidates.find(candidate=>!occupied.some(o=>overlaps(candidate,o))&&!nodeObstacles.some(o=>overlaps(candidate,o,2)));
       const area=clear??candidates.find(candidate=>!occupied.some(o=>overlaps(candidate,o)))??null;
-      if(area&&!clear)c.el.dataset.crowded='true';else delete c.el.dataset.crowded;
+      setFlag(c.el,'crowded',!!(area&&!clear));
       // A group that recedes is quieter further back in a space read in depth, as its stars are.
-      c.el.style.opacity=depthCue&&!measured&&c.recede?(.38+.62*clamp((project(c.p).d-.86)/.3,0,1)).toFixed(2):'';
+      setStyle(c.el,'opacity',depthCue&&!measured&&c.recede?(.38+.62*clamp((project(c.p).d-.86)/.3,0,1)).toFixed(2):'');
       const fade=presence(c,!!area,now,dt,instant);
       if(area&&c.at&&c.slot!==area.slot&&fade>0&&!instant)c.slide={x:c.at.left+(c.slide?.x??0)-area.left,y:c.at.top+(c.slide?.y??0)-area.top};
       if(area){c.slot=area.slot;occupied.push(area);}
       const at=area??places[c.slot]??null;c.at=at;
       if(c.slide){const k=Math.exp(-dt*12);c.slide.x*=k;c.slide.y*=k;if(Math.abs(c.slide.x)+Math.abs(c.slide.y)<.6)c.slide=null;else labelsSettling=true;}
-      c.el.hidden=!fade||!at;
-      if(at&&fade){c.el.style.width=width+'px';c.el.style.transform=`translate3d(${(at.left+(c.slide?.x??0)).toFixed(2)}px,${(at.top+(c.slide?.y??0)).toFixed(2)}px,0)`;c.el.style.filter=fade<1?`opacity(${fade.toFixed(3)})`:'';}
+      setHidden(c.el,!fade||!at);
+      if(at&&fade){setStyle(c.el,'width',width+'px');setStyle(c.el,'transform',`translate3d(${(at.left+(c.slide?.x??0)).toFixed(2)}px,${(at.top+(c.slide?.y??0)).toFixed(2)}px,0)`);setStyle(c.el,'filter',fade<1?`opacity(${fade.toFixed(3)})`:'');}
     }
     // The chosen star, the stars it links to and the links between them are always named. They take their places
     // first, their links' names next, and only then do the other names look for the room that is left.
@@ -965,7 +974,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       // A link's light and weight run from its calm measure to its hot one as it warms.
       const calm=neighbor?.57:focused?rest*.23:rest,calmWidth=neighbor?1.1:.65,heat=edge.id===selectedEdgeId?1:edge.warm??(hot?1:0);
       const level=on=>Math.min(1,(calm+(.85-calm)*on)*ink)*(1-awayEdge)*air,girth=on=>(calmWidth+(1.55-calmWidth)*on)*weight*(1+(ink-1)*.35),alpha=level(heat),width=girth(heat);
-      ctx.strokeStyle=air<1?mixHex(edge.color,night('#B3B6C4'),(1-air)*.8):edge.color;
+      ctx.strokeStyle=air<1?tint(edge,edge.color,night('#B3B6C4'),(1-air)*.8):edge.color;
       // A link leaves a little room round each of its stars, so that the stars stand clear of the lines they join.
       const path=trimRoute(route,gapOf(byId.get(edge.from)),gapOf(byId.get(edge.to)));if(!path)continue;
       const dash=edge.dash??(edge.kind==='questions'||edge.kind==='contrasts'?'dashed':'solid');let longest=null;
@@ -1020,7 +1029,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     nodes.forEach(n=>{
       const p=n.screen,hot=n.id===selectedId||n.id===hover||(holdToMove>0&&n.dragging),own=n.own,big=n.major,dim=(focused&&!journey&&!near.has(n.id)&&!kept.has(n.id)||n.dimmed)&&!hot,radius=starRadius(n),warm=n.warm??(hot?1:0);
       const near01=depthCue&&!measured?clamp((p.d-.86)/.3,0,1):1,fade=hot?1:day?.3+.7*near01:.5+.5*near01;
-      const color=day&&!hot&&near01<1?mixHex(own,dayAir,(1-near01)*.6):own;
+      const color=day&&!hot&&near01<1?tint(n,own,dayAir,(1-near01)*.6):own;
       // A measured layout draws only the stars inside its free area; every star still keeps its type, so its label is measured right.
       if(domFrame&&setData(n.el,'major',String(!!big)))measureLabels=true;
       if(measured&&!pointInView(p)){if(domFrame)setHidden(n.el,true);return;}
@@ -1054,10 +1063,10 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       // What the page reads of a star (its state, its reach, whether it is in view) is written at once. Where its
       // button stands, how it lies over the others and how bright its name is wait for placeStars.
       const outside=String(away>.5);if(n.el.dataset.outside!==outside){n.el.dataset.outside=outside;n.el.tabIndex=away>.5?-1:0;}
-      const active=String(n.id===selectedId);setData(n.el,'active',active);setData(n.el,'prominent',String(n.prominent));setData(n.el,'dim',String(dim));if(put(n.el,'aria-pressed',active))n.el.setAttribute('aria-pressed',active);setVar(n.el,'--star-color',color);
+      const active=String(n.id===selectedId);setData(n.el,'active',active);setData(n.el,'prominent',String(n.prominent));setData(n.el,'dim',String(dim));if(put(n.el,'aria-pressed',active))n.el.setAttribute('aria-pressed',active);
       setHidden(n.el,!pointInView(p));
       // The nearer star lies over the farther, so that the pointer reaches the star it is over, and the chosen one over all.
-      n.place={transform:`translate3d(${(p.x-22).toFixed(2)}px,${(p.y-22).toFixed(2)}px,0)`,layer:String(hot?3000:100+Math.round(clamp(p.d,0,2.4)*400)),opacity:dim?'.35':fade<1?(.62+.38*near01).toFixed(2):'1'};
+      n.place={color,transform:`translate3d(${(p.x-22).toFixed(2)}px,${(p.y-22).toFixed(2)}px,0)`,layer:String(hot?3000:100+Math.round(clamp(p.d,0,2.4)*400)),opacity:dim?'.35':fade<1?(.62+.38*near01).toFixed(2):'1'};
     });
     const taken=domFrame?labelsForScene(near,focusEdges,kept,keptEdges,now,dt,still||reduced.matches):null;if(domFrame&&labelsSettling)layoutMoving=true;
     if(domFrame)placeStars(now,false);
@@ -1105,13 +1114,14 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   // While the scene moves, a star's button follows it when the star shows: its name stands or is fading, it is pointed
   // at, chosen, held, in the keyboard's focus or the one the pointer aims at. The other buttons are clear and their names
   // hidden, so they wait where they stood and come to their stars once the scene rests (`all`). A waiting button is
-  // `stale`: it takes no hover and no pointer's click until it stands at its star again.
+  // `stale`: it takes no hover and no pointer's click until it stands at its star again. A name takes its star's colour
+  // with its button, so a hidden name's colour waits with it (in the day the colour moves with the depth).
   function placeStars(now,all){
     const focused=document.activeElement;
     for(const n of nodes){
       const place=n.place;if(!place)continue;
       if(!all&&!n.labelShown&&!(now-(n.labelGone??-Infinity)<450)&&n.id!==selectedId&&n.id!==hover&&n.id!==aimed&&!n.dragging&&!n.turningView&&n.el!==focused&&!n.el.dataset.held){if(!n.el.hidden)n.stale=true;continue;}
-      setStyle(n.el,'transform',place.transform);if(put(n.el,'zIndex',place.layer)){n.el.dataset.layer=place.layer;n.el.style.zIndex=place.layer;}setStyle(n.el,'opacity',place.opacity);n.stale=false;
+      setStyle(n.el,'transform',place.transform);setVar(n.el,'--star-color',place.color);if(put(n.el,'zIndex',place.layer)){n.el.dataset.layer=place.layer;n.el.style.zIndex=place.layer;}setStyle(n.el,'opacity',place.opacity);n.stale=false;
     }
   }
   // A chosen star's orbit turns slowly while it stays chosen; the star a link is being drawn from keeps its halo broken and
