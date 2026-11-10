@@ -1,13 +1,33 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import { fileURLToPath } from "node:url";
+import { join, resolve } from "node:path";
+import { placeLayers } from "../../bonsai/lib/layers.mjs";
 // Every light theme of the public site is the night's stylesheets in its own colours, added at build time.
 import { themePostcss } from "./src/public-research/themes.mjs";
+
+// A public-research build carries the site's copy of the layers under layers/sha256/<hex> of its output: the
+// stands' word layers, the public corpus and the stand copies of media files, from every home of the checkout.
+// Every build writes them after its pages, so a page never addresses a layer its site lacks.
+function siteLayers(): Plugin {
+  let outDir = "";
+  return {
+    name: "tos-site-layers",
+    apply: "build",
+    configResolved(config) { outDir = resolve(config.root, config.build.outDir); },
+    async closeBundle() {
+      const repo = fileURLToPath(new URL("../..", import.meta.url));
+      const { homes, files } = await placeLayers(repo, join(outDir, "layers"), { log: (line: string) => console.log(line) });
+      console.log(`layers: ${files} files of ${homes.join(", ")}`);
+    },
+  };
+}
 
 export default defineConfig(({ mode }) => {
   const publicResearch = mode === "public-research";
   return {
   base: publicResearch ? "/__research/" : "/static/",
   css: { postcss: { plugins: [themePostcss()] } },
+  plugins: publicResearch ? [siteLayers()] : [],
   server: {
     host: "127.0.0.1",
     fs: {

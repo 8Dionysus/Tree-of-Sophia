@@ -3,7 +3,7 @@ import {mkdirSync,mkdtempSync,readFileSync,rmSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach,describe,expect,it} from 'vitest';
-import {fetchLayers,layerStatus,layersIssues,layersOnDisk,mirrorLayers,objectKey,pruneTransfer,readLayers,sendLayers,sha256,signS3,transferSource,uploadLayers,writeManifest} from '../../../../bonsai/lib/layers.mjs';
+import {fetchLayers,layerHomes,layerStatus,placeLayers,layersIssues,layersOnDisk,mirrorLayers,objectKey,pruneTransfer,readLayers,sendLayers,sha256,signS3,transferSource,uploadLayers,writeManifest} from '../../../../bonsai/lib/layers.mjs';
 
 // A stand's generated layers live in R2; git keeps their digest manifest.
 const homes=[];
@@ -68,6 +68,27 @@ describe('the layer store',()=>{
     const {root,home}=stand();const layers=writeManifest(home);
     expect(mirrorLayers(home,join(root,'dist','layers'))).toBe(3);
     for(const entry of layers.entries)expect(sha256(readFileSync(join(root,'dist','layers',objectKey(entry.sha256))))).toBe(entry.sha256);
+  });
+  it('finds every home of a checkout by its manifest, tracked or new, and leaves out ignored ones',()=>{
+    const {root,home}=stand();writeManifest(home);
+    git(root,'init','--quiet');git(root,'add','bonsai/x/layers.json');
+    const corpus=join(root,'access','corpus');mkdirSync(corpus,{recursive:true});
+    writeFileSync(join(corpus,'layers.json'),JSON.stringify({schema:'tos.bonsai.layers.v1',root:'files',paths:['a/'],entries:[]}));
+    const other=join(root,'data');mkdirSync(other);writeFileSync(join(other,'layers.json'),'{"schema":"something else"}');
+    const ignored=join(root,'build','y');mkdirSync(ignored,{recursive:true});
+    writeFileSync(join(ignored,'layers.json'),JSON.stringify({schema:'tos.bonsai.layers.v1',paths:['a'],entries:[]}));
+    writeFileSync(join(root,'.gitignore'),'build/\n');
+    expect(layerHomes(root)).toEqual([corpus,home]);
+  });
+  it('places every home\'s layers in the site\'s copy, bringing missing files first, and stops at one no store holds',async()=>{
+    const {root,home}=stand();const layers=writeManifest(home);git(root,'init','--quiet');
+    const missing=layers.entries[2],bytes=readFileSync(join(home,missing.path));rmSync(join(home,missing.path));
+    const dir=join(root,'dist','layers'),lines=[];
+    expect(await placeLayers(root,dir,{sources:[memory('site',new Map([[missing.sha256,bytes]]))],log:line=>lines.push(line)})).toEqual({homes:['bonsai/x'],files:3});
+    expect(lines).toEqual(['tokens/I.02.json ← site']);
+    for(const entry of layers.entries)expect(sha256(readFileSync(join(dir,objectKey(entry.sha256))))).toBe(entry.sha256);
+    rmSync(join(home,'spelling.json'));
+    await expect(placeLayers(root,join(root,'other'),{sources:[memory('empty')]})).rejects.toThrow(/bonsai\/x: layer files no store holds:\nspelling\.json/);
   });
   it('carries files no store holds on the transfer branch, and drops them once R2 has them',async()=>{
     const {root,home}=stand();
