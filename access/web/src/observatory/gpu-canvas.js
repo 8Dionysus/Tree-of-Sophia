@@ -92,6 +92,56 @@ void main() {
   }
 }`;
 
+// A star in one record: its glow (an atlas image), its disc and white core, and four rays in steps that narrow and fade
+// towards their tips. The vertex shader lays from the record the quads the painter lays for each of them in turn
+// (drawImage, a disc's fill, a segment's stroke), and the fragment shader is the painter's own.
+const STAR_STRIDE = 24;
+const STAR_QUADS = 15;
+const STAR_VERTEX = `
+precision highp float;
+in vec4 aCenter;
+in vec4 aGlow;
+in vec4 aGlowUv;
+in vec4 aColor;
+in vec4 aRays;
+in vec4 aMore;
+uniform vec2 uResolution;
+uniform vec4 uSteps[3];
+out vec2 vLocal;
+out vec4 vColor;
+out vec3 vShape;
+const int CORNERS[6]=int[6](0,2,1,0,3,2);
+const vec2 DIRECTIONS[4]=vec2[4](vec2(1.,0.),vec2(-1.,0.),vec2(0.,1.),vec2(0.,-1.));
+void main() {
+  int quad=gl_VertexID/6,corner=CORNERS[gl_VertexID-quad*6];
+  vec2 side=vec2(corner==1||corner==2?1.:-1.,corner>=2?1.:-1.);
+  float scale=aCenter.z;
+  vec2 position=vec2(-1e5);
+  vLocal=vec2(0.);vColor=vec4(0.);vShape=vec3(0.);
+  if(quad==0) {
+    if(aGlow.z>0.) {
+      vec2 at=step(0.,side);
+      position=aCenter.xy+(aGlow.xy+at*aGlow.z)*scale;
+      vLocal=aGlowUv.xy+at*aGlowUv.zw;vColor=vec4(aGlow.w);
+    }
+  } else if(quad<3) {
+    float radius=(quad==1?aCenter.w:aRays.x)*scale,extent=radius+1.,light=quad==1?aColor.a*aMore.x:aMore.x;
+    vLocal=side*extent;position=aCenter.xy+vLocal;
+    vColor=vec4((quad==1?aColor.rgb:vec3(1.,249./255.,234./255.))*light,light);vShape=vec3(2.,radius,radius);
+  } else {
+    int k=(quad-3)/4;vec4 s=uSteps[k];vec2 u=DIRECTIONS[quad-3-k*4];
+    float from=max(s.x,aRays.z);
+    if(aRays.w>0.&&from<s.y) {
+      float reach=aRays.y*scale,halfLength=reach*(s.y-from)*.5,halfWidth=s.w*aMore.y*scale*.5,light=aColor.a*aRays.w*s.z;
+      vec2 center=aCenter.xy+u*reach*(s.y+from)*.5;
+      vLocal=side*vec2(halfLength+1.,halfWidth+1.);
+      position=center+vec2(u.x*vLocal.x-u.y*vLocal.y,u.y*vLocal.x+u.x*vLocal.y);
+      vColor=vec4(aColor.rgb*light,light);vShape=vec3(1.,halfLength,halfWidth);
+    }
+  }
+  gl_Position = vec4(position.x/uResolution.x*2.-1., 1.-position.y/uResolution.y*2., 0., 1.);
+}`;
+
 // The day's paper: the scene as the night drew it, turned over by the page's colour filter one step at a time, each
 // step clamped as the page's filter clamps it, then laid on the page's paper as a multiply blend lays it.
 const PAPER_VERTEX = `
@@ -164,6 +214,7 @@ export class SophiaGpuCanvas {
     this.staging=document.createElement('canvas');this.stagingContext=this.staging.getContext('2d');
     this.images=new Map();this.shelfX=2;this.shelfY=2;this.shelfHeight=0;
     this.capacity=0;this.allocate(16384);
+    this.starCapacity=0;this.starsUsed=0;this.allocateStars(512);this.starSteps=new Float32Array(12);
     this.matrix=[1,0,0,1,0,0];this.stack=[];this.path=[];
     // Immediate painter: one reusable quad is sufficient between submissions.
     // Avoid allocating point/UV arrays for every background star each frame.
@@ -215,6 +266,20 @@ export class SophiaGpuCanvas {
     gl.disable(gl.DEPTH_TEST);gl.enable(gl.CULL_FACE);gl.cullFace(gl.BACK);gl.frontFace(gl.CCW);
     gl.enable(gl.BLEND);gl.blendEquation(gl.FUNC_ADD);gl.clearColor(0,0,0,1);
     this.width=this.height=0;this.paperShader=null;this.paperScene=null;
+    // The stars' program reads its records one star at a time from a buffer of its own, beside the quads'.
+    const starProgram=gl.createProgram(),starVertex=shader(gl.VERTEX_SHADER,STAR_VERTEX),starFragment=shader(gl.FRAGMENT_SHADER,FRAGMENT);
+    gl.attachShader(starProgram,starVertex);gl.attachShader(starProgram,starFragment);
+    ['aCenter','aGlow','aGlowUv','aColor','aRays','aMore'].forEach((name,index)=>gl.bindAttribLocation(starProgram,index,name));
+    gl.linkProgram(starProgram);
+    if(!gl.getProgramParameter(starProgram,gl.LINK_STATUS)&&!gl.isContextLost())throw new Error('Sophia star program: '+gl.getProgramInfoLog(starProgram));
+    gl.deleteShader(starVertex);gl.deleteShader(starFragment);
+    this.starProgram=starProgram;gl.useProgram(starProgram);
+    this.uStarResolution=gl.getUniformLocation(starProgram,'uResolution');this.uStarSteps=gl.getUniformLocation(starProgram,'uSteps');
+    gl.uniform1i(gl.getUniformLocation(starProgram,'uAtlas'),0);gl.uniform4fv(this.uStarSteps,this.starSteps);
+    this.starVao=gl.createVertexArray();gl.bindVertexArray(this.starVao);
+    this.starBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,this.starBuffer);this.starBufferCapacity=0;
+    for(let index=0;index<6;index++){gl.enableVertexAttribArray(index);gl.vertexAttribPointer(index,4,gl.FLOAT,false,STAR_STRIDE*4,index*16);gl.vertexAttribDivisor(index,1);}
+    gl.useProgram(program);gl.bindVertexArray(this.vao);gl.bindBuffer(gl.ARRAY_BUFFER,this.vertexBuffer);
   }
   get font() {return this.measure.font;}
   set font(value) {this.measure.font=value;}
@@ -235,18 +300,30 @@ export class SophiaGpuCanvas {
     this.capacity=capacity;this.data=new Float32Array(capacity*STRIDE);
     if(old)this.data.set(old);
   }
+  allocateStars(capacity) {
+    const old=this.starData;
+    this.starCapacity=capacity;this.starData=new Float32Array(capacity*STAR_STRIDE);
+    if(old)this.starData.set(old);
+  }
   beginFrame() {
-    this.used=0;this.groups=[];
+    this.used=0;this.starsUsed=0;this.groups=[];
     if(this.atlasFull)this.clearAtlas();
     if(this.lost||this.disposed)return;
     if(this.width!==this.canvas.width||this.height!==this.canvas.height) {
-      this.width=this.canvas.width;this.height=this.canvas.height;
-      this.gl.viewport(0,0,this.width,this.height);this.gl.uniform2f(this.uResolution,this.width,this.height);
+      const gl=this.gl;this.width=this.canvas.width;this.height=this.canvas.height;
+      gl.viewport(0,0,this.width,this.height);gl.uniform2f(this.uResolution,this.width,this.height);
+      gl.useProgram(this.starProgram);gl.uniform2f(this.uStarResolution,this.width,this.height);gl.useProgram(this.program);
     }
   }
   endFrame() {
     if(this.lost||this.disposed)return;
     const gl=this.gl,quads=this.used/4;
+    if(this.starsUsed){
+      gl.bindBuffer(gl.ARRAY_BUFFER,this.starBuffer);
+      if(this.starBufferCapacity<this.starCapacity){gl.bufferData(gl.ARRAY_BUFFER,this.starData.byteLength,gl.DYNAMIC_DRAW);this.starBufferCapacity=this.starCapacity;}
+      gl.bufferSubData(gl.ARRAY_BUFFER,0,this.starData,0,this.starsUsed*STAR_STRIDE);
+    }
+    gl.bindBuffer(gl.ARRAY_BUFFER,this.vertexBuffer);
     if(this.bufferCapacity<this.capacity){gl.bufferData(gl.ARRAY_BUFFER,this.data.byteLength,gl.DYNAMIC_DRAW);this.bufferCapacity=this.capacity;}
     if(this.used)gl.bufferSubData(gl.ARRAY_BUFFER,0,this.data,0,this.used*STRIDE);
     if(this.indexQuads<quads) {
@@ -257,11 +334,19 @@ export class SophiaGpuCanvas {
     const paper=this.paper&&this.paperTarget();
     if(paper){gl.bindFramebuffer(gl.FRAMEBUFFER,paper.framebuffer);gl.useProgram(this.program);gl.enable(gl.BLEND);}
     gl.clear(gl.COLOR_BUFFER_BIT);
-    let mode=-1;
+    let mode=-1,stars=false;
     for(const g of this.groups) {
       if(g.material!==mode){mode=g.material;gl.blendFuncSeparate(gl.ONE,mode===1?gl.ONE_MINUS_SRC_COLOR:gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);}
-      gl.drawElements(gl.TRIANGLES,g.count/4*6,gl.UNSIGNED_INT,g.start/4*6*4);
+      if(!!g.stars!==stars){stars=!!g.stars;gl.useProgram(stars?this.starProgram:this.program);gl.bindVertexArray(stars?this.starVao:this.vao);}
+      if(stars){
+        // A run of stars reads its records from where it starts in the stars' buffer.
+        gl.bindBuffer(gl.ARRAY_BUFFER,this.starBuffer);
+        for(let index=0;index<6;index++)gl.vertexAttribPointer(index,4,gl.FLOAT,false,STAR_STRIDE*4,(g.start*STAR_STRIDE+index*4)*4);
+        gl.drawArraysInstanced(gl.TRIANGLES,0,STAR_QUADS*6,g.count);
+      } else gl.drawElements(gl.TRIANGLES,g.count/4*6,gl.UNSIGNED_INT,g.start/4*6*4);
     }
+    if(stars){gl.useProgram(this.program);gl.bindVertexArray(this.vao);}
+    gl.bindBuffer(gl.ARRAY_BUFFER,this.vertexBuffer);
     if(paper)this.layOnPaper(paper);
     // The counts are told every thirtieth frame: an attribute written each frame is a page mutation each frame.
     if((this.frames=(this.frames||0)+1)%30===1){
@@ -274,7 +359,7 @@ export class SophiaGpuCanvas {
     if(this.used+4>this.capacity)this.allocate(this.capacity*2);
     const material=this.globalCompositeOperation==='screen'?1:0;
     let group=this.groups.at(-1);
-    if(!group||group.material!==material){group={start:this.used,count:0,material};this.groups.push(group);}
+    if(!group||group.stars||group.material!==material){group={start:this.used,count:0,material};this.groups.push(group);}
     group.count+=4;
     const solid=style instanceof SceneGradient?null:color(style);
     for(let corner=0;corner<4;corner++) {
@@ -291,23 +376,57 @@ export class SophiaGpuCanvas {
   // A run of a frame's quads can be kept and laid again, unchanged, into a later frame: the part of a scene that rests
   // while the sky around it moves. What is kept refers to the atlas as it stood, so a reset atlas or a new size of the
   // canvas lets it go and the scene is drawn whole again.
-  mark() {return this.used;}
-  keep(from,to=this.used) {
-    const count=to-from;if(count<0||to>this.used)return null;
+  mark() {return {used:this.used,stars:this.starsUsed};}
+  keep(from,to=this.mark()) {
+    const count=to.used-from.used,starCount=to.stars-from.stars;
+    if(count<0||starCount<0||to.used>this.used||to.stars>this.starsUsed)return null;
     if(!this.kept||this.kept.length<count*STRIDE)this.kept=new Float32Array(Math.max(count,1024)*STRIDE*1.25|0);
-    this.kept.set(this.data.subarray(from*STRIDE,to*STRIDE));
-    const groups=[];for(const g of this.groups){const start=Math.max(g.start,from),end=Math.min(g.start+g.count,to);if(end>start)groups.push({start:start-from,count:end-start,material:g.material});}
-    return {count,groups,epoch:this.atlasEpoch|0,width:this.canvas.width,height:this.canvas.height,data:this.kept};
+    if(!this.keptStars||this.keptStars.length<starCount*STAR_STRIDE)this.keptStars=new Float32Array(Math.max(starCount,256)*STAR_STRIDE*1.25|0);
+    this.kept.set(this.data.subarray(from.used*STRIDE,to.used*STRIDE));
+    this.keptStars.set(this.starData.subarray(from.stars*STAR_STRIDE,to.stars*STAR_STRIDE));
+    const groups=[];
+    for(const g of this.groups){
+      const [low,high]=g.stars?[from.stars,to.stars]:[from.used,to.used],start=Math.max(g.start,low),end=Math.min(g.start+g.count,high);
+      if(end>start)groups.push({start:start-low,count:end-start,material:g.material,stars:!!g.stars});
+    }
+    return {count,starCount,groups,epoch:this.atlasEpoch|0,width:this.canvas.width,height:this.canvas.height,data:this.kept,stars:this.keptStars};
   }
   replay(kept) {
-    if(!kept||kept.data!==this.kept||kept.epoch!==(this.atlasEpoch|0)||kept.width!==this.canvas.width||kept.height!==this.canvas.height)return false;
+    if(!kept||kept.data!==this.kept||kept.stars!==this.keptStars||kept.epoch!==(this.atlasEpoch|0)||kept.width!==this.canvas.width||kept.height!==this.canvas.height)return false;
     while(this.used+kept.count>this.capacity)this.allocate(this.capacity*2);
+    while(this.starsUsed+kept.starCount>this.starCapacity)this.allocateStars(this.starCapacity*2);
     this.data.set(this.kept.subarray(0,kept.count*STRIDE),this.used*STRIDE);
+    this.starData.set(this.keptStars.subarray(0,kept.starCount*STAR_STRIDE),this.starsUsed*STAR_STRIDE);
     for(const g of kept.groups){
-      const start=this.used+g.start,last=this.groups.at(-1);
-      if(last&&last.material===g.material&&last.start+last.count===start)last.count+=g.count;else this.groups.push({start,count:g.count,material:g.material});
+      const start=(g.stars?this.starsUsed:this.used)+g.start,last=this.groups.at(-1);
+      if(last&&!!last.stars===g.stars&&last.material===g.material&&last.start+last.count===start)last.count+=g.count;
+      else this.groups.push(g.stars?{start,count:g.count,material:g.material,stars:true}:{start,count:g.count,material:g.material});
     }
-    this.used+=kept.count;return true;
+    this.used+=kept.count;this.starsUsed+=kept.starCount;return true;
+  }
+  // The steps of a star's rays, outward from its centre: [start, end, light, width] each, in units of the ray's reach.
+  setStarRays(steps) {
+    steps.slice(0,3).forEach((step,i)=>this.starSteps.set(step,i*4));
+    if(this.lost||this.disposed)return;
+    const gl=this.gl;gl.useProgram(this.starProgram);gl.uniform4fv(this.uStarSteps,this.starSteps);gl.useProgram(this.program);
+  }
+  // One star: {x, y, color, alpha, radius, core, image, glowX, glowY, glowSize, glowAlpha, ray, from, rayLight, lineScale},
+  // where the glow's place and size are taken from the star's centre and a ray's light is 0 for a star without rays.
+  // It lays what drawImage, two discs' fills and the rays' strokes lay for it, in that order, as one record.
+  star(s) {
+    const entry=s.image?this.atlasEntry(s.image):null;
+    if(this.starsUsed+1>this.starCapacity)this.allocateStars(this.starCapacity*2);
+    const material=this.globalCompositeOperation==='screen'?1:0,groups=this.groups;
+    let group=groups[groups.length-1];
+    if(!group||!group.stars||group.material!==material){group={start:this.starsUsed,count:0,material,stars:true};groups.push(group);}
+    group.count++;
+    const m=this.matrix,d=this.starData,o=this.starsUsed++*STAR_STRIDE,c=color(s.color);
+    d[o]=m[0]*s.x+m[2]*s.y+m[4];d[o+1]=m[1]*s.x+m[3]*s.y+m[5];d[o+2]=Math.hypot(m[0],m[1]);d[o+3]=s.radius;
+    d[o+4]=s.glowX;d[o+5]=s.glowY;d[o+6]=entry?s.glowSize:0;d[o+7]=s.glowAlpha;
+    if(entry){d[o+8]=entry.x/ATLAS;d[o+9]=entry.y/ATLAS;d[o+10]=entry.width/ATLAS;d[o+11]=entry.height/ATLAS;}
+    d[o+12]=c[0];d[o+13]=c[1];d[o+14]=c[2];d[o+15]=c[3];
+    d[o+16]=s.core;d[o+17]=s.ray;d[o+18]=s.from;d[o+19]=s.rayLight;
+    d[o+20]=s.alpha;d[o+21]=s.lineScale;
   }
   // The atlas packs images on shelves as they are first drawn. When it is full, the image waits and the next frame starts
   // the atlas over with only the images it draws, so a scene that changes its images (a theme, a lens) never runs out.
@@ -521,6 +640,6 @@ export class SophiaGpuCanvas {
     if(this.disposed)return;this.disposed=true;
     removeEventListener('pagehide',this.pagehide);
     const gl=this.gl;this.images.clear();
-    if(!gl.isContextLost()){gl.deleteBuffer(this.vertexBuffer);gl.deleteBuffer(this.indexBuffer);gl.deleteVertexArray(this.vao);gl.deleteTexture(this.texture);gl.deleteProgram(this.program);}
+    if(!gl.isContextLost()){gl.deleteBuffer(this.vertexBuffer);gl.deleteBuffer(this.indexBuffer);gl.deleteVertexArray(this.vao);gl.deleteTexture(this.texture);gl.deleteProgram(this.program);gl.deleteBuffer(this.starBuffer);gl.deleteVertexArray(this.starVao);gl.deleteProgram(this.starProgram);}
   }
 }
