@@ -799,8 +799,7 @@ def second_gate(path,reading,ev,locs):
         mine=answers.get(key_) or {}
         if not isinstance(mine.get('holds'),bool):add(f'review.left.{key_}: holds wants true (the work does not bear the reading, as the reason says) or false (it does)')
         elif not mine['holds'] and len(str(mine.get('note','')))<30:add(f'review.left.{key_}: holds false wants a note naming the place that bears the reading (division, page, opening words)')
-    gone={f.get('place') for item in reading.get('left') or [] if item.get('disputed') for f in (item['disputed'].get('formula') or [])}-set(locs)   # places that left the packet with a conception the reader did not confirm
-    seen=shots(ev,'second');looked=[item for item in review.get('images') or [] if item.get('loc') not in gone]
+    seen=shots(ev,'second');looked=[item for item in review.get('images') or [] if item.get('loc') in locs]   # a page looked at for a place that has since left the packet asks nothing
     need=min(len(locs),max(3,math.ceil(len(locs)*0.3)))
     whole=[loc for loc,entry in ev['places'].items() if entry.get('method')=='image']
     if len({item.get('loc') for item in looked})<need:add(f'review.images: the second reader looks at the pages of at least {need} places; {len(looked)} are recorded')
@@ -841,7 +840,8 @@ def cmd_settle(args):
             for key_ in record['from']:moved.append({'key':key_,'reason':f"The second reader ({review['reader']['id']}) does not confirm {record['id']}, or its ground is disputed: {(review.get('links') or {}).get(record['id'],{}).get('note','its conception left the reading')}",'disputed':record})
         else:record['grounds']=[ground for ground in record['grounds'] if ground not in gone]
     kept={key_ for record in reading['conceptions'] for key_ in record['from']}|{key_ for record in reading['links'] for key_ in record['from']}
-    reading['left']=[item for item in reading.get('left',[]) if item['key'] not in kept]+[item for item in moved if item['key'] not in kept and item['key'] not in {x['key'] for x in reading.get('left',[])}]
+    # What was not confirmed stays on record under left, also where a kept conception grows from the same reading: a later reader takes it up from there.
+    reading['left']=[item for item in reading.get('left',[]) if item.get('disputed') or item['key'] not in kept]+moved
     cited={f['place'] for record in reading['conceptions'] for f in record['formula']}
     for loc in [loc for loc in places['places'] if loc not in cited]:
         del places['places'][loc];ev['places'].pop(loc,None);places['corrections']=[c for c in places['corrections'] if c['place']!=f"{places['work']} {loc}"]
