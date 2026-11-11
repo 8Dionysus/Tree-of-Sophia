@@ -1,0 +1,210 @@
+{
+ "reader": {
+  "id": "terra-2026-11-10-vorlesungen-ueber-die-aesthetik",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-10",
+  "reads": "Read the German first and third volumes of Hotho’s 1835 and 1838 edition against the register readings and scanned pages.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "georg-wilhelm-friedrich-hegel": {
+    "tree": "tos.agent.georg-wilhelm-friedrich-hegel"
+   }
+  },
+  "works": {
+   "georg-wilhelm-friedrich-hegel.vorlesungen-ueber-die-aesthetik": {
+    "title": {
+     "ru": "Лекции по эстетике",
+     "en": "Lectures on Aesthetics"
+    },
+    "original": "de",
+    "tree": "tos.work.georg-wilhelm-friedrich-hegel.vorlesungen-ueber-die-aesthetik",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "georg-wilhelm-friedrich-hegel.vorlesungen-ueber-die-aesthetik:antigone-and-creon",
+   "of": [
+    "A:C155"
+   ],
+   "areas": [
+    "AE05"
+   ],
+   "work": "georg-wilhelm-friedrich-hegel.vorlesungen-ueber-die-aesthetik",
+   "locus": "Part I, Ch. III",
+   "formula": [
+    {
+     "place": "I.III p283"
+    }
+   ],
+   "thesis": {
+    "ru": "В повелении Креонта заключена забота о благе города; Антигона, воодушевлённая святой любовью к брату и семейным благочестием, нарушает его повеление.",
+    "en": "Creon’s command contains concern for the welfare of the city; Antigone, inspired by holy love for her brother and family piety, violates his command."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E084"
+   ],
+   "note": "The selected example presents opposed ethical powers in Antigone; it does not itself name the tragic as such. The sibling conception states the tragic collision and guilt from volume III."
+  },
+  {
+   "id": "georg-wilhelm-friedrich-hegel.vorlesungen-ueber-die-aesthetik:ideal-whole-in-each-part",
+   "of": [
+    "B:C-C011"
+   ],
+   "areas": [
+    "AE16"
+   ],
+   "work": "georg-wilhelm-friedrich-hegel.vorlesungen-ueber-die-aesthetik",
+   "locus": "Part I, Ch. III",
+   "formula": [
+    {
+     "place": "I.III p197"
+    }
+   ],
+   "thesis": {
+    "ru": "Истинное существует в развёртывании во внешнюю действительность так, что каждая часть являет душу, целое.",
+    "en": "The true exists in its unfolding into external reality in such a way that each part makes the soul, the whole, appear."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "B:C-I011"
+   ],
+   "note": "The passage states the ideal formally; evaluation and the idea in sensuous form are addressed in the sibling conception."
+  },
+  {
+   "id": "georg-wilhelm-friedrich-hegel.vorlesungen-ueber-die-aesthetik:unity-of-idea-and-form",
+   "of": [
+    "B:C-C003",
+    "B:C-C010"
+   ],
+   "areas": [
+    "AE16",
+    "AE17"
+   ],
+   "work": "georg-wilhelm-friedrich-hegel.vorlesungen-ueber-die-aesthetik",
+   "locus": "Introduction",
+   "formula": [
+    {
+     "place": "Einleitung p94"
+    }
+   ],
+   "thesis": {
+    "ru": "Искусство представляет идею в чувственном образе для непосредственного созерцания; высота и превосходство искусства зависят от единства идеи и образа.",
+    "en": "Art presents the idea in sensuous form for immediate intuition; the height and excellence of art depend on the unity of idea and form."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "B:C-I011",
+    "B:C-I041"
+   ],
+   "note": "The passage specifies artistic excellence through the unity of idea and form; it does not name the ideal or the register’s separate concept perfection."
+  },
+  {
+   "id": "georg-wilhelm-friedrich-hegel.vorlesungen-ueber-die-aesthetik:concrete-content-and-sensuous-form",
+   "of": [
+    "C:A-C002"
+   ],
+   "areas": [
+    "AE21"
+   ],
+   "work": "georg-wilhelm-friedrich-hegel.vorlesungen-ueber-die-aesthetik",
+   "locus": "Introduction",
+   "formula": [
+    {
+     "place": "Einleitung p92a"
+    }
+   ],
+   "thesis": {
+    "ru": "Если истинному и потому конкретному содержанию должна соответствовать чувственная форма, то и она должна быть индивидуальной и вполне конкретной.",
+    "en": "If a sensuous form is to correspond to a true and therefore concrete content, it too must be individual and fully concrete."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "C:A-I031"
+   ]
+  },
+  {
+   "id": "georg-wilhelm-friedrich-hegel.vorlesungen-ueber-die-aesthetik:classical-form-and-congruence",
+   "of": [
+    "C:A-C001"
+   ],
+   "areas": [
+    "AE21"
+   ],
+   "work": "georg-wilhelm-friedrich-hegel.vorlesungen-ueber-die-aesthetik",
+   "locus": "Introduction",
+   "formula": [
+    {
+     "place": "Einleitung p101"
+    }
+   ],
+   "thesis": {
+    "ru": "Соответствие понятия и реальности в классическом искусстве не сводится к формальному совпадению содержания с внешним оформлением.",
+    "en": "The correspondence of concept and reality in classical art is not reducible to the merely formal congruence of a content with its external form."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "C:A-I032"
+   ],
+   "negation": "ebenso wenig"
+  },
+  {
+   "id": "georg-wilhelm-friedrich-hegel.vorlesungen-ueber-die-aesthetik:tragic-collision-and-guilt",
+   "of": [
+    "A:C041",
+    "A:C155",
+    "A:C043"
+   ],
+   "areas": [
+    "AE05"
+   ],
+   "work": "georg-wilhelm-friedrich-hegel.vorlesungen-ueber-die-aesthetik",
+   "locus": "Vol. III, Section III, Ch. III",
+   "formula": [
+    {
+     "place": "III.III p529"
+    }
+   ],
+   "thesis": {
+    "ru": "Первоначально трагическое состоит в коллизии двух правомерных сторон, каждая из которых осуществляет своё содержание через нарушение другой и потому в своей нравственности впадает в вину.",
+    "en": "The originally tragic consists in a collision of two justified sides, each of which realizes its content through violating the other and thereby incurs guilt in its ethical life."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E084"
+   ]
+  }
+ ],
+ "links": [
+  {
+   "id": "collision-of-ethical-powers:constitutes:tragic-collision",
+   "from_concept": "A:C155",
+   "to_concept": "A:C041",
+   "verb": {
+    "ru": "составляет",
+    "en": "constitutes"
+   },
+   "grounds": [
+    "georg-wilhelm-friedrich-hegel.vorlesungen-ueber-die-aesthetik:tragic-collision-and-guilt"
+   ],
+   "status": "text",
+   "verdict": "revise",
+   "note": "Volume III p. 529 names the originally tragic as a collision of justified sides that violate one another; this supplies the ground missing from the Antigone example alone.",
+   "from": [
+    "A:R078"
+   ]
+  }
+ ],
+ "left": []
+}

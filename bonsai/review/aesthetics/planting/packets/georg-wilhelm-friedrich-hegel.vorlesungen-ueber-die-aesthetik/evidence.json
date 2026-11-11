@@ -1,0 +1,380 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/hegel-vorlesungen-uber-die-aesthetik-bd.-1/Hegel%20Vorlesungen%20%C3%BCber%20die%20Aesthetik%20Bd.%201_hocr_searchtext.txt.gz",
+   "file": "hegel-vorlesungen-uber-die-aesthetik-bd.-1.ocr.txt",
+   "sha256": "1a1dec092468e5837d53bb47456f8a7ddcf02101a6939ee67ab8b913b8bac6c6",
+   "bytes": 1181641,
+   "fetched": "2026-11-10",
+   "why": "Wikisource Hegel author index lists the 1835 scan but no transcription. Project Gutenberg, DTA, Zeno, TextGrid and Gallica were queried for Hegel Vorlesungen Aesthetik; their search pages did not answer in this session. Textlog offers passages but its transcription edition and reuse terms are unidentified, so the 1835 scan OCR is used."
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/hegel-vorlesungen-uber-die-aesthetik-bd.-1/Hegel%20Vorlesungen%20%C3%BCber%20die%20Aesthetik%20Bd.%201_hocr_pageindex.json.gz",
+   "file": "hegel-vorlesungen-uber-die-aesthetik-bd.-1.index.json",
+   "sha256": "22df3e2fd23a82b8d216fba68c5ff295d15ee317bf16ed2872ba63fd6b72d689",
+   "bytes": 21119,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/hegel-vorlesungen-uber-die-aesthetik-bd.-1/Hegel%20Vorlesungen%20%C3%BCber%20die%20Aesthetik%20Bd.%201_page_numbers.json",
+   "file": "hegel-vorlesungen-uber-die-aesthetik-bd.-1.pages.json",
+   "sha256": "b2e87a8edd72cf05ccf2d6a8900b4f1194b4774497a836e336b0237968f7d056",
+   "bytes": 95873,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/10045986/10045986_hocr_searchtext.txt.gz",
+   "file": "10045986.ocr.txt",
+   "sha256": "918b93679ba2b5131d3a3f5a7c4410d4dec184d3a734587449a3e7efd52a55cc",
+   "bytes": 1168627,
+   "fetched": "2026-11-10",
+   "why": "Wikisource Hegel author index lists the 1835 scan but no transcription. Project Gutenberg, DTA, Zeno, TextGrid and Gallica were queried for Hegel Vorlesungen Aesthetik; their search pages did not answer in this session. Textlog offers passages but its transcription edition and reuse terms are unidentified, so the 1835 scan OCR is used."
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/10045986/10045986_hocr_pageindex.json.gz",
+   "file": "10045986.index.json",
+   "sha256": "f8ea98db31ed5b353e63909f314018e3d6d4d195be4a20607c9fe661a658b8f2",
+   "bytes": 21215,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/10045986/10045986_page_numbers.json",
+   "file": "10045986.pages.json",
+   "sha256": "dd00881d3ad4fb83d065cdcbfb5adbd1cdae633a3252334a03a44a793636f06e",
+   "bytes": 96404,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/georgwilhelmfri03hegegoog/georgwilhelmfri03hegegoog_hocr_searchtext.txt.gz",
+   "file": "georgwilhelmfri03hegegoog.ocr.txt",
+   "sha256": "6357ac78f96b16a13d075cea46c5f1997b847452ccb184f692698ced5cad1e32",
+   "bytes": 1204549,
+   "fetched": "2026-11-10",
+   "why": "The 1838 German third volume was sought on Wikisource, Gutenberg, Deutsches Textarchiv, Zeno, TextGrid and Gallica; Wikisource lists a scan, and the others did not answer their search pages. Textlog does not identify its transcription edition or reuse terms. The words are cut from the 1838 scan OCR and read on its image."
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/georgwilhelmfri03hegegoog/georgwilhelmfri03hegegoog_hocr_pageindex.json.gz",
+   "file": "georgwilhelmfri03hegegoog.index.json",
+   "sha256": "2941701a57f3cad1c1b321fe9ad28d19ea46832b23746f0bcb1e86cd06f587ae",
+   "bytes": 22865,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/georgwilhelmfri03hegegoog/georgwilhelmfri03hegegoog_page_numbers.json",
+   "file": "georgwilhelmfri03hegegoog.pages.json",
+   "sha256": "6d74ed0f7397c5ae1d9df2c7965b5fd99657f9b1a9abd1e14db77185009d5371",
+   "bytes": 113121,
+   "fetched": "2026-11-10"
+  }
+ ],
+ "scan": {
+  "item": "georgwilhelmfri03hegegoog",
+  "ocr": true,
+  "long_s": true,
+  "image_offset": 0
+ },
+ "persons": [
+  {
+   "qid": "Q9235",
+   "name": {
+    "en": "Georg Wilhelm Friedrich Hegel",
+    "ru": "Георг Вильгельм Фридрих Гегель"
+   },
+   "role": "author",
+   "died": 1831,
+   "source": "https://www.wikidata.org/wiki/Q9235"
+  },
+  {
+   "qid": "Q72950",
+   "name": {
+    "en": "Heinrich Gustav Hotho",
+    "ru": "Генрих Густав Гото"
+   },
+   "role": "editor",
+   "died": 1873,
+   "source": "https://www.wikidata.org/wiki/Q72950"
+  }
+ ],
+ "published": 1835,
+ "images": [
+  {
+   "n": 4,
+   "file": "10045986-n4.jpg",
+   "sha256": "53bdbcc1043d9937adf49bb2f05997a7cf020e4287efc3157650311b3793dc07",
+   "by": "maker"
+  },
+  {
+   "n": 20,
+   "file": "10045986-n20.jpg",
+   "sha256": "1f19aaefbda030042a1585e8efaccfafc807d09d6d4f0450a3d87279d8aef220",
+   "by": "maker"
+  },
+  {
+   "n": 6,
+   "file": "10045986-n6.jpg",
+   "sha256": "31876b53a42a048cd396e27a1133e0c74121ec9c06b5273df415b016defaa938",
+   "by": "maker"
+  },
+  {
+   "n": 304,
+   "file": "10045986-n304.jpg",
+   "sha256": "abed6634e6a30cc21fa1dcb1c1862d57419afd7442b810f33807687a0df9bc3f",
+   "by": "maker",
+   "loc": "I.III p283"
+  },
+  {
+   "n": 218,
+   "file": "10045986-n218.jpg",
+   "sha256": "a8712322d25aa99ec21487d82160b530531bbccaa99e3e72330cbe248919bd9b",
+   "by": "maker",
+   "loc": "I.III p197"
+  },
+  {
+   "n": 115,
+   "file": "10045986-n115.jpg",
+   "sha256": "51ca82f3e0d516d2ce15dc55f197d325aa86eaaf7dd6a144b50a17b86ff4bf2f",
+   "by": "maker",
+   "loc": "Einleitung p94"
+  },
+  {
+   "n": 121,
+   "file": "10045986-n121.jpg",
+   "sha256": "75ef1980cd5c2f1095d985a93b1f1f702aed51ed4c22db98238f834650ee6465",
+   "by": "maker",
+   "loc": "Einleitung p100"
+  },
+  {
+   "n": 122,
+   "item": "10045986",
+   "file": "10045986-n122.jpg",
+   "sha256": "8ef2467e99d013f73415a78fcca8eded651246123b6861f2f2459ef0f12258d4",
+   "by": "maker",
+   "loc": "Einleitung p101"
+  },
+  {
+   "n": 114,
+   "item": "10045986",
+   "file": "10045986-n114.jpg",
+   "sha256": "251166ee6e37681965043eb85a406db064034280cffd491bccae304fb4d081c1",
+   "by": "maker",
+   "loc": "Einleitung p92a"
+  },
+  {
+   "n": 113,
+   "item": "10045986",
+   "file": "10045986-n113.jpg",
+   "sha256": "4b6e4bfc215b40d11740d69771a3402b334b86dc378a3c3bdf4697c4f17fcb57",
+   "by": "maker",
+   "loc": "Einleitung p92a"
+  },
+  {
+   "n": 558,
+   "item": "georgwilhelmfri03hegegoog",
+   "file": "georgwilhelmfri03hegegoog-n558.jpg",
+   "sha256": "96872f8bdbeb7b009a90c749733501e80dcfd2b1b98f5d3ac9e2392ea442fac8",
+   "by": "maker",
+   "loc": "III.III p529"
+  },
+  {
+   "n": 304,
+   "item": "10045986",
+   "file": "10045986-n304.jpg",
+   "sha256": "abed6634e6a30cc21fa1dcb1c1862d57419afd7442b810f33807687a0df9bc3f",
+   "by": "second",
+   "loc": "I.III p283"
+  },
+  {
+   "n": 218,
+   "item": "10045986",
+   "file": "10045986-n218.jpg",
+   "sha256": "a8712322d25aa99ec21487d82160b530531bbccaa99e3e72330cbe248919bd9b",
+   "by": "second",
+   "loc": "I.III p197"
+  },
+  {
+   "n": 115,
+   "item": "10045986",
+   "file": "10045986-n115.jpg",
+   "sha256": "51ca82f3e0d516d2ce15dc55f197d325aa86eaaf7dd6a144b50a17b86ff4bf2f",
+   "by": "second",
+   "loc": "Einleitung p94"
+  },
+  {
+   "n": 122,
+   "item": "10045986",
+   "file": "10045986-n122.jpg",
+   "sha256": "8ef2467e99d013f73415a78fcca8eded651246123b6861f2f2459ef0f12258d4",
+   "by": "second",
+   "loc": "Einleitung p101"
+  },
+  {
+   "n": 113,
+   "item": "10045986",
+   "file": "10045986-n113.jpg",
+   "sha256": "4b6e4bfc215b40d11740d69771a3402b334b86dc378a3c3bdf4697c4f17fcb57",
+   "by": "second",
+   "loc": "Einleitung p92a"
+  },
+  {
+   "n": 114,
+   "item": "10045986",
+   "file": "10045986-n114.jpg",
+   "sha256": "251166ee6e37681965043eb85a406db064034280cffd491bccae304fb4d081c1",
+   "by": "second",
+   "loc": "Einleitung p92a"
+  },
+  {
+   "n": 558,
+   "item": "georgwilhelmfri03hegegoog",
+   "file": "georgwilhelmfri03hegegoog-n558.jpg",
+   "sha256": "96872f8bdbeb7b009a90c749733501e80dcfd2b1b98f5d3ac9e2392ea442fac8",
+   "by": "second",
+   "loc": "III.III p529"
+  }
+ ],
+ "places": {
+  "I.III p283": {
+   "transcription": "10045986.ocr.txt",
+   "from_scan": true,
+   "scan": "10045986",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the complete passage on p. 283, n304: Creon, the city’s welfare, Antigone and family piety."
+   },
+   "images": [
+    304
+   ],
+   "method": "image",
+   "leaves": [
+    304
+   ],
+   "printed": [
+    "283"
+   ]
+  },
+  "I.III p197": {
+   "transcription": "10045986.ocr.txt",
+   "from_scan": true,
+   "scan": "10045986",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the whole sentence on p. 197, n218, from Das Allgemeinste through erscheinen macht."
+   },
+   "images": [
+    218
+   ],
+   "method": "image",
+   "leaves": [
+    218
+   ],
+   "printed": [
+    "197"
+   ]
+  },
+  "Einleitung p94": {
+   "transcription": "10045986.ocr.txt",
+   "from_scan": true,
+   "scan": "10045986",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the entire sentence on p. 94, n115; Idee und Gestalt and erscheinen correct the OCR."
+   },
+   "images": [
+    115
+   ],
+   "method": "image",
+   "leaves": [
+    115
+   ],
+   "printed": [
+    "94"
+   ]
+  },
+  "Einleitung p101": {
+   "transcription": "10045986.ocr.txt",
+   "from_scan": true,
+   "scan": "10045986",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read both complete sentences on p. 101, n122; corrected OCR noise and misread words."
+   },
+   "images": [
+    122
+   ],
+   "method": "image",
+   "leaves": [
+    122
+   ],
+   "printed": [
+    "101"
+   ]
+  },
+  "Einleitung p92a": {
+   "transcription": "10045986.ocr.txt",
+   "dropped": [
+    "L a \"2"
+   ],
+   "from_scan": true,
+   "scan": "10045986",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read both sentences across pp. 92–93, images n113 and n114; corrected OCR letters and the word divided at the page break."
+   },
+   "images": [
+    113,
+    114
+   ],
+   "method": "image",
+   "leaves": [
+    113,
+    114
+   ],
+   "printed": [
+    "92",
+    "93"
+   ]
+  },
+  "III.III p529": {
+   "transcription": "georgwilhelmfri03hegegoog.ocr.txt",
+   "from_scan": true,
+   "scan": "georgwilhelmfri03hegegoog",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read both sentences in full on volume III p. 529, image n558; corrected OCR misreadings against the page."
+   },
+   "images": [
+    558
+   ],
+   "method": "image",
+   "leaves": [
+    558
+   ],
+   "printed": [
+    "528"
+   ]
+  }
+ },
+ "scans": {
+  "10045986": {
+   "item": "10045986",
+   "ocr": true,
+   "long_s": true,
+   "image_offset": 0
+  },
+  "georgwilhelmfri03hegegoog": {
+   "item": "georgwilhelmfri03hegegoog",
+   "ocr": true,
+   "long_s": true,
+   "image_offset": 0
+  }
+ }
+}

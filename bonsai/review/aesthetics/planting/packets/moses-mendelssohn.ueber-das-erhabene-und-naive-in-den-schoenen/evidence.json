@@ -1,0 +1,95 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/10046454bsb/10046454bsb_hocr_searchtext.txt.gz",
+   "file": "10046454bsb.ocr.txt",
+   "sha256": "ea4c326db92026a0eeccf749b6483452e8b5a76a9a6f294dbe4ad1a5f3301485",
+   "bytes": 311664,
+   "fetched": "2026-11-10",
+   "why": "Wikisource periodical index lists the 1758 essay as a link to page images, not transcription; its search returned 403. Deutsches Textarchiv, Project Gutenberg and TextGrid searches for Mendelssohn returned no located text of this passage; Zeno timed out. The page-indexed scan OCR is read against the page image."
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/10046454bsb/10046454bsb_hocr_pageindex.json.gz",
+   "file": "10046454bsb.index.json",
+   "sha256": "71cadfb2d5cd361554d6de60fdf587018f796faad006ba1e0b113df7f2b792b6",
+   "bytes": 10127,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/10046454bsb/10046454bsb_page_numbers.json",
+   "file": "10046454bsb.pages.json",
+   "sha256": "eccaa44a8e04e1fc82855e36c70db2c30f355f105f74ed52c9b505e8b4e3372d",
+   "bytes": 48919,
+   "fetched": "2026-11-10"
+  }
+ ],
+ "scan": {
+  "item": "10046454bsb",
+  "ocr": true,
+  "long_s": true,
+  "image_offset": 0
+ },
+ "persons": [
+  {
+   "qid": "Q76997",
+   "name": {
+    "en": "Moses Mendelssohn",
+    "ru": "Мозес Мендельсон"
+   },
+   "role": "author",
+   "died": 1786,
+   "source": "https://www.wikidata.org/wiki/Q76997"
+  }
+ ],
+ "published": 1771,
+ "images": [
+  {
+   "n": 164,
+   "item": "10046454bsb",
+   "file": "10046454bsb-n164.jpg",
+   "sha256": "2aa1d232adc02e69c7af931c7cf371bdf4051a42e5555263d8fa442f4bb98cb2",
+   "by": "maker",
+   "loc": "III p161"
+  },
+  {
+   "n": 164,
+   "item": "10046454bsb",
+   "file": "10046454bsb-n164.jpg",
+   "sha256": "2aa1d232adc02e69c7af931c7cf371bdf4051a42e5555263d8fa442f4bb98cb2",
+   "by": "second",
+   "loc": "III p161"
+  }
+ ],
+ "places": {
+  "III p161": {
+   "transcription": "10046454bsb.ocr.txt",
+   "from_scan": true,
+   "scan": "10046454bsb",
+   "images": [
+    164
+   ],
+   "method": "image",
+   "leaves": [
+    164
+   ],
+   "printed": [
+    "161"
+   ],
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the whole sentence on the page image, p. 161, leaf n164; corrected Wissenschaften and Menge against the print."
+   }
+  }
+ },
+ "scans": {
+  "10046454bsb": {
+   "item": "10046454bsb",
+   "ocr": true,
+   "long_s": true,
+   "image_offset": 0
+  }
+ }
+}
