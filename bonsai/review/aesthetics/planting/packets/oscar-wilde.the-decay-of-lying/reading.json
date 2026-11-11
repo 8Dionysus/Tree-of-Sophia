@@ -1,0 +1,137 @@
+{
+  "reader": {
+    "id": "terra-2026-11-10-the-decay-of-lying",
+    "model": "gpt-6.1-terra",
+    "date": "2026-11-10",
+    "reads": "Read Wilde’s English dialogue in the 1905 Brentano’s printing alongside the register readings, using the 1913 Methuen transcription.",
+    "effort": "high"
+  },
+  "note": "",
+  "library": {
+    "agents": {
+      "oscar-wilde": {
+        "tree": "tos.agent.oscar-wilde"
+      }
+    },
+    "works": {
+      "oscar-wilde.the-decay-of-lying": {
+        "title": {
+          "ru": "Упадок лжи",
+          "en": "The Decay of Lying"
+        },
+        "original": "en",
+        "tree": "tos.work.oscar-wilde.the-decay-of-lying",
+        "places": "fragments"
+      }
+    }
+  },
+  "conceptions": [
+    {
+      "id": "oscar-wilde.the-decay-of-lying:life-translated-into-conventions",
+      "of": [
+        "C:A-C017"
+      ],
+      "areas": [
+        "AE22"
+      ],
+      "work": "oscar-wilde.the-decay-of-lying",
+      "locus": "Dialogue",
+      "formula": [
+        {
+          "place": "Dialogue p54"
+        }
+      ],
+      "thesis": {
+        "ru": "Жизнь и природа иногда могут использоваться как часть сырого материала искусства, но прежде чем они смогут действительно послужить искусству, они должны быть переведены в художественные условности.",
+        "en": "Life and Nature may sometimes be used as part of Art’s rough material, but before they can be of real service to art they must be translated into artistic conventions."
+      },
+      "status": "text",
+      "verdict": "confirmed",
+      "from": [
+        "C:A-I091"
+      ],
+      "distinction": {
+        "ru": "Положение высказано Вивианом в эстетическом диалоге.",
+        "en": "Vivian states the position in an aesthetic dialogue."
+      }
+    },
+    {
+      "id": "oscar-wilde.the-decay-of-lying:artist-invents-a-type",
+      "of": [
+        "C:A-C018"
+      ],
+      "areas": [
+        "AE22"
+      ],
+      "work": "oscar-wilde.the-decay-of-lying",
+      "locus": "Dialogue",
+      "formula": [
+        {
+          "place": "Dialogue p32"
+        }
+      ],
+      "thesis": {
+        "ru": "Великий художник изобретает тип, а Жизнь стремится воспроизвести его в популярной форме.",
+        "en": "A great artist invents a type, and Life tries to reproduce it in a popular form."
+      },
+      "status": "text",
+      "verdict": "confirmed",
+      "from": [
+        "C:A-I092"
+      ]
+    },
+    {
+      "id": "oscar-wilde.the-decay-of-lying:nature-and-seeing",
+      "of": [
+        "C:A-C018"
+      ],
+      "areas": [
+        "AE22"
+      ],
+      "work": "oscar-wilde.the-decay-of-lying",
+      "locus": "Dialogue",
+      "formula": [
+        {
+          "place": "Dialogue p41"
+        }
+      ],
+      "thesis": {
+        "ru": "Теперь люди видят туманы не потому, что есть туманы, а потому, что поэты и художники научили их видеть таинственную прелесть таких явлений.",
+        "en": "At present, people see fogs not because there are fogs, but because poets and painters have taught them the mysterious loveliness of such effects."
+      },
+      "status": "text",
+      "verdict": "confirmed",
+      "from": [
+        "C:A-I092"
+      ],
+      "negation": "not because there are fogs, but because poets and painters have taught them the mysterious loveliness of such effects"
+    },
+    {
+      "id": "oscar-wilde.the-decay-of-lying:style-and-recreated-life",
+      "of": [
+        "C:A-C028"
+      ],
+      "areas": [
+        "AE24"
+      ],
+      "work": "oscar-wilde.the-decay-of-lying",
+      "locus": "Dialogue",
+      "formula": [
+        {
+          "place": "Dialogue p22"
+        }
+      ],
+      "thesis": {
+        "ru": "Искусство пересоздаёт жизнь в новых формах и сохраняет между собой и действительностью непроницаемую преграду прекрасного стиля.",
+        "en": "Art recreates life in fresh forms and keeps between itself and reality the impenetrable barrier of beautiful style."
+      },
+      "status": "text",
+      "verdict": "confirmed",
+      "from": [
+        "C:A-I093"
+      ]
+    }
+  ],
+  "links": [],
+  "left": []
+}

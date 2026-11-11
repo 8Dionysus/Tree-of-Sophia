@@ -1,0 +1,84 @@
+{
+ "reader": {
+  "id": "terra-2026-11-11-philosophie-der-landschaft",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-11",
+  "reads": "Read the German text in Die Güldenkammer III (1913), pp. 636 and 643, against the register readings and page images.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "georg-simmel": {
+    "tree": "tos.agent.georg-simmel"
+   }
+  },
+  "works": {
+   "georg-simmel.philosophie-der-landschaft": {
+    "title": {
+     "ru": "Философия пейзажа",
+     "en": "The Philosophy of Landscape"
+    },
+    "original": "de",
+    "tree": "tos.work.georg-simmel.philosophie-der-landschaft",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "of": [
+    "B:B-C011",
+    "B:B-C014"
+   ],
+   "areas": [
+    "AE20"
+   ],
+   "work": "georg-simmel.philosophie-der-landschaft",
+   "locus": "Essay",
+   "status": "text",
+   "verdict": "confirmed",
+   "id": "georg-simmel.philosophie-der-landschaft:unity-and-stimmung",
+   "formula": [
+    {
+     "place": "Essay p643"
+    }
+   ],
+   "thesis": {
+    "ru": "Единство, создающее пейзаж как таковой, и Stimmung, исходящая из него и посредством которой мы его охватываем, суть последующие разложения одного и того же душевного акта.",
+    "en": "The unity that brings landscape as such into being and the Stimmung that emanates from it and with which we encompass it are subsequent analyses of one and the same mental act."
+   },
+   "from": [
+    "B:B-I043"
+   ]
+  },
+  {
+   "of": [
+    "B:B-C011",
+    "B:B-C014"
+   ],
+   "areas": [
+    "AE20"
+   ],
+   "work": "georg-simmel.philosophie-der-landschaft",
+   "locus": "Essay",
+   "status": "text",
+   "verdict": "confirmed",
+   "id": "georg-simmel.philosophie-der-landschaft:landscape-delimitation",
+   "formula": [
+    {
+     "place": "Essay p636"
+    }
+   ],
+   "thesis": {
+    "ru": "Для пейзажа существенно ограничение кругом зрения: пейзаж требует, быть может, оптического, быть может, эстетического, быть может, связанного с настроением бытия-для-себя и выделения из нераздельного единства природы.",
+    "en": "Delimitation within a field of vision is essential to landscape: landscape requires a perhaps optical, perhaps aesthetic, perhaps mood-related being-for-itself and a distinct separation from the indivisible unity of nature."
+   },
+   "from": [
+    "B:B-I044"
+   ]
+  }
+ ],
+ "links": [],
+ "left": []
+}

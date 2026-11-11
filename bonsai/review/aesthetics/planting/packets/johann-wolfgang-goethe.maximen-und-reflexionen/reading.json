@@ -1,0 +1,82 @@
+{
+ "reader": {
+  "id": "terra-2026-11-11-maximen-und-reflexionen",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-11",
+  "reads": "Read Goethe’s German maxims in the Weimar edition of 1897 against the two register readings on allegory and symbol.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "johann-wolfgang-goethe": {
+    "tree": "tos.agent.johann-wolfgang-goethe"
+   }
+  },
+  "works": {
+   "johann-wolfgang-goethe.maximen-und-reflexionen": {
+    "title": {
+     "ru": "Максимы и размышления",
+     "en": "Maxims and Reflections"
+    },
+    "original": "de",
+    "tree": "tos.work.johann-wolfgang-goethe.maximen-und-reflexionen",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "johann-wolfgang-goethe.maximen-und-reflexionen:allegory-appearance-concept-image",
+   "of": [
+    "C:A-C024"
+   ],
+   "areas": [
+    "AE23"
+   ],
+   "work": "johann-wolfgang-goethe.maximen-und-reflexionen",
+   "locus": "Maximen und Reflexionen über Kunst, p. 205",
+   "formula": [
+    {
+     "place": "Kunst p205"
+    }
+   ],
+   "thesis": {
+    "ru": "Аллегория превращает явление в понятие, а понятие — в образ, в котором понятие остаётся ограниченным и полностью выразимым.",
+    "en": "Allegory transforms the appearance into a concept and the concept into an image, in which the concept remains bounded and fully expressible."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "C:A-I111"
+   ]
+  },
+  {
+   "id": "johann-wolfgang-goethe.maximen-und-reflexionen:symbolism-appearance-idea-image",
+   "of": [
+    "C:A-C021"
+   ],
+   "areas": [
+    "AE23"
+   ],
+   "work": "johann-wolfgang-goethe.maximen-und-reflexionen",
+   "locus": "Maximen und Reflexionen über Kunst, p. 206",
+   "formula": [
+    {
+     "place": "Kunst p206"
+    }
+   ],
+   "thesis": {
+    "ru": "Символика превращает явление в идею, а идею — в образ, в котором идея остаётся бесконечно действенной, недостижимой и невыразимой даже на всех языках.",
+    "en": "Symbolism transforms the appearance into an idea and the idea into an image, in which the idea remains infinitely active, unattainable and inexpressible even in all languages."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "C:A-I112"
+   ]
+  }
+ ],
+ "links": [],
+ "left": []
+}

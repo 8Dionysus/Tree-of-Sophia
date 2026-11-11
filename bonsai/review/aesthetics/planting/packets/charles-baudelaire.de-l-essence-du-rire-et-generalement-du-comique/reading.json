@@ -1,0 +1,227 @@
+{
+ "reader": {
+  "id": "terra-2026-11-10-de-l-essence-du-rire-et-generalement-du-",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-10",
+  "reads": "Read the French text of the 1868 Curiosités esthétiques against the scan and the register readings.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "charles-baudelaire": {
+    "tree": "tos.agent.charles-baudelaire"
+   }
+  },
+  "works": {
+   "charles-baudelaire.de-l-essence-du-rire-et-generalement-du-comique": {
+    "title": {
+     "ru": "О сущности смеха и вообще о комическом в пластических искусствах",
+     "en": "On the Essence of Laughter and Generally on the Comic in the Plastic Arts"
+    },
+    "original": "fr",
+    "tree": "tos.work.charles-baudelaire.de-l-essence-du-rire-et-generalement-du-comique",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "charles-baudelaire.de-l-essence-du-rire-et-generalement-du-comique:laughter-and-own-superiority",
+   "of": [
+    "A:C160",
+    "A:C055"
+   ],
+   "areas": [
+    "AE04",
+    "AE06"
+   ],
+   "work": "charles-baudelaire.de-l-essence-du-rire-et-generalement-du-comique",
+   "locus": "§ III",
+   "formula": [
+    {
+     "place": "III p367"
+    }
+   ],
+   "thesis": {
+    "ru": "Смех происходит от идеи собственного превосходства.",
+    "en": "Laughter comes from the idea of one’s own superiority."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E068"
+   ]
+  },
+  {
+   "id": "charles-baudelaire.de-l-essence-du-rire-et-generalement-du-comique:fallen-virginie-laughs",
+   "of": [
+    "A:C038",
+    "A:C160",
+    "A:C055"
+   ],
+   "areas": [
+    "AE04",
+    "AE06"
+   ],
+   "work": "charles-baudelaire.de-l-essence-du-rire-et-generalement-du-comique",
+   "locus": "§ III",
+   "formula": [
+    {
+     "place": "III p367b"
+    }
+   ],
+   "thesis": {
+    "ru": "Падшая Виргиния, утратив степень чистоты, обретёт идею собственного превосходства и засмеётся.",
+    "en": "Fallen Virginie, having descended a degree in purity, will gain the idea of her own superiority and laugh."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E068"
+   ],
+   "note": "The sentence relates falling, superiority and laughter through Virginie; it does not itself formulate the dual nature of humanity."
+  },
+  {
+   "id": "charles-baudelaire.de-l-essence-du-rire-et-generalement-du-comique:comic-imitation-and-grotesque-creation",
+   "of": [
+    "A:C168",
+    "A:C167",
+    "A:C007"
+   ],
+   "areas": [
+    "AE06",
+    "AE07"
+   ],
+   "work": "charles-baudelaire.de-l-essence-du-rire-et-generalement-du-comique",
+   "locus": "§ V",
+   "formula": [
+    {
+     "place": "V p374"
+    },
+    {
+     "place": "V p375"
+    }
+   ],
+   "thesis": {
+    "ru": "Комическое в искусстве есть подражание, смешанное с творческой способностью; гротеск есть творение и назван абсолютно комическим.",
+    "en": "The comic in art is imitation mixed with creative faculty; the grotesque is creation and is called the absolute comic."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E104"
+   ]
+  },
+  {
+   "id": "charles-baudelaire.de-l-essence-du-rire-et-generalement-du-comique:comic-forms",
+   "of": [
+    "A:C167",
+    "A:C168",
+    "A:C007"
+   ],
+   "areas": [
+    "AE06",
+    "AE07"
+   ],
+   "work": "charles-baudelaire.de-l-essence-du-rire-et-generalement-du-comique",
+   "locus": "§ V",
+   "formula": [
+    {
+     "place": "V p375"
+    }
+   ],
+   "thesis": {
+    "ru": "Значащее комическое соединяет искусство и нравственную идею; абсолютно комическое выступает как единое и постигается интуицией.",
+    "en": "The significative comic combines art and moral idea; the absolute comic appears as a unity and is grasped by intuition."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E104"
+   ]
+  },
+  {
+   "id": "charles-baudelaire.de-l-essence-du-rire-et-generalement-du-comique:pantomime-and-hyperbole",
+   "of": [
+    "A:C060"
+   ],
+   "areas": [
+    "AE06",
+    "AE07"
+   ],
+   "work": "charles-baudelaire.de-l-essence-du-rire-et-generalement-du-comique",
+   "locus": "§ VI",
+   "formula": [
+    {
+     "place": "VI p382"
+    }
+   ],
+   "thesis": {
+    "ru": "Благодаря особому дару английских актёров к гиперболе описанные чудовищные фарсы, включая сцену казни Пьеро, приобретали поразительную реальность.",
+    "en": "Through the English actors’ special gift for hyperbole, the monstrous farces described, including Pierrot’s execution, acquired a striking reality."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E105"
+   ],
+   "note": "The passage names the actors’ gift for hyperbole and the striking reality of the described farces, including Pierrot’s execution; it does not name the grotesque. The separate definition of pantomime does not itself support the register concept of exaggeration."
+  }
+ ],
+ "links": [
+  {
+   "id": "the-fall:precedes:laughter",
+   "from_concept": "A:C038",
+   "to_concept": "A:C055",
+   "verb": {
+    "ru": "предшествует смеху",
+    "en": "precedes"
+   },
+   "grounds": [
+    "charles-baudelaire.de-l-essence-du-rire-et-generalement-du-comique:fallen-virginie-laughs"
+   ],
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:R062"
+   ],
+   "note": "Virginie’s fall precedes her laughter and idea of superiority; the sentence does not explain a duality of laughter."
+  },
+  {
+   "id": "the-absolute-comic:is-the-name-for:the-grotesque",
+   "from_concept": "A:C167",
+   "to_concept": "A:C007",
+   "verb": {
+    "ru": "есть название для",
+    "en": "is the name for"
+   },
+   "grounds": [
+    "charles-baudelaire.de-l-essence-du-rire-et-generalement-du-comique:comic-imitation-and-grotesque-creation"
+   ],
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:R097"
+   ]
+  },
+  {
+   "id": "the-absolute-comic:is-the-antithesis-of:the-significative-comic",
+   "from_concept": "A:C167",
+   "to_concept": "A:C168",
+   "verb": {
+    "ru": "противопоставлено",
+    "en": "is the antithesis of"
+   },
+   "grounds": [
+    "charles-baudelaire.de-l-essence-du-rire-et-generalement-du-comique:comic-forms"
+   ],
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:R098"
+   ]
+  }
+ ],
+ "left": []
+}
