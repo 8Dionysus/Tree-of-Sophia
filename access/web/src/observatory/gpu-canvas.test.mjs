@@ -35,7 +35,10 @@ test('a kept stretch of the scene lays its stars again with its strokes',()=>{
 
 test("the paper's uniforms travel once, until the paper or the canvas changes",()=>{
   const calls=[];
-  const counting=new Proxy({},{get:(_,key)=>key==='getShaderParameter'||key==='getProgramParameter'?()=>true:key==='isContextLost'?()=>false:/^[A-Z0-9_]+$/.test(String(key))?0:()=>{calls.push(String(key));return {};}});
+  // As in WebGL, a uniform is set at the location the program gave for it, and nothing else stands in for one.
+  const located=new WeakSet(),location=name=>{const value={name};located.add(value);return value;};
+  const counting=new Proxy({},{get:(_,key)=>key==='getShaderParameter'||key==='getProgramParameter'?()=>true:key==='isContextLost'?()=>false:key==='getUniformLocation'?(_program,name)=>location(name):/^[A-Z0-9_]+$/.test(String(key))?0:
+    /^uniform/.test(String(key))?(at,...rest)=>{if(!located.has(at))throw new TypeError(`${String(key)} needs a uniform location`);calls.push(String(key));return rest;}:()=>{calls.push(String(key));return {};}});
   const canvas={width:800,height:600,getContext:()=>counting,addEventListener(){},dataset:{}};
   const p=new SophiaGpuCanvas(canvas);
   const paper={steps:[{matrix:[1,0,0,0,1,0,0,0,1],offset:[0,0,0]}],stops:[[1,1,1,0]],center:[400,300],radii:[500,400]};
