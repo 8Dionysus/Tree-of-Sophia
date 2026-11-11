@@ -397,8 +397,14 @@ node bonsai/lib/layers.mjs status bonsai/zarathustra    # present, missing or di
 `fetch` takes each file from R2 when `R2_ENDPOINT`, `R2_ACCESS_KEY_ID` and
 `R2_SECRET_ACCESS_KEY` are set, else from the site's copy
 (`https://treeofsophia.com/__research/layers/sha256/<hex>`), else from the
-`layers/transfer` branch, and writes only bytes that match their digest. A
-checkout without the files builds and tests the stand without its word layer;
+`layers/transfer` branch, and writes only bytes that match their digest.
+`layers.mjs homes` lists the homes of a checkout: every directory whose
+`layers.json` is a layers manifest, tracked or new. The site's build
+(`vite build --mode public-research`) writes the site's copy of every home into
+its output, `layers/sha256/<hex>`, after its pages; it brings each missing file
+from the same stores first and stops at a file no store holds, so a built site
+holds every layer its pages address. A checkout without the files tests the
+stand without its word layer;
 the check then verifies the manifest, and with the files present it checks them
 like any module. Without the corpus files the stands read no corpus texts, and
 the check leaves the places a stand cites in the corpus unchecked.
@@ -408,8 +414,8 @@ new digests and `layers.mjs send bonsai/<stand>` puts every file that no store
 holds yet on `layers/transfer`, one commit holding objects named
 `sha256/<hex>`. The pull request carries only the manifest. Once it lands, the
 publication from main fetches the files, checks them, puts what R2 lacks into
-R2, reads each back, copies all of them into the site's copy and keeps on the
-transfer branch only what R2 still lacks.
+R2, reads each back, builds the site with its copy of the layers and keeps on
+the transfer branch only what R2 still lacks.
 
 ## Check and export
 
