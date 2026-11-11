@@ -66,15 +66,16 @@ export function counterparts(original,translation){
   for(const unit of translation.units)if(textual(unit.reference)){add(byReference,unit.reference,unit);if(numbers(unit.reference).length)add(byNumbers,numbers(unit.reference).join('.'),unit);}
   const whole=unit=>({id:unit.id,s:0,e:chars(unit.text).length});
   const match=unit=>!textual(unit.reference)?null:byReference.get(unit.reference)??(numbers(unit.reference).length?byNumbers.get(numbers(unit.reference).join('.')):null)??null;
+  const named=original.units.filter(unit=>textual(unit.reference)).length;
   const same=original.units.filter(unit=>match(unit)).length;
-  if(same>=original.units.length*.8)return {how:'reference',map:new Map(original.units.filter(unit=>match(unit)).map(unit=>[unit.id,match(unit).map(whole)]))};
+  if(named&&same>=named*.8)return {how:'reference',map:new Map(original.units.filter(unit=>match(unit)).map(unit=>[unit.id,match(unit).map(whole)]))};
   const finer=new Map();
   for(const unit of original.units){if(!textual(unit.reference))continue;const outer=numbers(unit.reference),list=translation.units.filter(item=>textual(item.reference)&&inside(numbers(item.reference),outer));if(list.length)finer.set(unit.id,list.map(whole));}
-  if(finer.size>=original.units.length*.8)return {how:'reference (finer division)',map:finer};
+  if(named&&finer.size>=named*.8)return {how:'reference (finer division)',map:finer};
   // Divided more coarsely: the book of the translation that holds the original's section.
   const coarser=new Map();
   for(const unit of original.units){if(!textual(unit.reference))continue;const inner=numbers(unit.reference),list=translation.units.filter(item=>textual(item.reference)&&inside(inner,numbers(item.reference)));if(list.length)coarser.set(unit.id,list.map(whole));}
-  if(coarser.size>=original.units.length*.8)return {how:'reference (coarser division)',map:coarser};
+  if(named&&coarser.size>=named*.8)return {how:'reference (coarser division)',map:coarser};
   return {how:'sentences of the whole work',map:null};
 }
 
@@ -134,9 +135,14 @@ export function alignVersion(original,translation,cited){
     // edition that splits a long chapter into numbered chunks) joins the run before it.
     // Units of the original that share their counterparts (the sections of one book a translation keeps whole) make one run.
     const key=targets=>targets.map(target=>target.id).join(' ');
-    const leading=[];
+    const leading=[];let skipContinuation=false;
     for(const unit of original.units){
       const targets=map.get(unit.id);
+      // A named place absent from a partial translation is a gap, not the
+      // preceding place. Only anonymous numbered chunks continue a run.
+      if(!targets?.length&&unit.reference&&!/^Unit \d+$/.test(unit.reference)){skipContinuation=true;continue;}
+      if(targets?.length)skipContinuation=false;
+      else if(skipContinuation)continue;
       if(targets?.length&&!(groups.length&&groups.at(-1).key===key(targets)))groups.push({units:[unit],targets:[...targets],key:key(targets)});
       else if(groups.length)groups.at(-1).units.push(unit);
       else leading.push(unit);

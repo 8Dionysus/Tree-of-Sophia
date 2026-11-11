@@ -942,7 +942,10 @@ pub fn build(
             let mut unit_summaries = Vec::<Value>::new();
             let mut page_units = Vec::<Value>::new();
             let mut first = 1usize;
-            let mut bytes = 0usize;
+            // Account for the document/version envelope too: a page of unit
+            // JSON that fits by itself may exceed the limit once wrapped.
+            let envelope_bytes = serde_json::to_vec(&json!({"documentId":s(doc,"id")?,"versionId":version_id,"revision":revision,"units":[]})).map_err(|e| e.to_string())?.len();
+            let mut bytes = envelope_bytes;
             for unit in units {
                 check_deadline(deadline)?;
                 let add = serde_json::to_vec(&unit).map_err(|e| e.to_string())?.len() + 1;
@@ -961,7 +964,7 @@ pub fn build(
                         limits.max_output_bytes,
                     )?;
                     first = unit_summaries.len() + 1;
-                    bytes = 0;
+                    bytes = envelope_bytes;
                 }
                 bytes += add;
                 page_units.push(unit);
@@ -1323,6 +1326,54 @@ mod tests {
         let selection_raw = serde_json::to_vec(&selection).unwrap();
         fs::write(root.join("selection.json"), selection_raw).unwrap();
         (root.join("selection.json"), root.join("output"))
+    }
+    #[test]
+    fn splits_a_page_before_its_json_envelope_exceeds_the_limit() {
+        let root = tempfile::tempdir().unwrap();
+        let (_, output) = fixture(root.path(), true);
+        let envelope = serde_json::to_vec(&json!({"documentId":"d","versionId":"v","revision":"f".repeat(64),"units":[]})).unwrap().len();
+        let page_unit = |i: usize, text: &str| json!({"id":format!("u{i}"),"ordinal":i,"kind":"surface_token","language":"en","reference":format!("Unit {i}"),"text":text});
+        let large = "a".repeat(65_000);
+        let fixed: usize = (1..=4).map(|i| serde_json::to_vec(&page_unit(i, &large)).unwrap().len() + 1).sum();
+        let last_empty = serde_json::to_vec(&page_unit(5, "")).unwrap().len() + 1;
+        let last = "b".repeat(262_144 - envelope / 2 - fixed - last_empty);
+        let parts = [&large, &large, &large, &large, &last];
+        let text = parts.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(" ");
+        let text_sha = digest(text.as_bytes());
+        fs::write(root.path().join("source.txt"), &text).unwrap();
+        let mut packet: Value = serde_json::from_slice(&fs::read(root.path().join("packet.json")).unwrap()).unwrap();
+        let mut anchors = Vec::new();
+        let mut units = Vec::new();
+        let mut start = 0;
+        for (index, part) in parts.iter().enumerate() {
+            let n = index + 1;
+            let end = start + part.len();
+            anchors.push(json!({"anchor_ref":format!("a{n}"),"anchor_role":"content","text_layer_ref":"source.txt","exact_sha256":digest(part.as_bytes()),"selector":{"type":"text_position","position_unit":"unicode_code_point","interval":"half_open","start":start,"end":end}}));
+            units.push(json!({"unit_id":format!("u{n}"),"unit_kind":"surface_token","ordered_anchor_refs":[format!("a{n}")]}));
+            start = end + 1;
+        }
+        packet["anchors"] = json!(anchors);
+        packet["units"] = json!(units);
+        packet["segmentations"][0]["ordered_unit_refs"] = json!((1..=5).map(|n| format!("u{n}")).collect::<Vec<_>>());
+        packet["source_layer"]["text_layer_sha256"] = json!(text_sha);
+        packet["source_scope"]["file_sha256"] = json!(text_sha);
+        packet["source_scope"]["file_ref"] = json!(format!("tos.file.sha256.{text_sha}"));
+        let packet_raw = serde_json::to_vec(&packet).unwrap();
+        fs::write(root.path().join("packet.json"), &packet_raw).unwrap();
+        let mut rights: Value = serde_json::from_slice(&fs::read(root.path().join("rights.json")).unwrap()).unwrap();
+        rights["scope_refs"] = json!(["item",format!("tos.file.sha256.{text_sha}")]);
+        let rights_raw = serde_json::to_vec(&rights).unwrap();
+        fs::write(root.path().join("rights.json"), &rights_raw).unwrap();
+        let path = root.path().join("selection.json");
+        let mut selection: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+        selection["documents"][0]["versions"][0]["packetSha256"] = json!(digest(&packet_raw));
+        selection["documents"][0]["versions"][0]["rightsSha256"] = json!(digest(&rights_raw));
+        fs::write(path, serde_json::to_vec(&selection).unwrap()).unwrap();
+        let manifest = build(root.path(), Path::new("selection.json"), &output, Limits {max_input_bytes:1_000_000,max_output_bytes:2_000_000,max_seconds:30}).unwrap();
+        let doc: Value = serde_json::from_slice(&fs::read(output.join(manifest["documents"][0]["manifest"]["path"].as_str().unwrap())).unwrap()).unwrap();
+        let pages = doc["versions"][0]["pages"].as_array().unwrap();
+        assert_eq!(pages.len(), 2);
+        assert!(pages.iter().all(|page| page["bytes"].as_u64().unwrap() <= 262_144));
     }
     #[test]
     fn translation_mapping_side_requires_exact_selected_span_and_unit() {

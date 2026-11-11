@@ -32,6 +32,15 @@ describe('the corpus alignment of the stands',()=>{
     expect(textEnd('Text.\n〔1〕 A note.')).toBe(5);
     expect(textEnd('Text without notes.')).toBe(19);
   });
+  it('does not attach an absent named tractate to the preceding translated tractate',()=>{
+    const original={language:'grc',units:Array.from({length:6},(_,i)=>({id:`g${i}`,reference:`Книга ${i+1}`,text:'λόγος.'}))};
+    const translation={language:'en',units:original.units.slice(0,5).map((unit,i)=>({id:`e${i}`,reference:unit.reference,text:'Word.'}))};
+    original.units.push({id:'continuation',reference:'Unit 7',text:'λόγος.'});
+    const result=alignVersion(original,translation,new Set(['g4','g5','continuation']));
+    expect(result.entries.g4.u).toContain('e4');
+    expect(result.entries.g5).toBeUndefined();
+    expect(result.entries.continuation).toBeUndefined();
+  });
   it('can align a sentence across a translation reference inside a sentence',()=>{
     const original={language:'grc',units:[
       {id:'g1',reference:'189',text:'Τί λέγεις;'},
