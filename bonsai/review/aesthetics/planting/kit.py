@@ -638,7 +638,7 @@ def gate(path,second=False,offline=False):
         sound=True
         for person in persons:
             if not isinstance(person.get('died'),int) or not isinstance(person.get('name'),dict) or not(person.get('qid') or trusted(person.get('source'))):sound=False;add(f"evidence.persons {person.get('name')}: enter the person again with kit.py person ROLE QID (the Wikidata item gives the name and the year of death)")
-            elif person['died']>FIRST_WAVE['died']:add(f"{person['name']['en']} died in {person['died']}: outside the first wave (by {FIRST_WAVE['died']}); write blocked.json")
+            elif person['died']>FIRST_WAVE['died']:add(f"{person['name']['en']} died in {person['died']}: outside the first wave (by {FIRST_WAVE['died']}). If this hand belongs to an edition you are not reading, take it out with kit.py person ROLE QID --remove and read an edition whose hands all died by {FIRST_WAVE['died']}; if every scanned edition carries such a hand, write blocked.json")
         known={word for agent in w['works'][work]['agents'] for value in w['agents'][agent]['name'].values() for word in WORD.findall(value.casefold()) if len(word)>3}
         if sound and persons and known and not any(person['role']=='author' and known&set(WORD.findall(' '.join(person['name'].values()).casefold())) for person in persons):add('evidence.persons: the author entered is not the author the layer names for this work')
         if not isinstance(ev.get('published'),int):add('evidence.published wants the year of the printing used')
