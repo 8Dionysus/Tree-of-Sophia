@@ -22,5 +22,16 @@ class SecondReaderScanTest(unittest.TestCase):
             self.assertEqual(kit.second_gate('.', reading, ev, {'p': {}}), [])
 
 
+class LineFaultTest(unittest.TestCase):
+    def test_a_planting_that_died_is_the_fault_of_the_line(self):
+        died = ("node:fs:562\n  return binding.open(\n                 ^\n\n"
+                "Error: ENOENT: no such file or directory, open 'documents/6cbc.json'\n"
+                "    at Object.openSync (node:fs:562:18)\n    at readFileSync (node:fs:446:35)\n\nNode.js v22.11.0\n")
+        self.assertEqual(kit.thrown(died), "Error: ENOENT: no such file or directory, open 'documents/6cbc.json'")
+
+    def test_a_finding_of_the_planting_is_the_packet_s(self):
+        self.assertIsNone(kit.thrown('B:B-I043: the formula is not found in the place\n'))
+
+
 if __name__ == '__main__':
     unittest.main()

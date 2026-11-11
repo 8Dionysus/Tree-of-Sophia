@@ -66,5 +66,10 @@ gate by a judgment nobody looked at, a date nobody fetched or a reading bent
 to fit is worse than none. Stop at `gate: open` or at `blocked.json`, nowhere
 between.
 
+A gate line that begins `line:` names a fault of the line itself: the checkout
+or the corpus the planting reads. The packet stands as it is. Write no
+`blocked.json`, change nothing, say the line in the last message and stop; the
+operator mends the checkout and the packet goes on from where it stands.
+
 [MAKER](MAKER.md) and [SECOND-READER](SECOND-READER.md) give each reader's
 route.

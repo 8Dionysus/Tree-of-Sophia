@@ -588,6 +588,20 @@ def style(at,texts,place_text,original,problems,named=None):
         hit=re.search(CONTRAST[lang],text,re.I) or re.search(NEGATES[lang],text,re.I)
         if hit and not place_negates:problems.append(f'{at} {lang}: «{hit.group(0)}» negates while the words of the place negate nothing; say what the place affirms, or name under negation the words of the place that negate')
 
+LINE_FAULT="line: the checkout cannot run the planting — {error}. The fault is the line's own and the packet stands as it is: write no blocked.json, change nothing, say this line in your last message and stop"
+
+def thrown(stderr):
+    """The error of a planting that died instead of answering: node prints the error and its stack, plant.mjs prints findings."""
+    lines=stderr.splitlines()
+    if not any(re.match(r'\s+at .+|Node\.js v',line) for line in lines):return None
+    return next((line.strip() for line in lines if re.match(r'\s*\w*Error\b',line)),'node stopped with an error')
+
+def ready():
+    """Whether this checkout can plant at all: the accepted packets, tried dry. None when it can, else the reason."""
+    run=subprocess.run(['node',os.path.join(REVIEW,'plant.mjs'),'--dry'],capture_output=True,text=True)
+    if not run.returncode:return None
+    return thrown(run.stderr) or ' / '.join((run.stdout+run.stderr).strip().splitlines()[-3:])
+
 def gate(path,second=False,offline=False):
     problems=[];work=work_of(path);add=problems.append
     blocked=part(path,'blocked.json')
@@ -779,7 +793,8 @@ def gate(path,second=False,offline=False):
     # the planting itself, tried dry
     if not problems and not offline:
         run=subprocess.run(['node',os.path.join(REVIEW,'plant.mjs'),'--dry','--packet',work],capture_output=True,text=True)
-        if run.returncode:problems.extend(f'plant: {line}' for line in (run.stdout+run.stderr).strip().splitlines()[-12:])
+        if run.returncode and thrown(run.stderr):add(LINE_FAULT.format(error=thrown(run.stderr)))
+        elif run.returncode:problems.extend(f'plant: {line}' for line in (run.stdout+run.stderr).strip().splitlines()[-12:])
     if second and not problems:problems.extend(second_gate(path,reading,ev,locs))
     return problems,'open' if not problems else 'shut'
 
@@ -823,7 +838,13 @@ def cmd_gate(args):
     path=packet(args.packet);problems,state=gate(path,second=args.second,offline=args.offline)
     save(cache(path,'gate.json'),{'state':state,'second':args.second,'problems':problems,'at':datetime.datetime.now().isoformat(timespec='seconds')})
     for problem in problems:print('- '+problem)
-    print(f'gate: {state}'+(f' ({len(problems)} to settle)' if problems else ''));sys.exit(1 if problems else 0)
+    print(f'gate: {state}'+(f' ({len(problems)} to settle)' if problems else ''))
+    sys.exit(3 if any(problem.startswith('line: ') for problem in problems) else 1 if problems else 0)     # 3: the line's fault, not the packet's
+
+def cmd_ready(args):
+    fault=ready()
+    if fault:print(f'line: the checkout cannot plant — {fault}\nAfter main gains corpus texts: node bonsai/lib/layers.mjs fetch access/public-corpus');sys.exit(3)
+    print('ready')
 
 def cmd_settle(args):
     """What the second reader does not confirm leaves the reading: the conceptions and links go under left, and so do places nothing cites any more."""
@@ -875,7 +896,7 @@ def main():
         q=s.add_parser(name);q.set_defaults(fn=fn)
         for names,options in arguments:q.add_argument(*names,**options)
     P=(('packet',),{})
-    sub('queue',cmd_queue);sub('open',cmd_open,(('work',),{}));sub('task',cmd_task,P);sub('status',cmd_status)
+    sub('queue',cmd_queue);sub('open',cmd_open,(('work',),{}));sub('task',cmd_task,P);sub('status',cmd_status);sub('ready',cmd_ready)
     sub('fetch',cmd_fetch,P,(('role',),{'choices':['transcription','other']}),(('url',),{}),(('--name',),{}),(('--file',),{'help':'take the bytes from a local file already fetched from URL'}))
     sub('ia',cmd_ia,P,(('item',),{}),(('--long-s',),{'action':'store_true','help':'the print sets the long s, which the OCR reads as f'}),(('--dir',),{}),(('--files',),{}))
     sub('find',cmd_find,P,(('words',),{}),(('--in',),{'dest':'inside'}));sub('leaf',cmd_leaf,P,(('n',),{'type':int}));sub('scan',cmd_scan,P,(('item',),{'nargs':'?'}))
