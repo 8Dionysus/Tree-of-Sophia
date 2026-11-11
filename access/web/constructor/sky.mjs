@@ -730,7 +730,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     const showEdge=(e,chosen,compact,hot)=>{visibleEdges.add(e.id);setData(e.el,'active',String(hot));setData(e.el,'kind',e.kind);setData(e.el,'compact',String(compact));setVar(e.el,'--edge-color',e.color);setStyle(e.el,'color',e.color);setStyle(e.el,'width',(compact?e.compactWidth:e.labelWidth)+'px');setStyle(e.el,'transform',`translate3d(${chosen.left.toFixed(2)}px,${chosen.top.toFixed(2)}px,0)`);if(nativeTitles){const title=e.el.getAttribute('aria-label');if(e.el.title!==title)e.el.title=title;}occupied.push(chosen);};
     // Within its rank a name already standing goes first, so that it keeps its room.
     // Among equals the nearer star names itself first.
-    const rank=n=>priority(n)+(n.labelShown?4:0),ordered=[...nodes].sort((a,b)=>rank(b)-rank(a)||(b.screen?.d??1)-(a.screen?.d??1));
+    // Each star's rank is worked out once for the sort, which orders the stars as comparing their ranks over and over did.
+    const ordered=nodes.map(n=>({n,rank:priority(n)+(n.labelShown?4:0),d:n.screen?.d??1})).sort((a,b)=>b.rank-a.rank||b.d-a.d).map(item=>item.n);
     for(const n of ordered){
       if(!kept.has(n.id)||n.el.hidden)continue;
       // A kept name keeps its source line where there is free room for it, else its name alone where that is free;

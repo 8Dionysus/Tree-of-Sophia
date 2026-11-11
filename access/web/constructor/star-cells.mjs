@@ -25,3 +25,16 @@ export function meetsStar(stars,rect,gap,ownId=null){
   }
   return false;
 }
+
+// How many stars a box meets (with the gap), the number a count over every star gives. A star lying in several cells
+// is counted once.
+export function countStars(stars,rect,gap){
+  const xs=stars.cells&&spanOf(rect.left-gap,rect.right+gap),ys=xs&&spanOf(rect.top-gap,rect.bottom+gap);
+  if(!ys)return stars.reduce((sum,o)=>sum+(overlaps(rect,o,gap)?1:0),0);
+  let count=0;const seen=new Set();
+  for(const o of stars.wide)if(overlaps(rect,o,gap))count++;
+  for(let x=xs[0];x<=xs[1];x++)for(let y=ys[0];y<=ys[1];y++){
+    const cell=stars.cells.get(cellOf(x,y));if(cell)for(const o of cell)if(!seen.has(o)&&overlaps(rect,o,gap)){seen.add(o);count++;}
+  }
+  return count;
+}
