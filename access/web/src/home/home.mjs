@@ -10,36 +10,22 @@ import './home.css';
 const LOCALE_KEY='tos.public-research.locale.v1';
 const LANGUAGE_NAMES={en:'English',ru:'Русский',es:'Español',de:'Deutsch','zh-Hans':'简体中文'};
 const COPY={
-  en:{site:'Tree of Sophia',tagline:'Thought grown from the texts themselves. Each bonsai is a work or a whole world: in the original, in translation and on a map of its links.',choose:'Choose a bonsai',language:'Language',theme:'Theme'},
-  ru:{site:'Древо Софии',tagline:'Мысль, выращенная из самих текстов. Каждый бонсай — произведение или целый мир: в оригинале, в переводах и на карте его связей.',choose:'Выберите бонсай',language:'Язык',theme:'Тема'},
-  es:{site:'Árbol de Sofía',tagline:'Pensamiento que crece de los propios textos. Cada bonsái es una obra o un mundo entero: en el original, en traducción y en un mapa de sus vínculos.',choose:'Elige un bonsái',language:'Idioma',theme:'Tema'},
-  de:{site:'Tree of Sophia',tagline:'Denken, aus den Texten selbst gewachsen. Jeder Bonsai ist ein Werk oder eine ganze Welt: im Original, in Übersetzung und auf einer Karte seiner Verbindungen.',choose:'Wählen Sie einen Bonsai',language:'Sprache',theme:'Design'},
-  'zh-Hans':{site:'智慧之树',tagline:'从文本本身生长出的思想。每一株盆景都是一部作品或一个完整的世界：原文、译本，以及它的关联地图。',choose:'选择一株盆景',language:'语言',theme:'主题'},
+  en:{site:'Tree of Sophia',tagline:'Thought grown from the sources. Each bonsai cultivates its own direction.',choose:'Choose a bonsai',language:'Language',theme:'Theme'},
+  ru:{site:'Древо Софии',tagline:'Мысль, выращенная из источников. Каждый бонсай культивирует своё направление.',choose:'Выберите бонсай',language:'Язык',theme:'Тема'},
+  es:{site:'Árbol de Sofía',tagline:'Pensamiento que crece de las fuentes. Cada bonsái cultiva su propia corriente.',choose:'Elige un bonsái',language:'Idioma',theme:'Tema'},
+  de:{site:'Tree of Sophia',tagline:'Denken, aus den Quellen gewachsen. Jeder Bonsai kultiviert seine eigene Richtung.',choose:'Wählen Sie einen Bonsai',language:'Sprache',theme:'Design'},
+  'zh-Hans':{site:'智慧之树',tagline:'从原典中生长出的思想。每一株盆景都培育着自己的方向。',choose:'选择一株盆景',language:'语言',theme:'主题'},
 };
 const THEME_NAMES={es:{system:'Sistema',midnight:'Medianoche',noon:'Mediodía'},de:{system:'System',midnight:'Mitternacht',noon:'Mittag'},'zh-Hans':{system:'跟随系统',midnight:'午夜',noon:'正午'}};
-// What each bonsai holds. A stand without its own words here still shows, by its title.
+// What each bonsai is: the work it grows, or the era. A stand without its own words here still shows, by its title.
 const BONSAI={
   zarathustra:{
     title:{es:'Zaratustra',de:'Zarathustra','zh-Hans':'查拉图斯特拉'},
-    meta:{ru:'Фридрих Ницше · 1883–1885',en:'Friedrich Nietzsche · 1883–1885',es:'Friedrich Nietzsche · 1883–1885',de:'Friedrich Nietzsche · 1883–1885','zh-Hans':'弗里德里希·尼采 · 1883–1885'},
-    description:{
-      ru:'Немецкий оригинал, переводы Антоновского и Коммона и карта книги: её понятия, фигуры, связи и маршруты чтения.',
-      en:'The German original, Antonovsky’s and Common’s translations, and a map of the book: its concepts, figures, links and reading routes.',
-      es:'El original alemán, las traducciones de Antonovski y Common y un mapa del libro: sus conceptos, figuras, vínculos y rutas de lectura.',
-      de:'Das deutsche Original, die Übersetzungen von Antonowski und Common und eine Karte des Buches: seine Begriffe, Gestalten, Verbindungen und Lesewege.',
-      'zh-Hans':'德文原文、安东诺夫斯基与科蒙的译本，以及全书的地图：它的概念、形象、关联与阅读路线。',
-    },
+    description:{ru:'«Так говорил Заратустра» Фридриха Ницше',en:'Thus Spoke Zarathustra by Friedrich Nietzsche',es:'Así habló Zaratustra, de Friedrich Nietzsche',de:'Also sprach Zarathustra von Friedrich Nietzsche','zh-Hans':'弗里德里希·尼采的《查拉图斯特拉如是说》'},
   },
   antiquity:{
     title:{es:'Antigüedad',de:'Antike','zh-Hans':'古代'},
-    meta:{ru:'Платон, Аристотель, стоики, Эпикур, Цицерон, Сенека, Секст',en:'Plato, Aristotle, the Stoics, Epicurus, Cicero, Seneca, Sextus',es:'Platón, Aristóteles, los estoicos, Epicuro, Cicerón, Séneca, Sexto',de:'Platon, Aristoteles, die Stoiker, Epikur, Cicero, Seneca, Sextus','zh-Hans':'柏拉图、亚里士多德、斯多亚派、伊壁鸠鲁、西塞罗、塞涅卡、塞克斯都'},
-    description:{
-      ru:'Вопросы, которые проходят сквозь тексты и голоса: места в оригинале, их переводы и прочтения.',
-      en:'Questions that run through texts and voices: places in the original, their translations and readings.',
-      es:'Preguntas que atraviesan textos y voces: pasajes en el original, sus traducciones y lecturas.',
-      de:'Fragen, die durch Texte und Stimmen gehen: Stellen im Original, ihre Übersetzungen und Lesarten.',
-      'zh-Hans':'贯穿诸多文本与声音的问题：原文段落、译本及其解读。',
-    },
+    description:{ru:'Философия Древней Греции и Рима',en:'The philosophy of ancient Greece and Rome',es:'La filosofía de la Grecia y la Roma antiguas',de:'Die Philosophie des alten Griechenlands und Roms','zh-Hans':'古希腊与古罗马的哲学'},
   },
 };
 
@@ -78,7 +64,7 @@ choice.replaceChildren(choose,list);
 function render(){
   const words=copy();
   document.documentElement.lang=locale==='zh-Hans'?'zh':locale;document.title=words.site;
-  mark.textContent=words.site;tagline.textContent=words.tagline;choose.textContent=words.choose;
+  mark.textContent=words.site;tagline.replaceChildren(...words.tagline.split(/(?<=[.。])\s*(?=\S)/).flatMap((line,index)=>index?[' ',make('span','',line)]:[make('span','',line)]));choose.textContent=words.choose;
   language.value=locale;language.setAttribute('aria-label',words.language);
   theme.setAttribute('aria-label',words.theme);
   for(const option of theme.options){const named=THEMES.find(item=>item.id===option.value)??{id:SYSTEM_THEME,name:SYSTEM_NAME};option.textContent=THEME_NAMES[locale]?.[named.id]??named.name[locale==='ru'?'ru':'en'];}
