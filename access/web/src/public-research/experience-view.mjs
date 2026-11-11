@@ -215,7 +215,14 @@ export function mountResearchExperience({root,header,profile,locale=()=> 'ru',in
     else if(kind==='continue'){setMode('original');space.openPersonal?.();}
     onCognitive({action:kind,id:recordId,revision,cite});
   }
-  const selectionEvent=event=>{const selection=event.detail;if(suppressSelection||!selection?.id)return;open(selection.id,{show:false});};
+  // The space tells what it has open. A star or link the reader closes on the map leaves the address and the saved
+  // state as well, so the next visit opens on the tree as it was left; the trail of what was read stays.
+  let shown=null;
+  const selectionEvent=event=>{
+    const was=shown;shown=event.detail?.id??null;if(suppressSelection)return;
+    if(shown){open(shown,{show:false});return;}
+    if(was&&state.id&&state.mode==='original'){state.id=null;writeUrl(false);render();save();}
+  };
   const openEvent=event=>{if(event.detail?.id){event.preventDefault();open(event.detail.id,{revision:event.detail.revision??index.revision});}};
   const actionEvent=event=>handleAction(event.detail??{});
   const contentsEvent=event=>{const detail=event.detail??{};if(detail.tab){const url=new URL(location.href);if(detail.tab==='contents')url.searchParams.delete('book');else url.searchParams.set('book',detail.tab);window.history.replaceState(window.history.state,'',url);}toContents(detail.key??null);};
