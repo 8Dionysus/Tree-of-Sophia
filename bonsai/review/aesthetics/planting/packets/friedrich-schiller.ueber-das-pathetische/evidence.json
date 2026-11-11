@@ -1,0 +1,280 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/10119231bsb/10119231bsb_hocr_searchtext.txt.gz",
+   "file": "10119231bsb.ocr.txt",
+   "sha256": "a92a8bea5db97311fe4ccf3c6a23490b526e408fe62e20048b599db9d9e18cda",
+   "bytes": 355711,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/10119231bsb/10119231bsb_hocr_pageindex.json.gz",
+   "file": "10119231bsb.index.json",
+   "sha256": "6ed195051b6287c9f04c8257661ab1ac8d8a34a78bbc2b4fed45191eeecf0a88",
+   "bytes": 13551,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/10119231bsb/10119231bsb_page_numbers.json",
+   "file": "10119231bsb.pages.json",
+   "sha256": "f37b518065e92ce3ab924b31fdb7e3fe847395def2a76a3dd7afa4c35f7b4d39",
+   "bytes": 66741,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "transcription",
+   "url": "https://projekt-gutenberg.org/authors/friedrich-schiller/books/friedrich-schiller-ueber-das-pathetische/",
+   "file": "friedrich-schiller-ueber-das-pathetische",
+   "sha256": "d81a92604eed4dfba57c05635b8ec32fe98ddaea15373733496874fe8dedbdc2",
+   "bytes": 221238,
+   "fetched": "2026-11-10",
+   "text": "friedrich-schiller-ueber-das-pathetische.txt"
+  }
+ ],
+ "scan": {
+  "item": "10119231bsb",
+  "ocr": true,
+  "long_s": true,
+  "image_offset": 0
+ },
+ "persons": [
+  {
+   "qid": "Q22670",
+   "name": {
+    "en": "Friedrich Schiller",
+    "ru": "Фридрих Шиллер"
+   },
+   "role": "author",
+   "died": 1805,
+   "source": "https://www.wikidata.org/wiki/Q22670"
+  }
+ ],
+ "published": 1801,
+ "images": [
+  {
+   "n": 321,
+   "file": "10119231bsb-n321.jpg",
+   "sha256": "a43595a7052551c4c0a62c8b75c49392763485eade207035d163c826f5dc53b2",
+   "by": "maker"
+  },
+  {
+   "n": 5,
+   "file": "10119231bsb-n5.jpg",
+   "sha256": "522b1b9c8799237f7333476f37a78a999c506a3349e2f090c1995d368e8070bf",
+   "by": "maker"
+  },
+  {
+   "n": 3,
+   "file": "10119231bsb-n3.jpg",
+   "sha256": "ab0310bc9d16185a131fc0f35b6544ef71548cc9b0ba4f9c81b9df340487a359",
+   "by": "maker"
+  },
+  {
+   "n": 354,
+   "file": "10119231bsb-n354.jpg",
+   "sha256": "3aff46d6a52a2a37beb95b249bb37982a47dbd7a73f2a5a4b0349f25e7483823",
+   "by": "maker",
+   "loc": "III p345"
+  },
+  {
+   "n": 358,
+   "file": "10119231bsb-n358.jpg",
+   "sha256": "7fd5b45efc071c97b07077e02cf994848df78a010e85fa2248b923b366acfd92",
+   "by": "maker",
+   "loc": "III p349"
+  },
+  {
+   "n": 359,
+   "file": "10119231bsb-n359.jpg",
+   "sha256": "f4e5e2da6737a9615de8ff1f75e301a7697d41a54fa1e6d59424caa78e0960dc",
+   "by": "maker"
+  },
+  {
+   "n": 360,
+   "file": "10119231bsb-n360.jpg",
+   "sha256": "3a7da3003f22b19aa528b7c53790193de13b492fb02d872c8d84c832be8c9473",
+   "by": "maker"
+  },
+  {
+   "n": 354,
+   "file": "10119231bsb-n354.jpg",
+   "sha256": "3aff46d6a52a2a37beb95b249bb37982a47dbd7a73f2a5a4b0349f25e7483823",
+   "by": "second",
+   "loc": "III p345"
+  },
+  {
+   "n": 358,
+   "file": "10119231bsb-n358.jpg",
+   "sha256": "7fd5b45efc071c97b07077e02cf994848df78a010e85fa2248b923b366acfd92",
+   "by": "second",
+   "loc": "III p349"
+  },
+  {
+   "n": 359,
+   "file": "10119231bsb-n359.jpg",
+   "sha256": "f4e5e2da6737a9615de8ff1f75e301a7697d41a54fa1e6d59424caa78e0960dc",
+   "by": "second",
+   "loc": "III p349"
+  },
+  {
+   "n": 360,
+   "file": "10119231bsb-n360.jpg",
+   "sha256": "3a7da3003f22b19aa528b7c53790193de13b492fb02d872c8d84c832be8c9473",
+   "by": "second",
+   "loc": "III p351"
+  },
+  {
+   "n": 321,
+   "file": "10119231bsb-n321.jpg",
+   "sha256": "a43595a7052551c4c0a62c8b75c49392763485eade207035d163c826f5dc53b2",
+   "by": "second",
+   "loc": "III p312"
+  }
+ ],
+ "places": {
+  "III p312": {
+   "transcription": "friedrich-schiller-ueber-das-pathetische",
+   "method": "ocr",
+   "share": 0.844,
+   "leaves": [
+    321
+   ],
+   "printed": [
+    "312"
+   ],
+   "differences": [
+    {
+     "transcription": "",
+     "ocr": ".",
+     "leaf": 321,
+     "stands": "transcription",
+     "note": "Read every difference on scan p. 312, leaf n321: the remaining differences are OCR errors or artifacts."
+    },
+    {
+     "transcription": "",
+     "ocr": ".",
+     "leaf": 321,
+     "stands": "transcription",
+     "note": "Read every difference on scan p. 312, leaf n321: the remaining differences are OCR errors or artifacts."
+    },
+    {
+     "transcription": "",
+     "ocr": "'",
+     "leaf": 321,
+     "stands": "transcription",
+     "note": "Read every difference on scan p. 312, leaf n321: the remaining differences are OCR errors or artifacts."
+    },
+    {
+     "transcription": "",
+     "ocr": "'",
+     "leaf": 321,
+     "stands": "transcription",
+     "note": "Read every difference on scan p. 312, leaf n321: the remaining differences are OCR errors or artifacts."
+    },
+    {
+     "transcription": "",
+     "ocr": ".",
+     "leaf": 321,
+     "stands": "transcription",
+     "note": "Read every difference on scan p. 312, leaf n321: the remaining differences are OCR errors or artifacts."
+    },
+    {
+     "transcription": "",
+     "ocr": ":",
+     "leaf": 321,
+     "stands": "transcription",
+     "note": "Read every difference on scan p. 312, leaf n321: the remaining differences are OCR errors or artifacts."
+    },
+    {
+     "transcription": "lebendigste",
+     "ocr": "lebendigfie",
+     "leaf": 321,
+     "stands": "transcription",
+     "note": "Read every difference on scan p. 312, leaf n321: the remaining differences are OCR errors or artifacts."
+    },
+    {
+     "transcription": "der",
+     "ocr": ". oder '",
+     "leaf": 321,
+     "stands": "transcription",
+     "note": "Read every difference on scan p. 312, leaf n321: the remaining differences are OCR errors or artifacts."
+    },
+    {
+     "transcription": "erst",
+     "ocr": "eft",
+     "leaf": 321,
+     "stands": "transcription",
+     "note": "Read every difference on scan p. 312, leaf n321: the remaining differences are OCR errors or artifacts."
+    },
+    {
+     "transcription": "Wesen",
+     "ocr": "Welen",
+     "leaf": 321,
+     "stands": "transcription",
+     "note": "Read every difference on scan p. 312, leaf n321: the remaining differences are OCR errors or artifacts."
+    },
+    {
+     "transcription": "legitimirt",
+     "ocr": "tegitimirt",
+     "leaf": 321,
+     "stands": "transcription",
+     "note": "Read every difference on scan p. 312, leaf n321: the remaining differences are OCR errors or artifacts."
+    },
+    {
+     "transcription": "",
+     "ocr": ".",
+     "leaf": 321,
+     "stands": "transcription",
+     "note": "Read every difference on scan p. 312, leaf n321: the remaining differences are OCR errors or artifacts."
+    },
+    {
+     "transcription": "Seelenstärke glauben",
+     "ocr": "Seelenlärke Benin",
+     "leaf": 321,
+     "stands": "transcription",
+     "note": "Read every difference on scan p. 312, leaf n321: the remaining differences are OCR errors or artifacts."
+    }
+   ]
+  },
+  "III p345": {
+   "transcription": "friedrich-schiller-ueber-das-pathetische",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the entire sentence on scan p. 345, leaf n354: zweyten, no commas after Hand or stärker; remaining words and final period match."
+   },
+   "images": [
+    354
+   ],
+   "method": "image",
+   "share": 0.667
+  },
+  "III p351": {
+   "transcription": "friedrich-schiller-ueber-das-pathetische",
+   "images": [
+    360
+   ],
+   "method": "image",
+   "share": 0.721,
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the entire sentence at the head of p. 351, leaf n360; transcription matches the page."
+   }
+  },
+  "III p349": {
+   "transcription": "friedrich-schiller-ueber-das-pathetische",
+   "images": [
+    358,
+    359
+   ],
+   "method": "image",
+   "share": 0.509,
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the full passage on pp. 349–350, leaves n358–359; spelling and punctuation corrected to the print."
+   }
+  }
+ }
+}

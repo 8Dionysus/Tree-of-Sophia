@@ -82,6 +82,14 @@
    "record": "bonsai/review/aesthetics/planting/packets/david-hume.of-the-standard-of-taste/reading.json"
   },
   {
+   "id": "terra-2026-11-10-an-inquiry-into-the-original-of-our-idea",
+   "model": "gpt-6.1-terra",
+   "date": "2026-11-10",
+   "reads": "Read the English fourth edition of 1738 beside the register readings and the scanned pages.",
+   "effort": "high",
+   "record": "bonsai/review/aesthetics/planting/packets/francis-hutcheson.an-inquiry-into-the-original-of-our-ideas/reading.json"
+  },
+  {
    "id": "terra-2026-11-10-die-geburt-der-tragoedie-aus-dem-geiste",
    "model": "gpt-6.1-terra",
    "date": "2026-11-10",
@@ -104,6 +112,14 @@
    "reads": "Read Schiller’s German text in the 1858 Cotta edition, compared on the page with the register reading.",
    "effort": "high",
    "record": "bonsai/review/aesthetics/planting/packets/friedrich-schiller.ueber-das-erhabene/reading.json"
+  },
+  {
+   "id": "terra-2026-11-10-ueber-das-pathetische",
+   "model": "gpt-6.1-terra",
+   "date": "2026-11-10",
+   "reads": "The German text of Schiller’s 1801 third part of Kleinere prosaische Schriften, compared with the register readings and the 1879 transcription.",
+   "effort": "high",
+   "record": "bonsai/review/aesthetics/planting/packets/friedrich-schiller.ueber-das-pathetische/reading.json"
   },
   {
    "id": "terra-2026-11-10-ueber-die-aesthetische-erziehung-des-men",
@@ -154,6 +170,14 @@
    "record": "bonsai/review/aesthetics/planting/packets/joseph-addison.the-pleasures-of-the-imagination/reading.json"
   },
   {
+   "id": "terra-2026-11-10-biographia-literaria",
+   "model": "gpt-6.1-terra",
+   "date": "2026-11-10",
+   "reads": "English text in the 1834 New York one-volume printing, compared with the register readings.",
+   "effort": "high",
+   "record": "bonsai/review/aesthetics/planting/packets/samuel-taylor-coleridge.biographia-literaria/reading.json"
+  },
+  {
    "id": "terra-2026-11-10-summa-theologiae",
    "model": "gpt-6.1-terra",
    "date": "2026-11-10",
@@ -194,6 +218,14 @@
    "record": "bonsai/review/aesthetics/planting/packets/david-hume.of-the-standard-of-taste/review.json"
   },
   {
+   "id": "codex-2026-11-10-hutcheson-inquiry-second",
+   "model": "gpt-6.1-terra",
+   "date": "2026-11-10",
+   "reads": "Every place in English, both versions of each thesis and the link against its ground; all three places on the scanned pages.",
+   "effort": "high",
+   "record": "bonsai/review/aesthetics/planting/packets/francis-hutcheson.an-inquiry-into-the-original-of-our-ideas/review.json"
+  },
+  {
    "id": "codex-2026-11-10-nietzsche-independent-second",
    "model": "gpt-6.1-terra",
    "date": "2026-11-10",
@@ -216,6 +248,14 @@
    "reads": "Every place in German and each thesis in Russian and English; all three places against the page images.",
    "effort": "high",
    "record": "bonsai/review/aesthetics/planting/packets/friedrich-schiller.ueber-das-erhabene/review.json"
+  },
+  {
+   "id": "codex-2026-11-10-schiller-second",
+   "model": "gpt-6.1-terra",
+   "date": "2026-11-10",
+   "reads": "Every place in German, each Russian and English thesis, and the scans of all four places, including both pages of III p349.",
+   "effort": "high",
+   "record": "bonsai/review/aesthetics/planting/packets/friedrich-schiller.ueber-das-pathetische/review.json"
   },
   {
    "id": "codex-gpt6-2026-11-10-schiller-second",
@@ -264,6 +304,14 @@
    "reads": "Every place in English, each thesis in both languages and each link against its grounds; three places on the scanned page.",
    "effort": "high",
    "record": "bonsai/review/aesthetics/planting/packets/joseph-addison.the-pleasures-of-the-imagination/review.json"
+  },
+  {
+   "id": "codex-2026-11-10-biographia-second",
+   "model": "gpt-6.1-terra",
+   "date": "2026-11-10",
+   "reads": "Every place in English, each Russian and English thesis, and scan pages 172–175 word by word.",
+   "effort": "high",
+   "record": "bonsai/review/aesthetics/planting/packets/samuel-taylor-coleridge.biographia-literaria/review.json"
   },
   {
    "id": "codex-2026-11-10-summa-theologiae-second",
@@ -10922,6 +10970,122 @@
    ]
   },
   {
+   "id": "francis-hutcheson.an-inquiry-into-the-original-of-our-ideas:internal-sense",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-beautiful",
+    "uniformity-amidst-variety",
+    "the-internal-sense-of-beauty"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-value-norm-and-ideal"
+   ],
+   "work": "francis-hutcheson.an-inquiry-into-the-original-of-our-ideas",
+   "agents": [
+    "francis-hutcheson"
+   ],
+   "locus": "Treatise I, section VI, article X",
+   "formula": {
+    "cite": [
+     {
+      "w": "francis-hutcheson.an-inquiry-into-the-original-of-our-ideas",
+      "loc": "VI p80"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Внутреннее чувство есть пассивная способность получать идеи красоты от всех предметов, в которых есть единообразие среди разнообразия.",
+    "en": "The internal sense is a passive power of receiving ideas of beauty from all objects in which there is uniformity amidst variety."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-an-inquiry-into-the-original-of-our-idea",
+    "verdict": "revise",
+    "note": "A:E010 is grounded in the author’s definition rather than the edition description. B:C-I034 is narrowed to this definition; aesthetic value and perfection are not named in this sentence."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E010",
+    "B:C-I034"
+   ]
+  },
+  {
+   "id": "francis-hutcheson.an-inquiry-into-the-original-of-our-ideas:immediate-pleasure",
+   "type": "tos.entity.conception",
+   "of": [
+    "taste"
+   ],
+   "areas": [
+    "area-taste-and-judgment"
+   ],
+   "work": "francis-hutcheson.an-inquiry-into-the-original-of-our-ideas",
+   "agents": [
+    "francis-hutcheson"
+   ],
+   "locus": "Treatise I, section I, article XII",
+   "formula": {
+    "cite": [
+     {
+      "w": "francis-hutcheson.an-inquiry-into-the-original-of-our-ideas",
+      "loc": "I p10"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Удовольствие от красоты отлично от знания принципов, соотношений, причин или полезности предмета; красота поражает нас сразу.",
+    "en": "The pleasure of beauty is different from knowledge of principles, proportions, causes, or the usefulness of the object; beauty strikes us at first."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-an-inquiry-into-the-original-of-our-idea",
+    "verdict": "revise",
+    "note": "The passage distinguishes immediate pleasure from knowledge of usefulness; it does not here speak of comparison by possession or of social agreement."
+   },
+   "admission": "map",
+   "grew_from": [
+    "B:C-I001"
+   ]
+  },
+  {
+   "id": "francis-hutcheson.an-inquiry-into-the-original-of-our-ideas:figures-uniformity-variety",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-beautiful",
+    "uniformity-amidst-variety"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "work": "francis-hutcheson.an-inquiry-into-the-original-of-our-ideas",
+   "agents": [
+    "francis-hutcheson"
+   ],
+   "locus": "Treatise I, section II, article III",
+   "formula": {
+    "cite": [
+     {
+      "w": "francis-hutcheson.an-inquiry-into-the-original-of-our-ideas",
+      "loc": "II p17"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Фигуры, возбуждающие в нас идеи красоты, представляются такими, в которых есть единообразие среди разнообразия.",
+    "en": "The figures which excite in us ideas of beauty seem to be those in which there is uniformity amidst variety."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-an-inquiry-into-the-original-of-our-idea",
+    "verdict": "revise",
+    "note": "The original qualifies the claim as an appearance and identifies figures that excite ideas of beauty."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E010"
+   ]
+  },
+  {
    "id": "friedrich-nietzsche.die-geburt-der-tragoedie-aus-dem-geiste:paired-art-drives",
    "type": "tos.entity.conception",
    "of": [
@@ -11299,6 +11463,162 @@
    "admission": "map",
    "grew_from": [
     "A:E053"
+   ]
+  },
+  {
+   "id": "friedrich-schiller.ueber-das-pathetische:suffering-nature-and-moral-freedom",
+   "type": "tos.entity.conception",
+   "of": [
+    "suffering"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-sublime",
+    "area-tragic"
+   ],
+   "work": "friedrich-schiller.ueber-das-pathetische",
+   "agents": [
+    "friedrich-schiller"
+   ],
+   "locus": "III",
+   "formula": {
+    "cite": [
+     {
+      "w": "friedrich-schiller.ueber-das-pathetische",
+      "loc": "III p312"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "К изображению нравственной свободы приходят только через живейшее изображение страдающей природы; трагический герой должен предстать как чувствующее существо, прежде чем мы почтим в нём существо разумное и поверим в силу его души.",
+    "en": "The representation of moral freedom is reached only through the most vivid representation of suffering nature; the tragic hero must first appear as a feeling being before we honour him as a rational being and believe in his strength of soul."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-ueber-das-pathetische",
+    "verdict": "revise",
+    "note": "The sentence grounds the representation of suffering nature and moral freedom; it does not name dignity or moral elevation, so those register concepts are not asserted here."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E054"
+   ]
+  },
+  {
+   "id": "friedrich-schiller.ueber-das-pathetische:sympathy-with-sympathy",
+   "type": "tos.entity.conception",
+   "of": [
+    "empathy"
+   ],
+   "areas": [
+    "area-experience-and-affect"
+   ],
+   "work": "friedrich-schiller.ueber-das-pathetische",
+   "agents": [
+    "friedrich-schiller"
+   ],
+   "locus": "III",
+   "formula": {
+    "cite": [
+     {
+      "w": "friedrich-schiller.ueber-das-pathetische",
+      "loc": "III p345"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Все аффекты эстетичнее из вторых рук, и сильнее всего сочувствие, которое мы испытываем к сочувствию.",
+    "en": "All affects are more aesthetic at second hand, and the strongest sympathy is that which we feel for sympathy."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-ueber-das-pathetische",
+    "verdict": "revise",
+    "note": "The passage speaks of sympathy with sympathy; the register concept of the moving and being moved is not explicitly stated here and is omitted."
+   },
+   "admission": "map",
+   "grew_from": [
+    "B:B-I009"
+   ]
+  },
+  {
+   "id": "friedrich-schiller.ueber-das-pathetische:suffering-and-dignity-of-human-vocation",
+   "type": "tos.entity.conception",
+   "of": [
+    "suffering",
+    "moral-elevation"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-sublime",
+    "area-tragic"
+   ],
+   "work": "friedrich-schiller.ueber-das-pathetische",
+   "agents": [
+    "friedrich-schiller"
+   ],
+   "locus": "III",
+   "formula": {
+    "cite": [
+     {
+      "w": "friedrich-schiller.ueber-das-pathetische",
+      "loc": "III p349"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "В обоих случаях страдание имеет нравственное основание: в первом человек показывает свой нравственный характер и предстаёт нравственно великой личностью, во втором — только своё предназначение к нему и предстаёт эстетически великим предметом.",
+    "en": "In both cases suffering has a moral ground: in the first the person shows moral character and appears as a morally great person; in the second, only the vocation to it, and appears as an aesthetically great object."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-ueber-das-pathetische",
+    "verdict": "revise",
+    "note": "The passage distinguishes suffering chosen out of respect for duty from suffering through moral punishment for a transgressed duty; the register reading is narrowed to these two cases."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E054"
+   ]
+  },
+  {
+   "id": "friedrich-schiller.ueber-das-pathetische:dignity-of-human-vocation-in-aesthetic-estimation",
+   "type": "tos.entity.conception",
+   "of": [
+    "dignity",
+    "moral-elevation"
+   ],
+   "areas": [
+    "area-beautiful",
+    "area-sublime",
+    "area-tragic"
+   ],
+   "work": "friedrich-schiller.ueber-das-pathetische",
+   "agents": [
+    "friedrich-schiller"
+   ],
+   "locus": "III",
+   "formula": {
+    "cite": [
+     {
+      "w": "friedrich-schiller.ueber-das-pathetische",
+      "loc": "III p351"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Эстетически возвышен человек, который своим состоянием являет достоинство человеческого предназначения, даже если это предназначение не осуществлено в его личности.",
+    "en": "A person is sublime in aesthetic estimation when their condition presents the dignity of human vocation, even if that vocation is not realised in their person."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-ueber-das-pathetische",
+    "verdict": "revise",
+    "note": "The passage concerns dignity of human vocation in aesthetic estimation; it does not itself name suffering."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E054"
    ]
   },
   {
@@ -12450,6 +12770,189 @@
    "admission": "map",
    "grew_from": [
     "A:E177"
+   ]
+  },
+  {
+   "id": "samuel-taylor-coleridge.biographia-literaria:primary-imagination",
+   "type": "tos.entity.conception",
+   "of": [
+    "imagination"
+   ],
+   "areas": [
+    "area-imagination-and-fiction"
+   ],
+   "work": "samuel-taylor-coleridge.biographia-literaria",
+   "agents": [
+    "samuel-taylor-coleridge"
+   ],
+   "locus": "Ch. XIII",
+   "formula": {
+    "cite": [
+     {
+      "w": "samuel-taylor-coleridge.biographia-literaria",
+      "loc": "XIII p172a"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Первичное воображение — живая сила и главный деятель всякого человеческого восприятия, повторение в конечном уме вечного акта творения в бесконечном Я есмь.",
+    "en": "The primary imagination is the living power and prime agent of all human perception, a repetition in the finite mind of the eternal act of creation in the infinite I AM."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-biographia-literaria",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "B:D-I005"
+   ]
+  },
+  {
+   "id": "samuel-taylor-coleridge.biographia-literaria:secondary-imagination",
+   "type": "tos.entity.conception",
+   "of": [
+    "imagination"
+   ],
+   "areas": [
+    "area-imagination-and-fiction"
+   ],
+   "work": "samuel-taylor-coleridge.biographia-literaria",
+   "agents": [
+    "samuel-taylor-coleridge"
+   ],
+   "locus": "Ch. XIII",
+   "formula": {
+    "cite": [
+     {
+      "w": "samuel-taylor-coleridge.biographia-literaria",
+      "loc": "XIII p172a"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Вторичное воображение сосуществует с сознательной волей и растворяет, рассеивает и разъединяет, чтобы воссоздать; там, где это невозможно, оно всё же стремится идеализировать и объединять.",
+    "en": "The secondary imagination coexists with the conscious will and dissolves, diffuses and dissipates in order to re-create; where this process is impossible, it still struggles to idealize and unify."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-biographia-literaria",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "B:D-I005"
+   ]
+  },
+  {
+   "id": "samuel-taylor-coleridge.biographia-literaria:fancy-and-memory",
+   "type": "tos.entity.conception",
+   "of": [
+    "fancy"
+   ],
+   "areas": [
+    "area-imagination-and-fiction"
+   ],
+   "work": "samuel-taylor-coleridge.biographia-literaria",
+   "agents": [
+    "samuel-taylor-coleridge"
+   ],
+   "locus": "Ch. XIII",
+   "formula": {
+    "cite": [
+     {
+      "w": "samuel-taylor-coleridge.biographia-literaria",
+      "loc": "XIII p172b"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Фантазия (fancy) — форма памяти, освобождённая от порядка времени и пространства и изменённая выбором; она получает готовые материалы от закона ассоциации.",
+    "en": "Fancy is a mode of memory emancipated from the order of time and space and modified by choice; it receives its materials ready made from the law of association."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-biographia-literaria",
+    "verdict": "revise",
+    "note": "The register also lists imagination; the fancy passage defines fancy and memory, while its opening contrast refers to the preceding account of imagination. This conception states the fancy passage itself."
+   },
+   "admission": "map",
+   "grew_from": [
+    "B:D-I006"
+   ]
+  },
+  {
+   "id": "samuel-taylor-coleridge.biographia-literaria:poetic-faith",
+   "type": "tos.entity.conception",
+   "of": [
+    "fiction",
+    "the-paradox-of-fiction"
+   ],
+   "areas": [
+    "area-imagination-and-fiction"
+   ],
+   "work": "samuel-taylor-coleridge.biographia-literaria",
+   "agents": [
+    "samuel-taylor-coleridge"
+   ],
+   "locus": "Ch. XIV",
+   "formula": {
+    "cite": [
+     {
+      "w": "samuel-taylor-coleridge.biographia-literaria",
+      "loc": "XIV p174a"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Человеческий интерес и подобие истины доставляют теням воображения добровольное приостановление неверия на мгновение, составляющее поэтическую веру.",
+    "en": "Human interest and a semblance of truth procure for the shadows of imagination the willing suspension of disbelief for the moment which constitutes poetic faith."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-biographia-literaria",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "B:D-I007"
+   ]
+  },
+  {
+   "id": "samuel-taylor-coleridge.biographia-literaria:novelty-and-custom",
+   "type": "tos.entity.conception",
+   "of": [
+    "understanding"
+   ],
+   "areas": [
+    "area-knowledge-and-truth"
+   ],
+   "work": "samuel-taylor-coleridge.biographia-literaria",
+   "agents": [
+    "samuel-taylor-coleridge"
+   ],
+   "locus": "Ch. XIV",
+   "formula": {
+    "cite": [
+     {
+      "w": "samuel-taylor-coleridge.biographia-literaria",
+      "loc": "XIV p174b"
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Вордсворт поставил себе целью придать прелесть новизны повседневным вещам и вызвать чувство, подобное сверхъестественному, пробуждая внимание ума от оцепенения привычки и направляя его к красоте и чудесам окружающего мира.",
+    "en": "Wordsworth set out to give the charm of novelty to things of every day and to excite a feeling analogous to the supernatural by awakening the mind’s attention from the lethargy of custom and directing it to the loveliness and wonders of the world before us."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-biographia-literaria",
+    "verdict": "revise",
+    "note": "The place speaks of attention and understanding; recognition is not named or asserted as a separate concept."
+   },
+   "admission": "map",
+   "grew_from": [
+    "B:D-I008"
    ]
   },
   {
@@ -13781,6 +14284,28 @@
    "admission": "map",
    "grew_from": [
     "A:R016"
+   ]
+  },
+  {
+   "id": "uniformity-amidst-variety:seems-present-in-figures-that-excite-ideas-of:the-beautiful",
+   "from": "uniformity-amidst-variety",
+   "to": "the-beautiful",
+   "verb": {
+    "ru": "по-видимому, присутствует в фигурах, возбуждающих идеи",
+    "en": "seems present in figures that excite ideas of"
+   },
+   "grounds": [
+    "francis-hutcheson.an-inquiry-into-the-original-of-our-ideas:figures-uniformity-variety"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "terra-2026-11-10-an-inquiry-into-the-original-of-our-idea",
+    "verdict": "revise",
+    "note": "The author qualifies the identification of figures with uniformity amidst variety as those that excite ideas of beauty."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R010"
    ]
   },
   {
