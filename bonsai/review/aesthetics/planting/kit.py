@@ -12,7 +12,8 @@ files, so a packet stands on what the files give and never on a reader's say-so.
   kit.py task PACKET                   print the task again
   kit.py fetch PACKET ROLE URL         fetch a source into the cache (ROLE: transcription | other)
   kit.py ia PACKET ITEM [--long-s]     fetch the page-indexed OCR of an Internet Archive scan
-  kit.py find PACKET WORDS [--in FILE] where the words stand in the OCR, or in a fetched file
+  kit.py scan PACKET [ITEM]            the scans the packet reads (a work in several volumes has several); ITEM makes one the working scan
+  kit.py find PACKET WORDS [--in FILE] where the words stand in the OCR of each scan, or in a fetched file
   kit.py leaf PACKET N                 the OCR of one leaf
   kit.py image PACKET N [--loc LOC]    fetch the image of page n<N> (the reader then looks at the file)
   kit.py offset PACKET K               image number minus OCR leaf number, read off one image
@@ -204,15 +205,42 @@ def cmd_fetch(args):
     record(path,args.role,args.url,name,raw,**more)
     print(f"{name}: {len(raw)} bytes"+(f"; running text in {cache(path,name+'.txt')} ({len(text)} characters)" if more else ''))
 
+def scans(ev):
+    """Every scan a packet reads (a work in several volumes has several), by its Archive item. ev['scan'] is the one the commands work on."""
+    found=dict(ev.get('scans') or {});active=ev.get('scan') or {}
+    if active.get('item'):found[active['item']]=active
+    return found
+
+def scan_of(ev,entry):
+    """The scan a place stands on: the one its comparison found it in, or the one its words were cut from."""
+    entry=entry or {};name=str(entry.get('transcription') or '')
+    item=entry.get('scan') or (name[:-8] if entry.get('from_scan') and name.endswith('.ocr.txt') else None)
+    return scans(ev).get(item) or ev.get('scan') or {}
+
+def shots(ev,by):
+    """The page images fetched by a reader, by scan."""
+    found={}
+    for image in ev.get('images',[]):
+        if image.get('by','maker')==by:found.setdefault(image.get('item') or image['file'][:-len(f"-n{image['n']}.jpg")],set()).add(image['n'])
+    return found
+
+def cmd_scan(args):
+    """Which scans the packet reads; with ITEM, the scan the next commands work on."""
+    path=packet(args.packet);ev=evidence(path);ev['scans']=scans(ev)
+    if args.item:
+        if args.item not in ev['scans']:die(f'{args.item} was not fetched (kit.py ia)')
+        ev['scan']=ev['scans'][args.item];save(os.path.join(path,'evidence.json'),ev)
+    for item,scan in ev['scans'].items():print(f"{'*' if item==(ev.get('scan') or {}).get('item') else ' '} {item}: OCR {'yes' if scan.get('ocr') else 'no'}, long s {'yes' if scan.get('long_s') else 'no'}, image offset {scan.get('image_offset')}")
+
 def cmd_ia(args):
     path=packet(args.packet);item=args.item;wanted={'ocr':'_hocr_searchtext.txt.gz','index':'_hocr_pageindex.json.gz','pages':'_page_numbers.json'}
     if args.dir:names={role:os.path.join(args.dir,file) for role,file in zip(wanted,args.files.split(','))}
     else:
         files=[entry['name'] for entry in json.loads(get(f'https://archive.org/metadata/{item}')).get('files',[])]
         names={role:next((name for name in files if name.endswith(tail)),None) for role,tail in wanted.items()}
-    ev=evidence(path)
+    ev=evidence(path);was=scans(ev).get(item) or {}
     if not names['ocr'] or not names['index']:
-        ev['scan']={'item':item,'ocr':False,'long_s':bool(args.long_s),'image_offset':None};save(os.path.join(path,'evidence.json'),ev)
+        ev['scans']=scans(ev);ev['scan']=ev['scans'][item]={'item':item,'ocr':False,'long_s':bool(args.long_s or was.get('long_s')),'image_offset':was.get('image_offset')};save(os.path.join(path,'evidence.json'),ev)
         print(f'{item}: no page-indexed OCR; every place of this scan is read whole on the page image (judge … whole)');return
     for role,name in names.items():
         if not name:continue
@@ -220,8 +248,9 @@ def cmd_ia(args):
         raw=open(name,'rb').read() if args.dir else get(url)
         if name.endswith('.gz'):raw=gzip.decompress(raw)
         ev=record(path,'scan-'+role,url,f'{item}.{role}.'+('txt' if role=='ocr' else 'json'),raw)
-    ev['scan']={'item':item,'ocr':True,'long_s':bool(args.long_s),'image_offset':(ev.get('scan') or {}).get('image_offset') if (ev.get('scan') or {}).get('item')==item else None}
+    ev['scans']=scans(ev);ev['scan']=ev['scans'][item]={'item':item,'ocr':True,'long_s':bool(args.long_s or was.get('long_s')),'image_offset':was.get('image_offset')}
     save(os.path.join(path,'evidence.json'),ev);o=ocr(path,ev)
+    if len(ev['scans'])>1:print(f"the packet reads {len(ev['scans'])} scans; this one is the scan the next commands work on (kit.py scan lists them and switches)")
     print(f"{item}: OCR of {len(o['starts'])} leaves, {len(o['words'])} words; printed page numbers {'given' if o['printed'] else 'not given'} by the Archive")
 
 # ---- words ---------------------------------------------------------------------------------------------------------
@@ -242,8 +271,8 @@ def tokens(text,broken=False):
         else:out.append((token,at));k+=1
     return out
 
-def ocr(path,ev):
-    scan=ev.get('scan') or {}
+def ocr(path,ev,scan=None):
+    scan=scan or ev.get('scan') or {}
     if not scan.get('ocr'):return None
     item=scan['item'];raw=open(cache(path,f'{item}.ocr.txt'),encoding='utf-8',errors='replace').read()
     starts=[entry[0] for entry in load(cache(path,f'{item}.index.json'))]
@@ -371,9 +400,11 @@ def cmd_find(args):
         _,text=transcription(path,ev,args.inside);flat=re.compile(r'\s+'.join(re.escape(word) for word in args.words.split()),re.I)
         for m in list(flat.finditer(text))[:12]:print(f'@{m.start()}: …{" ".join(text[max(0,m.start()-160):m.end()+260].split())}…\n')
         return
-    o=ocr(path,ev) or die('no page-indexed OCR in this packet');got=against_ocr(args.words,o)
-    if not got or 'leaves' not in got:die('the words are not found in the OCR')
-    print(f"leaves {got['leaves']} (printed pages {got['printed']}), {round(got['share']*100)}% read the same")
+    found=False
+    for item,scan in scans(ev).items():
+        o=ocr(path,ev,scan);got=against_ocr(args.words,o) if o else None
+        if got and 'leaves' in got:found=True;print(f"{item}: leaves {got['leaves']} (printed pages {got['printed']}), {round(got['share']*100)}% read the same")
+    if not found:die('the words are not found in the OCR of any scan of this packet')
 
 def cmd_leaf(args):
     path=packet(args.packet);o=ocr(path,evidence(path)) or die('no page-indexed OCR in this packet');n=args.n
@@ -393,16 +424,18 @@ def narrow(file,width):
     return open(file,'rb').read()
 
 def cmd_image(args):
-    path=packet(args.packet);ev=evidence(path);item=(ev.get('scan') or {}).get('item') or die('name the scan first (kit.py ia)')
+    path=packet(args.packet);ev=evidence(path)
+    item=args.scan or (scan_of(ev,ev['places'].get(args.loc)).get('item') if args.loc and ev['places'].get(args.loc) else None) or (ev.get('scan') or {}).get('item') or die('name the scan first (kit.py ia)')
+    if item not in scans(ev):die(f'{item} is not a scan of this packet (kit.py ia)')
     name=f'{item}-n{args.n}.jpg';url=f'https://archive.org/download/{item}/page/n{args.n}_w{args.width}.jpg'
     raw=open(args.file,'rb').read() if args.file else get(url)
     with open(cache(path,name),'wb') as file:file.write(raw)
     raw=narrow(cache(path,name),args.width)
-    ev['images']=[image for image in ev.get('images',[]) if not(image['n']==args.n and image.get('by')==args.by)]
-    ev['images'].append({'n':args.n,'file':name,'sha256':hashlib.sha256(raw).hexdigest(),'by':args.by,**({'loc':args.loc} if args.loc else {})})
+    ev['images']=[image for image in ev.get('images',[]) if not(image['file']==name and image.get('by')==args.by)]
+    ev['images'].append({'n':args.n,'item':item,'file':name,'sha256':hashlib.sha256(raw).hexdigest(),'by':args.by,**({'loc':args.loc} if args.loc else {})})
     if args.loc and args.by=='maker':
         entry=ev['places'].setdefault(args.loc,{})
-        if entry.get('method')!='ocr':entry['method']='image';entry['images']=sorted(set(entry.get('images',[]))|{args.n})
+        if entry.get('method')!='ocr':entry['method']='image';entry['images']=sorted(set(entry.get('images',[]))|{args.n});entry.setdefault('scan',item)
     save(os.path.join(path,'evidence.json'),ev);print(f'{cache(path,name)}\nlook at this file; the page of the place opens at https://archive.org/details/{item}/page/n{args.n}/mode/1up')
 
 TRUSTED=('wikipedia.org','wikidata.org','d-nb.info','viaf.org','bnf.fr','plato.stanford.edu','britannica.com','deutsche-biographie.de','loc.gov','oxforddnb.com','treccani.it')
@@ -459,15 +492,27 @@ def cmd_why(args):
     source['why']=args.reason;save(os.path.join(path,'evidence.json'),ev);print(f"{source['file']}: {args.reason}")
 
 def cmd_offset(args):
-    path=packet(args.packet);ev=evidence(path);ev['scan']['image_offset']=args.k;save(os.path.join(path,'evidence.json'),ev);print(f'image n = OCR leaf {args.k:+d}')
+    path=packet(args.packet);ev=evidence(path);ev['scans']=scans(ev);item=args.scan or (ev.get('scan') or {}).get('item')
+    if item not in ev['scans']:die('name the scan first (kit.py ia)')
+    ev['scans'][item]['image_offset']=args.k
+    if (ev.get('scan') or {}).get('item')==item:ev['scan']=ev['scans'][item]
+    save(os.path.join(path,'evidence.json'),ev);print(f'{item}: image n = OCR leaf {args.k:+d}')
 
 def compare(path,ev,places,original):
     """Every place of the original beside the OCR; a judgment already given stays with the difference it was given to."""
-    o=ocr(path,ev);out={};scan=ev.get('scan') or {}
+    out={};every=scans(ev);read={};active=(ev.get('scan') or {}).get('item')
+    def reading(item):
+        if item not in read:read[item]=ocr(path,ev,every[item])
+        return read[item]
     for loc,place in places['places'].items():
-        text=place.get('texts',{}).get(original);old=ev['places'].get(loc,{});entry={key_:old[key_] for key_ in('transcription','dropped','from_scan','whole','images') if key_ in old}
+        text=place.get('texts',{}).get(original);old=ev['places'].get(loc,{});entry={key_:old[key_] for key_ in('transcription','dropped','from_scan','scan','whole','images') if key_ in old}
         if not text:out[loc]=entry;continue
-        got=against_ocr(text,o) if o else None
+        fixed=scan_of(ev,old).get('item') if old.get('scan') or old.get('from_scan') else None      # a place stays with its scan; a new one is looked for in each
+        got=None
+        for item in [fixed] if fixed in every else [active]+[item for item in every if item!=active]:
+            o=reading(item) if item in every else None;found=against_ocr(text,o) if o else None
+            if found and (got is None or 'leaves' in found or (found.get('share') or 0)>(got.get('share') or 0)):got=found;entry['scan']=item
+            if found and 'leaves' in found:break
         if entry.get('from_scan') and got and 'leaves' in got:               # the OCR beside itself proves nothing: the page is read instead
             entry.update({'method':'image','leaves':got['leaves'],'printed':got['printed']});out[loc]=entry;continue
         if not got or 'leaves' not in got:
@@ -481,16 +526,18 @@ def compare(path,ev,places,original):
 
 def cmd_compare(args):
     path=packet(args.packet);ev=evidence(path);places=part(path,'places.json');original=original_of(places)
-    ev['places']=compare(path,ev,places,original);scan=ev.get('scan') or {};offset=scan.get('image_offset')
+    ev['places']=compare(path,ev,places,original);unfixed=set()
     for loc,entry in ev['places'].items():
+        scan=scan_of(ev,entry);offset=scan.get('image_offset')
+        if scan.get('ocr') and offset is None:unfixed.add(scan['item'])
         if entry.get('leaves') and offset is not None:places['places'][loc].setdefault('links',{})[original]=f"https://archive.org/details/{scan['item']}/page/n{entry['leaves'][0]+offset}/mode/1up"
         if entry.get('method')=='ocr':
-            print(f"{loc}: leaves {entry['leaves']} printed {entry['printed']} {round(entry['share']*100)}% the same; "+('no difference' if not entry['differences'] else f"{len(entry['differences'])} differences"))
+            print(f"{loc}: {scan.get('item') if len(scans(ev))>1 else ''} leaves {entry['leaves']} printed {entry['printed']} {round(entry['share']*100)}% the same; "+('no difference' if not entry['differences'] else f"{len(entry['differences'])} differences"))
             for n,d in enumerate(entry['differences'],1):print(f"   {n}. leaf {d['leaf']}: transcription «{d['transcription']}» | OCR «{d['ocr']}»"+(f"  → {d['stands']} stands" if d.get('stands') else ''))
         elif entry.get('from_scan') and entry.get('leaves'):print(f"{loc}: cut from the scan’s own OCR, leaves {entry['leaves']} printed {entry['printed']}: read it whole on the page image of every leaf (image N --loc, correct what the OCR misread, then judge … whole)")
         else:print(f"{loc}: the OCR does not hold this place"+(f" ({round((entry.get('share') or 0)*100)}% found)" if entry.get('share') is not None else '')+': read it whole on the page image (image … --loc, then judge … whole)')
     save(os.path.join(path,'evidence.json'),ev);save(os.path.join(path,'places.json'),places)
-    if offset is None:print('the image offset is not fixed yet: look at one image, then kit.py offset')
+    for item in sorted(unfixed):print(f'{item}: the image offset is not fixed yet: look at one image of this scan, then kit.py offset K'+(f' --scan {item}' if len(scans(ev))>1 else ''))
 
 def original_of(places):
     return (places.get('entry') or {}).get('original') or world()['fragments']['works'].get(places['work'],{}).get('original') or die('places.json names no original language')
@@ -507,7 +554,7 @@ def cmd_correct(args):
     path=packet(args.packet);places=part(path,'places.json');original=original_of(places);place=places['places'].get(args.loc) or die(f'no place {args.loc}')
     text=place['texts'][original]
     if getattr(args,'from')==args.to:die('this changes nothing')
-    if (evidence(path).get('scan') or {}).get('long_s') and getattr(args,'from').replace('ß','ss')==args.to.replace('ß','ss'):die('in a print with the long s, ſs is the print’s ß and stays ß (ſſ is ss): no correction')
+    if any(scan.get('long_s') for scan in scans(evidence(path)).values()) and getattr(args,'from').replace('ß','ss')==args.to.replace('ß','ss'):die('in a print with the long s, ſs is the print’s ß and stays ß (ſſ is ss): no correction')
     if text.count(getattr(args,'from'))!=1:die(f'«{getattr(args,"from")}» stands {text.count(getattr(args,"from"))} times in the place; give a run that stands once')
     place['texts'][original]=text.replace(getattr(args,'from'),args.to)
     places['corrections'].append({'lang':original,'from':getattr(args,'from'),'to':args.to,'evidence':args.evidence,'place':f"{places['work']} {args.loc}"})
@@ -543,6 +590,8 @@ def gate(path,second=False,offline=False):
     if blocked is not None:
         if len(str(blocked.get('reason','')))<40 or not blocked.get('tried'):add('blocked.json: give the reason in a full sentence and list under tried what was looked at (with URLs)')
         if blocked.get('ground') not in GROUNDS:add('blocked.json: ground wants one of '+'; '.join(f'{name} ({what})' for name,what in GROUNDS.items()))
+        if blocked.get('ground')=='sources' and any(scan.get('ocr') for scan in scans(part(path,'evidence.json') or {}).values()):
+            add('blocked.json: the packet holds a scan with page-indexed OCR, so the words can be cut from the page itself (kit.py cut . ocr …, MAKER.md step 3). A project whose site did not answer is named in kit.py why; it does not close this road. Take blocked.json away and make the packet')
         if blocked.get('ground')=='rights':
             ev=part(path,'evidence.json') or {};people=[person for person in ev.get('persons') or [] if isinstance(person.get('died'),int)];printed=ev.get('published')
             if not any(person['died']>FIRST_WAVE['died'] for person in people) and not(isinstance(printed,int) and printed>FIRST_WAVE['published']):
@@ -612,9 +661,9 @@ def gate(path,second=False,offline=False):
         if loc not in locs or not all(correction.get(name) for name in('lang','from','to','evidence')):add(f'correction {correction.get("place")}: lang, from, to, evidence and an existing place are wanted')
         elif correction['to'] not in locs[loc]['texts'].get(original,''):add(f'correction {correction["place"]}: «{correction["to"]}» is not in the place')
         elif correction['from']==correction['to']:add(f'correction {correction["place"]}: it changes nothing; take it out of corrections')
-        elif (ev.get('scan') or {}).get('long_s') and correction['from'].replace('ß','ss')==correction['to'].replace('ß','ss'):add(f'correction {correction["place"]}: «{correction["from"]}» → «{correction["to"]}» only trades ß and ss. In a print with the long s, ſs is the print’s ß and stays ß; ſſ is ss. Put the text back with kit.py cut and take this out of corrections')
+        elif any(scan.get('long_s') for scan in scans(ev).values()) and correction['from'].replace('ß','ss')==correction['to'].replace('ß','ss'):add(f'correction {correction["place"]}: «{correction["from"]}» → «{correction["to"]}» only trades ß and ss. In a print with the long s, ſs is the print’s ß and stays ß; ſſ is ss. Put the text back with kit.py cut and take this out of corrections')
     # the evidence, recomputed from the fetched files
-    scan=ev.get('scan') or {};fetched={image['n'] for image in ev.get('images',[]) if image.get('by','maker')=='maker'};live=not offline and bool(ev.get('sources')) and all(os.path.exists(cache(path,source['file'])) for source in ev['sources'])
+    scan=ev.get('scan') or {};taken=shots(ev,'maker');live=not offline and bool(ev.get('sources')) and all(os.path.exists(cache(path,source['file'])) for source in ev['sources'])
     ocr_files={source['file'] for source in ev.get('sources',[]) if source['role']=='scan-ocr'}
     all_from_scan=bool(locs) and all((ev.get('places',{}).get(loc) or {}).get('from_scan') and (ev['places'][loc].get('transcription') in ocr_files) for loc in locs)
     if not any(source['role']=='transcription' for source in ev.get('sources',[])) and not all_from_scan:add('no transcription was fetched (kit.py fetch … transcription URL)')
@@ -629,10 +678,11 @@ def gate(path,second=False,offline=False):
             file=cache(path,source['file'])
             if not os.path.exists(file) or hashlib.sha256(open(file,'rb').read()).hexdigest()!=source['sha256']:add(f"source {source['file']}: the fetched file is missing or changed")
     if live and not problems:
-        fresh=compare(path,ev,places,original);offset=scan.get('image_offset')
-        if scan.get('ocr') and offset is None:add('the image offset is not fixed (look at one image, compare it with kit.py leaf, then kit.py offset)')
+        fresh=compare(path,ev,places,original);unfixed=set()
         for loc,place in locs.items():
             at=f'place {loc}';mine=ev['places'].get(loc) or {};now=fresh.get(loc) or {};text=place['texts'][original]
+            scan=scan_of(ev,mine if mine.get('scan') or mine.get('from_scan') else now);offset=scan.get('image_offset');fetched=taken.get(scan.get('item'),set())
+            if scan.get('ocr') and offset is None and scan['item'] not in unfixed:unfixed.add(scan['item']);add(f"{scan['item']}: the image offset is not fixed (look at one image of this scan, compare it with kit.py leaf, then kit.py offset)")
             try:_,source=transcription(path,ev,mine.get('transcription'))
             except SystemExit:add(f'{at}: no transcription is named for it');continue
             back=text
@@ -642,7 +692,7 @@ def gate(path,second=False,offline=False):
             if problem:add(f'{at}: {problem}')
             strip=lambda entry:[(d['transcription'],d['ocr'],d['leaf']) for d in entry.get('differences',[])]
             if now.get('method')=='ocr':
-                if mine.get('method')!='ocr' or strip(mine)!=strip(now) or mine.get('leaves')!=now.get('leaves'):add(f'{at}: the comparison on file is not the comparison of this text (run kit.py compare)');continue
+                if mine.get('method')!='ocr' or strip(mine)!=strip(now) or mine.get('leaves')!=now.get('leaves') or mine.get('scan',now.get('scan'))!=now.get('scan'):add(f'{at}: the comparison on file is not the comparison of this text (run kit.py compare)');continue
                 for n,d in enumerate(mine['differences'],1):
                     if d.get('stands') not in('transcription','print'):add(f'{at}: difference {n} («{d["transcription"]}» | «{d["ocr"]}») is not judged on the page image')
                     elif d['stands']=='print':add(f'{at}: difference {n} says the print stands: change the text with kit.py correct, then compare again')
@@ -745,19 +795,21 @@ def second_gate(path,reading,ev,locs):
         mine=answers.get(key_) or {}
         if not isinstance(mine.get('holds'),bool):add(f'review.left.{key_}: holds wants true (the work does not bear the reading, as the reason says) or false (it does)')
         elif not mine['holds'] and len(str(mine.get('note','')))<30:add(f'review.left.{key_}: holds false wants a note naming the place that bears the reading (division, page, opening words)')
-    seen={image['n'] for image in ev.get('images',[]) if image.get('by')=='second'};looked=review.get('images') or []
-    offset=(ev.get('scan') or {}).get('image_offset') or 0;need=min(len(locs),max(3,math.ceil(len(locs)*0.3)))
+    seen=shots(ev,'second');looked=review.get('images') or []
+    need=min(len(locs),max(3,math.ceil(len(locs)*0.3)))
     whole=[loc for loc,entry in ev['places'].items() if entry.get('method')=='image']
     if len({item.get('loc') for item in looked})<need:add(f'review.images: the second reader looks at the pages of at least {need} places; {len(looked)} are recorded')
     for loc in whole:
         if loc not in {item.get('loc') for item in looked}:add(f'review.images: {loc} was read from the image alone and wants the second reader’s look')
         entry=ev['places'][loc]
-        if entry.get('from_scan') and entry.get('leaves') and (ev.get('scan') or {}).get('image_offset') is not None:
+        scan=scan_of(ev,entry);offset=scan.get('image_offset');fetched=seen.get(scan.get('item'),set())
+        if entry.get('from_scan') and entry.get('leaves') and offset is not None:
             needed={n+offset for n in entry['leaves']}
-            read={item.get('n') for item in looked if item.get('loc')==loc and item.get('n') in seen and item.get('reads') in ('as the packet','differs')}
+            read={item.get('n') for item in looked if item.get('loc')==loc and item.get('n') in fetched and item.get('reads') in ('as the packet','differs')}
             if not needed<=read:add(f'review.images: {loc} was cut from the scan OCR and wants the second reader’s look at every page: '+', '.join('n'+str(n) for n in sorted(needed-read)))
     for item in looked:
-        if item.get('loc') not in locs or item.get('n') not in seen or item.get('reads') not in('as the packet','differs') or (item.get('reads')=='differs' and len(str(item.get('note','')))<20):add(f"review.images {item.get('loc')}: loc, n (fetched with image N --by second), reads ('as the packet' or 'differs' with a note)")
+        scan=scan_of(ev,ev['places'].get(item.get('loc')))
+        if item.get('loc') not in locs or item.get('n') not in seen.get(scan.get('item'),set()) or item.get('reads') not in('as the packet','differs') or (item.get('reads')=='differs' and len(str(item.get('note','')))<20):add(f"review.images {item.get('loc')}: loc, n (fetched with image N --by second), reads ('as the packet' or 'differs' with a note)")
     clean=all((review.get(kind) or {}).get(record['id'],{}).get('says')=='yes' for kind in('conceptions','links') for record in reading.get(kind) or []) and all(item.get('reads')=='as the packet' for item in looked) and all((answers.get(key_) or {}).get('holds') is True for key_ in waits)
     if review.get('accept') is not clean:add(f'review.accept must be {str(clean).lower()}: it is true only when every conception and link is a yes, every page reads as the packet and every left reading is rightly left')
     return problems
@@ -820,9 +872,9 @@ def main():
     sub('queue',cmd_queue);sub('open',cmd_open,(('work',),{}));sub('task',cmd_task,P);sub('status',cmd_status)
     sub('fetch',cmd_fetch,P,(('role',),{'choices':['transcription','other']}),(('url',),{}),(('--name',),{}),(('--file',),{'help':'take the bytes from a local file already fetched from URL'}))
     sub('ia',cmd_ia,P,(('item',),{}),(('--long-s',),{'action':'store_true','help':'the print sets the long s, which the OCR reads as f'}),(('--dir',),{}),(('--files',),{}))
-    sub('find',cmd_find,P,(('words',),{}),(('--in',),{'dest':'inside'}));sub('leaf',cmd_leaf,P,(('n',),{'type':int}))
-    sub('image',cmd_image,P,(('n',),{'type':int}),(('--loc',),{}),(('--width',),{'type':int,'default':1100}),(('--by',),{'choices':['maker','second'],'default':'maker'}),(('--file',),{}))
-    sub('offset',cmd_offset,P,(('k',),{'type':int}))
+    sub('find',cmd_find,P,(('words',),{}),(('--in',),{'dest':'inside'}));sub('leaf',cmd_leaf,P,(('n',),{'type':int}));sub('scan',cmd_scan,P,(('item',),{'nargs':'?'}))
+    sub('image',cmd_image,P,(('n',),{'type':int}),(('--loc',),{}),(('--width',),{'type':int,'default':1100}),(('--by',),{'choices':['maker','second'],'default':'maker'}),(('--file',),{}),(('--scan',),{'help':'the Archive item, where the packet reads several scans'}))
+    sub('offset',cmd_offset,P,(('k',),{'type':int}),(('--scan',),{}))
     sub('person',cmd_person,P,(('role',),{'choices':list(ROLES)}),(('qid',),{'nargs':'?'}),(('--name',),{}),(('--ru',),{}),(('--died',),{'type':int}),(('--source',),{}));sub('printed',cmd_printed,P,(('year',),{'type':int}))
     sub('rights',cmd_rights,P);sub('why',cmd_why,P,(('file',),{}),(('reason',),{}));sub('stamp',cmd_stamp,P,(('role',),{'choices':['maker','second']}),(('model',),{}),(('effort',),{}))
     sub('cut',cmd_cut,P,(('file',),{}),(('open',),{}),(('close',),{}),(('--loc',),{'required':True}),(('--lang',),{}),(('--nth',),{'type':int}),(('--drop',),{'action':'append','help':'a regular expression of what the transcriber added inside the run (a figure mark, a page mark); may be given more than once'}))

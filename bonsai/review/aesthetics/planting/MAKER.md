@@ -45,6 +45,12 @@ K person . author Q37160        # the Wikidata item of each hand in the text: th
 K printed . 1757                # the year of the printing whose scan is read
 ```
 
+A work in several volumes has a scan for each volume read: fetch each with
+`K ia . ITEM`. The kit keeps them all, finds every place in the scan that holds
+it, and `K scan . ITEM` chooses the one that `K leaf`, `K image`, `K offset`
+and `K cut . ocr` work on (`K scan .` lists them). Each scan wants its own
+offset.
+
 Then fill `entry` in `places.json`: `original` (language code) and one witness
 under that code:
 
@@ -78,8 +84,10 @@ K cut . FILE "Opening words of the first sentence" "closing words of the last." 
 ```
 
 Where no transcription holds the passage, the words come from the scan's own
-OCR. First say what was looked at, on the projects' own sites and not only
-through a web search:
+OCR. This road is always open where the scan has page-indexed OCR: a missing
+transcription is no ground for `blocked.json`. First say what was looked at,
+on the projects' own sites and not only through a web search (a site that did
+not answer is named as such):
 
 ```
 K why . ITEM.ocr.txt "Wikisource, the Deutsches Textarchiv, Zeno, TextGrid and Project Gutenberg searched on their own sites for the title and for «some words of the passage»: none holds this text."
