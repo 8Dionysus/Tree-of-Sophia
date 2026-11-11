@@ -445,6 +445,10 @@ def trusted(url):
 def cmd_person(args):
     """A hand in the text, by its Wikidata item: the kit reads the name and the year of death there, so that no date is typed."""
     path=packet(args.packet);ev=evidence(path)
+    if args.remove:
+        kept=[other for other in ev['persons'] if not(other.get('role')==args.role and (other.get('qid')==args.qid if args.qid else (other.get('name') or {}).get('en')==args.name if isinstance(other.get('name'),dict) else other.get('name')==args.name))]
+        if len(kept)==len(ev['persons']):die('no such person is on record: '+'; '.join(f"{other.get('role')} {other.get('qid') or ''} {other.get('name')}" for other in ev['persons']))
+        ev['persons']=kept;save(os.path.join(path,'evidence.json'),ev);write_rights(path,ev);print(f'{len(kept)} persons stay on record');return
     if args.qid:
         if not re.fullmatch(r'Q\d+',args.qid):die('a Wikidata item reads Q12345')
         entity=json.loads(get(f'https://www.wikidata.org/wiki/Special:EntityData/{args.qid}.json'))['entities'][args.qid]
@@ -634,7 +638,7 @@ def gate(path,second=False,offline=False):
         sound=True
         for person in persons:
             if not isinstance(person.get('died'),int) or not isinstance(person.get('name'),dict) or not(person.get('qid') or trusted(person.get('source'))):sound=False;add(f"evidence.persons {person.get('name')}: enter the person again with kit.py person ROLE QID (the Wikidata item gives the name and the year of death)")
-            elif person['died']>FIRST_WAVE['died']:add(f"{person['name']['en']} died in {person['died']}: outside the first wave (by {FIRST_WAVE['died']}); write blocked.json")
+            elif person['died']>FIRST_WAVE['died']:add(f"{person['name']['en']} died in {person['died']}: outside the first wave (by {FIRST_WAVE['died']}). If this hand belongs to an edition you are not reading, take it out with kit.py person ROLE QID --remove and read an edition whose hands all died by {FIRST_WAVE['died']}; if every scanned edition carries such a hand, write blocked.json")
         known={word for agent in w['works'][work]['agents'] for value in w['agents'][agent]['name'].values() for word in WORD.findall(value.casefold()) if len(word)>3}
         if sound and persons and known and not any(person['role']=='author' and known&set(WORD.findall(' '.join(person['name'].values()).casefold())) for person in persons):add('evidence.persons: the author entered is not the author the layer names for this work')
         if not isinstance(ev.get('published'),int):add('evidence.published wants the year of the printing used')
@@ -795,7 +799,7 @@ def second_gate(path,reading,ev,locs):
         mine=answers.get(key_) or {}
         if not isinstance(mine.get('holds'),bool):add(f'review.left.{key_}: holds wants true (the work does not bear the reading, as the reason says) or false (it does)')
         elif not mine['holds'] and len(str(mine.get('note','')))<30:add(f'review.left.{key_}: holds false wants a note naming the place that bears the reading (division, page, opening words)')
-    seen=shots(ev,'second');looked=review.get('images') or []
+    seen=shots(ev,'second');looked=[item for item in review.get('images') or [] if item.get('loc') in locs]   # a page looked at for a place that has since left the packet asks nothing
     need=min(len(locs),max(3,math.ceil(len(locs)*0.3)))
     whole=[loc for loc,entry in ev['places'].items() if entry.get('method')=='image']
     if len({item.get('loc') for item in looked})<need:add(f'review.images: the second reader looks at the pages of at least {need} places; {len(looked)} are recorded')
@@ -810,7 +814,8 @@ def second_gate(path,reading,ev,locs):
     for item in looked:
         scan=scan_of(ev,ev['places'].get(item.get('loc')))
         if item.get('loc') not in locs or item.get('n') not in seen.get(scan.get('item'),set()) or item.get('reads') not in('as the packet','differs') or (item.get('reads')=='differs' and len(str(item.get('note','')))<20):add(f"review.images {item.get('loc')}: loc, n (fetched with image N --by second), reads ('as the packet' or 'differs' with a note)")
-    clean=all((review.get(kind) or {}).get(record['id'],{}).get('says')=='yes' for kind in('conceptions','links') for record in reading.get(kind) or []) and all(item.get('reads')=='as the packet' for item in looked) and all((answers.get(key_) or {}).get('holds') is True for key_ in waits)
+    # The review answers for the packet as its reader saw it: what was settled out of the reading since still counts against accept.
+    clean=all(answer.get('says')=='yes' for kind in('conceptions','links') for answer in (review.get(kind) or {}).values()) and all(item.get('reads')=='as the packet' for item in review.get('images') or []) and all((answers.get(key_) or {}).get('holds') is True for key_ in waits)
     if review.get('accept') is not clean:add(f'review.accept must be {str(clean).lower()}: it is true only when every conception and link is a yes, every page reads as the packet and every left reading is rightly left')
     return problems
 
@@ -835,7 +840,8 @@ def cmd_settle(args):
             for key_ in record['from']:moved.append({'key':key_,'reason':f"The second reader ({review['reader']['id']}) does not confirm {record['id']}, or its ground is disputed: {(review.get('links') or {}).get(record['id'],{}).get('note','its conception left the reading')}",'disputed':record})
         else:record['grounds']=[ground for ground in record['grounds'] if ground not in gone]
     kept={key_ for record in reading['conceptions'] for key_ in record['from']}|{key_ for record in reading['links'] for key_ in record['from']}
-    reading['left']=[item for item in reading.get('left',[]) if item['key'] not in kept]+[item for item in moved if item['key'] not in kept and item['key'] not in {x['key'] for x in reading.get('left',[])}]
+    # What was not confirmed stays on record under left, also where a kept conception grows from the same reading: a later reader takes it up from there.
+    reading['left']=[item for item in reading.get('left',[]) if item.get('disputed') or item['key'] not in kept]+moved
     cited={f['place'] for record in reading['conceptions'] for f in record['formula']}
     for loc in [loc for loc in places['places'] if loc not in cited]:
         del places['places'][loc];ev['places'].pop(loc,None);places['corrections']=[c for c in places['corrections'] if c['place']!=f"{places['work']} {loc}"]
@@ -848,8 +854,8 @@ def cmd_accept(args):
         for problem in problems:print('- '+problem)
         die('the gate is shut: nothing is accepted')
     review=part(path,'review.json');reading=part(path,'reading.json');ev=evidence(path)
-    used={entry.get('transcription') for entry in ev['places'].values()}|{None};first=next((source['file'] for source in ev['sources'] if source['role']=='transcription'),None)
-    ev['sources']=[source for source in ev['sources'] if source['role']!='transcription' or source['file'] in used or (used=={None} and source['file']==first)];save(os.path.join(path,'evidence.json'),ev)
+    used={entry.get('transcription') for entry in ev['places'].values()};first=next((source['file'] for source in ev['sources'] if source['role']=='transcription'),None)
+    ev['sources']=[source for source in ev['sources'] if source['role']!='transcription' or source['file'] in used or (None in used and source['file']==first)];save(os.path.join(path,'evidence.json'),ev)   # a place that names no transcription was cut from the first
     basis=args.basis or f"Made by {reading['reader']['id']}; every conception and link read a second time by {review['reader']['id']}, who confirms each; the gate recomputed the comparison with the scan."
     save(os.path.join(path,'accepted.json'),{'by':args.by,'date':today(),'basis':basis,'conceptions':len(reading['conceptions']),'links':len(reading['links']),'left':len(reading.get('left',[]))})
     print(f'accepted: {work_of(path)}')
@@ -875,7 +881,7 @@ def main():
     sub('find',cmd_find,P,(('words',),{}),(('--in',),{'dest':'inside'}));sub('leaf',cmd_leaf,P,(('n',),{'type':int}));sub('scan',cmd_scan,P,(('item',),{'nargs':'?'}))
     sub('image',cmd_image,P,(('n',),{'type':int}),(('--loc',),{}),(('--width',),{'type':int,'default':1100}),(('--by',),{'choices':['maker','second'],'default':'maker'}),(('--file',),{}),(('--scan',),{'help':'the Archive item, where the packet reads several scans'}))
     sub('offset',cmd_offset,P,(('k',),{'type':int}),(('--scan',),{}))
-    sub('person',cmd_person,P,(('role',),{'choices':list(ROLES)}),(('qid',),{'nargs':'?'}),(('--name',),{}),(('--ru',),{}),(('--died',),{'type':int}),(('--source',),{}));sub('printed',cmd_printed,P,(('year',),{'type':int}))
+    sub('person',cmd_person,P,(('role',),{'choices':list(ROLES)}),(('qid',),{'nargs':'?'}),(('--name',),{}),(('--ru',),{}),(('--died',),{'type':int}),(('--source',),{}),(('--remove',),{'action':'store_true','help':'take this hand out of the record again (another edition was chosen)'}));sub('printed',cmd_printed,P,(('year',),{'type':int}))
     sub('rights',cmd_rights,P);sub('why',cmd_why,P,(('file',),{}),(('reason',),{}));sub('stamp',cmd_stamp,P,(('role',),{'choices':['maker','second']}),(('model',),{}),(('effort',),{}))
     sub('cut',cmd_cut,P,(('file',),{}),(('open',),{}),(('close',),{}),(('--loc',),{'required':True}),(('--lang',),{}),(('--nth',),{'type':int}),(('--drop',),{'action':'append','help':'a regular expression of what the transcriber added inside the run (a figure mark, a page mark); may be given more than once'}))
     sub('compare',cmd_compare,P);sub('judge',cmd_judge,P,(('loc',),{}),(('which',),{}),(('stands',),{'choices':['transcription','print']}),(('note',),{'nargs':'?'}))

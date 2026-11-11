@@ -73,6 +73,16 @@
     "A:P038"
    ]
   },
+  "alexander-gottlieb-baumgarten": {
+   "name": {
+    "ru": "Александр Готлиб Баумгартен",
+    "en": "Alexander Gottlieb Baumgarten"
+   },
+   "grew_from": [
+    "B:C-A006",
+    "D:B-A062"
+   ]
+  },
   "arthur-schopenhauer": {
    "name": {
     "ru": "Артур Шопенгауэр",
@@ -81,6 +91,24 @@
    "grew_from": [
     "A:P041",
     "B:A-A003"
+   ]
+  },
+  "baruch-spinoza": {
+   "name": {
+    "ru": "Бенедикт Спиноза",
+    "en": "Baruch Spinoza"
+   },
+   "grew_from": [
+    "B:B-A002"
+   ]
+  },
+  "buffon": {
+   "name": {
+    "ru": "Жорж-Луи Леклерк, граф де Бюффон",
+    "en": "Georges-Louis Leclerc, comte de Buffon"
+   },
+   "grew_from": [
+    "C:A-A030"
    ]
   },
   "david-hume": {
@@ -137,6 +165,17 @@
     "A:P060"
    ]
   },
+  "georg-wilhelm-friedrich-hegel": {
+   "name": {
+    "ru": "Георг Вильгельм Фридрих Гегель",
+    "en": "Georg Wilhelm Friedrich Hegel"
+   },
+   "grew_from": [
+    "A:P010",
+    "B:C-A008",
+    "C:A-A011"
+   ]
+  },
   "henri-bergson": {
    "name": {
     "ru": "Анри Бергсон",
@@ -144,6 +183,15 @@
    },
    "grew_from": [
     "A:P013"
+   ]
+  },
+  "johann-wolfgang-goethe": {
+   "name": {
+    "ru": "Иоганн Вольфганг Гёте",
+    "en": "Johann Wolfgang Goethe"
+   },
+   "grew_from": [
+    "C:A-A010"
    ]
   },
   "joseph-addison": {
@@ -155,6 +203,15 @@
     "A:P040"
    ]
   },
+  "moses-mendelssohn": {
+   "name": {
+    "ru": "Мозес Мендельсон",
+    "en": "Moses Mendelssohn"
+   },
+   "grew_from": [
+    "A:P057"
+   ]
+  },
   "samuel-taylor-coleridge": {
    "name": {
     "ru": "Сэмюэл Тейлор Кольридж",
@@ -162,6 +219,16 @@
    },
    "grew_from": [
     "B:D-A002"
+   ]
+  },
+  "sigmund-freud": {
+   "name": {
+    "ru": "Зигмунд Фрейд",
+    "en": "Sigmund Freud"
+   },
+   "grew_from": [
+    "A:P012",
+    "B:B-A006"
    ]
   },
   "thomas-aquinas": {
@@ -283,6 +350,21 @@
     "A:W043"
    ]
   },
+  "alexander-gottlieb-baumgarten.aesthetica": {
+   "title": {
+    "ru": "Эстетика",
+    "en": "Aesthetics",
+    "original": "Aesthetica"
+   },
+   "agents": [
+    "alexander-gottlieb-baumgarten"
+   ],
+   "original": "la",
+   "grew_from": [
+    "B:C-W006",
+    "D:B-W059"
+   ]
+  },
   "arthur-schopenhauer.die-welt-als-wille-und-vorstellung": {
    "title": {
     "ru": "Мир как воля и представление",
@@ -296,6 +378,33 @@
    "grew_from": [
     "A:W046",
     "B:A-W003"
+   ]
+  },
+  "baruch-spinoza.ethics": {
+   "title": {
+    "ru": "Этика",
+    "en": "Ethics"
+   },
+   "agents": [
+    "baruch-spinoza"
+   ],
+   "original": "la",
+   "grew_from": [
+    "B:B-W003"
+   ]
+  },
+  "buffon.discours-sur-le-style": {
+   "title": {
+    "ru": "Речь о стиле",
+    "en": "Discourse on Style",
+    "original": "Discours sur le style"
+   },
+   "agents": [
+    "buffon"
+   ],
+   "original": "fr",
+   "grew_from": [
+    "C:A-W032"
    ]
   },
   "david-hume.of-the-standard-of-taste": {
@@ -445,6 +554,22 @@
     "A:W064"
    ]
   },
+  "georg-wilhelm-friedrich-hegel.vorlesungen-ueber-die-aesthetik": {
+   "title": {
+    "ru": "Лекции по эстетике",
+    "en": "Lectures on Aesthetics",
+    "original": "Vorlesungen über die Ästhetik"
+   },
+   "agents": [
+    "georg-wilhelm-friedrich-hegel"
+   ],
+   "original": "de",
+   "grew_from": [
+    "A:W018",
+    "B:C-W008",
+    "C:A-W012"
+   ]
+  },
   "henri-bergson.le-rire": {
    "title": {
     "ru": "Смех. Очерк о значении комического",
@@ -457,6 +582,20 @@
    "original": "fr",
    "grew_from": [
     "A:W021"
+   ]
+  },
+  "johann-wolfgang-goethe.einfache-nachahmung-der-natur-manier-styl": {
+   "title": {
+    "ru": "Простое подражание природе, манера, стиль",
+    "en": "Simple Imitation of Nature, Manner, Style",
+    "original": "Einfache Nachahmung der Natur, Manier, Styl"
+   },
+   "agents": [
+    "johann-wolfgang-goethe"
+   ],
+   "original": "de",
+   "grew_from": [
+    "C:A-W011"
    ]
   },
   "joseph-addison.the-pleasures-of-the-imagination": {
@@ -472,6 +611,20 @@
     "A:W045"
    ]
   },
+  "moses-mendelssohn.ueber-das-erhabene-und-naive-in-den-schoenen": {
+   "title": {
+    "ru": "О возвышенном и наивном в изящных науках",
+    "en": "On the Sublime and the Naive in the Fine Sciences",
+    "original": "Über das Erhabene und Naive in den schönen Wissenschaften"
+   },
+   "agents": [
+    "moses-mendelssohn"
+   ],
+   "original": "de",
+   "grew_from": [
+    "A:W060"
+   ]
+  },
   "samuel-taylor-coleridge.biographia-literaria": {
    "title": {
     "ru": "Литературная биография",
@@ -483,6 +636,20 @@
    "original": "en",
    "grew_from": [
     "B:D-W002"
+   ]
+  },
+  "sigmund-freud.das-unheimliche": {
+   "title": {
+    "ru": "Жуткое",
+    "en": "The Uncanny",
+    "original": "Das Unheimliche"
+   },
+   "agents": [
+    "sigmund-freud"
+   ],
+   "original": "de",
+   "grew_from": [
+    "A:W020"
    ]
   },
   "thomas-aquinas.summa-theologiae": {

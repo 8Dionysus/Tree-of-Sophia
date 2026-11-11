@@ -1,0 +1,179 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/aestheticascrip00baumgoog/aestheticascrip00baumgoog_hocr_searchtext.txt.gz",
+   "file": "aestheticascrip00baumgoog.ocr.txt",
+   "sha256": "0a654cd35e836baf63eff9ce5cd6da428b3def3334d0e96dd973f8c9a4a30ab4",
+   "bytes": 527308,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/aestheticascrip00baumgoog/aestheticascrip00baumgoog_hocr_pageindex.json.gz",
+   "file": "aestheticascrip00baumgoog.index.json",
+   "sha256": "e749300df15df7a8714b88aa8c1949c3bd08947c53d4c011c8ceae161a1cab4d",
+   "bytes": 14648,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/aestheticascrip00baumgoog/aestheticascrip00baumgoog_page_numbers.json",
+   "file": "aestheticascrip00baumgoog.pages.json",
+   "sha256": "d49983d128b4512d47c718b1f1b3f54cdd6c32cf543127ab4610b5258a459940",
+   "bytes": 70936,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "transcription",
+   "url": "https://www.tha.de/~harsch/Chronologia/Lspost18/Baumgarten/bau_apro.html",
+   "file": "bau_apro.html",
+   "sha256": "601bc5a9e50a86ee83650109beb8ec6524a38ca310d8cdccffe230cc154ae966",
+   "bytes": 8146,
+   "fetched": "2026-11-10",
+   "text": "bau_apro.html.txt",
+   "why": "Searched Latin Library, Corpus Thomisticum, Wikisource, Project Gutenberg and TextGrid for a Baumgarten Aesthetica transcription. Bibliotheca Augustana gives the complete prolegomena; its source list names the 1750 edition and 1936 reprint."
+  },
+  {
+   "role": "transcription",
+   "url": "https://xn--sthetica-i0a.net/latin_only/greek-v5/pages/text.html",
+   "file": "text.html",
+   "sha256": "e9ec3b35872239232fbe5b3fd0726a04056b9549614dce917543bd5c01e37974",
+   "bytes": 817033,
+   "fetched": "2026-11-10",
+   "text": "text.html.txt",
+   "why": "Searched Latin Library, Corpus Thomisticum, Wikisource, Project Gutenberg and TextGrid for a complete transcription; Bibliotheca Augustana ends at section 13. This digital text project supplies section 14 and will be checked against the 1750 scan."
+  }
+ ],
+ "scan": {
+  "item": "bub_gb_dopKAAAAcAAJ",
+  "ocr": false,
+  "long_s": false,
+  "image_offset": 0
+ },
+ "persons": [
+  {
+   "qid": "Q76517",
+   "name": {
+    "en": "Alexander Gottlieb Baumgarten",
+    "ru": "Александр Готлиб Баумгартен"
+   },
+   "role": "author",
+   "died": 1762,
+   "source": "https://www.wikidata.org/wiki/Q76517"
+  }
+ ],
+ "published": 1750,
+ "images": [
+  {
+   "n": 22,
+   "file": "aestheticascrip00baumgoog-n22.jpg",
+   "sha256": "da1fcedcc1b8de4b04b31372b6ff780543f25f00e1345c66e285540d1b995c2f",
+   "by": "maker"
+  },
+  {
+   "n": 21,
+   "file": "aestheticascrip00baumgoog-n21.jpg",
+   "sha256": "c3d402bcfadc896213996770634573eb9396b8d62813c53f5f43a1df0da102c1",
+   "by": "maker"
+  },
+  {
+   "n": 18,
+   "file": "bub_gb_dopKAAAAcAAJ-n18.jpg",
+   "sha256": "3c40d37e8216069f5ac0af1d20ac1e49697bba49da24a36b456e4ea3fdcd2335",
+   "by": "maker"
+  },
+  {
+   "n": 13,
+   "file": "bub_gb_dopKAAAAcAAJ-n13.jpg",
+   "sha256": "ec52b6456a20baa449030b67362132569277b70fa5b38639471d3712811163d2",
+   "by": "maker"
+  },
+  {
+   "n": 2,
+   "file": "bub_gb_dopKAAAAcAAJ-n2.jpg",
+   "sha256": "8619fe2be7248c5cedfa0bc76af0cce90894b76f559a3cdaf4d511bcaf25c73e",
+   "by": "maker"
+  },
+  {
+   "n": 12,
+   "file": "bub_gb_dopKAAAAcAAJ-n12.jpg",
+   "sha256": "63620a3ff5fb28f60129e9bf10f02a082407815fa5d33ad5e823a4a6bde8c595",
+   "by": "maker",
+   "loc": "§1 p1"
+  },
+  {
+   "n": 16,
+   "file": "bub_gb_dopKAAAAcAAJ-n16.jpg",
+   "sha256": "5ff3f7ed2deac85597854fbe07f86a425b208dc2f4ec959de72e1063db0a4b4a",
+   "by": "maker",
+   "loc": "§13 p5"
+  },
+  {
+   "n": 17,
+   "file": "bub_gb_dopKAAAAcAAJ-n17.jpg",
+   "sha256": "27b1bd9148cffd463c90cb7f528f5c46585ebec01741b03b35273258cef4dbdd",
+   "by": "maker",
+   "loc": "§14 p6"
+  },
+  {
+   "n": 12,
+   "file": "bub_gb_dopKAAAAcAAJ-n12.jpg",
+   "sha256": "63620a3ff5fb28f60129e9bf10f02a082407815fa5d33ad5e823a4a6bde8c595",
+   "by": "second",
+   "loc": "§2 p1"
+  },
+  {
+   "n": 16,
+   "file": "bub_gb_dopKAAAAcAAJ-n16.jpg",
+   "sha256": "5ff3f7ed2deac85597854fbe07f86a425b208dc2f4ec959de72e1063db0a4b4a",
+   "by": "second",
+   "loc": "§13 p5"
+  },
+  {
+   "n": 17,
+   "file": "bub_gb_dopKAAAAcAAJ-n17.jpg",
+   "sha256": "27b1bd9148cffd463c90cb7f528f5c46585ebec01741b03b35273258cef4dbdd",
+   "by": "second",
+   "loc": "§14 p6"
+  }
+ ],
+ "places": {
+  "§1 p1": {
+   "transcription": "bau_apro.html",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the entire definition on first edition p. 1, n12; restored the comma before the closing parenthesis; u/v and long s normalized."
+   },
+   "images": [
+    12
+   ],
+   "method": "image",
+   "share": null
+  },
+  "§13 p5": {
+   "transcription": "bau_apro.html",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the entire division on first edition p. 5, n16; restored the full stop after specialis and earlier corrected abbreviations; u/v and long s normalized."
+   },
+   "images": [
+    16
+   ],
+   "method": "image",
+   "share": null
+  },
+  "§14 p6": {
+   "transcription": "text.html",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the extended passage on first edition p. 6, n17, through imperfectio and the reference to §1; the single section sign was restored, u/v and long s normalized."
+   },
+   "images": [
+    17
+   ],
+   "method": "image",
+   "share": null
+  }
+ }
+}

@@ -1,0 +1,120 @@
+{
+  "work": "baruch-spinoza.ethics",
+  "entry": {
+    "author": {
+      "ru": "Бенедикт Спиноза",
+      "en": "Baruch Spinoza"
+    },
+    "title": {
+      "ru": "Этика",
+      "en": "Ethics"
+    },
+    "original": "la",
+    "witnesses": {
+      "la": {
+        "edition": "Benedicti de Spinoza opera quae supersunt omnia, edited by Heinrich Eberhard Gottlob Paulus, Jena, Bibliopolium Academicum, 1802–1803; University of Michigan copy digitized by Google.",
+        "year": 1802,
+        "url": "https://archive.org/details/benedictidespin01spingoog",
+        "sources": [
+          "https://archive.org/details/benedictidespin01spingoog",
+          "https://www.thelatinlibrary.com/spinoza.ethica3.html"
+        ],
+        "licence": "Public domain book; Google scan from University of Michigan at Internet Archive; Latin Library transcription.",
+        "attribution": "Benedictus de Spinoza, Ethica, in Opera quae supersunt omnia, ed. Heinrich Paulus (Jena: Bibliopolium Academicum, 1802–1803), University of Michigan copy; Latin Library transcription compared with scan.",
+        "rights": {
+          "basis": "public-domain",
+          "russia": "Общественное достояние: Бенедикт Спиноза (автор) — год смерти 1677; Генрих Эбергард Готтлоб Паулус (редактор текста) — год смерти 1851 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
+          "usa": "Public domain: this printing was published in 1802 (before 1930).",
+          "eu": "Public domain: Benedictus de Spinoza (author) died 1677; Heinrich Paulus (editor of the text) died 1851, more than 70 years ago (Directive 2006/116/EC art. 1).",
+          "reasoning": "Spinoza’s Latin text in Paulus’s edition; Latin Library transcription does not identify its edition and is compared with the Paulus scan. Long s is normalized to s; line-end hyphenation is joined."
+        }
+      }
+    },
+    "absent": [
+      {
+        "language": "ru",
+        "reason": "No Russian text is taken in this pass: the line plants the original first."
+      },
+      {
+        "language": "en",
+        "reason": "No English text is taken in this pass: the line plants the original first."
+      }
+    ]
+  },
+  "places": {
+    "III def3 p132": {
+      "label": {
+        "ru": "Часть III, определение 3, с. 132",
+        "en": "Part III, definition 3, p. 132"
+      },
+      "texts": {
+        "la": "Per Affectum intelligo Corporis affectiones, quibus ipsius Corporis agendi potentia augetur, vel minuitur, juvatur vel coërcetur, et simul harum affectionum ideas. Si itaque alicujus harum affectionum adaequata possumus esse causa, tum per Affectum actionem intelligo; alias passionem."
+      },
+      "links": {
+        "la": "https://archive.org/details/benedictidespin01spingoog/page/n170/mode/1up"
+      },
+      "refs": [
+        [
+          "la",
+          "Paulus edition (Jena 1802–1803), p. 132"
+        ]
+      ]
+    },
+    "III affects2 p184": {
+      "label": {
+        "ru": "Часть III, определения аффектов, 2, с. 184",
+        "en": "Part III, definitions of the affects, 2, p. 184"
+      },
+      "texts": {
+        "la": "Laetitia est hominis transitio a minore ad majorem perfectionem."
+      },
+      "links": {
+        "la": "https://archive.org/details/benedictidespin01spingoog/page/n218/mode/1up"
+      },
+      "refs": [
+        [
+          "la",
+          "Paulus edition (Jena 1802–1803), p. 184"
+        ]
+      ]
+    },
+    "III affects3 p184": {
+      "label": {
+        "ru": "Часть III, определения аффектов, 3, с. 184",
+        "en": "Part III, definitions of the affects, 3, p. 184"
+      },
+      "texts": {
+        "la": "Tristitia est hominis transitio a majore ad minorem perfectionem."
+      },
+      "links": {
+        "la": "https://archive.org/details/benedictidespin01spingoog/page/n218/mode/1up"
+      },
+      "refs": [
+        [
+          "la",
+          "Paulus edition (Jena 1802–1803), p. 184"
+        ]
+      ]
+    }
+  },
+  "corrections": [
+    {
+      "lang": "la",
+      "from": "Per affectum intelligo corporis affectiones quibus ipsius corporis agendi potentia augetur vel minuitur, juvatur vel coercetur et simul harum affectionum ideas. Si itaque alicujus harum affectionum adæquata possimus esse causa, tum per affectum actionem intelligo, alias passionem.",
+      "to": "Per Affectum intelligo Corporis affectiones, quibus ipsius Corporis agendi potentia augetur, vel minuitur, juvatur vel coërcetur, et simul harum affectionum ideas. Si itaque alicujus harum affectionum adaequata possumus esse causa, tum per Affectum actionem intelligo; alias passionem.",
+      "evidence": "Scan p. 132, Internet Archive benedictidespin01spingoog, n170; spelling, capitalization and punctuation of the print.",
+      "place": "baruch-spinoza.ethics III def3 p132"
+    },
+    {
+      "lang": "la",
+      "from": "Lætitia",
+      "to": "Laetitia",
+      "evidence": "Scan p. 184, Internet Archive benedictidespin01spingoog, n218: ae in print.",
+      "place": "baruch-spinoza.ethics III affects2 p184"
+    }
+  ],
+  "checked_on_the_page_image": [
+    "p. 132 (definition III, both sentences, n170)",
+    "p. 184 (definitions II and III, n218)"
+  ]
+}
