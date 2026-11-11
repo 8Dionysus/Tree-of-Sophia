@@ -146,6 +146,8 @@ export function fieldIssues(module,{registry=null,library=null,works=null,placeI
     // A link rests on conceptions the field holds: both ends are shown by places of works.
     if(!Array.isArray(link.grounds)||!link.grounds.length)problems.push(`${at}: rests on no conception`);
     for(const ground of link.grounds??[])if(!conceptions.has(ground))problems.push(`${at}: unknown ground ${ground}`);
+    // A link on the map is shown by a place a reader has confirmed: a ground that is only held does not carry it.
+    if(link.admission==='map'&&(link.grounds??[]).some(ground=>conceptions.has(ground))&&!link.grounds.some(ground=>conceptions.get(ground)?.admission==='map'))problems.push(`${at}: is on the map while none of its grounds is`);
     if(link.relation!==undefined&&registry){
       const relation=registry.relation(link.relation);
       if(!relation)problems.push(`${at}: ${link.relation} is not in the Tree's relation registry`);

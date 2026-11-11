@@ -1,0 +1,327 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/aninquiryintothe00hutcuoft/aninquiryintothe00hutcuoft_hocr_searchtext.txt.gz",
+   "file": "aninquiryintothe00hutcuoft.ocr.txt",
+   "sha256": "059c9abeeb71ac921dc9bad7bfb26b403da579389b46227d936e5fab01a33029",
+   "bytes": 503903,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/aninquiryintothe00hutcuoft/aninquiryintothe00hutcuoft_hocr_pageindex.json.gz",
+   "file": "aninquiryintothe00hutcuoft.index.json",
+   "sha256": "3ed5242d3a9b34fce26f647f84c525185e2c996e711b6a4baf28db67c86d46d2",
+   "bytes": 12610,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/aninquiryintothe00hutcuoft/aninquiryintothe00hutcuoft_page_numbers.json",
+   "file": "aninquiryintothe00hutcuoft.pages.json",
+   "sha256": "5b6f7569df0aa825e1f4f656b381b5c31423aaec635ae157a86a4cebfca73aff",
+   "bytes": 60855,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "transcription",
+   "url": "https://web.archive.org/web/20240000000000id_/https://gutenberg.ca/ebooks/hutchesonf-inquiry/hutchesonf-inquiry-00-h-dir/hutchesonf-inquiry-00-h.html",
+   "file": "hutchesonf-inquiry-00-h.html",
+   "sha256": "0a0a3e404fbbcd2ef86c1c5c6c49170948613788dc89913d192d832fc4568687",
+   "bytes": 556051,
+   "fetched": "2026-11-10",
+   "text": "hutchesonf-inquiry-00-h.html.txt"
+  }
+ ],
+ "scan": {
+  "item": "aninquiryintothe00hutcuoft",
+  "ocr": true,
+  "long_s": true,
+  "image_offset": 0
+ },
+ "persons": [
+  {
+   "qid": "Q316367",
+   "name": {
+    "en": "Francis Hutcheson",
+    "ru": "Фрэнсис Хатчесон"
+   },
+   "role": "author",
+   "died": 1746,
+   "source": "https://www.wikidata.org/wiki/Q316367"
+  }
+ ],
+ "published": 1738,
+ "images": [
+  {
+   "n": 35,
+   "file": "aninquiryintothe00hutcuoft-n35.jpg",
+   "sha256": "38c054ed803bc9a9b90454543b388851fde218095343ae06e441cb657a9f3958",
+   "by": "maker"
+  },
+  {
+   "n": 110,
+   "file": "aninquiryintothe00hutcuoft-n110.jpg",
+   "sha256": "6425d29d54cceaa723a45861af27ac475c3323b35863149dc030af7d9ab7fdb5",
+   "by": "maker",
+   "loc": "VI p83"
+  },
+  {
+   "n": 111,
+   "file": "aninquiryintothe00hutcuoft-n111.jpg",
+   "sha256": "0841b2325d9032822ffdfe0401899995c5451d8bd44f55f6a8130e434e34dc4c",
+   "by": "maker",
+   "loc": "VI p80"
+  },
+  {
+   "n": 41,
+   "file": "aninquiryintothe00hutcuoft-n41.jpg",
+   "sha256": "82288a8d876c8c032019bbe7ce156a58a3b5e0713924e09bbcce9ce8028c2b54",
+   "by": "maker"
+  },
+  {
+   "n": 42,
+   "file": "aninquiryintothe00hutcuoft-n42.jpg",
+   "sha256": "b4fa8d05e027870b5588aab0444b1cac36a770d724345328fc1b433ed306fccd",
+   "by": "maker"
+  },
+  {
+   "n": 48,
+   "file": "aninquiryintothe00hutcuoft-n48.jpg",
+   "sha256": "74d20dd2ec9bf64886a80bc6089862ab9e37d6df7b06729c2d41c0a525a7ed82",
+   "by": "maker"
+  },
+  {
+   "n": 41,
+   "file": "aninquiryintothe00hutcuoft-n41.jpg",
+   "sha256": "82288a8d876c8c032019bbe7ce156a58a3b5e0713924e09bbcce9ce8028c2b54",
+   "by": "second",
+   "loc": "I p10"
+  },
+  {
+   "n": 42,
+   "file": "aninquiryintothe00hutcuoft-n42.jpg",
+   "sha256": "b4fa8d05e027870b5588aab0444b1cac36a770d724345328fc1b433ed306fccd",
+   "by": "second",
+   "loc": "I p10"
+  },
+  {
+   "n": 48,
+   "file": "aninquiryintothe00hutcuoft-n48.jpg",
+   "sha256": "74d20dd2ec9bf64886a80bc6089862ab9e37d6df7b06729c2d41c0a525a7ed82",
+   "by": "second",
+   "loc": "II p17"
+  },
+  {
+   "n": 111,
+   "file": "aninquiryintothe00hutcuoft-n111.jpg",
+   "sha256": "0841b2325d9032822ffdfe0401899995c5451d8bd44f55f6a8130e434e34dc4c",
+   "by": "second",
+   "loc": "VI p80"
+  }
+ ],
+ "places": {
+  "II p17": {
+   "transcription": "hutchesonf-inquiry-00-h.html",
+   "method": "ocr",
+   "share": 0.87,
+   "leaves": [
+    48
+   ],
+   "printed": [
+    "16"
+   ],
+   "differences": [
+    {
+     "transcription": "the",
+     "ocr": "",
+     "leaf": 48,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "seem to",
+     "ocr": "feemto",
+     "leaf": 48,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "",
+     "ocr": "™ LV <",
+     "leaf": 48,
+     "stands": "transcription"
+    }
+   ]
+  },
+  "VI p80": {
+   "transcription": "hutchesonf-inquiry-00-h.html",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the complete sentence on scan page 80, leaf n111, from The Internal Sense through Variety."
+   },
+   "images": [
+    111
+   ],
+   "method": "image",
+   "share": 0.542
+  },
+  "I p10": {
+   "transcription": "hutchesonf-inquiry-00-h.html",
+   "dropped": [
+    "Its Pleasures necessary and immediate\\."
+   ],
+   "method": "ocr",
+   "share": 0.917,
+   "leaves": [
+    41,
+    42
+   ],
+   "printed": [
+    "9",
+    "10"
+   ],
+   "differences": [
+    {
+     "transcription": "External Senses",
+     "ocr": "Exter nal Senfts",
+     "leaf": 41,
+     "stands": "transcription",
+     "note": "Read both scanned pages 10 and 11, leaves n41 and n42; the differences are OCR errors, a margin heading or a footnote marker."
+    },
+    {
+     "transcription": "accurate",
+     "ocr": "accu rate",
+     "leaf": 41,
+     "stands": "transcription",
+     "note": "Read both scanned pages 10 and 11, leaves n41 and n42; the differences are OCR errors, a margin heading or a footnote marker."
+    },
+    {
+     "transcription": "discover",
+     "ocr": "rfifcover",
+     "leaf": 41,
+     "stands": "transcription",
+     "note": "Read both scanned pages 10 and 11, leaves n41 and n42; the differences are OCR errors, a margin heading or a footnote marker."
+    },
+    {
+     "transcription": "",
+     "ocr": ",",
+     "leaf": 41,
+     "stands": "transcription",
+     "note": "Read both scanned pages 10 and 11, leaves n41 and n42; the differences are OCR errors, a margin heading or a footnote marker."
+    },
+    {
+     "transcription": "Taste",
+     "ocr": "T ' . afie",
+     "leaf": 41,
+     "stands": "transcription",
+     "note": "Read both scanned pages 10 and 11, leaves n41 and n42; the differences are OCR errors, a margin heading or a footnote marker."
+    },
+    {
+     "transcription": "justly",
+     "ocr": "juilSy",
+     "leaf": 41,
+     "stands": "transcription",
+     "note": "Read both scanned pages 10 and 11, leaves n41 and n42; the differences are OCR errors, a margin heading or a footnote marker."
+    },
+    {
+     "transcription": "Perceptions",
+     "ocr": "Percep - OrJer , Harmony , and Dcfign . 1 1 tions",
+     "leaf": 41,
+     "stands": "transcription",
+     "note": "Read both scanned pages 10 and 11, leaves n41 and n42; the differences are OCR errors, a margin heading or a footnote marker."
+    },
+    {
+     "transcription": "",
+     "ocr": "Sed . i .",
+     "leaf": 42,
+     "stands": "transcription",
+     "note": "Read both scanned pages 10 and 11, leaves n41 and n42; the differences are OCR errors, a margin heading or a footnote marker."
+    },
+    {
+     "transcription": "Internal",
+     "ocr": "In - * ^ \\ ~ * s ternal",
+     "leaf": 42,
+     "stands": "transcription",
+     "note": "Read both scanned pages 10 and 11, leaves n41 and n42; the differences are OCR errors, a margin heading or a footnote marker."
+    },
+    {
+     "transcription": "Perceptions",
+     "ocr": "Percep tions",
+     "leaf": 42,
+     "stands": "transcription",
+     "note": "Read both scanned pages 10 and 11, leaves n41 and n42; the differences are OCR errors, a margin heading or a footnote marker."
+    },
+    {
+     "transcription": "sufficient",
+     "ocr": "fuffieient",
+     "leaf": 42,
+     "stands": "transcription",
+     "note": "Read both scanned pages 10 and 11, leaves n41 and n42; the differences are OCR errors, a margin heading or a footnote marker."
+    },
+    {
+     "transcription": "is",
+     "ocr": "",
+     "leaf": 42,
+     "stands": "transcription",
+     "note": "Read both scanned pages 10 and 11, leaves n41 and n42; the differences are OCR errors, a margin heading or a footnote marker."
+    },
+    {
+     "transcription": "Affinity",
+     "ocr": "",
+     "leaf": 42,
+     "stands": "transcription",
+     "note": "Read both scanned pages 10 and 11, leaves n41 and n42; the differences are OCR errors, a margin heading or a footnote marker."
+    },
+    {
+     "transcription": "is",
+     "ocr": "5 s",
+     "leaf": 42,
+     "stands": "transcription",
+     "note": "Read both scanned pages 10 and 11, leaves n41 and n42; the differences are OCR errors, a margin heading or a footnote marker."
+    },
+    {
+     "transcription": ";",
+     "ocr": ": - ,",
+     "leaf": 42,
+     "stands": "transcription",
+     "note": "Read both scanned pages 10 and 11, leaves n41 and n42; the differences are OCR errors, a margin heading or a footnote marker."
+    },
+    {
+     "transcription": "Knowledge",
+     "ocr": "Know ledge",
+     "leaf": 42,
+     "stands": "transcription",
+     "note": "Read both scanned pages 10 and 11, leaves n41 and n42; the differences are OCR errors, a margin heading or a footnote marker."
+    },
+    {
+     "transcription": "however",
+     "ocr": "how ever",
+     "leaf": 42,
+     "stands": "transcription",
+     "note": "Read both scanned pages 10 and 11, leaves n41 and n42; the differences are OCR errors, a margin heading or a footnote marker."
+    },
+    {
+     "transcription": "Pleasure",
+     "ocr": "Plealure",
+     "leaf": 42,
+     "stands": "transcription",
+     "note": "Read both scanned pages 10 and 11, leaves n41 and n42; the differences are OCR errors, a margin heading or a footnote marker."
+    },
+    {
+     "transcription": "Prospects",
+     "ocr": "Profpedts",
+     "leaf": 42,
+     "stands": "transcription",
+     "note": "Read both scanned pages 10 and 11, leaves n41 and n42; the differences are OCR errors, a margin heading or a footnote marker."
+    },
+    {
+     "transcription": "",
+     "ocr": "*",
+     "leaf": 42,
+     "stands": "transcription",
+     "note": "Read both scanned pages 10 and 11, leaves n41 and n42; the differences are OCR errors, a margin heading or a footnote marker."
+    }
+   ]
+  }
+ }
+}

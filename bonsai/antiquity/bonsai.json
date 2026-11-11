@@ -152,6 +152,15 @@
       }
     },
     {
+      "id": "translation-scopes",
+      "path": "translation-scopes.json",
+      "format": "tos.bonsai.translation-scopes.v1",
+      "role": {
+        "ru": "Ограничения частичных переводов по точному диапазону единиц оригинала; соответствие предложений по-прежнему строит механизм выравнивания.",
+        "en": "Partial translations bounded by exact original-unit ranges; the alignment mechanism still determines sentence correspondence."
+      }
+    },
+    {
       "id": "objects",
       "path": "objects.json",
       "format": "tos.bonsai.objects.v1",

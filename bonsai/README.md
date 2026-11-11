@@ -218,6 +218,13 @@ merges sentences of the original, a monotone alignment cannot follow, and the
 counterpart shown may be the neighbouring sentence; the parallel reading of
 the whole place shows the context.
 
+When a translation covers only part of a corpus work, a stand may declare its
+`translation-scopes.json` entry with the source URL and exact original
+version, text-layer revision and first and last unit IDs. The mechanism checks
+those bindings and aligns only that range; a cited fragment outside it has no
+counterpart in that witness. The range is an unreviewed source-bound proposal,
+not a manually chosen translation of each quotation.
+
 ```sh
 node bonsai/lib/cli.mjs align-corpus antiquity          # align again, report whether the module matches
 node bonsai/lib/cli.mjs align-corpus antiquity --write  # store the new module
@@ -303,7 +310,9 @@ under `grew_from` the research records it grew from.
 `aesthetics/library.json` names the works and authors the conceptions cite. A
 citation names a work by its library ID (`plato.symposium`); the graft map says
 which Tree work that is, and the corpus alignment is made from the cited units
-as for the other stands.
+as for the other stands. A work the public corpus does not hold is cited by
+places of `aesthetics/fragments.json` (`{w, loc}`), each place the formula of
+a conception in the original with the translations beside it.
 
 The modules are written by
 [`review/aesthetics/plant.mjs`](review/aesthetics/plant.mjs) from the research

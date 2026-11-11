@@ -1,0 +1,664 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/schopenhauerssam01scho/schopenhauerssam01scho_hocr_searchtext.txt.gz",
+   "file": "schopenhauerssam01scho.ocr.txt",
+   "sha256": "6805f40972568d36978fea6f2089e435e5961c35dd3eddf94de6580d1653c627",
+   "bytes": 1719938,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/schopenhauerssam01scho/schopenhauerssam01scho_hocr_pageindex.json.gz",
+   "file": "schopenhauerssam01scho.index.json",
+   "sha256": "12c5edcd8bfbba25421728bca01c45d205cdad164ea015ebe49cdfae1fda42b5",
+   "bytes": 26661,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/schopenhauerssam01scho/schopenhauerssam01scho_page_numbers.json",
+   "file": "schopenhauerssam01scho.pages.json",
+   "sha256": "1d22aeca6fe08fd07bb3a501224101ca1367e1acc8b3268cf091e728eed72e1a",
+   "bytes": 120010,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/dieweltalswille00unkngoog/dieweltalswille00unkngoog_hocr_searchtext.txt.gz",
+   "file": "dieweltalswille00unkngoog.ocr.txt",
+   "sha256": "14911eb1cf46004e47ffe5e5f1967a8fb0ecc2fabda416a58744566fca6a4d82",
+   "bytes": 1492210,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/dieweltalswille00unkngoog/dieweltalswille00unkngoog_hocr_pageindex.json.gz",
+   "file": "dieweltalswille00unkngoog.index.json",
+   "sha256": "6e9128dac69aa18a52ca2d5a314bfcebab736ac40f58fe7d7dc56e446453beaf",
+   "bytes": 24641,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/dieweltalswille00unkngoog/dieweltalswille00unkngoog_page_numbers.json",
+   "file": "dieweltalswille00unkngoog.pages.json",
+   "sha256": "da7c8ef74ee6d94c533756956210f4df54cb14596fc32af383a79392200e5eb4",
+   "bytes": 110468,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "transcription",
+   "url": "https://mouseia.org/api/works/schopenhauer-world-as-will/original.txt",
+   "file": "mouseia.txt",
+   "sha256": "28e82a7b198749c697531646752f1e028e24dd27ce074fb7c2c57d7b46babed4",
+   "bytes": 1490476,
+   "fetched": "2026-11-10",
+   "text": "mouseia.txt.txt",
+   "why": "German Wikisource lists no full transcription; Zeno.org timed out on direct fetch. Projekt Gutenberg-DE supplies the text but its terms restrict reuse to private use. Mouseia supplies the corrected 1859 text against its identified Archive scan."
+  },
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/bub_gb_ewqS0dbSGPgC/bub_gb_ewqS0dbSGPgC_hocr_searchtext.txt.gz",
+   "file": "bub_gb_ewqS0dbSGPgC.ocr.txt",
+   "sha256": "db8b06a65305053a320e665952e7600937bfce1d9f4c081fd758bbf977fc7596",
+   "bytes": 1796166,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/bub_gb_ewqS0dbSGPgC/bub_gb_ewqS0dbSGPgC_hocr_pageindex.json.gz",
+   "file": "bub_gb_ewqS0dbSGPgC.index.json",
+   "sha256": "bd56db42429c4642a8790decff01d6ca4e728a2d46ed2d25461e846f481889d8",
+   "bytes": 25553,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/bub_gb_ewqS0dbSGPgC/bub_gb_ewqS0dbSGPgC_page_numbers.json",
+   "file": "bub_gb_ewqS0dbSGPgC.pages.json",
+   "sha256": "8860b1613841ba2e5605beb94be320445f30fdaf095087afed6df3ca8c6f147f",
+   "bytes": 114145,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/dieweltalswille02schogoog/dieweltalswille02schogoog_hocr_searchtext.txt.gz",
+   "file": "dieweltalswille02schogoog.ocr.txt",
+   "sha256": "9ad3ec7c772ab34053653de91eea4e55145e7fe717e8d1c83bb4421c0a2d852b",
+   "bytes": 1524525,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/dieweltalswille02schogoog/dieweltalswille02schogoog_hocr_pageindex.json.gz",
+   "file": "dieweltalswille02schogoog.index.json",
+   "sha256": "c56fdb1a9b72c29defacdbc4c260cbbe34203a19893bea0990f28c3277090568",
+   "bytes": 25303,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/dieweltalswille02schogoog/dieweltalswille02schogoog_page_numbers.json",
+   "file": "dieweltalswille02schogoog.pages.json",
+   "sha256": "4a43b30ea12ba488cf40b4113835efc074c854380fc5dc79fe20b5c01681d58b",
+   "bytes": 124487,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "other",
+   "url": "https://mouseia.org/api/works/schopenhauer-world-as-will",
+   "file": "mouseia.json",
+   "sha256": "03f762b652c4424b98e398703c9fe350ff4f30bd220fc719fd57df58bbdbfa35",
+   "bytes": 4194104,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "transcription",
+   "url": "https://mouseia.org/downloads/schopenhauer-world-as-will/schopenhauer-world-as-will-original.txt",
+   "file": "mouseia-download.txt",
+   "sha256": "7d0f63f0fd7ca494faa49f0189dd1f56dc19bb103e5c9af63b707143d496e7df",
+   "bytes": 1491805,
+   "fetched": "2026-11-10",
+   "text": "mouseia-download.txt.txt",
+   "why": "German Wikisource lists no full transcription; Zeno.org timed out on direct fetch. Projekt Gutenberg-DE supplies the text but its terms restrict reuse to private use. Mouseia supplies the corrected 1859 text against its identified Archive scan."
+  }
+ ],
+ "scan": {
+  "item": "dieweltalswille02schogoog",
+  "ocr": true,
+  "long_s": true,
+  "image_offset": 0
+ },
+ "persons": [
+  {
+   "qid": "Q38193",
+   "name": {
+    "en": "Arthur Schopenhauer",
+    "ru": "Артур Шопенгауэр"
+   },
+   "role": "author",
+   "died": 1860,
+   "source": "https://www.wikidata.org/wiki/Q38193"
+  }
+ ],
+ "published": 1859,
+ "images": [
+  {
+   "n": 110,
+   "file": "dieweltalswille02schogoog-n110.jpg",
+   "sha256": "b148c66491cd0cd3270ff9e2c790c4e83447c1e53f3b0010d13e97a807dbb29f",
+   "by": "maker"
+  },
+  {
+   "n": 112,
+   "file": "dieweltalswille02schogoog-n112.jpg",
+   "sha256": "157925fa9b717987e193505edede30d0269ac7b27b8cf9460d563ce03e4caad9",
+   "by": "maker"
+  },
+  {
+   "n": 113,
+   "file": "dieweltalswille02schogoog-n113.jpg",
+   "sha256": "28f95b1eb8bcdad42ee91853c2c8b8532e5c69a8cd928f8b390e9862d956327e",
+   "by": "maker"
+  },
+  {
+   "n": 245,
+   "file": "dieweltalswille02schogoog-n245.jpg",
+   "sha256": "696184ea8b6ad7d8ff7676af0a37b5eb5ebacd26c2a8124b205ea451ac47532d",
+   "by": "maker"
+  },
+  {
+   "n": 246,
+   "file": "dieweltalswille02schogoog-n246.jpg",
+   "sha256": "c0e03e4df33ed54f09ca8481e0a48ff2513136f1f6e50f053f7a310489164ed2",
+   "by": "maker"
+  },
+  {
+   "n": 279,
+   "file": "dieweltalswille02schogoog-n279.jpg",
+   "sha256": "4be62f91aae4cd1f6e2b05d290577bc63586f806a1b472d8464ecd09c6db036a",
+   "by": "maker"
+  },
+  {
+   "n": 274,
+   "file": "dieweltalswille02schogoog-n274.jpg",
+   "sha256": "84acc90d8a3e355906ca5aed7602cd02ef2c2d3b3b536275f7b781a62c26c421",
+   "by": "maker",
+   "loc": "§39 p238b"
+  },
+  {
+   "n": 275,
+   "file": "dieweltalswille02schogoog-n275.jpg",
+   "sha256": "66edf5acf9ab5a416cb096e1a668fe10fce06b050fd7e8df18f2c3d4be591262",
+   "by": "maker",
+   "loc": "§39 p238b"
+  },
+  {
+   "n": 245,
+   "file": "dieweltalswille02schogoog-n245.jpg",
+   "sha256": "696184ea8b6ad7d8ff7676af0a37b5eb5ebacd26c2a8124b205ea451ac47532d",
+   "by": "second",
+   "loc": "§34 p209"
+  },
+  {
+   "n": 246,
+   "file": "dieweltalswille02schogoog-n246.jpg",
+   "sha256": "c0e03e4df33ed54f09ca8481e0a48ff2513136f1f6e50f053f7a310489164ed2",
+   "by": "second",
+   "loc": "§34 p209"
+  },
+  {
+   "n": 280,
+   "file": "dieweltalswille02schogoog-n280.jpg",
+   "sha256": "67ac321aeb04f4f559ca2dfa9231a10e5cff08eb58a08b452ec94295bf61f47d",
+   "by": "maker"
+  },
+  {
+   "n": 110,
+   "file": "dieweltalswille02schogoog-n110.jpg",
+   "sha256": "b148c66491cd0cd3270ff9e2c790c4e83447c1e53f3b0010d13e97a807dbb29f",
+   "by": "second",
+   "loc": "§13 p70"
+  },
+  {
+   "n": 112,
+   "file": "dieweltalswille02schogoog-n112.jpg",
+   "sha256": "157925fa9b717987e193505edede30d0269ac7b27b8cf9460d563ce03e4caad9",
+   "by": "second",
+   "loc": "§13 p72"
+  },
+  {
+   "n": 113,
+   "file": "dieweltalswille02schogoog-n113.jpg",
+   "sha256": "28f95b1eb8bcdad42ee91853c2c8b8532e5c69a8cd928f8b390e9862d956327e",
+   "by": "second",
+   "loc": "§13 p72"
+  },
+  {
+   "n": 274,
+   "file": "dieweltalswille02schogoog-n274.jpg",
+   "sha256": "84acc90d8a3e355906ca5aed7602cd02ef2c2d3b3b536275f7b781a62c26c421",
+   "by": "second",
+   "loc": "§39 p238b"
+  },
+  {
+   "n": 275,
+   "file": "dieweltalswille02schogoog-n275.jpg",
+   "sha256": "66edf5acf9ab5a416cb096e1a668fe10fce06b050fd7e8df18f2c3d4be591262",
+   "by": "second",
+   "loc": "§39 p238b"
+  }
+ ],
+ "places": {
+  "§13 p70": {
+   "transcription": "mouseia.txt",
+   "method": "ocr",
+   "share": 0.891,
+   "leaves": [
+    110
+   ],
+   "printed": [
+    "69"
+   ],
+   "differences": [
+    {
+     "transcription": "entsteht",
+     "ocr": "ent : fteht",
+     "leaf": 110,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "plötzlich wahrgenommenen Inkongruenz zwischen",
+     "ocr": "plöglich wahr : genommenen Infongruenz zwilchen",
+     "leaf": 110,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "",
+     "ocr": ":",
+     "leaf": 110,
+     "stands": "transcription"
+    }
+   ]
+  },
+  "§13 p72": {
+   "transcription": "mouseia.txt",
+   "method": "ocr",
+   "share": 0.856,
+   "leaves": [
+    112,
+    113
+   ],
+   "printed": [
+    "71",
+    "72"
+   ],
+   "differences": [
+    {
+     "transcription": "sehr",
+     "ocr": "jehr",
+     "leaf": 112,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "so",
+     "ocr": "jo",
+     "leaf": 112,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "verschiedene",
+     "ocr": "verfchlevene",
+     "leaf": 112,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Benutzung",
+     "ocr": "Benugung",
+     "leaf": 112,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "",
+     "ocr": "unterworfen dem Satze vom Grunde . 13",
+     "leaf": 113,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "dem",
+     "ocr": "vem",
+     "leaf": 113,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Namengebung entsprungen ist",
+     "ocr": "Namen : gebung entiprungen if",
+     "leaf": 113,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Witz",
+     "ocr": "Wis",
+     "leaf": 113,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Identität",
+     "ocr": "Ipentität",
+     "leaf": 113,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Verschiedenheit",
+     "ocr": "Verfchledenheit",
+     "leaf": 113,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Verschiedenheit",
+     "ocr": "Berichiedenheit",
+     "leaf": 113,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Wirklichkeit",
+     "ocr": "Wirflichkeit",
+     "leaf": 113,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "als",
+     "ocr": "ald",
+     "leaf": 113,
+     "stands": "transcription"
+    }
+   ]
+  },
+  "§34 p209": {
+   "transcription": "mouseia-download.txt",
+   "method": "ocr",
+   "share": 0.868,
+   "leaves": [
+    245,
+    246
+   ],
+   "printed": [
+    "208",
+    "209"
+   ],
+   "differences": [
+    {
+     "transcription": "gesagt",
+     "ocr": "gejagt",
+     "leaf": 245,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Ausnahme",
+     "ocr": "Wusnahme",
+     "leaf": 245,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "betrachtende",
+     "ocr": "bes trachtende",
+     "leaf": 245,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Erkenntniß",
+     "ocr": "Erfenntniß",
+     "leaf": 245,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "plötzlich",
+     "ocr": "plöplich",
+     "leaf": 245,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Erkenntniß sich",
+     "ocr": "Erfenntniß fih",
+     "leaf": 245,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "jetzt",
+     "ocr": "jegt",
+     "leaf": 245,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "willenloses Subjekt",
+     "ocr": "willenleſes Subjeft",
+     "leaf": 245,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Satze",
+     "ocr": "Sape Schopenhauer , Die Welt . I . 14 210 - . . Dritted Buch . Welt als Vorſtellung .",
+     "leaf": 245,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Objekts",
+     "ocr": "Objeftd",
+     "leaf": 246,
+     "stands": "transcription"
+    }
+   ]
+  },
+  "§39 p238b": {
+   "transcription": "mouseia.txt",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the sentence across p. 238 bottom and p. 239 top; the page reads from Träte through verdrängte."
+   },
+   "images": [
+    274,
+    275
+   ],
+   "method": "image",
+   "share": 0.647
+  },
+  "§39 p238a": {
+   "transcription": "mouseia.txt",
+   "method": "ocr",
+   "share": 0.789,
+   "leaves": [
+    274
+   ],
+   "printed": [
+    "237"
+   ],
+   "differences": [
+    {
+     "transcription": "Erhabenen",
+     "ocr": "Erkabenen",
+     "leaf": 274,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "unterscheidet",
+     "ocr": "unterjcheidet",
+     "leaf": 274,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Schönheit",
+     "ocr": "Schöw beit",
+     "leaf": 274,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "h",
+     "ocr": "b",
+     "leaf": 274,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "erleichternde Beschaffenheit",
+     "ocr": "erleichternte Beichaffenheit",
+     "leaf": 274,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "seinem",
+     "ocr": "feinen",
+     "leaf": 274,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "fröhnende",
+     "ocr": "fröß nende",
+     "leaf": 274,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "unmerklich",
+     "ocr": "unmerflidy",
+     "leaf": 274,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Bewußtseyn",
+     "ocr": "Bewußtjegn",
+     "leaf": 274,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "reines Subjekt",
+     "ocr": "reined Subjeft",
+     "leaf": 274,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "keine",
+     "ocr": "feine",
+     "leaf": 274,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "nachbleibt",
+     "ocr": "nadhbleibt",
+     "leaf": 274,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "ist",
+     "ocr": "iR",
+     "leaf": 274,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Erkennens",
+     "ocr": "Erfennens",
+     "leaf": 274,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "bewußtes",
+     "ocr": "bewupted",
+     "leaf": 274,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "gewaltsames Losreißen",
+     "ocr": "gemwaltfames Loöreigen",
+     "leaf": 274,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "als",
+     "ocr": "ald",
+     "leaf": 274,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "erkannten",
+     "ocr": "erkannien",
+     "leaf": 274,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "desselben",
+     "ocr": "defielben",
+     "leaf": 274,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "freies",
+     "ocr": "freied",
+     "leaf": 274,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Bewußtseyn begleitetes Erheben",
+     "ocr": "Bewußtienn begleiteted Erbeben",
+     "leaf": 274,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "ihn",
+     "ocr": "ibn",
+     "leaf": 274,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Erkenntniß",
+     "ocr": "Grfenntnif",
+     "leaf": 274,
+     "stands": "transcription"
+    }
+   ]
+  },
+  "§39 p243": {
+   "transcription": "mouseia-download.txt",
+   "method": "ocr",
+   "share": 0.935,
+   "leaves": [
+    279,
+    280
+   ],
+   "printed": [
+    "242",
+    "243"
+   ],
+   "differences": [
+    {
+     "transcription": "Eindruck",
+     "ocr": "Eindruf",
+     "leaf": 279,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "uns",
+     "ocr": "und",
+     "leaf": 279,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Anblicks",
+     "ocr": "Anblids",
+     "leaf": 279,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "",
+     "ocr": "16 * 244 Drittes Buch . Welt als Vorſtellung .",
+     "leaf": 279,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "kolossale",
+     "ocr": "loloſſale",
+     "leaf": 280,
+     "stands": "transcription"
+    }
+   ]
+  }
+ }
+}
