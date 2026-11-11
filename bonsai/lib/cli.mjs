@@ -33,6 +33,7 @@ import {exportPhilosophy} from './export.mjs';
 import {dirname,join} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {alignCorpus,citedUnits,corpusReader,formatAlignment} from './corpus-align.mjs';
+import {translationScopesIssues} from './fragments.mjs';
 import {bonsaiIds,checkBonsai,loadBonsai,loadWitnessChapters} from './graft.mjs';
 import {realignWitnesses} from './realign.mjs';
 import {addMedia,MEDIA_LAYER_PATH,mediaFilePath} from './media.mjs';
@@ -105,8 +106,9 @@ if(command==='check'){
     else if(!['alignment','held'].includes(item.id)&&modules[item.id])content.push(modules[item.id]);
   }
   const works=Object.fromEntries(Object.entries(modules.identities?.works??{}).map(([key,value])=>[key,value.tree]));
+  if(modules['translation-scopes']){const issues=translationScopesIssues(modules['translation-scopes']);if(issues.length)throw new Error(`translation scopes: ${issues.join(', ')}`);}
   const read=corpusReader(join(root,option('--corpus')??'access/web/public/public-corpus'));
-  const text=formatAlignment(alignCorpus(citedUnits(content,works,read),works,read)),path=join(home,module.path);
+  const text=formatAlignment(alignCorpus(citedUnits(content,works,read),works,read,modules['translation-scopes']?.scopes??[])),path=join(home,module.path);
   const same=readFileSync(path,'utf8')===text;
   console.log(`${names[0]}: the stored corpus alignment ${same?'matches':'differs from'} the one the mechanism gives`);
   if(rest.includes('--write')){writeFileSync(path,text);console.log('stored');}

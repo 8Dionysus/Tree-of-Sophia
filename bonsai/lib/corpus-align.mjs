@@ -242,14 +242,32 @@ export function citedUnits(content,works,read){
 }
 
 /** The alignment module of a stand: every cited corpus work, its original and translations, and the cited units' counterparts. */
-export function alignCorpus(cited,works,read){
+export function alignCorpus(cited,works,read,scopes=[]){
+  if(!Array.isArray(scopes))throw new Error('Translation scopes must be an array');
+  const seenScopes=new Set();
+  for(const scope of scopes){
+    const key=`${scope.work}:${scope.translationVersionId}`,work=works[scope.work]&&read(works[scope.work]);
+    const original=work?.versions.find(item=>item.id===scope.originalVersionId),translation=work?.versions.find(item=>item.id===scope.translationVersionId);
+    const first=original?.units.findIndex(unit=>unit.id===scope.firstUnitId)??-1,last=original?.units.findIndex(unit=>unit.id===scope.lastUnitId)??-1;
+    if(seenScopes.has(key)||!original||!translation||original===translation||original.language===translation.language||scope.originalRevision!==original.revision||first<0||last<first||!/^https:\/\//.test(scope.source??''))throw new Error(`${scope.work}: invalid or stale translation scope for ${scope.translationVersionId}`);
+    seenScopes.add(key);
+  }
   const out={schema:CORPUS_ALIGNMENT_SCHEMA,mechanism:'bonsai/lib/corpus-align.mjs',review:'unreviewed',works:{},units:{},receipt:{}};
   for(const [key,{original:originalId,units}] of [...cited].sort(([a],[b])=>a.localeCompare(b))){
     const work=read(works[key]),original=work.versions.find(version=>version.id===originalId);
     const meta=version=>({versionId:version.id,language:version.language,revision:version.revision,label:version.label,license:version.license,attribution:version.attribution});
     const translations=[];
     for(const version of work.versions.filter(item=>item!==original&&item.language!==original.language)){
-      const {entries,receipt}=alignVersion(original,version,units);
+      const selected=scopes.filter(scope=>scope.work===key&&scope.translationVersionId===version.id);
+      if(selected.length>1)throw new Error(`${key}: duplicate translation scope for ${version.id}`);
+      const scope=selected[0];let source=original;
+      if(scope){
+        const first=original.units.findIndex(unit=>unit.id===scope.firstUnitId),last=original.units.findIndex(unit=>unit.id===scope.lastUnitId);
+        if(scope.originalVersionId!==original.id||scope.originalRevision!==original.revision||first<0||last<first||!/^https:\/\//.test(scope.source??''))throw new Error(`${key}: invalid or stale translation scope for ${version.id}`);
+        source={...original,units:original.units.slice(first,last+1)};
+      }
+      const {entries,receipt}=alignVersion(source,version,units);
+      if(scope)receipt.sourceScope={firstUnitId:scope.firstUnitId,lastUnitId:scope.lastUnitId,originalRevision:scope.originalRevision,source:scope.source};
       translations.push({...meta(version),coverage:receipt.coverage,...(mixedNotes(version)>2?{notesInText:true}:{})});
       out.receipt[`${key}:${version.id}`]=receipt;
       for(const [unit,entry] of Object.entries(entries))(out.units[unit]??={w:key,t:{}}).t[version.id]=entry;
