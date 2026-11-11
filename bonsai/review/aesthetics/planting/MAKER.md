@@ -43,6 +43,7 @@ K ia . ITEM            # add --long-s for a print that sets the long s
 K fetch . transcription URL
 K person . author Q37160        # the Wikidata item of each hand in the text: the kit reads name and year of death
 K printed . 1757                # the year of the printing whose scan is read
+K person . editor Q123 --remove # a hand entered for an edition you did not take leaves the record again
 ```
 
 A work in several volumes has a scan for each volume read: fetch each with
