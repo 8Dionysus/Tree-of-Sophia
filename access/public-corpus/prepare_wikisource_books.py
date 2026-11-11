@@ -86,6 +86,11 @@ for key, config in {
         'edition': 'The Works of Aristotle, vol. X. Oxford: Clarendon Press, 1921', 'year': '1921', 'rationale': 'Translation published 1921; the translator died 1952.'},
     'lucullus-en': {'work': 'lucullus', 'author': 'cicero', 'title': 'Academic Questions, Book II (Lucullus)', 'split': 'single', 'label': 'Lucullus', **YONGE,
         'id': 'lucullus-en-yonge1891-wikisource', 'edition': CICERO_1891, 'year': '1891', 'rationale': 'Translation published 1853 (here the 1891 printing); the translator died 1891.'},
+    'academica-en': {'work': 'academica', 'author': 'cicero', 'title': 'Academic Questions, Book I', 'split': 'single', 'label': 'Книга 1', **YONGE,
+        'id': 'academica-en-yonge1891-wikisource', 'edition': CICERO_1891, 'year': '1891', 'transcluded_pages': True,
+        'coverage': 'The continuous Book I (§§1–46) only; the additional fragments and testimonia in the Latin corpus are not translated in this witness.',
+        'rights_sources': ['https://catalog.perseus.org/catalog/urn:cts:latinLit:phi0474.phi045.opp-eng1'],
+        'rationale': 'Translation published 1853 (here the 1891 printing); the translator died 1891.'},
     'de-finibus-en': {'work': 'de-finibus-bonorum-et-malorum', 'author': 'cicero', 'title': 'De Finibus', 'split': 'books', **YONGE,
         'id': 'de-finibus-en-yonge1891-wikisource', 'edition': CICERO_1891, 'year': '1891', 'rationale': 'Translation published 1853 (here the 1891 printing); the translator died 1891.'},
     'de-natura-deorum-en': {'work': 'de-natura-deorum', 'author': 'cicero', 'title': 'On the Nature of the Gods', 'split': 'books', **YONGE,
@@ -109,6 +114,27 @@ for key, config in {
     config.update(wiki='en', language='en', attribution=f"{config['credit']} ({config['year']}); contributors to English Wikisource (history of the cited pages).")
     config['rationale'] += EN_RIGHTS
     WORKS[key] = config
+
+# The first four volumes contain 45 tractates. The fifth volume is excluded:
+# B. S. Page translated VI.1–3 and revised VI.4–9, so it needs a separate
+# rights assessment and attribution.
+WORKS['enneads-en-mackenna'] = {
+    'work': 'enneads', 'author': 'plotinus', 'title': 'Enneads', 'split': 'enneads',
+    'id': 'enneads-en-mackenna1917-wikisource', 'translator': 'Stephen MacKenna (1872–1934)',
+    'credit': 'Translated by Stephen MacKenna', 'edition': 'Plotinus, translated by Stephen MacKenna, London: Medici Society, volumes 1–4, 1917–1926',
+    'year': '1917–1926', 'wiki': 'en', 'language': 'en',
+    'attribution': 'Plotinus, translated by Stephen MacKenna (1917–1926); contributors to English Wikisource (history of the cited pages).',
+    'coverage': '45 of 54 tractates: the entire sixth Ennead is excluded because Bertram Samuel Page (1904–1993) translated VI.1–VI.3 and revised VI.4–VI.9.',
+    'rights_sources': ['https://catalogue.nli.ie/Record/vtls000460398',
+                       'https://ojs.library.dal.ca/dionysius/article/download/dio23todd/2745',
+                       'https://www.mashraba.org/read/plotinus-6-9/about'],
+    'transcluded_pages': True,
+    'rationale': ('MacKenna died in 1934; his identified first-edition translations in volumes 1–4 were published in 1917–1926. '
+                  'Public domain in the United States by publication date and in Russia and the EU after the applicable life-plus-70 term. '
+                  'Page translated VI.1–VI.3, revised VI.4–VI.9, and died in 1993; the entire sixth Ennead is excluded from this witness pending separate rights assessment. '
+                  'Wikisource transcription under CC BY-SA 4.0: retain attribution, source, license and change notices. '
+                  'No scan collation or semantic acceptance.'),
+}
 
 SKIP_CLASSES = {'reference', 'mw-editsection', 'noprint', 'ws-noexport', 'navbox', 'reflist', 'references',
                 'mw-references-wrap', 'licenseContainer', 'ws-footer', 'pagenumber'}
@@ -167,6 +193,11 @@ def section(group, label, paragraphs):
 
 def sections_for(work, config, pages):
     sections = []
+    if config['split'] == 'enneads':
+        expected = {(ennead, tractate) for ennead in range(1, 6) for tractate in range(1, 10)}
+        actual = {(p['ennead'], p['tractate']) for p in pages}
+        if actual != expected or len(pages) != len(expected):
+            raise ValueError('Enneads witness must contain exactly I.1–V.9; VI requires separate rights assessment')
     for n, page in enumerate(pages, 1):
         lines = lines_of(page['html'])
         # Notes follow their heading at the end of a page; they are not the work's text.
@@ -203,6 +234,10 @@ def sections_for(work, config, pages):
                 sections[-1]['blocks'][0]['text'] += '\n' + '\n'.join(body)
             else:
                 sections.append(section('', config['label'], body))
+            continue
+        if config['split'] == 'enneads':
+            body = [line for line in lines if line and not line.startswith(HEAD)]
+            sections.append(section(f"Книга {page['ennead']}", f"Глава {page['tractate']}", body))
             continue
         if config['split'] == 'books':
             book = config.get('books', list(range(1, len(pages) + 1)))[n - 1]
@@ -260,14 +295,15 @@ def prepare(work, capture, selection, owner):
     record, pages, raws = load(capture, work)
     sections = sections_for(work, config, pages)
     wiki = config.get('wiki', 'ru')
-    law = LAW[wiki] + LAW_COMMON
+    law = LAW[wiki] + LAW_COMMON + config.get('rights_sources', [])
     index_url = f'https://{wiki}.wikisource.org/wiki/' + urllib.parse.quote(record['index'].replace(' ', '_'))
     articles = [{'n': p['n'], 'title': p['title'], 'article_url': url_of(p['title'], p['revid'], wiki), 'article_oldid': p['revid'],
                  'revision_timestamp': p['timestamp'], 'captured_at': p['captured_at']} for p in pages]
     licenses = sorted({t for p in pages for t in p['templates'] if re.search(r'PD|License', t)})
     # A source's own warning about its text is kept first, verbatim in substance, wherever the limit is shown.
     warning = f"{config['source_warning']} " if config.get('source_warning') else ''
-    limit = (f"{warning}{len(pages)} Wikisource page{'s' if len(pages) > 1 else ''} without page-scan proofreading; "
+    proof = 'with scan-page proofreading status not assessed' if config.get('transcluded_pages') else 'without page-scan proofreading'
+    limit = (f"{warning}{len(pages)} Wikisource page{'s' if len(pages) > 1 else ''} {proof}; "
              f"licence templates {', '.join(licenses) or 'none listed'}. {config.get('coverage', '')} "
              'Scan images were not collated. Automatic alignment is unreviewed.').replace('  ', ' ')
     data = {'header': f"<teiHeader><title>{config['title']}</title><translator>{config['translator']}</translator></teiHeader>",
@@ -282,7 +318,7 @@ def prepare(work, capture, selection, owner):
     source = articles[0]['article_url'] if len(articles) == 1 else index_url
     version = {'id': config['id'], 'language': config.get('language', 'ru'), 'credit': config['credit'], 'creditRole': 'translator',
                'license': LICENSE, 'source': source, 'publication': {'titles': [config['edition']], 'dates': [config['year']]},
-               'attribution': config['attribution'], 'coverageLimit': limit, 'proofreadingStatus': 'not page-proofread',
+               'attribution': config['attribution'], 'coverageLimit': limit, 'proofreadingStatus': 'not assessed' if config.get('transcluded_pages') else 'not page-proofread',
                'coverageStatus': 'partial-source-transcription' if config.get('coverage') else 'complete-source-transcription'}
     files, details = retained.output_for({'id': config.get('work', work), 'author': config['author'], 'title': config['title']}, version, data)
     item = details['item_dir_ref']
@@ -307,7 +343,7 @@ def prepare(work, capture, selection, owner):
         'captured_at': articles[-1]['captured_at'], 'source': {'provider': 'Russian Wikisource' if wiki == 'ru' else 'English Wikisource', 'work': config['title'],
         'translator': config['translator'], 'edition': config['edition'], 'index_url': index_url, 'pages': articles,
         'licence_templates': licenses, 'scan_collation_performed': False}, 'rights_evidence': [index_url] + law,
-        'limitations': warning + 'Each page revision was read again after its render; each API response is retained. The pages are not ProofreadPage transclusions, so no page-scan status is recorded.'}
+        'limitations': warning + ('Each article was rendered twice with identical text and revision; exact API responses are retained. Article oldids do not freeze their transcluded scan pages; the scan leaves were not collated.' if config.get('transcluded_pages') else 'Each page revision was read again after its render; each API response is retained. The pages are not ProofreadPage transclusions, so no page-scan status is recorded.')}
     meta_ref = f'{item}/source-metadata-snapshot.json'
     files[meta_ref] = retained.json_bytes(metadata)
     rights_ref = f'{item}/rights.json'

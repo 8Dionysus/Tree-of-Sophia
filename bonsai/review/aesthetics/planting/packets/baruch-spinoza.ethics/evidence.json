@@ -1,0 +1,234 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/benedictidespin02spingoog/benedictidespin02spingoog_hocr_searchtext.txt.gz",
+   "file": "benedictidespin02spingoog.ocr.txt",
+   "sha256": "27de3498e93a3352dc4921cf49438b9517609430b721e4af473d81c80053c154",
+   "bytes": 1449401,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/benedictidespin02spingoog/benedictidespin02spingoog_hocr_pageindex.json.gz",
+   "file": "benedictidespin02spingoog.index.json",
+   "sha256": "64bc8acaacda55ab3f2a623529f804c6e979d4fa3978b60ee82574e3102b47ac",
+   "bytes": 27097,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/benedictidespin02spingoog/benedictidespin02spingoog_page_numbers.json",
+   "file": "benedictidespin02spingoog.pages.json",
+   "sha256": "9464ca6175c417387dc35fe3f7c72b05fd73b3c726a76df97ce1a73d0685f0c6",
+   "bytes": 123639,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/benedictidespin01spingoog/benedictidespin01spingoog_hocr_searchtext.txt.gz",
+   "file": "benedictidespin01spingoog.ocr.txt",
+   "sha256": "98e7df7a547bc3bb87af22a27d2cc1a83ce99c514433cc4eee061d3def011207",
+   "bytes": 1294289,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/benedictidespin01spingoog/benedictidespin01spingoog_hocr_pageindex.json.gz",
+   "file": "benedictidespin01spingoog.index.json",
+   "sha256": "c0c086eb81e2c039d40b2ad2e9567372493d751e65be0c9b40ee064bf9317fb4",
+   "bytes": 25533,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/benedictidespin01spingoog/benedictidespin01spingoog_page_numbers.json",
+   "file": "benedictidespin01spingoog.pages.json",
+   "sha256": "d605aaf202e9224c18f59485b374ef49e36b6782dd35daa75b48bbe26176c5a6",
+   "bytes": 116911,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/benedictidespin03spingoog/benedictidespin03spingoog_hocr_searchtext.txt.gz",
+   "file": "benedictidespin03spingoog.ocr.txt",
+   "sha256": "1edad343705ebaed9e0f2ab20a0beb0be1db04d7e6385f2489b750bd23e16c3e",
+   "bytes": 1454207,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/benedictidespin03spingoog/benedictidespin03spingoog_hocr_pageindex.json.gz",
+   "file": "benedictidespin03spingoog.index.json",
+   "sha256": "182e1e8ad5d7adf87593dea74911f15db1f576371ec4b9bf2727bda3523ebf30",
+   "bytes": 26915,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/benedictidespin03spingoog/benedictidespin03spingoog_page_numbers.json",
+   "file": "benedictidespin03spingoog.pages.json",
+   "sha256": "0ecae486a2101a708085377904d484de30dac66ea8e60a3d2fd32e72af81d0d1",
+   "bytes": 122180,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "transcription",
+   "url": "https://www.thelatinlibrary.com/spinoza.ethica3.html",
+   "file": "latin-iii",
+   "sha256": "7e735cd417131351c2eb9de0be5cb5dc9029415bc62d25fac68c9a1637ab577d",
+   "bytes": 125787,
+   "fetched": "2026-11-10",
+   "text": "latin-iii.txt"
+  }
+ ],
+ "scan": {
+  "item": "benedictidespin01spingoog",
+  "ocr": true,
+  "long_s": true,
+  "image_offset": 0
+ },
+ "persons": [
+  {
+   "qid": "Q35802",
+   "name": {
+    "en": "Benedictus de Spinoza",
+    "ru": "Бенедикт Спиноза"
+   },
+   "role": "author",
+   "died": 1677,
+   "source": "https://www.wikidata.org/wiki/Q35802"
+  },
+  {
+   "qid": "Q68710",
+   "name": {
+    "en": "Heinrich Paulus",
+    "ru": "Генрих Эбергард Готтлоб Паулус"
+   },
+   "role": "editor",
+   "died": 1851,
+   "source": "https://www.wikidata.org/wiki/Q68710"
+  }
+ ],
+ "published": 1802,
+ "images": [
+  {
+   "n": 218,
+   "item": "benedictidespin01spingoog",
+   "file": "benedictidespin01spingoog-n218.jpg",
+   "sha256": "f4d7c7ca64209fb34872503c727e0dbbce2f5472fff45595c591269e18c2fef7",
+   "by": "maker"
+  },
+  {
+   "n": 170,
+   "item": "benedictidespin01spingoog",
+   "file": "benedictidespin01spingoog-n170.jpg",
+   "sha256": "b0bcbcf7ffe0e9f554dd43cfe16a997de6d7820412015c050858d88ac43f78a1",
+   "by": "maker",
+   "loc": "III def3 p132"
+  },
+  {
+   "n": 170,
+   "item": "benedictidespin01spingoog",
+   "file": "benedictidespin01spingoog-n170.jpg",
+   "sha256": "b0bcbcf7ffe0e9f554dd43cfe16a997de6d7820412015c050858d88ac43f78a1",
+   "by": "second",
+   "loc": "III def3 p132"
+  },
+  {
+   "n": 218,
+   "item": "benedictidespin01spingoog",
+   "file": "benedictidespin01spingoog-n218.jpg",
+   "sha256": "f4d7c7ca64209fb34872503c727e0dbbce2f5472fff45595c591269e18c2fef7",
+   "by": "second",
+   "loc": "III affects3 p184"
+  }
+ ],
+ "places": {
+  "III def3 p132": {
+   "transcription": "latin-iii",
+   "scan": "benedictidespin01spingoog",
+   "images": [
+    170
+   ],
+   "method": "image",
+   "share": 0.622,
+   "whole": {
+    "stands": "transcription",
+    "note": "Read both complete sentences on scan p. 132, n170; corrected spelling, capitals and punctuation to the page."
+   }
+  },
+  "III affects2 p184": {
+   "transcription": "latin-iii",
+   "scan": "benedictidespin01spingoog",
+   "method": "ocr",
+   "share": 0.9,
+   "leaves": [
+    218
+   ],
+   "printed": [
+    "183"
+   ],
+   "differences": [
+    {
+     "transcription": "majorem",
+     "ocr": "[ l 4 ^ majjorem",
+     "leaf": 218,
+     "stands": "transcription"
+    }
+   ]
+  },
+  "III affects3 p184": {
+   "transcription": "latin-iii",
+   "scan": "benedictidespin01spingoog",
+   "method": "ocr",
+   "share": 0.8,
+   "leaves": [
+    218
+   ],
+   "printed": [
+    "183"
+   ],
+   "differences": [
+    {
+     "transcription": "Tristitia",
+     "ocr": "hominis tranfitio a minore ad [ l 4 ^ majjorem perfectionem . III . Triflitia",
+     "leaf": 218,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "",
+     "ocr": "'",
+     "leaf": 218,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "minorem",
+     "ocr": "minof em",
+     "leaf": 218,
+     "stands": "transcription"
+    }
+   ]
+  }
+ },
+ "scans": {
+  "benedictidespin02spingoog": {
+   "item": "benedictidespin02spingoog",
+   "ocr": true,
+   "long_s": false,
+   "image_offset": null
+  },
+  "benedictidespin01spingoog": {
+   "item": "benedictidespin01spingoog",
+   "ocr": true,
+   "long_s": true,
+   "image_offset": 0
+  },
+  "benedictidespin03spingoog": {
+   "item": "benedictidespin03spingoog",
+   "ocr": true,
+   "long_s": true,
+   "image_offset": null
+  }
+ }
+}

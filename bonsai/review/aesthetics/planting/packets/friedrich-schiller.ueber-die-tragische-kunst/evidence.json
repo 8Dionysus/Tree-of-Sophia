@@ -1,0 +1,135 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/schillerswerke15schiuoft/schillerswerke15schiuoft_hocr_searchtext.txt.gz",
+   "file": "schillerswerke15schiuoft.ocr.txt",
+   "sha256": "79635a0c6dc24a44ffb03b7073bdca8b595fc292f79387f465d79ba7e64890cd",
+   "bytes": 2569595,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/schillerswerke15schiuoft/schillerswerke15schiuoft_hocr_pageindex.json.gz",
+   "file": "schillerswerke15schiuoft.index.json",
+   "sha256": "1238e7f7588cc209f447162851743a1ca5a7893662032d96206a1c7251af30ec",
+   "bytes": 33793,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/schillerswerke15schiuoft/schillerswerke15schiuoft_page_numbers.json",
+   "file": "schillerswerke15schiuoft.pages.json",
+   "sha256": "305a10fb310cc1579dbdd153fb98d796045de083c77f24aa1db555d383346a43",
+   "bytes": 143141,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "transcription",
+   "url": "https://de.wikisource.org/w/index.php?title=Ueber_die_tragische_Kunst&action=render",
+   "file": "schiller-render.html",
+   "sha256": "a4262e224366d286393e80b13c57c2c1a9add1043cd8c73584245922b01eb63f",
+   "bytes": 92596,
+   "fetched": "2026-11-10",
+   "text": "schiller-render.html.txt"
+  }
+ ],
+ "scan": {
+  "item": "schillerswerke15schiuoft",
+  "ocr": true,
+  "long_s": true,
+  "image_offset": -11
+ },
+ "persons": [
+  {
+   "qid": "Q22670",
+   "name": {
+    "en": "Friedrich Schiller",
+    "ru": "Фридрих Шиллер"
+   },
+   "role": "author",
+   "died": 1805,
+   "source": "https://www.wikidata.org/wiki/Q22670"
+  },
+  {
+   "qid": "Q2558995",
+   "name": {
+    "en": "Wendelin von Maltzahn",
+    "ru": "Венделин фон Мальтцан"
+   },
+   "role": "editor",
+   "died": 1889,
+   "source": "https://www.wikidata.org/wiki/Q2558995"
+  }
+ ],
+ "published": 1879,
+ "images": [
+  {
+   "n": 177,
+   "file": "schillerswerke15schiuoft-n177.jpg",
+   "sha256": "8a0ed06596ac43dc00724db6143d5e248d1905df4c1321772404e36d9c4339e0",
+   "by": "maker"
+  },
+  {
+   "n": 3,
+   "file": "schillerswerke15schiuoft-n3.jpg",
+   "sha256": "31a00454e0c262ba985696204fd17fd8aca213cb20f02023f0825a6c44786c75",
+   "by": "maker"
+  },
+  {
+   "n": 166,
+   "file": "schillerswerke15schiuoft-n166.jpg",
+   "sha256": "048bcddceb0ce851876874aa8940a7316822f0350dfafd8702a6b1d55cd20964",
+   "by": "maker",
+   "loc": "III p163"
+  },
+  {
+   "n": 167,
+   "file": "schillerswerke15schiuoft-n167.jpg",
+   "sha256": "bdd1c7baed40ed640e63f4654e746ad3bdf3dce10597681ca5b0842ebbe431b1",
+   "by": "maker",
+   "loc": "III p164"
+  },
+  {
+   "n": 166,
+   "file": "schillerswerke15schiuoft-n166.jpg",
+   "sha256": "048bcddceb0ce851876874aa8940a7316822f0350dfafd8702a6b1d55cd20964",
+   "by": "second",
+   "loc": "III p163"
+  },
+  {
+   "n": 167,
+   "file": "schillerswerke15schiuoft-n167.jpg",
+   "sha256": "bdd1c7baed40ed640e63f4654e746ad3bdf3dce10597681ca5b0842ebbe431b1",
+   "by": "second",
+   "loc": "III p164"
+  }
+ ],
+ "places": {
+  "III p163": {
+   "transcription": "schiller-render.html",
+   "images": [
+    166,
+    167
+   ],
+   "method": "image",
+   "share": 0.14,
+   "whole": {
+    "stands": "transcription",
+    "note": "Read both sentences word by word on pp. 163–164, images n166 and n167; corrected the two spellings to match print."
+   }
+  },
+  "III p164": {
+   "transcription": "schiller-render.html",
+   "images": [
+    167
+   ],
+   "method": "image",
+   "share": 0.222,
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the complete sentence on p. 164, image n167; corrected the punctuation to match print."
+   }
+  }
+ }
+}

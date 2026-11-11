@@ -1,0 +1,149 @@
+{
+ "reader": {
+  "id": "terra-2026-11-10-ueber-das-pathetische",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-10",
+  "reads": "The German text of Schiller’s 1801 third part of Kleinere prosaische Schriften, compared with the register readings and the 1879 transcription.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "friedrich-schiller": {
+    "tree": "tos.agent.friedrich-schiller"
+   }
+  },
+  "works": {
+   "friedrich-schiller.ueber-das-pathetische": {
+    "title": {
+     "ru": "О патетическом",
+     "en": "On the Pathetic"
+    },
+    "original": "de",
+    "tree": "tos.work.friedrich-schiller.ueber-das-pathetische",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "friedrich-schiller.ueber-das-pathetische:suffering-nature-and-moral-freedom",
+   "of": [
+    "A:C046"
+   ],
+   "areas": [
+    "AE01",
+    "AE02",
+    "AE05"
+   ],
+   "work": "friedrich-schiller.ueber-das-pathetische",
+   "locus": "III",
+   "formula": [
+    {
+     "place": "III p312"
+    }
+   ],
+   "thesis": {
+    "ru": "К изображению нравственной свободы приходят только через живейшее изображение страдающей природы; трагический герой должен предстать как чувствующее существо, прежде чем мы почтим в нём существо разумное и поверим в силу его души.",
+    "en": "The representation of moral freedom is reached only through the most vivid representation of suffering nature; the tragic hero must first appear as a feeling being before we honour him as a rational being and believe in his strength of soul."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The sentence grounds the representation of suffering nature and moral freedom; it does not name dignity or moral elevation, so those register concepts are not asserted here.",
+   "from": [
+    "A:E054"
+   ]
+  },
+  {
+   "id": "friedrich-schiller.ueber-das-pathetische:sympathy-with-sympathy",
+   "of": [
+    "B:B-C004"
+   ],
+   "areas": [
+    "AE14"
+   ],
+   "work": "friedrich-schiller.ueber-das-pathetische",
+   "locus": "III",
+   "formula": [
+    {
+     "place": "III p345"
+    }
+   ],
+   "thesis": {
+    "ru": "Все аффекты эстетичнее из вторых рук, и сильнее всего сочувствие, которое мы испытываем к сочувствию.",
+    "en": "All affects are more aesthetic at second hand, and the strongest sympathy is that which we feel for sympathy."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "B:B-I009"
+   ],
+   "note": "The passage speaks of sympathy with sympathy; the register concept of the moving and being moved is not explicitly stated here and is omitted."
+  },
+  {
+   "id": "friedrich-schiller.ueber-das-pathetische:suffering-and-dignity-of-human-vocation",
+   "of": [
+    "A:C046",
+    "A:C138"
+   ],
+   "areas": [
+    "AE01",
+    "AE02",
+    "AE05"
+   ],
+   "work": "friedrich-schiller.ueber-das-pathetische",
+   "locus": "III",
+   "formula": [
+    {
+     "place": "III p349"
+    }
+   ],
+   "thesis": {
+    "ru": "В обоих случаях страдание имеет нравственное основание: в первом человек показывает свой нравственный характер и предстаёт нравственно великой личностью, во втором — только своё предназначение к нему и предстаёт эстетически великим предметом.",
+    "en": "In both cases suffering has a moral ground: in the first the person shows moral character and appears as a morally great person; in the second, only the vocation to it, and appears as an aesthetically great object."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The passage distinguishes suffering chosen out of respect for duty from suffering through moral punishment for a transgressed duty; the register reading is narrowed to these two cases.",
+   "from": [
+    "A:E054"
+   ]
+  },
+  {
+   "id": "friedrich-schiller.ueber-das-pathetische:dignity-of-human-vocation-in-aesthetic-estimation",
+   "of": [
+    "A:C118",
+    "A:C138"
+   ],
+   "areas": [
+    "AE01",
+    "AE02",
+    "AE05"
+   ],
+   "work": "friedrich-schiller.ueber-das-pathetische",
+   "locus": "III",
+   "formula": [
+    {
+     "place": "III p351"
+    }
+   ],
+   "thesis": {
+    "ru": "Эстетически возвышен человек, который своим состоянием являет достоинство человеческого предназначения, даже если это предназначение не осуществлено в его личности.",
+    "en": "A person is sublime in aesthetic estimation when their condition presents the dignity of human vocation, even if that vocation is not realised in their person."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The passage concerns dignity of human vocation in aesthetic estimation; it does not itself name suffering.",
+   "from": [
+    "A:E054"
+   ]
+  }
+ ],
+ "links": [],
+ "left": [
+  {
+   "key": "A:R050",
+   "reason": "On pp. 349–350 suffering with a moral ground shows moral character or a vocation to it; p. 351 says that a person presents the dignity of human vocation through their condition. Although Schiller proceeds from the distinction between moral and aesthetic greatness to its further discussion, these sentences do not establish that suffering itself presents dignity. The register link is therefore not asserted."
+  }
+ ]
+}
