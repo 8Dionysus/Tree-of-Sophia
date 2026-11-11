@@ -77,6 +77,22 @@ around them, and take the whole sentences that say the thing:
 K cut . FILE "Opening words of the first sentence" "closing words of the last." --loc "II p16a"
 ```
 
+Where no transcription holds the passage, the words come from the scan's own
+OCR. First say what was looked at, on the projects' own sites and not only
+through a web search:
+
+```
+K why . ITEM.ocr.txt "Wikisource, the Deutsches Textarchiv, Zeno, TextGrid and Project Gutenberg searched on their own sites for the title and for «some words of the passage»: none holds this text."
+K find . "words of the passage"          # the leaf of the scan; K leaf . N prints its OCR
+K cut . ocr "Opening words as the OCR has them" "closing words." --loc "II p46"
+```
+
+The kit joins words divided at line ends and writes ſ as s. Such a place has
+one machine reading behind it, so the page is read in place of the second:
+step 4 reads it whole on the image of every page it runs over, mends each slip
+of the OCR with `K correct`, and the second reader reads it on the page again.
+Take this road only for a passage no transcription holds.
+
 `--drop 'REGEX'` leaves out what the transcriber added inside the run (a
 figure mark, a page mark). A place is understood alone: where its first
 sentence has a pronoun or a «this» whose referent stands in the sentence

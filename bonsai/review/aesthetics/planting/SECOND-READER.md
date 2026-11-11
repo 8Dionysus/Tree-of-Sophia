@@ -43,7 +43,9 @@ conception that cites it.
 ## 2. Look at the page
 
 For at least a third of the places (three at least), and for every place whose
-`evidence.json` method is `image`:
+`evidence.json` method is `image` (a place marked `from_scan` there was cut
+from the scan's own OCR and has no second text behind it: read it on the page
+letter by letter and mark by mark):
 
 ```
 K image . N --by second --loc "LOC"      # N as in the place's link: …/page/nN/…

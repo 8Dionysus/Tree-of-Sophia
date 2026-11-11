@@ -93,6 +93,9 @@ def until_open(work,role,first,again,turns,second=False,thread=None):
         prompt=again.format(gate='\n'.join(text.splitlines()[:60]))
     return thread,'stuck'
 
+def disputed(work):
+    path=os.path.join(PACKETS,work,'reading.json');return os.path.exists(path) and any(item.get('disputed') for item in json.load(open(path)).get('left') or [])
+
 def run(work,retake=False):
     if retake:
         for name in('accepted.json',):
@@ -109,8 +112,8 @@ def run(work,retake=False):
         if state(work).get('block_checked') or block.get('ground')=='rights' and kit('gate',os.path.join(PACKETS,work))[0]==0:return end('blocked')
         state(work,block_checked=True);maker,got=until_open(work,'maker',BLOCK.format(work=work,reason=block.get('reason')),MAKER_ON,MAKER_TURNS)
         if got!='open':return end({'limit':'limit','blocked':'blocked'}.get(got,'maker-stuck'))
-    elif retake or kit('gate',os.path.join(PACKETS,work))[0]:       # a packet whose gate is already open goes straight to its second reader
-        maker,got=until_open(work,'maker',MAKER.format(work=work)+('\n\n'+RETAKE if retake else ''),MAKER_ON,MAKER_TURNS)
+    elif (retake and disputed(work)) or kit('gate',os.path.join(PACKETS,work))[0]:       # a packet whose gate is already open goes straight to its second reader
+        maker,got=until_open(work,'maker',MAKER.format(work=work)+('\n\n'+RETAKE if retake and disputed(work) else ''),MAKER_ON,MAKER_TURNS)
         if got=='blocked':return run(work)                       # the block gets its second look
         if got!='open':return end('limit' if got=='limit' else 'maker-stuck')
     for round_ in range(1,RETURNS+2):

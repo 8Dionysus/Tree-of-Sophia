@@ -73,6 +73,39 @@
     "A:P038"
    ]
   },
+  "arthur-schopenhauer": {
+   "name": {
+    "ru": "Артур Шопенгауэр",
+    "en": "Arthur Schopenhauer"
+   },
+   "grew_from": [
+    "A:P041",
+    "B:A-A003"
+   ]
+  },
+  "david-hume": {
+   "name": {
+    "ru": "Дэвид Юм",
+    "en": "David Hume"
+   },
+   "grew_from": [
+    "A:P006",
+    "B:B-A003",
+    "D:A-035-A02"
+   ]
+  },
+  "friedrich-nietzsche": {
+   "name": {
+    "ru": "Фридрих Ницше",
+    "en": "Friedrich Nietzsche"
+   },
+   "grew_from": [
+    "A:P034",
+    "B:C-A009",
+    "C:B-A003",
+    "D:A-035-A10"
+   ]
+  },
   "friedrich-schiller": {
    "name": {
     "ru": "Фридрих Шиллер",
@@ -83,6 +116,24 @@
     "B:B-A022",
     "C:B-A004",
     "D:A-035-A01"
+   ]
+  },
+  "friedrich-schlegel": {
+   "name": {
+    "ru": "Фридрих Шлегель",
+    "en": "Friedrich Schlegel"
+   },
+   "grew_from": [
+    "A:P060"
+   ]
+  },
+  "henri-bergson": {
+   "name": {
+    "ru": "Анри Бергсон",
+    "en": "Henri Bergson"
+   },
+   "grew_from": [
+    "A:P013"
    ]
   },
   "joseph-addison": {
@@ -101,6 +152,24 @@
    },
    "grew_from": [
     "A:P004"
+   ]
+  },
+  "uvedale-price": {
+   "name": {
+    "ru": "Юведейл Прайс",
+    "en": "Uvedale Price"
+   },
+   "grew_from": [
+    "A:P015"
+   ]
+  },
+  "victor-hugo": {
+   "name": {
+    "ru": "Виктор Гюго",
+    "en": "Victor Hugo"
+   },
+   "grew_from": [
+    "A:P035"
    ]
   }
  },
@@ -195,6 +264,52 @@
     "A:W043"
    ]
   },
+  "arthur-schopenhauer.die-welt-als-wille-und-vorstellung": {
+   "title": {
+    "ru": "Мир как воля и представление",
+    "en": "The World as Will and Representation",
+    "original": "Die Welt als Wille und Vorstellung"
+   },
+   "agents": [
+    "arthur-schopenhauer"
+   ],
+   "original": "de",
+   "grew_from": [
+    "A:W046",
+    "B:A-W003"
+   ]
+  },
+  "david-hume.of-the-standard-of-taste": {
+   "title": {
+    "ru": "О стандарте вкуса",
+    "en": "Of the Standard of Taste"
+   },
+   "agents": [
+    "david-hume"
+   ],
+   "original": "en",
+   "grew_from": [
+    "A:W006",
+    "B:C-W002",
+    "D:A-035-W02"
+   ]
+  },
+  "friedrich-nietzsche.die-geburt-der-tragoedie-aus-dem-geiste": {
+   "title": {
+    "ru": "Рождение трагедии из духа музыки",
+    "en": "The Birth of Tragedy out of the Spirit of Music",
+    "original": "Die Geburt der Tragödie aus dem Geiste der Musik"
+   },
+   "agents": [
+    "friedrich-nietzsche"
+   ],
+   "original": "de",
+   "grew_from": [
+    "A:W039",
+    "B:C-W009",
+    "C:B-W003"
+   ]
+  },
   "friedrich-schiller.ueber-anmut-und-wuerde": {
    "title": {
     "ru": "О грации и достоинстве",
@@ -240,6 +355,62 @@
     "D:A-035-W01"
    ]
   },
+  "friedrich-schiller.ueber-die-tragische-kunst": {
+   "title": {
+    "ru": "О трагическом искусстве",
+    "en": "On Tragic Art",
+    "original": "Über die tragische Kunst"
+   },
+   "agents": [
+    "friedrich-schiller"
+   ],
+   "original": "de",
+   "grew_from": [
+    "A:W014"
+   ]
+  },
+  "friedrich-schiller.ueber-naive-und-sentimentalische-dichtung": {
+   "title": {
+    "ru": "О наивной и сентиментальной поэзии",
+    "en": "On Naive and Sentimental Poetry",
+    "original": "Über naive und sentimentalische Dichtung"
+   },
+   "agents": [
+    "friedrich-schiller"
+   ],
+   "original": "de",
+   "grew_from": [
+    "A:W016"
+   ]
+  },
+  "friedrich-schlegel.ueber-das-studium-der-griechischen-poesie": {
+   "title": {
+    "ru": "Об изучении греческой поэзии",
+    "en": "On the Study of Greek Poetry",
+    "original": "Über das Studium der griechischen Poesie"
+   },
+   "agents": [
+    "friedrich-schlegel"
+   ],
+   "original": "de",
+   "grew_from": [
+    "A:W064"
+   ]
+  },
+  "henri-bergson.le-rire": {
+   "title": {
+    "ru": "Смех. Очерк о значении комического",
+    "en": "Laughter: An Essay on the Meaning of the Comic",
+    "original": "Le Rire. Essai sur la signification du comique"
+   },
+   "agents": [
+    "henri-bergson"
+   ],
+   "original": "fr",
+   "grew_from": [
+    "A:W021"
+   ]
+  },
   "joseph-addison.the-pleasures-of-the-imagination": {
    "title": {
     "ru": "Об удовольствиях воображения",
@@ -265,6 +436,33 @@
    "original": "la",
    "grew_from": [
     "A:W004"
+   ]
+  },
+  "uvedale-price.an-essay-on-the-picturesque-as-compared": {
+   "title": {
+    "ru": "Эссе о живописном в сравнении с возвышенным и прекрасным",
+    "en": "An Essay on the Picturesque, as Compared with the Sublime and the Beautiful"
+   },
+   "agents": [
+    "uvedale-price"
+   ],
+   "original": "en",
+   "grew_from": [
+    "A:W023"
+   ]
+  },
+  "victor-hugo.preface-de-cromwell": {
+   "title": {
+    "ru": "Предисловие к «Кромвелю»",
+    "en": "Preface to Cromwell",
+    "original": "Préface de Cromwell"
+   },
+   "agents": [
+    "victor-hugo"
+   ],
+   "original": "fr",
+   "grew_from": [
+    "A:W040"
    ]
   }
  }
