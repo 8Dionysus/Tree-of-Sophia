@@ -1,0 +1,118 @@
+{
+ "reader": {
+  "id": "terra-2026-11-10-ueber-naive-und-sentimentalische-dichtun",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-10",
+  "reads": "Read Schiller’s German text in the 1795 Die Horen printing alongside the register reading, comparing the DTA transcription with the page images.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "friedrich-schiller": {
+    "tree": "tos.agent.friedrich-schiller"
+   }
+  },
+  "works": {
+   "friedrich-schiller.ueber-naive-und-sentimentalische-dichtung": {
+    "title": {
+     "ru": "О наивной и сентиментальной поэзии",
+     "en": "On Naive and Sentimental Poetry"
+    },
+    "original": "de",
+    "tree": "tos.work.friedrich-schiller.ueber-naive-und-sentimentalische-dichtung",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "of": [
+    "A:C051"
+   ],
+   "areas": [
+    "AE01",
+    "AE06"
+   ],
+   "work": "friedrich-schiller.ueber-naive-und-sentimentalische-dichtung",
+   "locus": "Satyrische Dichtung",
+   "formula": [
+    {
+     "place": "Satyrische Dichtung p11"
+    }
+   ],
+   "status": "text",
+   "verdict": "revise",
+   "note": "A:E100 names irony and the ideal of beauty; these sentences name neither irony nor the ideal specifically as an ideal of beauty. They name the ideal and distinguish pathetic and playful satire.",
+   "from": [
+    "A:E100"
+   ],
+   "id": "friedrich-schiller.ueber-naive-und-sentimentalische-dichtung:satirical-poet-and-ideal",
+   "thesis": {
+    "ru": "Сатирический поэт делает своим предметом удаление от природы и противоречие действительности с идеалом.",
+    "en": "The satirical poet makes the distance from nature and the contradiction between reality and the ideal his subject."
+   }
+  },
+  {
+   "of": [
+    "A:C051"
+   ],
+   "areas": [
+    "AE01",
+    "AE06"
+   ],
+   "work": "friedrich-schiller.ueber-naive-und-sentimentalische-dichtung",
+   "locus": "Satyrische Dichtung",
+   "formula": [
+    {
+     "place": "Satyrische Dichtung p11"
+    }
+   ],
+   "status": "text",
+   "verdict": "revise",
+   "note": "A:E100 names irony and the ideal of beauty; these sentences name neither irony nor the ideal specifically as an ideal of beauty. They name the ideal and distinguish pathetic and playful satire.",
+   "from": [
+    "A:E100"
+   ],
+   "id": "friedrich-schiller.ueber-naive-und-sentimentalische-dichtung:pathetic-and-playful-satire",
+   "thesis": {
+    "ru": "Поэт представляет свой предмет серьёзно и с аффектом в карающей, или патетической, сатире; шутливо и с весёлостью — в шутливой сатире.",
+    "en": "The poet presents his subject seriously and with affect in punitive or pathetic satire, and playfully and with cheerfulness in playful satire."
+   }
+  },
+  {
+   "of": [
+    "A:C051"
+   ],
+   "areas": [
+    "AE01",
+    "AE06"
+   ],
+   "work": "friedrich-schiller.ueber-naive-und-sentimentalische-dichtung",
+   "locus": "Satyrische Dichtung",
+   "formula": [
+    {
+     "place": "Satyrische Dichtung p12"
+    }
+   ],
+   "status": "text",
+   "verdict": "revise",
+   "note": "A:E100 names irony and the ideal of beauty; these sentences name neither irony nor the ideal specifically as an ideal of beauty. They name the ideal and distinguish pathetic and playful satire.",
+   "from": [
+    "A:E100"
+   ],
+   "id": "friedrich-schiller.ueber-naive-und-sentimentalische-dichtung:reality-and-ideal-in-satire",
+   "thesis": {
+    "ru": "В сатире действительность как недостаток противопоставляется идеалу как высшей реальности.",
+    "en": "In satire reality as deficiency is set against the ideal as the highest reality."
+   }
+  }
+ ],
+ "links": [],
+ "left": [
+  {
+   "key": "A:R094",
+   "reason": "Page 12 sets reality against the ideal as the highest reality; it does not identify this ideal as the ideal of beauty, the target A:C020 of the register link."
+  }
+ ]
+}

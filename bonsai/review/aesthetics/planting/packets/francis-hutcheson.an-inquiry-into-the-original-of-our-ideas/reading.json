@@ -1,0 +1,134 @@
+{
+ "reader": {
+  "id": "terra-2026-11-10-an-inquiry-into-the-original-of-our-idea",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-10",
+  "reads": "Read the English fourth edition of 1738 beside the register readings and the scanned pages.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "francis-hutcheson": {
+    "tree": "tos.agent.francis-hutcheson"
+   }
+  },
+  "works": {
+   "francis-hutcheson.an-inquiry-into-the-original-of-our-ideas": {
+    "title": {
+     "ru": "Исследование о происхождении наших идей красоты и добродетели",
+     "en": "An Inquiry into the Original of Our Ideas of Beauty and Virtue"
+    },
+    "original": "en",
+    "tree": "tos.work.francis-hutcheson.an-inquiry-into-the-original-of-our-ideas",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "francis-hutcheson.an-inquiry-into-the-original-of-our-ideas:internal-sense",
+   "of": [
+    "A:C001",
+    "A:C108",
+    "A:C109"
+   ],
+   "areas": [
+    "AE01",
+    "AE17"
+   ],
+   "work": "francis-hutcheson.an-inquiry-into-the-original-of-our-ideas",
+   "locus": "Treatise I, section VI, article X",
+   "formula": [
+    {
+     "place": "VI p80"
+    }
+   ],
+   "thesis": {
+    "ru": "Внутреннее чувство есть пассивная способность получать идеи красоты от всех предметов, в которых есть единообразие среди разнообразия.",
+    "en": "The internal sense is a passive power of receiving ideas of beauty from all objects in which there is uniformity amidst variety."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "A:E010 is grounded in the author’s definition rather than the edition description. B:C-I034 is narrowed to this definition; aesthetic value and perfection are not named in this sentence.",
+   "from": [
+    "A:E010",
+    "B:C-I034"
+   ]
+  },
+  {
+   "id": "francis-hutcheson.an-inquiry-into-the-original-of-our-ideas:immediate-pleasure",
+   "of": [
+    "B:C-C001"
+   ],
+   "areas": [
+    "AE16"
+   ],
+   "work": "francis-hutcheson.an-inquiry-into-the-original-of-our-ideas",
+   "locus": "Treatise I, section I, article XII",
+   "formula": [
+    {
+     "place": "I p10"
+    }
+   ],
+   "thesis": {
+    "ru": "Удовольствие от красоты отлично от знания принципов, соотношений, причин или полезности предмета; красота поражает нас сразу.",
+    "en": "The pleasure of beauty is different from knowledge of principles, proportions, causes, or the usefulness of the object; beauty strikes us at first."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The passage distinguishes immediate pleasure from knowledge of usefulness; it does not here speak of comparison by possession or of social agreement.",
+   "from": [
+    "B:C-I001"
+   ]
+  },
+  {
+   "id": "francis-hutcheson.an-inquiry-into-the-original-of-our-ideas:figures-uniformity-variety",
+   "of": [
+    "A:C001",
+    "A:C108"
+   ],
+   "areas": [
+    "AE01"
+   ],
+   "work": "francis-hutcheson.an-inquiry-into-the-original-of-our-ideas",
+   "locus": "Treatise I, section II, article III",
+   "formula": [
+    {
+     "place": "II p17"
+    }
+   ],
+   "thesis": {
+    "ru": "Фигуры, возбуждающие в нас идеи красоты, представляются такими, в которых есть единообразие среди разнообразия.",
+    "en": "The figures which excite in us ideas of beauty seem to be those in which there is uniformity amidst variety."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The original qualifies the claim as an appearance and identifies figures that excite ideas of beauty.",
+   "from": [
+    "A:E010"
+   ]
+  }
+ ],
+ "links": [
+  {
+   "id": "uniformity-amidst-variety:seems-present-in-figures-that-excite-ideas-of:the-beautiful",
+   "from_concept": "A:C108",
+   "to_concept": "A:C001",
+   "verb": {
+    "ru": "по-видимому, присутствует в фигурах, возбуждающих идеи",
+    "en": "seems present in figures that excite ideas of"
+   },
+   "grounds": [
+    "francis-hutcheson.an-inquiry-into-the-original-of-our-ideas:figures-uniformity-variety"
+   ],
+   "status": "text",
+   "verdict": "revise",
+   "note": "The author qualifies the identification of figures with uniformity amidst variety as those that excite ideas of beauty.",
+   "from": [
+    "A:R010"
+   ]
+  }
+ ],
+ "left": []
+}

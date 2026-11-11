@@ -39,9 +39,11 @@ it. A register's words are a paraphrase, never the work's text.
 - [`readings/`](readings/) holds the readers' records: one file for each pass
   in which a reader opened places in the works themselves. A record names its
   reader, the works it read with their Tree identities, and for each place the
-  conception it bears out: the concepts, the locator, the words that open and
-  close the formula, the thesis, the verdict and the registers' readings it
-  grew from.
+  conception it bears out: the concepts, the locator, the formula, the thesis,
+  the verdict and the registers' readings it grew from. For a work of the
+  public corpus the formula is named by the words that open and close it; for
+  a work the corpus does not hold, by a place of
+  [`bonsai/aesthetics/fragments.json`](../../aesthetics/fragments.json).
 - [`provenance.json`](provenance.json) names the workbooks read, with their
   sizes and SHA-256. The workbooks are not kept here.
 
@@ -111,15 +113,64 @@ node bonsai/lib/cli.mjs check aesthetics
 `plant.mjs` writes the areas and concepts from the layer and `inputs/`, and a
 conception from a record under `readings/` alone. It finds each formula in its
 corpus unit by the words that open and close it and refuses a span that opens
-or closes inside a sentence. `--check` says whether the stored modules are
-what the records give.
+or closes inside a sentence. Where the record keeps a work in the places
+module, it takes the place the record names and refuses one the module does
+not hold or one without sentence-like outer punctuation. This punctuation
+check cannot establish sentence boundaries in the source; the reader must
+verify those against the printed page. `--check` says whether the stored
+modules are what the records give.
+
+A work outside the public corpus enters through `fragments.json`: the exact
+text of each cited place in the original and in the translations whose rights
+allow it, every witness with its edition, source, licence and rights, and the
+way the texts were gathered and corrected under `provenance`. The first such
+work is the *Kritik der Urtheilskraft*: its places are read in volume V of the
+Akademie edition and compared with the page images of the scan, with
+Bernard's English of 1914 beside them. Burke's *Inquiry* follows in its
+English: the words of the transcription the registers read, compared with the
+scan of the Boston edition of 1865, whose pages the places name. Hogarth's
+*Analysis of Beauty* is read the same way against a scan of its first edition
+of 1753. The module holds a place only as the formula of a conception.
 
 A reader's pass over places: read the registers' readings of a place in
 `layer/readings.json`, open the place in the work, decide what the place
 itself says, and write the record. Readings of one place from different
-registers meet in one conception. The verdict is `confirmed` where the
-register's reading stands as it is, `revise` where the place bears out a
-different placing, verb or concept, with a note of what changed.
+registers meet in one conception, and a register's reading of several
+sections grows into the conception of each section it bears out. The verdict
+is `confirmed` where the register's reading stands as it is, `revise` where
+the place bears out a different placing, verb or concept, with a note of what
+changed, and `reconstruction` where a link holds through two sentences of the
+place taken together. A conception or a link the reader makes from the text
+with no register behind it is `undecided`: the stand holds it back until
+another reader has read the place.
+
+### The planting line
+
+Works outside the corpus are planted many at a time by `planting/`: one work
+is one packet under `planting/packets/<work id>/`, made by one reader and read
+again by a second. [planting/AGENTS.md](planting/AGENTS.md) holds the laws of
+the line, `planting/MAKER.md` and `planting/SECOND-READER.md` each reader's
+route.
+
+```sh
+python3 bonsai/review/aesthetics/planting/kit.py queue        # what waits, by wave (queue.json, not tracked)
+python3 bonsai/review/aesthetics/planting/drive.py line --max 2 --count 3   # run readers on the next works
+python3 bonsai/review/aesthetics/planting/kit.py status
+node bonsai/review/aesthetics/plant.mjs                       # plant the accepted packets
+```
+
+`kit.py` writes the text of a place out of a fetched transcription, sets it
+beside the page-indexed OCR of the scan and keeps the reader's judgment of
+every difference; its gate recomputes that comparison from the fetched files
+and checks the rights by their dates, that every waiting register reading is
+grown or left with a reason, that a thesis hedges or negates only where the
+place does, and that the planting goes through. A packet is planted when its
+gate is open and the second reader confirms every conception and link; what
+the second reader does not confirm after one return to the maker leaves the
+reading and stays under `left`, marked disputed, for a reader to take up. The
+first wave takes works printed by 1929 whose every hand died by 1942; the
+later ones wait for the locator and short-quotation form of the places
+module. Fetched files stay outside the checkout (`~/.cache/tos-planting`).
 
 ## Rebuilding the layer
 
