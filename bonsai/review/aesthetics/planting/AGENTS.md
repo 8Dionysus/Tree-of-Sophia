@@ -31,7 +31,10 @@ read again by another (the second reader). `kit.py` is the line's one tool;
 2. **The page decides.** `kit.py compare` sets every place beside the scan.
    Every difference is looked at on the page image, then judged with
    `kit.py judge`. A judgment given without looking is the one fault this line
-   cannot repair afterwards.
+   cannot repair afterwards. A correction that changes a letter where the
+   OCR of the page gives it no support is read on the line at the size of the
+   scan (`kit.py image … --zoom`), by the maker and again by the second
+   reader: on the whole page *possimus* and *possumus* look alike.
 3. **A place is a formula:** the whole sentences in which the work says the
    thing, and no more of them than say it.
 4. **Nothing is planted that no register read.** Every conception and link

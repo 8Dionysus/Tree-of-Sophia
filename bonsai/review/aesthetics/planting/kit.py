@@ -217,11 +217,39 @@ def scan_of(ev,entry):
     item=entry.get('scan') or (name[:-8] if entry.get('from_scan') and name.endswith('.ocr.txt') else None)
     return scans(ev).get(item) or ev.get('scan') or {}
 
+def letters(text):
+    """The letters of a word, with case, accents, ligatures, umlaut spellings and the long s set aside."""
+    for a,b in (('ſ','s'),('æ','ae'),('Æ','ae'),('œ','oe'),('Œ','oe'),('ß','ss'),('ä','ae'),('ö','oe'),('ü','ue'),('Ä','ae'),('Ö','oe'),('Ü','ue')):text=text.replace(a,b)
+    return re.sub(r'[\W\d_]','',''.join(c for c in unicodedata.normalize('NFD',text) if not unicodedata.combining(c)).lower())
+
+def changed(a,b):
+    """The words a correction changes in their letters, as pairs (before, after)."""
+    wa,wb=re.findall(r'\w+',a),re.findall(r'\w+',b);na,nb=[letters(w) for w in wa],[letters(w) for w in wb]
+    return [(' '.join(wa[i1:i2]),' '.join(wb[j1:j2])) for tag,i1,i2,j1,j2 in difflib.SequenceMatcher(None,na,nb,autojunk=False).get_opcodes() if tag!='equal' and ''.join(na[i1:i2])!=''.join(nb[j1:j2])]
+
+def by_eye(places,ev):
+    """The corrections that rest on a reader's eye alone: they change letters, and the page's OCR does not read them either
+    (the place was read from the image, the OCR reads otherwise there, or the print sets the long s where the change is between s and f)."""
+    found=[];work=places.get('work','')
+    for correction in places.get('corrections') or []:
+        pairs=changed(str(correction.get('from','')),str(correction.get('to','')))
+        loc=str(correction.get('place','')).removeprefix(work+' ');entry=(ev.get('places') or {}).get(loc)
+        if not pairs or entry is None:continue
+        read={letters(word) for difference in entry.get('differences',[]) for word in re.findall(r'\w+',difference.get('transcription',''))}
+        long_s=scan_of(ev,entry).get('long_s')
+        if entry.get('method')!='ocr' or any(letters(word) in read for _,after in pairs for word in re.findall(r'\w+',after)) or (long_s and any(letters(a).replace('f','s')==letters(b).replace('f','s') for a,b in pairs)):
+            found.append((loc,'; '.join(f'«{a}» → «{b}»' for a,b in pairs)))
+    return found
+
+def enlarged(ev,by):
+    """The places whose lines a reader has looked at enlarged."""
+    return {image.get('loc') for image in ev.get('images',[]) if image.get('zoom') and image.get('by','maker')==by}
+
 def shots(ev,by):
     """The page images fetched by a reader, by scan."""
     found={}
     for image in ev.get('images',[]):
-        if image.get('by','maker')==by:found.setdefault(image.get('item') or image['file'][:-len(f"-n{image['n']}.jpg")],set()).add(image['n'])
+        if image.get('by','maker')==by and not image.get('zoom'):found.setdefault(image.get('item') or image['file'][:-len(f"-n{image['n']}.jpg")],set()).add(image['n'])
     return found
 
 def cmd_scan(args):
@@ -410,6 +438,19 @@ def cmd_leaf(args):
     path=packet(args.packet);o=ocr(path,evidence(path)) or die('no page-indexed OCR in this packet');n=args.n
     print(f"leaf {n}, printed page {o['printed'].get(n)}:\n"+o['raw'][o['starts'][n]:o['starts'][n+1] if n+1<len(o['starts']) else None])
 
+def band(file,top,bottom,width=1600):
+    """The band of a page between two percents of its height, at the size of the scan: where one letter is in question, the whole page is too small to read it."""
+    try:
+        from PIL import Image
+        with Image.open(file) as image:
+            part_=image.convert('L').crop((0,round(image.height*top/100),image.width,round(image.height*bottom/100)))
+            part_.resize((width,max(1,round(part_.height*width/part_.width)))).save(file,quality=85)
+    except ImportError:
+        tool=next((name for name in('magick','convert') if subprocess.run(['which',name],capture_output=True).returncode==0),None) or die('the enlarged line wants Pillow or ImageMagick')
+        w,h=(int(n) for n in subprocess.run([tool,file,'-format','%w %h','info:'],capture_output=True,text=True).stdout.split()[:2])
+        subprocess.run([tool,file,'-colorspace','Gray','-crop',f'{w}x{round(h*(bottom-top)/100)}+0+{round(h*top/100)}','+repage','-resize',f'{width}x','-quality','85',file],check=True)
+    return open(file,'rb').read()
+
 def narrow(file,width):
     """The Archive answers with the nearest size it keeps, often twice the width asked for: bring the page to the width asked, so that a reader's look costs what a page costs."""
     try:
@@ -427,6 +468,16 @@ def cmd_image(args):
     path=packet(args.packet);ev=evidence(path)
     item=args.scan or (scan_of(ev,ev['places'].get(args.loc)).get('item') if args.loc and ev['places'].get(args.loc) else None) or (ev.get('scan') or {}).get('item') or die('name the scan first (kit.py ia)')
     if item not in scans(ev):die(f'{item} is not a scan of this packet (kit.py ia)')
+    if args.zoom:
+        try:top,bottom=(int(part_) for part_ in args.zoom.split('-'));assert 0<=top<bottom<=100 and bottom-top<=25
+        except (ValueError,AssertionError):die('--zoom wants the band of the page height in percent that holds the lines, as 41-48 (25 at most)')
+        if not args.loc:die('--zoom wants --loc: the place whose line is enlarged')
+        name=f'{item}-n{args.n}-z{top}-{bottom}.jpg'
+        with open(cache(path,name),'wb') as file:file.write(open(args.file,'rb').read() if args.file else get(f'https://archive.org/download/{item}/page/n{args.n}.jpg'))
+        raw=band(cache(path,name),top,bottom)
+        ev['images']=[image for image in ev.get('images',[]) if not(image['file']==name and image.get('by')==args.by)]
+        ev['images'].append({'n':args.n,'item':item,'file':name,'sha256':hashlib.sha256(raw).hexdigest(),'by':args.by,'loc':args.loc,'zoom':[top,bottom]})
+        save(os.path.join(path,'evidence.json'),ev);print(f'{cache(path,name)}\nlook at this file: the lines between {top}% and {bottom}% of the page, at the size of the scan. Where the line sits elsewhere, ask again with another band');return
     name=f'{item}-n{args.n}.jpg';url=f'https://archive.org/download/{item}/page/n{args.n}_w{args.width}.jpg'
     raw=open(args.file,'rb').read() if args.file else get(url)
     with open(cache(path,name),'wb') as file:file.write(raw)
@@ -602,8 +653,11 @@ def ready():
     if not run.returncode:return None
     return thrown(run.stderr) or ' / '.join((run.stdout+run.stderr).strip().splitlines()[-3:])
 
+OWES=[]      # what an accepted packet owes to a rule younger than its acceptance: named, and settled at its next retake
+
 def gate(path,second=False,offline=False):
     problems=[];work=work_of(path);add=problems.append
+    owe=OWES.append if part(path,'accepted.json') is not None else add
     blocked=part(path,'blocked.json')
     if blocked is not None:
         if len(str(blocked.get('reason','')))<40 or not blocked.get('tried'):add('blocked.json: give the reason in a full sentence and list under tried what was looked at (with URLs)')
@@ -680,6 +734,9 @@ def gate(path,second=False,offline=False):
         elif correction['to'] not in locs[loc]['texts'].get(original,''):add(f'correction {correction["place"]}: «{correction["to"]}» is not in the place')
         elif correction['from']==correction['to']:add(f'correction {correction["place"]}: it changes nothing; take it out of corrections')
         elif any(scan.get('long_s') for scan in scans(ev).values()) and correction['from'].replace('ß','ss')==correction['to'].replace('ß','ss'):add(f'correction {correction["place"]}: «{correction["from"]}» → «{correction["to"]}» only trades ß and ss. In a print with the long s, ſs is the print’s ß and stays ß; ſſ is ss. Put the text back with kit.py cut and take this out of corrections')
+    # a letter changed against the transcription, which the OCR does not read either, is read on the enlarged line
+    for loc,what in by_eye(places,ev):
+        if loc in locs and loc not in enlarged(ev,'maker'):owe(f'correction {work} {loc}: {what} rests on the eye alone, for the transcription reads otherwise and the OCR of the page does not read it either. Look at the line at the size of the scan: kit.py image . N --loc "{loc}" --zoom TOP-BOTTOM (the leaf of the place; the band of the page height in percent that holds the line). Keep the correction where the enlarged line bears it letter by letter; where it does not, put the word of the transcription back (kit.py cut) and take the correction out')
     # the evidence, recomputed from the fetched files
     scan=ev.get('scan') or {};taken=shots(ev,'maker');live=not offline and bool(ev.get('sources')) and all(os.path.exists(cache(path,source['file'])) for source in ev['sources'])
     ocr_files={source['file'] for source in ev.get('sources',[]) if source['role']=='scan-ocr'}
@@ -795,12 +852,14 @@ def gate(path,second=False,offline=False):
         run=subprocess.run(['node',os.path.join(REVIEW,'plant.mjs'),'--dry','--packet',work],capture_output=True,text=True)
         if run.returncode and thrown(run.stderr):add(LINE_FAULT.format(error=thrown(run.stderr)))
         elif run.returncode:problems.extend(f'plant: {line}' for line in (run.stdout+run.stderr).strip().splitlines()[-12:])
-    if second and not problems:problems.extend(second_gate(path,reading,ev,locs))
+    if second and not problems:problems.extend(second_gate(path,reading,ev,locs,owe))
     return problems,'open' if not problems else 'shut'
 
-def second_gate(path,reading,ev,locs):
-    problems=[];add=problems.append;review=part(path,'review.json')
+def second_gate(path,reading,ev,locs,owe=None):
+    problems=[];add=problems.append;review=part(path,'review.json');owe=owe or add
     if review is None:return ['review.json is missing']
+    for loc,what in by_eye(part(path,'places.json') or {},ev):
+        if loc in locs and loc not in enlarged(ev,'second'):owe(f'review: the correction {what} at {loc} rests on the eye alone. Read the line at the size of the scan — kit.py image . N --by second --loc "{loc}" --zoom TOP-BOTTOM — and say under review.images what the enlarged line reads')
     reader=review.get('reader') or {}
     if not all(reader.get(name) for name in('id','model','date')) or reader.get('id')==reading['reader']['id']:add('review.reader wants id, model, date, and is another reader than the maker')
     for kind in('conceptions','links'):
@@ -816,7 +875,7 @@ def second_gate(path,reading,ev,locs):
         elif not mine['holds'] and len(str(mine.get('note','')))<30:add(f'review.left.{key_}: holds false wants a note naming the place that bears the reading (division, page, opening words)')
     seen=shots(ev,'second');looked=[item for item in review.get('images') or [] if item.get('loc') in locs]   # a page looked at for a place that has since left the packet asks nothing
     need=min(len(locs),max(3,math.ceil(len(locs)*0.3)))
-    whole=[loc for loc,entry in ev['places'].items() if entry.get('method')=='image']
+    whole=[loc for loc,entry in ev['places'].items() if entry.get('method')=='image' and loc in locs]     # a place that has left the packet stays in the evidence and asks nothing
     if len({item.get('loc') for item in looked})<need:add(f'review.images: the second reader looks at the pages of at least {need} places; {len(looked)} are recorded')
     for loc in whole:
         if loc not in {item.get('loc') for item in looked}:add(f'review.images: {loc} was read from the image alone and wants the second reader’s look')
@@ -836,9 +895,10 @@ def second_gate(path,reading,ev,locs):
 
 def cmd_gate(args):
     path=packet(args.packet);problems,state=gate(path,second=args.second,offline=args.offline)
-    save(cache(path,'gate.json'),{'state':state,'second':args.second,'problems':problems,'at':datetime.datetime.now().isoformat(timespec='seconds')})
+    save(cache(path,'gate.json'),{'state':state,'second':args.second,'problems':problems,'owes':list(OWES),'at':datetime.datetime.now().isoformat(timespec='seconds')})
     for problem in problems:print('- '+problem)
-    print(f'gate: {state}'+(f' ({len(problems)} to settle)' if problems else ''))
+    for debt in OWES:print('owes: '+debt)
+    print(f'gate: {state}'+(f' ({len(problems)} to settle)' if problems else '')+(f', owes {len(OWES)}' if OWES else ''))
     sys.exit(3 if any(problem.startswith('line: ') for problem in problems) else 1 if problems else 0)     # 3: the line's fault, not the packet's
 
 def cmd_ready(args):
@@ -900,7 +960,7 @@ def main():
     sub('fetch',cmd_fetch,P,(('role',),{'choices':['transcription','other']}),(('url',),{}),(('--name',),{}),(('--file',),{'help':'take the bytes from a local file already fetched from URL'}))
     sub('ia',cmd_ia,P,(('item',),{}),(('--long-s',),{'action':'store_true','help':'the print sets the long s, which the OCR reads as f'}),(('--dir',),{}),(('--files',),{}))
     sub('find',cmd_find,P,(('words',),{}),(('--in',),{'dest':'inside'}));sub('leaf',cmd_leaf,P,(('n',),{'type':int}));sub('scan',cmd_scan,P,(('item',),{'nargs':'?'}))
-    sub('image',cmd_image,P,(('n',),{'type':int}),(('--loc',),{}),(('--width',),{'type':int,'default':1100}),(('--by',),{'choices':['maker','second'],'default':'maker'}),(('--file',),{}),(('--scan',),{'help':'the Archive item, where the packet reads several scans'}))
+    sub('image',cmd_image,P,(('n',),{'type':int}),(('--loc',),{}),(('--width',),{'type':int,'default':1100}),(('--by',),{'choices':['maker','second'],'default':'maker'}),(('--file',),{}),(('--scan',),{'help':'the Archive item, where the packet reads several scans'}),(('--zoom',),{'help':'TOP-BOTTOM in percent of the page height: the lines of a correction, enlarged'}))
     sub('offset',cmd_offset,P,(('k',),{'type':int}),(('--scan',),{}))
     sub('person',cmd_person,P,(('role',),{'choices':list(ROLES)}),(('qid',),{'nargs':'?'}),(('--name',),{}),(('--ru',),{}),(('--died',),{'type':int}),(('--source',),{}),(('--remove',),{'action':'store_true','help':'take this hand out of the record again (another edition was chosen)'}));sub('printed',cmd_printed,P,(('year',),{'type':int}))
     sub('rights',cmd_rights,P);sub('why',cmd_why,P,(('file',),{}),(('reason',),{}));sub('stamp',cmd_stamp,P,(('role',),{'choices':['maker','second']}),(('model',),{}),(('effort',),{}))
