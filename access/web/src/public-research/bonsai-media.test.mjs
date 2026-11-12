@@ -1,9 +1,9 @@
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {describe,expect,it} from 'vitest';
-import {addMedia,mediaFromObservation,mediaIssues,readMedia} from '../../../../bonsai/lib/media.mjs';
+import {OPEN_FLAGS,addMedia,mediaFilePath,mediaFromObservation,mediaIssues,readMedia} from '../../../../bonsai/lib/media.mjs';
 import {MEDIA_HOSTS} from '../../../../bonsai/lib/media-hosts.mjs';
-import {captionLines,captionLinks,fittedImage,fittedSize,imageSources,layerAddress} from './media-view.mjs';
+import {captionLines,captionLinks,fittedImage,fittedSize,imageSources,layerAddress,linkGroups} from './media-view.mjs';
 
 const read=path=>JSON.parse(readFileSync(new URL(`../../../../bonsai/antiquity/${path}`,import.meta.url),'utf8'));
 const digest=text=>createHash('sha256').update(text,'utf8').digest('hex');
@@ -179,39 +179,139 @@ describe('an image of the National Gallery of Art',()=>{
   });
 });
 
+describe('images whose holders keep closed terms: Commons, the Saint Louis Art Museum, the Staatliche Museen zu Berlin',()=>{
+  // As the bridges read them, cut to what the module reads.
+  const files=(file,preview)=>[{role:'primary',form:'file',access_url:file,image_service:null,file_url:file,preview_url:preview,
+    file_fingerprint:{url:file,final_url:null,media_type:'image/jpeg',byte_size:3728577,sha256:'4'.repeat(64),width_pixels:3840,height_pixels:4784},
+    preview_fingerprint:{url:preview,final_url:null,media_type:'image/jpeg',byte_size:180000,sha256:'5'.repeat(64),width_pixels:960,height_pixels:1196}}];
+  const page='https://commons.wikimedia.org/wiki/File:Rembrandt_-_The_laughing_man.jpg';
+  const commons={
+    schema_version:'tos_media_provider_observation_v1',provider:'commons',requested_object:'File:Rembrandt - The laughing man.jpg',observed_at:'2026-11-09T01:12:00Z',
+    requests:[{role:'file-record',sha256:'6'.repeat(64)},{role:'object-record',sha256:'7'.repeat(64)}],
+    object:{record_url:'https://www.wikidata.org/wiki/Q17275997',repository:'Mauritshuis',
+      identifiers:[{scheme:'Wikimedia Commons file',value:'File:Rembrandt - The laughing man.jpg'},{scheme:'Wikidata',value:'http://www.wikidata.org/entity/Q17275997'},{scheme:'Collection accession number',value:'598'}],
+      titles:[{text:'The Laughing Man',language:'en',role:null}],makers:[{label:'Rembrandt',role:null,authority_uris:['http://www.wikidata.org/entity/Q5598']}],production_statements:[],
+      dating:{statement:'circa 1629–1630',begin_year:1629,end_year:1630},classifications:['painting'],materials:[],
+      dimensions:[{kind:'height',value:'15.4',unit:'cm'},{kind:'width',value:'12.2',unit:'cm'}],credit_lines:[],depicted:[]},
+    rights:[{scope:'image',provider_field:'P6216',value:'Q19652',statement_uri:null,label:'Public domain',stated_in:page},
+      {scope:'image',provider_field:'Copyrighted',value:'False',statement_uri:null,label:'Public domain',stated_in:page}],
+    images:files('https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3b/Rembrandt_-_The_laughing_man.jpg/3840px-Rembrandt_-_The_laughing_man.jpg','https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3b/Rembrandt_-_The_laughing_man.jpg/960px-Rembrandt_-_The_laughing_man.jpg'),
+  };
+  const ru=key=>({mediaCommonsPublicDomain:'Общественное достояние · Wikimedia Commons',mediaPublicDomain:'Общественное достояние'})[key]??key;
+  it('keys a Commons work by its Wikidata item, cites its holder\'s number, and links its status to the file\'s page',()=>{
+    const {workId,work,image}=mediaFromObservation(commons);
+    expect(workId).toBe('commons:Q17275997');
+    expect(work).toMatchObject({holder:'Mauritshuis',inventory:'598',size_mm:[154,122],record:'https://www.wikidata.org/wiki/Q17275997'});
+    expect(captionLinks({work,image},{t:ru})).toEqual([
+      {part:'record',text:'Mauritshuis · 598',url:'https://www.wikidata.org/wiki/Q17275997'},
+      {part:'rights',text:'Общественное достояние · Wikimedia Commons',url:page},
+    ]);
+    // Where Wikidata states no number of the holder, the card cites the Wikidata item.
+    const unnumbered=structuredClone(commons);unnumbered.object.identifiers.pop();
+    expect(mediaFromObservation(unnumbered)).toMatchObject({workId:'commons:Q17275997',work:{inventory:'Q17275997'}});
+    const licensed=structuredClone(commons);licensed.rights[0].value='Q50423863';
+    expect(()=>mediaFromObservation(licensed)).toThrow(/rights/);
+    // Without a structured status, the public-domain licence of the file's page.
+    const paged=structuredClone(commons);paged.rights.splice(0,1,{scope:'image',provider_field:'License',value:'pd',statement_uri:null,label:'Public domain',stated_in:page});
+    const fromPage=mediaFromObservation(paged);
+    expect(captionLinks(fromPage,{t:ru})[1]).toEqual({part:'rights',text:'Общественное достояние · Wikimedia Commons',url:page});
+    paged.rights[0].value='cc-by-sa-4.0';
+    expect(()=>mediaFromObservation(paged)).toThrow(/rights/);
+  });
+  it('keys an SMB work by its ObjID and shows its photograph under the Public Domain Mark its credit states',()=>{
+    const smb={...structuredClone(commons),provider:'smb',requested_object:'obj-965972',
+      object:{...commons.object,record_url:'https://search.smb.museum/object/obj-965972',repository:'Staatliche Museen zu Berlin, Alte Nationalgalerie',
+        identifiers:[{scheme:'SMB ObjID',value:'965972'},{scheme:'SMB inventory number',value:'A II 898'}]},
+      rights:[{scope:'image',provider_field:'Fotonachweis',value:'Staatliche Museen zu Berlin, Alte Nationalgalerie / Klaus Göken Public Domain Mark 1.0',statement_uri:PDM,label:'Public Domain Mark 1.0',stated_in:'https://search.smb.museum/object/obj-965972'}]};
+    const {workId,work,image}=mediaFromObservation(smb);
+    expect(workId).toBe('smb:965972');
+    expect(work.inventory).toBe('A II 898');
+    expect(captionLinks({work,image},{t:ru})[1]).toEqual({part:'rights',text:'Public Domain Mark 1.0',url:PDM});
+    smb.rights[0].statement_uri=null;
+    expect(()=>mediaFromObservation(smb)).toThrow(/rights/);
+  });
+  it('shows a Saint Louis Art Museum image under the Rights its page states, linked to that page',()=>{
+    const record='https://www.slam.org/collection/objects/36470/';
+    const slam={...structuredClone(commons),provider:'slam',requested_object:'36470',
+      object:{...commons.object,record_url:record,repository:'Saint Louis Art Museum',identifiers:[{scheme:'Saint Louis Art Museum object number',value:'78:1945'}]},
+      rights:[{scope:'image',provider_field:'Rights',value:'Public Domain',statement_uri:null,label:'Public Domain',stated_in:record}]};
+    const {workId,work,image}=mediaFromObservation(slam);
+    expect(workId).toBe('slam:78:1945');
+    expect(captionLinks({work,image},{t:ru})[1]).toEqual({part:'rights',text:'Общественное достояние',url:record});
+  });
+});
+
 describe('the Zarathustra media',()=>{
   const read=path=>JSON.parse(readFileSync(new URL(`../../../../bonsai/zarathustra/${path}`,import.meta.url),'utf8'));
   const media=read('media.json'),identities=read('identities.json'),layers=read('layers.json');
-  const core=['concepts','figures','proposed'].flatMap(name=>read(`core/${name}.json`)),chains=read('core/chains.json');
+  const core=['concepts','figures','proposed','links'].flatMap(name=>read(`core/${name}.json`)),chains=read('core/chains.json');
   const subjects=new Set([...core,...chains.flatMap(chain=>chain.states??[])].map(record=>record.id));
   it('holds its contract, binds core records only, and has a copy of every file in the layer store',()=>{
     expect(mediaIssues(media,{subjects,identities,digest,layers})).toEqual([]);
   });
-  it('shows shared motifs from open images: files of the Met, a Rijksmuseum sheet and paintings of the National Gallery of Art',()=>{
-    expect(new Set(media.uses.map(use=>use.role))).toEqual(new Set(['motif']));
-    expect(media.uses.length).toBe(32);
-    const terms=image=>({file:'met',['iiif-image-3']:'rijksmuseum',['iiif-image-2']:'nga'})[image.api];
-    const open={met:{statement:null,field:'isPublicDomain',value:'true'},rijksmuseum:{statement:PDM},nga:{statement:null,field:'openaccess',value:'1'}};
+  it('shows motifs, comparisons and responses to the book from open images: the Met, the Rijksmuseum, the National Gallery of Art, Commons, Saint Louis and Berlin',()=>{
+    expect(new Set(media.uses.map(use=>use.role))).toEqual(new Set(['motif','comparison','book-response']));
+    expect(media.uses.length).toBe(512);
+    // 267 stars and 87 links, each link with the registry's own selection for its meaning.
+    const links=new Set(read('core/links.json').map(link=>link.id)),shown=new Set(media.uses.map(use=>use.subject));
+    expect([...shown].filter(id=>!links.has(id)).length).toBe(267);
+    expect([...shown].filter(id=>links.has(id)).length).toBe(87);
+    expect(Object.keys(media.works).length).toBe(76);
+    const open={
+      met:[{statement:null,field:'isPublicDomain',value:'true'}],rijksmuseum:[{statement:PDM}],nga:[{statement:null,field:'openaccess',value:'1'}],
+      commons:[{statement:null,field:'P6216',value:'Q19652'},{statement:null,field:'License',value:'pd'}],
+      slam:[{statement:null,field:'Rights',value:'Public Domain'}],smb:[{statement:PDM,field:'Fotonachweis'}],
+    };
     for(const image of Object.values(media.images)){
-      expect(media.works[image.work].provider).toBe(terms(image));
-      expect(image.rights).toMatchObject(open[terms(image)]);
+      const terms=open[media.works[image.work].provider];
+      expect(terms.some(term=>Object.entries(term).every(([key,value])=>image.rights[key]===value))).toBe(true);
     }
   });
 });
 
 describe('the Antiquity media',()=>{
-  const media=read('media.json'),identities=read('identities.json'),collection=read('collection.json');
+  const media=read('media.json'),identities=read('identities.json'),collection=read('collection.json'),layers=read('layers.json');
   const subjects=new Set(collection.entities.map(entry=>entry.id));
-  it('holds its contract, its subjects and its graft map',()=>{
-    expect(mediaIssues(media,{subjects,identities,digest})).toEqual([]);
+  it('holds its contract, its subjects, its graft map and its layer store',()=>{
+    expect(mediaIssues(media,{subjects,identities,digest,layers})).toEqual([]);
   });
-  it('shows a portrait for each of the seven authors it binds, from public-domain image services on the listed hosts',()=>{
+  it('shows a portrait for twelve of its eighteen authors, and art for its works, schools and concepts, from open images',()=>{
     const portraits=media.uses.filter(use=>use.role==='author-portrait').map(use=>use.subject).sort();
-    expect(portraits).toEqual(['aristotle','cicero','diogenes','hippocrates','plato','seneca','socrates']);
+    expect(portraits).toEqual(['aristotle','cicero','diogenes','epicurus','hippocrates','marcus','plato','plotinus','seneca','socrates','xenophon','zeno']);
+    const kinds=new Map(collection.entities.map(entry=>[entry.id,entry.kind]));
+    const shown=role=>[...new Set(media.uses.filter(use=>use.role===role).map(use=>kinds.get(use.subject)))].sort();
+    expect(shown('book-response')).toEqual(['work']);
+    expect(shown('motif')).toEqual(['concept','school']);
+    expect(media.uses.length).toBe(31);
     for(const image of Object.values(media.images)){
-      expect(MEDIA_HOSTS).toContain(new URL(image.service).host);
-      expect(image.rights.statement).toBe(PDM);
+      const work=media.works[image.work];
+      if(image.api==='file')expect(['met','commons']).toContain(work.provider);
+      else expect(MEDIA_HOSTS).toContain(new URL(image.service).host);
+      expect(image.rights.statement===PDM||OPEN_FLAGS.some(flag=>image.rights.field===flag.field&&image.rights.value===flag.value)).toBe(true);
     }
+  });
+  it('keeps the copies of its file images in its layer store',()=>{
+    const files=Object.values(media.images).filter(image=>image.api==='file');
+    expect(files.length).toBeGreaterThan(0);
+    for(const image of files)for(const file of [image.file,image.preview])
+      expect(layers.entries).toContainEqual({path:mediaFilePath(file),sha256:file.sha256,bytes:file.bytes});
+  });
+});
+
+describe('the images on a link\'s card',()=>{
+  const item=(id)=>({role:'comparison',image:{id},work:{id:id.split('/')[0]}});
+  it('are the link\'s own where the bonsai binds images to the link',()=>{
+    expect(linkGroups({own:[item('met:1/whole')],ends:[{label:'Лев',items:[item('met:2/whole')]}]})).toEqual([{label:null,items:[item('met:1/whole')]}]);
+  });
+  it('are else each end\'s under its name, an image both ends share once, an end without images left out',()=>{
+    expect(linkGroups({ends:[{label:'Лев',items:[item('met:2/whole'),item('met:3/whole')]},{label:'Дитя',items:[item('met:3/whole'),item('met:4/whole')]},{label:'Осёл',items:[]}]})).toEqual([
+      {label:'Лев',items:[item('met:2/whole'),item('met:3/whole')]},{label:'Дитя',items:[item('met:4/whole')]},
+    ]);
+    expect(linkGroups({ends:[{label:'Лев',items:[item('met:2/whole')]},{label:'Дитя',items:[item('met:2/whole')]}]})).toEqual([{label:'Лев',items:[item('met:2/whole')]}]);
+    expect(linkGroups({ends:[]})).toEqual([]);
+  });
+  it('ask the image service for a copy fitted into the strip\'s box',()=>{
+    expect(imageSources({api:'iiif-image-3',service:'https://iiif.micr.io/qnEHd'},{box:160}).src).toBe('https://iiif.micr.io/qnEHd/full/!160,160/0/default.jpg');
   });
 });
 

@@ -5,6 +5,9 @@
                                   needs translating (todo.json)
   python3 catalogs.py apply    -> writes derived and translated entries (translated/*.json) into the
                                   catalogs and removes the entries of retellings no source shows any more
+  python3 catalogs.py plan2    -> todo2/<lang>.json: every form the stands and their cores show without a translation
+  python3 catalogs.py parts N  -> todo2/<lang>-titles.json and todo2/<lang>-1..N.json, for translators in parallel
+  python3 catalogs.py apply2   -> writes translated2/<lang>.json or its parts into the catalogs
 """
 import os as _os
 # The review folder (bonsai/review) and the repository root; TOS_REVIEW and TOS_REPO override them.
@@ -42,11 +45,28 @@ process.stdout.write(JSON.stringify({NODE_CONTENT,RESEARCH_ROUTES,RELATION_INQUI
 '''], cwd=f'{REPO}/access/web')
     return json.loads(js)
 
+# A stand's own files: its modules and its core (the subjects, links, routes and places of the book, without the
+# core's record of history and its control file).
+CORE_SKIP = ('history-current.json', 'control.json')
+def stand_files(stand):
+    top = glob.glob(f'{REPO}/bonsai/{stand}/*.json')
+    core = [f for f in glob.glob(f'{REPO}/bonsai/{stand}/core/**/*.json', recursive=True) if os.path.basename(f) not in CORE_SKIP]
+    return sorted(top + core)
+
 def bonsai_now():
     out = set()
     for stand in ('antiquity', 'zarathustra'):
-        for f in glob.glob(f'{REPO}/bonsai/{stand}/*.json'): forms(json.load(open(f)), out)
+        for f in stand_files(stand): forms(json.load(open(f)), out)
     return out
+
+def where(path, record):
+    """Where a form stands, for its translator: the file and field, and the record it belongs to by its title or the
+    two subjects of its link."""
+    names = lambda key: (record.get(key) or {}).get('en') if isinstance(record.get(key), dict) else record.get(key)
+    said = [path]
+    if names('title'): said.append(f"in «{names('title')}»")
+    if record.get('from') and record.get('to') and isinstance(record['from'], str): said.append(f"link {record['from']} → {record['to']}")
+    return ' · '.join(said)
 
 SPLIT = {'es': r'(?<=[.!?…»”])\s+(?=[¿¡«“"(\[—–-]?[A-ZÁÉÍÓÚÑÜ0-9])', 'de': r'(?<=[.!?…»“”])\s+(?=[„«»“"(\[—–-]?[A-ZÄÖÜ0-9])', 'zh-Hans': r'(?<=[。！？])'}
 def sentences(text, lang):
@@ -125,9 +145,11 @@ def pairs(value, out):
 def old_bonsai_forms():
     """Forms the stands' JSON held on main, before the fragments pass."""
     out = set()
-    names = subprocess.check_output(['git', '-C', REPO, 'ls-tree', '--name-only', 'origin/main', 'bonsai/antiquity/', 'bonsai/zarathustra/'], text=True).split()
+    names = subprocess.check_output(['git', '-C', REPO, 'ls-tree', '-r', '--name-only', 'origin/main', 'bonsai/antiquity/', 'bonsai/zarathustra/'], text=True).split()
     for name in names:
-        if name.endswith('.json'):
+        top = name.count('/') == 2
+        core = name.split('/')[2:3] == ['core'] and os.path.basename(name) not in CORE_SKIP
+        if name.endswith('.json') and (top or core):
             forms(json.loads(subprocess.check_output(['git', '-C', REPO, 'show', f'origin/main:{name}'])), out)
     return out
 
@@ -136,19 +158,21 @@ def plan2():
     now = content_now()
     content = forms(now, set())
     ru_of = pairs(now, {})
-    bon_now = set()
+    bon_now = set(); place = {}
     for stand in ('antiquity', 'zarathustra'):
-        for f in glob.glob(f'{REPO}/bonsai/{stand}/*.json'):
-            d = json.load(open(f)); pairs(d, ru_of)
+        for f in stand_files(stand):
+            d = json.load(open(f)); pairs(d, ru_of); name = os.path.relpath(f, f'{REPO}/bonsai')
             # A place's texts are a work's words, not forms.
-            def walk(v):
+            def walk(v, path, record):
                 if isinstance(v, dict):
-                    if isinstance(v.get('ru'), str) and isinstance(v.get('en'), str) and v['en'].strip() and re.search(r'[^\W\d_]', v['en']): bon_now.add(v['en'])
+                    if isinstance(v.get('ru'), str) and isinstance(v.get('en'), str) and v['en'].strip() and re.search(r'[^\W\d_]', v['en']):
+                        bon_now.add(v['en']); place.setdefault(v['en'], where(path, record))
+                    own = v if ('title' in v or 'from' in v) else record
                     for k, x in v.items():
-                        if k != 'texts': walk(x)
+                        if k != 'texts': walk(x, f'{path}.{k}', own)
                 elif isinstance(v, list):
-                    for x in v: walk(x)
-            walk(d)
+                    for x in v: walk(x, path, record)
+            walk(d, name, {})
     rows = [json.loads(l) for f in sorted(glob.glob(f'{S}/frag/out/*.jsonl')) for l in open(f)]
     rows += [json.loads(l) for f in sorted(glob.glob(f'{S}/anti/out/a*.jsonl')) for l in open(f)]
     derive = {}
@@ -170,7 +194,7 @@ def plan2():
                     parts = sentences(old, l)
                     if len(parts) == n: got = (' ' if l != 'zh-Hans' else '').join(parts[i] for i in keep); break
                 if got: derived[l][en] = {'section': section, 'value': got}; stats[f'{l}:derived'] += 1
-                else: todo[l].append({'section': section, 'en': en, 'ru': ru_of.get(en, '')}); stats[f'{l}:todo'] += 1
+                else: todo[l].append({'section': section, 'en': en, 'ru': ru_of.get(en, ''), **({'where': place[en]} if en in place else {})}); stats[f'{l}:todo'] += 1
     old = forms(json.load(open(f'{S}/rewrite/original.json')), set()) | old_bonsai_forms()
     live = content | bon_now
     stale = {l: {'public': sorted(k for k in pub[l] if k in old and k not in live), 'bonsai': sorted(k for k in bon[l] if k in old and k not in live)} for l in LANGS}
@@ -179,11 +203,32 @@ def plan2():
     json.dump({'derived': derived, 'stale': stale}, open(f'{D}/plan2.json', 'w'), ensure_ascii=False, indent=1)
     print(dict(stats)); print({l: {k: len(v) for k, v in stale[l].items()} for l in LANGS})
 
+def parts():
+    """todo2/<lang>-titles.json and todo2/<lang>-<k>.json: the forms to translate in parts. The titles come first, since
+    every other part names its subjects by them; the rest stand in order of where they stand, so that one record's forms
+    stay together in one part."""
+    n = int(sys.argv[2]) if len(sys.argv) > 2 else 4
+    for l in LANGS:
+        todo = json.load(open(f'{D}/todo2/{l}.json'))
+        title = lambda x: x.get('where', '').split(' · ')[0].endswith('.title')
+        rest = sorted((x for x in todo if not title(x)), key=lambda x: x.get('where', ''))
+        json.dump([x for x in todo if title(x)], open(f'{D}/todo2/{l}-titles.json', 'w'), ensure_ascii=False, indent=1)
+        size = -(-len(rest) // n)
+        for k in range(n): json.dump(rest[k * size:(k + 1) * size], open(f'{D}/todo2/{l}-{k + 1}.json', 'w'), ensure_ascii=False, indent=1)
+    print('parts:', n, '+ titles')
+
+def translated2(l):
+    """The translations of one language: its whole file or its parts."""
+    out = {}
+    for f in sorted(glob.glob(f'{D}/translated2/{l}.json') + glob.glob(f'{D}/translated2/{l}-*.json')):
+        if not f.endswith('-fixes.json'): out.update(json.load(open(f))[l])
+    return out
+
 def apply2():
     p = json.load(open(f'{D}/plan2.json'))
     for l in LANGS:
         todo = {x['en']: x['section'] for x in json.load(open(f'{D}/todo2/{l}.json'))}
-        t = json.load(open(f'{D}/translated2/{l}.json'))[l]
+        t = translated2(l)
         missing = [en for en in todo if not (t.get(en) or '').strip()]
         if missing: sys.exit(f'{l}: {len(missing)} untranslated, e.g. {missing[:3]}')
         for en, entry in p['derived'][l].items(): (bon if entry['section'] == 'bonsai' else pub)[l][en] = entry['value']
@@ -206,4 +251,4 @@ def apply2():
     print('applied')
 
 if __name__ == '__main__':
-    {'plan': plan, 'apply': apply, 'plan2': plan2, 'apply2': apply2}[sys.argv[1]]()
+    {'plan': plan, 'apply': apply, 'plan2': plan2, 'parts': parts, 'apply2': apply2}[sys.argv[1]]()

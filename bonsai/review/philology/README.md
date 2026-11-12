@@ -206,7 +206,10 @@ history.
 `bonsai/<stand>/stories.json` (`tos.bonsai.stories.v1`, written by
 `stories.py bundle`) holds, for each single-word term whose word has a
 history, a short story of its word in Russian and English, told by a writer
-model from the stand's own sources only. A term's word has its history under
+model from the stand's own sources only. Each story stands on the original and
+its own language, as its reader sees them: the Russian on German and Russian
+pieces and Antonovsky's words, the English on German and English pieces and
+Common's; the check refuses a piece, a word or a letter of the other one. A term's word has its history under
 its own lemma, its modern spelling or the lemma its forms take in the book
 (Thier → Tier, Werthe → Wert); `packets` names the terms without one. `stories.py packets` gathers each term's packet, every piece with
 its id: the three Wiktionary tellings (`W.*`), the descent (`E`), the archive's

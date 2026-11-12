@@ -1,0 +1,111 @@
+{
+  "work": "david-hume.a-treatise-of-human-nature",
+  "entry": {
+    "author": {
+      "ru": "Дэвид Юм",
+      "en": "David Hume"
+    },
+    "title": {
+      "ru": "Трактат о человеческой природе",
+      "en": "A Treatise of Human Nature"
+    },
+    "original": "en",
+    "witnesses": {
+      "en": {
+        "edition": "A Treatise of Human Nature, volumes I and II (London: John Noon, 1739), first edition; Internet Archive digitized microfilm scans.",
+        "year": 1739,
+        "url": "https://archive.org/details/bim_eighteenth-century_a-treatise-of-human-natu_hume-david_1739_1",
+        "sources": [
+          "https://archive.org/details/bim_eighteenth-century_a-treatise-of-human-natu_hume-david_1739_1",
+          "https://archive.org/details/bim_eighteenth-century_a-treatise-of-human-natu_hume-david_1739_2",
+          "https://davidhume.org/texts/t/full"
+        ],
+        "licence": "Public domain historical book; scans from Internet Archive; text transcribed by Hume Texts Online.",
+        "attribution": "David Hume, A Treatise of Human Nature (London: John Noon, 1739), volumes I and II; text from Hume Texts Online compared with Internet Archive scans.",
+        "rights": {
+          "basis": "public-domain",
+          "russia": "Общественное достояние: Дэвид Юм (автор) — год смерти 1776 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
+          "usa": "Public domain: this printing was published in 1739 (before 1930).",
+          "eu": "Public domain: David Hume (author) died 1776, more than 70 years ago (Directive 2006/116/EC art. 1).",
+          "reasoning": "Hume’s original English text; Hume Texts Online follows the first edition from an ECCO scan, compared here with Internet Archive microfilm of the 1739 printing. Long s is normalized to s and line breaks are joined."
+        }
+      }
+    },
+    "absent": [
+      {
+        "language": "ru",
+        "reason": "No Russian text is taken in this pass: the line plants the original first."
+      }
+    ]
+  },
+  "places": {
+    "II.1.11 p74": {
+      "label": {
+        "ru": "Кн. II, ч. I, разд. XI, с. 74",
+        "en": "Book II, part I, section XI, p. 74"
+      },
+      "texts": {
+        "en": "When any affection is infus'd by sympathy, it is at first known only by its effects, and by those external signs in the countenance and conversation, which convey an idea of it. This idea is presently converted into an impression, and acquires such a degree of force and vivacity, as to become the very passion itself, and produce an equal emotion, as any original affection."
+      },
+      "links": {
+        "en": "https://archive.org/details/bim_eighteenth-century_a-treatise-of-human-natu_hume-david_1739_2/page/n77/mode/1up"
+      },
+      "refs": [
+        [
+          "en",
+          "First edition (London 1739), vol. II, p. 74"
+        ]
+      ]
+    },
+    "II.1.1 p3": {
+      "label": {
+        "ru": "Кн. II, ч. I, разд. I, с. 3",
+        "en": "Book II, part I, section I, p. 3"
+      },
+      "texts": {
+        "en": "The reflective impressions may be divided into two kinds, viz. the calm and the violent. Of the first kind is the sense of beauty and deformity in action, composition, and external objects. Of the second are the passions of love and hatred, grief and joy, pride and humility. This division is far from being exact."
+      },
+      "links": {
+        "en": "https://archive.org/details/bim_eighteenth-century_a-treatise-of-human-natu_hume-david_1739_2/page/n6/mode/1up"
+      },
+      "refs": [
+        [
+          "en",
+          "First edition (London 1739), vol. II, p. 3"
+        ]
+      ]
+    },
+    "I.1.3 p25": {
+      "label": {
+        "ru": "Кн. I, ч. I, разд. III, с. 25–26",
+        "en": "Book I, part I, section III, pp. 25–26"
+      },
+      "texts": {
+        "en": "The chief exercise of the memory is not to preserve the simple ideas, but their order and position. In short, this principle is supported by such a number of common and vulgar phænomena, that we may spare ourselves the trouble of insisting on it any farther.\n\nThe same evidence follows us in our sacond principle, of the liberty of the imagination to transpose and change its ideas. The fables we meet with in poems and romances put this entirely out of question. Nature there is totally confounded, and nothing mentioned but winged horses, fiery dragons, and monstrous giants. Nor will this liberty of the fancy appear strange, when we consider, that all our ideas are copy'd from our impressions, and that there are not any two impressions which are perfectly inseparable."
+      },
+      "links": {
+        "en": "https://archive.org/details/bim_eighteenth-century_a-treatise-of-human-natu_hume-david_1739_1/page/n32/mode/1up"
+      },
+      "refs": [
+        [
+          "en",
+          "First edition (London 1739), vol. I, pp. 25–26"
+        ]
+      ]
+    }
+  },
+  "corrections": [
+    {
+      "lang": "en",
+      "from": "second",
+      "to": "sacond",
+      "evidence": "First edition, vol. I, p. 25, Internet Archive leaf n32; the page prints ſa-cond across the line break.",
+      "place": "david-hume.a-treatise-of-human-nature I.1.3 p25"
+    }
+  ],
+  "checked_on_the_page_image": [
+    "Vol. II, p. 3 (reflective impressions and passions)",
+    "Vol. II, p. 74 (sympathy and the idea of an affection)",
+    "Vol. I, pp. 25–26 (memory, evidence, liberty of imagination and fancy; p. 25 prints ſa-cond)"
+  ]
+}

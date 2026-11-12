@@ -1,0 +1,132 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/guldenkammer-3-2/Die%20G%C3%BCldenkammer%20-%20norddeutsche%20Monatshefte%203.1912-13%2C%20Hefte%207-12_hocr_searchtext.txt.gz",
+   "file": "guldenkammer-3-2.ocr.txt",
+   "sha256": "4d1316daa1b5213d76afa8e664c7b3ebf1caa994a19b232f76bfefd6fa827170",
+   "bytes": 1215678,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/guldenkammer-3-2/Die%20G%C3%BCldenkammer%20-%20norddeutsche%20Monatshefte%203.1912-13%2C%20Hefte%207-12_hocr_pageindex.json.gz",
+   "file": "guldenkammer-3-2.index.json",
+   "sha256": "6f2c9799bd4622274649044b29f7a16c8314cd532e967991c3635c2da9b438b0",
+   "bytes": 19153,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/guldenkammer-3-2/Die%20G%C3%BCldenkammer%20-%20norddeutsche%20Monatshefte%203.1912-13%2C%20Hefte%207-12_page_numbers.json",
+   "file": "guldenkammer-3-2.pages.json",
+   "sha256": "e14f5d673eca27976ab1153434b4dccf7da6b6d2231357ad6dcd4e50dfd3fa96",
+   "bytes": 86434,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "transcription",
+   "url": "https://cloud-cuckoo.net/openarchive/Autoren/Simmel/Simmel1913.htm",
+   "file": "Simmel1913.htm",
+   "sha256": "3cbccea3f53e0b89b72957de79dd7d9c495265a71cc6148aa7c63180a649ad92",
+   "bytes": 29418,
+   "fetched": "2026-11-11",
+   "text": "Simmel1913.htm.txt",
+   "why": "Wikisource author listing did not list this essay; DTA, TextGrid and Project Gutenberg title searches did not identify a matching transcription; Zeno search timed out. Cloud Cuckoo identifies the 1913 journal text."
+  }
+ ],
+ "scan": {
+  "item": "guldenkammer-3-2",
+  "ocr": true,
+  "long_s": false,
+  "image_offset": 0
+ },
+ "persons": [
+  {
+   "qid": "Q76849",
+   "name": {
+    "en": "Georg Simmel",
+    "ru": "Георг Зиммель"
+   },
+   "role": "author",
+   "died": 1918,
+   "source": "https://www.wikidata.org/wiki/Q76849"
+  }
+ ],
+ "published": 1913,
+ "images": [
+  {
+   "n": 353,
+   "item": "guldenkammer-3-2",
+   "file": "guldenkammer-3-2-n353.jpg",
+   "sha256": "1f43f4f596dd6702ee1bc6c85ce79dd3456dad3cdf1f526db75a427452fd9186",
+   "by": "maker"
+  },
+  {
+   "n": 346,
+   "item": "guldenkammer-3-2",
+   "file": "guldenkammer-3-2-n346.jpg",
+   "sha256": "97cb8bc48b6bad38c72c89a849e38b1e6fe64077f0f6456a290ae9cf01b9b451",
+   "by": "maker"
+  },
+  {
+   "n": 346,
+   "item": "guldenkammer-3-2",
+   "file": "guldenkammer-3-2-n346.jpg",
+   "sha256": "97cb8bc48b6bad38c72c89a849e38b1e6fe64077f0f6456a290ae9cf01b9b451",
+   "by": "second",
+   "loc": "Essay p636"
+  },
+  {
+   "n": 353,
+   "item": "guldenkammer-3-2",
+   "file": "guldenkammer-3-2-n353.jpg",
+   "sha256": "1f43f4f596dd6702ee1bc6c85ce79dd3456dad3cdf1f526db75a427452fd9186",
+   "by": "second",
+   "loc": "Essay p643"
+  }
+ ],
+ "places": {
+  "Essay p636": {
+   "transcription": "Simmel1913.htm",
+   "scan": "guldenkammer-3-2",
+   "method": "ocr",
+   "share": 0.976,
+   "leaves": [
+    346
+   ],
+   "printed": [
+    "636"
+   ],
+   "differences": [
+    {
+     "transcription": "eine singuläre",
+     "ocr": "einesinguläre",
+     "leaf": 346,
+     "stands": "transcription"
+    }
+   ]
+  },
+  "Essay p643": {
+   "transcription": "Simmel1913.htm",
+   "scan": "guldenkammer-3-2",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    353
+   ],
+   "printed": [
+    "643"
+   ],
+   "differences": []
+  }
+ },
+ "scans": {
+  "guldenkammer-3-2": {
+   "item": "guldenkammer-3-2",
+   "ocr": true,
+   "long_s": false,
+   "image_offset": 0
+  }
+ }
+}

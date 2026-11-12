@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {isPreReform,modernRussian,modernWord,respell} from './orthography.mjs';
+import {isPreReform,modernRussian,modernWord,needsRespelling,respell} from './orthography.mjs';
 
 describe('Russian printed before 1918 in today\'s spelling',()=>{
   it('tells the old spelling from the new',()=>{
@@ -41,6 +41,17 @@ describe('Russian printed before 1918 in today\'s spelling',()=>{
     expect(modernRussian('Онѣ пришли, ея слова, безъ нея')).toBe('Они пришли, её слова, без неё');
     expect(modernWord('СЪ')).toBe('С');
     expect(modernRussian('СЪ НИМЪ')).toBe('С НИМ');
+  });
+  it('respells the old forms a transcription in today\'s spelling kept, and leaves its own words and names alone',()=>{
+    const kept='наступят эти долгия сумерки; летучия мыши, гремучия змеи, строгия уши; по неизследованным морям';
+    expect(isPreReform(kept)).toBe(false);
+    expect(needsRespelling(kept)).toBe(true);
+    expect(modernRussian(kept)).toBe('наступят эти долгие сумерки; летучие мыши, гремучие змеи, строгие уши; по неисследованным морям');
+    const today='Стихия и коллегия, ностальгия и оргия, логия и энергия; низкий, чрезмерно, Сантьяго, наго, своея';
+    expect(modernRussian(today)).toBe(today);
+    expect(modernWord('стихія')).toBe('стихия');
+    expect(respell(kept).text).toBe(modernRussian(kept));
+    expect(respell('без перемен').toSource).toHaveLength('без перемен'.length+1);
   });
   it('maps a place in the shown text back to the source',()=>{
     const source='Сокр. Что такъ рано пришелъ ты, Критонъ?';

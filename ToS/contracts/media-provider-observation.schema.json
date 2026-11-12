@@ -26,7 +26,7 @@
   "properties": {
     "$schema": {"const": "https://tree-of-sophia.local/ToS/contracts/media-provider-observation.schema.json"},
     "schema_version": {"const": "tos_media_provider_observation_v1"},
-    "provider": {"enum": ["rijksmuseum", "met", "nga"]},
+    "provider": {"enum": ["rijksmuseum", "met", "nga", "commons", "slam", "smb"]},
     "requested_object": {"type": "string", "minLength": 1, "maxLength": 512},
     "observed_at": {"type": "string", "format": "date-time"},
     "completed_at": {"type": "string", "format": "date-time"},
@@ -98,7 +98,7 @@
       "additionalProperties": false,
       "required": ["role", "url", "final_url", "http_status", "media_type", "byte_size", "sha256", "started_at", "elapsed_seconds"],
       "properties": {
-        "role": {"enum": ["search", "object-record", "visual-item-record", "digital-object-record", "image-service-info", "image-preview", "image-file", "dataset-release"]},
+        "role": {"enum": ["search", "object-record", "visual-item-record", "digital-object-record", "image-service-info", "image-preview", "image-file", "dataset-release", "file-record", "file-structured-data", "authority-labels"]},
         "url": {"$ref": "#/$defs/httpsUri"},
         "final_url": {"oneOf": [{"$ref": "#/$defs/httpsUri"}, {"type": "null"}]},
         "http_status": {"enum": [200, null]},

@@ -1,0 +1,178 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/schillerssmmtli05goedgoog/schillerssmmtli05goedgoog_hocr_searchtext.txt.gz",
+   "file": "schillerssmmtli05goedgoog.ocr.txt",
+   "sha256": "49cdeb4d1d37d86473c52ca0c17a526d6023bb2cd354d772e285ca61ca46897b",
+   "bytes": 3118999,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/schillerssmmtli05goedgoog/schillerssmmtli05goedgoog_hocr_pageindex.json.gz",
+   "file": "schillerssmmtli05goedgoog.index.json",
+   "sha256": "7dc81565f40d8299ed11aca68527e0d2008dee391eacc06e832ebdeac37d4db5",
+   "bytes": 33503,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/schillerssmmtli05goedgoog/schillerssmmtli05goedgoog_page_numbers.json",
+   "file": "schillerssmmtli05goedgoog.pages.json",
+   "sha256": "cc45d056ed88d3883336bbf4639a460da8dd18ae4216b30a8ac98af2bdd51336",
+   "bytes": 148017,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "transcription",
+   "url": "https://projekt-gutenberg.org/authors/friedrich-schiller/books/friedrich-schiller-gedanken-ueber-den-gebrauch-des-gemeinen-und-niedrigen-in-der-kunst/chapter/1/",
+   "file": "1",
+   "sha256": "bc4548224b03de6b68ce299d4b4007d7e482feacb73e70e84b1f8c6d177a0178",
+   "bytes": 126762,
+   "fetched": "2026-11-10",
+   "text": "1.txt"
+  }
+ ],
+ "scan": {
+  "item": "schillerssmmtli05goedgoog",
+  "ocr": true,
+  "long_s": true,
+  "image_offset": 0
+ },
+ "persons": [
+  {
+   "qid": "Q22670",
+   "name": {
+    "en": "Friedrich Schiller",
+    "ru": "Фридрих Шиллер"
+   },
+   "role": "author",
+   "died": 1805,
+   "source": "https://www.wikidata.org/wiki/Q22670"
+  },
+  {
+   "qid": "Q91617",
+   "name": {
+    "en": "Karl Goedeke",
+    "ru": "Карл Гёдеке"
+   },
+   "role": "editor",
+   "died": 1887,
+   "source": "https://www.wikidata.org/wiki/Q91617"
+  }
+ ],
+ "published": 1877,
+ "images": [
+  {
+   "n": 810,
+   "item": "schillerssmmtli05goedgoog",
+   "file": "schillerssmmtli05goedgoog-n810.jpg",
+   "sha256": "3715f13e8110071a5588152984957a1a96c70d66586858f3a2c821e2278ea13a",
+   "by": "maker",
+   "loc": "Essay p739"
+  },
+  {
+   "n": 811,
+   "item": "schillerssmmtli05goedgoog",
+   "file": "schillerssmmtli05goedgoog-n811.jpg",
+   "sha256": "f7d10ee515b2c3fa7fe4068c2e8968664144908c0451dc5cec0d9e0096a4f4d0",
+   "by": "maker",
+   "loc": "Essay p740b"
+  },
+  {
+   "n": 812,
+   "item": "schillerssmmtli05goedgoog",
+   "file": "schillerssmmtli05goedgoog-n812.jpg",
+   "sha256": "6464f18436fe19d543b8147c041bde4af218f64665726824f3ee7ed6ebe9ba5b",
+   "by": "maker",
+   "loc": "Essay p741"
+  },
+  {
+   "n": 810,
+   "item": "schillerssmmtli05goedgoog",
+   "file": "schillerssmmtli05goedgoog-n810.jpg",
+   "sha256": "3715f13e8110071a5588152984957a1a96c70d66586858f3a2c821e2278ea13a",
+   "by": "second",
+   "loc": "Essay p739"
+  },
+  {
+   "n": 811,
+   "item": "schillerssmmtli05goedgoog",
+   "file": "schillerssmmtli05goedgoog-n811.jpg",
+   "sha256": "f7d10ee515b2c3fa7fe4068c2e8968664144908c0451dc5cec0d9e0096a4f4d0",
+   "by": "second",
+   "loc": "Essay p740b"
+  },
+  {
+   "n": 812,
+   "item": "schillerssmmtli05goedgoog",
+   "file": "schillerssmmtli05goedgoog-n812.jpg",
+   "sha256": "6464f18436fe19d543b8147c041bde4af218f64665726824f3ee7ed6ebe9ba5b",
+   "by": "second",
+   "loc": "Essay p741"
+  }
+ ],
+ "places": {
+  "Essay p739": {
+   "transcription": "1",
+   "scan": "schillerssmmtli05goedgoog",
+   "method": "image",
+   "share": 0.375,
+   "images": [
+    810
+   ],
+   "whole": {
+    "stands": "transcription",
+    "note": "Page 739 final paragraph, sentence read word by word."
+   }
+  },
+  "Essay p740a": {
+   "transcription": "1",
+   "scan": "schillerssmmtli05goedgoog",
+   "method": "image",
+   "share": 0.162,
+   "images": [
+    811
+   ],
+   "whole": {
+    "stands": "transcription",
+    "note": "Page 740 middle paragraph, both sentences read word by word."
+   }
+  },
+  "Essay p740b": {
+   "transcription": "1",
+   "scan": "schillerssmmtli05goedgoog",
+   "method": "image",
+   "share": 0.4,
+   "images": [
+    811
+   ],
+   "whole": {
+    "stands": "transcription",
+    "note": "Page 740 next paragraph, first sentence read word by word."
+   }
+  },
+  "Essay p741": {
+   "transcription": "1",
+   "scan": "schillerssmmtli05goedgoog",
+   "method": "image",
+   "share": 0.308,
+   "images": [
+    812
+   ],
+   "whole": {
+    "stands": "transcription",
+    "note": "Page 741 tragic paragraph, first two sentences read word by word."
+   }
+  }
+ },
+ "scans": {
+  "schillerssmmtli05goedgoog": {
+   "item": "schillerssmmtli05goedgoog",
+   "ocr": true,
+   "long_s": true,
+   "image_offset": 0
+  }
+ }
+}

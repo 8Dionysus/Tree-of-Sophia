@@ -152,6 +152,15 @@
       }
     },
     {
+      "id": "translation-scopes",
+      "path": "translation-scopes.json",
+      "format": "tos.bonsai.translation-scopes.v1",
+      "role": {
+        "ru": "Ограничения частичных переводов по точному диапазону единиц оригинала; соответствие предложений по-прежнему строит механизм выравнивания.",
+        "en": "Partial translations bounded by exact original-unit ranges; the alignment mechanism still determines sentence correspondence."
+      }
+    },
+    {
       "id": "objects",
       "path": "objects.json",
       "format": "tos.bonsai.objects.v1",
@@ -177,6 +186,16 @@
       "role": {
         "ru": "Изображения произведений на карточках стенда: произведение с названиями, мастерами, датировкой и записью держателя, его воспроизведение через сервис изображений с правами провайдера и роль изображения у предмета карточки — портрет автора, материал эпохи, предмет анализа, сравнение. Слова провайдеров хранятся дословно, с языком.",
         "en": "Images of works on the stand’s cards: the work with its titles, makers, dating and the holder’s record, its reproduction through an image service with the provider’s rights, and the image’s role for the card’s subject — an author’s portrait, a material of the era, an object of analysis, a comparison. Provider texts are kept word for word, with their language."
+      }
+    },
+    {
+      "id": "layers",
+      "path": "layers.json",
+      "format": "tos.bonsai.layers.v1",
+      "spec": "bonsai/README.md",
+      "role": {
+        "ru": "Где лежат копии файлов изображений стенда: хеш каждого файла, который хранится в R2; рабочая копия получает их по этим хешам.",
+        "en": "Where the stand's copies of image files live: the digest of every file, kept in R2; a checkout fetches them by these digests."
       }
     }
   ],

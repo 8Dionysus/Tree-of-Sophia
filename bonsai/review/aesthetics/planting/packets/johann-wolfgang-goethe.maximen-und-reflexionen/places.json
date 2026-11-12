@@ -1,0 +1,95 @@
+{
+ "work": "johann-wolfgang-goethe.maximen-und-reflexionen",
+ "entry": {
+  "author": {
+   "ru": "Иоганн Вольфганг Гёте",
+   "en": "Johann Wolfgang Goethe"
+  },
+  "title": {
+   "ru": "Максимы и размышления",
+   "en": "Maxims and Reflections"
+  },
+  "original": "de",
+  "witnesses": {
+   "de": {
+    "edition": "Goethes Werke, Erste Abtheilung, 48. Band, Schriften zur Kunst 1800–1816, Weimar: Hermann Böhlau, 1897; University of Toronto copy.",
+    "year": 1897,
+    "url": "https://archive.org/details/werkegoeth48goetuoft",
+    "sources": [
+     "https://archive.org/details/werkegoeth48goetuoft",
+     "https://www.textgridrep.org/browse/11d2x.0"
+    ],
+    "licence": "Public domain book; Internet Archive scan. TextGrid Digitale Bibliothek transcription, used for Goethe’s public domain text.",
+    "attribution": "Johann Wolfgang von Goethe, Goethes Werke, vol. 48 (Weimar: Hermann Böhlau, 1897), pp. 205–206; transcription from TextGrid compared with the University of Toronto scan.",
+    "rights": {
+     "basis": "public-domain",
+     "russia": "Общественное достояние: Иоганн Вольфганг фон Гёте (автор) — год смерти 1832; Отто Гарнак (редактор текста) — год смерти 1914; Бернхард Людвиг Зуфан (редактор текста) — год смерти 1911; Julius Wahle (редактор текста) — год смерти 1940 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
+     "usa": "Public domain: this printing was published in 1897 (before 1930).",
+     "eu": "Public domain: Johann Wolfgang von Goethe (author) died 1832; Otto Harnack (editor of the text) died 1914; Bernhard Suphan (editor of the text) died 1911; Julius Wahle (editor of the text) died 1940, more than 70 years ago (Directive 2006/116/EC art. 1).",
+     "reasoning": "Goethe’s original German text, edited by Otto Harnack with redactors Bernhard Suphan and Julius Wahle; TextGrid transcribes the Berlin 1960 edition, based on Hecker 1907, compared with the Weimar 1897 scan. Long s normalized to s, line-end hyphenation joined; edition differences corrected to the print."
+    }
+   }
+  },
+  "absent": [
+   {
+    "language": "ru",
+    "reason": "No translation is taken in this pass: the line plants the original first."
+   },
+   {
+    "language": "en",
+    "reason": "No translation is taken in this pass: the line plants the original first."
+   }
+  ]
+ },
+ "places": {
+  "Kunst p205": {
+   "label": {
+    "ru": "Максимы и размышления об искусстве, с. 205",
+    "en": "Maxims and Reflections on Art, p. 205"
+   },
+   "texts": {
+    "de": "Die Allegorie verwandelt die Erscheinung in einen Begriff, den Begriff in ein Bild, doch so, daß der Begriff im Bilde immer noch begränzt und vollständig zu halten und zu haben und an demselben auszusprechen sei."
+   },
+   "links": {
+    "de": "https://archive.org/details/werkegoeth48goetuoft/page/n222/mode/1up"
+   },
+   "refs": [
+    [
+     "de",
+     "Weimar edition (1897), p. 205"
+    ]
+   ]
+  },
+  "Kunst p206": {
+   "label": {
+    "ru": "Максимы и размышления об искусстве, с. 206",
+    "en": "Maxims and Reflections on Art, p. 206"
+   },
+   "texts": {
+    "de": "Die Symbolik verwandelt die Erscheinung in Idee, die Idee in ein Bild, und so, daß die Idee im Bild immer unendlich wirksam und unerreichbar bleibt und, selbst in allen Sprachen ausgesprochen, doch unaussprechlich bliebe."
+   },
+   "links": {
+    "de": "https://archive.org/details/werkegoeth48goetuoft/page/n223/mode/1up"
+   },
+   "refs": [
+    [
+     "de",
+     "Weimar edition (1897), p. 206"
+    ]
+   ]
+  }
+ },
+ "corrections": [
+  {
+   "lang": "de",
+   "from": "begrenzt",
+   "to": "begränzt",
+   "evidence": "Weimar edition 1897, p. 205, Internet Archive werkegoeth48goetuoft n222",
+   "place": "johann-wolfgang-goethe.maximen-und-reflexionen Kunst p205"
+  }
+ ],
+ "checked_on_the_page_image": [
+  "p. 205 (the entire maxim on allegory at the foot of the page)",
+  "p. 206 (the entire maxim on symbolism at the head of the page)"
+ ]
+}

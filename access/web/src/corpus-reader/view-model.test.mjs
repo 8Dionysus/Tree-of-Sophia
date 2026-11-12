@@ -154,6 +154,22 @@ describe('corpus reader view model', () => {
     expect(snapshot.windows['work-a\u0000ru-a']).toBeUndefined();
   });
 
+  it('opens a work in the reader\'s language, else in its original, never in another language\'s translation', async () => {
+    const english = {...version, id: 'english', language: 'en', role: 'translation', source: sourceFor('work-languages', 'f'), revision: 'f'.repeat(64)};
+    const greek = {...version, id: 'greek', language: 'grc', role: 'source_language', source: sourceFor('work-languages', 'g'), revision: 'g'.repeat(64)};
+    const russian = {...version, id: 'russian', language: 'ru', role: 'translation', source: sourceFor('work-languages', 'h'), revision: 'h'.repeat(64)};
+    const opened = async (versions, locale) => {
+      const work = {id: 'work-languages', title: 'Work', versions};
+      const model = createCorpusReaderModel({provider: {document: async () => work, window: async ({versionId}) => ({units: [{id: `${versionId}-1`, text: versionId}]})}, locale});
+      await model.open({documentId: work.id});
+      return model.snapshot().activeVersionId;
+    };
+    expect(await opened([english, greek, russian], 'ru')).toBe('russian');
+    expect(await opened([english, greek], 'ru')).toBe('greek');
+    expect(await opened([russian, greek], 'en')).toBe('greek');
+    expect(await opened([russian, greek, english], 'en')).toBe('english');
+  });
+
   it('does not fall back from an explicitly requested unavailable version', async () => {
     const provider = {
       catalog: async () => ({items: [document]}),
