@@ -4,15 +4,19 @@
 // the provider's IIIF image service, or the stand's own copy of the provider's
 // smaller file, which the site serves from its layer store (layers/sha256/<hex>,
 // the same-origin copy of R2). Under it, the caption says what the image
-// is for on this card and when the work was made, then the provider's own
-// title, the inscription on the object, the series, who made it, its size, and
-// the holder's record and rights statement as links. Choosing the image opens
+// is for on this card and when the work was made, then the work's title, the
+// inscription on the object, the series, who made it, its size, and the
+// holder's record and rights statement as links. Title, series, makers and
+// holder are in the reader's language alone (`workWords`): the provider's
+// words where they are in it, else the Tree's names of the work; the words
+// written on the object stand as written. Choosing the image opens
 // it at the full detail its service serves, in a viewer that lies over the
 // stand; closing the viewer leaves the space and the card as they were. A
 // link's card shows its images as a strip of small copies, in groups: the
 // link's own, or those of each of its two ends under the end's name; each
 // opens in the same viewer, whose bar names the work.
 
+import {workWords} from '../../../../bonsai/lib/media.mjs';
 import {formatDating} from '../../../../bonsai/lib/time.mjs';
 
 const CARD_BOX=480;
@@ -48,22 +52,27 @@ export function fittedSize({width,height},box=CARD_BOX){
   return {width:Math.max(1,Math.round(width*scale)),height:Math.max(1,Math.round(height*scale))};
 }
 
-const titleOf=(work,role)=>(work.titles??[]).filter(title=>title.role===role);
+const PUBLIC_DOMAIN_MARK='https://creativecommons.org/publicdomain/mark/1.0/';
+
+/** The name a reader of `locale` sees a work by, with its language: its first title, else the holder's number. */
+export function workName({work,names=null},locale){
+  const titles=workWords(work,names,locale).titles;
+  return titles?{text:titles.lines[0],lang:titles.language}:{text:work.inventory,lang:null};
+}
 
 /**
  * The caption of a medium as lines of text, in the order a card shows them; each line names its
- * `part` and, for a provider's words, their `lang`. `t(key)` gives the stand's words.
+ * `part` and, for words in a language, their `lang`. `t(key)` gives the stand's words.
  */
-export function captionLines({role,work},{t,locale}){
-  const lines=[];
+export function captionLines({role,work,names=null},{t,locale}){
+  const lines=[],words=workWords(work,names,locale);
   const when=work.dating?formatDating(work.dating,locale):'';
   lines.push({part:'what',text:[t(`media_${role}`),when].filter(Boolean).join(' · ')});
-  for(const title of titleOf(work,'title'))lines.push({part:'title',text:title.text,lang:title.language});
+  for(const text of words.titles?.lines??[])lines.push({part:'title',text,lang:words.titles.language});
   // The words written on the object stand as they are written; the provider's language tag describes its record, not them.
-  for(const title of titleOf(work,'inscribed'))lines.push({part:'inscribed',label:t('mediaInscribed'),text:title.text});
-  const series=titleOf(work,'series');
-  if(series.length)lines.push({part:'series',label:t('mediaSeries'),text:series.map(title=>title.text).join(' · '),lang:series[0].language});
-  for(const line of work.made??[])lines.push({part:'made',text:line.text,lang:line.language});
+  for(const title of (work.titles??[]).filter(title=>title.role==='inscribed'))lines.push({part:'inscribed',label:t('mediaInscribed'),text:title.text});
+  if(words.series)lines.push({part:'series',label:t('mediaSeries'),text:words.series.lines.join(' · '),lang:words.series.language});
+  for(const text of words.made?.lines??[])lines.push({part:'made',text,lang:words.made.language});
   if(work.size_mm){const number=new Intl.NumberFormat(locale);lines.push({part:'size',text:t('mediaSize').replace('{0}',number.format(work.size_mm[0])).replace('{1}',number.format(work.size_mm[1]))});}
   return lines;
 }
@@ -72,9 +81,12 @@ export function captionLines({role,work},{t,locale}){
  * Where the caption's sources lead: the holder's record of the work and the rights statement of the image.
  * A provider that marks an image public domain by a flag (the Met's isPublicDomain) says so on its record.
  */
-export function captionLinks({work,image},{t=key=>key}={}){
-  const links=[{part:'record',text:`${work.holder} · ${work.inventory}`,url:work.record}];
+export function captionLinks({work,image,names=null},{t=key=>key,locale='en'}={}){
+  const holder=workWords(work,names,locale).holder;
+  const links=[{part:'record',text:[holder?.text,work.inventory].filter(Boolean).join(' · '),url:work.record}];
   const rights=image.rights;
+  // The Public Domain Mark says public domain in the reader's words, whatever label the provider gives it.
+  if(rights.statement===PUBLIC_DOMAIN_MARK)return [...links,{part:'rights',text:t('mediaPublicDomain'),url:rights.statement}];
   // A Commons file's copyright status, or its page's licence, says public domain on the file's own page.
   if(rights.field==='P6216'&&rights.value==='Q19652'||rights.field==='License'&&rights.value==='pd')return [...links,{part:'rights',text:t('mediaCommonsPublicDomain'),url:rights.stated_in}];
   // A flag names no statement: the Met's isPublicDomain and the Saint Louis Art Museum's Rights say public domain, the
@@ -112,7 +124,7 @@ export function createMediaView({t,locale,hint=()=>{}}){
     picture.decoding='async';picture.loading='lazy';
     picture.width=size.width;picture.height=size.height;
     picture.src=sources.src;if(sources.srcset)picture.srcset=sources.srcset;
-    picture.alt=titleOf(work,'title')[0]?.text??'';
+    const name=workName(item,locale());picture.alt=name.text;if(name.lang)picture.lang=name.lang;
     picture.addEventListener('error',()=>{open.replaceWith(el('p','ps-media-missing',t('mediaMissing')));},{once:true});
     open.append(picture);open.addEventListener('click',()=>void openViewer(item,open));
     const caption=el('figcaption');
@@ -123,7 +135,7 @@ export function createMediaView({t,locale,hint=()=>{}}){
       caption.append(row);
     }
     const links=el('p','ps-media-sources');
-    for(const link of captionLinks(item,{t})){const anchor=el('a','',`${link.text} ↗`);anchor.href=link.url;anchor.target='_blank';anchor.rel='noopener noreferrer';anchor.dataset.part=link.part;links.append(anchor);}
+    for(const link of captionLinks(item,{t,locale:locale()})){const anchor=el('a','',`${link.text} ↗`);anchor.href=link.url;anchor.target='_blank';anchor.rel='noopener noreferrer';anchor.dataset.part=link.part;links.append(anchor);}
     caption.append(links);
     box.append(open,caption);
     return box;
@@ -132,7 +144,7 @@ export function createMediaView({t,locale,hint=()=>{}}){
   // A small copy in a link's strip: the work's title and date as its hint, the viewer on a click.
   function thumb(item){
     const {image,work}=item,size=fittedSize(image,STRIP_BOX),sources=imageSources(image,{box:STRIP_BOX});
-    const name=titleOf(work,'title')[0]?.text??work.inventory,when=work.dating?formatDating(work.dating,locale()):'';
+    const name=workName(item,locale()).text,when=work.dating?formatDating(work.dating,locale()):'';
     const open=el('button','ps-media-thumb');open.type='button';open.setAttribute('aria-label',`${t('mediaOpen')}: ${name}`);hint(open,[name,when].filter(Boolean).join(' · '));
     const picture=el('img');if(sources.crossOrigin)picture.crossOrigin=sources.crossOrigin;
     picture.decoding='async';picture.loading='lazy';picture.width=size.width;picture.height=size.height;
@@ -147,11 +159,11 @@ export function createMediaView({t,locale,hint=()=>{}}){
     const {image,work}=item,host=document.fullscreenElement??document.body;
     // A modal dialog holds the page: the stand's keys, its hints and its controls let it be while it is open.
     const layer=el('dialog','ps-media-viewer');
-    const name=titleOf(work,'title')[0]?.text??work.inventory;layer.setAttribute('aria-label',name);
+    const name=workName(item,locale()),holder=workWords(work,item.names??null,locale()).holder;layer.setAttribute('aria-label',name.text);
     const stage=el('div','ps-media-stage'),bar=el('div','ps-media-bar'),title=el('p','ps-media-viewer-title');
-    const words=el('span','',name);if(titleOf(work,'title')[0]?.language)words.lang=titleOf(work,'title')[0].language;
+    const words=el('span','',name.text);if(name.lang)words.lang=name.lang;
     const when=work.dating?formatDating(work.dating,locale()):'';
-    title.append(words);if(when)title.append(el('span','ps-media-viewer-date',` · ${when}`));title.append(el('span','ps-media-viewer-holder',` · ${work.holder}`));
+    title.append(words);if(when)title.append(el('span','ps-media-viewer-date',` · ${when}`));if(holder)title.append(el('span','ps-media-viewer-holder',` · ${holder.text}`));
     const control=(text,label,action)=>{const node=el('button','ps-media-control',text);node.type='button';node.setAttribute('aria-label',label);hint(node,label);node.addEventListener('click',action);return node;};
     const state={layer,opener,osd:null};
     const zoomIn=control('+',t('mediaZoomIn'),()=>{state.osd?.viewport.zoomBy(1.6);state.osd?.viewport.applyConstraints();});
