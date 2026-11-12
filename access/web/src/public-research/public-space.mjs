@@ -1049,7 +1049,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     }
     projected.nodes=projected.nodes.filter(node=>placed.has(node.id)).map(node=>{
       const role=treeLayout.roles.get(node.materialId),side=treeLayout.sides.get(node.materialId);
-      return {...node,position:[...placed.get(node.id)],...(side?{labelSide:side}:{}),...(role?{labelFrom:TREE_LABEL_FROM[role]??0,major:['author','figure','concept','branch','era'].includes(role)}:{})};
+      return {...node,position:[...placed.get(node.id)],...(side?{labelSide:side}:{}),...(role?{labelFrom:profile==='aesthetics'&&role==='step'?Number.MAX_SAFE_INTEGER:TREE_LABEL_FROM[role]??0,major:['author','figure','concept','branch','era'].includes(role)}:{})};
     });
     // Only a branch's own transitions stand at rest; every other link waits until one of its stars is reached.
     const shown=new Set(projected.nodes.map(node=>node.id)),pairs=new Set();
@@ -1062,7 +1062,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       projected.edges.push({id:edge.id,from,to,kind:edge.kind,label:tr(edge.label,locale()),color:style.color??RELATIONS[edge.kind]?.color,dash:style.dash,weight:1,via:edge.via,...(rest===null?{latent:true}:{baseAlpha:rest})});
     }
     scaleChoice=selected;
-    projected.clusters=treeLayout.names.map(name=>({id:name.id,title:tr(name.title,locale()),subtitle:'',center:name.center,...(name.color?{color:paint(name.color)}:{}),tone:name.kind,...(name.kind==='stratum'?{variant:'edge'}:{recede:true}),...(name.kind==='path'?{yields:true}:{})}));
+    projected.clusters=treeLayout.names.map(name=>({id:name.id,title:tr(name.title,locale()),subtitle:'',center:name.center,...(name.color?{color:paint(name.color)}:{}),tone:name.kind,...(name.kind==='stratum'?{variant:'edge'}:name.kind==='group'?{}:{recede:true}),...(name.kind==='path'?{yields:true}:{})}));
     projected.backdrop=treeBackdrop();
     projected.shade=treeShade();
   }
@@ -1126,7 +1126,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function frameSky(){
     if(!sky)return;
     // The tree frames itself whole, or an open branch's moves where they grow on it, seen a little from above.
-    if(treeView()){sky.setRest?.(null);sky.frame();sky.turnTo?.(null,-.2);}
+    if(treeView()){sky.setRest?.(null);sky.frame(profile==='aesthetics'?{x:treeLayout.bounds.x,y:treeLayout.bounds.y}:{});sky.turnTo?.(null,-.2);}
     // A lens that measures in volume is framed whole and seen from its own rest, a little from above and from its left.
     else if(volumeLens(lens)){const rest=VOLUME_REST[lens];sky.setRest?.(rest.yaw,rest.pitch);sky.frame();sky.turnTo?.(rest.yaw,rest.pitch);}
     // A lens that gathers is framed whole from the rest its form is best read from.

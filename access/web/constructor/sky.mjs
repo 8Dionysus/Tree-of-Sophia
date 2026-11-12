@@ -436,7 +436,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(c.variant)continue;
       const titleStyle=getComputedStyle(c.title),titleText=c.title.textContent,size=parseFloat(titleStyle.fontSize)||14;
       ng.font=titleStyle.font||`italic ${size}px serif`;
-      let width=Math.min(230,Math.max(110,Math.ceil(ng.measureText(titleText).width+(parseFloat(titleStyle.letterSpacing)||0)*titleText.length)+12));
+      let width=Math.min(230,Math.max(c.el.dataset.tone==='group'?0:110,Math.ceil(ng.measureText(titleText).width+(parseFloat(titleStyle.letterSpacing)||0)*titleText.length)+12));
       let height=parseFloat(titleStyle.lineHeight)||size*1.25;
       if(c.subtitle.textContent){
         const subStyle=getComputedStyle(c.subtitle),spacing=parseFloat(subStyle.letterSpacing)||0,upper=subStyle.textTransform==='uppercase';
