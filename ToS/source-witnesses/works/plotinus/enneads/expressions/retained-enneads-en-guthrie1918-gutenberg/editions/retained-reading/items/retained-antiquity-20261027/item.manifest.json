@@ -1,0 +1,73 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.enneads.enneads-en-guthrie1918-gutenberg",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.enneads.enneads-en-guthrie1918-gutenberg",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.d30455dc466c18e3107ceffaa79feb4c9978b5fb4b2f970398b6fc9c63275b8a",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "enneads-en-guthrie1918-gutenberg.json",
+      "media_type": "application/json",
+      "byte_size": 2028051,
+      "sha256": "d30455dc466c18e3107ceffaa79feb4c9978b5fb4b2f970398b6fc9c63275b8a",
+      "fixity_verified_at": "2026-11-11T05:45:26+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 1967585,
+      "sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "fixity_verified_at": "2026-11-11T05:45:26+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.f4ef8a36b1fc21dd615e307e65b18aad6841d6f2c39eb336f51fc80a611c66a2",
+      "relative_path": "payload/gutenberg-volume-1.txt",
+      "original_basename": "enneads-guthrie-vol1-1918.txt",
+      "media_type": "text/plain",
+      "byte_size": 521117,
+      "sha256": "f4ef8a36b1fc21dd615e307e65b18aad6841d6f2c39eb336f51fc80a611c66a2",
+      "fixity_verified_at": "2026-11-11T05:45:26+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.b89b3d7df5a0f733dba66f0c523ec984224853b089a3eedc734d025632abd5d3",
+      "relative_path": "payload/gutenberg-volume-2.txt",
+      "original_basename": "enneads-guthrie-vol2-1918.txt",
+      "media_type": "text/plain",
+      "byte_size": 665042,
+      "sha256": "b89b3d7df5a0f733dba66f0c523ec984224853b089a3eedc734d025632abd5d3",
+      "fixity_verified_at": "2026-11-11T05:45:26+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.5a60769f7410318722b75f8d3cceaf83e1973ab45abe2b715adb2dfddcf98f7d",
+      "relative_path": "payload/gutenberg-volume-3.txt",
+      "original_basename": "enneads-guthrie-vol3-1918.txt",
+      "media_type": "text/plain",
+      "byte_size": 693850,
+      "sha256": "5a60769f7410318722b75f8d3cceaf83e1973ab45abe2b715adb2dfddcf98f7d",
+      "fixity_verified_at": "2026-11-11T05:45:26+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.af75f5796e71afd86554bf300543811bdd22f41b2aaae5f77eceb918ef8ac703",
+      "relative_path": "payload/gutenberg-volume-4.txt",
+      "original_basename": "enneads-guthrie-vol4-1918.txt",
+      "media_type": "text/plain",
+      "byte_size": 865752,
+      "sha256": "af75f5796e71afd86554bf300543811bdd22f41b2aaae5f77eceb918ef8ac703",
+      "fixity_verified_at": "2026-11-11T05:45:26+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.enneads-en-guthrie1918-gutenberg.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

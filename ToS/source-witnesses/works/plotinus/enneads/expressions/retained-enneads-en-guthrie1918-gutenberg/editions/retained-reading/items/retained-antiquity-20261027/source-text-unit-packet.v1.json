@@ -1,0 +1,2943 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "packet_id": "tos.source-text-unit-packet.sid-f9103bcb541042e1be73b56f835c792d",
+  "packet_version": 1,
+  "supersedes_packet_ref": null,
+  "content_posture": "source_bound",
+  "source_scope": {
+    "work_ref": "tos.work.retained-antiquity.enneads",
+    "expression_ref": "tos.expression.retained.antiquity.enneads.enneads-en-guthrie1918-gutenberg",
+    "edition_ref": "tos.edition.retained.antiquity.enneads.enneads-en-guthrie1918-gutenberg",
+    "item_ref": "tos.item.retained.antiquity.enneads.enneads-en-guthrie1918-gutenberg",
+    "file_ref": "tos.file.sha256.d30455dc466c18e3107ceffaa79feb4c9978b5fb4b2f970398b6fc9c63275b8a",
+    "file_sha256": "d30455dc466c18e3107ceffaa79feb4c9978b5fb4b2f970398b6fc9c63275b8a"
+  },
+  "source_layer": {
+    "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+    "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+    "language": "en",
+    "media_type": "text/plain; charset=utf-8",
+    "unicode_form": "source_preserved",
+    "position_unit": "unicode_code_point",
+    "interval": "half_open",
+    "immutable": true,
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "schemes": [
+    {
+      "scheme_id": "tos.text-unit-scheme.sid-9f24de28ec854c679ce0592b8ad0f909",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "scheme_name": "Retained source section and bounded reading chunk",
+      "analysis_role": "source_structure",
+      "boundary_basis": "rule_based",
+      "unit_kinds": [
+        "section"
+      ],
+      "method": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.enneads-en-guthrie1918-gutenberg.20261027",
+        "made_at": "2026-11-11T05:45:26+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "policies": {
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "punctuation": "included_in_neighbor",
+        "whitespace": "included_in_neighbor",
+        "line_break": "included_in_neighbor",
+        "hyphenation": "preserve_source",
+        "unreported_gaps_allowed": false,
+        "overlap": "forbid"
+      },
+      "authority_limit": {
+        "algorithmic_output_is_source_truth": false,
+        "algorithmic_output_is_linguistic_truth": false,
+        "model_subword_is_lexeme": false,
+        "unit_identity_is_semantic_identity": false,
+        "text_mutation_allowed": false
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.sid-c354c6e9932b4b3b81e3887c64f3928a",
+      "ordinal": 1,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 1967581,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "anchor_role": "scope",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-dceab9db6e034af4b36f789bcdf6c756",
+      "ordinal": 2,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 25214,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "deaa29661342ccbac8e6565ed33bb98a86c815e69e058c65714e304c13b57926",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-4534c32d11b04ad689dcee6e90e3f3e2",
+      "ordinal": 3,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 25214,
+        "end": 46243,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "4b98142dbdecc827d5410c33bfe80b86811907bb93f42d12aa09e161c15e70fe",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ca5fbeef8edb49e9a2577e3218d429e7",
+      "ordinal": 4,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 46243,
+        "end": 57708,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "98bb1769a59fd95b723857baf38cecb40de687e54aa6237e02a7ad2ea6c1b533",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a8c75961c99e4332bd97abfa6179c5d0",
+      "ordinal": 5,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 57708,
+        "end": 96759,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "55fea44b8426917463511dadcdf7d00f7d60534903adf0a60c4fb48122f8ca00",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-5f728e1d97b24db0bb16e59a1dd1acb5",
+      "ordinal": 6,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 96759,
+        "end": 107014,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e53f72864e21391f0dc66ecf9c0d4cf8fdfb9ec41bdcb7e4925e15566b2ddbc5",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-1b8f9b39c0da44b9837b2487944f965a",
+      "ordinal": 7,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 107014,
+        "end": 134102,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "77a79b6acb47fb03b3712c2ae19ac2fc007b9947cf21035e40353b90ba19ca01",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-953e99e3fbc340d3828c2a4b65d68eda",
+      "ordinal": 8,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 134102,
+        "end": 139327,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "9db8312a7ef4b835c986055bc90ae877f03097818d8dbbd40c20e5373d30c20e",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d2df7496d49f46a1984505f714839705",
+      "ordinal": 9,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 139327,
+        "end": 177620,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "6a6dc6a90860793a8af5c725304ede0774af5bb1da5718f634f41df88fa02059",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-df74abad0fa7448ca0e173857b4bdb08",
+      "ordinal": 10,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 177620,
+        "end": 179934,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "66714279de4f7ada483bb41ed635668e040c7b6470883daeb0a0a29a64377940",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-e67ee2f5b7774919a25db0eb7d50d46c",
+      "ordinal": 11,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 179934,
+        "end": 204847,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "778b9222f9908e0aa5c5351182f65985e8b28c4778365f78a2ce9a16367aaf3f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-dc4489a2ced74e37ae610718d85bec19",
+      "ordinal": 12,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 204847,
+        "end": 214975,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "5e172f4a1ee3d17a783bdcf12dc3b97c6688b476f8461c62edca4594190a0716",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d981776b0ae448c49c3e01ea43a6b68c",
+      "ordinal": 13,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 214975,
+        "end": 254985,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1f7881758d73a920e309119af49dbab76f16cb9f1d5adf536231b61c8ba964d1",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3e18f74dfac44c7ba7888b4a324dbe29",
+      "ordinal": 14,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 254985,
+        "end": 294475,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f0523d73291246f3c3df193f0a7a47dbce20bd04350d7e4e64235344ae871af8",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f90dd21ac0c6401da8fde5b5fc78e8ae",
+      "ordinal": 15,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 294475,
+        "end": 309047,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "290bcde147ed9234b524e74021ad8925a972c43dfbe197f5d85f23c2111bb606",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-5038082b8970402983fd39be9c1c940b",
+      "ordinal": 16,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 309047,
+        "end": 319127,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ba29e61854b14b338780cd1853f4a8b514f0c2352cdbced2dbb0ef400815b92c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-4fc372f506d248aaa0acc41db37b550c",
+      "ordinal": 17,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 319127,
+        "end": 328905,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "eee6334289553afff2150c535435645c8f107e794f0e22fec3611f91008929ce",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-5aa7f128e47245edaa74dee01a12ce48",
+      "ordinal": 18,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 328905,
+        "end": 334813,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "25cc5a096ce5a87d26099d8f3c365f6a97825ac1705990b70e227d899b338701",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-afd200649c144466994e7df0466d503d",
+      "ordinal": 19,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 334813,
+        "end": 394810,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "dd96c44782ef014eaceeaa33b109465277307d90f6a0e0dc9b59eca1cd837549",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-06d15cd48dbc4f08ad594c68ced9f2f6",
+      "ordinal": 20,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 394810,
+        "end": 403616,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "24ea0b2222d28593fb46dbca424708f5d33c1ae1de09581e14146f60c42065a6",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ba8cf3f258454f848b76ad5860f64f31",
+      "ordinal": 21,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 403616,
+        "end": 426190,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "03ccd9398a8853ec063bacdac1f33ba990676b7eebcf580441bbd7543e9f51de",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-7d94b1461821477f939a8dc676a6c33e",
+      "ordinal": 22,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 426190,
+        "end": 484821,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "332c1258d70e849d5ada79c6f4128cffb91c457f5d17d176fc2255751100bee8",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-e8a3c02a5ae1430a9534c232ad6ddb4c",
+      "ordinal": 23,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 484821,
+        "end": 506778,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1238edc2ddffab814658c5e0857b1f4c26923550d4ef1a1ad346921d1daacec7",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f78161e7b4274e9083346114309217a3",
+      "ordinal": 24,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 506778,
+        "end": 523669,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7740fbd083a3dec6be279b86ff0fa60716106f6af30de4cba82947fb861295ba",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-af622cc1cc5d4dceb314a47038b2e0db",
+      "ordinal": 25,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 523669,
+        "end": 554961,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "766c1b7d48030b5f700592cf7bb4d812160c9436b51040467b43ceebcffb6548",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-9fbfa19b54c44539b2408c38c9e5e734",
+      "ordinal": 26,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 554961,
+        "end": 614960,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a1acf8f7ded55a4400bf4073cac76e2bc349c2fb61d131e08159146fe55a1ec8",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-1bf853dc9b224e13befc902c1b0f6b64",
+      "ordinal": 27,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 614960,
+        "end": 618904,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "740aa1da873c9ff03fd1683190aff12a593f35307f7073ef644f81efd8e509c4",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-423f64a0b7424702ac6f46dfb90d8247",
+      "ordinal": 28,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 618904,
+        "end": 671862,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "439d6577e71526b4b3cb9bcac34fc252cbb8085ae0e81c72288a237dd07b3fe7",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-9537abe086ba4e67bb07f50c81aef6dc",
+      "ordinal": 29,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 671862,
+        "end": 706882,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d7b6f7d039dd77c149067f56343010534462824fbb2b721db4e8b81b5c1ea0c7",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-479327579043423ab4480907bee8fe15",
+      "ordinal": 30,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 706882,
+        "end": 718533,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "311057ee9cd2bea5c2f60db66cc0a1d0762065cb468cb95bc8a012ca2e966214",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d5ff67cda1054dd183cabaf5dfd09ce3",
+      "ordinal": 31,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 718533,
+        "end": 720523,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "104fce8f3a38c257fd80d30433a6274cc2e89ffd0ea9a998b89d478e242c9bf4",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-074584ad6cb84f00811db4a49ead49b1",
+      "ordinal": 32,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 720523,
+        "end": 731855,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "995f0510813d3f2021d5007f9363923a6d4d7fb2316ae74844c8be032311aff7",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-88b9e963feda48e6a0c9482cd840c262",
+      "ordinal": 33,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 731855,
+        "end": 791852,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f61df061ecd37f52ae84376313ad544b1623fe03a47d5de413072fc0905cb461",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b600e20620a74069a5822f8513a4d5e0",
+      "ordinal": 34,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 791852,
+        "end": 822891,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a52ecd867645bdeeaa30e71d8320d7b74b18ed089b5af00563e4222a499def8c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b44612b535e741dca10d53c909f42090",
+      "ordinal": 35,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 822891,
+        "end": 882888,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7b25de87053ef11d5b0a012a63f09063311546d8a3c0e7a8efc0f750a9815f60",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2de614b3c2cc4b0a81bef329fedd2f91",
+      "ordinal": 36,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 882888,
+        "end": 942884,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ac30de3d0f38109c2f89690813d52b121f28c50c3d21f4146ca08ca7580d72dc",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ffa044a3e5594685adf7c4a80f5a5317",
+      "ordinal": 37,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 942884,
+        "end": 950516,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b8c8e0beb1999c31e8a8d153f7da513267127649d637bebcb1f0b96674b8c5a0",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-8f910fe94f8e4eecbd41000b48b1b718",
+      "ordinal": 38,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 950516,
+        "end": 981102,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "251d7567ec5360a9e59cdbddbae83a903e67d20530fd8513e45a0e0a8ce84ed4",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-35e63105437f4d38ab8c54cbb57628ec",
+      "ordinal": 39,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 981102,
+        "end": 993634,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "aa1268c78f1fb6a2c29a9cbd6a177d2b9d4b9d967b6a06f65c2fb974aa05fe62",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-9565de84c04d42fdb94343eb33303e4f",
+      "ordinal": 40,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 993634,
+        "end": 1045294,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d57328ed4708df5c96a7343625065c87d46fc2ac0eb6a50a153db1596ab42a5f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b4896ead7ca44bb6862c6b1dbf2cbc20",
+      "ordinal": 41,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 1045294,
+        "end": 1070274,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "36deb0c27aa7b66bb2e8bd9e7a3eec9f4036cc6fc94ed1c7995fa9927f1c2c94",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-1463eaa7ec0c437f848abe1c98666d39",
+      "ordinal": 42,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 1070274,
+        "end": 1083673,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "4c1cbc74d8be990bb917011e4a5e5849a2ed0b82d9382d50822c62f1ab703d73",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d085d727fbf34c7d983ba0271a0e01cd",
+      "ordinal": 43,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 1083673,
+        "end": 1117749,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "581a8520711dbfe05ad314537d52d67d172606559f15f301424b402f9b7f902d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-6aa5ef5118434def8655ffde9aa81d07",
+      "ordinal": 44,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 1117749,
+        "end": 1123835,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "eee97ab6c682b55d26b25de9706c6aca5f8fb012bef45c427dc8f7b46826b9af",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-11f4759abac5459099050f108c981499",
+      "ordinal": 45,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 1123835,
+        "end": 1180426,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "3d11df3a582c9d2d6545cb7ab1ed248a94b4dd1627f1c92cb3f8db175ac39ae6",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-76470fc4e0a94191bdb04c2032a58561",
+      "ordinal": 46,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 1180426,
+        "end": 1188793,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "8a14b84a5933d9860506623319a5de5c66b27d6be151d7b839498072a5e5091c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-12fefd8fa93a4e3da16438c5564213e9",
+      "ordinal": 47,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 1188793,
+        "end": 1229657,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c7f678005dca0d5bbb0724cdf0449f431ce6f60e060133dbe8c323d56e2cf855",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f6a3999475d6440dbd6ab957c4da2a9e",
+      "ordinal": 48,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 1229657,
+        "end": 1242815,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "06463a4ae9c0c1d5de5a60944bed43483e4207c6f460ccf8a186ea607cb1b353",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-59b99741433b4d60a73e418a5c90f6a0",
+      "ordinal": 49,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 1242815,
+        "end": 1250055,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a570065bcafa14d97d0450fdd40b81b14b6ece31fcf1d96462433ba17a5b0b2d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-4c69745a4a6f4a6fa249533ebf1cfd85",
+      "ordinal": 50,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 1250055,
+        "end": 1291081,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "bfc826231124f579c2551df1a0e82dcf1ba0fffbe1680477cc9378028077164e",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-e4952270ec044494a54792097ecba946",
+      "ordinal": 51,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 1291081,
+        "end": 1319592,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1892f379d167f53560c098a1d1c4a32d7caf9bb841d2cbdd1a5e19b63d65c062",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ab7a357d40a34dfb95ab85f83b4699c0",
+      "ordinal": 52,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 1319592,
+        "end": 1379590,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "18ef519130cb663a58b65237c94c85f1c0daef046fa326b70dfc0913f66a96d7",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b5e8b7f6bb8949d89452c02628dedf48",
+      "ordinal": 53,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 1379590,
+        "end": 1410465,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "3a33adf49f9d94e4145eee6021c9f294b97545404526385ea2ced0fa71f023a7",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d003d2eb676e44fe9f8f3c8eda9bffc2",
+      "ordinal": 54,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 1410465,
+        "end": 1470461,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "454dc5b9fed8c8d540dcece0babd010c200ff7d90e867348b0319d34e5ba1637",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-7e8bfe49dca245c88078eaf823b612a8",
+      "ordinal": 55,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 1470461,
+        "end": 1481883,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "97c6c9f3975fcf6d0d160cde3cc3d114363c2e84115e0e9d837a34304037f95b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b357542027744c89a0577ac2b8517424",
+      "ordinal": 56,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 1481883,
+        "end": 1541874,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c9f3e7a382fe4b1f93f4bb06bf8f0aa684444f671f10cebcdcf09005f5393af5",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-706b065026e14a78bcb5f80da6d9ae18",
+      "ordinal": 57,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 1541874,
+        "end": 1569461,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a73f27a5228d9e65150481f2347f3d381a3a2a0e445f5734d559f60a14161451",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-0a959b9df935417bb5ad70a2a334ac20",
+      "ordinal": 58,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 1569461,
+        "end": 1621441,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d07f9237900b2ed9b46cb3b91d9fad1441c34e92a7d7e5bc80f13d75df4fb284",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-5a50ff14b5fb43008491772c821e6330",
+      "ordinal": 59,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 1621441,
+        "end": 1654511,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ab7c0ea79cd213943d019c43bbd1f899b1faac0cb479b952369e77933978e01b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-c4d299fe21b34f779927ce0959bfbc66",
+      "ordinal": 60,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 1654511,
+        "end": 1714508,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "04a780503e5a86c1fb1aacbdab963b2032d55d2b105ea6576212a1b8c6febfdc",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-db6757caebd44c32a69760178d6d650f",
+      "ordinal": 61,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 1714508,
+        "end": 1719895,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "28e2eb585e853dbbad8a0210506f50b1badbc7fa5f9a206fabcf0d8ceec4691a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-c7b76d75fe15405e9ebe713842b28aeb",
+      "ordinal": 62,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 1719895,
+        "end": 1779894,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e6765be6bff29b79acde9f1e36eba01bef9d714e8c593f21dd7ce7295cd17c0a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2c81275d3e0841d1b6616487ad2ec71e",
+      "ordinal": 63,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 1779894,
+        "end": 1839894,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "83b3bc6ad6f86d50c88fdc6d0bb1da20f598adc806265b78f5d9e24b54fca5bd",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-cc34707a353747418bec5f50504a9b8d",
+      "ordinal": 64,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 1839894,
+        "end": 1855299,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e97aec47c8e9765d3d9d83339bde393aedf58f57ec5abc4a0cbe5abfb7f2e27f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-43ed3d5c79954f6a869ad1c5f045dac4",
+      "ordinal": 65,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 1855299,
+        "end": 1915288,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "fc80074afda50a386a15aca21e729f6b8d3356685c7d78907c643737ad77380b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-e9f1d4dc09674778b87c837dc72952b2",
+      "ordinal": 66,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 1915288,
+        "end": 1923249,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "6355ce79e24f94fe149ff2cc2219c72a144d8feaffab87d098a592ea2b003ed3",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-7175efef70d94e4aa380e6ff9b145f57",
+      "ordinal": 67,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "50a6303cc6aa9ef3357ef58ae7f57b244d31ec1e24cea4545ae9bc9186bc6733",
+      "selector": {
+        "type": "text_position",
+        "start": 1923249,
+        "end": 1967581,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "42bfd96be884c9600805fb62d0f504082c6e8d5e0e4361f3971505e10750033d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/42930"
+      }
+    }
+  ],
+  "units": [
+    {
+      "unit_id": "tos.text-unit.sid-06064a906ea64d149b06a0f4c362b3b0",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-dceab9db6e034af4b36f789bcdf6c756"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f5c53bb76db94a6aaf6f64fb5a830f04",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-4534c32d11b04ad689dcee6e90e3f3e2"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-a9e8f8fbb3a14afea136e8258eb1e844",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ca5fbeef8edb49e9a2577e3218d429e7"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f834d9efa054400a8863496154496d5a",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a8c75961c99e4332bd97abfa6179c5d0"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-50cb8185584148e885157038d2129b47",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-5f728e1d97b24db0bb16e59a1dd1acb5"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-5f12cc4feb5b40bfaf9c6dd3a5b2ac58",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-1b8f9b39c0da44b9837b2487944f965a"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6ce00191cac442fe8d2bd6daa50f0ba9",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-953e99e3fbc340d3828c2a4b65d68eda"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-2f6dba3df8224c589b8f19246af58d14",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d2df7496d49f46a1984505f714839705"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f0ef06b80aff4db6a65abc20dc5c9df7",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-df74abad0fa7448ca0e173857b4bdb08"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b47adac28b654a85b14b7270a4f8cbac",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-e67ee2f5b7774919a25db0eb7d50d46c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8b454dbe8aab425aaa60f1f6b06add4e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-dc4489a2ced74e37ae610718d85bec19"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-09a16382f1314d13a7f1f8d6dfd7f6fc",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d981776b0ae448c49c3e01ea43a6b68c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-26147f494a9a48d0bc19e55b4ef0dcdc",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3e18f74dfac44c7ba7888b4a324dbe29"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b490511eb1324588890cccd0967f62c0",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f90dd21ac0c6401da8fde5b5fc78e8ae"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8bbf3e3f9cf24b258b1551892d1178e9",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-5038082b8970402983fd39be9c1c940b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-d48783e532154967b65a09e8dd97096c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-4fc372f506d248aaa0acc41db37b550c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6ce9d266b992472199b0a19495297e9c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-5aa7f128e47245edaa74dee01a12ce48"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f02ae045827d498ea501a6bbfc940937",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-afd200649c144466994e7df0466d503d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-cf92145f0a8043f2a1adbe39e43ff40c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-06d15cd48dbc4f08ad594c68ced9f2f6"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ce98e5c29b234b93971b54b3a4a8bb53",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ba8cf3f258454f848b76ad5860f64f31"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-d861662868694897bd61e6cc9988e394",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-7d94b1461821477f939a8dc676a6c33e"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e03bda77daa24f56a869cd1a4355df68",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-e8a3c02a5ae1430a9534c232ad6ddb4c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-9e1fc30f40d74e2cb597fe720f117ca4",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f78161e7b4274e9083346114309217a3"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-62a42b1ce658401384d692cfdf26ce65",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-af622cc1cc5d4dceb314a47038b2e0db"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-bc11d5e4d0b04e45b0d5447901bccacd",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-9fbfa19b54c44539b2408c38c9e5e734"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-bd5aad64594246d689cec405a87cdb7d",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-1bf853dc9b224e13befc902c1b0f6b64"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b43269c700614e749460935e7a68be4e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-423f64a0b7424702ac6f46dfb90d8247"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e2a6005a3ec24521b04a4b38857c8e39",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-9537abe086ba4e67bb07f50c81aef6dc"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-d6acbba6d0974925a1bd6f0f18485ca5",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-479327579043423ab4480907bee8fe15"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6209627bf03d4e63b4b6f06097d76a97",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d5ff67cda1054dd183cabaf5dfd09ce3"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-37129d79424843d395d9b5d6d05b06b2",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-074584ad6cb84f00811db4a49ead49b1"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b0b6c28fa45c46adb90e9e3fcd2dbed6",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-88b9e963feda48e6a0c9482cd840c262"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-a212b486a9ca44719234f5dcfba1690c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b600e20620a74069a5822f8513a4d5e0"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-7aa3abfe6afa4ce5a926cdc7593637f7",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b44612b535e741dca10d53c909f42090"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-bde504242d264b5f887dc2abcb4686a9",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2de614b3c2cc4b0a81bef329fedd2f91"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-56a86b8fd6ac489d88304f838ef6ff1d",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ffa044a3e5594685adf7c4a80f5a5317"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c0cbaa81d92448c7a2ce100b722112fd",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-8f910fe94f8e4eecbd41000b48b1b718"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e945ca35700b4cab82adec1e39a60496",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-35e63105437f4d38ab8c54cbb57628ec"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-75a0851d1ab54e388cdf7f1c75d1c7d3",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-9565de84c04d42fdb94343eb33303e4f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6cf930b8303040569cb97f705befa5d3",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b4896ead7ca44bb6862c6b1dbf2cbc20"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ada0e58366ed4463af360ce5601219b5",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-1463eaa7ec0c437f848abe1c98666d39"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6f2b257146954955b8814764ea6e0389",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d085d727fbf34c7d983ba0271a0e01cd"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e9f90702fe0247239f3232dc5562c048",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-6aa5ef5118434def8655ffde9aa81d07"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-10a8ef7eb2c94d219e58ef301bf8ecb9",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-11f4759abac5459099050f108c981499"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-83bf3b06d9cf4e01a716a05307feca3d",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-76470fc4e0a94191bdb04c2032a58561"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-3fd757a2f1414878b5d61f0aef06e62c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-12fefd8fa93a4e3da16438c5564213e9"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e1a947f2c7184b1781b2669553bd28b5",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f6a3999475d6440dbd6ab957c4da2a9e"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ed855cd9c97a4fa081db6d5ee3c5f2cc",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-59b99741433b4d60a73e418a5c90f6a0"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8da013385a8b4465bf9a93d864efead2",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-4c69745a4a6f4a6fa249533ebf1cfd85"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-7f8a9b46bfd64924828163f404ad508a",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-e4952270ec044494a54792097ecba946"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-131fa82acd08434bb453973a225ce62b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ab7a357d40a34dfb95ab85f83b4699c0"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1c974d7c1bbd48748371ec0f79050d29",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b5e8b7f6bb8949d89452c02628dedf48"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-610e236b9c824016823af68108ab1423",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d003d2eb676e44fe9f8f3c8eda9bffc2"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-a022612d627a4f819232af72f2cb203d",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-7e8bfe49dca245c88078eaf823b612a8"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-554ccecf57ba44a7888644e3260deb92",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b357542027744c89a0577ac2b8517424"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-cf266ce53af0475fbfdc27eeb0e6fac5",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-706b065026e14a78bcb5f80da6d9ae18"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8cd4b2331b8247389c9830c5ede3c487",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-0a959b9df935417bb5ad70a2a334ac20"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-0e5464e3d54c4c49b6b01d83ce454d12",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-5a50ff14b5fb43008491772c821e6330"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-fd40a41ce06940269eb3727fdd7702ef",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-c4d299fe21b34f779927ce0959bfbc66"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-031beb5b82f449d6a939b8ffb5755bde",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-db6757caebd44c32a69760178d6d650f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-7a474a665b4e4e9b889f27fd00b9ecac",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-c7b76d75fe15405e9ebe713842b28aeb"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-0176abb8efa341e781aea7f2571d573a",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2c81275d3e0841d1b6616487ad2ec71e"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1d6a64179d9b4f699a8e5f4024824956",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-cc34707a353747418bec5f50504a9b8d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-9465e35d64474dc1b576fe5e1ef76d05",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-43ed3d5c79954f6a869ad1c5f045dac4"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-94081d08b5894d5badaa35468a164fb4",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-e9f1d4dc09674778b87c837dc72952b2"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-05250f338d2d4b91aa532249d9183082",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-7175efef70d94e4aa380e6ff9b145f57"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    }
+  ],
+  "segmentations": [
+    {
+      "segmentation_id": "tos.text-segmentation.sid-8597f191bfd14685a97af67eb5f13db6",
+      "segmentation_version": 1,
+      "supersedes_segmentation_ref": null,
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "scheme_ref": "tos.text-unit-scheme.sid-9f24de28ec854c679ce0592b8ad0f909",
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-06064a906ea64d149b06a0f4c362b3b0",
+        "tos.text-unit.sid-f5c53bb76db94a6aaf6f64fb5a830f04",
+        "tos.text-unit.sid-a9e8f8fbb3a14afea136e8258eb1e844",
+        "tos.text-unit.sid-f834d9efa054400a8863496154496d5a",
+        "tos.text-unit.sid-50cb8185584148e885157038d2129b47",
+        "tos.text-unit.sid-5f12cc4feb5b40bfaf9c6dd3a5b2ac58",
+        "tos.text-unit.sid-6ce00191cac442fe8d2bd6daa50f0ba9",
+        "tos.text-unit.sid-2f6dba3df8224c589b8f19246af58d14",
+        "tos.text-unit.sid-f0ef06b80aff4db6a65abc20dc5c9df7",
+        "tos.text-unit.sid-b47adac28b654a85b14b7270a4f8cbac",
+        "tos.text-unit.sid-8b454dbe8aab425aaa60f1f6b06add4e",
+        "tos.text-unit.sid-09a16382f1314d13a7f1f8d6dfd7f6fc",
+        "tos.text-unit.sid-26147f494a9a48d0bc19e55b4ef0dcdc",
+        "tos.text-unit.sid-b490511eb1324588890cccd0967f62c0",
+        "tos.text-unit.sid-8bbf3e3f9cf24b258b1551892d1178e9",
+        "tos.text-unit.sid-d48783e532154967b65a09e8dd97096c",
+        "tos.text-unit.sid-6ce9d266b992472199b0a19495297e9c",
+        "tos.text-unit.sid-f02ae045827d498ea501a6bbfc940937",
+        "tos.text-unit.sid-cf92145f0a8043f2a1adbe39e43ff40c",
+        "tos.text-unit.sid-ce98e5c29b234b93971b54b3a4a8bb53",
+        "tos.text-unit.sid-d861662868694897bd61e6cc9988e394",
+        "tos.text-unit.sid-e03bda77daa24f56a869cd1a4355df68",
+        "tos.text-unit.sid-9e1fc30f40d74e2cb597fe720f117ca4",
+        "tos.text-unit.sid-62a42b1ce658401384d692cfdf26ce65",
+        "tos.text-unit.sid-bc11d5e4d0b04e45b0d5447901bccacd",
+        "tos.text-unit.sid-bd5aad64594246d689cec405a87cdb7d",
+        "tos.text-unit.sid-b43269c700614e749460935e7a68be4e",
+        "tos.text-unit.sid-e2a6005a3ec24521b04a4b38857c8e39",
+        "tos.text-unit.sid-d6acbba6d0974925a1bd6f0f18485ca5",
+        "tos.text-unit.sid-6209627bf03d4e63b4b6f06097d76a97",
+        "tos.text-unit.sid-37129d79424843d395d9b5d6d05b06b2",
+        "tos.text-unit.sid-b0b6c28fa45c46adb90e9e3fcd2dbed6",
+        "tos.text-unit.sid-a212b486a9ca44719234f5dcfba1690c",
+        "tos.text-unit.sid-7aa3abfe6afa4ce5a926cdc7593637f7",
+        "tos.text-unit.sid-bde504242d264b5f887dc2abcb4686a9",
+        "tos.text-unit.sid-56a86b8fd6ac489d88304f838ef6ff1d",
+        "tos.text-unit.sid-c0cbaa81d92448c7a2ce100b722112fd",
+        "tos.text-unit.sid-e945ca35700b4cab82adec1e39a60496",
+        "tos.text-unit.sid-75a0851d1ab54e388cdf7f1c75d1c7d3",
+        "tos.text-unit.sid-6cf930b8303040569cb97f705befa5d3",
+        "tos.text-unit.sid-ada0e58366ed4463af360ce5601219b5",
+        "tos.text-unit.sid-6f2b257146954955b8814764ea6e0389",
+        "tos.text-unit.sid-e9f90702fe0247239f3232dc5562c048",
+        "tos.text-unit.sid-10a8ef7eb2c94d219e58ef301bf8ecb9",
+        "tos.text-unit.sid-83bf3b06d9cf4e01a716a05307feca3d",
+        "tos.text-unit.sid-3fd757a2f1414878b5d61f0aef06e62c",
+        "tos.text-unit.sid-e1a947f2c7184b1781b2669553bd28b5",
+        "tos.text-unit.sid-ed855cd9c97a4fa081db6d5ee3c5f2cc",
+        "tos.text-unit.sid-8da013385a8b4465bf9a93d864efead2",
+        "tos.text-unit.sid-7f8a9b46bfd64924828163f404ad508a",
+        "tos.text-unit.sid-131fa82acd08434bb453973a225ce62b",
+        "tos.text-unit.sid-1c974d7c1bbd48748371ec0f79050d29",
+        "tos.text-unit.sid-610e236b9c824016823af68108ab1423",
+        "tos.text-unit.sid-a022612d627a4f819232af72f2cb203d",
+        "tos.text-unit.sid-554ccecf57ba44a7888644e3260deb92",
+        "tos.text-unit.sid-cf266ce53af0475fbfdc27eeb0e6fac5",
+        "tos.text-unit.sid-8cd4b2331b8247389c9830c5ede3c487",
+        "tos.text-unit.sid-0e5464e3d54c4c49b6b01d83ce454d12",
+        "tos.text-unit.sid-fd40a41ce06940269eb3727fdd7702ef",
+        "tos.text-unit.sid-031beb5b82f449d6a939b8ffb5755bde",
+        "tos.text-unit.sid-7a474a665b4e4e9b889f27fd00b9ecac",
+        "tos.text-unit.sid-0176abb8efa341e781aea7f2571d573a",
+        "tos.text-unit.sid-1d6a64179d9b4f699a8e5f4024824956",
+        "tos.text-unit.sid-9465e35d64474dc1b576fe5e1ef76d05",
+        "tos.text-unit.sid-94081d08b5894d5badaa35468a164fb4",
+        "tos.text-unit.sid-05250f338d2d4b91aa532249d9183082"
+      ],
+      "coverage": {
+        "scope_anchor_ref": "tos.anchor.sid-c354c6e9932b4b3b81e3887c64f3928a",
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "unreported_gaps_allowed": false,
+        "overlap_requires_declaration": true,
+        "source_reconstruction_required": true
+      },
+      "status": "proposed",
+      "status_reason": "Deterministic display and navigation segmentation; no textual, linguistic or semantic acceptance.",
+      "maker": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.enneads-en-guthrie1918-gutenberg.20261027",
+        "made_at": "2026-11-11T05:45:26+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "competing_segmentation_refs": [],
+      "review_refs": [],
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "source_text_authority": false,
+      "linguistic_authority": false,
+      "semantic_authority": false
+    }
+  ],
+  "reviews": [],
+  "projections": [],
+  "rights_and_visibility": {
+    "source_visibility": "public",
+    "packet_visibility": "public",
+    "effective_visibility": "public",
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-guthrie1918-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/rights.json"
+    ],
+    "private_source_used": false,
+    "publication_authorized": true,
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins"
+  },
+  "authority_boundary": {
+    "tree_role": "orientation",
+    "graph_role": "relation",
+    "source_role": "authority",
+    "validators_prove_mechanics_not_truth": true,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "legacy_bulk_migration_authorized": false
+  }
+}
