@@ -106,6 +106,7 @@ reached the digital place of the text (`place_check`): 122 of 229 reached.
 ```sh
 node bonsai/lib/layers.mjs fetch access/public-corpus     # the corpus texts the formulas are found in
 node bonsai/review/aesthetics/plant.mjs                   # write bonsai/aesthetics/{field,library,identities}.json
+node bonsai/review/aesthetics/chronology.mjs --fetch      # the lives of the authors (Wikidata) and the datings of the works (the register)
 node bonsai/lib/cli.mjs align-corpus aesthetics --write   # the cited places in the corpus translations
 node bonsai/lib/cli.mjs check aesthetics
 ```
