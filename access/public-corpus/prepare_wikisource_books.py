@@ -59,11 +59,15 @@ WORKS = {
                            'initials as «Н. Н.».'),
         'rationale': 'Translation published 1927; the translator died 1941. Public domain in Russia (70 years after death) and in the United States (published before 1931). Wikisource transcription under CC BY-SA 4.0: retain attribution, source, license and change notices. No scan collation or semantic acceptance.'},
     'politics': {'author': 'aristotle', 'title': 'Политика', 'split': 'books', 'books': [1, 1, 1, 2, 2, 2, 2, 3, 4],
-        'margins': True, 'id': 'politics-ru-zhebelev1911-wikisource', 'translator': 'Сергей Александрович Жебелёв (1867–1941)',
-        'credit': 'Перевод: С. А. Жебелёв', 'edition': 'Аристотель. Политика. СПб., 1911', 'year': '1911',
-        'attribution': 'Аристотель; перевод С. А. Жебелёва (1911); участники русской Викитеки (история указанных страниц).',
+        'margins': True, 'id': 'politics-ru-zhebelev-revised-wikisource', 'translator': 'Сергей Александрович Жебелёв (1867–1941)',
+        'credit': 'Перевод: С. А. Жебелёв', 'edition': 'Wikisource transcription; exact edition unresolved', 'year': 'unknown',
+        'attribution': 'Аристотель; перевод С. А. Жебелёва; участники русской Викитеки (история указанных страниц).',
         'coverage': 'Books I–IV of eight are transcribed on Wikisource; books V–VIII have no Russian text here.',
-        'rationale': 'Translation published 1911; the translator died 1941. Public domain in Russia (70 years after death) and in the United States (published before 1931). Wikisource transcription under CC BY-SA 4.0: retain attribution, source, license and change notices. No scan collation or semantic acceptance.'},
+        # See https://aristoteles.philosophy.nsc.ru/node/270 and the 1911 scan.
+        'blocked_reason': ('The Wikisource opening matches the 1983 collected-works edition, not the 1911 printing: '
+                           'the translation was checked by A. I. Dovatur and in places revised by V. V. Bibikhin. '
+                           'The source and rights of those revisions require separate assessment; do not publish this as the 1911 text.'),
+        'rationale': 'The source edition and rights of later revisions remain unresolved; no public preparation is authorized.'},
     'laws': {'author': 'plato', 'title': 'Законы', 'split': 'books',
         'id': 'laws-ru-obolensky1827-wikisource', 'translator': 'Василий Иванович Оболенский',
         'credit': 'Перевод: В. И. Оболенский', 'edition': 'Платоновы разговоры о законах. М., 1827', 'year': '1827',
@@ -292,6 +296,8 @@ def url_of(title, revid, wiki='ru'):
 
 def prepare(work, capture, selection, owner):
     config = WORKS[work]
+    if config.get('blocked_reason'):
+        raise ValueError(f"{work}: {config['blocked_reason']}")
     record, pages, raws = load(capture, work)
     sections = sections_for(work, config, pages)
     wiki = config.get('wiki', 'ru')
