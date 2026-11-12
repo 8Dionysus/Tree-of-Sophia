@@ -109,5 +109,68 @@
       }
     }
   ],
-  "lenses": {}
+  "lenses": {
+    "tree": {
+      "positions": "group",
+      "reads": "field",
+      "short": {
+        "ru": "области, понятия и произведения",
+        "en": "areas, concepts and works"
+      },
+      "groups": {
+        "ru": "крона — области в четырёх группах, ствол — понятия, корни — произведения по годам жизни авторов",
+        "en": "the crown is the areas in four groups, the trunk the concepts, the roots the works in the order of their authors’ lives"
+      }
+    }
+  },
+  "depth": {
+    "positions": "group",
+    "reads": "step-of-interpretation",
+    "short": {
+      "ru": "ступень толкования",
+      "en": "step of interpretation"
+    },
+    "groups": {
+      "ru": "в глубину — по ступени толкования: источник дальше всех, перед ним прочтение, затем сопоставление прочтений, ваше — ближе всех; на линзах, которые меряют, пространство плоское",
+      "en": "in depth, by the step of interpretation: a source lies deepest, a reading before it, then a comparison of readings, your own record nearest; on the lenses that measure, the space is flat"
+    },
+    "steps": [
+      {
+        "id": "source",
+        "z": -220,
+        "label": {
+          "ru": "Источник",
+          "en": "Source"
+        }
+      },
+      {
+        "id": "reading",
+        "z": 0,
+        "label": {
+          "ru": "Прочтение",
+          "en": "Reading"
+        }
+      },
+      {
+        "id": "comparison",
+        "z": 170,
+        "label": {
+          "ru": "Сопоставление",
+          "en": "Comparison"
+        }
+      },
+      {
+        "id": "personal",
+        "z": 280,
+        "label": {
+          "ru": "Личное",
+          "en": "Personal"
+        }
+      }
+    ],
+    "rest": {
+      "yaw": -0.36,
+      "pitch": -0.17
+    }
+  }
 }

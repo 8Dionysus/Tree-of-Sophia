@@ -3,4 +3,5 @@
 export const STANDS=Object.freeze([
   Object.freeze({id:'antiquity',title:Object.freeze({ru:'Античность',en:'Antiquity'})}),
   Object.freeze({id:'zarathustra',title:Object.freeze({ru:'Заратустра',en:'Zarathustra'})}),
+  Object.freeze({id:'aesthetics',title:Object.freeze({ru:'Эстетика',en:'Aesthetics'})}),
 ]);
