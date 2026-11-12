@@ -9,6 +9,8 @@ test('public prototype routes serve their built MPA HTML through ASSETS', async 
     ['/zarathustra/', '/zarathustra/'],
     ['/antiquity', '/antiquity/'],
     ['/antiquity/', '/antiquity/'],
+    ['/aesthetics', '/aesthetics/'],
+    ['/aesthetics/', '/aesthetics/'],
   ]) {
     let fetchedPath;
     const response = await worker.fetch(new Request(`https://tos.test${path}`), {

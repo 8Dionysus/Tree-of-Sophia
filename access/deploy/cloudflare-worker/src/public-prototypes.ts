@@ -7,6 +7,7 @@ export function publicPrototypeAsset(pathname: string): string | null {
   // directly so a rewrite cannot redirect the public URL back to itself.
   if (pathname === '/zarathustra' || pathname === '/zarathustra/') return '/zarathustra/';
   if (pathname === '/antiquity' || pathname === '/antiquity/') return '/antiquity/';
+  if (pathname === '/aesthetics' || pathname === '/aesthetics/') return '/aesthetics/';
   return null;
 }
 
