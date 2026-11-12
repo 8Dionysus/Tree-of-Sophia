@@ -1,0 +1,373 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/threeessaysonpic00gilp/threeessaysonpic00gilp_hocr_searchtext.txt.gz",
+   "file": "threeessaysonpic00gilp.ocr.txt",
+   "sha256": "65d91bdddd961222f3ddccc7e9d76518d7e72c5ba86edd7e0480a66f2677fcde",
+   "bytes": 185373,
+   "fetched": "2026-11-10",
+   "why": "Wikisource author page lists only an Archive scan and its aesthetics portal links to an uncreated page; Lancaster extracts omit Essay III. Project Gutenberg search was attempted; indexed results include an 1828 paraphrase rather than this passage. Deutsches Textarchiv and TextGrid search URLs returned pages but did not establish a transcription of the passage; an indexed TextGrid result is a catalogue entry. Zeno search timed out. No proofread transcription of this passage was found; the scan OCR is therefore read against the page images."
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/threeessaysonpic00gilp/threeessaysonpic00gilp_hocr_pageindex.json.gz",
+   "file": "threeessaysonpic00gilp.index.json",
+   "sha256": "61d07b4dbfccb3cf0257777fa80d16cf2c1c27b81852850a9a68976e517149d7",
+   "bytes": 6455,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/threeessaysonpic00gilp/threeessaysonpic00gilp_page_numbers.json",
+   "file": "threeessaysonpic00gilp.pages.json",
+   "sha256": "98e0237a878817217548d3ed18fd18a93d81d0e7d13e33493b48b8ae7c9033aa",
+   "bytes": 31671,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "transcription",
+   "url": "https://www.lancaster.ac.uk/users/philosophy/awaymave/onlineresources/gilpin.htm",
+   "file": "gilpin.htm",
+   "sha256": "fb6e25251dbd0d1fc178510f1021944babba5d85cdc1918b4493ed1f85c23a30",
+   "bytes": 8458,
+   "fetched": "2026-11-11",
+   "text": "gilpin.htm.txt"
+  }
+ ],
+ "scan": {
+  "item": "threeessaysonpic00gilp",
+  "ocr": true,
+  "long_s": true,
+  "image_offset": -1
+ },
+ "persons": [
+  {
+   "qid": "Q1336319",
+   "name": {
+    "en": "William Gilpin",
+    "ru": "Уильям Гилпин"
+   },
+   "role": "author",
+   "died": 1804,
+   "source": "https://www.wikidata.org/wiki/Q1336319"
+  }
+ ],
+ "published": 1792,
+ "images": [
+  {
+   "n": 26,
+   "file": "threeessaysonpic00gilp-n26.jpg",
+   "sha256": "cda17dda55985c79e9a50bd488d0a4aad69652fa7dfea3600758ddb8ae91344b",
+   "by": "maker"
+  },
+  {
+   "n": 25,
+   "file": "threeessaysonpic00gilp-n25.jpg",
+   "sha256": "7a9464d6bea661f1c7cf9abf5ad6c16023fc0e99f9805923ca151298403d6800",
+   "by": "maker"
+  },
+  {
+   "n": 27,
+   "file": "threeessaysonpic00gilp-n27.jpg",
+   "sha256": "a5e8d033968edb9c7ad735bcf8bda8830350f8a3202359fd204ce744f5d70fba",
+   "by": "maker"
+  },
+  {
+   "n": 85,
+   "item": "threeessaysonpic00gilp",
+   "file": "threeessaysonpic00gilp-n85.jpg",
+   "sha256": "ba5e0a54ee3e2fac34379457fd5860506e55d714080aab976952f7a2ad2fe78d",
+   "by": "maker",
+   "loc": "III p62"
+  },
+  {
+   "n": 86,
+   "item": "threeessaysonpic00gilp",
+   "file": "threeessaysonpic00gilp-n86.jpg",
+   "sha256": "3b35a37c399ecdfc3b2303b84aa682bbac09a70b5941b404763a87e4ecf69666",
+   "by": "maker",
+   "loc": "III p63"
+  },
+  {
+   "n": 85,
+   "item": "threeessaysonpic00gilp",
+   "file": "threeessaysonpic00gilp-n85-z78-86.jpg",
+   "sha256": "c418b8d9d466a4ef0fc69e562fedf70eef39929f3edf8f9457d73a40e1733311",
+   "by": "maker",
+   "loc": "III p62",
+   "zoom": [
+    78,
+    86
+   ]
+  },
+  {
+   "n": 86,
+   "item": "threeessaysonpic00gilp",
+   "file": "threeessaysonpic00gilp-n86-z8-25.jpg",
+   "sha256": "f8ce0953cd9d72f2c9272c8f9f10d5d96b443a3d33522545dcaf056bff4bf923",
+   "by": "maker",
+   "loc": "III p62",
+   "zoom": [
+    8,
+    25
+   ]
+  },
+  {
+   "n": 86,
+   "item": "threeessaysonpic00gilp",
+   "file": "threeessaysonpic00gilp-n86-z25-43.jpg",
+   "sha256": "81e0c6b3c321cbde97c54898e412796497aa3074dc5a56cc40f1256b1f5c1788",
+   "by": "maker",
+   "loc": "III p62",
+   "zoom": [
+    25,
+    43
+   ]
+  },
+  {
+   "n": 86,
+   "item": "threeessaysonpic00gilp",
+   "file": "threeessaysonpic00gilp-n86-z58-83.jpg",
+   "sha256": "ef7d89a955a2bcd58cdc47e610d414dbb4602cad7eeba22cb7d3927e36858a83",
+   "by": "maker",
+   "loc": "III p63",
+   "zoom": [
+    58,
+    83
+   ]
+  },
+  {
+   "n": 86,
+   "item": "threeessaysonpic00gilp",
+   "file": "threeessaysonpic00gilp-n86-z80-85.jpg",
+   "sha256": "a31326fee67384efcb7d191dc546707c442290b0a4cfce40a69d6f91aec36502",
+   "by": "maker",
+   "loc": "III p63",
+   "zoom": [
+    80,
+    85
+   ]
+  },
+  {
+   "n": 85,
+   "item": "threeessaysonpic00gilp",
+   "file": "threeessaysonpic00gilp-n85-z78-86.jpg",
+   "sha256": "c418b8d9d466a4ef0fc69e562fedf70eef39929f3edf8f9457d73a40e1733311",
+   "by": "second",
+   "loc": "III p62",
+   "zoom": [
+    78,
+    86
+   ]
+  },
+  {
+   "n": 86,
+   "item": "threeessaysonpic00gilp",
+   "file": "threeessaysonpic00gilp-n86-z8-25.jpg",
+   "sha256": "f8ce0953cd9d72f2c9272c8f9f10d5d96b443a3d33522545dcaf056bff4bf923",
+   "by": "second",
+   "loc": "III p62",
+   "zoom": [
+    8,
+    25
+   ]
+  },
+  {
+   "n": 86,
+   "item": "threeessaysonpic00gilp",
+   "file": "threeessaysonpic00gilp-n86-z25-43.jpg",
+   "sha256": "81e0c6b3c321cbde97c54898e412796497aa3074dc5a56cc40f1256b1f5c1788",
+   "by": "second",
+   "loc": "III p62",
+   "zoom": [
+    25,
+    43
+   ]
+  },
+  {
+   "n": 86,
+   "item": "threeessaysonpic00gilp",
+   "file": "threeessaysonpic00gilp-n86-z58-83.jpg",
+   "sha256": "ef7d89a955a2bcd58cdc47e610d414dbb4602cad7eeba22cb7d3927e36858a83",
+   "by": "second",
+   "loc": "III p63",
+   "zoom": [
+    58,
+    83
+   ]
+  },
+  {
+   "n": 25,
+   "item": "threeessaysonpic00gilp",
+   "file": "threeessaysonpic00gilp-n25.jpg",
+   "sha256": "7a9464d6bea661f1c7cf9abf5ad6c16023fc0e99f9805923ca151298403d6800",
+   "by": "second",
+   "loc": "I p6"
+  },
+  {
+   "n": 26,
+   "item": "threeessaysonpic00gilp",
+   "file": "threeessaysonpic00gilp-n26.jpg",
+   "sha256": "cda17dda55985c79e9a50bd488d0a4aad69652fa7dfea3600758ddb8ae91344b",
+   "by": "second",
+   "loc": "I p7"
+  },
+  {
+   "n": 27,
+   "item": "threeessaysonpic00gilp",
+   "file": "threeessaysonpic00gilp-n27.jpg",
+   "sha256": "a5e8d033968edb9c7ad735bcf8bda8830350f8a3202359fd204ce744f5d70fba",
+   "by": "second",
+   "loc": "I p7"
+  },
+  {
+   "n": 85,
+   "item": "threeessaysonpic00gilp",
+   "file": "threeessaysonpic00gilp-n85.jpg",
+   "sha256": "ba5e0a54ee3e2fac34379457fd5860506e55d714080aab976952f7a2ad2fe78d",
+   "by": "second",
+   "loc": "III p62"
+  },
+  {
+   "n": 86,
+   "item": "threeessaysonpic00gilp",
+   "file": "threeessaysonpic00gilp-n86.jpg",
+   "sha256": "3b35a37c399ecdfc3b2303b84aa682bbac09a70b5941b404763a87e4ecf69666",
+   "by": "second",
+   "loc": "III p63"
+  }
+ ],
+ "places": {
+  "I p6": {
+   "method": "ocr",
+   "share": 0.955,
+   "leaves": [
+    26
+   ],
+   "printed": [
+    null
+   ],
+   "differences": [
+    {
+     "transcription": "essential",
+     "ocr": "eiTential",
+     "leaf": 26,
+     "stands": "transcription",
+     "note": "Page 6, n25: essential and picturesque in the print; OCR misreads long s and type."
+    },
+    {
+     "transcription": "picturesque",
+     "ocr": "piflurefque",
+     "leaf": 26,
+     "stands": "transcription",
+     "note": "Page 6, n25: essential and picturesque in the print; OCR misreads long s and type."
+    }
+   ]
+  },
+  "I p7": {
+   "method": "ocr",
+   "share": 0.948,
+   "leaves": [
+    27,
+    28
+   ],
+   "printed": [
+    null,
+    null
+   ],
+   "differences": [
+    {
+     "transcription": "pleasing",
+     "ocr": "plealing",
+     "leaf": 27,
+     "stands": "transcription",
+     "note": "Pages 7–8, n26–n27: the printed words are pleasing, wish, must, chissel, short, must and rough ruin; OCR also captures signature and page number."
+    },
+    {
+     "transcription": "wish",
+     "ocr": "wifri",
+     "leaf": 27,
+     "stands": "transcription",
+     "note": "Pages 7–8, n26–n27: the printed words are pleasing, wish, must, chissel, short, must and rough ruin; OCR also captures signature and page number."
+    },
+    {
+     "transcription": "must",
+     "ocr": "mult ,",
+     "leaf": 27,
+     "stands": "transcription",
+     "note": "Pages 7–8, n26–n27: the printed words are pleasing, wish, must, chissel, short, must and rough ruin; OCR also captures signature and page number."
+    },
+    {
+     "transcription": "chissel",
+     "ocr": "chilfel",
+     "leaf": 27,
+     "stands": "transcription",
+     "note": "Pages 7–8, n26–n27: the printed words are pleasing, wish, must, chissel, short, must and rough ruin; OCR also captures signature and page number."
+    },
+    {
+     "transcription": "short",
+     "ocr": "Lhort",
+     "leaf": 27,
+     "stands": "transcription",
+     "note": "Pages 7–8, n26–n27: the printed words are pleasing, wish, must, chissel, short, must and rough ruin; OCR also captures signature and page number."
+    },
+    {
+     "transcription": "must",
+     "ocr": "mull",
+     "leaf": 27,
+     "stands": "transcription",
+     "note": "Pages 7–8, n26–n27: the printed words are pleasing, wish, must, chissel, short, must and rough ruin; OCR also captures signature and page number."
+    },
+    {
+     "transcription": "",
+     "ocr": "B 4 rough ( 8 )",
+     "leaf": 27,
+     "stands": "transcription",
+     "note": "Pages 7–8, n26–n27: the printed words are pleasing, wish, must, chissel, short, must and rough ruin; OCR also captures signature and page number."
+    }
+   ]
+  },
+  "III p62": {
+   "transcription": "threeessaysonpic00gilp.ocr.txt",
+   "from_scan": true,
+   "method": "image",
+   "leaves": [
+    86,
+    87
+   ],
+   "printed": [
+    null,
+    null
+   ],
+   "images": [
+    85,
+    86
+   ],
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the complete passage on images n85 and n86, pp. 62–63; corrected OCR against the print, including the broken sentence across pages."
+   },
+   "scan": "threeessaysonpic00gilp"
+  },
+  "III p63": {
+   "transcription": "threeessaysonpic00gilp.ocr.txt",
+   "from_scan": true,
+   "images": [
+    86
+   ],
+   "method": "image",
+   "leaves": [
+    87
+   ],
+   "printed": [
+    null
+   ],
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the complete passage on image n86, p. 63; corrected OCR against the print."
+   },
+   "scan": "threeessaysonpic00gilp"
+  }
+ }
+}

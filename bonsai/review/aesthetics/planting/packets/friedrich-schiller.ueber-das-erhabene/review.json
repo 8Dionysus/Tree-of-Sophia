@@ -1,9 +1,9 @@
 {
  "reader": {
-  "id": "codex-2026-11-10-schiller-erhabene-second",
+  "id": "codex-2026-11-11-schiller-erhabene-second",
   "model": "gpt-6.1-terra",
-  "date": "2026-11-10",
-  "reads": "Every place in German and each thesis in Russian and English; all three places against the page images.",
+  "date": "2026-11-11",
+  "reads": "Every place in the German original and each Russian and English thesis; all three places on pages 286 and 299–300, including the enlarged line on page 286.",
   "effort": "high"
  },
  "conceptions": {
@@ -18,11 +18,13 @@
   }
  },
  "links": {},
+ "left": {},
  "images": [
   {
    "loc": "Essay p286a",
    "n": 291,
-   "reads": "as the packet"
+   "reads": "as the packet",
+   "note": "The enlarged lines read 'von feinen Seelen' and 'unsere moralische Selbstständigkeit'."
   },
   {
    "loc": "Essay p286b",
@@ -32,14 +34,16 @@
   {
    "loc": "Essay p299",
    "n": 304,
-   "reads": "as the packet"
+   "reads": "as the packet",
+   "note": "The sentence begins at the foot of page 299."
   },
   {
    "loc": "Essay p299",
    "n": 305,
-   "reads": "as the packet"
+   "reads": "as the packet",
+   "note": "The sentence ends at the head of page 300: 'unsrer Würde vergessen machen.'"
   }
  ],
  "accept": true,
- "summary": "All three theses are borne by their complete German sentences in both languages. The three places agree with the pages read, including the sentence across pages 299–300."
+ "summary": "All three conceptions are borne by their complete German sentences and agree with both theses. All three places match the pages read; no links or left readings await review."
 }

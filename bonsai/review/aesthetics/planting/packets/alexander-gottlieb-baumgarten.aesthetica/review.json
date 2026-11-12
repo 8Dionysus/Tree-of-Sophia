@@ -1,9 +1,9 @@
 {
  "reader": {
-  "id": "codex-2026-11-10-aesthetica-second",
+  "id": "codex-2026-11-11-baumgarten-second",
   "model": "gpt-6.1-terra",
-  "date": "2026-11-10",
-  "reads": "Every Latin place and both theses against it; all four places on the first-edition page images.",
+  "date": "2026-11-11",
+  "reads": "Read all three Latin places against both theses, and all three places on the first-edition page images.",
   "effort": "high"
  },
  "conceptions": {
@@ -12,10 +12,6 @@
   },
   "alexander-gottlieb-baumgarten.aesthetica:science-of-sensitive-cognition": {
    "says": "yes"
-  },
-  "alexander-gottlieb-baumgarten.aesthetica:natural-aesthetics": {
-   "says": "partly",
-   "note": "The place says «et acquisitam; et haec denuo; in docentem et utentem»: the acquired kind is further divided into teaching and using. Both theses say 'and also' without preserving that this second division is of the acquired kind."
   },
   "alexander-gottlieb-baumgarten.aesthetica:theoretical-aesthetics": {
    "says": "yes"
@@ -30,14 +26,10 @@
    "reads": "as the packet"
   },
   {
-   "loc": "§2 p1",
-   "n": 12,
-   "reads": "as the packet"
-  },
-  {
    "loc": "§13 p5",
    "n": 16,
-   "reads": "as the packet"
+   "reads": "as the packet",
+   "note": "At scan size the line reads ‘PRACTICA, vtens, specialis. P. II.’, with a full stop after specialis."
   },
   {
    "loc": "§14 p6",
@@ -45,6 +37,6 @@
    "reads": "as the packet"
   }
  ],
- "accept": false,
- "summary": "Three conceptions are supported by their places; all four places match the pages read. The thesis on natural aesthetics does not preserve the nested division of the acquired kind."
+ "accept": true,
+ "summary": "All three conceptions are borne by their Latin places in both languages. The three page images support the packet's readings; there are no links or left entries to assess."
 }
