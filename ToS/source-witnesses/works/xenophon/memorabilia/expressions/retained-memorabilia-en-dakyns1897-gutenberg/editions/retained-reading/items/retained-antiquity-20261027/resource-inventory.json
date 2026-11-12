@@ -215,6 +215,31 @@
           }
         }
       ]
+    },
+    {
+      "file_id": "tos.file.sha256.a2606595f60ec26941e1ca85ec20122d7256f19bcda655fee78a765ce40c266d",
+      "file_sha256": "a2606595f60ec26941e1ca85ec20122d7256f19bcda655fee78a765ce40c266d",
+      "media_type": "text/plain",
+      "profile": "plain_text_v1",
+      "summary": {
+        "resource_count": 1
+      },
+      "resources": [
+        {
+          "resource_id": "plain-text-file",
+          "resource_kind": "plain_text_file",
+          "locator": {
+            "container_order": 1
+          },
+          "structural_role": "member",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "a2606595f60ec26941e1ca85ec20122d7256f19bcda655fee78a765ce40c266d",
+            "character_count": 411942
+          }
+        }
+      ]
     }
   ],
   "generator": {
