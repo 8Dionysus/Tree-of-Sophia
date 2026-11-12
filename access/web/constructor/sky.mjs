@@ -1,5 +1,6 @@
 import { SophiaGpuCanvas } from '../src/observatory/gpu-canvas.js';
 import {validateSkyPose} from './sky-pose.mjs';
+import {scaleLabelClear} from './scale-labels.mjs';
 
 // Spatial view over a session-local graph; preserves the observatory atmosphere.
 // Options are opt-in so the constructor keeps its own behaviour: rotate:false
@@ -613,7 +614,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       // A name at the edge of the view needs a view wide enough to leave the stars their room beside it.
       const fits=c.variant==='lane'||c.variant==='ytick'||c.variant==='edge'?area.right-area.left>=24&&area.top>=vt-2&&area.bottom<=vb+2&&(c.variant!=='edge'||vr-vl>=600):text.left>=vl-12&&text.right<=vr+12;
       // A scale never writes over the page's own panels, even when the map is squeezed under a sheet.
-      const shown=fits&&!scaleLabels.some(o=>overlaps(area,o,2))&&!uiObstacles.some(o=>overlaps(area,o,0)),fade=presence(c,shown,now,dt,instant);
+      const shown=fits&&scaleLabelClear(area,scaleLabels,uiObstacles),fade=presence(c,shown,now,dt,instant||c.variant==='axis');
       c.el.hidden=!fade;
       if(fade){c.el.style.width=(area.right-area.left).toFixed(1)+'px';c.el.style.transform=`translate3d(${area.left.toFixed(2)}px,${area.top.toFixed(2)}px,0)`;c.el.style.filter=fade<1?`opacity(${fade.toFixed(3)})`:'';}
       if(shown){scaleLabels.push(area);occupied.push(area);}

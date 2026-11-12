@@ -8,6 +8,7 @@ import chronology from '../../../../bonsai/aesthetics/chronology.json';
 import places from '../../../../bonsai/aesthetics/fragments.json';
 import {aestheticsTree,aestheticsSourceGroups} from './aesthetics-tree.mjs';
 import {aestheticsTimeline} from './space-timeline.mjs';
+import {scaleLabelClear} from '../../constructor/scale-labels.mjs';
 import {readChronology} from '../../../../bonsai/lib/chronology.mjs';
 import {jaccardDistance} from './space-proximity.mjs';
 import {colonnade} from './space-gatherings.mjs';
@@ -61,6 +62,18 @@ describe('Aesthetics field projection',()=>{
       else expect(time.isOutside(id)).toBe(true);
     }
     const [a,b]=field.conceptions;expect(jaccardDistance(a.of,b.of)).toBeGreaterThanOrEqual(0);expect(jaccardDistance(a.of,a.of)).toBe(0);
+  });
+  it('gives active centuries room and keeps axis labels apart in a narrow view',()=>{
+    const time=aestheticsTimeline({field,library:result,chronology});
+    const empty=time.xOfYear(101)-time.xOfYear(1),dense=time.xOfYear(1901)-time.xOfYear(1801);
+    expect(dense).toBeGreaterThan(empty);
+    for(const locale of ['ru','en','es','de','zh-Hans']){
+      const labels=time.labels(locale).filter(label=>label.variant==='axis'),visible=[];
+      // A 360px map after the row-name strip; use conservative widths for the axis font.
+      for(const label of labels){const x=(label.center[0]-time.bounds[0])/(time.bounds[1]-time.bounds[0])*360,width=Math.max(24,Array.from(label.title).length*9+12),area={left:x-width/2,right:x+width/2,top:0,bottom:16};if(area.left>=0&&area.right<=360&&scaleLabelClear(area,visible))visible.push(area);}
+      expect(visible.length).toBeGreaterThan(1);
+      for(let i=1;i<visible.length;i++)expect(visible[i].left).toBeGreaterThanOrEqual(visible[i-1].right+2);
+    }
   });
   it('keeps an undated reading beyond the year scale in its own row',()=>{
     const item=field.conceptions[0],id=`aesthetics:reading:${item.id}`,changed=structuredClone(chronology);
