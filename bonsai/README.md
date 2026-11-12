@@ -347,7 +347,11 @@ page reads from the site (`/__research/layers/sha256/<hex>`). The second form
 serves providers whose files carry no CORS headers, such as the Met, and holds
 exactly the bytes the observation fingerprinted. A stand shows an image under
 the Public Domain Mark or CC0, or one its provider flags as free to use (the
-Met's `isPublicDomain`, the National Gallery of Art's `openaccess`). A
+Met's `isPublicDomain`, the National Gallery of Art's `openaccess`, the Saint
+Louis Art Museum's `Rights`, the public-domain status a Wikimedia Commons file's
+structured data states). A work is keyed by its provider and the holder's
+number, or, where that number names it only within one museum, by the
+provider's own item: a Commons artwork's Wikidata item, an SMB object's ObjID. A
 use binds an image to a subject of the stand in a role: `author-portrait`,
 `book-response` (a work made about the book), `motif` (a work of its own
 showing what the text names), `era-material`, `object-of-analysis` or
@@ -378,9 +382,10 @@ its smaller copy, keeps them only if their bytes match the observation's
 fingerprints (`media.observe` with `"files": true`), and enters them in the
 stand's layers.json; the stand's other layers must be fetched first, and
 `node bonsai/lib/layers.mjs send <stand>` or the Publish Bonsai workflow takes
-the new copies on to R2. A new provider's host joins
-`lib/media-hosts.mjs` with its first medium: the site's Content-Security-Policy
-admits images from those hosts alone.
+the new copies on to R2. It fetches a provider's files only from that
+provider's file hosts in `lib/media-hosts.mjs` (`FILE_HOSTS`). A new provider's
+image service host joins `MEDIA_HOSTS` there with its first medium: the site's
+Content-Security-Policy admits images from those hosts alone.
 
 ### Layers kept in R2 (`tos.bonsai.layers.v1`)
 

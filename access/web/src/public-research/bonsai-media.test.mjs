@@ -179,6 +179,68 @@ describe('an image of the National Gallery of Art',()=>{
   });
 });
 
+describe('images whose holders keep closed terms: Commons, the Saint Louis Art Museum, the Staatliche Museen zu Berlin',()=>{
+  // As the bridges read them, cut to what the module reads.
+  const files=(file,preview)=>[{role:'primary',form:'file',access_url:file,image_service:null,file_url:file,preview_url:preview,
+    file_fingerprint:{url:file,final_url:null,media_type:'image/jpeg',byte_size:3728577,sha256:'4'.repeat(64),width_pixels:3840,height_pixels:4784},
+    preview_fingerprint:{url:preview,final_url:null,media_type:'image/jpeg',byte_size:180000,sha256:'5'.repeat(64),width_pixels:960,height_pixels:1196}}];
+  const page='https://commons.wikimedia.org/wiki/File:Rembrandt_-_The_laughing_man.jpg';
+  const commons={
+    schema_version:'tos_media_provider_observation_v1',provider:'commons',requested_object:'File:Rembrandt - The laughing man.jpg',observed_at:'2026-11-09T01:12:00Z',
+    requests:[{role:'file-record',sha256:'6'.repeat(64)},{role:'object-record',sha256:'7'.repeat(64)}],
+    object:{record_url:'https://www.wikidata.org/wiki/Q17275997',repository:'Mauritshuis',
+      identifiers:[{scheme:'Wikimedia Commons file',value:'File:Rembrandt - The laughing man.jpg'},{scheme:'Wikidata',value:'http://www.wikidata.org/entity/Q17275997'},{scheme:'Collection accession number',value:'598'}],
+      titles:[{text:'The Laughing Man',language:'en',role:null}],makers:[{label:'Rembrandt',role:null,authority_uris:['http://www.wikidata.org/entity/Q5598']}],production_statements:[],
+      dating:{statement:'circa 1629–1630',begin_year:1629,end_year:1630},classifications:['painting'],materials:[],
+      dimensions:[{kind:'height',value:'15.4',unit:'cm'},{kind:'width',value:'12.2',unit:'cm'}],credit_lines:[],depicted:[]},
+    rights:[{scope:'image',provider_field:'P6216',value:'Q19652',statement_uri:null,label:'Public domain',stated_in:page},
+      {scope:'image',provider_field:'Copyrighted',value:'False',statement_uri:null,label:'Public domain',stated_in:page}],
+    images:files('https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3b/Rembrandt_-_The_laughing_man.jpg/3840px-Rembrandt_-_The_laughing_man.jpg','https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3b/Rembrandt_-_The_laughing_man.jpg/960px-Rembrandt_-_The_laughing_man.jpg'),
+  };
+  const ru=key=>({mediaCommonsPublicDomain:'Общественное достояние · Wikimedia Commons',mediaPublicDomain:'Общественное достояние'})[key]??key;
+  it('keys a Commons work by its Wikidata item, cites its holder\'s number, and links its status to the file\'s page',()=>{
+    const {workId,work,image}=mediaFromObservation(commons);
+    expect(workId).toBe('commons:Q17275997');
+    expect(work).toMatchObject({holder:'Mauritshuis',inventory:'598',size_mm:[154,122],record:'https://www.wikidata.org/wiki/Q17275997'});
+    expect(captionLinks({work,image},{t:ru})).toEqual([
+      {part:'record',text:'Mauritshuis · 598',url:'https://www.wikidata.org/wiki/Q17275997'},
+      {part:'rights',text:'Общественное достояние · Wikimedia Commons',url:page},
+    ]);
+    // Where Wikidata states no number of the holder, the card cites the Wikidata item.
+    const unnumbered=structuredClone(commons);unnumbered.object.identifiers.pop();
+    expect(mediaFromObservation(unnumbered)).toMatchObject({workId:'commons:Q17275997',work:{inventory:'Q17275997'}});
+    const licensed=structuredClone(commons);licensed.rights[0].value='Q50423863';
+    expect(()=>mediaFromObservation(licensed)).toThrow(/rights/);
+    // Without a structured status, the public-domain licence of the file's page.
+    const paged=structuredClone(commons);paged.rights.splice(0,1,{scope:'image',provider_field:'License',value:'pd',statement_uri:null,label:'Public domain',stated_in:page});
+    const fromPage=mediaFromObservation(paged);
+    expect(captionLinks(fromPage,{t:ru})[1]).toEqual({part:'rights',text:'Общественное достояние · Wikimedia Commons',url:page});
+    paged.rights[0].value='cc-by-sa-4.0';
+    expect(()=>mediaFromObservation(paged)).toThrow(/rights/);
+  });
+  it('keys an SMB work by its ObjID and shows its photograph under the Public Domain Mark its credit states',()=>{
+    const smb={...structuredClone(commons),provider:'smb',requested_object:'obj-965972',
+      object:{...commons.object,record_url:'https://search.smb.museum/object/obj-965972',repository:'Staatliche Museen zu Berlin, Alte Nationalgalerie',
+        identifiers:[{scheme:'SMB ObjID',value:'965972'},{scheme:'SMB inventory number',value:'A II 898'}]},
+      rights:[{scope:'image',provider_field:'Fotonachweis',value:'Staatliche Museen zu Berlin, Alte Nationalgalerie / Klaus Göken Public Domain Mark 1.0',statement_uri:PDM,label:'Public Domain Mark 1.0',stated_in:'https://search.smb.museum/object/obj-965972'}]};
+    const {workId,work,image}=mediaFromObservation(smb);
+    expect(workId).toBe('smb:965972');
+    expect(work.inventory).toBe('A II 898');
+    expect(captionLinks({work,image},{t:ru})[1]).toEqual({part:'rights',text:'Public Domain Mark 1.0',url:PDM});
+    smb.rights[0].statement_uri=null;
+    expect(()=>mediaFromObservation(smb)).toThrow(/rights/);
+  });
+  it('shows a Saint Louis Art Museum image under the Rights its page states, linked to that page',()=>{
+    const record='https://www.slam.org/collection/objects/36470/';
+    const slam={...structuredClone(commons),provider:'slam',requested_object:'36470',
+      object:{...commons.object,record_url:record,repository:'Saint Louis Art Museum',identifiers:[{scheme:'Saint Louis Art Museum object number',value:'78:1945'}]},
+      rights:[{scope:'image',provider_field:'Rights',value:'Public Domain',statement_uri:null,label:'Public Domain',stated_in:record}]};
+    const {workId,work,image}=mediaFromObservation(slam);
+    expect(workId).toBe('slam:78:1945');
+    expect(captionLinks({work,image},{t:ru})[1]).toEqual({part:'rights',text:'Общественное достояние',url:record});
+  });
+});
+
 describe('the Zarathustra media',()=>{
   const read=path=>JSON.parse(readFileSync(new URL(`../../../../bonsai/zarathustra/${path}`,import.meta.url),'utf8'));
   const media=read('media.json'),identities=read('identities.json'),layers=read('layers.json');
@@ -187,19 +249,22 @@ describe('the Zarathustra media',()=>{
   it('holds its contract, binds core records only, and has a copy of every file in the layer store',()=>{
     expect(mediaIssues(media,{subjects,identities,digest,layers})).toEqual([]);
   });
-  it('shows shared motifs and comparisons from open images: files of the Met, a Rijksmuseum sheet and paintings of the National Gallery of Art',()=>{
-    expect(new Set(media.uses.map(use=>use.role))).toEqual(new Set(['motif','comparison']));
-    expect(media.uses.length).toBe(320);
-    // 192 stars and 60 links, each link with the registry's own selection for its meaning.
+  it('shows motifs, comparisons and responses to the book from open images: the Met, the Rijksmuseum, the National Gallery of Art, Commons, Saint Louis and Berlin',()=>{
+    expect(new Set(media.uses.map(use=>use.role))).toEqual(new Set(['motif','comparison','book-response']));
+    expect(media.uses.length).toBe(512);
+    // 267 stars and 87 links, each link with the registry's own selection for its meaning.
     const links=new Set(read('core/links.json').map(link=>link.id)),shown=new Set(media.uses.map(use=>use.subject));
-    expect([...shown].filter(id=>!links.has(id)).length).toBe(192);
-    expect([...shown].filter(id=>links.has(id)).length).toBe(60);
-    expect(Object.keys(media.works).length).toBe(51);
-    const terms=image=>({file:'met',['iiif-image-3']:'rijksmuseum',['iiif-image-2']:'nga'})[image.api];
-    const open={met:{statement:null,field:'isPublicDomain',value:'true'},rijksmuseum:{statement:PDM},nga:{statement:null,field:'openaccess',value:'1'}};
+    expect([...shown].filter(id=>!links.has(id)).length).toBe(267);
+    expect([...shown].filter(id=>links.has(id)).length).toBe(87);
+    expect(Object.keys(media.works).length).toBe(76);
+    const open={
+      met:[{statement:null,field:'isPublicDomain',value:'true'}],rijksmuseum:[{statement:PDM}],nga:[{statement:null,field:'openaccess',value:'1'}],
+      commons:[{statement:null,field:'P6216',value:'Q19652'},{statement:null,field:'License',value:'pd'}],
+      slam:[{statement:null,field:'Rights',value:'Public Domain'}],smb:[{statement:PDM,field:'Fotonachweis'}],
+    };
     for(const image of Object.values(media.images)){
-      expect(media.works[image.work].provider).toBe(terms(image));
-      expect(image.rights).toMatchObject(open[terms(image)]);
+      const terms=open[media.works[image.work].provider];
+      expect(terms.some(term=>Object.entries(term).every(([key,value])=>image.rights[key]===value))).toBe(true);
     }
   });
 });

@@ -30,8 +30,13 @@ export const TITLE_ROLES=Object.freeze(['title','inscribed','series']);
 /** The image APIs a card reads: a provider's IIIF Image API 3 or 2 service, or a file the stand keeps a copy of. */
 export const IMAGE_APIS=Object.freeze(['iiif-image-3','iiif-image-2','file']);
 const IIIF=new Set(['iiif-image-3','iiif-image-2']);
-/** Flags by which a provider marks an image free to use, where it names no statement: the Met's and the National Gallery of Art's. */
-export const OPEN_FLAGS=Object.freeze([{field:'isPublicDomain',value:'true'},{field:'openaccess',value:'1'}]);
+/**
+ * Flags by which a provider marks an image free to use, where it names no statement: the Met's, the National
+ * Gallery of Art's, the copyright status a Wikimedia Commons file's structured data states (P6216: public domain)
+ * or, where it states none, the public-domain licence of the file's page, and the rights the Saint Louis Art
+ * Museum's object page states.
+ */
+export const OPEN_FLAGS=Object.freeze([{field:'isPublicDomain',value:'true'},{field:'openaccess',value:'1'},{field:'P6216',value:'Q19652'},{field:'License',value:'pd'},{field:'Rights',value:'Public Domain'}]);
 /** Where a stand keeps the copies of image files, inside its layer store. */
 export const MEDIA_LAYER_PATH='media/';
 const FILE_TYPES=Object.freeze({'image/jpeg':'jpg','image/png':'png'});
@@ -73,6 +78,9 @@ const fileIssues=(file,at)=>{
   if(!FILE_TYPES[file.media_type])issues.push(`${at}: media_type`);
   return issues;
 };
+
+/** The identifier that keys a work where its inventory number names it only within one museum. */
+const WORK_KEYS=Object.freeze({commons:'Wikidata',smb:'SMB ObjID'});
 
 /** Whether a rights entry lets a stand show the image. */
 export const openRights=rights=>object(rights)&&(OPEN_STATEMENTS.includes(rights.statement)||rights.statement===null&&OPEN_FLAGS.some(flag=>flag.field===rights.field&&flag.value===rights.value));
@@ -218,14 +226,18 @@ function sizeOf(dimensions){
 
 /**
  * The work and image entries of one provider observation (`media.observe`):
- * the work keyed `<provider>:<inventory>`, its primary image `<work>/<view>`.
+ * the work keyed `<provider>:<inventory>` (or by the provider's own item where an inventory names it only within
+ * one museum: a Commons artwork's Wikidata item, an SMB object's ObjID), its primary image `<work>/<view>`.
  * Refuses an observation without an image service or whose image rights do
  * not let a stand show it.
  */
 export function mediaFromObservation(observation,{view='whole'}={}){
   if(observation?.schema_version!=='tos_media_provider_observation_v1')throw new Error('not a media provider observation');
   const record=observation.object??{},provider=observation.provider;
-  const inventory=(record.identifiers??[]).find(item=>/object number|accession number/i.test(item?.scheme??''))?.value??observation.requested_object;
+  const item=(record.identifiers??[]).find(entry=>entry?.scheme===WORK_KEYS[provider])?.value;
+  // The holder's number, else the provider's own item, else the object the observation asked for.
+  const inventory=(record.identifiers??[]).find(entry=>/object number|accession number|inventory number/i.test(entry?.scheme??''))?.value
+    ??(item?String(item).split('/').at(-1):observation.requested_object);
   const primary=(observation.images??[]).find(item=>item?.role==='primary');
   const service=primary?.form==='image_service'?primary.image_service:null;
   if(!primary)throw new Error(`${provider} ${inventory}: the observation has no primary image`);
@@ -236,7 +248,7 @@ export function mediaFromObservation(observation,{view='whole'}={}){
   const rights=right?{statement:right.statement_uri??null,field:right.provider_field,value:right.value,label:right.label??null,stated_in:right.stated_in}:null;
   if(!openRights(rights))throw new Error(`${provider} ${inventory}: the provider's image rights do not let a stand show it`);
   const requestOf=role=>(observation.requests??[]).find(item=>item?.role===role);
-  const workId=`${provider}:${inventory}`,imageId=`${workId}/${view}`;
+  const workId=`${provider}:${item?String(item).split('/').at(-1):inventory}`,imageId=`${workId}/${view}`;
   // A provider that gives one title without a kind (the Met) gives its own title.
   const titles=(record.titles??[]).map(title=>({text:title.text,language:title.language??null,role:title.role===null||title.role===undefined?'title':TITLE_ROLE_URIS[title.role]??null})).filter(title=>title.role&&text(title.text));
   // Where the provider writes no production statement, its makers speak: "Artist: Eugène Delacroix".

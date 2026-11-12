@@ -48,7 +48,27 @@ const NGA: Provider = Provider {
     hosts: &["api.nga.gov", "api.github.com"],
     file_hosts: &[],
 };
-const PROVIDERS: &[&Provider] = &[&RIJKSMUSEUM, &MET, &NGA];
+/// Wikimedia Commons: a file's own page (its size, digest, licence and structured copyright status) and,
+/// on Wikidata, the artwork the file reproduces (its titles, makers, inception, collection and inventory).
+const COMMONS: Provider = Provider {
+    id: "commons",
+    hosts: &["commons.wikimedia.org", "www.wikidata.org"],
+    file_hosts: &["upload.wikimedia.org", "thumb.wikimedia.org"],
+};
+/// The Saint Louis Art Museum: its object pages state each work's facts and rights, and link the original file.
+const SLAM: Provider = Provider {
+    id: "slam",
+    hosts: &["www.slam.org"],
+    file_hosts: &["d23gjylftzdlen.cloudfront.net"],
+};
+/// The Staatliche Museen zu Berlin: their collection pages state each work's facts, the photo credit with its
+/// rights statement, and link the original file.
+const SMB: Provider = Provider {
+    id: "smb",
+    hosts: &["search.smb.museum"],
+    file_hosts: &["search.smb.museum"],
+};
+const PROVIDERS: &[&Provider] = &[&RIJKSMUSEUM, &MET, &NGA, &COMMONS, &SLAM, &SMB];
 
 struct Response {
     status: u16,
@@ -140,6 +160,9 @@ fn observe(request: &Value) -> Result<Value> {
         "rijksmuseum" => observe_rijksmuseum(&mut observer, object)?,
         "met" => observe_met(&mut observer, object, files)?,
         "nga" => observe_nga(&mut observer, object, request)?,
+        "commons" => observe_commons(&mut observer, object, files)?,
+        "slam" => observe_slam(&mut observer, object, files)?,
+        "smb" => observe_smb(&mut observer, object, files)?,
         _ => return Err("unsupported media provider".into()),
     };
     if found.images.is_empty() {
@@ -209,8 +232,25 @@ impl Observer {
         https_host(url).is_some_and(|host| self.provider.hosts.contains(&host))
     }
 
+    /// One provider page, read as UTF-8 text and recorded with its fingerprint.
+    fn page(&mut self, role: &str, url: &str) -> Result<(String, String)> {
+        let (body, final_url) = self.record(role, url, ACCEPT_PAGE)?;
+        let text = String::from_utf8(body)
+            .map_err(|_| format!("{} page is not UTF-8 text: {url}", self.provider.id))?;
+        Ok((text, final_url))
+    }
+
     /// One provider response, parsed as JSON and recorded with its fingerprint.
     fn json(&mut self, role: &str, url: &str) -> Result<(Value, String)> {
+        let (body, final_url) = self.record(role, url, ACCEPT_RECORD)?;
+        let value: Value = serde_json::from_slice(&body).map_err(|error| {
+            format!("{} response is not JSON: {url}: {error}", self.provider.id)
+        })?;
+        Ok((value, final_url))
+    }
+
+    /// One provider response from the provider's hosts, recorded with its fingerprint.
+    fn record(&mut self, role: &str, url: &str, accept: &str) -> Result<(Vec<u8>, String)> {
         if self.requests.len() >= self.budget {
             return Err(format!(
                 "the observation needs more than its {} requests; raise max_requests",
@@ -226,9 +266,9 @@ impl Observer {
         let started_at = utcnow()?;
         let tick = Instant::now();
         let response = if self.callback {
-            callback_fetch(url, self.limit, ACCEPT_RECORD)?
+            callback_fetch(url, self.limit, accept)?
         } else {
-            fetch(url, self.limit, ACCEPT_RECORD)?
+            fetch(url, self.limit, accept)?
         };
         let elapsed = tick.elapsed().as_secs_f64();
         if response.status != 200 {
@@ -249,9 +289,6 @@ impl Observer {
                 self.provider.id
             ));
         }
-        let value: Value = serde_json::from_slice(&response.body).map_err(|error| {
-            format!("{} response is not JSON: {url}: {error}", self.provider.id)
-        })?;
         self.requests.push(json!({
             "role":role,
             "url":url,
@@ -264,11 +301,17 @@ impl Observer {
             "started_at":started_at,
             "elapsed_seconds":elapsed
         }));
-        Ok((value, response.final_url))
+        Ok((response.body, response.final_url))
     }
 
     /// One image file of the provider, fingerprinted: its bytes, digest, media type and pixel size.
     fn file(&mut self, role: &str, url: &str) -> Result<Value> {
+        self.file_within(role, url)?
+            .ok_or_else(|| format!("{} file size is out of bounds: {url}", self.provider.id))
+    }
+
+    /// A file's fingerprint, or nothing when the file holds more bytes than one response may.
+    fn file_within(&mut self, role: &str, url: &str) -> Result<Option<Value>> {
         if self.requests.len() >= self.budget {
             return Err(format!(
                 "the observation needs more than its {} requests; raise max_requests",
@@ -305,11 +348,11 @@ impl Observer {
                 self.provider.id, response.final_url
             ));
         }
-        if response.body.is_empty() || response.body.len() > self.limit {
-            return Err(format!(
-                "{} file size is out of bounds: {url}",
-                self.provider.id
-            ));
+        if response.body.is_empty() {
+            return Err(format!("{} served an empty file: {url}", self.provider.id));
+        }
+        if response.body.len() > self.limit {
+            return Ok(None);
         }
         let (media_type, width, height) = image_header(&response.body).ok_or_else(|| {
             format!(
@@ -330,7 +373,7 @@ impl Observer {
             "started_at":started_at,
             "elapsed_seconds":elapsed
         }));
-        Ok(json!({
+        Ok(Some(json!({
             "url":url,
             "final_url":(!self.callback).then_some(response.final_url.as_str()),
             "media_type":media_type,
@@ -338,7 +381,7 @@ impl Observer {
             "sha256":sha256,
             "width_pixels":width,
             "height_pixels":height
-        }))
+        })))
     }
 
     /// The service an IIIF image URL belongs to, observed through its info.json.
@@ -1227,6 +1270,783 @@ fn observe_nga(observer: &mut Observer, object: &str, request: &Value) -> Result
     })
 }
 
+// ---------------------------------------------------------------------------
+// Wikimedia Commons: the file page and its structured data, the artwork on Wikidata.
+
+const COMMONS_API: &str = "https://commons.wikimedia.org/w/api.php";
+const WIKIDATA_API: &str = "https://www.wikidata.org/w/api.php";
+/// The width of the smaller copy a stand shows on its cards: one of Wikimedia's standard thumbnail widths.
+const COMMONS_PREVIEW_WIDTH: u64 = 960;
+/// Wikimedia's larger standard thumbnail widths; its image servers serve these to automated clients,
+/// and refuse them originals and other widths.
+const COMMONS_FILE_WIDTHS: [u64; 3] = [3840, 1920, 1280];
+
+/// The values of a Wikibase statement list that is not deprecated, preferred ones first.
+fn wikibase_statements(claims: &Value, property: &str) -> Vec<Value> {
+    let mut statements: Vec<Value> = claims
+        .get(property)
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter(|statement| statement["rank"].as_str() != Some("deprecated"))
+        .cloned()
+        .collect();
+    statements.sort_by_key(|statement| statement["rank"].as_str() != Some("preferred"));
+    statements
+}
+
+fn wikibase_item(statement: &Value) -> Option<String> {
+    statement["mainsnak"]["datavalue"]["value"]["id"]
+        .as_str()
+        .filter(|id| {
+            id.starts_with('Q') && id.len() > 1 && id[1..].bytes().all(|byte| byte.is_ascii_digit())
+        })
+        .map(str::to_owned)
+}
+
+fn wikibase_qualifier_items(statement: &Value, property: &str) -> Vec<String> {
+    statement["qualifiers"][property]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|snak| snak["datavalue"]["value"]["id"].as_str().map(str::to_owned))
+        .collect()
+}
+
+/// The year of a Wikibase time value ("+1629-00-00T00:00:00Z") and its precision.
+fn wikibase_year(value: &Value) -> Option<(i64, u64)> {
+    let time = value["time"].as_str()?;
+    let (sign, rest) = match time.as_bytes().first()? {
+        b'+' => (1, &time[1..]),
+        b'-' => (-1, &time[1..]),
+        _ => return None,
+    };
+    let year: i64 = rest.split('-').next()?.parse().ok()?;
+    Some((sign * year, value["precision"].as_u64()?))
+}
+
+/// The plain text of an HTML fragment Commons gives in its extended metadata.
+fn commons_plain(html: &str) -> String {
+    // Templates hide machine-readable copies of a value ("date QS:P571,…") in elements that are not displayed.
+    let mut text = String::with_capacity(html.len());
+    let mut hidden = 0usize;
+    let mut rest = html;
+    while let Some(start) = rest.find('<') {
+        if hidden == 0 {
+            text.push_str(&rest[..start]);
+        }
+        let Some(stop) = rest[start..].find('>') else {
+            rest = "";
+            break;
+        };
+        let tag = &rest[start + 1..start + stop];
+        rest = &rest[start + stop + 1..];
+        let name = tag
+            .trim_start_matches('/')
+            .split(|character: char| character.is_whitespace() || character == '/')
+            .next()
+            .unwrap_or_default()
+            .to_ascii_lowercase();
+        let void = tag.ends_with('/')
+            || matches!(
+                name.as_str(),
+                "br" | "img" | "hr" | "meta" | "link" | "input" | "wbr"
+            );
+        if tag.starts_with('/') {
+            hidden = hidden.saturating_sub(1);
+        } else if !void && (hidden > 0 || tag.replace(' ', "").contains("display:none")) {
+            hidden += 1;
+        } else if hidden == 0 && name == "br" {
+            text.push(' ');
+        }
+    }
+    if hidden == 0 {
+        text.push_str(rest);
+    }
+    let text = text
+        .replace("&amp;", "&")
+        .replace("&quot;", "\"")
+        .replace("&#39;", "'")
+        .replace("&nbsp;", " ");
+    text.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+/// The years a dating's words name: each number of three or four digits, a decade ("1840s") to its last year.
+fn stated_years(text: &str) -> Vec<i64> {
+    let bytes = text.as_bytes();
+    let mut years = Vec::new();
+    let mut at = 0;
+    while at < bytes.len() {
+        if !bytes[at].is_ascii_digit() {
+            at += 1;
+            continue;
+        }
+        let start = at;
+        while at < bytes.len() && bytes[at].is_ascii_digit() {
+            at += 1;
+        }
+        if (3..=4).contains(&(at - start)) {
+            let year: i64 = text[start..at].parse().unwrap_or_default();
+            years.push(year);
+            if bytes.get(at) == Some(&b's') && year % 10 == 0 {
+                years.push(year + 9);
+            }
+        }
+    }
+    years
+}
+
+/// An address without its query and fragment: Commons adds tracking parameters to the files it names.
+fn without_query(url: &str) -> String {
+    url.split(['?', '#']).next().unwrap_or(url).to_owned()
+}
+
+fn observe_commons(observer: &mut Observer, object: &str, files: bool) -> Result<Found> {
+    let name = object.strip_prefix("File:").unwrap_or(object).trim();
+    if name.is_empty() || name.contains(['|', '#', '[', ']', '{', '}']) {
+        return Err(format!("a Commons file is named by its title: {object}"));
+    }
+    let title = format!("File:{name}");
+    let info_url = format!(
+        "{COMMONS_API}?action=query&format=json&formatversion=2&prop=imageinfo&iiprop=size%7Csha1%7Curl%7Cmime%7Cextmetadata&iiurlwidth={COMMONS_PREVIEW_WIDTH}&titles={}",
+        percent_encode(&title)
+    );
+    let (info, _) = observer.json("file-record", &info_url)?;
+    let page = info["query"]["pages"]
+        .as_array()
+        .and_then(|pages| pages.first())
+        .ok_or("Commons answered without the file's page")?;
+    if page.get("missing").is_some() || page.get("invalid").is_some() {
+        return Err(format!("Commons holds no file {title}"));
+    }
+    let page_id = page["pageid"]
+        .as_u64()
+        .ok_or("the Commons page has no id")?;
+    let file = page["imageinfo"]
+        .as_array()
+        .and_then(|list| list.first())
+        .ok_or("Commons names no image for the file")?;
+    let description = nonempty(file, "descriptionurl")
+        .filter(|url| https_host(url) == Some("commons.wikimedia.org"))
+        .ok_or("the Commons file names no description page")?
+        .to_owned();
+    let meta = |key: &str| {
+        file["extmetadata"][key]["value"]
+            .as_str()
+            .map(commons_plain)
+            .filter(|text| !text.is_empty())
+    };
+
+    let entity_url = format!("{COMMONS_API}?action=wbgetentities&format=json&ids=M{page_id}");
+    let (entities, _) = observer.json("file-structured-data", &entity_url)?;
+    let media = &entities["entities"][format!("M{page_id}")];
+    let statements = media.get("statements").cloned().unwrap_or(Value::Null);
+    let artwork = wikibase_statements(&statements, "P6243")
+        .iter()
+        .find_map(wikibase_item)
+        .ok_or("the Commons file names no artwork it represents (P6243)")?;
+    let status = wikibase_statements(&statements, "P6216").first().cloned();
+
+    let item_url = format!("https://www.wikidata.org/wiki/Special:EntityData/{artwork}.json");
+    let (item, item_final) = observer.json("object-record", &item_url)?;
+    let entity = item["entities"]
+        .as_object()
+        .and_then(|entities| entities.values().next())
+        .ok_or("Wikidata answered without the artwork")?;
+    let claims = &entity["claims"];
+    let current = |statement: &&Value| statement["qualifiers"]["P582"].is_null();
+    let collections: Vec<String> = wikibase_statements(claims, "P195")
+        .iter()
+        .filter(current)
+        .filter_map(wikibase_item)
+        .collect();
+    let creators: Vec<String> = wikibase_statements(claims, "P170")
+        .iter()
+        .filter_map(wikibase_item)
+        .collect();
+    let materials: Vec<String> = wikibase_statements(claims, "P186")
+        .iter()
+        .filter_map(wikibase_item)
+        .collect();
+    let kinds: Vec<String> = wikibase_statements(claims, "P31")
+        .iter()
+        .filter_map(wikibase_item)
+        .collect();
+    let mut wanted: Vec<String> = Vec::new();
+    for id in collections
+        .iter()
+        .take(1)
+        .chain(&creators)
+        .chain(&materials)
+        .chain(&kinds)
+    {
+        if !wanted.contains(id) && wanted.len() < 50 {
+            wanted.push(id.clone());
+        }
+    }
+    let labels = if wanted.is_empty() {
+        Value::Null
+    } else {
+        let labels_url = format!(
+            "{WIKIDATA_API}?action=wbgetentities&format=json&props=labels&languages=en&ids={}",
+            wanted.join("%7C")
+        );
+        observer.json("authority-labels", &labels_url)?.0
+    };
+    let label = |id: &str| {
+        labels["entities"][id]["labels"]["en"]["value"]
+            .as_str()
+            .map(str::to_owned)
+    };
+    let entity_uri = |id: &str| format!("http://www.wikidata.org/entity/{id}");
+
+    let mut identifiers = vec![
+        json!({"scheme":"Wikimedia Commons file","value":title}),
+        json!({"scheme":"Wikidata","value":entity_uri(&artwork)}),
+    ];
+    // The inventory number the current collection gives, else the first one stated.
+    let numbers = wikibase_statements(claims, "P217");
+    let number = numbers
+        .iter()
+        .find(|statement| {
+            collections.first().is_some_and(|collection| {
+                wikibase_qualifier_items(statement, "P195").contains(collection)
+            })
+        })
+        .or(numbers.first())
+        .and_then(|statement| statement["mainsnak"]["datavalue"]["value"].as_str());
+    if let Some(number) = number {
+        identifiers.push(json!({"scheme":"Collection accession number","value":number}));
+    }
+    // One title, as a card names a work: its English title, else its English label, else its title in its own language.
+    let stated: Vec<(String, String)> = wikibase_statements(claims, "P1476")
+        .iter()
+        .filter_map(|statement| {
+            let value = &statement["mainsnak"]["datavalue"]["value"];
+            Some((
+                value["text"].as_str()?.to_owned(),
+                value["language"].as_str()?.to_owned(),
+            ))
+        })
+        .collect();
+    let english_label = entity["labels"]["en"]["value"]
+        .as_str()
+        .map(|text| (text.to_owned(), "en".to_owned()));
+    let titles: Vec<Value> = stated
+        .iter()
+        .find(|(_, language)| language == "en")
+        .cloned()
+        .or(english_label)
+        .or_else(|| stated.first().cloned())
+        .map(|(text, language)| json!({"text":text,"language":language,"language_uri":null,"role":null}))
+        .into_iter()
+        .collect();
+    let makers: Vec<Value> = creators
+        .iter()
+        .filter_map(|id| Some(json!({"label":label(id)?,"role":null,"provider_uri":null,"authority_uris":[entity_uri(id)]})))
+        .collect();
+    // The dating in the words of the file's page, its years from the artwork's inception and its bounds.
+    // The years the artwork's inception records: its year or decade, else the bounds its qualifiers state.
+    let inception = wikibase_statements(claims, "P571").into_iter().next();
+    let recorded = inception.as_ref().and_then(|statement| {
+        let (year, precision) = wikibase_year(&statement["mainsnak"]["datavalue"]["value"])?;
+        let bound = |properties: [&str; 2]| {
+            properties.iter().find_map(|property| {
+                statement["qualifiers"][*property]
+                    .as_array()
+                    .and_then(|list| list.first())
+                    .and_then(|snak| wikibase_year(&snak["datavalue"]["value"]))
+                    .map(|(year, _)| year)
+            })
+        };
+        let (earliest, latest) = (bound(["P1319", "P580"]), bound(["P1326", "P582"]));
+        // A century or a millennium is written in more than one way, so only its bounds name years.
+        let (start, end) = match precision {
+            9.. => (year, year),
+            8 => (year - year.rem_euclid(10), year - year.rem_euclid(10) + 9),
+            _ => return Some((earliest?, latest?)),
+        };
+        Some((earliest.unwrap_or(start), latest.unwrap_or(end)))
+    });
+    // The page's dating speaks for the work, with the years its words name; a camera's timestamp
+    // ("2018-01-14 13:47:24") is the photograph's own.
+    let statement = meta("DateTimeOriginal").filter(|text| {
+        let bytes = text.as_bytes();
+        let clock = bytes.windows(5).any(|window| {
+            window[0].is_ascii_digit()
+                && window[1].is_ascii_digit()
+                && window[2] == b':'
+                && window[3].is_ascii_digit()
+                && window[4].is_ascii_digit()
+        });
+        !clock && bytes.iter().any(u8::is_ascii_digit)
+    });
+    let stated = statement.as_deref().and_then(|text| {
+        let years = stated_years(text);
+        Some((*years.iter().min()?, *years.iter().max()?))
+    });
+    let dating = match (statement, stated.or(recorded)) {
+        (Some(statement), Some((begin, end))) => {
+            json!({"statement":statement,"begin_year":begin,"end_year":end})
+        }
+        (None, Some((begin, end))) => {
+            let statement = if begin == end {
+                begin.to_string()
+            } else {
+                format!("{begin}–{end}")
+            };
+            json!({"statement":statement,"begin_year":begin,"end_year":end})
+        }
+        _ => json!({"statement":null,"begin_year":null,"end_year":null}),
+    };
+    let mut dimensions = Vec::new();
+    for (property, kind) in [("P2048", "height"), ("P2049", "width")] {
+        let Some(statement) = wikibase_statements(claims, property).into_iter().next() else {
+            continue;
+        };
+        let value = &statement["mainsnak"]["datavalue"]["value"];
+        let unit = match value["unit"].as_str() {
+            Some("http://www.wikidata.org/entity/Q174728") => "cm",
+            Some("http://www.wikidata.org/entity/Q174789") => "mm",
+            _ => continue,
+        };
+        let Some(amount) = value["amount"]
+            .as_str()
+            .map(|amount| amount.trim_start_matches('+').to_owned())
+        else {
+            continue;
+        };
+        dimensions
+            .push(json!({"kind":kind,"value":amount,"unit":unit,"unit_uri":null,"statement":null}));
+    }
+    let depicted: Vec<Value> = wikibase_statements(claims, "P180")
+        .iter()
+        .filter_map(wikibase_item)
+        .map(|id| json!({"label":null,"kind":"depicts","provider_uri":null,"authority_uris":[entity_uri(&id)]}))
+        .collect();
+    let record_url = format!("https://www.wikidata.org/wiki/{artwork}");
+    let object_json = json!({
+        "provider_object_uri":description,
+        "record_url":record_url,
+        "api_url":item_final,
+        "identifiers":identifiers,
+        "titles":titles,
+        "makers":makers,
+        "production_statements":[],
+        "dating":dating,
+        "classifications":kinds.iter().filter_map(|id| label(id)).collect::<Vec<_>>(),
+        "materials":materials.iter().filter_map(|id| label(id)).collect::<Vec<_>>(),
+        "dimensions":dimensions,
+        "credit_lines":[],
+        "repository":collections.first().and_then(|id| label(id)),
+        "depicted":depicted,
+        "visual_item_uri":null
+    });
+
+    // The file's copyright status as its structured data states it, with the licence its page names.
+    let mut rights = Vec::new();
+    let licence_url = meta("LicenseUrl")
+        .map(|url| url.replace("http://", "https://"))
+        .filter(|url| url.starts_with("https://creativecommons.org/publicdomain/"));
+    if let Some(status) = status.as_ref().and_then(wikibase_item) {
+        rights.push(json!({"scope":"image","provider_field":"P6216","value":status,"statement_uri":licence_url,"label":meta("LicenseShortName"),"stated_in":description}));
+    }
+    // The licence the file's page states through its template ("pd" for a public-domain template).
+    if let Some(licence) = meta("License") {
+        rights.push(json!({"scope":"image","provider_field":"License","value":licence,"statement_uri":licence_url,"label":meta("LicenseShortName"),"stated_in":description}));
+    }
+    if let Some(copyrighted) = meta("Copyrighted") {
+        rights.push(json!({"scope":"image","provider_field":"Copyrighted","value":copyrighted,"statement_uri":null,"label":meta("UsageTerms"),"stated_in":description}));
+    }
+
+    // Wikimedia serves automated clients its standard thumbnail widths: the file is the largest one the original
+    // holds, the smaller copy for cards its 960-pixel one; an original narrower than both is read itself.
+    let width = file["width"].as_u64().unwrap_or(0);
+    let preview = nonempty(file, "thumburl")
+        .map(without_query)
+        .filter(|url| https_host(url).is_some());
+    let original = nonempty(file, "url")
+        .map(without_query)
+        .filter(|url| https_host(url).is_some());
+    let step = COMMONS_FILE_WIDTHS.into_iter().find(|step| *step <= width);
+    let file_url = match (step, preview.as_ref()) {
+        (Some(step), Some(preview)) => {
+            let marker = format!("/{COMMONS_PREVIEW_WIDTH}px-");
+            preview
+                .contains(&marker)
+                .then(|| preview.replacen(&marker, &format!("/{step}px-"), 1))
+        }
+        _ => original.clone(),
+    };
+    let mut images = Vec::new();
+    match file_url {
+        Some(url) => {
+            if step.is_some() {
+                observer.warnings.push(format!(
+                    "the file is read as Commons' {}-pixel standard copy of its {width}-pixel original",
+                    step.unwrap_or_default()
+                ));
+            }
+            // An original no wider than the card's copy is its own smaller copy.
+            let preview = preview.filter(|preview| *preview != url);
+            let mut image = file_image(&url, Some(preview.as_deref().unwrap_or(&url)));
+            if files {
+                if let Some(preview) = preview.as_deref() {
+                    image["preview_fingerprint"] = observer.file("image-preview", preview)?;
+                }
+                image["file_fingerprint"] = observer.file("image-file", &url)?;
+                if preview.is_none() {
+                    image["preview_fingerprint"] = image["file_fingerprint"].clone();
+                }
+            }
+            images.push(image);
+        }
+        None => observer
+            .warnings
+            .push("the Commons file names no image address".into()),
+    }
+    assign_roles(&mut images);
+    Ok(Found {
+        object: object_json,
+        rights,
+        images,
+        datasets: Vec::new(),
+    })
+}
+
+// ---------------------------------------------------------------------------
+// Saint Louis Art Museum: the object page's fields, its rights and its original file.
+
+/// The text of an HTML fragment: its tags dropped, its character references read, its spaces collapsed.
+fn html_text(html: &str) -> String {
+    let mut text = String::with_capacity(html.len());
+    let mut inside = false;
+    for character in html.chars() {
+        match character {
+            '<' => inside = true,
+            '>' => {
+                inside = false;
+                text.push(' ');
+            }
+            _ if !inside => text.push(character),
+            _ => {}
+        }
+    }
+    let text = text
+        .replace("&amp;", "&")
+        .replace("&quot;", "\"")
+        .replace("&#039;", "'")
+        .replace("&#39;", "'")
+        .replace("&nbsp;", " ")
+        .replace("&#8211;", "–")
+        .replace("&#8217;", "’")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">");
+    let collapsed = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    collapsed.replace(" ,", ",")
+}
+
+/// The fields of the page's definition lists, as label and text, in the page's order.
+fn definition_fields(page: &str) -> Vec<(String, String)> {
+    let mut fields = Vec::new();
+    let mut rest = page;
+    while let Some(start) = rest.find("<dt") {
+        rest = &rest[start..];
+        let Some(open) = rest.find('>') else { break };
+        let Some(close) = rest.find("</dt>") else {
+            break;
+        };
+        let label = html_text(&rest[open + 1..close]);
+        rest = &rest[close + 5..];
+        let Some(value_start) = rest.find("<dd") else {
+            break;
+        };
+        if rest[..value_start].contains("<dt") {
+            continue;
+        }
+        let after = &rest[value_start..];
+        let Some(value_open) = after.find('>') else {
+            break;
+        };
+        let Some(value_close) = after.find("</dd>") else {
+            break;
+        };
+        fields.push((label, html_text(&after[value_open + 1..value_close])));
+        rest = &after[value_close + 5..];
+    }
+    fields
+}
+
+fn observe_slam(observer: &mut Observer, object: &str, files: bool) -> Result<Found> {
+    if !all_digits(object) {
+        return Err(format!(
+            "a Saint Louis Art Museum object is named by the number of its page: {object}"
+        ));
+    }
+    let record_url = format!("https://www.slam.org/collection/objects/{object}/");
+    let (page, page_final) = observer.page("object-record", &record_url)?;
+    let field = |label: &str| {
+        definition_fields(&page)
+            .into_iter()
+            .find(|(name, _)| name.eq_ignore_ascii_case(label))
+            .map(|(_, value)| value)
+            .filter(|value| !value.is_empty())
+    };
+    let title = page
+        .find("<h1")
+        .and_then(|start| {
+            let rest = &page[start..];
+            let open = rest.find('>')?;
+            let close = rest.find("</h1>")?;
+            Some(html_text(&rest[open + 1..close]))
+        })
+        .filter(|title| !title.is_empty())
+        .ok_or("the Saint Louis Art Museum page names no title")?;
+    let number =
+        field("Object Number").ok_or("the Saint Louis Art Museum page names no object number")?;
+    // The years its dating states, first and last.
+    let statement = field("Date");
+    let years: Vec<i64> = statement
+        .as_deref()
+        .unwrap_or_default()
+        .split(|character: char| !character.is_ascii_digit())
+        .filter(|digits| (3..=4).contains(&digits.len()))
+        .filter_map(|digits| digits.parse().ok())
+        .collect();
+    let object_json = json!({
+        "provider_object_uri":record_url,
+        "record_url":record_url,
+        "api_url":page_final,
+        "identifiers":[{"scheme":"Saint Louis Art Museum object number","value":number}],
+        "titles":[{"text":title,"language":"en","language_uri":null,"role":null}],
+        "makers":[],
+        "production_statements":field("Artist").map(|text| vec![json!({"text":text,"language":"en","language_uri":null})]).unwrap_or_default(),
+        "dating":{"statement":statement,"begin_year":years.first(),"end_year":years.last()},
+        "classifications":field("Classification").into_iter().collect::<Vec<_>>(),
+        "materials":field("Material").into_iter().collect::<Vec<_>>(),
+        "dimensions":field("Dimensions").map(|statement| vec![json!({"kind":null,"value":null,"unit":null,"unit_uri":null,"statement":statement})]).unwrap_or_default(),
+        "credit_lines":field("Credit Line").map(|text| vec![json!({"text":text,"language":"en","language_uri":null})]).unwrap_or_default(),
+        "repository":"Saint Louis Art Museum",
+        "depicted":[],
+        "visual_item_uri":null
+    });
+    let rights: Vec<Value> = field("Rights")
+        .map(|value| json!({"scope":"image","provider_field":"Rights","value":value,"statement_uri":null,"label":value,"stated_in":page_final}))
+        .into_iter()
+        .collect();
+    // The viewer's main image is the original file; the museum's 1600-pixel copy of it is its smaller copy.
+    let original = page
+        .find("VIEWER_MAIN_IMG")
+        .and_then(|start| {
+            let rest = &page[start..];
+            let url = &rest[rest.find("url:")? + 4..];
+            let url = url.trim_start().trim_start_matches(['\'', '"']);
+            let end = url.find(['\'', '"'])?;
+            Some(url[..end].to_owned())
+        })
+        .filter(|url| https_host(url).is_some());
+    let mut images = Vec::new();
+    if let Some(url) = original {
+        let preview = url
+            .contains("_o2.")
+            .then(|| url.replacen("_o2.", "_o3.", 1));
+        let mut image = file_image(&url, preview.as_deref());
+        if files {
+            if let Some(preview) = preview.as_deref() {
+                image["preview_fingerprint"] = observer.file("image-preview", preview)?;
+            }
+            image["file_fingerprint"] = observer.file("image-file", &url)?;
+        }
+        images.push(image);
+    }
+    assign_roles(&mut images);
+    Ok(Found {
+        object: object_json,
+        rights,
+        images,
+        datasets: Vec::new(),
+    })
+}
+
+// ---------------------------------------------------------------------------
+// Staatliche Museen zu Berlin: the collection page's fields, its photo credit and rights, its original file.
+
+/// The text of the first element after `marker` in `page`, up to `end`.
+fn text_after(page: &str, marker: &str, end: &str) -> Option<String> {
+    let start = page.find(marker)? + marker.len();
+    let rest = &page[start..];
+    let stop = rest.find(end)?;
+    Some(html_text(&rest[..stop])).filter(|text| !text.is_empty())
+}
+
+fn observe_smb(observer: &mut Observer, object: &str, files: bool) -> Result<Found> {
+    let object = object.strip_prefix("obj-").unwrap_or(object);
+    if !all_digits(object) {
+        return Err(format!("an SMB object is named by its ObjID: {object}"));
+    }
+    let record_url = format!("https://search.smb.museum/object/obj-{object}");
+    let (page, page_final) = observer.page("object-record", &record_url)?;
+    let main = &page[page
+        .find("<main")
+        .ok_or("the SMB page has no main content")?..];
+    let title = main
+        .find("<h1")
+        .and_then(|start| text_after(&main[start..], ">", "</h1>"))
+        .ok_or("the SMB page names no title")?;
+    let number =
+        text_after(main, "Ident. Nr.:", "</p>").ok_or("the SMB page names no inventory number")?;
+    let institution = text_after(main, "Einrichtung:</p>", "</div>");
+    let fields = definition_fields(main);
+    let field = |label: &str| {
+        fields
+            .iter()
+            .find(|(name, _)| name == label)
+            .map(|(_, value)| value.clone())
+            .filter(|value| !value.is_empty())
+    };
+    let statement = field("Datierung");
+    let years: Vec<i64> = statement
+        .as_deref()
+        .unwrap_or_default()
+        .split(|character: char| !character.is_ascii_digit())
+        .filter(|digits| (3..=4).contains(&digits.len()))
+        .filter_map(|digits| digits.parse().ok())
+        .collect();
+    // "Höhe x Breite: 180 x 242 cm": the height and width the page states, in its unit.
+    let mut dimensions = Vec::new();
+    if let Some(sizes) = field("Abmessungen") {
+        dimensions
+            .push(json!({"kind":null,"value":null,"unit":null,"unit_uri":null,"statement":sizes}));
+        if let Some(rest) = sizes.strip_prefix("Höhe x Breite:") {
+            let parts: Vec<&str> = rest.split_whitespace().collect();
+            if let [height, "x", width, unit] = parts.as_slice() {
+                let unit = match *unit {
+                    "cm" => Some("cm"),
+                    "mm" => Some("mm"),
+                    _ => None,
+                };
+                let number = |value: &str| {
+                    let value = value.replace(',', ".");
+                    value.parse::<f64>().ok().map(|_| value)
+                };
+                if let (Some(unit), Some(height), Some(width)) =
+                    (unit, number(height), number(width))
+                {
+                    dimensions.push(json!({"kind":"height","value":height,"unit":unit,"unit_uri":null,"statement":null}));
+                    dimensions.push(json!({"kind":"width","value":width,"unit":unit,"unit_uri":null,"statement":null}));
+                }
+            }
+        }
+    }
+    // Each photograph's credit names its maker and ends with its rights statement.
+    let pdm = "Public Domain Mark 1.0";
+    let mut credits: Vec<String> = Vec::new();
+    let mut rest = main;
+    while let Some(start) = rest.find("Fotonachweis:") {
+        rest = &rest[start + "Fotonachweis:".len()..];
+        if let Some(credit) = rest.find("</div>").map(|stop| html_text(&rest[..stop])) {
+            if !credit.is_empty() && !credits.contains(&credit) {
+                credits.push(credit);
+            }
+        }
+    }
+    let rights: Vec<Value> = credits
+        .iter()
+        .map(|credit| {
+            let statement = credit.ends_with(pdm).then_some("https://creativecommons.org/publicdomain/mark/1.0/");
+            json!({"scope":"image","provider_field":"Fotonachweis","value":credit,"statement_uri":statement,"label":statement.map(|_| pdm),"stated_in":page_final})
+        })
+        .collect();
+    let repository = institution
+        .map(|name| format!("Staatliche Museen zu Berlin, {name}"))
+        .unwrap_or_else(|| "Staatliche Museen zu Berlin".into());
+    let object_json = json!({
+        "provider_object_uri":format!("https://id.smb.museum/object/{object}"),
+        "record_url":record_url,
+        "api_url":page_final,
+        "identifiers":[{"scheme":"SMB ObjID","value":object},{"scheme":"SMB inventory number","value":number}],
+        "titles":[{"text":title,"language":"de","language_uri":null,"role":null}],
+        "makers":[],
+        "production_statements":field("Beteiligte").map(|text| vec![json!({"text":text,"language":"de","language_uri":null})]).unwrap_or_default(),
+        "dating":{"statement":statement,"begin_year":years.first(),"end_year":years.last()},
+        "classifications":field("Systematik/Art").into_iter().collect::<Vec<_>>(),
+        "materials":field("Material / Technik").into_iter().collect::<Vec<_>>(),
+        "dimensions":dimensions,
+        "credit_lines":[],
+        "repository":repository,
+        "depicted":[],
+        "visual_item_uri":null
+    });
+    // The gallery: each slide links the original and shows its 1200-pixel copy.
+    let attribute = |fragment: &str, name: &str| {
+        let start = fragment.find(&format!("{name}=\""))? + name.len() + 2;
+        let rest = &fragment[start..];
+        Some(rest[..rest.find('"')?].to_owned())
+    };
+    let absolute = |path: String| {
+        if path.starts_with('/') {
+            format!("https://search.smb.museum{path}")
+        } else {
+            path
+        }
+    };
+    let mut images = Vec::new();
+    let mut gallery = main
+        .find("id=\"gallery-photoswipe\"")
+        .map_or("", |start| &main[start..]);
+    let marker = "<a href=\"/media/images/originals/";
+    while let Some(start) = gallery.find(marker) {
+        gallery = &gallery[start..];
+        let url = attribute(gallery, "href").map(absolute);
+        let preview = gallery
+            .find("<img")
+            .and_then(|at| attribute(&gallery[at..], "src"))
+            .filter(|src| src.starts_with("/media/images/thumbs/"))
+            .map(absolute);
+        gallery = &gallery[marker.len()..];
+        let Some(url) = url else { continue };
+        if !files {
+            images.push(file_image(&url, preview.as_deref()));
+            continue;
+        }
+        let preview_fingerprint = match preview.as_deref() {
+            Some(preview) => observer.file("image-preview", preview)?,
+            None => Value::Null,
+        };
+        // An original larger than one response may hold stays at the museum; its 1200-pixel copy is the file.
+        let image = match observer.file_within("image-file", &url)? {
+            Some(fingerprint) => {
+                let mut image = file_image(&url, preview.as_deref());
+                image["file_fingerprint"] = fingerprint;
+                image["preview_fingerprint"] = preview_fingerprint;
+                image
+            }
+            None => {
+                let Some(copy) = preview.as_deref() else {
+                    return Err(format!(
+                        "the SMB original exceeds the record limit and has no copy: {url}"
+                    ));
+                };
+                observer.warnings.push(format!(
+                    "the original {url} exceeds the record limit; the file is the museum's 1200-pixel copy"
+                ));
+                let mut image = file_image(copy, Some(copy));
+                image["file_fingerprint"] = preview_fingerprint.clone();
+                image["preview_fingerprint"] = preview_fingerprint;
+                image
+            }
+        };
+        images.push(image);
+    }
+    assign_roles(&mut images);
+    Ok(Found {
+        object: object_json,
+        rights,
+        images,
+        datasets: Vec::new(),
+    })
+}
+
 /// The checkout holds exactly the named commit, its data files as committed.
 fn dataset_at_commit(root: &Path, commit: &str) -> Result<()> {
     let git = |args: &[&str]| {
@@ -1414,6 +2234,7 @@ impl CsvReader {
 
 const ACCEPT_RECORD: &str = "application/ld+json, application/json;q=0.9";
 const ACCEPT_IMAGE: &str = "image/jpeg, image/png;q=0.9, image/*;q=0.8";
+const ACCEPT_PAGE: &str = "text/html, application/xhtml+xml;q=0.9";
 
 fn fetch(url: &str, limit: usize, accept: &str) -> Result<Response> {
     #[cfg(test)]
@@ -1433,7 +2254,7 @@ fn fetch(url: &str, limit: usize, accept: &str) -> Result<Response> {
         "--max-time",
         "45",
         "--user-agent",
-        "Tree-of-Sophia-media-bridge/1",
+        "Tree-of-Sophia-media-bridge/1 (https://treeofsophia.com)",
         "--header",
         &accept,
         "--write-out",
@@ -2477,6 +3298,445 @@ mod tests {
         assert_eq!(year_of("unknown"), None);
     }
 
+    /// Answers each named URL with its bytes; any other request fails the fixture.
+    fn observe_with(request: &Value, table: Vec<(String, Vec<u8>)>) -> Result<Value> {
+        let table: HashMap<String, Vec<u8>> = table.into_iter().collect();
+        TEST_FETCH.with(|fetch| {
+            *fetch.borrow_mut() = Some(Box::new(move |url: &str| {
+                table
+                    .get(url)
+                    .map(|body| Response {
+                        status: 200,
+                        final_url: url.to_owned(),
+                        media_type: None,
+                        body: body.clone(),
+                    })
+                    .ok_or_else(|| format!("unexpected fixture request: {url}"))
+            }));
+        });
+        let result = invoke(request);
+        TEST_FETCH.with(|fetch| *fetch.borrow_mut() = None);
+        result
+    }
+
+    fn roles(result: &Value) -> Vec<String> {
+        result["observation"]["requests"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|request| request["role"].as_str().unwrap().to_owned())
+            .collect()
+    }
+
+    /// The Laughing Man as Commons and Wikidata serve it, reduced to the fields the bridge reads;
+    /// structure and values follow the live records of 2026-11-09.
+    fn commons_table(status: &str, artwork: Option<&str>) -> Vec<(String, Vec<u8>)> {
+        const THUMBS: &str = "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3b/Rembrandt_-_The_laughing_man.jpg";
+        let info_url = format!(
+            "{COMMONS_API}?action=query&format=json&formatversion=2&prop=imageinfo&iiprop=size%7Csha1%7Curl%7Cmime%7Cextmetadata&iiurlwidth=960&titles={}",
+            percent_encode("File:Rembrandt - The laughing man.jpg")
+        );
+        let info = json!({"query":{"pages":[{"pageid":101214140,"title":"File:Rembrandt - The laughing man.jpg","imageinfo":[{
+            "width":4816,"height":6000,"mime":"image/jpeg",
+            "url":"https://upload.wikimedia.org/wikipedia/commons/3/3b/Rembrandt_-_The_laughing_man.jpg",
+            "descriptionurl":"https://commons.wikimedia.org/wiki/File:Rembrandt_-_The_laughing_man.jpg",
+            "thumburl":format!("{THUMBS}/960px-Rembrandt_-_The_laughing_man.jpg?utm_source=commons"),
+            "extmetadata":{
+                "DateTimeOriginal":{"value":"circa 1629–1630"},
+                "License":{"value":"pd"},
+                "LicenseShortName":{"value":"Public domain"},
+                "Copyrighted":{"value":"False"},
+                "UsageTerms":{"value":"Public domain"}
+            }
+        }]}]}});
+        let mut media = json!({"statements":{"P6216":[{"rank":"normal","mainsnak":{"datavalue":{"value":{"id":status}}}}]}});
+        if let Some(artwork) = artwork {
+            media["statements"]["P6243"] =
+                json!([{"rank":"normal","mainsnak":{"datavalue":{"value":{"id":artwork}}}}]);
+        }
+        let item = |id: &str| json!({"rank":"normal","mainsnak":{"datavalue":{"value":{"id":id}}}});
+        let entity = json!({"entities":{"Q17275997":{
+            "labels":{"en":{"value":"The Laughing Man"}},
+            "claims":{
+                "P31":[item("Q3305213")],
+                "P170":[item("Q5598")],
+                "P195":[
+                    {"rank":"normal","mainsnak":{"datavalue":{"value":{"id":"Q1471477"}}},"qualifiers":{"P582":[{"datavalue":{"value":{"time":"+1800-00-00T00:00:00Z","precision":9}}}]}},
+                    item("Q221092")
+                ],
+                "P217":[
+                    {"rank":"normal","mainsnak":{"datavalue":{"value":"98"}},"qualifiers":{"P195":[{"datavalue":{"value":{"id":"Q1471477"}}}]}},
+                    {"rank":"normal","mainsnak":{"datavalue":{"value":"598"}},"qualifiers":{"P195":[{"datavalue":{"value":{"id":"Q221092"}}}]}}
+                ],
+                "P571":[{"rank":"normal","mainsnak":{"datavalue":{"value":{"time":"+1629-00-00T00:00:00Z","precision":9}}},"qualifiers":{"P1326":[{"datavalue":{"value":{"time":"+1630-00-00T00:00:00Z","precision":9}}}]}}],
+                "P2048":[{"rank":"normal","mainsnak":{"datavalue":{"value":{"amount":"+15.4","unit":"http://www.wikidata.org/entity/Q174728"}}}}],
+                "P2049":[{"rank":"normal","mainsnak":{"datavalue":{"value":{"amount":"+12.2","unit":"http://www.wikidata.org/entity/Q174728"}}}}]
+            }
+        }}});
+        let labels = json!({"entities":{
+            "Q221092":{"labels":{"en":{"value":"Mauritshuis"}}},
+            "Q5598":{"labels":{"en":{"value":"Rembrandt"}}},
+            "Q3305213":{"labels":{"en":{"value":"painting"}}}
+        }});
+        vec![
+            (info_url, serde_json::to_vec(&info).unwrap()),
+            (
+                format!("{COMMONS_API}?action=wbgetentities&format=json&ids=M101214140"),
+                serde_json::to_vec(&json!({"entities":{"M101214140":media}})).unwrap(),
+            ),
+            (
+                "https://www.wikidata.org/wiki/Special:EntityData/Q17275997.json".into(),
+                serde_json::to_vec(&entity).unwrap(),
+            ),
+            (
+                format!(
+                    "{WIKIDATA_API}?action=wbgetentities&format=json&props=labels&languages=en&ids=Q221092%7CQ5598%7CQ3305213"
+                ),
+                serde_json::to_vec(&labels).unwrap(),
+            ),
+            (
+                format!("{THUMBS}/960px-Rembrandt_-_The_laughing_man.jpg"),
+                tiny_jpeg(960, 1196),
+            ),
+            (
+                format!("{THUMBS}/3840px-Rembrandt_-_The_laughing_man.jpg"),
+                tiny_jpeg(3840, 4784),
+            ),
+        ]
+    }
+
+    #[test]
+    fn commons_file_reaches_its_artwork_status_and_standard_copy() {
+        let request = json!({"operation":"media.observe","repo_root":repo_root(),"provider":"commons","object":"File:Rembrandt - The laughing man.jpg","max_requests":8,"files":true});
+        let result = observe_with(&request, commons_table("Q19652", Some("Q17275997"))).unwrap();
+        let observation = &result["observation"];
+        let object = &observation["object"];
+        assert_eq!(
+            object["identifiers"][1]["value"],
+            "http://www.wikidata.org/entity/Q17275997"
+        );
+        // The number the current collection gives, not the one of a former owner.
+        assert_eq!(
+            object["identifiers"][2],
+            json!({"scheme":"Collection accession number","value":"598"})
+        );
+        assert_eq!(
+            object["titles"],
+            json!([{"text":"The Laughing Man","language":"en","language_uri":null,"role":null}])
+        );
+        assert_eq!(object["repository"], "Mauritshuis");
+        assert_eq!(object["makers"][0]["label"], "Rembrandt");
+        assert_eq!(
+            object["dating"],
+            json!({"statement":"circa 1629–1630","begin_year":1629,"end_year":1630})
+        );
+        assert_eq!(object["dimensions"][0]["value"], "15.4");
+        assert_eq!(object["classifications"], json!(["painting"]));
+        assert_eq!(
+            object["record_url"],
+            "https://www.wikidata.org/wiki/Q17275997"
+        );
+        assert_eq!(observation["rights"][0]["provider_field"], "P6216");
+        assert_eq!(observation["rights"][0]["value"], "Q19652");
+        assert_eq!(observation["rights"][1]["provider_field"], "License");
+        assert_eq!(observation["rights"][1]["value"], "pd");
+        assert_eq!(observation["rights"][2]["provider_field"], "Copyrighted");
+        assert_eq!(
+            observation["rights"][0]["stated_in"],
+            "https://commons.wikimedia.org/wiki/File:Rembrandt_-_The_laughing_man.jpg"
+        );
+        let image = &observation["images"][0];
+        assert!(image["file_url"].as_str().unwrap().contains("/3840px-"));
+        assert!(
+            image["preview_url"]
+                .as_str()
+                .unwrap()
+                .ends_with("/960px-Rembrandt_-_The_laughing_man.jpg")
+        );
+        assert_eq!(image["file_fingerprint"]["width_pixels"], 3840);
+        assert_eq!(
+            roles(&result),
+            [
+                "file-record",
+                "file-structured-data",
+                "object-record",
+                "authority-labels",
+                "image-preview",
+                "image-file"
+            ]
+        );
+        assert!(
+            observation["warnings"][0]
+                .as_str()
+                .unwrap()
+                .contains("3840-pixel standard copy of its 4816-pixel original")
+        );
+    }
+
+    #[test]
+    fn commons_text_leaves_out_what_its_templates_hide() {
+        assert_eq!(
+            commons_plain(
+                r#"<time class="dtstart" datetime="1883">1883</time><div style="display: none;">date QS:P571,+1883-00-00T00:00:00Z/9</div>"#
+            ),
+            "1883"
+        );
+        assert_eq!(
+            commons_plain(
+                r#"<span title="circa">circa</span> 1629<br/>–1630<span style="display:none"><b>x</b> QS</span> &amp; after"#
+            ),
+            "circa 1629 –1630 & after"
+        );
+    }
+
+    #[test]
+    fn a_commons_dating_comes_from_the_artwork_not_the_photograph() {
+        let request = json!({"operation":"media.observe","repo_root":repo_root(),"provider":"commons","object":"File:Rembrandt - The laughing man.jpg","max_requests":8});
+        let dated = |text: &str, inception: Value| {
+            let mut table = commons_table("Q19652", Some("Q17275997"));
+            let mut info: Value = serde_json::from_slice(&table[0].1).unwrap();
+            info["query"]["pages"][0]["imageinfo"][0]["extmetadata"]["DateTimeOriginal"]["value"] =
+                json!(text);
+            table[0].1 = serde_json::to_vec(&info).unwrap();
+            let mut entity: Value = serde_json::from_slice(&table[2].1).unwrap();
+            entity["entities"]["Q17275997"]["claims"]["P571"] = json!([inception]);
+            table[2].1 = serde_json::to_vec(&entity).unwrap();
+            observe_with(&request, table).unwrap()["observation"]["object"]["dating"].clone()
+        };
+        let year = |time: &str, precision: u64| json!({"rank":"normal","mainsnak":{"datavalue":{"value":{"time":time,"precision":precision}}}});
+        // A photograph's own date is no dating of the painting: the inception's single year speaks.
+        // The page's words name the years where they name any.
+        assert_eq!(
+            dated("circa 1817", year("+1818-00-00T00:00:00Z", 9)),
+            json!({"statement":"circa 1817","begin_year":1817,"end_year":1817})
+        );
+        assert_eq!(
+            dated("Unknown date; c. 1840s.", year("+1840-00-00T00:00:00Z", 8)),
+            json!({"statement":"Unknown date; c. 1840s.","begin_year":1840,"end_year":1849})
+        );
+        assert_eq!(
+            dated("2018-01-14 13:47:24", year("+1885-00-00T00:00:00Z", 9)),
+            json!({"statement":"1885","begin_year":1885,"end_year":1885})
+        );
+        assert_eq!(
+            dated("1880s", year("+1880-00-00T00:00:00Z", 8)),
+            json!({"statement":"1880s","begin_year":1880,"end_year":1889})
+        );
+        // A century without its bounds leaves a gap.
+        assert_eq!(
+            dated("20th century", year("+2000-00-00T00:00:00Z", 7)),
+            json!({"statement":null,"begin_year":null,"end_year":null})
+        );
+        let mut bounded = year("+2000-00-00T00:00:00Z", 7);
+        bounded["qualifiers"] = json!({"P1319":[{"datavalue":{"value":{"time":"+1899-00-00T00:00:00Z","precision":9}}}],"P1326":[{"datavalue":{"value":{"time":"+1900-00-00T00:00:00Z","precision":9}}}]});
+        assert_eq!(
+            dated("1899–1900", bounded.clone()),
+            json!({"statement":"1899–1900","begin_year":1899,"end_year":1900})
+        );
+        // Without words on the page, the years the inception records, its start and end times among its bounds.
+        let mut decade = year("+1885-01-01T00:00:00Z", 8);
+        decade["qualifiers"] = json!({"P580":[{"datavalue":{"value":{"time":"+1885-00-00T00:00:00Z","precision":9}}}],"P582":[{"datavalue":{"value":{"time":"+1886-00-00T00:00:00Z","precision":9}}}]});
+        assert_eq!(
+            dated("2018-01-14 13:47:24", decade),
+            json!({"statement":"1885–1886","begin_year":1885,"end_year":1886})
+        );
+    }
+
+    #[test]
+    fn a_small_commons_original_is_its_own_smaller_copy() {
+        const ORIGINAL: &str =
+            "https://upload.wikimedia.org/wikipedia/commons/3/3b/Rembrandt_-_The_laughing_man.jpg";
+        let mut table = commons_table("Q19652", Some("Q17275997"));
+        let mut info: Value = serde_json::from_slice(&table[0].1).unwrap();
+        let file = &mut info["query"]["pages"][0]["imageinfo"][0];
+        file["width"] = json!(800);
+        file["thumburl"] = json!(ORIGINAL);
+        table[0].1 = serde_json::to_vec(&info).unwrap();
+        table.truncate(4);
+        table.push((ORIGINAL.into(), tiny_jpeg(800, 571)));
+        let request = json!({"operation":"media.observe","repo_root":repo_root(),"provider":"commons","object":"File:Rembrandt - The laughing man.jpg","max_requests":8,"files":true});
+        let result = observe_with(&request, table).unwrap();
+        let image = &result["observation"]["images"][0];
+        assert_eq!(image["file_url"], ORIGINAL);
+        assert_eq!(image["preview_url"], ORIGINAL);
+        assert_eq!(image["preview_fingerprint"], image["file_fingerprint"]);
+        assert_eq!(image["file_fingerprint"]["width_pixels"], 800);
+        assert_eq!(
+            roles(&result).last().map(String::as_str),
+            Some("image-file")
+        );
+        assert!(
+            result["observation"]["warnings"]
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn a_commons_file_must_name_the_artwork_it_represents() {
+        let request = json!({"operation":"media.observe","repo_root":repo_root(),"provider":"commons","object":"File:Rembrandt - The laughing man.jpg","max_requests":8});
+        let error = observe_with(&request, commons_table("Q19652", None)).unwrap_err();
+        assert!(error.contains("P6243"), "{error}");
+        let bad = json!({"operation":"media.observe","repo_root":repo_root(),"provider":"commons","object":"File:a|b.jpg","max_requests":8});
+        assert!(
+            observe_with(&bad, Vec::new())
+                .unwrap_err()
+                .contains("named by its title")
+        );
+    }
+
+    #[test]
+    fn slam_page_states_fields_rights_and_original() {
+        const PAGE: &str = "https://www.slam.org/collection/objects/36470/";
+        const ORIGINAL: &str =
+            "https://d23gjylftzdlen.cloudfront.net/db_photo/d3363/u16333630/781945dig_1_o2.jpg";
+        const COPY: &str =
+            "https://d23gjylftzdlen.cloudfront.net/db_photo/d3363/u16333630/781945dig_1_o3.jpg";
+        let html = format!(
+            r#"<html><body><h1 class="title">Athlete Wrestling with a Python</h1>
+            <dl><dt>Artist</dt><dd>Frederic Leighton, English, 1830&#8211;1896</dd>
+            <dt>Date</dt><dd>1877</dd><dt>Medium</dt><dd>bronze</dd><dt>Classification</dt><dd>Sculpture</dd>
+            <dt>Dimensions</dt><dd>height including base: 20 5/16 in. (51.6 cm)</dd>
+            <dt>Credit Line</dt><dd>Museum Purchase</dd><dt>Object Number</dt><dd>78:1945</dd>
+            <dt>Rights</dt><dd>Public Domain</dd></dl>
+            <script>var VIEWER_MAIN_IMG = {{ url: '{ORIGINAL}' }};</script></body></html>"#
+        );
+        let request = json!({"operation":"media.observe","repo_root":repo_root(),"provider":"slam","object":"36470","max_requests":4,"files":true});
+        let result = observe_with(
+            &request,
+            vec![
+                (PAGE.into(), html.into_bytes()),
+                (ORIGINAL.into(), tiny_jpeg(4500, 6000)),
+                (COPY.into(), tiny_jpeg(1200, 1600)),
+            ],
+        )
+        .unwrap();
+        let observation = &result["observation"];
+        assert_eq!(observation["object"]["identifiers"][0]["value"], "78:1945");
+        assert_eq!(
+            observation["object"]["titles"][0]["text"],
+            "Athlete Wrestling with a Python"
+        );
+        assert_eq!(
+            observation["object"]["production_statements"][0]["text"],
+            "Frederic Leighton, English, 1830–1896"
+        );
+        assert_eq!(
+            observation["object"]["dating"],
+            json!({"statement":"1877","begin_year":1877,"end_year":1877})
+        );
+        assert_eq!(
+            observation["rights"],
+            json!([{"scope":"image","provider_field":"Rights","value":"Public Domain","statement_uri":null,"label":"Public Domain","stated_in":PAGE}])
+        );
+        assert_eq!(observation["images"][0]["file_url"], ORIGINAL);
+        assert_eq!(observation["images"][0]["preview_url"], COPY);
+        assert_eq!(
+            roles(&result),
+            ["object-record", "image-preview", "image-file"]
+        );
+    }
+
+    fn smb_page(original: &str) -> String {
+        format!(
+            r#"<html><head><style>.gallery-image-frame-single{{display:flex}}</style></head><body><main>
+            <h1 class="text-3xl">Bildnis Friedrich Nietzsche</h1><p>Ident. Nr.: A II 898</p>
+            <div><p class="font-bold">Einrichtung:</p><p class="font-normal">Alte Nationalgalerie</p></div>
+            <dl><dt class="x">Beteiligte</dt><dd class="y"><span>Curt Stoeving (1863 - 1939), Maler</span></dd>
+            <dt>Datierung</dt><dd><span>1894</span></dd><dt>Systematik/Art</dt><dd>Gemälde</dd>
+            <dt>Material / Technik</dt><dd>Öl auf Leinwand</dd><dt>Abmessungen</dt><dd>Höhe x Breite: 180 x 242 cm</dd></dl>
+            <div id="gallery-photoswipe"><div class="embla__slide"><div class="gallery-image-frame-single">
+            <a href="{original}" data-pswp-width="1200"><img src="/media/images/thumbs/extra_large/157/005/5157106.jpg" class="gallery-image-single"></a></div>
+            <div class="text-center text-xs">Fotonachweis: Staatliche Museen zu Berlin, Alte Nationalgalerie / Klaus Göken Public Domain Mark 1.0</div></div></div>
+            </main></body></html>"#
+        )
+    }
+
+    #[test]
+    fn smb_page_states_fields_photo_credit_and_original() {
+        const PAGE: &str = "https://search.smb.museum/object/obj-965972";
+        const ORIGINAL: &str =
+            "https://search.smb.museum/media/images/originals/157/005/5157106.AII898_002mR.jpg";
+        const COPY: &str =
+            "https://search.smb.museum/media/images/thumbs/extra_large/157/005/5157106.jpg";
+        let request = json!({"operation":"media.observe","repo_root":repo_root(),"provider":"smb","object":"obj-965972","max_requests":4,"files":true});
+        let page = smb_page("/media/images/originals/157/005/5157106.AII898_002mR.jpg");
+        let result = observe_with(
+            &request,
+            vec![
+                (PAGE.into(), page.clone().into_bytes()),
+                (ORIGINAL.into(), tiny_jpeg(3000, 2230)),
+                (COPY.into(), tiny_jpeg(1200, 892)),
+            ],
+        )
+        .unwrap();
+        let observation = &result["observation"];
+        let object = &observation["object"];
+        assert_eq!(
+            object["identifiers"],
+            json!([{"scheme":"SMB ObjID","value":"965972"},{"scheme":"SMB inventory number","value":"A II 898"}])
+        );
+        assert_eq!(
+            object["repository"],
+            "Staatliche Museen zu Berlin, Alte Nationalgalerie"
+        );
+        assert_eq!(
+            object["production_statements"][0]["text"],
+            "Curt Stoeving (1863 - 1939), Maler"
+        );
+        assert_eq!(
+            object["dimensions"][1],
+            json!({"kind":"height","value":"180","unit":"cm","unit_uri":null,"statement":null})
+        );
+        assert_eq!(object["dimensions"][2]["value"], "242");
+        assert_eq!(
+            observation["rights"][0]["statement_uri"],
+            "https://creativecommons.org/publicdomain/mark/1.0/"
+        );
+        assert_eq!(observation["rights"][0]["stated_in"], PAGE);
+        assert_eq!(observation["images"][0]["file_url"], ORIGINAL);
+        assert_eq!(observation["images"][0]["preview_url"], COPY);
+        assert_eq!(
+            roles(&result),
+            ["object-record", "image-preview", "image-file"]
+        );
+
+        // An original larger than one response may hold stays at the museum; its 1200-pixel copy is the file.
+        let mut huge = tiny_jpeg(9000, 7000);
+        huge.resize(record_limit().unwrap() + 1, 0);
+        let result = observe_with(
+            &request,
+            vec![
+                (PAGE.into(), page.into_bytes()),
+                (ORIGINAL.into(), huge),
+                (COPY.into(), tiny_jpeg(1200, 892)),
+            ],
+        )
+        .unwrap();
+        let image = &result["observation"]["images"][0];
+        assert_eq!(image["file_url"], COPY);
+        assert_eq!(image["file_fingerprint"]["width_pixels"], 1200);
+        assert!(
+            result["observation"]["warnings"][0]
+                .as_str()
+                .unwrap()
+                .contains("exceeds the record limit")
+        );
+
+        // A credit without the mark states no open statement.
+        let closed = smb_page("/media/images/originals/157/005/5157106.AII898_002mR.jpg").replace(
+            " Public Domain Mark 1.0",
+            " / Foto: Alle Rechte vorbehalten",
+        );
+        let light = json!({"operation":"media.observe","repo_root":repo_root(),"provider":"smb","object":"965972","max_requests":4});
+        let result = observe_with(&light, vec![(PAGE.into(), closed.into_bytes())]).unwrap();
+        assert_eq!(
+            result["observation"]["rights"][0]["statement_uri"],
+            Value::Null
+        );
+    }
+
     #[test]
     fn describe_names_providers_and_writes_nothing() {
         let described = invoke(&json!({"operation":"media.describe"})).unwrap();
@@ -2499,6 +3759,18 @@ mod tests {
             ),
             (
                 "media-provider-observation.v1.nga.json",
+                "media-provider-observation",
+            ),
+            (
+                "media-provider-observation.v1.commons.json",
+                "media-provider-observation",
+            ),
+            (
+                "media-provider-observation.v1.slam.json",
+                "media-provider-observation",
+            ),
+            (
+                "media-provider-observation.v1.smb.json",
                 "media-provider-observation",
             ),
             (
