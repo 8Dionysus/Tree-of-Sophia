@@ -315,6 +315,23 @@ describe('the images on a link\'s card',()=>{
   });
 });
 
+describe('the images on a link\'s card',()=>{
+  const item=(id)=>({role:'comparison',image:{id},work:{id:id.split('/')[0]}});
+  it('are the link\'s own where the bonsai binds images to the link',()=>{
+    expect(linkGroups({own:[item('met:1/whole')],ends:[{label:'Лев',items:[item('met:2/whole')]}]})).toEqual([{label:null,items:[item('met:1/whole')]}]);
+  });
+  it('are else each end\'s under its name, an image both ends share once, an end without images left out',()=>{
+    expect(linkGroups({ends:[{label:'Лев',items:[item('met:2/whole'),item('met:3/whole')]},{label:'Дитя',items:[item('met:3/whole'),item('met:4/whole')]},{label:'Осёл',items:[]}]})).toEqual([
+      {label:'Лев',items:[item('met:2/whole'),item('met:3/whole')]},{label:'Дитя',items:[item('met:4/whole')]},
+    ]);
+    expect(linkGroups({ends:[{label:'Лев',items:[item('met:2/whole')]},{label:'Дитя',items:[item('met:2/whole')]}]})).toEqual([{label:'Лев',items:[item('met:2/whole')]}]);
+    expect(linkGroups({ends:[]})).toEqual([]);
+  });
+  it('ask the image service for a copy fitted into the strip\'s box',()=>{
+    expect(imageSources({api:'iiif-image-3',service:'https://iiif.micr.io/qnEHd'},{box:160}).src).toBe('https://iiif.micr.io/qnEHd/full/!160,160/0/default.jpg');
+  });
+});
+
 describe('a medium on a card',()=>{
   const {module}=added(),[item]=readMedia(module).forSubject('cicero');
   const t=key=>({'media_author-portrait':'Портрет автора',mediaInscribed:'Надпись на предмете',mediaSeries:'Серия',mediaSize:'{0} × {1} мм'})[key]??key;

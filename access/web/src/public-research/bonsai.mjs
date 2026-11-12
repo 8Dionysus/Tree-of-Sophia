@@ -5,6 +5,7 @@
 // writes them; what it shows on a lens comes from here, with the sources and
 // footing each module keeps.
 
+import aestheticsManifest from '../../../../bonsai/aesthetics/bonsai.json' with {type:'json'};
 import antiquityManifest from '../../../../bonsai/antiquity/bonsai.json' with {type:'json'};
 import zarathustraManifest from '../../../../bonsai/zarathustra/bonsai.json' with {type:'json'};
 import {readMedia} from '../../../../bonsai/lib/media.mjs';
@@ -52,6 +53,8 @@ const LOADERS=Object.freeze({
   ]).then(([chronology,places,identities,basemap,core,renderings])=>({chronology:json(chronology),places:json(places),identities:json(identities),basemap:json(basemap),core,renderings})),
 });
 const BONSAI={
+  // Aesthetics is planted before its stand opens: its manifest is here, and its modules load once the stand reads them.
+  aesthetics:Object.freeze({manifest:aestheticsManifest}),
   antiquity:Object.freeze({manifest:antiquityManifest}),
   zarathustra:Object.freeze({manifest:zarathustraManifest}),
 };

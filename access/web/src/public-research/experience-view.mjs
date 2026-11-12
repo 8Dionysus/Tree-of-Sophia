@@ -55,6 +55,16 @@ export function mountResearchExperience({root,header,profile,locale=()=> 'ru',in
   pane.append(question,message,recover,searchWrap,body,comparison,history,promptRoot,cognitiveRoot,operationDetails);root.append(pane);
   const modeButtons=new Map();for(const mode of standModes){const btn=action('',()=>{setModes(false);setMode(mode);});btn.dataset.mode=mode;modeGroup.append(btn);modeButtons.set(mode,btn);}
   const back=action('',()=>navigate(-1),'experience-button rb-step'),forward=action('',()=>navigate(1),'experience-button rb-step'),pin=action('',()=>togglePin()),copy=action('',()=>void copyLink()),calculation=action('',()=>{opsVisible=!opsVisible;operationDetails.open=opsVisible;render();});menu.append(pin,copy,calculation);tools.append(back,forward,menu);
+  // The language and the theme are set once and seldom changed: on a wide screen they stand first under "more", on every
+  // page and in every language, so the bar keeps one shape. On a phone the whole end of the bar opens under "more"
+  // (public-space.css), and they stand in that list.
+  const language=bar.querySelector?.('.ps-language'),phone=window.matchMedia?.('(max-width: 900px)');
+  function fitBar(){
+    if(!language||disposed)return;
+    if(phone?.matches){if(language.parentNode!==bar)bar.insertBefore(language,tools);}
+    else if(language.parentNode!==menu)menu.prepend(language);
+  }
+  phone?.addEventListener?.('change',fitBar);fitBar();
   let menuOpen=false,modesOpen=false,copiedTimer=0;
   function setMenu(open){menuOpen=open;header.dataset.menu=open?'open':'';more.setAttribute('aria-expanded',String(open));}
   function setModes(open){modesOpen=open;header.dataset.modes=open?'open':'';modeCurrent.setAttribute('aria-expanded',String(open));}
@@ -226,5 +236,5 @@ export function mountResearchExperience({root,header,profile,locale=()=> 'ru',in
   let scrollTimer;const scrollEvent=()=>{if(state.mode!=='reference'||state.cursor<0)return;clearTimeout(scrollTimer);scrollTimer=setTimeout(()=>{rememberScroll();save();},350);};window.addEventListener('scroll',scrollEvent,{passive:true});
   const unsubscribe=api?.subscribeQuestion?.(()=>{const value=api.getQuestion();if(value===state.question)return;state.question=value;render();save();});
   render();
-  return {getState:()=>clone(snapshot()),versionContext,peekVersionContext,setMode,open,cognitiveRoot,refreshLocale(){render();ops?.refreshLocale();},destroy(){disposed=true;unsubscribe?.();ops?.destroy();root.removeEventListener('public-research-selection',selectionEvent);root.removeEventListener('public-research-open',openEvent);root.removeEventListener('public-research-action',actionEvent);root.removeEventListener('public-research-contents',contentsEvent);root.removeEventListener('public-research-place',placeEvent);window.removeEventListener('popstate',popEvent);window.removeEventListener('scroll',scrollEvent);window.removeEventListener('scroll',tocScroll);globalThis.cancelAnimationFrame?.(tocFrame);clearTimeout(scrollTimer);space.root.classList.remove('experience-space-inactive');document.removeEventListener?.('pointerdown',outside,true);document.removeEventListener?.('keydown',escape,true);clearTimeout(copiedTimer);toolbar.remove();tools.remove();more.remove();versionNotice.remove();pane.remove();}};
+  return {getState:()=>clone(snapshot()),versionContext,peekVersionContext,setMode,open,cognitiveRoot,refreshLocale(){render();ops?.refreshLocale();fitBar();},destroy(){disposed=true;phone?.removeEventListener?.('change',fitBar);if(language&&language.parentNode!==bar)bar.append(language);unsubscribe?.();ops?.destroy();root.removeEventListener('public-research-selection',selectionEvent);root.removeEventListener('public-research-open',openEvent);root.removeEventListener('public-research-action',actionEvent);root.removeEventListener('public-research-contents',contentsEvent);root.removeEventListener('public-research-place',placeEvent);window.removeEventListener('popstate',popEvent);window.removeEventListener('scroll',scrollEvent);window.removeEventListener('scroll',tocScroll);globalThis.cancelAnimationFrame?.(tocFrame);clearTimeout(scrollTimer);space.root.classList.remove('experience-space-inactive');document.removeEventListener?.('pointerdown',outside,true);document.removeEventListener?.('keydown',escape,true);clearTimeout(copiedTimer);toolbar.remove();tools.remove();more.remove();versionNotice.remove();pane.remove();}};
 }
