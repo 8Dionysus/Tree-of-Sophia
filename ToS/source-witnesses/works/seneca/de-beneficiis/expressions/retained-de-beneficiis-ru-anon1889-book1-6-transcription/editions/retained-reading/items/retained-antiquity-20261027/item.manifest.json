@@ -1,0 +1,46 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.de-beneficiis.de-beneficiis-ru-anon1889-book1-6-transcription",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.de-beneficiis.de-beneficiis-ru-anon1889-book1-6-transcription",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.db5c0e89c44f0fc75f91929edc9ee718e8e6d96d8b0b805da19fcdbef7a0290a",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "de-beneficiis-ru-anon1889-book1-6-transcription.json",
+      "media_type": "application/json",
+      "byte_size": 2914,
+      "sha256": "db5c0e89c44f0fc75f91929edc9ee718e8e6d96d8b0b805da19fcdbef7a0290a",
+      "fixity_verified_at": "2026-11-12T22:04:26+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.5fb6f25c3e102a6c38fe6228f70022a72861f94260503e5d0c39e5680fe342c9",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 2495,
+      "sha256": "5fb6f25c3e102a6c38fe6228f70022a72861f94260503e5d0c39e5680fe342c9",
+      "fixity_verified_at": "2026-11-12T22:04:26+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.eca5d1663643e99ce8d40d373d78105c925ded399121079aac6f8baa9bdf801a",
+      "relative_path": "payload/1889-book-1-chapter-6-transcription.txt",
+      "original_basename": "1889-book-1-chapter-6-transcription.txt",
+      "media_type": "text/plain",
+      "byte_size": 2496,
+      "sha256": "eca5d1663643e99ce8d40d373d78105c925ded399121079aac6f8baa9bdf801a",
+      "fixity_verified_at": "2026-11-12T22:04:26+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.de-beneficiis-ru-anon1889-book1-6-transcription.20261027",
+  "rights_ref": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-ru-anon1889-book1-6-transcription/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-ru-anon1889-book1-6-transcription/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-ru-anon1889-book1-6-transcription/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-ru-anon1889-book1-6-transcription/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-ru-anon1889-book1-6-transcription/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

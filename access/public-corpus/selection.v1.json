@@ -64224,6 +64224,37 @@
           "coverageLimit": "7 Wikisource pages without page-scan proofreading; licence templates none listed. Scan images were not collated. Automatic alignment is unreviewed.",
           "coverageStatus": "complete-source-transcription",
           "proofreadingStatus": "not page-proofread"
+        },
+        {
+          "id": "retained-de-beneficiis-ru-anon1889-book1-6-transcription",
+          "legacyId": "de-beneficiis-ru-anon1889-book1-6-transcription",
+          "label": "Вѣра и Разумъ, 1889, № 22, философский отдел, стр. 470 · 1889 · Переводчик не указан в журнале",
+          "language": "ru",
+          "role": "translation",
+          "packetRef": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-ru-anon1889-book1-6-transcription/editions/retained-reading/items/retained-antiquity-20261027/source-text-unit-packet.v1.json",
+          "packetSha256": "0e24eeeb272e0d6e1209f0136937daf0b871d42c5728a3bf84a1f876762d5f87",
+          "segmentationRef": "tos.text-segmentation.sid-86aaf5ae2b124d4693d5e5c396e13df0",
+          "rightsRef": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-ru-anon1889-book1-6-transcription/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+          "rightsSha256": "0fc2035672ea7181928245d89435db6904fd130afcdb7c308905b2b63a4fa2f8",
+          "sourceUrl": "https://azbyka.ru/otechnik/assets/uploads/vera-i-razum/%D0%92%D0%B5%D1%80%D0%B0%20%D0%B8%20%D1%80%D0%B0%D0%B7%D1%83%D0%BC.%201889.%20%D0%9D%D0%BE%D1%8F%D0%B1%D1%80%D1%8C.%20%D0%9A%D0%BD.%202.pdf",
+          "attribution": "Сенека. О благодѣяніяхъ, книга I, глава 6. Вѣра и Разумъ, 1889, № 22, с. 470; переводчик не указан; собственная транскрипция по скану.\nOnly Book I chapter 6, transcribed from the scan of the anonymous 1889 journal translation, p. 470 (PDF page 111). Historical spelling and parenthetical words retained; line wraps removed. No other chapter is included. The source translation and its proposed alignment require independent review.",
+          "license": {
+            "label": "Public domain historical translation and independently made transcription",
+            "url": "https://creativecommons.org/publicdomain/mark/1.0/"
+          },
+          "structure": [
+            {
+              "id": "tos.anchor.sid-0a1a86c437544490828d2e861a6e2fd4",
+              "label": "Книга 1 · Глава 6",
+              "unitId": "tos.text-unit.sid-872b381485014cb3aa730442d38454f3",
+              "level": 1,
+              "parentId": null
+            }
+          ],
+          "coverageLimit": "Only Book I chapter 6, transcribed from the scan of the anonymous 1889 journal translation, p. 470 (PDF page 111). Historical spelling and parenthetical words retained; line wraps removed. No other chapter is included. The source translation and its proposed alignment require independent review.",
+          "coverageStatus": "partial-book-1-chapter-6",
+          "proofreadingStatus": "transcribed and checked against one printed page",
+          "historicalTranscription": true
         }
       ]
     },
