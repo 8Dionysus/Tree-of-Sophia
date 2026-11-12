@@ -23,6 +23,7 @@ import {readChronology} from '../../../../bonsai/lib/chronology.mjs';
 import {readPlaces} from '../../../../bonsai/lib/places.mjs';
 import {clipLinesRight,planeOfPlaces} from './space-geography.mjs';
 import {AREA_TITLES,SCHOOL_ERA,TREE_LABEL_FROM,antiquityTree,treeVia} from './space-tree.mjs';
+import {aestheticsTree} from './aesthetics-tree.mjs';
 import {PART_TITLES,zarathustraTree} from './space-tree-zarathustra.mjs';
 import {antiquityBook,zarathustraBook} from './reference-outline.mjs';
 import {createReferenceBook} from './reference-book.mjs';
@@ -168,7 +169,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // library and core. It is a view; the saved graph keeps its own places.
   const treeLayout=profile==='antiquity'&&bonsai?.collection?antiquityTree({collection:bonsai.collection,chronology:bonsai.chronology,
     materialOf:legacy=>{const id=collectionByLegacyId.get(legacy)?.materialId;return id&&materials.has(id)?id:null;}})
-    :profile==='zarathustra'&&library?.space?.core?zarathustraTree({library}):null;
+    :profile==='zarathustra'&&library?.space?.core?zarathustraTree({library}):profile==='aesthetics'&&bonsai?.field?aestheticsTree({library,field:bonsai.field,catalog:bonsai.library,chronology:bonsai.chronology}):null;
   // The lens "Space" exists where the bonsai places the material; a star without a sourced place stands apart from the map.
   const geography=bonsai?.places?planeOfPlaces({stars:starIds,placeOf,places:bonsai.places.places}):null;
   // The lens "Proximity" measures from one star by one criterion its bonsai names; its direction groups by branch or circle.
