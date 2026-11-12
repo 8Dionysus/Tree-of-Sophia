@@ -499,7 +499,8 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     figure.addEventListener('click',event=>{if(!wrap.classList.contains('is-open')&&!event.target.closest?.('button,a'))toggle.click();});
     wrap.append(figure,toggle);return wrap;
   }
-  return {render,fragment,showChapter,sourceSelection,citesOf,hasAuthored:value=>hasAuthored(value,locale()),get reader(){return reader;},dispose(){chapterRequests.cancel();reader?.dialog.remove();reader=null;}};
+  async function placeLabel(cite){const data=await externalPlaces();return localeValue(data.places?.[cite?.w]?.[cite?.loc]?.label,locale());}
+  return {render,fragment,showChapter,sourceSelection,placeLabel,citesOf,hasAuthored:value=>hasAuthored(value,locale()),get reader(){return reader;},dispose(){chapterRequests.cancel();reader?.dialog.remove();reader=null;}};
 }
 
 export {CHAPTER_KEYS,copyLocale};

@@ -1479,7 +1479,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
         const work=previewMaterials.get(`aesthetics:catalog:${material.workId}`);
         const authors=(material.agents??[]).map(id=>previewMaterials.get(`aesthetics:catalog:${id}`)).filter(Boolean);
         const authorText=authors.map(author=>{const life=chronologyReader?.span(author.life);return [tr(author.title,locale()),life?formatYears(life,locale()):''].filter(Boolean).join(' · ');}).join(', ');
-        const line=[tr(work?.title,locale()),authorText,material.locus].filter(Boolean).join(' · ');if(line)into.append(el('p','ps-source-line',line));
+        const line=el('p','ps-source-line',[tr(work?.title,locale()),authorText,material.locus].filter(Boolean).join(' · '));into.append(line);
+        void Promise.all((material.body?.cite??[]).map(cite=>fragments.placeLabel(cite))).then(labels=>{const places=[...new Set(labels.filter(Boolean))].join(' · ')||material.locus;line.textContent=[tr(work?.title,locale()),authorText,places].filter(Boolean).join(' · ');}).catch(()=>{});
       }
       if(profile==='aesthetics'&&material.route){const list=el('section','ps-branch-list');for(const step of material.route.steps){const open=button(tr(step.title,locale()),'connection-target');open.addEventListener('click',()=>previewMaterial(step.nodeId));list.append(open);}into.append(list);}
       // The map shows what the book says. A question of the book is the star's title, and the book's answer stands
