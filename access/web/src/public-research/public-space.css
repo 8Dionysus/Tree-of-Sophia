@@ -77,6 +77,9 @@
 #research-bar .rb-more:hover,#research-bar .rb-more[aria-expanded=true]{border-color:#c9ad7380;color:#f0dfb8}
 #research-bar .rb-menu{position:absolute;top:calc(100% - 6px);right:16px;z-index:2;display:none;min-width:230px;padding:6px;border:1px solid var(--ps-line-strong);border-radius:8px;background:var(--ps-glass);backdrop-filter:blur(18px);box-shadow:0 18px 50px #000b}
 #research-bar[data-menu=open] .rb-menu{display:grid;gap:2px}
+/* Folded under "more" (experience-view.mjs), the language and the theme stand first in its list. */
+#research-bar .rb-menu .ps-language{display:grid;gap:6px;margin:0 0 4px;padding:4px 4px 10px;border-bottom:1px solid var(--ps-line)}
+#research-bar .rb-menu .ps-locale-select{width:100%;max-width:none;min-height:36px}
 #research-bar :is(.rb-menu,.pr-toolbar) .experience-button:not(.rb-step){display:flex;align-items:center;width:100%;min-height:38px;padding:0 12px;border:0;border-radius:5px;background:none;color:#d6dfeb;font:13px/1.2 var(--ps-sans);text-align:left;cursor:pointer}
 #research-bar :is(.rb-menu,.pr-toolbar) .experience-button:not(.rb-step):hover:not(:disabled){background:#8aa0b81f}
 #research-bar :is(.rb-menu,.pr-toolbar) .experience-button[aria-pressed=true]{color:#f0dfb8}
@@ -148,13 +151,14 @@
 #tree .ps-chip-row[data-open=false] .ps-chip-extra{display:none}
 /* A star's facts: one short line each, under its title, opening to what they rest on. */
 #tree .ps-fact{margin:2px 0 4px;color:#c2ccd8;font:13px/1.5 var(--ps-sans)}
-#tree .ps-fact>summary{display:flex;align-items:baseline;gap:8px;list-style:none;cursor:pointer}
+#tree .ps-fact>summary{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px;list-style:none;cursor:pointer}
 #tree .ps-fact>summary::-webkit-details-marker{display:none}
 #tree .ps-fact.ps-fact-plain>summary{cursor:default}
 #tree .ps-fact-icon{flex:none;width:16px;color:#d9c391;text-align:center}
 #tree .ps-fact-value{flex:none;max-width:62%;color:#e7ddc6}
-#tree .ps-fact-context{min-width:0;color:#8ea2ba}
-#tree .ps-fact:not(.ps-fact-plain)>summary::after{content:'›';margin-left:2px;color:#6f849c;transition:transform .2s}
+/* What the date marks stands under it, at the date's own edge, so neither is squeezed into a narrow column. */
+#tree .ps-fact-context{order:3;flex:1 0 100%;min-width:0;padding-left:24px;box-sizing:border-box;color:#8ea2ba}
+#tree .ps-fact:not(.ps-fact-plain)>summary::after{content:'›';order:2;margin-left:2px;color:#6f849c;transition:transform .2s}
 #tree .ps-fact[open]>summary::after{transform:rotate(90deg)}
 #tree .ps-fact[data-kind=relative-life] .ps-fact-value,#tree .ps-fact[data-kind=activity] .ps-fact-value{color:#c9c2b1}
 #tree .ps-fact[data-kind=unknown] .ps-fact-value,#tree .ps-fact[data-kind=unknown-date] .ps-fact-value{color:#8ea2ba}
@@ -238,8 +242,18 @@
 #tree.pr-public-space .ps-relations,#tree.pr-public-space[data-journey=true] .ps-relations{position:absolute;z-index:5;left:var(--ps-map-left);right:var(--ps-map-right);bottom:44px;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:4px 16px;white-space:nowrap}
 #tree .ps-relations .relation-toggle{flex:none;padding:6px 0;color:#7f94af;font:10px/1.4 var(--ps-sans);letter-spacing:.14em;text-transform:uppercase}
 #tree .ps-relations .relation-toggle:hover{color:#f0dfb8}
-#tree .ps-relations .relation-chips{display:flex;flex-wrap:wrap;gap:4px 12px;max-width:none}
+#tree .ps-relations .relation-chips{display:flex;flex-wrap:wrap;gap:4px 10px;max-width:none}
 #tree .ps-relations .relation-chip{font:11px/1.3 var(--ps-sans)}
+/* "All links" draws no line of its own, so its word starts where the status row's first sign does. */
+#tree .ps-relations .relation-chip:not([data-dash]):before{display:none}
+/* On a wide screen the kinds of link run as words in a line, and when they need two lines the lines come out even, so no
+   kind stands alone under the others; the word "Links" keeps to the first line. */
+@media(min-width:761px){
+  #tree .ps-relations .relation-chips{display:block;white-space:normal;text-wrap:balance;line-height:0}
+  #tree .ps-relations .relation-chips>.relation-chip{display:inline-flex;vertical-align:middle;margin:2px 10px 2px 0}
+  #tree .ps-relations .relation-chip:before{width:14px}
+  #tree .ps-relations .relation-toggle{align-self:start}
+}
 #tree .ps-status-legend{display:contents}
 #tree .ps-status-items{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
 #tree .ps-legend-title{padding:6px 0;color:#7f94af;font:10px/1.4 var(--ps-sans);letter-spacing:.14em;text-transform:uppercase}
@@ -571,15 +585,18 @@
   #tree .ps-column .ps-panel-content,#tree .ps-panel .body{font-size:14px}
   #tree.pr-public-space .ps-personal{top:auto;left:8px;right:8px;bottom:60px;width:auto;min-height:0;max-height:76dvh;padding:0 16px 20px}
   #tree .ps-personal>.reading-top{margin:0 -16px 12px;padding-left:16px}
-  /* legend and map controls sit above the sheet's top bar */
-  #tree.pr-public-space .ps-relations,#tree.pr-public-space[data-journey=true] .ps-relations{left:12px;right:12px;bottom:112px;gap:10px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;overscroll-behavior-inline:contain}
-  #tree.pr-public-space .ps-relations{display:flex}
-  #tree .ps-relations .relation-chips,#tree .ps-status-items{flex-wrap:nowrap}
-  #tree .ps-status-legend{display:flex;align-items:center;gap:10px;padding-left:12px;border-left:1px solid var(--ps-line)}
-  #tree .ps-relations .relation-toggle{min-height:32px}
-  #tree .ps-relations .relation-chip{min-height:32px}
-  #tree .ps-map-tools{top:auto;right:10px;bottom:150px;grid-auto-flow:column}
-  #tree .ps-map-tools .icon{width:38px;height:36px}
+  /* One row stands above the sheet's top bar: at its left the word "Links", which opens the legend whole, at its right the
+     map's tools. While the sheet only lists the routes, the tool bar's "Routes" holds them, and the row comes down to it. */
+  #tree.pr-public-space .ps-relations,#tree.pr-public-space[data-journey=true] .ps-relations{left:10px;right:auto;bottom:118px;display:block}
+  #tree .ps-relations :is(.relation-chips,.ps-status-legend){display:none}
+  #tree .ps-relations .relation-toggle{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;border:1px solid var(--ps-line);border-radius:6px;background:#081321c7;backdrop-filter:blur(10px);color:#a9bdd3;font-size:11px}
+  #tree .ps-relations .relation-toggle:before{content:'';flex:none;width:16px;height:9px;background:linear-gradient(currentColor,currentColor) 0 0/16px 1.5px no-repeat,repeating-linear-gradient(90deg,currentColor 0 4px,transparent 4px 7px) 0 50%/16px 1.5px no-repeat,repeating-linear-gradient(90deg,currentColor 0 2px,transparent 2px 5px) 0 100%/16px 1.5px no-repeat}
+  #tree .ps-relations[data-filtered=true] .relation-toggle:after{content:'';flex:none;width:6px;height:6px;border-radius:50%;background:#e1c697}
+  #tree .ps-map-tools{top:auto;right:10px;bottom:118px;grid-auto-flow:column}
+  #tree .ps-map-tools .icon{width:36px;height:36px}
+  #tree.pr-public-space[data-sheet=peek][data-column=overview] .ps-column{display:none}
+  #tree.pr-public-space[data-sheet=peek][data-column=overview] :is(.ps-relations,.ps-map-tools){bottom:60px}
+  #tree .ps-footer [data-tool=routes][data-count]:after{content:'· ' attr(data-count);color:#8fa1b4;font:12px/1.3 var(--ps-sans)}
   /* An open card leaves the upper part of the map in view, and the map's tools stand just above the card. */
   #tree.pr-public-space[data-sheet=open] .ps-relations{visibility:hidden}
   #tree.pr-public-space[data-sheet=open] .ps-map-tools{bottom:calc(68px + min(44dvh,420px))}
@@ -596,6 +613,12 @@
   .ps-collection-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
   #tree .tree-star .star-sub{font-size:10px}
 }
+/* On the narrowest phones "Links" is its sign alone, so the map's tools keep their row. */
+@media(max-width:374px){#tree .ps-relations .relation-toggle{gap:0;font-size:0;letter-spacing:0}#tree .ps-relations[data-filtered=true] .relation-toggle:after{margin-left:6px}}
+/* Opened whole, the legend names the forms of a star under the kinds of link. */
+#tree .ps-relation-forms .ps-legend-title{display:block;margin:16px 0 0}
+/* Each sign stands under the lines of the kinds above it, its word under theirs. */
+#tree .ps-relation-forms .ps-form-chip{flex:none;width:22px;margin-left:31px;justify-content:center}
 
 /* One native language control stays usable when translated names grow. */
 #tree .ps-locale-select,.ps-dialog .ps-locale-select{max-width:132px;min-height:36px;padding:5px 22px 5px 8px;border:1px solid #8296ad3a;border-radius:5px;background:#0a1324;color:#e1c697;font:12px/1.4 var(--ps-sans,system-ui,sans-serif)}
@@ -616,8 +639,13 @@
 
 /* ── a group's name lies on a soft dark ground, so the lines under it do not cut through its letters ── */
 #tree .tree-cluster:not([data-variant])::before{content:'';position:absolute;inset:-6px -12px;z-index:-1;background:radial-gradient(closest-side,#050a14d0,#050a1400);pointer-events:none}
+/* A group's name stands centred over its group, its ground under its letters. */
+#tree .tree-cluster:not([data-variant]) .cluster-title{opacity:var(--depth-alpha,1);text-align:center}
+#tree .tree-cluster:not([data-variant]) .cluster-subtitle{opacity:calc(.75 * var(--depth-alpha,1))}
 /* Over stars the ground stays faint, so the stars beneath still show. */
 #tree .tree-cluster:not([data-variant])[data-crowded=true]::before{background:radial-gradient(closest-side,#050a1466,#050a1400)}
+/* A great part's name stands even over its stars, on a ground firm enough to read it there. */
+#tree .tree-cluster[data-tone=area][data-crowded=true]::before{background:radial-gradient(closest-side,#050a14b8 55%,#050a1400)}
 
 /* ── the hint: one quiet card next to what the pointer rests on or the keyboard reaches ── */
 #tree .ps-hint{position:fixed;left:0;top:0;z-index:40;display:grid;gap:3px;max-width:min(300px,calc(100vw - 16px));padding:7px 10px 8px;border:1px solid #8aa0b844;border-radius:5px;background:#08111ff2;box-shadow:0 10px 30px #000a;color:#d6dfeb;font:12px/1.45 var(--ps-sans);pointer-events:none;animation:ps-hint-in .14s ease-out}
@@ -718,6 +746,9 @@
 .ps-fragment-line.is-verse,.ps-parallel .is-verse{white-space:pre-line}
 .ps-fragment-cite{margin:5px 0 0 16px;color:var(--ps-muted,#93a5b9);font:11.5px/1.45 var(--ps-sans,system-ui,sans-serif);letter-spacing:.02em}
 .ps-fragment-tools{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;margin:4px 0 0 16px}
+/* In a card the way to the whole work leads its own line, and the passage's small tools share the next. */
+#tree .ps-column .ps-fragment-tools>.ps-fragment-whole{order:-2}
+#tree .ps-column .ps-fragment-tools:has(>.ps-fragment-whole)::before{content:'';order:-1;flex-basis:100%;height:0}
 .ps-fragment-tools .text-button{min-height:28px;padding:2px 0;color:var(--ps-gold-soft,#d6c59c);font:12px/1.3 var(--ps-sans,system-ui,sans-serif);text-decoration:none;background:none;border:0;cursor:pointer}
 .ps-fragment-tools .text-button:hover{color:var(--ps-gold,#dcc690);text-decoration:underline;text-underline-offset:3px}
 .ps-fragment-swap[aria-pressed=true]{color:var(--ps-ink,#e4e6ea)}

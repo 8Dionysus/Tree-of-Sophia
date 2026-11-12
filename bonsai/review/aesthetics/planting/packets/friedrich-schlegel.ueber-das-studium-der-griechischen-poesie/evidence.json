@@ -1,0 +1,235 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/10927143bsb/10927143bsb_hocr_searchtext.txt.gz",
+   "file": "10927143bsb.ocr.txt",
+   "sha256": "a5d1b99de94b935411d41f3c0b01124903375d614954729b6ebc9f839b031dc4",
+   "bytes": 423267,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/10927143bsb/10927143bsb_hocr_pageindex.json.gz",
+   "file": "10927143bsb.index.json",
+   "sha256": "0f6f9d404ef7ebf12726d8b312295c348bde25b92443e148f116fb118b69028b",
+   "bytes": 13633,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/10927143bsb/10927143bsb_page_numbers.json",
+   "file": "10927143bsb.pages.json",
+   "sha256": "91646293c4027e09f6b4a344e14b8d4e9b69d5867c70a1f96aeed0599ed9a7ac",
+   "bytes": 66314,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "transcription",
+   "url": "https://textgridrep.de/browse/v35f.0",
+   "file": "v35f.0",
+   "sha256": "97f17f7ad81024367748d25891e49096d8bf9d1d68d432640372e5893f74a429",
+   "bytes": 351557,
+   "fetched": "2026-11-10",
+   "text": "v35f.0.txt",
+   "why": "Wikisource author bibliography links the 1797 volume only to Google Books; searches of Zeno, Gutenberg and Deutsches Textarchiv did not find this work. TextGrid publishes the complete text based on a 1979 Zurich edition; it is compared against the 1797 first printing."
+  }
+ ],
+ "scan": {
+  "item": "10927143bsb",
+  "ocr": true,
+  "long_s": true,
+  "image_offset": 0
+ },
+ "persons": [
+  {
+   "qid": "Q157271",
+   "name": {
+    "en": "Friedrich Schlegel",
+    "ru": "Фридрих Шлегель"
+   },
+   "role": "author",
+   "died": 1829,
+   "source": "https://www.wikidata.org/wiki/Q157271"
+  }
+ ],
+ "published": 1797,
+ "images": [
+  {
+   "n": 9,
+   "file": "10927143bsb-n9.jpg",
+   "sha256": "f4b88255ef6f15675cc0faf9e4f7c77232fe864ff92892313aed0ecbece429f1",
+   "by": "maker"
+  },
+  {
+   "n": 10,
+   "file": "10927143bsb-n10.jpg",
+   "sha256": "74cfef6e1863d2be54264a4ac00499b58a8c0db03406616f657f55849a88ce71",
+   "by": "maker"
+  },
+  {
+   "n": 41,
+   "file": "10927143bsb-n41.jpg",
+   "sha256": "508f9274243a532925fb54dc111528d4b207766f65a8e3ba97607fd0876910dc",
+   "by": "maker"
+  },
+  {
+   "n": 92,
+   "file": "10927143bsb-n92.jpg",
+   "sha256": "9e9218c6e5ca35a624203b124ea0f9c478af1146ac04eac5f828ebd4f93f6972",
+   "by": "maker"
+  },
+  {
+   "n": 91,
+   "file": "10927143bsb-n91.jpg",
+   "sha256": "d190cb8614461d444f84b6ba41ebb373e0efa30b5989cc4811653d6b6efa9932",
+   "by": "maker"
+  },
+  {
+   "n": 41,
+   "file": "10927143bsb-n41.jpg",
+   "sha256": "508f9274243a532925fb54dc111528d4b207766f65a8e3ba97607fd0876910dc",
+   "by": "second",
+   "loc": "Studium p16"
+  },
+  {
+   "n": 91,
+   "file": "10927143bsb-n91.jpg",
+   "sha256": "d190cb8614461d444f84b6ba41ebb373e0efa30b5989cc4811653d6b6efa9932",
+   "by": "second",
+   "loc": "Studium p66b"
+  },
+  {
+   "n": 92,
+   "file": "10927143bsb-n92.jpg",
+   "sha256": "9e9218c6e5ca35a624203b124ea0f9c478af1146ac04eac5f828ebd4f93f6972",
+   "by": "second",
+   "loc": "Studium p66b"
+  }
+ ],
+ "places": {
+  "Studium p66a": {
+   "transcription": "v35f.0",
+   "method": "ocr",
+   "share": 0.881,
+   "leaves": [
+    91
+   ],
+   "printed": [
+    null
+   ],
+   "differences": [
+    {
+     "transcription": "führt",
+     "ocr": "fu ͤ hrt",
+     "leaf": 91,
+     "stands": "transcription",
+     "note": "Read p. 66 image n91: umlauts and höchstes Schöne as transcribed; OCR splits or misses letters."
+    },
+    {
+     "transcription": "Schönen",
+     "ocr": "Scho ͤ nen",
+     "leaf": 91,
+     "stands": "transcription",
+     "note": "Read p. 66 image n91: umlauts and höchstes Schöne as transcribed; OCR splits or misses letters."
+    },
+    {
+     "transcription": "höchste Schöne ,",
+     "ocr": "hoch ſte Schone",
+     "leaf": 91,
+     "stands": "transcription",
+     "note": "Read p. 66 image n91: umlauts and höchstes Schöne as transcribed; OCR splits or misses letters."
+    }
+   ]
+  },
+  "Studium p66b": {
+   "transcription": "v35f.0",
+   "method": "ocr",
+   "share": 0.919,
+   "leaves": [
+    91,
+    92
+   ],
+   "printed": [
+    null,
+    null
+   ],
+   "differences": [
+    {
+     "transcription": "durchaus",
+     "ocr": "durch aus",
+     "leaf": 91,
+     "stands": "transcription",
+     "note": "Read pp. 66–67 images n91–92: OCR breaks, misrecognitions and diacritic decomposition; punctuation is a comma after hat."
+    },
+    {
+     "transcription": "vorübergehende",
+     "ocr": "voru ͤ bergehende",
+     "leaf": 91,
+     "stands": "transcription",
+     "note": "Read pp. 66–67 images n91–92: OCR breaks, misrecognitions and diacritic decomposition; punctuation is a comma after hat."
+    },
+    {
+     "transcription": "",
+     "ocr": ":",
+     "leaf": 91,
+     "stands": "transcription",
+     "note": "Read pp. 66–67 images n91–92: OCR breaks, misrecognitions and diacritic decomposition; punctuation is a comma after hat."
+    },
+    {
+     "transcription": "verschiedner",
+     "ocr": "vers a * Kunſt . 1 ſchiedner",
+     "leaf": 91,
+     "stands": "transcription",
+     "note": "Read pp. 66–67 images n91–92: OCR breaks, misrecognitions and diacritic decomposition; punctuation is a comma after hat."
+    },
+    {
+     "transcription": "aesthetische",
+     "ocr": "aefihetifche",
+     "leaf": 92,
+     "stands": "transcription",
+     "note": "Read pp. 66–67 images n91–92: OCR breaks, misrecognitions and diacritic decomposition; punctuation is a comma after hat."
+    },
+    {
+     "transcription": "schärfere",
+     "ocr": "ſcha ͤ rfere",
+     "leaf": 92,
+     "stands": "transcription",
+     "note": "Read pp. 66–67 images n91–92: OCR breaks, misrecognitions and diacritic decomposition; punctuation is a comma after hat."
+    },
+    {
+     "transcription": "übergehn",
+     "ocr": "u ͤ bergehn",
+     "leaf": 92,
+     "stands": "transcription",
+     "note": "Read pp. 66–67 images n91–92: OCR breaks, misrecognitions and diacritic decomposition; punctuation is a comma after hat."
+    },
+    {
+     "transcription": "ähnlicher",
+     "ocr": "a ͤ hnlicher",
+     "leaf": 92,
+     "stands": "transcription",
+     "note": "Read pp. 66–67 images n91–92: OCR breaks, misrecognitions and diacritic decomposition; punctuation is a comma after hat."
+    },
+    {
+     "transcription": "für",
+     "ocr": "fu ͤ r",
+     "leaf": 92,
+     "stands": "transcription",
+     "note": "Read pp. 66–67 images n91–92: OCR breaks, misrecognitions and diacritic decomposition; punctuation is a comma after hat."
+    }
+   ]
+  },
+  "Studium p16": {
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    41
+   ],
+   "printed": [
+    null
+   ],
+   "differences": []
+  }
+ }
+}

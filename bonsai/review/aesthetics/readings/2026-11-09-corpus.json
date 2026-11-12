@@ -1,0 +1,194 @@
+{
+ "reader": {
+  "id": "claude-2026-11-09",
+  "model": "claude-fable-5-2",
+  "date": "2026-11-09",
+  "reads": "The Greek of each place in the public corpus, beside the registers' readings of that place. A register's reasoning is no ground: the place is."
+ },
+ "note": "The first places read for the bonsai: the readings of the Beautiful that rest on works the public corpus already holds. Each formula is given by the words that open and close it in the corpus unit; plant.mjs finds the span and refuses one that does not run over whole sentences.",
+ "library": {
+  "agents": {
+   "plato": {"tree": "tos.agent.plato"},
+   "plotinus": {"tree": "tos.agent.plotinus"},
+   "aristotle": {"tree": "tos.agent.aristotle"}
+  },
+  "works": {
+   "plato.symposium": {"title": {"ru": "Пир", "en": "Symposium"}, "original": "grc", "tree": "tos.work.retained-antiquity.symposium"},
+   "plotinus.enneads": {"title": {"ru": "Эннеады", "en": "Enneads"}, "original": "grc", "tree": "tos.work.retained-antiquity.enneads"},
+   "aristotle.poetics": {"title": {"ru": "Поэтика", "en": "Poetics"}, "original": "grc", "tree": "tos.work.retained-antiquity.poetics"}
+  }
+ },
+ "conceptions": [
+  {
+   "id": "plato.symposium:ascent",
+   "of": ["A:C101", "A:C100", "A:C001"],
+   "areas": ["AE01"],
+   "work": "plato.symposium",
+   "voice": {"ru": "Диотима в пересказе Сократа", "en": "Diotima, as Socrates relates her speech"},
+   "locus": "211b–d",
+   "formula": [{"unit": "211", "from": "τοῦτο γὰρ δή ἐστι τὸ ὀρθῶς", "to": "τελευτῶν ὃ ἔστι καλόν."}],
+   "thesis": {
+    "ru": "Верный путь любви — восхождение по ступеням: от одного прекрасного тела к двум и ко всем, от тел к прекрасным занятиям, от занятий к прекрасным знаниям, а от них к знанию самого прекрасного.",
+    "en": "The right way of love is an ascent as by steps: from one beautiful body to two and to all, from bodies to beautiful practices, from practices to beautiful studies, and from these to the study of the beautiful itself."
+   },
+   "distinction": {
+    "ru": "Речь принадлежит Диотиме; её передаёт Сократ, а записывает Платон.",
+    "en": "The speech is Diotima’s; Socrates relates it, and Plato writes it."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "note": "The registers list bodies, souls, practices, laws and knowledge from 210a–e. The sentence at 211b–d gathers the same way into its steps and names bodies, practices and studies; the thesis follows that sentence.",
+   "from": ["A:E001", "D:B-I021"]
+  },
+  {
+   "id": "plato.symposium:beautiful-itself",
+   "of": ["A:C102", "A:C101"],
+   "areas": ["AE01"],
+   "work": "plato.symposium",
+   "voice": {"ru": "Диотима в пересказе Сократа", "en": "Diotima, as Socrates relates her speech"},
+   "locus": "210e–211b",
+   "formula": [{"unit": "211", "from": "ὃς γὰρ ἂν μέχρι ἐνταῦθα", "to": "γίγνεσθαι μηδὲ πάσχειν μηδέν."}],
+   "thesis": {
+    "ru": "Прекрасное само по себе всегда есть, единовидно и пребывает само с собою; всё остальное прекрасно причастностью ему.",
+    "en": "The beautiful itself always is, of one form, itself by itself with itself; everything else is beautiful by partaking of it."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "note": "The register's locator 211a–212a holds the place; the sentence that describes the beautiful itself runs from 210e to 211b.",
+   "from": ["A:E002"]
+  },
+  {
+   "id": "plato.symposium:true-virtue",
+   "of": ["D:B-C3201"],
+   "areas": ["AE32"],
+   "work": "plato.symposium",
+   "voice": {"ru": "Диотима в пересказе Сократа", "en": "Diotima, as Socrates relates her speech"},
+   "locus": "212a",
+   "formula": [{"unit": "212", "from": "ἢ οὐκ ἐνθυμῇ", "to": "ἀθανάτῳ καὶ ἐκείνῳ;"}],
+   "thesis": {
+    "ru": "Видящий прекрасное тем, чем оно зримо, рождает истинную добродетель, потому что касается истины.",
+    "en": "One who sees the beautiful by that by which it is seen begets true virtue, because he touches the truth."
+   },
+   "distinction": {
+    "ru": "Добродетель рождается от созерцания прекрасного самого по себе — последней ступени восхождения.",
+    "en": "Virtue is born of beholding the beautiful itself, the last step of the ascent."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": ["D:B-I021"]
+  },
+  {
+   "id": "plotinus.enneads:beauty-and-symmetry",
+   "of": ["A:C001", "A:C104"],
+   "areas": ["AE01", "AE21"],
+   "work": "plotinus.enneads",
+   "locus": "I.6.1",
+   "formula": [
+    {"unit": "Книга 1 · Глава 6", "from": "τά τε χρώματα αὐτοῖς τὰ καλά", "to": "ἔξω ἔσται τοῦ καλὰ εἶναι."},
+    {"unit": "Книга 1 · Глава 6", "from": "ὅταν δὲ δὴ καὶ τῆς αὐτῆς συμμετρίας", "to": "ἄλλο;"}
+   ],
+   "thesis": {
+    "ru": "Прекрасны и простые вещи — цвета, свет солнца; а одно и то же лицо при той же соразмерности бывает то прекрасным, то нет. Прекрасное в соразмерном — иное, чем сама соразмерность.",
+    "en": "Simple things are beautiful too: colours, the light of the sun; and one face with the same symmetry appears now beautiful and now not. The beautiful in what is symmetrical is other than the symmetry itself."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The thesis stands at the place. Register A sets the reading under both «Соразмерность» (proportio) and «Симметрия»; the place has one word, συμμετρία, and the conception is of symmetry.",
+   "from": ["A:E003", "C:A-I045"]
+  },
+  {
+   "id": "plotinus.enneads:beauty-by-form",
+   "of": ["A:C001", "C:A-C001"],
+   "areas": ["AE01", "AE21"],
+   "work": "plotinus.enneads",
+   "locus": "I.6.2",
+   "formula": [
+    {"unit": "Книга 1 · Глава 6", "from": "μετοχῇ εἴδους φαμὲν", "to": "φαμὲν ταῦτα."},
+    {"unit": "Книга 1 · Глава 6", "from": "προσιὸν οὖν τὸ εἶδος", "to": "ἐκ πολλῶν ὄντι."},
+    {"unit": "Книга 1 · Глава 6", "from": "ἵδρυται οὖν", "to": "καὶ τοῖς ὅλοις."}
+   ],
+   "thesis": {
+    "ru": "Тела прекрасны причастностью эйдосу: эйдос, приходя, собирает многие части в одно и делает их единым по согласию; на собранном в одно и водворяется красота.",
+    "en": "Bodies are beautiful by partaking of form: form, on coming, gathers many parts into one and makes them one by agreement; beauty settles on what has been gathered into one."
+   },
+   "distinction": {
+    "ru": "Форма здесь — эйдос, от которого тело получает единство.",
+    "en": "Form here is eidos, from which a body receives its unity."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The thesis stands at the place. Register A sets the reading under «Гармония»; that concept goes with the soul's recognition in I.6.3, where the fitting together is named.",
+   "from": ["A:E004", "C:A-I046"]
+  },
+  {
+   "id": "plotinus.enneads:soul-recognises-beauty",
+   "of": ["A:C001", "A:C019"],
+   "areas": ["AE01"],
+   "work": "plotinus.enneads",
+   "locus": "I.6.3",
+   "formula": [{"unit": "Книга 1 · Глава 6", "from": "γινώσκει δὲ αὐτὸ ἡ", "to": "ὥσπερ κανόνι τοῦ εὐθέος."}],
+   "thesis": {
+    "ru": "Прекрасное узнаёт сила души, поставленная над ним: она прилаживает его к эйдосу в себе и судит им, как линейкой судят о прямом.",
+    "en": "The beautiful is known by the power of the soul set over it: she fits it to the form within her and judges by that form, as one judges the straight by a ruler."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": ["A:E004", "C:A-I046"]
+  },
+  {
+   "id": "aristotle.poetics:magnitude-and-order",
+   "of": ["A:C001", "A:C150", "A:C195"],
+   "areas": ["AE01", "AE05", "AE21"],
+   "work": "aristotle.poetics",
+   "locus": "7, 1450b–1451a",
+   "formula": [{"unit": "Глава 7", "from": "ἔτι δ’ ἐπεὶ τὸ καλὸν", "to": "εὐμνημόνευτον εἶναι."}],
+   "thesis": {
+    "ru": "Прекрасное состоит в величине и порядке: у целого из частей части упорядочены, а величина легко обозрима; так и у фабулы — длина, легко удерживаемая памятью.",
+    "en": "The beautiful lies in magnitude and order: a whole made of parts has its parts in order and a magnitude easily seen at one view; so a plot has a length easily held in memory."
+   },
+   "distinction": {
+    "ru": "Аристотель говорит о сложении событий трагедии и берёт живое существо как пример.",
+    "en": "Aristotle speaks of the arrangement of a tragedy’s incidents and takes the living creature as his example."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The thesis stands at the place. Register A sets the reading also under the Picturesque; the place speaks of plots and of living wholes, and register C reads it under Form and Composition.",
+   "from": ["A:E009", "C:A-I004"]
+  }
+ ],
+ "links": [
+  {
+   "id": "eros:leads-up-to:the-beautiful-itself",
+   "from_concept": "A:C100",
+   "to_concept": "A:C102",
+   "verb": {"ru": "при верной любви возводит к", "en": "through right loving leads up to"},
+   "grounds": ["plato.symposium:ascent", "plato.symposium:beautiful-itself"],
+   "status": "text",
+   "verdict": "revise",
+   "note": "Register A: «направляет восхождение к». The verb follows 211b, διὰ τὸ ὀρθῶς παιδεραστεῖν ἐπανιών.",
+   "from": ["A:R001"]
+  },
+  {
+   "id": "the-ascent:ends-in:the-beautiful-itself",
+   "from_concept": "A:C101",
+   "to_concept": "A:C102",
+   "verb": {"ru": "завершается знанием", "en": "ends in the study of"},
+   "grounds": ["plato.symposium:ascent"],
+   "status": "text",
+   "verdict": "revise",
+   "note": "Register A: «переходит от отдельных воплощений к». The verb follows 211c, ἐπ’ ἐκεῖνο τὸ μάθημα τελευτῆσαι.",
+   "from": ["A:R002"]
+  },
+  {
+   "id": "the-beautiful:is-other-than:symmetry",
+   "from_concept": "A:C001",
+   "to_concept": "A:C104",
+   "verb": {"ru": "есть иное, чем", "en": "is other than"},
+   "grounds": ["plotinus.enneads:beauty-and-symmetry"],
+   "status": "text",
+   "verdict": "revise",
+   "note": "Register A keeps two links, to «Соразмерность» and to «Симметрия»; the place has one word, συμμετρία, and says ἄλλο.",
+   "from": ["A:R003", "A:R004"]
+  }
+ ]
+}
