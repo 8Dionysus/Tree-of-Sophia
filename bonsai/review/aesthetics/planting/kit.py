@@ -36,7 +36,7 @@ HERE=os.path.dirname(os.path.abspath(__file__));REVIEW=os.path.dirname(HERE);ROO
 PACKETS=os.path.join(HERE,'packets');HOME=os.path.join(ROOT,'bonsai','aesthetics')
 CACHE=os.environ.get('TOS_PLANTING_CACHE') or os.path.join(os.path.expanduser('~'),'.cache','tos-planting')   # fetched files stay outside the checkout
 FIRST_WAVE={'died':1942,'published':1929}          # every hand in the text dead by 1942, the edition printed by 1929
-LONGEST=2000                                         # a place is a formula, not a page
+LONGEST=2400                                         # a place is a formula, not a page
 AGENT='ToS-planting/1 (+https://github.com/8Dionysus/Tree-of-Sophia)'
 
 def load(path):
@@ -413,12 +413,14 @@ def cmd_cut(args):
     print(f'{args.loc} [{lang}] {len(run)} characters:\n{run}')
     for problem in sentences(run):print('  ! '+problem)
 
+OPENING='"“„«‚‘\'([—–- ';CLOSING='"”“»’‘\')] '        # the marks of speech and brackets a sentence may stand in: a quoted sentence is a whole sentence
+
 def sentences(text):
     problems=[]
     if text!=unicodedata.normalize('NFC',text):problems.append('the text is not NFC')
     if text!=text.strip() or '  ' in text or '\t' in text:problems.append('stray whitespace')
-    if not text[:1].isupper():problems.append(f'it does not open with a capital letter («{text[:24]}»): a place runs over whole sentences')
-    if text[-1:] not in '.!?':problems.append(f'it does not close a sentence («{text[-24:]}»)')
+    if not text.lstrip(OPENING)[:1].isupper():problems.append(f'it does not open with a capital letter («{text[:24]}»): a place runs over whole sentences')
+    if text.rstrip(CLOSING)[-1:] not in '.!?…':problems.append(f'it does not close a sentence («{text[-24:]}»)')
     if len(text)>LONGEST:problems.append(f'{len(text)} characters: a place is the sentences that say the thing, at most {LONGEST} characters')
     return problems
 
