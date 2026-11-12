@@ -31,7 +31,7 @@ describe('Aesthetics field projection',()=>{
     for(const group of groups)for(const work of group.works)for(const id of [work.id,...work.up,...work.front])expect(view.positions.has(id)).toBe(true);
   });
   it('dates every reading on its work and groups the rows A–D',()=>{
-    const time=aestheticsTimeline({field,library:result,chronology});expect(time.lanes.map(lane=>lane.id)).toEqual(['A','B','C','D']);
+    const time=aestheticsTimeline({field,library:result,chronology});expect(time.lanes.map(lane=>lane.id)).toEqual(['A','B','C','D']);for(const lane of time.labels('en').filter(label=>label.variant==='lane')){expect(lane.ref).toBeUndefined();expect(lane.hint).toBeUndefined();}
     for(const item of field.conceptions){const id=`aesthetics:reading:${item.id}`;expect(time.positions.has(id),id).toBe(true);expect(time.timeOf(id).composition).toBe(chronology.compositions.works[item.work]);expect(time.spanOf(id)).toBeTruthy();}
     const [a,b]=field.conceptions;expect(jaccardDistance(a.of,b.of)).toBeGreaterThanOrEqual(0);expect(jaccardDistance(a.of,a.of)).toBe(0);
   });

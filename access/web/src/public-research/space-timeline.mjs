@@ -173,8 +173,10 @@ export function antiquityTimeline({routes=[],entries=[],chronology=null,passageI
 export function aestheticsTimeline({field,library,chronology}){
   const areas=new Map(field.areas.map(area=>[area.id,area]));
   const rows=['A','B','C','D'].map(group=>({id:group,title:{ru:group,en:group},steps:library.atlas.routes.filter(route=>areas.get(route.id)?.group===group).flatMap(route=>route.steps)}));
-  const entries=[...Object.keys(library.space.profile==='aesthetics'?chronology.lives:{}).map(id=>({id,kind:'author'})),...field.conceptions.map(item=>({id:item.id,workId:item.work,author:item.agents?.[0]}))];
-  return antiquityTimeline({routes:rows,entries,chronology,passageIdOf:id=>String(id).replace(/^aesthetics:reading:/,'')});
+  const entries=[...Object.keys(chronology.lives??{}).map(id=>({id,kind:'author'})),...field.conceptions.map(item=>({id:item.id,workId:item.work,author:item.agents?.[0]}))];
+  const timeline=antiquityTimeline({routes:rows,entries,chronology,passageIdOf:id=>String(id).replace(/^aesthetics:reading:/,'')});
+  if(!timeline)return null;
+  return {...timeline,labels:(locale,options)=>timeline.labels(locale,options).map(label=>{if(label.variant!=='lane')return label;const {hint,ref,...group}=label;return group;})};
 }
 
 /**
