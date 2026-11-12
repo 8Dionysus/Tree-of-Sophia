@@ -163,11 +163,11 @@ describe('the schema validator the bonsai checks against',()=>{
 
 describe('every bonsai',()=>{
   const ids=bonsaiIds(root);
-  // A bonsai exports datings and places once it keeps a chronology; Aesthetics, planted on 2026-11-09, keeps none yet.
+  // A bonsai exports datings once it keeps a chronology, and places once it keeps their module; Aesthetics dates its authors and works and names no places yet.
   const dated=ids.filter(id=>loadBonsai(root,id).modules.chronology);
   it('is found at the repository root, one per stand',()=>{
     expect(ids).toEqual(['aesthetics','antiquity','zarathustra']);
-    expect(dated).toEqual(['antiquity','zarathustra']);
+    expect(dated).toEqual(['aesthetics','antiquity','zarathustra']);
     for(const id of ids)expect(bonsaiFor(id)?.manifest?.id).toBe(id);
   });
   for(const id of ids)it(`${id}: its modules keep their contracts and its export fits the Tree's contracts`,()=>{
@@ -202,7 +202,7 @@ describe('every bonsai',()=>{
     for(const id of dated){
       const {packet}=checkBonsai(root,id,{validator:contracts,relations});
       const schemaOf=predicate=>[...new Set(packet.claims.filter(claim=>claim.predicate===predicate).map(claim=>claim.schema_version))];
-      expect(schemaOf('historical_place'),id).toEqual(['tos_historical_context_claim_v1']);
+      expect(schemaOf('historical_place'),id).toEqual(loadBonsai(root,id).modules.places?['tos_historical_context_claim_v1']:[]);
       expect(schemaOf('historical_dating'),id).toEqual(['tos_source_temporal_claim_v1']);
       for(const claim of packet.claims.filter(claim=>claim.schema_version==='tos_historical_context_claim_v1'))expect(claim.qualifiers.time_scope_note,claim.claim_id).toMatch(/\S/);
       const recorded=new Set(packet.records.map(record=>record.record_id));
