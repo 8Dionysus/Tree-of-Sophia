@@ -1,7 +1,7 @@
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {describe,expect,it} from 'vitest';
-import {addMedia,mediaFromObservation,mediaIssues,readMedia} from '../../../../bonsai/lib/media.mjs';
+import {OPEN_FLAGS,addMedia,mediaFilePath,mediaFromObservation,mediaIssues,readMedia} from '../../../../bonsai/lib/media.mjs';
 import {MEDIA_HOSTS} from '../../../../bonsai/lib/media-hosts.mjs';
 import {captionLines,captionLinks,fittedImage,fittedSize,imageSources,layerAddress,linkGroups} from './media-view.mjs';
 
@@ -270,18 +270,31 @@ describe('the Zarathustra media',()=>{
 });
 
 describe('the Antiquity media',()=>{
-  const media=read('media.json'),identities=read('identities.json'),collection=read('collection.json');
+  const media=read('media.json'),identities=read('identities.json'),collection=read('collection.json'),layers=read('layers.json');
   const subjects=new Set(collection.entities.map(entry=>entry.id));
-  it('holds its contract, its subjects and its graft map',()=>{
-    expect(mediaIssues(media,{subjects,identities,digest})).toEqual([]);
+  it('holds its contract, its subjects, its graft map and its layer store',()=>{
+    expect(mediaIssues(media,{subjects,identities,digest,layers})).toEqual([]);
   });
-  it('shows a portrait for each of the seven authors it binds, from public-domain image services on the listed hosts',()=>{
+  it('shows a portrait for twelve of its eighteen authors, and art for its works, schools and concepts, from open images',()=>{
     const portraits=media.uses.filter(use=>use.role==='author-portrait').map(use=>use.subject).sort();
-    expect(portraits).toEqual(['aristotle','cicero','diogenes','hippocrates','plato','seneca','socrates']);
+    expect(portraits).toEqual(['aristotle','cicero','diogenes','epicurus','hippocrates','marcus','plato','plotinus','seneca','socrates','xenophon','zeno']);
+    const kinds=new Map(collection.entities.map(entry=>[entry.id,entry.kind]));
+    const shown=role=>[...new Set(media.uses.filter(use=>use.role===role).map(use=>kinds.get(use.subject)))].sort();
+    expect(shown('book-response')).toEqual(['work']);
+    expect(shown('motif')).toEqual(['concept','school']);
+    expect(media.uses.length).toBe(31);
     for(const image of Object.values(media.images)){
-      expect(MEDIA_HOSTS).toContain(new URL(image.service).host);
-      expect(image.rights.statement).toBe(PDM);
+      const work=media.works[image.work];
+      if(image.api==='file')expect(['met','commons']).toContain(work.provider);
+      else expect(MEDIA_HOSTS).toContain(new URL(image.service).host);
+      expect(image.rights.statement===PDM||OPEN_FLAGS.some(flag=>image.rights.field===flag.field&&image.rights.value===flag.value)).toBe(true);
     }
+  });
+  it('keeps the copies of its file images in its layer store',()=>{
+    const files=Object.values(media.images).filter(image=>image.api==='file');
+    expect(files.length).toBeGreaterThan(0);
+    for(const image of files)for(const file of [image.file,image.preview])
+      expect(layers.entries).toContainEqual({path:mediaFilePath(file),sha256:file.sha256,bytes:file.bytes});
   });
 });
 
