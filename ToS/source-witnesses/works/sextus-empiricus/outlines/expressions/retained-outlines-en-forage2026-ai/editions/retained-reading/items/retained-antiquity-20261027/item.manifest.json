@@ -1,0 +1,46 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.outlines.outlines-en-forage2026-ai",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.outlines.outlines-en-forage2026-ai",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.3fc67f6b4d62e7074369c245b67b9b0123f2529e6c231ae0f6dc807216b9f1cb",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "outlines-en-forage2026-ai.json",
+      "media_type": "application/json",
+      "byte_size": 681115,
+      "sha256": "3fc67f6b4d62e7074369c245b67b9b0123f2529e6c231ae0f6dc807216b9f1cb",
+      "fixity_verified_at": "2026-11-12T22:25:03+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.5796826c1e9b123b1253409ad3056e735c353f4f4bf94b1bdf84be7251587ff7",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 374050,
+      "sha256": "5796826c1e9b123b1253409ad3056e735c353f4f4bf94b1bdf84be7251587ff7",
+      "fixity_verified_at": "2026-11-12T22:25:03+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.8f77ee219ff43842eb4425681abaea0aaf5ffcca417be4fe6f08b321d11aeb3d",
+      "relative_path": "payload/extract_epub.py",
+      "original_basename": "extract_epub.py",
+      "media_type": "text/plain",
+      "byte_size": 2940,
+      "sha256": "8f77ee219ff43842eb4425681abaea0aaf5ffcca417be4fe6f08b321d11aeb3d",
+      "fixity_verified_at": "2026-11-12T22:25:03+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.outlines-en-forage2026-ai.20261027",
+  "rights_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-forage2026-ai/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-forage2026-ai/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-forage2026-ai/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-forage2026-ai/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-forage2026-ai/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

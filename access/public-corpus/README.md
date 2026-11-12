@@ -6,9 +6,10 @@ It does not admit a source, translation, interpretation or canon claim. The
 new curated records live with `ToS/source-witnesses/`; journey questions live
 with `ToS/research-packets/public-prototypes-20261026/`.
 
-Both profiles select the same 53 works: *Zarathustra*, the 49 books in the
-retained Antiquity collection, Xenophon’s *Memorabilia*, Seneca’s letters, and Aristotle's *On the Soul*.
-The selection contains 139 reading versions, including 17 captured Russian Karpov translations
+Both profiles select the same 54 works: *Zarathustra*, the 49 books in the
+retained Antiquity collection, Xenophon’s *Memorabilia*, Seneca’s letters,
+Aristotle’s *On the Soul*, and Sextus Empiricus’ *Outlines*.
+The selection contains 142 reading versions, including 17 captured Russian Karpov translations
 of Plato from Wikisource, the English Dakyns *Memorabilia*, and the 1614 Lodge
 translation of Seneca's 124 letters from EEBO-TCP. The latter transcription
 explicitly marks illegible and omitted foreign text; it has not been independently
@@ -17,6 +18,10 @@ collated with the scan. TCP labels letter 69 as 79; navigation identifies it as
 39-chapter reading retains editorial footnotes; the source prints chapter XII
 twice in Book III, and the second is numbered 13 for navigation only. Distinct reading representations of the same edition
 are not additional historical editions.
+The Forage 2026 English *Outlines* is complete across all three books: 781
+numbered sections and 73 notes. The publisher states that the translation was
+made with AI and edited, without human specialist review; it is provided under
+CC BY-SA 4.0. Patrick’s 1899 translation is a separate Book I witness.
 Wallace's 1882 English *On the Soul* is a 30-chapter transcription from
 Aristotle Reader. Its apparent OCR errors remain, and only selected passages
 have been checked against the digitized printing; the reader's approximate
