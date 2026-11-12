@@ -23,7 +23,7 @@ import {readChronology} from '../../../../bonsai/lib/chronology.mjs';
 import {readPlaces} from '../../../../bonsai/lib/places.mjs';
 import {clipLinesRight,planeOfPlaces} from './space-geography.mjs';
 import {AREA_TITLES,SCHOOL_ERA,TREE_LABEL_FROM,antiquityTree,treeVia} from './space-tree.mjs';
-import {aestheticsTree} from './aesthetics-tree.mjs';
+import {aestheticsTree,aestheticsSourceGroups} from './aesthetics-tree.mjs';
 import {PART_TITLES,zarathustraTree} from './space-tree-zarathustra.mjs';
 import {antiquityBook,zarathustraBook} from './reference-outline.mjs';
 import {createReferenceBook} from './reference-book.mjs';
@@ -185,7 +185,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const spaceLens=geography?{id:'space',icon:'⌖',title:{ru:'Пространство',en:'Space'},description:{ru:'Где написан текст или где жил его автор',en:'Where the text was written, or where its author lived'}}:null;
   const proximityLens=starIds.length&&criteria.length?{id:'proximity',icon:'⊙',title:{ru:'Близость',en:'Proximity'},description:{ru:'Расстояние от выбранной звезды',en:'Distance from the chosen star'}}:null;
   // A lens with no stars of its own in this library is not offered.
-  const lenses=[...(Array.isArray(library.space?.lenses)?library.space.lenses:LENSES.filter(item=>lensHasStars(library,item.id))),...[timeLens,spaceLens,proximityLens].filter(Boolean)].map(item=>({...item,positions:lensPositions(profile,item.id)}));
+  const lenses=[...(Array.isArray(library.space?.lenses)?library.space.lenses:LENSES.filter(item=>lensHasStars(library,item.id))),...(profile==='aesthetics'?[{id:'sources',icon:'⌘',title:{ru:'Источники',en:'Sources'},description:{ru:'От произведения к месту и прочтению',en:'From a work to a passage and its reading'}}]:[]),...[timeLens,spaceLens,proximityLens].filter(Boolean)].map(item=>({...item,positions:lensPositions(profile,item.id)}));
   // A measuring lens lays the stars out itself; the others keep the map's own arrangement.
   // A lens measures where its bonsai has the measure; it stands in volume as the tree does (space-volumes.mjs), but an open
   // branch on the scale of time keeps its own flat order, read top to bottom. A flat lens is a measured one.
@@ -902,6 +902,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const stars=[...treeLayout.roles.keys()],role=star=>treeLayout.roles.get(star)??null,links=gatherLinks();
     const names=new Map((timeline?.labels?.(locale())??[]).map(item=>[item.id,item.title]));
     if(id==='sources'&&timeline?.kind==='book')return bookSpiral({stars,chapterOf:star=>timeline.placeOf(star),rungOf:star=>GATHER_TIER[role(star)]??1,chapterName:chapter=>names.get(`time:ch${chapter}`)??String(chapter),partName:part=>names.get(`time:part${part}`)??String(part)});
+    if(id==='sources'&&profile==='aesthetics')return colonnade({authors:aestheticsSourceGroups({library,chronology:bonsai.chronology})});
     if(id==='sources'){
       // A passage, a version and a reading belong to the work that contains or translates them, a work to its author.
       const parent=new Map();for(const edge of treeLayout.edges)if((edge.kind==='contains'||edge.kind==='translates')&&!parent.has(edge.to))parent.set(edge.to,edge.from);

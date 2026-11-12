@@ -30,3 +30,17 @@ export function aestheticsTree({library,field,catalog,chronology}){
   const edges=library.atlas.edges.map(({from,to,kind})=>({from,to,kind}));
   return {positions,roles,sides,edges,lines,names,notes,bounds:{x:[-1000,1000],y:[-1500,500],z:[-1000,1000]},rootRadius:600,regionOf:id=>positions.has(id)?treeRegion(positions.get(id)):null,angleOf:id=>{const p=positions.get(id);return p?Math.atan2(p[0],p[2]):null;}};
 }
+
+// The source lens shares the colonnade's work, place and reading shape.
+export function aestheticsSourceGroups({library,chronology}){
+  const clock=readChronology(chronology),year=id=>clock.span(id)?.from??Infinity;
+  const works=library.nodes.filter(node=>node.kind==='work').sort((a,b)=>year(a.dating)-year(b.dating));
+  const authors=new Map();
+  for(const work of works){
+    const id=work.author?`aesthetics:catalog:${work.author}`:null;
+    if(!authors.has(id))authors.set(id,[]);
+    const own=library.nodes.filter(node=>node.workId===work.legacyId);
+    authors.get(id).push({id:work.id,up:own.filter(node=>node.kind==='fragment').map(node=>node.id),front:own.filter(node=>node.kind==='interpretation').map(node=>node.id)});
+  }
+  return [...authors].map(([id,works])=>({id,works,at:year(library.nodes.find(node=>node.id===id)?.life)})).sort((a,b)=>a.at-b.at||String(a.id).localeCompare(String(b.id)));
+}

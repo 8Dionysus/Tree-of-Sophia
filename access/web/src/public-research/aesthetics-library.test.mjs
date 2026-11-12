@@ -5,7 +5,8 @@ import {describe,it,expect} from 'vitest';
 import field from '../../../../bonsai/aesthetics/field.json';
 import catalog from '../../../../bonsai/aesthetics/library.json';
 import chronology from '../../../../bonsai/aesthetics/chronology.json';
-import {aestheticsTree} from './aesthetics-tree.mjs';
+import {aestheticsTree,aestheticsSourceGroups} from './aesthetics-tree.mjs';
+import {colonnade} from './space-gatherings.mjs';
 import {makeAesthetics} from './aesthetics-library.mjs';
 describe('Aesthetics field projection',()=>{
   const result=makeAesthetics({field,library:catalog,chronology}),byId=new Map(result.nodes.map(node=>[node.id,node]));
@@ -21,6 +22,11 @@ describe('Aesthetics field projection',()=>{
     for(const concept of result.nodes.filter(n=>n.kind==='concept')){const [x,y,z]=layout.positions.get(concept.id);expect(Math.hypot(x,z)).toBeLessThan(200);expect(y).toBeLessThan(0);}
     const works=Object.entries(catalog.works).sort(([,a],[,b])=>Number(chronology.situations[chronology.lives[a.agents[0]]].dating.interval.start)-Number(chronology.situations[chronology.lives[b.agents[0]]].dating.interval.start));
     for(const [i,[id]] of works.entries()){const [x,y,z]=layout.positions.get(`aesthetics:catalog:${id}`);expect(y).toBeGreaterThan(0);const angle=(Math.atan2(x,z)+2*Math.PI)%(2*Math.PI);expect(Math.min(Math.abs(angle-2*Math.PI*i/works.length),Math.abs(angle-2*Math.PI*i/works.length-2*Math.PI))).toBeLessThan(1e-8);}
+  });
+  it('lays each source and reading beside its work',()=>{
+    const groups=aestheticsSourceGroups({library:result,chronology}),view=colonnade({authors:groups});
+    for(const item of field.conceptions){const work=groups.flatMap(a=>a.works).find(w=>w.id===`aesthetics:catalog:${item.work}`);expect(work.front).toContain(`aesthetics:reading:${item.id}`);for(const id of byId.get(`aesthetics:reading:${item.id}`).sourceNodeIds)expect(work.up).toContain(id);}
+    for(const group of groups)for(const work of group.works)for(const id of [work.id,...work.up,...work.front])expect(view.positions.has(id)).toBe(true);
   });
   it('holds only grounded areas, concepts and relations',()=>{
     const used=new Set(field.conceptions.flatMap(item=>item.of));
