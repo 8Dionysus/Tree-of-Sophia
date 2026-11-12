@@ -32,5 +32,19 @@ The edition's errata say the p. 41 spelling «бытіе» should read «быт�
 the quotation retains the printed form and records the correction.
 
 These are bounded stand translations, not complete-book alignment or a
-source-owner, rights-owner or canon admission. The remaining I.1, II.2 and
-II.3 places require their own source-visible checks.
+source-owner, rights-owner or canon admission. At that stage the remaining I.1, II.2 and
+II.3 places still required their own source-visible checks, recorded below.
+
+The remaining three stand places were then transcribed and checked against
+pp. 13–14 (I.1 402a6–7), p. 43 (II.2 413b11–13), and p. 45 (II.3
+414a29–31). Three separately numbered section pairs went through
+`alignWitnesses`; every pair and its two sentence groups aligned 1:1 and was
+checked against the printed Russian and existing Greek. Their retained
+transcription and alignment receipts have SHA-256
+`dd98ba0e79ce5b1b5d6b35ac3b6527dd2ba4f969375e9dcc72d86ff843f758fa` and
+`c640c0c070c654a7bd232197d04d54cdf8563494c66c5c9ed2eadd3029a10ea3`.
+The printed Russian list of capacities in II.3 omits αἰσθητικόν (sensation),
+which the Greek includes. The omission is noted and the historical witness is
+retained as printed. This completes the Russian counterparts of the 21 places
+currently held in this stand; it does not establish a complete or reviewed
+translation of the full work.
