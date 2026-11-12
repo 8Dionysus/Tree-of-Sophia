@@ -1,0 +1,1431 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "packet_id": "tos.source-text-unit-packet.sid-af8a1e5a692847e7b4c960127849d8fe",
+  "packet_version": 1,
+  "supersedes_packet_ref": null,
+  "content_posture": "source_bound",
+  "source_scope": {
+    "work_ref": "tos.work.aristotle.de-anima",
+    "expression_ref": "tos.expression.retained.antiquity.de-anima.de-anima-en-wallace1882-reader",
+    "edition_ref": "tos.edition.retained.antiquity.de-anima.de-anima-en-wallace1882-reader",
+    "item_ref": "tos.item.retained.antiquity.de-anima.de-anima-en-wallace1882-reader",
+    "file_ref": "tos.file.sha256.874ac02f55606d71005cd26a14f5ea8973eae2e05a25c1b77894cda7c730bca4",
+    "file_sha256": "874ac02f55606d71005cd26a14f5ea8973eae2e05a25c1b77894cda7c730bca4"
+  },
+  "source_layer": {
+    "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+    "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+    "language": "en",
+    "media_type": "text/plain; charset=utf-8",
+    "unicode_form": "source_preserved",
+    "position_unit": "unicode_code_point",
+    "interval": "half_open",
+    "immutable": true,
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "schemes": [
+    {
+      "scheme_id": "tos.text-unit-scheme.sid-98bfda28c8e64185a4e33d428d0441a7",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "scheme_name": "Retained source section and bounded reading chunk",
+      "analysis_role": "source_structure",
+      "boundary_basis": "rule_based",
+      "unit_kinds": [
+        "section"
+      ],
+      "method": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.de-anima-en-wallace1882-reader.20261027",
+        "made_at": "2026-11-12T20:28:27+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "policies": {
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "punctuation": "included_in_neighbor",
+        "whitespace": "included_in_neighbor",
+        "line_break": "included_in_neighbor",
+        "hyphenation": "preserve_source",
+        "unreported_gaps_allowed": false,
+        "overlap": "forbid"
+      },
+      "authority_limit": {
+        "algorithmic_output_is_source_truth": false,
+        "algorithmic_output_is_linguistic_truth": false,
+        "model_subword_is_lexeme": false,
+        "unit_identity_is_semantic_identity": false,
+        "text_mutation_allowed": false
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.sid-c6387872768242e194ad83f5e5972218",
+      "ordinal": 1,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 208128,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "anchor_role": "scope",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-44c8ccd32c624fdba11aba336cbd0373",
+      "ordinal": 2,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 10600,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "5ed8117a634f7defd77ce0005f97b66653ba90e24596b86657d18ef0e479916c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-0d99a6ba3b9e4d69ac8ae33f49aab7ad",
+      "ordinal": 3,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 10600,
+        "end": 23470,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "48bd29b42b8fd8e750c27499f1fea081e60692a98ffed0488cd4ad6f655efbb9",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3e3db8939e51446dad7aa408c8f89aa5",
+      "ordinal": 4,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 23470,
+        "end": 36394,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "52dc3066a204c8bb993cc89bfe7ea3a15897b5642dc40f44a1a93ee58b929d2b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3af810cda88d4c23a85e72967f676669",
+      "ordinal": 5,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 36394,
+        "end": 46646,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "242c5ec71854f1d240b5429b6958f85d64acd6594a97ad8810663b78e63d27ad",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-1cae3f26ff114b0fb6dc762a1e3e7938",
+      "ordinal": 6,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 46646,
+        "end": 60641,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "209e3c2bd27f2292ab2cca4dc02a64d2aa5f524cbe17e6a5a29e5a354aba9682",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-0ba00759795b46759e9d17ba9b6a4eab",
+      "ordinal": 7,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 60641,
+        "end": 67259,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "22edd91c836d2d26f9ed4707188630e4afc544142d154697c4d855e3c8432c94",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-dd110505ce5f4a849dae1cee9b1241c0",
+      "ordinal": 8,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 67259,
+        "end": 74999,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "dc297b53b0a70236ef755d5b6a64d47107c479506ac5985222eb4b3d17f6d08f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-96628d174e1a47a8b124d85218d86ae5",
+      "ordinal": 9,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 74999,
+        "end": 79531,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d600c98bded98647ca71a438e50ad5d220c61d41df2ab1c30ec52a16f2bbff0b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-1005bd683eea4b0c8803fda89abb57ea",
+      "ordinal": 10,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 79531,
+        "end": 89594,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "8930862a75947a5c7de5ecac9240e803e8d2afcd2f18f8f7a0c6b635ec480297",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-36735d2576f54730be24fe8da8c7b620",
+      "ordinal": 11,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 89594,
+        "end": 96944,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "863c96f478a4e1a0f7e0d591a57e4136c24f75f0ee994a3e30194a061d531aa5",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-729e30bf740d420b86837f66edd36dd4",
+      "ordinal": 12,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 96944,
+        "end": 98921,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7c0ae300cf61859fb536901a4b0640443e383ef8a246ba064f7edb7d6d8b78aa",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-785e5719b725435c8fa41b3034281fee",
+      "ordinal": 13,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 98921,
+        "end": 105402,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "cc5835daa32ac5fbd33b150dbdf5693f518f8cdd842c8760c95d86b71f0a6e11",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3a3b015f943f43aba139f85f12add1da",
+      "ordinal": 14,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 105402,
+        "end": 114984,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f9d0e9b7f8e3528ff91d057ec636f44e2f90fb18aa1c34c98e5d9708a41e85b5",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-099afad020f04a61b296ab28129e9d13",
+      "ordinal": 15,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 114984,
+        "end": 120194,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "05ee39358fccf8d33fad45a071a5ff3e3a16948cbed4ca04dd2587f778bc34d0",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-0307243f3fbb4e12bfdabe62fb1643ec",
+      "ordinal": 16,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 120194,
+        "end": 124285,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "104087cc59fe73914564a8d02b602e7f8d794063533d3cd7f5c6543511be958d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-261e1994a850446cb78354fb7cef7413",
+      "ordinal": 17,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 124285,
+        "end": 132767,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "cef82039442169490e6871614f35b467e355d8c1c841c8f24ce517a93c34e884",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-dfddfa8a1f6c47389123e7eb6fca851f",
+      "ordinal": 18,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 132767,
+        "end": 136428,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "50536019d2d0dda7a4c1f24072a5293365a053fa5630fac198d06a03f02af0fb",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-c2a8437c48de4d8ab210602d785ad80c",
+      "ordinal": 19,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 136428,
+        "end": 142371,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "16dcc88043b20ad9f9853112aede6c82262e7a67c489f6a799925bc1073070df",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-483fb84723a542c88b394c0942bd0150",
+      "ordinal": 20,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 142371,
+        "end": 153392,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "22e980ad9f2a785e50d61a5997ca2c614e29efe15e3d4bd0de539ba2eb88cdb7",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-5e9be79f4d1343ebb58d1bfa60f55f89",
+      "ordinal": 21,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 153392,
+        "end": 164317,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a03f33a4af89045b2dbacb79e9e39d5b3552a509d4409c761f61e67d3ffdbd68",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-876be72f971b4e32825f74b387da1ea9",
+      "ordinal": 22,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 164317,
+        "end": 171164,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "294d66f502dcf83d6a65d0150a431898af6f6248cb103250de0e95e177f4fc33",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-37e852c2a1644a03af066f835022c2d1",
+      "ordinal": 23,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 171164,
+        "end": 173036,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f99d05965cb977d46f9f7c492e3f8b2bb8dd8ea38df576c225176d3131226526",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a25bf5727ced4f07a73ae266fbd742cd",
+      "ordinal": 24,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 173036,
+        "end": 177327,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "139be20f148fd9a5f0c2b323d63961e7f24b19763b5ca7879b845509860e3c3c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-8cbf4974b3784e929913bc9020aebfbf",
+      "ordinal": 25,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 177327,
+        "end": 183146,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "2c5caa8992681d5c0ab3dbf2c553402db2d736c1d0839a665d3b7a61579e24d7",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-7d4f5b62901342cbb28594141b1b4eac",
+      "ordinal": 26,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 183146,
+        "end": 185482,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c35e585b20b0ac14347f384e286ec1fb7d09ebcad9add9efc2eff9354c794e2b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-6848cd715fb143e88764f965596cc124",
+      "ordinal": 27,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 185482,
+        "end": 190721,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "6403105b52d97714b83b8f3a0e05fb34b95f4d75cb1de8c25884c483b3fd8ba0",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-85abf3cdfd90470aa21a58464d735395",
+      "ordinal": 28,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 190721,
+        "end": 196245,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f1c1bc4b831b436af556a45ef5f26ef4d57709ce2aba4561788bc5e30f3bb5c6",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-70eec3dbf2a64878bf8d1da0400404aa",
+      "ordinal": 29,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 196245,
+        "end": 198944,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "6b0b268689558ae5e7e2c2be82ff14a0a38e4ef6773abad03f1e9912dbff6695",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-e13957655a6944d69035c3847983ea7b",
+      "ordinal": 30,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 198944,
+        "end": 204721,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f7e4ce514343f91d03657763f4a7e6b0c3878f7d0158c5b0fa1a2e1b80edae3f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-9bf1ca6b5eba4a8bb809613bd8fcb612",
+      "ordinal": 31,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "6c58fe7fcf13267f055328e2c655a8fa92c3744b3f7432795fc2138e78596ddc",
+      "selector": {
+        "type": "text_position",
+        "start": 204721,
+        "end": 208128,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b6ddecd14e08ad3c10ea15b3ca0e881654e4d2464e67c29f1b7683b0d15d7842",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://aristotle.johnhboyer.com/DA/"
+      }
+    }
+  ],
+  "units": [
+    {
+      "unit_id": "tos.text-unit.sid-6b7f1608d7cf4f69a9d5758bd2585d1d",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-44c8ccd32c624fdba11aba336cbd0373"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ebb16a4c1c6444f9a70265ec04b7d4a8",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-0d99a6ba3b9e4d69ac8ae33f49aab7ad"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f40cf0dde4c54ad294df31c71d05858a",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3e3db8939e51446dad7aa408c8f89aa5"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-92b4e31119534911807883c7a2d30c39",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3af810cda88d4c23a85e72967f676669"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-04f879870483472e9f2cef61c5f4ab3f",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-1cae3f26ff114b0fb6dc762a1e3e7938"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-2f345f03c9494d1ea22f1acd59532993",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-0ba00759795b46759e9d17ba9b6a4eab"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-bf35cd87d407466e9a1ea436e080b2f7",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-dd110505ce5f4a849dae1cee9b1241c0"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-cac439adfa6c46f9adff3e48f99e8f96",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-96628d174e1a47a8b124d85218d86ae5"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b7eade17eb484df9a45f229e9dbda10b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-1005bd683eea4b0c8803fda89abb57ea"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-79986439ea324a168a4825fa449beedf",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-36735d2576f54730be24fe8da8c7b620"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c14a7ba509504362b63f4baf9162ff1f",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-729e30bf740d420b86837f66edd36dd4"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-cbcd7957396b4db9bb6d46641658635e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-785e5719b725435c8fa41b3034281fee"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1623a9119dea4b95a254621592e837f8",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3a3b015f943f43aba139f85f12add1da"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-31217a282d8d4f3987a435f94dc8dbe9",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-099afad020f04a61b296ab28129e9d13"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1723d0aefbcd4d4f8b79768f07a8d2ee",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-0307243f3fbb4e12bfdabe62fb1643ec"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8ec07ea578334d5499f23becd088755e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-261e1994a850446cb78354fb7cef7413"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-adaa6dabc9cf4151b78f50fe1bcfd9f9",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-dfddfa8a1f6c47389123e7eb6fca851f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b52faf751ebf496c97b7ced8181dbe66",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-c2a8437c48de4d8ab210602d785ad80c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-28d242a9dd9e47b280dedba23d19998c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-483fb84723a542c88b394c0942bd0150"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-9312fe1e817545888027c0a95b11a948",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-5e9be79f4d1343ebb58d1bfa60f55f89"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-00c4b83c130a4eec94187b55fb9317a7",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-876be72f971b4e32825f74b387da1ea9"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-a0108e865b0149ad8466cc9330e16342",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-37e852c2a1644a03af066f835022c2d1"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6628857dee47449eb8e3116d0520e315",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a25bf5727ced4f07a73ae266fbd742cd"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-0620523d2cb546f7944852fe3224da2d",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-8cbf4974b3784e929913bc9020aebfbf"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e9d82da4cead486db9e250ccbc336e36",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-7d4f5b62901342cbb28594141b1b4eac"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1a367ee5cc9d4fbc97c987928c84d190",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-6848cd715fb143e88764f965596cc124"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-75d989af1e844238ae74e2263b25372e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-85abf3cdfd90470aa21a58464d735395"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e6b90d6463a04514bff776197cb4d202",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-70eec3dbf2a64878bf8d1da0400404aa"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b68a19728d2a4f6982d64899527c217e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-e13957655a6944d69035c3847983ea7b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-37f8a6def12a45c5807e74deb80ba0a4",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-9bf1ca6b5eba4a8bb809613bd8fcb612"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    }
+  ],
+  "segmentations": [
+    {
+      "segmentation_id": "tos.text-segmentation.sid-46630984a95644dcb6d7515df2f0b1af",
+      "segmentation_version": 1,
+      "supersedes_segmentation_ref": null,
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "scheme_ref": "tos.text-unit-scheme.sid-98bfda28c8e64185a4e33d428d0441a7",
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-6b7f1608d7cf4f69a9d5758bd2585d1d",
+        "tos.text-unit.sid-ebb16a4c1c6444f9a70265ec04b7d4a8",
+        "tos.text-unit.sid-f40cf0dde4c54ad294df31c71d05858a",
+        "tos.text-unit.sid-92b4e31119534911807883c7a2d30c39",
+        "tos.text-unit.sid-04f879870483472e9f2cef61c5f4ab3f",
+        "tos.text-unit.sid-2f345f03c9494d1ea22f1acd59532993",
+        "tos.text-unit.sid-bf35cd87d407466e9a1ea436e080b2f7",
+        "tos.text-unit.sid-cac439adfa6c46f9adff3e48f99e8f96",
+        "tos.text-unit.sid-b7eade17eb484df9a45f229e9dbda10b",
+        "tos.text-unit.sid-79986439ea324a168a4825fa449beedf",
+        "tos.text-unit.sid-c14a7ba509504362b63f4baf9162ff1f",
+        "tos.text-unit.sid-cbcd7957396b4db9bb6d46641658635e",
+        "tos.text-unit.sid-1623a9119dea4b95a254621592e837f8",
+        "tos.text-unit.sid-31217a282d8d4f3987a435f94dc8dbe9",
+        "tos.text-unit.sid-1723d0aefbcd4d4f8b79768f07a8d2ee",
+        "tos.text-unit.sid-8ec07ea578334d5499f23becd088755e",
+        "tos.text-unit.sid-adaa6dabc9cf4151b78f50fe1bcfd9f9",
+        "tos.text-unit.sid-b52faf751ebf496c97b7ced8181dbe66",
+        "tos.text-unit.sid-28d242a9dd9e47b280dedba23d19998c",
+        "tos.text-unit.sid-9312fe1e817545888027c0a95b11a948",
+        "tos.text-unit.sid-00c4b83c130a4eec94187b55fb9317a7",
+        "tos.text-unit.sid-a0108e865b0149ad8466cc9330e16342",
+        "tos.text-unit.sid-6628857dee47449eb8e3116d0520e315",
+        "tos.text-unit.sid-0620523d2cb546f7944852fe3224da2d",
+        "tos.text-unit.sid-e9d82da4cead486db9e250ccbc336e36",
+        "tos.text-unit.sid-1a367ee5cc9d4fbc97c987928c84d190",
+        "tos.text-unit.sid-75d989af1e844238ae74e2263b25372e",
+        "tos.text-unit.sid-e6b90d6463a04514bff776197cb4d202",
+        "tos.text-unit.sid-b68a19728d2a4f6982d64899527c217e",
+        "tos.text-unit.sid-37f8a6def12a45c5807e74deb80ba0a4"
+      ],
+      "coverage": {
+        "scope_anchor_ref": "tos.anchor.sid-c6387872768242e194ad83f5e5972218",
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "unreported_gaps_allowed": false,
+        "overlap_requires_declaration": true,
+        "source_reconstruction_required": true
+      },
+      "status": "proposed",
+      "status_reason": "Deterministic display and navigation segmentation; no textual, linguistic or semantic acceptance.",
+      "maker": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.de-anima-en-wallace1882-reader.20261027",
+        "made_at": "2026-11-12T20:28:27+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "competing_segmentation_refs": [],
+      "review_refs": [],
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "source_text_authority": false,
+      "linguistic_authority": false,
+      "semantic_authority": false
+    }
+  ],
+  "reviews": [],
+  "projections": [],
+  "rights_and_visibility": {
+    "source_visibility": "public",
+    "packet_visibility": "public",
+    "effective_visibility": "public",
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/rights.json"
+    ],
+    "private_source_used": false,
+    "publication_authorized": true,
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins"
+  },
+  "authority_boundary": {
+    "tree_role": "orientation",
+    "graph_role": "relation",
+    "source_role": "authority",
+    "validators_prove_mechanics_not_truth": true,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "legacy_bulk_migration_authorized": false
+  }
+}
