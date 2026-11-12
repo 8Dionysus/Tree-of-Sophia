@@ -20,7 +20,7 @@ export function aestheticsTree({library,field,catalog,chronology}){
         set(`aesthetics:reading:${item.id}`,'step',[x+Math.cos(a)*r,y+65+Math.sin(a)*r,z+100+(j%3)*25]);
       }
     }
-    names.push({id:`group-${group}`,title:{ru:`Группа ${group}`,en:`Group ${group}`},center:[centerX,-1580,0],kind:'path'});
+    names.push({id:`group-${group}`,title:{ru:`Группа ${group}`,en:`Group ${group}`},center:[centerX,-1450,0],kind:'group'});
   }
   const concepts=library.nodes.filter(node=>node.kind==='concept');
   for(const [i,node] of concepts.entries()){const angle=i*2.399963,r=75+(i%3)*30;set(node.id,'concept',[Math.sin(angle)*r,-120-(i/Math.max(1,concepts.length))*760,Math.cos(angle)*r]);}

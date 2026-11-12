@@ -21,6 +21,7 @@ it('mounts Aesthetics and opens its four lenses',async()=>{
     const rail=view.root.querySelector('.ps-lens-rail');
     for(const name of ['Древо','Источники','Время','Близость']){
       const button=[...rail.querySelectorAll('button')].find(node=>node.textContent.includes(name));expect(button,name).toBeTruthy();button.click();expect([...rail.querySelectorAll('button')].find(node=>node.textContent.includes(name))?.getAttribute('aria-pressed'),name).toBe('true');expect(sky.scenes.at(-1)?.nodes.length,name).toBeGreaterThan(0);expect(errors,name).toEqual([]);
+      if(name==='Древо'){const names=sky.scenes.at(-1).clusters.filter(item=>item.id.startsWith('group-'));expect(names.map(item=>item.title)).toEqual(['Группа A','Группа B','Группа C','Группа D']);expect(names.every(item=>!item.yields)).toBe(true);}
       if(name==='Время'){
         const scene=sky.scenes.at(-1),bonsai=bonsaiFor('aesthetics'),time=aestheticsTimeline({field:bonsai.field,library:prepared.library,chronology:bonsai.chronology});
         const shown=new Map(scene.nodes.map(node=>[node.materialId,node.position]));
