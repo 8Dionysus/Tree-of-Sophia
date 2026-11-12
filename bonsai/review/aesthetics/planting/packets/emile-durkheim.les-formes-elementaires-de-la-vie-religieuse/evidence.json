@@ -1,0 +1,116 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/lesformeslmentai00durk/lesformeslmentai00durk_hocr_searchtext.txt.gz",
+   "file": "lesformeslmentai00durk.ocr.txt",
+   "sha256": "9be0ef0a5bc342d28be25b284a3755d7de5e8da9dd39089990090e3612928887",
+   "bytes": 1580332,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/lesformeslmentai00durk/lesformeslmentai00durk_hocr_pageindex.json.gz",
+   "file": "lesformeslmentai00durk.index.json",
+   "sha256": "24815ccd71a0829464923f02e87bc5dd017f5fd7dd8ae18a52ab4e92dfe5046a",
+   "bytes": 25441,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/lesformeslmentai00durk/lesformeslmentai00durk_page_numbers.json",
+   "file": "lesformeslmentai00durk.pages.json",
+   "sha256": "bd8f08efd0a51685ddddf19d60277a358275b4332d384ae381dda93893e61dc1",
+   "bytes": 113621,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "transcription",
+   "url": "https://fr.wikisource.org/w/index.php?title=Les_Formes_%C3%A9l%C3%A9mentaires_de_la_vie_religieuse/Livre_I/Chapitre_1&action=render",
+   "file": "livre1.html",
+   "sha256": "fdb52e61b14c7e2fe7d212f9fbf95b8c3c17bc100aad948cd9bc6a618c89bbb7",
+   "bytes": 111607,
+   "fetched": "2026-11-11",
+   "text": "livre1.html.txt"
+  }
+ ],
+ "scan": {
+  "item": "lesformeslmentai00durk",
+  "ocr": true,
+  "long_s": false,
+  "image_offset": -3
+ },
+ "persons": [
+  {
+   "qid": "Q15948",
+   "name": {
+    "en": "Émile Durkheim",
+    "ru": "Эмиль Дюркгейм"
+   },
+   "role": "author",
+   "died": 1917,
+   "source": "https://www.wikidata.org/wiki/Q15948"
+  }
+ ],
+ "published": 1912,
+ "images": [
+  {
+   "n": 68,
+   "item": "lesformeslmentai00durk",
+   "file": "lesformeslmentai00durk-n68.jpg",
+   "sha256": "ea161a064093640dac6f64bd144e713d0ca0b250ac8ef0dc44b382217b6966c2",
+   "by": "maker"
+  },
+  {
+   "n": 65,
+   "item": "lesformeslmentai00durk",
+   "file": "lesformeslmentai00durk-n65.jpg",
+   "sha256": "6a82666c4238e127d590cd180d3b149dc5dfe80518fd23aa82863df7345bd3b1",
+   "by": "maker"
+  },
+  {
+   "n": 65,
+   "item": "lesformeslmentai00durk",
+   "file": "lesformeslmentai00durk-n65.jpg",
+   "sha256": "6a82666c4238e127d590cd180d3b149dc5dfe80518fd23aa82863df7345bd3b1",
+   "by": "second",
+   "loc": "I.1 p56b"
+  }
+ ],
+ "places": {
+  "I.1 p56a": {
+   "transcription": "livre1.html",
+   "scan": "lesformeslmentai00durk",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    68
+   ],
+   "printed": [
+    "56"
+   ],
+   "differences": []
+  },
+  "I.1 p56b": {
+   "transcription": "livre1.html",
+   "scan": "lesformeslmentai00durk",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    68
+   ],
+   "printed": [
+    "56"
+   ],
+   "differences": []
+  }
+ },
+ "scans": {
+  "lesformeslmentai00durk": {
+   "item": "lesformeslmentai00durk",
+   "ocr": true,
+   "long_s": false,
+   "image_offset": -3
+  }
+ }
+}

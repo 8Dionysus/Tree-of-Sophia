@@ -1,0 +1,282 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/media-provider-observation.schema.json",
+  "schema_version": "tos_media_provider_observation_v1",
+  "provider": "commons",
+  "requested_object": "File:Rembrandt - The laughing man.jpg",
+  "observed_at": "2026-11-09T09:33:55.493916796Z",
+  "completed_at": "2026-11-09T09:34:01.998655629Z",
+  "requests": [
+    {
+      "role": "file-record",
+      "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&formatversion=2&prop=imageinfo&iiprop=size%7Csha1%7Curl%7Cmime%7Cextmetadata&iiurlwidth=960&titles=File%3ARembrandt%20-%20The%20laughing%20man.jpg",
+      "final_url": null,
+      "http_status": null,
+      "transport": "operator-supplied-bytes",
+      "media_type": null,
+      "byte_size": 3588,
+      "sha256": "bb8b2c90027a970c235106553972747f46112f7f1a9e5185c3a6509172ae1f23",
+      "started_at": "2026-11-09T09:33:55.494363845Z",
+      "elapsed_seconds": 0.476033821
+    },
+    {
+      "role": "file-structured-data",
+      "url": "https://commons.wikimedia.org/w/api.php?action=wbgetentities&format=json&ids=M101214140",
+      "final_url": null,
+      "http_status": null,
+      "transport": "operator-supplied-bytes",
+      "media_type": null,
+      "byte_size": 3221,
+      "sha256": "9e86ee1a83a495beb90eaba8e8a195856effd52fe5295fb2da671a3ab1aad75b",
+      "started_at": "2026-11-09T09:33:55.970807684Z",
+      "elapsed_seconds": 4.484231215
+    },
+    {
+      "role": "object-record",
+      "url": "https://www.wikidata.org/wiki/Special:EntityData/Q17275997.json",
+      "final_url": null,
+      "http_status": null,
+      "transport": "operator-supplied-bytes",
+      "media_type": null,
+      "byte_size": 24026,
+      "sha256": "d9391ff8fc408d43329e8d642329204a038a02d20414e130788bbbd726590aec",
+      "started_at": "2026-11-09T09:34:00.455766331Z",
+      "elapsed_seconds": 0.298502608
+    },
+    {
+      "role": "authority-labels",
+      "url": "https://www.wikidata.org/w/api.php?action=wbgetentities&format=json&props=labels&languages=en&ids=Q221092%7CQ5598%7CQ296955%7CQ753%7CQ897%7CQ3305213",
+      "final_url": null,
+      "http_status": null,
+      "transport": "operator-supplied-bytes",
+      "media_type": null,
+      "byte_size": 575,
+      "sha256": "4a767c9e1468395e18e52663bad0cb85ad40b4cd579a4afea9daca30384a996c",
+      "started_at": "2026-11-09T09:34:00.756095805Z",
+      "elapsed_seconds": 0.329487126
+    },
+    {
+      "role": "image-preview",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3b/Rembrandt_-_The_laughing_man.jpg/960px-Rembrandt_-_The_laughing_man.jpg",
+      "final_url": null,
+      "http_status": null,
+      "transport": "operator-supplied-bytes",
+      "media_type": null,
+      "byte_size": 223082,
+      "sha256": "920a018c13590eadacb1f12563a57cb703f3864441832e5f7bfa277187737d26",
+      "started_at": "2026-11-09T09:34:01.087049467Z",
+      "elapsed_seconds": 0.285423241
+    },
+    {
+      "role": "image-file",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3b/Rembrandt_-_The_laughing_man.jpg/3840px-Rembrandt_-_The_laughing_man.jpg",
+      "final_url": null,
+      "http_status": null,
+      "transport": "operator-supplied-bytes",
+      "media_type": null,
+      "byte_size": 3728577,
+      "sha256": "a16fef4b7809c19dd9e33d9d9bd026b5ef24fa4e3801958544bb5f90ab75addf",
+      "started_at": "2026-11-09T09:34:01.372779137Z",
+      "elapsed_seconds": 0.621921831
+    }
+  ],
+  "object": {
+    "provider_object_uri": "https://commons.wikimedia.org/wiki/File:Rembrandt_-_The_laughing_man.jpg",
+    "record_url": "https://www.wikidata.org/wiki/Q17275997",
+    "api_url": "https://www.wikidata.org/wiki/Special:EntityData/Q17275997.json",
+    "identifiers": [
+      {
+        "scheme": "Wikimedia Commons file",
+        "value": "File:Rembrandt - The laughing man.jpg"
+      },
+      {
+        "scheme": "Wikidata",
+        "value": "http://www.wikidata.org/entity/Q17275997"
+      },
+      {
+        "scheme": "Collection accession number",
+        "value": "598"
+      }
+    ],
+    "titles": [
+      {
+        "text": "The Laughing Man",
+        "language": "en",
+        "language_uri": null,
+        "role": null
+      }
+    ],
+    "makers": [
+      {
+        "label": "Rembrandt",
+        "role": null,
+        "provider_uri": null,
+        "authority_uris": [
+          "http://www.wikidata.org/entity/Q5598"
+        ]
+      }
+    ],
+    "production_statements": [],
+    "dating": {
+      "statement": "Circa 1629-1630",
+      "begin_year": 1629,
+      "end_year": 1630
+    },
+    "classifications": [
+      "painting"
+    ],
+    "materials": [
+      "oil paint",
+      "copper",
+      "gold"
+    ],
+    "dimensions": [
+      {
+        "kind": "height",
+        "value": "15.3",
+        "unit": "cm",
+        "unit_uri": null,
+        "statement": null
+      },
+      {
+        "kind": "width",
+        "value": "12.2",
+        "unit": "cm",
+        "unit_uri": null,
+        "statement": null
+      }
+    ],
+    "credit_lines": [],
+    "repository": "Mauritshuis",
+    "depicted": [
+      {
+        "label": null,
+        "kind": "depicts",
+        "provider_uri": null,
+        "authority_uris": [
+          "http://www.wikidata.org/entity/Q8441"
+        ]
+      },
+      {
+        "label": null,
+        "kind": "depicts",
+        "provider_uri": null,
+        "authority_uris": [
+          "http://www.wikidata.org/entity/Q1539356"
+        ]
+      },
+      {
+        "label": null,
+        "kind": "depicts",
+        "provider_uri": null,
+        "authority_uris": [
+          "http://www.wikidata.org/entity/Q3326291"
+        ]
+      },
+      {
+        "label": null,
+        "kind": "depicts",
+        "provider_uri": null,
+        "authority_uris": [
+          "http://www.wikidata.org/entity/Q170579"
+        ]
+      },
+      {
+        "label": null,
+        "kind": "depicts",
+        "provider_uri": null,
+        "authority_uris": [
+          "http://www.wikidata.org/entity/Q2014570"
+        ]
+      },
+      {
+        "label": null,
+        "kind": "depicts",
+        "provider_uri": null,
+        "authority_uris": [
+          "http://www.wikidata.org/entity/Q2367101"
+        ]
+      },
+      {
+        "label": null,
+        "kind": "depicts",
+        "provider_uri": null,
+        "authority_uris": [
+          "http://www.wikidata.org/entity/Q561"
+        ]
+      }
+    ],
+    "visual_item_uri": null
+  },
+  "rights": [
+    {
+      "scope": "image",
+      "provider_field": "P6216",
+      "value": "Q19652",
+      "statement_uri": null,
+      "label": "Public domain",
+      "stated_in": "https://commons.wikimedia.org/wiki/File:Rembrandt_-_The_laughing_man.jpg"
+    },
+    {
+      "scope": "image",
+      "provider_field": "License",
+      "value": "pd",
+      "statement_uri": null,
+      "label": "Public domain",
+      "stated_in": "https://commons.wikimedia.org/wiki/File:Rembrandt_-_The_laughing_man.jpg"
+    },
+    {
+      "scope": "image",
+      "provider_field": "Copyrighted",
+      "value": "False",
+      "statement_uri": null,
+      "label": "Public domain",
+      "stated_in": "https://commons.wikimedia.org/wiki/File:Rembrandt_-_The_laughing_man.jpg"
+    }
+  ],
+  "images": [
+    {
+      "role": "primary",
+      "form": "file",
+      "access_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3b/Rembrandt_-_The_laughing_man.jpg/3840px-Rembrandt_-_The_laughing_man.jpg",
+      "image_service": null,
+      "file_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3b/Rembrandt_-_The_laughing_man.jpg/3840px-Rembrandt_-_The_laughing_man.jpg",
+      "preview_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3b/Rembrandt_-_The_laughing_man.jpg/960px-Rembrandt_-_The_laughing_man.jpg",
+      "file_fingerprint": {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3b/Rembrandt_-_The_laughing_man.jpg/3840px-Rembrandt_-_The_laughing_man.jpg",
+        "final_url": null,
+        "media_type": "image/jpeg",
+        "byte_size": 3728577,
+        "sha256": "a16fef4b7809c19dd9e33d9d9bd026b5ef24fa4e3801958544bb5f90ab75addf",
+        "width_pixels": 3840,
+        "height_pixels": 4784
+      },
+      "preview_fingerprint": {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3b/Rembrandt_-_The_laughing_man.jpg/960px-Rembrandt_-_The_laughing_man.jpg",
+        "final_url": null,
+        "media_type": "image/jpeg",
+        "byte_size": 223082,
+        "sha256": "920a018c13590eadacb1f12563a57cb703f3864441832e5f7bfa277187737d26",
+        "width_pixels": 960,
+        "height_pixels": 1196
+      }
+    }
+  ],
+  "warnings": [
+    "the file is read as Commons' 3840-pixel standard copy of its 4816-pixel original"
+  ],
+  "authority": {
+    "evidence_status": "provider_observation",
+    "review_status": "unreviewed",
+    "identity_admitted": false,
+    "rights_decided": false,
+    "source_text_admitted": false,
+    "semantic_authority": false,
+    "graph_authority": false,
+    "canon_authority": false,
+    "publication_authority": false
+  },
+  "maker": {
+    "maker_type": "software",
+    "agent_ref": "software:tos-native-owner-command/acquisition/media.observe"
+  }
+}

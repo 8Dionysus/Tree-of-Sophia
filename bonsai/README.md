@@ -347,16 +347,23 @@ page reads from the site (`/__research/layers/sha256/<hex>`). The second form
 serves providers whose files carry no CORS headers, such as the Met, and holds
 exactly the bytes the observation fingerprinted. A stand shows an image under
 the Public Domain Mark or CC0, or one its provider flags as free to use (the
-Met's `isPublicDomain`, the National Gallery of Art's `openaccess`). A
+Met's `isPublicDomain`, the National Gallery of Art's `openaccess`, the Saint
+Louis Art Museum's `Rights`, the public-domain status a Wikimedia Commons file's
+structured data states). A work is keyed by its provider and the holder's
+number, or, where that number names it only within one museum, by the
+provider's own item: a Commons artwork's Wikidata item, an SMB object's ObjID. A
 use binds an image to a subject of the stand in a role: `author-portrait`,
 `book-response` (a work made about the book), `motif` (a work of its own
 showing what the text names), `era-material`, `object-of-analysis` or
 `comparison`. A subject is a collection entry where the stand keeps a
-collection, and a core record where it keeps a core. Provider texts are kept word for word,
+collection, and a core record where it keeps a core: a concept, a figure, a
+proposed node, a state of a chain or a link. Provider texts are kept word for word,
 with their language; the module holds no words of the stand's own about a
 medium. A card shows the image whole and small, with its caption from these
 facts and links to the record and the rights statement, and opens it over the
-stand at the full detail its service serves.
+stand at the full detail its service serves. A link's card shows its images as
+a strip of small copies: the link's own where the module binds images to the
+link, else those of its two ends under each end's name.
 
 Every entry comes from a provider observation made by the Tree's media bridges
 (`tos-native-owner-command acquisition`, operation `media.observe`); one command
@@ -375,9 +382,10 @@ its smaller copy, keeps them only if their bytes match the observation's
 fingerprints (`media.observe` with `"files": true`), and enters them in the
 stand's layers.json; the stand's other layers must be fetched first, and
 `node bonsai/lib/layers.mjs send <stand>` or the Publish Bonsai workflow takes
-the new copies on to R2. A new provider's host joins
-`lib/media-hosts.mjs` with its first medium: the site's Content-Security-Policy
-admits images from those hosts alone.
+the new copies on to R2. It fetches a provider's files only from that
+provider's file hosts in `lib/media-hosts.mjs` (`FILE_HOSTS`). A new provider's
+image service host joins `MEDIA_HOSTS` there with its first medium: the site's
+Content-Security-Policy admits images from those hosts alone.
 
 ### Layers kept in R2 (`tos.bonsai.layers.v1`)
 
@@ -397,8 +405,14 @@ node bonsai/lib/layers.mjs status bonsai/zarathustra    # present, missing or di
 `fetch` takes each file from R2 when `R2_ENDPOINT`, `R2_ACCESS_KEY_ID` and
 `R2_SECRET_ACCESS_KEY` are set, else from the site's copy
 (`https://treeofsophia.com/__research/layers/sha256/<hex>`), else from the
-`layers/transfer` branch, and writes only bytes that match their digest. A
-checkout without the files builds and tests the stand without its word layer;
+`layers/transfer` branch, and writes only bytes that match their digest.
+`layers.mjs homes` lists the homes of a checkout: every directory whose
+`layers.json` is a layers manifest, tracked or new. The site's build
+(`vite build --mode public-research`) writes the site's copy of every home into
+its output, `layers/sha256/<hex>`, after its pages; it brings each missing file
+from the same stores first and stops at a file no store holds, so a built site
+holds every layer its pages address. A checkout without the files tests the
+stand without its word layer;
 the check then verifies the manifest, and with the files present it checks them
 like any module. Without the corpus files the stands read no corpus texts, and
 the check leaves the places a stand cites in the corpus unchecked.
@@ -408,8 +422,8 @@ new digests and `layers.mjs send bonsai/<stand>` puts every file that no store
 holds yet on `layers/transfer`, one commit holding objects named
 `sha256/<hex>`. The pull request carries only the manifest. Once it lands, the
 publication from main fetches the files, checks them, puts what R2 lacks into
-R2, reads each back, copies all of them into the site's copy and keeps on the
-transfer branch only what R2 still lacks.
+R2, reads each back, builds the site with its copy of the layers and keeps on
+the transfer branch only what R2 still lacks.
 
 ## Check and export
 

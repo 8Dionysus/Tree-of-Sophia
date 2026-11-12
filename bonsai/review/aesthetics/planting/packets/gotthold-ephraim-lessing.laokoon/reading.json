@@ -1,0 +1,82 @@
+{
+ "reader": {
+  "id": "terra-2026-11-11-laokoon",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-11",
+  "reads": "Read the German first printing of 1766 beside the register readings, using the Projekt Gutenberg-DE transcription and the Getty scan.",
+  "effort": "high"
+ },
+ "note": "The second reader notes a missing comma after «existiren» in XVI p153b; the current place already contains it. The image of p. 153 confirms the comma, so no text correction is needed.",
+ "library": {
+  "agents": {
+   "gotthold-ephraim-lessing": {
+    "tree": "tos.agent.gotthold-ephraim-lessing"
+   }
+  },
+  "works": {
+   "gotthold-ephraim-lessing.laokoon": {
+    "title": {
+     "ru": "Лаокоон, или О границах живописи и поэзии",
+     "en": "Laocoön: An Essay on the Limits of Painting and Poetry"
+    },
+    "original": "de",
+    "tree": "tos.work.gotthold-ephraim-lessing.laokoon",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "gotthold-ephraim-lessing.laokoon:signs-in-space-and-time",
+   "of": [
+    "C:A-C022"
+   ],
+   "areas": [
+    "AE23"
+   ],
+   "work": "gotthold-ephraim-lessing.laokoon",
+   "locus": "XVI",
+   "formula": [
+    {
+     "place": "XVI p153a"
+    }
+   ],
+   "thesis": {
+    "ru": "Знаки, расположенные рядом, могут выражать только предметы, существующие рядом или части которых существуют рядом; следующие друг за другом знаки — только предметы, следующие друг за другом или части которых следуют друг за другом.",
+    "en": "Signs arranged beside one another can express only objects that exist beside one another or whose parts exist beside one another; successive signs can express only objects that follow one another or whose parts follow one another."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "C:A-I038"
+   ]
+  },
+  {
+   "id": "gotthold-ephraim-lessing.laokoon:bodies-and-actions",
+   "of": [
+    "C:A-C015"
+   ],
+   "areas": [
+    "AE22"
+   ],
+   "work": "gotthold-ephraim-lessing.laokoon",
+   "locus": "XVI",
+   "formula": [
+    {
+     "place": "XVI p153b"
+    }
+   ],
+   "thesis": {
+    "ru": "Тела с их видимыми свойствами — собственные предметы живописи; действия — собственный предмет поэзии.",
+    "en": "Bodies with their visible properties are the proper objects of painting; actions are the proper object of poetry."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "C:A-I039"
+   ]
+  }
+ ],
+ "links": [],
+ "left": []
+}

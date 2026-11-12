@@ -12,7 +12,7 @@ import {personalKind,readPersonalKinds} from './personal-kind.mjs';
 import {isAuthoredTransition,ladderRung,nodeForm,partName,relationStyle,routeVoices,searchScore,sourceLine,stepWitness} from './space-legibility.mjs';
 import {antiquityTimeline,formatDating,formatYears,stepTimeline,trajectory,zarathustraTimeline} from './space-timeline.mjs';
 import {bonsaiFor,depthOf,lensPositions,loadMedia} from './bonsai.mjs';
-import {createMediaView} from './media-view.mjs';
+import {createMediaView,linkGroups} from './media-view.mjs';
 import {createTerms,termForms,termMatcher,termNodes} from './term-view.mjs';
 import {SYSTEM_NAME,SYSTEM_THEME,THEMES,applyTheme,currentTheme,paint,themeChoice} from './site-theme.mjs';
 import {hasIcon,iconElement,iconMarkup} from './space-icons.mjs';
@@ -97,8 +97,8 @@ Object.assign(extraTranslations.en,{fragmentBench:'To the workbench',fragmentBen
 Object.assign(extraTranslations.ru,{kind_era:'Эпоха',kind_branch:'Ветвь',kind_path:'Путь',kind_step:'Ход',kind_author:'Мыслитель',kind_figure:'Фигура',kind_translator:'Переводчик',kind_school:'Традиция',kind_work:'Произведение',kind_version:'Издание',kind_chapter:'Глава',kind_passage:'Фрагмент',kind_concept:'Понятие',kind_term:'Термин',kind_image:'Образ',kind_question:'Вопрос',kind_personal:'Личная запись',previousMove:'Предыдущий ход',nextMove:'Следующий ход',trail:'След исследования',trailBack:'Назад по следу',trailForward:'Вперёд по следу',trailBackWord:'Назад',trailForwardWord:'Вперёд',benchWord:'Верстак',benchFoldWord:'Свернуть',fragmentCopy:'Копировать цитату',fragmentCopied:'Скопировано'});
 Object.assign(extraTranslations.en,{kind_era:'Era',kind_branch:'Branch',kind_path:'Path',kind_step:'Move',kind_author:'Thinker',kind_figure:'Figure',kind_translator:'Translator',kind_school:'Tradition',kind_work:'Work',kind_version:'Edition',kind_chapter:'Chapter',kind_passage:'Passage',kind_concept:'Concept',kind_term:'Term',kind_image:'Image',kind_question:'Question',kind_personal:'Personal record',previousMove:'Previous move',nextMove:'Next move',trail:'Research trail',trailBack:'Back along the trail',trailForward:'Forward along the trail',trailBackWord:'Back',trailForwardWord:'Forward',benchWord:'Workbench',benchFoldWord:'Fold',fragmentCopy:'Copy quotation',fragmentCopied:'Copied'});
 // The images on a card: what each is for, and the words of its caption and viewer.
-Object.assign(extraTranslations.ru,{'media_author-portrait':'Портрет автора','media_book-response':'Отклик на книгу',media_motif:'Совпадение мотива',mediaPublicDomain:'Общественное достояние',mediaOpenAccess:'Открытый доступ','media_era-material':'Материал эпохи','media_object-of-analysis':'Предмет анализа',media_comparison:'Для сравнения',mediaOpen:'Открыть изображение во всех подробностях',mediaInscribed:'Надпись на предмете',mediaSeries:'Серия',mediaSize:'{0} × {1} мм',mediaMissing:'Изображение не загрузилось с сервиса держателя.',mediaZoomIn:'Приблизить',mediaZoomOut:'Отдалить',mediaWhole:'Показать целиком'});
-Object.assign(extraTranslations.en,{'media_author-portrait':'Portrait of the author','media_book-response':'A response to the book',media_motif:'A shared motif',mediaPublicDomain:'Public domain',mediaOpenAccess:'Open access','media_era-material':'Material of the era','media_object-of-analysis':'Object of analysis',media_comparison:'For comparison',mediaOpen:'Open the image in full detail',mediaInscribed:'Inscribed on the object',mediaSeries:'Series',mediaSize:'{0} × {1} mm',mediaMissing:'The image did not load from the holder’s service.',mediaZoomIn:'Zoom in',mediaZoomOut:'Zoom out',mediaWhole:'Show whole'});
+Object.assign(extraTranslations.ru,{'media_author-portrait':'Портрет автора','media_book-response':'Отклик на книгу',media_motif:'Совпадение мотива',mediaPublicDomain:'Общественное достояние',mediaCommonsPublicDomain:'Общественное достояние · Wikimedia Commons',mediaOpenAccess:'Открытый доступ','media_era-material':'Материал эпохи','media_object-of-analysis':'Предмет анализа',media_comparison:'Для сравнения',mediaOpen:'Открыть изображение во всех подробностях',mediaInscribed:'Надпись на предмете',mediaSeries:'Серия',mediaSize:'{0} × {1} мм',mediaMissing:'Изображение не загрузилось с сервиса держателя.',mediaZoomIn:'Приблизить',mediaZoomOut:'Отдалить',mediaWhole:'Показать целиком'});
+Object.assign(extraTranslations.en,{'media_author-portrait':'Portrait of the author','media_book-response':'A response to the book',media_motif:'A shared motif',mediaPublicDomain:'Public domain',mediaCommonsPublicDomain:'Public domain · Wikimedia Commons',mediaOpenAccess:'Open access','media_era-material':'Material of the era','media_object-of-analysis':'Object of analysis',media_comparison:'For comparison',mediaOpen:'Open the image in full detail',mediaInscribed:'Inscribed on the object',mediaSeries:'Series',mediaSize:'{0} × {1} mm',mediaMissing:'The image did not load from the holder’s service.',mediaZoomIn:'Zoom in',mediaZoomOut:'Zoom out',mediaWhole:'Show whole'});
 export function toggleResearchFullscreen(host,doc=document){
   if(doc.fullscreenElement)return doc.exitFullscreen().catch(()=>{});
   return host.requestFullscreen?.().catch(()=>{});
@@ -228,7 +228,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   let criterion=criteria.some(item=>item.id===linkedCriterion)?linkedCriterion:criteria[0]?.id??null,traceConcept=linkedConcept||null,measureOpen=false,nearCenter=null;
   const desktopMode=window.matchMedia('(min-width: 761px)');
   // A narrow bar gives the search a short word, so it is read whole.
-  const narrowBar=window.matchMedia('(max-width: 900px)');narrowBar.addEventListener?.('change',()=>{search.placeholder=t(narrowBar.matches?'mapSearchShort':'mapSearch');});
+  const narrowBar=window.matchMedia('(max-width: 900px)');narrowBar.addEventListener?.('change',()=>{placeSearch();});
+  // The search names its whole scope when the bar gives it the room, and only "Search" when it does not.
+  const placeSearch=()=>{search.placeholder=t(narrowBar.matches||(searchBox.isConnected&&searchBox.getBoundingClientRect().width<205)?'mapSearchShort':'mapSearch');};
   let browsingRoutes=false,columnOpen=true,routeStepNode=null;
   const routeDetailState=new Map();
   const personalPositions=new Map();
@@ -247,10 +249,11 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   shell.append(canvas);
   // One search for the whole space sits in the header row; '/' opens it.
   const searchBox=el('div','ps-search-box');
-  const search=document.createElement('input');search.type='search';search.className='ps-search';search.autocomplete='off';search.placeholder=t(narrowBar.matches?'mapSearchShort':'mapSearch');search.setAttribute('aria-label',t('mapSearch'));
+  const search=document.createElement('input');search.type='search';search.className='ps-search';search.autocomplete='off';placeSearch();search.setAttribute('aria-label',t('mapSearch'));
   const searchKey=el('kbd','ps-search-key','/');searchKey.setAttribute('aria-hidden','true');
   const searchResults=el('div','ps-search-results');searchResults.hidden=true;
   searchBox.append(search,searchKey,searchResults);
+  if(typeof ResizeObserver==='function')new ResizeObserver(()=>placeSearch()).observe(searchBox);
   // The left rail holds the two ways into the tree: lenses say how to look, research actions what to do.
   const lensRail=el('nav','lens-rail ps-lens-rail');lensRail.setAttribute('aria-label',t('lenses'));
   const lensTitle=el('p','eyebrow ps-rail-title',t('lenses')),lensList=el('div','lens-list');
@@ -328,7 +331,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     shell.dataset.locale=value;document.documentElement.lang=value;
     for(const select of document.querySelectorAll('.ps-locale-select:not(.ps-theme-select)')){select.value=value;select.setAttribute('aria-label',localeText('Interface language',locale));}
     for(const select of document.querySelectorAll('.ps-theme-select')){select.setAttribute('aria-label',t('theme'));for(const option of select.options)option.textContent=tr(THEMES.find(theme=>theme.id===option.value)?.name??SYSTEM_NAME,locale());select.value=themeChoice();}
-    search.placeholder=t(narrowBar.matches?'mapSearchShort':'mapSearch');search.setAttribute('aria-label',t('mapSearch'));searchResults.setAttribute('aria-label',t('searchResults'));
+    placeSearch();search.setAttribute('aria-label',t('mapSearch'));searchResults.setAttribute('aria-label',t('searchResults'));
     lensTitle.textContent=t('lenses');actionsTitle.textContent=t('researchActions');lensRail.setAttribute('aria-label',t('lenses'));mainActions.setAttribute('aria-label',t('researchActions'));importInput.setAttribute('aria-label',t('import'));
     crumbNav.setAttribute('aria-label',t('orientation'));mapTools.setAttribute('aria-label',t('mapTools'));
     for(const b of mainActions.querySelectorAll('[data-space-action]')){b.querySelector('.ps-action-label').textContent=t(b.dataset.spaceAction);setHint(b,t(b.dataset.spaceAction));}
@@ -1055,7 +1058,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       projected.edges.push({id:edge.id,from,to,kind:edge.kind,label:tr(edge.label,locale()),color:style.color??RELATIONS[edge.kind]?.color,dash:style.dash,weight:1,via:edge.via,...(rest===null?{latent:true}:{baseAlpha:rest})});
     }
     scaleChoice=selected;
-    projected.clusters=treeLayout.names.map(name=>({id:name.id,title:tr(name.title,locale()),subtitle:'',center:name.center,...(name.color?{color:paint(name.color)}:{}),tone:name.kind,...(name.kind==='stratum'?{variant:'edge'}:{recede:true})}));
+    projected.clusters=treeLayout.names.map(name=>({id:name.id,title:tr(name.title,locale()),subtitle:'',center:name.center,...(name.color?{color:paint(name.color)}:{}),tone:name.kind,...(name.kind==='stratum'?{variant:'edge'}:{recede:true}),...(name.kind==='path'?{yields:true}:{})}));
     projected.backdrop=treeBackdrop();
     projected.shade=treeShade();
   }
@@ -1199,7 +1202,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(chosen&&lensList.scrollWidth>lensList.clientWidth&&(chosen.offsetLeft<lensList.scrollLeft||chosen.offsetLeft+chosen.offsetWidth>lensList.scrollLeft+lensList.clientWidth))lensList.scrollLeft=chosen.offsetLeft-(lensList.clientWidth-chosen.offsetWidth)/2;
   }
   function paintRelations(){
-    relationChips.replaceChildren();
+    relationChips.replaceChildren();relationBar.dataset.filtered=String(enabled.size<relationKinds.length);
     const all=button(t('all'),'relation-chip');all.setAttribute('aria-pressed',String(enabled.size===relationKinds.length));all.addEventListener('click',()=>{enabled=new Set(relationKinds);reflect();paintRelations();});relationChips.append(all);
     for(const key of relationKinds){const value=styleOf(key),b=button(tr(value,locale()),'relation-chip');b.style.setProperty('--relation-color',paint(value.color));b.dataset.dash=value.dash??'solid';b.style.setProperty('--relation-weight',String(value.weight??1));if(value.hint)setHint(b,tr(value.hint,locale()));b.setAttribute('aria-pressed',String(enabled.has(key)));b.addEventListener('click',()=>{if(enabled.has(key))enabled.delete(key);else enabled.add(key);reflect();paintRelations();});relationChips.append(b);}
     // The legend also says what a star's form means: what the tree stands on, what is proposed, what is yours.
@@ -1341,6 +1344,22 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     void loadMedia(owner.profile).then(media=>{
       const items=media?.forSubject(owner.subject)??[];
       if(slot.isConnected&&items.length)mediaView.render(slot,items);else slot.remove();
+    }).catch(()=>slot.remove());
+  }
+  // A link's images: its own, which the bonsai binds to the link, else those of its two ends, each under the end's name.
+  function appendLinkMedia(parent,{own=null,ends=[]}){
+    const owners=ends.map(material=>({material,owner:mediaOwner(material)})).filter(item=>item.owner);
+    const ownOwner=own&&profile==='zarathustra'?{profile:'zarathustra',subject:own}:null;
+    if(!owners.length&&!ownOwner)return;
+    const slot=el('div','ps-media-slot');parent.append(slot);
+    const profiles=[...new Set([...owners.map(item=>item.owner.profile),...(ownOwner?[ownOwner.profile]:[])])];
+    void Promise.all(profiles.map(name=>loadMedia(name).then(media=>[name,media]))).then(pairs=>{
+      const media=Object.fromEntries(pairs);
+      const groups=linkGroups({
+        own:ownOwner?media[ownOwner.profile]?.forSubject(ownOwner.subject)??[]:[],
+        ends:owners.map(({material,owner})=>({label:label(material),items:media[owner.profile]?.forSubject(owner.subject)??[]})),
+      });
+      if(slot.isConnected&&groups.length)mediaView.renderStrip(slot,groups);else slot.remove();
     }).catch(()=>slot.remove());
   }
   function appendDating(parent,materialId){
@@ -1675,7 +1694,11 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     }
     const edge=findEdge(id);if(!edge)return pane?false:dropEdge();
     into.replaceChildren();
-    if(edge.coreRecord&&coreView){(pane?paneCore(pane):coreView).link(into,edge.coreRecord,{bench:pane?false:bench});appendResearchReferences(into,edge.coreRecord.id??id);return true;}
+    if(edge.coreRecord&&coreView){
+      const record=edge.coreRecord,end=coreId=>previewMaterials.get(core?.materialIds?.[coreId]??coreId);
+      (pane?paneCore(pane):coreView).link(into,record,{bench:pane?false:bench,media:box=>appendLinkMedia(box,{own:record.id??null,ends:[end(record.from),end(record.to)]})});
+      appendResearchReferences(into,record.id??id);return true;
+    }
     const from=graphState().nodes.find(node=>node.id===edge.from),to=graphState().nodes.find(node=>node.id===edge.to),atlasEdge=(atlas.edges??[]).find(item=>`atlas:${item.id}`===id||item.id===id);
     // The graph copy of an atlas edge may carry only an id; the authored label lives on the atlas edge.
     const relationLabel=relationName(edge),edgeLabel=humanEdgeLabel(edge)||humanEdgeLabel(atlasEdge);
@@ -1683,6 +1706,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const openRoute=route?.source==='atlas'?routes.find(item=>item.id===route.id):null,plainId=bareEdgeId(edge.id);
     const authored=profile==='antiquity'?isAuthoredTransition(edge):(openRoute?.transitions??[]).some(item=>bareEdgeId(item.edgeId??item.id)===plainId);
     into.append(el('p','eyebrow',(authored?t('transition'):t('relation'))+' · '+relationLabel),el('h1','',edgeLabel&&edgeLabel.length<=120?edgeLabel:relationLabel));if(edgeLabel.length>120)into.append(el('p','body',edgeLabel));
+    if(!from?.ownerType&&!to?.ownerType)appendLinkMedia(into,{ends:[matForNode(from),matForNode(to)].filter(Boolean)});
     if(!edge.ownerType&&edge.kind!=='contains'&&!isBasedOn(edge))into.append(ladderLine('comparison'));
     if(edge.body||atlasEdge?.body)fragments.render(into,edge.body??atlasEdge.body,{className:'body'});
     const inquiry=atlasEdge?.inquiry??edge.inquiry;if(inquiry){inquiryDetail(into,t('relationWarrant'),inquiry.warrant,true);appendGrounds(into,inquiry.grounds);inquiryDetail(into,t('relationLimit'),inquiry.limit);inquiryQuestion(into,inquiry.question);}
@@ -1978,6 +2002,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(!columnOpen||subjectChanged)sheetFull=false;
     shell.dataset.columnOpen=String(columnOpen);shell.dataset.sheet=wide?'':columnOpen?(sheetFull?'full':'open'):'peek';shell.dataset.reading=String(columnOpen);
     panelTitle.textContent=columnCaption(mode);panelTitle.setAttribute('aria-expanded',String(columnOpen));
+    // On a narrow screen the tool bar's routes say how many there are, as the folded sheet would.
+    footerTools.querySelector?.('[data-tool=routes]')?.setAttribute('data-count',String(routes.filter(item=>!item.coreChainId||item.featured).length));
     panelClose.hidden=!wide&&!columnOpen;panelClose.setAttribute('aria-label',t(mode==='overview'&&!browsingRoutes?'collapseColumn':mode==='route'?'resetRoute':'close'));
     // Only the open card of a star or a link is a workbench; any other column, or a closed one, folds it back.
     const benchable=(mode==='node'||mode==='edge')&&columnOpen;if(!benchable)bench=false;
@@ -2272,7 +2298,11 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     compareBar.append(columns);personal.hidden=true;if(!desktop())columnOpen=false;renderColumn();sky?.refresh();
   }
   function toggleRelations(){
-    dialog.replaceChildren();const content=makeDialog(t('filter'));for(const key of relationKinds){const value=styleOf(key),row=el('label','ps-relation-filter'),input=document.createElement('input');input.type='checkbox';input.checked=enabled.has(key);input.addEventListener('change',()=>{if(input.checked)enabled.add(key);else enabled.delete(key);reflect();});row.append(input,el('i',''));row.lastChild.style.background=paint(value.color);row.lastChild.style.setProperty('--relation-color',paint(value.color));row.lastChild.dataset.dash=value.dash??'solid';row.append(el('span','',value.hint?`${tr(value,locale())} — ${tr(value.hint,locale())}`:tr(value,locale())));content.append(row);}content.append(el('p','muted',t('imagine')));dialog.showModal();
+    dialog.replaceChildren();const content=makeDialog(t('filter'));for(const key of relationKinds){const value=styleOf(key),row=el('label','ps-relation-filter'),input=document.createElement('input');input.type='checkbox';input.checked=enabled.has(key);input.addEventListener('change',()=>{if(input.checked)enabled.add(key);else enabled.delete(key);reflect();paintRelations();});row.append(input,el('i',''));row.lastChild.style.background=paint(value.color);row.lastChild.style.setProperty('--relation-color',paint(value.color));row.lastChild.dataset.dash=value.dash??'solid';row.append(el('span','',value.hint?`${tr(value,locale())} — ${tr(value.hint,locale())}`:tr(value,locale())));content.append(row);}
+    // The legend opened whole also says what a star's form means, each sign with its word.
+    const forms=el('div','ps-relation-forms');forms.append(el('h3','ps-legend-title',t('statusTitle')));
+    for(const [form,key] of [['source','formSource'],['proposal','formProposal'],['personal','formPersonal']]){const row=el('div','ps-relation-filter'),chip=el('span','ps-form-chip');chip.dataset.form=form;chip.append(el('i'));row.append(chip,el('span','',`${t(key)} — ${t(`${key}Hint`)}`));forms.append(row);}
+    content.append(forms,el('p','muted',t('imagine')));dialog.showModal();
   }
   function makeDialog(title){const head=el('div','dialog-top'),close=button('×','icon');close.addEventListener('click',()=>dialog.close());close.setAttribute('aria-label',t('close'));head.append(el('h2','',title),close);dialog.append(head);const content=el('div','dialog-content');dialog.append(content);return content;}
   function renderSearch(){

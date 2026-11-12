@@ -38,6 +38,7 @@ import {bonsaiIds,checkBonsai,loadBonsai,loadWitnessChapters} from './graft.mjs'
 import {realignWitnesses} from './realign.mjs';
 import {addMedia,MEDIA_LAYER_PATH,mediaFilePath} from './media.mjs';
 import {formatLayers,readLayers,sha256} from './layers.mjs';
+import {FILE_HOSTS} from './media-hosts.mjs';
 
 const root=join(dirname(fileURLToPath(import.meta.url)),'..','..');
 const [command,...rest]=process.argv.slice(2);
@@ -135,7 +136,8 @@ if(command==='check'){
     const limit=profile.admission.acquisition.max_record_bytes;
     for(const file of [result.image.preview,result.image.file]){
       const url=new URL(file.source);
-      if(url.origin!=='https://images.metmuseum.org'||url.username||url.password
+      const work=result.module.works[result.workId];
+      if(url.protocol!=='https:'||!(FILE_HOSTS[work.provider]??[]).includes(url.host)||url.port||url.username||url.password
         ||!Number.isSafeInteger(file.bytes)||file.bytes<=0||file.bytes>limit||!/^[a-f0-9]{64}$/.test(file.sha256))
         throw new Error('invalid or out-of-bounds media file descriptor');
       const path=mediaFilePath(file),full=join(home,path);
@@ -155,7 +157,7 @@ if(command==='check'){
       throw new Error(`${full}: existing media does not match its fingerprint`);
     }
     const response=await fetch(file.source,{redirect:'error',signal:AbortSignal.timeout(45000),
-      headers:{'User-Agent':'Tree-of-Sophia-bonsai-media/1',Accept:'image/jpeg, image/png;q=0.9, image/*;q=0.8'}});
+      headers:{'User-Agent':'Tree-of-Sophia-bonsai-media/1 (https://treeofsophia.com)',Accept:'image/jpeg, image/png;q=0.9, image/*;q=0.8'}});
     if(!response.ok||!response.body)throw new Error(`${file.source}: HTTP ${response.status}`);
     const chunks=[];let size=0;
     for await(const chunk of response.body){

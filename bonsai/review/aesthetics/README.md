@@ -154,6 +154,7 @@ route.
 
 ```sh
 python3 bonsai/review/aesthetics/planting/kit.py queue        # what waits, by wave (queue.json, not tracked)
+python3 bonsai/review/aesthetics/planting/kit.py ready        # whether this checkout can plant (the corpus texts are fetched)
 python3 bonsai/review/aesthetics/planting/drive.py line --max 2 --count 3   # run readers on the next works
 python3 bonsai/review/aesthetics/planting/kit.py status
 node bonsai/review/aesthetics/plant.mjs                       # plant the accepted packets

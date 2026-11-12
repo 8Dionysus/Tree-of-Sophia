@@ -1,0 +1,23 @@
+{
+ "schema": "tos.bonsai.layers.v1",
+ "stand": "antiquity",
+ "bucket": "tos-public-layers",
+ "key": "sha256/<sha256 of the file's bytes>",
+ "posture": "Copies of image files the stand shows (media/), with the exact bytes fingerprinted by the provider observation, kept in R2 under docs/STORAGE.md; git holds this digest manifest only. `node bonsai/lib/layers.mjs fetch bonsai/antiquity` brings the files into a checkout.",
+ "rights": [{"paths":["media/"],"basis":"Copies of image files their providers publish for free reuse (The Met Open Access, CC0; Wikimedia Commons files in the public domain); each image names its provider, rights statement and record in media.json.","refs":["bonsai/antiquity/media.json"]}],
+ "paths": ["media/"],
+ "entries": [
+  {"path":"media/0a2307b896af2aab283d47f989af0d2a388f0ce2dbf92b7af89b244d9520cb5f.jpg","sha256":"0a2307b896af2aab283d47f989af0d2a388f0ce2dbf92b7af89b244d9520cb5f","bytes":47239},
+  {"path":"media/1829356bfdc17bc0f0a1cae83438acf47b7e21d961c91771d385cc74d6ae38dc.jpg","sha256":"1829356bfdc17bc0f0a1cae83438acf47b7e21d961c91771d385cc74d6ae38dc","bytes":285682},
+  {"path":"media/36045abad1f261eaf5ec7a9d41317fcc221104f5c8066191e47c4e14ea254ec3.jpg","sha256":"36045abad1f261eaf5ec7a9d41317fcc221104f5c8066191e47c4e14ea254ec3","bytes":136134},
+  {"path":"media/607b3205aa08f289532d48fdaf664d01e73fef59ee7f7d242e58873df1a11b6f.jpg","sha256":"607b3205aa08f289532d48fdaf664d01e73fef59ee7f7d242e58873df1a11b6f","bytes":3594707},
+  {"path":"media/6e3c4384a55aab39de0b3288c00055ab3da31c1263c9b887223996aa822132b4.jpg","sha256":"6e3c4384a55aab39de0b3288c00055ab3da31c1263c9b887223996aa822132b4","bytes":1497953},
+  {"path":"media/7d8d840424e3747c14b203b67192fff726c897bb05cf9d3f7fa227e1ee4510de.jpg","sha256":"7d8d840424e3747c14b203b67192fff726c897bb05cf9d3f7fa227e1ee4510de","bytes":71388},
+  {"path":"media/945f86b2d7ee561252e409763ae97b054502f9b25b1d9a82d2c4315d0f755b97.jpg","sha256":"945f86b2d7ee561252e409763ae97b054502f9b25b1d9a82d2c4315d0f755b97","bytes":40291},
+  {"path":"media/9690fdcfbc822dd778b92ca0fff800bd1f72317989e2bb710ab8bb9082f99c43.jpg","sha256":"9690fdcfbc822dd778b92ca0fff800bd1f72317989e2bb710ab8bb9082f99c43","bytes":141398},
+  {"path":"media/9d7326ccb310f14f9284733d29d042e3ac11f7e8b1ce1779d8f2323915ebfd9f.jpg","sha256":"9d7326ccb310f14f9284733d29d042e3ac11f7e8b1ce1779d8f2323915ebfd9f","bytes":5667770},
+  {"path":"media/cf21c5c5726406a681022b6147ab90e65fabe81e901c8e8dc1ede10d6e29635a.jpg","sha256":"cf21c5c5726406a681022b6147ab90e65fabe81e901c8e8dc1ede10d6e29635a","bytes":1105653},
+  {"path":"media/eaff5a04103361fed9fba6f10ea7bed80ccdc595d664b6997c6bd32f0eee06a6.jpg","sha256":"eaff5a04103361fed9fba6f10ea7bed80ccdc595d664b6997c6bd32f0eee06a6","bytes":1793830},
+  {"path":"media/f47985b7e7ff7136e8a9cef36f55137806800bdc14f81b80abe62cbc9f3403df.jpg","sha256":"f47985b7e7ff7136e8a9cef36f55137806800bdc14f81b80abe62cbc9f3403df","bytes":1071674}
+ ]
+}

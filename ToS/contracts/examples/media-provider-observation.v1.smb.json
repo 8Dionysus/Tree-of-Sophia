@@ -1,0 +1,169 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/media-provider-observation.schema.json",
+  "schema_version": "tos_media_provider_observation_v1",
+  "provider": "smb",
+  "requested_object": "965972",
+  "observed_at": "2026-11-09T08:04:41.296518219Z",
+  "completed_at": "2026-11-09T08:04:45.673290300Z",
+  "requests": [
+    {
+      "role": "object-record",
+      "url": "https://search.smb.museum/object/obj-965972",
+      "final_url": null,
+      "http_status": null,
+      "transport": "operator-supplied-bytes",
+      "media_type": null,
+      "byte_size": 96926,
+      "sha256": "556adacfe9c71ededbbdcfe8af027e8fb9705b575866bebba25d02242523979c",
+      "started_at": "2026-11-09T08:04:41.296854886Z",
+      "elapsed_seconds": 1.497925323
+    },
+    {
+      "role": "image-preview",
+      "url": "https://search.smb.museum/media/images/thumbs/extra_large/157/005/5157106.jpg",
+      "final_url": null,
+      "http_status": null,
+      "transport": "operator-supplied-bytes",
+      "media_type": null,
+      "byte_size": 234946,
+      "sha256": "2431cec321f67c4bc971f81240e4e7ad268c0b6955d8e49b82b7920604bbd33f",
+      "started_at": "2026-11-09T08:04:42.795971256Z",
+      "elapsed_seconds": 1.3037944000000001
+    },
+    {
+      "role": "image-file",
+      "url": "https://search.smb.museum/media/images/originals/157/005/5157106.AII898_002mR.jpg",
+      "final_url": null,
+      "http_status": null,
+      "transport": "operator-supplied-bytes",
+      "media_type": null,
+      "byte_size": 1756139,
+      "sha256": "3ddb937fd5fb95f1c1fb19a2e9e2b8683481ec48a9b94d2a6118b3d41eacd747",
+      "started_at": "2026-11-09T08:04:44.100216211Z",
+      "elapsed_seconds": 1.570937032
+    }
+  ],
+  "object": {
+    "provider_object_uri": "https://id.smb.museum/object/965972",
+    "record_url": "https://search.smb.museum/object/obj-965972",
+    "api_url": "https://search.smb.museum/object/obj-965972",
+    "identifiers": [
+      {
+        "scheme": "SMB ObjID",
+        "value": "965972"
+      },
+      {
+        "scheme": "SMB inventory number",
+        "value": "A II 898"
+      }
+    ],
+    "titles": [
+      {
+        "text": "Bildnis Friedrich Nietzsche",
+        "language": "de",
+        "language_uri": null,
+        "role": null
+      }
+    ],
+    "makers": [],
+    "production_statements": [
+      {
+        "text": "Curt Stoeving (1863 - 1939), Maler*in",
+        "language": "de",
+        "language_uri": null
+      }
+    ],
+    "dating": {
+      "statement": "1894",
+      "begin_year": 1894,
+      "end_year": 1894
+    },
+    "classifications": [
+      "Malerei"
+    ],
+    "materials": [
+      "Öl auf Leinwand"
+    ],
+    "dimensions": [
+      {
+        "kind": null,
+        "value": null,
+        "unit": null,
+        "unit_uri": null,
+        "statement": "Höhe x Breite: 180 x 242 cm"
+      },
+      {
+        "kind": "height",
+        "value": "180",
+        "unit": "cm",
+        "unit_uri": null,
+        "statement": null
+      },
+      {
+        "kind": "width",
+        "value": "242",
+        "unit": "cm",
+        "unit_uri": null,
+        "statement": null
+      }
+    ],
+    "credit_lines": [],
+    "repository": "Staatliche Museen zu Berlin, Alte Nationalgalerie",
+    "depicted": [],
+    "visual_item_uri": null
+  },
+  "rights": [
+    {
+      "scope": "image",
+      "provider_field": "Fotonachweis",
+      "value": "Staatliche Museen zu Berlin, Alte Nationalgalerie / Klaus Göken Public Domain Mark 1.0",
+      "statement_uri": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "label": "Public Domain Mark 1.0",
+      "stated_in": "https://search.smb.museum/object/obj-965972"
+    }
+  ],
+  "images": [
+    {
+      "role": "primary",
+      "form": "file",
+      "access_url": "https://search.smb.museum/media/images/originals/157/005/5157106.AII898_002mR.jpg",
+      "image_service": null,
+      "file_url": "https://search.smb.museum/media/images/originals/157/005/5157106.AII898_002mR.jpg",
+      "preview_url": "https://search.smb.museum/media/images/thumbs/extra_large/157/005/5157106.jpg",
+      "file_fingerprint": {
+        "url": "https://search.smb.museum/media/images/originals/157/005/5157106.AII898_002mR.jpg",
+        "final_url": null,
+        "media_type": "image/jpeg",
+        "byte_size": 1756139,
+        "sha256": "3ddb937fd5fb95f1c1fb19a2e9e2b8683481ec48a9b94d2a6118b3d41eacd747",
+        "width_pixels": 1969,
+        "height_pixels": 1483
+      },
+      "preview_fingerprint": {
+        "url": "https://search.smb.museum/media/images/thumbs/extra_large/157/005/5157106.jpg",
+        "final_url": null,
+        "media_type": "image/jpeg",
+        "byte_size": 234946,
+        "sha256": "2431cec321f67c4bc971f81240e4e7ad268c0b6955d8e49b82b7920604bbd33f",
+        "width_pixels": 1200,
+        "height_pixels": 903
+      }
+    }
+  ],
+  "warnings": [],
+  "authority": {
+    "evidence_status": "provider_observation",
+    "review_status": "unreviewed",
+    "identity_admitted": false,
+    "rights_decided": false,
+    "source_text_admitted": false,
+    "semantic_authority": false,
+    "graph_authority": false,
+    "canon_authority": false,
+    "publication_authority": false
+  },
+  "maker": {
+    "maker_type": "software",
+    "agent_ref": "software:tos-native-owner-command/acquisition/media.observe"
+  }
+}

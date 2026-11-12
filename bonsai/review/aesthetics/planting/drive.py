@@ -16,14 +16,14 @@ Environment: CODEX (binary), TOS_PLANTING_MODEL, TOS_PLANTING_EFFORT, TOS_PLANTI
 """
 import argparse,concurrent.futures,datetime,json,os,subprocess,sys,threading,time
 
-HERE=os.path.dirname(os.path.abspath(__file__));KIT=os.path.join(HERE,'kit.py');PACKETS=os.path.join(HERE,'packets')
+HERE=os.path.dirname(os.path.abspath(__file__));KIT=os.path.join(HERE,'kit.py');PACKETS=os.path.join(HERE,'packets');ROOT=os.path.abspath(os.path.join(HERE,'..','..','..','..'))
 CODEX=os.environ.get('CODEX') or os.path.expanduser('~/.local/bin/codex')
 MODEL=os.environ.get('TOS_PLANTING_MODEL','gpt-6.1-terra');EFFORT=os.environ.get('TOS_PLANTING_EFFORT','high')
 OUT=os.environ.get('TOS_PLANTING_OUT') or os.path.expanduser('~/.local/share/claude-codex/out/planting')
 MAKER_TURNS,SECOND_TURNS=5,3
 RETURNS=2                                           # how often a packet goes back to its maker before what is unconfirmed leaves the reading
 TURN=3*3600                                         # one turn of a reader, in seconds
-LIMIT=threading.Event()
+LIMIT=threading.Event();BROKEN=threading.Event()          # the usage limit is reached; the checkout cannot plant
 
 def now():return datetime.datetime.now().isoformat(timespec='seconds')
 def out(work,*names):
@@ -80,6 +80,8 @@ SECOND_ON="""You are the second reader of the packet in this directory (../../AG
 Settle each line as ../../SECOND-READER.md says, then run `python3 ../../kit.py gate . --second` again."""
 
 def have(work,name):return os.path.exists(os.path.join(PACKETS,work,name))
+OUTSIDE=('limit','line-broken')          # ends that say nothing about the packet: it goes on from where it stands
+
 def until_open(work,role,first,again,turns,second=False,thread=None):
     """Turns of one reader until the gate opens, a blocked.json appears, the turns run out or the usage limit ends them."""
     prompt=first
@@ -87,6 +89,7 @@ def until_open(work,role,first,again,turns,second=False,thread=None):
         thread,limit=codex(work,role,prompt,resume=thread if turn or thread else None)
         if limit:return thread,'limit'
         code,text=kit('gate',os.path.join(PACKETS,work),*(['--second'] if second else []))
+        if code==3:BROKEN.set();return thread,'line-broken'       # the checkout fails, not the packet: no reader can mend it
         if not second and have(work,'blocked.json'):
             if code==0:return thread,'blocked'                    # a block the gate does not accept goes back like any shut gate
         elif code==0:kit('stamp',os.path.join(PACKETS,work),'second' if second else 'maker',MODEL,EFFORT);return thread,'open'
@@ -111,22 +114,25 @@ def run(work,retake=False):
         block=json.load(open(os.path.join(PACKETS,work,'blocked.json')))
         if state(work).get('block_checked') or block.get('ground')=='rights' and kit('gate',os.path.join(PACKETS,work))[0]==0:return end('blocked')
         state(work,block_checked=True);maker,got=until_open(work,'maker',BLOCK.format(work=work,reason=block.get('reason')),MAKER_ON,MAKER_TURNS)
-        if got!='open':return end({'limit':'limit','blocked':'blocked'}.get(got,'maker-stuck'))
-    elif (retake and disputed(work)) or kit('gate',os.path.join(PACKETS,work))[0]:       # a packet whose gate is already open goes straight to its second reader
-        maker,got=until_open(work,'maker',MAKER.format(work=work)+('\n\n'+RETAKE if retake and disputed(work) else ''),MAKER_ON,MAKER_TURNS)
-        if got=='blocked':return run(work)                       # the block gets its second look
-        if got!='open':return end('limit' if got=='limit' else 'maker-stuck')
+        if got!='open':return end(got if got in OUTSIDE or got=='blocked' else 'maker-stuck')
+    else:
+        shut=kit('gate',os.path.join(PACKETS,work))[0]
+        if shut==3:BROKEN.set();return end('line-broken')
+        if (retake and disputed(work)) or shut:                  # a packet whose gate is already open goes straight to its second reader
+            maker,got=until_open(work,'maker',MAKER.format(work=work)+('\n\n'+RETAKE if retake and disputed(work) else ''),MAKER_ON,MAKER_TURNS)
+            if got=='blocked':return run(work)                   # the block gets its second look
+            if got!='open':return end(got if got in OUTSIDE else 'maker-stuck')
     for round_ in range(1,RETURNS+2):
         review=os.path.join(PACKETS,work,'review.json')
         if os.path.exists(review):os.replace(review,out(work,f'review-{round_-1}.json'))
         _,got=until_open(work,'second',SECOND.format(work=work),SECOND_ON,SECOND_TURNS,second=True)
-        if got!='open':return end('limit' if got=='limit' else 'second-stuck')
+        if got!='open':return end(got if got in OUTSIDE else 'second-stuck')
         if json.load(open(review)).get('accept'):
             code,text=kit('accept',os.path.join(PACKETS,work),'--by','planting-line')
             return end('accepted' if code==0 else 'accept-failed',note=text[-300:])
         if round_<=RETURNS:
             maker,got=until_open(work,'maker',MAKER_BACK,MAKER_ON,MAKER_TURNS,thread=maker)
-            if got!='open':return end({'limit':'limit','blocked':'blocked'}.get(got,'maker-stuck'))
+            if got!='open':return end(got if got in OUTSIDE or got=='blocked' else 'maker-stuck')
     answer=json.load(open(review))
     if any(item.get('reads')!='as the packet' for item in answer.get('images') or []):return end('page-disputed')
     code,text=kit('settle',os.path.join(PACKETS,work))
@@ -147,9 +153,14 @@ def line(args):
     kit('queue');queue=json.load(open(os.path.join(HERE,'queue.json')))['works']
     works=args.works.split(',') if args.works else [row['work'] for row in queue if row['wave']==args.wave]
     works=[work for work in works if args.retake or (not have(work,'accepted.json') and not have(work,'blocked.json'))][:args.count or None]
+    code,text=kit('ready')                                      # no reader starts in a checkout that cannot plant: each would spend its turns and stop at the same wall
+    if code:
+        subprocess.run(['node',os.path.join(ROOT,'bonsai','lib','layers.mjs'),'fetch','access/public-corpus'],cwd=ROOT,capture_output=True)   # main may have gained corpus texts
+        code,text=kit('ready')
+    if code:print(f'{now()} {text.splitlines()[0]}; no reader started',flush=True);sys.exit(3)
     print(f'{now()} line: {len(works)} works, {args.max} at a time, {MODEL} {EFFORT}',flush=True)
     def one(work):
-        if LIMIT.is_set():return work,'not-started'
+        if LIMIT.is_set() or BROKEN.is_set():return work,'not-started'
         roomy()
         try:result=run(work,retake=args.retake)
         except Exception as error:result=f'error: {error}';state(work,result=result)
@@ -157,7 +168,7 @@ def line(args):
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.max) as pool:results=list(pool.map(one,works))
     count={}
     for _,result in results:count[result]=count.get(result,0)+1
-    print(f'{now()} line ended: '+', '.join(f'{name} {n}' for name,n in count.items())+(' — the usage limit ended it' if LIMIT.is_set() else ''),flush=True)
+    print(f'{now()} line ended: '+', '.join(f'{name} {n}' for name,n in count.items())+(' — the usage limit ended it' if LIMIT.is_set() else '')+(' — the checkout stopped planting' if BROKEN.is_set() else ''),flush=True)
 
 def main():
     p=argparse.ArgumentParser(description=__doc__,formatter_class=argparse.RawDescriptionHelpFormatter);s=p.add_subparsers(dest='cmd',required=True)
