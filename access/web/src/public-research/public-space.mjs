@@ -159,7 +159,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // The lens "Time" exists where the data dates or orders its material: Antiquity by the years its bonsai gives the writings, Zarathustra by the order of the book.
   const timeline=profile==='antiquity'?antiquityTimeline({routes,entries:library.space?.collection??[],chronology:bonsai?.chronology}):profile==='zarathustra'?zarathustraTimeline({materials:[...materials.values()],references:atlas.references??{},clusters:atlas.clusters??[],chronology:bonsai?.chronology}):null;
   // What a star's dating and place are about: the writing of its passage or work (Antiquity), of the text it first rests on (Zarathustra).
-  const situationOf=materialId=>profile==='antiquity'?timeline?.timeOf?.(materialId)?.composition??null:bonsai?.chronology?.compositions?.references?.[timeline?.firstGround?.(materialId)]??bonsai?.chronology?.book?.parts?.find(item=>item.part===timeline?.placeOf?.(materialId)?.part)?.writing??null;
+  const situationOf=materialId=>profile==='aesthetics'?(materials.get(materialId)?.dating??bonsai?.chronology?.compositions?.works?.[materials.get(materialId)?.workId]??materials.get(materialId)?.life??null):profile==='antiquity'?timeline?.timeOf?.(materialId)?.composition??null:bonsai?.chronology?.compositions?.references?.[timeline?.firstGround?.(materialId)]??bonsai?.chronology?.book?.parts?.find(item=>item.part===timeline?.placeOf?.(materialId)?.part)?.writing??null;
   const placesReader=bonsai?.places?readPlaces(bonsai.places):null;
   const placeOf=materialId=>{const situation=situationOf(materialId),own=situation?placesReader?.at(situation):null;return own?{...own,situation}:null;};
   const placeEntryOf=materialId=>{const situation=situationOf(materialId);return situation?placesReader?.entry(situation)??null:null;};
@@ -1050,7 +1050,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     });
     // Only a branch's own transitions stand at rest; every other link waits until one of its stars is reached.
     const shown=new Set(projected.nodes.map(node=>node.id)),pairs=new Set();
-    projected.edges=projected.edges.filter(edge=>shown.has(edge.from)&&shown.has(edge.to)).map(edge=>{pairs.add(`${edge.from}|${edge.to}`);pairs.add(`${edge.to}|${edge.from}`);return Number.isFinite(edge.baseAlpha)?edge:{...edge,latent:true};});
+    projected.edges=projected.edges.filter(edge=>shown.has(edge.from)&&shown.has(edge.to)).map(edge=>{pairs.add(`${edge.from}|${edge.to}`);pairs.add(`${edge.to}|${edge.from}`);return Number.isFinite(edge.baseAlpha)?edge:profile==='aesthetics'&&String(edge.id).includes('aesthetics:relation:')?{...edge,baseAlpha:.8}:{...edge,latent:true};});
     const all=enabled.size===relationKinds.length;
     for(const edge of treeLayout.edges){
       const from=graphIdForMaterial(edge.from),to=graphIdForMaterial(edge.to);
@@ -1459,7 +1459,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     appendDating(into,material?.id);appendPlace(into,material?.id);
     if(lens==='proximity'&&proximityLens)appendDistance(into,material?.id);
     into.append(ladderLine(ladderRung({material,node})));appendPaths(into,material);
-    const branchRoute=profile==='antiquity'?routeItems().find(item=>item.source==='atlas'&&(item.id===material?.route?.id||`antiquity:route:${item.id}`===material?.id)):null;
+    const branchRoute=profile!=='zarathustra'?routeItems().find(item=>item.source==='atlas'&&(item.id===material?.route?.id||`${profile}:route:${item.id}`===material?.id)):null;
     if(branchRoute&&!pane){const walk=button(`${t('walkBranch')} · ${countMoves(branchRoute.steps?.length??0)} →`,'primary ps-walk-branch');walk.addEventListener('click',()=>{closePanel();startRoute(branchRoute);});into.append(walk);}if(node.ownerType==='personal-hypothesis'&&nodeTitle.length>120)into.append(el('p','ps-personal-title',nodeTitle));
     if(node.ownerType==='personal-hypothesis'){
       if(node.body)into.append(el('p','body',node.body));
@@ -1473,7 +1473,15 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       if(source?.exact){const open=button(`↗ ${sourceActionLabel(source)}`,'primary ps-source-open');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));into.append(open);}
       else if(source?.binding){const open=button(`↗ ${sourceActionLabel(source)}`,'primary ps-source-open');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));into.append(open);}
       const body=material.atlasBody??material.body;
-      if(body)fragments.render(into,body,{className:'body'});
+      if(body&&!(profile==='aesthetics'&&material.route))fragments.render(into,body,{className:'body'});
+      if(profile==='aesthetics'&&material.voice)fragments.render(into,material.voice,{className:'body'});
+      if(profile==='aesthetics'&&material.workId&&material.kind==='interpretation'){
+        const work=previewMaterials.get(`aesthetics:catalog:${material.workId}`);
+        const authors=(material.agents??[]).map(id=>previewMaterials.get(`aesthetics:catalog:${id}`)).filter(Boolean);
+        const authorText=authors.map(author=>{const life=chronologyReader?.span(author.life);return [tr(author.title,locale()),life?formatYears(life,locale()):''].filter(Boolean).join(' · ');}).join(', ');
+        const line=[tr(work?.title,locale()),authorText,material.locus].filter(Boolean).join(' · ');if(line)into.append(el('p','ps-source-line',line));
+      }
+      if(profile==='aesthetics'&&material.route){const list=el('section','ps-branch-list');for(const step of material.route.steps){const open=button(tr(step.title,locale()),'connection-target');open.addEventListener('click',()=>previewMaterial(step.nodeId));list.append(open);}into.append(list);}
       // The map shows what the book says. A question of the book is the star's title, and the book's answer stands
       // under it; the reader's own line about it is written in the learning mode (readingPrompt).
       const asked=tr(material.question,locale()).trim();
@@ -1710,6 +1718,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(!from?.ownerType&&!to?.ownerType)appendLinkMedia(into,{ends:[matForNode(from),matForNode(to)].filter(Boolean)});
     if(!edge.ownerType&&edge.kind!=='contains'&&!isBasedOn(edge))into.append(ladderLine('comparison'));
     if(edge.body||atlasEdge?.body)fragments.render(into,edge.body??atlasEdge.body,{className:'body'});
+    if(profile==='aesthetics')for(const id of atlasEdge?.grounds??[]){const item=previewMaterials.get(id);if(!item)continue;const open=button(tr(item.title,locale()),'connection-target');open.addEventListener('click',()=>previewMaterial(id));into.append(open);}
     const inquiry=atlasEdge?.inquiry??edge.inquiry;if(inquiry){inquiryDetail(into,t('relationWarrant'),inquiry.warrant,true);appendGrounds(into,inquiry.grounds);inquiryDetail(into,t('relationLimit'),inquiry.limit);inquiryQuestion(into,inquiry.question);}
     const endpoints=el('div','edge-endpoints');const a=button(label(from?.ownerType==='personal-hypothesis'?from:matForNode(from)??from),'text-button'),b=button(label(to?.ownerType==='personal-hypothesis'?to:matForNode(to)??to),'text-button');a.addEventListener('click',()=>pane?pane.subject({kind:'node',id:from.id}):selectNode(from.id));b.addEventListener('click',()=>pane?pane.subject({kind:'node',id:to.id}):selectNode(to.id));endpoints.append(a,el('span','',relationLabel),b);into.append(endpoints);
     const proposal=(workspace?.getState?.()?.proposals??[]).find(item=>item.id===edge.proposalId);
