@@ -39,7 +39,19 @@
       161,
       193
     ],
-    "full_scan_collation": false
+    "full_scan_collation": false,
+    "retained_intermediate": {
+      "ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/wallace-1882-reader-chapters.json",
+      "sha256": "c4afbfcc2279a1790c5b4f3b2a162ef7eff1523e12363f07e4ba88c15e685654"
+    },
+    "extraction_script": {
+      "ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/extract-wallace.py",
+      "sha256": "acc71e3ae07822ef99cbbc34cda2b97ad5f29eacfd89119713b99235e670b8e4"
+    },
+    "assembly_script": {
+      "ref": "ToS/source-witnesses/works/aristotle/de-anima/expressions/retained-de-anima-en-wallace1882-reader/editions/retained-reading/items/retained-antiquity-20261027/payload/assemble-wallace.py",
+      "sha256": "517f4f781d9d6f2b9f600938654822c2f80cfa6c9bb212562120e599e405a4b0"
+    }
   },
   "rights_evidence": [
     "https://commons.wikimedia.org/wiki/File:Aristotle%27s_psychology_(IA_b24866660).pdf",
