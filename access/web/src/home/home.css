@@ -17,6 +17,7 @@ body{display:flex;flex-direction:column;min-height:100dvh;font:16px/1.5 system-u
 .home-mark{display:flex;flex-direction:column;align-items:center;gap:14px;margin:0;color:var(--ink);font:500 12px/1.2 system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:.22em;text-transform:uppercase}
 .home-mark::before{content:'';width:44px;height:44px;background:url(/tree-mark.svg) center/contain no-repeat}
 :root[data-site-theme="noon"] .home-mark::before{background-image:url(/tree-mark-noon.svg)}
+.home-tagline span{display:block;text-wrap:balance}
 .home-tagline{margin:0;color:var(--text);font:400 clamp(17px,2.3vw,20px)/1.6 Sophia,Georgia,'Times New Roman',serif}
 .home-choice{display:flex;flex-direction:column;align-items:center;gap:18px;width:100%}
 .home-choose{margin:0;color:var(--muted);font:600 11px/1.4 system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:.18em;text-transform:uppercase}
@@ -43,7 +44,7 @@ body{display:flex;flex-direction:column;min-height:100dvh;font:16px/1.5 system-u
 :root[data-site-theme="noon"] .home-tree.is-mark img{filter:invert(1) hue-rotate(180deg) brightness(.6)}
 .home-title{color:var(--ink);font:400 clamp(24px,3vw,28px)/1.2 Sophia,Georgia,'Times New Roman',serif}
 .home-meta{color:var(--muted);font-size:13px;line-height:1.45}
-.home-desc{max-width:36ch;color:var(--text);font:15px/1.6 Sophia,Georgia,'Times New Roman',serif}
+.home-desc{max-width:36ch;text-wrap:balance;color:var(--text);font:15px/1.6 Sophia,Georgia,'Times New Roman',serif}
 .home-stand a:hover .tree-wood-lit,.home-stand a:focus-visible .tree-wood-lit{stop-color:color-mix(in srgb,var(--branch) 45%,var(--accent))}
 .home-stand a:hover .home-title,.home-stand a:focus-visible .home-title{color:var(--accent)}
 .home-title{transition:color .45s}
