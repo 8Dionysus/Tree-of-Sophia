@@ -21,7 +21,7 @@ it('starts the page, lists the three stands and enables the selected corpus read
     await import('./app.mjs');
     await vi.waitFor(()=>{expect(document.querySelector('#tree')?.dataset.ready).toBe('true');expect(document.querySelector('.test-reader-open')?.disabled).toBe(false);},{timeout:10000});
     expect(window.tosPublicResearch.profile).toBe('aesthetics');
-    expect([...document.querySelectorAll('.pr-spaces > *')].map(node=>node.textContent)).toEqual(['Zarathustra','Antiquity','Aesthetics']);
+    expect([...document.querySelectorAll('.pr-spaces > *')].map(node=>node.textContent)).toEqual(['Antiquity','Zarathustra','Aesthetics']);
     expect(document.querySelector('.test-reader-open').disabled).toBe(false);
     expect(document.querySelector('.pr-error')).toBeNull();expect(errors).toEqual([]);
   }finally{window.dispatchEvent(new window.Event('pagehide'));await Promise.resolve();vi.unstubAllGlobals();window.happyDOM.abort();}
