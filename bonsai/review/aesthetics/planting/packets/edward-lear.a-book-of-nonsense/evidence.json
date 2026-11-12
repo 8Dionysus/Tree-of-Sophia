@@ -1,0 +1,160 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/bookofnonsense00lear/bookofnonsense00lear_hocr_searchtext.txt.gz",
+   "file": "bookofnonsense00lear.ocr.txt",
+   "sha256": "e57c8b40cfaa238aa84d795b00e7cf90933d92ee6c80dfa3a959a2754c4a3a75",
+   "bytes": 29633,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/bookofnonsense00lear/bookofnonsense00lear_hocr_pageindex.json.gz",
+   "file": "bookofnonsense00lear.index.json",
+   "sha256": "6fdeb55a099b2f1c4873f5a9022a4b86a16d6d53a59265d51b593c3cbe5ad402",
+   "bytes": 4259,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/bookofnonsense00lear/bookofnonsense00lear_page_numbers.json",
+   "file": "bookofnonsense00lear.pages.json",
+   "sha256": "23eb1008c1b2c5c4f3343efc0585f98819f5373af13d0d515d87b12aa1eae5ff",
+   "bytes": 22149,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "transcription",
+   "url": "https://www.gutenberg.org/files/13650/13650-0.txt",
+   "file": "13650-0.txt",
+   "sha256": "bc653b1c35eedd3d300aa8e53117652ca8ac96033fe86bce988689f517c1effc",
+   "bytes": 195221,
+   "fetched": "2026-11-11",
+   "text": "13650-0.txt.txt"
+  },
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/nonsensebooks04lear/nonsensebooks04lear_hocr_searchtext.txt.gz",
+   "file": "nonsensebooks04lear.ocr.txt",
+   "sha256": "6e06c55ca2248d600325e739b7ca031be59c7d34470473824fa72e1f1b8f7be4",
+   "bytes": 193654,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/nonsensebooks04lear/nonsensebooks04lear_hocr_pageindex.json.gz",
+   "file": "nonsensebooks04lear.index.json",
+   "sha256": "603ef8442b31e68a8f79e94c0a551873c8ecd7bd9a0579236d7a230417a592b4",
+   "bytes": 15875,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/nonsensebooks04lear/nonsensebooks04lear_page_numbers.json",
+   "file": "nonsensebooks04lear.pages.json",
+   "sha256": "02c0e4626845c02de792b999b45ebf5ce2f378574dd5e1f3d523c8663db9e004",
+   "bytes": 75847,
+   "fetched": "2026-11-11"
+  }
+ ],
+ "scan": {
+  "item": "nonsensebooks04lear",
+  "ocr": true,
+  "long_s": false,
+  "image_offset": -1
+ },
+ "persons": [
+  {
+   "qid": "Q309759",
+   "name": {
+    "en": "Edward Lear",
+    "ru": "Эдвард Лир"
+   },
+   "role": "author",
+   "died": 1888,
+   "source": "https://www.wikidata.org/wiki/Q309759"
+  }
+ ],
+ "published": 1888,
+ "images": [
+  {
+   "n": 25,
+   "item": "bookofnonsense00lear",
+   "file": "bookofnonsense00lear-n25.jpg",
+   "sha256": "42e75c64339b0d7f4fb783cfebffa8d01b03778190c37e01aa719ab5fed48347",
+   "by": "maker"
+  },
+  {
+   "n": 28,
+   "item": "bookofnonsense00lear",
+   "file": "bookofnonsense00lear-n28.jpg",
+   "sha256": "553ce3f2a81de0881b245f44207ce676a6c835c8cdaa699633d17e00166292af",
+   "by": "maker"
+  },
+  {
+   "n": 35,
+   "item": "nonsensebooks04lear",
+   "file": "nonsensebooks04lear-n35.jpg",
+   "sha256": "1335a5776eb91e84df21f245a46d1f06f7d204b1f69d0551559b2e70f72479b2",
+   "by": "maker"
+  },
+  {
+   "n": 34,
+   "item": "nonsensebooks04lear",
+   "file": "nonsensebooks04lear-n34.jpg",
+   "sha256": "cf324b54b3dd452a86fd090cc48477c713dca643c3704c5ddec7af1434b64d8d",
+   "by": "maker"
+  },
+  {
+   "n": 34,
+   "item": "nonsensebooks04lear",
+   "file": "nonsensebooks04lear-n34.jpg",
+   "sha256": "cf324b54b3dd452a86fd090cc48477c713dca643c3704c5ddec7af1434b64d8d",
+   "by": "second",
+   "loc": "Book p29b"
+  }
+ ],
+ "places": {
+  "Book p29a": {
+   "transcription": "13650-0.txt",
+   "scan": "nonsensebooks04lear",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    35
+   ],
+   "printed": [
+    "29"
+   ],
+   "differences": []
+  },
+  "Book p29b": {
+   "transcription": "13650-0.txt",
+   "scan": "nonsensebooks04lear",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    35
+   ],
+   "printed": [
+    "29"
+   ],
+   "differences": []
+  }
+ },
+ "scans": {
+  "bookofnonsense00lear": {
+   "item": "bookofnonsense00lear",
+   "ocr": true,
+   "long_s": false,
+   "image_offset": null
+  },
+  "nonsensebooks04lear": {
+   "item": "nonsensebooks04lear",
+   "ocr": true,
+   "long_s": false,
+   "image_offset": -1
+  }
+ }
+}

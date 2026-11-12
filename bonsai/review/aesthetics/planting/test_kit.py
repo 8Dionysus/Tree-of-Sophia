@@ -69,5 +69,17 @@ class WholeSentencesTest(unittest.TestCase):
         self.assertTrue(kit.sentences('A' + 'a' * 2400 + '.'))
 
 
+class QuotedPlaceTest(unittest.TestCase):
+    def test_a_place_keeps_the_opening_mark_of_the_transcription(self):
+        source = 'The Queen said this. ‘Now, here, you see, it takes all the running you can do, to keep in the same place.’ Alice looked.'
+        self.assertIsNone(kit.in_transcription('‘Now, here, you see, it takes all the running you can do, to keep in the same place.’', source))
+        source = 'Er schreibt: „Das ist das Numinose.“ Dann folgt mehr.'
+        self.assertIsNone(kit.in_transcription('„Das ist das Numinose.“', source))
+
+    def test_a_mark_the_transcription_lacks_is_still_named(self):
+        source = 'The Queen said this. Now, here, you see, it takes all the running you can do, to keep in the same place. Alice looked.'
+        self.assertIsNotNone(kit.in_transcription('‘Now, here, you see, it takes all the running you can do, to keep in the same place.’', source))
+
+
 if __name__ == '__main__':
     unittest.main()

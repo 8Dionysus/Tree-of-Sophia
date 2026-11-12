@@ -150,6 +150,13 @@
    },
    {
     "lang": "de",
+    "from": "ein jedes",
+    "to": "ein Jedes",
+    "evidence": "1887 scan p. 207, Internet Archive leaf n215",
+    "place": "friedrich-nietzsche.die-froehliche-wissenschaft §290 p207"
+   },
+   {
+    "lang": "de",
     "from": "die aesthetische Wissenschaft",
     "to": "die ästhetische Wissenschaft",
     "evidence": "Scan p. 1, Internet Archive bub_gb_VaA7AAAAYAAJ n24: ästhetische.",
@@ -234,20 +241,6 @@
    },
    {
     "lang": "de",
-    "from": "zweiten Hand, und",
-    "to": "zweyten Hand und",
-    "evidence": "Scan p. 345, Internet Archive 10119231bsb leaf n354.",
-    "place": "friedrich-schiller.ueber-das-pathetische III p345"
-   },
-   {
-    "lang": "de",
-    "from": "stärker, als",
-    "to": "stärker als",
-    "evidence": "Scan p. 345, Internet Archive 10119231bsb leaf n354.",
-    "place": "friedrich-schiller.ueber-das-pathetische III p345"
-   },
-   {
-    "lang": "de",
     "from": "erfordert",
     "to": "erfodert",
     "evidence": "Scan pp. 349–350, Internet Archive 10119231bsb leaves n358–n359.",
@@ -315,6 +308,34 @@
     "to": "in dem zweyten bloß",
     "evidence": "Scan pp. 349–350, Internet Archive 10119231bsb leaves n358–n359.",
     "place": "friedrich-schiller.ueber-das-pathetische III p349"
+   },
+   {
+    "lang": "de",
+    "from": "zweiten Hand, und",
+    "to": "zweyten Hand und",
+    "evidence": "Scan p. 345, Internet Archive 10119231bsb leaf n354.",
+    "place": "friedrich-schiller.ueber-das-pathetische III p345"
+   },
+   {
+    "lang": "de",
+    "from": "stärker, als",
+    "to": "stärker als",
+    "evidence": "Scan p. 345, Internet Archive 10119231bsb leaf n354.",
+    "place": "friedrich-schiller.ueber-das-pathetische III p345"
+   },
+   {
+    "lang": "de",
+    "from": "empfinden.",
+    "to": "empfinden,",
+    "evidence": "Scan p. 345, Internet Archive 10119231bsb leaf n354; comma introduces the Latin quotation.",
+    "place": "friedrich-schiller.ueber-das-pathetische III p345"
+   },
+   {
+    "lang": "de",
+    "from": "Post ipsum auxilio",
+    "to": "Post ipsum, auxilio",
+    "evidence": "Scan p. 345, Internet Archive 10119231bsb leaf n354.",
+    "place": "friedrich-schiller.ueber-das-pathetische III p345"
    },
    {
     "lang": "de",
@@ -744,6 +765,20 @@
     "place": "henri-bergson.le-rire II p89b"
    },
    {
+    "lang": "fr",
+    "from": "II — Du mécanique",
+    "to": "II. — Du mécanique",
+    "evidence": "1900 scan p. 50, n63: printed section marker II.",
+    "place": "henri-bergson.le-rire I p50a"
+   },
+   {
+    "lang": "fr",
+    "from": "Ainsi, en résumé",
+    "to": "Ainsi, pour tout résumer",
+    "evidence": "1900 scan p. 50, n63: Ainsi, pour tout résumer",
+    "place": "henri-bergson.le-rire I p50b"
+   },
+   {
     "lang": "de",
     "from": "Bemühung, sich",
     "to": "Bemühung sich",
@@ -833,6 +868,13 @@
     "to": "Menge",
     "evidence": "Scan p. 161, Internet Archive 10046454bsb, leaf n164: page reads Menge.",
     "place": "moses-mendelssohn.ueber-das-erhabene-und-naive-in-den-schoenen III p161"
+   },
+   {
+    "lang": "de",
+    "from": "wohl-bekanntes",
+    "to": "wohlbekanntes",
+    "evidence": "1925 scan p. 13, image n24: hyphen marks line break in wohlbekanntes.",
+    "place": "rudolf-otto.das-heilige IV p13"
    },
    {
     "lang": "en",
@@ -1640,6 +1682,18 @@
     "p. 3 (subject of the arts)",
     "p. 4 (two uses of decoration)",
     "pp. 34–35 (houses, artist and art for a few)"
+   ],
+   "edward-lear.a-book-of-nonsense": [
+    "p. 29 (both verses and page number)"
+   ],
+   "friedrich-nietzsche.die-froehliche-wissenschaft": [
+    "p. 207 (§ 290, full excerpt)"
+   ],
+   "rudolf-otto.das-heilige": [
+    "p. 6 (from Da unser Sprachgefühl to the foot of the page)",
+    "p. 7 (continuation of the sentence)",
+    "p. 13 (tremendum paragraph)",
+    "p. 78 (art and architecture paragraph)"
    ]
   },
   "packets": [
@@ -1655,8 +1709,10 @@
    "edith-stein.zum-problem-der-einfuehlung",
    "eduard-hanslick.vom-musikalisch-schoenen",
    "edward-bullough.psychical-distance-as-a-factor-in-art",
+   "edward-lear.a-book-of-nonsense",
    "emile-durkheim.les-formes-elementaires-de-la-vie-religieuse",
    "francis-hutcheson.an-inquiry-into-the-original-of-our-ideas",
+   "friedrich-nietzsche.die-froehliche-wissenschaft",
    "friedrich-nietzsche.die-geburt-der-tragoedie-aus-dem-geiste",
    "friedrich-schiller.gedanken-ueber-den-gebrauch-des-gemeinen",
    "friedrich-schiller.ueber-anmut-und-wuerde",
@@ -1677,6 +1733,7 @@
    "joseph-addison.the-pleasures-of-the-imagination",
    "moses-mendelssohn.ueber-das-erhabene-und-naive-in-den-schoenen",
    "oscar-wilde.the-decay-of-lying",
+   "rudolf-otto.das-heilige",
    "samuel-taylor-coleridge.biographia-literaria",
    "shaftesbury.characteristics-of-men-manners-opinions-times",
    "sigmund-freud.das-unheimliche",
@@ -3585,6 +3642,125 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
+    }
+   ]
+  },
+  "edward-lear.a-book-of-nonsense": {
+   "author": {
+    "ru": "Эдвард Лир",
+    "en": "Edward Lear"
+   },
+   "title": {
+    "ru": "Книга бессмыслиц",
+    "en": "A Book of Nonsense"
+   },
+   "original": "en",
+   "witnesses": {
+    "en": {
+     "edition": "Edward Lear, Nonsense Books (Boston: Little, Brown and Company, 1888), Library of Congress copy, A Book of Nonsense.",
+     "year": 1888,
+     "url": "https://archive.org/details/nonsensebooks04lear",
+     "sources": [
+      "https://archive.org/details/nonsensebooks04lear",
+      "https://www.gutenberg.org/ebooks/13650"
+     ],
+     "licence": "Public domain book and Internet Archive scan; Project Gutenberg License for the transcription, public domain in the United States.",
+     "attribution": "Edward Lear, Nonsense Books (Boston: Little, Brown and Company, 1888), p. 29; transcription from Project Gutenberg compared with the Library of Congress scan at Internet Archive.",
+     "rights": {
+      "basis": "public-domain",
+      "russia": "Общественное достояние: Эдвард Лир (автор) — год смерти 1888 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
+      "usa": "Public domain: this printing was published in 1888 (before 1930).",
+      "eu": "Public domain: Edward Lear (author) died 1888, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "reasoning": "The verses and drawings are by Edward Lear. Words are taken from Project Gutenberg Nonsense Books, whose particular printing is not identified in the transcription, and compared with the 1888 Boston scan. Line breaks and whitespace are normalized by the kit."
+     }
+    }
+   },
+   "absent": [
+    {
+     "language": "ru",
+     "reason": "No Russian text is taken in this pass: the line plants the original first."
+    }
+   ]
+  },
+  "friedrich-nietzsche.die-froehliche-wissenschaft": {
+   "author": {
+    "ru": "Фридрих Ницше",
+    "en": "Friedrich Nietzsche"
+   },
+   "title": {
+    "ru": "Веселая наука",
+    "en": "The Gay Science"
+   },
+   "original": "de",
+   "witnesses": {
+    "de": {
+     "edition": "Die fröhliche Wissenschaft (\"la gaya scienza\"), neue Ausgabe, Leipzig: E. W. Fritzsch, 1887; Google digitisation, library unspecified.",
+     "year": 1887,
+     "url": "https://archive.org/details/bub_gb_LNEuAAAAYAAJ",
+     "sources": [
+      "https://archive.org/details/bub_gb_LNEuAAAAYAAJ",
+      "https://projekt-gutenberg.org/authors/friedrich-wilhelm-nietzsche/books/die-froehliche-wissenschaft/chapter/7/"
+     ],
+     "licence": "Public domain book and scan; German Projekt Gutenberg transcription of the public domain work.",
+     "attribution": "Friedrich Nietzsche, Die fröhliche Wissenschaft (Leipzig: E. W. Fritzsch, 1887), p. 207; transcription from Projekt Gutenberg, compared to Internet Archive scan.",
+     "rights": {
+      "basis": "public-domain",
+      "russia": "Общественное достояние: Фридрих Ницше (автор) — год смерти 1900 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
+      "usa": "Public domain: this printing was published in 1887 (before 1930).",
+      "eu": "Public domain: Friedrich Nietzsche (author) died 1900, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "reasoning": "Nietzsche’s original German text; Projekt Gutenberg transcription does not identify its base edition, and its text is compared and corrected to the 1887 Fritzsch scan. Line breaks are joined; typographic quotation marks and dashes are normalized."
+     }
+    }
+   },
+   "absent": [
+    {
+     "language": "ru",
+     "reason": "No Russian text is taken in this pass: the original is planted first."
+    },
+    {
+     "language": "en",
+     "reason": "No English text is taken in this pass: the original is planted first."
+    }
+   ]
+  },
+  "rudolf-otto.das-heilige": {
+   "author": {
+    "ru": "Рудольф Отто",
+    "en": "Rudolf Otto"
+   },
+   "title": {
+    "ru": "Священное",
+    "en": "The Idea of the Holy"
+   },
+   "original": "de",
+   "witnesses": {
+    "de": {
+     "edition": "Das Heilige: über das Irrationale in der Idee des Göttlichen und sein Verhältnis zum Rationalen, 13. Auflage (Gotha und Stuttgart: Friedrich Andreas Perthes, 1925), University of Illinois Urbana-Champaign copy.",
+     "year": 1925,
+     "url": "https://archive.org/details/dasheiligeuberda00otto",
+     "sources": [
+      "https://archive.org/details/dasheiligeuberda00otto",
+      "https://forage.com/otto/idea-of-the-holy/"
+     ],
+     "licence": "Public domain book; Internet Archive scan. Forage German transcription is offered under CC BY-SA 4.0.",
+     "attribution": "Rudolf Otto, Das Heilige, 13th edition (Gotha and Stuttgart: Friedrich Andreas Perthes, 1925); German words from Forage compared against the University of Illinois scan at Internet Archive.",
+     "rights": {
+      "basis": "public-domain",
+      "russia": "Общественное достояние: Рудольф Отто (автор) — год смерти 1937 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
+      "usa": "Public domain: this printing was published in 1925 (before 1930).",
+      "eu": "Public domain: Rudolf Otto (author) died 1937, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "reasoning": "Text by Rudolf Otto; Forage transcription from the 1925 thirteenth edition follows the Internet Archive scan. The passage on pp. 6–7 is cut from the scan OCR because the Forage text interleaves an English translation, and is checked on both page images. The kit joins line-end hyphenation; corrections are recorded."
+     }
+    }
+   },
+   "absent": [
+    {
+     "language": "ru",
+     "reason": "No Russian text is taken in this pass: the line plants the original first."
+    },
+    {
+     "language": "en",
+     "reason": "No English text is taken in this pass: the line plants the original first."
     }
    ]
   }
@@ -6539,7 +6715,7 @@
      "en": "Ch. I, p. 50"
     },
     "texts": {
-     "fr": "Des trois directions où nous devions nous engager, nous avons suivi maintenant la première jusqu’au bout. Passons à la seconde, et voyons où elle nous conduira.\n\nDu mécanique plaqué sur du vivant, voilà encore notre point de départ. D’où venait ici le comique? De ce que le corps vivant se raidissait en machine."
+     "fr": "II. — Du mécanique plaqué sur du vivant, voilà encore notre point de départ. D’où venait ici le comique ? De ce que le corps vivant se raidissait en machine."
     },
     "links": {
      "fr": "https://archive.org/details/b21270545/page/n63/mode/1up"
@@ -6602,6 +6778,24 @@
      [
       "fr",
       "First edition (Paris: Alcan, 1900), p. 124"
+     ]
+    ]
+   },
+   "I p50b": {
+    "label": {
+     "ru": "Гл. I, с. 50",
+     "en": "Ch. I, p. 50"
+    },
+    "texts": {
+     "fr": "Ainsi, pour tout résumer, le même effet va toujours se subtilisant, depuis l’idée d’une mécanisation artificielle du corps humain, si l’on peut s’exprimer ainsi, jusqu’à celle d’une substitution quelconque de l’artificiel au naturel."
+    },
+    "links": {
+     "fr": "https://archive.org/details/b21270545/page/n63/mode/1up"
+    },
+    "refs": [
+     [
+      "fr",
+      "First edition (Paris: Alcan, 1900), p. 50"
      ]
     ]
    }
@@ -6853,7 +7047,7 @@
      "en": "On the Pathetic, p. 345"
     },
     "texts": {
-     "de": "Alle Affekte sind ästhetischer aus der zweyten Hand und keine Sympathie ist stärker als die wir mit der Sympathie empfinden."
+     "de": "Alle Affekte sind ästhetischer aus der zweyten Hand und keine Sympathie ist stärker als die wir mit der Sympathie empfinden,\n\nPost ipsum, auxilio subeuntem ac tela ferentem corripiunt."
     },
     "links": {
      "de": "https://archive.org/details/10119231bsb/page/n354/mode/1up"
@@ -8574,6 +8768,120 @@
      [
       "en",
       "Pocket edition (London 1919), pp. 34–35"
+     ]
+    ]
+   }
+  },
+  "edward-lear.a-book-of-nonsense": {
+   "Book p29a": {
+    "label": {
+     "ru": "Книга бессмыслиц, с. 29",
+     "en": "A Book of Nonsense, p. 29"
+    },
+    "texts": {
+     "en": "There was an Old Lady of Chertsey, Who made a remarkable curtsey; She twirled round and round, till she sank underground, Which distressed all the people of Chertsey."
+    },
+    "links": {
+     "en": "https://archive.org/details/nonsensebooks04lear/page/n34/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Nonsense Books (Boston 1888), p. 29"
+     ]
+    ]
+   },
+   "Book p29b": {
+    "label": {
+     "ru": "Книга бессмыслиц, с. 29",
+     "en": "A Book of Nonsense, p. 29"
+    },
+    "texts": {
+     "en": "There was a Young Lady whose chin Resembled the point of a pin; So she had it made sharp, and purchased a harp, And played several tunes with her chin."
+    },
+    "links": {
+     "en": "https://archive.org/details/nonsensebooks04lear/page/n34/mode/1up"
+    },
+    "refs": [
+     [
+      "en",
+      "Nonsense Books (Boston 1888), p. 29"
+     ]
+    ]
+   }
+  },
+  "friedrich-nietzsche.die-froehliche-wissenschaft": {
+   "§290 p207": {
+    "label": {
+     "ru": "§ 290, с. 207",
+     "en": "§ 290, p. 207"
+    },
+    "texts": {
+     "de": "Seinem Charakter \"Stil geben\" – eine grosse und seltene Kunst! Sie übt Der, welcher Alles übersieht, was seine Natur an Kräften und Schwächen bietet, und es dann einem künstlerischen Plane einfügt, bis ein Jedes als Kunst und Vernunft erscheint und auch die Schwäche noch das Auge entzückt. Hier ist eine grosse Masse zweiter Natur hinzugetragen worden, dort ein Stück erster Natur abgetragen: – beidemal mit langer Uebung und täglicher Arbeit daran. Hier ist das Hässliche, welches sich nicht abtragen liess, versteckt, dort ist es in's Erhabene umgedeutet."
+    },
+    "links": {
+     "de": "https://archive.org/details/bub_gb_LNEuAAAAYAAJ/page/n215/mode/1up"
+    },
+    "refs": [
+     [
+      "de",
+      "Neue Ausgabe (Leipzig 1887), p. 207"
+     ]
+    ]
+   },
+   "§290 p207b": {
+    "label": {
+     "ru": "§ 290, с. 207",
+     "en": "§ 290, p. 207"
+    },
+    "texts": {
+     "de": "Hier ist das Hässliche, welches sich nicht abtragen liess, versteckt, dort ist es in's Erhabene umgedeutet."
+    },
+    "links": {
+     "de": "https://archive.org/details/bub_gb_LNEuAAAAYAAJ/page/n215/mode/1up"
+    },
+    "refs": [
+     [
+      "de",
+      "Neue Ausgabe (Leipzig 1887), p. 207"
+     ]
+    ]
+   }
+  },
+  "rudolf-otto.das-heilige": {
+   "IV p13": {
+    "label": {
+     "ru": "Гл. IV, с. 13",
+     "en": "Ch. IV, p. 13"
+    },
+    "texts": {
+     "de": "Tremor ist an sich nur Furcht: ein wohlbekanntes ‘natürliches’ Gefühl. Es dient uns hier als nächstgelegene aber selber doch nur analogische Bezeichnung für eine ganz art-besondere Gefühls-reaktion, die zwar Ähnlichkeit hat mit der Furcht und darum durch sie analogisch angedeutet werden kann, die aber selber noch ganz etwas anderes ist als Sichfürchten."
+    },
+    "links": {
+     "de": "https://archive.org/details/dasheiligeuberda00otto/page/n24/mode/1up"
+    },
+    "refs": [
+     [
+      "de",
+      "13th edition (1925), p. 13"
+     ]
+    ]
+   },
+   "X p78": {
+    "label": {
+     "ru": "Гл. X, с. 78",
+     "en": "Ch. X, p. 78"
+    },
+    "texts": {
+     "de": "In den Künsten ist das wirksamste Darstellungs-mittel des Numinosen fast überall das Erhabene. Zumal in der Baukunst."
+    },
+    "links": {
+     "de": "https://archive.org/details/dasheiligeuberda00otto/page/n91/mode/1up"
+    },
+    "refs": [
+     [
+      "de",
+      "13th edition (1925), p. 78"
      ]
     ]
    }

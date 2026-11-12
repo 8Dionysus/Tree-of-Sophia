@@ -361,11 +361,13 @@ def in_transcription(text,source,dropped=None):
     before=re.sub(r'[\s"”»’\')\]_*]+$','',re.sub(r'[\s—–-]+$','',re.sub(r'[\s"”»’\')\]_*]+$','',before)))   # «… kommen. — Eben jene …»: the dash after a full stop opens a sentence
     if not opened and before and before[-1] not in '.!?:…':return f'it opens inside a sentence of the transcription (after «…{before[-40:]}»)'
     blocks=[block for block in match.get_matching_blocks() if block.size];a=words[start+blocks[0].b][1];last=words[start+blocks[-1].b+blocks[-1].size-1];z=last[1]+len(last[0])
-    def written(end):
-        run=source[a:end]
+    def written(end,begin=a):
+        run=source[begin:end]
         for pattern in dropped or []:run=re.sub(pattern,' ',run)
         return re.sub(r' +([,;:.!?])',r'\1',squeeze(run)) if dropped else squeeze(run)
-    if any(written(z+more)==text for more in range(0,60)):return None
+    # A sentence of the place may open with the mark of speech or a bracket the transcription sets before its first word.
+    begins=[a]+[a-n for n in range(1,4) if a-n>=0 and all(mark in '"“„«‚‘\'([' for mark in source[a-n:a])]
+    if any(written(z+more,begin)==text for begin in begins for more in range(0,60)):return None
     run=written(z+len(text)-len(text.rstrip('.!?…"”»’\')')));at=next((i for i,(x,y) in enumerate(zip(text,run)) if x!=y),min(len(text),len(run)))
     return f'its text is not the transcription’s as kit.py cut writes it: the place has «{text[max(0,at-25):at+25]}», the file «{run[max(0,at-25):at+25]}» (cut it again; --drop leaves out a transcriber’s mark)'
 

@@ -1,0 +1,95 @@
+{
+ "reader": {
+  "id": "terra-2026-11-11-a-book-of-nonsense",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-11",
+  "reads": "Read the two English verses on p. 29 of the 1888 Boston Nonsense Books beside register A:E145 and A:R134.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "edward-lear": {
+    "tree": "tos.agent.edward-lear"
+   }
+  },
+  "works": {
+   "edward-lear.a-book-of-nonsense": {
+    "title": {
+     "ru": "Книга бессмыслиц",
+     "en": "A Book of Nonsense"
+    },
+    "original": "en",
+    "tree": "tos.work.edward-lear.a-book-of-nonsense",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "edward-lear.a-book-of-nonsense:chertsey-curtsey",
+   "of": [
+    "A:C073",
+    "A:C060",
+    "A:C078"
+   ],
+   "areas": [
+    "AE07",
+    "AE09"
+   ],
+   "work": "edward-lear.a-book-of-nonsense",
+   "locus": "p. 29, Old Lady of Chertsey",
+   "formula": [
+    {
+     "place": "Book p29a"
+    }
+   ],
+   "thesis": {
+    "ru": "Старушка из Чертси сделала замечательный реверанс. Она кружилась до самого ухода под землю, чем огорчила всех жителей Чертси.",
+    "en": "The Old Lady of Chertsey made a remarkable curtsey. She twirled round and round until she sank underground, distressing all the people of Chertsey."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The register describes a technique and changes in expectations; this conception follows the particular verse and does not attribute that analysis to the verse as a philosophical thesis.",
+   "from": [
+    "A:E145"
+   ]
+  },
+  {
+   "id": "edward-lear.a-book-of-nonsense:chin-and-harp",
+   "of": [
+    "A:C073",
+    "A:C060",
+    "A:C078"
+   ],
+   "areas": [
+    "AE07",
+    "AE09"
+   ],
+   "work": "edward-lear.a-book-of-nonsense",
+   "locus": "p. 29, Young Lady whose chin",
+   "formula": [
+    {
+     "place": "Book p29b"
+    }
+   ],
+   "thesis": {
+    "ru": "Подбородок молодой леди походил на острие булавки; она велела его заострить, купила арфу и сыграла на ней несколько мелодий подбородком.",
+    "en": "The Young Lady’s chin resembled the point of a pin; she had it made sharp, purchased a harp, and played several tunes with her chin."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The register describes a technique and changes in expectations; this conception follows the particular verse rather than assigning an explicit theory to it.",
+   "from": [
+    "A:E145"
+   ]
+  }
+ ],
+ "links": [],
+ "left": [
+  {
+   "key": "A:R134",
+   "reason": "The verses show exaggerated and absurd situations but do not state that nonsense uses exaggeration; that relation is the register’s description of the technique."
+  }
+ ]
+}

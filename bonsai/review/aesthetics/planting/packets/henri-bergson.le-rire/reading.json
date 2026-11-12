@@ -178,8 +178,8 @@
     }
    ],
    "thesis": {
-    "ru": "Ситуация комична, когда одновременно принадлежит двум независимым рядам событий и допускает два различных толкования.",
-    "en": "A situation is comic when it belongs at once to two independent series of events and can be interpreted in two different senses."
+    "ru": "Ситуация всегда комична, когда она одновременно принадлежит двум совершенно независимым рядам событий и допускает истолкование одновременно в двух совершенно различных смыслах.",
+    "en": "A situation is always comic when it belongs at once to two absolutely independent series of events and can be interpreted at once in two entirely different senses."
    },
    "status": "text",
    "verdict": "confirmed",
@@ -203,8 +203,8 @@
     }
    ],
    "thesis": {
-    "ru": "Игра слов выдаёт мгновенное отвлечение языка и потому забавляет.",
-    "en": "Wordplay reveals a momentary distraction of language and is amusing for that reason."
+    "ru": "Игра слов всегда выдаёт мгновенное отвлечение языка и потому забавляет.",
+    "en": "Wordplay always reveals a momentary distraction of language and is amusing for that reason."
    },
    "status": "text",
    "verdict": "revise",
@@ -282,19 +282,22 @@
    "locus": "I",
    "formula": [
     {
+     "place": "I p50b"
+    },
+    {
      "place": "I p50a"
     }
    ],
    "thesis": {
-    "ru": "Механическое, наложенное на живое, служит исходным образом: здесь комическое происходит от того, что живое тело закостеневает в машину.",
-    "en": "The mechanical encrusted on the living is the starting image: here the comic comes from the living body stiffening into a machine."
+    "ru": "В рассмотренном ряду эффектов, начинающемся с идеи искусственной механизации человеческого тела, комическое происходит от того, что живое тело закостеневает в машину.",
+    "en": "In the series of effects considered, beginning with the idea of an artificial mechanization of the human body, the comic comes from the living body stiffening into a machine."
    },
    "status": "text",
    "verdict": "revise",
    "from": [
     "A:E093"
    ],
-   "note": "The statement concerns the case discussed here, not an unrestricted formula for every comic effect."
+   "note": "The summary on p. 50 identifies the series beginning with artificial mechanization of the human body; the passage that follows states where the comic came from in this case."
   },
   {
    "id": "henri-bergson.le-rire:parody-transposition",
@@ -352,12 +355,12 @@
  ],
  "links": [
   {
-   "id": "the-mechanical-encrusted-on-the-living:is-the-starting-image-for-an-account-of:the-comic",
+   "id": "the-mechanical-encrusted-on-the-living:is-the-starting-point-for-the-account-of-the-stiffening-body-as:the-comic",
    "from_concept": "A:C162",
    "to_concept": "A:C006",
    "verb": {
-    "ru": "служит исходным образом для объяснения",
-    "en": "is the starting image for an account of"
+    "ru": "служит исходным пунктом объяснения застывания тела в машину как",
+    "en": "is the starting point for the account of the stiffening body as"
    },
    "grounds": [
     "henri-bergson.le-rire:body-stiffens"
@@ -367,7 +370,7 @@
    "from": [
     "A:R086"
    ],
-   "note": "At p. 50 the image is the starting point and the comic in the case discussed comes from the living body stiffening into a machine."
+   "note": "The summary identifies the series beginning with artificial mechanization of the human body; the following passage names the mechanical on the living as the starting point and asks where the comic came from in this case."
   },
   {
    "id": "rigidity:is-corrected-by:social-correction-by-laughter",
@@ -405,21 +408,22 @@
    ]
   },
   {
-   "id": "interference-of-series:produces-a-situation-of:the-comic",
+   "id": "interference-of-series:characterizes-a-situation-that-is:the-comic",
    "from_concept": "A:C165",
    "to_concept": "A:C006",
    "verb": {
-    "ru": "создаёт ситуацию",
-    "en": "produces a situation of"
+    "ru": "характеризует ситуацию, которая является",
+    "en": "characterizes a situation that is"
    },
    "grounds": [
     "henri-bergson.le-rire:interference"
    ],
    "status": "text",
-   "verdict": "confirmed",
+   "verdict": "revise",
    "from": [
     "A:R089"
-   ]
+   ],
+   "note": "The place calls a situation comic when it belongs at once to two absolutely independent series and can be interpreted in two entirely different senses; it does not state that interference produces the situation."
   }
  ],
  "left": [
