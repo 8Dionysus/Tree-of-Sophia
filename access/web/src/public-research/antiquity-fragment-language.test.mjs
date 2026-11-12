@@ -27,7 +27,7 @@ describe('Antiquity fragment language',()=>{
     globalThis.document={createElement:tag=>new Element(tag),body:new Element('body')};
     try{
       const fragments=createFragments({profile:'antiquity',locale:()=> 'ru',t:key=>key});
-      const figure=fragments.fragment({w:'de-anima',loc:'I.1 402a6-7'});
+      const figure=fragments.fragment({w:'outlines',loc:'I.1'});
       for(let i=0;i<100&&figure.attributes['aria-busy'];i++)await new Promise(resolve=>setTimeout(resolve,5));
       const all=node=>[node,...node.children.flatMap(all)];
       expect(all(figure).map(node=>node.textContent)).toContain('fragmentTranslationUnavailable');
