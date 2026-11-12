@@ -179,6 +179,7 @@ const PUBLIC_WORK_NAMES = {
   'tos.work.plato.meno': ['Менон', 'Meno'],
   'tos.work.aristotle.nicomachean-ethics': ['Никомахова этика', 'Nicomachean Ethics'],
   'tos.work.plato.apology': ['Апология Сократа', 'Apology'],
+  'tos.work.xenophon.memorabilia': ['Воспоминания о Сократе', 'Memorabilia'],
 };
 // The public corpus's authors as a reader of each language names them; the manifest keeps its own spelling.
 const PUBLIC_AUTHOR_NAMES = {
@@ -187,6 +188,7 @@ const PUBLIC_AUTHOR_NAMES = {
   'Hippocratic corpus': ['Гиппократов корпус', 'Hippocratic corpus'], 'Friedrich Nietzsche': ['Фридрих Ницше', 'Friedrich Nietzsche'],
   'Marcus Aurelius': ['Марк Аврелий', 'Marcus Aurelius'], 'Lucretius': ['Лукреций', 'Lucretius'],
   'Diogenes Laertius': ['Диоген Лаэртский', 'Diogenes Laertius'], 'Porphyry': ['Порфирий', 'Porphyry'], 'Plotinus': ['Плотин', 'Plotinus'],
+  'Xenophon': ['Ксенофонт', 'Xenophon'],
 };
 /** The name of a work's author in the reader's language; an author the corpus names in several languages chooses among them. */
 export function corpusAuthorName(author, locale = 'ru') {
