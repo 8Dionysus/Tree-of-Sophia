@@ -1,0 +1,135 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/pictureofdoriang00wildrich/pictureofdoriang00wildrich_hocr_searchtext.txt.gz",
+   "file": "pictureofdoriang00wildrich.ocr.txt",
+   "sha256": "b2800dafb191a1c62d96e09d44a3376a459ff00c957abd952ae096e184f65d4a",
+   "bytes": 521424,
+   "fetched": "2026-11-12"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/pictureofdoriang00wildrich/pictureofdoriang00wildrich_hocr_pageindex.json.gz",
+   "file": "pictureofdoriang00wildrich.index.json",
+   "sha256": "7481d210daf0ebaaeba9f770485f9f3ae9fc615362fb4179c0d640c71205238a",
+   "bytes": 12768,
+   "fetched": "2026-11-12"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/pictureofdoriang00wildrich/pictureofdoriang00wildrich_page_numbers.json",
+   "file": "pictureofdoriang00wildrich.pages.json",
+   "sha256": "dae97aec767e3e25cf6c88aef4aef1a04e7b9ff25d38f5ac738f95c566a8639d",
+   "bytes": 59819,
+   "fetched": "2026-11-12"
+  },
+  {
+   "role": "transcription",
+   "url": "https://en.wikisource.org/w/index.php?title=Page:The_picture_of_Dorian_Gray_(IA_pictureofdoriang00wildrich).pdf/12&action=raw",
+   "file": "index.php",
+   "sha256": "61b8dd63ed285dd80940e314a56afcc731f0a46acf6c3940d8362c01e5e21be7",
+   "bytes": 1279,
+   "fetched": "2026-11-12",
+   "text": "index.php.txt"
+  }
+ ],
+ "scan": {
+  "item": "pictureofdoriang00wildrich",
+  "ocr": true,
+  "long_s": false,
+  "image_offset": 0
+ },
+ "persons": [
+  {
+   "qid": "Q30875",
+   "name": {
+    "en": "Oscar Wilde",
+    "ru": "Оскар Уайльд"
+   },
+   "role": "author",
+   "died": 1900,
+   "source": "https://www.wikidata.org/wiki/Q30875"
+  }
+ ],
+ "published": 1891,
+ "images": [
+  {
+   "n": 11,
+   "item": "pictureofdoriang00wildrich",
+   "file": "pictureofdoriang00wildrich-n11.jpg",
+   "sha256": "fa4b0833d7b2534b1dce3ca08bb36e97511fd732f4412487b3ec5dcc85c7fed6",
+   "by": "maker"
+  },
+  {
+   "n": 11,
+   "item": "pictureofdoriang00wildrich",
+   "file": "pictureofdoriang00wildrich-n11.jpg",
+   "sha256": "fa4b0833d7b2534b1dce3ca08bb36e97511fd732f4412487b3ec5dcc85c7fed6",
+   "by": "second",
+   "loc": "Preface p6b"
+  }
+ ],
+ "places": {
+  "Preface p6a": {
+   "transcription": "index.php",
+   "scan": "pictureofdoriang00wildrich",
+   "method": "ocr",
+   "share": 0.885,
+   "leaves": [
+    11
+   ],
+   "printed": [
+    null
+   ],
+   "differences": [
+    {
+     "transcription": "written ,",
+     "ocr": "ivritte 7 ty",
+     "leaf": 11,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "written",
+     "ocr": "ivritten",
+     "leaf": 11,
+     "stands": "transcription"
+    }
+   ]
+  },
+  "Preface p6b": {
+   "transcription": "index.php",
+   "scan": "pictureofdoriang00wildrich",
+   "method": "ocr",
+   "share": 0.935,
+   "leaves": [
+    11
+   ],
+   "printed": [
+    null
+   ],
+   "differences": [
+    {
+     "transcription": ",",
+     "ocr": "^",
+     "leaf": 11,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "medium",
+     "ocr": "meditim",
+     "leaf": 11,
+     "stands": "transcription"
+    }
+   ]
+  }
+ },
+ "scans": {
+  "pictureofdoriang00wildrich": {
+   "item": "pictureofdoriang00wildrich",
+   "ocr": true,
+   "long_s": false,
+   "image_offset": 0
+  }
+ }
+}

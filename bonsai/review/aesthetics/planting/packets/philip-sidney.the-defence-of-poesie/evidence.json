@@ -1,0 +1,131 @@
+{
+ "sources": [
+  {
+   "role": "transcription",
+   "url": "https://en.wikisource.org/w/index.php?title=Page%3AThe_Defence_of_Poesie_-_Sidney_%281595%29.djvu%2F53&action=raw",
+   "file": "index.php",
+   "sha256": "fbd01cb5997e1ac3677357d3865688c0d4d32cb24db854d3696b500fc9c66ad4",
+   "bytes": 1894,
+   "fetched": "2026-11-12",
+   "text": "index.php.txt"
+  },
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/sidneydefenceofpoesie/sidneydefenceofpoesie_hocr_searchtext.txt.gz",
+   "file": "sidneydefenceofpoesie.ocr.txt",
+   "sha256": "826d178ead1a9c43bce67e929a7f34f1dbe8db95058842a96a363e496dabe39e",
+   "bytes": 115288,
+   "fetched": "2026-11-12"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/sidneydefenceofpoesie/sidneydefenceofpoesie_hocr_pageindex.json.gz",
+   "file": "sidneydefenceofpoesie.index.json",
+   "sha256": "86d33b96fa4bfa8400fdfb552f61942f7185d1b35c0ac86c24880ec5c0a9d7c2",
+   "bytes": 2897,
+   "fetched": "2026-11-12"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/sidneydefenceofpoesie/sidneydefenceofpoesie_page_numbers.json",
+   "file": "sidneydefenceofpoesie.pages.json",
+   "sha256": "54ae2cec5d98280f5e44935477d579cf39b863916df769c6066c59b74126802f",
+   "bytes": 15020,
+   "fetched": "2026-11-12"
+  }
+ ],
+ "scan": {
+  "item": "sidneydefenceofpoesie",
+  "ocr": true,
+  "long_s": true,
+  "image_offset": 0
+ },
+ "persons": [
+  {
+   "qid": "Q315509",
+   "name": {
+    "en": "Philip Sidney",
+    "ru": "Филип Сидни"
+   },
+   "role": "author",
+   "died": 1586,
+   "source": "https://www.wikidata.org/wiki/Q315509"
+  }
+ ],
+ "published": 1595,
+ "images": [
+  {
+   "n": 52,
+   "item": "sidneydefenceofpoesie",
+   "file": "sidneydefenceofpoesie-n52.jpg",
+   "sha256": "bb5fcd81ef579b0befc62d02254ddf2d4ba95759c60cc2ca8b3dc3ff8cbaeb43",
+   "by": "maker",
+   "loc": "Refutation p53b"
+  },
+  {
+   "n": 52,
+   "item": "sidneydefenceofpoesie",
+   "file": "sidneydefenceofpoesie-n52.jpg",
+   "sha256": "bb5fcd81ef579b0befc62d02254ddf2d4ba95759c60cc2ca8b3dc3ff8cbaeb43",
+   "by": "second",
+   "loc": "Refutation p53b"
+  }
+ ],
+ "places": {
+  "Refutation p53a": {
+   "transcription": "index.php",
+   "dropped": [
+    "''"
+   ],
+   "scan": "sidneydefenceofpoesie",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the sentence from Now for the Poet through false on the image, leaf n52; the scan has no printed page number and carries signature G."
+   },
+   "images": [
+    52
+   ],
+   "method": "image",
+   "share": 0.457
+  },
+  "Refutation G1r b": {
+   "transcription": "index.php",
+   "dropped": [
+    "\\x27\\x27|\\[\\[Author:Aesop\\||\\]\\]"
+   ],
+   "scan": "sidneydefenceofpoesie",
+   "method": "image",
+   "share": 0.404,
+   "images": [
+    52
+   ],
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the whole sentence from And therefore through he writeth of on image n52, signature G; its typography and spelling agree with the transcription."
+   }
+  },
+  "Refutation p53b": {
+   "transcription": "index.php",
+   "dropped": [
+    "\\x27\\x27|\\[\\[Author:Aesop\\||\\]\\]"
+   ],
+   "method": "image",
+   "images": [
+    52
+   ],
+   "scan": "sidneydefenceofpoesie",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the whole sentence from And therefore through he writeth of on image n52, signature G; spelling agrees with the transcription."
+   }
+  }
+ },
+ "scans": {
+  "sidneydefenceofpoesie": {
+   "item": "sidneydefenceofpoesie",
+   "ocr": true,
+   "long_s": true,
+   "image_offset": 0
+  }
+ }
+}

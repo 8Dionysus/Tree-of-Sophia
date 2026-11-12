@@ -1,0 +1,128 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/dereaedificatori00albe/dereaedificatori00albe_hocr_searchtext.txt.gz",
+   "file": "dereaedificatori00albe.ocr.txt",
+   "sha256": "f939a0bfe6e96318580aa0cdd3d7fab2cce2369c03292ddc90ede98a51debd53",
+   "bytes": 952412,
+   "fetched": "2026-11-12"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/dereaedificatori00albe/dereaedificatori00albe_hocr_pageindex.json.gz",
+   "file": "dereaedificatori00albe.index.json",
+   "sha256": "7340e5bafcb69484b72abc85e85910c1d16fcbfa8db49eeaedeeb543cdb1648a",
+   "bytes": 13040,
+   "fetched": "2026-11-12"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/dereaedificatori00albe/dereaedificatori00albe_page_numbers.json",
+   "file": "dereaedificatori00albe.pages.json",
+   "sha256": "8d9747c468fafecbe5214d8dc3b2e2a2f282a3d9c46c25a9ad572ab6433fd59d",
+   "bytes": 60594,
+   "fetched": "2026-11-12"
+  },
+  {
+   "role": "transcription",
+   "url": "https://echo-old.mpiwg-berlin.mpg.de/ECHOdocuView?characterNormalization=regPlusNorm&pn=327&start=301&tocMode=concordance&url=%2Fmpiwg%2Fonline%2Fpermanent%2Farchimedes_repository%2Flarge%2Falber_reaed_004_la_1485&viewMode=text",
+   "file": "alberti327",
+   "sha256": "226da4ac8330d43e45ca9374e8a766175c3c147c7b9dab667587166d4d9064d2",
+   "bytes": 35311,
+   "fetched": "2026-11-12",
+   "text": "alberti327.txt",
+   "why": "The Latin Library and Latin Wikisource were sought for De re aedificatoria; the requested pages did not answer. Project Gutenberg search did not answer. ECHO by the Max Planck Institute supplies a transcription of the 1485 edition; it differs from the 1541 scan and is checked against that scan."
+  }
+ ],
+ "scan": {
+  "item": "dereaedificatori00albe",
+  "ocr": true,
+  "long_s": false,
+  "image_offset": -1
+ },
+ "persons": [
+  {
+   "name": {
+    "en": "Leon Battista Alberti",
+    "ru": "Леон Баттиста Альберти"
+   },
+   "role": "author",
+   "died": 1472,
+   "source": "https://www.wikidata.org/wiki/Q182046"
+  }
+ ],
+ "published": 1541,
+ "images": [
+  {
+   "n": 288,
+   "item": "dereaedificatori00albe",
+   "file": "dereaedificatori00albe-n288.jpg",
+   "sha256": "b948326d1488ce37d274796a12f282f598a211bb19b80afe425deca00ac898a4",
+   "by": "maker"
+  },
+  {
+   "n": 289,
+   "item": "dereaedificatori00albe",
+   "file": "dereaedificatori00albe-n289-z23-36.jpg",
+   "sha256": "3af79e1e20c8ba7ec77235e751cb04a039a32050d826121d5886e26e7324eac9",
+   "by": "maker",
+   "loc": "IX.5 p136v",
+   "zoom": [
+    23,
+    36
+   ]
+  },
+  {
+   "n": 289,
+   "item": "dereaedificatori00albe",
+   "file": "dereaedificatori00albe-n289.jpg",
+   "sha256": "fc39e27a1452aef1de4fd7fa033f6c6ceb7348fdefbc11e02b7426ee828f643d",
+   "by": "maker",
+   "loc": "IX.5 p136v"
+  },
+  {
+   "n": 289,
+   "item": "dereaedificatori00albe",
+   "file": "dereaedificatori00albe-n289.jpg",
+   "sha256": "fc39e27a1452aef1de4fd7fa033f6c6ceb7348fdefbc11e02b7426ee828f643d",
+   "by": "second",
+   "loc": "IX.5 p136v"
+  },
+  {
+   "n": 289,
+   "item": "dereaedificatori00albe",
+   "file": "dereaedificatori00albe-n289-z25-36.jpg",
+   "sha256": "b305ce2c00b76e3870114c533d7cfcd96e3a6b274d6bb8f93ebc91246b666f2a",
+   "by": "second",
+   "loc": "IX.5 p136v",
+   "zoom": [
+    25,
+    36
+   ]
+  }
+ ],
+ "places": {
+  "IX.5 p136v": {
+   "transcription": "alberti327",
+   "scan": "dereaedificatori00albe",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the entire passage on n289 again; punctuation corrected to the printed page, and collocationeque and hoc est confirmed in the enlarged lines."
+   },
+   "images": [
+    289
+   ],
+   "method": "image",
+   "share": 0.386
+  }
+ },
+ "scans": {
+  "dereaedificatori00albe": {
+   "item": "dereaedificatori00albe",
+   "ocr": true,
+   "long_s": false,
+   "image_offset": -1
+  }
+ }
+}

@@ -26,8 +26,10 @@ const library=read(join(root,'bonsai','aesthetics','library.json'));
 const packets=join(here,'planting','packets');
 for(const name of existsSync(packets)?readdirSync(packets):[]){
   const file=join(packets,name,'evidence.json');if(!existsSync(file))continue;
-  const author=(read(file).persons??[]).find(person=>person.role==='author'&&person.qid),agent=(library.works[name]?.agents??[])[0];
-  if(author&&agent&&!ITEMS[agent])ITEMS[agent]=author.qid;
+  const item=(read(file).persons??[]).filter(person=>person.role==='author')
+    .map(person=>person.qid??/^https:\/\/www\.wikidata\.org\/wiki\/(Q[1-9]\d*)\/?$/.exec(person.source??'')?.[1]).find(Boolean);
+  const agent=(library.works[name]?.agents??[])[0];
+  if(item&&agent&&!ITEMS[agent])ITEMS[agent]=item;
 }
 
 const args=new Set(process.argv.slice(2));

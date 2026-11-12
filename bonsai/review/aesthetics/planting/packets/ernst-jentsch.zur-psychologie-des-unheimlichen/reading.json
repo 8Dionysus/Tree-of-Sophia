@@ -1,0 +1,110 @@
+{
+ "reader": {
+  "id": "terra-2026-11-11-zur-psychologie-des-unheimlichen",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-11",
+  "reads": "Read the German original in the 1906 journal scan alongside the register reading attributed through Freud.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "ernst-jentsch": {
+    "tree": "tos.agent.ernst-jentsch"
+   }
+  },
+  "works": {
+   "ernst-jentsch.zur-psychologie-des-unheimlichen": {
+    "title": {
+     "ru": "К психологии жуткого",
+     "en": "On the Psychology of the Uncanny"
+    },
+    "original": "de",
+    "tree": "tos.work.ernst-jentsch.zur-psychologie-des-unheimlichen",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "ernst-jentsch.zur-psychologie-des-unheimlichen:doubt-about-animateness",
+   "of": [
+    "A:C177",
+    "A:C066",
+    "A:C176"
+   ],
+   "areas": [
+    "AE08"
+   ],
+   "work": "ernst-jentsch.zur-psychologie-des-unheimlichen",
+   "locus": "II",
+   "formula": [
+    {
+     "place": "II p197"
+    }
+   ],
+   "thesis": {
+    "ru": "Среди психических неопределённостей, способных стать причиной чувства жуткого, особо выделяется сомнение в одушевлённости кажущегося живым существа или неживого предмета: оно оказывает довольно регулярное, сильное и весьма общее действие, даже когда лишь смутно осознаётся.",
+    "en": "Among the psychical uncertainties that can cause the feeling of the uncanny, doubt about the animateness of an apparently living being or of an inanimate object stands out: it has a fairly regular, powerful and very general effect, even when only dimly conscious."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The register attributes intellectual uncertainty to Jentsch via Freud; the original speaks here of psychical uncertainties that can cause the feeling of the uncanny, and singles out doubt about animateness. The register concept of intellectual uncertainty is retained as a revised mapping, not as the wording of the original.",
+   "from": [
+    "A:E123"
+   ]
+  },
+  {
+   "id": "ernst-jentsch.zur-psychologie-des-unheimlichen:lack-of-orientation-and-the-uncanny",
+   "of": [
+    "A:C176",
+    "A:C066"
+   ],
+   "areas": [
+    "AE08"
+   ],
+   "work": "ernst-jentsch.zur-psychologie-des-unheimlichen",
+   "locus": "I",
+   "formula": [
+    {
+     "place": "I p196b"
+    }
+   ],
+   "thesis": {
+    "ru": "В случае нового, чуждого и враждебного появление ощущений неуверенности вполне естественно, а недостаток ориентировки легко может принять оттенок жуткого.",
+    "en": "In the case of the new, unfamiliar and hostile, the emergence of feelings of uncertainty is entirely natural, and lack of orientation can readily take on the shading of the uncanny."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The register attributes intellectual uncertainty to Jentsch via Freud. The place speaks of feelings of uncertainty and lack of orientation; it is the latter that can take on the shading of the uncanny.",
+   "from": [
+    "A:E123"
+   ]
+  }
+ ],
+ "links": [],
+ "left": [
+  {
+   "key": "A:R110",
+   "reason": "The second reader (codex-2026-11-12-jentsch-second) does not confirm intellectual-uncertainty:can-be-a-cause-of:the-uncanny, or its ground is disputed: The ground says ‘psychischen Unsicherheiten, die zur Entstehungsursache des Gefühls des Unheimlichen werden können’, and singles out doubt about animateness. It does not state the general link for intellectual uncertainty as such; psychical uncertainties are broader.",
+   "disputed": {
+    "id": "intellectual-uncertainty:can-be-a-cause-of:the-uncanny",
+    "from_concept": "A:C176",
+    "to_concept": "A:C066",
+    "verb": {
+     "ru": "может стать причиной чувства",
+     "en": "can be a cause of the feeling of"
+    },
+    "grounds": [
+     "ernst-jentsch.zur-psychologie-des-unheimlichen:doubt-about-animateness"
+    ],
+    "status": "text",
+    "verdict": "revise",
+    "note": "The register names intellectual uncertainty. Jentsch writes of psychical uncertainties as possible causes of the feeling of the uncanny; intellectual uncertainty is the register concept mapped to this broader wording, not a phrase used in the cited sentence.",
+    "from": [
+     "A:R110"
+    ]
+   }
+  }
+ ]
+}

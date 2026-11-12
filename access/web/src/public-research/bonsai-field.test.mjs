@@ -88,8 +88,8 @@ describe('the Aesthetics field',()=>{
       const place=read(cite,fragments.works[cite.w].original);
       expect(place.error,`${conception} ${cite.loc}`).toBeUndefined();
       const texts=fragments.places[cite.w][cite.loc].texts;
-      expect(texts[fragments.works[cite.w].original],cite.loc).toMatch(/^\p{Lu}[^]*[.!?]$/u);
-      for(const text of Object.values(texts))expect(text,cite.loc).toMatch(/^\p{Lu}/u);
+      expect(texts[fragments.works[cite.w].original],cite.loc).toMatch(/^["“„«‚‘'([—–-]*\p{Lu}[^]*[.!?]["”“»’‘')\]]*$/u);
+      for(const text of Object.values(texts))expect(text,cite.loc).toMatch(/^["“„«‚‘'([—–-]*\p{Lu}/u);
     }
     // Every place the module holds is the formula of a conception: the bonsai keeps no text it does not cite.
     for(const work of Object.keys(fragments.places))expect(new Set(cites.filter(({cite})=>cite.w===work).map(({cite})=>cite.loc)),work).toEqual(new Set(Object.keys(fragments.places[work])));

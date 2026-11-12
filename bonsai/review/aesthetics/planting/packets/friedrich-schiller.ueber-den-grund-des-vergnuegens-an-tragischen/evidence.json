@@ -1,0 +1,330 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/schillerswerke14schiuoft/schillerswerke14schiuoft_hocr_searchtext.txt.gz",
+   "file": "schillerswerke14schiuoft.ocr.txt",
+   "sha256": "f8b895f3c08e49d9e21d4c0f5f71e9f97f7730ff5f5e1122809fe72d94271655",
+   "bytes": 2306010,
+   "fetched": "2026-11-12"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/schillerswerke14schiuoft/schillerswerke14schiuoft_hocr_pageindex.json.gz",
+   "file": "schillerswerke14schiuoft.index.json",
+   "sha256": "a30d97c5977125b7fea478a3be7352cd345e20b2596b09d8e6e97c0fe1dd0a66",
+   "bytes": 31847,
+   "fetched": "2026-11-12"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/schillerswerke14schiuoft/schillerswerke14schiuoft_page_numbers.json",
+   "file": "schillerswerke14schiuoft.pages.json",
+   "sha256": "b1fb24ccc64a7ffb2e2f2a4478183875c8f5d73536528643f6abb70c1a407c4c",
+   "bytes": 134964,
+   "fetched": "2026-11-12"
+  },
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/schillerswerke15schiuoft/schillerswerke15schiuoft_hocr_searchtext.txt.gz",
+   "file": "schillerswerke15schiuoft.ocr.txt",
+   "sha256": "79635a0c6dc24a44ffb03b7073bdca8b595fc292f79387f465d79ba7e64890cd",
+   "bytes": 2569595,
+   "fetched": "2026-11-12"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/schillerswerke15schiuoft/schillerswerke15schiuoft_hocr_pageindex.json.gz",
+   "file": "schillerswerke15schiuoft.index.json",
+   "sha256": "1238e7f7588cc209f447162851743a1ca5a7893662032d96206a1c7251af30ec",
+   "bytes": 33793,
+   "fetched": "2026-11-12"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/schillerswerke15schiuoft/schillerswerke15schiuoft_page_numbers.json",
+   "file": "schillerswerke15schiuoft.pages.json",
+   "sha256": "305a10fb310cc1579dbdd153fb98d796045de083c77f24aa1db555d383346a43",
+   "bytes": 143141,
+   "fetched": "2026-11-12"
+  },
+  {
+   "role": "transcription",
+   "url": "https://de.wikisource.org/w/index.php?title=Ueber_den_Grund_des_Vergn%C3%BCgens_an_tragischen_Gegenst%C3%A4nden&action=render",
+   "file": "wikisource.html",
+   "sha256": "31827a4f4f18c7452a5d194bf3f843402fa0d65a709c64e0e4fb7582200c0aee",
+   "bytes": 64321,
+   "fetched": "2026-11-12",
+   "text": "wikisource.html.txt"
+  },
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/10119145bsb/10119145bsb_hocr_searchtext.txt.gz",
+   "file": "10119145bsb.ocr.txt",
+   "sha256": "c88079c8f488a475780a9186a0102ac9df17836efe6bb9a5e83426a98348a935",
+   "bytes": 632007,
+   "fetched": "2026-11-12"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/10119145bsb/10119145bsb_hocr_pageindex.json.gz",
+   "file": "10119145bsb.index.json",
+   "sha256": "5a46f8459a5a977c498f58074718adf0faba23672fec4acd902e91adf29c9edf",
+   "bytes": 16084,
+   "fetched": "2026-11-12"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/10119145bsb/10119145bsb_page_numbers.json",
+   "file": "10119145bsb.pages.json",
+   "sha256": "20acba3f521ac13743ab1b7e8e40b575015aad876771362be93f33ac3345c08c",
+   "bytes": 75777,
+   "fetched": "2026-11-12"
+  }
+ ],
+ "scan": {
+  "item": "10119145bsb",
+  "ocr": true,
+  "long_s": true,
+  "image_offset": 0
+ },
+ "persons": [
+  {
+   "qid": "Q22670",
+   "name": {
+    "en": "Friedrich Schiller",
+    "ru": "Фридрих Шиллер"
+   },
+   "role": "author",
+   "died": 1805,
+   "source": "https://www.wikidata.org/wiki/Q22670"
+  }
+ ],
+ "published": 1813,
+ "images": [
+  {
+   "n": 400,
+   "item": "schillerswerke15schiuoft",
+   "file": "schillerswerke15schiuoft-n400.jpg",
+   "sha256": "f7f473dd5de2f7e914c7b8766595e6c4d6a66665683dc94696d55eeec570d2e3",
+   "by": "maker"
+  },
+  {
+   "n": 167,
+   "item": "10119145bsb",
+   "file": "10119145bsb-n167.jpg",
+   "sha256": "21fe9a97d5fb80b89b6c53242760adaea6fe018ffd193ece69eb70c855fdf02c",
+   "by": "maker"
+  },
+  {
+   "n": 163,
+   "item": "10119145bsb",
+   "file": "10119145bsb-n163.jpg",
+   "sha256": "9e2b4cbf575289915284bebe0fab96e4cec7c488d5dd3c65edba3ca30c49540d",
+   "by": "maker"
+  },
+  {
+   "n": 174,
+   "item": "10119145bsb",
+   "file": "10119145bsb-n174.jpg",
+   "sha256": "db45fcc48741d4f4ac7e4f02411d94d9a34350dc4acddf35725fb85df356390f",
+   "by": "maker"
+  },
+  {
+   "n": 167,
+   "item": "10119145bsb",
+   "file": "10119145bsb-n167.jpg",
+   "sha256": "21fe9a97d5fb80b89b6c53242760adaea6fe018ffd193ece69eb70c855fdf02c",
+   "by": "second",
+   "loc": "III p154"
+  },
+  {
+   "n": 163,
+   "item": "10119145bsb",
+   "file": "10119145bsb-n163.jpg",
+   "sha256": "9e2b4cbf575289915284bebe0fab96e4cec7c488d5dd3c65edba3ca30c49540d",
+   "by": "second",
+   "loc": "III p150"
+  },
+  {
+   "n": 174,
+   "item": "10119145bsb",
+   "file": "10119145bsb-n174.jpg",
+   "sha256": "db45fcc48741d4f4ac7e4f02411d94d9a34350dc4acddf35725fb85df356390f",
+   "by": "second",
+   "loc": "III p161"
+  }
+ ],
+ "places": {
+  "III p154": {
+   "transcription": "wikisource.html",
+   "dropped": [
+    "\\[110\\]"
+   ],
+   "scan": "10119145bsb",
+   "method": "ocr",
+   "share": 0.933,
+   "leaves": [
+    167
+   ],
+   "printed": [
+    "154"
+   ],
+   "differences": [
+    {
+     "transcription": "Hüon",
+     "ocr": "Hü ͤ on",
+     "leaf": 167,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Marterpfahl",
+     "ocr": "Marters pfahl",
+     "leaf": 167,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "fürchterlichen",
+     "ocr": "fu ͤ rchterlichen",
+     "leaf": 167,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "erwerben",
+     "ocr": "erwer - ben",
+     "leaf": 167,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Vergnügens",
+     "ocr": "Vergnu ͤ gens",
+     "leaf": 167,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Widerspruch",
+     "ocr": "Widers ſpruch",
+     "leaf": 167,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "gegenwärtigen",
+     "ocr": "gegenwa ͤ rtigen",
+     "leaf": 167,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "verschmähten",
+     "ocr": "verſchma ͤ hten",
+     "leaf": 167,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Verläugnung",
+     "ocr": "Verla ͤ ugnung",
+     "leaf": 167,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "empfindlichsten",
+     "ocr": "empfinds lichſten",
+     "leaf": 167,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Zweckmäßigkeit",
+     "ocr": "Zweckma ͤ ßigkeit",
+     "leaf": 167,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "diesem",
+     "ocr": "dies ſem",
+     "leaf": 167,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "natürlichen",
+     "ocr": "natürs lichen",
+     "leaf": 167,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "vermögen",
+     "ocr": "vermo ͤ gen",
+     "leaf": 167,
+     "stands": "transcription"
+    }
+   ]
+  },
+  "III p150": {
+   "transcription": "wikisource.html",
+   "scan": "10119145bsb",
+   "method": "ocr",
+   "share": 0.95,
+   "leaves": [
+    163
+   ],
+   "printed": [
+    "150"
+   ],
+   "differences": [
+    {
+     "transcription": "Rührung",
+     "ocr": "durch das ho ͤ here Vermögen , indem er durch das niedrige ſchmerzt . 5 Rährung",
+     "leaf": 163,
+     "stands": "transcription"
+    }
+   ]
+  },
+  "III p161": {
+   "transcription": "wikisource.html",
+   "dropped": [
+    "\\[120\\]"
+   ],
+   "scan": "10119145bsb",
+   "method": "ocr",
+   "share": 0.917,
+   "leaves": [
+    174
+   ],
+   "printed": [
+    "161"
+   ],
+   "differences": [
+    {
+     "transcription": "Zweckmäßigkeit",
+     "ocr": "Zweck . ma ͤ ßigkeit",
+     "leaf": 174,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Rührung",
+     "ocr": "Ru ͤ hrung",
+     "leaf": 174,
+     "stands": "transcription"
+    }
+   ]
+  }
+ },
+ "scans": {
+  "schillerswerke14schiuoft": {
+   "item": "schillerswerke14schiuoft",
+   "ocr": true,
+   "long_s": true,
+   "image_offset": null
+  },
+  "schillerswerke15schiuoft": {
+   "item": "schillerswerke15schiuoft",
+   "ocr": true,
+   "long_s": true,
+   "image_offset": null
+  },
+  "10119145bsb": {
+   "item": "10119145bsb",
+   "ocr": true,
+   "long_s": true,
+   "image_offset": 0
+  }
+ }
+}

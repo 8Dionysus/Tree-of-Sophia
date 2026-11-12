@@ -1,0 +1,75 @@
+{
+  "work": "otto-rank.der-doppelgaenger",
+  "entry": {
+    "author": {
+      "ru": "Отто Ранк",
+      "en": "Otto Rank"
+    },
+    "title": {
+      "ru": "Двойник",
+      "en": "The Double"
+    },
+    "original": "de",
+    "witnesses": {
+      "de": {
+        "edition": "Otto Rank, Der Doppelgänger: Eine psychoanalytische Studie (Leipzig, Wien, Zürich: Internationaler Psychoanalytischer Verlag, 1925), copy from the International Psychoanalytic University Berlin / Prof. Dr. Lilli Gast.",
+        "year": 1925,
+        "url": "https://archive.org/details/Rank_1925_Doppelgaenger_k",
+        "sources": [
+          "https://archive.org/details/Rank_1925_Doppelgaenger_k"
+        ],
+        "licence": "Public domain book; scan and OCR from the Internet Archive.",
+        "attribution": "Otto Rank, Der Doppelgänger: Eine psychoanalytische Studie (Internationaler Psychoanalytischer Verlag, 1925); OCR compared with the Internet Archive scan.",
+        "rights": {
+          "basis": "public-domain",
+          "russia": "Общественное достояние: Отто Ранк (автор) — год смерти 1939 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
+          "usa": "Public domain: this printing was published in 1925 (before 1930).",
+          "eu": "Public domain: Otto Rank (author) died 1939, more than 70 years ago (Directive 2006/116/EC art. 1).",
+          "reasoning": "Text by Otto Rank, read from the page-indexed OCR of the 1925 scan and compared with its page images. Words broken across lines are joined by the kit."
+        }
+      }
+    },
+    "absent": [
+      {
+        "language": "ru",
+        "reason": "No Russian text is taken in this pass: the line plants the original first."
+      },
+      {
+        "language": "en",
+        "reason": "No English text is taken in this pass: the line plants the original first."
+      }
+    ]
+  },
+  "places": {
+    "V p109": {
+      "label": {
+        "ru": "Раздел V, с. 109",
+        "en": "Section V, p. 109"
+      },
+      "texts": {
+        "de": "Die häufige Tötung des Doppelgängers, durch die sich der Held vor den Verfolgungen durch sein Ich endgültig zu schützen sucht, ist eigentlich ein Selbstmord — und zwar in der schmerzlosen Form der Tötung eines anderen Ichs: eine unbewußte Illusion von Abspaltung eines bösen, strafwürdigen Ich, welche übrigens die Vorbedingung jedes Selbstmordes zu sein scheint."
+      },
+      "links": {
+        "de": "https://archive.org/details/Rank_1925_Doppelgaenger_k/page/n112/mode/1up"
+      },
+      "refs": [
+        [
+          "de",
+          "1925 edition, section V, p. 109"
+        ]
+      ]
+    }
+  },
+  "corrections": [
+    {
+      "lang": "de",
+      "from": "schützen. sucht",
+      "to": "schützen sucht",
+      "evidence": "1925 scan, p. 109, leaf 112: no full stop after schützen.",
+      "place": "otto-rank.der-doppelgaenger V p109"
+    }
+  ],
+  "checked_on_the_page_image": [
+    "p. 109 (first paragraph, the sentence on the killing of the double)"
+  ]
+}

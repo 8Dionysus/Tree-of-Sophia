@@ -1,0 +1,102 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/Rank_1925_Doppelgaenger_k/Rank_1925_Doppelgaenger_hocr_searchtext.txt.gz",
+   "file": "Rank_1925_Doppelgaenger_k.ocr.txt",
+   "sha256": "325f031b82ada5e71504075d286906f3329f18b3e92ad184b4ec270dfdce464d",
+   "bytes": 252141,
+   "fetched": "2026-11-12",
+   "why": "Wikisource, Deutsches Textarchiv, Zeno, TextGrid and Project Gutenberg searches for Otto Rank and Der Doppelgänger were attempted on their own sites; the search pages did not answer in this session. No proofreading transcription for this passage was found; the 1925 scan OCR supplies it."
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/Rank_1925_Doppelgaenger_k/Rank_1925_Doppelgaenger_hocr_pageindex.json.gz",
+   "file": "Rank_1925_Doppelgaenger_k.index.json",
+   "sha256": "92bd3a6f93be6ffe9c4b55b6084bfb0a00e131abeaa4f80c61ab8a5c4dce4d5c",
+   "bytes": 4397,
+   "fetched": "2026-11-12"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/Rank_1925_Doppelgaenger_k/Rank_1925_Doppelgaenger_page_numbers.json",
+   "file": "Rank_1925_Doppelgaenger_k.pages.json",
+   "sha256": "b14512ecb828def599cf474ec3f504ae1f5d5d8b8ddfad0bd6da97e1394858a9",
+   "bytes": 24312,
+   "fetched": "2026-11-12"
+  }
+ ],
+ "scan": {
+  "item": "Rank_1925_Doppelgaenger_k",
+  "ocr": true,
+  "long_s": false,
+  "image_offset": 0
+ },
+ "persons": [
+  {
+   "qid": "Q84172",
+   "name": {
+    "en": "Otto Rank",
+    "ru": "Отто Ранк"
+   },
+   "role": "author",
+   "died": 1939,
+   "source": "https://www.wikidata.org/wiki/Q84172"
+  }
+ ],
+ "published": 1925,
+ "images": [
+  {
+   "n": 108,
+   "item": "Rank_1925_Doppelgaenger_k",
+   "file": "Rank_1925_Doppelgaenger_k-n108.jpg",
+   "sha256": "6416ad0e04c39669145100cc2bca7d9cd63a922e14127b3e874063800fd644b6",
+   "by": "maker"
+  },
+  {
+   "n": 112,
+   "item": "Rank_1925_Doppelgaenger_k",
+   "file": "Rank_1925_Doppelgaenger_k-n112.jpg",
+   "sha256": "b66d5da4c14fc82ac3b75fb873978e1e9b4c7aa6f301f553ac954374480003b7",
+   "by": "maker",
+   "loc": "V p109"
+  },
+  {
+   "n": 112,
+   "item": "Rank_1925_Doppelgaenger_k",
+   "file": "Rank_1925_Doppelgaenger_k-n112.jpg",
+   "sha256": "b66d5da4c14fc82ac3b75fb873978e1e9b4c7aa6f301f553ac954374480003b7",
+   "by": "second",
+   "loc": "V p109"
+  }
+ ],
+ "places": {
+  "V p109": {
+   "transcription": "Rank_1925_Doppelgaenger_k.ocr.txt",
+   "from_scan": true,
+   "scan": "Rank_1925_Doppelgaenger_k",
+   "method": "image",
+   "leaves": [
+    112
+   ],
+   "printed": [
+    "109"
+   ],
+   "images": [
+    112
+   ],
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the whole sentence on scan p. 109, leaf 112; removed the spurious OCR full stop after schützen."
+   }
+  }
+ },
+ "scans": {
+  "Rank_1925_Doppelgaenger_k": {
+   "item": "Rank_1925_Doppelgaenger_k",
+   "ocr": true,
+   "long_s": false,
+   "image_offset": 0
+  }
+ }
+}

@@ -1,0 +1,95 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/psychologischeu02lippgoog/psychologischeu02lippgoog_hocr_searchtext.txt.gz",
+   "file": "psychologischeu02lippgoog.ocr.txt",
+   "sha256": "c9211175f85a34b4291b4353f540fc16fe15cfe8fb544d054846a2efb7f2f361",
+   "bytes": 1897365,
+   "fetched": "2026-11-12",
+   "why": "Wikisource search, Deutsches Textarchiv, TextGrid and Project Gutenberg were checked for the title; Zeno timed out. The Wikisource exact-title API refused access; other results gave no confirmed transcription of this passage. Search terms included Lipps and Einfühlung. The page OCR is used for this passage."
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/psychologischeu02lippgoog/psychologischeu02lippgoog_hocr_pageindex.json.gz",
+   "file": "psychologischeu02lippgoog.index.json",
+   "sha256": "b7998f23f92d1079acc11077ac405a57c08f84cf8a8d8afd1b91b846583e62a7",
+   "bytes": 28313,
+   "fetched": "2026-11-12"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/psychologischeu02lippgoog/psychologischeu02lippgoog_page_numbers.json",
+   "file": "psychologischeu02lippgoog.pages.json",
+   "sha256": "bd0426a9c3977e66661f625901620f89043d2192f6c2f07cd5c0e6f642626dcb",
+   "bytes": 135142,
+   "fetched": "2026-11-12"
+  }
+ ],
+ "scan": {
+  "item": "psychologischeu02lippgoog",
+  "ocr": true,
+  "long_s": false,
+  "image_offset": 0
+ },
+ "persons": [
+  {
+   "qid": "Q61970",
+   "name": {
+    "en": "Theodor Lipps",
+    "ru": "Теодор Липпс"
+   },
+   "role": "author",
+   "died": 1914,
+   "source": "https://www.wikidata.org/wiki/Q61970"
+  }
+ ],
+ "published": 1907,
+ "images": [
+  {
+   "n": 726,
+   "item": "psychologischeu02lippgoog",
+   "file": "psychologischeu02lippgoog-n726.jpg",
+   "sha256": "568b01b23ab6df23bfc4d1d8fdd631324786baf4a0439d406e82cf38658bd911",
+   "by": "maker",
+   "loc": "Die Einfühlung p713a"
+  },
+  {
+   "n": 726,
+   "item": "psychologischeu02lippgoog",
+   "file": "psychologischeu02lippgoog-n726.jpg",
+   "sha256": "568b01b23ab6df23bfc4d1d8fdd631324786baf4a0439d406e82cf38658bd911",
+   "by": "second",
+   "loc": "Die Einfühlung p713a"
+  }
+ ],
+ "places": {
+  "Die Einfühlung p713a": {
+   "transcription": "psychologischeu02lippgoog.ocr.txt",
+   "from_scan": true,
+   "scan": "psychologischeu02lippgoog",
+   "method": "image",
+   "leaves": [
+    726
+   ],
+   "printed": [
+    "713"
+   ],
+   "images": [
+    726
+   ],
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the entire second paragraph on the image of printed p. 713; it agrees with the OCR."
+   }
+  }
+ },
+ "scans": {
+  "psychologischeu02lippgoog": {
+   "item": "psychologischeu02lippgoog",
+   "ocr": true,
+   "long_s": false,
+   "image_offset": 0
+  }
+ }
+}
