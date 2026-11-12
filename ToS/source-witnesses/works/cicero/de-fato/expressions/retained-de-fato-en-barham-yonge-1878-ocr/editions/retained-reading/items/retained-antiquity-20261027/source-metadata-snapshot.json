@@ -18,7 +18,7 @@
       "sha256": "c269f19a3bad6d15e8f9b707e522b756a0237f6026b619afc6940683c7af8284",
       "bytes": 1457332
     },
-    "extraction_script_sha256": "012d8709904efa7e6f6c5458b1fdd59d136e109b7d7f2f180924cc9f7a23ecdb",
+    "extraction_script_sha256": "e849163ec9435e565a8ad71b18131e3f79988e4baf7197f64ed407227cea9985",
     "scan_spot_review_pdf_pages": [
       274,
       281,
@@ -26,7 +26,14 @@
       288,
       292
     ],
-    "full_scan_collation": false
+    "full_scan_collation": false,
+    "precorrection_ocr_layout": {
+      "ref": "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/payload/ocr-layout-pp264-282.txt",
+      "sha256": "ec09220229ce0abfab4634affdbe58de69e275e903ef7e704d722f44b9b827d1",
+      "bytes": 47077,
+      "pdf_pages": "274–292",
+      "method": "pdftotext -layout; exact pre-correction output"
+    }
   },
   "rights_evidence": [
     "https://archive.org/details/treatisesofcicer00ciceuoft",
