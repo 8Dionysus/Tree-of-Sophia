@@ -34,36 +34,36 @@ const HEADS: Record<string, Record<"en" | "ru", Head>> = {
     en: {
       title: "Tree of Sophia",
       og: "Tree of Sophia",
-      description: "Thought grown from the texts themselves. Each bonsai of the Tree of Sophia is a work or a whole world: in the original, in translation and on a map of its links.",
+      description: "Thought grown from the sources. Each bonsai cultivates its own direction.",
     },
     ru: {
       title: "Древо Софии",
       og: "Древо Софии",
-      description: "Мысль, выращенная из самих текстов. Каждый бонсай Древа Софии — произведение или целый мир: в оригинале, в переводах и на карте его связей.",
+      description: "Мысль, выращенная из источников. Каждый бонсай культивирует своё направление.",
     },
   },
   zarathustra: {
     en: {
       title: "Zarathustra · Tree of Sophia",
       og: "Thus Spoke Zarathustra · Tree of Sophia",
-      description: "Thus Spoke Zarathustra in the Tree of Sophia: the German original, Common’s and Antonovsky’s translations, and a map of the book — its concepts, figures, links and reading routes.",
+      description: "Thus Spoke Zarathustra by Friedrich Nietzsche in the Tree of Sophia.",
     },
     ru: {
       title: "Заратустра · Древо Софии",
       og: "Так говорил Заратустра · Древо Софии",
-      description: "«Так говорил Заратустра» в Древе Софии: немецкий оригинал, переводы Антоновского и Коммона и карта книги — её понятия, фигуры, связи и маршруты чтения.",
+      description: "«Так говорил Заратустра» Фридриха Ницше в Древе Софии.",
     },
   },
   antiquity: {
     en: {
       title: "Antiquity · Tree of Sophia",
       og: "Antiquity · Tree of Sophia",
-      description: "Antiquity in the Tree of Sophia: Plato, Aristotle, the Stoics, Epicurus, Cicero, Seneca and Sextus — questions, places in the original and their readings.",
+      description: "The philosophy of ancient Greece and Rome in the Tree of Sophia.",
     },
     ru: {
       title: "Античность · Древо Софии",
       og: "Античность · Древо Софии",
-      description: "Античность в Древе Софии: Платон, Аристотель, стоики, Эпикур, Цицерон, Сенека и Секст — вопросы, места в оригинале и их прочтения.",
+      description: "Философия Древней Греции и Рима в Древе Софии.",
     },
   },
 };

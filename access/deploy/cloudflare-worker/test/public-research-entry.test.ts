@@ -126,7 +126,7 @@ test("a stand's page names itself in English unless its link asks for Russian", 
   assert.match(russian, /<html lang="ru"/);
   assert.match(russian, /<title>Заратустра · Древо Софии<\/title>/);
   assert.match(russian, /<meta property="og:title" content="Так говорил Заратустра · Древо Софии"/);
-  assert.match(russian, /<meta name="description" content="«Так говорил Заратустра» в Древе Софии: немецкий оригинал/);
+  assert.match(russian, /<meta name="description" content="«Так говорил Заратустра» Фридриха Ницше в Древе Софии\./);
   assert.match(russian, /<meta property="og:site_name" content="Древо Софии"/);
   assert.match(russian, /og\/zarathustra-ru\.jpg/);
   assert.match(russian, /content="ru_RU"/);
@@ -134,7 +134,7 @@ test("a stand's page names itself in English unless its link asks for Russian", 
   assert.equal(localizeHead(STAND, "zarathustra", "xx"), STAND);
   const english = localizeHead(STAND, "zarathustra", "en");
   assert.match(english, /<title>Zarathustra · Tree of Sophia<\/title>/);
-  assert.match(english, /<meta name="description" content="Thus Spoke Zarathustra in the Tree of Sophia: the German original/);
+  assert.match(english, /<meta name="description" content="Thus Spoke Zarathustra by Friedrich Nietzsche in the Tree of Sophia\./);
   const chinese = localizeHead(STAND, "zarathustra", "zh-Hans");
   assert.match(chinese, /<html lang="zh-Hans"/);
   assert.match(chinese, /<title>Zarathustra · Tree of Sophia<\/title>/);
@@ -149,13 +149,13 @@ test("a stand's page names itself in English unless its link asks for Russian", 
 });
 
 test("the site's own address greets in the language its link asks for", async () => {
-  const page = `<!doctype html>\n<html lang="en">\n  <head>\n    <title>Tree of Sophia</title>\n    <meta name="description" content="Thought grown from the texts themselves." />\n    <meta property="og:site_name" content="Tree of Sophia" />\n    <meta property="og:title" content="Tree of Sophia" />\n  </head>\n</html>`;
+  const page = `<!doctype html>\n<html lang="en">\n  <head>\n    <title>Tree of Sophia</title>\n    <meta name="description" content="Thought grown from the sources." />\n    <meta property="og:site_name" content="Tree of Sophia" />\n    <meta property="og:title" content="Tree of Sophia" />\n  </head>\n</html>`;
   const app = fixture(() => new Response(page, { headers: { "Content-Type": "text/html; charset=utf-8" } }));
   const russian = await (await app.fetch(new Request("https://treeofsophia.com/?lang=ru"))).text();
   assert.equal(app.paths.at(-1), "/home/");
   assert.match(russian, /<html lang="ru"/);
   assert.match(russian, /<title>Древо Софии<\/title>/);
-  assert.match(russian, /content="Мысль, выращенная из самих текстов\./);
+  assert.match(russian, /content="Мысль, выращенная из источников\./);
   const english = await (await app.fetch(new Request("https://treeofsophia.com/"))).text();
   assert.equal(english, page);
 });
