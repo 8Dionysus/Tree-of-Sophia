@@ -25,6 +25,12 @@ export function loadAntiquityCollection(){
 const RENDERINGS=import.meta.glob('../../../../bonsai/*/renderings.json',{import:'default'});
 const renderingsOf=profile=>RENDERINGS[`../../../../bonsai/${profile}/renderings.json`]?.()??Promise.resolve(null);
 const LOADERS=Object.freeze({
+  aesthetics:()=>Promise.all([
+    import('../../../../bonsai/aesthetics/field.json'),
+    import('../../../../bonsai/aesthetics/library.json'),
+    import('../../../../bonsai/aesthetics/chronology.json'),
+    import('../../../../bonsai/aesthetics/identities.json'),
+  ]).then(([field,library,chronology,identities])=>({field:json(field),library:json(library),chronology:json(chronology),identities:json(identities)})),
   antiquity:()=>Promise.all([
     loadAntiquityCollection().then(collection=>({default:collection})),
     import('../../../../bonsai/antiquity/first-branches.json'),
@@ -53,7 +59,6 @@ const LOADERS=Object.freeze({
   ]).then(([chronology,places,identities,basemap,core,renderings])=>({chronology:json(chronology),places:json(places),identities:json(identities),basemap:json(basemap),core,renderings})),
 });
 const BONSAI={
-  // Aesthetics is planted before its stand opens: its manifest is here, and its modules load once the stand reads them.
   aesthetics:Object.freeze({manifest:aestheticsManifest}),
   antiquity:Object.freeze({manifest:antiquityManifest}),
   zarathustra:Object.freeze({manifest:zarathustraManifest}),

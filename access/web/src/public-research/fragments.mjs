@@ -23,10 +23,12 @@ const chapterFiles=import.meta.glob('../../../../bonsai/zarathustra/witnesses/*.
 const loadManifest=()=>import('../../../../bonsai/zarathustra/witnesses.json').then(module=>module.default);
 // Each stand brings its own places of other works and its own alignment of the corpus works it cites.
 const PLACES={
+  aesthetics:()=>import('../../../../bonsai/aesthetics/fragments.json').then(module=>module.default),
   zarathustra:()=>import('../../../../bonsai/zarathustra/fragments.json').then(module=>module.default),
   antiquity:()=>import('../../../../bonsai/antiquity/fragments.json').then(module=>module.default),
 };
 const ALIGNMENTS={
+  aesthetics:()=>import('../../../../bonsai/aesthetics/alignment.json').then(module=>module.default),
   zarathustra:()=>import('../../../../bonsai/zarathustra/alignment.json').then(module=>module.default),
   antiquity:()=>import('../../../../bonsai/antiquity/alignment.json').then(module=>module.default),
 };
@@ -313,14 +315,14 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     // A place may give a language from another witness of it (the translation of a book the usual one lacks).
     const witnessOf=language=>work.witnesses?.[place.witness?.[language]??language];
     const available=Object.keys(place.texts??{}).filter(language=>place.texts[language]);
-    const {primary,alternate}=readingLanguages(locale(),work.original,available,{exact:profile==='antiquity'});
+    const {primary,alternate}=readingLanguages(locale(),work.original,available,{exact:profile!=='zarathustra'});
     let showing=primary.filter(language=>available.includes(language));
     if(!showing.length&&profile!=='antiquity')showing=[work.original].filter(language=>available.includes(language));
     const paint=()=>{
       figure.replaceChildren();
       // A protected work the stand may not quote is shown by its locator alone.
       if(!showing.length){
-        if(profile==='antiquity')figure.append(el('p','ps-fragment-wait',words('fragmentTranslationUnavailable')));
+        if(profile!=='zarathustra')figure.append(el('p','ps-fragment-wait',words('fragmentTranslationUnavailable')));
         const caption=el('figcaption','ps-fragment-cite');caption.append(el('span','ps-fragment-source',[local(work.author),local(work.title),local(place.label)].filter(Boolean).join(' · ')));figure.append(caption);
       }
       for(const language of showing){
@@ -336,7 +338,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       }
       const tools=el('div','ps-fragment-tools');
       const other=alternate&&available.includes(alternate)?(showing.includes(alternate)?primary.filter(language=>available.includes(language)):[alternate]):null;
-      if(other&&(other.length||profile==='antiquity'&&showing.includes(alternate))&&other.join()!==showing.join()){
+      if(other&&(other.length||profile!=='zarathustra'&&showing.includes(alternate))&&other.join()!==showing.join()){
         const swap=button(showing.includes(alternate)?words('fragmentTranslation'):words('fragmentOriginal'),'text-button ps-fragment-swap');
         swap.setAttribute('aria-pressed',String(showing.includes(alternate)));
         swap.addEventListener('click',()=>{showing=other;paint();figure.querySelector('.ps-fragment-swap')?.focus({preventScroll:true});});
@@ -379,7 +381,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     const meets=(unit,index,entry)=>{const [a,b]=span(unit,index);return (entry.pairs??[]).some(([source])=>source.some(([s,e])=>overlaps(s,e,a,b)));};
     const covers=item=>originals.some((unit,index)=>{const entry=data.units?.[unit.id]?.t?.[item.versionId];return !!entry&&(!(entry.pairs??[]).length||meets(unit,index,entry));});
     const available=[work.original.language,...work.translations.filter(covers).map(item=>item.language)];
-    const {primary,alternate}=readingLanguages(locale(),work.original.language,available,{exact:profile==='antiquity'});
+    const {primary,alternate}=readingLanguages(locale(),work.original.language,available,{exact:profile!=='zarathustra'});
     const versionFor=language=>language===work.original.language?work.original:work.translations.find(item=>item.language===language&&covers(item));
     let showing=primary.filter(language=>versionFor(language));
     if(!showing.length&&profile!=='antiquity')showing=[work.original.language];
@@ -413,7 +415,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       const parts=await Promise.all(showing.map(async language=>[language,await textOf(language)]));
       if(!current())return;
       figure.replaceChildren();
-      if(!showing.length&&profile==='antiquity')figure.append(el('p','ps-fragment-wait',words('fragmentTranslationUnavailable')));
+      if(!showing.length&&profile!=='zarathustra')figure.append(el('p','ps-fragment-wait',words('fragmentTranslationUnavailable')));
       for(const [language,value] of parts){
         if(!value.length)continue;
         const version=versionFor(language);
@@ -429,7 +431,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       if(alternate&&versionFor(alternate)){
         const back=primary.filter(language=>versionFor(language));
         const other=showing.includes(alternate)?back:[alternate];
-        if((other.length||profile==='antiquity'&&showing.includes(alternate))&&other.join()!==showing.join()){
+        if((other.length||profile!=='zarathustra'&&showing.includes(alternate))&&other.join()!==showing.join()){
           const swap=button(showing.includes(alternate)?words('fragmentTranslation'):words('fragmentOriginal'),'text-button ps-fragment-swap');
           swap.setAttribute('aria-pressed',String(showing.includes(alternate)));
           swap.addEventListener('click',()=>{showing=other;void paint().then(()=>figure.querySelector('.ps-fragment-swap')?.focus({preventScroll:true})).catch(error=>onError?.(error));});
