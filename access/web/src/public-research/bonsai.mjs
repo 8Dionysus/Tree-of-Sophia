@@ -71,13 +71,15 @@ export function loadBonsai(profile){
 }
 
 // The images on a stand's cards (bonsai/<stand>/media.json) come when a card first asks for them: the space never waits for media.
+// The Tree's names of their works in the reader's language (media-names.json) come with them.
 const MEDIA=import.meta.glob('../../../../bonsai/*/media.json',{import:'default'});
+const MEDIA_NAMES=import.meta.glob('../../../../bonsai/*/media-names.json',{import:'default'});
 const mediaLoads=new Map();
-/** A stand's media module, read with `readMedia`, loaded once; null where the stand keeps none. */
+/** A stand's media module, read with `readMedia` and its names, loaded once; null where the stand keeps none. */
 export function loadMedia(profile){
-  const load=MEDIA[`../../../../bonsai/${profile}/media.json`];
+  const load=MEDIA[`../../../../bonsai/${profile}/media.json`],names=MEDIA_NAMES[`../../../../bonsai/${profile}/media-names.json`];
   if(!load)return Promise.resolve(null);
-  if(!mediaLoads.has(profile))mediaLoads.set(profile,load().then(readMedia).catch(error=>{mediaLoads.delete(profile);throw error;}));
+  if(!mediaLoads.has(profile))mediaLoads.set(profile,Promise.all([load(),names?.()??null]).then(([module,named])=>readMedia(module,named)).catch(error=>{mediaLoads.delete(profile);throw error;}));
   return mediaLoads.get(profile);
 }
 

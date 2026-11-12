@@ -14,7 +14,7 @@ import {
   unitReference,
 } from './view-model.mjs';
 import {createNotebookMetadataResolver,notebookFallbackLabel,notebookReferenceWorkId} from './notebook-labels.mjs';
-import {languageName,sourceLinkLabel,corpusWorkTitle,corpusSectionLabel} from '../observatory/human-presentation.mjs';
+import {languageName,sourceLinkLabel,corpusAuthorName,corpusWorkTitle,corpusSectionLabel} from '../observatory/human-presentation.mjs';
 import {bindPhilologyResult,philologyMarkIntervals,renderPhilology,selectedPhilologyForm,isSingleWordSelection} from './philology.mjs';
 import {renderOrigin} from './word-origin.mjs';
 import {createSelectionMenu} from './selection-menu.mjs';
@@ -156,7 +156,7 @@ function selectedOffsets(row, node, offset) {
 
 function quoteAttribution({document, version, unit, quote, locale}) {
   const title = corpusWorkTitle(document, locale) || document?.id || '';
-  const author = localized(document?.author, locale);
+  const author = corpusAuthorName(document?.author, locale);
   const work = localized(document?.work, locale);
   const originalTitle = localized(document?.title, locale);
   const edition = localized(version?.edition, locale) || version?.label || version?.id || '';
@@ -719,7 +719,7 @@ export function mountCorpusReader({
     const title = element('div', 'cr-title');
     title.append(element('span', 'cr-kicker', `✧ ${t('reading')}`));
     title.append(element('h1', '', state.document ? documentTitle(state.document) : t('reading')));
-    const author = localized(state.document?.author, uiLocale());
+    const author = corpusAuthorName(state.document?.author, uiLocale());
     if (author) title.append(element('p', '', author));
     const jump=button(t('jumpToText'),()=>root.querySelector('.cr-pane')?.focus({preventScroll:true}),'cr-jump-text');
     jump.disabled=!state.document;
@@ -768,7 +768,7 @@ export function mountCorpusReader({
       item.dataset.current = String(document.id === state.document?.id);
       item.dataset.available = String(isTextAvailable(document));
       item.append(element('strong', '', documentTitle(document)));
-      const author = localized(document.author, uiLocale());
+      const author = corpusAuthorName(document.author, uiLocale());
       const descriptor = localized(document.locator, uiLocale()) || author;
       const availability = catalogAvailability(document);
       const count = Number.isSafeInteger(document.unitCount) && document.unitCount >= 0

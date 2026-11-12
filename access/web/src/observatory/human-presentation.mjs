@@ -180,6 +180,20 @@ const PUBLIC_WORK_NAMES = {
   'tos.work.aristotle.nicomachean-ethics': ['Никомахова этика', 'Nicomachean Ethics'],
   'tos.work.plato.apology': ['Апология Сократа', 'Apology'],
 };
+// The public corpus's authors as a reader of each language names them; the manifest keeps its own spelling.
+const PUBLIC_AUTHOR_NAMES = {
+  'Plato': ['Платон', 'Plato'], 'Aristotle': ['Аристотель', 'Aristotle'], 'Cicero': ['Цицерон', 'Cicero'],
+  'Plutarch': ['Плутарх', 'Plutarch'], 'Epictetus': ['Эпиктет', 'Epictetus'], 'Seneca': ['Сенека', 'Seneca'],
+  'Hippocratic corpus': ['Гиппократов корпус', 'Hippocratic corpus'], 'Friedrich Nietzsche': ['Фридрих Ницше', 'Friedrich Nietzsche'],
+  'Marcus Aurelius': ['Марк Аврелий', 'Marcus Aurelius'], 'Lucretius': ['Лукреций', 'Lucretius'],
+  'Diogenes Laertius': ['Диоген Лаэртский', 'Diogenes Laertius'], 'Porphyry': ['Порфирий', 'Porphyry'], 'Plotinus': ['Плотин', 'Plotinus'],
+};
+/** The name of a work's author in the reader's language; an author the corpus names in several languages chooses among them. */
+export function corpusAuthorName(author, locale = 'ru') {
+  if (author && typeof author === 'object') return author[resolveLocale(locale)] ?? author[copyLocale(locale)] ?? author.en ?? author.ru ?? '';
+  const names = PUBLIC_AUTHOR_NAMES[author];
+  return names ? localeText(names[(copyLocale(locale)==='en') ? 1 : 0], locale) : author ?? '';
+}
 export function corpusWorkTitle(document, locale = 'ru') {
   const value = document?.title;
   if (value && typeof value === 'object') return value[locale]??value.en??value.ru??'';

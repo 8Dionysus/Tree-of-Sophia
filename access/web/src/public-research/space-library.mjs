@@ -1,4 +1,4 @@
-import {corpusWorkTitle} from '../observatory/human-presentation.mjs';
+import {corpusAuthorName,corpusWorkTitle} from '../observatory/human-presentation.mjs';
 import {createZarathustraGroundTargets,createZarathustraRouteGroundTargets} from './zarathustra-ground-targets.mjs';
 import {extendPublicCollection} from './collection-data.mjs';
 import {loadBonsai} from './bonsai.mjs';
@@ -71,10 +71,9 @@ function preferredVersion(document, language = 'en') {
 
 function publicWorkNode(item, version, id = item.id) {
   const title = bi(corpusWorkTitle(item, 'ru'), corpusWorkTitle(item, 'en'));
-  const author = item.author ?? '';
   return {
     id, kind: 'work', parentId: null, title,
-    body: bi(`${author} · общедоступный источник`, `${author} · public source`),
+    body: bi(`${corpusAuthorName(item.author, 'ru')} · общедоступный источник`, `${corpusAuthorName(item.author, 'en')} · public source`),
     sourceRefs: [sourceRef(title, item.id)],
     publicDocumentId: item.id, publicVersionId: version.id, sourceAccess: 'public-document',
     sourcePosture: 'published metadata; text is read only through the selected public provider',
