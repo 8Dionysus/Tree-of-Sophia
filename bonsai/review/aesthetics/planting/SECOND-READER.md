@@ -52,7 +52,10 @@ K image . N --by second --loc "LOC"      # N as in the place's link: …/page/nN
 ```
 
 Open the file with your image viewer and read the place on the page, word by
-word and mark by mark, against `places.json`. Choose places where a slip would
+word and mark by mark, against `places.json`. Where the gate names a
+correction that rests on the eye alone, read its line at the size of the scan
+(`K image . N --by second --loc "LOC" --zoom 41-48`, the band of the page
+height in percent) and say in `review.images` what the enlarged line reads. Choose places where a slip would
 matter: a correction, many differences, the sentence a thesis leans on.
 
 ## 3. Write review.json

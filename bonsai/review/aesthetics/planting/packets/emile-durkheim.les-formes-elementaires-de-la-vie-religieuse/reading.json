@@ -1,0 +1,83 @@
+{
+  "reader": {
+    "id": "terra-2026-11-11-les-formes-elementaires-de-la-vie-religi",
+    "model": "gpt-6.1-terra",
+    "date": "2026-11-11",
+    "reads": "Read the French 1912 Alcan edition alongside the register readings, comparing the Wikisource transcription with the Wellesley scan."
+  },
+  "note": "",
+  "library": {
+    "agents": {
+      "emile-durkheim": {
+        "tree": "tos.agent.emile-durkheim"
+      }
+    },
+    "works": {
+      "emile-durkheim.les-formes-elementaires-de-la-vie-religieuse": {
+        "title": {
+          "ru": "Элементарные формы религиозной жизни",
+          "en": "The Elementary Forms of Religious Life"
+        },
+        "original": "fr",
+        "tree": "tos.work.emile-durkheim.les-formes-elementaires-de-la-vie-religieuse",
+        "places": "fragments"
+      }
+    }
+  },
+  "conceptions": [
+    {
+      "id": "emile-durkheim.les-formes-elementaires-de-la-vie-religieuse:sacred-things-and-prohibitions",
+      "of": [
+        "D:B-C3101"
+      ],
+      "areas": [
+        "AE31"
+      ],
+      "work": "emile-durkheim.les-formes-elementaires-de-la-vie-religieuse",
+      "locus": "Livre I, chapitre I, III",
+      "formula": [
+        {
+          "place": "I.1 p56a"
+        }
+      ],
+      "thesis": {
+        "ru": "Запреты защищают и отделяют священные вещи; профанные вещи, к которым применяются эти запреты, должны оставаться на расстоянии от священных.",
+        "en": "Prohibitions protect and isolate sacred things; profane things, to which these prohibitions apply, must remain at a distance from sacred things."
+      },
+      "status": "text",
+      "verdict": "revise",
+      "note": "The place distinguishes the profane from the sacred, but does not describe profanation as an operation; D:B-C3107 is not attributed to this conception.",
+      "from": [
+        "D:B-I001"
+      ]
+    },
+    {
+      "id": "emile-durkheim.les-formes-elementaires-de-la-vie-religieuse:rites-and-sacred-things",
+      "of": [
+        "D:B-C3103"
+      ],
+      "areas": [
+        "AE31"
+      ],
+      "work": "emile-durkheim.les-formes-elementaires-de-la-vie-religieuse",
+      "locus": "Livre I, chapitre I, III",
+      "formula": [
+        {
+          "place": "I.1 p56b"
+        }
+      ],
+      "thesis": {
+        "ru": "Обряды — это правила поведения, предписывающие, как человек должен обращаться со священными вещами.",
+        "en": "Rites are rules of conduct prescribing how a person must behave toward sacred things."
+      },
+      "status": "text",
+      "verdict": "revise",
+      "note": "The place defines rites as rules of conduct; it does not assert the maintenance of collective states or characterize them as symbolic action, so D:B-C3106 is not attributed here.",
+      "from": [
+        "D:B-I002"
+      ]
+    }
+  ],
+  "links": [],
+  "left": []
+}

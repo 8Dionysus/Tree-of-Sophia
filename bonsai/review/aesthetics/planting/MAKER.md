@@ -140,6 +140,20 @@ K judge . "III p19" 2 print "page reads 'ac-count' broken over the line"   # one
 K correct . "III.14 p193" "a qualify so" "a quality so" "scan p. 193 (Internet Archive ITEM, leaf n220)"
 ```
 
+A correction that changes letters while the OCR of the page gives it no
+support — the place was read from the image, the OCR reads otherwise there, or
+the print sets the long s and the change is between s and f — rests on your eye
+alone, and the whole page is too small for one letter. The gate names each such
+correction. Read its line at the size of the scan:
+
+```
+K image . 170 --loc "III def3 p132" --zoom 41-48    # the band of the page height, in percent, that holds the line
+```
+
+Keep the correction where the enlarged line bears it letter by letter. Where
+the line reads as the transcription, put the transcription's word back with
+`K cut` and take the correction out.
+
 After a correction, compare again. In a print with the long s, ſs is the
 print's ß and the transcription's ß stays; ſſ is ss. Where the OCR does not hold a place at all
 (`compare` says so: a Fraktur print, a poor scan), fetch every page the place
