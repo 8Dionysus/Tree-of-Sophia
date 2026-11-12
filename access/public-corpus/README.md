@@ -8,14 +8,15 @@ with `ToS/research-packets/public-prototypes-20261026/`.
 
 Both profiles select the same 51 works: *Zarathustra*, the 49 books in the
 retained Antiquity collection, and Xenophon’s *Memorabilia*. The selection
-contains 139 reading versions, including 17 captured Russian Karpov translations
+contains 140 reading versions, including 17 captured Russian Karpov translations
 of Plato from Wikisource and the complete English Dakyns *Memorabilia*. The
 39-chapter reading retains editorial footnotes; the source prints chapter XII
 twice in Book III, and the second is numbered 13 for navigation only. The
 anonymous 1889 Russian Seneca *De Beneficiis* witness contains only the manually
 transcribed Book I chapter 6; its remaining chapters are not supplied by that
-witness. Poletyka’s 1767 Russian *Enchiridion* witness contains only the first
-standard chapter. Distinct reading representations of the same edition
+witness. Poletyka’s 1767 Russian *Enchiridion* witnesses contain only the first
+five standard chapters; the translator’s extended note in chapter 5 is omitted.
+Distinct reading representations of the same edition
 are not additional historical editions.
 Gutenberg's electronic editions and the pinned Perseus
 repository revision are identified in `acquisition-index.v1.json` and the

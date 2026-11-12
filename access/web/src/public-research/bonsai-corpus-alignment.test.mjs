@@ -129,6 +129,15 @@ describe('the corpus alignment of the stands',()=>{
       if(unit!==chapter&&entry.w==='enchiridion')expect(entry.t[id]).toBeUndefined();
     }
   });
+  it.skipIf(!corpusFetched)('aligns the cited Poletyka chapters 2, 4 and 5 without inventing other citations',()=>{
+    const module=json('bonsai/antiquity/alignment.json');
+    const id='retained-enchiridion-ru-poletika1767-chapters2-5';
+    const chapters=['tos.text-unit.sid-a8346e8f34f94f19a67c06db5e7fb313','tos.text-unit.sid-fc94b5f113c5427092c0f4ee7636eb78','tos.text-unit.sid-79de1084ca1a4c77ab4299dad827a956'];
+    for(const unit of chapters)expect(module.units[unit].t[id].pairs.length).toBeGreaterThan(0);
+    expect(module.units['tos.text-unit.sid-99e3e7f3505345f8854753ebe7c85c1e']?.t[id]).toBeUndefined();
+    const ru=read('tos.work.retained-antiquity.enchiridion').versions.find(version=>version.id===id);
+    expect(ru.units).toHaveLength(4);
+  });
   for(const stand of ['zarathustra','antiquity'])it.skipIf(!corpusFetched)(`${stand}: holds every cited unit except places outside all translation scopes`,()=>{
     const module=json(`bonsai/${stand}/alignment.json`),works=worksOf(stand);
     const scopes=stand==='antiquity'?json('bonsai/antiquity/translation-scopes.json').scopes:[];

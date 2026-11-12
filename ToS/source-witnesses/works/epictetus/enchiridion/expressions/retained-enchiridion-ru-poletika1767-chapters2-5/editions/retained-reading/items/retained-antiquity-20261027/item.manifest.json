@@ -1,0 +1,46 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.enchiridion.enchiridion-ru-poletika1767-chapters2-5",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.enchiridion.enchiridion-ru-poletika1767-chapters2-5",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.e9aced94a2b97fd1475231cc4b4a9a92279b67addb1cefa92ffd866155e37a8c",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "enchiridion-ru-poletika1767-chapters2-5.json",
+      "media_type": "application/json",
+      "byte_size": 6422,
+      "sha256": "e9aced94a2b97fd1475231cc4b4a9a92279b67addb1cefa92ffd866155e37a8c",
+      "fixity_verified_at": "2026-11-12T22:47:53+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.10e2d832befef01dee1d148888e65d2e9f07a77859033b683bb33e1a15116045",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 5308,
+      "sha256": "10e2d832befef01dee1d148888e65d2e9f07a77859033b683bb33e1a15116045",
+      "fixity_verified_at": "2026-11-12T22:47:53+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.17a2d4a3b90555e1879e89c31e9adb6e02334cfda1d13ad184d48efe18fa9a69",
+      "relative_path": "payload/enchiridion-chapters2-5-transcription.json",
+      "original_basename": "enchiridion-chapters2-5-transcription.json",
+      "media_type": "application/json",
+      "byte_size": 5351,
+      "sha256": "17a2d4a3b90555e1879e89c31e9adb6e02334cfda1d13ad184d48efe18fa9a69",
+      "fixity_verified_at": "2026-11-12T22:47:53+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.enchiridion-ru-poletika1767-chapters2-5.20261027",
+  "rights_ref": "ToS/source-witnesses/works/epictetus/enchiridion/expressions/retained-enchiridion-ru-poletika1767-chapters2-5/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/epictetus/enchiridion/expressions/retained-enchiridion-ru-poletika1767-chapters2-5/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/epictetus/enchiridion/expressions/retained-enchiridion-ru-poletika1767-chapters2-5/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/epictetus/enchiridion/expressions/retained-enchiridion-ru-poletika1767-chapters2-5/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/epictetus/enchiridion/expressions/retained-enchiridion-ru-poletika1767-chapters2-5/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}
