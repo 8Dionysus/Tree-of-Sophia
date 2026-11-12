@@ -12,7 +12,7 @@ import {personalKind,readPersonalKinds} from './personal-kind.mjs';
 import {isAuthoredTransition,ladderRung,nodeForm,partName,relationStyle,routeVoices,searchScore,sourceLine,stepWitness} from './space-legibility.mjs';
 import {antiquityTimeline,formatDating,formatYears,stepTimeline,trajectory,zarathustraTimeline} from './space-timeline.mjs';
 import {bonsaiFor,depthOf,lensPositions,loadMedia} from './bonsai.mjs';
-import {createMediaView} from './media-view.mjs';
+import {createMediaView,linkGroups} from './media-view.mjs';
 import {createTerms,termForms,termMatcher,termNodes} from './term-view.mjs';
 import {SYSTEM_NAME,SYSTEM_THEME,THEMES,applyTheme,currentTheme,paint,themeChoice} from './site-theme.mjs';
 import {hasIcon,iconElement,iconMarkup} from './space-icons.mjs';
@@ -1346,6 +1346,22 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       if(slot.isConnected&&items.length)mediaView.render(slot,items);else slot.remove();
     }).catch(()=>slot.remove());
   }
+  // A link's images: its own, which the bonsai binds to the link, else those of its two ends, each under the end's name.
+  function appendLinkMedia(parent,{own=null,ends=[]}){
+    const owners=ends.map(material=>({material,owner:mediaOwner(material)})).filter(item=>item.owner);
+    const ownOwner=own&&profile==='zarathustra'?{profile:'zarathustra',subject:own}:null;
+    if(!owners.length&&!ownOwner)return;
+    const slot=el('div','ps-media-slot');parent.append(slot);
+    const profiles=[...new Set([...owners.map(item=>item.owner.profile),...(ownOwner?[ownOwner.profile]:[])])];
+    void Promise.all(profiles.map(name=>loadMedia(name).then(media=>[name,media]))).then(pairs=>{
+      const media=Object.fromEntries(pairs);
+      const groups=linkGroups({
+        own:ownOwner?media[ownOwner.profile]?.forSubject(ownOwner.subject)??[]:[],
+        ends:owners.map(({material,owner})=>({label:label(material),items:media[owner.profile]?.forSubject(owner.subject)??[]})),
+      });
+      if(slot.isConnected&&groups.length)mediaView.renderStrip(slot,groups);else slot.remove();
+    }).catch(()=>slot.remove());
+  }
   function appendDating(parent,materialId){
     if(!materialId||!chronologyReader)return;
     const situationId=situationOf(materialId),words=situationId?datingWords(situationId):null;if(!words)return;
@@ -1678,7 +1694,11 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     }
     const edge=findEdge(id);if(!edge)return pane?false:dropEdge();
     into.replaceChildren();
-    if(edge.coreRecord&&coreView){(pane?paneCore(pane):coreView).link(into,edge.coreRecord,{bench:pane?false:bench});appendResearchReferences(into,edge.coreRecord.id??id);return true;}
+    if(edge.coreRecord&&coreView){
+      const record=edge.coreRecord,end=coreId=>previewMaterials.get(core?.materialIds?.[coreId]??coreId);
+      (pane?paneCore(pane):coreView).link(into,record,{bench:pane?false:bench,media:box=>appendLinkMedia(box,{own:record.id??null,ends:[end(record.from),end(record.to)]})});
+      appendResearchReferences(into,record.id??id);return true;
+    }
     const from=graphState().nodes.find(node=>node.id===edge.from),to=graphState().nodes.find(node=>node.id===edge.to),atlasEdge=(atlas.edges??[]).find(item=>`atlas:${item.id}`===id||item.id===id);
     // The graph copy of an atlas edge may carry only an id; the authored label lives on the atlas edge.
     const relationLabel=relationName(edge),edgeLabel=humanEdgeLabel(edge)||humanEdgeLabel(atlasEdge);
@@ -1686,6 +1706,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const openRoute=route?.source==='atlas'?routes.find(item=>item.id===route.id):null,plainId=bareEdgeId(edge.id);
     const authored=profile==='antiquity'?isAuthoredTransition(edge):(openRoute?.transitions??[]).some(item=>bareEdgeId(item.edgeId??item.id)===plainId);
     into.append(el('p','eyebrow',(authored?t('transition'):t('relation'))+' · '+relationLabel),el('h1','',edgeLabel&&edgeLabel.length<=120?edgeLabel:relationLabel));if(edgeLabel.length>120)into.append(el('p','body',edgeLabel));
+    if(!from?.ownerType&&!to?.ownerType)appendLinkMedia(into,{ends:[matForNode(from),matForNode(to)].filter(Boolean)});
     if(!edge.ownerType&&edge.kind!=='contains'&&!isBasedOn(edge))into.append(ladderLine('comparison'));
     if(edge.body||atlasEdge?.body)fragments.render(into,edge.body??atlasEdge.body,{className:'body'});
     const inquiry=atlasEdge?.inquiry??edge.inquiry;if(inquiry){inquiryDetail(into,t('relationWarrant'),inquiry.warrant,true);appendGrounds(into,inquiry.grounds);inquiryDetail(into,t('relationLimit'),inquiry.limit);inquiryQuestion(into,inquiry.question);}

@@ -184,6 +184,13 @@
 #tree .ps-media-sources{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px!important}
 #tree .ps-media-sources a{color:#d9c391;text-decoration:none}
 #tree .ps-media-sources a:hover{text-decoration:underline}
+/* A link's images: small copies in groups, its own or each end's under the end's name; each opens in the viewer. */
+#tree .ps-media-strip{display:flex;flex-wrap:wrap;align-items:flex-start;gap:10px 18px;margin:8px 0 14px}
+#tree .ps-media-end{margin:0 0 5px;color:#8ea2ba;font:12px/1.4 var(--ps-sans);letter-spacing:.02em}
+#tree .ps-media-thumbs{display:flex;flex-wrap:wrap;gap:8px}
+#tree .ps-media-thumb{display:block;margin:0;padding:0;border:0;background:none;cursor:zoom-in}
+#tree .ps-media-thumb img{display:block;width:auto;height:auto;max-width:160px;max-height:120px;border:1px solid #8ea2ba30;background:#0b1626}
+#tree .ps-media-thumb:focus-visible{outline:2px solid #dcc690;outline-offset:3px}
 #tree .ps-media-missing,.ps-media-viewer .ps-media-missing{margin:0 0 8px;color:#8ea2ba;font:12.5px/1.55 var(--ps-sans)}
 .ps-media-viewer{position:fixed;inset:0;box-sizing:border-box;width:100%;height:100%;max-width:none;max-height:none;margin:0;padding:0;border:0;background:#04070e;color:#e4e6ea;font:13px/1.5 system-ui,-apple-system,'Segoe UI',sans-serif}
 .ps-media-viewer[open]{display:flex;flex-direction:column}
