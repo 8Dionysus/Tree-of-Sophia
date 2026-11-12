@@ -1,0 +1,55 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.de-fato.de-fato-en-barham-yonge-1878-ocr",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.de-fato.de-fato-en-barham-yonge-1878-ocr",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.6349dd275bb7461cf78fc8a4fba8d6a56902f66f36c913af13cacca0333d6679",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "de-fato-en-barham-yonge-1878-ocr.json",
+      "media_type": "application/json",
+      "byte_size": 47310,
+      "sha256": "6349dd275bb7461cf78fc8a4fba8d6a56902f66f36c913af13cacca0333d6679",
+      "fixity_verified_at": "2026-11-12T21:03:08+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.3045fa99d197c9023d753e73c8b2c13b13be7d90a005a28133241dc04cb7eca4",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 44137,
+      "sha256": "3045fa99d197c9023d753e73c8b2c13b13be7d90a005a28133241dc04cb7eca4",
+      "fixity_verified_at": "2026-11-12T21:03:08+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.ec09220229ce0abfab4634affdbe58de69e275e903ef7e704d722f44b9b827d1",
+      "relative_path": "payload/ocr-layout-pp264-282.txt",
+      "original_basename": "ocr-layout-pp264-282.txt",
+      "media_type": "text/plain",
+      "byte_size": 47077,
+      "sha256": "ec09220229ce0abfab4634affdbe58de69e275e903ef7e704d722f44b9b827d1",
+      "fixity_verified_at": "2026-11-12T21:03:08+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.e849163ec9435e565a8ad71b18131e3f79988e4baf7197f64ed407227cea9985",
+      "relative_path": "payload/extract.py",
+      "original_basename": "extract.py",
+      "media_type": "text/plain",
+      "byte_size": 5500,
+      "sha256": "e849163ec9435e565a8ad71b18131e3f79988e4baf7197f64ed407227cea9985",
+      "fixity_verified_at": "2026-11-12T21:03:08+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.de-fato-en-barham-yonge-1878-ocr.20261027",
+  "rights_ref": "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}
