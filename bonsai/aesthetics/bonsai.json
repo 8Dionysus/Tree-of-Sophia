@@ -132,6 +132,54 @@
         "ru": "по ступеням от произведения к месту и прочтению",
         "en": "by steps from a work to a passage and its reading"
       }
+    },
+    "time": {
+      "positions": "measure",
+      "short": {
+        "ru": "годы",
+        "en": "years"
+      },
+      "measures": {
+        "ru": "годы написания по хронологии бонсая",
+        "en": "years of writing, from the bonsai’s chronology"
+      },
+      "groups": {
+        "ru": "строки — группы областей A–D",
+        "en": "rows are the area groups A–D"
+      }
+    },
+    "proximity": {
+      "positions": "measure",
+      "short": {
+        "ru": "расстояние",
+        "en": "distance"
+      },
+      "measures": {
+        "ru": "расстояние от выбранного хода по названному критерию",
+        "en": "distance from the chosen move by the named criterion"
+      },
+      "groups": {
+        "ru": "направление — группа областей",
+        "en": "direction is the group of areas"
+      },
+      "criteria": [
+        {
+          "id": "concepts",
+          "label": {
+            "ru": "Общие понятия",
+            "en": "Shared concepts"
+          },
+          "measure": {
+            "ru": "1 − доля общих понятий двух трактовок (мера Жаккара)",
+            "en": "1 − the share of concepts two conceptions have in common (Jaccard)"
+          },
+          "unit": {
+            "ru": "",
+            "en": ""
+          },
+          "requires": "concepts"
+        }
+      ]
     }
   },
   "depth": {

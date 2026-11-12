@@ -6,6 +6,8 @@ import field from '../../../../bonsai/aesthetics/field.json';
 import catalog from '../../../../bonsai/aesthetics/library.json';
 import chronology from '../../../../bonsai/aesthetics/chronology.json';
 import {aestheticsTree,aestheticsSourceGroups} from './aesthetics-tree.mjs';
+import {aestheticsTimeline} from './space-timeline.mjs';
+import {jaccardDistance} from './space-proximity.mjs';
 import {colonnade} from './space-gatherings.mjs';
 import {makeAesthetics} from './aesthetics-library.mjs';
 describe('Aesthetics field projection',()=>{
@@ -27,6 +29,11 @@ describe('Aesthetics field projection',()=>{
     const groups=aestheticsSourceGroups({library:result,chronology}),view=colonnade({authors:groups});
     for(const item of field.conceptions){const work=groups.flatMap(a=>a.works).find(w=>w.id===`aesthetics:catalog:${item.work}`);expect(work.front).toContain(`aesthetics:reading:${item.id}`);for(const id of byId.get(`aesthetics:reading:${item.id}`).sourceNodeIds)expect(work.up).toContain(id);}
     for(const group of groups)for(const work of group.works)for(const id of [work.id,...work.up,...work.front])expect(view.positions.has(id)).toBe(true);
+  });
+  it('dates every reading on its work and groups the rows A–D',()=>{
+    const time=aestheticsTimeline({field,library:result,chronology});expect(time.lanes.map(lane=>lane.id)).toEqual(['A','B','C','D']);
+    for(const item of field.conceptions){const id=`aesthetics:reading:${item.id}`;expect(time.positions.has(id),id).toBe(true);expect(time.timeOf(id).composition).toBe(chronology.compositions.works[item.work]);expect(time.spanOf(id)).toBeTruthy();}
+    const [a,b]=field.conceptions;expect(jaccardDistance(a.of,b.of)).toBeGreaterThanOrEqual(0);expect(jaccardDistance(a.of,a.of)).toBe(0);
   });
   it('holds only grounded areas, concepts and relations',()=>{
     const used=new Set(field.conceptions.flatMap(item=>item.of));

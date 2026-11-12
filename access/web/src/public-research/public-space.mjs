@@ -10,7 +10,7 @@ import {displayPublicError,hypothesisTitle,proposalDisplay} from './presentation
 import {describeSourceLocator} from './source-address.mjs';
 import {personalKind,readPersonalKinds} from './personal-kind.mjs';
 import {isAuthoredTransition,ladderRung,nodeForm,partName,relationStyle,routeVoices,searchScore,sourceLine,stepWitness} from './space-legibility.mjs';
-import {antiquityTimeline,formatDating,formatYears,stepTimeline,trajectory,zarathustraTimeline} from './space-timeline.mjs';
+import {antiquityTimeline,aestheticsTimeline,formatDating,formatYears,stepTimeline,trajectory,zarathustraTimeline} from './space-timeline.mjs';
 import {bonsaiFor,depthOf,lensPositions,loadMedia} from './bonsai.mjs';
 import {createMediaView,linkGroups} from './media-view.mjs';
 import {createTerms,termForms,termMatcher,termNodes} from './term-view.mjs';
@@ -157,7 +157,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     // The node opens where the reader is: in the experience when it holds the page, on the map otherwise; an open book gives way to it.
     openNode:id=>{const book=fragments.reader?.dialog;if(book?.open)book.close();if(shell.dispatchEvent(new CustomEvent('public-research-open',{bubbles:true,cancelable:true,detail:{id}})))openResearch(id);}});
   // The lens "Time" exists where the data dates or orders its material: Antiquity by the years its bonsai gives the writings, Zarathustra by the order of the book.
-  const timeline=profile==='antiquity'?antiquityTimeline({routes,entries:library.space?.collection??[],chronology:bonsai?.chronology}):profile==='zarathustra'?zarathustraTimeline({materials:[...materials.values()],references:atlas.references??{},clusters:atlas.clusters??[],chronology:bonsai?.chronology}):null;
+  const timeline=profile==='aesthetics'?aestheticsTimeline({field:bonsai.field,library,chronology:bonsai.chronology}):profile==='antiquity'?antiquityTimeline({routes,entries:library.space?.collection??[],chronology:bonsai?.chronology}):profile==='zarathustra'?zarathustraTimeline({materials:[...materials.values()],references:atlas.references??{},clusters:atlas.clusters??[],chronology:bonsai?.chronology}):null;
   // What a star's dating and place are about: the writing of its passage or work (Antiquity), of the text it first rests on (Zarathustra).
   const situationOf=materialId=>profile==='aesthetics'?(materials.get(materialId)?.dating??bonsai?.chronology?.compositions?.works?.[materials.get(materialId)?.workId]??materials.get(materialId)?.life??null):profile==='antiquity'?timeline?.timeOf?.(materialId)?.composition??null:bonsai?.chronology?.compositions?.references?.[timeline?.firstGround?.(materialId)]??bonsai?.chronology?.book?.parts?.find(item=>item.part===timeline?.placeOf?.(materialId)?.part)?.writing??null;
   const placesReader=bonsai?.places?readPlaces(bonsai.places):null;
@@ -173,15 +173,16 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // The lens "Space" exists where the bonsai places the material; a star without a sourced place stands apart from the map.
   const geography=bonsai?.places?planeOfPlaces({stars:starIds,placeOf,places:bonsai.places.places}):null;
   // The lens "Proximity" measures from one star by one criterion its bonsai names; its direction groups by branch or circle.
-  const nearGroups=profile==='antiquity'?routes.map(item=>({id:item.id,title:item.title})):(atlas.clusters??[]).map(cluster=>({id:cluster.id,title:cluster.title}));
+  const nearGroups=profile==='aesthetics'?['A','B','C','D'].map(id=>({id,title:{ru:id,en:id}})):profile==='antiquity'?routes.map(item=>({id:item.id,title:item.title})):(atlas.clusters??[]).map(cluster=>({id:cluster.id,title:cluster.title}));
   const nearGroupOf=new Map();
-  if(profile==='antiquity')for(const item of routes)for(const step of item.steps??[]){const id=step.nodeId??step.graphNodeId;if(id&&!nearGroupOf.has(id))nearGroupOf.set(id,item.id);}
+  if(profile==='aesthetics')for(const item of bonsai.field.conceptions){const group=bonsai.field.areas.find(area=>area.id===item.areas[0])?.group;if(group)nearGroupOf.set(`aesthetics:reading:${item.id}`,group);}
+  else if(profile==='antiquity')for(const item of routes)for(const step of item.steps??[]){const id=step.nodeId??step.graphNodeId;if(id&&!nearGroupOf.has(id))nearGroupOf.set(id,item.id);}
   else for(const material of materials.values())if(material.cluster)nearGroupOf.set(material.id,material.cluster);
   const starSet=new Set(starIds),nearEdges=[...(atlas.edges??[]),...(core?.edges??[])].filter(edge=>starSet.has(edge.from)&&starSet.has(edge.to)&&edge.kind!=='contains').map(edge=>[edge.from,edge.to]);
   const passageOf=materialId=>collectionByLegacyId.get(String(materialId).replace(/^antiquity:reading:/,''));
-  const distances=proximityCriteria({conceptsOf:id=>passageOf(id)?.concepts??null,groundsOf:id=>timeline?.groundsOf?.(id)??null,edges:nearEdges,spanOf:id=>timeline?.spanOf?.(id)??null,pointOf:id=>placeOf(id)?.point??null,chapterOf:id=>timeline?.placeOf?.(id)?.chapter??null});
+  const distances=proximityCriteria({conceptsOf:id=>profile==='aesthetics'?materials.get(id)?.concepts??null:passageOf(id)?.concepts??null,groundsOf:id=>timeline?.groundsOf?.(id)??null,edges:nearEdges,spanOf:id=>timeline?.spanOf?.(id)??null,pointOf:id=>placeOf(id)?.point??null,chapterOf:id=>timeline?.placeOf?.(id)?.chapter??null});
   const criteria=(bonsai?.manifest?.lenses?.proximity?.criteria??[]).filter(item=>distances[item.id]&&(!item.requires||(item.requires==='places'?!!geography:item.requires==='chronology'?timeline?.kind==='years':true)));
-  const timeLens=timeline?{id:'time',icon:'◷',title:{ru:'Время',en:'Time'},description:timeline.kind==='years'?{ru:'Годы написания; строки — ветви',en:'Years of writing; rows are branches'}:{ru:'Порядок книги, от Пролога до четвёртой части; строки — круги карты',en:'The order of the book, from the Prologue to Part Four; rows are the map’s circles'}}:null;
+  const timeLens=timeline?{id:'time',icon:'◷',title:{ru:'Время',en:'Time'},description:profile==='aesthetics'?{ru:'Годы написания; строки — группы областей',en:'Years of writing; rows are groups of areas'}:timeline.kind==='years'?{ru:'Годы написания; строки — ветви',en:'Years of writing; rows are branches'}:{ru:'Порядок книги, от Пролога до четвёртой части; строки — круги карты',en:'The order of the book, from the Prologue to Part Four; rows are the map’s circles'}}:null;
   const spaceLens=geography?{id:'space',icon:'⌖',title:{ru:'Пространство',en:'Space'},description:{ru:'Где написан текст или где жил его автор',en:'Where the text was written, or where its author lived'}}:null;
   const proximityLens=starIds.length&&criteria.length?{id:'proximity',icon:'⊙',title:{ru:'Близость',en:'Proximity'},description:{ru:'Расстояние от выбранной звезды',en:'Distance from the chosen star'}}:null;
   // A lens with no stars of its own in this library is not offered.
@@ -1003,13 +1004,14 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   // A traced concept joins the stars that carry it in the order of the scale; the rest step back.
   function conceptsOfStar(materialId){
+    if(profile==='aesthetics')return materials.get(materialId)?.concepts??[];
     if(profile==='antiquity')return passageOf(materialId)?.concepts??[];
     const own=materials.get(materialId)?.kind==='concept'?[materialId]:[];
     return [...own,...(atlas.edges??[]).filter(edge=>edge.kind!=='contains'&&(edge.from===materialId||edge.to===materialId)).map(edge=>edge.from===materialId?edge.to:edge.from).filter(id=>materials.get(id)?.kind==='concept')];
   }
   function traceableConcepts(){
     const counts=new Map();for(const id of starIds)for(const concept of new Set(conceptsOfStar(id)))counts.set(concept,(counts.get(concept)??0)+1);
-    const title=id=>profile==='antiquity'?collectionByLegacyId.get(id)?.title:materials.get(id)?.title;
+    const title=id=>profile==='antiquity'?collectionByLegacyId.get(id)?.title:profile==='aesthetics'?materials.get(`aesthetics:catalog:${id}`)?.title:materials.get(id)?.title;
     return [...counts.entries()].filter(([,n])=>n>=2).map(([id,n])=>({id,n,title:title(id)??id})).sort((a,b)=>b.n-a.n||tr(a.title,locale()).localeCompare(tr(b.title,locale())));
   }
   // The trace's lines by id: a chosen one names its concept and its two ends, whatever colons their ids hold.

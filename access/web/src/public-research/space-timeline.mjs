@@ -96,7 +96,7 @@ const LANE=36,GAP=12,STACK=7;
  * stands in the first; a writing the chronology dates as unknown stands with
  * the other undated ones outside the scale.
  */
-export function antiquityTimeline({routes=[],entries=[],chronology=null}={}){
+export function antiquityTimeline({routes=[],entries=[],chronology=null,passageIdOf=id=>String(id).replace(/^antiquity:reading:/,'')}={}){
   const byId=new Map(entries.map(entry=>[entry.legacyId??entry.id,entry])),reader=readChronology(chronology);
   // Each author's life as the chronology dates it; it spans an era's bracket.
   const lives=new Map();
@@ -104,7 +104,7 @@ export function antiquityTimeline({routes=[],entries=[],chronology=null}={}){
   const timeOf=new Map();
   for(const route of routes)for(const step of route.steps??[]){
     const id=step.nodeId??step.graphNodeId;if(!id||timeOf.has(id))continue;
-    const passageId=String(id).replace(/^antiquity:reading:/,''),passage=byId.get(passageId);if(!passage)continue;
+    const passageId=passageIdOf(id),passage=byId.get(passageId);if(!passage)continue;
     const workId=passage.workId??null,authorId=passage.author??byId.get(workId)?.author??null,composition=reader.compositionOf({passageId,workId});
     timeOf.set(id,{passageId,workId,authorId,life:lives.get(authorId)?.situation??null,composition,span:composition?reader.span(composition):null,period:pick(passage.period,'en')});
   }
@@ -167,6 +167,14 @@ export function antiquityTimeline({routes=[],entries=[],chronology=null}={}){
       return out;
     },
   };
+}
+
+/** The same scale for a field: rows are its four groups of areas. */
+export function aestheticsTimeline({field,library,chronology}){
+  const areas=new Map(field.areas.map(area=>[area.id,area]));
+  const rows=['A','B','C','D'].map(group=>({id:group,title:{ru:group,en:group},steps:library.atlas.routes.filter(route=>areas.get(route.id)?.group===group).flatMap(route=>route.steps)}));
+  const entries=[...Object.keys(library.space.profile==='aesthetics'?chronology.lives:{}).map(id=>({id,kind:'author'})),...field.conceptions.map(item=>({id:item.id,workId:item.work,author:item.agents?.[0]}))];
+  return antiquityTimeline({routes:rows,entries,chronology,passageIdOf:id=>String(id).replace(/^aesthetics:reading:/,'')});
 }
 
 /**
