@@ -22,3 +22,15 @@ it('mounts Aesthetics and opens its four lenses',async()=>{
     }
   }finally{view.destroy();vi.unstubAllGlobals();window.happyDOM.abort();}
 });
+
+it('offers all three stands on the home page without a placeholder for Aesthetics',async()=>{
+  const window=new Window({url:'http://localhost/home/'});
+  for(const key of ['window','document','location','history','localStorage','navigator','getComputedStyle','CustomEvent','Event','HTMLElement','Element','Node','CSS'])vi.stubGlobal(key,key==='window'?window:window[key]);
+  vi.stubGlobal('fetch',vi.fn(async()=>({ok:false,status:404})));
+  document.body.innerHTML='<div class="home-bar"></div><div class="home-head"></div><div class="home-choice"></div>';
+  try{
+    await import('../home/home.mjs');
+    const links=[...document.querySelectorAll('.home-stand a')];expect(links.map(link=>new URL(link.href).pathname)).toEqual(['/zarathustra/','/antiquity/','/aesthetics/']);
+    expect(links[2].querySelector('.home-tree')).toBeNull();expect(links[2].textContent).toContain('The philosophy of beauty, art and sensory experience');
+  }finally{vi.unstubAllGlobals();window.happyDOM.abort();}
+});
