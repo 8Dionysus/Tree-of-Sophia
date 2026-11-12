@@ -1,0 +1,46 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.memorabilia.memorabilia-en-dakyns1897-gutenberg",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.memorabilia.memorabilia-en-dakyns1897-gutenberg",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.cbb5a12b5f71f94206cf69bea3297f1c0cdbab44bffb10ddfbaaf23d87c9cf67",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "memorabilia-en-dakyns1897-gutenberg.json",
+      "media_type": "application/json",
+      "byte_size": 415799,
+      "sha256": "cbb5a12b5f71f94206cf69bea3297f1c0cdbab44bffb10ddfbaaf23d87c9cf67",
+      "fixity_verified_at": "2026-11-12T19:25:33+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 390534,
+      "sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "fixity_verified_at": "2026-11-12T19:25:33+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.7414f8d46c152c4367af2c56b8e73a4935f61ca91b618aa60efec3eeea61d0d0",
+      "relative_path": "payload/gutenberg-source.txt",
+      "original_basename": "memorabilia-dakyns-1897.txt",
+      "media_type": "text/plain",
+      "byte_size": 420971,
+      "sha256": "7414f8d46c152c4367af2c56b8e73a4935f61ca91b618aa60efec3eeea61d0d0",
+      "fixity_verified_at": "2026-11-12T19:25:33+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.memorabilia-en-dakyns1897-gutenberg.20261027",
+  "rights_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}
