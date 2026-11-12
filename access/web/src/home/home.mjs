@@ -54,7 +54,7 @@ head.replaceChildren(mark,tagline);
 const list=make('ul','home-stands');
 const cards=STANDS.map((stand,index)=>{
   const item=make('li','home-stand'),link=make('a'),title=make('span','home-title'),meta=make('span','home-meta'),description=make('span','home-desc');
-  item.style.setProperty('--i',index);link.href=`${base}${stand.id}/`;link.append(...(stand.id==='aesthetics'?[]:[bonsaiTree(stand.id,index)]),title,meta,description);item.append(link);list.append(item);
+  item.style.setProperty('--i',index);link.href=`${base}${stand.id}/`;link.append(bonsaiTree(stand.id,index),title,meta,description);item.append(link);list.append(item);
   // The sky between pages (public/cosmos.js) comes up before the bonsai is reached, so the way there leads through it.
   link.addEventListener('click',event=>{
     if(event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey||!window.tosCosmos)return;
