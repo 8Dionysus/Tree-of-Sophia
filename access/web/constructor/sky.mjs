@@ -252,7 +252,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       return n;
     });old.forEach(n=>{n.abandon?.();n.el.remove();});
     const oldClusters=new Map(clusters.map(c=>[c.id,c]));
-    clusters=(state.clusters??[]).map(item=>{let c=oldClusters.get(item.id);oldClusters.delete(item.id);if(!c){const el=document.createElement('div'),title=document.createElement('span'),subtitle=document.createElement('small');el.className='tree-cluster';title.className='cluster-title';subtitle.className='cluster-subtitle';el.append(title,subtitle);Object.assign(el.style,{position:'absolute',left:'0',top:'0',pointerEvents:'none'});clusterLayer.append(el);c={el,title,subtitle,p:[...item.center]};}c.id=item.id;c.target=[...item.center];c.variant=typeof item.variant==='string'?item.variant:'';c.recede=!!item.recede;if(c.variant)c.el.dataset.variant=c.variant;else delete c.el.dataset.variant;c.strip=Number.isFinite(item.strip)?item.strip:null;c.span=Array.isArray(item.span)&&item.span.length===2&&item.span.every(Number.isFinite)?[...item.span]:null;c.align=item.align==='start'||item.align==='end'?item.align:'';if(c.align)c.el.dataset.align=c.align;else delete c.el.dataset.align;c.maxWidth=Number.isFinite(item.maxWidth)?item.maxWidth:null;c.radius=Number.isFinite(item.radius)?item.radius:null;const home=clipped.has(c.variant)?ringLayer:underStars.has(c.variant)?ruleLayer:clusterLayer;if(c.el.parentElement!==home)home.append(c.el);if(item.ref){c.el.dataset.ref=String(item.ref);c.el.style.pointerEvents='auto';c.el.setAttribute('role','button');c.el.tabIndex=0;}else{delete c.el.dataset.ref;c.el.style.pointerEvents='none';c.el.removeAttribute('role');c.el.removeAttribute('tabindex');}if(item.tone)c.el.dataset.tone=String(item.tone);else delete c.el.dataset.tone;if(item.hint&&nativeTitles)c.el.title=item.hint;else c.el.removeAttribute('title');if(item.hint&&!nativeTitles)c.el.dataset.hint=item.hint;else delete c.el.dataset.hint;c.title.textContent=item.title??'';c.subtitle.textContent=item.subtitle??'';c.el.style.setProperty('--cluster-color',hex(item.color,'#a5b7cf'));c.el.style.color=hex(item.color,'#a5b7cf');return c;});oldClusters.forEach(c=>c.el.remove());
+    clusters=(state.clusters??[]).map(item=>{let c=oldClusters.get(item.id);oldClusters.delete(item.id);if(!c){const el=document.createElement('div'),title=document.createElement('span'),subtitle=document.createElement('small');el.className='tree-cluster';title.className='cluster-title';subtitle.className='cluster-subtitle';el.append(title,subtitle);Object.assign(el.style,{position:'absolute',left:'0',top:'0',pointerEvents:'none'});clusterLayer.append(el);c={el,title,subtitle,p:[...item.center]};}c.id=item.id;c.target=[...item.center];c.variant=typeof item.variant==='string'?item.variant:'';c.recede=!!item.recede;c.yields=!!item.yields;if(c.variant)c.el.dataset.variant=c.variant;else delete c.el.dataset.variant;c.strip=Number.isFinite(item.strip)?item.strip:null;c.span=Array.isArray(item.span)&&item.span.length===2&&item.span.every(Number.isFinite)?[...item.span]:null;c.align=item.align==='start'||item.align==='end'?item.align:'';if(c.align)c.el.dataset.align=c.align;else delete c.el.dataset.align;c.maxWidth=Number.isFinite(item.maxWidth)?item.maxWidth:null;c.radius=Number.isFinite(item.radius)?item.radius:null;const home=clipped.has(c.variant)?ringLayer:underStars.has(c.variant)?ruleLayer:clusterLayer;if(c.el.parentElement!==home)home.append(c.el);if(item.ref){c.el.dataset.ref=String(item.ref);c.el.style.pointerEvents='auto';c.el.setAttribute('role','button');c.el.tabIndex=0;}else{delete c.el.dataset.ref;c.el.style.pointerEvents='none';c.el.removeAttribute('role');c.el.removeAttribute('tabindex');}if(item.tone)c.el.dataset.tone=String(item.tone);else delete c.el.dataset.tone;if(item.hint&&nativeTitles)c.el.title=item.hint;else c.el.removeAttribute('title');if(item.hint&&!nativeTitles)c.el.dataset.hint=item.hint;else delete c.el.dataset.hint;c.title.textContent=item.title??'';c.subtitle.textContent=item.subtitle??'';c.el.style.setProperty('--cluster-color',hex(item.color,'#a5b7cf'));c.el.style.color=hex(item.color,'#a5b7cf');return c;});oldClusters.forEach(c=>c.el.remove());
     // A measured plane may lie on a backdrop of lines in its own units, such as coastlines.
     // A backdrop line is its points, or its points with a colour, an alpha and a weight in the layout's units.
     shade=state.shade&&Array.isArray(state.shade.center)&&Number.isFinite(state.shade.radius)?state.shade:null;
@@ -526,6 +526,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   // passing over it does not make it flicker; a name that leaves fades where it stood, and one that moves to another of
   // its places slides there. A name already standing keeps its place while that place stays clear.
   const APPEAR_MS=110,GLIDE='opacity .25s,color .25s,left .24s cubic-bezier(.2,.7,.2,1),top .24s cubic-bezier(.2,.7,.2,1)';
+  // A group's name that yields stands over at most this many stars.
+  const GROUP_CROWD=3;
   let labelsSettling=false;
   function presence(item,want,now,dt,instant){
     if(want){if(item.wantSince==null)item.wantSince=now;if(instant||item.fade==null||item.present||now-item.wantSince>=APPEAR_MS)item.present=true;}
@@ -619,18 +621,23 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     // A star the view has stepped back lies under the names in front of it, and so does one a chosen star or link has
     // sent back.
     const nodeObstacles=nodes.filter(n=>!n.el.hidden&&!n.dimmed&&n.el.dataset.outside!=='true').map(n=>({id:n.id,...box(n.screen.x-9,n.screen.y-9,18,18)}));
-    for(const c of clusters){
-      if(c.variant)continue;
+    // The names of groups nearer the eye take their places first, as nearer stars do.
+    const groups=clusters.filter(c=>!c.variant).map(c=>({c,d:project(c.p).d})).sort((a,b)=>b.d-a.d).map(item=>item.c);
+    for(const c of groups){
       const width=c.labelWidth??110,height=c.labelHeight??(c.subtitle.textContent?40:25);
       const places=[-101,-76,106,-136,140].map((offset,slot)=>{const p=project([c.p[0],c.p[1]+offset,c.p[2]]),top=offset===-101?Math.max(targetViewport.top+4,p.y-20):p.y-20;return Object.assign(box(p.x-width/2,top,width,height),{slot});});
       const sticky=c.present?c.slot:null,candidates=places.filter(inView).sort((a,b)=>(b.slot===sticky)-(a.slot===sticky));
       // A group's name keeps the place it stands in while that stays clear; else it takes the first place clear of the
-      // stars, and never one over another name.
+      // stars, and never one over another name. With no place clear of stars it takes the one over the fewest; a name
+      // that yields, such as a route's among many, waits for a nearer view rather than lie over a crowd of stars.
       const clear=candidates.find(candidate=>!occupied.some(o=>overlaps(candidate,o))&&!nodeObstacles.some(o=>overlaps(candidate,o,2)));
-      const area=clear??candidates.find(candidate=>!occupied.some(o=>overlaps(candidate,o)))??null;
+      const covered=candidate=>nodeObstacles.reduce((sum,o)=>sum+(overlaps(candidate,o,0)?1:0),0);
+      const least=clear?null:candidates.filter(candidate=>!occupied.some(o=>overlaps(candidate,o))).map(candidate=>({candidate,under:covered(candidate)})).sort((a,b)=>a.under-b.under)[0]??null;
+      const area=clear??(least&&(!c.yields||least.under<=(c.present?GROUP_CROWD+2:GROUP_CROWD))?least.candidate:null);
       if(area&&!clear)c.el.dataset.crowded='true';else delete c.el.dataset.crowded;
-      // A group that recedes is quieter further back in a space read in depth, as its stars are.
-      c.el.style.opacity=depthCue&&!measured&&c.recede?(.38+.62*clamp((project(c.p).d-.86)/.3,0,1)).toFixed(2):'';
+      // A group that recedes is quieter further back in a space read in depth, as its stars are: its letters fade, and
+      // the ground under them stays whole, so the lines behind never cut through a far name.
+      if(depthCue&&!measured&&c.recede)c.el.style.setProperty('--depth-alpha',(.38+.62*clamp((project(c.p).d-.86)/.3,0,1)).toFixed(2));else c.el.style.removeProperty('--depth-alpha');
       const fade=presence(c,!!area,now,dt,instant);
       if(area&&c.at&&c.slot!==area.slot&&fade>0&&!instant)c.slide={x:c.at.left+(c.slide?.x??0)-area.left,y:c.at.top+(c.slide?.y??0)-area.top};
       if(area){c.slot=area.slot;occupied.push(area);}

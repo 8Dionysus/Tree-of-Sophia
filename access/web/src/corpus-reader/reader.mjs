@@ -25,7 +25,7 @@ import {editionRepresentationKind,groupEditionRepresentations} from './edition-g
 import {readableUnitLocator} from './location-label.mjs';
 import {editorialRanges,editorialLabel,editorialKindForMatch,hasEditorialProjection,quotationWithEditorialRoles,sourceLayerKind} from './editorial.mjs';
 import {selectedSourceContext} from './source-context.mjs';
-import {isPreReform,respell} from '../public-research/orthography.mjs';
+import {needsRespelling,respell} from '../public-research/orthography.mjs';
 import retained from '../../../public-corpus/retained-library-map.v1.json' with {type:'json'};
 import variants from '../../../public-corpus/reader-textual-variants.v1.json' with {type:'json'};
 
@@ -1117,7 +1117,7 @@ export function mountCorpusReader({
     const editorial=editorialRanges(version,unit);
     // Respell complete words before splitting highlights; each boundary still
     // names the source's code points, and the row keeps the reverse mapping.
-    const spelling=(version?.language??unit.language)==='ru'&&isPreReform(unit.text)?respell(unit.text):null;
+    const spelling=(version?.language??unit.language)==='ru'&&needsRespelling(unit.text)?respell(unit.text):null;
     const offsets=spelling?[0]:null;
     if(offsets)for(const character of unit.text)offsets.push(offsets.at(-1)+character.length);
     const boundaries=[...new Set([0,codePoints,...intervals.flatMap(value=>[value.start,value.end]),...editorial.flatMap(value=>[value.start,value.end])])].sort((a,b)=>a-b);

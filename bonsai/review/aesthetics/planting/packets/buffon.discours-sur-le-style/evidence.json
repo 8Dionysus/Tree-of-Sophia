@@ -1,0 +1,277 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/b2932872x_0001/b2932872x_0001_hocr_searchtext.txt.gz",
+   "file": "b2932872x_0001.ocr.txt",
+   "sha256": "a01149c7dc54deb333ed5c916c2e4053d084aea9944c9a0e8b5db5f32a40900e",
+   "bytes": 3002042,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/b2932872x_0001/b2932872x_0001_hocr_pageindex.json.gz",
+   "file": "b2932872x_0001.index.json",
+   "sha256": "c8f63420e30cdfce84740ca48b4e6168aa7b89855e0ff6ee5ebbedc59c30d22b",
+   "bytes": 19969,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/b2932872x_0001/b2932872x_0001_page_numbers.json",
+   "file": "b2932872x_0001.pages.json",
+   "sha256": "fa9e76807af9fd90b8113969618a6eb71a55c16761623d49251872b83e123380",
+   "bytes": 87337,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "transcription",
+   "url": "https://fr.wikisource.org/w/index.php?title=Discours_sur_le_style&action=render",
+   "file": "render.html",
+   "sha256": "cf4f0f4a5f3713a0e1959b13093103a53392d4875ec36814109b8ea45b7a1306",
+   "bytes": 31977,
+   "fetched": "2026-11-10",
+   "text": "render.html.txt"
+  },
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/oeuvrescomplte01buff/oeuvrescomplte01buff_hocr_searchtext.txt.gz",
+   "file": "oeuvrescomplte01buff.ocr.txt",
+   "sha256": "23694d819051f99695f18e7349f5f453a7e53af94e7549316d3d7f6e2ed16fd7",
+   "bytes": 778171,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/oeuvrescomplte01buff/oeuvrescomplte01buff_hocr_pageindex.json.gz",
+   "file": "oeuvrescomplte01buff.index.json",
+   "sha256": "8794cc12bdf362892dc2f3718c63a70e5bedeef98c6d67f3fb0aaef9f9dc3d4c",
+   "bytes": 15052,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/oeuvrescomplte01buff/oeuvrescomplte01buff_page_numbers.json",
+   "file": "oeuvrescomplte01buff.pages.json",
+   "sha256": "0e03623fd463a91f2629ad1c7dfc904e9fc219e0c9487e3a3f28d26e20307846",
+   "bytes": 69337,
+   "fetched": "2026-11-10"
+  }
+ ],
+ "scan": {
+  "item": "oeuvrescomplte01buff",
+  "ocr": true,
+  "long_s": false,
+  "image_offset": -5
+ },
+ "persons": [
+  {
+   "qid": "Q229264",
+   "name": {
+    "en": "Georges-Louis Leclerc, Comte de Buffon",
+    "ru": "Жорж-Луи Леклерк де Бюффон"
+   },
+   "role": "author",
+   "died": 1788,
+   "source": "https://www.wikidata.org/wiki/Q229264"
+  },
+  {
+   "qid": "Q467962",
+   "name": {
+    "en": "Frédéric Cuvier",
+    "ru": "Фредерик Кювье"
+   },
+   "role": "editor",
+   "died": 1838,
+   "source": "https://www.wikidata.org/wiki/Q467962"
+  }
+ ],
+ "published": 1829,
+ "images": [
+  {
+   "n": 89,
+   "file": "oeuvrescomplte01buff-n89.jpg",
+   "sha256": "185ae81255145401370df81f5a585780a67490d6e0d40a15548c9b941a8c5bcc",
+   "by": "maker"
+  },
+  {
+   "n": 90,
+   "file": "oeuvrescomplte01buff-n90.jpg",
+   "sha256": "f18490826d72f66b72fcccb84abb96a2078d7c748b7d5da1f130446d862854b5",
+   "by": "maker"
+  },
+  {
+   "n": 96,
+   "file": "oeuvrescomplte01buff-n96.jpg",
+   "sha256": "fc620fc56368a407e182b43b59510201f1697561c16de887a6a957d3cc86f317",
+   "by": "maker"
+  },
+  {
+   "n": 84,
+   "item": "oeuvrescomplte01buff",
+   "file": "oeuvrescomplte01buff-n84.jpg",
+   "sha256": "4c394332a34530e98db7e83e8e67fbbb30c98f9511d161dea27b7fff0448945a",
+   "by": "maker"
+  },
+  {
+   "n": 85,
+   "item": "oeuvrescomplte01buff",
+   "file": "oeuvrescomplte01buff-n85.jpg",
+   "sha256": "9ff86476f0a3b112ac469faa0817de1714585d31577e1002599f451abaaed0dc",
+   "by": "maker"
+  },
+  {
+   "n": 86,
+   "item": "oeuvrescomplte01buff",
+   "file": "oeuvrescomplte01buff-n86.jpg",
+   "sha256": "5bdddba3f1767e0c75a6e9c04031e02ccd5bd427b36c08f6e81fd4bce9f77446",
+   "by": "maker"
+  },
+  {
+   "n": 91,
+   "item": "oeuvrescomplte01buff",
+   "file": "oeuvrescomplte01buff-n91.jpg",
+   "sha256": "2ab814d775dbe9107e1f93aa0b29f7c09cc9b3661ef96224fd30ffb9105e18ad",
+   "by": "maker"
+  },
+  {
+   "n": 84,
+   "item": "oeuvrescomplte01buff",
+   "file": "oeuvrescomplte01buff-n84.jpg",
+   "sha256": "4c394332a34530e98db7e83e8e67fbbb30c98f9511d161dea27b7fff0448945a",
+   "by": "second",
+   "loc": "Discours p5a"
+  },
+  {
+   "n": 85,
+   "item": "oeuvrescomplte01buff",
+   "file": "oeuvrescomplte01buff-n85.jpg",
+   "sha256": "9ff86476f0a3b112ac469faa0817de1714585d31577e1002599f451abaaed0dc",
+   "by": "second",
+   "loc": "Discours p6"
+  },
+  {
+   "n": 86,
+   "item": "oeuvrescomplte01buff",
+   "file": "oeuvrescomplte01buff-n86.jpg",
+   "sha256": "5bdddba3f1767e0c75a6e9c04031e02ccd5bd427b36c08f6e81fd4bce9f77446",
+   "by": "second",
+   "loc": "Discours p6"
+  },
+  {
+   "n": 91,
+   "item": "oeuvrescomplte01buff",
+   "file": "oeuvrescomplte01buff-n91.jpg",
+   "sha256": "2ab814d775dbe9107e1f93aa0b29f7c09cc9b3661ef96224fd30ffb9105e18ad",
+   "by": "second",
+   "loc": "Discours p12"
+  }
+ ],
+ "places": {
+  "Discours p5a": {
+   "transcription": "render.html",
+   "scan": "oeuvrescomplte01buff",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    89
+   ],
+   "printed": [
+    "5"
+   ],
+   "differences": []
+  },
+  "Discours p5b": {
+   "transcription": "render.html",
+   "scan": "oeuvrescomplte01buff",
+   "method": "ocr",
+   "share": 0.968,
+   "leaves": [
+    89
+   ],
+   "printed": [
+    "5"
+   ],
+   "differences": [
+    {
+     "transcription": "connoîtra",
+     "ocr": "connoîlra",
+     "leaf": 89,
+     "stands": "transcription",
+     "note": "Image n84: connoîtra, en and a full stop after remplir; OCR extends into the next sentence."
+    },
+    {
+     "transcription": "en",
+     "ocr": "eu",
+     "leaf": 89,
+     "stands": "transcription",
+     "note": "Image n84: connoîtra, en and a full stop after remplir; OCR extends into the next sentence."
+    },
+    {
+     "transcription": ".",
+     "ocr": "; Par la force du génie , on se représentera toutes les idées générales et particulières sous leur véritable point de vue ; par une grande finesse de discernement , on distinguera les pensées stériles des idées fécondes ; par la sagacité que donne la grande",
+     "leaf": 89,
+     "stands": "transcription",
+     "note": "Image n84: connoîtra, en and a full stop after remplir; OCR extends into the next sentence."
+    }
+   ]
+  },
+  "Discours p6": {
+   "transcription": "render.html",
+   "scan": "oeuvrescomplte01buff",
+   "method": "ocr",
+   "share": 0.986,
+   "leaves": [
+    90,
+    91
+   ],
+   "printed": [
+    "6",
+    "7"
+   ],
+   "differences": [
+    {
+     "transcription": "",
+     "ocr": "1",
+     "leaf": 90,
+     "stands": "transcription",
+     "note": "Images n85–86: the number and note are footnote matter, and the final word reads que."
+    },
+    {
+     "transcription": "",
+     "ocr": "i . Dans ce que j'ai dit ici , j'avois eu vue le livre de V Esprit des DISCOURS ACADEMIQUES . 7",
+     "leaf": 90,
+     "stands": "transcription",
+     "note": "Images n85–86: the number and note are footnote matter, and the final word reads que."
+    },
+    {
+     "transcription": "paroît",
+     "ocr": "paraît",
+     "leaf": 91,
+     "stands": "transcription",
+     "note": "Images n85–86: the number and note are footnote matter, and the final word reads que."
+    },
+    {
+     "transcription": "que",
+     "ocr": "crue",
+     "leaf": 91,
+     "stands": "transcription",
+     "note": "Images n85–86: the number and note are footnote matter, and the final word reads que."
+    }
+   ]
+  },
+  "Discours p12": {
+   "transcription": "render.html",
+   "scan": "oeuvrescomplte01buff",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    96
+   ],
+   "printed": [
+    "12"
+   ],
+   "differences": []
+  }
+ }
+}

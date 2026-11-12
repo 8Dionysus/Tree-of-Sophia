@@ -16,7 +16,8 @@ routes.
 | --- | --- | --- |
 | [`antiquity/`](antiquity/bonsai.json) | `/antiquity/` | the collection and its fifteen branches, the first six branches, the alignment of the corpus works they cite and the places of other works, the Tree's object types of its own words, the chronology of lives, phases and writings, places, the graft map, the authors' portraits |
 | [`zarathustra/`](zarathustra/bonsai.json) | `/zarathustra/` | the book's witnesses (German first editions, Common's English, Antonovsky's Russian of 1913) aligned paragraph by paragraph and sentence by sentence, the places of other works its map cites, the alignment of the corpus works it cites, the Tree's object types of its own words, the [philosophical core](CORE.md) of the book, the [word layer, today's spelling and the origin of every lemma](review/philology/README.md#the-word-layer), the chronology of the book's four parts, of the texts its map rests on and of the thought of eternal recurrence, their places, the graft map, images of works sharing its motifs; the map itself is grafted from the [constructor atlas](../access/web/constructor/README.md) |
-| [`shared/`](shared/coastlines.json) | both | Natural Earth coastlines under the map of places |
+| [`aesthetics/`](aesthetics/bonsai.json) | `/aesthetics/`, to open | the [core of the field](CORE.md#a-core-across-works): thirty-six areas with their questions, 407 concepts, the first conceptions read in the works themselves and the links resting on them; the library of the works and authors those conceptions cite; the alignment of the corpus works they cite; the graft map. It grows from the research batches kept under [review/aesthetics/](review/aesthetics/README.md) |
+| [`shared/`](shared/coastlines.json) | Antiquity and Zarathustra | Natural Earth coastlines under the map of places |
 
 [`zarathustra/held.json`](zarathustra/held.json) keeps whole the stars and links removed by the strict rebuild of 1 November 2026, together with their texts, verdicts, reasons and places, and the earlier texts of what stays. The audit found 19 of the 128 earlier links grounded in a named place in the book; the remaining readings and comparisons are held to grow together with the operator, and the stand neither shows nor binds them.
 
@@ -217,6 +218,13 @@ merges sentences of the original, a monotone alignment cannot follow, and the
 counterpart shown may be the neighbouring sentence; the parallel reading of
 the whole place shows the context.
 
+When a translation covers only part of a corpus work, a stand may declare its
+`translation-scopes.json` entry with the source URL and exact original
+version, text-layer revision and first and last unit IDs. The mechanism checks
+those bindings and aligns only that range; a cited fragment outside it has no
+counterpart in that witness. The range is an unreviewed source-bound proposal,
+not a manually chosen translation of each quotation.
+
 ```sh
 node bonsai/lib/cli.mjs align-corpus antiquity          # align again, report whether the module matches
 node bonsai/lib/cli.mjs align-corpus antiquity --write  # store the new module
@@ -281,6 +289,37 @@ from the grown nodes and the verdicts. The check reads every place against the
 witnesses, every claim against its statuses, every registry relation against its
 domain and range, and runs the control cases. Nothing here is admitted to the
 Tree.
+
+### Core of a field (`tos.bonsai.field.v1`) and its library (`tos.bonsai.library.v1`)
+
+`aesthetics/field.json` holds a discipline cut across many works, as
+[CORE.md](CORE.md#a-core-across-works) describes it. An area is a region of
+navigation with its question, in Russian and English. A concept is a subject
+any author can address: the twelve categories of the first group are typed as
+categories, every other concept is a candidate until a reading types it. A
+conception is one work's answer: the concepts it is a conception of, its work
+and authors, the voice that gives it where the author lets another speak, the
+locator, the formula as citations of the original, our thesis beside it and,
+where one is needed, the distinction that keeps it apart. A link joins concepts
+or conceptions by a verb and rests on conceptions the field holds. Every
+conception and link carries what is claimed (`text`, `reconstruction`,
+`hypothesis`), the verdict of a named reader who read the place, and the
+stand's admission, which may rest only on that verdict. Every record names
+under `grew_from` the research records it grew from.
+
+`aesthetics/library.json` names the works and authors the conceptions cite. A
+citation names a work by its library ID (`plato.symposium`); the graft map says
+which Tree work that is, and the corpus alignment is made from the cited units
+as for the other stands. A work the public corpus does not hold is cited by
+places of `aesthetics/fragments.json` (`{w, loc}`), each place the formula of
+a conception in the original with the translations beside it.
+
+The modules are written by
+[`review/aesthetics/plant.mjs`](review/aesthetics/plant.mjs) from the research
+layer and the readers' records. The check reads the field against the Tree's
+entity and relation registries and the library, and reads the exact words of
+every formula in the original where the corpus is fetched. Nothing here is
+admitted to the Tree.
 
 ### Graft map (`tos.bonsai.identities.v1`)
 
@@ -366,8 +405,14 @@ node bonsai/lib/layers.mjs status bonsai/zarathustra    # present, missing or di
 `fetch` takes each file from R2 when `R2_ENDPOINT`, `R2_ACCESS_KEY_ID` and
 `R2_SECRET_ACCESS_KEY` are set, else from the site's copy
 (`https://treeofsophia.com/__research/layers/sha256/<hex>`), else from the
-`layers/transfer` branch, and writes only bytes that match their digest. A
-checkout without the files builds and tests the stand without its word layer;
+`layers/transfer` branch, and writes only bytes that match their digest.
+`layers.mjs homes` lists the homes of a checkout: every directory whose
+`layers.json` is a layers manifest, tracked or new. The site's build
+(`vite build --mode public-research`) writes the site's copy of every home into
+its output, `layers/sha256/<hex>`, after its pages; it brings each missing file
+from the same stores first and stops at a file no store holds, so a built site
+holds every layer its pages address. A checkout without the files tests the
+stand without its word layer;
 the check then verifies the manifest, and with the files present it checks them
 like any module. Without the corpus files the stands read no corpus texts, and
 the check leaves the places a stand cites in the corpus unchecked.
@@ -377,8 +422,8 @@ new digests and `layers.mjs send bonsai/<stand>` puts every file that no store
 holds yet on `layers/transfer`, one commit holding objects named
 `sha256/<hex>`. The pull request carries only the manifest. Once it lands, the
 publication from main fetches the files, checks them, puts what R2 lacks into
-R2, reads each back, copies all of them into the site's copy and keeps on the
-transfer branch only what R2 still lacks.
+R2, reads each back, builds the site with its copy of the layers and keeps on
+the transfer branch only what R2 still lacks.
 
 ## Check and export
 

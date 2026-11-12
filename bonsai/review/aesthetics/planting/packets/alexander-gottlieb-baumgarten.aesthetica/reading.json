@@ -1,0 +1,109 @@
+{
+ "reader": {
+  "id": "terra-2026-11-10-aesthetica",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-10",
+  "reads": "Read the Latin first edition of 1750, sections 1, 2, 13 and 14, against the three register readings.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "alexander-gottlieb-baumgarten": {
+    "tree": "tos.agent.alexander-gottlieb-baumgarten"
+   }
+  },
+  "works": {
+   "alexander-gottlieb-baumgarten.aesthetica": {
+    "title": {
+     "ru": "Эстетика",
+     "en": "Aesthetics"
+    },
+    "original": "la",
+    "tree": "tos.work.alexander-gottlieb-baumgarten.aesthetica",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "alexander-gottlieb-baumgarten.aesthetica:beauty-perfection-of-sensitive-cognition",
+   "of": [
+    "A:C107",
+    "B:C-C009"
+   ],
+   "areas": [
+    "AE17"
+   ],
+   "work": "alexander-gottlieb-baumgarten.aesthetica",
+   "locus": "§14",
+   "formula": [
+    {
+     "place": "§14 p6"
+    }
+   ],
+   "thesis": {
+    "ru": "Цель эстетики — совершенство чувственного познания как такового; это совершенство есть красота.",
+    "en": "The end of aesthetics is the perfection of sensitive cognition as such; this perfection is beauty."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "B:C-I046"
+   ]
+  },
+  {
+   "id": "alexander-gottlieb-baumgarten.aesthetica:science-of-sensitive-cognition",
+   "of": [
+    "D:B-C3601"
+   ],
+   "areas": [
+    "AE36"
+   ],
+   "work": "alexander-gottlieb-baumgarten.aesthetica",
+   "locus": "§1",
+   "formula": [
+    {
+     "place": "§1 p1"
+    }
+   ],
+   "thesis": {
+    "ru": "Эстетика есть наука чувственного познания.",
+    "en": "Aesthetics is the science of sensitive cognition."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "D:B-I111"
+   ],
+   "note": "The conception retains the definition in §1; the register’s comparison with rhetoric, poetics and criticism is not included in this formula."
+  },
+  {
+   "id": "alexander-gottlieb-baumgarten.aesthetica:theoretical-aesthetics",
+   "of": [
+    "D:B-C3608"
+   ],
+   "areas": [
+    "AE36"
+   ],
+   "work": "alexander-gottlieb-baumgarten.aesthetica",
+   "locus": "§13",
+   "formula": [
+    {
+     "place": "§13 p5"
+    }
+   ],
+   "thesis": {
+    "ru": "Теоретическая эстетика предписывает эвристику о вещах и том, что следует мыслить, методологию о ясном порядке и семиотику о знаках прекрасно мыслимого и расположенного.",
+    "en": "Theoretical aesthetics prescribes heuristic concerning things and what is to be thought, methodology concerning lucid order, and semiotic concerning the signs of things beautifully thought and arranged."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "D:B-I112"
+   ]
+  }
+ ],
+ "links": [],
+ "left": []
+}
