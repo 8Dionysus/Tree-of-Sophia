@@ -1,3 +1,5 @@
+import '../observatory/human-forms-wasm-test-runtime.mjs';
+import {createConstructorModel} from '../../constructor/model.mjs';
 import {describe,it,expect} from 'vitest';
 import field from '../../../../bonsai/aesthetics/field.json';
 import catalog from '../../../../bonsai/aesthetics/library.json';
@@ -8,6 +10,7 @@ describe('Aesthetics field projection',()=>{
   it('shows each conception and every cited place on each of its area routes',()=>{
     for(const item of field.conceptions){const node=byId.get(`aesthetics:reading:${item.id}`);expect(node).toBeDefined();expect(node.sourceNodeIds).toHaveLength(item.formula.cite.length);for(const id of node.sourceNodeIds)expect(byId.get(id)?.kind).toBe('fragment');for(const area of item.areas)expect(result.atlas.routes.find(route=>route.id===area)?.steps.map(step=>step.nodeId)).toContain(node.id);}
   });
+  it('seeds the bounded saved graph',()=>{const model=createConstructorModel(result,{storage:null});try{model.seedAtlas();expect(model.getState().nodes.length).toBeGreaterThan(0);}finally{model.dispose();}});
   it('holds only grounded areas, concepts and relations',()=>{
     const used=new Set(field.conceptions.flatMap(item=>item.of));
     for(const item of field.concepts)expect(byId.has(`aesthetics:catalog:${item.id}`)).toBe(used.has(item.id));

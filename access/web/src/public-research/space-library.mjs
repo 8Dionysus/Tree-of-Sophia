@@ -38,7 +38,7 @@ async function selectedDocuments(provider, profile) {
   const documents = new Map();
   // The scene's existing anchors stay stable as the shared reading catalogue
   // grows. Other books open lazily in the same reader when selected.
-  const anchors=profile==='zarathustra'?[PUBLIC_PROFILE_IDS.zarathustra]:[PUBLIC_PROFILE_IDS.antiquity.meno,PUBLIC_PROFILE_IDS.antiquity.ethics,PUBLIC_PROFILE_IDS.antiquity.apology];
+  const anchors=profile==='zarathustra'?[PUBLIC_PROFILE_IDS.zarathustra]:profile==='antiquity'?[PUBLIC_PROFILE_IDS.antiquity.meno,PUBLIC_PROFILE_IDS.antiquity.ethics,PUBLIC_PROFILE_IDS.antiquity.apology]:[];
   for (const id of anchors) {
     if(!selected.documentIds.includes(id))throw new Error(`Public scene anchor is missing: ${id}`);
     const entry = manifest.documents.find(item => item.id === id);
@@ -262,7 +262,7 @@ async function makeAntiquity(sources, structureByDocument) {
 
 /** Prepare a profile-specific, metadata-bounded Constructor library for the public space. */
 export async function createPublicSpace({profile, provider} = {}) {
-  if (!['zarathustra', 'antiquity'].includes(profile)) throw new TypeError('An explicit public space profile is required.');
+  if (!['zarathustra', 'antiquity', 'aesthetics'].includes(profile)) throw new TypeError('An explicit public space profile is required.');
   // The stand's own bonsai arrives with it; another stand's never does.
   const [sources] = await Promise.all([selectedDocuments(provider, profile), loadBonsai(profile)]);
   const structures = new Map();
@@ -270,10 +270,15 @@ export async function createPublicSpace({profile, provider} = {}) {
     const version = preferredVersion(item.document, profile === 'zarathustra' ? 'de' : 'en');
     structures.set(documentId, await exactStructure(provider, item.document, version));
   }
-  const prepared = profile === 'zarathustra'
+  let prepared = profile === 'zarathustra'
     ? await makeZarathustra(sources, structures.get(PUBLIC_PROFILE_IDS.zarathustra) ?? [])
-    : await makeAntiquity(sources, structures);
-  await extendPublicCollection(prepared,{profile,sources,provider,structures,loadStructure:(document,version)=>exactStructure(provider,document,version)});
+    : profile === 'antiquity' ? await makeAntiquity(sources, structures) : null;
+  if(profile==='aesthetics'){
+    const {makeAesthetics}=await import('./aesthetics-library.mjs');
+    const library=makeAesthetics(await loadBonsai(profile));
+    library.fingerprint=await digest({...library,fingerprint:undefined});
+    prepared={library,bindings:new Map(),documentBindings:new Map()};
+  }else await extendPublicCollection(prepared,{profile,sources,provider,structures,loadStructure:(document,version)=>exactStructure(provider,document,version)});
   if(profile==='zarathustra'){
     // Record the actual prior namespace before adding the core, so personal
     // graphs retain their stable material IDs and their original backup.
@@ -294,6 +299,7 @@ async function placeTitles(profile){
     const chapters=new Map((manifest.chapters??[]).map(chapter=>[chapter.key,chapter]));
     return cite=>{const chapter=chapters.get(cite?.c);return chapter?{ru:chapterName(chapter,'ru'),en:chapterName(chapter,'en')}:null;};
   }
-  const works=new Map(((await loadBonsai(profile)).collection?.entities??[]).filter(entity=>entity.kind==='work').map(entity=>[entity.id,entity.title]));
+  const bonsai=await loadBonsai(profile);
+  const works=profile==='aesthetics'?new Map(Object.entries(bonsai.library.works).map(([id,work])=>[id,work.title])):new Map((bonsai.collection?.entities??[]).filter(entity=>entity.kind==='work').map(entity=>[entity.id,entity.title]));
   return cite=>{const title=works.get(cite?.w);if(!title)return null;const at=cite.loc?` · ${cite.loc}`:'';return {ru:`${title.ru??title.en}${at}`,en:`${title.en??title.ru}${at}`};};
 }

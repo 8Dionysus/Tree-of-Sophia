@@ -8,8 +8,8 @@ export function makeAesthetics({field,library:catalog,chronology}){
   const clock=readChronology(chronology),nodes=[],edges=[],routes=[];
   const concepts=new Map(field.concepts.map(item=>[item.id,item])),conceptions=new Map(field.conceptions.map(item=>[item.id,item]));
   const used=new Set(field.conceptions.flatMap(item=>item.of));
-  const add=(id,kind,title,extra={})=>nodes.push({id,kind,title,parentId:null,...extra});
-  const year=id=>clock.span(id)?.start??Infinity;
+  const add=(id,kind,title,extra={})=>nodes.push({id,kind,title,parentId:null,...(['concept','figure','question','interpretation'].includes(kind)?{demo:true,body:title,position:[0,0,0]}:{}),...extra});
+  const year=id=>clock.span(id)?.from??Infinity;
   for(const concept of field.concepts.filter(item=>used.has(item.id)))add(cat(concept.id),'concept',concept.title,{legacyId:concept.id,category:concept.type==='tos.entity.philosophical-category'});
   for(const [id,agent] of Object.entries(catalog.agents))add(cat(id),'figure',agent.name,{legacyId:id,life:chronology.lives[id]});
   for(const [id,work] of Object.entries(catalog.works))add(cat(id),'work',work.title,{legacyId:id,author:work.agents?.[0],dating:chronology.compositions.works[id]});
@@ -35,5 +35,5 @@ export function makeAesthetics({field,library:catalog,chronology}){
   }
   for(const link of field.links){if(!used.has(link.from)||!used.has(link.to)||!link.grounds?.length||!link.grounds.every(id=>conceptions.has(id)))continue;edges.push({id:`aesthetics:relation:${link.id}`,from:cat(link.from),to:cat(link.to),kind:'relates',label:link.verb,grounds:link.grounds.map(reading)});}
   const rootId=routes.length?route(routes[0].id):nodes[0]?.id;
-  return {schema:'tos_constructor_library_v1',rootId,fingerprint:'0'.repeat(64),nodes,atlas:{defaultIds:nodes.map(node=>node.id),edges,clusters:[],assemblies:[],extensions:[],routes},space:{profile:'aesthetics',title:field.title,posture:field.posture,collection:nodes.map(node=>({...node,materialId:node.id})),routes,lenses:[{id:'tree',icon:'✧',title:bi('Древо','The tree'),description:bi('Области, понятия и произведения.','Areas, concepts and works.')}],relationKinds:['contains','supports','relates']}};
+  return {schema:'tos_constructor_library_v1',rootId,fingerprint:'0'.repeat(64),nodes,atlas:{defaultIds:routes.map(item=>route(item.id)),edges,clusters:[],assemblies:[],extensions:[],routes},space:{profile:'aesthetics',title:field.title,posture:field.posture,collection:nodes.map(node=>({...node,materialId:node.id})),routes,lenses:[{id:'tree',icon:'✧',title:bi('Древо','The tree'),description:bi('Области, понятия и произведения.','Areas, concepts and works.')}],relationKinds:['contains','supports','relates']}};
 }
