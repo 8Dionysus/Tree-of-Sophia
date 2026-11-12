@@ -178,6 +178,7 @@ const PUBLIC_WORK_NAMES = {
   'tos.work.friedrich-nietzsche.also-sprach-zarathustra': ['Так говорил Заратустра', 'Thus Spoke Zarathustra'],
   'tos.work.plato.meno': ['Менон', 'Meno'],
   'tos.work.aristotle.nicomachean-ethics': ['Никомахова этика', 'Nicomachean Ethics'],
+  'tos.work.aristotle.de-anima': ['О душе', 'On the Soul'],
   'tos.work.plato.apology': ['Апология Сократа', 'Apology'],
   'tos.work.xenophon.memorabilia': ['Воспоминания о Сократе', 'Memorabilia'],
   'tos.work.seneca.letters-to-lucilius': ['Нравственные письма к Луцилию', 'Moral Letters to Lucilius'],

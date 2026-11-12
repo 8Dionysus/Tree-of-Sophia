@@ -113,6 +113,8 @@ test('the public corpus names its authors in the reader\'s language, and an auth
   expect(corpusAuthorName('Xenophon','ru')).toBe('Ксенофонт');expect(corpusAuthorName('Xenophon','es')).toBe('Jenofonte');
   expect(corpusWorkTitle({id:'tos.work.xenophon.memorabilia',title:'Memorabilia'},'ru')).toBe('Воспоминания о Сократе');
   expect(corpusWorkTitle({id:'tos.work.seneca.letters-to-lucilius',title:'Moral Letters to Lucilius'},'ru')).toBe('Нравственные письма к Луцилию');
+  expect(corpusWorkTitle({id:'tos.work.aristotle.de-anima',title:'On the Soul'},'ru')).toBe('О душе');
+  expect(corpusWorkTitle({id:'tos.work.aristotle.de-anima',title:'On the Soul'},'es')).toBe('Acerca del alma');
   expect(corpusAuthorName('Hippocratic corpus','ru')).toBe('Гиппократов корпус');
   expect(corpusAuthorName('Friedrich Nietzsche','ru')).toBe('Фридрих Ницше');
   expect(corpusAuthorName('Plato','de')).toBe('Platon');expect(corpusAuthorName('Plato','es')).toBe('Platón');expect(corpusAuthorName('Plato','zh-Hans')).toBe('柏拉图');
