@@ -1,0 +1,203 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/dasheiligeuberda00otto/dasheiligeuberda00otto_hocr_searchtext.txt.gz",
+   "file": "dasheiligeuberda00otto.ocr.txt",
+   "sha256": "ca0648ac04d667963c340273ff0e582442eab137f7dd346fce418ba084cc81ff",
+   "bytes": 446059,
+   "fetched": "2026-11-11",
+   "why": "Wikisource, Deutsches Textarchiv, TextGrid, Zeno and Projekt Gutenberg were searched for Das Heilige and this passage; the first did not offer the text and the other sites did not answer. Forage has the German sentences, but inserts an English translation between them, so the kit cannot verify this continuous place against it."
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/dasheiligeuberda00otto/dasheiligeuberda00otto_hocr_pageindex.json.gz",
+   "file": "dasheiligeuberda00otto.index.json",
+   "sha256": "ad2b3c67f6cee4953c897dd4cb778364fe5234c43500040216860a0c73bf0ed4",
+   "bytes": 8791,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/dasheiligeuberda00otto/dasheiligeuberda00otto_page_numbers.json",
+   "file": "dasheiligeuberda00otto.pages.json",
+   "sha256": "5f5fc3ce9bad8e657010836223a14f592598d0ba1792f299a75227494ab225b4",
+   "bytes": 42123,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "transcription",
+   "url": "https://forage.com/otto/idea-of-the-holy/",
+   "file": "idea-of-the-holy",
+   "sha256": "98497dd2f493d1a0c43ea0b654f1296571652d7036b6312f6d6dca5244ace60d",
+   "bytes": 1070616,
+   "fetched": "2026-11-11",
+   "text": "idea-of-the-holy.txt",
+   "why": "Wikisource author page lists Das Heilige without a transcription. Deutsches Textarchiv, TextGrid, Zeno and Projekt Gutenberg search pages did not answer. Forage transcribes the same 1925 scan; its script-corrected OCR is not an independent proofreading project, so every passage must be checked against the page."
+  }
+ ],
+ "scan": {
+  "item": "dasheiligeuberda00otto",
+  "ocr": true,
+  "long_s": false,
+  "image_offset": -1
+ },
+ "persons": [
+  {
+   "qid": "Q76748",
+   "name": {
+    "en": "Rudolf Otto",
+    "ru": "Рудольф Отто"
+   },
+   "role": "author",
+   "died": 1937,
+   "source": "https://www.wikidata.org/wiki/Q76748"
+  }
+ ],
+ "published": 1925,
+ "images": [
+  {
+   "n": 19,
+   "item": "dasheiligeuberda00otto",
+   "file": "dasheiligeuberda00otto-n19.jpg",
+   "sha256": "f037625b54beddb5d713d580af0af1dcf87d6e6e51a649a875cb1d82e180d4dc",
+   "by": "maker"
+  },
+  {
+   "n": 25,
+   "item": "dasheiligeuberda00otto",
+   "file": "dasheiligeuberda00otto-n25.jpg",
+   "sha256": "b602366d44de9840fa2b411f82dfa47dbf165ae4462116d032c23e7b78cfcde9",
+   "by": "maker"
+  },
+  {
+   "n": 92,
+   "item": "dasheiligeuberda00otto",
+   "file": "dasheiligeuberda00otto-n92.jpg",
+   "sha256": "53a6aedffeecca27743d74c574c65cfb7ac049a0d7493782a331a186a93bdddd",
+   "by": "maker"
+  },
+  {
+   "n": 24,
+   "item": "dasheiligeuberda00otto",
+   "file": "dasheiligeuberda00otto-n24.jpg",
+   "sha256": "e3f50e50993e313171f2c987920918904ff09d2cd5c6a3ea86c6dc5b3adc4a55",
+   "by": "maker"
+  },
+  {
+   "n": 91,
+   "item": "dasheiligeuberda00otto",
+   "file": "dasheiligeuberda00otto-n91.jpg",
+   "sha256": "df25cb366957a4d5a025d693cdbf63b6d04a006b094bd4ac4705edda7a6be642",
+   "by": "maker"
+  },
+  {
+   "n": 18,
+   "item": "dasheiligeuberda00otto",
+   "file": "dasheiligeuberda00otto-n18-z8-16.jpg",
+   "sha256": "414d67df2803ee09788ad9d7260499c146fe099d192dda615fcb1c13a5d7acf5",
+   "by": "maker",
+   "loc": "II p6",
+   "zoom": [
+    8,
+    16
+   ]
+  },
+  {
+   "n": 17,
+   "item": "dasheiligeuberda00otto",
+   "file": "dasheiligeuberda00otto-n17.jpg",
+   "sha256": "13982edd4a40fa77203c55c056d1d6b709c976a8245d65e5b65419071691b6a7",
+   "by": "maker",
+   "loc": "II p6"
+  },
+  {
+   "n": 18,
+   "item": "dasheiligeuberda00otto",
+   "file": "dasheiligeuberda00otto-n18.jpg",
+   "sha256": "5e6c1e951fd3916f2245bcb2d3e177f1c89669600819c157073a2e66cd08813e",
+   "by": "maker",
+   "loc": "II p6"
+  },
+  {
+   "n": 17,
+   "item": "dasheiligeuberda00otto",
+   "file": "dasheiligeuberda00otto-n17.jpg",
+   "sha256": "13982edd4a40fa77203c55c056d1d6b709c976a8245d65e5b65419071691b6a7",
+   "by": "second",
+   "loc": "II p6"
+  },
+  {
+   "n": 18,
+   "item": "dasheiligeuberda00otto",
+   "file": "dasheiligeuberda00otto-n18.jpg",
+   "sha256": "5e6c1e951fd3916f2245bcb2d3e177f1c89669600819c157073a2e66cd08813e",
+   "by": "second",
+   "loc": "II p6"
+  },
+  {
+   "n": 24,
+   "item": "dasheiligeuberda00otto",
+   "file": "dasheiligeuberda00otto-n24.jpg",
+   "sha256": "e3f50e50993e313171f2c987920918904ff09d2cd5c6a3ea86c6dc5b3adc4a55",
+   "by": "second",
+   "loc": "IV p13"
+  },
+  {
+   "n": 91,
+   "item": "dasheiligeuberda00otto",
+   "file": "dasheiligeuberda00otto-n91.jpg",
+   "sha256": "df25cb366957a4d5a025d693cdbf63b6d04a006b094bd4ac4705edda7a6be642",
+   "by": "second",
+   "loc": "X p78"
+  },
+  {
+   "n": 18,
+   "item": "dasheiligeuberda00otto",
+   "file": "dasheiligeuberda00otto-n18-z8-16.jpg",
+   "sha256": "414d67df2803ee09788ad9d7260499c146fe099d192dda615fcb1c13a5d7acf5",
+   "by": "second",
+   "loc": "II p6",
+   "zoom": [
+    8,
+    16
+   ]
+  }
+ ],
+ "places": {
+  "IV p13": {
+   "transcription": "idea-of-the-holy",
+   "scan": "dasheiligeuberda00otto",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    25
+   ],
+   "printed": [
+    "13"
+   ],
+   "differences": []
+  },
+  "X p78": {
+   "transcription": "idea-of-the-holy",
+   "scan": "dasheiligeuberda00otto",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    92
+   ],
+   "printed": [
+    "78"
+   ],
+   "differences": []
+  }
+ },
+ "scans": {
+  "dasheiligeuberda00otto": {
+   "item": "dasheiligeuberda00otto",
+   "ocr": true,
+   "long_s": false,
+   "image_offset": -1
+  }
+ }
+}

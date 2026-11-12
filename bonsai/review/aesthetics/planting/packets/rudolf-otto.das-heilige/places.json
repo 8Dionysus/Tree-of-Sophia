@@ -1,0 +1,97 @@
+{
+ "work": "rudolf-otto.das-heilige",
+ "entry": {
+  "author": {
+   "ru": "Рудольф Отто",
+   "en": "Rudolf Otto"
+  },
+  "title": {
+   "ru": "Священное",
+   "en": "The Idea of the Holy"
+  },
+  "original": "de",
+  "witnesses": {
+   "de": {
+    "edition": "Das Heilige: über das Irrationale in der Idee des Göttlichen und sein Verhältnis zum Rationalen, 13. Auflage (Gotha und Stuttgart: Friedrich Andreas Perthes, 1925), University of Illinois Urbana-Champaign copy.",
+    "year": 1925,
+    "url": "https://archive.org/details/dasheiligeuberda00otto",
+    "sources": [
+     "https://archive.org/details/dasheiligeuberda00otto",
+     "https://forage.com/otto/idea-of-the-holy/"
+    ],
+    "licence": "Public domain book; Internet Archive scan. Forage German transcription is offered under CC BY-SA 4.0.",
+    "attribution": "Rudolf Otto, Das Heilige, 13th edition (Gotha and Stuttgart: Friedrich Andreas Perthes, 1925); German words from Forage compared against the University of Illinois scan at Internet Archive.",
+    "rights": {
+     "basis": "public-domain",
+     "russia": "Общественное достояние: Рудольф Отто (автор) — год смерти 1937 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
+     "usa": "Public domain: this printing was published in 1925 (before 1930).",
+     "eu": "Public domain: Rudolf Otto (author) died 1937, more than 70 years ago (Directive 2006/116/EC art. 1).",
+     "reasoning": "Text by Rudolf Otto; Forage transcription from the 1925 thirteenth edition follows the Internet Archive scan. The passage on pp. 6–7 is cut from the scan OCR because the Forage text interleaves an English translation, and is checked on both page images. The kit joins line-end hyphenation; corrections are recorded."
+    }
+   }
+  },
+  "absent": [
+   {
+    "language": "ru",
+    "reason": "No Russian text is taken in this pass: the line plants the original first."
+   },
+   {
+    "language": "en",
+    "reason": "No English text is taken in this pass: the line plants the original first."
+   }
+  ]
+ },
+ "places": {
+  "IV p13": {
+   "label": {
+    "ru": "Гл. IV, с. 13",
+    "en": "Ch. IV, p. 13"
+   },
+   "texts": {
+    "de": "Tremor ist an sich nur Furcht: ein wohlbekanntes ‘natürliches’ Gefühl. Es dient uns hier als nächstgelegene aber selber doch nur analogische Bezeichnung für eine ganz art-besondere Gefühls-reaktion, die zwar Ähnlichkeit hat mit der Furcht und darum durch sie analogisch angedeutet werden kann, die aber selber noch ganz etwas anderes ist als Sichfürchten."
+   },
+   "links": {
+    "de": "https://archive.org/details/dasheiligeuberda00otto/page/n24/mode/1up"
+   },
+   "refs": [
+    [
+     "de",
+     "13th edition (1925), p. 13"
+    ]
+   ]
+  },
+  "X p78": {
+   "label": {
+    "ru": "Гл. X, с. 78",
+    "en": "Ch. X, p. 78"
+   },
+   "texts": {
+    "de": "In den Künsten ist das wirksamste Darstellungs-mittel des Numinosen fast überall das Erhabene. Zumal in der Baukunst."
+   },
+   "links": {
+    "de": "https://archive.org/details/dasheiligeuberda00otto/page/n91/mode/1up"
+   },
+   "refs": [
+    [
+     "de",
+     "13th edition (1925), p. 78"
+    ]
+   ]
+  }
+ },
+ "corrections": [
+  {
+   "lang": "de",
+   "from": "wohl-bekanntes",
+   "to": "wohlbekanntes",
+   "evidence": "1925 scan p. 13, image n24: hyphen marks line break in wohlbekanntes.",
+   "place": "rudolf-otto.das-heilige IV p13"
+  }
+ ],
+ "checked_on_the_page_image": [
+  "p. 6 (from Da unser Sprachgefühl to the foot of the page)",
+  "p. 7 (continuation of the sentence)",
+  "p. 13 (tremendum paragraph)",
+  "p. 78 (art and architecture paragraph)"
+ ]
+}

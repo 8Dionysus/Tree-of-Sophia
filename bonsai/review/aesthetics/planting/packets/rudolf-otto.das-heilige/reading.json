@@ -1,0 +1,115 @@
+{
+ "reader": {
+  "id": "terra-2026-11-11-das-heilige",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-11",
+  "reads": "Read the German 13th edition of 1925 against the two register readings, with the transcription checked on the scanned pages.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "rudolf-otto": {
+    "tree": "tos.agent.rudolf-otto"
+   }
+  },
+  "works": {
+   "rudolf-otto.das-heilige": {
+    "title": {
+     "ru": "Священное",
+     "en": "The Idea of the Holy"
+    },
+    "original": "de",
+    "tree": "tos.work.rudolf-otto.das-heilige",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "rudolf-otto.das-heilige:tremor-as-analogy",
+   "of": [
+    "D:B-C3101"
+   ],
+   "areas": [
+    "AE31"
+   ],
+   "work": "rudolf-otto.das-heilige",
+   "locus": "Ch. IV",
+   "formula": [
+    {
+     "place": "IV p13"
+    }
+   ],
+   "thesis": {
+    "ru": "Страх служит аналогическим обозначением своеобразной чувственной реакции, сходной с ним и вместе с тем отличной от самого страха.",
+    "en": "Fear serves as an analogical designation for a distinctive feeling reaction that resembles it and is yet different from fearing itself."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The passage describes the analogy of fear; the register concept of veneration is not asserted by these sentences.",
+   "from": [
+    "D:B-I003"
+   ]
+  },
+  {
+   "id": "rudolf-otto.das-heilige:sublime-in-art",
+   "of": [
+    "D:B-C3101"
+   ],
+   "areas": [
+    "AE31"
+   ],
+   "work": "rudolf-otto.das-heilige",
+   "locus": "Ch. X",
+   "formula": [
+    {
+     "place": "X p78"
+    }
+   ],
+   "thesis": {
+    "ru": "В искусствах возвышенное почти повсюду служит действеннейшим средством изображения нуминозного, особенно в архитектуре.",
+    "en": "In the arts the sublime is almost everywhere the most effective means of depicting the numinous, especially in architecture."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The chosen sentences address the sublime in art and architecture; the register’s unusual speech and symbolic action are not established by this place.",
+   "from": [
+    "D:B-I004"
+   ]
+  }
+ ],
+ "links": [],
+ "left": [
+  {
+   "key": "D:B-I003",
+   "reason": "The second reader (codex-2026-11-12-das-heilige-second) does not confirm rudolf-otto.das-heilige:numinous-category-and-disposition: The second sentence says the category and disposition in both theses. The cut opens with ‘dieses Moment in seiner Vereinzelung’, whose referent requires the preceding discussion of the distinctive element of the holy; the formula does not include it.",
+   "disputed": {
+    "id": "rudolf-otto.das-heilige:numinous-category-and-disposition",
+    "of": [
+     "D:B-C3101"
+    ],
+    "areas": [
+     "AE31"
+    ],
+    "work": "rudolf-otto.das-heilige",
+    "locus": "Ch. II",
+    "formula": [
+     {
+      "place": "II p6"
+     }
+    ],
+    "thesis": {
+     "ru": "Нуминозное обозначает своеобразную категорию истолкования и оценки и нуминозную настроенность души, возникающую при применении этой категории.",
+     "en": "The numinous names a distinctive category of interpretation and valuation and a numinous disposition of mind that arises whenever that category is applied."
+    },
+    "status": "text",
+    "verdict": "revise",
+    "note": "The passage states the category and disposition; the register’s veneration and account of fear are treated separately.",
+    "from": [
+     "D:B-I003"
+    ]
+   }
+  }
+ ]
+}

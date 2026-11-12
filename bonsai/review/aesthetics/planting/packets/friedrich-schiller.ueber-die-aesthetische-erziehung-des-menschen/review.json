@@ -1,9 +1,9 @@
 {
  "reader": {
-  "id": "codex-gpt6-2026-11-10-schiller-second",
+  "id": "codex-2026-11-12-schiller-second",
   "model": "gpt-6.1-terra",
-  "date": "2026-11-10",
-  "reads": "Every German place, each Russian and English thesis and each link against its grounds; four places on six scan pages.",
+  "date": "2026-11-12",
+  "reads": "Every place in German, every thesis and link; scan pages 160–161, 165, 172–173 and 236, including enlarged correction lines.",
   "effort": "high"
  },
  "conceptions": {
@@ -37,11 +37,19 @@
    "says": "yes"
   }
  },
+ "left": {},
  "images": [
   {
    "loc": "XIV p160",
    "n": 169,
-   "reads": "as the packet"
+   "reads": "as the packet",
+   "note": "Enlarged line reads «Der sinnliche Trieb will, daß Veränderung sey, daß die Zeit einen Inhalt …»."
+  },
+  {
+   "loc": "XIV p160",
+   "n": 170,
+   "reads": "as the packet",
+   "note": "No comma follows the closing parenthesis after nennen."
   },
   {
    "loc": "XV p165b",
@@ -57,8 +65,14 @@
    "loc": "XV p172a",
    "n": 181,
    "reads": "as the packet"
+  },
+  {
+   "loc": "XV p172a",
+   "n": 182,
+   "reads": "as the packet",
+   "note": "Enlarged lines read «das ist, Schönheit seyn; indem» and «Realität diktirt»."
   }
  ],
  "accept": true,
- "summary": "The five conceptions and four links are supported by their German places in both languages. The four places checked on the scan agree with the packet, including their continuations on pages 161 and 173."
+ "summary": "All five conceptions and four links are supported by their cited places in both languages. The four image-method places match the scanned pages; no readings are left."
 }
