@@ -22,3 +22,16 @@ to the printed Russian witness and has not been silently removed. Line wraps
 and page breaks are joined, pre-reform spelling retained, and spaces around
 punctuation normalized. Footnote marks are omitted. This review covers the six
 quoted places, not a complete collation of either letter.
+
+## Letter 1
+
+The [first March issue](https://azbyka.ru/otechnik/assets/uploads/vera-i-razum/%D0%92%D0%B5%D1%80%D0%B0%20%D0%B8%20%D1%80%D0%B0%D0%B7%D1%83%D0%BC.%201884.%20%D0%9C%D0%B0%D1%80%D1%82.%20%D0%9A%D0%BD.%201.pdf),
+philosophy section pp. 278–279 (PDF leaves 119–120), prints the text as
+selected letter XIII and identifies it in a note as Seneca's letter 1. The
+file SHA-256 is `e7f3cb682451cb4995f411a683b2edd271ef99283ccf2924023d53ef6d833303`.
+The first three numbered Latin places were independently transcribed and
+compared with the Latin/English passages. The translator expands or interprets
+several phrases, including the final sentence of 1.2; the Russian printing's
+own wording is retained rather than silently replacing it with another edition.
+The quotation boundaries follow the corresponding Latin sense and, at the
+transition to 1.3, complete printed sentences.
