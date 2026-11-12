@@ -96,7 +96,7 @@ const LANE=36,GAP=12,STACK=7;
  * stands in the first; a writing the chronology dates as unknown stands with
  * the other undated ones outside the scale.
  */
-export function antiquityTimeline({routes=[],entries=[],chronology=null,passageIdOf=id=>String(id).replace(/^antiquity:reading:/,'')}={}){
+export function antiquityTimeline({routes=[],entries=[],chronology=null,passageIdOf=id=>String(id).replace(/^antiquity:reading:/,''),laneSpacing=LANE}={}){
   const byId=new Map(entries.map(entry=>[entry.legacyId??entry.id,entry])),reader=readChronology(chronology);
   // Each author's life as the chronology dates it; it spans an era's bracket.
   const lives=new Map();
@@ -128,13 +128,13 @@ export function antiquityTimeline({routes=[],entries=[],chronology=null,passageI
     const dodged=dodgeRow(dated.map((id,order)=>({id,x:xOfYear(yearOf.get(id)),order})),GAP);
     const xs=new Map(dated.map(id=>{const span=spanOf(id);return [id,Math.min(xOfYear(span.to),Math.max(xOfYear(span.from),dodged.get(id)))];}));
     ids.filter(id=>!spanOf(id)).forEach((id,index)=>xs.set(id,outsideX+index*GAP));
-    const y=lanes.length*LANE,dys=stackColumns(xs,GAP/2,STACK);
+    const y=lanes.length*laneSpacing,dys=stackColumns(xs,GAP/2,STACK);
     for(const [id,x] of xs)positions.set(id,[x,y+dys.get(id),0]);
     const inside=dated.map(id=>xs.get(id));
     lanes.push({id:route.id,title:route.title,y,from:Math.min(...(inside.length?inside:[...xs.values()])),to:Math.max(...(inside.length?inside:[...xs.values()]))});
   }
   // Rows are centred on the scale's origin.
-  const shift=-(lanes.length-1)*LANE/2;for(const position of positions.values())position[1]+=shift;for(const lane of lanes)lane.y+=shift;
+  const shift=-(lanes.length-1)*laneSpacing/2;for(const position of positions.values())position[1]+=shift;for(const lane of lanes)lane.y+=shift;
   const eras=entries.filter(entry=>entry.kind==='era'),livesOf=period=>[...lives.entries()].filter(([id])=>pick(byId.get(id)?.period,'en')===period).map(([,life])=>life.span);
   return {
     kind:'years',positions,lanes,domain:{min,max},rows:YEAR_ROWS,strip:YEAR_ROWS.era0+4,bounds:[xOfYear(min),undated.size?outsideX:xOfYear(max)],
@@ -172,9 +172,9 @@ export function antiquityTimeline({routes=[],entries=[],chronology=null,passageI
 /** The same scale for a field: rows are its four groups of areas. */
 export function aestheticsTimeline({field,library,chronology}){
   const areas=new Map(field.areas.map(area=>[area.id,area]));
-  const rows=['A','B','C','D'].map(group=>({id:group,title:{ru:group,en:group},steps:library.atlas.routes.filter(route=>areas.get(route.id)?.group===group).flatMap(route=>route.steps)}));
+  const rows=['A','B','C','D'].map(group=>({id:group,title:{ru:`Группа ${group}`,en:`Group ${group}`},steps:library.atlas.routes.filter(route=>areas.get(route.id)?.group===group).flatMap(route=>route.steps)}));
   const entries=[...Object.keys(chronology.lives??{}).map(id=>({id,kind:'author'})),...field.conceptions.map(item=>({id:item.id,workId:item.work,author:item.agents?.[0]}))];
-  const timeline=antiquityTimeline({routes:rows,entries,chronology,passageIdOf:id=>String(id).replace(/^aesthetics:reading:/,'')});
+  const timeline=antiquityTimeline({routes:rows,entries,chronology,passageIdOf:id=>String(id).replace(/^aesthetics:reading:/,''),laneSpacing:70});
   if(!timeline)return null;
   return {...timeline,labels:(locale,options)=>timeline.labels(locale,options).map(label=>{if(label.variant!=='lane')return label;const {hint,ref,...group}=label;return group;})};
 }

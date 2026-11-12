@@ -191,7 +191,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // A lens measures where its bonsai has the measure; it stands in volume as the tree does (space-volumes.mjs), but an open
   // branch on the scale of time keeps its own flat order, read top to bottom. A flat lens is a measured one.
   const measuredData=id=>(id==='time'&&!!timeline)||(id==='space'&&!!geography)||(id==='proximity'&&!!proximityLens);
-  const volumeLens=id=>measuredData(id)&&!(id==='time'&&stepView());
+  const volumeLens=id=>measuredData(id)&&!(id==='time'&&(profile==='aesthetics'||stepView()));
   const measuredLens=id=>measuredData(id)&&!volumeLens(id);
   // The lenses that gather stand in volume as the tree does, each in the form of what it gathers (space-gatherings.mjs).
   const GATHERING=new Set(['sources','meaning','tensions','images']),gatherings=new Map();

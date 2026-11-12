@@ -7,6 +7,7 @@ import catalog from '../../../../bonsai/aesthetics/library.json';
 import chronology from '../../../../bonsai/aesthetics/chronology.json';
 import {aestheticsTree,aestheticsSourceGroups} from './aesthetics-tree.mjs';
 import {aestheticsTimeline} from './space-timeline.mjs';
+import {readChronology} from '../../../../bonsai/lib/chronology.mjs';
 import {jaccardDistance} from './space-proximity.mjs';
 import {colonnade} from './space-gatherings.mjs';
 import {makeAesthetics} from './aesthetics-library.mjs';
@@ -30,9 +31,22 @@ describe('Aesthetics field projection',()=>{
     for(const item of field.conceptions){const work=groups.flatMap(a=>a.works).find(w=>w.id===`aesthetics:catalog:${item.work}`);expect(work.front).toContain(`aesthetics:reading:${item.id}`);for(const id of byId.get(`aesthetics:reading:${item.id}`).sourceNodeIds)expect(work.up).toContain(id);}
     for(const group of groups)for(const work of group.works)for(const id of [work.id,...work.up,...work.front])expect(view.positions.has(id)).toBe(true);
   });
-  it('dates every reading on its work and groups the rows A–D',()=>{
-    const time=aestheticsTimeline({field,library:result,chronology});expect(time.lanes.map(lane=>lane.id)).toEqual(['A','B','C','D']);for(const lane of time.labels('en').filter(label=>label.variant==='lane')){expect(lane.ref).toBeUndefined();expect(lane.hint).toBeUndefined();}
-    for(const item of field.conceptions){const id=`aesthetics:reading:${item.id}`;expect(time.positions.has(id),id).toBe(true);expect(time.timeOf(id).composition).toBe(chronology.compositions.works[item.work]);expect(time.spanOf(id)).toBeTruthy();}
+  it('places each reading on its dated work and in the first area group, within the displayed scale',()=>{
+    const time=aestheticsTimeline({field,library:result,chronology}),clock=readChronology(chronology);
+    expect(time.lanes.map(lane=>lane.id)).toEqual(['A','B','C','D']);
+    for(const locale of ['ru','en'])for(const lane of time.lanes){
+      const label=time.labels(locale).find(item=>item.id===`time:lane:${lane.id}`);
+      expect(label.title).toBe(`${locale==='ru'?'Группа':'Group'} ${lane.id}`);
+      expect(label.ref).toBeUndefined();expect(label.hint).toBeUndefined();
+    }
+    for(const item of field.conceptions){
+      const id=`aesthetics:reading:${item.id}`,span=clock.span(chronology.compositions.works[item.work]);
+      const [x,y]=time.positions.get(id),group=field.areas.find(area=>area.id===item.areas[0]).group,lane=time.lanes.find(row=>row.id===group);
+      expect(time.timeOf(id).composition).toBe(chronology.compositions.works[item.work]);
+      expect(Math.abs(y-lane.y),id).toBeLessThan(35);
+      if(span){expect(x,id).toBeGreaterThanOrEqual(time.xOfYear(span.from)-1e-9);expect(x,id).toBeLessThanOrEqual(time.xOfYear(span.to)+1e-9);expect(span.from).toBeGreaterThanOrEqual(time.domain.min);expect(span.to).toBeLessThanOrEqual(time.domain.max);}
+      else expect(time.isOutside(id)).toBe(true);
+    }
     const [a,b]=field.conceptions;expect(jaccardDistance(a.of,b.of)).toBeGreaterThanOrEqual(0);expect(jaccardDistance(a.of,a.of)).toBe(0);
   });
   it('holds only grounded areas, concepts and relations',()=>{
