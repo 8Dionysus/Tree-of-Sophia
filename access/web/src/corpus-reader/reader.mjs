@@ -1,4 +1,4 @@
-import {PUBLIC_LOCALES,LOCALE_NAMES,resolveLocale} from '../public-research/locale.mjs';
+import {PUBLIC_LOCALES,LOCALE_NAMES,resolveLocale,shownLanguages} from '../public-research/locale.mjs';
 import {localeText,copyLocale} from '../public-research/locale.mjs';
 import './reader.css';
 import {createNoteDraftJournal} from './note-draft.mjs';
@@ -106,6 +106,7 @@ const button = (label, action, className = '') => {
   node.addEventListener('click', action);
   return node;
 };
+const ORIGINAL_ROLES = new Set(['original', 'source_language', 'critical_text']);
 const localized = (value, locale) => {
   if (typeof value === 'string') return value;
   if (!value || typeof value !== 'object') return '';
@@ -188,7 +189,6 @@ export function mountCorpusReader({
   root.hidden = true;
   root.setAttribute('role', 'dialog');
   root.setAttribute('aria-modal', 'true');
-  root.setAttribute('aria-label', WORDING.ru.reading);
   root.tabIndex = -1;
   host.append(root);
 
@@ -254,6 +254,7 @@ export function mountCorpusReader({
   const notebookMetadataResolver = createNotebookMetadataResolver({readDocument: documentId => model.readDocumentMetadata(documentId)});
 
   const t = key => localeText(WORDING[copyLocale(uiLocale)][key] || key,uiLocale,[],key==='reading'?'corpus-reader':null);
+  root.setAttribute('aria-label', t('reading'));
   const modelState = () => renderSnapshot ?? model.snapshot();
   const activeDocument = () => modelState().document;
   const activeVersion = versionId => activeDocument()?.versions?.find(item => item.id === versionId) || null;
@@ -844,8 +845,21 @@ export function mountCorpusReader({
     return result;
   }
 
+  // A reader of the Tree reads a work in its original and in the language of the Tree they read
+  // (shownLanguages); the work's other translations belong to the readers of their languages. The edition
+  // open now stays listed, so a choice made elsewhere is never hidden from the one who made it.
+  function shownVersions(document) {
+    const all = document?.versions || [];
+    const base = value => String(value ?? '').split('-')[0];
+    const original = base(all.find(version => ORIGINAL_ROLES.has(version.role))?.language ?? all[0]?.language);
+    if (!original) return all;
+    const languages = shownLanguages(uiLocale(), original, all.map(version => base(version.language)).filter(Boolean));
+    const active = modelState().activeVersionId;
+    return all.filter(version => !version.language || languages.includes(base(version.language)) || version.id === active);
+  }
+
   function chooseVersions(document, state) {
-    const allVersions = document?.versions || [];
+    const allVersions = shownVersions(document);
     const versions = allVersions.filter(isTextAvailable);
     // Keep an explicitly selected unavailable version visible so its rights or
     // delivery state is inspectable; silently falling back would retarget the
@@ -944,7 +958,7 @@ export function mountCorpusReader({
 
   function renderVersionBar(state, versions) {
     const toolbar = element('nav', 'cr-toolbar'); toolbar.setAttribute('aria-label', t('edition'));
-    const allVersions = state.document?.versions || [];
+    const allVersions = shownVersions(state.document);
     toolbar.append(renderVersionChoices(allVersions, 'cr-desktop-editions'));
     const picker = element('details', 'cr-edition-picker');
     picker.setAttribute('aria-label', t('mobileEditions'));
@@ -954,7 +968,7 @@ export function mountCorpusReader({
     mobileSummary.dataset.focusKey='mobile-edition';picker.append(mobileSummary);
     picker.append(renderVersionChoices(allVersions));
     toolbar.append(picker);
-    if ((state.document?.versions || []).length > 1) {
+    if (allVersions.length > 1) {
       toolbar.append(button(mode === 'parallel' ? t('one') : t('parallel'), async () => {
         if(!(await flushNote()))return;
         capturePanePositions();
@@ -970,7 +984,7 @@ export function mountCorpusReader({
       const label = element('label', 'cr-compare'); label.append(element('span', '', t('compare')));
       const select = element('select'); select.setAttribute('aria-label', t('compare'));
       select.dataset.focusKey='compare-target';
-      for (const version of state.document.versions.filter(item => item.id !== state.activeVersionId && isTextAvailable(item))) {
+      for (const version of allVersions.filter(item => item.id !== state.activeVersionId && isTextAvailable(item))) {
         const option = element('option', '', [editionRepresentationLabel(version),versionLabel(version)].filter(Boolean).join(' · ')); option.value = version.id; select.append(option);
       }
       select.value = versions[1]?.id || '';
@@ -1395,7 +1409,7 @@ export function mountCorpusReader({
 
   function renderSource(body, state) {
     body.append(element('h2', 'cr-inspector-title', t('source')));
-    for (const version of state.document?.versions || []) {
+    for (const version of shownVersions(state.document)) {
       const status = isTextAvailable(version) ? '' : catalogAvailability(version);
       const section = element('section', 'cr-source'); section.append(element('h3', '', [editionRepresentationLabel(version),versionLanguage(version), localized(version.edition, uiLocale()), status].filter(Boolean).join(' · ') || t('edition')));
       const sourceUrl = safeExternalUrl(attr(version.sourceUrl || version.source_url || version.source?.url || version.source?.href));

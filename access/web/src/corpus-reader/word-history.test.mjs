@@ -30,14 +30,15 @@ const attested={from:1450,n:[0,0,0,0,0,0,0,0,0,0,0,0,1,3,3,1,0,19,29,2,1,0],firs
 const periods={from:1450,step:25,count:22},nouns=[1699,2063,5684,2711,34848,81029,152924,176539,362972,476085,474974,433600,470462,845262,540740,1181324,1422016,1311962,687658,54470,15137,12218];
 
 describe('the history of a word',()=>{
-  it('tells the etymology in the reader\'s language first, then the word\'s own, then English',()=>{
-    expect(toldOrder({en:told.en,de:told.de,ru:{text:'…'}},'ru','de')).toEqual(['ru','de','en']);
-    expect(toldOrder(told,'ru','de')).toEqual(['de','en']);
-    expect(toldOrder(told,'en','de')).toEqual(['en','de']);
-    expect(toldOrder(told,'de','de')).toEqual(['de','en']);
-    // A reader whose language has no edition reads the word's own edition first.
-    expect(toldOrder(told,'es','de')).toEqual(['de','en']);
-    expect(toldOrder(told,'zh-Hans','de')).toEqual(['de','en']);
+  it('tells the etymology in the reader\'s language and the original\'s, never in a third',()=>{
+    expect(toldOrder({en:told.en,de:told.de,ru:{text:'…'}},'ru','de')).toEqual(['ru','de']);
+    expect(toldOrder({en:told.en,de:told.de,ru:{text:'…'}},'en','de')).toEqual(['en','de']);
+    // A Russian reader is never told the word in English, nor an English one in Russian.
+    expect(toldOrder(told,'ru','de')).toEqual(['de']);
+    expect(toldOrder({de:told.de,ru:{text:'…'}},'en','de')).toEqual(['de']);
+    expect(toldOrder(told,'de','de')).toEqual(['de']);
+    // A reader whose interface has no own copy reads in its copy language (shownLanguages).
+    expect(toldOrder(told,'es','de')).toEqual(['en','de']);
     expect(toldOrder({},'ru','de')).toEqual([]);
   });
   it('shows one telling with its entry, the other editions folded beneath',()=>{
@@ -166,10 +167,25 @@ describe('the history of a word',()=>{
     expect(find(english,'cr-story-witness')[0].text).toBe('trad. de Thomas Common, 1909 · Public domain');
     expect(english.dataset.witnesses).toBe('en de');
   });
-  it('names the translators\' words by their places, the word at the first place apart',()=>{
+  it('names the words of the reader\'s own translator by their places, the word at the first place apart',()=>{
     const item=new Element('li');
     storyPiece(item,'T',story.pieces.T,{locale:'ru'});
-    expect(find(item,'cr-origin-line').map(line=>line.text)).toEqual(['Антоновский: сострадание (36), жалость (9) · на первом месте: жалость','Коммон: pity (41)','Древо: сострадание / pity']);
+    expect(find(item,'cr-origin-line').map(line=>line.text)).toEqual(['Антоновский: сострадание (36), жалость (9) · на первом месте: жалость','Древо: сострадание']);
+    const english=new Element('li');
+    storyPiece(english,'T',story.pieces.T,{locale:'en'});
+    expect(find(english,'cr-origin-line').map(line=>line.text)).toEqual(['Common: pity (41)','The Tree: pity']);
+  });
+  it('draws no piece in a language that is neither the original nor the reader\'s',()=>{
+    const russian={kind:'wiktionary',edition:'ru',entry:'сверхчеловек',text:'Калька с нем. Übermensch.'};
+    const english={kind:'wiktionary',edition:'en',entry:'сверхчеловек',text:'Calque of German Übermensch; from сверх- + человек.'};
+    expect(storyPiece(new Element('li'),'V.ru',russian,{locale:'en'})).toBe(false);
+    expect(storyPiece(new Element('li'),'V.en',english,{locale:'en'})).toBe(false);
+    expect(storyPiece(new Element('li'),'V.ru',russian,{locale:'ru'})).toBe(true);
+    expect(storyPiece(new Element('li'),'W.en',{...english,entry:'Übermensch',text:'From über- + Mensch.'},{locale:'ru'})).toBe(false);
+    expect(storyPiece(new Element('li'),'W.de',{kind:'wiktionary',edition:'de',entry:'Übermensch',text:'Determinativkompositum.'},{locale:'en'})).toBe(true);
+    // A German reader reads the original alone: no translation, no story.
+    expect(storyPiece(new Element('li'),'T',story.pieces.T,{locale:'de'})).toBe(false);
+    expect(renderStoryText(new Element('div'),{ru:[{text:'Сверхчеловек.',sources:['T']}],en:[{text:'Overman.',sources:['T']}]},{locale:'de'})).toBe(null);
   });
   it.skipIf(!fetched||!existsSync(new URL('stories.json',home)))('holds each story with every piece it cites',async()=>{
     const book=read('stories.json');
