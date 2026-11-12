@@ -114,10 +114,11 @@
   var mark=make('div','cosmos-mark',heart),title=make('div','cosmos-title',heart);
 
   var TITLES={zarathustra:{ru:'Заратустра',en:'Zarathustra',es:'Zaratustra',de:'Zarathustra','zh-Hans':'查拉图斯特拉'},
-    antiquity:{ru:'Античность',en:'Antiquity',es:'Antigüedad',de:'Antike','zh-Hans':'古代'}};
+    antiquity:{ru:'Античность',en:'Antiquity',es:'Antigüedad',de:'Antike','zh-Hans':'古代'},
+    aesthetics:{ru:'Эстетика',en:'Aesthetics',es:'Estética',de:'Ästhetik','zh-Hans':'美学'}};
   // The bonsai that have their own tree beside the sky (trees/<id>.svg): the heart of the sky shows it in place of
   // the Tree's mark (cosmos.css).
-  var TREES=['zarathustra','antiquity'];
+  var TREES=['zarathustra','antiquity','aesthetics'];
   function localeNow(){
     var value=null;try{value=new URLSearchParams(location.search).get('lang')||localStorage.getItem('tos.public-research.locale.v1');}catch(error){}
     value=value||navigator.language||'en';

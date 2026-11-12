@@ -1,6 +1,6 @@
 // A shared owner ID, not a profile-local draft ID, is the only safe bridge
 // between historical graph copies. Conflicting old copies remain unspecified.
-const namespace = /^tos\.public-research\.graph\.v1\.(?:antiquity|zarathustra)\.[a-f0-9]{64}\.owners$/;
+const namespace = /^tos\.public-research\.graph\.v1\.(?:antiquity|zarathustra|aesthetics)\.[a-f0-9]{64}\.owners$/;
 const known = new Set(['concept', 'interpretation', 'question', 'note', 'excerpt', 'thought']);
 
 export function readPersonalKinds(storage) {

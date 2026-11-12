@@ -10,7 +10,7 @@ import {displayPublicError,hypothesisTitle,proposalDisplay} from './presentation
 import {describeSourceLocator} from './source-address.mjs';
 import {personalKind,readPersonalKinds} from './personal-kind.mjs';
 import {isAuthoredTransition,ladderRung,nodeForm,partName,relationStyle,routeVoices,searchScore,sourceLine,stepWitness} from './space-legibility.mjs';
-import {antiquityTimeline,formatDating,formatYears,stepTimeline,trajectory,zarathustraTimeline} from './space-timeline.mjs';
+import {antiquityTimeline,aestheticsTimeline,formatDating,formatYears,stepTimeline,trajectory,zarathustraTimeline} from './space-timeline.mjs';
 import {bonsaiFor,depthOf,lensPositions,loadMedia} from './bonsai.mjs';
 import {createMediaView,linkGroups} from './media-view.mjs';
 import {createTerms,termForms,termMatcher,termNodes} from './term-view.mjs';
@@ -23,6 +23,7 @@ import {readChronology} from '../../../../bonsai/lib/chronology.mjs';
 import {readPlaces} from '../../../../bonsai/lib/places.mjs';
 import {clipLinesRight,planeOfPlaces} from './space-geography.mjs';
 import {AREA_TITLES,SCHOOL_ERA,TREE_LABEL_FROM,antiquityTree,treeVia} from './space-tree.mjs';
+import {aestheticsTree,aestheticsSourceGroups} from './aesthetics-tree.mjs';
 import {PART_TITLES,zarathustraTree} from './space-tree-zarathustra.mjs';
 import {antiquityBook,zarathustraBook} from './reference-outline.mjs';
 import {createReferenceBook} from './reference-book.mjs';
@@ -156,9 +157,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     // The node opens where the reader is: in the experience when it holds the page, on the map otherwise; an open book gives way to it.
     openNode:id=>{const book=fragments.reader?.dialog;if(book?.open)book.close();if(shell.dispatchEvent(new CustomEvent('public-research-open',{bubbles:true,cancelable:true,detail:{id}})))openResearch(id);}});
   // The lens "Time" exists where the data dates or orders its material: Antiquity by the years its bonsai gives the writings, Zarathustra by the order of the book.
-  const timeline=profile==='antiquity'?antiquityTimeline({routes,entries:library.space?.collection??[],chronology:bonsai?.chronology}):profile==='zarathustra'?zarathustraTimeline({materials:[...materials.values()],references:atlas.references??{},clusters:atlas.clusters??[],chronology:bonsai?.chronology}):null;
+  const timeline=profile==='aesthetics'?aestheticsTimeline({field:bonsai.field,library,chronology:bonsai.chronology}):profile==='antiquity'?antiquityTimeline({routes,entries:library.space?.collection??[],chronology:bonsai?.chronology}):profile==='zarathustra'?zarathustraTimeline({materials:[...materials.values()],references:atlas.references??{},clusters:atlas.clusters??[],chronology:bonsai?.chronology}):null;
   // What a star's dating and place are about: the writing of its passage or work (Antiquity), of the text it first rests on (Zarathustra).
-  const situationOf=materialId=>profile==='antiquity'?timeline?.timeOf?.(materialId)?.composition??null:bonsai?.chronology?.compositions?.references?.[timeline?.firstGround?.(materialId)]??bonsai?.chronology?.book?.parts?.find(item=>item.part===timeline?.placeOf?.(materialId)?.part)?.writing??null;
+  const situationOf=materialId=>profile==='aesthetics'?(materials.get(materialId)?.dating??bonsai?.chronology?.compositions?.works?.[materials.get(materialId)?.workId]??materials.get(materialId)?.life??null):profile==='antiquity'?timeline?.timeOf?.(materialId)?.composition??null:bonsai?.chronology?.compositions?.references?.[timeline?.firstGround?.(materialId)]??bonsai?.chronology?.book?.parts?.find(item=>item.part===timeline?.placeOf?.(materialId)?.part)?.writing??null;
   const placesReader=bonsai?.places?readPlaces(bonsai.places):null;
   const placeOf=materialId=>{const situation=situationOf(materialId),own=situation?placesReader?.at(situation):null;return own?{...own,situation}:null;};
   const placeEntryOf=materialId=>{const situation=situationOf(materialId);return situation?placesReader?.entry(situation)??null:null;};
@@ -168,28 +169,29 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // library and core. It is a view; the saved graph keeps its own places.
   const treeLayout=profile==='antiquity'&&bonsai?.collection?antiquityTree({collection:bonsai.collection,chronology:bonsai.chronology,
     materialOf:legacy=>{const id=collectionByLegacyId.get(legacy)?.materialId;return id&&materials.has(id)?id:null;}})
-    :profile==='zarathustra'&&library?.space?.core?zarathustraTree({library}):null;
+    :profile==='zarathustra'&&library?.space?.core?zarathustraTree({library}):profile==='aesthetics'&&bonsai?.field?aestheticsTree({library,field:bonsai.field,catalog:bonsai.library,chronology:bonsai.chronology}):null;
   // The lens "Space" exists where the bonsai places the material; a star without a sourced place stands apart from the map.
   const geography=bonsai?.places?planeOfPlaces({stars:starIds,placeOf,places:bonsai.places.places}):null;
   // The lens "Proximity" measures from one star by one criterion its bonsai names; its direction groups by branch or circle.
-  const nearGroups=profile==='antiquity'?routes.map(item=>({id:item.id,title:item.title})):(atlas.clusters??[]).map(cluster=>({id:cluster.id,title:cluster.title}));
+  const nearGroups=profile==='aesthetics'?['A','B','C','D'].map(id=>({id,title:{ru:id,en:id}})):profile==='antiquity'?routes.map(item=>({id:item.id,title:item.title})):(atlas.clusters??[]).map(cluster=>({id:cluster.id,title:cluster.title}));
   const nearGroupOf=new Map();
-  if(profile==='antiquity')for(const item of routes)for(const step of item.steps??[]){const id=step.nodeId??step.graphNodeId;if(id&&!nearGroupOf.has(id))nearGroupOf.set(id,item.id);}
+  if(profile==='aesthetics')for(const item of bonsai.field.conceptions){const group=bonsai.field.areas.find(area=>area.id===item.areas[0])?.group;if(group)nearGroupOf.set(`aesthetics:reading:${item.id}`,group);}
+  else if(profile==='antiquity')for(const item of routes)for(const step of item.steps??[]){const id=step.nodeId??step.graphNodeId;if(id&&!nearGroupOf.has(id))nearGroupOf.set(id,item.id);}
   else for(const material of materials.values())if(material.cluster)nearGroupOf.set(material.id,material.cluster);
   const starSet=new Set(starIds),nearEdges=[...(atlas.edges??[]),...(core?.edges??[])].filter(edge=>starSet.has(edge.from)&&starSet.has(edge.to)&&edge.kind!=='contains').map(edge=>[edge.from,edge.to]);
   const passageOf=materialId=>collectionByLegacyId.get(String(materialId).replace(/^antiquity:reading:/,''));
-  const distances=proximityCriteria({conceptsOf:id=>passageOf(id)?.concepts??null,groundsOf:id=>timeline?.groundsOf?.(id)??null,edges:nearEdges,spanOf:id=>timeline?.spanOf?.(id)??null,pointOf:id=>placeOf(id)?.point??null,chapterOf:id=>timeline?.placeOf?.(id)?.chapter??null});
+  const distances=proximityCriteria({conceptsOf:id=>profile==='aesthetics'?materials.get(id)?.concepts??null:passageOf(id)?.concepts??null,groundsOf:id=>timeline?.groundsOf?.(id)??null,edges:nearEdges,spanOf:id=>timeline?.spanOf?.(id)??null,pointOf:id=>placeOf(id)?.point??null,chapterOf:id=>timeline?.placeOf?.(id)?.chapter??null});
   const criteria=(bonsai?.manifest?.lenses?.proximity?.criteria??[]).filter(item=>distances[item.id]&&(!item.requires||(item.requires==='places'?!!geography:item.requires==='chronology'?timeline?.kind==='years':true)));
-  const timeLens=timeline?{id:'time',icon:'◷',title:{ru:'Время',en:'Time'},description:timeline.kind==='years'?{ru:'Годы написания; строки — ветви',en:'Years of writing; rows are branches'}:{ru:'Порядок книги, от Пролога до четвёртой части; строки — круги карты',en:'The order of the book, from the Prologue to Part Four; rows are the map’s circles'}}:null;
+  const timeLens=timeline?{id:'time',icon:'◷',title:{ru:'Время',en:'Time'},description:profile==='aesthetics'?{ru:'Годы написания; строки — группы областей',en:'Years of writing; rows are groups of areas'}:timeline.kind==='years'?{ru:'Годы написания; строки — ветви',en:'Years of writing; rows are branches'}:{ru:'Порядок книги, от Пролога до четвёртой части; строки — круги карты',en:'The order of the book, from the Prologue to Part Four; rows are the map’s circles'}}:null;
   const spaceLens=geography?{id:'space',icon:'⌖',title:{ru:'Пространство',en:'Space'},description:{ru:'Где написан текст или где жил его автор',en:'Where the text was written, or where its author lived'}}:null;
   const proximityLens=starIds.length&&criteria.length?{id:'proximity',icon:'⊙',title:{ru:'Близость',en:'Proximity'},description:{ru:'Расстояние от выбранной звезды',en:'Distance from the chosen star'}}:null;
   // A lens with no stars of its own in this library is not offered.
-  const lenses=[...(Array.isArray(library.space?.lenses)?library.space.lenses:LENSES.filter(item=>lensHasStars(library,item.id))),...[timeLens,spaceLens,proximityLens].filter(Boolean)].map(item=>({...item,positions:lensPositions(profile,item.id)}));
+  const lenses=[...(Array.isArray(library.space?.lenses)?library.space.lenses:LENSES.filter(item=>lensHasStars(library,item.id))),...(profile==='aesthetics'?[{id:'sources',icon:'⌘',title:{ru:'Источники',en:'Sources'},description:{ru:'От произведения к месту и прочтению',en:'From a work to a passage and its reading'}}]:[]),...[timeLens,spaceLens,proximityLens].filter(Boolean)].map(item=>({...item,positions:lensPositions(profile,item.id)}));
   // A measuring lens lays the stars out itself; the others keep the map's own arrangement.
   // A lens measures where its bonsai has the measure; it stands in volume as the tree does (space-volumes.mjs), but an open
   // branch on the scale of time keeps its own flat order, read top to bottom. A flat lens is a measured one.
   const measuredData=id=>(id==='time'&&!!timeline)||(id==='space'&&!!geography)||(id==='proximity'&&!!proximityLens);
-  const volumeLens=id=>measuredData(id)&&!(id==='time'&&stepView());
+  const volumeLens=id=>measuredData(id)&&!(id==='time'&&(profile==='aesthetics'||stepView()));
   const measuredLens=id=>measuredData(id)&&!volumeLens(id);
   // The lenses that gather stand in volume as the tree does, each in the form of what it gathers (space-gatherings.mjs).
   const GATHERING=new Set(['sources','meaning','tensions','images']),gatherings=new Map();
@@ -901,6 +903,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const stars=[...treeLayout.roles.keys()],role=star=>treeLayout.roles.get(star)??null,links=gatherLinks();
     const names=new Map((timeline?.labels?.(locale())??[]).map(item=>[item.id,item.title]));
     if(id==='sources'&&timeline?.kind==='book')return bookSpiral({stars,chapterOf:star=>timeline.placeOf(star),rungOf:star=>GATHER_TIER[role(star)]??1,chapterName:chapter=>names.get(`time:ch${chapter}`)??String(chapter),partName:part=>names.get(`time:part${part}`)??String(part)});
+    if(id==='sources'&&profile==='aesthetics')return colonnade({authors:aestheticsSourceGroups({library,chronology:bonsai.chronology})});
     if(id==='sources'){
       // A passage, a version and a reading belong to the work that contains or translates them, a work to its author.
       const parent=new Map();for(const edge of treeLayout.edges)if((edge.kind==='contains'||edge.kind==='translates')&&!parent.has(edge.to))parent.set(edge.to,edge.from);
@@ -1001,13 +1004,14 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   // A traced concept joins the stars that carry it in the order of the scale; the rest step back.
   function conceptsOfStar(materialId){
+    if(profile==='aesthetics')return materials.get(materialId)?.concepts??[];
     if(profile==='antiquity')return passageOf(materialId)?.concepts??[];
     const own=materials.get(materialId)?.kind==='concept'?[materialId]:[];
     return [...own,...(atlas.edges??[]).filter(edge=>edge.kind!=='contains'&&(edge.from===materialId||edge.to===materialId)).map(edge=>edge.from===materialId?edge.to:edge.from).filter(id=>materials.get(id)?.kind==='concept')];
   }
   function traceableConcepts(){
     const counts=new Map();for(const id of starIds)for(const concept of new Set(conceptsOfStar(id)))counts.set(concept,(counts.get(concept)??0)+1);
-    const title=id=>profile==='antiquity'?collectionByLegacyId.get(id)?.title:materials.get(id)?.title;
+    const title=id=>profile==='antiquity'?collectionByLegacyId.get(id)?.title:profile==='aesthetics'?materials.get(`aesthetics:catalog:${id}`)?.title:materials.get(id)?.title;
     return [...counts.entries()].filter(([,n])=>n>=2).map(([id,n])=>({id,n,title:title(id)??id})).sort((a,b)=>b.n-a.n||tr(a.title,locale()).localeCompare(tr(b.title,locale())));
   }
   // The trace's lines by id: a chosen one names its concept and its two ends, whatever colons their ids hold.
@@ -1045,11 +1049,11 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     }
     projected.nodes=projected.nodes.filter(node=>placed.has(node.id)).map(node=>{
       const role=treeLayout.roles.get(node.materialId),side=treeLayout.sides.get(node.materialId);
-      return {...node,position:[...placed.get(node.id)],...(side?{labelSide:side}:{}),...(role?{labelFrom:TREE_LABEL_FROM[role]??0,major:['author','figure','concept','branch','era'].includes(role)}:{})};
+      return {...node,position:[...placed.get(node.id)],...(side?{labelSide:side}:{}),...(role?{labelFrom:profile==='aesthetics'&&role==='step'?Number.MAX_SAFE_INTEGER:TREE_LABEL_FROM[role]??0,major:['author','figure','concept','branch','era'].includes(role)}:{})};
     });
     // Only a branch's own transitions stand at rest; every other link waits until one of its stars is reached.
     const shown=new Set(projected.nodes.map(node=>node.id)),pairs=new Set();
-    projected.edges=projected.edges.filter(edge=>shown.has(edge.from)&&shown.has(edge.to)).map(edge=>{pairs.add(`${edge.from}|${edge.to}`);pairs.add(`${edge.to}|${edge.from}`);return Number.isFinite(edge.baseAlpha)?edge:{...edge,latent:true};});
+    projected.edges=projected.edges.filter(edge=>shown.has(edge.from)&&shown.has(edge.to)).map(edge=>{pairs.add(`${edge.from}|${edge.to}`);pairs.add(`${edge.to}|${edge.from}`);return Number.isFinite(edge.baseAlpha)?edge:profile==='aesthetics'&&String(edge.id).includes('aesthetics:relation:')?{...edge,baseAlpha:.8}:{...edge,latent:true};});
     const all=enabled.size===relationKinds.length;
     for(const edge of treeLayout.edges){
       const from=graphIdForMaterial(edge.from),to=graphIdForMaterial(edge.to);
@@ -1058,7 +1062,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       projected.edges.push({id:edge.id,from,to,kind:edge.kind,label:tr(edge.label,locale()),color:style.color??RELATIONS[edge.kind]?.color,dash:style.dash,weight:1,via:edge.via,...(rest===null?{latent:true}:{baseAlpha:rest})});
     }
     scaleChoice=selected;
-    projected.clusters=treeLayout.names.map(name=>({id:name.id,title:tr(name.title,locale()),subtitle:'',center:name.center,...(name.color?{color:paint(name.color)}:{}),tone:name.kind,...(name.kind==='stratum'?{variant:'edge'}:{recede:true}),...(name.kind==='path'?{yields:true}:{})}));
+    projected.clusters=treeLayout.names.map(name=>({id:name.id,title:tr(name.title,locale()),subtitle:'',center:name.center,...(name.color?{color:paint(name.color)}:{}),tone:name.kind,...(name.kind==='stratum'?{variant:'edge'}:name.kind==='group'?{}:{recede:true}),...(name.kind==='path'?{yields:true}:{})}));
     projected.backdrop=treeBackdrop();
     projected.shade=treeShade();
   }
@@ -1122,7 +1126,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function frameSky(){
     if(!sky)return;
     // The tree frames itself whole, or an open branch's moves where they grow on it, seen a little from above.
-    if(treeView()){sky.setRest?.(null);sky.frame();sky.turnTo?.(null,-.2);}
+    if(treeView()){sky.setRest?.(null);sky.frame(profile==='aesthetics'?{x:treeLayout.bounds.x,y:treeLayout.bounds.y}:{});sky.turnTo?.(null,-.2);}
     // A lens that measures in volume is framed whole and seen from its own rest, a little from above and from its left.
     else if(volumeLens(lens)){const rest=VOLUME_REST[lens];sky.setRest?.(rest.yaw,rest.pitch);sky.frame();sky.turnTo?.(rest.yaw,rest.pitch);}
     // A lens that gathers is framed whole from the rest its form is best read from.
@@ -1458,7 +1462,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     appendDating(into,material?.id);appendPlace(into,material?.id);
     if(lens==='proximity'&&proximityLens)appendDistance(into,material?.id);
     into.append(ladderLine(ladderRung({material,node})));appendPaths(into,material);
-    const branchRoute=profile==='antiquity'?routeItems().find(item=>item.source==='atlas'&&(item.id===material?.route?.id||`antiquity:route:${item.id}`===material?.id)):null;
+    const branchRoute=profile!=='zarathustra'?routeItems().find(item=>item.source==='atlas'&&(item.id===material?.route?.id||`${profile}:route:${item.id}`===material?.id)):null;
     if(branchRoute&&!pane){const walk=button(`${t('walkBranch')} · ${countMoves(branchRoute.steps?.length??0)} →`,'primary ps-walk-branch');walk.addEventListener('click',()=>{closePanel();startRoute(branchRoute);});into.append(walk);}if(node.ownerType==='personal-hypothesis'&&nodeTitle.length>120)into.append(el('p','ps-personal-title',nodeTitle));
     if(node.ownerType==='personal-hypothesis'){
       if(node.body)into.append(el('p','body',node.body));
@@ -1472,7 +1476,16 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       if(source?.exact){const open=button(`↗ ${sourceActionLabel(source)}`,'primary ps-source-open');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));into.append(open);}
       else if(source?.binding){const open=button(`↗ ${sourceActionLabel(source)}`,'primary ps-source-open');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));into.append(open);}
       const body=material.atlasBody??material.body;
-      if(body)fragments.render(into,body,{className:'body'});
+      if(body&&!(profile==='aesthetics'&&material.route))fragments.render(into,body,{className:'body'});
+      if(profile==='aesthetics'&&material.voice)fragments.render(into,material.voice,{className:'body'});
+      if(profile==='aesthetics'&&material.workId&&material.kind==='interpretation'){
+        const work=previewMaterials.get(`aesthetics:catalog:${material.workId}`);
+        const authors=(material.agents??[]).map(id=>previewMaterials.get(`aesthetics:catalog:${id}`)).filter(Boolean);
+        const authorText=authors.map(author=>{const life=chronologyReader?.span(author.life);return [tr(author.title,locale()),life?formatYears(life,locale()):''].filter(Boolean).join(' · ');}).join(', ');
+        const line=el('p','ps-source-line',[tr(work?.title,locale()),authorText,material.locus].filter(Boolean).join(' · '));into.append(line);
+        void Promise.all((material.body?.cite??[]).map(cite=>fragments.placeLabel(cite))).then(labels=>{const places=[...new Set(labels.filter(Boolean))].join(' · ')||material.locus;line.textContent=[tr(work?.title,locale()),authorText,places].filter(Boolean).join(' · ');}).catch(()=>{});
+      }
+      if(profile==='aesthetics'&&material.route){const list=el('section','ps-branch-list');for(const step of material.route.steps){const open=button(tr(step.title,locale()),'connection-target');open.addEventListener('click',()=>previewMaterial(step.nodeId));list.append(open);}into.append(list);}
       // The map shows what the book says. A question of the book is the star's title, and the book's answer stands
       // under it; the reader's own line about it is written in the learning mode (readingPrompt).
       const asked=tr(material.question,locale()).trim();
@@ -1709,6 +1722,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(!from?.ownerType&&!to?.ownerType)appendLinkMedia(into,{ends:[matForNode(from),matForNode(to)].filter(Boolean)});
     if(!edge.ownerType&&edge.kind!=='contains'&&!isBasedOn(edge))into.append(ladderLine('comparison'));
     if(edge.body||atlasEdge?.body)fragments.render(into,edge.body??atlasEdge.body,{className:'body'});
+    if(profile==='aesthetics')for(const id of atlasEdge?.grounds??[]){const item=previewMaterials.get(id);if(!item)continue;const open=button(tr(item.title,locale()),'connection-target');open.addEventListener('click',()=>previewMaterial(id));into.append(open);}
     const inquiry=atlasEdge?.inquiry??edge.inquiry;if(inquiry){inquiryDetail(into,t('relationWarrant'),inquiry.warrant,true);appendGrounds(into,inquiry.grounds);inquiryDetail(into,t('relationLimit'),inquiry.limit);inquiryQuestion(into,inquiry.question);}
     const endpoints=el('div','edge-endpoints');const a=button(label(from?.ownerType==='personal-hypothesis'?from:matForNode(from)??from),'text-button'),b=button(label(to?.ownerType==='personal-hypothesis'?to:matForNode(to)??to),'text-button');a.addEventListener('click',()=>pane?pane.subject({kind:'node',id:from.id}):selectNode(from.id));b.addEventListener('click',()=>pane?pane.subject({kind:'node',id:to.id}):selectNode(to.id));endpoints.append(a,el('span','',relationLabel),b);into.append(endpoints);
     const proposal=(workspace?.getState?.()?.proposals??[]).find(item=>item.id===edge.proposalId);

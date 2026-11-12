@@ -23,6 +23,10 @@ const BONSAI={
     title:{es:'Zaratustra',de:'Zarathustra','zh-Hans':'查拉图斯特拉'},
     description:{ru:'«Так говорил Заратустра» Фридриха Ницше',en:'Thus Spoke Zarathustra by Friedrich Nietzsche',es:'Así habló Zaratustra, de Friedrich Nietzsche',de:'Also sprach Zarathustra von Friedrich Nietzsche','zh-Hans':'弗里德里希·尼采的《查拉图斯特拉如是说》'},
   },
+  aesthetics:{
+    title:{es:'Estética',de:'Ästhetik','zh-Hans':'美学'},
+    description:{ru:'Философия прекрасного, искусства и чувственного опыта',en:'The philosophy of beauty, art and sensory experience',es:'La filosofía de la belleza, el arte y la experiencia sensible',de:'Die Philosophie des Schönen, der Kunst und der sinnlichen Erfahrung','zh-Hans':'关于美、艺术与感性经验的哲学'},
+  },
   antiquity:{
     title:{es:'Antigüedad',de:'Antike','zh-Hans':'古代'},
     description:{ru:'Философия Древней Греции и Рима',en:'The philosophy of ancient Greece and Rome',es:'La filosofía de la Grecia y la Roma antiguas',de:'Die Philosophie des alten Griechenlands und Roms','zh-Hans':'古希腊与古罗马的哲学'},

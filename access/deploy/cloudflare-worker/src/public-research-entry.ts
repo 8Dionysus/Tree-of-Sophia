@@ -14,7 +14,7 @@ function textResponse(message: string, status: number, method: string): Response
 }
 
 // The access Worker owns the Custom Domain and keeps the public APIs and their data; the
-// site itself is the two stands. Only these reach the access Worker.
+// site itself is the stands. Only these reach the access Worker.
 function originPath(pathname: string): boolean {
   if (pathname === "/health" || pathname.startsWith("/api/") || pathname.startsWith("/__edge/")) return true;
   return pathname.startsWith("/static/") && !/\.html?$/i.test(pathname);
@@ -64,6 +64,18 @@ const HEADS: Record<string, Record<"en" | "ru", Head>> = {
       title: "Античность · Древо Софии",
       og: "Античность · Древо Софии",
       description: "Философия Древней Греции и Рима в Древе Софии.",
+    },
+  },
+  aesthetics: {
+    en: {
+      title: "Aesthetics · Tree of Sophia",
+      og: "Aesthetics · Tree of Sophia",
+      description: "The philosophy of beauty, art and sensory experience in the Tree of Sophia.",
+    },
+    ru: {
+      title: "Эстетика · Древо Софии",
+      og: "Эстетика · Древо Софии",
+      description: "Философия прекрасного, искусства и чувственного опыта в Древе Софии.",
     },
   },
 };

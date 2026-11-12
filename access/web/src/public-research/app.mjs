@@ -17,7 +17,8 @@ import {mountPublicResearchSpace} from './public-space.mjs';
 import './public-research.css';
 
 const root = document.querySelector('#public-research') ?? document.querySelector('#public-reader-host');
-const profile = root?.dataset.profile === 'antiquity' ? 'antiquity' : 'zarathustra';
+import {corpusProfile} from './bonsai.mjs';
+const profile = ['antiquity','aesthetics'].includes(root?.dataset.profile) ? root.dataset.profile : 'zarathustra';
 const requestedLocale=new URLSearchParams(location.search).get('lang');
 let savedLocale;try{savedLocale=localStorage.getItem('tos.public-research.locale.v1');}catch{}
 let locale=initialLocale({requested:requestedLocale,saved:savedLocale,system:navigator.languages??[navigator.language]});
@@ -31,6 +32,7 @@ const copy = {
     question: 'С каким вопросом вы пришли к Заратустре?', placeholder: 'Например: что меняется, когда человек становится творцом собственных ценностей?',
     other: 'Античность', status: 'Данные о корпусе загружаются по запросу.',
   },
+  aesthetics: {title:'Эстетика',eyebrow:'Читать и исследовать',intro:'Вопросы эстетики в произведениях и голосах.',description:'Читайте места произведений и их трактовки.',question:'Какой вопрос вы хотите исследовать?',placeholder:'',other:'Античность',status:'Данные о корпусе загружаются по запросу.'},
   antiquity: {
     title: 'Античность', eyebrow: 'Читать и исследовать',
     intro: 'Один вопрос проходит сквозь разные тексты и голоса.',
@@ -41,6 +43,7 @@ const copy = {
 };
 const copyEn={
   zarathustra:{title:'Zarathustra',eyebrow:'Read and explore',intro:'One work. Many returns to its words.',description:'Read available editions, mark exact passages, and keep your own thoughts in a shared notebook.',question:'What question brings you to Zarathustra?',placeholder:'For example: what changes when a person creates their own values?',other:'Antiquity',status:'Corpus details load when requested.'},
+  aesthetics:{title:'Aesthetics',eyebrow:'Read and explore',intro:'Questions of aesthetics across works and voices.',description:'Read places in works and their conceptions.',question:'What question would you like to explore?',placeholder:'',other:'Antiquity',status:'Corpus details load when requested.'},
   antiquity:{title:'Antiquity',eyebrow:'Read and explore',intro:'One question moves across texts and voices.',description:'Compare available sources, save exact places, and return to your own line of inquiry.',question:'What question will you carry through ancient texts?',placeholder:'For example: what makes a life good?',other:'Zarathustra',status:'Corpus details load when requested.'},
 };
 const stringsFor=()=>english?localeLabels(copyEn[profile],locale):copy[profile];
@@ -453,11 +456,12 @@ async function start() {
   if(appDisposed)return;
   await initializePublicReaderRules();
   if(appDisposed)return;
-  const provider = createRetainedPublicCorpusProvider({baseUrl: `${import.meta.env.BASE_URL}public-corpus/`, profile, fetch: globalThis.fetch.bind(globalThis)});
+  const provider = createRetainedPublicCorpusProvider({baseUrl: `${import.meta.env.BASE_URL}public-corpus/`, profile: corpusProfile(profile), fetch: globalThis.fetch.bind(globalThis)});
   let manifest = null;
   try { manifest = await provider.describe(); } catch { /* the reader will report delivery failure */ }
   if(appDisposed)return;
   const profileInfo = manifest?.profiles?.[profile];
+  const corpusInfo = manifest?.profiles?.[corpusProfile(profile)];
   const activeRoute = validRoute(location.hash);
   if(appDisposed)return;
   if (location.hash !== (activeRoute ?? '')) history.replaceState(history.state, '', `${location.pathname}${location.search}${activeRoute ?? ''}`);
@@ -501,8 +505,8 @@ async function start() {
   pageAgent=connectResearchPage({index:publicSpace.index,space:spaceView,experience,session:cognitive,api:window.tosPublicResearch,workspace:publicOwners.workspace,locale:()=>locale});
   workspaceView?.render();
   spaceView.refreshLocale();
-  if (manifest && profileInfo) {
-    const workCount = Array.isArray(profileInfo?.documentIds) ? profileInfo.documentIds.length : null;
+  if (manifest && corpusInfo) {
+    const workCount = Array.isArray(corpusInfo.documentIds) ? corpusInfo.documentIds.length : null;
     corpusWorkCount=workCount;refreshProviderStatus();
     entry.opener.disabled = false;
     readerRoot.querySelector('.corpus-open-narrow')?.removeAttribute('disabled');

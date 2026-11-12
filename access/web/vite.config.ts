@@ -36,6 +36,7 @@ export default defineConfig(({ mode }) => {
       input: publicResearch ? {
         'zarathustra/index':fileURLToPath(new URL('./zarathustra/index.html',import.meta.url)),
         'antiquity/index':fileURLToPath(new URL('./antiquity/index.html',import.meta.url)),
+        'aesthetics/index':fileURLToPath(new URL('./aesthetics/index.html',import.meta.url)),
         'not-found/index':fileURLToPath(new URL('./not-found/index.html',import.meta.url)),
         // The site's own address greets the reader with its bonsai to choose from.
         'home/index':fileURLToPath(new URL('./home/index.html',import.meta.url)),
@@ -44,6 +45,7 @@ export default defineConfig(({ mode }) => {
         research:fileURLToPath(new URL('./research.html',import.meta.url)),
         'zarathustra/index':fileURLToPath(new URL('./zarathustra/index.html',import.meta.url)),
         'antiquity/index':fileURLToPath(new URL('./antiquity/index.html',import.meta.url)),
+        'aesthetics/index':fileURLToPath(new URL('./aesthetics/index.html',import.meta.url)),
         'home/index':fileURLToPath(new URL('./home/index.html',import.meta.url)),
       },
       output: {
