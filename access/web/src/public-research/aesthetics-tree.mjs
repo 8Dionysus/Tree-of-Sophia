@@ -1,5 +1,6 @@
 import {readChronology} from '../../../../bonsai/lib/chronology.mjs';
 import {trunkLines,treeRegion} from './space-tree.mjs';
+import {aestheticsGroupTitle} from './aesthetics-groups.mjs';
 
 // The four groups occupy the crown, concepts the trunk, and works the roots in life order.
 export function aestheticsTree({library,field,catalog,chronology}){
@@ -20,7 +21,7 @@ export function aestheticsTree({library,field,catalog,chronology}){
         set(`aesthetics:reading:${item.id}`,'step',[x+Math.cos(a)*r,y+65+Math.sin(a)*r,z+100+(j%3)*25]);
       }
     }
-    names.push({id:`group-${group}`,title:{ru:`Группа ${group}`,en:`Group ${group}`},center:[centerX,-1450,0],kind:'group'});
+    names.push({id:`group-${group}`,title:aestheticsGroupTitle(group),center:[centerX,-1450,0],kind:'group'});
   }
   const concepts=library.nodes.filter(node=>node.kind==='concept');
   for(const [i,node] of concepts.entries()){const angle=i*2.399963,r=75+(i%3)*30;set(node.id,'concept',[Math.sin(angle)*r,-120-(i/Math.max(1,concepts.length))*760,Math.cos(angle)*r]);}

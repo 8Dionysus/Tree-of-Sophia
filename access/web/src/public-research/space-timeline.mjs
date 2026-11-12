@@ -15,6 +15,7 @@ import {readChronology} from '../../../../bonsai/lib/chronology.mjs';
 import {centuryOf,centuryStart,formatDating,formatYears} from '../../../../bonsai/lib/time.mjs';
 import witnessManifest from '../../../../bonsai/zarathustra/witnesses.json' with {type:'json'};
 import {citationId} from './research-index.mjs';
+import {aestheticsGroupTitle} from './aesthetics-groups.mjs';
 
 export {formatDating,formatYears};
 const lang=resolveLocale;
@@ -172,7 +173,7 @@ export function antiquityTimeline({routes=[],entries=[],chronology=null,passageI
 /** The same scale for a field: rows are its four groups of areas. */
 export function aestheticsTimeline({field,library,chronology}){
   const areas=new Map(field.areas.map(area=>[area.id,area]));
-  const rows=['A','B','C','D'].map(group=>({id:group,title:{ru:`Группа ${group}`,en:`Group ${group}`},steps:library.atlas.routes.filter(route=>areas.get(route.id)?.group===group).flatMap(route=>route.steps)}));
+  const rows=['A','B','C','D'].map(group=>({id:group,title:aestheticsGroupTitle(group),steps:library.atlas.routes.filter(route=>areas.get(route.id)?.group===group).flatMap(route=>route.steps)}));
   const entries=[...Object.keys(chronology.lives??{}).map(id=>({id,kind:'author'})),...field.conceptions.map(item=>({id:item.id,workId:item.work,author:item.agents?.[0]}))];
   const timeline=antiquityTimeline({routes:rows,entries,chronology,passageIdOf:id=>String(id).replace(/^aesthetics:reading:/,''),laneSpacing:70});
   if(!timeline)return null;

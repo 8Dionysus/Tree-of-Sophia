@@ -28,7 +28,7 @@ describe('Aesthetics field projection',()=>{
     for(const node of result.nodes){const p=layout.positions.get(node.id);expect(p?.every(Number.isFinite)).toBe(true);expect(seen.has(JSON.stringify(p)),node.id).toBe(false);seen.add(JSON.stringify(p));}
     for(const area of field.areas.filter(a=>byId.has(`aesthetics:route:${a.id}`))){const [x,y]=layout.positions.get(`aesthetics:route:${area.id}`),center=('ABCD'.indexOf(area.group)-1.5)*440;expect(y).toBeLessThan(-900);expect(Math.abs(x-center)).toBeLessThanOrEqual(190);}
     expect(layout.names.map(name=>name.id)).toEqual(['group-A','group-B','group-C','group-D']);
-    for(const [i,name] of layout.names.entries()){const group='ABCD'[i];expect(name.title).toEqual({ru:`Группа ${group}`,en:`Group ${group}`});expect(name.center[0]).toBe((i-1.5)*440);}
+    for(const [i,name] of layout.names.entries()){const group='ABCD'[i];expect(name.title).toEqual({ru:`Группа ${group}`,en:`Group ${group}`,es:`Grupo ${group}`,de:`Gruppe ${group}`,'zh-Hans':`${group}组`});expect(name.center[0]).toBe((i-1.5)*440);}
     const heights=field.areas.filter(area=>byId.has(`aesthetics:route:${area.id}`)).map(area=>layout.positions.get(`aesthetics:route:${area.id}`)[1]);expect(Math.max(...heights)-Math.min(...heights)).toBeGreaterThan(100);
     for(const concept of result.nodes.filter(n=>n.kind==='concept')){const [x,y,z]=layout.positions.get(concept.id);expect(Math.hypot(x,z)).toBeLessThan(200);expect(y).toBeLessThan(0);}
     const works=Object.entries(catalog.works).sort(([,a],[,b])=>Number(chronology.situations[chronology.lives[a.agents[0]]].dating.interval.start)-Number(chronology.situations[chronology.lives[b.agents[0]]].dating.interval.start));
@@ -42,9 +42,9 @@ describe('Aesthetics field projection',()=>{
   it('places each reading on its dated work and in the first area group, within the displayed scale',()=>{
     const time=aestheticsTimeline({field,library:result,chronology}),clock=readChronology(chronology);
     expect(time.lanes.map(lane=>lane.id)).toEqual(['A','B','C','D']);
-    for(const locale of ['ru','en'])for(const lane of time.lanes){
+    for(const locale of ['ru','en','es','de','zh-Hans'])for(const lane of time.lanes){
       const label=time.labels(locale).find(item=>item.id===`time:lane:${lane.id}`);
-      expect(label.title).toBe(`${locale==='ru'?'Группа':'Group'} ${lane.id}`);
+      expect(label.title).toBe(({ru:`Группа ${lane.id}`,en:`Group ${lane.id}`,es:`Grupo ${lane.id}`,de:`Gruppe ${lane.id}`,'zh-Hans':`${lane.id}组`})[locale]);
       expect(label.ref).toBeUndefined();expect(label.hint).toBeUndefined();
     }
     for(const item of field.conceptions){
