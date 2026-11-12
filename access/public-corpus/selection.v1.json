@@ -54,7 +54,8 @@
         "tos.work.retained-antiquity.sacred-disease",
         "tos.work.retained-antiquity.isagoge",
         "tos.work.retained-antiquity.enneads",
-        "tos.work.xenophon.memorabilia"
+        "tos.work.xenophon.memorabilia",
+        "tos.work.seneca.letters-to-lucilius"
       ],
       "initialDocumentId": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
       "journeysRef": "ToS/research-packets/public-prototypes-20261026/journeys.zarathustra.v1.json",
@@ -113,7 +114,8 @@
         "tos.work.retained-antiquity.sacred-disease",
         "tos.work.retained-antiquity.isagoge",
         "tos.work.retained-antiquity.enneads",
-        "tos.work.xenophon.memorabilia"
+        "tos.work.xenophon.memorabilia",
+        "tos.work.seneca.letters-to-lucilius"
       ],
       "initialDocumentId": "tos.work.plato.meno",
       "journeysRef": "ToS/research-packets/public-prototypes-20261026/journeys.antiquity.v1.json",
@@ -80437,6 +80439,904 @@
           "coverageLimit": "Four books and all 39 chapters of the electronic text are retained. In Book III the source prints XII twice; navigation numbers the second XII as chapter 13, preserving its printed label in the source locators. Inline editorial footnotes and transliterations remain in the text. Newline conventions normalized; no scan collation. The translator moves one sentence from the end of Book I to the start of Book II; this edition follows that order.",
           "coverageStatus": "complete-39-chapters",
           "proofreadingStatus": "not scan-collated"
+        }
+      ]
+    },
+    {
+      "id": "tos.work.seneca.letters-to-lucilius",
+      "title": "Moral Letters to Lucilius",
+      "author": "Seneca",
+      "versions": [
+        {
+          "id": "retained-letters-en-lodge1614-tcp",
+          "legacyId": "letters-en-lodge1614-tcp",
+          "label": "The Workes of Lucius Annaeus Seneca, both morrall and naturall. London: William Stansby, 1614 · 1614 · Thomas Lodge (c. 1558–1625)",
+          "language": "en",
+          "role": "translation",
+          "packetRef": "ToS/source-witnesses/works/seneca/letters/expressions/retained-letters-en-lodge1614-tcp/editions/retained-reading/items/retained-antiquity-20261027/source-text-unit-packet.v1.json",
+          "packetSha256": "f7ff22fbdbe109a72248e0cfb1344cc51e6c99147faa471dfc58bcfc70bc7835",
+          "segmentationRef": "tos.text-segmentation.sid-42bd2331fc744f14b9e46a96f06b1a44",
+          "rightsRef": "ToS/source-witnesses/works/seneca/letters/expressions/retained-letters-en-lodge1614-tcp/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+          "rightsSha256": "2fa122eddc7e3f551d157463ea4d98089beed31e240988643cd6099f77f6228b",
+          "sourceUrl": "https://github.com/textcreationpartnership/A11899/blob/7dff018c7bab3a006842e4522455d0181ff58c09/A11899.xml",
+          "attribution": "Seneca, Moral Letters to Lucilius, translated by Thomas Lodge, The Workes of Lucius Annaeus Seneca, London, 1614; keyboarded transcription by the Text Creation Partnership, EEBO-TCP A11899, Phase I, CC0 1.0.\nAll 124 numbered letters appear in the keyboarded transcription, including Lipsius’s prefatory arguments and six marginal notes. The TCP identifies 1,450 gap markers across these letters and their arguments: illegible and omitted foreign text are explicitly marked; ten duplicate-page markers do not represent a loss of transcribed text. The source labels the 69th letter LXXIX; its position and opening match letter 69, while the later 79th letter is distinct. Navigation uses 69 and retains the source heading in the source metadata. End-of-line hyphen markers are joined and the four abbreviation marks for -que are rendered {que}; spacing is normalized. Source spelling and uncertainties remain; no scan collation or critical text review is claimed.",
+          "license": {
+            "label": "Public domain translation; EEBO-TCP CC0 transcription",
+            "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+          },
+          "structure": [
+            {
+              "id": "tos.anchor.sid-cbfc227031c8410ca674b0ec90249510",
+              "label": "Letter 1",
+              "unitId": "tos.text-unit.sid-fc97834432bf45bb8e7d607710a06990",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-f276716217fa4745a7bf4d83c10586a0",
+              "label": "Letter 2",
+              "unitId": "tos.text-unit.sid-fcce9b4501484da38f89543fbe2cbede",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-97ca11091aec481784247f28ee3b614c",
+              "label": "Letter 3",
+              "unitId": "tos.text-unit.sid-25ca9af1edcd4c24ba7d2a08ffbcca58",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-a256899074f6414a9f427b96c7bd525c",
+              "label": "Letter 4",
+              "unitId": "tos.text-unit.sid-48a249e2a8d04977b7fe8b011a81759e",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-3e7c85b9092f4b9f8cc7ab7fd65da4b3",
+              "label": "Letter 5",
+              "unitId": "tos.text-unit.sid-bed0aa9639eb45ef88c31d372d0a9b02",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-e5a70b3acf734057989aa0385d257729",
+              "label": "Letter 6",
+              "unitId": "tos.text-unit.sid-d38ef0fdca234a00968738e93e6d10bc",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-8e1589aaba944959965e4b9d38672aa5",
+              "label": "Letter 7",
+              "unitId": "tos.text-unit.sid-a8688c72bec64f82a9290b7d8317eae2",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-93348140a1114291bd0dce20c0ca76ba",
+              "label": "Letter 8",
+              "unitId": "tos.text-unit.sid-b2865e4facc94af6abe2bedd1f25b947",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-b3cc7f7b1f0a4065877c1d7bf2fd9cf1",
+              "label": "Letter 9",
+              "unitId": "tos.text-unit.sid-145782a8c07749cabc40874d9f4bd19f",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-833f8a7bb76a486585327b4c56678e4c",
+              "label": "Letter 10",
+              "unitId": "tos.text-unit.sid-525acda4750946e6985df10463aea5d6",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-0d6c9c051d424302aa1078d7dcfe665f",
+              "label": "Letter 11",
+              "unitId": "tos.text-unit.sid-392c0b7e985b4e1a8b4252ab07f0b498",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-c176324cac2e4c79a45bacc0f49f1b61",
+              "label": "Letter 12",
+              "unitId": "tos.text-unit.sid-3e1149d3f5d44ae2b7f581d4e9aa7706",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-7485fc8b8c7045ccbd23b33b62e31bab",
+              "label": "Letter 13",
+              "unitId": "tos.text-unit.sid-2a1ab93546da4d07b92b167de6f9345f",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-832a12cc8259403980d88efc78ca51a9",
+              "label": "Letter 14",
+              "unitId": "tos.text-unit.sid-c1af5708890640bdaeb4c35b02b11125",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-1d4af23f9028408f8c63dd36efe30e8c",
+              "label": "Letter 15",
+              "unitId": "tos.text-unit.sid-c563c255803a4622b6255209df50f6d1",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-6b23c7983abe48c292e1bbb112397d51",
+              "label": "Letter 16",
+              "unitId": "tos.text-unit.sid-05e217b1d10144ff9e3f9d3b09b1e4bc",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-1290a36afca94fd380c9d114b5f938ec",
+              "label": "Letter 17",
+              "unitId": "tos.text-unit.sid-4e26f451146e406c9b49e0e47301aebc",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-d9cc0165b3b84249a8b8d3ee0b910389",
+              "label": "Letter 18",
+              "unitId": "tos.text-unit.sid-47597001d67042f7a9034b17fd1a15ea",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-764c0f9abe764124a2180553e50ffeab",
+              "label": "Letter 19",
+              "unitId": "tos.text-unit.sid-ee8bcffb21c84d7faf5f16bc070bff1f",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-1eb5d746e18e4a3d92f256015f97894a",
+              "label": "Letter 20",
+              "unitId": "tos.text-unit.sid-317cc3e8b1f549feba6fef5394ceb173",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-9d69d4533e944b00b7823ba59145bf0e",
+              "label": "Letter 21",
+              "unitId": "tos.text-unit.sid-a97fe639ca314ee3a7d3086ffbe7ba8b",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-f8be5351ff084887853077b7e5992699",
+              "label": "Letter 22",
+              "unitId": "tos.text-unit.sid-d6e9c7bd91864e94939fbea80722d5aa",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-012ad572f06946f293f8bd86cd61c83e",
+              "label": "Letter 23",
+              "unitId": "tos.text-unit.sid-e76d9d2476e04482a137b5103173c8a8",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-b2305e1c492540ffb8b0fd2ad21dd97b",
+              "label": "Letter 24",
+              "unitId": "tos.text-unit.sid-1df392061b464732939b911f519cd940",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-707d07af9ffa4bfb8b2d15bcac470475",
+              "label": "Letter 25",
+              "unitId": "tos.text-unit.sid-3d19157e1ba44ef7848d26ee462340c2",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-d0352b099a1b4d6ab8e9a1bb1329e718",
+              "label": "Letter 26",
+              "unitId": "tos.text-unit.sid-9ec3ec2f0e0c4be8bdfcf59f06622e5e",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-492c8c8923314587a721926dab54737a",
+              "label": "Letter 27",
+              "unitId": "tos.text-unit.sid-f1de10a7a10f464dafb9444ce8e872fe",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-a938be39f46449faa542e98fbc8519d0",
+              "label": "Letter 28",
+              "unitId": "tos.text-unit.sid-c9735bbc68dd4ab49f385bc8a4c2599e",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-9e78bfbeeab844288c784c286c03c585",
+              "label": "Letter 29",
+              "unitId": "tos.text-unit.sid-105c2e60b3334b4eae2208ac8dea3021",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-51ac801a7aec4598919113d3cb466b23",
+              "label": "Letter 30",
+              "unitId": "tos.text-unit.sid-c45d922c37294c1682a05e6ff4314a4b",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-d05364fbdcec494d9ec05960ea113da0",
+              "label": "Letter 31",
+              "unitId": "tos.text-unit.sid-06ddcc9ddc96432883d6d0aa205d3bdb",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-1cf0f21c03d04cd88818da3377c1aac8",
+              "label": "Letter 32",
+              "unitId": "tos.text-unit.sid-18ccb1ab98564fc59cb96e81f6d0f1d5",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-f7c2f4485c294462a7341057eade6ed4",
+              "label": "Letter 33",
+              "unitId": "tos.text-unit.sid-022a2367a1854c9da1e67a31fa5332a8",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-d43457be55d74a98af04dbd2be2e523d",
+              "label": "Letter 34",
+              "unitId": "tos.text-unit.sid-030cc329d6cc4a98b32e1fbf32bb12e8",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-ecb64009253c44aaa8ebe1c7031ae0d7",
+              "label": "Letter 35",
+              "unitId": "tos.text-unit.sid-de222b8fefcb4b748dac2d2edbfba4ea",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-29407748ab984a8499f5c748255edbce",
+              "label": "Letter 36",
+              "unitId": "tos.text-unit.sid-0897d228c05d4d128ac8f4f209540b46",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-47f72481513343ad98cd69c62cd32502",
+              "label": "Letter 37",
+              "unitId": "tos.text-unit.sid-e169cf467d5d4164ac73da2a3ec0a341",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-8ca730ce05a7419c83bb8c6f321b5d33",
+              "label": "Letter 38",
+              "unitId": "tos.text-unit.sid-567a47b83e884785888aec6ebfb2660e",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-2026155586154ddcbe2a7a4fe5fcc840",
+              "label": "Letter 39",
+              "unitId": "tos.text-unit.sid-4e45488b996541fa9c43b750ef81d956",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-48174d4f0a5547e4b6f1274e1af5c9dd",
+              "label": "Letter 40",
+              "unitId": "tos.text-unit.sid-e7e0b204e8dc4661bc3d1efc9b2e21e1",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-532fd5bb52f54954ae17bc94d3518d15",
+              "label": "Letter 41",
+              "unitId": "tos.text-unit.sid-b9966867ba7643f7a64fa962fb29530d",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-af411cbd2c91496f9e56be3b7808bd8e",
+              "label": "Letter 42",
+              "unitId": "tos.text-unit.sid-922bb6efdb2543f79fbf8f4e0e9f8f4a",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-02db7f072f5a43f4b3b5160b742f0143",
+              "label": "Letter 43",
+              "unitId": "tos.text-unit.sid-f01a3989c97c44369add0e8a46e6489c",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-8a5888bbdfbb43ad9028ada981de7612",
+              "label": "Letter 44",
+              "unitId": "tos.text-unit.sid-a69e712efe60478c9df6641469453588",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-b157b17f49654cc78ca024bced69eb7d",
+              "label": "Letter 45",
+              "unitId": "tos.text-unit.sid-7518699c24b443d8acc66e6525f10dfb",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-9d86c624d3ac4780b6b7c0a4c6955f50",
+              "label": "Letter 46",
+              "unitId": "tos.text-unit.sid-a9ffc0a4b8ab4379b06dbcb4f16e796b",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-923e5cafddfd4d8486fe18b28ab14fa9",
+              "label": "Letter 47",
+              "unitId": "tos.text-unit.sid-6aefb6ab193444a998ca0cd6b9612c7f",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-28efa4b9a88f4d34864771beb64d0bd7",
+              "label": "Letter 48",
+              "unitId": "tos.text-unit.sid-837903b8426844609e304ad79d367408",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-a309612812fe4fcf9e5f94b9ab651574",
+              "label": "Letter 49",
+              "unitId": "tos.text-unit.sid-bf6cc0a0db33407eba61ba443bdee8ed",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-4b7dea3c42eb4c63aa0ae02a6600cd0c",
+              "label": "Letter 50",
+              "unitId": "tos.text-unit.sid-848e8ed66de44f22aae1c92d29f2ae62",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-c85becc60c944709a38a3eafd5d0ccea",
+              "label": "Letter 51",
+              "unitId": "tos.text-unit.sid-441a84e60efa47a7ab909a47d07ce04d",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-a9d11445d6684f80a0b8d2411c7fcd41",
+              "label": "Letter 52",
+              "unitId": "tos.text-unit.sid-497c12fadf424dbc9e326840ecff3a25",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-e05677b9e38942a08fd646460a930a30",
+              "label": "Letter 53",
+              "unitId": "tos.text-unit.sid-52bcc6f75aef4fb4882eca9817468d20",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-6db9b8e346f94396a166fd694c07ffab",
+              "label": "Letter 54",
+              "unitId": "tos.text-unit.sid-f188202763084038bb38f1eb1b0982cb",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-f486808531aa4e948650f1bb206e7645",
+              "label": "Letter 55",
+              "unitId": "tos.text-unit.sid-4ec75f3eb4c94830b53733e9bf652a88",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-80af594e14e649dc99e6f99c8b4088b1",
+              "label": "Letter 56",
+              "unitId": "tos.text-unit.sid-e59325f482474e669b4b59c4c8e987d0",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-20271dd771e349d682a2900f8ce5fa72",
+              "label": "Letter 57",
+              "unitId": "tos.text-unit.sid-24bf5ecc7ddc4ef9b4ac261400eb26bf",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-821dea34ee924719a2a4bd1045380ae6",
+              "label": "Letter 58",
+              "unitId": "tos.text-unit.sid-78d8696c87ed42c39128410caa5eb92a",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-5cfe4db873c9445799d2a5dfa99a1a18",
+              "label": "Letter 59",
+              "unitId": "tos.text-unit.sid-0b336a92ee30479486d40f52b9f9df9d",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-88a544a2a77e404ea97f59f5d93ddcc0",
+              "label": "Letter 60",
+              "unitId": "tos.text-unit.sid-ebc1430fee404c47838975ff4091fc92",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-72fa152176a64983b9b9cddcaa1440bf",
+              "label": "Letter 61",
+              "unitId": "tos.text-unit.sid-c8cb4ad7ebd34db4abe272b34f303271",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-80d00888b11942fcbffc30a590582511",
+              "label": "Letter 62",
+              "unitId": "tos.text-unit.sid-2a4007d3777f4f829f627ca3d00e5109",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-8a9bf75151334e12856fd734443b4772",
+              "label": "Letter 63",
+              "unitId": "tos.text-unit.sid-a3432261fd064524a95189ea66066a4d",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-60ff41654d004fd4931a0af131c4a364",
+              "label": "Letter 64",
+              "unitId": "tos.text-unit.sid-997d0f612d4845d49fab46b96ab4fb9e",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-0ac74815ea7147ff8d4d94c3c12a2574",
+              "label": "Letter 65",
+              "unitId": "tos.text-unit.sid-c2f02ab8f5624471a9a2c14a9914e56a",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-56817ae7c16b4810b0e34578a5be8e39",
+              "label": "Letter 66",
+              "unitId": "tos.text-unit.sid-2eb78039391f42179b0ba6784b148413",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-62dafa24c262484b9396150061537d51",
+              "label": "Letter 67",
+              "unitId": "tos.text-unit.sid-8112ae57ddf24df8a40ce14903d421b6",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-ff21724fdce14f48ba35b6520123c3e6",
+              "label": "Letter 68",
+              "unitId": "tos.text-unit.sid-3d7280304cf24a0385984b6bad5e9dca",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-7104ca1bd7244544ab4c527cdb6d4592",
+              "label": "Letter 69",
+              "unitId": "tos.text-unit.sid-628a527b8c294a918c43652080e4e774",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-fb6b59c18c9b4c9b8c48410985e8ece2",
+              "label": "Letter 70",
+              "unitId": "tos.text-unit.sid-dc67cdfbd71b493fb4d35f93ace2adb1",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-808e8f1ce3b94e3dbaf8108d27b4d37c",
+              "label": "Letter 71",
+              "unitId": "tos.text-unit.sid-9f28b1c545384bf2a9d977f1873e6f51",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-4a9da18b4a914e68b231404ed1a5e384",
+              "label": "Letter 72",
+              "unitId": "tos.text-unit.sid-89b50be8ba8549ed89db2a9338effa55",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-8fbd8bb728544e589759bf69ac1ec9c4",
+              "label": "Letter 73",
+              "unitId": "tos.text-unit.sid-205fd4cf87eb4dcabe4d25991b978969",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-c5b6dee2381a45ae8bc12c30b5848a82",
+              "label": "Letter 74",
+              "unitId": "tos.text-unit.sid-4c0c718d881e4cd088cab631cee57828",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-e3ca35accfb94cc5a6320ac74581c2a5",
+              "label": "Letter 75",
+              "unitId": "tos.text-unit.sid-1f101f776aa74d06ab5bb39cbaffb9fc",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-6020e0673e144f0ab65912f2d00262a7",
+              "label": "Letter 76",
+              "unitId": "tos.text-unit.sid-84a7084a334d49f5bcb628d2c8592d54",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-7272c25318394c5eaed9f632f416eca6",
+              "label": "Letter 77",
+              "unitId": "tos.text-unit.sid-95a698f649ea4bccaea8996973a409e4",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-90dc208e8d86400e9b8ad3e82c4e462f",
+              "label": "Letter 78",
+              "unitId": "tos.text-unit.sid-7117e593a3f64e31ad522af4c5ab71c4",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-77a315a4ddf74c7084d3be43e58a1f72",
+              "label": "Letter 79",
+              "unitId": "tos.text-unit.sid-4edbc02e492b4519bfccf01f6772f5e3",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-5dfb001d3b4241d0a465f43ff8827e17",
+              "label": "Letter 80",
+              "unitId": "tos.text-unit.sid-5d85d6b6a593420d9aaa655ba229dc7f",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-ad7802f10cb449b694a32f9a6a76eef4",
+              "label": "Letter 81",
+              "unitId": "tos.text-unit.sid-fcc30e1075874f2281feeb008feb2869",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-f669503e767f4fa5bc0c2c247f12ad4d",
+              "label": "Letter 82",
+              "unitId": "tos.text-unit.sid-78f12f7dff194d7c9482449a73281087",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-edbe34e5b4374394b398b669e9c46d93",
+              "label": "Letter 83",
+              "unitId": "tos.text-unit.sid-d57fad4dd35640c3a3a9c77f12a5d3d7",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-591a0bff7c6e495b959e9289385b516e",
+              "label": "Letter 84",
+              "unitId": "tos.text-unit.sid-9365fec70c094891b18e68b018ce416b",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-c39358a83af244ecae3b8c40639513af",
+              "label": "Letter 85",
+              "unitId": "tos.text-unit.sid-527d3ddb9c774beb9324b2f5a5ffb3d7",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-080551c68af74f55a7650f9f683f5778",
+              "label": "Letter 86",
+              "unitId": "tos.text-unit.sid-4df6019840a24ed5a89c196818576f9e",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-4ae6dfa17eb84b279f8174e6f5fccffb",
+              "label": "Letter 87",
+              "unitId": "tos.text-unit.sid-3e87d61882154f6b9d2adc94a7e976af",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-021cd08aa8f44d0c91a0c004c267ed67",
+              "label": "Letter 88",
+              "unitId": "tos.text-unit.sid-f25f964de8c34e138a501ced164aa74b",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-a0588c13466f4a19a9f999e94d5fb630",
+              "label": "Letter 89",
+              "unitId": "tos.text-unit.sid-9db7db657e844ad88a25b4dd165aa6aa",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-024e9f7257944c5ebe74d41e162438d1",
+              "label": "Letter 90",
+              "unitId": "tos.text-unit.sid-5a2b12c523c04a4e9b9ec066ac86a776",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-33bd9e7d33234f22ad05683dbb1764c5",
+              "label": "Letter 91",
+              "unitId": "tos.text-unit.sid-92565db4fad9463aacd6399249217962",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-c896b6170ef7463a89d017db92c4c2ad",
+              "label": "Letter 92",
+              "unitId": "tos.text-unit.sid-9ac12d2d1801410e8391ef3f26e4c135",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-a5c1c5e779424254a1ef496e3095347e",
+              "label": "Letter 93",
+              "unitId": "tos.text-unit.sid-2b8ce12e6fa04818a17beea973144214",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-acac7c47f42d4cce901074811bdc5110",
+              "label": "Letter 94",
+              "unitId": "tos.text-unit.sid-f74249ebe94a4a74acb7dbb4af8d4c4b",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-bc6ac8740e684a458691ad753483f498",
+              "label": "Letter 95",
+              "unitId": "tos.text-unit.sid-a8a5a4488cb04f938af5f4c26a5e48e6",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-99d9dc1b76c9415abf3b851e833f6927",
+              "label": "Letter 96",
+              "unitId": "tos.text-unit.sid-4557e8eaecc1482a9126d503c6f58f4d",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-a63bc17e6ee544ab96451098dbc0414d",
+              "label": "Letter 97",
+              "unitId": "tos.text-unit.sid-c30e063004c747d1bd3b0de83d75a146",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-e44980c77ac9407a84ee0bfe3ed73d37",
+              "label": "Letter 98",
+              "unitId": "tos.text-unit.sid-777ec5131a7a4b588a2dc64d7567d7e9",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-75d1afbcc6624840a5b8f19102878ba3",
+              "label": "Letter 99",
+              "unitId": "tos.text-unit.sid-1cd223df7b704630bafc587881a39482",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-c1653863f4994bf8a7751448147c5333",
+              "label": "Letter 100",
+              "unitId": "tos.text-unit.sid-badf81fa85d34d65bde80717355cf086",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-1200336a64534a2eb24b5a20a5a58b52",
+              "label": "Letter 101",
+              "unitId": "tos.text-unit.sid-629c259ed98d40ae9027d59766d1a971",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-c2d10da01eec4563b68dbffeed006f97",
+              "label": "Letter 102",
+              "unitId": "tos.text-unit.sid-658d6409a3d340b785dcf751bc8f66bc",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-24f66645a4264e159f28704b17c4c4b4",
+              "label": "Letter 103",
+              "unitId": "tos.text-unit.sid-36e6aebc235c4362aa01bdd8ac1c1d11",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-a2e47a173fe2484ea6b8388a6fbc8848",
+              "label": "Letter 104",
+              "unitId": "tos.text-unit.sid-35588eeeeb3d47a9be0ec876a0faef79",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-5c676457dc60414ba9d4e907ad7f098a",
+              "label": "Letter 105",
+              "unitId": "tos.text-unit.sid-69b29019fab34a499d77ab05266b58a2",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-e71cb673b7164b81acec4edbd3373455",
+              "label": "Letter 106",
+              "unitId": "tos.text-unit.sid-62486f3acde140c6a8453741ba562382",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-999bb4a98065465d83af50f80acbf6cb",
+              "label": "Letter 107",
+              "unitId": "tos.text-unit.sid-62b5576c53674f0d8bd7c47eafd746a7",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-766afc069dbd4c1ca4c145c805ba888e",
+              "label": "Letter 108",
+              "unitId": "tos.text-unit.sid-7cbc6b804fb94f5aaa23370f02f6a2b2",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-2afdb5477b474c129a0d62b52754d975",
+              "label": "Letter 109",
+              "unitId": "tos.text-unit.sid-912e880559964e35a2567e8299251910",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-27ef7110ef7b412ba2f7321fe580b74e",
+              "label": "Letter 110",
+              "unitId": "tos.text-unit.sid-75149e260a964ec4a1f022a31ba12084",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-40497b4bb69045fc943915e7d7899d4a",
+              "label": "Letter 111",
+              "unitId": "tos.text-unit.sid-3d16b5fea66c46e59aaeb1a402b3cbe5",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-08d9a9f90f9744b5b2205e10739ea78b",
+              "label": "Letter 112",
+              "unitId": "tos.text-unit.sid-69061fe2e17e438d80984a60543b20c2",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-dc5e3bcccf6a45f09d6351a36a11e609",
+              "label": "Letter 113",
+              "unitId": "tos.text-unit.sid-881a1f6dee51417db4180ede14b991eb",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-26b4e29b8e354060b9af2820020a941b",
+              "label": "Letter 114",
+              "unitId": "tos.text-unit.sid-d3c6abc4005441248aeee1c9ab68d5a9",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-a145addeaf8a41dcae1c895d1ef57bfb",
+              "label": "Letter 115",
+              "unitId": "tos.text-unit.sid-00bddec1edc6427da52d7c6849132472",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-444491ad1fcd4c0eacdaa0adfada482d",
+              "label": "Letter 116",
+              "unitId": "tos.text-unit.sid-01ef8c23c78549f4913cf5021a211a5e",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-b331aadffc1a4610aba38d8874213013",
+              "label": "Letter 117",
+              "unitId": "tos.text-unit.sid-b181a117a6fd47388f1ba0c6ec5732bc",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-6644785d968c4e27b934ca46d99167a1",
+              "label": "Letter 118",
+              "unitId": "tos.text-unit.sid-b567dbce60d64fd793a991ff03863a9d",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-6e43c923e3d843899198efb175e0bc0d",
+              "label": "Letter 119",
+              "unitId": "tos.text-unit.sid-fa377337d8ed4b3dad54ca44217cdfb7",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-2f614f5b2fab41908c54674fc050f46f",
+              "label": "Letter 120",
+              "unitId": "tos.text-unit.sid-da0b40c349c84e399680d580493651d7",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-1680eec4d6ad474194b0f67763feedc6",
+              "label": "Letter 121",
+              "unitId": "tos.text-unit.sid-42b52672787c47b88129eb32723b3964",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-0d6cf4d0f67b4bc78267d70effea4b4a",
+              "label": "Letter 122",
+              "unitId": "tos.text-unit.sid-9276f5f2c7a54418b501ab129f222c4e",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-007a8f921caa49758719ba7c860d7512",
+              "label": "Letter 123",
+              "unitId": "tos.text-unit.sid-7c575b6a2b5c45eabf64136dada86401",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-5225f11543e0401eb044925ea9dee8b0",
+              "label": "Letter 124",
+              "unitId": "tos.text-unit.sid-0cfe5cf566ef47278d5c9d3a1b340a34",
+              "level": 1,
+              "parentId": null
+            }
+          ],
+          "coverageLimit": "All 124 numbered letters appear in the keyboarded transcription, including Lipsius’s prefatory arguments and six marginal notes. The TCP identifies 1,450 gap markers across these letters and their arguments: illegible and omitted foreign text are explicitly marked; ten duplicate-page markers do not represent a loss of transcribed text. The source labels the 69th letter LXXIX; its position and opening match letter 69, while the later 79th letter is distinct. Navigation uses 69 and retains the source heading in the source metadata. End-of-line hyphen markers are joined and the four abbreviation marks for -que are rendered {que}; spacing is normalized. Source spelling and uncertainties remain; no scan collation or critical text review is claimed.",
+          "coverageStatus": "124-letter-transcription-with-explicit-gaps",
+          "proofreadingStatus": "TCP sampled and proofread; no independent scan collation"
         }
       ]
     }

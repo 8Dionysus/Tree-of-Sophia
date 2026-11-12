@@ -1,0 +1,46 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.letters.letters-en-lodge1614-tcp",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.letters.letters-en-lodge1614-tcp",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.fd3c29b3f2b86a03140985c0a37a8c0a6817734a417ff88d2acca3b8213db1d8",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "letters-en-lodge1614-tcp.json",
+      "media_type": "application/json",
+      "byte_size": 1274869,
+      "sha256": "fd3c29b3f2b86a03140985c0a37a8c0a6817734a417ff88d2acca3b8213db1d8",
+      "fixity_verified_at": "2026-11-12T20:06:17+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.1a29e01d319a4a21fe2972b2b804711de7a8a8e9ca9ed1065c69f6986629593c",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 1196913,
+      "sha256": "1a29e01d319a4a21fe2972b2b804711de7a8a8e9ca9ed1065c69f6986629593c",
+      "fixity_verified_at": "2026-11-12T20:06:17+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.ea70ab2574fce8c81746c5ad975632c1fd7e084b2a25b093ea41d48dd1c4d31f",
+      "relative_path": "payload/tcp-source.xml",
+      "original_basename": "A11899.xml",
+      "media_type": "application/xml",
+      "byte_size": 4753562,
+      "sha256": "ea70ab2574fce8c81746c5ad975632c1fd7e084b2a25b093ea41d48dd1c4d31f",
+      "fixity_verified_at": "2026-11-12T20:06:17+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.letters-en-lodge1614-tcp.20261027",
+  "rights_ref": "ToS/source-witnesses/works/seneca/letters/expressions/retained-letters-en-lodge1614-tcp/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/seneca/letters/expressions/retained-letters-en-lodge1614-tcp/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/seneca/letters/expressions/retained-letters-en-lodge1614-tcp/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/seneca/letters/expressions/retained-letters-en-lodge1614-tcp/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/seneca/letters/expressions/retained-letters-en-lodge1614-tcp/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

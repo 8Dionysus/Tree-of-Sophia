@@ -1,0 +1,40 @@
+{
+  "schema_version": "tos_rights_record_v1",
+  "rights_id": "tos.rights.retained-antiquity.letters.letters-en-lodge1614-tcp.20261027",
+  "scope_refs": [
+    "tos.item.retained.antiquity.letters.letters-en-lodge1614-tcp",
+    "tos.file.sha256.fd3c29b3f2b86a03140985c0a37a8c0a6817734a417ff88d2acca3b8213db1d8",
+    "tos.file.sha256.1a29e01d319a4a21fe2972b2b804711de7a8a8e9ca9ed1065c69f6986629593c",
+    "tos.file.sha256.ea70ab2574fce8c81746c5ad975632c1fd7e084b2a25b093ea41d48dd1c4d31f"
+  ],
+  "assessment_status": "public_domain_reviewed",
+  "jurisdictions_reviewed": [
+    "US",
+    "RU",
+    "EU"
+  ],
+  "source_refs": [
+    "https://github.com/textcreationpartnership/A11899/blob/7dff018c7bab3a006842e4522455d0181ff58c09/A11899.xml",
+    "https://creativecommons.org/publicdomain/zero/1.0/",
+    "https://www.textpartnership.net/pages/faq.html"
+  ],
+  "permissions": [
+    "Read and redistribute Lodge’s 1614 public-domain translation and the TCP keyboarded transcription under its CC0 dedication.",
+    "Attribution: Seneca, Moral Letters to Lucilius, translated by Thomas Lodge, The Workes of Lucius Annaeus Seneca, London, 1614; keyboarded transcription by the Text Creation Partnership, EEBO-TCP A11899, Phase I, CC0 1.0.\nAll 124 numbered letters appear in the keyboarded transcription, including Lipsius’s prefatory arguments and six marginal notes. The TCP identifies 1,450 gap markers across these letters and their arguments: illegible and omitted foreign text are explicitly marked; ten duplicate-page markers do not represent a loss of transcribed text. The source labels the 69th letter LXXIX; its position and opening match letter 69, while the later 79th letter is distinct. Navigation uses 69 and retains the source heading in the source metadata. End-of-line hyphen markers are joined and the four abbreviation marks for -que are rendered {que}; spacing is normalized. Source spelling and uncertainties remain; no scan collation or critical text review is claimed."
+  ],
+  "restrictions": [
+    "Identify the transcription and its gaps; do not represent it as scan-collated or a critical edition."
+  ],
+  "visibility": "public_payload",
+  "redistribution_posture": "authorized_with_conditions",
+  "derivative_posture": "allowed_with_conditions",
+  "assessed_by": {
+    "maker_type": "model",
+    "agent_ref": "codex.retained-antiquity-publication.20261027"
+  },
+  "assessed_at": "2026-11-12T20:06:17+00:00",
+  "rationale": "Thomas Lodge died in 1625 and the translation was published in 1614. TCP explicitly dedicates this Phase I keyboarded transcription under CC0 1.0. The original TEI is retained separately; the public reading layer preserves marked uncertainties and identifies extraction changes.",
+  "review_status": "unreviewed",
+  "license_uri": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "record_version": 1
+}

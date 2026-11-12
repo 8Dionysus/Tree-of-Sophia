@@ -180,6 +180,7 @@ const PUBLIC_WORK_NAMES = {
   'tos.work.aristotle.nicomachean-ethics': ['Никомахова этика', 'Nicomachean Ethics'],
   'tos.work.plato.apology': ['Апология Сократа', 'Apology'],
   'tos.work.xenophon.memorabilia': ['Воспоминания о Сократе', 'Memorabilia'],
+  'tos.work.seneca.letters-to-lucilius': ['Нравственные письма к Луцилию', 'Moral Letters to Lucilius'],
 };
 // The public corpus's authors as a reader of each language names them; the manifest keeps its own spelling.
 const PUBLIC_AUTHOR_NAMES = {
@@ -204,8 +205,8 @@ export function corpusWorkTitle(document, locale = 'ru') {
 }
 export function corpusSectionLabel(value,locale='ru',versionId=''){
   if(typeof value!=='string'||typeof versionId!=='string'||!versionId.startsWith('retained-'))return value;
-  if(!['ru','en'].includes(resolveLocale(locale)))return value.replace(/(?:Книга|Book)\s+(\d+)/g,(_,n)=>localeText('Book {0}',locale,[n])).replace(/(?:Глава|Chapter)\s+(\d+)/g,(_,n)=>localeText('Chapter {0}',locale,[n])).replace(/(?:Раздел|Section)\s+(\d+)/g,(_,n)=>localeText('Section {0}',locale,[n])).replace(/(?:Предисловие|Prologue)/g,()=>localeText('Prologue',locale));
-  if((copyLocale(locale)==='en'))return value.replace(/Книга\s+(\d+)/g,'Book $1').replace(/Глава\s+(\d+)/g,'Chapter $1').replace(/Раздел\s+(\d+)/g,'Section $1').replace(/(^|[\s·])Предисловие(?=$|[\s·:,.])/gu,'$1Prologue');
-  return value.replace(/^Notes on the work$/,'Примечания к произведению').replace(/^Textual adjustments$/,'Текстологические сведения').replace(/Book\s+(\d+)/g,'Книга $1').replace(/Chapter\s+(\d+)/g,'Глава $1').replace(/Section\s+(\d+)/g,'Раздел $1');
+  if(!['ru','en'].includes(resolveLocale(locale)))return value.replace(/(?:Книга|Book)\s+(\d+)/g,(_,n)=>localeText('Book {0}',locale,[n])).replace(/(?:Глава|Chapter)\s+(\d+)/g,(_,n)=>localeText('Chapter {0}',locale,[n])).replace(/(?:Раздел|Section)\s+(\d+)/g,(_,n)=>localeText('Section {0}',locale,[n])).replace(/(?:Письмо|Letter)\s+(\d+)/g,(_,n)=>localeText('Letter {0}',locale,[n])).replace(/(?:Предисловие|Prologue)/g,()=>localeText('Prologue',locale));
+  if((copyLocale(locale)==='en'))return value.replace(/Книга\s+(\d+)/g,'Book $1').replace(/Глава\s+(\d+)/g,'Chapter $1').replace(/Раздел\s+(\d+)/g,'Section $1').replace(/Письмо\s+(\d+)/g,'Letter $1').replace(/(^|[\s·])Предисловие(?=$|[\s·:,.])/gu,'$1Prologue');
+  return value.replace(/^Notes on the work$/,'Примечания к произведению').replace(/^Textual adjustments$/,'Текстологические сведения').replace(/Book\s+(\d+)/g,'Книга $1').replace(/Chapter\s+(\d+)/g,'Глава $1').replace(/Section\s+(\d+)/g,'Раздел $1').replace(/Letter\s+(\d+)/g,'Письмо $1');
 }
 import retainedWorkNames from './retained-work-names.json' with {type:'json'};
