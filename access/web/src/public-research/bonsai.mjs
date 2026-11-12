@@ -30,7 +30,8 @@ const LOADERS=Object.freeze({
     import('../../../../bonsai/aesthetics/library.json'),
     import('../../../../bonsai/aesthetics/chronology.json'),
     import('../../../../bonsai/aesthetics/identities.json'),
-  ]).then(([field,library,chronology,identities])=>({field:json(field),library:json(library),chronology:json(chronology),identities:json(identities)})),
+    import('../../../../bonsai/aesthetics/fragments.json'),
+  ]).then(([field,library,chronology,identities,fragments])=>({field:json(field),library:json(library),chronology:json(chronology),identities:json(identities),fragments:json(fragments)})),
   antiquity:()=>Promise.all([
     loadAntiquityCollection().then(collection=>({default:collection})),
     import('../../../../bonsai/antiquity/first-branches.json'),

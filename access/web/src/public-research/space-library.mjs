@@ -301,5 +301,5 @@ async function placeTitles(profile){
   }
   const bonsai=await loadBonsai(profile);
   const works=profile==='aesthetics'?new Map(Object.entries(bonsai.library.works).map(([id,work])=>[id,work.title])):new Map((bonsai.collection?.entities??[]).filter(entity=>entity.kind==='work').map(entity=>[entity.id,entity.title]));
-  return cite=>{const title=works.get(cite?.w);if(!title)return null;const at=cite.loc?` · ${cite.loc}`:'';return {ru:`${title.ru??title.en}${at}`,en:`${title.en??title.ru}${at}`};};
+  return cite=>{const own=profile==='aesthetics'?bonsai.fragments?.places?.[cite?.w]?.[cite?.loc]?.label:null;if(own)return own;const title=works.get(cite?.w);if(!title)return null;const at=cite.loc?` · ${cite.loc}`:'';return {ru:`${title.ru??title.en}${at}`,en:`${title.en??title.ru}${at}`};};
 }

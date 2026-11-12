@@ -4,7 +4,7 @@ const bi=(ru,en)=>({ru,en});
 const cat=id=>`aesthetics:catalog:${id}`, reading=id=>`aesthetics:reading:${id}`, route=id=>`aesthetics:route:${id}`;
 const place=cite=>`aesthetics:source:${cite.w}:${cite.loc??[...(cite.u??[]),cite.s,cite.e].join(':')}`;
 const join=(values,sep)=>bi(values.map(v=>v?.ru??v?.en??'').join(sep),values.map(v=>v?.en??v?.ru??'').join(sep));
-export function makeAesthetics({field,library:catalog,chronology}){
+export function makeAesthetics({field,library:catalog,chronology,fragments}){
   const clock=readChronology(chronology),nodes=[],edges=[],routes=[];
   const concepts=new Map(field.concepts.map(item=>[item.id,item])),conceptions=new Map(field.conceptions.map(item=>[item.id,item]));
   const used=new Set(field.conceptions.flatMap(item=>item.of));
@@ -19,7 +19,7 @@ export function makeAesthetics({field,library:catalog,chronology}){
     const title=bi(`${names.ru} — ${author.ru}`,`${names.en} — ${author.en}`),sourceIds=[];
     for(const cite of item.formula.cite){
       const id=place(cite);sourceIds.push(id);
-      if(!sources.has(id)){const work=catalog.works[cite.w]?.title??bi(cite.w,cite.w),locator=cite.loc??item.locus;sources.set(id,{id,kind:'fragment',parentId:cat(cite.w),title:bi(`${work.ru} · ${locator}`,`${work.en} · ${locator}`),body:{cite:[cite]},workId:cite.w,locator});}
+      if(!sources.has(id)){const work=catalog.works[cite.w]?.title??bi(cite.w,cite.w),locator=cite.loc??item.locus;sources.set(id,{id,kind:'fragment',parentId:cat(cite.w),title:fragments?.places?.[cite.w]?.[cite.loc]?.label??bi(`${work.ru} · ${locator}`,`${work.en} · ${locator}`),body:{cite:[cite]},workId:cite.w,locator});}
       edges.push({id:`aesthetics:reading-source:${item.id}:${sourceIds.length}`,from:reading(item.id),to:id,kind:'supports',label:bi('Источник','Source')});
     }
     add(reading(item.id),'interpretation',title,{demo:true,body:{...item.thesis,cite:item.formula.cite},question:field.areas.find(area=>item.areas.includes(area.id))?.question,voice:item.voice,workId:item.work,agents:item.agents,locus:item.locus,concepts:item.of,areaIds:item.areas,sourceNodeId:sourceIds[0],sourceNodeIds:sourceIds});
