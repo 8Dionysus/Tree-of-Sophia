@@ -52565,6 +52565,37 @@
           "proofreadingStatus": "Por corregir",
           "headerKind": "generated-historical-provenance",
           "historicalTranscription": true
+        },
+        {
+          "id": "retained-enchiridion-ru-poletika1767-chapter1",
+          "legacyId": "enchiridion-ru-poletika1767-chapter1",
+          "label": "Епиктитовъ Енхиридіонъ, второе издание, Санкт-Петербург, 1767, стр. 55–59 · 1767 · Григорий Андреевич Полетика (1725–1784)",
+          "language": "ru",
+          "role": "translation",
+          "packetRef": "ToS/source-witnesses/works/epictetus/enchiridion/expressions/retained-enchiridion-ru-poletika1767-chapter1/editions/retained-reading/items/retained-antiquity-20261027/source-text-unit-packet.v1.json",
+          "packetSha256": "8f4ec08a6ee85175dd9d3561adda8794613a6186ed76e2e71deb11b94b7270e6",
+          "segmentationRef": "tos.text-segmentation.sid-4779a123c0154fc781179cd81b07359c",
+          "rightsRef": "ToS/source-witnesses/works/epictetus/enchiridion/expressions/retained-enchiridion-ru-poletika1767-chapter1/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+          "rightsSha256": "07e93d5307440557d45f4beee5c096a32508978be45bf1ae887473781392dcee",
+          "sourceUrl": "https://kp.rusneb.ru/item/material/epiktita-stoicheskago-filosofa-enhiridion-i-apoffegmy",
+          "attribution": "Эпиктет, Енхиридіонъ, перевод Григория Полетики, 1767, печатные главы 1–5, стр. 55–59; самостоятельная транскрипция по цифровому экземпляру РНБ.\nOnly the first standard chapter of the Enchiridion, corresponding to printed chapters 1–5 on pages 55–59 of Poletyka’s 1767 edition. Historical spelling is retained; printed section headings, line wraps and stress marks are omitted. The rest of the work is not represented by this witness. The scan images remain in local artifact custody; this is an independent manual transcription.",
+          "license": {
+            "label": "Public domain 1767 translation; independent transcription",
+            "url": "https://creativecommons.org/publicdomain/mark/1.0/"
+          },
+          "structure": [
+            {
+              "id": "tos.anchor.sid-ac0db11ab65c4b658145a0555210a5e1",
+              "label": "Глава 1",
+              "unitId": "tos.text-unit.sid-c6bde4f475664f0d8f59e413cb6c4b7c",
+              "level": 1,
+              "parentId": null
+            }
+          ],
+          "coverageLimit": "Only the first standard chapter of the Enchiridion, corresponding to printed chapters 1–5 on pages 55–59 of Poletyka’s 1767 edition. Historical spelling is retained; printed section headings, line wraps and stress marks are omitted. The rest of the work is not represented by this witness. The scan images remain in local artifact custody; this is an independent manual transcription.",
+          "coverageStatus": "partial-standard-chapter-1",
+          "proofreadingStatus": "manually transcribed and checked against five printed pages",
+          "historicalTranscription": true
         }
       ]
     },

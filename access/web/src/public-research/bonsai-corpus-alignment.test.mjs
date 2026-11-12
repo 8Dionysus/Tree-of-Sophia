@@ -117,6 +117,18 @@ describe('the corpus alignment of the stands',()=>{
       if(unit!==chapter&&entry.w==='de-beneficiis')expect(entry.t[id]).toBeUndefined();
     }
   });
+  it.skipIf(!corpusFetched)('binds Poletyka’s Russian Enchiridion only to the first standard chapter',()=>{
+    const module=json('bonsai/antiquity/alignment.json');
+    const id='retained-enchiridion-ru-poletika1767-chapter1';
+    const chapter='tos.text-unit.sid-28426296ab784fd6babdd15990300f38';
+    expect(module.units[chapter].t[id].pairs).toHaveLength(8);
+    const ru=read('tos.work.retained-antiquity.enchiridion').versions.find(version=>version.id===id);
+    expect(ru.units).toHaveLength(1);
+    expect(ru.units[0].text).toContain('Изъ всѣхъ вещей иныя намъ подвластны');
+    for(const [unit,entry] of Object.entries(module.units)){
+      if(unit!==chapter&&entry.w==='enchiridion')expect(entry.t[id]).toBeUndefined();
+    }
+  });
   for(const stand of ['zarathustra','antiquity'])it.skipIf(!corpusFetched)(`${stand}: holds every cited unit except places outside all translation scopes`,()=>{
     const module=json(`bonsai/${stand}/alignment.json`),works=worksOf(stand);
     const scopes=stand==='antiquity'?json('bonsai/antiquity/translation-scopes.json').scopes:[];
