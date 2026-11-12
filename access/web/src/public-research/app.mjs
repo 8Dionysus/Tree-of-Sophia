@@ -461,6 +461,7 @@ async function start() {
   try { manifest = await provider.describe(); } catch { /* the reader will report delivery failure */ }
   if(appDisposed)return;
   const profileInfo = manifest?.profiles?.[profile];
+  const corpusInfo = manifest?.profiles?.[corpusProfile(profile)];
   const activeRoute = validRoute(location.hash);
   if(appDisposed)return;
   if (location.hash !== (activeRoute ?? '')) history.replaceState(history.state, '', `${location.pathname}${location.search}${activeRoute ?? ''}`);
@@ -504,8 +505,8 @@ async function start() {
   pageAgent=connectResearchPage({index:publicSpace.index,space:spaceView,experience,session:cognitive,api:window.tosPublicResearch,workspace:publicOwners.workspace,locale:()=>locale});
   workspaceView?.render();
   spaceView.refreshLocale();
-  if (manifest && profileInfo) {
-    const workCount = Array.isArray(profileInfo?.documentIds) ? profileInfo.documentIds.length : null;
+  if (manifest && corpusInfo) {
+    const workCount = Array.isArray(corpusInfo.documentIds) ? corpusInfo.documentIds.length : null;
     corpusWorkCount=workCount;refreshProviderStatus();
     entry.opener.disabled = false;
     readerRoot.querySelector('.corpus-open-narrow')?.removeAttribute('disabled');
