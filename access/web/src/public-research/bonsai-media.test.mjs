@@ -187,9 +187,11 @@ describe('the Zarathustra media',()=>{
   it('holds its contract, binds core records only, and has a copy of every file in the layer store',()=>{
     expect(mediaIssues(media,{subjects,identities,digest,layers})).toEqual([]);
   });
-  it('shows shared motifs from open images: files of the Met, a Rijksmuseum sheet and paintings of the National Gallery of Art',()=>{
-    expect(new Set(media.uses.map(use=>use.role))).toEqual(new Set(['motif']));
-    expect(media.uses.length).toBe(32);
+  it('shows shared motifs and comparisons from open images: files of the Met, a Rijksmuseum sheet and paintings of the National Gallery of Art',()=>{
+    expect(new Set(media.uses.map(use=>use.role))).toEqual(new Set(['motif','comparison']));
+    expect(media.uses.length).toBe(227);
+    expect(new Set(media.uses.map(use=>use.subject)).size).toBe(192);
+    expect(Object.keys(media.works).length).toBe(51);
     const terms=image=>({file:'met',['iiif-image-3']:'rijksmuseum',['iiif-image-2']:'nga'})[image.api];
     const open={met:{statement:null,field:'isPublicDomain',value:'true'},rijksmuseum:{statement:PDM},nga:{statement:null,field:'openaccess',value:'1'}};
     for(const image of Object.values(media.images)){

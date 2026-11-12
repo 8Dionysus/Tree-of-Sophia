@@ -84,9 +84,13 @@ single list of hosts ties what the check admits to what the page may load.
 
 A new provider joins with its bridge, its host in the list and its first
 medium, or with its files fingerprinted and copied. The first Zarathustra
-slice holds the registry's shared motifs with open images from the Met, the
-Rijksmuseum and the National Gallery of Art, 32 stars; the registry's looser
-comparisons wait for review. The viewer writes no style of its own: its
+slice held the registry's shared motifs with open images from the Met, the
+Rijksmuseum and the National Gallery of Art, 32 stars. The second holds the
+registry's partial correspondences and meaning comparisons under the role
+`comparison`, from the images already on the stand and 31 more files of the
+Met: 192 stars with images in all. A card shows the images and their captions
+alone; the registry's reasons stay with the registry. Its works under closed or
+unchecked terms wait for bridges and a decision on their rights. The viewer writes no style of its own: its
 one touch-screen rule lives in the stand's stylesheet. Stars stay stars; an
 image belongs to the card.
 
@@ -102,8 +106,8 @@ image belongs to the card.
 ## Validation
 
 `bonsai-media.test.mjs` covers the module's contract, the attach command's
-entries and graft names, the refusals, the Antiquity portraits and the
-caption. The Worker test checks the stands' Content-Security-Policy. A built
+entries and graft names, the refusals, the Antiquity portraits, the Zarathustra
+slices and the caption. The Worker test checks the stands' Content-Security-Policy. A built
 site served through the Worker entry was checked in headless Chrome with the
 real policy: the portraits of Cicero, Seneca, Plato, Aristotle and Socrates on
 both stands, in Russian, English, German and Chinese, light and dark, on a
