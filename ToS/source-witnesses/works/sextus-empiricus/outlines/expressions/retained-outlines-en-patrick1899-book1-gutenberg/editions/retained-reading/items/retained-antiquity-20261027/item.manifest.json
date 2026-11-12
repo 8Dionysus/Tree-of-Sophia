@@ -1,0 +1,55 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.outlines.outlines-en-patrick1899-book1-gutenberg",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.outlines.outlines-en-patrick1899-book1-gutenberg",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.75a1e9916a2804e0b52dc404cf1500f3e6904cc8c8288b9cc3fcd747c15d11cb",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "outlines-en-patrick1899-book1-gutenberg.json",
+      "media_type": "application/json",
+      "byte_size": 121354,
+      "sha256": "75a1e9916a2804e0b52dc404cf1500f3e6904cc8c8288b9cc3fcd747c15d11cb",
+      "fixity_verified_at": "2026-11-12T21:11:07+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 112527,
+      "sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "fixity_verified_at": "2026-11-12T21:11:07+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.45d2c8a9868e0860a2ac2aa34d0de1ce5efe0f9d71f80dc350a7a800320aa51f",
+      "relative_path": "payload/patrick-book1-uncorrected.txt",
+      "original_basename": "patrick-book1-uncorrected.txt",
+      "media_type": "text/plain",
+      "byte_size": 116277,
+      "sha256": "45d2c8a9868e0860a2ac2aa34d0de1ce5efe0f9d71f80dc350a7a800320aa51f",
+      "fixity_verified_at": "2026-11-12T21:11:07+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.c54528b32ae609d25644e2508e769372204c5c49d39234ce07d8a30e90a225e3",
+      "relative_path": "payload/extract_patrick.py",
+      "original_basename": "extract_patrick.py",
+      "media_type": "text/plain",
+      "byte_size": 1440,
+      "sha256": "c54528b32ae609d25644e2508e769372204c5c49d39234ce07d8a30e90a225e3",
+      "fixity_verified_at": "2026-11-12T21:11:07+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.outlines-en-patrick1899-book1-gutenberg.20261027",
+  "rights_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

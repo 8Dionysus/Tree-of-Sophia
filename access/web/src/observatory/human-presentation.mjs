@@ -182,6 +182,7 @@ const PUBLIC_WORK_NAMES = {
   'tos.work.plato.apology': ['Апология Сократа', 'Apology'],
   'tos.work.xenophon.memorabilia': ['Воспоминания о Сократе', 'Memorabilia'],
   'tos.work.seneca.letters-to-lucilius': ['Нравственные письма к Луцилию', 'Moral Letters to Lucilius'],
+  'tos.work.sextus-empiricus.outlines-of-pyrrhonism': ['Пирроновы положения', 'Outlines of Pyrrhonism'],
 };
 // The public corpus's authors as a reader of each language names them; the manifest keeps its own spelling.
 const PUBLIC_AUTHOR_NAMES = {
@@ -190,7 +191,7 @@ const PUBLIC_AUTHOR_NAMES = {
   'Hippocratic corpus': ['Гиппократов корпус', 'Hippocratic corpus'], 'Friedrich Nietzsche': ['Фридрих Ницше', 'Friedrich Nietzsche'],
   'Marcus Aurelius': ['Марк Аврелий', 'Marcus Aurelius'], 'Lucretius': ['Лукреций', 'Lucretius'],
   'Diogenes Laertius': ['Диоген Лаэртский', 'Diogenes Laertius'], 'Porphyry': ['Порфирий', 'Porphyry'], 'Plotinus': ['Плотин', 'Plotinus'],
-  'Xenophon': ['Ксенофонт', 'Xenophon'],
+  'Xenophon': ['Ксенофонт', 'Xenophon'], 'Sextus Empiricus': ['Секст Эмпирик', 'Sextus Empiricus'],
 };
 /** The name of a work's author in the reader's language; an author the corpus names in several languages chooses among them. */
 export function corpusAuthorName(author, locale = 'ru') {
