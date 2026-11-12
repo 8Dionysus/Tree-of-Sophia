@@ -21,7 +21,10 @@ describe('Aesthetics field projection',()=>{
   it('places distinct stars in their strata, with groups in the crown and works by life',()=>{
     const layout=aestheticsTree({library:result,field,catalog,chronology}),seen=new Set();
     for(const node of result.nodes){const p=layout.positions.get(node.id);expect(p?.every(Number.isFinite)).toBe(true);expect(seen.has(JSON.stringify(p)),node.id).toBe(false);seen.add(JSON.stringify(p));}
-    for(const area of field.areas.filter(a=>byId.has(`aesthetics:route:${a.id}`))){const [x,y,z]=layout.positions.get(`aesthetics:route:${area.id}`),angle=(Math.atan2(x,z)+2*Math.PI)%(2*Math.PI);expect(y).toBeLessThan(-900);expect(Math.floor(angle/(Math.PI/2))).toBe('ABCD'.indexOf(area.group));}
+    for(const area of field.areas.filter(a=>byId.has(`aesthetics:route:${a.id}`))){const [x,y]=layout.positions.get(`aesthetics:route:${area.id}`),center=('ABCD'.indexOf(area.group)-1.5)*440;expect(y).toBeLessThan(-900);expect(Math.abs(x-center)).toBeLessThanOrEqual(190);}
+    expect(layout.names.map(name=>name.id)).toEqual(['group-A','group-B','group-C','group-D']);
+    for(const [i,name] of layout.names.entries()){const group='ABCD'[i];expect(name.title).toEqual({ru:`Группа ${group}`,en:`Group ${group}`});expect(name.center[0]).toBe((i-1.5)*440);}
+    const heights=field.areas.filter(area=>byId.has(`aesthetics:route:${area.id}`)).map(area=>layout.positions.get(`aesthetics:route:${area.id}`)[1]);expect(Math.max(...heights)-Math.min(...heights)).toBeGreaterThan(100);
     for(const concept of result.nodes.filter(n=>n.kind==='concept')){const [x,y,z]=layout.positions.get(concept.id);expect(Math.hypot(x,z)).toBeLessThan(200);expect(y).toBeLessThan(0);}
     const works=Object.entries(catalog.works).sort(([,a],[,b])=>Number(chronology.situations[chronology.lives[a.agents[0]]].dating.interval.start)-Number(chronology.situations[chronology.lives[b.agents[0]]].dating.interval.start));
     for(const [i,[id]] of works.entries()){const [x,y,z]=layout.positions.get(`aesthetics:catalog:${id}`);expect(y).toBeGreaterThan(0);const angle=(Math.atan2(x,z)+2*Math.PI)%(2*Math.PI);expect(Math.min(Math.abs(angle-2*Math.PI*i/works.length),Math.abs(angle-2*Math.PI*i/works.length-2*Math.PI))).toBeLessThan(1e-8);}
