@@ -33,5 +33,33 @@ The first three numbered Latin places were independently transcribed and
 compared with the Latin/English passages. The translator expands or interprets
 several phrases, including the final sentence of 1.2; the Russian printing's
 own wording is retained rather than silently replacing it with another edition.
-The quotation boundaries follow the corresponding Latin sense and, at the
-transition to 1.3, complete printed sentences.
+The quotation boundaries are assessed below against the corresponding Latin
+and complete printed sentences.
+
+## Reproducible boundary alignment
+
+[`align-seneca-letters1-9-28.mjs`](align-seneca-letters1-9-28.mjs) runs
+`bonsai/lib/align.mjs` against continuous Latin and independently transcribed
+Russian windows, with neighbouring sentences on each side where available.
+It saves the complete inputs, sentence spans and automatic candidates in
+[`seneca-letters1-9-28-alignment.json`](seneca-letters1-9-28-alignment.json).
+The exact printed source links and scan leaves are above; neighbour sentences
+are context for this check, not additional stand quotations. The original
+Latin comes from the existing Perseus witness. Sentence-unit runs retain
+unmatched groups instead of hiding them.
+
+The broader automatic windows for 1.1–3, 9.8 and 9.19 contain shifted or
+unmatched sentence pairs and are not accepted as exact sentence alignment.
+The focused 1.1 run and the sentence-unit `1.2-start`, `1.2-end`, `1.3-start`
+and `1.3-end` runs identify the adjacent boundaries; their middle sentences
+were compared with the print and Latin. For 9.8, `9.8-start` and `9.8-end`
+identify the neighbouring statements, while the broader run has a shifted
+pair; the corresponding whole sentences in between were inspected. For 9.19,
+`9.19-start` and the sentence-unit `9.19-end` distinguish the adjacent Latin
+and Russian statements; the translator's expansion and an omitted automatic
+pair in the middle remain visible in the record. The 9.1, 9.10 and 9.13
+whole-window candidates and the sentence-unit 28.1 run identify the required
+boundaries. The 28.1 paragraph-level run joins its closing sentence with the
+next section, so that pair alone must not be treated as a precise boundary.
+These are bounded, inspected candidate alignments, not a claim of fully
+automatic translation equivalence or complete-letter review.
