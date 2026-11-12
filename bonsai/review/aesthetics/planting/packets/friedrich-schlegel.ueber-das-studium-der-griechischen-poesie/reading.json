@@ -1,0 +1,136 @@
+{
+ "reader": {
+  "id": "terra-2026-11-10-ueber-das-studium-der-griechischen-poesi",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-10",
+  "reads": "Read Schlegel in German in the 1797 first printing beside the register readings, using TextGrid transcription compared with the page images.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "friedrich-schlegel": {
+    "tree": "tos.agent.friedrich-schlegel"
+   }
+  },
+  "works": {
+   "friedrich-schlegel.ueber-das-studium-der-griechischen-poesie": {
+    "title": {
+     "ru": "Об изучении греческой поэзии",
+     "en": "On the Study of Greek Poetry"
+    },
+    "original": "de",
+    "tree": "tos.work.friedrich-schlegel.ueber-das-studium-der-griechischen-poesie",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "friedrich-schlegel.ueber-das-studium-der-griechischen-poesie:interesting-prepares-the-beautiful",
+   "of": [
+    "A:C012",
+    "A:C001"
+   ],
+   "areas": [
+    "AE01",
+    "AE12"
+   ],
+   "work": "friedrich-schlegel.ueber-das-studium-der-griechischen-poesie",
+   "locus": "Study, p. 66",
+   "formula": [
+    {
+     "place": "Studium p66a"
+    }
+   ],
+   "thesis": {
+    "ru": "Интересное подготавливает прекрасное, а последняя цель современной поэзии — высшее прекрасное, максимум объективного эстетического совершенства.",
+    "en": "The interesting prepares the beautiful, and the final goal of modern poetry is the highest beautiful, a maximum of objective aesthetic perfection."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The passage describes the interesting as a preparation for beauty and the beautiful as the final goal of modern poetry; it does not name novelty.",
+   "from": [
+    "A:E163"
+   ]
+  },
+  {
+   "id": "friedrich-schlegel.ueber-das-studium-der-griechischen-poesie:stimulus-and-dulled-sensation",
+   "of": [
+    "A:C012"
+   ],
+   "areas": [
+    "AE12"
+   ],
+   "work": "friedrich-schlegel.ueber-das-studium-der-griechischen-poesie",
+   "locus": "Study, pp. 66–67",
+   "formula": [
+    {
+     "place": "Studium p66b"
+    }
+   ],
+   "thesis": {
+    "ru": "Когда направление господства интересного больше обращено к эстетической энергии, вкус, всё более привыкая к прежним раздражителям, желает всё более сильных и острых и переходит к пикантному и разительному. Пикантное судорожно раздражает притупившееся ощущение, разительное служит подобным жалом для воображения.",
+    "en": "When the direction of the reign of the interesting turns more toward aesthetic energy, taste, growing accustomed to old stimuli, desires ever stronger and sharper ones and moves toward the piquant and the striking. The piquant convulsively stimulates a dulled sensation; the striking is a similar sting for the imagination."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The passage makes the desire for stronger stimuli conditional on the direction toward aesthetic energy. It describes the piquant and the striking, but does not establish surprise or unexpectedness (A:C095), or name boredom (A:C096); those concepts are dropped from this revised reading.",
+   "from": [
+    "A:E164"
+   ]
+  },
+  {
+   "id": "friedrich-schlegel.ueber-das-studium-der-griechischen-poesie:the-new-grows-old",
+   "of": [
+    "A:C093"
+   ],
+   "areas": [
+    "AE12"
+   ],
+   "work": "friedrich-schlegel.ueber-das-studium-der-griechischen-poesie",
+   "locus": "Study, p. 16",
+   "formula": [
+    {
+     "place": "Studium p16"
+    }
+   ],
+   "thesis": {
+    "ru": "Новое стареет, редкое становится обыденным, а жала раздражающего тупеют.",
+    "en": "The new grows old, the rare becomes commonplace, and the stings of the stimulating grow blunt."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The sentence describes the fading of novelty and stimulation rather than explicitly naming boredom or satiety.",
+   "from": [
+    "A:E164"
+   ]
+  }
+ ],
+ "links": [
+  {
+   "id": "the-interesting:prepares:the-beautiful",
+   "from_concept": "A:C012",
+   "to_concept": "A:C001",
+   "verb": {
+    "ru": "подготавливает",
+    "en": "prepares"
+   },
+   "grounds": [
+    "friedrich-schlegel.ueber-das-studium-der-griechischen-poesie:interesting-prepares-the-beautiful"
+   ],
+   "status": "text",
+   "verdict": "revise",
+   "note": "The passage gives a directional preparation rather than a general historical comparison.",
+   "from": [
+    "A:R159"
+   ]
+  }
+ ],
+ "left": [
+  {
+   "key": "A:R160",
+   "reason": "The selected sentences describe habituation and desire for stronger stimuli; they do not say that boredom motivates novelty."
+  }
+ ]
+}

@@ -27,6 +27,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
   const design={atmosphere:'midnight',density:softwareRenderer?.34:.58};
   const FOCAL=1250;
+  // A star's ray in three steps from the star outwards: where each begins and ends along the ray, its light and its width.
+  const RAY_STEPS=[[0,.42,1,.85],[.42,.74,.5,.68],[.74,1,.18,.52]],RAY_DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
   let seed=7239;const rnd=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
   const smooth=(a,b,v)=>{const x=Math.max(0,Math.min(1,(v-a)/(b-a)));return x*x*(3-2*x)};
   const dust=Array.from({length:2200},(_,i)=>{
@@ -123,7 +125,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   // The fit the framing chose for the space seen from the front, and the pose and layout the turned fit was last worked out for.
   let frontFit=0,fittedFor='',layoutVersion=0,neighbourhoodPending=null;
   // In a space laid out whole (the tree) a chosen star brings its neighbourhood near and to the middle of the view.
-  let closeIn=false;
+  let closeIn=false,edgeChosenAt=-Infinity;
   // How far the view has gathered to a chosen star: 0 open, 1 gathered.
   let focusMix=0;
   // A turn keeps its last speed when let go and coasts to rest; a pose heard last is not told again.
@@ -250,7 +252,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       return n;
     });old.forEach(n=>{n.abandon?.();n.el.remove();});
     const oldClusters=new Map(clusters.map(c=>[c.id,c]));
-    clusters=(state.clusters??[]).map(item=>{let c=oldClusters.get(item.id);oldClusters.delete(item.id);if(!c){const el=document.createElement('div'),title=document.createElement('span'),subtitle=document.createElement('small');el.className='tree-cluster';title.className='cluster-title';subtitle.className='cluster-subtitle';el.append(title,subtitle);Object.assign(el.style,{position:'absolute',left:'0',top:'0',pointerEvents:'none'});clusterLayer.append(el);c={el,title,subtitle,p:[...item.center]};}c.id=item.id;c.target=[...item.center];c.variant=typeof item.variant==='string'?item.variant:'';c.recede=!!item.recede;if(c.variant)c.el.dataset.variant=c.variant;else delete c.el.dataset.variant;c.strip=Number.isFinite(item.strip)?item.strip:null;c.span=Array.isArray(item.span)&&item.span.length===2&&item.span.every(Number.isFinite)?[...item.span]:null;c.align=item.align==='start'||item.align==='end'?item.align:'';if(c.align)c.el.dataset.align=c.align;else delete c.el.dataset.align;c.maxWidth=Number.isFinite(item.maxWidth)?item.maxWidth:null;c.radius=Number.isFinite(item.radius)?item.radius:null;const home=clipped.has(c.variant)?ringLayer:underStars.has(c.variant)?ruleLayer:clusterLayer;if(c.el.parentElement!==home)home.append(c.el);if(item.ref){c.el.dataset.ref=String(item.ref);c.el.style.pointerEvents='auto';c.el.setAttribute('role','button');c.el.tabIndex=0;}else{delete c.el.dataset.ref;c.el.style.pointerEvents='none';c.el.removeAttribute('role');c.el.removeAttribute('tabindex');}if(item.tone)c.el.dataset.tone=String(item.tone);else delete c.el.dataset.tone;if(item.hint&&nativeTitles)c.el.title=item.hint;else c.el.removeAttribute('title');if(item.hint&&!nativeTitles)c.el.dataset.hint=item.hint;else delete c.el.dataset.hint;c.title.textContent=item.title??'';c.subtitle.textContent=item.subtitle??'';c.el.style.setProperty('--cluster-color',hex(item.color,'#a5b7cf'));c.el.style.color=hex(item.color,'#a5b7cf');return c;});oldClusters.forEach(c=>c.el.remove());
+    clusters=(state.clusters??[]).map(item=>{let c=oldClusters.get(item.id);oldClusters.delete(item.id);if(!c){const el=document.createElement('div'),title=document.createElement('span'),subtitle=document.createElement('small');el.className='tree-cluster';title.className='cluster-title';subtitle.className='cluster-subtitle';el.append(title,subtitle);Object.assign(el.style,{position:'absolute',left:'0',top:'0',pointerEvents:'none'});clusterLayer.append(el);c={el,title,subtitle,p:[...item.center]};}c.id=item.id;c.target=[...item.center];c.variant=typeof item.variant==='string'?item.variant:'';c.recede=!!item.recede;c.yields=!!item.yields;if(c.variant)c.el.dataset.variant=c.variant;else delete c.el.dataset.variant;c.strip=Number.isFinite(item.strip)?item.strip:null;c.span=Array.isArray(item.span)&&item.span.length===2&&item.span.every(Number.isFinite)?[...item.span]:null;c.align=item.align==='start'||item.align==='end'?item.align:'';if(c.align)c.el.dataset.align=c.align;else delete c.el.dataset.align;c.maxWidth=Number.isFinite(item.maxWidth)?item.maxWidth:null;c.radius=Number.isFinite(item.radius)?item.radius:null;const home=clipped.has(c.variant)?ringLayer:underStars.has(c.variant)?ruleLayer:clusterLayer;if(c.el.parentElement!==home)home.append(c.el);if(item.ref){c.el.dataset.ref=String(item.ref);c.el.style.pointerEvents='auto';c.el.setAttribute('role','button');c.el.tabIndex=0;}else{delete c.el.dataset.ref;c.el.style.pointerEvents='none';c.el.removeAttribute('role');c.el.removeAttribute('tabindex');}if(item.tone)c.el.dataset.tone=String(item.tone);else delete c.el.dataset.tone;if(item.hint&&nativeTitles)c.el.title=item.hint;else c.el.removeAttribute('title');if(item.hint&&!nativeTitles)c.el.dataset.hint=item.hint;else delete c.el.dataset.hint;c.title.textContent=item.title??'';c.subtitle.textContent=item.subtitle??'';c.el.style.setProperty('--cluster-color',hex(item.color,'#a5b7cf'));c.el.style.color=hex(item.color,'#a5b7cf');return c;});oldClusters.forEach(c=>c.el.remove());
     // A measured plane may lie on a backdrop of lines in its own units, such as coastlines.
     // A backdrop line is its points, or its points with a colour, an alpha and a weight in the layout's units.
     shade=state.shade&&Array.isArray(state.shade.center)&&Number.isFinite(state.shade.radius)?state.shade:null;
@@ -459,17 +461,48 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       ng.font=`600 10px ${style.fontFamily||'sans-serif'}`;e.compactWidth=Math.ceil(ng.measureText(e.tag.toLocaleUpperCase()).width*1.12)+18;e.compactHeight=21;
     }
   }
-  function strokeSegment(a,b,pattern='solid'){
-    const dx=b.x-a.x,dy=b.y-a.y,length=Math.hypot(dx,dy);if(length<1)return;
-    const [on,period]=pattern===true||pattern==='dashed'?[7,13]:pattern==='dotted'?[2,6]:[0,0];
+  function strokeSegment(a,b,pattern='solid',from=0,to=Infinity){
+    const dx=b.x-a.x,dy=b.y-a.y,length=Math.hypot(dx,dy);if(length<1)return;to=Math.min(to,length);if(to<=from)return;
+    // A dotted link is a row of round dots, evenly spaced from end to end.
+    if(pattern==='dotted'){
+      const r=Math.max(.6,ctx.lineWidth*.7),count=Math.max(1,Math.round(length/Math.max(4.6,r*6))),step=length/count;ctx.fillStyle=ctx.strokeStyle;ctx.beginPath();
+      for(let i=0;i<count;i++){const at=(i+.5)*step;if(at<from||at>to)continue;const x=a.x+dx*at/length,y=a.y+dy*at/length;ctx.moveTo(x+r,y);ctx.arc(x,y,r,0,Math.PI*2);}
+      ctx.fill();return;
+    }
+    const [on,period]=pattern===true||pattern==='dashed'?[6,10.5]:[0,0];
     ctx.beginPath();
-    if(on){for(let start=0;start<length;start+=period){const end=Math.min(start+on,length);ctx.moveTo(a.x+dx*start/length,a.y+dy*start/length);ctx.lineTo(a.x+dx*end/length,a.y+dy*end/length);}}
-    else{ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);}ctx.stroke();
+    if(on){for(let start=0;start<to;start+=period){const begin=Math.max(start,from),end=Math.min(start+on,to);if(end<=begin)continue;ctx.moveTo(a.x+dx*begin/length,a.y+dy*begin/length);ctx.lineTo(a.x+dx*end/length,a.y+dy*end/length);}}
+    else{ctx.moveTo(a.x+dx*from/length,a.y+dy*from/length);ctx.lineTo(a.x+dx*to/length,a.y+dy*to/length);}ctx.stroke();
   }
-  function arrow(a,b){
-    const dx=b.x-a.x,dy=b.y-a.y,length=Math.hypot(dx,dy);if(length<35)return;
-    const ux=dx/length,uy=dy/length,x=b.x-ux*13,y=b.y-uy*13;
-    ctx.beginPath();ctx.moveTo(x-ux*8-uy*4,y-uy*8+ux*4);ctx.lineTo(x,y);ctx.lineTo(x-ux*8+uy*4,y-uy*8-ux*4);ctx.stroke();
+  // A stretch of a route, measured along it from its first point.
+  function strokePath(path,pattern,from=0,to=Infinity){
+    let at=0;
+    for(let i=1;i<path.length;i++){const a=path[i-1],b=path[i],length=Math.hypot(b.x-a.x,b.y-a.y);if(to>at&&from<at+length)strokeSegment(a,b,pattern,Math.max(0,from-at),to-at);at+=length;}
+  }
+  const routeLength=path=>{let sum=0;for(let i=1;i<path.length;i++)sum+=Math.hypot(path[i].x-path[i-1].x,path[i].y-path[i-1].y);return sum;};
+  function pointAlong(path,distance){
+    let at=0;
+    for(let i=1;i<path.length;i++){const a=path[i-1],b=path[i],length=Math.hypot(b.x-a.x,b.y-a.y);if(at+length>=distance||i===path.length-1){const t=length?clamp((distance-at)/length,0,1):0;return {x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t};}at+=length;}
+    return path[0];
+  }
+  // A link's head, smaller on a short link so that the line still shows behind it.
+  function arrow(a,b,offset=13){
+    const dx=b.x-a.x,dy=b.y-a.y,length=Math.hypot(dx,dy);if(length<offset+12)return;
+    const ux=dx/length,uy=dy/length,x=b.x-ux*offset,y=b.y-uy*offset,size=Math.min(7,(length-offset)*.36),wing=size*.52;
+    ctx.beginPath();ctx.moveTo(x-ux*size-uy*wing,y-uy*size+ux*wing);ctx.lineTo(x,y);ctx.lineTo(x-ux*size+uy*wing,y-uy*size-ux*wing);ctx.stroke();
+  }
+  // How large a star is drawn, and so how much room a link leaves round it: a pointed or chosen star grows to its full
+  // size as it warms.
+  function starRadius(n){const rest=n.major?4.3:2.8;return (rest+(5.2-rest)*(n.warm??0))*Math.max(.7,Math.min(1.5,n.screen?.s??1));}
+  const gapOf=n=>n?starRadius(n)+(n.form==='source'?2.6:3.5):0;
+  // A route with its first point moved off its star by one gap and its last by the other; nothing where the stars touch.
+  function trimRoute(route,gapA,gapB){
+    const first=route[0],second=route[1],last=route[route.length-1],before=route[route.length-2];
+    const lengthA=Math.hypot(second.x-first.x,second.y-first.y),lengthB=Math.hypot(last.x-before.x,last.y-before.y);
+    if(route.length===2&&lengthA<=gapA+gapB+2)return null;if(lengthA<=gapA||lengthB<=gapB)return null;
+    const start={...first,x:first.x+(second.x-first.x)*gapA/lengthA,y:first.y+(second.y-first.y)*gapA/lengthA};
+    const end={...last,x:last.x+(before.x-last.x)*gapB/lengthB,y:last.y+(before.y-last.y)*gapB/lengthB};
+    return [start,...route.slice(1,-1),end];
   }
   function hitEdge(x,y){
     if(!inView(box(x,y,0,0)))return null;
@@ -493,6 +526,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   // passing over it does not make it flicker; a name that leaves fades where it stood, and one that moves to another of
   // its places slides there. A name already standing keeps its place while that place stays clear.
   const APPEAR_MS=110,GLIDE='opacity .25s,color .25s,left .24s cubic-bezier(.2,.7,.2,1),top .24s cubic-bezier(.2,.7,.2,1)';
+  // A group's name that yields stands over at most this many stars.
+  const GROUP_CROWD=3;
   let labelsSettling=false;
   function presence(item,want,now,dt,instant){
     if(want){if(item.wantSince==null)item.wantSince=now;if(instant||item.fade==null||item.present||now-item.wantSince>=APPEAR_MS)item.present=true;}
@@ -583,20 +618,26 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(fade){c.el.style.width=(area.right-area.left).toFixed(1)+'px';c.el.style.transform=`translate3d(${area.left.toFixed(2)}px,${area.top.toFixed(2)}px,0)`;c.el.style.filter=fade<1?`opacity(${fade.toFixed(3)})`:'';}
       if(shown){scaleLabels.push(area);occupied.push(area);}
     }
-    // A star the view has stepped back lies under the names in front of it.
-    const nodeObstacles=nodes.filter(n=>!n.el.hidden&&!n.dimmed).map(n=>({id:n.id,...box(n.screen.x-9,n.screen.y-9,18,18)}));
-    for(const c of clusters){
-      if(c.variant)continue;
+    // A star the view has stepped back lies under the names in front of it, and so does one a chosen star or link has
+    // sent back.
+    const nodeObstacles=nodes.filter(n=>!n.el.hidden&&!n.dimmed&&n.el.dataset.outside!=='true').map(n=>({id:n.id,...box(n.screen.x-9,n.screen.y-9,18,18)}));
+    // The names of groups nearer the eye take their places first, as nearer stars do.
+    const groups=clusters.filter(c=>!c.variant).map(c=>({c,d:project(c.p).d})).sort((a,b)=>b.d-a.d).map(item=>item.c);
+    for(const c of groups){
       const width=c.labelWidth??110,height=c.labelHeight??(c.subtitle.textContent?40:25);
       const places=[-101,-76,106,-136,140].map((offset,slot)=>{const p=project([c.p[0],c.p[1]+offset,c.p[2]]),top=offset===-101?Math.max(targetViewport.top+4,p.y-20):p.y-20;return Object.assign(box(p.x-width/2,top,width,height),{slot});});
       const sticky=c.present?c.slot:null,candidates=places.filter(inView).sort((a,b)=>(b.slot===sticky)-(a.slot===sticky));
       // A group's name keeps the place it stands in while that stays clear; else it takes the first place clear of the
-      // stars, and never one over another name.
+      // stars, and never one over another name. With no place clear of stars it takes the one over the fewest; a name
+      // that yields, such as a route's among many, waits for a nearer view rather than lie over a crowd of stars.
       const clear=candidates.find(candidate=>!occupied.some(o=>overlaps(candidate,o))&&!nodeObstacles.some(o=>overlaps(candidate,o,2)));
-      const area=clear??candidates.find(candidate=>!occupied.some(o=>overlaps(candidate,o)))??null;
+      const covered=candidate=>nodeObstacles.reduce((sum,o)=>sum+(overlaps(candidate,o,0)?1:0),0);
+      const least=clear?null:candidates.filter(candidate=>!occupied.some(o=>overlaps(candidate,o))).map(candidate=>({candidate,under:covered(candidate)})).sort((a,b)=>a.under-b.under)[0]??null;
+      const area=clear??(least&&(!c.yields||least.under<=(c.present?GROUP_CROWD+2:GROUP_CROWD))?least.candidate:null);
       if(area&&!clear)c.el.dataset.crowded='true';else delete c.el.dataset.crowded;
-      // A group that recedes is quieter further back in a space read in depth, as its stars are.
-      c.el.style.opacity=depthCue&&!measured&&c.recede?(.38+.62*clamp((project(c.p).d-.86)/.3,0,1)).toFixed(2):'';
+      // A group that recedes is quieter further back in a space read in depth, as its stars are: its letters fade, and
+      // the ground under them stays whole, so the lines behind never cut through a far name.
+      if(depthCue&&!measured&&c.recede)c.el.style.setProperty('--depth-alpha',(.38+.62*clamp((project(c.p).d-.86)/.3,0,1)).toFixed(2));else c.el.style.removeProperty('--depth-alpha');
       const fade=presence(c,!!area,now,dt,instant);
       if(area&&c.at&&c.slot!==area.slot&&fade>0&&!instant)c.slide={x:c.at.left+(c.slide?.x??0)-area.left,y:c.at.top+(c.slide?.y??0)-area.top};
       if(area){c.slot=area.slot;occupied.push(area);}
@@ -652,7 +693,19 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       // The part of the link inside the free area carries its whole name, however short the link is.
       const cut=clipSegment(hit.a,hit.b);if(!cut)return;
       const [a,b]=cut,dx=b.x-a.x,dy=b.y-a.y,length=Math.max(1,Math.hypot(dx,dy)),hot=e.id===selectedEdgeId||e.id===hoverEdge,spots=[];
-      const along=(width,height)=>{const list=[];for(const offset of [0,16,-16,32,-32,48,-48,64,-64])for(const t of [.5,.38,.62,.26,.74,.15,.85]){const cx=a.x+dx*t-dy/length*offset,cy=a.y+dy*t+dx/length*offset;list.push(box(cx-width/2,cy-height/2,width,height));}return list;};
+      // A name rides on its link. A link too short to show past its name has the name beside it first, across or along
+      // the screen, whichever clears the line by the smaller step.
+      const along=(width,height)=>{
+        const list=[],put=(cx,cy)=>list.push(box(cx-width/2,cy-height/2,width,height));
+        if(Math.abs(dx)/length*width+Math.abs(dy)/length*height>length*.6){
+          const sx=Math.abs(dy)>1?width/2+8+Math.abs(dx/dy)*height/2:Infinity,sy=Math.abs(dx)>1?height/2+8+Math.abs(dy/dx)*width/2:Infinity;
+          // The nearer way first, each a little further out if the first place is taken; the other way only if not much further.
+          const near=Math.min(sx,sy),ways=[[1,0,sx],[0,1,sy]].filter(w=>w[2]<=near*1.6).sort((p,q)=>p[2]-q[2]);
+          for(const [ux,uy,reach] of ways)for(const more of [0,12,24])for(const sign of [1,-1])for(const t of [.5,.38,.62])put(a.x+dx*t+sign*ux*(reach+more),a.y+dy*t+sign*uy*(reach+more));
+        }
+        for(const offset of [0,16,-16,32,-32,48,-48,64,-64])for(const t of [.5,.38,.62,.26,.74,.15,.85])put(a.x+dx*t-dy/length*offset,a.y+dy*t+dx/length*offset);
+        return list;
+      };
       // Where links crowd round the chosen star and no free place is left for a whole name, a free place for the link's
       // kind is better than names laid over one another; the whole name stays in its title.
       const guarded=[nodes.find(n=>n.id===selectedId)?.labelBox].filter(Boolean);
@@ -800,8 +853,9 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     if(selectedId&&byId.has(selectedId)){kept.add(selectedId);for(const edge of edges)if(!edge.muted&&(edge.from===selectedId||edge.to===selectedId)&&byId.has(edge.from)&&byId.has(edge.to)){kept.add(edge.from);kept.add(edge.to);keptEdges.add(edge.id);}}
     if(selectedEdge&&!selectedEdge.muted&&byId.has(selectedEdge.from)&&byId.has(selectedEdge.to)){kept.add(selectedEdge.from);kept.add(selectedEdge.to);keptEdges.add(selectedEdge.id);}
     // A chosen star in a space read in depth gathers the view to itself: every star outside it and its neighbours steps
-    // back, nameless and out of reach, with the links and lines that do not touch it, until the star is let go.
-    const chosenFocus=depthCue&&!measured&&!!selectedId&&kept.size>0,focusTo=chosenFocus?1:0;
+    // back, nameless and out of reach, with the links and lines that do not touch it, until the star is let go. A chosen
+    // link does the same for its own two stars.
+    const chosenFocus=depthCue&&!measured&&(!!selectedId||!!selectedEdge)&&kept.size>0,focusTo=chosenFocus?1:0;
     focusMix=still||reduced.matches?focusTo:focusMix+(focusTo-focusMix)*(1-Math.exp(-dt*9));if(Math.abs(focusMix-focusTo)<.01)focusMix=focusTo;else layoutMoving=true;
     if(root.dataset.focus!==(chosenFocus?'chosen':''))root.dataset.focus=chosenFocus?'chosen':'';
     // An aspect names every link it stands in rows, and every star at their ends.
@@ -837,6 +891,14 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       }
       ctx.globalAlpha=1;
     }
+    // A star warms when pointed at or chosen and cools when let go; its halo opens as it is chosen and its orbit follows;
+    // a pointed link warms the same way, and a chosen one lights from its source to its target. Each takes a few frames.
+    const settle=still||reduced.matches,warmBy=settle?1:1-Math.exp(-dt*16),haloBy=settle?1:1-Math.exp(-dt*10),orbitBy=settle?1:1-Math.exp(-dt*5.5);
+    const toward=(value,target,by)=>{if(value==null)return target;const next=value+(target-value)*by;if(Math.abs(next-target)<.01)return target;layoutMoving=true;return next;};
+    for(const n of nodes){const warmNow=n.id===selectedId||n.id===hover||(holdToMove>0&&n.dragging),ringed=n.id===selectedId||n.id===linkFrom;n.warm=toward(n.warm,warmNow?1:0,warmBy);n.halo=toward(n.halo,ringed?1:0,haloBy);n.orbit=toward(n.orbit,ringed?1:0,orbitBy);}
+    for(const edge of edges)edge.warm=toward(edge.warm,edge.id===hoverEdge||edge.id===selectedEdgeId||edge.highlight?1:0,warmBy);
+    // The light waits a moment for the view to come round to the link, then runs along it.
+    const sweep=settle||measured?1:clamp((now-edgeChosenAt-220)/600,0,1),swept=sweep*sweep*(3-2*sweep);if(sweep<1)layoutMoving=true;
     for(const edge of edges){
       const from=byId.get(edge.from)?.screen,to=byId.get(edge.to)?.screen;if(!from||!to)continue;
       const hot=edge.id===hoverEdge||edge.id===selectedEdgeId||edge.highlight,neighbor=focusEdges.has(edge.id)||keptEdges.has(edge.id);
@@ -849,12 +911,39 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const rest=Number.isFinite(edge.baseAlpha)?edge.baseAlpha:.24,weight=Number.isFinite(edge.weight)?edge.weight:1;
       // In the day's air a link pales as it goes back, by the depth of its two ends; a pointed or chosen one stays clear.
       const air=depthCue&&!measured&&daylight()&&!hot?.22+.78*clamp(((from.d+to.d)/2-.84)/.34,0,1):1;
-      ctx.strokeStyle=air<1?mixHex(edge.color,night('#B3B6C4'),(1-air)*.8):edge.color;ctx.globalAlpha=Math.min(1,(hot?.85:neighbor?.57:focused?rest*.23:rest)*ink)*(1-awayEdge)*air;ctx.lineWidth=(hot?1.55:neighbor?1.1:.65)*weight*(1+(ink-1)*.35);
+      // A link's light and weight run from its calm measure to its hot one as it warms.
+      const calm=neighbor?.57:focused?rest*.23:rest,calmWidth=neighbor?1.1:.65,heat=edge.id===selectedEdgeId?1:edge.warm??(hot?1:0);
+      const level=on=>Math.min(1,(calm+(.85-calm)*on)*ink)*(1-awayEdge)*air,girth=on=>(calmWidth+(1.55-calmWidth)*on)*weight*(1+(ink-1)*.35),alpha=level(heat),width=girth(heat);
+      ctx.strokeStyle=air<1?mixHex(edge.color,night('#B3B6C4'),(1-air)*.8):edge.color;
+      // A link leaves a little room round each of its stars, so that the stars stand clear of the lines they join.
+      const path=trimRoute(route,gapOf(byId.get(edge.from)),gapOf(byId.get(edge.to)));if(!path)continue;
       const dash=edge.dash??(edge.kind==='questions'||edge.kind==='contrasts'?'dashed':'solid');let longest=null;
-      for(let i=1;i<route.length;i++){
-        let a=route[i-1],b=route[i],whole=true;if(measured){const cut=clipSegment(a,b);if(!cut)continue;[a,b,whole]=cut;}
-        strokeSegment(a,b,dash);if((hot||neighbor)&&whole&&i===route.length-1)arrow(a,b);
-        const length=Math.hypot(b.x-a.x,b.y-a.y);if(!longest||length>longest.length)longest={a,b,length};
+      // A chosen or pointed unbroken link glows: two faint strokes under its line, the broader the fainter. A broken
+      // link keeps its gaps and is lit by its own marks.
+      const unbroken=dash!==true&&dash!=='dashed'&&dash!=='dotted',glows=[[3.2,.06],[1.9,.1]],dayGlow=daylight()?.7:1;
+      if(edge.id===selectedEdgeId&&swept<1){
+        // A link just chosen lights from its source to its target; its head shows as the light arrives.
+        const reach=routeLength(path)*swept;
+        ctx.globalAlpha=level(0);ctx.lineWidth=girth(0);strokePath(path,dash,reach);
+        if(unbroken)for(const [spread,light] of glows){ctx.globalAlpha=level(1)*light*dayGlow;ctx.lineWidth=girth(1)*spread;strokePath(path,'solid',0,reach);}
+        ctx.globalAlpha=level(1);ctx.lineWidth=girth(1);strokePath(path,dash,0,reach);
+        if(swept>.8){ctx.globalAlpha=level(1)*(swept-.8)/.2;arrow(path[path.length-2],path[path.length-1],1.5);}
+        for(let i=1;i<path.length;i++){const a=path[i-1],b=path[i],length=Math.hypot(b.x-a.x,b.y-a.y);if(!longest||length>longest.length)longest={a,b,length};}
+      }else{
+        if(hot&&unbroken)for(const [spread,light] of glows){ctx.globalAlpha=alpha*light*heat*dayGlow;ctx.lineWidth=width*spread;for(let i=1;i<path.length;i++){let a=path[i-1],b=path[i];if(measured){const cut=clipSegment(a,b);if(!cut)continue;[a,b]=cut;}strokeSegment(a,b);}}
+        ctx.globalAlpha=alpha;ctx.lineWidth=width;
+        for(let i=1;i<path.length;i++){
+          let a=path[i-1],b=path[i],whole=true;if(measured){const cut=clipSegment(a,b);if(!cut)continue;[a,b,whole]=cut;}
+          strokeSegment(a,b,dash);if((hot||neighbor)&&whole&&i===path.length-1)arrow(a,b,1.5);
+          const length=Math.hypot(b.x-a.x,b.y-a.y);if(!longest||length>longest.length)longest={a,b,length};
+        }
+        // While a link stays chosen, a spark runs along it now and then, from its source to its target.
+        if(edge.id===selectedEdgeId&&playing&&!settle&&!measured){
+          const t=(now/1000%3.6)/1.5;
+          if(t<1){const total=routeLength(path),at=pointAlong(path,total*t*t*(3-2*t)),shine=Math.sin(Math.PI*t),spark=!daylight()&&/^#[0-9a-f]{6}$/i.test(edge.color)?mixHex(edge.color,'#ffffff',.78):edge.color;
+            ctx.fillStyle=spark;ctx.globalAlpha=level(1)*.3*shine;ctx.beginPath();ctx.arc(at.x,at.y,4.4,0,Math.PI*2);ctx.fill();
+            ctx.globalAlpha=Math.min(1,level(1)*1.15)*shine;ctx.beginPath();ctx.arc(at.x,at.y,2,0,Math.PI*2);ctx.fill();}
+        }
       }
       if(longest)edgeHits.push({id:edge.id,a:longest.a,b:longest.b});
     }
@@ -880,24 +969,36 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(thread.grown<.995)layoutMoving=true;
     }
     nodes.forEach(n=>{
-      const p=n.screen,hot=n.id===selectedId||n.id===hover||(holdToMove>0&&n.dragging),own=colorOf(n),big=n.major,dim=(focused&&root.dataset.journey!=='true'&&!near.has(n.id)&&!kept.has(n.id)||n.dimmed)&&!hot,radius=(hot?5.2:big?4.3:2.8)*Math.max(.70,Math.min(1.5,p.s));
+      const p=n.screen,hot=n.id===selectedId||n.id===hover||(holdToMove>0&&n.dragging),own=colorOf(n),big=n.major,dim=(focused&&root.dataset.journey!=='true'&&!near.has(n.id)&&!kept.has(n.id)||n.dimmed)&&!hot,radius=starRadius(n),warm=n.warm??(hot?1:0);
       const near01=depthCue&&!measured?clamp((p.d-.86)/.3,0,1):1,fade=hot?1:daylight()?.3+.7*near01:.5+.5*near01;
       const color=daylight()&&!hot&&near01<1?mixHex(own,night('#B3B6C4'),(1-near01)*.6):own;
       // A measured layout draws only the stars inside its free area; every star still keeps its type, so its label is measured right.
       if(n.el.dataset.major!==String(!!big)){n.el.dataset.major=String(!!big);measureLabels=true;}
       if(measured&&!inView(box(p.x-5,p.y-5,10,10))){n.el.hidden=true;return;}
       // On a light page a star's glow turns to a shadow, so there it keeps only a trace of it and its ink stays clear.
-      const away=!kept.has(n.id)&&!hot?focusMix:0,starAlpha=(dim?.28:hot?1:.9)*fade*(1-.86*away),glow=(hot?125:big?86:46)*Math.max(.65,Math.min(1.4,p.s));
+      const away=!kept.has(n.id)&&!hot?focusMix:0,starAlpha=(dim?.28:hot?1:.9)*fade*(1-.86*away),glow=((big?86:46)+(125-(big?86:46))*warm)*Math.max(.65,Math.min(1.4,p.s));
       // On a light page the glow turns to a shadow: the light falls from above, so a near star casts its shadow
       // below and aside and stands over the page; a far one lies flat in the air.
       if(daylight()){const lift=hot?1:near01,size=glow*.5,dx=1.5+4.5*lift,dy=2.5+7*lift;ctx.globalAlpha=starAlpha*(hot?.55:.06+.32*lift*lift);ctx.drawImage(dayShadow,p.x+dx-size/2,p.y+dy-size/2,size,size);}
       else{ctx.globalAlpha=starAlpha;ctx.drawImage(sprite(color),p.x-glow/2,p.y-glow/2,glow,glow);}
       ctx.globalAlpha=starAlpha;
       // A source is a disc; an authored proposal a ring; a personal record a broken ring.
-      if(n.form==='source'){ctx.fillStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,radius,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff9ea';ctx.fillRect(p.x-1,p.y-1,2,2);}
-      else ring(p.x,p.y,radius+.9,color,n.form==='personal',hot);
-      const ray=hot?17:big?10:5;ctx.globalAlpha=(dim?.12:hot?.9:.38)*(1-.9*away);ctx.strokeStyle=color;ctx.lineWidth=.65;ctx.beginPath();ctx.moveTo(p.x-ray,p.y);ctx.lineTo(p.x+ray,p.y);ctx.moveTo(p.x,p.y-ray);ctx.lineTo(p.x,p.y+ray);ctx.stroke();
-      if(n.id===selectedId||n.id===linkFrom){ctx.globalAlpha=.65;ctx.beginPath();for(const [sx,sy] of [[-1,-1],[-1,1],[1,-1],[1,1]]){ctx.moveTo(p.x+sx*22,p.y+sy*16);ctx.lineTo(p.x+sx*22,p.y+sy*22);ctx.lineTo(p.x+sx*16,p.y+sy*22);}ctx.stroke();}
+      if(n.form==='source'){ctx.fillStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,radius,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff9ea';ctx.beginPath();ctx.arc(p.x,p.y,Math.max(.75,radius*.32),0,Math.PI*2);ctx.fill();}
+      else ring(p.x,p.y,radius+.9,color,n.form==='personal',warm);
+      // Its four rays narrow and fade towards their tips, as a star's light does in the telescope; a faint star far
+      // back keeps only its point.
+      const restRay=big?12:6.5,restLight=dim?.12:big?.52:.34,ray=restRay+(19-restRay)*warm,rayAlpha=(restLight+(.92-restLight)*warm)*(1-.9*away);
+      if(rayAlpha>.03&&!(dim&&!big)){ctx.strokeStyle=color;const from=(radius+.6)/ray;
+        for(const [start,end,fade,width] of RAY_STEPS){const a=Math.max(start,from);if(a>=end)continue;ctx.globalAlpha=rayAlpha*fade;ctx.lineWidth=width*(1+.2*warm);ctx.beginPath();for(const [ux,uy] of RAY_DIRS){ctx.moveTo(p.x+ux*ray*a,p.y+uy*ray*a);ctx.lineTo(p.x+ux*ray*end,p.y+uy*ray*end);}ctx.stroke();}}
+      // A chosen star is ringed by a halo of its own colour and a faint orbit beyond it. The halo opens out from the star
+      // as it is chosen and the orbit follows a moment later, turning slowly while the star stays chosen. The star a link
+      // is being drawn from keeps its halo broken and turning, waiting for the other end.
+      const halo=n.halo??0,orbit=n.orbit??0;
+      if(halo>.01||orbit>.01){
+        const open=1-Math.pow(1-halo,3),wide=1-Math.pow(1-orbit,3),waiting=n.id===linkFrom&&n.id!==selectedId,turn=playing&&!reduced.matches?skyTime*(waiting?.5:.12):0;ctx.strokeStyle=color;
+        if(halo>.01){ctx.lineWidth=1.1;ctx.globalAlpha=.8*halo;circle(p.x,p.y,radius+2+4.5*open,40,waiting,turn);}
+        if(orbit>.01){ctx.lineWidth=.75;ctx.globalAlpha=.3*orbit;circle(p.x,p.y,radius+7+4.5*wide,56,true,turn);}
+      }
       n.el.style.transform=`translate3d(${(p.x-22).toFixed(2)}px,${(p.y-22).toFixed(2)}px,0)`;
       // The nearer star lies over the farther, so that the pointer reaches the star it is over, and the chosen one over all.
       const layer=String(hot?3000:100+Math.round(clamp(p.d,0,2.4)*400));if(n.el.dataset.layer!==layer){n.el.dataset.layer=layer;n.el.style.zIndex=layer;}
@@ -936,9 +1037,16 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   }
   // Both renderers fill full discs and stroke straight segments, so a ring is a dark core under a polygon outline.
   function ring(x,y,r,color,broken,hot){
-    const alpha=ctx.globalAlpha;ctx.fillStyle='#050b16';ctx.globalAlpha=Math.min(1,alpha+.2);ctx.beginPath();ctx.arc(x,y,Math.max(1.2,r-1.1),0,Math.PI*2);ctx.fill();ctx.globalAlpha=alpha;
-    ctx.strokeStyle=color;ctx.lineWidth=hot?1.6:1.25;const steps=broken?10:14;
-    for(let i=0;i<steps;i++){if(broken&&i%2)continue;const a=i/steps*Math.PI*2,b=(i+1)/steps*Math.PI*2;ctx.beginPath();ctx.moveTo(x+Math.cos(a)*r,y+Math.sin(a)*r);ctx.lineTo(x+Math.cos(b)*r,y+Math.sin(b)*r);ctx.stroke();}
+    const alpha=ctx.globalAlpha;ctx.fillStyle='#050b16';ctx.globalAlpha=Math.min(1,alpha+.2);ctx.beginPath();ctx.arc(x,y,Math.max(1.2,r-1),0,Math.PI*2);ctx.fill();ctx.globalAlpha=alpha;
+    ctx.strokeStyle=color;ctx.lineWidth=1.1+.4*Number(hot);circle(x,y,r,broken?12:hot>.5?28:20,broken);
+  }
+  // A circle stroked as a polygon fine enough to read round (both renderers stroke only straight segments); a broken
+  // one keeps every other side.
+  function circle(x,y,r,steps,broken=false,phase=0){
+    ctx.beginPath();
+    if(broken)for(let i=0;i<steps;i+=2){const a=i/steps*Math.PI*2+phase,b=(i+1)/steps*Math.PI*2+phase;ctx.moveTo(x+Math.cos(a)*r,y+Math.sin(a)*r);ctx.lineTo(x+Math.cos(b)*r,y+Math.sin(b)*r);}
+    else{ctx.moveTo(x+r,y);for(let i=1;i<=steps;i++){const a=i/steps*Math.PI*2;ctx.lineTo(x+Math.cos(a)*r,y+Math.sin(a)*r);}}
+    ctx.stroke();
   }
   // Where a star comes to rest once the camera and layout settle.
   function projectSettled(point){
@@ -961,8 +1069,10 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   function revealNeighbourhood(){
     const pending=neighbourhoodPending;neighbourhoodPending=null;if(measured||!pending)return;
     if(Array.isArray(pending)){revealSet(new Set(pending));return;}
-    const id=pending,ids=new Set([id]);
-    for(const e of edges)if(!e.muted&&(e.from===id||e.to===id)){ids.add(e.from);ids.add(e.to);}
+    // A chosen link brings its two stars in, as a chosen star brings its neighbours.
+    const link=pending.edge?edges.find(e=>e.id===pending.edge):null;if(pending.edge&&!link)return;
+    const id=link?null:pending,ids=new Set(link?[link.from,link.to]:[id]);
+    if(!link)for(const e of edges)if(!e.muted&&(e.from===id||e.to===id)){ids.add(e.from);ids.add(e.to);}
     const points=nodes.filter(n=>ids.has(n.id)).map(n=>projectSettled(n.target));if(points.length<2)return;
     const area=targetViewport,mx=Math.min(110,(area.right-area.left)*.16),my=Math.min(80,(area.bottom-area.top)*.16);
     const cx=(area.left+area.right)/2,cy=(area.top+area.bottom)/2;
@@ -972,17 +1082,21 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     if(closeIn){
       // The neighbourhood comes to the middle of the free area and nearer, until it fills about three quarters of it,
       // never further than the whole view and never more than two and a half times nearer at once.
-      const fill=Math.min(roomX*.75/Math.max(1,span.right-span.left),roomY*.75/Math.max(1,span.bottom-span.top)),factor=clamp(fill,1,2.5);
+      // A chosen link comes near enough to read as a line between its two stars, about two hundred points long, and may
+      // come up to six times nearer at once to get there.
+      const fill=Math.min(roomX*.75/Math.max(1,span.right-span.left),roomY*.75/Math.max(1,span.bottom-span.top)),reach=Math.hypot(span.right-span.left,span.bottom-span.top);
+      const factor=link?clamp(Math.min(fill,200/Math.max(1,reach)),1,6):clamp(fill,1,2.5);
       if(factor>1.05){const before=tzoom;zoomTo(tzoom*factor);const ratio=tzoom/before;span=extent(points.map(p=>({x:cx+(p.x-cx-tpan.x)*ratio+tpan.x,y:cy+(p.y-cy-tpan.y)*ratio+tpan.y})));}
       tpan={x:tpan.x+cx-(span.left+span.right)/2,y:tpan.y+cy-(span.top+span.bottom)/2};kick();return;
     }
     const back=Math.min(1,roomX/Math.max(1,span.right-span.left),roomY/Math.max(1,span.bottom-span.top));
     // A crowded neighbourhood is drawn closer, so that its names have room to stand apart: the room its names need is
     // set against the room around its stars, never past what the free area holds or twice the present zoom.
-    const near=edges.filter(e=>!e.muted&&(e.from===id||e.to===id));
+    const near=link?[link]:edges.filter(e=>!e.muted&&(e.from===id||e.to===id));
     const demand=nodes.filter(n=>ids.has(n.id)).reduce((sum,n)=>sum+(n.fullWidth??n.labelWidth??120)*(n.fullHeight??n.labelHeight??18),0)+near.reduce((sum,e)=>sum+(e.labelWidth??120)*(e.labelHeight??30),0);
     const around=(span.right-span.left+120)*(span.bottom-span.top+120);
-    const grow=back<1?1:Math.min(Math.sqrt(demand*2.4/Math.max(1,around)),roomX/Math.max(1,span.right-span.left),roomY/Math.max(1,span.bottom-span.top),2);
+    const reach=Math.hypot(span.right-span.left,span.bottom-span.top);
+    const grow=back<1?1:Math.min(Math.max(Math.sqrt(demand*2.4/Math.max(1,around)),link?200/Math.max(1,reach):0),roomX/Math.max(1,span.right-span.left),roomY/Math.max(1,span.bottom-span.top),link?4:2);
     const factor=back<1?back:grow>1.15?grow:1;
     if(factor!==1){
       const before=tzoom;zoomTo(tzoom*factor);const ratio=tzoom/before;
@@ -1135,7 +1249,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       // A pose restored before any framing turns about its own fit.
       if(!frontFit)frontFit=pose.fit;fittedFor='';kick();},
     select(id){const changed=id!==selectedId;selectedId=id;updateThreads();if(changed&&id)neighbourhoodPending=id;kick()},
-    selectEdge(id){selectedEdgeId=id;kick()},
+    selectEdge(id){const changed=id!==selectedEdgeId;selectedEdgeId=id;if(changed&&id){neighbourhoodPending={edge:id};edgeChosenAt=performance.now();}kick()},
     link(id){linkFrom=id;kick()},
     zoomBy(factor){if(Number.isFinite(factor)&&factor>0)zoomTo(tzoom*factor);},
     frame({fill=false,x=null,y=null,plane=false}={}){
@@ -1182,6 +1296,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     light(ids){lit=Array.isArray(ids)&&ids.length>1?[...ids]:null;kick();},
     refresh:resize,
     motion(value){playing=value;kick()},
+    moving(){return playing;},
     dispose(){disposed=true;cancelAnimationFrame(raf);ro.disconnect();document.removeEventListener('visibilitychange',visibility);for(const target of [canvas,layer,edgeLayer,clusterLayer])target.removeEventListener('wheel',wheel);canvas.removeEventListener('sophia-renderer-restored',kick);nodes.forEach(n=>n.el.remove());edges.forEach(e=>e.el.remove());clusters.forEach(c=>c.el.remove());planes.forEach(plane=>plane.el.remove());threads.forEach(thread=>thread.el.remove());ctx.dispose?.()}
   };
 }

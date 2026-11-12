@@ -2348,3 +2348,6 @@ Start from [TEMPLATE.md](TEMPLATE.md) and the [local card](AGENTS.md). Use a sta
 - [TOS-D-0075 — JCS Canonical Bytes](TOS-D-0075-jcs-canonical-bytes.md), 2026-11-02, accepted by explicit operator instruction.
 - [TOS-D-0076 — Generated Stand Layers in R2](TOS-D-0076-generated-stand-layers-in-r2.md), 2026-11-07, accepted by explicit operator instruction.
 - [TOS-D-0077 — Public Corpus Snapshot in R2](TOS-D-0077-public-corpus-snapshot-in-r2.md), 2026-11-07, accepted by explicit operator instruction.
+- [TOS-D-0078 — Media Bridges and Image-Service Representations](TOS-D-0078-media-bridges-and-image-service-representations.md), 2026-11-07, accepted by explicit operator instruction.
+- [TOS-D-0079 — Media on Stand Cards](TOS-D-0079-media-on-stand-cards.md), 2026-11-07, accepted by explicit operator instruction.
+- [TOS-D-0080 — The Aesthetics Bonsai and the Core of a Field](TOS-D-0080-aesthetics-bonsai-and-the-core-of-a-field.md), 2026-11-09, accepted by explicit operator instruction.

@@ -66,15 +66,16 @@ export function counterparts(original,translation){
   for(const unit of translation.units)if(textual(unit.reference)){add(byReference,unit.reference,unit);if(numbers(unit.reference).length)add(byNumbers,numbers(unit.reference).join('.'),unit);}
   const whole=unit=>({id:unit.id,s:0,e:chars(unit.text).length});
   const match=unit=>!textual(unit.reference)?null:byReference.get(unit.reference)??(numbers(unit.reference).length?byNumbers.get(numbers(unit.reference).join('.')):null)??null;
+  const named=original.units.filter(unit=>textual(unit.reference)).length;
   const same=original.units.filter(unit=>match(unit)).length;
-  if(same>=original.units.length*.8)return {how:'reference',map:new Map(original.units.filter(unit=>match(unit)).map(unit=>[unit.id,match(unit).map(whole)]))};
+  if(named&&same>=named*.8)return {how:'reference',map:new Map(original.units.filter(unit=>match(unit)).map(unit=>[unit.id,match(unit).map(whole)]))};
   const finer=new Map();
   for(const unit of original.units){if(!textual(unit.reference))continue;const outer=numbers(unit.reference),list=translation.units.filter(item=>textual(item.reference)&&inside(numbers(item.reference),outer));if(list.length)finer.set(unit.id,list.map(whole));}
-  if(finer.size>=original.units.length*.8)return {how:'reference (finer division)',map:finer};
+  if(named&&finer.size>=named*.8)return {how:'reference (finer division)',map:finer};
   // Divided more coarsely: the book of the translation that holds the original's section.
   const coarser=new Map();
   for(const unit of original.units){if(!textual(unit.reference))continue;const inner=numbers(unit.reference),list=translation.units.filter(item=>textual(item.reference)&&inside(inner,numbers(item.reference)));if(list.length)coarser.set(unit.id,list.map(whole));}
-  if(coarser.size>=original.units.length*.8)return {how:'reference (coarser division)',map:coarser};
+  if(named&&coarser.size>=named*.8)return {how:'reference (coarser division)',map:coarser};
   return {how:'sentences of the whole work',map:null};
 }
 
@@ -134,9 +135,14 @@ export function alignVersion(original,translation,cited){
     // edition that splits a long chapter into numbered chunks) joins the run before it.
     // Units of the original that share their counterparts (the sections of one book a translation keeps whole) make one run.
     const key=targets=>targets.map(target=>target.id).join(' ');
-    const leading=[];
+    const leading=[];let skipContinuation=false;
     for(const unit of original.units){
       const targets=map.get(unit.id);
+      // A named place absent from a partial translation is a gap, not the
+      // preceding place. Only anonymous numbered chunks continue a run.
+      if(!targets?.length&&unit.reference&&!/^Unit \d+$/.test(unit.reference)){skipContinuation=true;continue;}
+      if(targets?.length)skipContinuation=false;
+      else if(skipContinuation)continue;
       if(targets?.length&&!(groups.length&&groups.at(-1).key===key(targets)))groups.push({units:[unit],targets:[...targets],key:key(targets)});
       else if(groups.length)groups.at(-1).units.push(unit);
       else leading.push(unit);
@@ -236,14 +242,32 @@ export function citedUnits(content,works,read){
 }
 
 /** The alignment module of a stand: every cited corpus work, its original and translations, and the cited units' counterparts. */
-export function alignCorpus(cited,works,read){
+export function alignCorpus(cited,works,read,scopes=[]){
+  if(!Array.isArray(scopes))throw new Error('Translation scopes must be an array');
+  const seenScopes=new Set();
+  for(const scope of scopes){
+    const key=`${scope.work}:${scope.translationVersionId}`,work=works[scope.work]&&read(works[scope.work]);
+    const original=work?.versions.find(item=>item.id===scope.originalVersionId),translation=work?.versions.find(item=>item.id===scope.translationVersionId);
+    const first=original?.units.findIndex(unit=>unit.id===scope.firstUnitId)??-1,last=original?.units.findIndex(unit=>unit.id===scope.lastUnitId)??-1;
+    if(seenScopes.has(key)||!original||!translation||original===translation||original.language===translation.language||scope.originalRevision!==original.revision||first<0||last<first||!/^https:\/\//.test(scope.source??''))throw new Error(`${scope.work}: invalid or stale translation scope for ${scope.translationVersionId}`);
+    seenScopes.add(key);
+  }
   const out={schema:CORPUS_ALIGNMENT_SCHEMA,mechanism:'bonsai/lib/corpus-align.mjs',review:'unreviewed',works:{},units:{},receipt:{}};
   for(const [key,{original:originalId,units}] of [...cited].sort(([a],[b])=>a.localeCompare(b))){
     const work=read(works[key]),original=work.versions.find(version=>version.id===originalId);
     const meta=version=>({versionId:version.id,language:version.language,revision:version.revision,label:version.label,license:version.license,attribution:version.attribution});
     const translations=[];
     for(const version of work.versions.filter(item=>item!==original&&item.language!==original.language)){
-      const {entries,receipt}=alignVersion(original,version,units);
+      const selected=scopes.filter(scope=>scope.work===key&&scope.translationVersionId===version.id);
+      if(selected.length>1)throw new Error(`${key}: duplicate translation scope for ${version.id}`);
+      const scope=selected[0];let source=original;
+      if(scope){
+        const first=original.units.findIndex(unit=>unit.id===scope.firstUnitId),last=original.units.findIndex(unit=>unit.id===scope.lastUnitId);
+        if(scope.originalVersionId!==original.id||scope.originalRevision!==original.revision||first<0||last<first||!/^https:\/\//.test(scope.source??''))throw new Error(`${key}: invalid or stale translation scope for ${version.id}`);
+        source={...original,units:original.units.slice(first,last+1)};
+      }
+      const {entries,receipt}=alignVersion(source,version,units);
+      if(scope)receipt.sourceScope={firstUnitId:scope.firstUnitId,lastUnitId:scope.lastUnitId,originalRevision:scope.originalRevision,source:scope.source};
       translations.push({...meta(version),coverage:receipt.coverage,...(mixedNotes(version)>2?{notesInText:true}:{})});
       out.receipt[`${key}:${version.id}`]=receipt;
       for(const [unit,entry] of Object.entries(entries))(out.units[unit]??={w:key,t:{}}).t[version.id]=entry;

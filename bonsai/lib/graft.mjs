@@ -14,7 +14,7 @@ import {chronologyIssues} from './chronology.mjs';
 import {contractOf,exportBonsai} from './export.mjs';
 import {placesIssues} from './places.mjs';
 import {createValidator} from './schema.mjs';
-import {corpusAlignmentIssues,externalPlacesIssues} from './fragments.mjs';
+import {corpusAlignmentIssues,externalPlacesIssues,translationScopesIssues} from './fragments.mjs';
 import {objectsIssues,semanticRegistry} from './objects.mjs';
 import {coreIssues,loadCore} from './core.mjs';
 import {citeIssues,readChapter,witnessesIssues} from './witnesses.mjs';
@@ -22,19 +22,22 @@ import {termsIssues} from './terms.mjs';
 import {isLayerPath,layerStatus,layersIssues,layersOnDisk,readLayers} from './layers.mjs';
 import {renderingsIssues,spellingIssues,termFormGaps,tokenChapterIssues,TOKENS_SCHEMA} from './tokens.mjs';
 import {corpusReader} from './corpus-align.mjs';
+import {mediaIssues} from './media.mjs';
+import {fieldCites,fieldIssues,fieldSubjects,libraryIssues} from './field.mjs';
 
 export const MANIFEST_SCHEMA='tos.bonsai.v1';
 const json=path=>JSON.parse(readFileSync(path,'utf8'));
 const sha256=path=>createHash('sha256').update(readFileSync(path)).digest('hex');
+const textDigest=text=>createHash('sha256').update(text,'utf8').digest('hex');
 
 /** A bonsai's manifest and its modules by id, read from `<root>/bonsai/<id>/`. */
-export function loadBonsai(root,id){
+export function loadBonsai(root,id,overrides={}){
   const home=join(root,'bonsai',id),manifest=json(join(home,'bonsai.json')),modules={},layers=readLayers(home);
   for(const module of manifest.modules??[]){
     if(!module.path||module.borrowed)continue;
     // A generated layer kept in R2 (bonsai/lib/layers.mjs) is read where a checkout has fetched it.
     if(isLayerPath(layers,module.path)&&!existsSync(join(home,module.path)))continue;
-    modules[module.id]=json(join(home,module.path));
+    modules[module.id]=Object.hasOwn(overrides,module.id)?overrides[module.id]:json(join(home,module.path));
   }
   return {home,manifest,modules,layers};
 }
@@ -105,11 +108,12 @@ export function treeIdentities(root){
     if(!existsSync(dir))return;
     for(const name of readdirSync(dir)){
       const path=join(dir,name);
-      if(name===file){try{const id=json(path).record_id;if(typeof id==='string')ids.add(id);}catch{}}
+      if(name===file){try{const record=json(path),id=record.record_id??record.artifact_id??record.representation_id??record.file_id;if(typeof id==='string')ids.add(id);}catch{}}
       else if(depth>0&&statSync(path).isDirectory())walk(path,file,depth-1);
     }
   };
   walk(join(base,'works'),'work.json',2);walk(join(base,'works'),'expression.json',4);walk(join(base,'agents'),'agent.json',1);walk(join(base,'places'),'place.json',1);
+  walk(join(base,'artifacts'),'artifact-witness.json',3);walk(join(base,'artifacts'),'representation.json',5);
   return ids;
 }
 
@@ -163,8 +167,8 @@ export function termPlaceReader(root,alignment,fragments,{corpus=corpusOnDisk(ro
 }
 
 /** Problems that make a bonsai or its export unfit for the Tree, and what has moved since the graft. */
-export function checkBonsai(root,id,{validator=treeContracts(root),relations,identities=treeIdentities(root)}={}){
-  const {home,manifest,modules,layers}=loadBonsai(root,id),problems=[],drift=[];
+export function checkBonsai(root,id,{validator=treeContracts(root),relations,identities=treeIdentities(root),overrides,mediaLayers}={}){
+  const {home,manifest,modules,layers}=loadBonsai(root,id,overrides),problems=[],drift=[];
   let corpus=null;
   // The layers kept in R2: their manifest always; their files, checked like any module, where all are present.
   let layerFiles=null;
@@ -204,10 +208,33 @@ export function checkBonsai(root,id,{validator=treeContracts(root),relations,ide
   if(modules.spelling)problems.push(...spellingIssues(modules.spelling).map(issue=>`spelling: ${issue}`));
   if(modules.renderings)problems.push(...renderingsIssues(modules.renderings,chapters).map(issue=>`renderings: ${issue}`));
   if(modules.fragments)problems.push(...externalPlacesIssues(modules.fragments).map(issue=>`fragments: ${issue}`));
+  if(modules['translation-scopes'])problems.push(...translationScopesIssues(modules['translation-scopes']).map(issue=>`translation scopes: ${issue}`));
   if(modules.alignment)problems.push(...corpusAlignmentIssues(modules.alignment).map(issue=>`alignment: ${issue}`));
+  if(modules.media){
+    // A medium's subject is a collection entry where the stand keeps a collection, and a core record where it keeps a core.
+    const coreModule=(manifest.modules??[]).find(module=>module.id==='core'),core=coreModule?loadCore(join(home,dirname(coreModule.path))):null;
+    const subjects=Array.isArray(modules.collection?.entities)?new Set(modules.collection.entities.map(entry=>entry.id))
+      :core?new Set([...core.concepts,...core.figures,...core.proposed,...core.chains.flatMap(chain=>chain.states??[])].map(record=>record.id))
+      :modules.field?fieldSubjects(modules.field,modules.library??null):null;
+    problems.push(...mediaIssues(modules.media,{subjects,identities:modules.identities??{},digest:textDigest,layers:mediaLayers??layers}).map(issue=>`media: ${issue}`));
+  }
   let registry=null;
-  if(modules.objects||modules.core){try{registry=semanticRegistry(root);}catch(error){problems.push(`entity registry: ${error.message}`);}}
+  if(modules.objects||modules.core||modules.field){try{registry=semanticRegistry(root);}catch(error){problems.push(`entity registry: ${error.message}`);}}
   if(modules.objects&&registry)problems.push(...objectsIssues(modules.objects,registry,placeChecker(chapters,modules.fragments??null)).map(issue=>`objects: ${issue}`));
+  // The core of a field (bonsai/CORE.md, "A core across works"): its areas, concepts, conceptions and links.
+  if(modules.library)problems.push(...libraryIssues(modules.library).map(issue=>`library: ${issue}`));
+  if(modules.field){
+    const cited=new Set([...Object.keys(modules.identities?.works??{}),...Object.keys(modules.fragments?.works??{})]);
+    problems.push(...fieldIssues(modules.field,{registry,library:modules.library??null,works:cited,placeIssues:placeChecker(chapters,modules.fragments??null)}).map(issue=>`field: ${issue}`));
+    // The exact words of every formula are read in the original; a corpus place stays unchecked where the corpus is not fetched.
+    corpus??=corpusOnDisk(root);
+    const read=termPlaceReader(root,modules.alignment??null,modules.fragments??null,{corpus});
+    for(const {conception,cite} of fieldCites(modules.field)){
+      const language=cite.loc?modules.fragments?.works?.[cite.w]?.original:modules.alignment?.works?.[cite.w]?.original?.language;
+      const place=read(cite,language);
+      if(place.error)problems.push(`field: conception ${conception}: ${place.error}`);
+    }
+  }
   // The philosophical core (bonsai/CORE.md): its places, claims, registry relations and control vectors.
   const coreModule=(manifest.modules??[]).find(module=>module.id==='core');
   if(coreModule)problems.push(...coreIssues(loadCore(join(home,dirname(coreModule.path))),chapters,registry).map(issue=>`core: ${issue}`));
@@ -236,6 +263,11 @@ export function checkBonsai(root,id,{validator=treeContracts(root),relations,ide
   if(identities)for(const [key,entry] of Object.entries(modules.identities?.expressions??{})){
     if(entry.status==='resolved'&&!identities.has(entry.tree))drift.push(`expression ${entry.tree} (${key}): resolved in the bonsai, absent from the Tree`);
     if(entry.status==='to-mint'&&identities.has(entry.tree))drift.push(`expression ${entry.tree} (${key}): the Tree now holds it; mark it resolved`);
+  }
+  // A medium's work is a Tree Artifact and its image a Tree representation; the check sees whether the Tree holds them yet.
+  if(identities)for(const section of ['artifacts','representations'])for(const [key,entry] of Object.entries(modules.identities?.[section]??{})){
+    if(entry.status==='resolved'&&!identities.has(entry.tree))drift.push(`${section.slice(0,-1)} ${entry.tree} (${key}): resolved in the bonsai, absent from the Tree`);
+    if(entry.status==='to-mint'&&identities.has(entry.tree))drift.push(`${section.slice(0,-1)} ${entry.tree} (${key}): the Tree now holds it; mark it resolved`);
   }
   return {id,problems,drift,packet,checkedIdentities:!!identities,layers:layerFiles,corpus};
 }

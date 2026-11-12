@@ -15,6 +15,16 @@ use crate::{KeyState, PredicateRead};
 use serde_json::{Value, json};
 use tos_foundation::{Digest256, RelativePath};
 
+const ARTIFACT_REPRESENTATION_V2: &str = "tos_artifact_visual_representation_v2";
+
+/// The identity of an image-service representation: the SHA-256 of its exact service address.
+pub(crate) fn image_service_id(service_id: &str) -> String {
+    format!(
+        "tos.image-service.sha256.{}",
+        Digest256::of_bytes(service_id.as_bytes()).to_hex()
+    )
+}
+
 pub trait LayerFamilySource {
     /// The same authenticated selected-record manifest, never a filtered
     /// physical membership or a replacement revision.
@@ -2414,6 +2424,10 @@ impl LayerFamilyRules {
     ) -> Result<(), ItemRefusal> {
         let composite = path.starts_with("ToS/source-witnesses/scholarly-composites/");
         let representation = path.ends_with("/representation.json");
+        let representation_v2 =
+            representation && !composite && s(v, "schema_version") == ARTIFACT_REPRESENTATION_V2;
+        // An image-service representation keeps a provider's IIIF service, not bytes.
+        let image_service = representation_v2 && s(v, "representation_form") == "image_service";
         let id_key = if composite {
             "composite_id"
         } else {
@@ -2437,6 +2451,8 @@ impl LayerFamilyRules {
         let contract = if representation {
             if composite {
                 "scholarly-composite-file-representation.schema.json"
+            } else if representation_v2 {
+                "artifact-visual-representation-v2.schema.json"
             } else {
                 "artifact-visual-representation.schema.json"
             }
@@ -2453,12 +2469,20 @@ impl LayerFamilyRules {
         }
         self.checked(path, "Draft2020-12-owner-schema")?;
         if representation {
-            self.identity(
-                source,
-                path,
-                "source-representation/file_id",
-                s(v, "file_id"),
-            )?;
+            if image_service {
+                let id = s(v, "representation_id");
+                self.identity(source, path, "source-representation/image-service", id)?;
+                if id != image_service_id(s(&v["image_service"], "service_id")) {
+                    self.issue(path, "image-service-id-not-content-addressed", id)?;
+                }
+            } else {
+                self.identity(
+                    source,
+                    path,
+                    "source-representation/file_id",
+                    s(v, "file_id"),
+                )?;
+            }
             if composite {
                 self.identity(
                     source,
@@ -2524,6 +2548,8 @@ impl LayerFamilyRules {
             let required = if representation {
                 if composite {
                     vec![s(v, id_key), s(v, "representation_id"), s(v, "file_id")]
+                } else if image_service {
+                    vec![s(v, id_key), s(v, "representation_id")]
                 } else {
                     vec![s(v, id_key), s(v, "file_id")]
                 }
@@ -2537,7 +2563,7 @@ impl LayerFamilyRules {
             {
                 self.issue(path, "witness-rights-scope-drift", rights_path)?;
             }
-            let visibility = if !representation {
+            let visibility = if !representation || image_service {
                 "public_metadata_only"
             } else if composite {
                 "local_only"
@@ -2576,7 +2602,7 @@ impl LayerFamilyRules {
             }
             self.discovery(path, &discovery)?;
         }
-        let payload_path = if representation {
+        let payload_path = if representation && !image_service {
             self.representation_payload(source, path, v, composite)?
         } else {
             None
@@ -3491,6 +3517,139 @@ mod tests {
         rules.inspect(&mut fixture, path).unwrap();
         (rules.finish(), fixture)
     }
+    const SERVICE_ARTIFACT: &str =
+        "ToS/source-witnesses/artifacts/dutch-painting/amsterdam/rijksmuseum-sk-c-5";
+
+    /// One Artifact with an image-service representation and its closed chain:
+    /// owner, rights, artifact-targeted discovery and the provenance event.
+    fn image_service_chain() -> (Value, Fixture) {
+        let artifact_id = "tos.artifact.dutch-painting.amsterdam.rijksmuseum-sk-c-5";
+        let service_id = "https://iiif.micr.io/PJEZO";
+        let representation_id = image_service_id(service_id);
+        let base = format!("{SERVICE_ARTIFACT}/representations/whole-iiif-service");
+        let rights_path = format!("{base}/rights.json");
+        let discovery_path = "ToS/source-witnesses/discovery/runs/rijksmuseum-sk-c-5.json";
+        let mut files = BTreeMap::new();
+        for contract in [
+            "artifact-visual-representation-v2",
+            "rights-record",
+            "material-discovery-record",
+            "provenance-event",
+        ] {
+            files.insert(
+                format!("ToS/contracts/{contract}.schema.json"),
+                b"{}".to_vec(),
+            );
+        }
+        files.insert(
+            format!("{SERVICE_ARTIFACT}/artifact-witness.json"),
+            serde_json::to_vec(&json!({"artifact_id":artifact_id})).unwrap(),
+        );
+        files.insert(
+            rights_path.clone(),
+            serde_json::to_vec(&json!({"scope_refs":[artifact_id,representation_id],"visibility":"public_metadata_only","redistribution_posture":"authorized"})).unwrap(),
+        );
+        files.insert(
+            discovery_path.into(),
+            serde_json::to_vec(&json!({"target":{"target_kind":"artifact","known_tos_refs":[artifact_id]},"channels":[],"channel_comparison":[],"selected_result_ids":[],"rejected_result_ids":[]})).unwrap(),
+        );
+        let value = json!({
+            "schema_version":"tos_artifact_visual_representation_v2",
+            "representation_form":"image_service",
+            "representation_id":representation_id,
+            "artifact_id":artifact_id,
+            "artifact_ref":format!("{SERVICE_ARTIFACT}/artifact-witness.json"),
+            "image_service":{"service_id":service_id},
+            "rights_ref":rights_path,
+            "discovery_ref":discovery_path,
+            "provenance_event_ref":"tos.event.acquisition.rijksmuseum-sk-c-5-image-service",
+            "source_refs":[]
+        });
+        (
+            value,
+            Fixture {
+                files,
+                schemas: Vec::new(),
+                lie: false,
+            },
+        )
+    }
+
+    fn inspect_representation(value: &Value, mut fixture: Fixture) -> LayerFamilyReport {
+        let path =
+            format!("{SERVICE_ARTIFACT}/representations/whole-iiif-service/representation.json");
+        let raw = serde_json::to_vec(value).unwrap();
+        let rights_path = value["rights_ref"].as_str().unwrap().to_owned();
+        let rights = fixture.files[&rights_path].clone();
+        let event = json!({"event_id":value["provenance_event_ref"],"outputs":[
+            {"ref":path,"sha256":Digest256::of_bytes(&raw).to_hex()},
+            {"ref":rights_path,"sha256":Digest256::of_bytes(&rights).to_hex()}
+        ]});
+        let mut provenance = serde_json::to_vec(&event).unwrap();
+        provenance.push(b'\n');
+        fixture.files.insert(
+            "ToS/source-witnesses/discovery/provenance.jsonl".into(),
+            provenance,
+        );
+        fixture.files.insert(path.clone(), raw);
+        let mut rules = LayerFamilyRules::new(limits());
+        rules.inspect(&mut fixture, &path).unwrap();
+        assert!(
+            fixture
+                .schemas
+                .contains(&"ToS/contracts/artifact-visual-representation-v2.schema.json".into()),
+            "{:?}",
+            fixture.schemas
+        );
+        rules.finish()
+    }
+
+    #[test]
+    fn image_service_representations_close_without_a_payload() {
+        let (value, fixture) = image_service_chain();
+        let report = inspect_representation(&value, fixture);
+        assert!(report.issues.is_empty(), "{:?}", report.issues);
+        assert!(report.unsupported.is_empty(), "{:?}", report.unsupported);
+
+        let (mut value, fixture) = image_service_chain();
+        value["image_service"]["service_id"] = json!("https://iiif.micr.io/OTHER");
+        let report = inspect_representation(&value, fixture);
+        assert!(
+            report
+                .issues
+                .iter()
+                .any(|issue| issue.code == "image-service-id-not-content-addressed"),
+            "{:?}",
+            report.issues
+        );
+
+        let (value, mut fixture) = image_service_chain();
+        let rights_path = value["rights_ref"].as_str().unwrap().to_owned();
+        fixture.files.insert(
+            rights_path,
+            serde_json::to_vec(&json!({"scope_refs":[value["artifact_id"]],"visibility":"public_payload","redistribution_posture":"authorized"})).unwrap(),
+        );
+        let report = inspect_representation(&value, fixture);
+        let codes: Vec<&str> = report.issues.iter().map(|issue| issue.code).collect();
+        assert!(codes.contains(&"witness-rights-scope-drift"), "{codes:?}");
+        assert!(codes.contains(&"witness-rights-posture-drift"), "{codes:?}");
+
+        let (value, mut fixture) = image_service_chain();
+        fixture.files.insert(
+            format!("{SERVICE_ARTIFACT}/artifact-witness.json"),
+            serde_json::to_vec(&json!({"artifact_id":"tos.artifact.other"})).unwrap(),
+        );
+        let report = inspect_representation(&value, fixture);
+        assert!(
+            report
+                .issues
+                .iter()
+                .any(|issue| issue.code == "representation-owner-id-drift"),
+            "{:?}",
+            report.issues
+        );
+    }
+
     #[test]
     fn transfer_source_schema_inputs_and_owner_predicates_remain_bound() {
         let (v, fixture) = crosswalk();

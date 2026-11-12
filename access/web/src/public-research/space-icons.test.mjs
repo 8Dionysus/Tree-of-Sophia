@@ -1,4 +1,5 @@
 import {describe,expect,it} from 'vitest';
+import {readFileSync} from 'node:fs';
 import {ICON_NAMES,hasIcon,iconMarkup} from './space-icons.mjs';
 
 describe('the Tree\'s icons',()=>{
@@ -17,4 +18,13 @@ describe('the Tree\'s icons',()=>{
     for(const name of ['zoomIn','zoomOut','graphUndo','graphRedo','export','import'])expect(iconMarkup(name),name).not.toMatch(/ps-icon-star/);
   });
   it('knows no name it was not given',()=>{expect(iconMarkup('nothing')).toBe('');});
+  it('moves a part of a sign only when a hand or the keyboard comes to it, and only for a reader who allows motion',()=>{
+    const css=readFileSync(new URL('./space-icons.css',import.meta.url),'utf8');
+    const motion=css.slice(css.indexOf('@media (prefers-reduced-motion:no-preference)'));
+    const parts=new Set(ICON_NAMES.flatMap(name=>[...iconMarkup(name).matchAll(/class="ps-i-([a-z0-9]+)"/g)].map(match=>match[1])));
+    expect(parts.size).toBeGreaterThan(20);
+    // Every named part has its own motion; nothing moves at rest.
+    for(const part of parts)expect(motion,part).toMatch(new RegExp(`\\.ps-i-${part}\\b`));
+    for(const rule of css.match(/[^{}]+\{[^{}]*animation:[^}]*\}/g)??[])expect(rule.trim()).toMatch(/:is\(:hover,:focus-visible\)/);
+  });
 });

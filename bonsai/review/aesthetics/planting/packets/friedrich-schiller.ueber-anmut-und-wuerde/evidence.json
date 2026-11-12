@@ -1,0 +1,153 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/10040246bsb/10040246bsb_hocr_searchtext.txt.gz",
+   "file": "10040246bsb.ocr.txt",
+   "sha256": "6614b18ddc51ff2d5e6f47d5a6a27c168e4e920e0901c337c7ef01b535e69c01",
+   "bytes": 143113,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/10040246bsb/10040246bsb_hocr_pageindex.json.gz",
+   "file": "10040246bsb.index.json",
+   "sha256": "e399e7633aa82199628b75a6cd3e556e8f7c64bc195d0791733af11f378a12d3",
+   "bytes": 4109,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/10040246bsb/10040246bsb_page_numbers.json",
+   "file": "10040246bsb.pages.json",
+   "sha256": "3c6a61f7b5770ad3a193c4e8e02351f67f0c67d01db9ac126ed71ce7f3d84011",
+   "bytes": 21165,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "transcription",
+   "url": "https://de.wikisource.org/w/index.php?title=Ueber_Anmuth_und_W%C3%BCrde&action=render",
+   "file": "schiller.html",
+   "sha256": "e0b1c8269f19f22e0389410faf1bf26dc4dc168d23c547984485ae5a2141f345",
+   "bytes": 225791,
+   "fetched": "2026-11-10",
+   "text": "schiller.html.txt"
+  }
+ ],
+ "scan": {
+  "item": "10040246bsb",
+  "ocr": true,
+  "long_s": true,
+  "image_offset": 0
+ },
+ "persons": [
+  {
+   "qid": "Q22670",
+   "name": {
+    "en": "Friedrich Schiller",
+    "ru": "Фридрих Шиллер"
+   },
+   "role": "author",
+   "died": 1805,
+   "source": "https://www.wikidata.org/wiki/Q22670"
+  }
+ ],
+ "published": 1793,
+ "images": [
+  {
+   "n": 76,
+   "file": "10040246bsb-n76.jpg",
+   "sha256": "2da19d757f72b9f86cde51166f272ad212a51e5265859c3a8c8f773f849a6ead",
+   "by": "maker",
+   "loc": "II p187"
+  },
+  {
+   "n": 77,
+   "file": "10040246bsb-n77.jpg",
+   "sha256": "ececcab5c08e117f828cb2ff872ccc23b279d605d83322c3761ad213e52d7f05",
+   "by": "maker",
+   "loc": "II p187"
+  },
+  {
+   "n": 90,
+   "file": "10040246bsb-n90.jpg",
+   "sha256": "cee70992d73e770fcee88ef6f2e25b4026013c0d4c3d011c9d7e25f8450f11e3",
+   "by": "maker",
+   "loc": "II p201"
+  },
+  {
+   "n": 95,
+   "file": "10040246bsb-n95.jpg",
+   "sha256": "62cdc6690240819fc0f37a3e6edade79b3dbe3ed30efd32e78f76a59287dec65",
+   "by": "maker",
+   "loc": "II p206"
+  },
+  {
+   "n": 76,
+   "file": "10040246bsb-n76.jpg",
+   "sha256": "2da19d757f72b9f86cde51166f272ad212a51e5265859c3a8c8f773f849a6ead",
+   "by": "second",
+   "loc": "II p187"
+  },
+  {
+   "n": 77,
+   "file": "10040246bsb-n77.jpg",
+   "sha256": "ececcab5c08e117f828cb2ff872ccc23b279d605d83322c3761ad213e52d7f05",
+   "by": "second",
+   "loc": "II p187"
+  },
+  {
+   "n": 90,
+   "file": "10040246bsb-n90.jpg",
+   "sha256": "cee70992d73e770fcee88ef6f2e25b4026013c0d4c3d011c9d7e25f8450f11e3",
+   "by": "second",
+   "loc": "II p201"
+  },
+  {
+   "n": 95,
+   "file": "10040246bsb-n95.jpg",
+   "sha256": "62cdc6690240819fc0f37a3e6edade79b3dbe3ed30efd32e78f76a59287dec65",
+   "by": "second",
+   "loc": "II p206"
+  }
+ ],
+ "places": {
+  "II p187": {
+   "transcription": "schiller.html",
+   "images": [
+    76,
+    77
+   ],
+   "method": "image",
+   "share": 0.593,
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the complete sentence at the foot of p. 187 and head of p. 188; the page agrees, joining the broken words."
+   }
+  },
+  "II p201": {
+   "transcription": "schiller.html",
+   "images": [
+    90
+   ],
+   "method": "image",
+   "share": 0.684,
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the complete sentence in the upper part of p. 201; the page agrees, with long s normalized."
+   }
+  },
+  "II p206": {
+   "transcription": "schiller.html",
+   "images": [
+    95
+   ],
+   "method": "image",
+   "share": 0.738,
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the complete final sentence on p. 206, including the Greek terms; the page agrees."
+   }
+  }
+ }
+}

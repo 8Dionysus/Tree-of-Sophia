@@ -1,0 +1,2187 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "packet_id": "tos.source-text-unit-packet.sid-f453cd8d9a394f38bfbb17d2c4c703a4",
+  "packet_version": 1,
+  "supersedes_packet_ref": null,
+  "content_posture": "source_bound",
+  "source_scope": {
+    "work_ref": "tos.work.retained-antiquity.enneads",
+    "expression_ref": "tos.expression.retained.antiquity.enneads.enneads-en-mackenna1917-wikisource",
+    "edition_ref": "tos.edition.retained.antiquity.enneads.enneads-en-mackenna1917-wikisource",
+    "item_ref": "tos.item.retained.antiquity.enneads.enneads-en-mackenna1917-wikisource",
+    "file_ref": "tos.file.sha256.ab6528296257f986a3bfce2efc20052bc0a392a0131875c1be6f3246b05fd540",
+    "file_sha256": "ab6528296257f986a3bfce2efc20052bc0a392a0131875c1be6f3246b05fd540"
+  },
+  "source_layer": {
+    "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+    "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+    "language": "en",
+    "media_type": "text/plain; charset=utf-8",
+    "unicode_form": "source_preserved",
+    "position_unit": "unicode_code_point",
+    "interval": "half_open",
+    "immutable": true,
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "schemes": [
+    {
+      "scheme_id": "tos.text-unit-scheme.sid-f41d06909b284bf4bede718696b2dd1b",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "scheme_name": "Retained source section and bounded reading chunk",
+      "analysis_role": "source_structure",
+      "boundary_basis": "rule_based",
+      "unit_kinds": [
+        "section"
+      ],
+      "method": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.enneads-en-mackenna1917-wikisource.20261027",
+        "made_at": "2026-11-10T04:13:57+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "policies": {
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "punctuation": "included_in_neighbor",
+        "whitespace": "included_in_neighbor",
+        "line_break": "included_in_neighbor",
+        "hyphenation": "preserve_source",
+        "unreported_gaps_allowed": false,
+        "overlap": "forbid"
+      },
+      "authority_limit": {
+        "algorithmic_output_is_source_truth": false,
+        "algorithmic_output_is_linguistic_truth": false,
+        "model_subword_is_lexeme": false,
+        "unit_identity_is_semantic_identity": false,
+        "text_mutation_allowed": false
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.sid-a52b2eef98c949bc9c922b3ae9a629c0",
+      "ordinal": 1,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 1201140,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "anchor_role": "scope",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-bc1e14332a194ef4b150704444eb47cc",
+      "ordinal": 2,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 24384,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "97f93859786129a5a9d5eca0039015c76c4356625ac1d7a4750ce6a98f547bc1",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f17bdc7199044ded9da671e491ede28b",
+      "ordinal": 3,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 24384,
+        "end": 42826,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "429f1edd800259ca13e5ef37afa8d750603c1269120d57fac9cad1f9aaca4605",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-8bcb12cd710d4ca989fa2ef39b198429",
+      "ordinal": 4,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 42826,
+        "end": 53231,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ad41fd261e5ffacb9cbdcb5f261168c523145f2e88fd64a5e019996822e93d6a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ece55854a24c44e182f6e86a60dc70db",
+      "ordinal": 5,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 53231,
+        "end": 87188,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b352fadf2c0ac64acb7ca08bd96aa438d0ccb67b491ca94ba4d1695f886fc360",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a1c280c8dc764fbfbe5e30a0e79e7006",
+      "ordinal": 6,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 87188,
+        "end": 96258,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a08c17321fd64b8e2c32e73a285dd9d31dc46481f48d50d26ec26fae84225341",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a328f0803ba34ed08a19e95e69d21a52",
+      "ordinal": 7,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 96258,
+        "end": 120793,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f32024fc4be27d0972560f10ed9d18ef51ba7fc9c73552f425088fbbee2c5bd1",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-49d4f9740ff345b0a671fd43d4cbccfd",
+      "ordinal": 8,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 120793,
+        "end": 125702,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "22734d757a57c6120f4aaf9149f7eb72576716b9f4780f960ad5f088ba406e90",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-60e10de0829643a2b3e2712fed836372",
+      "ordinal": 9,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 125702,
+        "end": 159197,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "2bfb77e6988ac43a5a396d31719cc3e8b1cd9d99035fecf0e7e037d5c0da2ae5",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-147e55c76a2e4260ab9e9c2eb316a6a2",
+      "ordinal": 10,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 159197,
+        "end": 160719,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f7bba6eb3b81b5f9de4c50e43e29aa6c6850a3a6a15454f823d62abffca72a53",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-9d973fbf567840f994e1b5f02f7184c2",
+      "ordinal": 11,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 160719,
+        "end": 184049,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b943b48cc7bd8d9164eb044f985f0036cd1ae366fc75cc9b9865260a9e797236",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-9e9df4c6b03542cdb935992d833f6ce1",
+      "ordinal": 12,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 184049,
+        "end": 193678,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7bc53184274cedd28d2e4fd8852bb2932fe924a5c9514d7e640e60933423ba63",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-39ee26ab01594e19a2e093637dd94a79",
+      "ordinal": 13,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 193678,
+        "end": 232337,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ca8903a299783d7ba9fcf0bc997dfb090812522a0268035ebde3c85aed591e18",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3f8b6a3c3e974202a1dcf1b6cb5a8b67",
+      "ordinal": 14,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 232337,
+        "end": 268960,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "4c514a4f0c268933a9685e30e3d54d127d01d25cf3d80cc430898f750da9ade1",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-245b44cb1aa8407c8aca7fc4b8f133aa",
+      "ordinal": 15,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 268960,
+        "end": 282520,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "beddb0757bd84e55941fb541d9b04f7fa586805cf5ea42a3774e0342f73dde02",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-25170438dbd14a73a7bb4e2d3b32e7a5",
+      "ordinal": 16,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 282520,
+        "end": 293548,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "14d3f6bbda790e790683301510dfe1c075375cd7ceed0905ca991dd2fef1be08",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-907023cd29d34787ba9bc13e67972fb2",
+      "ordinal": 17,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 293548,
+        "end": 302247,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d425f57d76a284e0e40b0ae8513f7ec41e6294afe2c5f59c954fd5fae842e2e3",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3a35bc8e05ba4fd8a20b7b5a9c488f6f",
+      "ordinal": 18,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 302247,
+        "end": 307204,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "6510972ea6c437b8d00dbe712d57c8fd973a8524226eeec75742168e3d8b1d3f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-af589229b5de48b4a7cad0ec74d54612",
+      "ordinal": 19,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 307204,
+        "end": 365626,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c747af87070d9cffd30af24f8ade06699b55a49496629b8b56df4fad5ac21902",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-fa24bfc3da244bc69187a2b221e299e4",
+      "ordinal": 20,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 365626,
+        "end": 386495,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "5a1dd3e8b505115b57dbdb67fdc637a5873725ee7abb71209a0be7a90ce7cb1b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-5d2172e92a6b466fa471dca2a1a12e39",
+      "ordinal": 21,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 386495,
+        "end": 439265,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "36f842798e17e74179300c0bf86da733bc1044c0b596b22e28905d3e300bf47d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b8b0ab4f376747ab96c4b0596d242416",
+      "ordinal": 22,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 439265,
+        "end": 459438,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "64fc177c4d8a00ce95e4c7300e898b57c9605eb2daa45ae053827edb3329cee8",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-19899415702e4a3ebf0a7592173c2d76",
+      "ordinal": 23,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 459438,
+        "end": 474421,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "69b144bb66d88ab16f1da3614c89acacc93444431750f7aaa4115c4e053a3473",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-62489c6965714792a69f890bf94a9000",
+      "ordinal": 24,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 474421,
+        "end": 503337,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c620b36b6584a66ceca7c094a2ef3843d5c0e0447101c1b3bc3a6bd066b5e166",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-aa5377020781492086c263133732119a",
+      "ordinal": 25,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 503337,
+        "end": 563135,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "8da483b57afc588c57bdd375b6017351cc0efa8916745abb221795368d7f5050",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-deec0bc48461438890c33bd99a22fb20",
+      "ordinal": 26,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 563135,
+        "end": 566347,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d57228ffc91a885f6cfa8a3f0fef79c6228069522d70c884fa472217665a7954",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-91dd0a65892a471882b263df751b6164",
+      "ordinal": 27,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 566347,
+        "end": 613685,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "82194f707719831ceeb8bfaea68a927fdc4657f3dcfa1f52a6dda27ed784e629",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2881c2b8fbf4447a8b0389263659f30d",
+      "ordinal": 28,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 613685,
+        "end": 647830,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ea42664b8306660e70f5852d363b52cf582531f220621e65195471141b82827d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d3d4d86a178e4991a653e6df8ab1c253",
+      "ordinal": 29,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 647830,
+        "end": 658690,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "5c0a0abcaa6bdd2dd94170e401554c38b86f92a3ba051dac7390d5aebc84981f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f65027b1d3dc40d0b136d0d741ac0b9d",
+      "ordinal": 30,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 658690,
+        "end": 660508,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "96a50233b48a20fd8dbb6524730653eb01eada233649b64f6d4de6eb32507dda",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f3f10b69a50249388b97a87293c237ad",
+      "ordinal": 31,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 660508,
+        "end": 670479,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "2f2b9f6c0857b3211e82c95df2307eb6fa85b477209e90baa537744c65c8f920",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-1f366a71d91041b5a4e6482fdc50f137",
+      "ordinal": 32,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 670479,
+        "end": 730259,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c8a2399a54041de5c8b23376b7bd6e39cc2b5f8e8133a95972f75de8dd4e3f39",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a7b9fb4e1a89412ebf4b4e84c2c23b60",
+      "ordinal": 33,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 730259,
+        "end": 754700,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "3615f06b91a9bba451bcf610b1ffd5802d69bae5aefa3a4c4f041d42ae52fd86",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-1317622b9f7c4ab8af96defea965ad93",
+      "ordinal": 34,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 754700,
+        "end": 814556,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ce8a71f37f60669906bedbf5d5e835e51542075af421bbe9f86490b851966407",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-774ab28475104423a2b262688e078043",
+      "ordinal": 35,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 814556,
+        "end": 872876,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a25f47367d6cf76add573b4cf903887a7c09bbba9749415d08ba7a97f3c09417",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3608c94d26a047d7957ec172f0c996f8",
+      "ordinal": 36,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 872876,
+        "end": 903103,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "8c724e025bf357cf331f8f00f5beb3e51acfe61e145c71ebc5ef3a2c8689abf6",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d0a88fd92f164703a978108661a9ac47",
+      "ordinal": 37,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 903103,
+        "end": 913610,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "5d429df44260f660bf0793a0a61634cc29582a13eeb7d9a5323b60c5ab3b1e8f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b125cee9ce534a068102034f6279c3c8",
+      "ordinal": 38,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 913610,
+        "end": 957961,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "5d6f9df7597800ee5a9021256cea61898bf91ff87072af6e61aacd97907c80b3",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-5fdeb2888d864c2c90382f89b0356ff0",
+      "ordinal": 39,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 957961,
+        "end": 979597,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1c96aadb21b1e3fb8c7db19fffc1fcc36ad888e512ba46ea603e2b066a3ea437",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3b357082c4f04e35b8d91b3e1c2073ab",
+      "ordinal": 40,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 979597,
+        "end": 989733,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "4b28ec42cb9f05b833e9e9b37a8bd04812d4fa9c431c911c17b793b7ed713076",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-77b9324c6add45afa1ad35d7af47de09",
+      "ordinal": 41,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 989733,
+        "end": 1021159,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "93927850f4b4c15318f599dfe93426bcf2435d77b4b132476dce9b67ddafeb23",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-0850aea1a7d14307a693cf46d49eaf23",
+      "ordinal": 42,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 1021159,
+        "end": 1026461,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "6c72abca35519b21eeeb4d57216ab561f3661013c1d5dfef59a3be3853e1d6a8",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-00cf56603e6c4c959d904101e08184d7",
+      "ordinal": 43,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 1026461,
+        "end": 1079888,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e8504e06827ecc1af2d7ecc093ebf758d2775ccdf101edb743e399eb2d70659f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-071b3058b9ac44f78c8687379e2fc416",
+      "ordinal": 44,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 1079888,
+        "end": 1087345,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c869f95fedb8250461c39116bc422da28e0b9b03b2e89f9995f8a38543c8386c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f025af69a05c467c909163d4e4b96cfe",
+      "ordinal": 45,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 1087345,
+        "end": 1121499,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "85a2ba081f19384089da4cba819194edceefa15cb13a402718ee6e8c8db4789d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-39dcc2dc57c44a21a31aacaa580fd0ae",
+      "ordinal": 46,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 1121499,
+        "end": 1134487,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f6ef7c121cac9af9eccf91d20b6fa598d89c035dc7fa1966f2438c6bac8f4f2d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b26d404cfcfd4118879f6a60f859179e",
+      "ordinal": 47,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 1134487,
+        "end": 1140755,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c39bc9191f34198e76d50a101a4feb1feb7b3739685152cb341cb886d496fc49",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-c3b3bb70b4704c5f8d988ec5bdd2c69f",
+      "ordinal": 48,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 1140755,
+        "end": 1175718,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f9b40cf26aa7b98da695b8dfedc30e94225c728cd04c301f68109cd8f14f3f94",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-33debd3ed333473e882a2ab29daa4c22",
+      "ordinal": 49,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "selector": {
+        "type": "text_position",
+        "start": 1175718,
+        "end": 1201140,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d14a19b5c49d42e6bdff65fd873d4b1140d616809200734559db18a27135dc5c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://en.wikisource.org/wiki/Plotinus_%28MacKenna%29"
+      }
+    }
+  ],
+  "units": [
+    {
+      "unit_id": "tos.text-unit.sid-aeb387b3e0af4043a0d1d7ce367b92c3",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-bc1e14332a194ef4b150704444eb47cc"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-13b58e5abec94d87b6583bd564685785",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f17bdc7199044ded9da671e491ede28b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ed1451a5847d4124b4b55db2ed94c80f",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-8bcb12cd710d4ca989fa2ef39b198429"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-3064972c0dc94ff3804946294b28aa46",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ece55854a24c44e182f6e86a60dc70db"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4d4469cb39eb4614b9a25d1b26b96fff",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a1c280c8dc764fbfbe5e30a0e79e7006"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-d46d59a20d9d4c84bd2d232918928a77",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a328f0803ba34ed08a19e95e69d21a52"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f6a9a138d7af4f4f8a204c732856e5f6",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-49d4f9740ff345b0a671fd43d4cbccfd"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-2ec363a8aa154d03b696254c1bfba26f",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-60e10de0829643a2b3e2712fed836372"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-648d83bae6ab47c38d181ca59b239c78",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-147e55c76a2e4260ab9e9c2eb316a6a2"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-fc4776d09ec14ca1b145eb717edd79c1",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-9d973fbf567840f994e1b5f02f7184c2"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6362a093f7df402e8d6bef5f67b4c3b0",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-9e9df4c6b03542cdb935992d833f6ce1"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-7b4182b83b7145a3a0be7b255bdc01c3",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-39ee26ab01594e19a2e093637dd94a79"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-25ff97477c8b4fbb925560be24cf9ecb",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3f8b6a3c3e974202a1dcf1b6cb5a8b67"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-dceb20c7bfc84f13b45905ee752fde22",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-245b44cb1aa8407c8aca7fc4b8f133aa"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-7828780aaa7645709b6be6a73dc13907",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-25170438dbd14a73a7bb4e2d3b32e7a5"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ef3f6de7cecf4fe69e48294d1d327558",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-907023cd29d34787ba9bc13e67972fb2"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-15857c792f8446388dbad389e172f8a8",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3a35bc8e05ba4fd8a20b7b5a9c488f6f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-72a3d236d9744046a978e413c063819e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-af589229b5de48b4a7cad0ec74d54612"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-2bf8d20793ce4aada8252476b33a4a00",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-fa24bfc3da244bc69187a2b221e299e4"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-7e7ba35fc09a4bc2834b5f3642f15cef",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-5d2172e92a6b466fa471dca2a1a12e39"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-687d0f9e17844c38bf27df07cacfc837",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b8b0ab4f376747ab96c4b0596d242416"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1cb3c6048e6d4a68bcb741a7897f2950",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-19899415702e4a3ebf0a7592173c2d76"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-a267767a64734fd6ac8c7d4f45870d5b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-62489c6965714792a69f890bf94a9000"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-85c9a3f73f3240238362092173b33386",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-aa5377020781492086c263133732119a"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f592fe243f884d6a99436f8bd44b4473",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-deec0bc48461438890c33bd99a22fb20"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e4de9db317bc42c2bec3b25ede6eb429",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-91dd0a65892a471882b263df751b6164"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-0386fccff4454fe380432f4876b75fef",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2881c2b8fbf4447a8b0389263659f30d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-38060d9b64f6413297a026cb14b329ac",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d3d4d86a178e4991a653e6df8ab1c253"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-88a9d5b3897e4a7e9654d3132a9e2bcb",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f65027b1d3dc40d0b136d0d741ac0b9d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1e34d2ffc0dc41cc9e064ef0ab99c831",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f3f10b69a50249388b97a87293c237ad"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-815b219aa3bb491c905b1459ec287f45",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-1f366a71d91041b5a4e6482fdc50f137"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-2d281bc9fc4841499856155629b1ebe4",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a7b9fb4e1a89412ebf4b4e84c2c23b60"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-fb7e6038ae41451f926172a0f08c1e22",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-1317622b9f7c4ab8af96defea965ad93"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-5cc6061868e7414f8045c3778bea2caf",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-774ab28475104423a2b262688e078043"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-994a5f5ff8c64cb180f3e1846f752671",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3608c94d26a047d7957ec172f0c996f8"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8e2a9283f73d4041ba4c20d55d8cfa10",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d0a88fd92f164703a978108661a9ac47"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-676d484c727e4bdd9e7ba4edcbbb7c35",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b125cee9ce534a068102034f6279c3c8"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-42f3f01b07374e78963516deec69903a",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-5fdeb2888d864c2c90382f89b0356ff0"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4522ba0bcffb47fea77954d3232e5ce1",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3b357082c4f04e35b8d91b3e1c2073ab"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-20d018b3c43a4b91bf05a20539092404",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-77b9324c6add45afa1ad35d7af47de09"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-718b344d9f65433ab6d10c0231bd86db",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-0850aea1a7d14307a693cf46d49eaf23"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-2fd178457f1d41e19f09a0ddd6a5dc17",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-00cf56603e6c4c959d904101e08184d7"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-66c4e4a99ab6473bb31762ad1b57197b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-071b3058b9ac44f78c8687379e2fc416"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f0d66238521148ec8f381c4741c3e187",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f025af69a05c467c909163d4e4b96cfe"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-955685a491c648859281cfe1ad04faaf",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-39dcc2dc57c44a21a31aacaa580fd0ae"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-552205ddaad1448fb8f2807605a6c494",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b26d404cfcfd4118879f6a60f859179e"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-dbb2836fa2454424ae284245f68fee23",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-c3b3bb70b4704c5f8d988ec5bdd2c69f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6492f4e8404c4c69a1f99bdc5faa994d",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-33debd3ed333473e882a2ab29daa4c22"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    }
+  ],
+  "segmentations": [
+    {
+      "segmentation_id": "tos.text-segmentation.sid-7105ba1f53fb4474ac2e2a31de29e377",
+      "segmentation_version": 1,
+      "supersedes_segmentation_ref": null,
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "scheme_ref": "tos.text-unit-scheme.sid-f41d06909b284bf4bede718696b2dd1b",
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-aeb387b3e0af4043a0d1d7ce367b92c3",
+        "tos.text-unit.sid-13b58e5abec94d87b6583bd564685785",
+        "tos.text-unit.sid-ed1451a5847d4124b4b55db2ed94c80f",
+        "tos.text-unit.sid-3064972c0dc94ff3804946294b28aa46",
+        "tos.text-unit.sid-4d4469cb39eb4614b9a25d1b26b96fff",
+        "tos.text-unit.sid-d46d59a20d9d4c84bd2d232918928a77",
+        "tos.text-unit.sid-f6a9a138d7af4f4f8a204c732856e5f6",
+        "tos.text-unit.sid-2ec363a8aa154d03b696254c1bfba26f",
+        "tos.text-unit.sid-648d83bae6ab47c38d181ca59b239c78",
+        "tos.text-unit.sid-fc4776d09ec14ca1b145eb717edd79c1",
+        "tos.text-unit.sid-6362a093f7df402e8d6bef5f67b4c3b0",
+        "tos.text-unit.sid-7b4182b83b7145a3a0be7b255bdc01c3",
+        "tos.text-unit.sid-25ff97477c8b4fbb925560be24cf9ecb",
+        "tos.text-unit.sid-dceb20c7bfc84f13b45905ee752fde22",
+        "tos.text-unit.sid-7828780aaa7645709b6be6a73dc13907",
+        "tos.text-unit.sid-ef3f6de7cecf4fe69e48294d1d327558",
+        "tos.text-unit.sid-15857c792f8446388dbad389e172f8a8",
+        "tos.text-unit.sid-72a3d236d9744046a978e413c063819e",
+        "tos.text-unit.sid-2bf8d20793ce4aada8252476b33a4a00",
+        "tos.text-unit.sid-7e7ba35fc09a4bc2834b5f3642f15cef",
+        "tos.text-unit.sid-687d0f9e17844c38bf27df07cacfc837",
+        "tos.text-unit.sid-1cb3c6048e6d4a68bcb741a7897f2950",
+        "tos.text-unit.sid-a267767a64734fd6ac8c7d4f45870d5b",
+        "tos.text-unit.sid-85c9a3f73f3240238362092173b33386",
+        "tos.text-unit.sid-f592fe243f884d6a99436f8bd44b4473",
+        "tos.text-unit.sid-e4de9db317bc42c2bec3b25ede6eb429",
+        "tos.text-unit.sid-0386fccff4454fe380432f4876b75fef",
+        "tos.text-unit.sid-38060d9b64f6413297a026cb14b329ac",
+        "tos.text-unit.sid-88a9d5b3897e4a7e9654d3132a9e2bcb",
+        "tos.text-unit.sid-1e34d2ffc0dc41cc9e064ef0ab99c831",
+        "tos.text-unit.sid-815b219aa3bb491c905b1459ec287f45",
+        "tos.text-unit.sid-2d281bc9fc4841499856155629b1ebe4",
+        "tos.text-unit.sid-fb7e6038ae41451f926172a0f08c1e22",
+        "tos.text-unit.sid-5cc6061868e7414f8045c3778bea2caf",
+        "tos.text-unit.sid-994a5f5ff8c64cb180f3e1846f752671",
+        "tos.text-unit.sid-8e2a9283f73d4041ba4c20d55d8cfa10",
+        "tos.text-unit.sid-676d484c727e4bdd9e7ba4edcbbb7c35",
+        "tos.text-unit.sid-42f3f01b07374e78963516deec69903a",
+        "tos.text-unit.sid-4522ba0bcffb47fea77954d3232e5ce1",
+        "tos.text-unit.sid-20d018b3c43a4b91bf05a20539092404",
+        "tos.text-unit.sid-718b344d9f65433ab6d10c0231bd86db",
+        "tos.text-unit.sid-2fd178457f1d41e19f09a0ddd6a5dc17",
+        "tos.text-unit.sid-66c4e4a99ab6473bb31762ad1b57197b",
+        "tos.text-unit.sid-f0d66238521148ec8f381c4741c3e187",
+        "tos.text-unit.sid-955685a491c648859281cfe1ad04faaf",
+        "tos.text-unit.sid-552205ddaad1448fb8f2807605a6c494",
+        "tos.text-unit.sid-dbb2836fa2454424ae284245f68fee23",
+        "tos.text-unit.sid-6492f4e8404c4c69a1f99bdc5faa994d"
+      ],
+      "coverage": {
+        "scope_anchor_ref": "tos.anchor.sid-a52b2eef98c949bc9c922b3ae9a629c0",
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "unreported_gaps_allowed": false,
+        "overlap_requires_declaration": true,
+        "source_reconstruction_required": true
+      },
+      "status": "proposed",
+      "status_reason": "Deterministic display and navigation segmentation; no textual, linguistic or semantic acceptance.",
+      "maker": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.enneads-en-mackenna1917-wikisource.20261027",
+        "made_at": "2026-11-10T04:13:57+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "competing_segmentation_refs": [],
+      "review_refs": [],
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "source_text_authority": false,
+      "linguistic_authority": false,
+      "semantic_authority": false
+    }
+  ],
+  "reviews": [],
+  "projections": [],
+  "rights_and_visibility": {
+    "source_visibility": "public",
+    "packet_visibility": "public",
+    "effective_visibility": "public",
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json"
+    ],
+    "private_source_used": false,
+    "publication_authorized": true,
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins"
+  },
+  "authority_boundary": {
+    "tree_role": "orientation",
+    "graph_role": "relation",
+    "source_role": "authority",
+    "validators_prove_mechanics_not_truth": true,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "legacy_bulk_migration_authorized": false
+  }
+}

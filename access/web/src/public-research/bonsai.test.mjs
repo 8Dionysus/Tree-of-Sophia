@@ -163,13 +163,17 @@ describe('the schema validator the bonsai checks against',()=>{
 
 describe('every bonsai',()=>{
   const ids=bonsaiIds(root);
+  // A bonsai exports datings and places once it keeps a chronology; Aesthetics, planted on 2026-11-09, keeps none yet.
+  const dated=ids.filter(id=>loadBonsai(root,id).modules.chronology);
   it('is found at the repository root, one per stand',()=>{
-    expect(ids).toEqual(['antiquity','zarathustra']);
+    expect(ids).toEqual(['aesthetics','antiquity','zarathustra']);
+    expect(dated).toEqual(['antiquity','zarathustra']);
     for(const id of ids)expect(bonsaiFor(id)?.manifest?.id).toBe(id);
   });
   for(const id of ids)it(`${id}: its modules keep their contracts and its export fits the Tree's contracts`,()=>{
     const result=checkBonsai(root,id,{validator:contracts,relations});
     expect(result.problems).toEqual([]);
+    if(!dated.includes(id)){expect(result.packet).toBeNull();return;}
     expect(result.packet.claims.length).toBeGreaterThan(0);
     for(const claim of result.packet.claims){expect(claim.review_status).toBe('unreviewed');expect(claim.visibility).toBe('public_metadata_only');}
     // Every identity a claim names is listed with its graft status.
@@ -181,7 +185,7 @@ describe('every bonsai',()=>{
       const {manifest}=loadBonsai(root,id);
       expect(manifest.graft.tree_revision).toMatch(/^[0-9a-f]{40}$/);
       const paths=Object.values(manifest.graft.contracts).map(entry=>entry.path);
-      for(const path of ['ToS/contracts/historical-context-claim.schema.json','ToS/doctrine/semantic-interchange/relation-types.v1.json','ToS/doctrine/semantic-interchange/entity-types.v1.json'])expect(paths,id).toContain(path);
+      for(const path of [...(dated.includes(id)?['ToS/contracts/historical-context-claim.schema.json']:[]),'ToS/doctrine/semantic-interchange/relation-types.v1.json','ToS/doctrine/semantic-interchange/entity-types.v1.json'])expect(paths,id).toContain(path);
       for(const [name,entry] of Object.entries(manifest.graft.contracts)){expect(existsSync(join(root,entry.path)),name).toBe(true);expect(entry.sha256,name).toMatch(/^[0-9a-f]{64}$/);}
     }
   });
@@ -195,7 +199,7 @@ describe('every bonsai',()=>{
     }finally{rmSync(bare,{recursive:true,force:true});}
   });
   it('exports each predicate in the claim schema the Tree registry gives it, events and processes with their records',()=>{
-    for(const id of ids){
+    for(const id of dated){
       const {packet}=checkBonsai(root,id,{validator:contracts,relations});
       const schemaOf=predicate=>[...new Set(packet.claims.filter(claim=>claim.predicate===predicate).map(claim=>claim.schema_version))];
       expect(schemaOf('historical_place'),id).toEqual(['tos_historical_context_claim_v1']);

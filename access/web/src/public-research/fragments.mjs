@@ -8,11 +8,13 @@
 // work stays one step away: the place opens in the parallel reading of its
 // chapter, original beside translation, and from there in the corpus reader.
 
+import {benchListens,layOnBench} from './bench/bridge.mjs';
+import {chapterTitle} from './chapter-title.mjs';
 import {readChapter,fragmentOf,displayText} from '../../../../bonsai/lib/witnesses.mjs';
 import {readCorpusFragmentRange} from './corpus-fragment-range.mjs';
-import {modernRussian,isPreReform} from './orthography.mjs';
+import {modernRussian,isPreReform,respell} from './orthography.mjs';
 import {createLatestFragmentRequest} from './fragment-request.mjs';
-import {copyLocale,localeValue,resolveLocale,shownLanguages} from './locale.mjs';
+import {copyLocale,localeText,localeValue,resolveLocale,shownLanguages} from './locale.mjs';
 
 const ZARATHUSTRA='also-sprach-zarathustra';
 const chapterFiles=import.meta.glob('../../../../bonsai/zarathustra/witnesses/*.json',{import:'default'});
@@ -39,11 +41,16 @@ export const citesOf=value=>Array.isArray(value?.cite)?value.cite.filter(cite=>c
 export const hasAuthored=(value,locale)=>citesOf(value).length>0||!!localeValue(value,locale).trim();
 
 /**
- * Which witnesses a reader sees: the translation into the interface language
- * with the original one step away; the original alone in German; the original
- * beside the English for the languages no witness translates into.
+ * Which witnesses a reader sees. Antiquity requests the interface language
+ * exactly and offers the original separately; the other stand retains its
+ * existing fallback when no witness translates into the interface language.
  */
-export function readingLanguages(locale,original='de',available=['de','en','ru']){
+export function readingLanguages(locale,original='de',available=['de','en','ru'],{exact=false}={}){
+  if(exact){
+    const language=resolveLocale(locale),hasOriginal=available.includes(original);
+    if(language===original)return {primary:hasOriginal?[original]:[],alternate:null};
+    return {primary:available.includes(language)?[language]:[],alternate:hasOriginal?original:null};
+  }
   const [,translation]=shownLanguages(locale,original,available);
   if(!translation)return {primary:[original],alternate:null};
   if(translation===resolveLocale(locale))return {primary:[translation],alternate:original};
@@ -51,14 +58,17 @@ export function readingLanguages(locale,original='de',available=['de','en','ru']
 }
 
 // Chapter titles as the witnesses print them, without numbering or a closing period.
-const SMALL=new Set(['a','an','and','as','at','by','for','from','in','of','on','or','the','to','with']);
-export function chapterTitle(chapter,language){
-  let value=(chapter?.titles?.[language]??'').replace(/\.$/,'').trim();
-  if(language==='en'){
-    value=value.replace(/^[IVXLC]+\.\s*/,'');
-    if(value===value.toUpperCase())value=value.toLowerCase().split(' ').map((word,index)=>index&&SMALL.has(word)?word:word.replace(/\p{L}/u,letter=>letter.toUpperCase())).join(' ');
-  }
-  return value;
+export {chapterTitle};
+/**
+ * A chapter's name for a reader: its title in the witness of the reader's language; where that witness omits the
+ * chapter, the stand's own name for it; in a language without a witness, the English title as the catalog renders it.
+ */
+export function chapterName(chapter,locale){
+  if(!chapter)return '';
+  const language=resolveLocale(locale);
+  if(language==='ru'||language==='de'||language==='en')return chapterTitle(chapter,language)||chapter.names?.[language]||chapterTitle(chapter,'en');
+  const raw=chapter.titles?.en??'',translated=localeText(raw,language);
+  return translated!==raw?translated.replace(/^[IVXLC]+\.\s*/,'').replace(/\.$/,'').trim():chapterTitle(chapter,'en');
 }
 
 /** Text of a fragment in one witness: the cited part of each unit, verse keeping its lines. */
@@ -68,11 +78,13 @@ const shownIn=(language,text)=>language==='ru'?modernRussian(text):text;
 function fragmentNodes(fragment,language,chapterKey=null){
   const nodes=[];
   for(const unit of fragment.units){
-    const text=shownIn(language,unit.text.slice(unit.from,unit.to).trim());
+    const slice=unit.text.slice(unit.from,unit.to),source=slice.trim();
+    const map=language==='ru'?respell(source):null;
+    const text=map?.text??source;
     if(!text)continue;
     const node=el('p',unit.kind==='v'?'ps-fragment-line is-verse':'ps-fragment-line',text);
     // The witness unit a line shows, so that a selected word finds its reading in the word layer.
-    if(chapterKey&&unit.id){node.dataset.chapter=chapterKey;node.dataset.unit=unit.id;node.dataset.offset=String(unit.from);}
+    if(chapterKey&&unit.id){node.dataset.chapter=chapterKey;node.dataset.unit=unit.id;node.dataset.offset=String(unit.from+slice.length-slice.trimStart().length);node.witnessOffsets=map?.toSource;}
     nodes.push(node);
   }
   return nodes;
@@ -162,6 +174,14 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     });
     tools.append(copy);
   }
+  // A quotation of the book goes onto the workbench, read in the witness the reader sees, where the stand has a bench.
+  function benchTool(tools,cite,language){
+    if(!benchListens())return;
+    const lay=button(words('fragmentBench'),'text-button ps-fragment-bench');
+    lay.addEventListener('click',()=>void layOnBench({cite,language}).then(laid=>{
+      lay.textContent=words(laid?'fragmentBenched':'unavailable');setTimeout(()=>{lay.textContent=words('fragmentBench');},1600);}));
+    tools.append(lay);
+  }
   const local=value=>localeValue(value,locale());
 
   // ── The parallel reading: a chapter, original beside translation, row by row. ──
@@ -211,9 +231,12 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
         if(!indexes.length){cell.classList.add('is-absent');if(language!=='de')hint?.(cell,words('fragmentOmitted'));}
         for(const index of indexes){
           const unit=data.units[language][index],shown=displayText(unit.raw,unit.kind),p=el('p',unit.kind==='v'?'is-verse':'');p.dataset.chapter=key;p.dataset.unit=unit.id;p.dataset.offset='0';
-          const span=cited.get(`${language}:${index}`);
-          if(span&&span[1]>span[0]){p.append(shownIn(language,shown.text.slice(0,span[0])));const mark=el('mark','',shownIn(language,shown.text.slice(span[0],span[1])));p.append(mark,shownIn(language,shown.text.slice(span[1])));line.classList.add('is-cited');first??=line;}
-          else p.textContent=shownIn(language,shown.text);
+          const span=cited.get(`${language}:${index}`),map=language==='ru'?respell(shown.text):null,text=map?.text??shown.text;
+          p.witnessOffsets=map?.toSource;
+          if(span&&span[1]>span[0]){
+            const start=map?.toDisplay[span[0]]??span[0],end=map?.toDisplay[span[1]]??span[1];
+            p.append(text.slice(0,start),el('mark','',text.slice(start,end)),text.slice(end));line.classList.add('is-cited');first??=line;
+          }else p.textContent=text;
           cell.append(p);
         }
         line.append(cell);
@@ -280,7 +303,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       if(omitted.length){const absent=el('span','ps-fragment-absent','∅');absent.setAttribute('aria-label',words('fragmentOmitted'));hint?.(absent,words('fragmentOmitted'));tools.append(absent);}
       const whole=button(`↗ ${words('fragmentWhole')}`,'text-button ps-fragment-whole');
       whole.addEventListener('click',()=>void showChapter(cite.c,cite).catch(error=>onError?.(error)));
-      tools.append(whole);copyTool(figure,tools);figure.append(tools);
+      tools.append(whole);benchTool(tools,cite,showing.find(language=>language!=='de')??'de');copyTool(figure,tools);figure.append(tools);painted(figure);
     };
     paint();
   }
@@ -290,13 +313,16 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     // A place may give a language from another witness of it (the translation of a book the usual one lacks).
     const witnessOf=language=>work.witnesses?.[place.witness?.[language]??language];
     const available=Object.keys(place.texts??{}).filter(language=>place.texts[language]);
-    const {primary,alternate}=readingLanguages(locale(),work.original,available);
+    const {primary,alternate}=readingLanguages(locale(),work.original,available,{exact:profile==='antiquity'});
     let showing=primary.filter(language=>available.includes(language));
-    if(!showing.length)showing=[work.original].filter(language=>available.includes(language));
+    if(!showing.length&&profile!=='antiquity')showing=[work.original].filter(language=>available.includes(language));
     const paint=()=>{
       figure.replaceChildren();
       // A protected work the stand may not quote is shown by its locator alone.
-      if(!showing.length){const caption=el('figcaption','ps-fragment-cite');caption.append(el('span','ps-fragment-source',[local(work.author),local(work.title),local(place.label)].filter(Boolean).join(' · ')));figure.append(caption);}
+      if(!showing.length){
+        if(profile==='antiquity')figure.append(el('p','ps-fragment-wait',words('fragmentTranslationUnavailable')));
+        const caption=el('figcaption','ps-fragment-cite');caption.append(el('span','ps-fragment-source',[local(work.author),local(work.title),local(place.label)].filter(Boolean).join(' · ')));figure.append(caption);
+      }
       for(const language of showing){
         const text=place.texts[language];
         const narrowed=shownIn(language,language===work.original&&Number.isInteger(cite.s)?text.slice(cite.s,Number.isInteger(cite.e)?cite.e:text.length):text);
@@ -310,7 +336,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       }
       const tools=el('div','ps-fragment-tools');
       const other=alternate&&available.includes(alternate)?(showing.includes(alternate)?primary.filter(language=>available.includes(language)):[alternate]):null;
-      if(other?.length&&other.join()!==showing.join()){
+      if(other&&(other.length||profile==='antiquity'&&showing.includes(alternate))&&other.join()!==showing.join()){
         const swap=button(showing.includes(alternate)?words('fragmentTranslation'):words('fragmentOriginal'),'text-button ps-fragment-swap');
         swap.setAttribute('aria-pressed',String(showing.includes(alternate)));
         swap.addEventListener('click',()=>{showing=other;paint();figure.querySelector('.ps-fragment-swap')?.focus({preventScroll:true});});
@@ -321,7 +347,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       const witness=witnessOf(showing[0]);
       const [url,opens]=place.links?.[showing[0]]?[place.links[showing[0]],'work']:place.url?[place.url,place.opens??'book']:[witness?.url,witness?.opens??'work'];
       if(typeof url==='string'&&/^https:\/\//.test(url)){const link=el('a','text-button ps-fragment-whole',`↗ ${words({quotation:'fragmentQuoted',book:'fragmentBook'}[opens]??'fragmentWhole')}`);link.href=url;link.target='_blank';link.rel='noopener noreferrer';tools.append(link);}
-      copyTool(figure,tools);figure.append(tools);
+      copyTool(figure,tools);figure.append(tools);painted(figure);
     };
     paint();
   }
@@ -353,10 +379,10 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     const meets=(unit,index,entry)=>{const [a,b]=span(unit,index);return (entry.pairs??[]).some(([source])=>source.some(([s,e])=>overlaps(s,e,a,b)));};
     const covers=item=>originals.some((unit,index)=>{const entry=data.units?.[unit.id]?.t?.[item.versionId];return !!entry&&(!(entry.pairs??[]).length||meets(unit,index,entry));});
     const available=[work.original.language,...work.translations.filter(covers).map(item=>item.language)];
-    const {primary,alternate}=readingLanguages(locale(),work.original.language,available);
+    const {primary,alternate}=readingLanguages(locale(),work.original.language,available,{exact:profile==='antiquity'});
     const versionFor=language=>language===work.original.language?work.original:work.translations.find(item=>item.language===language&&covers(item));
     let showing=primary.filter(language=>versionFor(language));
-    if(!showing.length)showing=[work.original.language];
+    if(!showing.length&&profile!=='antiquity')showing=[work.original.language];
     const texts=new Map();
     async function textOf(language){
       if(texts.has(language))return texts.get(language);
@@ -387,6 +413,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       const parts=await Promise.all(showing.map(async language=>[language,await textOf(language)]));
       if(!current())return;
       figure.replaceChildren();
+      if(!showing.length&&profile==='antiquity')figure.append(el('p','ps-fragment-wait',words('fragmentTranslationUnavailable')));
       for(const [language,value] of parts){
         if(!value.length)continue;
         const version=versionFor(language);
@@ -395,14 +422,14 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
         quote.append(...nodes);
         const references=[...new Set(value.map(item=>placeName(item.reference)).filter(Boolean))];
         const caption=el('figcaption','ps-fragment-cite');
-        caption.append(el('span','ps-fragment-source',[version?.label,references.length?references[0]+(references.length>1?`–${references.at(-1)}`:''):'',value.some(item=>item.respelled)?words('modernSpelling'):''].filter(Boolean).join(' · ')));
+        caption.append(el('span','ps-fragment-source',[...saidOnce(String(version?.label??'').split(' · ')),references.length?references[0]+(references.length>1?`–${references.at(-1)}`:''):'',value.some(item=>item.respelled)?words('modernSpelling'):''].filter(Boolean).join(' · ')));
         figure.append(quote,caption);
       }
       const tools=el('div','ps-fragment-tools');
       if(alternate&&versionFor(alternate)){
         const back=primary.filter(language=>versionFor(language));
         const other=showing.includes(alternate)?back:[alternate];
-        if(other.length&&other.join()!==showing.join()){
+        if((other.length||profile==='antiquity'&&showing.includes(alternate))&&other.join()!==showing.join()){
           const swap=button(showing.includes(alternate)?words('fragmentTranslation'):words('fragmentOriginal'),'text-button ps-fragment-swap');
           swap.setAttribute('aria-pressed',String(showing.includes(alternate)));
           swap.addEventListener('click',()=>{showing=other;void paint().then(()=>figure.querySelector('.ps-fragment-swap')?.focus({preventScroll:true})).catch(error=>onError?.(error));});
@@ -413,9 +440,24 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
         const shown=versionFor(showing[0])??work.original,unitId=shown===work.original?first:(texts.get(showing[0])??[])[0]?.id;
         if(unitId){const whole=button(`↗ ${words('fragmentWhole')}`,'text-button ps-fragment-whole');whole.addEventListener('click',()=>void openAddress({documentId:work.documentId,versionId:shown.versionId,revision:shown.revision,unitId}).catch(error=>onError?.(error)));tools.append(whole);}
       }
-      copyTool(figure,tools);figure.append(tools);
+      copyTool(figure,tools);figure.append(tools);painted(figure);
     };
     await paint();
+  }
+  // A figure tells the page when its text is shown, and again when the reader turns it to another language.
+  const painted=figure=>figure.dispatchEvent(new CustomEvent('ps-fragment-painted',{bubbles:true}));
+  // A part of an edition's label that an earlier part already says is said once ("…, 1934 · 1934").
+  const saidOnce=parts=>parts.filter((part,at)=>part&&!parts.slice(0,at).some(earlier=>earlier.includes(part)));
+  // Quotations of one source in a row name it once, under the last of them.
+  const sourceOf=figure=>[...figure.querySelectorAll(':scope > .ps-fragment-cite')].map(node=>node.textContent).join('\n');
+  function shareSource(box){
+    const figures=[...box.querySelectorAll(':scope > .ps-fragment')];
+    figures.forEach((figure,at)=>{const own=sourceOf(figure),next=figures[at+1];figure.classList.toggle('is-same-source',!!own&&!!next&&own===sourceOf(next));});
+  }
+  // Places of one source beside the same words name it once, above the first of them.
+  function shareGroundSource(aside){
+    const figures=[...aside.querySelectorAll(':scope > .rb-ground > .ps-fragment')];
+    figures.forEach((figure,at)=>{const own=sourceOf(figure),before=figures[at-1];figure.parentElement.classList.toggle('is-same-source',!!own&&!!before&&own===sourceOf(before));});
   }
   /** One cited place as a figure, filled when its text arrives. */
   function fragment(cite){
@@ -429,14 +471,31 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
    * Append a form: the places it cites, then its own words. Returns the
    * element appended, or null when the form neither says nor shows anything.
    */
-  function render(parent,value,{className='body',tag='p'}={}){
+  function render(parent,value,{className='body',tag='p',grounds=false}={}){
     const cites=citesOf(value),own=local(value).trim();
     if(!cites.length&&!own)return null;
     const box=el('div','ps-authored');
-    for(const cite of cites)box.append(fragment(cite));
-    if(own)box.append(el(tag,className,own));
+    if(grounds&&(own||grounds==='places')){
+      // In the book the stand's own words lead and the places they rest on stand beside them: each place shows
+      // its first lines and its source, and opens whole where it stands. A list of places alone is laid out the same way.
+      box.classList.add('rb-claim');if(own){const words=el('div','rb-claim-text');words.append(el(tag,className,own));box.append(words);}else box.classList.add('is-places');
+      if(cites.length){const aside=el('div','rb-grounds');for(const cite of cites)aside.append(ground(cite));if(cites.length>1)aside.addEventListener('ps-fragment-painted',()=>shareGroundSource(aside));box.append(aside);}
+    }else{
+      for(const cite of cites)box.append(fragment(cite));
+      if(cites.length>1)box.addEventListener('ps-fragment-painted',()=>shareSource(box));
+      if(own)box.append(el(tag,className,own));
+    }
     parent.append(box);
     return box;
+  }
+  /** A place beside the words it grounds: its first lines, opened whole on request. */
+  function ground(cite){
+    const wrap=el('div','rb-ground'),figure=fragment(cite),toggle=button(words('groundOpen'),'rb-ground-toggle');
+    toggle.setAttribute('aria-expanded','false');
+    toggle.addEventListener('click',()=>{const open=!wrap.classList.contains('is-open');wrap.classList.toggle('is-open',open);toggle.setAttribute('aria-expanded',String(open));toggle.textContent=words(open?'groundClose':'groundOpen');});
+    // A folded place opens where it is pressed, as well as by its own button.
+    figure.addEventListener('click',event=>{if(!wrap.classList.contains('is-open')&&!event.target.closest?.('button,a'))toggle.click();});
+    wrap.append(figure,toggle);return wrap;
   }
   return {render,fragment,showChapter,sourceSelection,citesOf,hasAuthored:value=>hasAuthored(value,locale()),get reader(){return reader;},dispose(){chapterRequests.cancel();reader?.dialog.remove();reader=null;}};
 }
