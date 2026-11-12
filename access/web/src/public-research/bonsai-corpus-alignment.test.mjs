@@ -103,6 +103,20 @@ describe('the corpus alignment of the stands',()=>{
     const works=worksOf('zarathustra'),stored=readFileSync(join(root,'bonsai','zarathustra','alignment.json'),'utf8');
     expect(formatAlignment(alignCorpus(citedUnits(content,works,read),works,read))).toBe(stored);
   },120000);
+  it.skipIf(!corpusFetched)('binds the Russian Seneca I.6 witness only to that chapter',()=>{
+    const module=json('bonsai/antiquity/alignment.json');
+    const id='retained-de-beneficiis-ru-anon1889-book1-6-transcription';
+    const chapter='tos.text-unit.sid-edee85c466474435aae5582f25263d6f';
+    const aligned=module.units[chapter].t[id];
+    expect(aligned.pairs).toHaveLength(7);
+    const work=read('tos.work.retained-antiquity.de-beneficiis');
+    const ru=work.versions.find(version=>version.id===id);
+    expect(ru.units).toHaveLength(1);
+    expect(ru.units[0].text).toContain('По сей причинѣ важно не то');
+    for(const [unit,entry] of Object.entries(module.units)){
+      if(unit!==chapter&&entry.w==='de-beneficiis')expect(entry.t[id]).toBeUndefined();
+    }
+  });
   for(const stand of ['zarathustra','antiquity'])it.skipIf(!corpusFetched)(`${stand}: holds every cited unit except places outside all translation scopes`,()=>{
     const module=json(`bonsai/${stand}/alignment.json`),works=worksOf(stand);
     const scopes=stand==='antiquity'?json('bonsai/antiquity/translation-scopes.json').scopes:[];
