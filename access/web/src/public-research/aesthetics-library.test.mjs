@@ -57,6 +57,14 @@ describe('Aesthetics field projection',()=>{
     }
     const [a,b]=field.conceptions;expect(jaccardDistance(a.of,b.of)).toBeGreaterThanOrEqual(0);expect(jaccardDistance(a.of,a.of)).toBe(0);
   });
+  it('keeps an undated reading beyond the year scale in its own row',()=>{
+    const item=field.conceptions[0],id=`aesthetics:reading:${item.id}`,changed=structuredClone(chronology);
+    changed.situations[changed.compositions.works[item.work]].dating={kind:'unknown-date',certainty:'unknown'};
+    const time=aestheticsTimeline({field,library:result,chronology:changed}),[x,y]=time.positions.get(id);
+    const group=field.areas.find(area=>area.id===item.areas[0]).group,lane=time.lanes.find(row=>row.id===group);
+    expect(time.isOutside(id)).toBe(true);expect(x).toBeGreaterThan(time.xOfYear(time.domain.max));expect(Math.abs(y-lane.y)).toBeLessThan(35);
+    expect(time.labels('ru').find(label=>label.id==='time:undated')?.title).toBe('дата неизвестна');
+  });
   it('holds only grounded areas, concepts and relations',()=>{
     const used=new Set(field.conceptions.flatMap(item=>item.of));
     for(const item of field.concepts)expect(byId.has(`aesthetics:catalog:${item.id}`)).toBe(used.has(item.id));
