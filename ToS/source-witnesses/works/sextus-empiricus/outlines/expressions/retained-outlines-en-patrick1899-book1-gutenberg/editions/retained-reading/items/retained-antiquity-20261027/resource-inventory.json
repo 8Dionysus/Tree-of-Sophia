@@ -1,0 +1,228 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-resource-inventory.schema.json",
+  "schema_version": "tos_source_resource_inventory_v1",
+  "item_id": "tos.item.retained.antiquity.outlines.outlines-en-patrick1899-book1-gutenberg",
+  "generated_from_manifest_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/item.manifest.json",
+  "inventory_authority": "mechanical_metadata_only",
+  "source_text_included": false,
+  "files": [
+    {
+      "file_id": "tos.file.sha256.75a1e9916a2804e0b52dc404cf1500f3e6904cc8c8288b9cc3fcd747c15d11cb",
+      "file_sha256": "75a1e9916a2804e0b52dc404cf1500f3e6904cc8c8288b9cc3fcd747c15d11cb",
+      "media_type": "application/json",
+      "profile": "json_members_v1",
+      "summary": {
+        "resource_count": 5,
+        "top_level_member_count": 4,
+        "json_value_counts": {
+          "object_count": 145,
+          "array_count": 37,
+          "string_count": 213,
+          "number_count": 0,
+          "boolean_count": 0,
+          "null_count": 0,
+          "object_key_count": 250
+        }
+      },
+      "resources": [
+        {
+          "resource_id": "json-root",
+          "resource_kind": "json_container",
+          "structural_role": "container_metadata",
+          "locator": {
+            "json_value_type": "object"
+          }
+        },
+        {
+          "resource_id": "json-member-00001",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 1,
+            "json_value_type": "string",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 0,
+            "array_count": 0,
+            "string_count": 1,
+            "number_count": 0,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 0
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "1e0584a25d9f43bf5cbd0aec01eb1af2220ed085b4e7f1837b0d89958cae353a",
+            "character_count": 6
+          },
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "character_count": 0
+          }
+        },
+        {
+          "resource_id": "json-member-00002",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 2,
+            "json_value_type": "array",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 144,
+            "array_count": 35,
+            "string_count": 212,
+            "number_count": 0,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 246
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "4697ef322d1be99283cb2c0f3ff2133eb2fb0b75e4c096232b52629c31f2cfe3",
+            "character_count": 8
+          }
+        },
+        {
+          "resource_id": "json-member-00003",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 3,
+            "json_value_type": "array",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 0,
+            "array_count": 1,
+            "string_count": 0,
+            "number_count": 0,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 0
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "ab5aa97074c454a0632057e704220d9a6678fbf773a0a5806fc09b8173b07309",
+            "character_count": 5
+          }
+        },
+        {
+          "resource_id": "json-member-00004",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 4,
+            "json_value_type": "array",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 0,
+            "array_count": 1,
+            "string_count": 0,
+            "number_count": 0,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 0
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "921cfc4c813e29dc5f7bf7e5b9f666a569a8218b7c773b99bf5479bc727c3a0f",
+            "character_count": 11
+          }
+        }
+      ]
+    },
+    {
+      "file_id": "tos.file.sha256.e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "file_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "media_type": "text/plain",
+      "profile": "plain_text_v1",
+      "summary": {
+        "resource_count": 1
+      },
+      "resources": [
+        {
+          "resource_id": "plain-text-file",
+          "resource_kind": "plain_text_file",
+          "locator": {
+            "container_order": 1
+          },
+          "structural_role": "member",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+            "character_count": 112527
+          }
+        }
+      ]
+    },
+    {
+      "file_id": "tos.file.sha256.45d2c8a9868e0860a2ac2aa34d0de1ce5efe0f9d71f80dc350a7a800320aa51f",
+      "file_sha256": "45d2c8a9868e0860a2ac2aa34d0de1ce5efe0f9d71f80dc350a7a800320aa51f",
+      "media_type": "text/plain",
+      "profile": "plain_text_v1",
+      "summary": {
+        "resource_count": 1
+      },
+      "resources": [
+        {
+          "resource_id": "plain-text-file",
+          "resource_kind": "plain_text_file",
+          "locator": {
+            "container_order": 1
+          },
+          "structural_role": "member",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "45d2c8a9868e0860a2ac2aa34d0de1ce5efe0f9d71f80dc350a7a800320aa51f",
+            "character_count": 116277
+          }
+        }
+      ]
+    },
+    {
+      "file_id": "tos.file.sha256.c54528b32ae609d25644e2508e769372204c5c49d39234ce07d8a30e90a225e3",
+      "file_sha256": "c54528b32ae609d25644e2508e769372204c5c49d39234ce07d8a30e90a225e3",
+      "media_type": "text/plain",
+      "profile": "plain_text_v1",
+      "summary": {
+        "resource_count": 1
+      },
+      "resources": [
+        {
+          "resource_id": "plain-text-file",
+          "resource_kind": "plain_text_file",
+          "locator": {
+            "container_order": 1
+          },
+          "structural_role": "member",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "c54528b32ae609d25644e2508e769372204c5c49d39234ce07d8a30e90a225e3",
+            "character_count": 1440
+          }
+        }
+      ]
+    }
+  ],
+  "generator": {
+    "name": "build_source_resource_inventories.py",
+    "version": "2"
+  },
+  "provenance_event_ref": "tos.event.inventory.tos.item.retained.antiquity.outlines.outlines-en-patrick1899-book1-gutenberg.20261112",
+  "inventory_version": 1,
+  "supersedes_inventory_ref": null,
+  "authority_boundary": "This inventory records resource enumeration, geometry, ordering, counts and one-way fingerprints for the selected source."
+}

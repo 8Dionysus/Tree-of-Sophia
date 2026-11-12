@@ -1,6 +1,6 @@
 {
   "schema_version": "tos_public_corpus_snapshot_v1",
-  "revision": "d3bcc8b1b7b060d093e11311a3a3b497cbcd961bba2043e57c06aaeedbf1ca05",
+  "revision": "fa1a0ae1d41e7908582855e76a3501c20794f729ac8110dbdf910aad280f2ddd",
   "profiles": {
     "zarathustra": {
       "label": "Заратустра",
@@ -57,7 +57,8 @@
         "tos.work.retained-antiquity.enneads",
         "tos.work.xenophon.memorabilia",
         "tos.work.seneca.letters-to-lucilius",
-        "tos.work.aristotle.de-anima"
+        "tos.work.aristotle.de-anima",
+        "tos.work.sextus-empiricus.outlines-of-pyrrhonism"
       ],
       "initialDocumentId": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
       "journeysRef": "ToS/research-packets/public-prototypes-20261026/journeys.zarathustra.v1.json",
@@ -296,7 +297,8 @@
         "tos.work.retained-antiquity.enneads",
         "tos.work.xenophon.memorabilia",
         "tos.work.seneca.letters-to-lucilius",
-        "tos.work.aristotle.de-anima"
+        "tos.work.aristotle.de-anima",
+        "tos.work.sextus-empiricus.outlines-of-pyrrhonism"
       ],
       "initialDocumentId": "tos.work.plato.meno",
       "journeysRef": "ToS/research-packets/public-prototypes-20261026/journeys.antiquity.v1.json",
@@ -992,6 +994,16 @@
         "path": "documents/a4351eb0279b6c36ad46b7216611ebfca34a02d7d40c493fcae82df040504034.json",
         "sha256": "a4351eb0279b6c36ad46b7216611ebfca34a02d7d40c493fcae82df040504034",
         "bytes": 10299
+      }
+    },
+    {
+      "id": "tos.work.sextus-empiricus.outlines-of-pyrrhonism",
+      "title": "Outlines of Pyrrhonism",
+      "author": "Sextus Empiricus",
+      "manifest": {
+        "path": "documents/02120964f38bbe26ca3d89f2514cafdc79d824458ea01043bdf9d8bf9d143a45.json",
+        "sha256": "02120964f38bbe26ca3d89f2514cafdc79d824458ea01043bdf9d8bf9d143a45",
+        "bytes": 11853
       }
     }
   ]
