@@ -50,6 +50,7 @@ describe('Russian printed before 1918 in today\'s spelling',()=>{
     const today='Стихия и коллегия, ностальгия и оргия, логия и энергия; низкий, чрезмерно, Сантьяго, наго, своея';
     expect(modernRussian(today)).toBe(today);
     expect(modernWord('стихія')).toBe('стихия');
+    expect(modernWord('энтелехія')).toBe('энтелехия');
     expect(respell(kept).text).toBe(modernRussian(kept));
     expect(respell('без перемен').toSource).toHaveLength('без перемен'.length+1);
   });
