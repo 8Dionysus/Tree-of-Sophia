@@ -2,6 +2,7 @@ import {execFileSync} from 'node:child_process';
 import {existsSync,readFileSync,readdirSync} from 'node:fs';
 import {join} from 'node:path';
 import {describe,expect,it} from 'vitest';
+import {readChronology} from '../../../../bonsai/lib/chronology.mjs';
 import {ADMITTED,FIELD_SCHEMA,fieldCites,fieldIssues,fieldSubjects,libraryIssues,readField} from '../../../../bonsai/lib/field.mjs';
 import {externalPlacesIssues} from '../../../../bonsai/lib/fragments.mjs';
 import {checkBonsai,corpusOnDisk,loadBonsai,termPlaceReader} from '../../../../bonsai/lib/graft.mjs';
@@ -136,6 +137,13 @@ describe('the Aesthetics field',()=>{
   it.skipIf(!corpusFetched)('is what the planting tool gives from the layer and the readers\' records',()=>{
     const out=execFileSync(process.execPath,[join(root,'bonsai/review/aesthetics/plant.mjs'),'--check'],{encoding:'utf8'});
     expect(out).toBe(['field','library','identities','fragments'].map(name=>`${name}.json: matches what the records give\n`).join(''));
+  });
+  it('dates every author and every work of its library, as the layer gives them',()=>{
+    const out=execFileSync(process.execPath,[join(root,'bonsai/review/aesthetics/chronology.mjs'),'--check'],{encoding:'utf8'});
+    expect(out).toBe('chronology: as the layer gives it\n');
+    const reader=readChronology(modules.chronology);
+    for(const agent of Object.keys(library.agents))expect(reader.span(reader.lifeOf(agent)),agent).toBeTruthy();
+    for(const work of Object.keys(library.works))expect(reader.span(reader.compositionOf({workId:work})),work).toBeTruthy();
   });
   it('keeps every concept and conception traceable to the research layer',()=>{
     const layer=name=>JSON.parse(readFileSync(join(root,'bonsai/review/aesthetics/layer',`${name}.json`),'utf8'));

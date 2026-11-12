@@ -22,6 +22,24 @@
       "en": "The Tree revision and the digests of the registries the bonsai was shaped by. A changed registry is reported as drift."
     },
     "contracts": {
+      "historicalDate": {
+        "path": "ToS/contracts/historical-claim.schema.json",
+        "sha256": "b3e9a2163e5b8b46f342643d7d0f84949017106fa50e942f83d2306abb887750"
+      },
+      "temporal_claim": {
+        "path": "ToS/contracts/source-temporal-claim.schema.json",
+        "schema_version": "tos_source_temporal_claim_v1",
+        "sha256": "b18e447fe2b6a0e3905c29f0705799fc40293c6e0d635d16bc71294c99d711b4"
+      },
+      "context_claim": {
+        "path": "ToS/contracts/historical-context-claim.schema.json",
+        "schema_version": "tos_historical_context_claim_v1",
+        "sha256": "15e5823b6b812494853076223025250afa9922636ff9509ec20129d8972f894d"
+      },
+      "claim_record": {
+        "path": "ToS/contracts/source-claim-record.schema.json",
+        "sha256": "fb69069171350fb7c0a7bf744201a05855a67d33e4b8ff4f9d2784dcb7eb47c7"
+      },
       "relation_types": {
         "path": "ToS/doctrine/semantic-interchange/relation-types.v1.json",
         "sha256": "15a865261f47d0369923ad921eaa6baac23b109e80f6ed2f39b5fd127ff30fc7"
@@ -51,6 +69,15 @@
       "role": {
         "ru": "Произведения и авторы, на места которых опираются трактовки.",
         "en": "The works and authors whose places the conceptions rest on."
+      }
+    },
+    {
+      "id": "chronology",
+      "path": "chronology.json",
+      "format": "tos.bonsai.chronology.v1",
+      "role": {
+        "ru": "Годы жизни авторов и датировки произведений: жизнь — по Викиданным, датировка произведения — словами реестра и по источнику, который реестр называет.",
+        "en": "The lives of the authors and the datings of the works: a life after Wikidata, the dating of a work in the register’s wording and after the source the register names."
       }
     },
     {
