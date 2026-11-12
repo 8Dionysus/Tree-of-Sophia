@@ -1,0 +1,87 @@
+{
+ "reader": {
+  "id": "terra-2026-11-11-characteristics-of-men-manners-opinions-",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-11",
+  "reads": "The English text of The Moralists, part III, section II, in the fifth edition (Birmingham, 1773), read beside the register readings.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "shaftesbury": {
+    "tree": "tos.agent.shaftesbury"
+   }
+  },
+  "works": {
+   "shaftesbury.characteristics-of-men-manners-opinions-times": {
+    "title": {
+     "ru": "Характеристики людей, нравов, мнений, времён; «Моралисты»",
+     "en": "Characteristics of Men, Manners, Opinions, Times; The Moralists"
+    },
+    "original": "en",
+    "tree": "tos.work.shaftesbury.characteristics-of-men-manners-opinions-times",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "shaftesbury.characteristics-of-men-manners-opinions-times:contemplation-of-the-ocean",
+   "of": [
+    "B:A-C002"
+   ],
+   "areas": [
+    "AE13",
+    "AE15"
+   ],
+   "work": "shaftesbury.characteristics-of-men-manners-opinions-times",
+   "locus": "The Moralists, Part III, Section II",
+   "formula": [
+    {
+     "place": "III.II p396"
+    }
+   ],
+   "thesis": {
+    "ru": "Наслаждение, естественно следующее из созерцания красоты океана, отличается от стремления властвовать над ним: бедный пастух, любующийся океаном, обладает им более, чем дож на своём корабле.",
+    "en": "The enjoyment that naturally follows from contemplating the ocean’s beauty differs from the desire to command it: the poor shepherd admiring the ocean has more possession than the doge on his vessel."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The passage distinguishes contemplation from command and possession; it does not itself establish material profit or the subordination of aesthetics to moral order.",
+   "from": [
+    "B:A-I004",
+    "B:A-I039"
+   ]
+  },
+  {
+   "id": "shaftesbury.characteristics-of-men-manners-opinions-times:human-forms-and-contemplation",
+   "of": [
+    "B:A-C013",
+    "B:A-C002"
+   ],
+   "areas": [
+    "AE15"
+   ],
+   "work": "shaftesbury.characteristics-of-men-manners-opinions-times",
+   "locus": "The Moralists, Part III, Section II",
+   "formula": [
+    {
+     "place": "III.II p397"
+    }
+   ],
+   "thesis": {
+    "ru": "Некоторые могущественные формы человеческого рода вызывают желания, пожелания и надежды, несоответствующие разумному и утончённому созерцанию красоты; по словам Филокла, удовольствие, к которому они побуждают, естественно.",
+    "en": "Certain powerful forms in human kind draw desires, wishes and hopes unsuited to rational and refined contemplation of beauty; Philocles says the enjoyment to which they lead is natural."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "Philocles contrasts these desires with contemplation and calls the resulting enjoyment natural; the passage does not itself assert a general subordination of aesthetics to moral order.",
+   "from": [
+    "B:A-I039"
+   ]
+  }
+ ],
+ "links": [],
+ "left": []
+}

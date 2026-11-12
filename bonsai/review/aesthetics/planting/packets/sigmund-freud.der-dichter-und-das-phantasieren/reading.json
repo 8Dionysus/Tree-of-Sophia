@@ -1,0 +1,84 @@
+{
+ "reader": {
+  "id": "terra-2026-11-11-der-dichter-und-das-phantasieren",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-11",
+  "reads": "The German text in Freud’s 1909 Sammlung kleiner Schriften zur Neurosenlehre, zweite Folge, was read against the two register readings.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "sigmund-freud": {
+    "tree": "tos.agent.sigmund-freud"
+   }
+  },
+  "works": {
+   "sigmund-freud.der-dichter-und-das-phantasieren": {
+    "title": {
+     "ru": "Поэт и фантазирование",
+     "en": "Creative Writers and Day-Dreaming"
+    },
+    "original": "de",
+    "tree": "tos.work.sigmund-freud.der-dichter-und-das-phantasieren",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "sigmund-freud.der-dichter-und-das-phantasieren:child-play-and-fantasy",
+   "of": [
+    "B:D-C014",
+    "B:D-C010"
+   ],
+   "areas": [
+    "AE19"
+   ],
+   "work": "sigmund-freud.der-dichter-und-das-phantasieren",
+   "locus": "X",
+   "formula": [
+    {
+     "place": "X p197"
+    }
+   ],
+   "thesis": {
+    "ru": "Ребёнок серьёзно относится к своему игровому миру, отличает его от действительности и опирает воображаемые объекты и отношения на осязаемые и зримые вещи действительного мира; эта опора отличает игру от фантазирования.",
+    "en": "The child takes the play world seriously, distinguishes it from reality and attaches imagined objects and relations to tangible and visible things of the real world; this attachment distinguishes play from fantasizing."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "B:D-I030"
+   ]
+  },
+  {
+   "id": "sigmund-freud.der-dichter-und-das-phantasieren:fantasy-three-times",
+   "of": [
+    "B:D-C010"
+   ],
+   "areas": [
+    "AE19"
+   ],
+   "work": "sigmund-freud.der-dichter-und-das-phantasieren",
+   "locus": "X",
+   "formula": [
+    {
+     "place": "X p201"
+    }
+   ],
+   "thesis": {
+    "ru": "Фантазия связывает актуальный повод, пробуждающий желание, с воспоминанием о прежнем переживании, в котором оно было исполнено, и создаёт обращённую к будущему ситуацию его исполнения.",
+    "en": "Fantasy connects a present occasion that awakens a wish with the memory of an earlier experience in which it was fulfilled, and creates a future situation fulfilling that wish."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The cited passage treats fantasy and daydreams; it does not identify these with artistic fiction, so B:D-C012 is not attributed here.",
+   "from": [
+    "B:D-I067"
+   ]
+  }
+ ],
+ "links": [],
+ "left": []
+}

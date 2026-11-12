@@ -1,0 +1,149 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/sksn2/Freud_1909_SKSN2_hocr_searchtext.txt.gz",
+   "file": "sksn2.ocr.txt",
+   "sha256": "ef0747a0cb6e95fa25668b21dbc00e790904807ef25b6d59f67274ad361e7472",
+   "bytes": 466441,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/sksn2/Freud_1909_SKSN2_hocr_pageindex.json.gz",
+   "file": "sksn2.index.json",
+   "sha256": "7dc9bfc9624d547c88e6ae193f9b691da58c99066b38291a8a3bc46b35c37f3c",
+   "bytes": 7583,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/sksn2/Freud_1909_SKSN2_page_numbers.json",
+   "file": "sksn2.pages.json",
+   "sha256": "cd6a23f06b55bd2ab77806d8aa91ebd620c3386eac7e10b8ead68bad29584751",
+   "bytes": 36192,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "transcription",
+   "url": "https://www.gutenberg.org/ebooks/28863.txt.utf-8",
+   "file": "28863.txt.utf-8",
+   "sha256": "c4ad93d6c266447702ad4b21394e0af7ce2dc144225883342372865707c2939c",
+   "bytes": 43406,
+   "fetched": "2026-11-11",
+   "text": "28863.txt.utf-8.txt"
+  }
+ ],
+ "scan": {
+  "item": "sksn2",
+  "ocr": true,
+  "long_s": false,
+  "image_offset": 0
+ },
+ "persons": [
+  {
+   "qid": "Q9215",
+   "name": {
+    "en": "Sigmund Freud",
+    "ru": "Зигмунд Фрейд"
+   },
+   "role": "author",
+   "died": 1939,
+   "source": "https://www.wikidata.org/wiki/Q9215"
+  }
+ ],
+ "published": 1909,
+ "images": [
+  {
+   "n": 203,
+   "item": "sksn2",
+   "file": "sksn2-n203.jpg",
+   "sha256": "47bd5064d502ad05aa0755ecbffc09b7449f4c8f17ea00c1ec9e245793ef378e",
+   "by": "maker"
+  },
+  {
+   "n": 202,
+   "item": "sksn2",
+   "file": "sksn2-n202.jpg",
+   "sha256": "e018615e3cdb88fb3e4d52aec3d1d7aaca4e28d2785ac1724d3b105fd9fd728d",
+   "by": "maker"
+  },
+  {
+   "n": 206,
+   "item": "sksn2",
+   "file": "sksn2-n206.jpg",
+   "sha256": "d9a8f848f7bed97e87971f5c0467c89f4e5a4278696eedd1d90d084c2a37f123",
+   "by": "maker"
+  },
+  {
+   "n": 202,
+   "item": "sksn2",
+   "file": "sksn2-n202.jpg",
+   "sha256": "e018615e3cdb88fb3e4d52aec3d1d7aaca4e28d2785ac1724d3b105fd9fd728d",
+   "by": "second",
+   "loc": "X p197"
+  },
+  {
+   "n": 203,
+   "item": "sksn2",
+   "file": "sksn2-n203.jpg",
+   "sha256": "47bd5064d502ad05aa0755ecbffc09b7449f4c8f17ea00c1ec9e245793ef378e",
+   "by": "second",
+   "loc": "X p197"
+  },
+  {
+   "n": 206,
+   "item": "sksn2",
+   "file": "sksn2-n206.jpg",
+   "sha256": "d9a8f848f7bed97e87971f5c0467c89f4e5a4278696eedd1d90d084c2a37f123",
+   "by": "second",
+   "loc": "X p201"
+  }
+ ],
+ "places": {
+  "X p197": {
+   "transcription": "28863.txt.utf-8",
+   "scan": "sksn2",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    202,
+    203
+   ],
+   "printed": [
+    "197",
+    "198"
+   ],
+   "differences": [
+    {
+     "transcription": "",
+     "ocr": "1 ) Aus \" Neue Revue \" , I . Jahrg . , 1908 . 198",
+     "leaf": 202,
+     "stands": "transcription",
+     "note": "The image places the note at the foot of p. 197, outside the sentence; 198 is the next page number."
+    }
+   ]
+  },
+  "X p201": {
+   "transcription": "28863.txt.utf-8",
+   "scan": "sksn2",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    206
+   ],
+   "printed": [
+    "201"
+   ],
+   "differences": []
+  }
+ },
+ "scans": {
+  "sksn2": {
+   "item": "sksn2",
+   "ocr": true,
+   "long_s": false,
+   "image_offset": 0
+  }
+ }
+}

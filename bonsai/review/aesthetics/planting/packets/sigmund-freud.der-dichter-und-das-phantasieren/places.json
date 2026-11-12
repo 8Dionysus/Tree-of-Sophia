@@ -1,0 +1,138 @@
+{
+ "work": "sigmund-freud.der-dichter-und-das-phantasieren",
+ "entry": {
+  "author": {
+   "ru": "Зигмунд Фрейд",
+   "en": "Sigmund Freud"
+  },
+  "title": {
+   "ru": "Поэт и фантазирование",
+   "en": "Creative Writers and Day-Dreaming"
+  },
+  "original": "de",
+  "witnesses": {
+   "de": {
+    "edition": "Sigmund Freud, Sammlung kleiner Schriften zur Neurosenlehre, zweite Folge (Leipzig und Wien: Franz Deuticke, 1909), pp. 197–205, Internet Archive copy sksn2.",
+    "year": 1909,
+    "url": "https://archive.org/details/sksn2",
+    "sources": [
+     "https://archive.org/details/sksn2",
+     "https://www.gutenberg.org/ebooks/28863.txt.utf-8"
+    ],
+    "licence": "Public domain book; Internet Archive scan. Project Gutenberg License for the transcription, public domain in the USA.",
+    "attribution": "Sigmund Freud, Sammlung kleiner Schriften zur Neurosenlehre, zweite Folge (Leipzig und Wien: Franz Deuticke, 1909); words from Project Gutenberg compared with the Internet Archive scan.",
+    "rights": {
+     "basis": "public-domain",
+     "russia": "Общественное достояние: Зигмунд Фрейд (автор) — год смерти 1939 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
+     "usa": "Public domain: this printing was published in 1909 (before 1930).",
+     "eu": "Public domain: Sigmund Freud (author) died 1939, more than 70 years ago (Directive 2006/116/EC art. 1).",
+     "reasoning": "Freud’s German text; Project Gutenberg transcribes the Neue Revue first printing of 1908, compared here with the 1909 collection scan at the Internet Archive. Line breaks and typographic quotation marks are normalized by the kit; edition differences are corrected against the 1909 page."
+    }
+   }
+  },
+  "absent": [
+   {
+    "language": "ru",
+    "reason": "No Russian text is taken in this pass: the line plants the original first."
+   },
+   {
+    "language": "en",
+    "reason": "No English text is taken in this pass: the line plants the original first."
+   }
+  ]
+ },
+ "places": {
+  "X p197": {
+   "label": {
+    "ru": "Раздел X, с. 197–198",
+    "en": "Section X, pp. 197–198"
+   },
+   "texts": {
+    "de": "Vielleicht dürfen wir sagen: Jedes spielende Kind benimmt sich wie ein Dichter, indem es sich eine eigene Welt erschafft oder, richtiger gesagt, die Dinge seiner Welt in eine neue, ihm gefällige Ordnung versetzt. Es wäre dann unrecht zu meinen, es nähme diese Welt nicht ernst; im Gegenteile, es nimmt sein Spiel sehr ernst, es verwendet große Affektbeträge darauf. Der Gegensatz zu Spiel ist nicht Ernst, sondern — Wirklichkeit. Das Kind unterscheidet seine Spielwelt sehr wohl, trotz aller Affektbesetzung, von der Wirklichkeit und lehnt seine imaginierten Objekte und Verhältnisse gerne an greifbare und sichtbare Dinge der wirklichen Welt an. Nichts anderes als diese Anlehnung unterscheidet das „Spielen“ des Kindes noch vom „Phantasieren“."
+   },
+   "links": {
+    "de": "https://archive.org/details/sksn2/page/n202/mode/1up"
+   },
+   "refs": [
+    [
+     "de",
+     "Sammlung kleiner Schriften zur Neurosenlehre, zweite Folge (1909), pp. 197–198"
+    ]
+   ]
+  },
+  "X p201": {
+   "label": {
+    "ru": "Раздел X, с. 201",
+    "en": "Section X, p. 201"
+   },
+   "texts": {
+    "de": "Man darf sagen: eine Phantasie schwebt gleichsam zwischen drei Zeiten, den drei Zeitmomenten unseres Vorstellens. Die seelische Arbeit knüpft an einen aktuellen Eindruck, einen Anlaß in der Gegenwart an, der imstande war, einen der großen Wünsche der Person zu wecken, greift von da aus auf die Erinnerung eines früheren, meist infantilen, Erlebnisses zurück, in dem jener Wunsch erfüllt war, und schafft nun eine auf die Zukunft bezogene Situation, welche sich als die Erfüllung jenes Wunsches darstellt, eben den Tagtraum oder die Phantasie, die nun die Spuren ihrer Herkunft vom Anlasse und von der Erinnerung an sich trägt."
+   },
+   "links": {
+    "de": "https://archive.org/details/sksn2/page/n206/mode/1up"
+   },
+   "refs": [
+    [
+     "de",
+     "Sammlung kleiner Schriften zur Neurosenlehre, zweite Folge (1909), p. 201"
+    ]
+   ]
+  }
+ },
+ "corrections": [
+  {
+   "lang": "de",
+   "from": "erschafft, oder",
+   "to": "erschafft oder",
+   "evidence": "1909 scan p. 198, leaf 203: no comma",
+   "place": "sigmund-freud.der-dichter-und-das-phantasieren X p197"
+  },
+  {
+   "lang": "de",
+   "from": "unrecht, zu meinen",
+   "to": "unrecht zu meinen",
+   "evidence": "1909 scan p. 198, leaf 203: no comma",
+   "place": "sigmund-freud.der-dichter-und-das-phantasieren X p197"
+  },
+  {
+   "lang": "de",
+   "from": "Herkunft vom Anlaß und",
+   "to": "Herkunft vom Anlasse und",
+   "evidence": "1909 scan p. 201, leaf 206: Anlasse",
+   "place": "sigmund-freud.der-dichter-und-das-phantasieren X p201"
+  },
+  {
+   "lang": "de",
+   "from": "sagen: jedes",
+   "to": "sagen: Jedes",
+   "evidence": "1909 scan p. 198, leaf 203: Jedes begins with a capital J.",
+   "place": "sigmund-freud.der-dichter-und-das-phantasieren X p197"
+  },
+  {
+   "lang": "de",
+   "from": "sondern -- Wirklichkeit",
+   "to": "sondern — Wirklichkeit",
+   "evidence": "1909 scan p. 198, leaf 203: long dash.",
+   "place": "sigmund-freud.der-dichter-und-das-phantasieren X p197"
+  },
+  {
+   "lang": "de",
+   "from": "»Spielen«",
+   "to": "„Spielen“",
+   "evidence": "1909 scan p. 198, leaf 203: German quotation marks.",
+   "place": "sigmund-freud.der-dichter-und-das-phantasieren X p197"
+  },
+  {
+   "lang": "de",
+   "from": "»Phantasieren«",
+   "to": "„Phantasieren“",
+   "evidence": "1909 scan p. 198, leaf 203: German quotation marks.",
+   "place": "sigmund-freud.der-dichter-und-das-phantasieren X p197"
+  }
+ ],
+ "checked_on_the_page_image": [
+  "p. 197 (end of page and footnote)",
+  "p. 198 (opening passage)",
+  "p. 201 (passage on fantasy and time)"
+ ]
+}

@@ -1,0 +1,113 @@
+{
+ "reader": {
+  "id": "terra-2026-11-11-of-the-delicacy-of-taste-and-passion",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-11",
+  "reads": "Read the English first edition of 1741 beside the register reading.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "david-hume": {
+    "tree": "tos.agent.david-hume"
+   }
+  },
+  "works": {
+   "david-hume.of-the-delicacy-of-taste-and-passion": {
+    "title": {
+     "ru": "О тонкости вкуса и страсти",
+     "en": "Of the Delicacy of Taste and Passion"
+    },
+    "original": "en",
+    "tree": "tos.work.david-hume.of-the-delicacy-of-taste-and-passion",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "areas": [
+    "AE16"
+   ],
+   "work": "david-hume.of-the-delicacy-of-taste-and-passion",
+   "locus": "Essay I",
+   "status": "text",
+   "from": [
+    "B:C-I065"
+   ],
+   "id": "david-hume.of-the-delicacy-of-taste-and-passion:delicacy-feels-beauty-and-defects",
+   "of": [
+    "B:C-C001"
+   ],
+   "formula": [
+    {
+     "place": "I p2"
+    }
+   ],
+   "thesis": {
+    "ru": "Тонкость вкуса делает человека чувствительным к красоте и безобразию: мастерские черты вызывают изысканное удовольствие, а небрежности и нелепости — отвращение.",
+    "en": "Delicacy of taste makes a person sensitive to beauty and deformity: masterly strokes give exquisite satisfaction, while negligences and absurdities give disgust."
+   },
+   "verdict": "revise",
+   "note": "The register names preference; these sentences describe sensitivity to beauty and defects, not preference as such."
+  },
+  {
+   "areas": [
+    "AE16"
+   ],
+   "work": "david-hume.of-the-delicacy-of-taste-and-passion",
+   "locus": "Essay I",
+   "status": "text",
+   "from": [
+    "B:C-I065"
+   ],
+   "id": "david-hume.of-the-delicacy-of-taste-and-passion:cultivation-of-refined-taste",
+   "of": [
+    "B:C-C001"
+   ],
+   "formula": [
+    {
+     "place": "I p3"
+    },
+    {
+     "place": "I p5"
+    }
+   ],
+   "thesis": {
+    "ru": "Развитие более высокого и утончённого вкуса, позволяющего судить о характерах людей, творениях гения и произведениях благородных искусств, — наиболее подходящее средство против тонкости страстей.",
+    "en": "Cultivating the higher and more refined taste that enables us to judge the characters of men, compositions of genius and productions of the nobler arts is the most proper remedy for delicacy of passion."
+   },
+   "verdict": "revise",
+   "note": "The register associates cultivation with expanded discrimination; the place says that refined taste enables judgment, without stating a general increase in discriminating capacity."
+  },
+  {
+   "areas": [
+    "AE16"
+   ],
+   "work": "david-hume.of-the-delicacy-of-taste-and-passion",
+   "locus": "Essay I",
+   "status": "text",
+   "from": [
+    "B:C-I065"
+   ],
+   "id": "david-hume.of-the-delicacy-of-taste-and-passion:judgment-of-compositions",
+   "of": [
+    "B:C-C006"
+   ],
+   "formula": [
+    {
+     "place": "I p5b"
+    }
+   ],
+   "thesis": {
+    "ru": "Для верного суждения о творении гения критик должен охватить множество взглядов, сопоставить обстоятельства, знать человеческую природу и обладать здравейшим суждением.",
+    "en": "To judge a composition of genius aright, a critic must take in many views, compare circumstances, know human nature and possess the soundest judgment."
+   },
+   "verdict": "revise",
+   "note": "The cited sentence states the requirements of criticism; preference is not asserted here."
+  }
+ ],
+ "links": [],
+ "left": []
+}

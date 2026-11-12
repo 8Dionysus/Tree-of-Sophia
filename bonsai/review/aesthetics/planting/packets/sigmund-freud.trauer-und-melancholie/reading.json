@@ -1,0 +1,86 @@
+{
+ "reader": {
+  "id": "terra-2026-11-11-trauer-und-melancholie",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-11",
+  "reads": "The German journal printing of Trauer und Melancholie, compared with the register readings.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "sigmund-freud": {
+    "tree": "tos.agent.sigmund-freud"
+   }
+  },
+  "works": {
+   "sigmund-freud.trauer-und-melancholie": {
+    "title": {
+     "ru": "Скорбь и меланхолия",
+     "en": "Mourning and Melancholia"
+    },
+    "original": "de",
+    "tree": "tos.work.sigmund-freud.trauer-und-melancholie",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "sigmund-freud.trauer-und-melancholie:features-of-melancholia",
+   "of": [
+    "B:B-C006"
+   ],
+   "areas": [
+    "AE14"
+   ],
+   "work": "sigmund-freud.trauer-und-melancholie",
+   "locus": "p. 289",
+   "formula": [
+    {
+     "place": "Aufsatz p289"
+    }
+   ],
+   "thesis": {
+    "ru": "Меланхолия отличается глубоко болезненным настроением, утратой интереса к внешнему миру и способности любить, торможением всякой деятельности и снижением самоощущения, которое выражается в самообвинениях и самооскорблениях и доходит до бредового ожидания наказания.",
+    "en": "Melancholia is marked by profoundly painful dejection, loss of interest in the outside world and of the capacity to love, inhibition of all activity, and diminished self-regard, which expresses itself in self-reproaches and self-insults and intensifies to a delusional expectation of punishment."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "B:B-I013"
+   ]
+  },
+  {
+   "id": "sigmund-freud.trauer-und-melancholie:object-loss-and-self-reproach",
+   "of": [
+    "B:B-C006"
+   ],
+   "areas": [
+    "AE14"
+   ],
+   "work": "sigmund-freud.trauer-und-melancholie",
+   "locus": "pp. 292–293",
+   "formula": [
+    {
+     "place": "Aufsatz p292"
+    },
+    {
+     "place": "Aufsatz p293"
+    }
+   ],
+   "thesis": {
+    "ru": "Самообвинения узнаются как обвинения любимого объекта, обращённые на собственное Я. Идентификация Я с оставленным объектом превращает утрату объекта в утрату Я, а конфликт с любимым лицом — в разлад между критикой Я и изменённым идентификацией Я.",
+    "en": "Self-reproaches are recognised as reproaches against a loved object shifted onto the ego. Identification of the ego with the abandoned object transforms object-loss into ego-loss and the conflict with the loved person into a division between ego-criticism and the ego altered by identification."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The cited sentences ground the redirection of reproaches and the transformation of conflict; the register’s explicit love–hate formulation is not asserted by these places.",
+   "from": [
+    "B:B-I041"
+   ]
+  }
+ ],
+ "links": [],
+ "left": []
+}

@@ -1,0 +1,244 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/bim_eighteenth-century_essays-moral-and-politi_hume-david_1741/bim_eighteenth-century_essays-moral-and-politi_hume-david_1741_hocr_searchtext.txt.gz",
+   "file": "bim_eighteenth-century_essays-moral-and-politi_hume-david_1741.ocr.txt",
+   "sha256": "08af2e315b6aeb6f0c1e54b6eca57c0f41bc5396741da1743be55d45d76123d4",
+   "bytes": 206164,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/bim_eighteenth-century_essays-moral-and-politi_hume-david_1741/bim_eighteenth-century_essays-moral-and-politi_hume-david_1741_hocr_pageindex.json.gz",
+   "file": "bim_eighteenth-century_essays-moral-and-politi_hume-david_1741.index.json",
+   "sha256": "767ea69b037683864ae2686d4de2cbe45b1e59cab78068c53047cf399dee7317",
+   "bytes": 6773,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/bim_eighteenth-century_essays-moral-and-politi_hume-david_1741/bim_eighteenth-century_essays-moral-and-politi_hume-david_1741_page_numbers.json",
+   "file": "bim_eighteenth-century_essays-moral-and-politi_hume-david_1741.pages.json",
+   "sha256": "2e90b4db63c22acc9128a3d1a9030201736493b12a68b51004aba83ff4e94ccd",
+   "bytes": 33310,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "transcription",
+   "url": "https://en.wikisource.org/api/rest_v1/page/html/Essays%2C_Moral_and_Political%2FEssay_1",
+   "file": "wikihtml",
+   "sha256": "678bd31610404393e349dd609f83c2473cedd9b85c679d077d52f5d8134d167b",
+   "bytes": 35990,
+   "fetched": "2026-11-11",
+   "text": "wikihtml.txt"
+  }
+ ],
+ "scan": {
+  "item": "bim_eighteenth-century_essays-moral-and-politi_hume-david_1741",
+  "ocr": true,
+  "long_s": true,
+  "image_offset": 0
+ },
+ "persons": [
+  {
+   "qid": "Q37160",
+   "name": {
+    "en": "David Hume",
+    "ru": "Дэвид Юм"
+   },
+   "role": "author",
+   "died": 1776,
+   "source": "https://www.wikidata.org/wiki/Q37160"
+  }
+ ],
+ "published": 1741,
+ "images": [
+  {
+   "n": 9,
+   "item": "bim_eighteenth-century_essays-moral-and-politi_hume-david_1741",
+   "file": "bim_eighteenth-century_essays-moral-and-politi_hume-david_1741-n9.jpg",
+   "sha256": "ccdd623d27d8c63b9fa42ec1c119b2acd1a32b1f470d8a0b2b2d20cfe68c70b6",
+   "by": "maker"
+  },
+  {
+   "n": 11,
+   "item": "bim_eighteenth-century_essays-moral-and-politi_hume-david_1741",
+   "file": "bim_eighteenth-century_essays-moral-and-politi_hume-david_1741-n11.jpg",
+   "sha256": "735ee55e1ad4437bd2c6ef90c3899fa061d4287fa8367230d434ef466db6acb9",
+   "by": "maker"
+  },
+  {
+   "n": 12,
+   "item": "bim_eighteenth-century_essays-moral-and-politi_hume-david_1741",
+   "file": "bim_eighteenth-century_essays-moral-and-politi_hume-david_1741-n12.jpg",
+   "sha256": "2a72a3a7ed79ab7f3af0108514ff725357a3491f64b59011a24832e6cfe08279",
+   "by": "maker"
+  },
+  {
+   "n": 9,
+   "item": "bim_eighteenth-century_essays-moral-and-politi_hume-david_1741",
+   "file": "bim_eighteenth-century_essays-moral-and-politi_hume-david_1741-n9-z76-84.jpg",
+   "sha256": "b8d630ef0016a842bfa849a22b6fd05df6a663a018fa8fe77cb1594fc1919720",
+   "by": "maker",
+   "loc": "I p2",
+   "zoom": [
+    76,
+    84
+   ]
+  },
+  {
+   "n": 10,
+   "item": "bim_eighteenth-century_essays-moral-and-politi_hume-david_1741",
+   "file": "bim_eighteenth-century_essays-moral-and-politi_hume-david_1741-n10.jpg",
+   "sha256": "1e88bce7528d97eeac7ff274521c88668c22044dc2a750d4273e0daec58263e0",
+   "by": "maker",
+   "loc": "I p3"
+  },
+  {
+   "n": 9,
+   "item": "bim_eighteenth-century_essays-moral-and-politi_hume-david_1741",
+   "file": "bim_eighteenth-century_essays-moral-and-politi_hume-david_1741-n9-z76-84.jpg",
+   "sha256": "b8d630ef0016a842bfa849a22b6fd05df6a663a018fa8fe77cb1594fc1919720",
+   "by": "second",
+   "loc": "I p2",
+   "zoom": [
+    76,
+    84
+   ]
+  },
+  {
+   "n": 9,
+   "item": "bim_eighteenth-century_essays-moral-and-politi_hume-david_1741",
+   "file": "bim_eighteenth-century_essays-moral-and-politi_hume-david_1741-n9.jpg",
+   "sha256": "ccdd623d27d8c63b9fa42ec1c119b2acd1a32b1f470d8a0b2b2d20cfe68c70b6",
+   "by": "second",
+   "loc": "I p2"
+  },
+  {
+   "n": 10,
+   "item": "bim_eighteenth-century_essays-moral-and-politi_hume-david_1741",
+   "file": "bim_eighteenth-century_essays-moral-and-politi_hume-david_1741-n10.jpg",
+   "sha256": "1e88bce7528d97eeac7ff274521c88668c22044dc2a750d4273e0daec58263e0",
+   "by": "second",
+   "loc": "I p3"
+  },
+  {
+   "n": 12,
+   "item": "bim_eighteenth-century_essays-moral-and-politi_hume-david_1741",
+   "file": "bim_eighteenth-century_essays-moral-and-politi_hume-david_1741-n12.jpg",
+   "sha256": "2a72a3a7ed79ab7f3af0108514ff725357a3491f64b59011a24832e6cfe08279",
+   "by": "second",
+   "loc": "I p5b"
+  }
+ ],
+ "places": {
+  "I p2": {
+   "transcription": "wikihtml",
+   "scan": "bim_eighteenth-century_essays-moral-and-politi_hume-david_1741",
+   "method": "ocr",
+   "share": 0.99,
+   "leaves": [
+    9,
+    10
+   ],
+   "printed": [
+    "2",
+    "3"
+   ],
+   "differences": [
+    {
+     "transcription": "Injuries",
+     "ocr": "Injurics",
+     "leaf": 9,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "",
+     "ocr": "preſent Fo RY > + g DEIICACY of TASTE . 3",
+     "leaf": 9,
+     "stands": "transcription"
+    }
+   ]
+  },
+  "I p3": {
+   "transcription": "wikihtml",
+   "scan": "bim_eighteenth-century_essays-moral-and-politi_hume-david_1741",
+   "method": "ocr",
+   "share": 0.99,
+   "leaves": [
+    10
+   ],
+   "printed": [
+    "3"
+   ],
+   "differences": [
+    {
+     "transcription": "desir'd",
+     "ocr": "deſfir'd",
+     "leaf": 10,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "",
+     "ocr": ", The good or ill Accidents of Life are very little at our Diſpoſal : But we are pretty much Maſters what Books we ſhall read , what Diverſions we ſhall partake of , and what Company we ſhall keep",
+     "leaf": 10,
+     "stands": "transcription"
+    }
+   ]
+  },
+  "I p5": {
+   "transcription": "wikihtml",
+   "scan": "bim_eighteenth-century_essays-moral-and-politi_hume-david_1741",
+   "method": "ocr",
+   "share": 0.938,
+   "leaves": [
+    12
+   ],
+   "printed": [
+    "5"
+   ],
+   "differences": [
+    {
+     "transcription": "But",
+     "ocr": "pleaſe their Taſte , you ſoon engage their Affections . Bur DELICACY of TASTE . 5 Bur",
+     "leaf": 11,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "I am",
+     "ocr": "Iam",
+     "leaf": 12,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "the",
+     "ocr": "che",
+     "leaf": 12,
+     "stands": "transcription"
+    }
+   ]
+  },
+  "I p5b": {
+   "transcription": "wikihtml",
+   "scan": "bim_eighteenth-century_essays-moral-and-politi_hume-david_1741",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    12
+   ],
+   "printed": [
+    "5"
+   ],
+   "differences": []
+  }
+ },
+ "scans": {
+  "bim_eighteenth-century_essays-moral-and-politi_hume-david_1741": {
+   "item": "bim_eighteenth-century_essays-moral-and-politi_hume-david_1741",
+   "ocr": true,
+   "long_s": true,
+   "image_offset": 0
+  }
+ }
+}

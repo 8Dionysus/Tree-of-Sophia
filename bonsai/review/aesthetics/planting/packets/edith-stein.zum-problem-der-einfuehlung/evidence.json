@@ -1,0 +1,104 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/zum-problem-der-einfuhlung/Zum_Problem_der_Einfuhlung_hocr_searchtext.txt.gz",
+   "file": "zum-problem-der-einfuhlung.ocr.txt",
+   "sha256": "b57a0b03964fa8bb5c217102c61dff079db758fdec9de40eb5f8ca55d054448b",
+   "bytes": 312292,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/zum-problem-der-einfuhlung/Zum_Problem_der_Einfuhlung_hocr_pageindex.json.gz",
+   "file": "zum-problem-der-einfuhlung.index.json",
+   "sha256": "a85d8ba34dfbab3664b42146d12821c876238475e3058b488f04819175701a53",
+   "bytes": 4921,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/zum-problem-der-einfuhlung/Zum_Problem_der_Einfuhlung_page_numbers.json",
+   "file": "zum-problem-der-einfuhlung.pages.json",
+   "sha256": "4da2d3743acd41f90f800759cb8a2fdbd9e829acb871264af59db644369511a5",
+   "bytes": 24462,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "transcription",
+   "url": "https://forage.com/stein/problem-of-empathy/",
+   "file": "problem-of-empathy",
+   "sha256": "be259607c9fc72112a6260f096da3c62c538565d3426f54218f44f3d2ef6708d",
+   "bytes": 773122,
+   "fetched": "2026-11-11",
+   "text": "problem-of-empathy.txt",
+   "why": "The Wikisource author page lists the dissertation but offers no 1917 transcription; Deutsches Textarchiv, Zeno, TextGrid and Project Gutenberg search pages did not answer in this session. Forage supplies a corrected transcription explicitly following the same 1917 scan."
+  }
+ ],
+ "scan": {
+  "item": "zum-problem-der-einfuhlung",
+  "ocr": true,
+  "long_s": false,
+  "image_offset": 0
+ },
+ "persons": [
+  {
+   "qid": "Q76749",
+   "name": {
+    "en": "Edith Stein",
+    "ru": "Эдит Штайн"
+   },
+   "role": "author",
+   "died": 1942,
+   "source": "https://www.wikidata.org/wiki/Q76749"
+  }
+ ],
+ "published": 1917,
+ "images": [
+  {
+   "n": 13,
+   "item": "zum-problem-der-einfuhlung",
+   "file": "zum-problem-der-einfuhlung-n13.jpg",
+   "sha256": "f18cdddd80fc330cdb093d66e30fff04967b8d7500750c9c4d304817800d4473",
+   "by": "maker"
+  },
+  {
+   "n": 18,
+   "item": "zum-problem-der-einfuhlung",
+   "file": "zum-problem-der-einfuhlung-n18.jpg",
+   "sha256": "ee021739dd6d1111874081fa378c6a833604e2bc832d355663d90754c12415a5",
+   "by": "maker"
+  },
+  {
+   "n": 18,
+   "item": "zum-problem-der-einfuhlung",
+   "file": "zum-problem-der-einfuhlung-n18.jpg",
+   "sha256": "ee021739dd6d1111874081fa378c6a833604e2bc832d355663d90754c12415a5",
+   "by": "second",
+   "loc": "II §2 p9"
+  }
+ ],
+ "places": {
+  "II §2 p9": {
+   "transcription": "problem-of-empathy",
+   "scan": "zum-problem-der-einfuhlung",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    18
+   ],
+   "printed": [
+    null
+   ],
+   "differences": []
+  }
+ },
+ "scans": {
+  "zum-problem-der-einfuhlung": {
+   "item": "zum-problem-der-einfuhlung",
+   "ocr": true,
+   "long_s": false,
+   "image_offset": 0
+  }
+ }
+}
