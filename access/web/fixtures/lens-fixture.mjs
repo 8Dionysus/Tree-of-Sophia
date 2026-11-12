@@ -22,7 +22,7 @@ function catalog(){
   return context;
 }
 // This small evaluator exists only to exercise UI states. Real matching remains
-// owned and validated by tos_access, not by this development fixture.
+// owned and validated by the native query engine, not by this development fixture.
 function matches(item,rule,context){
   const property=rule.property_id&&context.catalog.semantic_registries.properties.find(p=>p.property_id===rule.property_id);
   if(rule.property_id&&!property)throw new Error('Unknown fixture property');
