@@ -1,0 +1,68 @@
+{
+  "schema_version": "tos_public_source_metadata_snapshot_v1",
+  "record_version": 1,
+  "item_id": "tos.item.retained.antiquity.outlines.outlines-en-forage2026-ai",
+  "captured_at": "2026-11-12T22:25:03+00:00",
+  "source": {
+    "provider": "Forage",
+    "url": "https://forage.com/sextus/outlines-of-pyrrhonism/",
+    "edition": "October 2026",
+    "capture_receipt": [
+      {
+        "url": "https://forage.com/sextus/outlines-of-pyrrhonism/",
+        "filename": "page.html",
+        "sha256": "33e5701e8d60d9f4bbe19b6f9958ec2e052f7441f7bcec43fe0c2cd1028216c1",
+        "bytes": 1235200,
+        "content_type": "text/html",
+        "captured_at": "2026-11-12T22:19:09.264954+00:00"
+      },
+      {
+        "url": "https://forage.com/terms/",
+        "filename": "terms.html",
+        "sha256": "1307692c5f56bf306029939dc546ea0c206f93f49373d52c90c3fd536bedd640",
+        "bytes": 6854,
+        "content_type": "text/html",
+        "captured_at": "2026-11-12T22:19:09.616242+00:00"
+      },
+      {
+        "url": "https://forage.com/sextus/outlines-of-pyrrhonism/sextus-outlines-of-pyrrhonism.epub",
+        "filename": "outlines.epub",
+        "sha256": "ae8f0e5cdb11d092281dbc90b34f745a00685f99a519addd58305de4f86c37b3",
+        "bytes": 262276,
+        "content_type": "application/epub+zip",
+        "captured_at": "2026-11-12T22:19:10.065810+00:00"
+      },
+      {
+        "url": "https://forage.com/sextus/outlines-of-pyrrhonism/sextus-outlines-of-pyrrhonism.pdf",
+        "filename": "outlines.pdf",
+        "sha256": "7fb1dbcce9f5c61e2bd20640cc52a910b08da30ee1c4f9dc939ee2ca3bc7f530",
+        "bytes": 818190,
+        "content_type": "application/pdf",
+        "captured_at": "2026-11-12T22:19:10.683744+00:00"
+      }
+    ],
+    "input_payloads": [
+      {
+        "ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-forage2026-ai/editions/retained-reading/items/retained-antiquity-20261027/payload/extract_epub.py",
+        "sha256": "8f77ee219ff43842eb4425681abaea0aaf5ffcca417be4fe6f08b321d11aeb3d",
+        "role": "extraction_script"
+      }
+    ],
+    "epub_retained_outside_repository": true,
+    "sections_per_book": [
+      241,
+      259,
+      281
+    ],
+    "section_notes": 73,
+    "unnumbered_continuations": 4,
+    "publisher_translation_statement": "Translated from the Greek with AI (Claude), then edited for accuracy and consistency. Not reviewed by a human specialist.",
+    "publisher_license_statement": "Free to reuse under CC BY-SA 4.0."
+  },
+  "rights_evidence": [
+    "https://forage.com/sextus/outlines-of-pyrrhonism/",
+    "https://forage.com/terms/",
+    "https://creativecommons.org/licenses/by-sa/4.0/"
+  ],
+  "limitations": "All 781 consecutively numbered sections in Books I–III (241, 259, 281); 73 notes are retained at their referenced sections. Four unnumbered continuation paragraphs remain with the preceding section. Publisher headings and summaries are omitted from the reading body; the exact EPUB remains in external artifact custody. The publisher states the translation was produced using AI (Claude), then edited, and was not reviewed by a human specialist. No independent full translation or philological review is claimed."
+}
