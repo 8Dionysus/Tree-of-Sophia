@@ -1,7 +1,7 @@
 import {corpusAuthorName,corpusWorkTitle} from '../observatory/human-presentation.mjs';
 import {createZarathustraGroundTargets,createZarathustraRouteGroundTargets} from './zarathustra-ground-targets.mjs';
 import {extendPublicCollection} from './collection-data.mjs';
-import {loadBonsai} from './bonsai.mjs';
+import {loadBonsai,corpusProfile} from './bonsai.mjs';
 import {attachCore} from './core-projection.mjs';
 import {canonicalJSON,createResearchIndex} from './research-index.mjs';
 
@@ -31,7 +31,7 @@ async function selectedDocuments(provider, profile) {
     throw new TypeError('A bound public corpus provider is required.');
   }
   const manifest = await provider.describe();
-  const selected = manifest.profiles?.[profile];
+  const selected = manifest.profiles?.[corpusProfile(profile)];
   if (!selected || !Array.isArray(selected.documentIds)) throw new Error(`Public corpus profile is unavailable: ${profile}`);
   const page = await provider.catalog({query: '', limit: 100});
   const catalog = new Map(page.items.map(item => [item.id, item]));

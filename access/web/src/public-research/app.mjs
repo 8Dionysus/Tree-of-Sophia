@@ -17,6 +17,7 @@ import {mountPublicResearchSpace} from './public-space.mjs';
 import './public-research.css';
 
 const root = document.querySelector('#public-research') ?? document.querySelector('#public-reader-host');
+import {corpusProfile} from './bonsai.mjs';
 const profile = ['antiquity','aesthetics'].includes(root?.dataset.profile) ? root.dataset.profile : 'zarathustra';
 const requestedLocale=new URLSearchParams(location.search).get('lang');
 let savedLocale;try{savedLocale=localStorage.getItem('tos.public-research.locale.v1');}catch{}
@@ -455,7 +456,7 @@ async function start() {
   if(appDisposed)return;
   await initializePublicReaderRules();
   if(appDisposed)return;
-  const provider = createRetainedPublicCorpusProvider({baseUrl: `${import.meta.env.BASE_URL}public-corpus/`, profile, fetch: globalThis.fetch.bind(globalThis)});
+  const provider = createRetainedPublicCorpusProvider({baseUrl: `${import.meta.env.BASE_URL}public-corpus/`, profile: corpusProfile(profile), fetch: globalThis.fetch.bind(globalThis)});
   let manifest = null;
   try { manifest = await provider.describe(); } catch { /* the reader will report delivery failure */ }
   if(appDisposed)return;

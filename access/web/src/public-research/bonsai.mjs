@@ -105,3 +105,9 @@ export function lensPositions(profile,lensId){
   const declared=BONSAI[profile]?.manifest?.lenses?.[lensId];
   return declared??{positions:'group'};
 }
+
+// The public corpus publishes its works under a profile per stand, and a stand's profile appears in the published
+// manifest only with the next corpus publication. Until `profiles.aesthetics` is published (it is declared in
+// access/public-corpus/selection.v1.json), Aesthetics reads the three corpus works its alignment names through
+// Antiquity's selection, which holds them. Remove this mapping when the manifest carries the profile.
+export const corpusProfile=profile=>profile==='aesthetics'?'antiquity':profile;
