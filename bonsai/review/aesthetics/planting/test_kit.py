@@ -54,5 +54,20 @@ class EyeAloneTest(unittest.TestCase):
         self.assertEqual([loc for loc, _ in kit.by_eye(places, ev)], ['p1'])
 
 
+class WholeSentencesTest(unittest.TestCase):
+    def test_a_quoted_sentence_is_a_whole_sentence(self):
+        self.assertEqual(kit.sentences('‘Now, here, you see, it takes all the running you can do, to keep in the same place.’'), [])
+        self.assertEqual(kit.sentences('„Das ist das Numinose.“'), [])
+        self.assertEqual(kit.sentences('«Tout est dit.»'), [])
+
+    def test_a_fragment_is_still_named(self):
+        self.assertTrue(any('capital' in problem for problem in kit.sentences('‘and so on.’')))
+        self.assertTrue(any('close a sentence' in problem for problem in kit.sentences('It takes all the running you can do’')))
+
+    def test_a_place_may_run_to_2400_characters(self):
+        self.assertEqual(kit.sentences('A' + 'a' * 2141 + '.'), [])
+        self.assertTrue(kit.sentences('A' + 'a' * 2400 + '.'))
+
+
 if __name__ == '__main__':
     unittest.main()
