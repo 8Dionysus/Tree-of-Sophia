@@ -1,0 +1,57 @@
+{
+ "reader": {
+  "id": "terra-2026-11-12-de-pictura",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-12",
+  "reads": "I read the Italian text in Janitschek’s 1877 edition against the register reading and the page image.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "leon-battista-alberti": {
+    "tree": "tos.agent.leon-battista-alberti"
+   }
+  },
+  "works": {
+   "leon-battista-alberti.de-pictura": {
+    "title": {
+     "ru": "О живописи",
+     "en": "On Painting"
+    },
+    "original": "it",
+    "tree": "tos.work.leon-battista-alberti.de-pictura",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "leon-battista-alberti.de-pictura:composition-of-the-painted-work",
+   "of": [
+    "A:C195"
+   ],
+   "areas": [
+    "AE21"
+   ],
+   "work": "leon-battista-alberti.de-pictura",
+   "locus": "II",
+   "formula": [
+    {
+     "place": "II p105"
+    }
+   ],
+   "thesis": {
+    "ru": "Композиция — способ живописи, которым части соединяются в написанном произведении: части истории — тела, части тел — члены, части членов — поверхности.",
+    "en": "Composition is the way of painting by which parts are composed in the painted work: the parts of the istoria are bodies, the parts of bodies are members, and the parts of members are surfaces."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "C:A-I020"
+   ]
+  }
+ ],
+ "links": [],
+ "left": []
+}

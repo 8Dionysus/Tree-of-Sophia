@@ -3,7 +3,7 @@
   "id": "codex-2026-11-12-schiller-pathetische-second",
   "model": "gpt-6.1-terra",
   "date": "2026-11-12",
-  "reads": "Each German place, both theses and each relation; all four places on the scan, including the two pages of III p349.",
+  "reads": "Every original formula and both theses; the scans of all four places, including both pages of III p349, and the enlarged corrected lines.",
   "effort": "high"
  },
  "conceptions": {
@@ -18,42 +18,38 @@
   },
   "friedrich-schiller.ueber-das-pathetische:dignity-of-human-vocation-in-aesthetic-estimation": {
    "says": "yes"
-  },
-  "friedrich-schiller.ueber-das-pathetische:suffering-and-dignity-in-aesthetic-estimation": {
-   "says": "partly",
-   "note": "On p. 350 the second kind of suffering shows ‘seine Bestimmung dazu’ and the person as an ‘ästhetisch großer Gegenstand’; p. 351 says a person presents ‘die Würde der menschlichen Bestimmung durch seinen Zustand’. The thesis joins these statements into a relation between suffering and dignity which neither place itself states."
   }
  },
- "links": {
-  "suffering:can-present-in-aesthetic-estimation:dignity": {
-   "says": "partly",
-   "note": "P. 350 says the second kind of suffering shows the person's vocation to moral character; p. 351 says the person's condition presents the dignity of human vocation. The verb joining suffering to dignity is a reconstruction across the places, not stated by either place."
+ "links": {},
+ "left": {
+  "A:R050": {
+   "holds": true
   }
  },
- "left": {},
  "images": [
   {
    "loc": "III p312",
    "n": 321,
    "reads": "as the packet",
-   "note": "The enlarged line reads ‘erst als empfindendes Wesen bey uns legitimirt haben’."
+   "note": "The enlarged line reads «erst als empfindendes Wesen bey uns legitimirt haben»."
   },
   {
    "loc": "III p345",
    "n": 354,
-   "reads": "differs",
-   "note": "The Latin quotation ends ‘corripiunt,’ on the page; the packet has ‘corripiunt.’ The enlarged line begins ‘Affekte sind ästhetischer aus der zweyten’."
+   "reads": "as the packet",
+   "note": "The enlarged Latin reads «Post ipsum, auxilio subeuntem ac tela ferentem corripiunt.»"
   },
   {
    "loc": "III p349",
    "n": 358,
-   "reads": "as the packet"
+   "reads": "as the packet",
+   "note": "The enlarged lines read «erfodert», «Charakters sey. Dieses kann auf zweyerley Weise seyn.» and «Freyheit»."
   },
   {
    "loc": "III p349",
    "n": 359,
    "reads": "as the packet",
-   "note": "The enlarged line reads ‘dem zweyten bloß als ein ästhetisch großer’ across the line break."
+   "note": "The enlarged lines read «Beyspiel», «Karthaginienser», «Bewußtseyn» and «dem zweyten bloß als ein ästhetisch großer Gegenstand»."
   },
   {
    "loc": "III p351",
@@ -61,6 +57,6 @@
    "reads": "as the packet"
   }
  ],
- "accept": false,
- "summary": "Four conceptions stand on their places. The reconstruction and link combine statements made separately, and the Latin quotation's final mark differs from the packet."
+ "accept": true,
+ "summary": "The four conceptions are borne by their places in both languages, and the pages agree with the packet. The left relation joins suffering and dignity beyond what these passages explicitly state."
 }

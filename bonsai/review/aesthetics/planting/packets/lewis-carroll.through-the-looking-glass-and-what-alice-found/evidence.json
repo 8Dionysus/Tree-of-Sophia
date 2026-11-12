@@ -1,0 +1,212 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/throughlooking00carr/throughlooking00carr_hocr_searchtext.txt.gz",
+   "file": "throughlooking00carr.ocr.txt",
+   "sha256": "f2c8f02d91acc53e33a742c711ec94feb6f829323348ae77998c2aeab12d97ad",
+   "bytes": 207965,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/throughlooking00carr/throughlooking00carr_hocr_pageindex.json.gz",
+   "file": "throughlooking00carr.index.json",
+   "sha256": "241140bd6eb124c927c36c1acb83ed6909e3b733e27ca8b3b983882cf7de19b5",
+   "bytes": 9149,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "transcription",
+   "url": "https://www.gutenberg.org/files/12/12-h/12-h.htm",
+   "file": "12-h.htm",
+   "sha256": "e6630201638786c85a113bbbde0e28058f98ce50847b393626195b7e5c9f6105",
+   "bytes": 190705,
+   "fetched": "2026-11-11",
+   "text": "12-h.htm.txt"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/throughlooking00carr/throughlooking00carr_page_numbers.json",
+   "file": "throughlooking00carr.pages.json",
+   "sha256": "cd784c3c904295a12de7eb4bbace45fc7128ba354c4f82f46301bda6f36fc740",
+   "bytes": 44532,
+   "fetched": "2026-11-11"
+  }
+ ],
+ "scan": {
+  "item": "throughlooking00carr",
+  "ocr": true,
+  "long_s": false,
+  "image_offset": -1
+ },
+ "persons": [
+  {
+   "qid": "Q38082",
+   "name": {
+    "en": "Lewis Carroll",
+    "ru": "Льюис Кэрролл"
+   },
+   "role": "author",
+   "died": 1898,
+   "source": "https://www.wikidata.org/wiki/Q38082"
+  }
+ ],
+ "published": 1872,
+ "images": [
+  {
+   "n": 147,
+   "item": "throughlooking00carr",
+   "file": "throughlooking00carr-n147.jpg",
+   "sha256": "f14663f22042a690fd631381acc2a0a92dd2a995da501626aac51f5ca51f24fe",
+   "by": "maker"
+  },
+  {
+   "n": 143,
+   "item": "throughlooking00carr",
+   "file": "throughlooking00carr-n143.jpg",
+   "sha256": "09439e133f7336422a2723fe57a7a10f3790b8614094953c29c949557acc7358",
+   "by": "maker"
+  },
+  {
+   "n": 145,
+   "item": "throughlooking00carr",
+   "file": "throughlooking00carr-n145.jpg",
+   "sha256": "17b3efc9bf59e8dfab8d56641482e3eac4efc083d8fae90a36cb38197ba25adf",
+   "by": "maker"
+  },
+  {
+   "n": 146,
+   "item": "throughlooking00carr",
+   "file": "throughlooking00carr-n146.jpg",
+   "sha256": "898fa974222f7ff9458496d5f10b0a2b7f03000169f1eb0a354ad782f08ea649",
+   "by": "maker"
+  },
+  {
+   "n": 141,
+   "item": "throughlooking00carr",
+   "file": "throughlooking00carr-n141.jpg",
+   "sha256": "eb51b228be30e219a9368cd5959b434e0bf3f53bd779676c3b505842ff4e55ea",
+   "by": "maker"
+  },
+  {
+   "n": 141,
+   "item": "throughlooking00carr",
+   "file": "throughlooking00carr-n141.jpg",
+   "sha256": "eb51b228be30e219a9368cd5959b434e0bf3f53bd779676c3b505842ff4e55ea",
+   "by": "second",
+   "loc": "VI p123"
+  },
+  {
+   "n": 142,
+   "item": "throughlooking00carr",
+   "file": "throughlooking00carr-n142.jpg",
+   "sha256": "668a921caa7bc155fb86641148f49e0e2438c7baeb2abf9c18c13faefbb904fc",
+   "by": "maker"
+  },
+  {
+   "n": 144,
+   "item": "throughlooking00carr",
+   "file": "throughlooking00carr-n144.jpg",
+   "sha256": "66e4da1db4aca1b50758036bb66ea2399a64dc90e1b7c61e70802a7c01d9b3fc",
+   "by": "second",
+   "loc": "VI p123"
+  },
+  {
+   "n": 146,
+   "item": "throughlooking00carr",
+   "file": "throughlooking00carr-n146.jpg",
+   "sha256": "898fa974222f7ff9458496d5f10b0a2b7f03000169f1eb0a354ad782f08ea649",
+   "by": "second",
+   "loc": "VI p126"
+  },
+  {
+   "n": 147,
+   "item": "throughlooking00carr",
+   "file": "throughlooking00carr-n147.jpg",
+   "sha256": "f14663f22042a690fd631381acc2a0a92dd2a995da501626aac51f5ca51f24fe",
+   "by": "second",
+   "loc": "VI p126"
+  },
+  {
+   "n": 145,
+   "item": "throughlooking00carr",
+   "file": "throughlooking00carr-n145.jpg",
+   "sha256": "17b3efc9bf59e8dfab8d56641482e3eac4efc083d8fae90a36cb38197ba25adf",
+   "by": "second",
+   "loc": "VI p126"
+  },
+  {
+   "n": 143,
+   "item": "throughlooking00carr",
+   "file": "throughlooking00carr-n143.jpg",
+   "sha256": "09439e133f7336422a2723fe57a7a10f3790b8614094953c29c949557acc7358",
+   "by": "second",
+   "loc": "VI p123"
+  },
+  {
+   "n": 142,
+   "item": "throughlooking00carr",
+   "file": "throughlooking00carr-n142.jpg",
+   "sha256": "668a921caa7bc155fb86641148f49e0e2438c7baeb2abf9c18c13faefbb904fc",
+   "by": "second",
+   "loc": "VI p123"
+  }
+ ],
+ "places": {
+  "VI p126": {
+   "transcription": "12-h.htm",
+   "scan": "throughlooking00carr",
+   "method": "ocr",
+   "share": 0.881,
+   "leaves": [
+    146,
+    147
+   ],
+   "printed": [
+    "126",
+    "127"
+   ],
+   "differences": [
+    {
+     "transcription": "'",
+     "ocr": "HUMPTY DUMPTY . 127 *",
+     "leaf": 147,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "",
+     "ocr": ".",
+     "leaf": 147,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "'",
+     "ocr": "*",
+     "leaf": 147,
+     "stands": "transcription"
+    },
+    {
+     "transcription": ". '",
+     "ocr": "/",
+     "leaf": 147,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "-",
+     "ocr": "",
+     "leaf": 147,
+     "stands": "transcription"
+    }
+   ]
+  }
+ },
+ "scans": {
+  "throughlooking00carr": {
+   "item": "throughlooking00carr",
+   "ocr": true,
+   "long_s": false,
+   "image_offset": -1
+  }
+ }
+}

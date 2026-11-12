@@ -1,0 +1,136 @@
+{
+ "reader": {
+  "id": "terra-2026-11-12-ueber-den-grund-des-vergnuegens-an-tragi",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-12",
+  "reads": "Read the German 1813 Cotta printing beside the register readings, with the 1792 Wikisource transcription.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "friedrich-schiller": {
+    "tree": "tos.agent.friedrich-schiller"
+   }
+  },
+  "works": {
+   "friedrich-schiller.ueber-den-grund-des-vergnuegens-an-tragischen": {
+    "title": {
+     "ru": "О причине наслаждения трагическими предметами",
+     "en": "On the Ground of Pleasure in Tragic Objects"
+    },
+    "original": "de",
+    "tree": "tos.work.friedrich-schiller.ueber-den-grund-des-vergnuegens-an-tragischen",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "friedrich-schiller.ueber-den-grund-des-vergnuegens-an-tragischen:moral-law-and-tragic-pleasure",
+   "of": [
+    "A:C154",
+    "A:C046"
+   ],
+   "areas": [
+    "AE05"
+   ],
+   "work": "friedrich-schiller.ueber-den-grund-des-vergnuegens-an-tragischen",
+   "locus": "Essay III",
+   "formula": [
+    {
+     "place": "III p154"
+    }
+   ],
+   "thesis": {
+    "ru": "При виде Хюона и Аманды переживание победной силы нравственного закона есть столь великое, столь существенное благо, что возникает даже искушение примириться со злом, которому оно обязано.",
+    "en": "In seeing Hüon and Amanda, the experience of the victorious power of the moral law is so great, so essential a good that we are even tempted to reconcile ourselves to the evil to which we owe it."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The register states a general negative claim; this example describes the experience of moral law as a good amid evil.",
+   "from": [
+    "A:E083"
+   ]
+  },
+  {
+   "id": "friedrich-schiller.ueber-den-grund-des-vergnuegens-an-tragischen:being-moved-as-mixed-feeling",
+   "of": [
+    "A:C046"
+   ],
+   "areas": [
+    "AE05"
+   ],
+   "work": "friedrich-schiller.ueber-den-grund-des-vergnuegens-an-tragischen",
+   "locus": "Essay III",
+   "formula": [
+    {
+     "place": "III p150"
+    }
+   ],
+   "thesis": {
+    "ru": "Тронутость в строгом смысле обозначает смешанное чувство страдания и удовольствия от страдания.",
+    "en": "Being moved, in the strict sense, denotes the mixed feeling of suffering and pleasure in suffering."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The cited definition speaks of Rührung, suffering and pleasure in suffering; it does not itself identify that pleasure as tragic pleasure.",
+   "from": [
+    "A:E083"
+   ]
+  },
+  {
+   "id": "friedrich-schiller.ueber-den-grund-des-vergnuegens-an-tragischen:moral-purposiveness-tragic-emotion-and-suffering",
+   "of": [
+    "A:C154",
+    "A:C046"
+   ],
+   "areas": [
+    "AE05"
+   ],
+   "work": "friedrich-schiller.ueber-den-grund-des-vergnuegens-an-tragischen",
+   "locus": "Essay III",
+   "formula": [
+    {
+     "place": "III p161"
+    }
+   ],
+   "thesis": {
+    "ru": "Чувство нравственной целесообразности лежит в основании трагической тронутости и нашего удовольствия от страдания.",
+    "en": "The feeling of moral purposiveness lies at the foundation of tragic emotion and our pleasure in suffering."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The register says tragic pleasure is not reducible to pleasant suffering; the sentence specifies a common ground for tragic emotion and pleasure in suffering.",
+   "from": [
+    "A:E083"
+   ]
+  }
+ ],
+ "links": [],
+ "left": [
+  {
+   "key": "A:R076",
+   "reason": "The second reader (second-2026-11-12-schiller-tragic-pleasure) does not confirm tragic-pleasure:shares-a-moral-ground-with-pleasure-in:suffering, or its ground is disputed: Page 161 says that the feeling of moral purposiveness lies at the ground of ‘der tragischen Rührung und unserer Lust an dem Leiden’; page 154 calls the experience of the moral law a good in the particular sight of Hüon and Amanda. Neither place states the proposed common ground of tragic pleasure generally and pleasure in suffering: tragic emotion and tragic pleasure are not named as the same thing in these places.",
+   "disputed": {
+    "id": "tragic-pleasure:shares-a-moral-ground-with-pleasure-in:suffering",
+    "from_concept": "A:C154",
+    "to_concept": "A:C046",
+    "verb": {
+     "ru": "разделяет нравственное основание с удовольствием от",
+     "en": "shares a moral ground with pleasure in"
+    },
+    "grounds": [
+     "friedrich-schiller.ueber-den-grund-des-vergnuegens-an-tragischen:moral-law-and-tragic-pleasure",
+     "friedrich-schiller.ueber-den-grund-des-vergnuegens-an-tragischen:moral-purposiveness-tragic-emotion-and-suffering"
+    ],
+    "status": "reconstruction",
+    "verdict": "reconstruction",
+    "note": "The page 154 example grounds pleasure in the experience of moral law and explicitly calls that moral purposiveness; page 161 names moral purposiveness as the ground of tragic emotion and pleasure in suffering. Their relation is reconstructed without equating tragic pleasure with pleasure in suffering.",
+    "from": [
+     "A:R076"
+    ]
+   }
+  }
+ ]
+}

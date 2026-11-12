@@ -1,0 +1,156 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/leonebattistaalb00albe/leonebattistaalb00albe_hocr_searchtext.txt.gz",
+   "file": "leonebattistaalb00albe.ocr.txt",
+   "sha256": "0ed6db73a3d1f898aa91f9d3d37eb76bcf4bb29c34dfbc5d1bfb7775c7c2e7c4",
+   "bytes": 1587700,
+   "fetched": "2026-11-12"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/leonebattistaalb00albe/leonebattistaalb00albe_hocr_pageindex.json.gz",
+   "file": "leonebattistaalb00albe.index.json",
+   "sha256": "9ac3388a683138bd76282c7a95834554dd871deb49571fcf99dd4311e86b414e",
+   "bytes": 28757,
+   "fetched": "2026-11-12"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/leonebattistaalb00albe/leonebattistaalb00albe_page_numbers.json",
+   "file": "leonebattistaalb00albe.pages.json",
+   "sha256": "f6b06aeca09a577e5d3ddf9a4674b5dc6f8631a8b8dddf1a762eea6cce51a50f",
+   "bytes": 129471,
+   "fetched": "2026-11-12"
+  },
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/leonebattistaal00janigoog/leonebattistaal00janigoog_hocr_searchtext.txt.gz",
+   "file": "leonebattistaal00janigoog.ocr.txt",
+   "sha256": "3dec1af9636f4c45e7fc16310df37e76ba620b83bb5452a432abcb79f4f50747",
+   "bytes": 1125724,
+   "fetched": "2026-11-12"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/leonebattistaal00janigoog/leonebattistaal00janigoog_hocr_pageindex.json.gz",
+   "file": "leonebattistaal00janigoog.index.json",
+   "sha256": "203ae4a131f2d79ea675840a1e4edd8446431e05b5e723fc441b43051e683787",
+   "bytes": 18933,
+   "fetched": "2026-11-12"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/leonebattistaal00janigoog/leonebattistaal00janigoog_page_numbers.json",
+   "file": "leonebattistaal00janigoog.pages.json",
+   "sha256": "bff3950d90537c89f1dbec1f4b294c58c8db5b8f5903dc3e04681d1527d68cd6",
+   "bytes": 101562,
+   "fetched": "2026-11-12"
+  },
+  {
+   "role": "transcription",
+   "url": "https://it.wikisource.org/api/rest_v1/page/html/Della_pittura_%28Alberti%29%2FLibro_secondo",
+   "file": "rest.html",
+   "sha256": "d6f78f0ec48d2916366938f85f9aca7110aa6f104492da742aa35082e2306ae8",
+   "bytes": 116189,
+   "fetched": "2026-11-12",
+   "text": "rest.html.txt"
+  }
+ ],
+ "scan": {
+  "item": "leonebattistaalb00albe",
+  "ocr": true,
+  "long_s": false,
+  "image_offset": -1
+ },
+ "persons": [
+  {
+   "qid": "Q5828092",
+   "name": {
+    "en": "Hubert Janitschek",
+    "ru": "Губерт Янтишек"
+   },
+   "role": "editor",
+   "died": 1893,
+   "source": "https://www.wikidata.org/wiki/Q5828092"
+  },
+  {
+   "name": {
+    "en": "Leon Battista Alberti",
+    "ru": "Леон Баттиста Альберти"
+   },
+   "role": "author",
+   "died": 1472,
+   "source": "https://www.wikidata.org/wiki/Q182046"
+  }
+ ],
+ "published": 1877,
+ "images": [
+  {
+   "n": 117,
+   "item": "leonebattistaalb00albe",
+   "file": "leonebattistaalb00albe-n117.jpg",
+   "sha256": "52bd0a7ed8596aa71d4578261c2aeb35a12f078e7413a8015cbc88e33c19e2f6",
+   "by": "maker"
+  },
+  {
+   "n": 116,
+   "item": "leonebattistaalb00albe",
+   "file": "leonebattistaalb00albe-n116.jpg",
+   "sha256": "7d021649529f351ca3543d102f16b0a556cf606809b6a843735133d9cdbd26da",
+   "by": "maker",
+   "loc": "II p105"
+  },
+  {
+   "n": 116,
+   "item": "leonebattistaalb00albe",
+   "file": "leonebattistaalb00albe-n116.jpg",
+   "sha256": "7d021649529f351ca3543d102f16b0a556cf606809b6a843735133d9cdbd26da",
+   "by": "second",
+   "loc": "II p105"
+  }
+ ],
+ "places": {
+  "II p105": {
+   "transcription": "rest.html",
+   "scan": "leonebattistaalb00albe",
+   "method": "ocr",
+   "share": 0.98,
+   "leaves": [
+    117
+   ],
+   "printed": [
+    "105"
+   ],
+   "differences": [
+    {
+     "transcription": "l",
+     "ocr": "1",
+     "leaf": 117,
+     "stands": "transcription"
+    }
+   ]
+  }
+ },
+ "scans": {
+  "operevolgari04albegoog": {
+   "item": "operevolgari04albegoog",
+   "ocr": false,
+   "long_s": false,
+   "image_offset": null
+  },
+  "leonebattistaalb00albe": {
+   "item": "leonebattistaalb00albe",
+   "ocr": true,
+   "long_s": false,
+   "image_offset": -1
+  },
+  "leonebattistaal00janigoog": {
+   "item": "leonebattistaal00janigoog",
+   "ocr": true,
+   "long_s": false,
+   "image_offset": null
+  }
+ }
+}

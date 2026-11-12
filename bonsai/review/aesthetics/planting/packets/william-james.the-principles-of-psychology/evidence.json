@@ -1,0 +1,174 @@
+{
+ "sources": [
+  {
+   "role": "transcription",
+   "url": "https://www.gutenberg.org/files/57628/57628-0.txt",
+   "file": "57628-0.txt",
+   "sha256": "49eb4ed7eb329e21b11ab9437bcf2fcb6c3b309872697cf6c3e23510db12d863",
+   "bytes": 1650219,
+   "fetched": "2026-11-12",
+   "text": "57628-0.txt.txt"
+  },
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/principlesofpsyc001jame/principlesofpsyc001jame_hocr_searchtext.txt.gz",
+   "file": "principlesofpsyc001jame.ocr.txt",
+   "sha256": "431831701dbeafd18cf64dfe4772bfd8ec7c8ad533d57809b430a3b405c91f39",
+   "bytes": 1918806,
+   "fetched": "2026-11-12"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/principlesofpsyc001jame/principlesofpsyc001jame_hocr_pageindex.json.gz",
+   "file": "principlesofpsyc001jame.index.json",
+   "sha256": "dedca3cdf0114faed6d0bf25c00896026707e1abe6963ed8e550047487f498fe",
+   "bytes": 27445,
+   "fetched": "2026-11-12"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/principlesofpsyc001jame/principlesofpsyc001jame_page_numbers.json",
+   "file": "principlesofpsyc001jame.pages.json",
+   "sha256": "cac15f8fb0409c161c8484a751f9ababba4de223d490798c716689f6cff39719",
+   "bytes": 121929,
+   "fetched": "2026-11-12"
+  }
+ ],
+ "scan": {
+  "item": "principlesofpsyc001jame",
+  "ocr": true,
+  "long_s": false,
+  "image_offset": -1
+ },
+ "persons": [
+  {
+   "qid": "Q125249",
+   "name": {
+    "en": "William James",
+    "ru": "Уильям Джеймс"
+   },
+   "role": "author",
+   "died": 1910,
+   "source": "https://www.wikidata.org/wiki/Q125249"
+  }
+ ],
+ "published": 1890,
+ "images": [
+  {
+   "n": 423,
+   "item": "principlesofpsyc001jame",
+   "file": "principlesofpsyc001jame-n423.jpg",
+   "sha256": "d0bdfda9e892f24921561450edd35a5a29b43b19cdff87f618fb6b8fa3594286",
+   "by": "maker"
+  },
+  {
+   "n": 422,
+   "item": "principlesofpsyc001jame",
+   "file": "principlesofpsyc001jame-n422.jpg",
+   "sha256": "d199113be5c89f579d9a7634e66b14f8ef0e0bad2b1bbee8014cc1ca22cc5693",
+   "by": "maker"
+  },
+  {
+   "n": 421,
+   "item": "principlesofpsyc001jame",
+   "file": "principlesofpsyc001jame-n421.jpg",
+   "sha256": "6be60da6d57e3842515297f2c89c7a8c1586ce6741c88c85f01b7778aced2618",
+   "by": "maker"
+  },
+  {
+   "n": 421,
+   "item": "principlesofpsyc001jame",
+   "file": "principlesofpsyc001jame-n421.jpg",
+   "sha256": "6be60da6d57e3842515297f2c89c7a8c1586ce6741c88c85f01b7778aced2618",
+   "by": "second",
+   "loc": "XI p402"
+  },
+  {
+   "n": 422,
+   "item": "principlesofpsyc001jame",
+   "file": "principlesofpsyc001jame-n422.jpg",
+   "sha256": "d199113be5c89f579d9a7634e66b14f8ef0e0bad2b1bbee8014cc1ca22cc5693",
+   "by": "second",
+   "loc": "XI p403a"
+  },
+  {
+   "n": 423,
+   "item": "principlesofpsyc001jame",
+   "file": "principlesofpsyc001jame-n423.jpg",
+   "sha256": "d0bdfda9e892f24921561450edd35a5a29b43b19cdff87f618fb6b8fa3594286",
+   "by": "second",
+   "loc": "XI p403a"
+  }
+ ],
+ "places": {
+  "XI p403a": {
+   "transcription": "57628-0.txt",
+   "scan": "principlesofpsyc001jame",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    423,
+    424
+   ],
+   "printed": [
+    "403",
+    "404"
+   ],
+   "differences": [
+    {
+     "transcription": "",
+     "ocr": "404 PSYCHOLOGY .",
+     "leaf": 424,
+     "stands": "transcription"
+    }
+   ]
+  },
+  "XI p403b": {
+   "transcription": "57628-0.txt",
+   "scan": "principlesofpsyc001jame",
+   "method": "ocr",
+   "share": 0.995,
+   "leaves": [
+    423
+   ],
+   "printed": [
+    "403"
+   ],
+   "differences": [
+    {
+     "transcription": "drops",
+     "ocr": "droj ) S",
+     "leaf": 423,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "-",
+     "ocr": "",
+     "leaf": 423,
+     "stands": "transcription"
+    }
+   ]
+  },
+  "XI p402": {
+   "transcription": "57628-0.txt",
+   "scan": "principlesofpsyc001jame",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    422
+   ],
+   "printed": [
+    "402"
+   ],
+   "differences": []
+  }
+ },
+ "scans": {
+  "principlesofpsyc001jame": {
+   "item": "principlesofpsyc001jame",
+   "ocr": true,
+   "long_s": false,
+   "image_offset": -1
+  }
+ }
+}

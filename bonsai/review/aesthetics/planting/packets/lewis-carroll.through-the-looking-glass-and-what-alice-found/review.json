@@ -1,0 +1,54 @@
+{
+ "reader": {
+  "id": "codex-2026-11-12-looking-glass-second",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-12",
+  "reads": "Read both places in English, each thesis against its place, the left relations against the chapter and transcription, and printed pages 123, 124, 126 and 127 on the scan.",
+  "effort": "high"
+ },
+ "conceptions": {
+  "lewis-carroll.through-the-looking-glass-and-what-alice-found:two-meanings-in-one-word": {
+   "says": "yes"
+  },
+  "lewis-carroll.through-the-looking-glass-and-what-alice-found:glory-and-knock-down-argument": {
+   "says": "partly",
+   "note": "The exchange says what the thesis reports, but the cut begins with ‘That seems to be done right’ without the preceding calculation to which ‘That’ refers. The opening book and upside-down calculation dialogue also contains sentences beyond those needed for the glory exchange."
+  }
+ },
+ "links": {},
+ "left": {
+  "A:R132": {
+   "holds": true
+  },
+  "A:R133": {
+   "holds": true
+  },
+  "A:R177": {
+   "holds": true
+  }
+ },
+ "images": [
+  {
+   "loc": "VI p123",
+   "n": 142,
+   "reads": "as the packet"
+  },
+  {
+   "loc": "VI p123",
+   "n": 143,
+   "reads": "as the packet"
+  },
+  {
+   "loc": "VI p126",
+   "n": 145,
+   "reads": "as the packet"
+  },
+  {
+   "loc": "VI p126",
+   "n": 146,
+   "reads": "as the packet"
+  }
+ ],
+ "accept": false,
+ "summary": "The slithy explanation and the reasons for leaving the three relations stand. The glory thesis matches the exchange, but its cut starts with a reference to a calculation outside the place and includes unnecessary earlier dialogue."
+}
