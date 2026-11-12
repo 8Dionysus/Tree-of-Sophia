@@ -127,7 +127,7 @@ export function antiquityTimeline({routes=[],entries=[],chronology=null,passageI
   const centuries=Array.from({length:(max-min)/100},(_,i)=>min+i*100);
   const weights=centuries.map(start=>weightedWorks?1+2*Math.sqrt(counts.get(start)??0):1),total=weights.reduce((a,b)=>a+b,0);
   const offsets=[0];for(const weight of weights)offsets.push(offsets.at(-1)+weight/total*width);
-  const xOfYear=year=>{const index=Math.max(0,Math.min(centuries.length-1,Math.floor((year-min)/100)));return -width/2+offsets[index]+(year-centuries[index])/100*(offsets[index+1]-offsets[index]);};
+  const xOfYear=year=>{if(!weightedWorks)return (year-min)/(max-min)*width-width/2;const index=Math.max(0,Math.min(centuries.length-1,Math.floor((year-min)/100)));return -width/2+offsets[index]+(year-centuries[index])/100*(offsets[index+1]-offsets[index]);};
   const positions=new Map(),lanes=[],yearOf=new Map();
   for(const route of routes){
     const ids=[...new Set((route.steps??[]).map(step=>step.nodeId??step.graphNodeId))].filter(id=>timeOf.has(id)&&!positions.has(id));
@@ -188,7 +188,7 @@ export function aestheticsTimeline({field,library,chronology}){
   const entries=[...Object.keys(chronology.lives??{}).map(id=>({id,kind:'author'})),...field.conceptions.map(item=>({id:item.id,workId:item.work,author:item.agents?.[0]}))];
   const timeline=antiquityTimeline({routes:rows,entries,chronology,passageIdOf:id=>String(id).replace(/^aesthetics:reading:/,''),laneSpacing:70,weightedWorks:true});
   if(!timeline)return null;
-  return {...timeline,labels:(locale,options)=>timeline.labels(locale,options).map(label=>{if(label.variant!=='lane')return label;const {hint,ref,...group}=label;return group;})};
+  return {...timeline,labels:(locale,options)=>timeline.labels(locale,options).map(label=>{if(label.variant==='axis')return {...label,noOverlap:true};if(label.variant!=='lane')return label;const {hint,ref,...group}=label;return group;})};
 }
 
 /**

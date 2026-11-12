@@ -70,7 +70,7 @@ describe('Aesthetics field projection',()=>{
     for(const locale of ['ru','en','es','de','zh-Hans']){
       const labels=time.labels(locale).filter(label=>label.variant==='axis'),visible=[];
       // A 360px map after the row-name strip; use conservative widths for the axis font.
-      for(const label of labels){const x=(label.center[0]-time.bounds[0])/(time.bounds[1]-time.bounds[0])*360,width=Math.max(24,Array.from(label.title).length*9+12),area={left:x-width/2,right:x+width/2,top:0,bottom:16};if(area.left>=0&&area.right<=360&&scaleLabelClear(area,visible))visible.push(area);}
+      for(const label of labels){expect(label.noOverlap).toBe(true);const x=(label.center[0]-time.bounds[0])/(time.bounds[1]-time.bounds[0])*360,width=Math.max(24,Array.from(label.title).length*9+12),area={left:x-width/2,right:x+width/2,top:0,bottom:16};if(area.left>=0&&area.right<=360&&scaleLabelClear(area,visible))visible.push(area);}
       expect(visible.length).toBeGreaterThan(1);
       for(let i=1;i<visible.length;i++)expect(visible[i].left).toBeGreaterThanOrEqual(visible[i-1].right+2);
     }
