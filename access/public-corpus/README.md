@@ -8,7 +8,7 @@ with `ToS/research-packets/public-prototypes-20261026/`.
 
 Both profiles select the same 51 works: *Zarathustra*, the 49 books in the
 retained Antiquity collection, and Xenophon’s *Memorabilia*. The selection
-contains 140 reading versions, including 17 captured Russian Karpov translations
+contains 141 reading versions, including 17 captured Russian Karpov translations
 of Plato from Wikisource and the complete English Dakyns *Memorabilia*. The
 39-chapter reading retains editorial footnotes; the source prints chapter XII
 twice in Book III, and the second is numbered 13 for navigation only. The
@@ -183,3 +183,9 @@ versions and IDs are retained separately. DWDSmor candidates are reused only
 for exactly equal forms, unranked and without a contextual correctness claim.
 The bonsai's automatic sentence alignment is displayed as unreviewed and
 only after target text agrees exactly with the selected reader version.
+
+The independent Platonova 1894 Russian Rhetoric reading is limited to Book I,
+chapter 1 (printed pp. 1–7). The scan is retained separately; footnotes and the
+chapter synopsis are omitted. The Antiquity stand's two cited opening ranges
+were checked against the printed pages and their Greek correspondence; the
+rest of the chapter and other chapters are not thereby accepted as reviewed.

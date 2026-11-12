@@ -138,6 +138,20 @@ describe('the corpus alignment of the stands',()=>{
     const ru=read('tos.work.retained-antiquity.enchiridion').versions.find(version=>version.id===id);
     expect(ru.units).toHaveLength(4);
   });
+  it.skipIf(!corpusFetched)('binds Platonova’s Russian Rhetoric opening only to Book I chapter 1',()=>{
+    const module=json('bonsai/antiquity/alignment.json');
+    const id='retained-rhetoric-ru-platonova1894-book1-ch1';
+    const chapter='tos.text-unit.sid-687a8faa55b74f62963435475ae0781f';
+    const entry=module.units[chapter].t[id];
+    const ru=read('tos.work.retained-antiquity.rhetoric').versions.find(version=>version.id===id);
+    expect(ru.units).toHaveLength(1);
+    const first=entry.pairs[0][1].map(([i,s,e])=>Array.from(ru.units.find(unit=>unit.id===entry.u[i]).text).slice(s,e).join('')).join(' ');
+    expect(first).toContain('Риторика — искусство, соотвѣтствующее діалектикѣ');
+    expect(first).toContain('какъ оправдываться, такъ и обвинять');
+    for(const [unit,item] of Object.entries(module.units)){
+      if(unit!==chapter&&item.w==='rhetoric')expect(item.t[id]).toBeUndefined();
+    }
+  });
   for(const stand of ['zarathustra','antiquity'])it.skipIf(!corpusFetched)(`${stand}: holds every cited unit except places outside all translation scopes`,()=>{
     const module=json(`bonsai/${stand}/alignment.json`),works=worksOf(stand);
     const scopes=stand==='antiquity'?json('bonsai/antiquity/translation-scopes.json').scopes:[];
