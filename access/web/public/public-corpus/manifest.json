@@ -1,6 +1,6 @@
 {
   "schema_version": "tos_public_corpus_snapshot_v1",
-  "revision": "06ef01a01d9081f504e51ba219953165d294796fd47abe8b65d49b30326a5acc",
+  "revision": "f277bb729278e1fb2a00320000cdfb5a159150ca8687c65af282569d31f5c53e",
   "profiles": {
     "zarathustra": {
       "label": "Заратустра",
@@ -55,7 +55,8 @@
         "tos.work.retained-antiquity.sacred-disease",
         "tos.work.retained-antiquity.isagoge",
         "tos.work.retained-antiquity.enneads",
-        "tos.work.xenophon.memorabilia"
+        "tos.work.xenophon.memorabilia",
+        "tos.work.seneca.letters-to-lucilius"
       ],
       "initialDocumentId": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
       "journeysRef": "ToS/research-packets/public-prototypes-20261026/journeys.zarathustra.v1.json",
@@ -292,7 +293,8 @@
         "tos.work.retained-antiquity.sacred-disease",
         "tos.work.retained-antiquity.isagoge",
         "tos.work.retained-antiquity.enneads",
-        "tos.work.xenophon.memorabilia"
+        "tos.work.xenophon.memorabilia",
+        "tos.work.seneca.letters-to-lucilius"
       ],
       "initialDocumentId": "tos.work.plato.meno",
       "journeysRef": "ToS/research-packets/public-prototypes-20261026/journeys.antiquity.v1.json",
@@ -968,6 +970,16 @@
         "path": "documents/8dc7e4d11dacd06717015a822d4965b9763355ed3f85f1c31cf0bde80aa216fc.json",
         "sha256": "8dc7e4d11dacd06717015a822d4965b9763355ed3f85f1c31cf0bde80aa216fc",
         "bytes": 13445
+      }
+    },
+    {
+      "id": "tos.work.seneca.letters-to-lucilius",
+      "title": "Moral Letters to Lucilius",
+      "author": "Seneca",
+      "manifest": {
+        "path": "documents/e8919cbde7f6a3a491f2bf77125b373823be270638c98df8091b7439f9e028b7.json",
+        "sha256": "e8919cbde7f6a3a491f2bf77125b373823be270638c98df8091b7439f9e028b7",
+        "bytes": 34347
       }
     }
   ]
