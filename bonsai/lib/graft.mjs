@@ -22,7 +22,7 @@ import {termsIssues} from './terms.mjs';
 import {isLayerPath,layerStatus,layersIssues,layersOnDisk,readLayers} from './layers.mjs';
 import {renderingsIssues,spellingIssues,termFormGaps,tokenChapterIssues,TOKENS_SCHEMA} from './tokens.mjs';
 import {corpusReader} from './corpus-align.mjs';
-import {mediaIssues} from './media.mjs';
+import {mediaIssues,mediaNamesIssues} from './media.mjs';
 import {fieldCites,fieldIssues,fieldSubjects,libraryIssues} from './field.mjs';
 
 export const MANIFEST_SCHEMA='tos.bonsai.v1';
@@ -218,6 +218,8 @@ export function checkBonsai(root,id,{validator=treeContracts(root),relations,ide
       :core?new Set([...core.concepts,...core.figures,...core.proposed,...core.chains.flatMap(chain=>chain.states??[]),...core.links].map(record=>record.id))
       :modules.field?fieldSubjects(modules.field,modules.library??null):null;
     problems.push(...mediaIssues(modules.media,{subjects,identities:modules.identities??{},digest:textDigest,layers:mediaLayers??layers}).map(issue=>`media: ${issue}`));
+    // A reader sees each work in their own language alone: the Tree names it where the providers' words are in another.
+    problems.push(...mediaNamesIssues(modules['media-names']??null,modules.media).map(issue=>`media names: ${issue}`));
   }
   let registry=null;
   if(modules.objects||modules.core||modules.field){try{registry=semanticRegistry(root);}catch(error){problems.push(`entity registry: ${error.message}`);}}

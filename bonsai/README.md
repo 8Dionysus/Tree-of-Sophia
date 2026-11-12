@@ -387,6 +387,22 @@ provider's file hosts in `lib/media-hosts.mjs` (`FILE_HOSTS`). A new provider's
 image service host joins `MEDIA_HOSTS` there with its first medium: the site's
 Content-Security-Policy admits images from those hosts alone.
 
+### Media names (`tos.bonsai.media-names.v1`)
+
+A reader sees a work in their own language alone: the language the interface
+speaks to them in, as `translationLanguage` in [`lib/locales.mjs`](lib/locales.mjs)
+gives it. The providers write their records in their own languages (the Met in
+English, the Rijksmuseum in Dutch, Berlin in German; `PROVIDER_LANGUAGES` in
+[`lib/media.mjs`](lib/media.mjs) names the language of a record that tags none),
+so `media-names.json` holds the Tree's own names of each work in the stands'
+languages: its titles, its series and who made it, keyed by the work, and the
+names of its holders. A caption shows, part by part, the Tree's name in the
+reader's language where it has one, else the provider's words where they are in
+that language, and nothing in any other language; the words written on the
+object stand as written. The check asks every work to be named in English and
+Russian (its title always, its series and makers where the provider gives
+them, and its holder), and `media add` lists what a new work still needs.
+
 ### Layers kept in R2 (`tos.bonsai.layers.v1`)
 
 A stand's generated layers live in R2, in `tos-public-layers` under

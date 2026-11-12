@@ -1,9 +1,9 @@
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {describe,expect,it} from 'vitest';
-import {OPEN_FLAGS,addMedia,mediaFilePath,mediaFromObservation,mediaIssues,readMedia} from '../../../../bonsai/lib/media.mjs';
+import {OPEN_FLAGS,addMedia,mediaFilePath,mediaFromObservation,mediaIssues,mediaNamesIssues,readMedia,workWords} from '../../../../bonsai/lib/media.mjs';
 import {MEDIA_HOSTS} from '../../../../bonsai/lib/media-hosts.mjs';
-import {captionLines,captionLinks,fittedImage,fittedSize,imageSources,layerAddress,linkGroups} from './media-view.mjs';
+import {captionLines,captionLinks,fittedImage,fittedSize,imageSources,layerAddress,linkGroups,workName} from './media-view.mjs';
 
 const read=path=>JSON.parse(readFileSync(new URL(`../../../../bonsai/antiquity/${path}`,import.meta.url),'utf8'));
 const digest=text=>createHash('sha256').update(text,'utf8').digest('hex');
@@ -226,7 +226,7 @@ describe('images whose holders keep closed terms: Commons, the Saint Louis Art M
     const {workId,work,image}=mediaFromObservation(smb);
     expect(workId).toBe('smb:965972');
     expect(work.inventory).toBe('A II 898');
-    expect(captionLinks({work,image},{t:ru})[1]).toEqual({part:'rights',text:'Public Domain Mark 1.0',url:PDM});
+    expect(captionLinks({work,image},{t:ru})[1]).toEqual({part:'rights',text:'Общественное достояние',url:PDM});
     smb.rights[0].statement_uri=null;
     expect(()=>mediaFromObservation(smb)).toThrow(/rights/);
   });
@@ -244,6 +244,9 @@ describe('images whose holders keep closed terms: Commons, the Saint Louis Art M
 describe('the Zarathustra media',()=>{
   const read=path=>JSON.parse(readFileSync(new URL(`../../../../bonsai/zarathustra/${path}`,import.meta.url),'utf8'));
   const media=read('media.json'),identities=read('identities.json'),layers=read('layers.json');
+  it('names every work, its makers and its holder in each language of the stands',()=>{
+    expect(mediaNamesIssues(read('media-names.json'),media)).toEqual([]);
+  });
   const core=['concepts','figures','proposed','links'].flatMap(name=>read(`core/${name}.json`)),chains=read('core/chains.json');
   const subjects=new Set([...core,...chains.flatMap(chain=>chain.states??[])].map(record=>record.id));
   it('holds its contract, binds core records only, and has a copy of every file in the layer store',()=>{
@@ -271,6 +274,9 @@ describe('the Zarathustra media',()=>{
 
 describe('the Antiquity media',()=>{
   const media=read('media.json'),identities=read('identities.json'),collection=read('collection.json'),layers=read('layers.json');
+  it('names every work, its series, its makers and its holder in each language of the stands',()=>{
+    expect(mediaNamesIssues(read('media-names.json'),media)).toEqual([]);
+  });
   const subjects=new Set(collection.entities.map(entry=>entry.id));
   it('holds its contract, its subjects, its graft map and its layer store',()=>{
     expect(mediaIssues(media,{subjects,identities,digest,layers})).toEqual([]);
@@ -316,25 +322,79 @@ describe('the images on a link\'s card',()=>{
 });
 
 describe('a medium on a card',()=>{
-  const {module}=added(),[item]=readMedia(module).forSubject('cicero');
-  const t=key=>({'media_author-portrait':'Портрет автора',mediaInscribed:'Надпись на предмете',mediaSeries:'Серия',mediaSize:'{0} × {1} мм'})[key]??key;
+  const {module,workId}=added();
+  const names={schema:'tos.bonsai.media-names.v1',bonsai:'antiquity',
+    holders:{'Rijksmuseum, Amsterdam':{en:'Rijksmuseum, Amsterdam',ru:'Рейксмузеум, Амстердам'}},
+    works:{[workId]:{
+      en:{titles:['Portrait of Marcus Tullius Cicero'],series:['Illustrium philosophorum et poetarum effigies']},
+      ru:{titles:['Портрет Марка Туллия Цицерона'],series:['Illustrium philosophorum et poetarum effigies'],made:['Гравёр: Рене Буавен (указан на листе)']},
+    }}};
+  const [item]=readMedia(module,names).forSubject('cicero'),[bare]=readMedia(module).forSubject('cicero');
+  const t=key=>({'media_author-portrait':'Портрет автора',mediaInscribed:'Надпись на предмете',mediaSeries:'Серия',mediaSize:'{0} × {1} мм',mediaPublicDomain:'Общественное достояние'})[key]??key;
   it('asks the image service for a small whole copy in the image\'s own proportions',()=>{
     expect(fittedImage('https://iiif.micr.io/qnEHd',480)).toBe('https://iiif.micr.io/qnEHd/full/!480,480/0/default.jpg');
     expect(fittedSize({width:2748,height:4044})).toEqual({width:326,height:480});
     expect(fittedSize({width:300,height:200})).toEqual({width:300,height:200});
   });
-  it('says what the image is for and when the work was made, then the provider\'s words, then its sources',()=>{
+  it('says what the image is for and when the work was made, then the work in the reader\'s language, then its sources',()=>{
     expect(captionLines(item,{t,locale:'ru'})).toEqual([
       {part:'what',text:'Портрет автора · 1566'},
-      {part:'title',text:'Portret van Marcus Tullius Cicero',lang:'nl'},
+      {part:'title',text:'Портрет Марка Туллия Цицерона',lang:'ru'},
       {part:'inscribed',label:'Надпись на предмете',text:'Cicero'},
-      {part:'series',label:'Серия',text:'Illustrium philosophorum et poetarum effigies',lang:'nl'},
-      {part:'made',text:'printmaker: René Boyvin (mentioned on object)',lang:'en'},
+      {part:'series',label:'Серия',text:'Illustrium philosophorum et poetarum effigies',lang:'ru'},
+      {part:'made',text:'Гравёр: Рене Буавен (указан на листе)',lang:'ru'},
       {part:'size',text:'175 × 121 мм'},
     ]);
-    expect(captionLinks(item,{t})).toEqual([
-      {part:'record',text:'Rijksmuseum, Amsterdam · RP-P-2007-362',url:'https://id.rijksmuseum.nl/200488935'},
-      {part:'rights',text:'Public Domain',url:PDM},
+    expect(captionLinks(item,{t,locale:'ru'})).toEqual([
+      {part:'record',text:'Рейксмузеум, Амстердам · RP-P-2007-362',url:'https://id.rijksmuseum.nl/200488935'},
+      {part:'rights',text:'Общественное достояние',url:PDM},
     ]);
+    expect(workName(item,'ru')).toEqual({text:'Портрет Марка Туллия Цицерона',lang:'ru'});
+  });
+  it('gives an English reader the provider\'s English words and the Tree\'s names where the provider writes Dutch',()=>{
+    expect(captionLines(item,{t:key=>key,locale:'en'}).filter(line=>line.lang).map(line=>[line.part,line.text,line.lang])).toEqual([
+      ['title','Portrait of Marcus Tullius Cicero','en'],
+      ['series','Illustrium philosophorum et poetarum effigies','en'],
+      ['made','printmaker: René Boyvin (mentioned on object)','en'],
+    ]);
+    // A Spanish reader reads the interface's copy in English, and the work in it.
+    expect(workWords(item.work,names,'es').titles).toEqual({language:'en',lines:['Portrait of Marcus Tullius Cicero']});
+  });
+  it('shows no word of a language that is neither the reader\'s nor written on the object',()=>{
+    const lines=captionLines(bare,{t,locale:'ru'});
+    expect(lines.map(line=>line.part)).toEqual(['what','inscribed','size']);
+    expect(lines.some(line=>line.lang)).toBe(false);
+    expect(captionLinks(bare,{t,locale:'ru'})[0].text).toBe('RP-P-2007-362');
+    expect(workName(bare,'ru')).toEqual({text:'RP-P-2007-362',lang:null});
+  });
+  it('asks every work to be named in each language of the stands, and names only works and holders it has',()=>{
+    expect(mediaNamesIssues(names,module)).toEqual([]);
+    expect(mediaNamesIssues(null,module)).toEqual([
+      `work ${workId}: no title in en; name it in media-names.json`,`work ${workId}: no series in en; name it in media-names.json`,
+      `work ${workId}: no title in ru; name it in media-names.json`,`work ${workId}: no series in ru; name it in media-names.json`,`work ${workId}: no made in ru; name it in media-names.json`,
+      'holder Rijksmuseum, Amsterdam: no name in en; name it in media-names.json','holder Rijksmuseum, Amsterdam: no name in ru; name it in media-names.json',
+    ]);
+    const stray=structuredClone(names);
+    stray.works['met:1']={ru:{titles:['Лев']}};stray.works[workId].fr={titles:['Portrait de Cicéron']};stray.works[workId].ru.caption=['?'];stray.holders.Louvre={ru:'Лувр'};
+    expect(mediaNamesIssues(stray,module)).toEqual([
+      'holder Louvre: holds no work of the media module',
+      `work ${workId}: ru names`,
+      `work ${workId}: fr is not a language of the stands`,
+      'work met:1: not a work of the media module',
+    ]);
+  });
+});
+
+describe('the images of the stands',()=>{
+  const stand=name=>{const read=path=>JSON.parse(readFileSync(new URL(`../../../../bonsai/${name}/${path}`,import.meta.url),'utf8'));return [read('media.json'),read('media-names.json')];};
+  it('speak to a Russian reader in Russian and to an English reader in English alone',()=>{
+    for(const [media,names] of [stand('zarathustra'),stand('antiquity')]){
+      for(const [id,work] of Object.entries(media.works)){
+        const ru=workWords({id,...work},names,'ru'),en=workWords({id,...work},names,'en');
+        // Every Russian line is Russian, though it may keep a title of the original beside its own.
+        for(const line of [...ru.titles.lines,...(ru.series?.lines??[]).filter(line=>line!=='Illustrium philosophorum et poetarum effigies'&&line!=='Liber Chronicarum'),...(ru.made?.lines??[]),ru.holder.text])expect(line,id).toMatch(/[А-Яа-яЁё]/);
+        for(const line of [...en.titles.lines,...(en.series?.lines??[]),...(en.made?.lines??[]),en.holder.text])expect(line,id).not.toMatch(/[А-Яа-яЁё]|\b(?:van het|Portret|uitgever|opgedragen|verlener|vermeld|Neurenberg|Noord)\b/);
+      }
+    }
   });
 });

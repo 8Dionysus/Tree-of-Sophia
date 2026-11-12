@@ -19,8 +19,16 @@
 // Everything here comes from a provider observation made by the Tree's media
 // bridges (`tos-native-owner-command acquisition`, `media.observe`), and
 // `addMedia` turns one observation into the module's entries.
+//
+// A reader sees a work in one language: the language the interface speaks to
+// them in (`translationLanguage`). The Tree's own names of a work, its makers,
+// its series and its holder (`media-names.json`, `tos.bonsai.media-names.v1`)
+// stand where the providers' words are in another language; `workWords` picks
+// them, and `mediaNamesIssues` asks every work to be named in each language
+// the stands are written in. The words on the object itself stand as written.
 
 import {MEDIA_HOSTS,MEDIA_ROLES} from './media-hosts.mjs';
+import {BONSAI_LOCALES,translationLanguage} from './locales.mjs';
 import {dateIssues,yearLexeme} from './time.mjs';
 
 export {MEDIA_HOSTS,MEDIA_ROLES};
@@ -37,6 +45,16 @@ const IIIF=new Set(['iiif-image-3','iiif-image-2']);
  * Museum's object page states.
  */
 export const OPEN_FLAGS=Object.freeze([{field:'isPublicDomain',value:'true'},{field:'openaccess',value:'1'},{field:'P6216',value:'Q19652'},{field:'License',value:'pd'},{field:'Rights',value:'Public Domain'}]);
+export const MEDIA_NAMES_SCHEMA='tos.bonsai.media-names.v1';
+/** The languages every work of a stand is named in: the languages the stands are written in. */
+export const NAMED_LANGUAGES=Object.freeze(['en','ru']);
+/** What of a work the Tree names in a reader's language: its preferred titles, its series and who made it. */
+export const NAME_PARTS=Object.freeze(['titles','series','made']);
+/**
+ * The language a provider writes its records in, where it tags none: the Met's, the National Gallery of Art's,
+ * Saint Louis's and the Wikidata labels the Commons bridge reads are English, Berlin's German, the Rijksmuseum's Dutch.
+ */
+export const PROVIDER_LANGUAGES=Object.freeze({met:'en',nga:'en',commons:'en',slam:'en',smb:'de',rijksmuseum:'nl'});
 /** Where a stand keeps the copies of image files, inside its layer store. */
 export const MEDIA_LAYER_PATH='media/';
 const FILE_TYPES=Object.freeze({'image/jpeg':'jpg','image/png':'png'});
@@ -300,14 +318,89 @@ export function addMedia({module,identities,observation,subject,role,artifact,vi
   return {module:next,identities:graft,workId,imageId,image};
 }
 
-/** Read a media module: what a subject's card shows, in the order of the roles. */
-export function readMedia(module){
+/**
+ * Read a media module: what a subject's card shows, in the order of the roles. `names` is the stand's
+ * media names module (media-names.json), which each item carries for `workWords`.
+ */
+export function readMedia(module,names=null){
   const works=object(module?.works)?module.works:{},images=object(module?.images)?module.images:{},uses=Array.isArray(module?.uses)?module.uses:[];
   return {
-    module,
+    module,names,
     forSubject:subject=>uses
       .filter(use=>use.subject===subject&&images[use.image]&&works[images[use.image].work])
-      .map(use=>({role:use.role,image:{id:use.image,...images[use.image]},work:{id:images[use.image].work,...works[images[use.image].work]}}))
+      .map(use=>({role:use.role,image:{id:use.image,...images[use.image]},work:{id:images[use.image].work,...works[images[use.image].work]},names}))
       .sort((a,b)=>MEDIA_ROLES.indexOf(a.role)-MEDIA_ROLES.indexOf(b.role)),
   };
+}
+
+// The provider's words of one part of a work, each in its language or else in the language its provider writes in.
+function providerWords(work,part){
+  const lines=part==='made'?work.made??[]:(work.titles??[]).filter(title=>title?.role===(part==='titles'?'title':'series'));
+  return lines.filter(line=>text(line?.text)).map(line=>({text:line.text,language:line.language??PROVIDER_LANGUAGES[work.provider]??null}));
+}
+
+/**
+ * A work's words for a reader of `locale`, part by part: `titles`, `series` and `made` as {language, lines},
+ * `holder` as {language, text}; a part has none where neither the Tree nor the provider words it in the
+ * reader's language. The reader's language is the one `translationLanguage` gives; in it the Tree's own name
+ * stands where `names` (media-names.json) has one, else the provider's words. Nothing in another language is
+ * shown, so a provider's catalogue title in its own language never reaches a reader of a different one.
+ */
+export function workWords(work,names,locale){
+  const named=object(names?.works?.[work.id])?names.works[work.id]:{};
+  const words={};
+  for(const part of NAME_PARTS){
+    const own=Object.fromEntries(Object.entries(named).filter(([,entry])=>Array.isArray(entry?.[part])&&entry[part].length).map(([language,entry])=>[language,entry[part]]));
+    const provided=providerWords(work,part);
+    const language=translationLanguage(locale,[...Object.keys(own),...provided.map(line=>line.language)].filter(Boolean));
+    words[part]=language?{language,lines:own[language]??provided.filter(line=>line.language===language).map(line=>line.text)}:null;
+  }
+  const holders=object(names?.holders?.[work.holder])?names.holders[work.holder]:{},native=PROVIDER_LANGUAGES[work.provider]??null;
+  const language=translationLanguage(locale,[...Object.keys(holders),native].filter(Boolean));
+  words.holder=language?{language,text:holders[language]??work.holder}:null;
+  return words;
+}
+
+/**
+ * Where a stand's media names (media-names.json) depart from their contract or leave a work of `media`
+ * unnamed in one of the languages the stands are written in; empty when they hold. `names` may be null.
+ */
+export function mediaNamesIssues(names,media){
+  const issues=[],works=object(media?.works)?media.works:{};
+  const languages=new Set(BONSAI_LOCALES),holders=new Set(Object.values(works).map(work=>work?.holder));
+  if(names!==null&&names!==undefined){
+    if(!object(names))return ['not an object'];
+    if(names.schema!==MEDIA_NAMES_SCHEMA)issues.push('schema');
+    if(names.bonsai!==media?.bonsai)issues.push('bonsai');
+    if(Object.keys(names).some(key=>!['schema','bonsai','holders','works'].includes(key)))issues.push('unknown field');
+    if(!object(names.holders))issues.push('holders');
+    if(!object(names.works))issues.push('works');
+    for(const [holder,named] of Object.entries(object(names.holders)?names.holders:{})){
+      if(!holders.has(holder))issues.push(`holder ${holder}: holds no work of the media module`);
+      if(!object(named)||!Object.keys(named).length||Object.entries(named).some(([language,value])=>!languages.has(language)||!text(value)))issues.push(`holder ${holder}: names`);
+    }
+    for(const [id,named] of Object.entries(object(names.works)?names.works:{})){
+      if(!works[id])issues.push(`work ${id}: not a work of the media module`);
+      if(!object(named)||!Object.keys(named).length){issues.push(`work ${id}: names`);continue;}
+      for(const [language,entry] of Object.entries(named)){
+        if(!languages.has(language))issues.push(`work ${id}: ${language} is not a language of the stands`);
+        if(!object(entry)||!Object.keys(entry).length||Object.entries(entry).some(([part,lines])=>!NAME_PARTS.includes(part)||!Array.isArray(lines)||!lines.length||lines.some(line=>!text(line))))
+          issues.push(`work ${id}: ${language} names`);
+      }
+    }
+  }
+  // Every work is named in each language of the stands: its title always, its series and makers where the provider gives them,
+  // and its holder.
+  const unnamed=new Set();
+  for(const [id,work] of Object.entries(works)){
+    if(!object(work))continue;
+    for(const language of NAMED_LANGUAGES){
+      const words=workWords({id,...work},names??null,language);
+      for(const part of NAME_PARTS){
+        if((part==='titles'||providerWords(work,part).length)&&words[part]?.language!==language)issues.push(`work ${id}: no ${part==='titles'?'title':part} in ${language}; name it in media-names.json`);
+      }
+      if(words.holder?.language!==language)unnamed.add(`holder ${work.holder}: no name in ${language}; name it in media-names.json`);
+    }
+  }
+  return [...issues,...unnamed];
 }

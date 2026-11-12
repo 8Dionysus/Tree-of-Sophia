@@ -1,11 +1,11 @@
-import {readFileSync,readdirSync} from 'node:fs';
+import {existsSync,readFileSync,readdirSync} from 'node:fs';
 import {expect,test} from 'vitest';
 import ts from 'typescript';
 import {PUBLIC_LOCALES,LOCALE_NAMES,initialLocale,resolveLocale,shownLanguages,translationLanguage,localeText,localeValue} from './locale.mjs';
 import {formatDating,formatYears} from '../../../../bonsai/lib/time.mjs';
 import {localizePublicJourney} from './journey-i18n.mjs';
 import {hypothesisTitle,workspaceConflictLabel} from './presentation-i18n.mjs';
-import {corpusWorkTitle} from '../observatory/human-presentation.mjs';
+import {corpusAuthorName,corpusWorkTitle} from '../observatory/human-presentation.mjs';
 import {morphologyLabel} from '../corpus-reader/philology.mjs';
 import {collectionPeriodKey} from './collection-view.mjs';
 import {loadBonsai} from './bonsai.mjs';
@@ -50,7 +50,8 @@ test('every authored Bonsai display form has a translation entry',async()=>{
     const home=new URL(`../../../../bonsai/${stand}/`,import.meta.url);
     // Held material is not shown by the stand. The terms module is also excluded
     // until loadBonsai returns it; this exclusion lifts when the stand loader consumes it.
-    for(const file of readdirSync(home))if(file.endsWith('.json')&&file!=='held.json'&&!(stand==='zarathustra'&&file==='terms.json'&&!Object.hasOwn(zarathustraModules,'terms')))walk(read(new URL(file,home)));
+    // The media names are the Tree's names of works in each language it names them in, chosen by language, not forms to translate.
+    for(const file of readdirSync(home))if(file.endsWith('.json')&&file!=='held.json'&&file!=='media-names.json'&&!(stand==='zarathustra'&&file==='terms.json'&&!Object.hasOwn(zarathustraModules,'terms')))walk(read(new URL(file,home)));
   }
   for(const language of added)for(const form of forms)expect(Object.hasOwn(catalogs[language].bonsai,form),`${language}: ${form}`).toBe(true);
 });
@@ -104,6 +105,18 @@ test('provider title fallbacks remain literal even when they match a UI message'
   for(const language of added)expect(corpusWorkTitle(document,language)).toBe('Place');
   expect(corpusWorkTitle({id:'external-work',title:{...title,es:'Lugar del proveedor'}},'es')).toBe('Lugar del proveedor');
   expect(corpusWorkTitle({id:'external-work',title:'Place'},'es')).toBe('Place');
+});
+
+test('the public corpus names its authors in the reader\'s language, and an author it does not know as the manifest spells it',()=>{
+  expect(corpusAuthorName('Plato','ru')).toBe('Платон');expect(corpusAuthorName('Plato','en')).toBe('Plato');
+  expect(corpusAuthorName('Hippocratic corpus','ru')).toBe('Гиппократов корпус');
+  expect(corpusAuthorName('Friedrich Nietzsche','ru')).toBe('Фридрих Ницше');
+  expect(corpusAuthorName('Plato','de')).toBe('Platon');expect(corpusAuthorName('Plato','es')).toBe('Platón');expect(corpusAuthorName('Plato','zh-Hans')).toBe('柏拉图');
+  expect(corpusAuthorName({en:'Anonymous',ru:'Аноним'},'ru')).toBe('Аноним');expect(corpusAuthorName({en:'Anonymous',ru:'Аноним'},'de')).toBe('Anonymous');
+  expect(corpusAuthorName('Someone Else','ru')).toBe('Someone Else');
+  // Every author of the public corpus has a Russian name, where the checkout holds the corpus.
+  const manifest=new URL('../../public/public-corpus/manifest.json',import.meta.url);
+  if(existsSync(manifest))for(const document of read(manifest).documents)expect(corpusAuthorName(document.author,'ru'),document.author).toMatch(/[А-Яа-яЁё]/);
 });
 
 test('known morphology labels localize while unknown analyzer tags stay literal',()=>{

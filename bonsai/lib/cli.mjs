@@ -147,8 +147,12 @@ if(command==='check'){
     }
   }
   const check=checkBonsai(root,stand,{overrides:{media:result.module,identities:result.identities},mediaLayers:layers});
-  for(const problem of check.problems)console.error(`  problem: ${problem}`);
-  if(check.problems.length)process.exit(1);
+  // A new work is named in the stands' languages after it is added: its names are the next step, not a refusal.
+  const naming=problem=>problem.startsWith(`media names: work ${result.workId}: `)||problem.startsWith(`media names: holder ${result.module.works[result.workId].holder}: `);
+  const problems=check.problems.filter(problem=>!naming(problem));
+  for(const problem of problems)console.error(`  problem: ${problem}`);
+  if(problems.length)process.exit(1);
+  for(const problem of check.problems.filter(naming))console.log(`  to name: ${problem.slice('media names: '.length)}`);
   const pending=[];
   for(const [full,file] of copies){
     if(existsSync(full)){
