@@ -1,0 +1,194 @@
+{
+  "schema": "tos.bonsai.corpus-alignment.v1",
+  "mechanism": "bonsai/lib/corpus-align.mjs",
+  "review": "unreviewed",
+  "works": {
+    "aristotle.poetics": {
+      "documentId": "tos.work.retained-antiquity.poetics",
+      "original": {
+        "versionId": "retained-poetics-grc2-ae13b91f8ddc",
+        "language": "grc",
+        "revision": "85b3aa54cda4707e618bf94d5f1a20809c0f0d4fa55e65364408058a0cb57bf9",
+        "label": "Aristotelis De arte poetica liber · 1965 · Rudolf Kassel",
+        "license": {
+          "label": "Creative Commons Attribution-ShareAlike 4.0 International",
+          "url": "https://creativecommons.org/licenses/by-sa/4.0/"
+        },
+        "attribution": "Perseus Digital Library · Tufts University"
+      },
+      "translations": [
+        {
+          "versionId": "retained-poetics-eng2-38e838987736",
+          "language": "en",
+          "revision": "d03a031c4eddd00d88c109e038ba38ea5dd6eae12d0d4ce5af92fb05956591e2",
+          "label": "Aristotle, The Poetics. \"Longinus,\" On the sublime. Demetrius, On Style · 1939 · William Hamilton Fyfe",
+          "license": {
+            "label": "Creative Commons Attribution-ShareAlike 4.0 International",
+            "url": "https://creativecommons.org/licenses/by-sa/4.0/"
+          },
+          "attribution": "Perseus Digital Library · Tufts University",
+          "coverage": 0.753
+        },
+        {
+          "versionId": "retained-poetics-ru-novosadsky1927-wikisource",
+          "language": "ru",
+          "revision": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
+          "label": "Аристотель. Поэтика. Л.: Academia, 1927 · 1927 · Николай Иванович Новосадский (1859–1941)",
+          "license": {
+            "label": "Creative Commons Attribution-ShareAlike 4.0 International",
+            "url": "https://creativecommons.org/licenses/by-sa/4.0/"
+          },
+          "attribution": "Аристотель; перевод Н. И. Новосадского (1927); участники русской Викитеки (история указанной страницы).\nSource warning: the origin of this transcription is not established and serious errors are possible. The Wikisource page has no scans and no quality rating (category 00%); it names as its source a 1998 Minsk reprint taken from teatr-lib.ru, not the 1927 Academia printing, and gives the translator’s initials as «Н. Н.». 1 Wikisource page without page-scan proofreading; licence templates none listed. Scan images were not collated. Automatic alignment is unreviewed.",
+          "coverage": 0.64
+        }
+      ]
+    },
+    "plato.symposium": {
+      "documentId": "tos.work.retained-antiquity.symposium",
+      "original": {
+        "versionId": "retained-symposium-grc2-f4437b96a327",
+        "language": "grc",
+        "revision": "5b566e3a8472d71ad5acbbb943716388583578ba45ee72ea7dcdfd21961c1862",
+        "label": "Platonis Opera · 1910 · John Burnet",
+        "license": {
+          "label": "Creative Commons Attribution-ShareAlike 4.0 International",
+          "url": "https://creativecommons.org/licenses/by-sa/4.0/"
+        },
+        "attribution": "Perseus Digital Library · Tufts University"
+      },
+      "translations": [
+        {
+          "versionId": "retained-symposium-eng2-6f555984cdc6",
+          "language": "en",
+          "revision": "2cc1e7a102faa02276c9428df37afdb17bae4f9b1138596dbf4fa2a65eccfa9f",
+          "label": "Plato in Twelve Volumes · 1925 · Walter Rangeley Maitland Lamb",
+          "license": {
+            "label": "Creative Commons Attribution-ShareAlike 4.0 International",
+            "url": "https://creativecommons.org/licenses/by-sa/4.0/"
+          },
+          "attribution": "Perseus Digital Library · Tufts University",
+          "coverage": 0.821
+        },
+        {
+          "versionId": "retained-symposium-ru-karpov1863-wikisource",
+          "language": "ru",
+          "revision": "121f1ef559187e746425d2db1658c2bd84c426637461db4d600df637ad2350d6",
+          "label": "Сочинения Платона, том 4 · 1863 · В. Н. Карпов",
+          "license": {
+            "label": "Creative Commons Attribution-ShareAlike 4.0 International",
+            "url": "https://creativecommons.org/licenses/by-sa/4.0/"
+          },
+          "attribution": "Платон; перевод В. Н. Карпова (1863); участники русской Викитеки (история указанной страницы и включённых страниц скана).\n81 transcluded pages; ProofreadPage quality counts {'3': 81}. Scan images were not collated. Automatic alignment is unreviewed.",
+          "coverage": 0.696
+        }
+      ]
+    },
+    "plotinus.enneads": {
+      "documentId": "tos.work.retained-antiquity.enneads",
+      "original": {
+        "versionId": "retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974",
+        "language": "grc",
+        "revision": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+        "label": "Plotini Enneades · 1883-1884 · Richard Volkmann",
+        "license": {
+          "label": "Creative Commons Attribution-ShareAlike 4.0 International",
+          "url": "https://creativecommons.org/licenses/by-sa/4.0/"
+        },
+        "attribution": "Open Greek and Latin · First1KGreek"
+      },
+      "translations": []
+    }
+  },
+  "units": {
+    "tos.text-unit.sid-5b4c0039360c4ce59e087cfb2e67076b": {"w":"plato.symposium","t":{"retained-symposium-eng2-6f555984cdc6":{"u":["tos.text-unit.sid-9989783933a6408089a8c109e11342ea"],"pairs":[[[[2,109]],[[0,2,139]]],[[[110,397]],[[0,140,371],[0,372,510]]],[[[398,607]],[[0,511,754]]],[[[608,829]],[[0,755,993]]],[[[830,968]],[[0,994,1145]]],[[[969,1217]],[[0,1146,1466]]],[[[1218,1262],[1263,1359]],[[0,1467,1626]]],[[[1360,1511]],[[0,1627,1797]]],[[[1512,1861]],[[0,1798,2016],[0,2017,2200]]],[[[1862,2055]],[[0,2201,2444]]]]},"retained-symposium-ru-karpov1863-wikisource":{"u":["tos.text-unit.sid-00e88e0bd23d44348871bd911ab1d853","tos.text-unit.sid-f70f5fdc8b9141f5a359aa12fcc28f9b"],"pairs":[[[[2,109]],[[0,2143,2213],[1,3,55]]],[[[110,397]],[[1,56,393]]],[[[398,607]],[[1,394,577]]],[[[608,829]],[[1,578,797]]],[[[830,968]],[[1,798,924]]],[[[969,1217]],[[1,925,1066],[1,1067,1165]]],[[[1218,1262],[1263,1359]],[[1,1166,1310]]],[[[1360,1511]],[[1,1311,1451]]],[[[1512,1861]],[[1,1452,1698],[1,1699,1762],[1,1763,1960]]],[[[1862,2055]],[[1,1961,2002],[1,2003,2054],[1,2055,2109],[1,2110,2145],[1,2146,2155]]]]}}},
+    "tos.text-unit.sid-9156acf77238412ebef307a1000bad93": {"w":"plato.symposium","t":{"retained-symposium-eng2-6f555984cdc6":{"u":["tos.text-unit.sid-5a4002e56c734dc58f640a78f66a8600"],"pairs":[[[[2,952]],[[0,2,341],[0,342,669],[0,670,1218]]],[[[953,1074]],[[0,1219,1382]]],[[[1075,1541]],[[0,1383,1439],[0,1440,1897]]],[[[1542,1655]],[[0,1898,2060]]],[[[1656,1946]],[[0,2061,2399]]],[[[1947,2172]],[[0,2400,2608],[0,2609,2678]]]]},"retained-symposium-ru-karpov1863-wikisource":{"u":["tos.text-unit.sid-5e55b98a630d4e42b92dd96f6c9ea5dd","tos.text-unit.sid-00e88e0bd23d44348871bd911ab1d853"],"pairs":[[[[2,952]],[[0,1740,2031],[0,2032,2066],[1,3,303],[1,304,587],[1,588,756]]],[[[953,1074]],[[1,757,883]]],[[[1075,1541]],[[1,884,1396]]],[[[1542,1655]],[[1,1397,1544]]],[[[1656,1946]],[[1,1545,1890]]],[[[1947,2172]],[[1,1892,2142],[1,2143,2213]]]]}}},
+    "tos.text-unit.sid-e73a347a1cbe4250bc3d3b3cdcd60bc7": {"w":"aristotle.poetics","t":{"retained-poetics-eng2-38e838987736":{"u":["tos.text-unit.sid-b900cb1f2a1d4d84adfc8d115ea92ed5"],"pairs":[[[[2,150]],[[0,2,147]]],[[[151,277]],[[0,148,325]]],[[[278,329]],[[0,326,377]]],[[[330,601]],[[0,378,520],[0,521,723]]],[[[602,728]],[[0,724,835]]],[[[729,1322]],[[0,836,1102],[0,1103,1403],[0,1404,1603]]],[[[1323,1508]],[[0,1604,1728],[0,1729,1886]]],[[[1509,1829]],[[0,1887,2018],[0,2019,2262]]]]},"retained-poetics-ru-novosadsky1927-wikisource":{"u":["tos.text-unit.sid-3ad6a8c3d0b24a66a5a9331ccebaf4b6"],"pairs":[[[[2,150]],[[0,2,147]]],[[[151,277]],[[0,148,271]]],[[[278,329]],[[0,272,319]]],[[[330,601]],[[0,320,367],[0,368,494],[0,495,627],[0,628,688]]],[[[602,728]],[[0,689,842]]],[[[729,1322]],[[0,843,1042],[0,1043,1279],[0,1280,1490],[0,1491,1678]]],[[[1323,1508]],[[0,1679,1792],[0,1793,1936]]],[[[1509,1829]],[[0,1937,2338]]]]}}}
+  },
+  "receipt": {
+    "aristotle.poetics:retained-poetics-eng2-38e838987736": {
+      "how": "reference",
+      "sentences": [
+        348,
+        526
+      ],
+      "shapes": {
+        "1:1": 196,
+        "1:2": 81,
+        "1:5": 1,
+        "1:4": 12,
+        "1:3": 27,
+        "2:2": 3,
+        "1:6": 3,
+        "2:1": 9,
+        "1:0": 1,
+        "3:1": 1
+      },
+      "trained": 192,
+      "coverage": 0.753
+    },
+    "aristotle.poetics:retained-poetics-ru-novosadsky1927-wikisource": {
+      "how": "reference",
+      "sentences": [
+        348,
+        627
+      ],
+      "shapes": {
+        "1:1": 166,
+        "1:2": 82,
+        "1:6": 8,
+        "1:4": 22,
+        "1:3": 30,
+        "2:2": 9,
+        "2:1": 6,
+        "1:5": 9,
+        "1:0": 1,
+        "0:1": 2
+      },
+      "trained": 160,
+      "coverage": 0.64
+    },
+    "plato.symposium:retained-symposium-eng2-6f555984cdc6": {
+      "how": "reference",
+      "sentences": [
+        779,
+        817
+      ],
+      "shapes": {
+        "2:1": 41,
+        "1:2": 72,
+        "1:1": 550,
+        "1:3": 11,
+        "3:1": 12,
+        "2:2": 11,
+        "1:4": 2,
+        "1:0": 3,
+        "1:6": 1,
+        "0:1": 1
+      },
+      "trained": 547,
+      "coverage": 0.821
+    },
+    "plato.symposium:retained-symposium-ru-karpov1863-wikisource": {
+      "how": "reference",
+      "sentences": [
+        779,
+        891
+      ],
+      "shapes": {
+        "2:1": 49,
+        "1:1": 405,
+        "2:2": 31,
+        "0:1": 4,
+        "1:2": 101,
+        "3:1": 23,
+        "1:5": 4,
+        "1:3": 30,
+        "1:4": 6,
+        "1:6": 2,
+        "1:0": 2
+      },
+      "trained": 396,
+      "coverage": 0.696
+    }
+  }
+}

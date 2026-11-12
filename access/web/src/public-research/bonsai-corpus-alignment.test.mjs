@@ -2,7 +2,7 @@ import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {describe,expect,it} from 'vitest';
 import {alignCorpus,alignVersion,citedUnits,corpusReader,formatAlignment,textEnd} from '../../../../bonsai/lib/corpus-align.mjs';
-import {corpusAlignmentIssues} from '../../../../bonsai/lib/fragments.mjs';
+import {corpusAlignmentIssues,translationScopesIssues} from '../../../../bonsai/lib/fragments.mjs';
 import * as atlasContent from '../../constructor/atlas-content.mjs';
 import * as atlasRoutes from '../../constructor/atlas-routes.mjs';
 import * as relationInquiry from '../../constructor/relation-inquiry.mjs';
@@ -31,6 +31,33 @@ describe('the corpus alignment of the stands',()=>{
   it('keeps the edition notes out of the text a unit is paired by',()=>{
     expect(textEnd('Text.\n〔1〕 A note.')).toBe(5);
     expect(textEnd('Text without notes.')).toBe(19);
+  });
+  it('does not attach an absent named tractate to the preceding translated tractate',()=>{
+    const original={language:'grc',units:Array.from({length:6},(_,i)=>({id:`g${i}`,reference:`Книга ${i+1}`,text:'λόγος.'}))};
+    const translation={language:'en',units:original.units.slice(0,5).map((unit,i)=>({id:`e${i}`,reference:unit.reference,text:'Word.'}))};
+    original.units.push({id:'continuation',reference:'Unit 7',text:'λόγος.'});
+    const result=alignVersion(original,translation,new Set(['g4','g5','continuation']));
+    expect(result.entries.g4.u).toContain('e4');
+    expect(result.entries.g5).toBeUndefined();
+    expect(result.entries.continuation).toBeUndefined();
+  });
+  it('limits a partial translation to the declared original range and rejects stale scope',()=>{
+    const original={id:'latin',language:'la',revision:'rev',units:Array.from({length:6},(_,i)=>({id:`u${i}`,reference:`§${i+1}`,text:'Verba.'}))};
+    const translation={id:'partial',language:'en',units:original.units.slice(0,5).map((unit,i)=>({id:`e${i}`,reference:unit.reference,text:'Words.'}))};
+    const read=()=>({id:'work',versions:[original,translation]});
+    const cited=new Map([['a',{original:'latin',units:new Set(['u4','u5'])}]]),works={a:'work'};
+    const scopes=[{work:'a',translationVersionId:'partial',originalVersionId:'latin',originalRevision:'rev',firstUnitId:'u0',lastUnitId:'u4',source:'https://example.test/book'}];
+    const result=alignCorpus(cited,works,read,scopes);
+    expect(result.units.u4.t.partial).toBeDefined();
+    expect(result.units.u5).toBeUndefined();
+    expect(result.receipt['a:partial'].sourceScope.lastUnitId).toBe('u4');
+    expect(()=>alignCorpus(cited,works,read,[{...scopes[0],originalRevision:'stale'}])).toThrow(/invalid or stale translation scope/);
+  });
+  it('checks the stored scope schema and rejects duplicate or incomplete bindings',()=>{
+    const module=json('bonsai/antiquity/translation-scopes.json');
+    expect(translationScopesIssues(module)).toEqual([]);
+    expect(translationScopesIssues({...module,scopes:[...module.scopes,module.scopes[0]]})).toContain(`duplicate academica:${module.scopes[0].translationVersionId}`);
+    expect(translationScopesIssues({...module,scopes:[{...module.scopes[0],originalRevision:'stale'}]})).toContain('originalRevision');
   });
   it('can align a sentence across a translation reference inside a sentence',()=>{
     const original={language:'grc',units:[
@@ -76,14 +103,25 @@ describe('the corpus alignment of the stands',()=>{
     const works=worksOf('zarathustra'),stored=readFileSync(join(root,'bonsai','zarathustra','alignment.json'),'utf8');
     expect(formatAlignment(alignCorpus(citedUnits(content,works,read),works,read))).toBe(stored);
   },120000);
-  for(const stand of ['zarathustra','antiquity'])it.skipIf(!corpusFetched)(`${stand}: holds every cited unit of a work the corpus translates`,()=>{
+  for(const stand of ['zarathustra','antiquity'])it.skipIf(!corpusFetched)(`${stand}: holds every cited unit except places outside all translation scopes`,()=>{
     const module=json(`bonsai/${stand}/alignment.json`),works=worksOf(stand);
+    const scopes=stand==='antiquity'?json('bonsai/antiquity/translation-scopes.json').scopes:[];
     expect(corpusAlignmentIssues(module)).toEqual([]);
     const content=stand==='antiquity'?[json('bonsai/antiquity/collection.json'),json('bonsai/antiquity/first-branches.json')]:zarathustraContent();
     for(const [key,{units}] of citedUnits(content,works,read)){
       const work=module.works[key];
       if(!work?.translations?.length)continue;
-      for(const unit of units)expect(module.units[unit]?.w,`${stand} ${key} ${unit}`).toBe(key);
+      const original=read(works[key]).versions.find(v=>v.id===work.original.versionId);
+      for(const unit of units){
+        if(module.units[unit]){expect(module.units[unit].w,`${stand} ${key} ${unit}`).toBe(key);continue;}
+        const index=original.units.findIndex(value=>value.id===unit);
+        expect(work.translations.every(version=>{
+          const scope=scopes.find(item=>item.work===key&&item.translationVersionId===version.versionId);
+          if(!scope)return false;
+          const first=original.units.findIndex(value=>value.id===scope.firstUnitId),last=original.units.findIndex(value=>value.id===scope.lastUnitId);
+          return index<first||index>last;
+        }),`${stand} ${key} ${unit}: a missing mapping must lie outside every translation's scope`).toBe(true);
+      }
     }
   },120000);
 });

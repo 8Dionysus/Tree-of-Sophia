@@ -74,6 +74,8 @@ Object.assign(extraTranslations.en,{dating_medium:'rests on a summary of scholar
   basisContains:'Structure: a part and its whole.',basisGround:'The reading rests on this place in the source.',basisEditorial:'An editorial comparison of two readings · proposed, not canon · not a claim of historical influence.',basisProposed:'A relation proposed for inquiry · not canon · similarity is not influence.',basisPersonal:'A personal link from your research.'});
 Object.assign(extraTranslations.ru,{modernSpelling:'в современной орфографии',groundOpen:'Открыть место целиком',groundClose:'Свернуть место',routeOne:'путь',routeFew:'пути',routeMany:'путей',fragmentOriginal:'Оригинал',fragmentTranslation:'Перевод',fragmentWhole:'Читать в целом произведении',refBook:'Книга {n}',refChapter:'Глава {n}',refSection:'Раздел {n}',refFragment:'Фрагмент {n}',refLines:'Строки от {n}',refArrian:'Предисловие Арриана',fragmentQuoted:'Откуда взята цитата',fragmentBook:'Об издании книги',fragmentEdition:'Открыть в читателе',fragmentOmitted:'В этом издании перевода места нет',fragmentUnavailable:'Текст этого места сейчас недоступен',parallelPrevious:'Предыдущая глава',parallelNext:'Следующая глава'});
 Object.assign(extraTranslations.en,{modernSpelling:'in modern spelling',groundOpen:'Open the whole passage',groundClose:'Fold the passage',routeOne:'route',routeMany:'routes',fragmentOriginal:'Original',fragmentTranslation:'Translation',fragmentWhole:'Read in the whole work',refBook:'Book {n}',refChapter:'Chapter {n}',refSection:'Section {n}',refFragment:'Fragment {n}',refLines:'Lines from {n}',refArrian:'Arrian’s preface',fragmentQuoted:'Where the quotation is taken from',fragmentBook:'About the book’s edition',fragmentEdition:'Open in the reader',fragmentOmitted:'This edition of the translation lacks the place',fragmentUnavailable:'The text of this place is unavailable now',parallelPrevious:'Previous chapter',parallelNext:'Next chapter'});
+extraTranslations.ru.fragmentTranslationUnavailable='Перевод этого места на выбранный язык пока недоступен.';
+extraTranslations.en.fragmentTranslationUnavailable='The translation of this passage into the selected language is not available yet.';
 Object.assign(extraTranslations.en,{excerpt:'Excerpt',proposalGrounds:'Grounds of this proposal',manualOrigin:'Manual entry',agentOrigin:'External agent response',personalOrigin:'Personal proposal',pending:'Pending review',notCanon:'Not canon',postureShort:'Readings · not canon'});
 // The measuring lenses and the measure panel speak in few words; the map shows the rest.
 Object.assign(extraTranslations.ru,{"traceTitle": "Понятие во времени", "traceLink": "след понятия", "traceLabel": "Понятие", "nearTitle": "Близость по", "nearIsCenter": "центр", "nearClosest": "ближе всех", "nearFrom": "от", "nearNotMeasured": "не измеряется", "nearSharedConcepts": "общих понятий", "nearSharedGrounds": "общих оснований", "dateUnknown": "дата неизвестна", "duringLifeShort": "в пределах жизни автора", "duringActivityShort": "в годы деятельности автора", "placeUnknown": "место не установлено", "placeActivityShort": "здесь жил автор", "certainty_exact": "точно", "certainty_approximate": "приблизительно", "certainty_uncertain": "под вопросом", "certainty_unknown": "неизвестно", "certainty_none": "без датировки", "measureKind_date-assertion": "своя дата", "measureKind_interval-assertion": "свой интервал", "measureKind_relative-phase": "внутри периода", "measureKind_relative-life": "в пределах жизни автора", "measureKind_relative-activity": "в годы деятельности автора", "measureKind_relative-order": "относительно другого события", "measureKind_unknown-date": "дата неизвестна", "measureKind_none": "без датировки", "footing_high": "исследование", "footing_medium": "обзор исследований", "footing_low": "без ссылок на исследования", "placeBasis_composition": "место написания", "placeBasis_event": "место события", "placeBasis_activity": "место жизни автора", "placeBasis_unknown": "не установлено", "measureAction": "Мера и полнота", "measureDating": "Датировки", "measureCertainty": "Точность", "measureFooting": "Опора", "measurePlaces": "Места", "measureEras": "Эпохи", "measureConcepts": "Понятия", "measureBranches": "Ветви во времени", "measureLifeOnly": "Без собственной датировки", "measurePlaceless": "Без места", "measureGrounding": "Опора звёзд", "measureInBook": "главы книги", "measureOutside": "другие тексты", "measureChapters": "Главы", "measureOutsideTexts": "Тексты вне книги", "measureRoutes": "Маршруты по книге"});
@@ -226,7 +228,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   let criterion=criteria.some(item=>item.id===linkedCriterion)?linkedCriterion:criteria[0]?.id??null,traceConcept=linkedConcept||null,measureOpen=false,nearCenter=null;
   const desktopMode=window.matchMedia('(min-width: 761px)');
   // A narrow bar gives the search a short word, so it is read whole.
-  const narrowBar=window.matchMedia('(max-width: 900px)');narrowBar.addEventListener?.('change',()=>{search.placeholder=t(narrowBar.matches?'mapSearchShort':'mapSearch');});
+  const narrowBar=window.matchMedia('(max-width: 900px)');narrowBar.addEventListener?.('change',()=>{placeSearch();});
+  // The search names its whole scope when the bar gives it the room, and only "Search" when it does not.
+  const placeSearch=()=>{search.placeholder=t(narrowBar.matches||(searchBox.isConnected&&searchBox.getBoundingClientRect().width<205)?'mapSearchShort':'mapSearch');};
   let browsingRoutes=false,columnOpen=true,routeStepNode=null;
   const routeDetailState=new Map();
   const personalPositions=new Map();
@@ -245,10 +249,11 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   shell.append(canvas);
   // One search for the whole space sits in the header row; '/' opens it.
   const searchBox=el('div','ps-search-box');
-  const search=document.createElement('input');search.type='search';search.className='ps-search';search.autocomplete='off';search.placeholder=t(narrowBar.matches?'mapSearchShort':'mapSearch');search.setAttribute('aria-label',t('mapSearch'));
+  const search=document.createElement('input');search.type='search';search.className='ps-search';search.autocomplete='off';placeSearch();search.setAttribute('aria-label',t('mapSearch'));
   const searchKey=el('kbd','ps-search-key','/');searchKey.setAttribute('aria-hidden','true');
   const searchResults=el('div','ps-search-results');searchResults.hidden=true;
   searchBox.append(search,searchKey,searchResults);
+  if(typeof ResizeObserver==='function')new ResizeObserver(()=>placeSearch()).observe(searchBox);
   // The left rail holds the two ways into the tree: lenses say how to look, research actions what to do.
   const lensRail=el('nav','lens-rail ps-lens-rail');lensRail.setAttribute('aria-label',t('lenses'));
   const lensTitle=el('p','eyebrow ps-rail-title',t('lenses')),lensList=el('div','lens-list');
@@ -326,7 +331,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     shell.dataset.locale=value;document.documentElement.lang=value;
     for(const select of document.querySelectorAll('.ps-locale-select:not(.ps-theme-select)')){select.value=value;select.setAttribute('aria-label',localeText('Interface language',locale));}
     for(const select of document.querySelectorAll('.ps-theme-select')){select.setAttribute('aria-label',t('theme'));for(const option of select.options)option.textContent=tr(THEMES.find(theme=>theme.id===option.value)?.name??SYSTEM_NAME,locale());select.value=themeChoice();}
-    search.placeholder=t(narrowBar.matches?'mapSearchShort':'mapSearch');search.setAttribute('aria-label',t('mapSearch'));searchResults.setAttribute('aria-label',t('searchResults'));
+    placeSearch();search.setAttribute('aria-label',t('mapSearch'));searchResults.setAttribute('aria-label',t('searchResults'));
     lensTitle.textContent=t('lenses');actionsTitle.textContent=t('researchActions');lensRail.setAttribute('aria-label',t('lenses'));mainActions.setAttribute('aria-label',t('researchActions'));importInput.setAttribute('aria-label',t('import'));
     crumbNav.setAttribute('aria-label',t('orientation'));mapTools.setAttribute('aria-label',t('mapTools'));
     for(const b of mainActions.querySelectorAll('[data-space-action]')){b.querySelector('.ps-action-label').textContent=t(b.dataset.spaceAction);setHint(b,t(b.dataset.spaceAction));}
@@ -1053,7 +1058,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       projected.edges.push({id:edge.id,from,to,kind:edge.kind,label:tr(edge.label,locale()),color:style.color??RELATIONS[edge.kind]?.color,dash:style.dash,weight:1,via:edge.via,...(rest===null?{latent:true}:{baseAlpha:rest})});
     }
     scaleChoice=selected;
-    projected.clusters=treeLayout.names.map(name=>({id:name.id,title:tr(name.title,locale()),subtitle:'',center:name.center,...(name.color?{color:paint(name.color)}:{}),tone:name.kind,...(name.kind==='stratum'?{variant:'edge'}:{recede:true})}));
+    projected.clusters=treeLayout.names.map(name=>({id:name.id,title:tr(name.title,locale()),subtitle:'',center:name.center,...(name.color?{color:paint(name.color)}:{}),tone:name.kind,...(name.kind==='stratum'?{variant:'edge'}:{recede:true}),...(name.kind==='path'?{yields:true}:{})}));
     projected.backdrop=treeBackdrop();
     projected.shade=treeShade();
   }
@@ -1197,7 +1202,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(chosen&&lensList.scrollWidth>lensList.clientWidth&&(chosen.offsetLeft<lensList.scrollLeft||chosen.offsetLeft+chosen.offsetWidth>lensList.scrollLeft+lensList.clientWidth))lensList.scrollLeft=chosen.offsetLeft-(lensList.clientWidth-chosen.offsetWidth)/2;
   }
   function paintRelations(){
-    relationChips.replaceChildren();
+    relationChips.replaceChildren();relationBar.dataset.filtered=String(enabled.size<relationKinds.length);
     const all=button(t('all'),'relation-chip');all.setAttribute('aria-pressed',String(enabled.size===relationKinds.length));all.addEventListener('click',()=>{enabled=new Set(relationKinds);reflect();paintRelations();});relationChips.append(all);
     for(const key of relationKinds){const value=styleOf(key),b=button(tr(value,locale()),'relation-chip');b.style.setProperty('--relation-color',paint(value.color));b.dataset.dash=value.dash??'solid';b.style.setProperty('--relation-weight',String(value.weight??1));if(value.hint)setHint(b,tr(value.hint,locale()));b.setAttribute('aria-pressed',String(enabled.has(key)));b.addEventListener('click',()=>{if(enabled.has(key))enabled.delete(key);else enabled.add(key);reflect();paintRelations();});relationChips.append(b);}
     // The legend also says what a star's form means: what the tree stands on, what is proposed, what is yours.
@@ -1997,6 +2002,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(!columnOpen||subjectChanged)sheetFull=false;
     shell.dataset.columnOpen=String(columnOpen);shell.dataset.sheet=wide?'':columnOpen?(sheetFull?'full':'open'):'peek';shell.dataset.reading=String(columnOpen);
     panelTitle.textContent=columnCaption(mode);panelTitle.setAttribute('aria-expanded',String(columnOpen));
+    // On a narrow screen the tool bar's routes say how many there are, as the folded sheet would.
+    footerTools.querySelector?.('[data-tool=routes]')?.setAttribute('data-count',String(routes.filter(item=>!item.coreChainId||item.featured).length));
     panelClose.hidden=!wide&&!columnOpen;panelClose.setAttribute('aria-label',t(mode==='overview'&&!browsingRoutes?'collapseColumn':mode==='route'?'resetRoute':'close'));
     // Only the open card of a star or a link is a workbench; any other column, or a closed one, folds it back.
     const benchable=(mode==='node'||mode==='edge')&&columnOpen;if(!benchable)bench=false;
@@ -2291,7 +2298,11 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     compareBar.append(columns);personal.hidden=true;if(!desktop())columnOpen=false;renderColumn();sky?.refresh();
   }
   function toggleRelations(){
-    dialog.replaceChildren();const content=makeDialog(t('filter'));for(const key of relationKinds){const value=styleOf(key),row=el('label','ps-relation-filter'),input=document.createElement('input');input.type='checkbox';input.checked=enabled.has(key);input.addEventListener('change',()=>{if(input.checked)enabled.add(key);else enabled.delete(key);reflect();});row.append(input,el('i',''));row.lastChild.style.background=paint(value.color);row.lastChild.style.setProperty('--relation-color',paint(value.color));row.lastChild.dataset.dash=value.dash??'solid';row.append(el('span','',value.hint?`${tr(value,locale())} — ${tr(value.hint,locale())}`:tr(value,locale())));content.append(row);}content.append(el('p','muted',t('imagine')));dialog.showModal();
+    dialog.replaceChildren();const content=makeDialog(t('filter'));for(const key of relationKinds){const value=styleOf(key),row=el('label','ps-relation-filter'),input=document.createElement('input');input.type='checkbox';input.checked=enabled.has(key);input.addEventListener('change',()=>{if(input.checked)enabled.add(key);else enabled.delete(key);reflect();paintRelations();});row.append(input,el('i',''));row.lastChild.style.background=paint(value.color);row.lastChild.style.setProperty('--relation-color',paint(value.color));row.lastChild.dataset.dash=value.dash??'solid';row.append(el('span','',value.hint?`${tr(value,locale())} — ${tr(value.hint,locale())}`:tr(value,locale())));content.append(row);}
+    // The legend opened whole also says what a star's form means, each sign with its word.
+    const forms=el('div','ps-relation-forms');forms.append(el('h3','ps-legend-title',t('statusTitle')));
+    for(const [form,key] of [['source','formSource'],['proposal','formProposal'],['personal','formPersonal']]){const row=el('div','ps-relation-filter'),chip=el('span','ps-form-chip');chip.dataset.form=form;chip.append(el('i'));row.append(chip,el('span','',`${t(key)} — ${t(`${key}Hint`)}`));forms.append(row);}
+    content.append(forms,el('p','muted',t('imagine')));dialog.showModal();
   }
   function makeDialog(title){const head=el('div','dialog-top'),close=button('×','icon');close.addEventListener('click',()=>dialog.close());close.setAttribute('aria-label',t('close'));head.append(el('h2','',title),close);dialog.append(head);const content=el('div','dialog-content');dialog.append(content);return content;}
   function renderSearch(){

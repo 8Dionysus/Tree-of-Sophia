@@ -1,0 +1,103 @@
+{
+ "sources": [
+  {
+   "role": "other",
+   "url": "https://archive.org/download/Horen341795b/Horen3-4-1795b_djvu.xml",
+   "file": "Horen3-4-1795b_djvu.xml",
+   "sha256": "a9f569e2f1bebe8a99ca38205c891634ca6daed1d9063c03f77ef3d5ac0bcf5f",
+   "bytes": 10016851,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "transcription",
+   "url": "https://www.deutschestextarchiv.de/book/download_txt/schiller_naive02_1795",
+   "file": "schiller-naive-dta.txt",
+   "sha256": "37f1d0a3e3e2ae791c584dcc6ef2d9739b3545f0a23d1d12f764ff2b3ebb7389",
+   "bytes": 96157,
+   "fetched": "2026-11-10",
+   "text": "schiller-naive-dta.txt.txt"
+  }
+ ],
+ "scan": {
+  "item": "Horen341795b",
+  "ocr": false,
+  "long_s": true,
+  "image_offset": null
+ },
+ "persons": [
+  {
+   "qid": "Q22670",
+   "name": {
+    "en": "Friedrich Schiller",
+    "ru": "Фридрих Шиллер"
+   },
+   "role": "author",
+   "died": 1805,
+   "source": "https://www.wikidata.org/wiki/Q22670"
+  }
+ ],
+ "published": 1795,
+ "images": [
+  {
+   "n": 300,
+   "file": "Horen341795b-n300.jpg",
+   "sha256": "a89eabaad12ad4fc8ba79e46bae384e34659c43c89cbcabd3ea8bf4641f5be71",
+   "by": "maker"
+  },
+  {
+   "n": 648,
+   "file": "Horen341795b-n648.jpg",
+   "sha256": "9d7f76d372020894f5fb181f0b6d26df9389358ac5f0650e3fd22652c51b9377",
+   "by": "maker",
+   "loc": "Satyrische Dichtung p11"
+  },
+  {
+   "n": 649,
+   "file": "Horen341795b-n649.jpg",
+   "sha256": "0eaa580cebc9d61f3d4102f6e9621af60b78cd82b26ce483e13e0c819e851d47",
+   "by": "maker",
+   "loc": "Satyrische Dichtung p12"
+  },
+  {
+   "n": 648,
+   "file": "Horen341795b-n648.jpg",
+   "sha256": "9d7f76d372020894f5fb181f0b6d26df9389358ac5f0650e3fd22652c51b9377",
+   "by": "second",
+   "loc": "Satyrische Dichtung p11"
+  },
+  {
+   "n": 649,
+   "file": "Horen341795b-n649.jpg",
+   "sha256": "0eaa580cebc9d61f3d4102f6e9621af60b78cd82b26ce483e13e0c819e851d47",
+   "by": "second",
+   "loc": "Satyrische Dichtung p12"
+  }
+ ],
+ "places": {
+  "Satyrische Dichtung p11": {
+   "transcription": "schiller-naive-dta.txt",
+   "images": [
+    648,
+    649
+   ],
+   "method": "image",
+   "share": null,
+   "whole": {
+    "stands": "transcription",
+    "note": "Read all three sentences on p. 11, image n648, against the DTA transcription; long s and raised e in umlauts are retained."
+   }
+  },
+  "Satyrische Dichtung p12": {
+   "transcription": "schiller-naive-dta.txt",
+   "method": "image",
+   "share": null,
+   "images": [
+    649
+   ],
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the complete first sentence of the paragraph on p. 12, image n649, against the DTA transcription."
+   }
+  }
+ }
+}

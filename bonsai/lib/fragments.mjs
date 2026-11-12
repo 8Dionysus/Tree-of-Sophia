@@ -17,6 +17,22 @@
 
 export const FRAGMENTS_SCHEMA='tos.bonsai.fragments.v1';
 export const CORPUS_ALIGNMENT_SCHEMA='tos.bonsai.corpus-alignment.v1';
+export const TRANSLATION_SCOPES_SCHEMA='tos.bonsai.translation-scopes.v1';
+/** Shape of explicit original ranges for partial translations. */
+export function translationScopesIssues(module){
+  const issues=[];
+  if(module?.schema!==TRANSLATION_SCOPES_SCHEMA)issues.push('schema');
+  if(!Array.isArray(module?.scopes))return [...issues,'scopes'];
+  const seen=new Set();
+  for(const scope of module.scopes){
+    if(!scope||typeof scope!=='object'){issues.push('scope');continue;}
+    for(const field of ['work','translationVersionId','originalVersionId','firstUnitId','lastUnitId','basis'])if(typeof scope[field]!=='string'||!scope[field].trim())issues.push(`${field} missing`);
+    if(!/^[a-f0-9]{64}$/.test(scope.originalRevision??''))issues.push('originalRevision');
+    if(!/^https:\/\//.test(scope.source??''))issues.push('source');
+    const key=`${scope.work}:${scope.translationVersionId}`;if(seen.has(key))issues.push(`duplicate ${key}`);seen.add(key);
+  }
+  return issues;
+}
 const BASES=['public-domain','public-domain+licence','short-quotation','locator-only'];
 // What a link opens: the whole work, the page a quotation is taken from, or where a book can be found.
 const OPENS=['work','quotation','book'];

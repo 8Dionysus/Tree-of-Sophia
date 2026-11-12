@@ -2,11 +2,14 @@ import { defineConfig } from "vite";
 import { fileURLToPath } from "node:url";
 // Every light theme of the public site is the night's stylesheets in its own colours, added at build time.
 import { themePostcss } from "./src/public-research/themes.mjs";
+// The public site's build writes the site's copy of the layers into its output.
+import { siteLayers } from "./site-layers.mjs";
 
 export default defineConfig(({ mode }) => {
   const publicResearch = mode === "public-research";
   return {
   base: publicResearch ? "/__research/" : "/static/",
+  plugins: [siteLayers()],
   css: { postcss: { plugins: [themePostcss()] } },
   server: {
     host: "127.0.0.1",
