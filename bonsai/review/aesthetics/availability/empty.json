@@ -7100,6 +7100,18 @@
       "service": "English, Spanish, German and Chinese Wikisource full-text APIs",
       "queries": "Original titles of all 88 works, once per language; requests and counts recorded per work",
       "outcome": "348 HTTP 200 and four HTTP 429 (all four Mikkonen queries). Title-only broad search, without author or translated title; up to three search hits retained in empty-wikisource-multi.json. No absence established."
+    },
+    {
+      "date": "2026-11-12",
+      "service": "National and open-access search route checks",
+      "queries": [
+        "Gallica SRU: Propaganda",
+        "Deutsche Digitale Bibliothek: Immanuel Kant Kritik der Urteilskraft",
+        "Cervantes Virtual: Propaganda",
+        "DOAB and OAPEN public search endpoints",
+        "Russian National Electronic Library browser search: Bernays Propaganda"
+      ],
+      "outcome": "Gallica SRU and Cervantes Virtual returned HTTP 403; DDB returned HTTP 200 with an Anubis anti-bot challenge rather than results; DOAB/OAPEN search returned 403; NЭB browser returned a network access notice. No challenge was bypassed and none of these results establishes absence."
     }
   ]
 }
