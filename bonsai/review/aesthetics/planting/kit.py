@@ -1631,6 +1631,66 @@ def cmd_witness_review(args):
     review['reader']=args.reader;review['model']=args.model;review['date']=today();review.setdefault('places',{})[args.loc]={'reads':'as the packet','alignment':args.alignment,'image_sha256':place['image_sha256']}
     save(witness_file(path,args.language),data);print(f'{args.loc}: second reader recorded')
 
+def anonymous_digest(proof):
+    return hashlib.sha256(json.dumps(proof,sort_keys=True,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()
+
+def anonymous_problems(path,lang,data,second=False,offline=False):
+    """Review an anonymously published translation, not an unknown named person."""
+    witness=data.get('witness') or {};proof=witness.get('anonymous_translation');problems=[]
+    if not isinstance(proof,dict):return ['anonymous translation evidence must be an object']
+    if proof.get('edition')!=witness.get('edition'):problems.append('anonymous translation needs the same exact edition')
+    year=proof.get('first_publication_year');edition_year=witness.get('year')
+    if type(year) is not int or year<1 or type(edition_year) is not int or year>edition_year:problems.append('anonymous translation needs the first lawful publication year, no later than this edition')
+    for field in ('lawful_publication','identity_research','same_version'):
+        if len(str(proof.get(field,'')).strip())<60:problems.append(f'anonymous translation needs a detailed {field} assessment')
+    searches=proof.get('searches') or []
+    if not isinstance(searches,list):searches=[]
+    valid_searches=[item for item in searches if isinstance(item,dict) and lawful_url(item.get('url')) and len(str(item.get('outcome','')).strip())>=20]
+    if len({item['url'] for item in valid_searches})<3:problems.append('anonymous translation needs at least three documented identity searches')
+    references=proof.get('sources') or [];known=data.get('sources') or []
+    if not isinstance(references,list):references=[]
+    if len({item.get('url') for item in references if isinstance(item,dict) and lawful_url(item.get('url'))})<2:problems.append('anonymous translation needs two distinct fetched sources')
+    for ref in references:
+        if not isinstance(ref,dict) or not any(all(source.get(k)==ref.get(k) for k in ('file','url','sha256')) for source in known) or not re.fullmatch(r'[a-f0-9]{64}',str(ref.get('sha256',''))):
+            problems.append('anonymous translation source is not the recorded fetched source');continue
+        if not offline:
+            try:
+                raw=Path(witness_cache(path,lang,ref['file'])).read_bytes()
+                if hashlib.sha256(raw).hexdigest()!=ref['sha256']:problems.append('anonymous translation source changed')
+            except (OSError,KeyError,TypeError):problems.append('anonymous translation source is unavailable')
+    if second:
+        review=data.get('review') or {};check=review.get('anonymous') or {};reader=review.get('reader')
+        if not reader or reader==witness.get('maker') or check.get('reader')!=reader or check.get('sha256')!=anonymous_digest(proof) or len(str(check.get('assessment','')).strip())<60:
+            problems.append('anonymous translation needs an independent assessment of the same publication, version and identity search')
+    return problems
+
+def cmd_witness_anonymous(args):
+    path=packet(args.packet);data=witness_data(path,args.language);info=load(args.file)
+    if not isinstance(info,dict) or set(info)!={'first_publication_year','lawful_publication','identity_research','same_version','searches','sources'}:die('anonymous evidence needs the documented publication, identity research, version, searches and source filenames')
+    refs=[]
+    if not isinstance(info.get('sources'),list):die('anonymous sources must be filenames of fetched sources')
+    for filename in info['sources']:
+        source=next((entry for entry in data.get('sources') or [] if entry.get('file')==filename),None)
+        if not source:die(f'fetch anonymous-publication source {filename} first')
+        refs.append({key:source.get(key) for key in ('file','url','sha256')})
+    proof={**info,'sources':refs,'edition':data['witness'].get('edition')}
+    data['witness']['anonymous_translation']=proof;data['review']={}
+    issues=anonymous_problems(path,args.language,data,offline=False)
+    if issues:die('anonymous evidence is incomplete: '+'; '.join(issues))
+    save(witness_file(path,args.language),data);print('anonymous-publication evidence recorded; independent assessment required')
+
+def cmd_witness_anonymous_review(args):
+    path=packet(args.packet);data=witness_data(path,args.language);review=data.get('review') or {};reader=review.get('reader');proof=(data.get('witness') or {}).get('anonymous_translation')
+    if not proof or not reader or reader==(data.get('witness') or {}).get('maker'):die('record the anonymous evidence and a different second reader first')
+    if len(args.assessment.strip())<60:die('assess the edition, lawful publication and identity search in detail')
+    review['anonymous']={'reader':reader,'sha256':anonymous_digest(proof),'assessment':args.assessment};data['review']=review
+    save(witness_file(path,args.language),data);print('independent anonymous-publication assessment recorded')
+
+def cmd_witness_anonymous_clear(args):
+    path=packet(args.packet);data=witness_data(path,args.language)
+    if not (data.get('witness') or {}).pop('anonymous_translation',None):die('no anonymous-publication evidence is recorded')
+    data['review']={};save(witness_file(path,args.language),data);print('anonymous claim cleared; record the identified translator and renew review')
+
 def witness_problems(path,lang,data,second=False,offline=False):
     problems=[];add=problems.append;witness=data.get('witness') or {};places=data.get('places') or {}
     if data.get('language')!=lang:add('language differs from filename')
@@ -1639,7 +1699,12 @@ def witness_problems(path,lang,data,second=False,offline=False):
     if not lawful_url(witness.get('url','')):add('witness.url must be a lawful https URL')
     people=witness.get('persons') or []
     if not witness.get('maker'):add('witness.maker is missing')
-    if not any(p.get('role')=='translator' for p in people):add('translator is missing')
+    identified_translator=any(p.get('role')=='translator' for p in people)
+    anonymous=witness.get('anonymous_translation')
+    if not identified_translator and not anonymous:add('translator is missing')
+    if identified_translator and anonymous:add('clear the anonymous claim when the translator is identified')
+    anonymous_issues=anonymous_problems(path,lang,data,second,offline) if anonymous else []
+    problems.extend(anonymous_issues)
     if not any(p.get('role')=='author' for p in people):add('author is missing')
     original_authors=[p for p in (evidence(path).get('persons') or []) if p.get('role')=='author']
     w=world()
@@ -1672,6 +1737,12 @@ def witness_problems(path,lang,data,second=False,offline=False):
             except (OSError,KeyError,ValueError,TypeError):add(f'{qid or person.get("name")}: person evidence is missing or invalid')
     problems.extend(license_problems(witness,data.get('sources') or [],lambda name:witness_cache(path,lang,name),data.get('review') or {},witness.get('maker'),second,offline))
     dates=public_domain_by_dates(people,witness.get('year'))
+    if anonymous:
+        # The EU anonymous term applies to this translation; identified authors
+        # and editors retain their own death-based terms. Russia needs its own evidence.
+        first=anonymous.get('first_publication_year') if isinstance(anonymous,dict) else None
+        dates['eu']=dates['eu'] and not anonymous_issues and type(first) is int and first<=datetime.date.today().year-71
+        dates['russia']=False
     for country in JURISDICTIONS:
         item=(witness.get('rights') or {}).get(country) or {}
         if not isinstance(item,dict) or item.get('basis') not in BASES or len(str(item.get('law','')))<20:add(f'rights.{country} needs basis and law')
@@ -1760,6 +1831,9 @@ def main():
     sub('licence',cmd_licence,P,(('source',),{}),(('url',),{}),(('explanation',),{}),(('--language',),{}));
     sub('licence-review',cmd_licence_review,P,(('assessment',),{}),(('--language',),{}));
     sub('witness-missing',cmd_witness_missing,P,(('language',),{}),(('loc',),{}),(('file',),{}));
+    sub('witness-anonymous',cmd_witness_anonymous,P,(('language',),{}),(('file',),{}));
+    sub('witness-anonymous-review',cmd_witness_anonymous_review,P,(('language',),{}),(('assessment',),{}));
+    sub('witness-anonymous-clear',cmd_witness_anonymous_clear,P,(('language',),{}));
     sub('witness-candidate',cmd_witness_candidate,P,(('language',),{}),(('file',),{}));
     sub('witness-person',cmd_witness_person,P,(('language',),{}),(('role',),{'choices':list(ROLES)}),(('qid',),{}));
     sub('witness-person-source',cmd_witness_person_source,P,(('language',),{}),(('role',),{'choices':list(ROLES)}),(('name',),{}),(('url',),{}),(('--ru',),{}),(('--born',),{'type':int}),(('--died',),{'type':int}),(('--file',),{}));

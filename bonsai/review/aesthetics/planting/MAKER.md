@@ -363,3 +363,36 @@ An extension may add translated places to an already accepted language when
 its witness records the same edition, participants, rights and source metadata;
 the maker may differ. Each extension is independently reviewed and signed.
 An overlapping place or a different edition is refused before acceptance.
+
+### An anonymously published translation
+
+An unnamed translator is not necessarily an anonymously published translation.
+First fetch at least two sources with `witness-fetch` and research attribution
+across at least three distinct catalogues or sources. Prepare a JSON object:
+
+```json
+{
+  "first_publication_year": 1875,
+  "lawful_publication": "Evidence for the first lawful public availability of this translation.",
+  "identity_research": "Searches for disclosure of the translator's identity during the applicable period.",
+  "same_version": "Evidence that the first publication is the translation in this exact edition.",
+  "searches": [{"url": "https://example.org/catalogue", "outcome": "What was searched and what the catalogue established."}],
+  "sources": ["edition.html", "catalogue.html"]
+}
+```
+
+The example is a shape, not sufficient evidence: each explanation needs at
+least 60 characters, three distinct searches and two fetched sources are
+required. Record it with `witness-anonymous PACKET LANG evidence.json`, then
+have the second reader verify the edition, publication and identity research
+and run `witness-anonymous-review PACKET LANG ASSESSMENT` after their page
+review. The review binds to the exact evidence record. The identified original
+author and every identified editor still require their own sourced dates.
+
+For the EU, Directive 2006/116/EC Article 1(3) and Article 8 permit the
+anonymous-publication term only after the evidenced first lawful availability
+and subject to identity disclosure; the dynamic gate uses year − 71. Russia is
+not automatically classified public domain from this EU route: assess a
+separate lawful quotation or licence, or establish the translator's identity.
+If a translator is identified, use `witness-anonymous-clear PACKET LANG`,
+record the person and obtain a new independent review.
