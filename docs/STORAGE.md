@@ -11,8 +11,7 @@ operator's machine keeps a separate recovery copy.
 | `tos-source-bytes` | Source bytes and witness inputs, including restricted material | WNAM, Standard |
 | `tos-public-layers` | Redistributable public-text and generated public layers | WNAM, Standard |
 
-Both are in the Cloudflare account hosting `tree-of-sophia-access`, with the
-default jurisdiction. The managed `r2.dev` endpoint is disabled for both.
+Both are in the Cloudflare account, with the default jurisdiction. The managed `r2.dev` endpoint is disabled for both.
 Keep source material private; publication depends on its separate rights and
 review decision. A public-layer designation does not grant permission to
 publish source material.
@@ -31,11 +30,8 @@ rule and is reserved for disposable tests; delete test objects after use.
 Authorized corpus operators write source bytes after the relevant rights and
 admission decisions. The future migration package owns that transfer and its
 manifest. Authorized CI and operators may write admitted public layers; CI and
-the site may read them. The access Worker configuration declares the
-`PUBLIC_LAYERS` binding to `tos-public-layers`, but the binding is not deployed
-or used by application code as part of this setup. The binding is technically
-capable of writes; application and credential policy must enforce the intended
-read-only use. Do not bind `tos-source-bytes` to the public Worker.
+the site may read them. The public research Worker has no bucket bindings.
+Do not bind `tos-source-bytes` to the public Worker.
 
 When CI needs S3-compatible access, supply GitHub Actions secrets:
 `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, and `R2_ENDPOINT`.

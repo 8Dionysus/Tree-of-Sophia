@@ -189,7 +189,7 @@ pub fn execute_controlled_philosophy_domain_response<
                         let mut limits = caps.json;
                         limits.max_bytes = limits.max_bytes.min(caps.max_response_bytes);
                         let pretty = heap
-                            .emit_python_pretty_owned_json(&packet, limits)
+                            .emit_sorted_indent2_owned_json_v1(&packet, limits)
                             .map_err(compiler_query_error)?;
                         heap.retain(pretty.capacity())
                             .map_err(compiler_query_error)?;

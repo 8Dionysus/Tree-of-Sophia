@@ -373,10 +373,9 @@ native `tos mcp` server is an off-page route, not a prerequisite for browser use
 ## Cloudflare delivery
 
 The repository's public deployment route is the
-[Cloudflare Worker package](deploy/cloudflare-worker/README.md). Static assets
-serve the web client, while generated read-only packets and D1 provide bounded
-projection access. Offline build/import steps and the production publication
-boundary live with that route. The older
+[Cloudflare Worker package](deploy/cloudflare-worker/README.md). The public research Worker serves the static stands and their assets; the
+retired atlas API and D1 are not part of that route. The publication boundary
+lives with that route. The older
 [Cloudflare Tunnel profile](deploy/cloudflare-tunnel/README.md) is for local
 preview or recovery, not the intended availability architecture.
 

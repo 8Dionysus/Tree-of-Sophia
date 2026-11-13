@@ -10,7 +10,7 @@ use std::{
     os::unix::fs::PermissionsExt,
     path::Path,
 };
-use tos_foundation::{Digest256, JsonLimits, JsonMode, emit_python_compact_json, parse_json};
+use tos_foundation::{Digest256, JsonLimits, JsonMode, emit_ordered_compact_json_v1, parse_json};
 use unicode_normalization::UnicodeNormalization;
 type R<T> = Result<T, String>;
 const WORK: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra";
@@ -225,7 +225,7 @@ fn encode(v: &V, pretty: bool) -> R<Vec<u8>> {
     let limits =
         JsonLimits::new(64 * 1024 * 1024, 128, 4_000_000, 4300).map_err(|e| e.to_string())?;
     let doc = parse_json(&raw, JsonMode::PublishedStrict, limits).map_err(|e| e.to_string())?;
-    let compact = emit_python_compact_json(doc.root(), limits).map_err(|e| e.to_string())?;
+    let compact = emit_ordered_compact_json_v1(doc.root(), limits).map_err(|e| e.to_string())?;
     if !pretty {
         return Ok(compact);
     }

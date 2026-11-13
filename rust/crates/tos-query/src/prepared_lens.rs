@@ -11,7 +11,8 @@ use crate::search::{SearchError, SearchKind};
 use rusqlite::{ToSql, types::Value};
 use tos_compiler::local_prepared::PreparedReadTransaction;
 use tos_foundation::{
-    Digest256, JsonMode, JsonValue, emit_python_compact_json, parse_json, python_lower_unicode16_v1,
+    Digest256, JsonMode, JsonValue, emit_ordered_compact_json_v1, parse_json,
+    python_lower_unicode16_v1,
 };
 type Result<T> = std::result::Result<T, SearchError>;
 
@@ -21,7 +22,7 @@ pub(crate) fn lens(
     spec: &JsonValue,
 ) -> Result<JsonValue> {
     let limits = read.limits;
-    emit_python_compact_json(spec, codec(65_536.min(limits.max_row_bytes)))
+    emit_ordered_compact_json_v1(spec, codec(65_536.min(limits.max_row_bytes)))
         .map_err(|_| budget())?;
     let metadata = metadata(read, "knowledge_lens_top")?;
     let raw = &metadata.0;
@@ -110,7 +111,8 @@ pub(crate) fn lens(
         plan.resume(reply)?;
     }
     let packet = plan.finish()?;
-    emit_python_compact_json(&packet, codec(limits.max_response_bytes)).map_err(|_| budget())?;
+    emit_ordered_compact_json_v1(&packet, codec(limits.max_response_bytes))
+        .map_err(|_| budget())?;
     read.check_abort().map_err(storage_error)?;
     Ok(packet)
 }
@@ -169,7 +171,7 @@ fn encoded(values: &[String], cap: usize) -> Result<String> {
             .map(|s| crate::compressed_search_state::string(s))
             .collect(),
     );
-    let bytes = emit_python_compact_json(&array, codec(cap)).map_err(|_| budget())?;
+    let bytes = emit_ordered_compact_json_v1(&array, codec(cap)).map_err(|_| budget())?;
     String::from_utf8(bytes).map_err(|_| corrupt())
 }
 fn index(kind: SearchKind, field: &str) -> Result<&'static str> {
@@ -217,7 +219,7 @@ fn condition(query: &LensHeaderQuery, args: &mut Vec<Value>, cap: usize) -> Resu
                 })
                 .collect(),
         );
-        let value = emit_python_compact_json(&value, codec(cap)).map_err(|_| budget())?;
+        let value = emit_ordered_compact_json_v1(&value, codec(cap)).map_err(|_| budget())?;
         args.push(Value::Text(
             String::from_utf8(value).map_err(|_| corrupt())?,
         ));

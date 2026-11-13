@@ -179,7 +179,7 @@ module. Fetched files stay outside the checkout (`~/.cache/tos-planting`).
 ```sh
 pip install openpyxl
 python3 bonsai/review/aesthetics/unify.py --batch "<folder of the first batch>"
-python3 bonsai/review/aesthetics/check_layer.py
+node bonsai/lib/cli.mjs check aesthetics
 ```
 
 The folder holds the four `Estetika_*_Reestr.xlsx` workbooks and `media/` with

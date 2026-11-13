@@ -2,7 +2,7 @@
 //! Publication selection and authenticated physical reads remain in the host.
 use tos_foundation::{
     FoundationErrorCode, JsonLimits, JsonMode, JsonNumber, JsonNumberKind, JsonString, JsonValue,
-    emit_python_compact_json, parse_json,
+    emit_ordered_compact_json_v1, parse_json,
 };
 use tos_query::search::SearchKind;
 use tos_query::search::{SearchError, SearchErrorCode};
@@ -144,7 +144,7 @@ impl InspectionSession {
                 .map(|(key, value)| (JsonString::from_utf8(key), value))
                 .collect(),
         );
-        emit_python_compact_json(&value, self.budget.json)
+        emit_ordered_compact_json_v1(&value, self.budget.json)
             .map(Some)
             .map_err(|_| {
                 error(
@@ -222,7 +222,7 @@ impl InspectionSession {
                 )
             })?
             .into_packet()?;
-        emit_python_compact_json(
+        emit_ordered_compact_json_v1(
             &packet,
             JsonLimits {
                 max_bytes: self.budget.max_response_bytes as usize,

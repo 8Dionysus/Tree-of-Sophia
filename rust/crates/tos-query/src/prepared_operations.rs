@@ -5,11 +5,11 @@ use crate::compressed_search_sqlite::Read;
 use crate::prepared_inspect::{budget, codec, corrupt, lookup, storage_error};
 use crate::search::{SearchError, SearchErrorCode, SearchKind};
 use tos_compiler::local_prepared::PreparedReadTransaction;
-use tos_foundation::{JsonValue, emit_python_compact_json};
+use tos_foundation::{JsonValue, emit_ordered_compact_json_v1};
 type Result<T> = std::result::Result<T, SearchError>;
 
 fn admit_request(request: &JsonValue, read: &Read<'_>) -> Result<()> {
-    emit_python_compact_json(request, codec(65_536.min(read.limits.max_row_bytes)))
+    emit_ordered_compact_json_v1(request, codec(65_536.min(read.limits.max_row_bytes)))
         .map_err(|_| budget())?;
     read.check_abort().map_err(storage_error)
 }
@@ -38,7 +38,7 @@ pub(crate) fn temporal(
         },
         output_limits,
     )?;
-    emit_python_compact_json(&packet, output_limits).map_err(|_| budget())?;
+    emit_ordered_compact_json_v1(&packet, output_limits).map_err(|_| budget())?;
     read.check_abort().map_err(storage_error)?;
     Ok(packet)
 }
@@ -65,7 +65,7 @@ pub(crate) fn focus_spec(
         request,
         &crate::knowledge_lens_spec::LensVocabulary::published_shape(),
     )?;
-    emit_python_compact_json(&spec, codec(cap)).map_err(|_| budget())?;
+    emit_ordered_compact_json_v1(&spec, codec(cap)).map_err(|_| budget())?;
     read.check_abort().map_err(storage_error)?;
     Ok(spec)
 }

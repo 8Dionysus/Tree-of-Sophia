@@ -16,7 +16,7 @@ use crate::{
     search::{SearchError, SearchKind},
 };
 use tos_compiler::local_prepared::PreparedReadTransaction;
-use tos_foundation::{Digest256, JsonValue, emit_python_compact_json};
+use tos_foundation::{Digest256, JsonValue, emit_ordered_compact_json_v1};
 type Result<T> = std::result::Result<T, SearchError>;
 
 /// The host must stage the exact encoded response before disclosure and commit
@@ -33,7 +33,7 @@ fn field<'a>(value: &'a JsonValue, key: &str) -> Result<&'a str> {
         .ok_or_else(corrupt)
 }
 fn encode(value: &JsonValue, max: usize) -> Result<Vec<u8>> {
-    emit_python_compact_json(value, codec(max)).map_err(|_| budget())
+    emit_ordered_compact_json_v1(value, codec(max)).map_err(|_| budget())
 }
 /// Actual prepared exploration limits, shared with software capability discovery.
 pub fn exploration_budget(

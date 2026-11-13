@@ -4,6 +4,7 @@
 
 use rusqlite::{Connection, OpenFlags, limits::Limit, types::ValueRef};
 use std::{
+    collections::BTreeMap,
     fs::{self, File},
     io::Read,
     os::unix::fs::MetadataExt,
@@ -24,6 +25,32 @@ const DEFAULT_BINDING_BYTES: usize = 65_536;
 const DIGEST_BYTES: usize = 1_024;
 const DIGEST_CHUNKS: usize = 256;
 const PROGRESS_GRANULARITY: u64 = 100;
+
+type CoverageHistogram = BTreeMap<[String; 3], u64>;
+
+fn bound_histogram(lens: &JsonValue, name: &str) -> Result<CoverageHistogram, String> {
+    let cells = lens
+        .object_get(name)
+        .and_then(JsonValue::as_array)
+        .filter(|cells| cells.len() <= 16_384)
+        .ok_or("prepared coverage publication histogram missing or oversized")?;
+    let mut histogram = CoverageHistogram::new();
+    for cell in cells {
+        let parts = cell
+            .as_array()
+            .filter(|parts| parts.len() == 4)
+            .ok_or("prepared coverage publication histogram cell invalid")?;
+        let key = [0, 1, 2].map(|i| parts[i].as_str().unwrap_or("").to_owned());
+        let count = parts[3]
+            .as_u64()
+            .filter(|count| *count > 0)
+            .ok_or("prepared coverage publication histogram count invalid")?;
+        if key.iter().any(String::is_empty) || histogram.insert(key, count).is_some() {
+            return Err("prepared coverage publication histogram key invalid".into());
+        }
+    }
+    Ok(histogram)
+}
 
 const NODE_COLUMNS: &[&str] = &[
     "id",
@@ -512,6 +539,11 @@ impl PreparedCoverageSource {
         let admission = meter.admission_limits(self.limits.admission)?;
         let admitted = PreparedReadTransaction::admit(&db, &binding, admission)
             .map_err(|error| format!("prepared coverage admission refused: {error}"))?;
+        let lens = admitted
+            .bound_lens_metadata()
+            .map_err(|error| format!("prepared coverage publication metadata refused: {error}"))?;
+        let mut nodes = bound_histogram(&lens, "node_counts")?;
+        let mut relations = bound_histogram(&lens, "relation_counts")?;
         meter.charge(admitted.read_rows(), admitted.read_bytes())?;
         if path_state(&self.path)? != main_before || optional_state(&wal)? != wal_before {
             return Err("prepared coverage publication changed during initial admission".into());
@@ -544,6 +576,7 @@ impl PreparedCoverageSource {
             &mut summary,
             &mut meter,
             &source_revision,
+            &mut nodes,
             &mut visitor,
         )?;
         self.scan_kind(
@@ -557,8 +590,12 @@ impl PreparedCoverageSource {
             &mut summary,
             &mut meter,
             &source_revision,
+            &mut relations,
             &mut visitor,
         )?;
+        if !nodes.is_empty() || !relations.is_empty() {
+            return Err("prepared coverage population differs from selected publication".into());
+        }
         check_abort(deadline, abort.as_ref())?;
         db.execute_batch("COMMIT; BEGIN")
             .map_err(|error| sqlite_error(error, &reason, deadline, abort.as_ref()))?;
@@ -622,6 +659,7 @@ impl PreparedCoverageSource {
         summary: &mut PreparedCoverageSummary,
         meter: &mut CoverageMeter,
         source_revision: &str,
+        histogram: &mut CoverageHistogram,
         visitor: &mut F,
     ) -> Result<(), String>
     where
@@ -721,6 +759,18 @@ impl PreparedCoverageSource {
                     self.verify_row_digest(
                         db, kind, identifier, &raw, deadline, abort, reason, meter,
                     )?;
+                    let offsets = match kind {
+                        PreparedCoverageKind::Node => [3, 4, 5],
+                        PreparedCoverageKind::Relation => [2, 5, 6],
+                    };
+                    let key = offsets.map(|index| indexed[index].clone());
+                    let count = histogram
+                        .get_mut(&key)
+                        .ok_or("prepared coverage population differs from selected publication")?;
+                    *count -= 1;
+                    if *count == 0 {
+                        histogram.remove(&key);
+                    }
                     summary.nodes = if kind == PreparedCoverageKind::Node {
                         summary
                             .nodes
@@ -1041,6 +1091,66 @@ mod tests {
         )
         .unwrap();
         (path, binding_path, revision)
+    }
+
+    #[test]
+    fn refuses_missing_carriers_before_declaring_coverage_complete() {
+        for table in ["knowledge_nodes", "knowledge_relations"] {
+            let nonce = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let dir = std::env::temp_dir().join(format!(
+                "tos-coverage-missing-{}-{nonce}",
+                std::process::id()
+            ));
+            fs::create_dir(&dir).unwrap();
+            let (path, binding_path, _) = publication(&dir);
+            let db = Connection::open(&path).unwrap();
+            db.execute(&format!("DELETE FROM {table}"), []).unwrap();
+            drop(db);
+            let source =
+                PreparedCoverageSource::new(path, binding_path, PreparedCoverageLimits::default())
+                    .unwrap();
+            let error = source
+                .visit(
+                    Instant::now() + Duration::from_secs(10),
+                    Arc::new(NeverAbort),
+                    |_| Ok(()),
+                )
+                .err()
+                .unwrap();
+            assert!(error.contains("population differs"), "{table}: {error}");
+            fs::remove_dir_all(dir).unwrap();
+        }
+    }
+
+    #[test]
+    fn refuses_histogram_metadata_not_bound_to_selection() {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir =
+            std::env::temp_dir().join(format!("tos-coverage-lens-{}-{nonce}", std::process::id()));
+        fs::create_dir(&dir).unwrap();
+        let (path, binding_path, _) = publication(&dir);
+        let db = Connection::open(&path).unwrap();
+        assert!(db.execute("UPDATE edge_meta SET json_chunk=replace(json_chunk, 'node_counts', 'node_countx') WHERE key='knowledge_lens_top'", []).unwrap() > 0);
+        drop(db);
+        let source =
+            PreparedCoverageSource::new(path, binding_path, PreparedCoverageLimits::default())
+                .unwrap();
+        let error = source
+            .visit(
+                Instant::now() + Duration::from_secs(10),
+                Arc::new(NeverAbort),
+                |_| Ok(()),
+            )
+            .err()
+            .unwrap();
+        assert!(error.contains("publication metadata refused"), "{error}");
+        fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]

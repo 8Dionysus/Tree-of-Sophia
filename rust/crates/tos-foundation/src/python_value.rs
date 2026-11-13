@@ -4,7 +4,7 @@
 
 use crate::{
     FoundationError, FoundationErrorCode as Code, JsonLimits, JsonNumber, JsonNumberKind,
-    JsonString, JsonValue, Result, emit_python_compact_json, python_lower_unicode16_v1,
+    JsonString, JsonValue, Result, emit_ordered_compact_json_v1, python_lower_unicode16_v1,
     python_printable_unicode16_v1,
 };
 
@@ -329,7 +329,7 @@ fn quoted_python_string(value: &JsonString, out: &mut TextBuilder) -> Result<()>
 
 fn json_scalar(value: &JsonValue) -> Result<String> {
     let limits = JsonLimits::new(8 * 1024 * 1024, 4, 16, 4300)?;
-    String::from_utf8(emit_python_compact_json(value, limits)?)
+    String::from_utf8(emit_ordered_compact_json_v1(value, limits)?)
         .map_err(|_| invalid("Python JSON scalar is not UTF-8"))
 }
 

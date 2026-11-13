@@ -40,7 +40,7 @@ pub fn request(raw: &[u8], operation: &str, json: JsonLimits) -> Result<JsonValu
 }
 
 use tos_foundation::{
-    FoundationErrorCode, JsonNumber, JsonNumberKind, JsonString, emit_python_compact_json,
+    FoundationErrorCode, JsonNumber, JsonNumberKind, JsonString, emit_ordered_compact_json_v1,
 };
 use tos_query::{
     knowledge_lens_spec::stored_lens_spec,
@@ -426,7 +426,7 @@ impl LensSession {
                 return Err(corrupt("native read reached published lens"));
             }
         };
-        emit_python_compact_json(&value, self.transport_limits()?)
+        emit_ordered_compact_json_v1(&value, self.transport_limits()?)
             .map(Some)
             .map_err(|_| {
                 error(
@@ -571,7 +571,7 @@ impl LensSession {
     }
     pub fn finish(&mut self) -> Result<Vec<u8>, SearchError> {
         let packet = self.plan.finish()?;
-        emit_python_compact_json(
+        emit_ordered_compact_json_v1(
             &packet,
             JsonLimits {
                 max_bytes: self.budget.lens.inspect.max_response_bytes,
