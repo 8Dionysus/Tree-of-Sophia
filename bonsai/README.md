@@ -218,6 +218,16 @@ merges sentences of the original, a monotone alignment cannot follow, and the
 counterpart shown may be the neighbouring sentence; the parallel reading of
 the whole place shows the context.
 
+When a specific original and translation unit name the same numbered place but
+their reference labels differ, a revision-bound translation scope can list
+`localReferencePairs`. Each listed pair is aligned independently using both
+complete units and the same sentence mechanism; only that original unit's
+mapping is replaced. The receipt records the pair and its local alignment
+statistics separately. Shared numbers alone do not establish textual
+correspondence, and a sentence may include adjacent material: the candidate
+still needs source review. Original and translation texts and their offsets
+remain in the unchanged corpus.
+
 When a translation covers only part of a corpus work, a stand may declare its
 `translation-scopes.json` entry with the source URL, exact original and
 translation versions and text-layer revisions, and first and last original unit IDs. The mechanism checks
