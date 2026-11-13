@@ -107,6 +107,30 @@
       "source": "https://es.wikisource.org/wiki/Enquiridi%C3%B3n/M%C3%A1ximas",
       "basis": "The automatic whole-work alignment gives unrelated Spanish passages for multiple cited Greek sections, including 30, 33, 46 and 52. Withhold this witness's card alignment until its differently numbered maxims and source text are aligned and reviewed; the public corpus witness remains available for reading.",
       "withheld": true
+    },
+    {
+      "work": "apology",
+      "translationVersionId": "retained-apology-es-azcarate1871",
+      "translationRevision": "b91d88e28dc6383145bbab4d33f3670b7ab9991af9ceaf0a287887f24c163685",
+      "originalVersionId": "retained-apology-grc2-6077e9014cf8",
+      "originalRevision": "aa3268383fa165879f098f106c92b87c5bae3bb8eb9c88be55f8d5cfa591191e",
+      "firstUnitId": "tos.text-unit.sid-6f7c37b83ac44085983a8fc8e42f52fc",
+      "lastUnitId": "tos.text-unit.sid-aa77da9055bc437fbe4a0cea6d85bbbc",
+      "source": "https://es.wikisource.org/wiki/Apolog%C3%ADa_de_S%C3%B3crates_(de_Azc%C3%A1rate_tr.)",
+      "basis": "The retained source omits lines and dialogue, and automatic alignment returns unrelated Spanish passages for multiple cited Greek ranges. Withhold card alignment until a source-bound correction and alignment have been reviewed; the retained witness remains available for reading.",
+      "withheld": true
+    },
+    {
+      "work": "apology",
+      "translationVersionId": "perseus-fowler-1914-en",
+      "translationRevision": "e9aad012204bd47d908d9fc119e0d81ad924388d362554835d18076b85f15c24",
+      "originalVersionId": "retained-apology-grc2-6077e9014cf8",
+      "originalRevision": "aa3268383fa165879f098f106c92b87c5bae3bb8eb9c88be55f8d5cfa591191e",
+      "firstUnitId": "tos.text-unit.sid-6f7c37b83ac44085983a8fc8e42f52fc",
+      "lastUnitId": "tos.text-unit.sid-aa77da9055bc437fbe4a0cea6d85bbbc",
+      "source": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg002/tlg0059.tlg002.perseus-eng2.xml",
+      "basis": "The automatic alignment returns thirty minas for a Greek citation about one mina. Withhold this reading layer's card alignment; the other retained Fowler layer remains available and gives the corresponding passage.",
+      "withheld": true
     }
   ]
 }
