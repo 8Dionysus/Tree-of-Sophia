@@ -762,7 +762,17 @@ pub struct Report {
     /// into CMD's Records→Gold event map before Closure.
     pub source_event_insertions: Vec<(String, Value)>,
     pub unsupported: Vec<UnsupportedScope>,
+    /// Informational custody evidence for private artifact photographs. This
+    /// does not change the validation status: absent bytes remain unobserved.
+    pub private_artifact_custody: Option<PrivateArtifactCustodySummary>,
     pub cost: Cost,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PrivateArtifactCustodySummary {
+    pub manifest_entries: usize,
+    pub files_verified: usize,
+    pub not_hydrated: usize,
 }
 
 /// Completed Discovery result bound to one opaque candidate input identity
@@ -2807,6 +2817,95 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         }
         Ok(())
     }
+}
+
+fn artifact_private_custody_manifest_valid(manifest: &Value) -> bool {
+    if string(manifest, "schema_version") != Some("tos_private_custody_v1") {
+        return false;
+    }
+    let Some(entries) = manifest.get("entries").and_then(Value::as_array) else {
+        return false;
+    };
+    // This v1 inventory is the exact 14-photo retirement set. Its shape and
+    // uniqueness must be checked before any absent byte is accepted as private.
+    if entries.len() != 14 {
+        return false;
+    }
+    let mut paths = BTreeSet::new();
+    entries.iter().all(|entry| {
+        let path = string(entry, "path").unwrap_or("");
+        let Some(bytes) = entry.get("bytes").and_then(Value::as_u64) else {
+            return false;
+        };
+        safe_relative_path(path)
+            && path.starts_with(ARTIFACTS)
+            && path.contains("/payload/")
+            && paths.insert(path)
+            && bytes > 0
+            && crate::private_custody::valid_entry(entry)
+    })
+}
+
+fn artifact_private_custody_matches(manifest: &Value, path: &str, payload: &Value) -> bool {
+    if !artifact_private_custody_manifest_valid(manifest) {
+        return false;
+    }
+    let Some(entries) = manifest.get("entries").and_then(Value::as_array) else {
+        return false;
+    };
+    let mut matches = entries
+        .iter()
+        .filter(|entry| string(entry, "path") == Some(path));
+    let Some(entry) = matches.next() else {
+        return false;
+    };
+    matches.next().is_none()
+        && entry.get("bytes") == payload.get("byte_size")
+        && entry.get("sha256") == payload.get("sha256")
+}
+
+fn artifact_private_custody_absence_matches(
+    manifest: &Value,
+    path: &str,
+    payload: &Value,
+    facts: &PhysicalPayloadFacts,
+) -> bool {
+    !facts.exists
+        && !facts.regular_file
+        && !facts.symlink
+        && artifact_private_custody_matches(manifest, path, payload)
+}
+
+fn artifact_private_custody_present_facts_match(
+    payload: &Value,
+    facts: &PhysicalPayloadFacts,
+) -> bool {
+    facts.exists
+        && facts.regular_file
+        && !facts.symlink
+        && facts.byte_size.is_some_and(|actual| {
+            payload
+                .get("byte_size")
+                .is_some_and(|expected| python_json_equal(&json!(actual), expected))
+        })
+        && facts.sha256.as_deref().is_some_and(|actual| {
+            payload.get("sha256").is_some_and(|expected| {
+                python_json_equal(&Value::String(actual.to_owned()), expected)
+            })
+        })
+        && facts.sha1.as_deref().is_some_and(|actual| {
+            payload.get("source_sha1").is_some_and(|expected| {
+                python_json_equal(&Value::String(actual.to_owned()), expected)
+            })
+        })
+        && facts.jpeg_dimensions.is_some_and(|(width, height)| {
+            python_optional_json_equal(payload.get("width_pixels"), Some(&json!(width)))
+                && python_optional_json_equal(payload.get("height_pixels"), Some(&json!(height)))
+        })
+}
+
+fn artifact_private_custody_event_digest_matches(payload: &Value, digest: Option<&str>) -> bool {
+    digest.is_some() && digest == string(payload, "sha256")
 }
 
 fn string<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
@@ -6474,6 +6573,104 @@ mod in_process_artifact_evidence_tests {
     use std::time::Duration;
     use tos_foundation::{InProcessSchemaExecutionBinding, SchemaExecutionBinding};
 
+    #[test]
+    fn private_custody_binds_exact_representation() {
+        let path = "ToS/source-witnesses/artifacts/a/payload/a.jpg";
+        let sha = "a".repeat(64);
+        let sha1 = "c".repeat(40);
+        let payload = json!({
+            "sha256": sha,
+            "byte_size": 42,
+            "source_sha1": sha1,
+            "width_pixels": 640,
+            "height_pixels": 480
+        });
+        let mut entries = (0..14)
+            .map(|index| {
+                let path = if index == 0 {
+                    path.to_owned()
+                } else {
+                    format!("ToS/source-witnesses/artifacts/{index}/payload/{index}.jpg")
+                };
+                json!({
+                    "path":path,"sha256":sha,"bytes":42,"access":"private",
+                    "bucket":"tos-source-bytes","key":format!("sha256/{sha}"),"source_revision":"b".repeat(40)
+                })
+            })
+            .collect::<Vec<_>>();
+        let mut manifest = json!({"schema_version":"tos_private_custody_v1", "entries":entries});
+        assert!(artifact_private_custody_manifest_valid(&manifest));
+        assert!(artifact_private_custody_matches(&manifest, path, &payload));
+        let absent = PhysicalPayloadFacts {
+            exists: false,
+            regular_file: false,
+            symlink: false,
+            git_tracked: None,
+            git_ignored: None,
+            byte_size: None,
+            sha256: None,
+            sha1: None,
+            jpeg_dimensions: None,
+        };
+        assert!(artifact_private_custody_absence_matches(
+            &manifest, path, &payload, &absent
+        ));
+        let present = PhysicalPayloadFacts {
+            exists: true,
+            regular_file: true,
+            symlink: false,
+            git_tracked: None,
+            git_ignored: None,
+            byte_size: Some(42),
+            sha256: Some(sha.clone()),
+            sha1: Some(sha1),
+            jpeg_dimensions: Some((640, 480)),
+        };
+        assert!(artifact_private_custody_present_facts_match(
+            &payload, &present
+        ));
+        let mut corrupt = present.clone();
+        corrupt.sha256 = Some("b".repeat(64));
+        assert!(!artifact_private_custody_present_facts_match(
+            &payload, &corrupt
+        ));
+        assert!(artifact_private_custody_event_digest_matches(
+            &payload,
+            Some(&sha)
+        ));
+        assert!(!artifact_private_custody_event_digest_matches(
+            &payload,
+            Some(&"b".repeat(64))
+        ));
+        assert!(!artifact_private_custody_event_digest_matches(
+            &payload, None
+        ));
+        let mut unexpected_symlink = absent.clone();
+        unexpected_symlink.symlink = true;
+        assert!(!artifact_private_custody_absence_matches(
+            &manifest,
+            path,
+            &payload,
+            &unexpected_symlink
+        ));
+        assert!(!artifact_private_custody_matches(
+            &manifest, "other", &payload
+        ));
+        assert!(!artifact_private_custody_matches(
+            &manifest,
+            path,
+            &json!({"sha256":sha,"byte_size":43})
+        ));
+        manifest["entries"][0]["bytes"] = json!(43);
+        assert!(artifact_private_custody_manifest_valid(&manifest));
+        assert!(!artifact_private_custody_matches(&manifest, path, &payload));
+        manifest["entries"][0]["bytes"] = json!(42);
+        let duplicate = manifest["entries"][0].clone();
+        manifest["entries"].as_array_mut().unwrap().push(duplicate);
+        assert!(!artifact_private_custody_manifest_valid(&manifest));
+        assert!(!artifact_private_custody_matches(&manifest, path, &payload));
+    }
+
     struct SelectedArtifactSchema(Vec<u8>);
 
     impl SourceCutInput for SelectedArtifactSchema {
@@ -9319,6 +9516,30 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         )
     })?;
 
+    let custody_path = "ToS/source-witnesses/artifacts/private-custody.v1.json";
+    let custody = inspector
+        .json_unchecked(custody_path, custody_path)?
+        .map(|v| v.0);
+    if custody
+        .as_ref()
+        .is_some_and(|manifest| !artifact_private_custody_manifest_valid(manifest))
+    {
+        inspector.issue(
+            custody_path,
+            "artifact-private-custody-manifest-invalid",
+            "private photograph custody inventory must contain the exact unique 14-entry v1 set",
+        )?;
+    }
+    let custody_manifest_entries = custody
+        .as_ref()
+        .filter(|manifest| artifact_private_custody_manifest_valid(manifest))
+        .and_then(|manifest| manifest.get("entries"))
+        .and_then(Value::as_array)
+        .map_or(0, Vec::len);
+    let custody_manifest_verified = custody_manifest_entries == 14;
+    let mut custody_bound_entries = 0usize;
+    let mut custody_files_verified = 0usize;
+    let mut custody_not_hydrated = 0usize;
     let mut representation_file_ids = BTreeSet::new();
     inspector.for_each_current_path(&mut |inspector, path| {
         if !path.starts_with(ARTIFACTS) || !path.ends_with("/representation.json") {
@@ -9478,15 +9699,39 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         )?;
 
         if safe_payload {
+            let private = custody.as_ref().is_some_and(|manifest| {
+                artifact_private_custody_matches(manifest, &payload_path, payload)
+            });
+            if private {
+                custody_bound_entries = custody_bound_entries
+                    .checked_add(1)
+                    .ok_or(crate::item_budget_origin!())?;
+            }
             if let Some(facts) = inspector.checked_payload_facts(&payload_path, path)? {
-                if !facts.exists || !facts.regular_file || facts.symlink {
+                if custody.as_ref().is_some_and(|manifest| {
+                    artifact_private_custody_absence_matches(
+                        manifest,
+                        &payload_path,
+                        payload,
+                        &facts,
+                    )
+                }) {
+                    // Manifest metadata is checked; absent bytes are not observed.
+                    custody_not_hydrated = custody_not_hydrated
+                        .checked_add(1)
+                        .ok_or(crate::item_budget_origin!())?;
+                } else if !facts.exists || !facts.regular_file || facts.symlink {
                     inspector.issue(
                         path,
                         "public-artifact-payload-missing-or-nonregular",
                         &payload_path,
                     )?;
                 } else {
-                    inspector.public_payload_git(&payload_path, path)?;
+                    let issues_before_payload = inspector.issues.len();
+                    let unsupported_before_payload = inspector.unsupported.len();
+                    if !private {
+                        inspector.public_payload_git(&payload_path, path)?;
+                    }
                     match facts.byte_size {
                         Some(actual)
                             if payload.get("byte_size").is_some_and(|expected| {
@@ -9551,6 +9796,15 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                             "public artifact JPEG dimensions are unobserved",
                         )?,
                     }
+                    if private
+                        && artifact_private_custody_present_facts_match(payload, &facts)
+                        && inspector.issues.len() == issues_before_payload
+                        && inspector.unsupported.len() == unsupported_before_payload
+                    {
+                        custody_files_verified = custody_files_verified
+                            .checked_add(1)
+                            .ok_or(crate::item_budget_origin!())?;
+                    }
                 }
             }
         }
@@ -9580,6 +9834,24 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                         ),
                     )?;
                 }
+                if safe_payload
+                    && custody.as_ref().is_some_and(|manifest| {
+                        artifact_private_custody_matches(manifest, &payload_path, payload)
+                    })
+                    && inspector
+                        .physical
+                        .and_then(|facts| facts.payloads.get(&payload_path))
+                        .is_some_and(|facts| !facts.exists && !facts.symlink)
+                    && event.outputs.get(&payload_path).is_some_and(|digest| {
+                        !artifact_private_custody_event_digest_matches(payload, digest.as_deref())
+                    })
+                {
+                    inspector.issue(
+                        &event.location,
+                        "provenance-output-digest-drift",
+                        &payload_path,
+                    )?;
+                }
                 inspector.check_required_output_digests(&event, &required, &event.location)?;
             }
             None => inspector.issue(
@@ -9590,6 +9862,19 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         }
         Ok(())
     })?;
+    if custody_manifest_verified && custody_bound_entries != custody_manifest_entries {
+        inspector.issue(
+            custody_path,
+            "artifact-private-custody-representation-closure",
+            "private custody inventory does not bind every current artifact representation",
+        )?;
+    }
+    let private_artifact_custody =
+        custody_manifest_verified.then_some(PrivateArtifactCustodySummary {
+            manifest_entries: custody_manifest_entries,
+            files_verified: custody_files_verified,
+            not_hydrated: custody_not_hydrated,
+        });
 
     let mut composite_ids = BTreeSet::new();
     inspector.for_each_current_path_matching(
@@ -10420,6 +10705,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             schema_requests: inspector.schema_requests,
             source_event_insertions,
             unsupported: inspector.unsupported,
+            private_artifact_custody,
             cost: Cost {
                 source_bytes_read: inspector.read_bytes,
                 observed_payload_bytes: inspector.payload_bytes,

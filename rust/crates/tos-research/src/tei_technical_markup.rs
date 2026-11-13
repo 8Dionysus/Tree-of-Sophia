@@ -18,8 +18,17 @@ type Result<T> = std::result::Result<T, String>;
 const BUILDER: &str = "rust/crates/tos-research/src/tei_technical_markup.rs";
 const SCHEMA: &str = "ToS/contracts/source-text-unit-packet-v1.schema.json";
 const PROVENANCE_SCHEMA: &str = "ToS/contracts/provenance-event.schema.json";
+const PRIVATE_FAMILY: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1";
 const CAP: usize = 32 * 1024 * 1024;
 const UNIT_CAP: usize = 20_000;
+const PRIVATE_FAMILY_NAMES: &[&str] = &[
+    "citation-spine.v1.jsonl",
+    "part-1.source-text-unit.v1.json",
+    "part-2.source-text-unit.v1.json",
+    "part-3.source-text-unit.v1.json",
+    "part-4.source-text-unit.v1.json",
+    "summary.v1.json",
+];
 #[derive(Clone, Copy)]
 pub enum Action {
     Build { issue_identities: bool },
@@ -1416,6 +1425,175 @@ fn tracked(
     )?;
     Ok(summary)
 }
+
+fn validate_current_source_bindings(ctx: &ResearchExecution, plan: &Value) -> Result<()> {
+    for source in array(&plan["source_items"])? {
+        let (_, rights) = load(ctx, s(&source["rights_ref"])?)?;
+        ensure(
+            array(&rights["scope_refs"])?.contains(&source["item_ref"]),
+            "current rights omit source",
+        )?;
+        let (_, manifest) = load(ctx, s(&source["manifest_ref"])?)?;
+        ensure(
+            manifest["item_id"] == source["item_ref"]
+                && manifest["embodiment_ref"] == source["edition_ref"]
+                && array(&manifest["payload_files"])?.iter().any(|f| {
+                    f["file_id"] == source["file_ref"] && f["sha256"] == source["file_sha256"]
+                }),
+            "tracked manifest source binding differs",
+        )?;
+    }
+    Ok(())
+}
+
+fn validate_available_private_outputs(
+    ctx: &ResearchExecution,
+    plan: &Value,
+    recipe: &Value,
+    missing: &[String],
+) -> Result<Vec<String>> {
+    validate_current_source_bindings(ctx, plan)?;
+    let (_, issuance) = load(ctx, s(&plan["identity_policy"]["issuance_ref"])?)?;
+    let ids = identities(&issuance)?;
+    ensure(
+        ids.0.keys().copied().collect::<BTreeSet<_>>() == part_orders(plan)?,
+        "tracked part identity set drift",
+    )?;
+
+    let citation_ref = out(plan, "citation_spine_ref")?;
+    let citations = if missing.iter().any(|name| name == "citation-spine.v1.jsonl") {
+        None
+    } else {
+        let rows = lines(ctx, &citation_ref)?.1;
+        ensure(!rows.is_empty(), "empty citation spine")?;
+        let mut unit_ids = BTreeSet::new();
+        let mut display = BTreeSet::new();
+        let mut bindings = BTreeMap::new();
+        for row in &rows {
+            ensure(
+                unit_ids.insert(s(&row["unit_id"])?)
+                    && display.insert(s(&row["display_citation"])?),
+                "tracked citation identity/citation collision",
+            )?;
+            ensure(
+                row["source_text_included"] == false
+                    && row["semantic_promotion"] == false
+                    && !forbidden(row),
+                "tracked citation boundary widened",
+            )?;
+            ensure(
+                bindings
+                    .insert(
+                        (
+                            number(&row["part_order"])?,
+                            s(&row["source_locator"])?.to_owned(),
+                        ),
+                        (row["unit_id"].clone(), row["anchor_ref"].clone()),
+                    )
+                    .is_none(),
+                "tracked citation locator collision",
+            )?;
+        }
+        ensure(
+            bindings
+                == ids
+                    .1
+                    .iter()
+                    .map(|(key, value)| {
+                        (
+                            key.clone(),
+                            (value["unit_id"].clone(), value["anchor_ref"].clone()),
+                        )
+                    })
+                    .collect(),
+            "citation and issuance binding differ",
+        )?;
+        Some(rows)
+    };
+    let citation_digest = if citations.is_some() {
+        Some(sha(&ctx.read(&citation_ref)?))
+    } else {
+        None
+    };
+    let mut checked = Vec::new();
+    if citations.is_some() {
+        checked.push("citation-spine.v1.jsonl".to_owned());
+    }
+    for source in array(&plan["source_items"])? {
+        let order = number(&source["part_order"])?;
+        let name = format!("part-{order}.source-text-unit.v1.json");
+        if missing.contains(&name) {
+            continue;
+        }
+        let reference = pattern(plan, "part_packet_pattern", order)?;
+        let (_, packet) = load(ctx, &reference)?;
+        validate_packet(ctx, &packet, None)?;
+        let fixed = &ids.0[&order];
+        ensure(
+            packet["packet_id"] == fixed["packet_id"]
+                && packet["schemes"][0]["scheme_id"] == fixed["scheme_id"]
+                && packet["segmentations"][0]["segmentation_id"] == fixed["segmentation_id"],
+            "tracked packet identity drift",
+        )?;
+        for key in [
+            "expression_ref",
+            "edition_ref",
+            "item_ref",
+            "file_ref",
+            "file_sha256",
+        ] {
+            ensure(
+                packet["source_scope"][key] == source[key],
+                "tracked packet source binding differs",
+            )?;
+        }
+        if let (Some(citations), Some(digest)) = (&citations, &citation_digest) {
+            let projection = &packet["projections"][0];
+            ensure(
+                projection["projection_id"] == fixed["projection_id"]
+                    && projection["artifact_ref"] == citation_ref
+                    && projection["artifact_sha256"] == digest.as_str(),
+                "tracked citation projection differs",
+            )?;
+            for (list, key) in [("units", "unit_id"), ("anchors", "anchor_ref")] {
+                let actual = array(&packet[list])?
+                    .iter()
+                    .map(|v| s(&v[key]))
+                    .collect::<Result<BTreeSet<_>>>()?;
+                let expected = citations
+                    .iter()
+                    .filter(|c| c["part_order"] == order)
+                    .map(|c| s(&c[key]))
+                    .collect::<Result<BTreeSet<_>>>()?;
+                ensure(
+                    actual == expected,
+                    "tracked citation packet closure differs",
+                )?;
+            }
+        }
+        checked.push(name);
+    }
+    let summary_name = "summary.v1.json";
+    if !missing.iter().any(|name| name == summary_name) {
+        let summary_ref = out(plan, "summary_ref")?;
+        let (_, summary) = load(ctx, &summary_ref)?;
+        ensure(
+            summary["schema_version"] == frozen_schema(recipe, "summary")?
+                && summary["source_text_included"] == false
+                && summary["semantic_fields_materialized"] == false
+                && summary["russian_parallel_structure_materialized"] == false,
+            "tracked summary authority or schema drift",
+        )?;
+        if let Some(citations) = &citations {
+            ensure(
+                summary["unit_count"] == citations.len(),
+                "tracked summary count differs",
+            )?;
+        }
+        checked.push(summary_name.to_owned());
+    }
+    Ok(checked)
+}
 pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
     validate_identity_recipe(opts.recipe)?;
     validate_legacy_recipe(opts.recipe)?;
@@ -1428,6 +1606,38 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
     let retained = retained_event(ctx, &plan, &opts)?;
     let build = matches!(opts.action, Action::Build { .. });
     if matches!(opts.action, Action::ValidateTracked) {
+        let family_manifest = format!("{PRIVATE_FAMILY}/r2-manifest.v1.json");
+        let missing = tos_compiler::private_custody::verify_family_missing(
+            ctx,
+            &family_manifest,
+            PRIVATE_FAMILY_NAMES,
+        )?;
+        if !missing.is_empty() {
+            let checked = validate_available_private_outputs(ctx, &plan, opts.recipe, &missing)?;
+            ctx.check()?;
+            return Ok(json!({
+                "status": "private-custody-manifest-verified-content-not-hydrated",
+                "mode": "validate-tracked",
+                "private_manifest_ref": family_manifest,
+                "private_manifest_entries": 6,
+                "files_verified": 6 - missing.len(),
+                "files_not_hydrated": missing.len(),
+                "message": format!(
+                    "private custody: {} not hydrated, manifest verified",
+                    missing.len()
+                ),
+                "content_validation": "present files validated locally; complete cross-file validation awaits hydration",
+                "files_content_checked": checked,
+                "unhydrated_files": missing,
+                "cross_file_checks_skipped": [
+                    "citation and packet closure for unhydrated packets",
+                    "summary and citation census when the citation spine is unhydrated",
+                    "complete tracked event closure across the entire output set"
+                ],
+                "semantic_admission": false,
+                "writes": false
+            }));
+        }
         let event = &retained.as_ref().ok_or("tracked provenance absent")?.1;
         let summary = tracked(ctx, &plan, opts.plan_ref, event, opts.recipe)?;
         ctx.check()?;

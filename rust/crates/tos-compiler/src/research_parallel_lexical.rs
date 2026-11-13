@@ -1602,9 +1602,473 @@ fn generate(
         analysis,
     })
 }
+#[derive(Default)]
+struct PartialLexicalStats {
+    files: usize,
+    count: usize,
+    language: Map<String, usize>,
+    status: Map<String, usize>,
+    occurrences: u64,
+}
+
+fn lower_hex(value: &V, length: usize) -> bool {
+    value.as_str().is_some_and(|s| {
+        s.len() == length
+            && s.bytes()
+                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    })
+}
+
+fn validate_partial_lexical_row(name: &str, row: &V) -> R<()> {
+    if !row.is_object() {
+        return Err(format!("{name}: row object required"));
+    }
+    match name {
+        "keyword-candidates.v1.jsonl" => {
+            if row["schema_version"] != "tos_lexical_keyword_candidate_v1"
+                || row["semantic_sufficiency"] != false
+                || !matches!(row["language"].as_str(), Some("de" | "ru"))
+                || !matches!(row["status"].as_str(), Some("proposed" | "deferred"))
+                || !lower_hex(&row["form_key_sha256"], 64)
+                || row["occurrence_count"].as_u64().is_none_or(|n| n == 0)
+                || row["part_range"].as_u64().is_none_or(|n| n == 0 || n > 4)
+                || row["range_count"].as_u64().is_none()
+                || row["part_entropy_millionths"].as_u64().is_none()
+                || row["global_recurrence_prominence_millionths"]
+                    .as_u64()
+                    .is_none()
+            {
+                return Err("keyword candidate schema/authority drift".into());
+            }
+            let parts = arr(&row["part_occurrence_counts"])?;
+            if parts.is_empty()
+                || parts.iter().any(|part| {
+                    part["part_order"]
+                        .as_u64()
+                        .is_none_or(|n| !(1..=4).contains(&n))
+                        || part["occurrence_count"].as_u64().is_none_or(|n| n == 0)
+                })
+            {
+                return Err("keyword part census drift".into());
+            }
+        }
+        "repeated-sequences.v1.jsonl" => {
+            if row["schema_version"] != "tos_lexical_repeated_sequence_candidate_v1"
+                || row["semantic_sufficiency"] != false
+                || !matches!(row["language"].as_str(), Some("de" | "ru"))
+                || !matches!(row["status"].as_str(), Some("proposed" | "deferred"))
+                || !lower_hex(&row["sequence_sha256"], 64)
+                || row["token_length"].as_u64().is_none_or(|n| n < 2)
+                || row["occurrence_count"].as_u64().is_none_or(|n| n == 0)
+                || row["unit_range"].as_u64().is_none_or(|n| n == 0)
+                || row["part_range"].as_u64().is_none_or(|n| n == 0 || n > 4)
+            {
+                return Err("repeated-sequence schema/authority drift".into());
+            }
+        }
+        "russian-recurrence.v1.jsonl" => {
+            if row["schema_version"] != "tos_russian_exact_form_recurrence_projection_v1"
+                || row["semantic_sufficiency"] != false
+                || row["source_string_tracked"] != false
+                || !lower_hex(&row["normalized_form_sha256"], 64)
+                || !lower_hex(&row["analysis_form_sha256"], 64)
+                || row["occurrence_count"].as_u64().is_none_or(|n| n == 0)
+                || row["part_range"].as_u64().is_none_or(|n| n == 0 || n > 4)
+                || row["reading_range"].as_u64().is_none_or(|n| n == 0)
+            {
+                return Err("Russian recurrence schema/authority drift".into());
+            }
+            let parts = arr(&row["part_counts"])?;
+            if parts.is_empty()
+                || parts.iter().any(|part| {
+                    part["part_order"]
+                        .as_u64()
+                        .is_none_or(|n| !(1..=4).contains(&n))
+                        || part["occurrence_count"].as_u64().is_none_or(|n| n == 0)
+                })
+            {
+                return Err("Russian recurrence part census drift".into());
+            }
+        }
+        "translation-surface-association-candidates.v1.jsonl" => {
+            let id = row["candidate_id"].as_str().unwrap_or("");
+            let suffix = id.strip_prefix("tos.lexical-association-candidate.sid-");
+            if row["schema_version"] != "tos_translation_surface_association_candidate_v1"
+                || row["candidate_kind"] != "translation_surface_association_candidate"
+                || row["semantic_probe_posture"]
+                    != "proposal_not_lexical_equivalence_sign_or_concept"
+                || row["accepted"] != false
+                || row["graph_effect"] != false
+                || row["review_refs"] != json!([])
+                || !matches!(
+                    row["status"].as_str(),
+                    Some("proposed" | "ambiguous" | "deferred")
+                )
+                || row["source_language"] != "de"
+                || row["target_language"] != "ru"
+                || !lower_hex(&row["source_form_key_sha256"], 64)
+                || !lower_hex(&row["target_form_key_sha256"], 64)
+                || suffix.is_none_or(|s| {
+                    s.len() != 32
+                        || !s
+                            .bytes()
+                            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+                })
+            {
+                return Err("association schema/authority drift".into());
+            }
+            for field in [
+                "supporting_alignment_refs",
+                "identity_universe_alignment_refs",
+            ] {
+                if arr(&row[field])?.iter().any(|reference| {
+                    reference
+                        .as_str()
+                        .is_none_or(|s| !s.starts_with("tos.translation-alignment.sid-"))
+                }) {
+                    return Err("association alignment reference drift".into());
+                }
+            }
+        }
+        _ => return Err(format!("unsupported partial lexical JSONL: {name}")),
+    }
+    Ok(())
+}
+
+fn partial_file_bytes(root: &ResearchExecution, reference: &str) -> R<Vec<u8>> {
+    let mut file = root.source_file(reference, 64 * 1024 * 1024)?;
+    let before = file.metadata().map_err(|e| e.to_string())?;
+    if before.permissions().mode() & 0o7777 != 0o644 {
+        return Err(format!("private family output mode drift: {reference}"));
+    }
+    let raw = root.read_file(&mut file, 64 * 1024 * 1024)?;
+    root.verify_file_unchanged(&file, &before)?;
+    root.check()?;
+    Ok(raw)
+}
+
+fn validate_partial_lexical_family(
+    root: &ResearchExecution,
+    selected: &SelectedPlan,
+    names: &[&str],
+    missing: &[String],
+    family_manifest: &str,
+) -> R<PartialLexicalStats> {
+    let missing = missing.iter().map(String::as_str).collect::<Set<_>>();
+    let output_names = [
+        "coverage-receipt.v1.json",
+        "keyword-candidates.v1.jsonl",
+        "provenance.jsonl",
+        "repeated-sequences.v1.jsonl",
+        "russian-recurrence.v1.jsonl",
+        "summary.v1.json",
+        "translation-surface-association-candidates.v1.jsonl",
+    ];
+    let mut stats = Map::<String, PartialLexicalStats>::new();
+    let mut summary = None;
+    let mut coverage = None;
+    let mut output_manifest = None;
+    for name in names {
+        root.tick(1)?;
+        if missing.contains(name) {
+            continue;
+        }
+        let reference = route(name);
+        let raw = partial_file_bytes(root, &reference)?;
+        let file_stats = stats.entry((*name).to_owned()).or_default();
+        file_stats.files = 1;
+        if name.ends_with(".jsonl") {
+            let text = std::str::from_utf8(&raw).map_err(|e| e.to_string())?;
+            let entry = file_stats;
+            for line in text.lines() {
+                root.tick(1)?;
+                if line.is_empty() {
+                    return Err(format!("empty JSONL row: {reference}"));
+                }
+                let row: V = serde_json::from_str(line).map_err(|e| format!("{reference}: {e}"))?;
+                root.check()?;
+                validate_partial_lexical_row(name, &row)?;
+                entry.count += 1;
+                if let Some(language) = row["language"].as_str() {
+                    *entry.language.entry(language.to_owned()).or_default() += 1;
+                }
+                if let Some(status) = row["status"].as_str() {
+                    *entry.status.entry(status.to_owned()).or_default() += 1;
+                }
+                if *name == "russian-recurrence.v1.jsonl" {
+                    entry.occurrences = entry
+                        .occurrences
+                        .checked_add(
+                            row["occurrence_count"]
+                                .as_u64()
+                                .ok_or("occurrence count required")?,
+                        )
+                        .ok_or("occurrence sum overflow")?;
+                }
+            }
+            if entry.count == 0 {
+                return Err(format!("empty JSONL output: {reference}"));
+            }
+        } else {
+            let value: V = serde_json::from_slice(&raw).map_err(|e| format!("{reference}: {e}"))?;
+            root.check()?;
+            match *name {
+                "manifest.v1.json" => output_manifest = Some(value),
+                "coverage-receipt.v1.json" => {
+                    if value["schema_version"]
+                        != "tos_zarathustra_parallel_lexical_candidate_coverage_v1"
+                        || value["parts_complete"] != 4
+                        || value["private_outputs_mode"] != "0600"
+                        || value["tracked_source_strings"] != false
+                        || value["accepted_candidate_count"] != 0
+                        || value["semantic_equivalence_asserted"] != false
+                        || value["russian_occurrence_ids_unique"] != true
+                        || value["russian_included_roles"]
+                            != selected.value["scope"]["russian_included_roles"]
+                    {
+                        return Err("coverage schema/authority/plan drift".into());
+                    }
+                    for field in [
+                        "russian_logical_rows_reconstructed",
+                        "russian_exact_occurrence_count",
+                        "german_existing_lexical_occurrence_count",
+                        "paragraph_alignment_units_consumed",
+                        "proposed_positive_evidence_units",
+                        "quality_deferred_alignment_units",
+                        "quality_deferred_proposed_units",
+                        "ambiguous_risk_units",
+                        "deferred_risk_units",
+                    ] {
+                        if value[field].as_u64().is_none() {
+                            return Err(format!("coverage count missing: {field}"));
+                        }
+                    }
+                    coverage = Some(value);
+                }
+                "summary.v1.json" => {
+                    if value["schema_version"]
+                        != "tos_zarathustra_parallel_lexical_candidate_summary_v1"
+                        || value["status"]
+                            != "completed-mechanical-candidate-observation-no-promotion"
+                        || value["parts"] != 4
+                        || value["accepted_candidate_count"] != 0
+                        || value["review_count"] != 0
+                        || value["graph_effect"] != false
+                        || value["semantic_equivalence_asserted"] != false
+                    {
+                        return Err("summary schema/authority drift".into());
+                    }
+                    for field in [
+                        "german_token_occurrences",
+                        "german_normalized_form_count",
+                        "russian_exact_token_occurrences",
+                        "russian_analysis_form_count",
+                        "russian_included_unit_count",
+                        "keyword_candidate_count",
+                        "repeated_sequence_count",
+                        "parallel_alignment_units",
+                        "quality_deferred_alignment_units",
+                        "association_candidate_count",
+                    ] {
+                        if value[field].as_u64().is_none() {
+                            return Err(format!("summary count missing: {field}"));
+                        }
+                    }
+                    summary = Some(value);
+                }
+                _ => return Err(format!("unsupported partial lexical JSON: {name}")),
+            }
+        }
+    }
+
+    if let Some(manifest) = output_manifest.as_ref() {
+        if manifest["schema_version"] != "tos_zarathustra_parallel_lexical_candidate_manifest_v1"
+            || manifest["plan_ref"] != selected.reference
+            || manifest["plan_sha256"] != selected.digest
+            || manifest["identity_issuance_ref"] != route("identity-issuance.v1.json")
+            || manifest["source_text_included"] != false
+            || manifest["semantic_equivalence_asserted"] != false
+            || manifest["accepted_candidate_count"] != 0
+            || manifest["canon_effect"] != false
+        {
+            return Err("output manifest binding/authority drift".into());
+        }
+        let generated = manifest["generated_outputs"]
+            .as_object()
+            .ok_or("generated outputs required")?;
+        if generated.keys().cloned().collect::<Set<_>>()
+            != output_names
+                .iter()
+                .map(|name| route(name))
+                .collect::<Set<_>>()
+        {
+            return Err("output manifest generated membership drift".into());
+        }
+        let private_outputs = manifest["private_outputs"]
+            .as_object()
+            .ok_or("private outputs required")?;
+        let expected_private = Set::from([
+            private("antonovsky-1911-lexical-observation-v1.sqlite3"),
+            private("parallel-candidate-analysis.v1.json"),
+        ]);
+        if private_outputs.keys().cloned().collect::<Set<_>>() != expected_private {
+            return Err("output manifest private membership drift".into());
+        }
+        let family = load(root, family_manifest)?;
+        let entries = arr(&family["entries"])?;
+        for name in names.iter().filter(|name| **name != "manifest.v1.json") {
+            let reference = route(name);
+            let output_receipt = generated
+                .get(&reference)
+                .ok_or("generated output receipt missing")?;
+            let custody = entries
+                .iter()
+                .find(|entry| entry["path"] == reference)
+                .ok_or("custody output receipt missing")?;
+            if output_receipt["sha256"] != custody["sha256"]
+                || output_receipt["byte_size"] != custody["bytes"]
+            {
+                return Err(format!("output/custody receipt drift: {reference}"));
+            }
+        }
+    }
+
+    if let (Some(summary), Some(coverage)) = (summary.as_ref(), coverage.as_ref()) {
+        for (coverage_key, summary_key) in [
+            (
+                "russian_exact_occurrence_count",
+                "russian_exact_token_occurrences",
+            ),
+            (
+                "german_existing_lexical_occurrence_count",
+                "german_token_occurrences",
+            ),
+            (
+                "paragraph_alignment_units_consumed",
+                "parallel_alignment_units",
+            ),
+            (
+                "quality_deferred_alignment_units",
+                "quality_deferred_alignment_units",
+            ),
+            ("ambiguous_risk_units", "parallel_status_counts.ambiguous"),
+            ("deferred_risk_units", "parallel_status_counts.deferred"),
+        ] {
+            let expected = if let Some(status) = summary_key.strip_prefix("parallel_status_counts.")
+            {
+                &summary["parallel_status_counts"][status]
+            } else {
+                &summary[summary_key]
+            };
+            if &coverage[coverage_key] != expected {
+                return Err(format!("coverage/summary drift: {coverage_key}"));
+            }
+        }
+    }
+    if let Some(summary) = summary.as_ref() {
+        for (name, summary_key) in [
+            ("keyword-candidates.v1.jsonl", "keyword_candidate_count"),
+            ("repeated-sequences.v1.jsonl", "repeated_sequence_count"),
+            (
+                "translation-surface-association-candidates.v1.jsonl",
+                "association_candidate_count",
+            ),
+        ] {
+            if let Some(file) = stats.get(name) {
+                if summary[summary_key].as_u64() != Some(file.count as u64) {
+                    return Err(format!("summary/file count drift: {summary_key}"));
+                }
+            }
+        }
+        if let Some(file) = stats.get("russian-recurrence.v1.jsonl") {
+            if summary["russian_exact_token_occurrences"].as_u64() != Some(file.occurrences) {
+                return Err("summary/Russian recurrence count drift".into());
+            }
+        }
+        for (name, key) in [
+            (
+                "keyword-candidates.v1.jsonl",
+                "keyword_candidates_by_language",
+            ),
+            (
+                "repeated-sequences.v1.jsonl",
+                "repeated_sequences_by_language",
+            ),
+        ] {
+            if let Some(file) = stats.get(name) {
+                if summary[key] != json!(file.language) {
+                    return Err(format!("summary language census drift: {name}"));
+                }
+            }
+        }
+        if let Some(file) = stats.get("translation-surface-association-candidates.v1.jsonl") {
+            if summary["association_status_counts"] != json!(file.status) {
+                return Err("summary association status census drift".into());
+            }
+        }
+    }
+    root.check()?;
+    let _ = missing;
+    Ok(stats
+        .values()
+        .fold(PartialLexicalStats::default(), |mut total, row| {
+            total.files += row.files;
+            total.count += row.count;
+            total
+        }))
+}
+
 // Existing receipt custody only; no producer, external child, SQL, or writes.
 fn validate_tracked_scoped(root: &ResearchExecution, selected: &SelectedPlan) -> R<V> {
     root.check()?;
+    // The five research result families have a source-owned private R2
+    // inventory. When a result is absent, that inventory proves only its
+    // declared path, size and digest; it cannot stand in for the checks below
+    // that inspect result contents. Present files are byte-verified by the
+    // shared custody reader and continue through the full validator.
+    let private_family = path(&format!("{ROUTE}/r2-manifest.v1.json"));
+    const PRIVATE_FAMILY_NAMES: &[&str] = &[
+        "coverage-receipt.v1.json",
+        "keyword-candidates.v1.jsonl",
+        "manifest.v1.json",
+        "repeated-sequences.v1.jsonl",
+        "russian-recurrence.v1.jsonl",
+        "summary.v1.json",
+        "translation-surface-association-candidates.v1.jsonl",
+    ];
+    let not_hydrated =
+        crate::private_custody::verify_family_missing(root, &private_family, PRIVATE_FAMILY_NAMES)?;
+    if !not_hydrated.is_empty() {
+        let partial = validate_partial_lexical_family(
+            root,
+            selected,
+            PRIVATE_FAMILY_NAMES,
+            &not_hydrated,
+            &private_family,
+        )?;
+        root.check()?;
+        return Ok(json!({
+            "message":format!("private custody: {} not hydrated, manifest verified", not_hydrated.len()),
+            "status":"private-custody-manifest-verified-content-not-hydrated",
+            "private_manifest_ref":private_family,
+            "private_manifest_entries":PRIVATE_FAMILY_NAMES.len(),
+            "files_verified":PRIVATE_FAMILY_NAMES.len()-not_hydrated.len(),
+            "files_not_hydrated":not_hydrated,
+            "content_validation":"hydrated_files_parsed_and_checked; missing_contents_not_checked",
+            "hydrated_files_content_checked":partial.files,
+            "hydrated_jsonl_rows_checked":partial.count,
+            "selected_input_validation":"not_run",
+            "checks_not_run":[
+                "candidate-to-private-analysis membership",
+                "private SQLite receipt and byte validation",
+                "selected source-input digests",
+                "full output cross-membership that depends on missing siblings"
+            ],
+            "algorithm_equivalence_asserted":false,
+            "semantic_admission":false,
+            "writes":false
+        }));
+    }
     for entry in selected.value["inputs"]
         .as_object()
         .ok_or("plan inputs required")?

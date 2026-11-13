@@ -808,6 +808,10 @@ fn file_digest(path: &Path) -> Result<(String, u64)> {
 #[cfg(feature = "research")]
 pub mod antonovsky_structural;
 
+/// Verification of exact private research-family custody manifests.
+#[cfg(feature = "research")]
+pub mod private_custody;
+
 #[cfg(feature = "source-tools")]
 pub mod native_prepare;
 
