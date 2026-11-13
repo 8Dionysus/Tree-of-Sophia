@@ -436,3 +436,43 @@ class CoauthorIdentityTest(unittest.TestCase):
         self.assertFalse(kit.same_participant(a,b))
         self.assertTrue(kit.same_participant(a,{'name':{'en':'Alex Smith'}}))
         self.assertFalse(kit.same_participant(a,{'name':{'en':'Alex Jones'}}))
+
+class CatalogueIdentityTest(unittest.TestCase):
+    def test_work_author_and_wikidata_identity_must_agree(self):
+        import json
+        import shutil
+        import subprocess
+        import tempfile
+        from pathlib import Path
+        root=Path(kit.ROOT);original=Path(kit.REVIEW)
+        with tempfile.TemporaryDirectory() as tmp:
+            target=Path(tmp);review=target/'bonsai/review/aesthetics';layer=review/'layer';layer.mkdir(parents=True)
+            (target/'bonsai/lib').symlink_to(root/'bonsai/lib',target_is_directory=True)
+            (review/'planting/packets').mkdir(parents=True)
+            shutil.copy2(original/'chronology.mjs',review/'chronology.mjs')
+            agents=[{'id':'karl','name':{'en':'Karl Rosenkranz','ru':'Карл Розенкранц'}},{'id':'other','name':{'en':'Different Person','ru':'Другой'}}]
+            works=[{'id':'karl.book','agents':['karl'],'title':{'original':'Book'}},{'id':'other.book','agents':['other'],'title':{'original':'Other Book'}}]
+            for name,value in [('agents',agents),('works',works),('sources',[]),('lives',{})]:(layer/(name+'.json')).write_text(json.dumps(value,ensure_ascii=False))
+            home=target/'bonsai/aesthetics';home.mkdir();(home/'library.json').write_text('{"agents":{},"works":{}}')
+            script="""
+import {pathToFileURL} from 'node:url';
+globalThis.setTimeout=fn=>{fn();return 0};
+globalThis.fetch=async input=>{
+ const url=new URL(String(input));let data;
+ if(url.pathname==='/search.json'){
+   const name=url.searchParams.get('author'),title=url.searchParams.get('title');
+   data={docs:[{key:'/works/OL123W',title,author_name:[name],author_key:['OL123A']}]};
+ }else if(url.pathname==='/authors/OL123A.json')data={name:'Karl Rosenkranz',remote_ids:{viaf:'12345'}};
+ else if(url.hostname==='query.wikidata.org')data={results:{bindings:[{person:{value:'http://www.wikidata.org/entity/Q62315'}}]}};
+ else if(url.pathname.includes('Special:EntityData/Q62315'))data={entities:{Q62315:{labels:{en:{value:'Karl Rosenkranz'}},claims:{P31:[{mainsnak:{datavalue:{value:{id:'Q5'}}}}],P569:[{mainsnak:{datavalue:{value:{time:'+1805-01-01T00:00:00Z',precision:9}}}}],P570:[{mainsnak:{datavalue:{value:{time:'+1879-01-01T00:00:00Z',precision:9}}}}]}}}};
+ else throw new Error('unexpected URL '+url);
+ return new Response(JSON.stringify(data),{status:200,headers:{'Content-Type':'application/json'}});
+};
+process.argv=['node','chronology.mjs','--fetch-queue-catalogue'];
+await import(pathToFileURL(process.argv[3]??'%MODULE%').href);
+""".replace('%MODULE%',str(review/'chronology.mjs'))
+            subprocess.run(['node','--input-type=module','-e',script],check=True,capture_output=True,text=True)
+            lives=json.loads((layer/'lives.json').read_text());self.assertEqual(lives['karl']['item'],'Q62315')
+            self.assertEqual(lives['karl']['identity_catalogue']['work'],'/works/OL123W')
+            self.assertEqual(lives['karl']['identity_catalogue']['authority'],['P214','12345'])
+            self.assertIsNone(lives['other']['item']);self.assertEqual(lives['other']['status'],'unresolved')
