@@ -3950,409 +3950,14 @@ mod selected_knowledge {
         assert_eq!(executor.held.load(Ordering::SeqCst), 0);
     }
     #[test]
-    fn installed_software_site_static_and_selected_boot_preserve_delivery_boundaries() {
-        use tos_access::{
-            http::{handle_get_with_software, write_response},
-            site::SoftwareSite,
-        };
-        use tos_compiler::knowledge_full_fixture::build_native_fixture_with_philosophy_original;
-        // Reuse both real selected producer fixtures; the companion ELF below
-        // is only an integrity fixture and is never executed as a product.
-        let (corpus, _) = captured_corpus_executor_fixture();
-        let held = Arc::clone(&corpus.held);
-        let controls = Arc::clone(&corpus.controls);
-        let philosophy = Executor {
-            fixture: build_native_fixture_with_philosophy_original(),
-            corpus_context: None,
-            held: Arc::clone(&held),
-            controls: Arc::clone(&controls),
-            checkpoints: Mutex::new(
-                tos_access::exploration_checkpoints::ProcessExplorationCheckpoints::new(
-                    tos_access::exploration_checkpoints::CheckpointLimits {
-                        ttl: Duration::from_secs(60),
-                        max_entries: 16,
-                        max_encoded_bytes: 2_000_000,
-                    },
-                )
-                .unwrap(),
-            ),
-        };
-        struct Boot {
-            corpus: Executor,
-            philosophy: Executor,
-        }
-        impl AccessExecutor for Boot {
-            fn source_descend_available(&self) -> bool {
-                false
-            }
-            fn source_descend(
-                &self,
-                _: Params,
-                _: Arc<dyn AbortProbe>,
-            ) -> Result<PreparedPacket<'static>, AccessError> {
-                unreachable!()
-            }
-            fn knowledge(
-                &self,
-                request: R,
-                probe: Arc<dyn AbortProbe>,
-            ) -> Result<PreparedPacket<'static>, AccessError> {
-                match request {
-                    R::CorpusViewIds => self.corpus.knowledge(request, probe),
-                    R::PhilosophyViewIds => self.philosophy.knowledge(request, probe),
-                    _ => unreachable!("boot does not prefetch maintained graph packets"),
-                }
-            }
-        }
-        let boot = Boot { corpus, philosophy };
+    fn retired_browser_routes_are_not_served() {
         let profile = AccessProfile::new(65_536, 1_048_576, 65_536);
-        let expected_corpus = boot
-            .knowledge(R::CorpusViewIds, Arc::new(Controls::default()))
-            .unwrap();
-        let expected_phi = boot
-            .knowledge(R::PhilosophyViewIds, Arc::new(Controls::default()))
-            .unwrap();
-        let first = |raw: &[u8], field: &str| {
-            let doc = parse_json(raw, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
-            doc.root().object_get(field).unwrap().as_array().unwrap()[0]
-                .object_get("view_id")
-                .unwrap()
-                .as_str()
-                .unwrap()
-                .to_owned()
-        };
-        let corpus_id = first(&expected_corpus.body, "graph_views");
-        let phi_id = first(&expected_phi.body, "views");
-        drop((expected_corpus, expected_phi));
-        assert_eq!(held.load(Ordering::SeqCst), 0);
-        let base = boot
-            .philosophy
-            .fixture
-            .path
-            .parent()
-            .unwrap()
-            .join("installed-site");
-        fs::create_dir_all(base.join("access/src/tos_access/web_dist/assets")).unwrap();
-        let executable = base.join("access/src/tos_access/tos-access");
-        let mut header = vec![0u8; 64];
-        header[..7].copy_from_slice(b"\x7fELF\x02\x01\x01");
-        header[18..20].copy_from_slice(b"\x3e\x00");
-        fs::write(&executable, &header).unwrap();
-        let js = b"export const softwareOwned=true;\n";
-        let css = b"body{margin:0}\n";
-        std::os::unix::fs::symlink(
-            "tos-graph.js",
-            base.join("access/src/tos_access/web_dist/assets/link.js"),
-        )
-        .unwrap();
-        let js_path = base.join("access/src/tos_access/web_dist/assets/tos-graph.js");
-        fs::write(&js_path, js).unwrap();
-        fs::write(
-            base.join("access/src/tos_access/web_dist/assets/tos-graph.css"),
-            css,
-        )
-        .unwrap();
-        let number = |n: usize| {
-            JsonValue::Number(tos_foundation::JsonNumber {
-                kind: tos_foundation::JsonNumberKind::Int,
-                lexeme: n.to_string(),
-            })
-        };
-        let member = |path: &str, raw: &[u8]| {
-            object(vec![
-                ("path", text(path)),
-                ("size_bytes", number(raw.len())),
-                ("sha256", text(&Digest256::of_bytes(raw).to_hex())),
-            ])
-        };
-        let lock = b"version = 4\n";
-        let pin = include_bytes!("../../../../rust-toolchain.toml");
-        fs::write(base.join("Cargo.lock"), lock).unwrap();
-        fs::write(base.join("rust-toolchain.toml"), pin).unwrap();
-        let source_ref = Digest256::of_bytes(&boot.philosophy.fixture.descriptor_bytes).to_hex();
-        let manifest = object(vec![
-            ("schema_version", text("tos_software_bundle_manifest_v1")),
-            ("software_ref", text(&source_ref)),
-            ("data_included", JsonValue::Bool(false)),
-            ("source_dirty", JsonValue::Bool(false)),
-            (
-                "native_access",
-                object(vec![
-                    ("schema_version", text("tos_native_access_build_v2")),
-                    ("target", text("x86_64-unknown-linux-gnu")),
-                    ("source_commit", text(&source_ref)),
-                    ("source_tree", text(&source_ref)),
-                    ("profile", text("debug")),
-                    ("opt_level", text("1")),
-                    ("lock_sha256", text(&Digest256::of_bytes(lock).to_hex())),
-                    (
-                        "toolchain",
-                        text(
-                            include_str!("../../../../rust-toolchain.toml")
-                                .lines()
-                                .find_map(|line| {
-                                    line.trim()
-                                        .strip_prefix("channel = ")
-                                        .and_then(|value| value.strip_prefix('"'))
-                                        .and_then(|value| value.strip_suffix('"'))
-                                })
-                                .unwrap(),
-                        ),
-                    ),
-                    ("sha256", text(&Digest256::of_bytes(&header).to_hex())),
-                    ("size_bytes", number(header.len())),
-                ]),
-            ),
-            (
-                "members",
-                JsonValue::Array(vec![
-                    member("access/src/tos_access/tos-access", &header),
-                    member("Cargo.lock", lock),
-                    member("rust-toolchain.toml", pin),
-                    member("access/src/tos_access/web_dist/assets/tos-graph.js", js),
-                    member("access/src/tos_access/web_dist/assets/link.js", js),
-                    member("access/src/tos_access/web_dist/assets/tos-graph.css", css),
-                ]),
-            ),
-        ]);
-        fs::write(
-            base.join("software.manifest.json"),
-            tos_foundation::emit_value_preserved_json(&manifest, JsonLimits::default()).unwrap(),
-        )
-        .unwrap();
-        let site = SoftwareSite::open(&executable, Arc::new(Controls::default())).unwrap();
-        // Actual kernel image A cannot be rebound to fixture path/proof B.
-        // No executable copy or additional program is needed.
-        let wrong_running = SoftwareSite::open_running(&executable, Arc::new(Controls::default()))
-            .err()
-            .unwrap();
-        assert_eq!(wrong_running.code, tos_access::AccessErrorCode::Unavailable);
-        assert_eq!(
-            wrong_running.message,
-            "installed path differs from running image"
-        );
-
-        struct TwoHolds {
-            bytes: Vec<u8>,
-            held: Arc<AtomicUsize>,
-        }
-        impl Write for TwoHolds {
-            fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
-                assert_eq!(self.held.load(Ordering::SeqCst), 2);
-                self.bytes.extend_from_slice(bytes);
-                Ok(bytes.len())
-            }
-            fn flush(&mut self) -> std::io::Result<()> {
-                assert_eq!(self.held.load(Ordering::SeqCst), 2);
-                Ok(())
-            }
-        }
-        let response = handle_get_with_software(&boot, "GET", "/", profile, &site);
-        assert_eq!(response.status, 200);
-        let html = String::from_utf8(response.body.clone()).unwrap();
-        assert!(html.contains(&format!("\"default_view\":\"{corpus_id}\"")));
-        assert!(html.contains(&format!("\"default_philosophy_view\":\"{phi_id}\"")));
-        assert!(html.contains("/static/assets/tos-graph.js"));
-        let mut writer = TwoHolds {
-            bytes: vec![],
-            held: Arc::clone(&held),
-        };
-        write_response(&mut writer, response).unwrap();
-        assert_eq!(held.load(Ordering::SeqCst), 0);
-        let wire = String::from_utf8(writer.bytes).unwrap();
-        for header in [
-            "Content-Type: text/html; charset=utf-8",
-            "Cache-Control: no-cache",
-            "Permissions-Policy: tools=(self)",
-            "Cross-Origin-Opener-Policy: same-origin",
-            "Cross-Origin-Embedder-Policy: require-corp",
-            "Cross-Origin-Resource-Policy: same-origin",
-            "Origin-Agent-Cluster: ?1",
-            "Referrer-Policy: no-referrer",
-            "X-Frame-Options: DENY",
-            "X-Content-Type-Options: nosniff",
-            "script-src 'self' 'nonce-",
-        ] {
-            assert!(wire.contains(header), "{header}");
-        }
-        let headers = wire.split("\r\n\r\n").next().unwrap();
-        assert!(headers.contains("'wasm-unsafe-eval'"));
-        assert!(!headers.contains("'unsafe-eval'"));
-        assert!(!headers.contains("'unsafe-inline'"));
-        assert!(headers.contains("object-src 'none'"));
-        assert!(headers.contains("frame-ancestors 'none'"));
-        let nonce_marker = "<script nonce=\"";
-        let nonce_start = html.find(nonce_marker).unwrap() + nonce_marker.len();
-        let nonce_end = html[nonce_start..].find('\"').unwrap() + nonce_start;
-        let nonce = &html[nonce_start..nonce_end];
-        assert!(!nonce.is_empty());
-        assert!(headers.contains(&format!("'nonce-{nonce}'")));
-        let permissions = headers
-            .lines()
-            .find_map(|line| line.strip_prefix("Permissions-Policy: "))
-            .unwrap();
-        assert!(permissions.contains("camera=()"));
-        assert!(permissions.contains("geolocation=()"));
-        let health = handle_get_with_software(&boot, "GET", "/health", profile, &site);
-        // This deliberately minimal boot executor has no selected health owner.
-        // Serving static assets must not manufacture a healthy data receipt.
-        assert_eq!(health.status, 503);
-        assert!(
-            String::from_utf8_lossy(&health.body).contains("selected access health unavailable")
-        );
-        let mut health_wire = vec![];
-        write_response(&mut health_wire, health).unwrap();
-        let health_headers = String::from_utf8(health_wire).unwrap();
-        for header in [
-            "Content-Security-Policy: default-src 'self'",
-            "Permissions-Policy: tools=(self)",
-            "Cross-Origin-Opener-Policy: same-origin",
-            "Cross-Origin-Embedder-Policy: require-corp",
-            "Cross-Origin-Resource-Policy: same-origin",
-            "Origin-Agent-Cluster: ?1",
-            "Referrer-Policy: no-referrer",
-            "X-Frame-Options: DENY",
-            "X-Content-Type-Options: nosniff",
-        ] {
-            assert!(health_headers.contains(header), "{header}");
-        }
-        let head = handle_get_with_software(&boot, "HEAD", "/", profile, &site);
-        let mut writer = TwoHolds {
-            bytes: vec![],
-            held: Arc::clone(&held),
-        };
-        write_response(&mut writer, head).unwrap();
-        assert!(writer.bytes.ends_with(b"\r\n\r\n"));
-        assert_eq!(held.load(Ordering::SeqCst), 0);
-        for (path, mime, raw) in [
-            (
-                "/static/assets/tos-graph.js",
-                "text/javascript",
-                js.as_slice(),
-            ),
-            ("/static/assets/tos-graph.css", "text/css", css.as_slice()),
-        ] {
-            for method in ["GET", "HEAD"] {
-                let response = handle_get_with_software(&boot, method, path, profile, &site);
-                assert_eq!(response.status, 200);
-                assert_eq!(response.body, raw);
-                let mut wire = vec![];
-                write_response(&mut wire, response).unwrap();
-                let split = wire.windows(4).position(|x| x == b"\r\n\r\n").unwrap() + 4;
-                let headers = String::from_utf8_lossy(&wire[..split]);
-                assert!(headers.contains(mime));
-                assert!(headers.contains(&format!("Content-Length: {}", raw.len())));
-                for header in [
-                    "Content-Security-Policy: default-src 'self'",
-                    "Permissions-Policy: tools=(self)",
-                    "Cross-Origin-Opener-Policy: same-origin",
-                    "Cross-Origin-Embedder-Policy: require-corp",
-                    "Cross-Origin-Resource-Policy: same-origin",
-                    "Origin-Agent-Cluster: ?1",
-                    "Referrer-Policy: no-referrer",
-                    "X-Frame-Options: DENY",
-                    "X-Content-Type-Options: nosniff",
-                ] {
-                    assert!(headers.contains(header), "{header} on {method} {path}");
-                }
-                assert_eq!(
-                    &wire[split..],
-                    if method == "HEAD" {
-                        b"".as_slice()
-                    } else {
-                        raw
-                    }
-                );
-            }
-        }
-        for path in [
-            "/static/../software.manifest.json",
-            "/static/%2e%2e/software.manifest.json",
-            "/static/%2Fetc/passwd",
-            "/static/assets%5Coutside.js",
-            "/static/%00",
-        ] {
+        for path in ["/", "/static/assets/tos-graph.js", "/static/research.html"] {
             assert_eq!(
-                handle_get_with_software(&boot, "GET", path, profile, &site).status,
-                400
+                handle_get(&tos_access::NoOwner, "GET", path, profile).status,
+                404
             );
         }
-        assert_eq!(
-            handle_get_with_software(&boot, "GET", "/static/assets/undeclared.js", profile, &site)
-                .status,
-            404
-        );
-        assert_eq!(
-            handle_get_with_software(&boot, "GET", "/static/assets/link.js", profile, &site).status,
-            404
-        );
-        let no_owner = tos_access::NoOwner;
-        let unavailable = handle_get_with_software(&no_owner, "GET", "/", profile, &site);
-        assert_eq!(unavailable.status, 200);
-        let html = String::from_utf8(unavailable.body).unwrap();
-        assert!(html.contains("\"default_view\":\"\""));
-        assert!(html.contains("\"philosophy\":false"));
-        let response = handle_get_with_software(&boot, "GET", "/", profile, &site);
-        controls.revoked.store(true, Ordering::SeqCst);
-        let mut wire = vec![];
-        write_response(&mut wire, response).unwrap();
-        assert_eq!(held.load(Ordering::SeqCst), 0);
-        assert!(wire.starts_with(b"HTTP/1.1 409 Conflict"));
-        assert!(!String::from_utf8_lossy(&wire).contains("window.__TOS_GRAPH_BOOT__"));
-        controls.revoked.store(false, Ordering::SeqCst);
-        // Replacement/deletion refuses without serving a different program.
-        let staged = handle_get_with_software(&no_owner, "GET", "/", profile, &site);
-        fs::rename(&executable, executable.with_extension("old")).unwrap();
-        fs::write(&executable, &header).unwrap();
-        let mut replaced = vec![];
-        write_response(&mut replaced, staged).unwrap();
-        assert!(replaced.starts_with(b"HTTP/1.1 503 Service Unavailable"));
-        fs::remove_file(&executable).unwrap();
-        assert_eq!(
-            handle_get_with_software(&no_owner, "GET", "/", profile, &site).status,
-            503
-        );
-        fs::rename(executable.with_extension("old"), &executable).unwrap();
-        let site = SoftwareSite::open(&executable, Arc::new(Controls::default())).unwrap();
-        let deleted = handle_get_with_software(&no_owner, "GET", "/", profile, &site);
-        assert_eq!(deleted.status, 200);
-        fs::remove_file(&executable).unwrap();
-        let mut wire = vec![];
-        write_response(&mut wire, deleted).unwrap();
-        assert!(wire.starts_with(b"HTTP/1.1 503 Service Unavailable"));
-        assert!(!String::from_utf8_lossy(&wire).contains("window.__TOS_GRAPH_BOOT__"));
-        // Restore only the tiny integrity fixture for the independent asset
-        // lifetime assertion; no real executable is copied or run.
-        fs::write(&executable, &header).unwrap();
-        let site = SoftwareSite::open(&executable, Arc::new(Controls::default())).unwrap();
-
-        let response =
-            handle_get_with_software(&boot, "GET", "/static/assets/tos-graph.js", profile, &site);
-        fs::write(&js_path, b"changed").unwrap();
-        let mut wire = vec![];
-        write_response(&mut wire, response).unwrap();
-        assert!(wire.starts_with(b"HTTP/1.1 503 Service Unavailable"));
-        assert!(String::from_utf8_lossy(&wire).contains("Content-Type: application/json"));
-        assert!(!wire.ends_with(js));
-        let timed = handle_get_with_software(
-            &boot,
-            "GET",
-            "/",
-            profile.with_query_timeout(Duration::ZERO),
-            &site,
-        );
-        assert_eq!(timed.status, 408);
-        let cancelled = Arc::new(Controls::default());
-        cancelled.cancelled.store(true, Ordering::SeqCst);
-        assert_eq!(
-            SoftwareSite::open(&executable, cancelled)
-                .err()
-                .unwrap()
-                .code,
-            tos_access::AccessErrorCode::Cancelled
-        );
-        // The real installed binary/layout acceptance is a separate admitted
-        // assembly stage. This test never executes the integrity fixture ELF.
     }
     #[test]
     #[cfg(feature = "source-tools")]
@@ -4380,14 +3985,6 @@ mod selected_knowledge {
             ("Cargo.lock", lock.clone()),
             ("rust-toolchain.toml", pin.clone()),
             ("access/src/tos_access/tos-access", elf.clone()),
-            (
-                "access/src/tos_access/web_dist/assets/tos-graph.css",
-                b"body{}".to_vec(),
-            ),
-            (
-                "access/src/tos_access/web_dist/assets/tos-graph.js",
-                b"fixture-static-js".to_vec(),
-            ),
         ]);
         let number = |n: usize| {
             JsonValue::Number(tos_foundation::JsonNumber {
@@ -4535,8 +4132,8 @@ mod selected_knowledge {
         // Whole archive SHA is updated, but the member CRC/SHA must still fail.
         let mut changed = original.clone();
         let offset = changed
-            .windows(b"fixture-static-js".len())
-            .position(|p| p == b"fixture-static-js")
+            .windows(b"version = 4\n".len())
+            .position(|p| p == b"version = 4\n")
             .unwrap();
         changed[offset] ^= 1;
         let JsonValue::Object(fields) = &mut external else {
@@ -4601,8 +4198,6 @@ mod selected_knowledge {
         fs::create_dir(&root).unwrap();
         let package = root.join("software.zip");
         let installed = root.join("installed");
-        let web_dist = std::env::var_os("TOS_NATIVE_SOFTWARE_WEB_DIST")
-            .expect("OPS must provide the genuine admitted current frontend handoff");
         let total = std::env::var("TOS_NATIVE_SOFTWARE_MAX_TOTAL_BYTES")
             .expect("OPS must provide the admitted uncompressed closure budget");
         let compressed = std::env::var("TOS_NATIVE_SOFTWARE_MAX_ARCHIVE_BYTES")
@@ -4661,8 +4256,6 @@ mod selected_knowledge {
         let assembly = assembly_command
             .arg("--root")
             .arg(&repository)
-            .arg("--web-dist")
-            .arg(web_dist)
             .arg("--output")
             .arg(&package)
             .arg("--source-ref")
@@ -5067,89 +4660,12 @@ mod selected_knowledge {
             );
             wire
         };
-        let split = |wire: &[u8]| {
-            wire.windows(4)
-                .position(|part| part == b"\r\n\r\n")
-                .unwrap()
-                + 4
-        };
-        let shell = request("GET", "/");
-        let head_end = split(&shell);
-        let headers = String::from_utf8_lossy(&shell[..head_end]);
-        assert!(headers.starts_with("HTTP/1.1 200 "));
-        assert!(headers.contains("Content-Type: text/html; charset=utf-8\r\n"));
-        assert!(headers.contains("Cache-Control: no-cache\r\n"));
-        assert!(headers.contains("Content-Security-Policy:") && headers.contains("'nonce-"));
-        assert!(headers.contains("X-Content-Type-Options: nosniff\r\n"));
-        assert!(headers.contains(&format!("Content-Length: {}\r\n", shell.len() - head_end)));
-        let html = std::str::from_utf8(&shell[head_end..]).unwrap();
-        let boot = html
-            .split("window.__TOS_GRAPH_BOOT__=")
-            .nth(1)
-            .unwrap()
-            .split(";</script>")
-            .next()
-            .unwrap();
-        let boot = parse_json(
-            boot.as_bytes(),
-            JsonMode::PublishedStrict,
-            JsonLimits::default(),
-        )
-        .unwrap()
-        .into_root();
-        for field in ["default_view", "default_philosophy_view"] {
-            assert_eq!(boot.object_get(field).unwrap().as_str(), Some(""));
+        for path in ["/", "/static/assets/tos-graph.js", "/static/research.html"] {
+            assert!(request("GET", path).starts_with(b"HTTP/1.1 404 "));
         }
-        assert_eq!(
-            boot.object_get("write_enabled"),
-            Some(&JsonValue::Bool(false))
-        );
-        for capability in ["corpus", "philosophy"] {
-            assert_eq!(
-                boot.object_get("capabilities")
-                    .unwrap()
-                    .object_get(capability),
-                Some(&JsonValue::Bool(false))
-            );
-        }
-        let head = request("HEAD", "/");
-        assert_eq!(split(&head), head.len());
-        assert!(
-            String::from_utf8_lossy(&head)
-                .contains(&format!("Content-Length: {}\r\n", shell.len() - head_end))
-        );
-        for (asset, mime) in [
-            ("tos-graph.js", "text/javascript"),
-            ("tos-graph.css", "text/css"),
-        ] {
-            let path = format!("/static/assets/{asset}");
-            let member = installed
-                .join("software/access/src/tos_access/web_dist/assets")
-                .join(asset);
-            assert!(fs::metadata(&member).unwrap().len() <= 16 * 1024 * 1024);
-            let expected = fs::read(&member).unwrap();
-            let wire = request("GET", &path);
-            assert_eq!(http_packet(&wire), expected);
-            let headers = String::from_utf8_lossy(&wire[..split(&wire)]);
-            assert!(headers.contains(&format!("Content-Type: {mime}\r\n")));
-            assert!(headers.contains("Cache-Control: no-cache\r\n"));
-            let head = request("HEAD", &path);
-            assert_eq!(split(&head), head.len());
-            assert!(
-                String::from_utf8_lossy(&head)
-                    .contains(&format!("Content-Length: {}\r\n", expected.len()))
-            );
-        }
-        let unavailable = request("GET", "/api/knowledge/catalog");
-        assert!(unavailable.starts_with(b"HTTP/1.1 503 "));
-        let traversal = request("GET", "/static/%2e%2e/Cargo.lock");
-        assert!(!traversal.starts_with(b"HTTP/1.1 200 "));
-        // A live process must refuse disappearance of its exact software image.
+        assert!(request("GET", "/api/knowledge/catalog").starts_with(b"HTTP/1.1 503 "));
         let moved = image.with_extension("held");
         fs::rename(&image, &moved).unwrap();
-        let refused = request("GET", "/");
-        assert!(refused.starts_with(b"HTTP/1.1 503 "));
-        assert!(!String::from_utf8_lossy(&refused).contains("window.__TOS_GRAPH_BOOT__"));
         drop(server);
         // Restore from the retained verified package into another fresh prefix.
         // The unavailable first prefix remains untouched and inspectable.

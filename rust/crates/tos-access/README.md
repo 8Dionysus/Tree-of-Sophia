@@ -208,11 +208,8 @@ failed `query-store` check: this native diagnostic does not claim support for
 the Python compiled-store backend or rebuild it. The report is a mechanics
 snapshot, not full standalone cutover or source/rights admission.
 
-Runtime contracts are compiled software bytes. Web assets must be readable,
-nonempty `web_dist/assets/tos-graph.js` companions in the native executable's
-own directory, following the existing installed software web_dist layout;
-selected data cannot replace them. Current native build products without that
-assembled companion correctly fail `web-assets`. Native MCP is built-in Rust
+Runtime contracts are compiled software bytes. The native service exposes API
+and MCP routes; it does not serve the public research site. Native MCP is built-in Rust
 stdio, so its dependency check validates the packaged operation descriptor
 instead of importing FastMCP. `verify` requires that check; `doctor` retains
 its optional posture. The only runtime profile is owned by standalone ToS.

@@ -4,6 +4,14 @@ This inventory records removal gates under [TOS-D-0069](decisions/TOS-D-0069-rus
 
 For each package, inventory installed versions, deployments, selected publications, backups and all consumers with the operator. Inspect service arguments and configuration without exposing credentials; inspect store manifests, SQLite metadata, D1 publication metadata and PostgreSQL version/profile and consumer metadata through authorized read-only access. Record counts, retention policy and the exact selected revisions. Exercise old and replacement software/data pairs, restoration, rollback, authorization and rights; retain exact bytes, IDs, references and historical locators. Establish target-capacity and recovery evidence before a large cutover or final legacy retirement. Each gate below adds to these shared conditions. Unknown external counts remain open until this inventory is complete.
 
+## Legacy atlas web
+
+The retired atlas web source is retained at the locally prepared tag
+[`retired/atlas-web`](https://github.com/8Dionysus/Tree-of-Sophia/tree/retired/atlas-web)
+(commit `b0903fc7bffac2b445a4459a8a309cadbf6adcfb`). The tag must be published
+with the retirement. The live public research site and native HTTP/MCP API
+remain separate; D1 export, domain transfer and cloud removal are operator steps.
+
 ## Source store V1
 
 `tos-source-store/src/manifest.rs`, `capture_import.rs` and `CorpusReader` write or read `tos_corpus_snapshot_v1`; `tos-reader` selects V1 by default and admission can migrate it to V2. Two tracked JSON snapshot fixtures carry the V1 marker. Inspect configured store roots, revision manifests and backups for selected and retained snapshots and installed `tos-reader` consumers.

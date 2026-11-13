@@ -468,12 +468,12 @@ jobs:
           limits=(--max-total-bytes "$total_cap" --max-archive-bytes "$archive_cap" --max-members "$member_cap" --max-metadata-bytes "$metadata_cap")
           mkdir -p -- "$root/dist"
           "$native" software build --root "$root" --source-ref "${{ github.sha }}" \
-            --web-dist "$root/access/web/dist" --output "$archive" \
+            --output "$archive" \
             --native-access-binary "$native" --native-access-receipt "$RUNNER_TEMP/tos-native-build.json" \
             --native-command-products "$RUNNER_TEMP/tos-native-command-products.json" "${limits[@]}"
           repeated="$RUNNER_TEMP/tree-of-sophia-software-repeat.zip"
           "$native" software build --root "$root" --source-ref "${{ github.sha }}" \
-            --web-dist "$root/access/web/dist" --output "$repeated" \
+            --output "$repeated" \
             --native-access-binary "$native" --native-access-receipt "$RUNNER_TEMP/tos-native-build.json" \
             --native-command-products "$RUNNER_TEMP/tos-native-command-products.json" "${limits[@]}"
           if ! cmp --silent "$archive" "$repeated"; then
@@ -496,7 +496,7 @@ jobs:
           printf 'TOS_RESEARCH_EXECUTOR=%s\n' "$RUNNER_TEMP/tos-native-install/bin/tos-research" >> "$GITHUB_ENV"
           printf 'TOS_E2E_FIXTURE_BIN=%s\n' "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug/tos-e2e-fixture" >> "$GITHUB_ENV"
           printf 'TOS_E2E_SITE_EXECUTABLE=%s\n' "$RUNNER_TEMP/tos-native-install/software/access/src/tos_access/tos-access" >> "$GITHUB_ENV"
-      - name: Test browser behavior with bounded native fixtures
+      - name: Test shared reader browser behavior
         # The harness bounds fresh native host/browser pairs to two, then runs
         # shared-cache Vite scenarios serially. Keep every original case and
         # the complete cohort's existing slow-renderer timeout envelope.

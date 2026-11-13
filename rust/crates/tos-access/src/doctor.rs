@@ -193,7 +193,7 @@ pub fn doctor_report(
     root: &Path,
     profile: &str,
     require_mcp: bool,
-    program_directory: &Path,
+    _program_directory: &Path,
 ) -> Result<JsonValue, String> {
     if profile != "standalone" {
         return Err(format!("unknown access profile: {profile}"));
@@ -523,35 +523,6 @@ pub fn doctor_report(
         contracts_ok,
         true,
         vec![("path", text("embedded:access/contracts"))],
-    );
-    let web = program_directory.join("web_dist");
-    let web_read = read(&web.join("assets/tos-graph.js"));
-    let web_ok = web_read.as_ref().is_ok_and(|raw| !raw.is_empty());
-    check(
-        &mut checks,
-        "web-assets",
-        web_ok,
-        true,
-        vec![
-            (
-                "path",
-                if web_ok {
-                    text(&web.to_string_lossy())
-                } else {
-                    JsonValue::Null
-                },
-            ),
-            (
-                "error",
-                if web_ok {
-                    JsonValue::Null
-                } else {
-                    text(
-                        "installed software web assets unavailable; selected data cannot supply executable assets",
-                    )
-                },
-            ),
-        ],
     );
     check(
         &mut checks,

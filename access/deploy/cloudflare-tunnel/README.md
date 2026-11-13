@@ -11,8 +11,8 @@ The route is intentionally small:
   `Tree-of-Sophia` checkout;
 - an optional durable PostgreSQL source-text consumer is selected by an
   absolute server-side selection file and can run without the ToS checkout;
-- native application code and web assets come from the explicit installed
-  prefix selected by `TOS_ACCESS_BIN`;
+- native application code comes from the explicit installed prefix selected by
+  `TOS_ACCESS_BIN`; the public site is published separately;
 - `abyss-stack` is not a runtime dependency;
 - the tunnel token stays outside Git;
 - the Cloudflare account owns only the tunnel, DNS, and edge policy.
@@ -36,7 +36,7 @@ tunnel token remains in its separate credential file.
 The Worker profile can use this native PostgreSQL endpoint through a separately
 configured HTTPS hostname and Cloudflare Access service-token policy. That
 hostname must be distinct from `treeofsophia.com`, which this temporary profile
-routes to the native site; the Worker must never target its own public route.
+routes to the native API; the Worker must never target its own public route.
 Configure the Worker-side origin and outbound Access client ID/secret only
 after the native origin has its selected `TOS_SOURCE_TEXT_SEARCH_SELECTION` and
 private `TOS_SOURCE_PG_URL`. Also configure the inbound Access team issuer and
@@ -65,7 +65,7 @@ and starts `tos-access-origin.service` first.
 When `TOS_SITE_ROOT` is set, the configured source checkout must contain the
 selected runtime projections. A PostgreSQL-only origin requires no ToS
 checkout or source projections. The installed prefix supplies the executable
-and static web assets in either mode. A healthy local origin is observable at
+in either mode. It does not serve the public research pages. A healthy local origin is observable at
 `http://127.0.0.1:${TOS_SITE_PORT}/health`; tunnel health is observable only
 after `cloudflared` reports connected and the public hostname returns that
 same read-only health packet.

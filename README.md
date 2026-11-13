@@ -20,8 +20,7 @@ https://github.com/user-attachments/assets/9a75a3a2-7033-4d86-822c-805efb07ef7a
 ## Quick start
 
 Install the verified native Linux x86_64 software archive into a fresh user
-prefix using the built-in deployment profile. It includes built
-browser assets and needs no Python runtime. Software
+prefix using the built-in deployment profile. It needs no Python runtime. Software
 installation does not include or select a corpus.
 
 ```sh
