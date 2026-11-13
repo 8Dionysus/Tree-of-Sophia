@@ -3,7 +3,7 @@
 use std::collections::BTreeMap;
 use tos_foundation::{
     CanonicalProfile, FoundationErrorCode, JsonLimits, JsonMode, JsonValue, canonical_bytes_v1,
-    emit_python_compact_json, parse_json,
+    emit_ordered_compact_json_v1, parse_json,
 };
 use tos_query::{
     compare_temporal_operands,
@@ -203,7 +203,7 @@ impl TemporalSession {
             ..self.budget.json
         };
         let bytes = if self.published_output {
-            emit_python_compact_json(&packet, limits)
+            emit_ordered_compact_json_v1(&packet, limits)
         } else {
             canonical_bytes_v1(&packet, CanonicalProfile::SourceRecordDigestV1, limits)
         }
