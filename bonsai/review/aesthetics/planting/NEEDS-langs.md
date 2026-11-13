@@ -42,3 +42,16 @@ identity remained undisclosed in the relevant term, or that another printing
 is the same text. Existing candidates stay unadmitted while those facts are
 investigated. Official EU text:
 https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32006L0116
+
+## Image-only source transcription
+
+For Burke's Spanish De la Dehesa edition (Alcalá, 1807), the lawful scan is an
+image-only PDF and its IA-derived OCR is unusably sparse for many selected
+sentences. A maker and separate reader can transcribe individual sentences from
+identified page images, but `witness-cut` currently requires a verbatim run in
+a separately fetched transcription. Please provide or identify an auditable
+kit route for image-first human transcription that binds page image, exact
+text, provenance and independent reading; a locally typed text must not be
+misrepresented as a downloaded transcription. The PDF's image of p. 86 also
+obscures its first lines, while the corresponding Google Books page image shows
+them; retain the precise source for each page.
