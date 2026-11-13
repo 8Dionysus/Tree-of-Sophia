@@ -244,21 +244,39 @@ class ExtensionPlantingTest(unittest.TestCase):
             witness_dir=parent/'witnesses';witness_dir.mkdir()
             loc=next(iter(base['places']))
             rights={country:{'basis':'public-domain','law':'Public domain according to the applicable law.'} for country in kit.JURISDICTIONS}
-            translated={'language':'es','witness':{'edition':'Test edition','attribution':'Test author','url':'https://example.org','rights':rights},
-                        'places':{loc:{'text':'Una frase completa.','url':'https://example.org/page','page':'1'}}}
-            raw=json.dumps(translated,ensure_ascii=False).encode();(witness_dir/'es.json').write_bytes(raw)
-            (witness_dir/'es.json.accepted').write_text(json.dumps({'sha256':hashlib.sha256(raw).hexdigest()}))
-            (witness_dir/'es.json').write_bytes(raw+b' ')
+            translated={'language':'ru','witness':{'edition':'Test edition','attribution':'Test author','url':'https://example.org','rights':rights},
+                        'places':{loc:{'text':'Русское предложение.','url':'https://example.org/page','page':'1'}}}
+            raw=json.dumps(translated,ensure_ascii=False).encode();(witness_dir/'ru.json').write_bytes(raw)
+            (witness_dir/'ru.json.accepted').write_text(json.dumps({'sha256':hashlib.sha256(raw).hexdigest()}))
+            (witness_dir/'ru.json').write_bytes(raw+b' ')
             changed=subprocess.run(command,capture_output=True,text=True)
             self.assertNotEqual(changed.returncode,0)
             self.assertIn('changed since review',changed.stderr)
-            (witness_dir/'es.json').write_bytes(raw)
+            (witness_dir/'ru.json').write_bytes(raw)
             subprocess.run(command,check=True,capture_output=True,text=True)
             projected=json.loads((target/'bonsai/aesthetics/fragments.json').read_text())
-            self.assertEqual(projected['places'][work][loc]['texts']['es'],'Una frase completa.')
+            self.assertEqual(projected['places'][work][loc]['texts']['ru'],'Русское предложение.')
+            self.assertFalse(any(item['language']=='ru' for item in projected['works'][work].get('unsearched',[])))
             subprocess.run(command+['--check'],check=True,capture_output=True,text=True)
-            (witness_dir/'es.json.accepted').unlink()
+            (witness_dir/'ru.json.accepted').unlink()
             subprocess.run(command,check=True,capture_output=True,text=True)
             projected=json.loads((target/'bonsai/aesthetics/fragments.json').read_text())
-            self.assertNotIn('es',projected['places'][work][loc]['texts'])
+            self.assertNotIn('ru',projected['places'][work][loc]['texts'])
+            self.assertTrue(any(item['language']=='ru' for item in projected['works'][work].get('unsearched',[])))
             subprocess.run(command+['--check'],check=True,capture_output=True,text=True)
+
+class CandidatePrivacyTest(unittest.TestCase):
+    def test_unreviewed_research_text_stays_in_local_cache(self):
+        import argparse
+        import json
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';(path/'witnesses').mkdir(parents=True)
+            (path/'witnesses/en.json').write_text(json.dumps({'language':'en','witness':{},'review':{}}))
+            candidate=Path(tmp)/'candidate.json';candidate.write_text(json.dumps({'work':'work','places':{'p':{'text':'Unreviewed source words.'}}}))
+            with patch.object(kit,'CACHE',str(Path(tmp)/'cache')):
+                kit.cmd_witness_candidate(argparse.Namespace(packet=str(path),language='en',file=str(candidate)))
+                stored=(path/'witnesses/en.json').read_text()
+                self.assertNotIn('Unreviewed source words.',stored)
+                self.assertTrue((Path(tmp)/'cache/work/witnesses/en/research-candidate.json').exists())

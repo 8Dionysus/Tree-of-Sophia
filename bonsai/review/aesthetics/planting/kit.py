@@ -913,6 +913,7 @@ def gate(path,second=False,offline=False):
             continue
         if list(place.get('texts') or {})!=[original] or not isinstance(text,str):add(f'{at}: texts holds the original only, under {original}');continue
         witness_rights=((entry.get('witnesses') or {}).get(original) or {}).get('rights') or {}
+        if any(isinstance(witness_rights.get(country),dict) and witness_rights[country].get('basis')=='locator-only' for country in JURISDICTIONS):add(f'{at}: text cannot be distributed while a jurisdiction permits a locator only')
         quoted=any(isinstance(witness_rights.get(country),dict) and witness_rights[country].get('basis')=='short-quotation' for country in JURISDICTIONS)
         for problem in sentences(text,limit=None if quoted else LONGEST):add(f'{at}: {problem}')
         if quoted:
@@ -1235,15 +1236,20 @@ def cmd_witness_open(args):
     print(file)
 
 def cmd_witness_candidate(args):
-    path=packet(args.packet);data=witness_data(path,args.language);candidate=load(args.file)
+    path=packet(args.packet);data=witness_data(path,args.language);raw=Path(args.file).read_bytes();candidate=json.loads(raw)
     if not isinstance(candidate,dict) or candidate.get('work')!=work_of(path):die('candidate names another work')
     if candidate.get('language') not in (None,args.language):die('candidate names another language')
-    data['candidate']=candidate;data['review']={};save(witness_file(path,args.language),data)
+    name='research-candidate.json';Path(witness_cache(path,args.language,name)).write_bytes(raw)
+    data['candidate']={'file':name,'sha256':hashlib.sha256(raw).hexdigest(),'status':candidate.get('status')};data['review']={};save(witness_file(path,args.language),data)
     print('research candidate recorded; source and page evidence must still pass the gate')
 
 def cmd_witness_cut_candidate(args):
     path=packet(args.packet);data=witness_data(path,args.language)
-    candidate=((data.get('candidate') or {}).get('places') or {}).get(args.loc) or {}
+    ref=data.get('candidate') or {}
+    if not ref.get('file'):die('record a research candidate first')
+    raw=Path(witness_cache(path,args.language,ref['file'])).read_bytes()
+    if hashlib.sha256(raw).hexdigest()!=ref.get('sha256'):die('research candidate changed')
+    candidate=(json.loads(raw).get('places') or {}).get(args.loc) or {}
     text=candidate.get('text')
     if not isinstance(text,str) or not text.strip():die('candidate has no text for this place')
     args.open=text;args.close=text
@@ -1365,6 +1371,7 @@ def witness_problems(path,lang,data,second=False,offline=False):
     if lang=='ru' and len(str(witness.get('normalization','')))<20:add('Russian witness needs a normalization provenance statement')
     original=(world()['fragments'].get('places') or {}).get(work_of(path),{})
     if not places:add('no translated places')
+    if places and any(((witness.get('rights') or {}).get(country) or {}).get('basis')=='locator-only' for country in JURISDICTIONS):add('translated text cannot be distributed while a jurisdiction permits a locator only')
     sources={item.get('file'):item for item in data.get('sources') or []}
     for loc,place in places.items():
         if loc not in original:add(f'{loc}: no original place');continue
