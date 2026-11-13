@@ -96,10 +96,45 @@ for(const name of packets){
   if(places.entry){fragments.works[name]=places.entry;whole.push(name);}
   if(!fragments.works[name])fail(`packet ${name}: no entry for a work the places module does not hold`);
   fragments.places[name]={...(places.entry?{}:fragments.places[name]),...places.places};
+  const projectJustifications=(directory,selected)=>{
+    const file=join(directory,'evidence.json');if(!existsSync(file))return;
+    const evidence=json(file),lang=fragments.works[name].original;
+    for(const loc of Object.keys(selected??{})){
+      const justification=evidence.places?.[loc]?.quotation?.justification;
+      if(justification){const place=fragments.places[name][loc];place.quotation_justification??={};place.quotation_justification[lang]=justification;}
+    }
+  };
+  projectJustifications(at,places.places);
+  const own=new Set(Object.keys(places.places).map(loc=>`${name} ${loc}`)),seen=fragments.provenance.checked_on_the_page_image;
+  fragments.provenance.corrections=[...fragments.provenance.corrections.filter(correction=>!own.has(correction.place)),...(places.corrections??[])];
+  if(places.checked_on_the_page_image?.length)seen[name]=[...new Set([...(places.entry?[]:seen[name]??[]),...places.checked_on_the_page_image])];
+  const extensionsDir=join(at,'extensions');
+  const witnessRoots=[{dir:join(at,'witnesses'),path}];
+  for(const extension of existsSync(extensionsDir)?readdirSync(extensionsDir,{withFileTypes:true}).filter(item=>item.isDirectory()).map(item=>item.name).sort():[]){
+    const ext=join(extensionsDir,extension),selector=`${name}/extensions/${extension}`;
+    if(!existsSync(join(ext,'accepted.json'))&&tried!==selector)continue;
+    const extensionPath=`${path}/extensions/${extension}`,extensionPlacesFile=json(join(ext,'places.json'));
+    witnessRoots.push({dir:join(ext,'witnesses'),path:extensionPath});
+    if(extensionPlacesFile.work!==name||extensionPlacesFile.entry)fail(`extension ${selector}: wrong work or duplicate entry`);
+    records.push({name:`planting/packets/${selector}/reading.json`,path:`${extensionPath}/reading.json`,...json(join(ext,'reading.json'))});
+    if(existsSync(join(ext,'review.json'))){const {reader}=json(join(ext,'review.json'));seconds.push({...reader,record:`${extensionPath}/review.json`});}
+    const newPlaces={};
+    for(const [loc,value] of Object.entries(extensionPlacesFile.places??{})){
+      const existing=fragments.places[name]?.[loc],lang=fragments.works[name].original;
+      if(existing&&existing.texts?.[lang]!==value.texts?.[lang])fail(`extension ${selector}: ${loc} changes an existing original place`);
+      if(!existing){(extensionPlaces[name]??={})[loc]=null;fragments.places[name][loc]=value;newPlaces[loc]=value;}
+    }
+    projectJustifications(ext,newPlaces);
+    fragments.provenance.corrections.push(...(extensionPlacesFile.corrections??[]));
+    extensionCorrections.push(...(extensionPlacesFile.corrections??[]));
+    if(extensionPlacesFile.checked_on_the_page_image?.length){
+      if(!(name in extensionChecked))extensionChecked[name]=seen[name]?[...seen[name]]:null;
+      seen[name]=[...new Set([...(seen[name]??[]),...extensionPlacesFile.checked_on_the_page_image])];
+    }
+  }
   // Each accepted translation is an independent source record; the acceptance digest
   // binds the second reader's decision to the exact file consumed here.
-  const witnessesDir=join(at,'witnesses');
-  for(const file of existsSync(witnessesDir)?readdirSync(witnessesDir).filter(file=>file.endsWith('.json')).sort():[]){
+  for(const {dir:witnessesDir,path:witnessPath} of witnessRoots)for(const file of existsSync(witnessesDir)?readdirSync(witnessesDir).filter(file=>file.endsWith('.json')).sort():[]){
     const full=join(witnessesDir,file),accept=`${full}.accepted`;
     if(!existsSync(accept))continue;
     const raw=readFileSync(full),record=JSON.parse(raw),receipt=json(accept),lang=file.slice(0,-5);
@@ -109,7 +144,7 @@ for(const name of packets){
     const absent=(fragments.works[name].absent??[]).find(item=>item.language===lang)??null;
     const unsearched=(fragments.works[name].unsearched??[]).find(item=>item.language===lang)??null;
     const corrections=Object.entries(record.places??{}).flatMap(([loc,place])=>(place.corrections??[]).map(correction=>({loc,...correction})));
-    (translationPackets[name]??={})[lang]={absent,unsearched,record:`${path}/witnesses/${file}`,corrections};
+    (translationPackets[name]??={})[lang]={absent,unsearched,record:`${witnessPath}/witnesses/${file}`,corrections};
     fragments.works[name].absent=(fragments.works[name].absent??[]).filter(item=>item.language!==lang);
     if(fragments.works[name].unsearched)fragments.works[name].unsearched=fragments.works[name].unsearched.filter(item=>item.language!==lang);
     for(const [loc,translated] of Object.entries(record.places??{})){
@@ -118,29 +153,6 @@ for(const name of packets){
       if(translated.address){place.addresses??={};place.addresses[lang]=translated.address;}
       place.refs??=[];place.refs.push([lang,`${record.witness.edition}, ${translated.page}`]);
       if(translated.justification){place.quotation_justification??={};place.quotation_justification[lang]=translated.justification;}
-    }
-  }
-  const own=new Set(Object.keys(places.places).map(loc=>`${name} ${loc}`)),seen=fragments.provenance.checked_on_the_page_image;
-  fragments.provenance.corrections=[...fragments.provenance.corrections.filter(correction=>!own.has(correction.place)),...(places.corrections??[])];
-  if(places.checked_on_the_page_image?.length)seen[name]=[...new Set([...(places.entry?[]:seen[name]??[]),...places.checked_on_the_page_image])];
-  const extensionsDir=join(at,'extensions');
-  for(const extension of existsSync(extensionsDir)?readdirSync(extensionsDir,{withFileTypes:true}).filter(item=>item.isDirectory()).map(item=>item.name).sort():[]){
-    const ext=join(extensionsDir,extension),selector=`${name}/extensions/${extension}`;
-    if(!existsSync(join(ext,'accepted.json'))&&tried!==selector)continue;
-    const extensionPath=`${path}/extensions/${extension}`,extensionPlacesFile=json(join(ext,'places.json'));
-    if(extensionPlacesFile.work!==name||extensionPlacesFile.entry)fail(`extension ${selector}: wrong work or duplicate entry`);
-    records.push({name:`planting/packets/${selector}/reading.json`,path:`${extensionPath}/reading.json`,...json(join(ext,'reading.json'))});
-    if(existsSync(join(ext,'review.json'))){const {reader}=json(join(ext,'review.json'));seconds.push({...reader,record:`${extensionPath}/review.json`});}
-    for(const [loc,value] of Object.entries(extensionPlacesFile.places??{})){
-      const existing=fragments.places[name]?.[loc],lang=fragments.works[name].original;
-      if(existing&&existing.texts?.[lang]!==value.texts?.[lang])fail(`extension ${selector}: ${loc} changes an existing original place`);
-      if(!existing){(extensionPlaces[name]??={})[loc]=null;fragments.places[name][loc]=value;}
-    }
-    fragments.provenance.corrections.push(...(extensionPlacesFile.corrections??[]));
-    extensionCorrections.push(...(extensionPlacesFile.corrections??[]));
-    if(extensionPlacesFile.checked_on_the_page_image?.length){
-      if(!(name in extensionChecked))extensionChecked[name]=seen[name]?[...seen[name]]:null;
-      seen[name]=[...new Set([...(seen[name]??[]),...extensionPlacesFile.checked_on_the_page_image])];
     }
   }
 }
