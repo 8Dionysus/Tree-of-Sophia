@@ -64,6 +64,9 @@ describe('the corpus alignment of the stands',()=>{
     expect(translationScopesIssues({...module,scopes:[{...module.scopes[0],maxSourceSentences:7}]})).toContain('maxSourceSentences');
     expect(translationScopesIssues({...module,scopes:[{...module.scopes[0],translationStart:{unitId:'t',offset:-1}}]})).toContain('translationStart');
     expect(translationScopesIssues({...module,scopes:[{...module.scopes[0],handoverUnitIds:['u','u']}]})).toContain('handoverUnitIds');
+    expect(translationScopesIssues({...module,scopes:[{...module.scopes[0],handoverUnitIds:['u'],completePreviousUnitIds:['other']}]})).toContain('completePreviousUnitIds');
+    const complete=module.scopes.find(scope=>scope.work==='theaetetus');
+    expect(translationScopesIssues({...module,scopes:[{...complete,localReferencePairs:[{originalUnitId:'u',translationUnitId:'t'}]}]})).toContain('completePreviousUnitIds');
     expect(translationScopesIssues({...module,scopes:[{...module.scopes[0],withheld:'yes'}]})).toContain('withheld');
   });
   it('withholds only an explicitly bound unreliable translation from cards',()=>{
@@ -94,12 +97,64 @@ describe('the corpus alignment of the stands',()=>{
     expect(result.receipt['a:e'].sourceScope.translationStart).toEqual(scope.translationStart);
     for(const translationStart of [{unitId:'other',offset:10},{unitId:'t',offset:100},{unitId:'t',offset:0}])expect(()=>alignCorpus(cited,works,read,[{...scope,translationStart}])).toThrow(/invalid or stale translation scope/);
   });
+  it('aligns explicitly matched whole reference units without changing the original or other units',()=>{
+    const original={id:'g',language:'grc',revision:'g-rev',units:[{id:'s1',reference:'Book 7 · 515',text:'λόγος.'},{id:'s2',reference:'Book 7 · 516',text:'ἄνω.'}]};
+    const translation={id:'r',language:'ru',revision:'r-rev',units:[{id:'t1',reference:'515',text:'Слово.'},{id:'t2',reference:'516',text:'Выше.'}]};
+    const read=()=>({id:'work',versions:[original,translation]}),cited=new Map([['a',{original:'g',units:new Set(['s1','s2'])}]]),works={a:'work'};
+    const scope={work:'a',translationVersionId:'r',translationRevision:'r-rev',originalVersionId:'g',originalRevision:'g-rev',firstUnitId:'s1',lastUnitId:'s2',source:'https://example.test/book',basis:'Same numbered place.',localReferencePairs:[{originalUnitId:'s2',translationUnitId:'t2'}]};
+    const baseline=alignCorpus(cited,works,read),result=alignCorpus(cited,works,read,[scope]);
+    expect(result.units.s1).toEqual(baseline.units.s1);
+    expect(result.units.s2.t.r.u).toEqual(['t2']);
+    expect(result.units.s2.t.r.pairs[0][1]).toEqual([[0,0,5]]);
+    expect(original.units[1]).toEqual({id:'s2',reference:'Book 7 · 516',text:'ἄνω.'});
+    expect(result.receipt['a:r'].sourceScope.localReferenceAlignments[0]).toMatchObject({...scope.localReferencePairs[0],how:'reference'});
+    for(const pair of [{originalUnitId:'s2',translationUnitId:'t1'},{originalUnitId:'missing',translationUnitId:'t2'},{originalUnitId:'s2',translationUnitId:'missing'}])expect(()=>alignCorpus(cited,works,read,[{...scope,localReferencePairs:[pair]}])).toThrow(/invalid or stale translation scope/);
+    expect(()=>alignCorpus(cited,works,read,[{...scope,originalRevision:'stale'}])).toThrow(/invalid or stale translation scope/);
+  });
+  it.skipIf(!corpusFetched)('matches the Russian Republic citation about habituation to its original',()=>{
+    const module=json('bonsai/antiquity/alignment.json'),work=read(module.works.republic.documentId);
+    const unit='tos.text-unit.sid-3dfba184a7244e53b1e30e372445e2f3',version=work.versions.find(v=>v.id==='retained-republic-ru-karpov1863-wikisource'),entry=module.units[unit].t[version.id];
+    const text=entry.pairs.filter(([spans])=>spans.some(([a,b])=>a<390&&335<b)).flatMap(([,targets])=>targets).map(([i,a,b])=>Array.from(version.units.find(u=>u.id===entry.u[i]).text).slice(a,b).join('')).join(' ');
+    expect(text).toContain('Понадобилась бы, думаю, привычка');
+    expect(text).not.toContain('Вдруг-то, конечно, не могли бы');
+    expect(module.works.republic.original.versionId).toBe('retained-republic-grc2-5f9f8ad62cdb');
+  });
+  it('keeps a scoped reference sentence that continues into the next translation unit',()=>{
+    const original={id:'g',language:'grc',revision:'g',units:[{id:'s',reference:'Book 1 · 434',text:'λόγος.'}]};
+    const translation={id:'r',language:'ru',revision:'r',units:[{id:'t1',reference:'434',text:'Первая часть'},{id:'t2',reference:'435',text:' продолжение. Другой текст.'}]};
+    const read=()=>({id:'work',versions:[original,translation]}),works={a:'work'},cited=new Map([['a',{original:'g',units:new Set(['s'])}]]);
+    const scope={work:'a',translationVersionId:'r',translationRevision:'r',originalVersionId:'g',originalRevision:'g',firstUnitId:'s',lastUnitId:'s',source:'https://example.test/book',basis:'The sentence crosses the reference.',localReferencePairs:[{originalUnitId:'s',translationUnitId:'t1',includeFollowingContinuation:true}]};
+    const entry=alignCorpus(cited,works,read,[scope]).units.s.t.r;
+    expect(entry.u).toEqual(['t1','t2']);
+    const text=entry.pairs[0][1].map(([i,a,b])=>Array.from(translation.units.find(u=>u.id===entry.u[i]).text).slice(a,b).join('')).join(' ');
+    expect(text).toBe('Первая часть продолжение.');
+    expect(()=>alignCorpus(cited,works,()=>({id:'work',versions:[original,{...translation,units:[{...translation.units[0],text:'Готово.'},translation.units[1]]}]}),[scope])).toThrow(/invalid or stale translation scope/);
+    expect(()=>alignCorpus(cited,works,()=>({id:'work',versions:[original,{...translation,units:[translation.units[0]]}]}),[scope])).toThrow(/invalid or stale translation scope/);
+  });
+  it.skipIf(!corpusFetched)('matches the Russian Republic transition from city to individual across the page break',()=>{
+    const module=json('bonsai/antiquity/alignment.json'),work=read(module.works.republic.documentId);
+    const unit='tos.text-unit.sid-30964fd34db4458c914156b4c619690a',version=work.versions.find(v=>v.id==='retained-republic-ru-karpov1863-wikisource'),entry=module.units[unit].t[version.id];
+    const text=entry.pairs.filter(([spans])=>spans.some(([a,b])=>a<1933&&1853<b)).flatMap(([,targets])=>targets).map(([i,a,b])=>Array.from(version.units.find(u=>u.id===entry.u[i]).text).slice(a,b).join('')).join(' ');
+    expect(text).toContain('перенесем на одного');
+    expect(text).toContain('станем испытывать город.');
+    expect(text).not.toContain('мы и устрояли его');
+  });
   it.skipIf(!corpusFetched)('aligns the Isagoge introduction with Owen rather than its table of contents',()=>{
     const module=json('bonsai/antiquity/alignment.json'),work=read(module.works.isagoge.documentId);
     const unit='tos.text-unit.sid-9c2f653ab2ef4d44bc4ae0e5218598b2',version=work.versions.find(v=>v.id==='retained-isagoge-en-owen1853-wikisource'),entry=module.units[unit].t[version.id];
     const text=entry.pairs.filter(([spans])=>spans.some(([a,b])=>a<607&&b>0)).flatMap(([,targets])=>targets).map(([i,a,b])=>Array.from(version.units.find(u=>u.id===entry.u[i]).text).slice(a,b).join('')).join(' ');
     expect(text).toContain('Since it is necessary, Chrysaorius');
     expect(text).not.toContain('Contents');
+  });
+  it.skipIf(!corpusFetched)('selects the English Apology passage about one mina',()=>{
+    const module=json('bonsai/antiquity/alignment.json'),work=module.works.apology;
+    const unit='tos.text-unit.sid-7d03459578bd4415ba5b16362b4422cb',entry=module.units[unit].t;
+    const selected=work.translations.find(version=>version.language==='en'&&entry[version.versionId]);
+    expect(selected.versionId).toBe('retained-apology-eng2-09ae91e79022');
+    const version=read(work.documentId).versions.find(item=>item.id===selected.versionId),pair=entry[selected.versionId];
+    const text=pair.pairs.filter(([source])=>source.some(([start,end])=>start<790&&716<end)).flatMap(([,targets])=>targets).map(([index,start,end])=>Array.from(version.units.find(item=>item.id===pair.u[index]).text).slice(start,end).join('')).join(' ');
+    expect(text).toContain('a mina of silver');
+    expect(text).not.toContain('thirty minas');
   });
   it.skipIf(!corpusFetched)('finds Russian Plato sentences retained in the preceding translated reference',()=>{
     const module=json('bonsai/antiquity/alignment.json'),scopes=json('bonsai/antiquity/translation-scopes.json').scopes;
@@ -131,6 +186,28 @@ describe('the corpus alignment of the stands',()=>{
       const text=matches.map(([i,a,b])=>Array.from(version.units.find(u=>u.id===entry.u[i]).text).slice(a,b).join('')).join(' ');
       expect(text).toContain(expected);
     }
+  });
+  it('retains the start of a scoped sentence whose continuation is paired twice',()=>{
+    const original={language:'grc',units:[{id:'g1',reference:'1',text:'ἄλλο. ἐπιστήμη.'},{id:'g2',reference:'2',text:'λόγος τοῦτο. ἄλλο πρῶτον. φησὶ γὰρ πάντων μέτρον.'}]};
+    const translation={language:'ru',units:[{id:'r1',reference:'1',text:'Иная речь. Иная мысль. Ты сказал, должно быть, не маловажное положение'},{id:'r2',reference:'2',text:'о знании, а такое, которое объявлял и Протагор; только он то же самое высказал другим образом, ибо говорил, что человек есть мера всех вещей.'}]};
+    const spans=options=>{
+      const entry=alignVersion(original,translation,new Set(['g2']),options).entries.g2;
+      const targets=entry.pairs.find(([source])=>source.some(([a,b])=>a<49&&26<b))[1];
+      return targets.map(([i,a,b])=>Array.from(translation.units.find(unit=>unit.id===entry.u[i]).text).slice(a,b).join(''));
+    };
+    expect(spans({handoverUnitIds:['g2']})).toEqual([translation.units[1].text]);
+    expect(spans({handoverUnitIds:['g2'],completePreviousUnitIds:['g2']})).toEqual(['Ты сказал, должно быть, не маловажное положение',translation.units[1].text]);
+    expect(()=>spans({completePreviousUnitIds:['g2']})).toThrow(/preceding continuation scope/);
+    expect(translation.units[0].text).toMatch(/положение$/);
+  });
+  it.skipIf(!corpusFetched)('keeps the Russian sentence containing the Theaetetus measure quotation',()=>{
+    const module=json('bonsai/antiquity/alignment.json'),work=module.works.theaetetus;
+    const version=read(work.documentId).versions.find(v=>v.id==='retained-theaetetus-ru-karpov1879-wikisource');
+    const entry=module.units['tos.text-unit.sid-e58e0cf5eda44f2b95ba3dfd9b58f887'].t[version.id];
+    const targets=entry.pairs.filter(([source])=>source.some(([a,b])=>a<244&&140<b)).flatMap(([,spans])=>spans);
+    const text=targets.map(([i,a,b])=>Array.from(version.units.find(unit=>unit.id===entry.u[i]).text).slice(a,b).join('')).join(' ');
+    expect(text).toMatch(/^Ты сказал, должно быть, не маловажное положение/);
+    expect(text).toContain('человек есть мера всех вещей');
   });
   it('can align a sentence across a translation reference inside a sentence',()=>{
     const original={language:'grc',units:[

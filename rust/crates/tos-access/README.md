@@ -116,22 +116,13 @@ compact JSON and typed native error/exit profile are:
 failure, 3 unavailable selected capability. Historical Python pretty JSON and
 FastMCP serialization are not silently substituted for this declared native profile.
 
-Maintained knowledge search now defaults to the selected legacy v1 engine,
-including the optional empty query, offset, filters and explicit legacy mode.
-Indexed mode retains its own cursor validation and QRY engine; compressed mode
-refuses without an explicitly prepared publication. The transport does not
-translate offsets into cursors or choose a fallback engine. The selected search
-cursor is a bounded, unsigned native paging request and can resume in a later
-CLI invocation or across HTTP/MCP processes while the same release remains
-current. It has a 900-second advisory expiry; every page reacquires the actual
-release disclosure hold. Native cursors are not Python or Worker cursor tokens.
-The selected search capabilities packet is available through CLI, GET/HEAD and MCP under its own
-held operation scope. Its engine-selection-only readiness does not issue a
-public grant. CLI arguments are bounded before option expansion; structured
-files, HTTP targets, MCP input and output retain their separate declared caps.
-Legacy ranking, complete counts, normalization and substring semantics remain
-in QRY, with its actual Python differential evidence; the consumer case checks
-complete selected bytes and final-flush custody through the existing wires.
+Knowledge search uses the compressed reader of an explicitly selected prepared
+publication. Omitted mode selects compressed; other modes are refused. The
+authenticated cursor binds the publication, query and filters, and expires
+after 15 minutes. Each page reacquires the selected disclosure hold. The search
+capabilities packet is available through CLI, GET/HEAD and MCP for the selected
+prepared publication. It checks required search objects without granting source
+authority. See the [compressed search contract](../../../access/COMPRESSED_SEARCH_V3.md).
 
 Selected knowledge contracts has an explicit native composition helper taking
 both borrowed original registry carriers. QRY validates their selected identity
@@ -202,11 +193,16 @@ JSON visits, with file identity checked across each read. The shared QRY
 View-only diagnostic materializes the first maintained philosophy view with
 100,000 total base/inline rows, 1,000,000 logical work steps and a 1 MiB packet
 bound; it parses that finite raw document again and grants no selected/current
-policy authority. Missing/invalid/oversized sources are failed checks. A legacy
-configured/present query store or partitioned source requires an explicit
-failed `query-store` check: this native diagnostic does not claim support for
-the Python compiled-store backend or rebuild it. The report is a mechanics
-snapshot, not full standalone cutover or source/rights admission.
+policy authority. Partitioned graph parts are verified and assembled under the
+same bounded diagnostic before view materialization. Missing, invalid or
+oversized sources are failed checks. The report is a mechanics snapshot, not
+full standalone cutover or source/rights admission.
+
+`coverage` and `source-projection-coverage` accept an explicitly selected
+prepared publication plus its independent binding. They enumerate normalized
+carriers under finite limits and recheck the selection before the terminal
+summary. A separately supplied `--graph` must contain normalized knowledge
+carriers; a philosophy source projection is not that graph.
 
 Runtime contracts are compiled software bytes. The native service exposes API
 and MCP routes; it does not serve the public research site. Native MCP is built-in Rust

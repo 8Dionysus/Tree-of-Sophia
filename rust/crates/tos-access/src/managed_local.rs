@@ -406,9 +406,7 @@ fn intended(operation: O) -> &'static str {
         O::ExplorationContracts => {
             unreachable!("software contracts do not select source authority")
         }
-        O::SearchCapabilities => {
-            tos_query::knowledge_legacy_search::SEARCH_CAPABILITIES_INTENDED_USE
-        }
+        O::SearchCapabilities => unreachable!("prepared search publication required"),
         O::Dossier => tos_query::source_dossier::DOSSIER_INTENDED_USE,
         O::Node | O::Relation => tos_query::INSPECT_INTENDED_USE,
         _ => unreachable!("philosophy handled above"),
@@ -495,6 +493,9 @@ impl AccessExecutor for ManagedLocalExecutor {
         )
     }
     fn knowledge_available(&self, operation: O) -> bool {
+        if operation == O::SearchCapabilities {
+            return false;
+        }
         if operation == O::AccessHealth {
             return self.access_health_available();
         }
@@ -520,9 +521,6 @@ impl AccessExecutor for ManagedLocalExecutor {
         } else {
             operation != O::Dossier || self.original.is_some()
         }
-    }
-    fn knowledge_search_legacy_available(&self) -> bool {
-        true
     }
     fn knowledge_search_indexed_available(&self) -> bool {
         self.release.acquire().is_ok()
@@ -580,52 +578,6 @@ impl AccessExecutor for ManagedLocalExecutor {
         )?;
         crate::knowledge::check_abort(&probe)?;
         Ok(crate::knowledge::from_indexed_search(packet))
-    }
-    fn knowledge_search_legacy(
-        &self,
-        request: tos_query::knowledge_legacy_search::LegacySearchRequest,
-        probe: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket<'static>, AccessError> {
-        let cold = self
-            .model
-            .lock()
-            .map_err(|_| unavailable("selected native model lock poisoned"))?;
-        let mut model = cold
-            .fork_reader_with_vm_budget(self.cold.max_vm_steps)
-            .map_err(|_| unavailable("selected native reader unavailable"))?;
-        drop(cold);
-        let bound = tos_query::bind_verified_knowledge(&model, &self.vocabulary, &self.descriptor)?;
-        let mut authority = Authority::new(
-            self,
-            &bound,
-            tos_query::knowledge_legacy_search::LEGACY_SEARCH_OPERATION,
-            tos_query::knowledge_legacy_search::LEGACY_SEARCH_INTENDED_USE,
-        )?;
-        let inspect = self.budgets().inspect;
-        let work = usize::try_from(self.cold.max_work_bytes).unwrap_or(usize::MAX);
-        let budget = tos_query::knowledge_legacy_search::LegacySearchBudget {
-            inspect,
-            document: tos_query::SearchDocumentBudget {
-                max_carrier_bytes: self.cold.max_row_bytes,
-                max_document_bytes: work,
-                max_document_code_points: work,
-                json: inspect.json,
-            },
-            max_candidates: usize::try_from(self.cold.max_rows).unwrap_or(usize::MAX),
-            max_document_bytes: self.cold.max_work_bytes,
-            max_document_code_points: self.cold.max_work_bytes,
-            max_retained_per_kind: usize::try_from(self.cold.max_rows).unwrap_or(usize::MAX),
-            max_retained_bytes: work,
-            block_size: 128,
-        };
-        crate::knowledge::execute_selected_legacy_search(
-            &mut model,
-            &bound,
-            &mut authority,
-            &request,
-            budget,
-            probe,
-        )
     }
     fn knowledge(
         &self,

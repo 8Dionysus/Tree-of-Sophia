@@ -130,10 +130,6 @@ fn main() {
         return;
     }
     #[cfg(not(target_arch = "wasm32"))]
-    if let Some(code) = tos_access::core_snapshot::run_if_requested(&args, &mut std::io::stdin()) {
-        std::process::exit(code);
-    }
-    #[cfg(not(target_arch = "wasm32"))]
     if let Some(code) = tos_access::coverage::run_if_requested(
         &args,
         &mut std::io::stdout(),
@@ -412,7 +408,7 @@ fn main() {
         )
     }) {
         eprintln!(
-            "usage: tos-access [--release-root ABSOLUTE_DIRECTORY] mcp | serve [LOOPBACK:PORT] | source descend NODE_ID | knowledge search QUERY [--mode legacy|indexed|compressed] | public-corpus-build --source-root ABS --selection REL --output FRESH_ABS --max-input-bytes N --max-output-bytes N --max-seconds N"
+            "usage: tos-access [--release-root ABSOLUTE_DIRECTORY] mcp | serve [LOOPBACK:PORT] | source descend NODE_ID | knowledge search QUERY [--mode compressed] | public-corpus-build --source-root ABS --selection REL --output FRESH_ABS --max-input-bytes N --max-output-bytes N --max-seconds N"
         );
         std::process::exit(2);
     }
@@ -600,7 +596,7 @@ fn main() {
             let code=cli::run_cli(&route,executor.as_ref(),profile,&mut std::io::stdout(),&mut std::io::stderr());
             std::process::exit(code)
         },
-        _=>Err("usage: tos-access [--release-root ABSOLUTE_DIRECTORY] mcp | serve [LOOPBACK:PORT] | source descend NODE_ID | knowledge search QUERY [--mode legacy|indexed|compressed]".to_owned()),
+        _=>Err("usage: tos-access [--release-root ABSOLUTE_DIRECTORY] mcp | serve [LOOPBACK:PORT] | source descend NODE_ID | knowledge search QUERY [--mode compressed]".to_owned()),
     };
     if let Err(message) = result {
         eprintln!("{message}");

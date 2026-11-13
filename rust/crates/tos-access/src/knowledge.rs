@@ -943,14 +943,12 @@ pub fn execute_selected_knowledge<'hold>(
             )?;
             from_inspect(packet)
         }
-        KnowledgeRequest::SearchCapabilities => from_inspect(
-            tos_query::knowledge_legacy_search::execute_selected_search_capabilities(
-                model,
-                bound,
-                &mut inspect,
-                budgets.inspect,
-            )?,
-        ),
+        KnowledgeRequest::SearchCapabilities => {
+            return Err(AccessError::new(
+                AccessErrorCode::Unavailable,
+                "prepared search publication unavailable",
+            ));
+        }
         KnowledgeRequest::Dossier { object_id, limit } => {
             from_inspect(tos_query::source_dossier::execute_selected_dossier(
                 model,
@@ -1049,35 +1047,6 @@ pub fn execute_selected_knowledge<'hold>(
     check_abort(&probe)?;
     Ok(packet)
 }
-/// Native transport adapter for the maintained v1 engine, with exact owner scope.
-/// The session supplies its selected model, authority and explicit scan budgets.
-pub fn execute_selected_legacy_search<'hold>(
-    model: &mut tos_compiler::VerifiedKnowledgeModel<'_>,
-    bound: &tos_query::BoundCmpKnowledge<'_>,
-    authority: &mut dyn tos_query::InspectCurrentAuthority<'hold>,
-    request: &tos_query::knowledge_legacy_search::LegacySearchRequest,
-    budget: tos_query::knowledge_legacy_search::LegacySearchBudget,
-    probe: Arc<dyn AbortProbe>,
-) -> Result<PreparedPacket<'hold>, AccessError> {
-    check_abort(&probe)?;
-    let owner_probe = combined_probe(Arc::clone(&probe), authority.abort_probe());
-    let mut authority = InspectProbe {
-        inner: authority,
-        probe: owner_probe,
-    };
-    let packet = from_inspect(
-        tos_query::knowledge_legacy_search::execute_selected_legacy_search(
-            model,
-            bound,
-            &mut authority,
-            request,
-            budget,
-        )?,
-    );
-    check_abort(&probe)?;
-    Ok(packet)
-}
-
 /// Execute contracts only when the trusted selected session supplies both exact
 /// borrowed registry carriers. Its authority hold must cover both grants.
 /// The generic dispatcher remains unavailable without that owner composition.
@@ -1378,33 +1347,6 @@ pub fn execute_selected_corpus<'hold>(
     Ok(from_inspect(packet))
 }
 
-pub(crate) fn execute_selected_corpus_graph_views_with_state<'hold>(
-    model: &mut tos_compiler::VerifiedKnowledgeModel<'_>,
-    bound: &tos_query::BoundCmpKnowledge<'_>,
-    authority: &mut dyn tos_query::InspectCurrentAuthority<'hold>,
-    context: &tos_query::corpus_read::CorpusReadContext,
-    budget: tos_query::corpus_read::CorpusReadBudget,
-    probe: Arc<dyn AbortProbe>,
-    remaining_state_bytes: usize,
-) -> Result<PreparedPacket<'hold>, AccessError> {
-    check_abort(&probe)?;
-    let probe = combined_probe(probe, authority.abort_probe());
-    let mut authority = InspectProbe {
-        inner: authority,
-        probe: Arc::clone(&probe),
-    };
-    let packet = tos_query::corpus_read::execute_selected_corpus_graph_views_with_state(
-        model,
-        bound,
-        &mut authority,
-        context,
-        budget,
-        remaining_state_bytes,
-    )?;
-    check_abort(&probe)?;
-    Ok(from_inspect(packet))
-}
-
 /// Internal site metadata uses the existing Summary scope and current hold.
 pub fn execute_selected_corpus_view_ids<'hold>(
     model: &mut tos_compiler::VerifiedKnowledgeModel<'_>,
@@ -1532,8 +1474,4 @@ pub(crate) fn execute_selected_philosophy_audit<'hold>(
     )?;
     check_abort(&probe)?;
     Ok(from_inspect(packet))
-}
-
-pub(crate) fn combined_probe_state_bytes() -> usize {
-    std::mem::size_of::<CombinedProbe>()
 }

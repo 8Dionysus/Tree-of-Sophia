@@ -1,18 +1,19 @@
 //! Explicit normalized-snapshot observation. No assessment or source writes.
+use crate::prepared_coverage::{
+    PreparedCoverageKind, PreparedCoverageLimits, PreparedCoverageSource,
+};
 use serde_json::{Value, json};
 use std::{
     collections::BTreeMap,
+    fs,
     io::{Read, Write},
+    os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
     sync::Arc,
     time::{Duration, Instant},
 };
-use tos_foundation::{JsonLimits, JsonMode, emit_value_preserved_json, parse_json};
-use tos_query::knowledge_presentation::HUMAN_FORM_ROLES as ROLES;
-use tos_query::{
-    AbortProbe,
-    source_diagnostic::{DiagnosticError, LegacyStore, Limits},
-};
+use tos_foundation::{JsonLimits, JsonMode, JsonValue, emit_value_preserved_json, parse_json};
+use tos_query::{AbortProbe, AbortReason, knowledge_presentation::HUMAN_FORM_ROLES as ROLES};
 const ROW_BYTES: usize = 4 * 1024 * 1024;
 const GRAPH_BYTES: usize = 16 * 1024 * 1024;
 const MAX_GROUPS: usize = 4096;
@@ -25,6 +26,13 @@ const LIMITATIONS: [&str; 7] = [
     "No rights, payload availability, language, or truth is inferred from missing data.",
     "The report describes this exact projection, not generated currentness or runtime health.",
 ];
+
+struct CoverageDeadline(Instant);
+impl AbortProbe for CoverageDeadline {
+    fn reason(&self) -> Option<AbortReason> {
+        (Instant::now() >= self.0).then_some(AbortReason::DeadlineExceeded)
+    }
+}
 fn validate_language(language: &str) -> Result<(), String> {
     if language.len() <= 128
         && (matches!(language, "auto" | "original")
@@ -351,14 +359,54 @@ fn emit(out: &mut dyn Write, value: &Value) -> Result<(), String> {
         .and_then(|_| out.flush())
         .map_err(|e| e.to_string())
 }
-struct Deadline(Instant);
-impl AbortProbe for Deadline {
-    fn reason(&self) -> Option<tos_query::AbortReason> {
-        (Instant::now() >= self.0).then_some(tos_query::AbortReason::DeadlineExceeded)
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct Stamp(u64, u64, u64, i64, i64, i64, i64);
+impl Stamp {
+    fn read(metadata: &fs::Metadata) -> Self {
+        Self(
+            metadata.dev(),
+            metadata.ino(),
+            metadata.len(),
+            metadata.mtime(),
+            metadata.mtime_nsec(),
+            metadata.ctime(),
+            metadata.ctime_nsec(),
+        )
     }
 }
-fn read_json(path: &str, cap: usize, deadline: Instant) -> Result<Value, String> {
+struct SelectedGraph {
+    path: PathBuf,
+    file: fs::File,
+    stamp: Stamp,
+}
+impl SelectedGraph {
+    fn verify_currentness(&self) -> Result<(), String> {
+        let held = self
+            .file
+            .metadata()
+            .map_err(|_| "selected coverage graph descriptor unavailable")?;
+        let metadata =
+            fs::symlink_metadata(&self.path).map_err(|_| "selected coverage graph disappeared")?;
+        if !held.is_file()
+            || Stamp::read(&held) != self.stamp
+            || !metadata.is_file()
+            || metadata.file_type().is_symlink()
+            || Stamp::read(&metadata) != self.stamp
+        {
+            return Err("selected coverage graph changed before completion".into());
+        }
+        Ok(())
+    }
+}
+fn read_json(
+    path: &str,
+    cap: usize,
+    deadline: Instant,
+    collections: Option<&[&str]>,
+    max_rows: u64,
+) -> Result<(Value, Option<SelectedGraph>), String> {
     let mut bytes = Vec::new();
+    let mut selected_graph = None;
     if path == "-" {
         let mut stdin = std::io::stdin();
         let mut chunk = [0u8; 65536];
@@ -394,12 +442,25 @@ fn read_json(path: &str, cap: usize, deadline: Instant) -> Result<Value, String>
             bytes.extend_from_slice(&chunk[..n]);
         }
     } else {
-        let file = tos_fd_open::open_absolute_regular(Path::new(path), cap as u64)
-            .map_err(|e| e.to_string())?;
-        (&file)
+        let path = Path::new(path);
+        let file =
+            tos_fd_open::open_absolute_regular(path, cap as u64).map_err(|e| e.to_string())?;
+        let stamp = Stamp::read(&file.metadata().map_err(|e| e.to_string())?);
+        let selected = SelectedGraph {
+            path: path.to_owned(),
+            file,
+            stamp,
+        };
+        selected.verify_currentness()?;
+        (&selected.file)
             .take(cap as u64 + 1)
             .read_to_end(&mut bytes)
             .map_err(|e| e.to_string())?;
+        if Stamp::read(&selected.file.metadata().map_err(|e| e.to_string())?) != stamp {
+            return Err("coverage graph changed during read".into());
+        }
+        selected.verify_currentness()?;
+        selected_graph = Some(selected);
     }
     let value = parse_json(
         &bytes,
@@ -413,7 +474,7 @@ fn read_json(path: &str, cap: usize, deadline: Instant) -> Result<Value, String>
     )
     .map_err(|e| e.to_string())?
     .into_root();
-    serde_json::from_slice(
+    let value: Value = serde_json::from_slice(
         &emit_value_preserved_json(
             &value,
             JsonLimits {
@@ -425,66 +486,41 @@ fn read_json(path: &str, cap: usize, deadline: Instant) -> Result<Value, String>
         )
         .map_err(|e| e.to_string())?,
     )
-    .map_err(|e| e.to_string())
+    .map_err(|e| e.to_string())?;
+    let value = if value.get("schema_version").and_then(Value::as_str)
+        == Some("tos_partitioned_projection_v1")
+    {
+        let collections =
+            collections.ok_or("coverage-row does not accept partitioned projection roots")?;
+        let selected = selected_graph
+            .as_ref()
+            .ok_or("partitioned projection input requires an absolute file path")?;
+        let cap_bytes = cap as u64;
+        let (assembled, _) = crate::partitioned_projection::materialize_collections(
+            &bytes,
+            &selected.path,
+            collections,
+            tos_compiler::d1_projection_snapshot::D1ProjectionLimits {
+                max_opened_parts: cap_bytes,
+                max_read_bytes: cap_bytes,
+                max_stored_read_bytes: cap_bytes,
+                max_decoded_bytes: cap_bytes,
+                max_keys: max_rows,
+                max_rows,
+                max_changes: 0,
+                max_output_bytes: cap_bytes,
+            },
+            deadline,
+        )?;
+        if assembled.len() > cap {
+            return Err("coverage materialized graph byte budget exceeded".into());
+        }
+        serde_json::from_slice(&assembled).map_err(|e| e.to_string())?
+    } else {
+        value
+    };
+    Ok((value, selected_graph))
 }
-fn selected(root: &Path, env: &str, relative: &str) -> PathBuf {
-    let p = std::env::var_os(env)
-        .filter(|v| !v.is_empty())
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(relative));
-    if p.is_absolute() { p } else { root.join(p) }
-}
-/// Select the authenticated maintained normalized snapshot without reconstructing
-/// a graph. Source comparison diagnostics share this exact input binding seam.
-pub fn open_knowledge_store(
-    root: &Path,
-    limits: Limits,
-    deadline: Instant,
-) -> Result<LegacyStore, String> {
-    if !root.is_absolute() {
-        return Err("coverage --root must be absolute".into());
-    }
-    let specs = [
-        (
-            "TOS_CORPUS_INDEX_PATH",
-            "ToS/derived-exports/tos_corpus_index.min.json",
-        ),
-        (
-            "TOS_PHILOSOPHY_GRAPH_PROJECTION_PATH",
-            "ToS/derived-exports/philosophy_graph_projection.min.json",
-        ),
-        (
-            "TOS_BIBLIOGRAPHIC_GRAPH_PATH",
-            "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
-        ),
-        (
-            "TOS_ENTITY_TYPE_REGISTRY_PATH",
-            "ToS/doctrine/semantic-interchange/entity-types.v1.json",
-        ),
-        (
-            "TOS_RELATION_TYPE_REGISTRY_PATH",
-            "ToS/doctrine/semantic-interchange/relation-types.v1.json",
-        ),
-    ];
-    let inputs: Vec<_> = specs
-        .into_iter()
-        .map(|(env, rel)| (rel.into(), selected(root, env, rel)))
-        .collect();
-    let path = selected(
-        root,
-        "TOS_QUERY_STORE_PATH",
-        "ToS/derived-exports/runtime/knowledge.sqlite3",
-    );
-    LegacyStore::open(
-        &path,
-        &inputs,
-        limits,
-        deadline,
-        Arc::new(Deadline(deadline)),
-    )
-    .map_err(|e| e.to_string())
-}
-
 fn report_graph(
     graph: &Value,
     language: &str,
@@ -492,6 +528,7 @@ fn report_graph(
     deadline: Instant,
     rows: bool,
     out: &mut dyn Write,
+    verify_graph: &dyn Fn() -> Result<(), String>,
 ) -> Result<(), String> {
     let mut report = Report::default();
     let revision = required(graph, "source_revision")?;
@@ -516,13 +553,96 @@ fn report_graph(
     if Instant::now() >= deadline {
         return Err("coverage deadline exceeded before completion".into());
     }
+    verify_graph()?;
     emit(out, &report.finish(revision, language))
+}
+
+fn prepared_coverage_limits(
+    max_bytes: u64,
+    max_rows: u64,
+) -> Result<PreparedCoverageLimits, String> {
+    let max_total_bytes =
+        usize::try_from(max_bytes).map_err(|_| "coverage byte budget does not fit memory")?;
+    let max_rows =
+        usize::try_from(max_rows).map_err(|_| "coverage row budget does not fit memory")?;
+    let mut limits = PreparedCoverageLimits::default();
+    limits.admission.max_bytes = max_total_bytes;
+    limits.admission.max_metadata_bytes = max_total_bytes.min(limits.admission.max_metadata_bytes);
+    limits.admission.max_response_bytes = max_total_bytes;
+    limits.admission.max_row_bytes = ROW_BYTES.min(max_total_bytes);
+    limits.max_rows = max_rows;
+    limits.max_row_bytes = ROW_BYTES.min(max_total_bytes);
+    limits.max_total_bytes = max_total_bytes;
+    limits.max_vm_steps = 100_000_000;
+    Ok(limits)
+}
+
+fn prepared_record_value(record: &JsonValue, max_bytes: usize) -> Result<Value, String> {
+    let encoded = emit_value_preserved_json(
+        record,
+        JsonLimits {
+            max_bytes,
+            max_depth: 96,
+            max_visits: 1_000_000,
+            max_integer_digits: 4_300,
+        },
+    )
+    .map_err(|error| error.to_string())?;
+    serde_json::from_slice(&encoded).map_err(|error| error.to_string())
+}
+
+fn report_prepared_graph(
+    publication: PathBuf,
+    binding: PathBuf,
+    language: &str,
+    row_limit: u64,
+    max_bytes: u64,
+    deadline: Instant,
+    rows: bool,
+    out: &mut dyn Write,
+) -> Result<(), String> {
+    let limits = prepared_coverage_limits(max_bytes, row_limit)?;
+    let source = PreparedCoverageSource::new(publication, binding, limits)?;
+    let mut report = Report::default();
+    let result = source.visit(deadline, Arc::new(CoverageDeadline(deadline)), |row| {
+        let item = prepared_record_value(row.record, limits.max_row_bytes)?;
+        if (row.kind == PreparedCoverageKind::Relation) != item.get("from_id").is_some() {
+            return Err("prepared coverage row kind differs from normalized carrier".into());
+        }
+        let observation = coverage_row(&item, language)?;
+        report.observe(&observation)?;
+        if rows {
+            emit(
+                out,
+                &json!({
+                    "schema_version":"tos_knowledge_coverage_row_v1",
+                    "source_revision":row.source_revision,
+                    "observation":observation
+                }),
+            )?;
+        }
+        Ok(())
+    })?;
+    let mut summary = result.summary;
+    if report.nodes != summary.nodes as u64 || report.relations != summary.relations as u64 {
+        return Err("prepared coverage enumeration count mismatch".into());
+    }
+    if Instant::now() >= deadline {
+        return Err("coverage deadline exceeded before completion".into());
+    }
+    let terminal = report.finish(&json!(summary.source_revision), language);
+    let abort = Arc::new(CoverageDeadline(deadline));
+    let mut guard = result.guard;
+    guard.recheck(&mut summary, deadline, abort)?;
+    emit(out, &terminal)
 }
 
 fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
     let mut language = "auto";
     let mut input = None;
     let mut root = None;
+    let mut prepared_model = None;
+    let mut prepared_binding = None;
     let mut rows = false;
     let mut bytes = 256 * 1024 * 1024u64;
     let mut row_limit = 1000000u64;
@@ -549,6 +669,16 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
                     return Err("duplicate coverage root".into());
                 }
             }
+            "--prepared-read-model" => {
+                if prepared_model.replace(value.as_str()).is_some() {
+                    return Err("duplicate prepared read model".into());
+                }
+            }
+            "--prepared-binding" => {
+                if prepared_binding.replace(value.as_str()).is_some() {
+                    return Err("duplicate prepared binding".into());
+                }
+            }
             "--max-input-bytes" => bytes = value.parse().map_err(|_| "invalid byte budget")?,
             "--max-rows" => row_limit = value.parse().map_err(|_| "invalid row budget")?,
             "--max-seconds" => seconds = value.parse().map_err(|_| "invalid deadline")?,
@@ -565,51 +695,60 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
     {
         return Err("coverage budget outside supported envelope".into());
     }
-    if input.is_some() == root.is_some() {
-        return Err("coverage requires exactly one --root or --graph/--input".into());
-    }
     let deadline = Instant::now() + Duration::from_secs(seconds);
     if args[0] == "coverage-row" {
-        if rows || root.is_some() {
+        if rows || root.is_some() || prepared_model.is_some() || prepared_binding.is_some() {
             return Err("coverage-row requires --input".into());
         }
-        let row = coverage_row(
-            &read_json(input.unwrap(), ROW_BYTES.min(bytes as usize), deadline)?,
-            language,
-        )?;
+        let input = input.ok_or("coverage-row requires --input")?;
+        let (value, selected) = read_json(input, ROW_BYTES.min(bytes as usize), deadline, None, 1)?;
+        let row = coverage_row(&value, language)?;
         if Instant::now() >= deadline {
             return Err("coverage-row deadline exceeded".into());
         }
+        if let Some(selected) = selected {
+            selected.verify_currentness()?;
+        }
         return emit(out, &row);
     }
+    if prepared_model.is_some() != prepared_binding.is_some() {
+        return Err(
+            "prepared coverage requires both --prepared-read-model and --prepared-binding".into(),
+        );
+    }
+    if let (Some(model), Some(binding)) = (prepared_model, prepared_binding) {
+        if input.is_some() || root.is_some() {
+            return Err("prepared coverage cannot be combined with --root or --graph".into());
+        }
+        let model = PathBuf::from(model);
+        let binding = PathBuf::from(binding);
+        return report_prepared_graph(
+            model, binding, language, row_limit, bytes, deadline, rows, out,
+        );
+    }
+    if input.is_some() == root.is_some() {
+        return Err("coverage requires exactly one --root, --graph/--input, or prepared read-model/binding pair".into());
+    }
     if let Some(path) = input {
-        let graph = read_json(path, GRAPH_BYTES.min(bytes as usize), deadline)?;
-        report_graph(&graph, language, row_limit, deadline, rows, out)
+        let (graph, selected) = read_json(
+            path,
+            GRAPH_BYTES.min(bytes as usize),
+            deadline,
+            Some(&["nodes", "relations"]),
+            row_limit,
+        )?;
+        let verify = || {
+            selected
+                .as_ref()
+                .map_or(Ok(()), SelectedGraph::verify_currentness)
+        };
+        report_graph(&graph, language, row_limit, deadline, rows, out, &verify)
     } else {
-        let mut report = Report::default();
         let root = Path::new(root.unwrap());
         if !root.is_absolute() {
             return Err("coverage --root must be absolute".into());
         }
-        let mut store = open_knowledge_store(
-            root,
-            Limits {
-                max_input_bytes: bytes,
-                max_json_bytes: ROW_BYTES,
-                max_rows: row_limit,
-                max_work_steps: 100000000,
-                max_sql_vm_steps: 100000000,
-                sqlite_cache_kib: 8192,
-            },
-            deadline,
-        )?;
-        let revision = required(&store.graph_header, "source_revision")?.clone();
-        let counts=store.visit_knowledge_carriers(|item| {let row=coverage_row(item,language).map_err(DiagnosticError)?;report.observe(&row).map_err(DiagnosticError)?;if rows{emit(out,&json!({"schema_version":"tos_knowledge_coverage_row_v1","source_revision":revision,"observation":row})).map_err(DiagnosticError)?;} Ok(())}).map_err(|e|e.to_string())?;
-        if counts != (report.nodes, report.relations) {
-            return Err("coverage enumeration count mismatch".into());
-        }
-        store.verify_currentness().map_err(|e| e.to_string())?;
-        emit(out, &report.finish(&revision, language))
+        Err("coverage --root has no selected normalized knowledge publication reader after diagnostic query-store retirement; use --graph with a normalized knowledge graph".into())
     }
 }
 pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> Option<i32> {
@@ -622,7 +761,7 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
     if args.len() == 2 && matches!(args[1].as_str(), "--help" | "-h") {
         let _ = writeln!(
             out,
-            "coverage --root ABS | --graph ABS_JSON|- [--language auto|original|TAG] [--rows] [--max-input-bytes N --max-rows N --max-seconds N]\ncoverage-row --input ABS_JSON|- [--language TAG]\nThe root route requires a completed snapshot-bound offline query store. Rows without a terminal summary are incomplete. No source assessment or mutation."
+            "coverage --prepared-read-model ABS --prepared-binding ABS | --graph ABS_JSON|- [--language auto|original|TAG] [--rows] [--max-input-bytes N --max-rows N --max-seconds N]\ncoverage-row --input ABS_JSON|- [--language TAG]\n--prepared-read-model/--prepared-binding selects normalized knowledge carriers. --graph accepts a normalized knowledge graph. The retired --root route is unavailable and does not read the philosophy graph projection. Rows without a terminal summary are incomplete. No source assessment or mutation."
         );
         return Some(0);
     }
@@ -686,7 +825,8 @@ mod tests {
                 1,
                 Instant::now() + Duration::from_secs(5),
                 true,
-                &mut output
+                &mut output,
+                &|| Ok(())
             )
             .is_err()
         );
@@ -714,7 +854,8 @@ mod tests {
                 10,
                 Instant::now() + Duration::from_secs(5),
                 true,
-                &mut Broken
+                &mut Broken,
+                &|| Ok(())
             )
             .is_err()
         );
@@ -730,5 +871,20 @@ mod tests {
         let mut bad = carrier();
         bad.as_object_mut().unwrap().remove("content_revision");
         assert!(coverage_row(&bad, "auto").is_err());
+    }
+
+    #[test]
+    fn root_route_refuses_without_a_normalized_publication_reader() {
+        let error = execute(
+            &[
+                "coverage".into(),
+                "--root".into(),
+                "/tmp/unused-coverage-root".into(),
+            ],
+            &mut Vec::new(),
+        )
+        .unwrap_err();
+        assert!(error.contains("no selected normalized knowledge publication reader"));
+        assert!(error.contains("use --graph"));
     }
 }
