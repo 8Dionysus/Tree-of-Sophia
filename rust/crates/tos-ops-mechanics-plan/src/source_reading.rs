@@ -1663,6 +1663,48 @@ impl RouteSources {
         self.verify_root()?;
         Ok(paths.into_iter().collect())
     }
+
+    /// Physical inventory with an explicit per-walk ceiling. A caller that
+    /// selects this route must account for the returned paths and traversal
+    /// workspace in its own whole-operation budget. Previous unrelated walks
+    /// still consume the shared operation allowance, but not this walk's
+    /// independently selected entry ceiling.
+    pub fn selected_physical_paths_with_limit(
+        &mut self,
+        relative: &str,
+        selected: &dyn Fn(&str, bool) -> bool,
+        max_entries: usize,
+    ) -> io::Result<Vec<String>> {
+        if max_entries == 0 || max_entries > MAX_SELECTED_PATH_DISCOVERY_ENTRIES {
+            return Err(invalid("physical discovery limit outside finite ceiling"));
+        }
+        if !selected(relative, true) {
+            return Err(invalid("physical discovery root is outside caller scope"));
+        }
+        self.verify_root()?;
+        let mut paths = BTreeSet::new();
+        if let Some(dir) = self.open(relative)?
+            && dir.metadata()?.is_dir()
+        {
+            let mut local_entries = 0usize;
+            self.walk_held(
+                &dir,
+                relative,
+                &mut paths,
+                &mut local_entries,
+                true,
+                false,
+                usize::MAX,
+                false,
+                selected,
+                true,
+                max_entries,
+                MAX_RELATIVE_PATH_BYTES,
+            )?;
+        }
+        self.verify_root()?;
+        Ok(paths.into_iter().collect())
+    }
 }
 pub fn write_output(root: &Path, path: &Path, rendered: &str) -> io::Result<()> {
     if rendered.len() > MAX_OUTPUT {
@@ -1963,6 +2005,49 @@ fn line_count(text: &str) -> usize {
 mod foundation_custody_cases {
     use super::*;
     use std::os::unix::fs::symlink;
+
+    #[test]
+    fn physical_inventory_has_a_local_bounded_walk_after_other_discovery() {
+        struct Root(PathBuf);
+        impl Drop for Root {
+            fn drop(&mut self) {
+                let _ = fs::remove_dir_all(&self.0);
+            }
+        }
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = Root(std::env::temp_dir().join(format!(
+            "tos-physical-discovery-{}-{nonce}",
+            std::process::id()
+        )));
+        fs::create_dir(&root.0).unwrap();
+        fs::create_dir(root.0.join("private")).unwrap();
+        fs::write(root.0.join("private/source"), b"source").unwrap();
+        symlink("source", root.0.join("private/link")).unwrap();
+        let mut routes = RouteSources::new(&root.0).unwrap();
+        routes.entries = MAX_ENTRIES;
+        assert!(
+            routes
+                .selected_physical_paths("private", &|_, _| true)
+                .is_err()
+        );
+        let paths = routes
+            .selected_physical_paths_with_limit("private", &|_, _| true, 2)
+            .unwrap();
+        assert_eq!(paths, ["private/link", "private/source"]);
+        assert!(
+            routes
+                .selected_physical_paths_with_limit("private", &|_, _| true, 1)
+                .is_err()
+        );
+        assert!(
+            routes
+                .selected_physical_paths_with_limit("private", &|_, _| true, 0)
+                .is_err()
+        );
+    }
 
     #[test]
     fn related_roots_exhaust_one_allowance_before_another_anchor_open() {
